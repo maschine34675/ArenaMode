@@ -3,8 +3,8 @@ using System;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Pure decisions for the Factory horde crowd: pull an infected who has
-/// walked out of the player's neighbourhood back onto a ring behind them,
+/// Pure decisions for the optional horde: pull an infected who has
+/// walked out of the player's neighbourhood back onto a ring around them,
 /// and let melee infected treat a nearby player as seen without a HighPoly
 /// linecast. No Unity or EFT types, so the test project can link this file.
 /// Shooters stay on the native cast. A follower is never eligible.
@@ -14,10 +14,10 @@ internal static class ZombieCrowdPolicy
     /// <summary>Beyond this, the body is recalled. Inside it, native movement stands.</summary>
     internal const float RecallDistance = 26f;
 
-    /// <summary>Placement distance from the player, on the side opposite the look direction.</summary>
+    /// <summary>Nominal placement distance; each body's yaw spans the full ring.</summary>
     internal const float RingDistance = 16f;
 
-    /// <summary>Inner, middle and outer rings. A full inner ring must not stop the rest of the horde.</summary>
+    /// <summary>Try inner, middle and outer rings; leave the body alone if all are occupied.</summary>
     internal static readonly float[] RingRadii = { 12f, 16f, 22f };
 
     /// <summary>Distinct approach angles. Finer than the eight legacy yaw presets.</summary>
@@ -26,7 +26,7 @@ internal static class ZombieCrowdPolicy
     /// <summary>Same body is not recalled again until this many seconds have passed.</summary>
     internal const float RecallCooldown = 2f;
 
-    /// <summary>Melee vision is granted inside this range and refused beyond it, with no cast either way.</summary>
+    /// <summary>Melee vision is granted inside this range; beyond it the native cast runs.</summary>
     internal const float SenseDistance = 80f;
 
     /// <summary>Yaw offsets applied to the behind-vector. Each body starts at its own slot.</summary>
@@ -47,33 +47,6 @@ internal static class ZombieCrowdPolicy
         int slot = bodyId % RingSlots;
         if (slot < 0) slot += RingSlots;
         return slot * (360f / RingSlots);
-    }
-
-    /// <summary>Bodies farther than this, or behind the player, use one bone.</summary>
-    internal const float DetailDistance = 6f;
-
-    /// <summary>Behind the look direction and farther than this, the mesh is not drawn.</summary>
-    internal const float HideDistance = 3f;
-
-    /// <summary>Look-direction dot below this is behind the player.</summary>
-    internal const float HideLookDot = -0.2f;
-
-    internal enum BodyPresentation { Detail, Simple, Hidden }
-
-    /// <summary>
-    /// Detail keeps two bones in front and close. Simple is one bone.
-    /// Hidden is not drawn. A bad distance stays detailed so a glitch does not blank the horde.
-    /// </summary>
-    internal static BodyPresentation Presentation(float distance, float lookDot)
-    {
-        if (float.IsNaN(distance) || float.IsInfinity(distance) || distance < 0f
-            || float.IsNaN(lookDot))
-            return BodyPresentation.Detail;
-        if (distance > HideDistance && lookDot < HideLookDot)
-            return BodyPresentation.Hidden;
-        if (distance > DetailDistance)
-            return BodyPresentation.Simple;
-        return BodyPresentation.Detail;
     }
 
     internal static bool ShouldSkipAvoidance(bool eligible) => eligible;

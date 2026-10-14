@@ -86,11 +86,16 @@ internal sealed class ArenaMutatorsView
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
-        for (int index = 0; index < _rows.Count; index++)
+        int count = _rows.FindAll(row => _selection.Visible(row.Id)).Count;
+        int index = 0;
+        foreach (var row in _rows)
         {
-            var row = _rows[index];
+            bool visible = _selection.Visible(row.Id);
+            row.Button.gameObject.SetActive(visible);
+            row.Description.gameObject.SetActive(visible);
+            if (!visible) continue;
             // Reflow added switches without moving the preview or READY.
-            int rowsPerColumn = (_rows.Count + 1) / 2;
+            int rowsPerColumn = (count + 1) / 2;
             float pitch = (ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn;
             float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = RowsTop + (index % rowsPerColumn) * pitch;
             Rect((RectTransform)row.Button.transform, left, top, cell, ButtonHeight);
@@ -98,6 +103,7 @@ internal sealed class ArenaMutatorsView
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, ButtonHeight);
             Rect((RectTransform)row.Chip.transform, cell - 55f, 1f, 50f, 20f);
             Rect(row.Description.rectTransform, left + 8f, top + ButtonHeight, cell - 16f, pitch - ButtonHeight);
+            index++;
         }
     }
 

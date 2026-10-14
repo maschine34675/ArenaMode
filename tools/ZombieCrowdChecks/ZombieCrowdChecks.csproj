@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><LangVersion>latest</LangVersion>
+    <CrowdSource Condition="'$(CrowdSource)' == ''">../../ArenaMode.Client/Bots/ZombieCrowdRuntime.cs</CrowdSource>
+    <RecallSource Condition="'$(RecallSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaCrowdRecall.cs</RecallSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CrowdSource)" Link="Production/ZombieCrowdRuntime.cs" />
+    <Compile Include="$(RecallSource)" Link="Production/ArenaAreaCrowdRecall.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/ZombieCrowdPolicy.cs" Link="Production/ZombieCrowdPolicy.cs" />
+  </ItemGroup>
+</Project>

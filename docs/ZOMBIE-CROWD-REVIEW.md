@@ -1,59 +1,61 @@
-# Zombie crowd — nearby horde, cheaper melee vision
+# Optional Zombie Crowd
 
-Factory-first. The goal is more infected in view of the player, not a fixed
-frame-time budget. Clumsy motion is acceptable. `Zombie / CrowdEnabled`
-defaults on and applies immediately; turn it off to compare against native
-placement and vision.
+Updated 2026-10-14. Crowd is a harder horde variant, not a promised FPS boost.
+`Zombie / CrowdEnabled` defaults **off for new configurations**; saved choices
+are preserved. The map-screen `ZOMBIE CROWD` switch occupies the slot used by
+`FAST BOTS` in other modes, retaining 22 visible controls and their existing size.
+The menu locks after arming; F12 changes apply immediately during the raid.
 
-## What it changes
+## Behavior when enabled
 
-`ZombieCrowdRuntime.Tick`, from `ZombieMode.Tick` while the raid has no
-result yet:
+- At most one farthest eligible infected per frame is considered beyond 26 m,
+  with a two-second per-body recall cooldown. Its stable yaw covers the full
+  360-degree ring; candidates are 12, 16 and 22 m from the local living player.
+  Shooters can also be recalled; followers and non-generic roles cannot.
+- The actual sampled NavMesh point is used. Bounded maps require the exact
+  active body, ready area, navigation inset, connected inside path and an
+  unoccupied/unreserved sample. There is no full-map fallback for a bounded area.
+  Full maps require a sample within 2 m and a complete path to the player.
+- Both paths require a physical floor and free standing capsule. Living actors
+  on the same floor must be at least 3 m away. A saturated collision buffer or
+  three occupied candidates rejects the recall; no crowded fallback stacks bots.
+- A successful recall stops the old movement and adds a search point toward
+  the player. Respawn swaps and a dead local player never drive recall.
+- Generic infected skip local avoidance and clear both native displacement
+  offsets every time. This also removes new offsets written by nearby followers.
+- For generic melee infected (easy/normal), the native sight cast is skipped
+  within 80 m, including walls/view cone. Other visibility progression stays
+  native. Shooters, targets beyond 80 m, followers, dead/inactive bots and
+  non-Zombie raids retain the native method.
 
-- Once per frame, the farthest generic infected farther than 26 m, and not
-  recalled in the last 2 s, is stopped and teleported onto a 16 m ring behind
-  the local player's current look direction. The yaw list starts at a stable
-  slot of that body on a 12, 16 or 22 m ring. A slot another bot already
-  occupies is skipped, and if every ring is taken the body still moves to
-  its own angle. The move requires
-  `ArenaAreaRuntime.AllowTeleport`. On the full Factory map, where that runtime
-  is not active, the same recall instead requires a NavMesh sample within 2 m
-  and a complete path to the player. A player standing in a pocket the bots
-  cannot enter still produces no move.
-- The same tick prepares one new body, then every prepared body: no caster
-  shadows, animator culling while off screen, two bones inside 6 m in front,
-  one bone farther away, and no draw when the body is behind the player and
-  farther than 3 m. Turning the setting off does not restore a body already
-  changed.
-- Generic infected skip `BotLocalAvoidance` for the raid. Followers and every
-  other bot keep it.
+## OFF and ownership
 
-`EnemyPartVision.CheckLineOfSight` prefix, melee difficulties only (`easy`
-and `normal`; `hard` shooters keep the native HighPoly cast):
+OFF skips all three Crowd paths before they can teleport, stop a mover, add a
+search point, override sight or clear avoidance. Zombies use the pre-Crowd
+movement/sight/avoidance behavior. Previously moved bots keep their current
+position; OFF does not teleport them back. Existing area safety and native
+spawn placement remain independent of Crowd.
 
-- Inside 80 m, `HasLineOfSight` is set and the cast is skipped, including
-  through walls and outside the view cone. The rest of the native visibility
-  ramp still runs. Beyond 80 m the original cast runs.
-- Followers, inactive or dead bodies, non-generic roles and any raid that is
-  not the active Zombie raid keep the original method. Exceptions fail open
-  and warn once.
+**Rendering is entirely native, with Crowd either ON or OFF.** The old custom
+`forceRenderingOff`, skin quality, offscreen skin updates, shadows and animator
+culling writes were removed. There is no cached renderer state to restore on
+local death, spectating, body retirement or pooled equipment reuse. Install
+this version with a fresh EFT process; do not try to repair an old process's
+pooled state by guessing original values.
 
-Both paths use the four generic infected roles. `infectedTagilla` is not
-included. A recall also repeats the existing `AddPointToSearch` toward the
-local player so the old path is not resumed.
+Population caps/waves, attack limits, voice/hearing budgets, PFT fast paths,
+corpse release, protected profiles and normal raids are unchanged.
 
-## What it does not change
+## Verification
 
-Population caps, spawn rings, the attack limit of eight, shooter weapons,
-voice, hearing, the PFT fast path, corpse release, profile writes, and
-ordinary raids. Recall does not run during a respawn swap. The 26 m ring is
-not a guarantee that every infected is on screen: a player standing on the
-area boundary can reject every candidate, and the body then waits out its
-cooldown.
+See [the fix record](ZOMBIE-CROWD-FIXES-20261014.md) for current build/native
+acceptance and [the earlier performance comparison](GPU-ZOMBIE-REVIEW-20261014.md)
+for the measured higher combat density. Those earlier numbers do not certify
+this updated version's performance.
 
-## Offline checks
-
-`ZombieCrowdPolicyTests` covers the recall threshold and cooldown, eligibility,
-the melee sense range, and the behind-the-player offset including a
-degenerate look direction. It does not execute the teleport, the cast skip,
-or the renderer write.
+`ZombieCrowdPolicyTests` covers pure recall/eligibility/range math.
+`tools/ZombieCrowdChecks` executes the production runtime and bounded adapter
+against controlled native doubles; five behavioral mutants must fail.
+`tools/TdmMatchMenuChecks` executes the real settings/selection/view for saved
+choices, menu locking, hidden callbacks and the unchanged 22-row layout.
+None of these doubles proves Unity collision geometry or a PFT spectator raid.

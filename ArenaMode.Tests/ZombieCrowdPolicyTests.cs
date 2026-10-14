@@ -69,14 +69,8 @@ public sealed class ZombieCrowdPolicyTests
     }
 
     [Fact]
-    public void PresentationHidesWhatIsBehindAndSimplifiesWhatIsFar()
+    public void OnlyEligibleCrowdBotsSkipAvoidance()
     {
-        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(2f, 1f));
-        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(2f, -1f));
-        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Simple, ZombieCrowdPolicy.Presentation(12f, 1f));
-        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Hidden,
-            ZombieCrowdPolicy.Presentation(12f, ZombieCrowdPolicy.HideLookDot - 0.01f));
-        Assert.Equal(ZombieCrowdPolicy.BodyPresentation.Detail, ZombieCrowdPolicy.Presentation(float.NaN, 1f));
         Assert.True(ZombieCrowdPolicy.ShouldSkipAvoidance(true));
         Assert.False(ZombieCrowdPolicy.ShouldSkipAvoidance(false));
     }

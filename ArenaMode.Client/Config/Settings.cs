@@ -1225,13 +1225,13 @@ public static class Settings
             "Nearby attack calls, critical sounds, AI hearing and companions keep native behavior. " +
             "Turn off for comparison; applies immediately.");
 
-        ZombieCrowdEnabled = config.Bind("Zombie", "CrowdEnabled", true,
-            "Keep generic infected near the local player and skip melee line-of-sight casts. " +
-            "Bodies farther than 26 m are moved onto a 16 m ring behind the current look direction, " +
-            "only where the active area already allows a teleport. Melee infected within 80 m treat " +
-            "the player as seen without a HighPoly cast. Shooters keep native vision. Infected skins " +
-            "use two bones and cast no shadows. Turn off for comparison; applies immediately, except " +
-            "a body already cheapened keeps that rendering until it is gone.");
+        ZombieCrowdEnabled = config.Bind("Zombie", "CrowdEnabled", false,
+            "Optional, harder Zombie horde behavior. Generic infected farther than 26 m may teleport " +
+            "to clear, connected 12/16/22 m rings around the player. Melee infected within 80 m " +
+            "skip sight casts; infected skip local avoidance and clear residual offsets. Shooters " +
+            "keep native vision. Rendering is always native. OFF restores pre-Crowd behavior " +
+            "without crowd teleports, sight or avoidance overrides; applies immediately. " +
+            "Previously moved bots stay at their current position. Existing saved choices are preserved.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +

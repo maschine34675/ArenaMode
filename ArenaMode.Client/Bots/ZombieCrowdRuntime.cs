@@ -11,25 +11,24 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Rendering;
 
 namespace ArenaMode.Bots;
 
 /// <summary>
 /// Keeps a zombie raid's infected in the player's neighbourhood and drops
 /// the HighPoly vision cast for melee infected. One recall per frame, and
-/// only onto a point <see cref="ArenaAreaRuntime.AllowTeleport"/> already
-/// accepts, so a bounded Factory area cannot be left for a disconnected
-/// NavMesh island. Shooters, followers and anything outside the four generic
-/// infected roles keep native vision and are never moved by this.
+/// only onto the validated, clear NavMesh point. Shooters keep native vision
+/// but may be recalled too; followers and non-generic roles are never moved.
+/// Rendering and pooled models remain entirely owned by the native game.
 /// </summary>
 internal static class ZombieCrowdRuntime
 {
     private static bool _sightEnabled, _avoidEnabled, _warned;
     private static readonly Dictionary<int, float> RecallAt = new Dictionary<int, float>();
-    private static readonly Dictionary<int, BodyView> Views = new Dictionary<int, BodyView>();
     private static readonly NavMeshPath ScratchPath = new NavMeshPath();
-    private static int _recalled, _sightSkips, _cheapened, _hidden, _simple, _detail;
+    private static readonly Collider[] Clearance = new Collider[16];
+    private static int _recalled, _sightSkips;
+    private static bool _running;
     private static float _nextReport = float.PositiveInfinity;
 
     internal static void EnablePatch()
@@ -49,8 +48,10 @@ internal static class ZombieCrowdRuntime
     internal static void Reset()
     {
         RecallAt.Clear();
-        Views.Clear();
-        _recalled = _sightSkips = _cheapened = _hidden = _simple = _detail = 0;
+        Array.Clear(Clearance, 0, Clearance.Length);
+        _recalled = _sightSkips = 0;
+        _running = false;
+        _warned = false;
         _nextReport = float.PositiveInfinity;
     }
 
@@ -58,7 +59,15 @@ internal static class ZombieCrowdRuntime
     {
         try
         {
-            if (!Enabled() || !ZombieNativeEventBridge.IsActiveZombieRaid()) return;
+            if (!Enabled() || !ZombieNativeEventBridge.IsActiveZombieRaid())
+            {
+                if (_running)
+                {
+                    Plugin.ModLogger.LogInfo("Arena zombie crowd: disabled; native movement, sight and avoidance retained; no crowd teleports.");
+                    Reset();
+                }
+                return;
+            }
             if (ArenaRespawnDriver.IsRespawnInProgress) return;
             var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
             var player = world?.MainPlayer;
@@ -72,16 +81,11 @@ internal static class ZombieCrowdRuntime
             float now = Time.time;
             BotOwner farthest = null;
             float farthestDistance = ZombieCrowdPolicy.RecallDistance * ZombieCrowdPolicy.RecallDistance;
-            bool preparedOne = false;
-            Vector3 look = player.MovementContext.LookDirection;
-            look.y = 0f;
-            if (look.sqrMagnitude < 0.0001f) look = Vector3.forward;
-            else look.Normalize();
+            _running = true;
             foreach (var bot in owners)
             {
                 if (!TryEligible(bot, world, out var body)) continue;
                 int id = body.GetInstanceID();
-                ApplyPresentation(id, body, player.Position, look, ref preparedOne);
                 float distance = (bot.Position - player.Position).sqrMagnitude;
                 float since = RecallAt.TryGetValue(id, out float at) ? now - at : float.PositiveInfinity;
                 if (!ZombieCrowdPolicy.ShouldRecall(true, distance, since)) continue;
@@ -93,7 +97,7 @@ internal static class ZombieCrowdRuntime
             }
 
             if (farthest != null)
-                TryRecall(farthest, player, owners, now);
+                TryRecall(farthest, player, world, now);
             Report(now);
         }
         catch (Exception ex)
@@ -136,7 +140,7 @@ internal static class ZombieCrowdRuntime
         }
     }
 
-    private static void TryRecall(BotOwner bot, Player player, IEnumerable<BotOwner> owners, float now)
+    private static void TryRecall(BotOwner bot, Player player, GameWorld world, float now)
     {
         var body = bot.GetPlayer;
         if (body == null) return;
@@ -145,19 +149,16 @@ internal static class ZombieCrowdRuntime
         RecallAt[id] = now;
         float yaw = ZombieCrowdPolicy.SlotYaw(id);
         float separation = ZombieCrowdPolicy.SlotSeparation * ZombieCrowdPolicy.SlotSeparation;
-        Vector3? crowded = null;
         foreach (float radius in ZombieCrowdPolicy.RingRadii)
         {
             ZombieCrowdPolicy.RingOffset(look.x, look.z, yaw, radius, out float x, out float z);
             var candidate = new Vector3(player.Position.x + x, player.Position.y, player.Position.z + z);
-            if (!AcceptPoint(bot, body, player, candidate, out var placed)) continue;
-            if (crowded == null) crowded = placed;
-            if (Occupied(owners, bot, placed, separation)) continue;
+            if (!AcceptPoint(bot, player, candidate, out var placed)) continue;
+            if (Occupied(world, body, placed, separation)) continue;
             Place(bot, player, placed);
             return;
         }
-        // A taken slot must not leave this body across the map.
-        if (crowded.HasValue) Place(bot, player, crowded.Value);
+        // An occupied slot is not a fallback: wait for a later safe candidate.
     }
 
     private static void Place(BotOwner bot, Player player, Vector3 placed)
@@ -169,97 +170,60 @@ internal static class ZombieCrowdRuntime
     }
 
     /// <summary>
-    /// A bounded area keeps the existing teleport gate. The full Factory map has
-    /// no area runtime, so a recall there only needs a real NavMesh sample and
-    /// a complete path to the player. A pocket the bots cannot enter still fails.
+    /// Both branches return the actual sample, not the unsnapped candidate.
+    /// A configured area must never fall back to full-map navigation.
     /// </summary>
-    private static bool AcceptPoint(BotOwner bot, Player body, Player player, Vector3 candidate, out Vector3 placed)
+    private static bool AcceptPoint(BotOwner bot, Player player, Vector3 candidate, out Vector3 placed)
     {
-        placed = candidate;
-        if (ArenaAreaRuntime.TryGetForBot(bot, out _))
-            return ArenaAreaRuntime.AllowTeleport(body, candidate);
+        placed = default;
+        if (ArenaAreaRuntime.CurrentArea != null)
+            return ArenaAreaRuntime.TryResolveCrowdRecall(bot, candidate, out placed)
+                && HasRoom(placed);
         if (!NavMesh.SamplePosition(candidate, out var hit, 2f, NavMesh.AllAreas)) return false;
         if (Mathf.Abs(hit.position.y - candidate.y) > 2f) return false;
         if (!NavMesh.CalculatePath(hit.position, player.Position, NavMesh.AllAreas, ScratchPath)
             || ScratchPath.status != NavMeshPathStatus.PathComplete
             || ScratchPath.corners == null || ScratchPath.corners.Length < 2) return false;
         placed = hit.position;
-        return true;
+        return HasRoom(placed);
     }
 
-    private static bool Occupied(IEnumerable<BotOwner> owners, BotOwner self, Vector3 point, float separationSquared)
+    private static bool HasRoom(Vector3 point)
     {
-        foreach (var other in owners)
+        int mask = LayersMaskController.PlayerStaticCollisionsMask;
+        if (!Physics.Raycast(point + Vector3.up * .25f, Vector3.down, out var floor,
+                .5f, mask, QueryTriggerInteraction.Ignore)
+            || Mathf.Abs(floor.point.y - point.y) > .15f || floor.normal.y < .7f)
+            return false;
+        int count = Physics.OverlapCapsuleNonAlloc(point + Vector3.up * .45f,
+            point + Vector3.up * 1.45f, .35f, Clearance, mask, QueryTriggerInteraction.Ignore);
+        // Saturation cannot prove clearance. Character occupancy is checked separately.
+        bool blocked = count >= Clearance.Length;
+        for (int i = 0; i < Math.Min(count, Clearance.Length); i++)
         {
-            if (other == null || ReferenceEquals(other, self) || other.IsDead) continue;
+            var collider = Clearance[i];
+            Clearance[i] = null;
+            if (collider != null && collider.GetComponentInParent<Player>() == null) blocked = true;
+        }
+        return !blocked;
+    }
+
+    private static bool Occupied(GameWorld world, Player self, Vector3 point, float separationSquared)
+    {
+        if (world?.AllAlivePlayersList == null) return true;
+        foreach (var actor in world.AllAlivePlayersList)
+        {
+            if (actor is not Player other || other == null || ReferenceEquals(other, self)
+                || other.HealthController?.IsAlive != true) continue;
             var offset = other.Position - point;
+            if (Mathf.Abs(offset.y) >= 2f) continue;
             offset.y = 0f;
             if (offset.sqrMagnitude < separationSquared) return true;
         }
         return false;
     }
 
-    private sealed class BodyView
-    {
-        internal Renderer[] Renderers;
-        internal bool Applied;
-        internal ZombieCrowdPolicy.BodyPresentation Shown;
-    }
-
-    private static void ApplyPresentation(int id, Player body, Vector3 playerPosition, Vector3 look, ref bool preparedOne)
-    {
-        if (!Views.TryGetValue(id, out var view))
-        {
-            if (preparedOne) return;
-            view = Capture(body);
-            Views[id] = view;
-            preparedOne = true;
-            _cheapened++;
-        }
-        Vector3 to = body.Position - playerPosition;
-        float distance = to.magnitude;
-        to.y = 0f;
-        float dot = to.sqrMagnitude > 0.04f ? Vector3.Dot(look, to.normalized) : 1f;
-        var presentation = ZombieCrowdPolicy.Presentation(distance, dot);
-        if (presentation == ZombieCrowdPolicy.BodyPresentation.Hidden) _hidden++;
-        else if (presentation == ZombieCrowdPolicy.BodyPresentation.Simple) _simple++;
-        else _detail++;
-        if (view.Applied && view.Shown == presentation) return;
-        view.Applied = true;
-        view.Shown = presentation;
-        bool hidden = presentation == ZombieCrowdPolicy.BodyPresentation.Hidden;
-        var quality = presentation == ZombieCrowdPolicy.BodyPresentation.Detail ? SkinQuality.Bone2 : SkinQuality.Bone1;
-        var renderers = view.Renderers;
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            var renderer = renderers[i];
-            if (renderer == null) continue;
-            renderer.forceRenderingOff = hidden;
-            if (renderer is SkinnedMeshRenderer skin) skin.quality = quality;
-        }
-    }
-
-    private static BodyView Capture(Player body)
-    {
-        var renderers = body.GetComponentsInChildren<Renderer>(true);
-        var animators = body.GetComponentsInChildren<Animator>(true);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            var renderer = renderers[i];
-            if (renderer == null) continue;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            if (renderer is SkinnedMeshRenderer skin) skin.updateWhenOffscreen = false;
-        }
-        for (int i = 0; i < animators.Length; i++)
-        {
-            var animator = animators[i];
-            if (animator == null) continue;
-            animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
-        }
-        return new BodyView { Renderers = renderers };
-    }
-
-    private static bool ShouldRunAvoidance(BotLocalAvoidance avoidance)
+    internal static bool ShouldRunAvoidance(BotLocalAvoidance avoidance)
     {
         try
         {
@@ -273,8 +237,12 @@ internal static class ZombieCrowdRuntime
                 || settings.Role == WildSpawnType.infectedLaborant
                 || settings.Role == WildSpawnType.infectedPmc;
             bool follower = owner.IsFollower() || owner.BotFollower?.HaveBoss == true;
-            return !ZombieCrowdPolicy.ShouldSkipAvoidance(
-                ZombieCrowdPolicy.IsEligible(true, true, generic, true, true, follower));
+            if (!ZombieCrowdPolicy.ShouldSkipAvoidance(
+                    ZombieCrowdPolicy.IsEligible(true, true, generic, true, true, follower))) return true;
+            // Other bots (including followers) can still call AddPower on us.
+            // Skipping ManualUpdate must not preserve that offset forever.
+            avoidance.DropOffset();
+            return false;
         }
         catch (Exception ex)
         {
@@ -290,7 +258,8 @@ internal static class ZombieCrowdRuntime
         body = bot.GetPlayer;
         if (body == null || !body.IsAI || ReferenceEquals(body, world.MainPlayer)
             || body.HealthController?.IsAlive != true
-            || !ReferenceEquals(body.AIData?.BotOwner, bot)) return false;
+            || !ReferenceEquals(body.AIData?.BotOwner, bot)
+            || !ReferenceEquals(world.GetAlivePlayerByProfileID(body.ProfileId), body)) return false;
         var settings = body.Profile?.Info?.Settings;
         if (settings == null) return false;
         bool generic = settings.Role == WildSpawnType.infectedAssault
@@ -312,18 +281,16 @@ internal static class ZombieCrowdRuntime
             Plugin.ModLogger.LogInfo(
                 "Arena zombie crowd: recall beyond "
                 + ZombieCrowdPolicy.RecallDistance.ToString("0")
-                + " m onto a " + ZombieCrowdPolicy.RingDistance.ToString("0")
-                + " m ring, melee sight within "
+                + " m onto clear 12/16/22 m rings around the player, melee sight within "
                 + ZombieCrowdPolicy.SenseDistance.ToString("0")
-                + " m without a linecast. Close bodies keep two bones, farther ones one, "
-                + "and bodies behind the player are not drawn. Infected skip local avoidance.");
+                + " m without a linecast. Infected skip local avoidance and clear its offsets. Native rendering retained.");
             return;
         }
         if (now < _nextReport) return;
         _nextReport = now + 30f;
         Plugin.ModLogger.LogInfo(
-            $"Arena zombie crowd (last interval): recalled={_recalled}, sightSkips={_sightSkips}, cheapenedBodies={_cheapened}, detail={_detail}, simple={_simple}, hidden={_hidden}.");
-        _recalled = _sightSkips = _cheapened = _hidden = _simple = _detail = 0;
+            $"Arena zombie crowd (last interval): recalled={_recalled}, sightSkips={_sightSkips}.");
+        _recalled = _sightSkips = 0;
     }
 
     private static void Warn(Exception ex)

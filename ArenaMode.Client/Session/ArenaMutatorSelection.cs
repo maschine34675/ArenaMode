@@ -11,7 +11,7 @@ internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
     InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire,
-    AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots
+    AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots, ZombieCrowd
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -31,6 +31,15 @@ internal sealed class ArenaMutatorSelection
 
     internal void Synchronize(string mode, bool team)
     { Mode = ArenaModeCatalog.NormalizeId(mode); _team = team; }
+
+    // Share one visual slot instead of compressing every row for a Zombie-only
+    // option. The two preferences remain distinct and never overwrite each other.
+    internal bool Visible(ArenaMutator id) => id switch
+    {
+        ArenaMutator.ZombieCrowd => Mode == ArenaModeCatalog.ZombieId,
+        ArenaMutator.FastBots => Mode != ArenaModeCatalog.ZombieId,
+        _ => true
+    };
 
     internal static string Title(ArenaMutator id) => id switch
     {
@@ -56,6 +65,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.ArenaHud => "ARENA HUD",
         ArenaMutator.Molotov => "MOLOTOV (WIP)",
         ArenaMutator.FastBots => "FAST BOTS",
+        ArenaMutator.ZombieCrowd => "ZOMBIE CROWD",
         _ => string.Empty
     };
 
@@ -89,6 +99,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.ArenaHud => "Killfeed, hits, health and weapons.",
         ArenaMutator.Molotov => "Your RGD-5 creates ground fire.",
         ArenaMutator.FastBots => "Bot speed and movement bonuses.",
+        ArenaMutator.ZombieCrowd => "Harder horde; teleports stragglers.",
         _ => string.Empty
     };
 
@@ -119,6 +130,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.ArenaHud => Settings.CombatHudEnabled,
         ArenaMutator.Molotov => ArenaFireSettings.Enabled,
         ArenaMutator.FastBots => Settings.BotMovementEnabled,
+        ArenaMutator.ZombieCrowd => Settings.ZombieCrowdEnabled,
         _ => null
     };
 
@@ -134,6 +146,8 @@ internal sealed class ArenaMutatorSelection
         if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)
             && Entry(id) == null) return TeamModesOnly;
         if (Entry(id) == null) return "Setting unavailable.";
+        if (id == ArenaMutator.ZombieCrowd && Mode != ArenaModeCatalog.ZombieId)
+            return "Available in Zombies.";
         if (id == ArenaMutator.FastBots && Mode == ArenaModeCatalog.ZombieId)
             return "Unavailable in Zombies.";
         if (id == ArenaMutator.Molotov)
@@ -159,7 +173,7 @@ internal sealed class ArenaMutatorSelection
 
     internal bool TryToggle(ArenaMutator id)
     {
-        if (Locked || UnavailableReason(id) != null) return false;
+        if (Locked || !Visible(id) || UnavailableReason(id) != null) return false;
         if (id == ArenaMutator.Killcam) return Settings.TrySelectKillcam(Mode, !Enabled(id));
         var entry = Entry(id);
         if (entry == null) return false;

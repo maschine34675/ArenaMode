@@ -39,6 +39,7 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
     Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
+Need(!Settings.ZombieCrowdEnabled.Value, "new configurations opt out of the harder crowd behavior");
 Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value == 50
     && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
     "fresh Zombie preferences use tested 32/50/20 own-gear defaults");
@@ -47,7 +48,9 @@ savedZombieConfig.Stored["Zombie/MaxAlive"] = 24;
 savedZombieConfig.Stored["Zombie/WaveStartSize"] = 35;
 savedZombieConfig.Stored["Zombie/WaveGrowth"] = 7;
 savedZombieConfig.Stored["Zombie/OwnGear"] = false;
+savedZombieConfig.Stored["Zombie/CrowdEnabled"] = true;
 Settings.Init(savedZombieConfig);
+Need(Settings.ZombieCrowdEnabled.Value, "saved explicit crowd choice survives default change");
 Need(Settings.ZombieMaxAlive.Value == 24 && Settings.ZombieWaveStartSize.Value == 35
     && Settings.ZombieWaveGrowth.Value == 7 && !Settings.ZombieOwnGear.Value,
     "new Zombie defaults preserve every existing saved preference");
@@ -435,7 +438,8 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Length == 22, "inline panel has twenty-two switches, no backdrop or close buttons");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf) == 22,
+    "inline panel shows twenty-two switches; Crowd shares the unsupported Fast Bots slot in Zombies");
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
 Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
@@ -465,7 +469,8 @@ Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is 
 Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name == "Title").Single().text == "MUTATORS",
     "mutator panel keeps its title");
 {
-    var mutatorIds = Enum.GetValues(typeof(ArenaMutator)).Cast<ArenaMutator>().ToArray();
+    var mutatorIds = Enum.GetValues(typeof(ArenaMutator)).Cast<ArenaMutator>()
+        .Where(id => MutatorButton(id).gameObject.activeSelf).ToArray();
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
@@ -1039,4 +1044,38 @@ foreach (bool hudMaster in new[] { false, true })
     Need(!Settings.ShowKillfeed.Value && Settings.ShowHitmarker.Value && !Settings.ShowDamageNumbers.Value,
         "combat HUD config reload preserves individual HUD choices");
 }
+Settings.Init(new ConfigFile());
+Show();
+foreach (bool team in new[] { false, true })
+{
+    view.Synchronize("zombie", team);
+    Need(MutatorButton(ArenaMutator.ZombieCrowd).gameObject.activeSelf
+        && !MutatorButton(ArenaMutator.FastBots).gameObject.activeSelf,
+        "Crowd replaces unsupported Fast Bots without adding a visible row");
+    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf) == 22,
+        "Zombie keeps the same twenty-two readable rows");
+    bool bots = Settings.BotMovementEnabled.Value;
+    Need(MutatorStatus(ArenaMutator.ZombieCrowd) == "OFF", "Crowd starts visibly OFF");
+    MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();
+    Need(Settings.ZombieCrowdEnabled.Value && MutatorStatus(ArenaMutator.ZombieCrowd) == "ON",
+        "Crowd menu saves the actual F12 entry and shows ON");
+    foreach (string other in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
+    {
+        view.Synchronize(other, team);
+        Need(!MutatorButton(ArenaMutator.ZombieCrowd).gameObject.activeSelf,
+            "Crowd is hidden outside Zombies");
+        MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();
+        Need(Settings.ZombieCrowdEnabled.Value, "retained hidden callback cannot change Crowd");
+    }
+    view.Synchronize("zombie", team);
+    ArenaSession.ArmedForNextRaid = true;
+    MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();
+    Need(Settings.ZombieCrowdEnabled.Value, "armed raid locks menu Crowd preference");
+    ArenaSession.ArmedForNextRaid = false;
+    view.Synchronize("zombie", team);
+    MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();
+    Need(!Settings.ZombieCrowdEnabled.Value && Settings.BotMovementEnabled.Value == bots,
+        "Crowd toggles independently of normal bot movement");
+}
+view.Close();
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

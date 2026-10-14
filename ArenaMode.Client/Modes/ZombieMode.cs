@@ -308,8 +308,8 @@ public sealed class ZombieMode : IArenaMode
             return;
         }
 
-        // Pull stragglers back into view and cheapen newly arrived bodies.
-        // Sight casts are skipped on their own hook; this tick only moves and renders.
+        // Optional harder horde: recall distant infected. OFF leaves native movement
+        // intact; rendering is never changed. Sight/avoidance use separate hooks.
         ZombieCrowdRuntime.Tick();
 
         float now = Time.time;
