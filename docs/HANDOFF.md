@@ -7,9 +7,28 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional Zombie Crowd fixes (2026-10-14):** All four reviewed defects fixed
+  in `ff28b75`: no Crowd renderer/animator/pooled-skin mutations; bounded recall
+  uses the actual validated sample with physical clearance and occupancy checks;
+  skipped avoidance clears both native offsets. New configs default Crowd OFF;
+  saved choices remain intact. A map-screen ZOMBIE CROWD switch replaces FAST
+  BOTS only in Zombies, retaining 22 visible controls. OFF restores pre-Crowd
+  behavior without Crowd teleports; it does not undo previous placements.
+  GPU2 freshly loaded client SHA256 `0878F1BC...7D79`, build `ff28b75`; native
+  menu and Factory OFF/ON/OFF plus bounded Customs Center ON/OFF passed.
+  342 actual shots / 12 kills; 464 sampled Customs positions inside the polygon.
+  No new FPS claim, PFT spectator test or all-geometry acceptance. Runtime88/
+  five rejected mutants, menu2494, units964 passed/two skipped; independent
+  source and evidence reviews. All 223 saved settings restored (Crowd remains
+  the user's saved ON), profile only differs in its hideout timestamp; MainMenu,
+  hooks off/control free, 48 loaded identities match. Server/Core unchanged.
+  Defender initially quarantined the new DLL; updated signatures scanned the
+  identical bytes clean, with no security exceptions or disabled protection.
+  Details and limits: [ZOMBIE-CROWD-FIXES-20261014.md](ZOMBIE-CROWD-FIXES-20261014.md).
+
 - **Zombie crowd review and GPU2 comparison (2026-10-14):** Reviewed Grok's
   `36dbd12`, `22d887d`, `aa5edd5`, `66b9a3e`; no gameplay edits or redeployment.
-  Four pending source-backed defects: renderer visibility not restored on
+  Four source-backed defects (now resolved by the fix entry above): renderer visibility not restored on
   disable/death/spectating, bounded recall discards the validated NavMesh point,
   avoidance skip retains existing offsets, and pooled gear retains changed skin
   settings. See [GPU-ZOMBIE-REVIEW-20261014.md](GPU-ZOMBIE-REVIEW-20261014.md).
