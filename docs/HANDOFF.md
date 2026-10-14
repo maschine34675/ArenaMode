@@ -1,11 +1,33 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-13. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-14. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Zombie crowd review and GPU2 comparison (2026-10-14):** Reviewed Grok's
+  `36dbd12`, `22d887d`, `aa5edd5`, `66b9a3e`; no gameplay edits or redeployment.
+  Four pending source-backed defects: renderer visibility not restored on
+  disable/death/spectating, bounded recall discards the validated NavMesh point,
+  avoidance skip retains existing offsets, and pooled gear retains changed skin
+  settings. See [GPU-ZOMBIE-REVIEW-20261014.md](GPU-ZOMBIE-REVIEW-20261014.md).
+  Seven complete solo runs: 179,137 frames / 32 min / 618 kills / 6,505 real shots,
+  same GPU2 graphics and routes. Crowd ON passes Factory24 (12.59 ms p95), fails
+  Factory28/32 (17.04/19.08 ms), Labs24/28 (23.34/20.84 ms). Fresh Labs24 controls
+  also fail ON (20.38 ms) but pass OFF (14.09 ms); ON creates a much denser fight,
+  so this is not an isolated renderer benchmark. No higher safe cap is established.
+  Existing native BotMemory damage-NRE signature persists; details/follow-up in
+  report. User settings restored to **32 / 50 / 20 / own gear / crowd on**;
+  clean restarted MainMenu, hooks off, control free, all 48 build identities match.
+  Protected profile differs from pre-raid baseline only in health/hideout clocks;
+  first-start daily quest refresh predates the raids. Client hash `1373FA1C...6859`
+  carries metadata `aa5edd5` but contains `66b9a3e` presentation code, verified by
+  decompilation. Full unit suite 964 passed / two skipped; zombie checks 91,
+  performance harness 192 assertions, measurement checks 17. Benchmark lane helper
+  committed as `7fd5e2a`; raw private evidence stays ignored under
+  `artifacts/zombie-review-20261014/`. PFT/Customs gameplay not newly certified.
 
 - **Variable PFT squads and Zombie menu (2026-10-13):** One to four authenticated
   companions are allowed in Tactical and Zombies; Tactical still has five
