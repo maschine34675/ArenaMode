@@ -1,11 +1,44 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-14. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-15. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Logging cleanup (2026-10-15):** Implementation and regression fixtures in
+  `6dc2e59`; no gameplay rules changed. Info now carries player-relevant events,
+  ordinary technical details use Debug, and detailed probes require the new
+  default-OFF F12 `Diagnostics/DeveloperMode`. Its labelled `[dev]` Info can be
+  toggled live without changing BepInEx globally. Damage-exception alarms remain
+  independent and on; all original Error sites remain visible. Failed ladder
+  draws/attachments/ammo fallback now have a separate Warning sink. Expected
+  protected stops after an acknowledged `StandDown` use Debug; unexpected stops
+  during respawn still warn. See [LOGGING.md](LOGGING.md) and its audit links.
+  Client/server/BigBrain staged builds pass. Units: **968 passed / 2 skipped**;
+  **72 of 75 existing harnesses pass**. Three independently reproduced baseline
+  fixture compilation gaps remain (M60Definition, TdmWarmup, ZombieKitWarmup);
+  they were not skipped or presented as green. Additional AirVault 374, real
+  BepInEx 7 assertions/two rejected mutants, ZombiePerformance 192/17 mutants.
+  The final client is SHA256
+  `4D8E897F0E7C4A4C660AED51D373CD168CA9012FE0A0301D776B16E80DA026A8`,
+  MVID `563da9c1-363a-49eb-b83c-f390dd4e6817`. Server SHA256
+  `C1A37197A746958C6A82EE2D41B1A7E61E9497F9A486AE92A871F33DC81BEA3B`;
+  BigBrain SHA256 `5701DFF516540CD3DAA7B8BC3E42132E96E3184391EE1676928AEB918818B0F9`.
+  All three were delivered locally; Core/audio/config files were not deployed.
+  GPU2 TDM and solo Zombies exercised actual combat, replacements, corpse release
+  and diagnostic OFF/ON/OFF. Initial native build and final exit-warning follow-up
+  are distinguished in [GPU-LOGGING-TEST-20261015.md](GPU-LOGGING-TEST-20261015.md).
+  Final build: genuine solo death returned to MainMenu, expected stop at Debug,
+  zero Arena Warning/Error. All 216 settings restored, hooks off/control free;
+  protected inventory/progress unchanged except native health/hideout clocks.
+  Older AirPit shutdown decal failures belong to ArenaMapPort's renderer lifetime
+  and require a separate scoped fix. Historical native Zombie BotMemory damage
+  NRE remains open despite non-reproduction here; no suppression or speculative
+  damage patch was added. Zombie teardown Animator.GotoState warnings have no
+  proven owner yet. BepInEx `LogLevels=All` and other mods' Harmony traces still
+  make files verbose; `/arenamode/client-settings` Info comes from SPT middleware.
 
 - **Optional Zombie Crowd fixes (2026-10-14):** All four reviewed defects fixed
   in `ff28b75`: no Crowd renderer/animator/pooled-skin mutations; bounded recall
