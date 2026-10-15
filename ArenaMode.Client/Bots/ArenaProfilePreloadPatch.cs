@@ -136,7 +136,7 @@ internal sealed class ArenaProfilePreloadPatch : ModulePatch
             var cleared = standingOrders == null ? 0 : standingOrders.GetAllVals().Count();
             standingOrders?.Clear();
 
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena: skipped the raid-start bot profile preload ({pairs} role/difficulty pair(s), "
                 + $"{cleared} standing backup order(s)) — Team Deathmatch spawns its own squads, the server "
                 + "has silenced every scheduled wave and boss, and nothing left in that list can spawn either.");

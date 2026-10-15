@@ -44,7 +44,7 @@ internal sealed class ArenaInfoPanels : IDisposable
             InfoPanelSettings.PanelOpacity.SettingChanged += OnThemeChanged;
             _subscribed = true;
             _legacy = new LegacyPanelSuppression();
-            Plugin.ModLogger.LogInfo("Arena info panels: status and weapon UI constructed; awaiting live local body.");
+            Plugin.ModLogger.LogDebug("Arena info panels: status and weapon UI constructed; awaiting live local body.");
         }
         catch (Exception ex)
         {

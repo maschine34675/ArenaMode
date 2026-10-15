@@ -122,7 +122,7 @@ namespace ArenaMode
     public class Log
     {
         public List<string> Lines = new();
-        public void LogInfo(string message) => Lines.Add(message);
+        public void LogInfo(string message) => Lines.Add(message); public void LogDebug(string message) => Lines.Add(message);
         public void LogWarning(string message) => Lines.Add(message);
     }
 }

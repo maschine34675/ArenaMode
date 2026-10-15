@@ -106,7 +106,7 @@ internal static class ArenaEquatorTeamSpawns
         foreach (bool usec in new[] { true, false })
         {
             int capacity = Points.Values.Count(p => PointCurrent(p, usec) && FloorAndClear(p.Position) && Connected(p.Position));
-            Plugin.ModLogger.LogInfo($"Equator team-box capacity: {(usec ? "USEC" : "BEAR")} {capacity}/{Formation.CapacityPerTeam} safe connected places, {size} required.");
+            Plugin.ModLogger.LogDebug($"Equator team-box capacity: {(usec ? "USEC" : "BEAR")} {capacity}/{Formation.CapacityPerTeam} safe connected places, {size} required.");
             if (capacity < size)
                 throw new InvalidOperationException($"Equator {(usec ? "USEC" : "BEAR")} box has {capacity}/{size} safe connected places.");
         }
@@ -115,7 +115,7 @@ internal static class ArenaEquatorTeamSpawns
             || !Points.Values.Any(p => PointCurrent(p, game.Profile.Info.Side == EPlayerSide.Usec)
                 && (p.Position - local.Position).sqrMagnitude <= .5625f && Connected(p.Position)))
             throw new InvalidOperationException("Equator initial PMC did not reach its own connected team box.");
-        Plugin.ModLogger.LogInfo($"Equator Team DM formation ready: {size}v{size}, USEC north / BEAR south.");
+        Plugin.ModLogger.LogDebug($"Equator Team DM formation ready: {size}v{size}, USEC north / BEAR south.");
     }
 
     private sealed class LoadingLease
@@ -249,7 +249,7 @@ internal static class ArenaEquatorTeamSpawns
         Points.Clear();
         foreach (var pair in owned) Points.Add(pair.Key.Id, pair.Key);
         _collection = collection;
-        Plugin.ModLogger.LogInfo("Equator Team DM: restored 10 USEC north / 10 BEAR south box markers.");
+        Plugin.ModLogger.LogDebug("Equator Team DM: restored 10 USEC north / 10 BEAR south box markers.");
     }
 
     private static bool HeadersMatch(ISpawnPoint point, Formation.Point spec)
@@ -339,7 +339,7 @@ internal static class ArenaEquatorTeamSpawns
         {
             lease = new Lease(selectedPoint, usec);
             Reservations.Add(lease.PointId, lease);
-            Plugin.ModLogger.LogInfo($"Equator team bot spawn: {(usec ? "USEC" : "BEAR")}, {lease.PointId}, {lease.Position}.");
+            Plugin.ModLogger.LogDebug($"Equator team bot spawn: {(usec ? "USEC" : "BEAR")}, {lease.PointId}, {lease.Position}.");
         }
         return true;
     }
@@ -371,7 +371,7 @@ internal static class ArenaEquatorTeamSpawns
             var lease = new Lease(point, usec);
             Reservations.Add(lease.PointId, lease); _playerReservation = lease;
             prepared = new Prepared(game, lease);
-            Plugin.ModLogger.LogInfo($"Equator team player respawn: {lease.PointId}, {lease.Position}.");
+            Plugin.ModLogger.LogDebug($"Equator team player respawn: {lease.PointId}, {lease.Position}.");
             return true;
         }
         catch (Exception ex)
@@ -424,7 +424,7 @@ internal static class ArenaEquatorTeamSpawns
             if (accepted && !_arrivalLogged)
             {
                 _arrivalLogged = true;
-                Plugin.ModLogger.LogInfo($"Equator team arrival: {player.ProfileId}, {player.Profile.Info.Side}, {PointId}, actual {player.Position}.");
+                Plugin.ModLogger.LogDebug($"Equator team arrival: {player.ProfileId}, {player.Profile.Info.Side}, {PointId}, actual {player.Position}.");
             }
             return accepted;
         }
@@ -484,7 +484,7 @@ internal static class ArenaEquatorTeamSpawns
             var choices = Points.Values.Where(p => PointCurrent(p, usec) && FloorAndClear(p.Position)).ToArray();
             if (choices.Length == 0) throw new InvalidOperationException("Equator has no physically clear initial team-box point.");
             __result = choices[UnityEngine.Random.Range(0, choices.Length)];
-            Plugin.ModLogger.LogInfo($"Equator team initial PMC: {side}, {__result.Id}, {__result.Position}.");
+            Plugin.ModLogger.LogDebug($"Equator team initial PMC: {side}, {__result.Id}, {__result.Position}.");
             return false;
         }
     }

@@ -480,10 +480,10 @@ internal static partial class Program
             "Attach reports enabled setting, volume and cache readiness.");
         var calls = 0;
         void Call() { match.Callout(label); calls++; }
-        int OutputLogs() => messages.Skip(start).Count(message => message.StartsWith("Arena announcer play request:"));
+        int OutputLogs() => messages.Skip(start).Count(message => message.StartsWith("[dev] Arena announcer play request:"));
         Call(); Call(); Call(); Call();
         Assert(OutputLogs() == 3, "Stable output logs exactly the first three successful playback requests.");
-        Assert(messages.Skip(start).Where(message => message.StartsWith("Arena announcer play request:"))
+        Assert(messages.Skip(start).Where(message => message.StartsWith("[dev] Arena announcer play request:"))
             .All(message => message.Contains("route=GUISounds.SingleUI.Primary")
                 && message.Contains("clipGeneration=")
                 && message.Contains("clipBeforePlay=state=Loaded,frames=")
@@ -530,6 +530,22 @@ internal static partial class Program
         AudioListener.volume = 0.8f;
         AudioListener.pause = false;
         sounds.MasterMixer.Parameters["UIVolume"] = -4;
+
+        ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled = false;
+        try
+        {
+            var quietMatch = new ArenaMatch();
+            AnnouncerService.Attach(quietMatch);
+            int quietStart = messages.Count;
+            int beforePlay = sounds.PlayRequests.Count;
+            quietMatch.Callout(label);
+            Assert(sounds.PlayRequests.Count == beforePlay + 1,
+                "Developer mode off leaves native announcer playback active.");
+            Assert(!messages.Skip(quietStart).Any(message => message.StartsWith("[dev] ")),
+                "Developer mode off avoids announcer output probes.");
+            AnnouncerService.Detach();
+        }
+        finally { ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled = true; }
     }
 
     private static void VerifyShutdownRace(string pluginDir, QueuedContext context)

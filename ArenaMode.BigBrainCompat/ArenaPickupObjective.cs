@@ -86,7 +86,8 @@ internal sealed class ArenaPickupObjective
         if (Released) return;
         Released = true;
         Claims.Remove(this);
-        Plugin.ModLogger?.LogInfo($"Arena pickup objective released: {Target.Id}; bot {_profileId}; {reason}.");
+        if (Diagnostics.ArenaLog.DeveloperEnabled)
+            Diagnostics.ArenaLog.Developer($"Arena pickup objective released: {Target.Id}; bot {_profileId}; {reason}.");
     }
 
     internal static bool TryAcquire(BotOwner bot, List<ArenaPickupTarget> candidates, out ArenaPickupObjective lease)
@@ -110,7 +111,8 @@ internal sealed class ArenaPickupObjective
             if (++attempts > 2) break;
             if (!RouteAllowed(bot.Position, candidate.Position)) continue;
             lease = new ArenaPickupObjective(bot, candidate); Claims.Add(lease);
-            Plugin.ModLogger?.LogInfo($"Arena pickup objective selected: {candidate.Id}; bot {bot.ProfileId}; max 20s.");
+            if (Diagnostics.ArenaLog.DeveloperEnabled)
+                Diagnostics.ArenaLog.Developer($"Arena pickup objective selected: {candidate.Id}; bot {bot.ProfileId}; max 20s.");
             return true;
         }
         return false;

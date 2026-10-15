@@ -240,7 +240,10 @@ public static class ArenaSession
         _pendingAreaStartGame = null;
         _pendingAreaStartWorld = null;
         Kits.KitBundlePreloader.DiscardRaidStart(reason);
-        Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
+        if (reason is "left raid setup" or "new raid negotiation started")
+            Plugin.ModLogger.LogDebug($"Arena arming cleared ({reason}).");
+        else
+            Plugin.ModLogger.LogWarning($"Arena arming cleared ({reason}).");
         PitFireTeamCompat.Clear(reason);
         ArenaServerClient.PostRaidCancel(startFailed: true);
     }
@@ -416,12 +419,12 @@ public static class ArenaSession
             Modes.ArenaMatchService.ScheduleFailedStartAbort("Equator Team DM box initialization failed");
             return;
         }
-        Plugin.ModLogger.LogInfo($"Arena session active on {location}.");
+        Plugin.ModLogger.LogDebug($"Arena session active on {location}.");
         if (Areas.ArenaAreaRuntime.IsPending)
         {
             _pendingAreaStartGame = currentGame as LocalGame;
             _pendingAreaStartWorld = world;
-            Plugin.ModLogger.LogInfo("Arena match startup held until the selected area's navigation is ready.");
+            Plugin.ModLogger.LogDebug("Arena match startup held until the selected area's navigation is ready.");
             return;
         }
         CompleteRaidStart(world, currentGame);
@@ -533,7 +536,7 @@ public static class ArenaSession
             }
 
             if (forced > 0)
-                Plugin.ModLogger.LogInfo($"Arena: forced {forced} pre-start bot group(s) hostile.");
+                Plugin.ModLogger.LogDebug($"Arena: forced {forced} pre-start bot group(s) hostile.");
         }
         catch (Exception ex)
         {
@@ -598,7 +601,7 @@ public static class ArenaSession
         // Best-effort confirmation; the authoritative snapshot restore already ran
         // server-side inside the post-raid skip patch.
         ArenaServerClient.PostRaidEnd();
-        Plugin.ModLogger.LogInfo("Arena session ended.");
+        Plugin.ModLogger.LogDebug("Arena session ended.");
 
         if (!teamRaid)
             PitFireTeamCompat.Clear("Arena raid ended without a PitFireTeam roster");

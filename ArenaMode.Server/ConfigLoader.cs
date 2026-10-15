@@ -39,7 +39,7 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
             // than that map's override, silently.
             if (Services.ConfigStore.Reload(out var repaired) != Services.ConfigResult.Success)
                 logger.Warning($"[ArenaMode] {repaired}");
-            logger.Info($"[ArenaMode] Config loaded — maps: {string.Join(", ", ArenaContext.Config.Maps.Keys)}");
+            logger.Debug($"[ArenaMode] Config loaded — maps: {string.Join(", ", ArenaContext.Config.Maps.Keys)}");
 
             // Kit catalog: served verbatim to the client. The default file is deployed
             // by the build (never overwriting user edits); missing file = empty catalog.
@@ -47,7 +47,7 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
             if (File.Exists(kitsFile))
             {
                 ArenaContext.KitsJson = File.ReadAllText(kitsFile);
-                logger.Info("[ArenaMode] Kit catalog loaded from config/kits.json");
+                logger.Debug("[ArenaMode] Kit catalog loaded from config/kits.json");
             }
             else
             {
@@ -60,11 +60,11 @@ public class ConfigLoader(ModHelper modHelper, ISptLogger<ConfigLoader> logger) 
             if (File.Exists(ladderFile))
             {
                 ArenaContext.LadderJson = File.ReadAllText(ladderFile);
-                logger.Info("[ArenaMode] Gun Game ladder loaded from config/ladder.json");
+                logger.Debug("[ArenaMode] Gun Game ladder loaded from config/ladder.json");
             }
             else
             {
-                logger.Info("[ArenaMode] config/ladder.json missing — Gun Game will ladder through the kit catalog.");
+                logger.Debug("[ArenaMode] config/ladder.json missing — Gun Game will ladder through the kit catalog.");
             }
 
             // The client's own settings, as last reported. Restored here so the

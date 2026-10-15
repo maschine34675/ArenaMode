@@ -121,7 +121,7 @@ namespace SPT.Reflection.Patching
 namespace ArenaMode
 {
     public static class Plugin { public static readonly Log ModLogger=new(); }
-    public class Log { public List<string> Lines=new(); public void LogInfo(string value)=>Lines.Add(value); public void LogWarning(string value)=>Lines.Add(value); }
+    public class Log { public List<string> Lines=new(); public void LogInfo(string value)=>Lines.Add(value); public void LogDebug(string value)=>Lines.Add(value); public void LogWarning(string value)=>Lines.Add(value); }
 }
 namespace ArenaMode.Bots
 {
@@ -225,3 +225,17 @@ namespace ArenaMode.Areas
 }
 namespace ArenaMode.Modes { internal static class ArenaModeCatalog { internal const string TeamDeathmatchId = "teamdeathmatch", TacticalId = "tactical", ZombieId = "zombie"; } }
 namespace ArenaMode.Compat { internal static class PitFireTeamCompat { internal static bool HasFrozenTeamRoster; } }
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
+    }
+}

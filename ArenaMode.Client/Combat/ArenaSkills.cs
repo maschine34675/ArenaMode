@@ -85,7 +85,7 @@ internal static class ArenaSkills
             ApplyMastering(skills);
             RefreshCachedConsumers(player);
 
-            Plugin.ModLogger.LogInfo($"Arena: {applied} skills raised to elite for this raid.");
+            Plugin.ModLogger.LogDebug($"Arena: {applied} skills raised to elite for this raid.");
         }
         catch (Exception ex)
         {
@@ -124,7 +124,7 @@ internal static class ArenaSkills
             }
 
             succeeded = true;
-            Plugin.ModLogger.LogInfo("Arena: skills restored to their profile values.");
+            Plugin.ModLogger.LogDebug("Arena: skills restored to their profile values.");
         }
         catch (Exception ex)
         {

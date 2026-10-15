@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Current handoff and test status](HANDOFF.md)
+- [Logging levels and developer diagnostics](LOGGING.md)
 - [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
 - [Future work](FUTURE-WORK.md)
 - [Variable protected PitFireTeam squads](PFT-SQUAD-SIZE-REVIEW.md)

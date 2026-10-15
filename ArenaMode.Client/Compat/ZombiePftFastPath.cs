@@ -84,7 +84,7 @@ internal static class ZombiePftFastPath
             // No detour of AICoreStrategy<T> and no foreign unpatch/reordering.
             Harmony.Patch(prefix, prefix: new HarmonyMethod(typeof(ZombiePftFastPath), nameof(Prefix)));
             _enabled = true;
-            Plugin.ModLogger.LogInfo("Arena zombie PFT fast path: installed for PitFireTeam " + pluginVersion
+            Plugin.ModLogger.LogDebug("Arena zombie PFT fast path: installed for PitFireTeam " + pluginVersion
                 + "; native execution is confirmed by the per-raid calls/skipped counters.");
         }
         catch (Exception ex) { Warn(ex); }
@@ -218,7 +218,7 @@ internal static class ZombiePftFastPath
         ObserveWorld(Singleton<GameWorld>.Instance);
         if (Time.realtimeSinceStartup < _nextDiagnostic) return;
         _nextDiagnostic = Time.realtimeSinceStartup + 30f;
-        Plugin.ModLogger.LogInfo($"Arena zombie PFT fast path: installed={_enabled} enabled={Settings.ZombiePftFastPathEnabled?.Value == true} calls={_calls} skipped={_skipped} standbyFallbacks={_standbyFallbacks} layerChecks={_layerChecks} shapeFallbacks={_shapeFallbacks} errors={_errors}.");
+        Plugin.ModLogger.LogDebug($"Arena zombie PFT fast path: installed={_enabled} enabled={Settings.ZombiePftFastPathEnabled?.Value == true} calls={_calls} skipped={_skipped} standbyFallbacks={_standbyFallbacks} layerChecks={_layerChecks} shapeFallbacks={_shapeFallbacks} errors={_errors}.");
     }
 
     internal static void Reset()

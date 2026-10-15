@@ -381,7 +381,7 @@ internal static class TeamDeathmatchRelations
             SainHarmony.Patch(admission, prefix: new HarmonyMethod(
                 typeof(TeamDeathmatchRelations), nameof(SainEnemyPrefix)));
             TdmSearchAwareness.Configure(enemyType, bot);
-            Plugin.ModLogger.LogInfo("Arena TDM: optional SAIN faction admission and awareness available.");
+            Plugin.ModLogger.LogDebug("Arena TDM: optional SAIN faction admission and awareness available.");
         }
         catch (Exception ex)
         {

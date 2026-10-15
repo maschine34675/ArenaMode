@@ -570,8 +570,9 @@ public sealed class ZombieMode : IArenaMode
         // alone, without reading raw swing/hit counters by hand, whether a
         // GPU raid's zombies actually swung and landed hits at all.
         var (swings, hits) = ZombieMeleeDiagnostics.ConsumeTotals();
-        Plugin.ModLogger.LogInfo(
-            $"Zombie match ended: {swings} native melee swing(s) attempted, {hits} landed hit(s) this raid.");
+        if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
+            ArenaMode.Diagnostics.ArenaLog.Developer(
+                $"Zombie match ended: {swings} native melee swing(s) attempted, {hits} landed hit(s) observed (partial developer observation if enabled after spawning).");
     }
 
     private bool IsCurrentRaid()

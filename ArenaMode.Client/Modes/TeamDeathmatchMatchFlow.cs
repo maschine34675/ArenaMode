@@ -43,7 +43,7 @@ public sealed partial class TeamDeathmatchMode
         var before = _rules.Phase;
         _rules.Update(Time.time, ready, 0, 0);
         if (before != _rules.Phase)
-            Plugin.ModLogger.LogInfo($"Team Deathmatch phase: {before} -> {_rules.Phase}; "
+            Plugin.ModLogger.LogDebug($"Team Deathmatch phase: {before} -> {_rules.Phase}; "
                 + $"killLimit={_rules.KillLimit}, timeLimit={_rules.TimeLimitSeconds}s.");
     }
 

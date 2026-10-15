@@ -103,7 +103,7 @@ public static class ArenaClientConfig
         try
         {
             _config = JObject.Parse(RequestHandler.GetJson(Protocol.ConfigRoute));
-            Plugin.ModLogger.LogInfo("Arena server config loaded.");
+            Plugin.ModLogger.LogDebug("Arena server config loaded.");
         }
         catch (Exception ex)
         {

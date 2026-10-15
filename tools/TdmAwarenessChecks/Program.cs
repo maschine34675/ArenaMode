@@ -60,8 +60,8 @@ internal static partial class Program
     }
     private static void Refresh(Raid raid, Enemy enemy)
         => TdmSearchAwareness.Refresh(raid.Source, raid.Target, raid.Sain.EnemyController, enemy, enemy.EnemyInfo);
-    private static string[] Snapshots() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("Arena TDM awareness:")).ToArray();
-    private static string[] PathDetails() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("Arena TDM path detail:")).ToArray();
+    private static string[] Snapshots() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("[dev] Arena TDM awareness:")).ToArray();
+    private static string[] PathDetails() => Plugin.ModLogger.Lines.Where(line => line.StartsWith("[dev] Arena TDM path detail:")).ToArray();
 
     private static void AdmissionAndAge()
     {

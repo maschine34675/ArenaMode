@@ -153,7 +153,7 @@ namespace ArenaMode
         public List<string> Warnings = new(), Infos = new();
         public bool Throw;
         public void LogWarning(string value) { if (Throw) throw new Exception("log sink"); Warnings.Add(value); }
-        public void LogInfo(string value) { if (Throw) throw new Exception("log sink"); Infos.Add(value); }
+        public void LogInfo(string value) { if (Throw) throw new Exception("log sink"); Infos.Add(value); } public void LogDebug(string value) { if (Throw) throw new Exception("log sink"); Infos.Add(value); }
     }
 }
 namespace AnimationSystem
@@ -214,4 +214,18 @@ namespace SPT.Reflection.Patching
     }
     public sealed class PatchPrefixAttribute : Attribute { }
     public sealed class PatchTranspilerAttribute : Attribute { }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
+    }
 }

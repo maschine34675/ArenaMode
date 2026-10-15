@@ -109,7 +109,7 @@ internal static class GcThresholdMonitor
         if (GcThresholdPolicy.ShouldArm(_state, ArenaSession.IsActive, gcDisabled, thresholdBytes, heapBytes))
         {
             GcThresholdPolicy.Arm(ref _state, Time.time);
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena GC threshold armed: heap {GB(heapBytes):0.00} GB >= {thresholdGb:0.0} GB threshold "
                 + $"at raid minute {RaidMinute:0.0}; switching on the next death, round break, or after "
                 + $"{GcThresholdPolicy.ArmedTimeoutSeconds:0} s.");
@@ -121,7 +121,7 @@ internal static class GcThresholdMonitor
         if (GcThresholdPolicy.ShouldReassert(_state, ArenaSession.IsActive, gcDisabled, Time.time))
         {
             GcThresholdPolicy.MarkReasserted(ref _state, Time.time);
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena GC threshold: the collector was disabled again after this raid's switch; re-enabling "
                 + "rather than letting whatever did that silently undo the feature for the rest of the raid.");
             InGameMemoryManagement.GCEnabled = true;
@@ -171,7 +171,7 @@ internal static class GcThresholdMonitor
         _followUpPending = true;
         _followUpAt = Time.time + FollowUpDelaySeconds;
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena GC threshold switch: heap {GB(heapBytes):0.00} GB, threshold "
             + $"{Settings.GcHeapThresholdGB.Value:0.0} GB, raid minute {RaidMinute:0.0}, triggered by {moment}. "
             + "Switching Unity's incremental collector back on for the rest of this raid.");
@@ -199,7 +199,7 @@ internal static class GcThresholdMonitor
         var heapBytes = GC.GetTotalMemory(false);
         var collections = GC.CollectionCount(0) - _collectionCountAtSwitch;
         var deltaGb = GB(heapBytes) - GB(_heapAtSwitch);
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena GC threshold follow-up: heap {GB(heapBytes):0.00} GB ({(deltaGb >= 0 ? "+" : string.Empty)}{deltaGb:0.00} GB "
             + $"since the switch), {collections} gen0 collection(s) since the switch.");
     }

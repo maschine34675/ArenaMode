@@ -224,7 +224,7 @@ internal static class ArenaMedicalPatches
                 if (!_reportedActive)
                 {
                     _reportedActive = true;
-                    Plugin.ModLogger.LogInfo(
+                    Plugin.ModLogger.LogDebug(
                         $"Arena medical speed active: {multiplier:0.##}x for the local PMC.");
                 }
             }

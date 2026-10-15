@@ -59,7 +59,7 @@ internal static class ArenaBunnyhop
             Settings.ExtraMotionScale.SettingChanged += Changed;
             RaidLifecycle.OnRaidEnded += Reset;
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena bunnyhop: timed landing buffer ready (6% per hop, 25% chain cap, 12 m/s absolute cap).");
+            Plugin.ModLogger.LogDebug("Arena bunnyhop: timed landing buffer ready (6% per hop, 25% chain cap, 12 m/s absolute cap).");
         }
         catch (Exception ex) { Shutdown(); Warn(ex); }
     }
@@ -285,7 +285,8 @@ internal static class ArenaBunnyhop
         if (__state == null || !ReferenceEquals(_flight, __state)) return;
         if (!Owns(__state, __instance.MovementContext)) { Reset(); return; }
         if (__state.HasCarry)
-            Plugin.ModLogger.LogDebug($"Arena bunnyhop: hop {__state.Hops}, carry {Planar(__state.Carry):F2} m/s, cap {Mathf.Min(__state.BaseSpeed * MaxGain, AbsoluteCap):F2} m/s.");
+            if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
+                ArenaMode.Diagnostics.ArenaLog.Developer($"Arena bunnyhop: hop {__state.Hops}, carry {Planar(__state.Carry):F2} m/s, cap {Mathf.Min(__state.BaseSpeed * MaxGain, AbsoluteCap):F2} m/s.");
     }
 
     // Invoked before AirControl's steering and native LimitMotion, never after collision.

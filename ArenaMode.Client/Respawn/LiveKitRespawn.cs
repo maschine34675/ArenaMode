@@ -276,7 +276,7 @@ internal static class LiveKitRespawn
             || oldBody.HealthController == null
             || !oldBody.HealthController.IsAlive)
         {
-            Plugin.ModLogger.LogInfo($"Arena {what} stood down — the body changed hands while it was preparing.");
+            Plugin.ModLogger.LogDebug($"Arena {what} stood down — the body changed hands while it was preparing.");
             Report(onComplete, false);
             yield break;
         }
@@ -286,14 +286,14 @@ internal static class LiveKitRespawn
         // for a failed takeover. Stand down here instead.
         if (RespawnEngineState.IsPipelineRunning)
         {
-            Plugin.ModLogger.LogInfo($"Arena {what} stood down — another body replacement is still in flight.");
+            Plugin.ModLogger.LogDebug($"Arena {what} stood down — another body replacement is still in flight.");
             Report(onComplete, false);
             yield break;
         }
 
         if (!ArenaRespawnDriver.BeginPipelineUse(game, raidEpoch))
         {
-            Plugin.ModLogger.LogInfo($"Arena {what} stood down — its raid lease expired before takeover.");
+            Plugin.ModLogger.LogDebug($"Arena {what} stood down — its raid lease expired before takeover.");
             if (ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
                 && !ArenaRespawnDriver.StandDown)
             {
@@ -332,7 +332,7 @@ internal static class LiveKitRespawn
 
         if (!sameActiveRaid)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena {what} finished after its raid ended — stale recovery and callbacks were suppressed.");
             yield break;
         }
@@ -363,12 +363,12 @@ internal static class LiveKitRespawn
         // protected-team restore, which does not raise it either).
         if (kit != null)
         {
-            Plugin.ModLogger.LogInfo($"Arena {what} complete: {kit.Name}.");
+            Plugin.ModLogger.LogDebug($"Arena {what} complete: {kit.Name}.");
             ArenaEvents.RaiseKitApplied(kit);
         }
         else
         {
-            Plugin.ModLogger.LogInfo($"Arena {what} complete.");
+            Plugin.ModLogger.LogDebug($"Arena {what} complete.");
         }
         Report(onComplete, true);
     }

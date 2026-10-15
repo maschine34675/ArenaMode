@@ -91,7 +91,7 @@ public static partial class KitBundlePreloader
         // build twenty kits of pools for a raid that hands out none.
         if (Session.ArenaMenuSelection.CompatibilityTeamArenaActive)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena: nothing to preload in the loading screen — the protected 5v5 raid keeps its entry loadout.");
             return;
         }
@@ -105,7 +105,7 @@ public static partial class KitBundlePreloader
         // loading-time exception list).
         if (Session.ArenaSession.ZombieOwnGearArmed)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena: nothing to preload in the loading screen — Zombie own gear keeps the entry loadout.");
             return;
         }
@@ -129,14 +129,14 @@ public static partial class KitBundlePreloader
 
         if (batches.Count == 0)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena: nothing to preload in the loading screen for {mode ?? "<no mode>"} (no kit to hand out).");
             return;
         }
 
         var preload = new RaidStartPreload(Session.ArenaSession.ArmEpoch, world, batches);
         _raidStart = preload;
-        Plugin.ModLogger.LogInfo($"Arena: preloading {Describe(batches)} in the loading screen.");
+        Plugin.ModLogger.LogDebug($"Arena: preloading {Describe(batches)} in the loading screen.");
 
         // Not awaited, and every failure is caught inside: an unobserved fault
         // on this task would surface as a process-level warning at best, and
@@ -208,7 +208,7 @@ public static partial class KitBundlePreloader
             Publish(preload, batch);
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena: the loading-screen kit preload is this raid's — {done} batch(es) finished before the raid began, "
             + $"{running} still loading, {handedOver} left to the in-raid warm-up, {failed} failed.");
     }
@@ -227,7 +227,7 @@ public static partial class KitBundlePreloader
 
         if (preload != null)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena: loading-screen kit preload discarded ({reason}); "
                 + $"{(preload.IsRunning ? "a batch was still loading" : "no batch was loading")}.");
         }
@@ -291,7 +291,7 @@ public static partial class KitBundlePreloader
                 var took = batch.FinishedAt - batch.StartedAt;
                 if (batch.Succeeded)
                 {
-                    Plugin.ModLogger.LogInfo(preload.Adopted
+                    Plugin.ModLogger.LogDebug(preload.Adopted
                         ? $"Arena: loading-screen preload of {batch.Label} ({batch.Templates.Count} templates) finished "
                           + $"{batch.FinishedAt - preload.AdoptedAt:0.0} s after the raid began, {took:0.0} s in all."
                         : $"Arena: loading-screen preload of {batch.Label} ({batch.Templates.Count} templates) finished "

@@ -221,7 +221,7 @@ public static class PitFireTeamDynamicPersistencePatches
             IsInstalled = false;
             IsCompatible = false;
             IncompatibilityReason = "PitFireTeam server assembly is not installed.";
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 "[ArenaMode] PitFireTeam server assembly is absent; optional persistence service patches were not loaded.");
             return;
         }
@@ -509,7 +509,7 @@ public static class PitFireTeamDynamicPersistencePatches
             // Report the RESOLVED management count, not the table length: a build
             // that predates a narrowed contract legitimately guards one fewer
             // transaction, and the log has to say which it actually patched.
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 $"[ArenaMode] PitFireTeam {version} persistence guard enabled " +
                 $"({raidTargets.Count} raid, {managementTargets.Count} management, " +
                 $"{OperationBoundaryContracts.Length} outer operations, " +
@@ -631,7 +631,7 @@ public static class PitFireTeamDynamicPersistencePatches
             // Arena boundary, no exact-session scope can authorize the global
             // half safely. Suppress the complete callback instead of splitting
             // it at the inner SaveAndApply call.
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 $"[ArenaMode] Suppressed global PitFireTeam settings transaction for session {sessionId} " +
                 "while another Arena profile boundary is protected.");
             return false;
@@ -647,7 +647,7 @@ public static class PitFireTeamDynamicPersistencePatches
             // would make the HTTP half succeed and the delayed half hit the
             // file/profile guard. Suppress the complete request; the menu can
             // retry after the bounded window ends.
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 $"[ArenaMode] Suppressed delayed PitFireTeam invite transaction for protected session {sessionId}.");
             return false;
         }
@@ -657,7 +657,7 @@ public static class PitFireTeamDynamicPersistencePatches
         // an explicit menu action may run as one complete, exact-session unit.
         if (sessions.GetStatus(sessionId).state != ArenaSessionState.Idle)
         {
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 $"[ArenaMode] Suppressed PitFireTeam {__originalMethod.DeclaringType?.Name}.{__originalMethod.Name} " +
                 $"while protected Arena session {sessionId} is active.");
             return false;
@@ -690,7 +690,7 @@ public static class PitFireTeamDynamicPersistencePatches
             || sessions.IsGlobalExternalMutationAuthorized())
             return true;
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed PitFireTeam {__originalMethod.DeclaringType?.Name}.{__originalMethod.Name} " +
             "during protected Arena profile finalization.");
         return false;
@@ -719,7 +719,7 @@ public static class PitFireTeamDynamicPersistencePatches
             return true;
         }
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed PitFireTeam {originalMethod.DeclaringType?.Name}.{originalMethod.Name} " +
             $"for protected Arena session {sessionId}.");
         return false;
@@ -738,7 +738,7 @@ public static class PitFireTeamDynamicPersistencePatches
         if (PitFireTeamManagementScope.Authorizes(sessionId.ToString()))
             return true;
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed hidden PitFireTeam recovery {originalMethod.Name} " +
             $"for protected Arena session {sessionId}.");
         return false;

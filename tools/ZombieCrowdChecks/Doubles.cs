@@ -127,7 +127,7 @@ namespace ArenaMode.Areas
 }
 namespace ArenaMode
 {
-    public class Log {public List<string> Warnings=[];public void LogInfo(string s){} public void LogWarning(string s)=>Warnings.Add(s);}
+    public class Log {public List<string> Warnings=[];public void LogInfo(string s){} public void LogDebug(string s){} public void LogWarning(string s)=>Warnings.Add(s);}
     public static class Plugin {public static Log ModLogger=new();}
 }
 namespace HarmonyLib { public static class AccessTools { public static System.Reflection.MethodInfo DeclaredMethod(Type t,string n)=>t.GetMethod(n); } }

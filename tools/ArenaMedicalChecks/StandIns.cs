@@ -38,7 +38,7 @@ namespace ArenaMode
     {
         public List<string> Infos { get; } = new();
         public List<string> Warnings { get; } = new();
-        public void LogInfo(object value) => Infos.Add(value?.ToString() ?? string.Empty);
+        public void LogInfo(object value) => Infos.Add(value?.ToString() ?? string.Empty); public void LogDebug(object value) => Infos.Add(value?.ToString() ?? string.Empty);
         public void LogWarning(object value) => Warnings.Add(value?.ToString() ?? string.Empty);
         public void Clear()
         {

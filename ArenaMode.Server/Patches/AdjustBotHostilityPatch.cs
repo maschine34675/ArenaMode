@@ -36,14 +36,14 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
             if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out _, out var reason))
                 throw new InvalidOperationException(reason);
             ApplyDeathmatch(location, deathmatchHostility == DeathmatchSelection.FreeForAll);
-            ArenaContext.Logger?.Info($"[ArenaMode] Arena hostility applied ({deathmatchHostility}, frozen Deathmatch selection).");
+            ArenaContext.Logger?.Debug($"[ArenaMode] Arena hostility applied ({deathmatchHostility}, frozen Deathmatch selection).");
             return;
         }
 
         if (string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
         {
             ApplyTeamDeathmatch(location);
-            ArenaContext.Logger?.Info("[ArenaMode] Arena hostility applied (USEC vs BEAR teams).");
+            ArenaContext.Logger?.Debug("[ArenaMode] Arena hostility applied (USEC vs BEAR teams).");
             return;
         }
 
@@ -67,7 +67,7 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
             // the one relation this mode must never produce. Returning here,
             // before that branch runs, is what keeps the clone's hostility
             // settings vanilla regardless of the server's configured mode.
-            ArenaContext.Logger?.Info("[ArenaMode] Arena hostility left vanilla (zombie: native infected Mind settings already apply).");
+            ArenaContext.Logger?.Debug("[ArenaMode] Arena hostility left vanilla (zombie: native infected Mind settings already apply).");
             return;
         }
 
@@ -106,7 +106,7 @@ public sealed class AdjustBotHostilityPatch : AbstractPatch
             }
         }
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Arena hostility applied ({(freeForAll ? "ffa" : "all_vs_player")}).");
     }
 

@@ -278,6 +278,7 @@ internal static class BotLoadBoost
         _forcedByUs = true;
         _heldSince = Time.realtimeSinceStartup;
 
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         // Both machines' logs then show the decision and what it rested on.
         double windowMs = _windowTicks * 1000.0 / Stopwatch.Frequency;
         double budgetMs = _frameTicks / (double)TimeSpan.TicksPerMillisecond;
@@ -298,7 +299,7 @@ internal static class BotLoadBoost
 
         float sinceLoading = Time.realtimeSinceStartup - _state.LoadingSince;
 
-        Plugin.ModLogger.LogInfo(FormattableString.Invariant(
+        ArenaMode.Diagnostics.ArenaLog.Developer(FormattableString.Invariant(
             $"Arena load boost: on after {sinceLoading:F1}s of loading ({window}; step budget x{budget:F2} per frame; {slice})."));
     }
 
@@ -312,7 +313,8 @@ internal static class BotLoadBoost
         if (Singleton<JobScheduler>.Instantiated)
             Singleton<JobScheduler>.Instance.SetForceMode(false);
 
-        Plugin.ModLogger.LogInfo(FormattableString.Invariant(
+        if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
+            ArenaMode.Diagnostics.ArenaLog.Developer(FormattableString.Invariant(
             $"Arena load boost: off after {Time.realtimeSinceStartup - _heldSince:F1}s ({why})."));
     }
 

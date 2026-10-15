@@ -94,6 +94,10 @@ namespace ArenaMode
         {
             InfoCount++;
             LastInfo = value?.ToString();
+        } public void LogDebug(object value)
+        {
+            InfoCount++;
+            LastInfo = value?.ToString();
         }
         public void LogWarning(object value)
         {

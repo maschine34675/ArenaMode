@@ -201,7 +201,7 @@ internal static partial class ArenaPickupRuntime
         _layout = ArenaPickupLayouts.Select(file, map, area);
         var weapons = _layout?.Points.Where(point => point.Kind == ArenaPickupKind.Weapon)
             .Select(point => point.Id + ":" + point.KitId) ?? Enumerable.Empty<string>();
-        Plugin.ModLogger.LogInfo($"Arena pickups layout: {map}/{area ?? "full map"}; {_layout?.Points.Count ?? 0} configured points. "
+        Plugin.ModLogger.LogDebug($"Arena pickups layout: {map}/{area ?? "full map"}; {_layout?.Points.Count ?? 0} configured points. "
             + $"Source={(_builtInLayout ? "built-in" : "Pickups.json")}; weapons=[{string.Join(", ", weapons)}]. Frozen for this match.");
     }
 
@@ -232,13 +232,13 @@ internal static partial class ArenaPickupRuntime
                 if (Entries.Any(other => (rotating || other.Rotating) && (other.Floor - floor).sqrMagnitude < 9f))
                 { diagnostics.Refused("another pickup is within 3m"); continue; }
                 if (relocated)
-                    Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
+                    Plugin.ModLogger.LogDebug(FormattableString.Invariant($"Arena pickup '{point.Id}' relocated: requested ({requested.x:F3}, {requested.y:F3}, {requested.z:F3}), floor ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}), shift {(floor - requested).magnitude:F2}m; original point: {reason}."));
                 var entry = new Entry { Definition = point, Candidates = definition, Floor = floor, Rotating = rotating,
                     AvailableSince = Time.time, NextRotationAt = Time.time + AvailableRotationSeconds };
                 Entries.Add(entry);
                 entry.View = new ArenaPickupView(point, floor);
                 if (point.Kind == ArenaPickupKind.Weapon) PrepareWeapon(entry);
-                Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' selected ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}) for round {_round}; {(definition.Alternatives?.Count ?? 0) + 1} candidates."));
+                Plugin.ModLogger.LogDebug(FormattableString.Invariant($"Arena pickup '{point.Id}' selected ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}) for round {_round}; {(definition.Alternatives?.Count ?? 0) + 1} candidates."));
                 placed = true;
                 PlacementFailures.Remove(definition.Id);
                 break;
@@ -248,7 +248,7 @@ internal static partial class ArenaPickupRuntime
                 $"anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); alternatives={alternatives}; geometryProbes={diagnostics.Probes}; refusals=[{diagnostics}]");
         }
         var actor = _world.MainPlayer.Position;
-        Plugin.ModLogger.LogInfo(FormattableString.Invariant(
+        Plugin.ModLogger.LogDebug(FormattableString.Invariant(
             $"Arena pickup placement attempt {_placementAttempts}: round {_round}; actor=({actor.x:F3}, {actor.y:F3}, {actor.z:F3}); anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); placed={Entries.Count}/{_layout.Points.Count}; alternatives={candidates}; geometryProbes={total.Probes}; refusals=[{total}]."));
     }
 
@@ -357,12 +357,12 @@ internal static partial class ArenaPickupRuntime
         entry.View = view; entry.Definition = point; entry.Floor = floor;
         entry.MustLeave.Clear(); entry.NeedsEntry = true;
         entry.AvailableSince = Time.time; entry.NextRotationAt = Time.time + AvailableRotationSeconds;
-        Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena pickup '{point.Id}' rotated during round {_round}: ({previous.x:F3}, {previous.y:F3}, {previous.z:F3}) -> ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}); appearance {entry.State.Appearance}."));
+        Plugin.ModLogger.LogDebug(FormattableString.Invariant($"Arena pickup '{point.Id}' rotated during round {_round}: ({previous.x:F3}, {previous.y:F3}, {previous.z:F3}) -> ({floor.x:F3}, {floor.y:F3}, {floor.z:F3}); appearance {entry.State.Appearance}."));
     }
 
     // Invoked only at an availability deadline/cooldown completion, never per frame.
     private static void RotationBlocked(Entry entry, string reason)
-        => Plugin.ModLogger.LogInfo($"Arena pickup '{entry.Definition.Id}' kept its rotation position: {reason}.");
+        => Plugin.ModLogger.LogDebug($"Arena pickup '{entry.Definition.Id}' kept its rotation position: {reason}.");
 
     private static void FinishPlacement(string outcome)
     {
@@ -375,8 +375,8 @@ internal static partial class ArenaPickupRuntime
             if (PlacementFailures.TryGetValue(definition.Id, out var failure))
                 Plugin.ModLogger.LogWarning($"Arena pickup '{definition.Id}' skipped after {_placementAttempts} placement attempts; last attempt: {failure}.");
         }
-        Plugin.ModLogger.LogInfo($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed ({outcome}, {_placementAttempts} attempts); damage 20s, shield 220/30s, health up to {ArenaHealthPickup.Amount:0}HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
-        Plugin.ModLogger.LogInfo($"Arena pickup bot routing: {(BotObjectivesAvailable && ArenaPickupSettings.BotsCollectPowerups.Value ? "available via BigBrain companion" : "inactive; passive collection only if enabled")}.");
+        Plugin.ModLogger.LogDebug($"Arena pickups round {_round}: {Entries.Count}/{_layout.Points.Count} points placed ({outcome}, {_placementAttempts} attempts); damage 20s, shield 220/30s, health up to {ArenaHealthPickup.Amount:0}HP, jump boots +100%/30s, infinite ammo 10s; weapon/boots/ammo local only.");
+        Plugin.ModLogger.LogDebug($"Arena pickup bot routing: {(BotObjectivesAvailable && ArenaPickupSettings.BotsCollectPowerups.Value ? "available via BigBrain companion" : "inactive; passive collection only if enabled")}.");
     }
 
     private static bool Owns(int generation, Entry entry) => _live && Generation == generation
@@ -547,7 +547,7 @@ internal static partial class ArenaPickupRuntime
                     ArenaPickupKind.Health => $"HEALTH — +{healed:0.#} HP",
                     _ => "WEAPON COLLECTED"
                 });
-                Plugin.ModLogger.LogInfo($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");
+                Plugin.ModLogger.LogDebug($"Arena pickup collected: {entry.Definition.Id}; actor {(player.IsAI ? "bot" : "local")}; round {_round}; returns in {entry.Definition.RespawnSeconds:0}s.");
             }
             else if (!player.IsAI && entry.Definition.Kind == ArenaPickupKind.Weapon)
                 Notice("WEAPON LEFT — " + (entry.Weapon?.LastRefusal ?? "transfer unavailable") + "; approach again");

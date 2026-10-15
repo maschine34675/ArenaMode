@@ -35,7 +35,7 @@ internal static class ArenaGpuAcceptanceCompat
             ExactMethod(typeof(GPUInstancerManager), "InitializeCameraData", true);
             Patches.Patch(update, prefix: new HarmonyMethod(typeof(ArenaGpuAcceptanceCompat), nameof(BeforeGpuUpdate))
                 { priority = Priority.Last });
-            Plugin.ModLogger.LogInfo("Arena GPU acceptance: replacement grass-camera ordering guard ready.");
+            Plugin.ModLogger.LogDebug("Arena GPU acceptance: replacement grass-camera ordering guard ready.");
         }
         catch (Exception ex)
         {
@@ -56,7 +56,7 @@ internal static class ArenaGpuAcceptanceCompat
             MethodInfo warmup = ExactMethod(type, "QueueRaidSettingsWarmup", false);
             Patches.Patch(warmup, prefix: new HarmonyMethod(typeof(ArenaGpuAcceptanceCompat), nameof(BeforePftWarmup))
                 { priority = Priority.Last });
-            Plugin.ModLogger.LogInfo("Arena GPU acceptance: optional PFT inactive-menu warmup guard ready.");
+            Plugin.ModLogger.LogDebug("Arena GPU acceptance: optional PFT inactive-menu warmup guard ready.");
         }
         catch (Exception ex)
         {
@@ -115,7 +115,7 @@ internal static class ArenaGpuAcceptanceCompat
                     || !ReferenceEquals(last, current)))
             {
                 _lastReboundCamera = new WeakReference<Camera>(current);
-                Plugin.ModLogger.LogInfo("Arena grass renderer: rebound replacement camera before native resolution validation.");
+                Plugin.ModLogger.LogDebug("Arena grass renderer: rebound replacement camera before native resolution validation.");
             }
         }
         catch (Exception ex)
@@ -137,7 +137,7 @@ internal static class ArenaGpuAcceptanceCompat
         if (!_reportedInactiveMenu)
         {
             _reportedInactiveMenu = true;
-            Plugin.ModLogger.LogInfo("Arena PFT menu: deferred settings warmup until the menu host is active.");
+            Plugin.ModLogger.LogDebug("Arena PFT menu: deferred settings warmup until the menu host is active.");
         }
         return false;
     }

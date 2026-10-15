@@ -120,7 +120,7 @@ namespace ArenaMode
     {
         public static Plugin Instance=new();public InfoType Info=new();public static Logger ModLogger=new();
         public class InfoType {public string Location;}
-        public class Logger { public List<string> Lines=[];public void LogWarning(object x)=>Lines.Add("Warning: "+x);public void LogInfo(object x)=>Lines.Add("Info: "+x); }
+        public class Logger { public List<string> Lines=[];public void LogWarning(object x)=>Lines.Add("Warning: "+x);public void LogInfo(object x)=>Lines.Add("Info: "+x); public void LogDebug(object x)=>Lines.Add("Debug: "+x); }
     }
 }
 namespace ArenaMode.Shared { public struct ArenaAreaPoint(float x,float y,float z) {public float X=x,Y=y,Z=z;} }
@@ -219,6 +219,20 @@ namespace ArenaMode.Pickups
             internal void Settle(bool success,bool ambiguous=false)
             {IsPending=false;if(success||ambiguous)IsAvailable=false;Callback?.Invoke(success);}
             public void Dispose(){if(Disposed)return;Disposed=true;IsAvailable=false;Disposing?.Invoke();}
+        }
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
         }
     }
 }

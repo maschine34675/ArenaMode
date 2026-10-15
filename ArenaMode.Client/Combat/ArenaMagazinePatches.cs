@@ -154,7 +154,7 @@ internal static class ArenaMagazinePatches
             if (!_reportedActive)
             {
                 _reportedActive = true;
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena magazine handling speed active: {multiplier:0.##}x for the local PMC.");
             }
         }

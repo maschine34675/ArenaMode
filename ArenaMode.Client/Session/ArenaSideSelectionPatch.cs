@@ -89,7 +89,7 @@ internal static class ArenaSideSelectionPatch
                 ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);
                 if (!eligibility.Allowed)
                     Plugin.ModLogger.LogInfo($"Arena side button disabled: {eligibility.Reason}");
-                Plugin.ModLogger.LogInfo($"Arena side button: active={arena.gameObject.activeInHierarchy}, "
+                Plugin.ModLogger.LogDebug($"Arena side button: active={arena.gameObject.activeInHierarchy}, "
                     + $"interactable={arena.SpawnedObject.IsInteractable()}, wrapper={arena.transform.parent.name}");
             }
             catch (Exception ex)

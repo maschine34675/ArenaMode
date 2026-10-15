@@ -57,7 +57,7 @@ internal static class ObservationChecks
             var(p,c,v)=setup(); var a=UnityFixture.Create(c); ArenaMode.Plugin.ModLogger.Info.Clear();
             p.ToggleVaulting(); p.BodyUpdate(.02f); a.Update(.02f); return(p,c,v,a);
         }
-        string[] Logs()=>ArenaMode.Plugin.ModLogger.Info.Where(x=>x.StartsWith("Arena mantle motion #")).ToArray();
+        string[] Logs()=>ArenaMode.Plugin.ModLogger.Info.Where(x=>x.StartsWith("[dev] Arena mantle motion #")).ToArray();
         var observed=Enter();
         check(Logs().Length==1 && Logs()[0].Contains("height=1.2") && Logs()[0].Contains("distance=0.4"),"motion entry records accepted native geometry");
         var movement=(VaultingMovementState)observed.c.CurrentState;

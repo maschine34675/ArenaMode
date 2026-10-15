@@ -158,7 +158,7 @@ internal static class LabyrinthAlarmPatches
                     stopped++;
                 }
             }
-            Plugin.ModLogger?.LogInfo(
+            Plugin.ModLogger?.LogDebug(
                 $"Arena Labyrinth alarm suppression active: {players.Count} verified player(s), {stopped} source(s); other audio and triggers unchanged.");
             if (stopped == 0)
                 Plugin.ModLogger?.LogWarning("Arena Labyrinth alarm sources were not found in the scene registry; the guarded playback hook remains active.");

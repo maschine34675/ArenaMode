@@ -163,17 +163,18 @@ internal static partial class ArenaAreaRuntime
 
     private static void LogConnectivityAttempt(string result, bool timeout)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         if (timeout && _area?.TeamStarts != null) LogTeamStartDiagnostics();
         if (_area?.TeamStarts == null || _connectivityLogged && !timeout) return;
         if (_connectivityLogged && timeout)
-        { Plugin.ModLogger.LogInfo("Arena area waypoint timeout after last completed attempt: " + result); return; }
+        { ArenaMode.Diagnostics.ArenaLog.Developer("Arena area waypoint timeout after last completed attempt: " + result); return; }
         _connectivityLogged = true;
         int reached = _connectivity?.ReachedCount - 1 ?? 0;
         int via = _connectivity == null ? 0 : Enumerable.Range(1, _connectivity.Count - 1)
             .Count(i => _connectivity.Reached(i) && _connectivity.Parent(i) != 0);
-        Plugin.ModLogger.LogInfo($"Arena area waypoint attempt {_connectivityAttempt}{(timeout ? " timeout" : "")}: anchor {_anchor}, sampled {Math.Max(0, ConnectivityVertices.Count - 1)}/{Candidates.Count}, reached {reached}, fresh markers {Connected.Count}, recovered-via-waypoint {via}, directed queries {_connectivityQueries}; {result}.");
+        ArenaMode.Diagnostics.ArenaLog.Developer($"Arena area waypoint attempt {_connectivityAttempt}{(timeout ? " timeout" : "")}: anchor {_anchor}, sampled {Math.Max(0, ConnectivityVertices.Count - 1)}/{Candidates.Count}, reached {reached}, fresh markers {Connected.Count}, recovered-via-waypoint {via}, directed queries {_connectivityQueries}; {result}.");
         foreach (var failure in ConnectivitySampleFailures)
-            Plugin.ModLogger.LogInfo($"Arena area waypoint marker {failure.Key}: {failure.Value}.");
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena area waypoint marker {failure.Key}: {failure.Value}.");
         if (_connectivity == null) return;
         for (int i = 1; i < _connectivity.Count; i++)
         {
@@ -182,7 +183,7 @@ internal static partial class ArenaAreaRuntime
             string from = parent < 0 ? "not visited" : ConnectivityVertices[parent].Id;
             string forward = parent < 0 ? "not queried" : _connectivityProbeResults[parent, i] ?? "not queried";
             string reverse = parent < 0 ? "not queried" : _connectivityProbeResults[i, parent] ?? "not queried";
-            Plugin.ModLogger.LogInfo($"Arena area waypoint marker {ConnectivityVertices[i].Id} at {ConnectivityVertices[i].Position}: from {from}; forward={forward}; reverse={reverse}; current={ConnectivityVertexCurrent(i)}; fresh-parent-chain={Connected.Contains(ConnectivityVertices[i].Point)}.");
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena area waypoint marker {ConnectivityVertices[i].Id} at {ConnectivityVertices[i].Position}: from {from}; forward={forward}; reverse={reverse}; current={ConnectivityVertexCurrent(i)}; fresh-parent-chain={Connected.Contains(ConnectivityVertices[i].Point)}.");
         }
     }
 }

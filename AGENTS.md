@@ -5,6 +5,11 @@ in `docs/`; start with [docs/README.md](docs/README.md). Keep this `AGENTS.md` a
 the repository root for automatic discovery and the offline harness root checks.
 Place new documentation and evidence summaries in `docs/`, not beside this file.
 
+Read [docs/LOGGING.md](docs/LOGGING.md) before adding runtime logging. Info is
+reserved for player-relevant events; routine technical details use Debug and
+expensive probes require Diagnostics/DeveloperMode. Never gate gameplay cleanup,
+protection warnings or the independent LogDamageExceptions safety alarm.
+
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional exact-version

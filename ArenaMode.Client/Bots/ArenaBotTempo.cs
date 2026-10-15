@@ -69,7 +69,7 @@ internal static class ArenaBotTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena bot tempo ready (SAIN 4.5.1): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.7; native actions and collision retained.");
+            Plugin.ModLogger.LogDebug("Arena bot tempo ready (SAIN 4.5.1): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.7; native actions and collision retained.");
         }
         catch (Exception ex) { Patches.UnpatchSelf(); Warn(ex); }
     }
@@ -337,7 +337,7 @@ internal static class ArenaBotTempo
         if (kind == 0) _sprints++; else if (kind == 1) _strafes++; else _released++;
         if (Time.time < _nextLog) return;
         _nextLog = Time.time + 60f;
-        Plugin.ModLogger.LogInfo($"Arena bot tempo (last interval): searchSprintInputs={_sprints}, strafeInputs={_strafes}, completedReloadWaits={_released}; inputs are not measured motion.");
+        Plugin.ModLogger.LogDebug($"Arena bot tempo (last interval): searchSprintInputs={_sprints}, strafeInputs={_strafes}, completedReloadWaits={_released}; inputs are not measured motion.");
         _sprints = _strafes = _released = 0;
     }
     private static bool Finite(float x) => !float.IsNaN(x) && !float.IsInfinity(x);

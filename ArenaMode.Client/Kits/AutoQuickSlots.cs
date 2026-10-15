@@ -336,7 +336,7 @@ internal static class AutoQuickSlots
         result.Value.RaiseEvents(inventory, CommandStatus.Succeed);
         Ledger.NoteBound(index, item.Id);
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena quick slots: bound {item.ShortName?.Localized() ?? item.TemplateId.ToString()} to {index}.");
 
         return true;

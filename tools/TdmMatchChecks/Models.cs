@@ -64,7 +64,7 @@ namespace ArenaMode
         public sealed class Log
         {
             public readonly List<string> Entries = new();
-            public void LogInfo(string text) => Entries.Add(text);
+            public void LogInfo(string text) => Entries.Add(text); public void LogDebug(string text) => Entries.Add(text);
             public void LogWarning(string text) => Entries.Add(text);
             public void LogError(string text) => Entries.Add(text);
         }

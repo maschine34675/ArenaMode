@@ -117,7 +117,7 @@ internal static class ArenaSecureContainer
                 return;
 
             _emptied += removed;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena: left {removed} item(s) out of the secure container ({_emptied} this raid). "
                 + "They are in the profile snapshot and come back at raid end.");
         }

@@ -63,7 +63,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         IsRespawnInProgress = true;
         DeathsThisSession++;
         int raidEpoch = RaidEpoch.Capture();
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             PitFireTeamCompat.HasFrozenTeamRoster
                 ? $"Arena death #{DeathsThisSession} — held for protected team transition."
                 : Modes.ArenaMatchService.Current?.Mode is Modes.ZombieMode { IsTeamArena: false }
@@ -318,7 +318,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         EndPipelineUse(raidEpoch);
 
-        Plugin.ModLogger.LogInfo(
+        ArenaMode.Diagnostics.ArenaLog.Developer(
             $"Arena respawn timing: kit {Seconds(startedAt, kitPickedAt):0.00}s, "
             + $"bundles {Seconds(kitPickedAt, preloadedAt):0.00}s, "
             + (held ? $"hold {Seconds(preloadedAt, releasedAt):0.00}s, " : "")
@@ -442,7 +442,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         }
 
         EndPipelineUse(raidEpoch);
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena protected team respawn completed for round epoch {teamEpoch} "
             + $"in {Time.realtimeSinceStartup - startedAt:0.00}s.");
         ArenaEvents.RaisePlayerRespawned(respawnedPlayer);
@@ -533,7 +533,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             yield break;
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena Zombie own-gear respawn completed (epoch {restoreEpoch}) "
             + $"in {Time.realtimeSinceStartup - startedAt:0.00}s.");
         ArenaEvents.RaisePlayerRespawned(respawned);
@@ -603,7 +603,12 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         if (!IsRespawnInProgress)
             return;
 
-        Plugin.ModLogger.LogWarning("External raid end during arena respawn — standing down.");
+        // Protected result/leave coordinators stand down before invoking native
+        // Stop. Only a stop that interrupts an active respawn is unexpected.
+        if (StandDown)
+            Plugin.ModLogger.LogDebug("Arena native stop observed after respawn already stood down.");
+        else
+            Plugin.ModLogger.LogWarning("External raid end during arena respawn — standing down.");
         StandDown = true;
     }
 

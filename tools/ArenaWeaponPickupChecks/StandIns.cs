@@ -207,7 +207,7 @@ namespace ArenaMode
     {
         public List<string> Messages = new();
         public void LogWarning(string message) => Messages.Add(message);
-        public void LogInfo(string message) => Messages.Add(message);
+        public void LogInfo(string message) => Messages.Add(message); public void LogDebug(string message) => Messages.Add(message);
     }
 }
 namespace ArenaMode.Kits

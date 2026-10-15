@@ -131,8 +131,8 @@ internal static class ArenaInputBlocker
             Patches.Patch(nativeIgnore, prefix: Hook(nameof(BeforeNativeIgnore)));
             _ready = true;
 
-            Plugin.ModLogger.LogInfo("Arena input blocker ready: panel close waits for released-pointer input delivery.");
-            Plugin.ModLogger.LogInfo("Arena input blocker: native menu resume release safeguard ready.");
+            Plugin.ModLogger.LogDebug("Arena input blocker ready: panel close waits for released-pointer input delivery.");
+            Plugin.ModLogger.LogDebug("Arena input blocker: native menu resume release safeguard ready.");
         }
         catch (Exception ex)
         {
@@ -275,7 +275,8 @@ internal static class ArenaInputBlocker
 
     private static void Trace(string text)
     {
-        if (_diagnostics++ < 24) Plugin.ModLogger.LogInfo("Arena panel input: " + text);
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
+        if (_diagnostics++ < 24) ArenaMode.Diagnostics.ArenaLog.Developer("Arena panel input: " + text);
     }
 
     /// <summary>Matched by SIGNATURE so an SPT rename cannot break it silently.</summary>

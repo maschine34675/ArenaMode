@@ -93,7 +93,7 @@ public static class LadderCatalog
                 _rungs = new List<KitDefinition>();
             }
 
-            Plugin.ModLogger.LogInfo($"Gun Game ladder loaded: {_rungs.Count} rungs.");
+            Plugin.ModLogger.LogDebug($"Gun Game ladder loaded: {_rungs.Count} rungs.");
         }
         catch (Exception ex)
         {

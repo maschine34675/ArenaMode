@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ArenaLogSource Condition="'$(ArenaLogSource)' == ''">../../ArenaMode.Client/Diagnostics/ArenaLog.cs</ArenaLogSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ArenaLogSource)" Link="ArenaLog.cs" />
+    <!-- Exercise the actual installed BepInEx event routing, without Unity. -->
+    <Reference Include="BepInEx">
+      <HintPath>../../../../BepInEx/core/BepInEx.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

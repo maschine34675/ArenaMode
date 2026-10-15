@@ -36,7 +36,7 @@ internal static class TdmSearchTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena TDM: SAIN 4.5.1 search delay argument capped at 5s for live adopted opponents; native decisions retained.");
+            Plugin.ModLogger.LogDebug("Arena TDM: SAIN 4.5.1 search delay argument capped at 5s for live adopted opponents; native decisions retained.");
         }
         catch (Exception ex)
         {
@@ -123,10 +123,11 @@ internal static class TdmSearchTempo
             __1 = MaximumDelay;
             // This is the supplied argument, not Info.TimeBeforeSearch (which is
             // intentionally untouched). SAIN divides it further when continuing.
+            if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
             var observation = _observations.GetValue(source, _ => new Observation());
             if (Time.time < observation.NextLog) return;
             observation.NextLog = Time.time + 30f;
-            Plugin.ModLogger.LogInfo(FormattableString.Invariant($"Arena TDM search tempo: side={source.GetPlayer.Profile.Info.Side}, nativeArgument={original:0.0}s, appliedArgument={__1:0.0}s, predicate={__originalMethod?.Name}. Native search result and priorities retained."));
+            ArenaMode.Diagnostics.ArenaLog.Developer(FormattableString.Invariant($"Arena TDM search tempo: side={source.GetPlayer.Profile.Info.Side}, nativeArgument={original:0.0}s, appliedArgument={__1:0.0}s, predicate={__originalMethod?.Name}. Native search result and priorities retained."));
         }
         catch (Exception ex)
         {

@@ -29,6 +29,7 @@ internal static partial class ArenaAirVault
 
     private static void Trace(Request request, string message, bool entered = false, Func<string> detail = null)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (!OwnsTarget(request)) return;
@@ -50,7 +51,7 @@ internal static partial class ArenaAirVault
                 try { message += "; " + detail(); }
                 catch (Exception) { message += "; diagnostic values unavailable"; }
             }
-            Plugin.ModLogger.LogInfo("Arena airborne mantle: " + message);
+            ArenaMode.Diagnostics.ArenaLog.Developer("Arena airborne mantle: " + message);
         }
         catch (Exception) { /* Best-effort diagnostics only. */ }
     }

@@ -336,7 +336,8 @@ internal static class ArenaDoubleJump
             request.Credit.NativeRequest = null;
             if (jump.GetType() == typeof(FallDown)) ReleaseNativeSignal(request.NativeReservation);
             ApplyImpulse(jump, lift, velocity);
-            Plugin.ModLogger.LogDebug("Arena double jump: completed local ledge jump.");
+            if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
+                ArenaMode.Diagnostics.ArenaLog.Developer("Arena double jump: completed local ledge jump.");
         }
         catch (Exception exception) { Warn(exception); }
         finally
@@ -498,7 +499,8 @@ internal static class ArenaDoubleJump
                 if (!TryGetImpulse(jump, __state.Credit, out lift, out velocity)) return;
                 ApplyImpulse(jump, lift, velocity);
                 jump.MovementContext.EmitJumpNoise();
-                Plugin.ModLogger.LogDebug("Arena double jump: renewed local vertical impulse.");
+                if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
+                    ArenaMode.Diagnostics.ArenaLog.Developer("Arena double jump: renewed local vertical impulse.");
             }
             catch (Exception exception) { Warn(exception); }
         }

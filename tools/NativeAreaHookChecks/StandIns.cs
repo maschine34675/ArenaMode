@@ -138,7 +138,7 @@ namespace ArenaMode
     public sealed class TestLogger
     {
         public readonly List<string> Warnings = new();
-        public void LogInfo(object message) { }
+        public void LogInfo(object message) { } public void LogDebug(object message) { }
         public void LogWarning(object message) => Warnings.Add(message?.ToString());
     }
 }

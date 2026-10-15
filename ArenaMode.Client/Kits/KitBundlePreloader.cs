@@ -139,7 +139,7 @@ public static partial class KitBundlePreloader
                 WarmedTemplates.Add(tpl);
 
             unchecked { _loadsCompleted++; }
-            Plugin.ModLogger.LogInfo($"Kit '{kit.Id}': {cold.Count} new item bundles preloaded.");
+            Plugin.ModLogger.LogDebug($"Kit '{kit.Id}': {cold.Count} new item bundles preloaded.");
         }
     }
 

@@ -63,7 +63,7 @@ internal static class ZombieCrowdRuntime
             {
                 if (_running)
                 {
-                    Plugin.ModLogger.LogInfo("Arena zombie crowd: disabled; native movement, sight and avoidance retained; no crowd teleports.");
+                    Plugin.ModLogger.LogDebug("Arena zombie crowd: disabled; native movement, sight and avoidance retained; no crowd teleports.");
                     Reset();
                 }
                 return;
@@ -278,7 +278,7 @@ internal static class ZombieCrowdRuntime
         if (float.IsPositiveInfinity(_nextReport))
         {
             _nextReport = now + 30f;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena zombie crowd: recall beyond "
                 + ZombieCrowdPolicy.RecallDistance.ToString("0")
                 + " m onto clear 12/16/22 m rings around the player, melee sight within "
@@ -288,7 +288,7 @@ internal static class ZombieCrowdRuntime
         }
         if (now < _nextReport) return;
         _nextReport = now + 30f;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena zombie crowd (last interval): recalled={_recalled}, sightSkips={_sightSkips}.");
         _recalled = _sightSkips = 0;
     }

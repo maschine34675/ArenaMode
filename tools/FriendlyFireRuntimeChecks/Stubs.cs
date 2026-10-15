@@ -69,7 +69,7 @@ namespace SPT.Reflection.Patching
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger=new(); }
-    public class Logger { public readonly List<string> Infos=new(); public bool Throw; public void LogWarning(string s){} public void LogInfo(string s){if(Throw)throw new InvalidOperationException("log failure");Infos.Add(s);} }
+    public class Logger { public readonly List<string> Infos=new(); public bool Throw; public void LogWarning(string s){} public void LogInfo(string s){if(Throw)throw new InvalidOperationException("log failure");Infos.Add(s);} public void LogDebug(string s){if(Throw)throw new InvalidOperationException("log failure");Infos.Add(s);} }
 }
 namespace ArenaMode.Session
 {
@@ -136,6 +136,20 @@ namespace ArenaMode.Modes
             TeamCompanionCount=f.CompanionCount;
             _match=f.Match;_game=f.Game;_world=f.World;_boundLocalPlayer=f.Local;_boundLocalProfileId=f.Local.ProfileId;
             _boundTeamFollowers=f.Followers;_boundTeamFollowerProfileIds=f.Followers.Select(x=>x.ProfileId).ToArray();BindFriendlyFireRoster();
+        }
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
         }
     }
 }

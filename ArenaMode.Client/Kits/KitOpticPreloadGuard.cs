@@ -202,7 +202,7 @@ internal static class KitOpticPreloadGuard
         if (!_reported)
         {
             _reported = true;
-            Plugin.ModLogger.LogInfo("Arena kit preload: withheld unmounted optic role-model callbacks from the active camera.");
+            Plugin.ModLogger.LogDebug("Arena kit preload: withheld unmounted optic role-model callbacks from the active camera.");
         }
         return false;
     }

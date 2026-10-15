@@ -248,3 +248,17 @@ internal static partial class Harness
     { object[] args={c,s,result}; bool allow=(bool)Method("CommitPatch","Prefix").Invoke(null,args); result=(bool)args[2]; return allow; }
     public static void Committed(VaultingComponent c,EVaultingStrategy s,bool result)=>Method("CommitPatch","Postfix").Invoke(null,new object[]{c,s,result});
 }
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
+    }
+}

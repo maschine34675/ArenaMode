@@ -34,7 +34,7 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
             ArenaContext.KitsJson = priced;
 
             if (count > 0)
-                logger.Info($"[ArenaMode] Priced {count} kit(s): {cheapest:N0} to {dearest:N0} roubles.");
+                logger.Debug($"[ArenaMode] Priced {count} kit(s): {cheapest:N0} to {dearest:N0} roubles.");
         }
         catch (Exception ex)
         {

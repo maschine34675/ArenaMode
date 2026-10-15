@@ -31,7 +31,7 @@ internal static class ArenaSurgicalWalk
             new IdleWalkPatch().Enable();
             new MovingWalkPatch().Enable();
             _enabled = _idleBound && _moveBound;
-            if (_enabled) Plugin.ModLogger.LogInfo("Arena surgical walking hooks ready (maximum 1 m/s).");
+            if (_enabled) Plugin.ModLogger.LogDebug("Arena surgical walking hooks ready (maximum 1 m/s).");
         }
         catch (Exception exception) { Warn(exception.GetBaseException().Message); }
     }

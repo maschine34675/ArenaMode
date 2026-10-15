@@ -128,7 +128,7 @@ namespace EFT
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger=new(); }
-    public class Logger { public void LogInfo(object s){} public void LogWarning(object s){} }
+    public class Logger { public void LogInfo(object s){} public void LogDebug(object s){} public void LogWarning(object s){} }
 }
 namespace ArenaMode.Session
 {
@@ -230,4 +230,18 @@ namespace ArenaMode.Combat.Fire
 {
     internal class ArenaFireView : IDisposable
     { internal static int Alive;public ArenaFireView(IReadOnlyList<Vector3> v){Alive++;} public void Tick(float t){} public void Dispose(){Alive--;} }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
+    }
 }

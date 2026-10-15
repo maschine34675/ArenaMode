@@ -308,3 +308,16 @@ namespace ArenaMode.Pickups
 
 public class SimpleCharacterController : EFT.CharacterController { public void SingleMove(UnityEngine.Vector3 motion) { } }
 
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
+    }
+}

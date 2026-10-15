@@ -59,7 +59,7 @@ internal static class ZombieVoiceBudget
             _speechSource = AccessTools.FieldRefAccess<Player, BetterSource>("_speechSource");
             new PhrasePatch().Enable();
             _enabled = true;
-            Plugin.ModLogger.LogInfo("Arena zombie voices: audio admission installed (6 repetitive voices, 4 distant; nearby attack calls exempt).");
+            Plugin.ModLogger.LogDebug("Arena zombie voices: audio admission installed (6 repetitive voices, 4 distant; nearby attack calls exempt).");
         }
         catch (Exception ex) { Warn(ex); }
     }
@@ -264,7 +264,7 @@ internal static class ZombieVoiceBudget
     private static void Report()
     {
         if (_candidates == 0 && _exempt == 0 && _overflow == 0) return;
-        Plugin.ModLogger.LogInfo($"Arena zombie voices: enabled={_budgetEnabled}; candidates={_candidates}, admitted={_admitted}, played={_played}, skipped={_skipped}, wouldSkip={_wouldSkip}, exempt={_exempt}, nativeUnplayed={_unplayed}, observedPeak={_peak}, overflow={_overflow} (30s window or boundary; baseline wouldSkip uses actual occupancy).");
+        Plugin.ModLogger.LogDebug($"Arena zombie voices: enabled={_budgetEnabled}; candidates={_candidates}, admitted={_admitted}, played={_played}, skipped={_skipped}, wouldSkip={_wouldSkip}, exempt={_exempt}, nativeUnplayed={_unplayed}, observedPeak={_peak}, overflow={_overflow} (30s window or boundary; baseline wouldSkip uses actual occupancy).");
     }
 
     private static void Warn(Exception ex)

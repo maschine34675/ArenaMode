@@ -209,7 +209,7 @@ internal static class ArenaWeaponPickup
                         bool success = result != null && result.Succeed && carried
                             && Eligible(player, isCurrent) && ReferenceEquals(player.InventoryController, inventory);
                         if (!success)
-                            Plugin.ModLogger.LogInfo($"Arena pickup weapon transfer refused: nativeSuccess={result?.Succeed == true}, carried={carried}, slot={slotName}.");
+                            Plugin.ModLogger.LogDebug($"Arena pickup weapon transfer refused: nativeSuccess={result?.Succeed == true}, carried={carried}, slot={slotName}.");
                         if (success)
                         {
                             try { KitBuilder.RegisterAsChecked(player.Profile, _weapon.GetAllItems()); }
@@ -239,7 +239,7 @@ internal static class ArenaWeaponPickup
             // A failed Move is not necessarily a slot filter mismatch: native
             // examination, search, locking and other restrictions fail here too.
             // Preserve the actual error without weakening any transfer checks.
-            Plugin.ModLogger.LogInfo($"Arena pickup weapon not taken: {LastRefusal}; free={free}, planRejected={rejected}, blocked={blocked}, destructive={destructive}; reasons=[{string.Join("; ", refusals)}].");
+            Plugin.ModLogger.LogDebug($"Arena pickup weapon not taken: {LastRefusal}; free={free}, planRejected={rejected}, blocked={blocked}, destructive={destructive}; reasons=[{string.Join("; ", refusals)}].");
             return false;
         }
 

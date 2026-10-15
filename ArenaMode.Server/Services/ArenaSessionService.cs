@@ -145,7 +145,7 @@ public class ArenaSessionService
             // no reason to cut that window short; it expires independently.
         }
 
-        logger.Info(
+        logger.Debug(
             $"[ArenaMode] Armed for session {sessionId}: map={map}, mode={mode}, " +
             $"pitFireTeamProtection={protectPitFireTeam}, area={ArenaAreaCatalog.NormalizeId(areaId!)}, areaTeamSize={selectedSize}");
         return token;
@@ -317,7 +317,7 @@ public class ArenaSessionService
                 PreparationProtectionTtl());
         }
 
-        logger.Info(
+        logger.Debug(
             $"[ArenaMode] Reserved {(protectPitFireTeam ? "PitFireTeam " : string.Empty)}" +
             $"profile boundary for session {key} before snapshot.");
         return true;
@@ -344,7 +344,7 @@ public class ArenaSessionService
             // complete, restart the normal armed TTL from this exact boundary.
             if (entry.ProtectPitFireTeam)
                 _pitFireTeamGuard.BeginArmed(key, ArmedProtectionTtl());
-            logger.Info(
+            logger.Debug(
                 $"[ArenaMode] Completed protected PitFireTeam arm for session {sessionId}: " +
                 $"map={entry.Map}, mode={entry.Mode}.");
             return true;
@@ -1636,8 +1636,8 @@ public class ArenaSessionService
             EnsureWeaponCatalogsLocked(entry);
             if (redraw && entry.State == ArenaSessionState.InRaid)
                 entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson ?? ArenaContext.LadderJson,
-                    entry.LadderRungs, message => logger.Info(message), ArenaContext.WeaponVariants,
-                    ArenaContext.Config.ExcludedTemplates);
+                    entry.LadderRungs, message => logger.Debug(message), ArenaContext.WeaponVariants,
+                    ArenaContext.Config.ExcludedTemplates, message => logger.Warning(message));
             return entry.LadderJson ?? ArenaContext.LadderJson;
         }
     }
@@ -1661,7 +1661,7 @@ public class ArenaSessionService
             {
                 variants.Exclude(ArenaTemplateEligibility.ExclusionSet(ArenaContext.Config.ExcludedTemplates));
                 entry.KitsJson = variants.CreateCatalog(entry.KitsJson, Random.Shared.Next(), out var report);
-                logger.Info(ArenaWeaponVariants.Summarize("kit", report));
+                logger.Debug(ArenaWeaponVariants.Summarize("kit", report));
             }
             catch (Exception ex)
             { logger.Warning($"[ArenaMode] Kit attachment draw failed ({ex.Message}); authored builds retained."); }
@@ -1674,12 +1674,13 @@ public class ArenaSessionService
             try
             {
                 entry.KitsJson = supplies.CreateCatalog(entry.KitsJson, out int added);
-                logger.Info($"[ArenaMode] Kit supplies: {added} optional grenade requests; native rig/pocket space decides at kit build.");
+                logger.Debug($"[ArenaMode] Kit supplies: {added} optional grenade requests; native rig/pocket space decides at kit build.");
             }
             catch (Exception ex)
             { logger.Warning($"[ArenaMode] Optional kit supplies unavailable ({ex.Message}); existing kit contents retained."); }
         }
         entry.LadderJson = LadderPicker.Redraw(entry.LadderPoolJson, entry.LadderRungs,
-            message => logger.Info(message), ArenaContext.WeaponVariants, ArenaContext.Config.ExcludedTemplates);
+            message => logger.Debug(message), ArenaContext.WeaponVariants, ArenaContext.Config.ExcludedTemplates,
+            message => logger.Warning(message));
     }
 }

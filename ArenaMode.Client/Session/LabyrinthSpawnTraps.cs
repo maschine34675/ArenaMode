@@ -197,7 +197,7 @@ internal static class LabyrinthSpawnTraps
                 loop.StopSound();
             }
             _applied = true;
-            Plugin.ModLogger?.LogInfo("Arena Labyrinth spawn traps disabled: 12 hazards (4 gun, 2 fire, 2 liquid, 2 steam, 2 toxic pool), 4 animations, 5 audio loops; toxic pool drain requested; option latched for this raid.");
+            Plugin.ModLogger?.LogDebug("Arena Labyrinth spawn traps disabled: 12 hazards (4 gun, 2 fire, 2 liquid, 2 steam, 2 toxic pool), 4 animations, 5 audio loops; toxic pool drain requested; option latched for this raid.");
         }
         catch (Exception ex)
         {

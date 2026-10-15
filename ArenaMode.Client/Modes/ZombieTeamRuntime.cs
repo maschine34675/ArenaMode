@@ -425,7 +425,9 @@ internal sealed partial class ZombieTeamRuntime
         PitFireTeamRoundLifecycle.CancelFollowerSpawnLease("Zombie team ended: " + reason);
         ArenaSpectatorService.Stop("Zombie team ended");
         _match.ReportTextCallout(noContest ? "NO CONTEST" : "TEAM ELIMINATED");
-        Plugin.ModLogger.LogInfo($"Zombie team ended after wave {_teamRoundEpoch}: {(noContest ? "no contest" : "defeat")} — {reason}.");
+        string result = $"Zombie team ended after wave {_teamRoundEpoch}: {(noContest ? "no contest" : "defeat")} — {reason}.";
+        if (noContest) Plugin.ModLogger.LogWarning(result);
+        else Plugin.ModLogger.LogInfo(result);
     }
 
     private void EndTeamRaid()

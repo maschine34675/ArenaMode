@@ -513,7 +513,7 @@ internal static class CorpseCleanupService
         // Do not wait out the remainder of the ordinary cadence for a clear the
         // player is about to look at.
         _nextSweepAt = 0f;
-        Plugin.ModLogger.LogInfo($"Arena corpse cleanup: clearing every corpse ({reason}).");
+        Plugin.ModLogger.LogDebug($"Arena corpse cleanup: clearing every corpse ({reason}).");
     }
 
     /// <summary>
@@ -672,8 +672,8 @@ internal static class CorpseCleanupService
             _drainReleasedSinceReport = 0;
             _drainOwnReleasedSinceReport = 0;
 
-            if (trimmed > 0 || released > 0)
-                Plugin.ModLogger.LogInfo(Report(clearEverything, trimmed, released, ownReleased, maxCorpses, world, mainPlayer));
+            if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && (trimmed > 0 || released > 0))
+                ArenaMode.Diagnostics.ArenaLog.Developer(Report(clearEverything, trimmed, released, ownReleased, maxCorpses, world, mainPlayer));
         }
         catch (Exception ex)
         {
@@ -1361,7 +1361,7 @@ internal static class CorpseCleanupService
                 if (!state.LeftRegistryAnnounced)
                 {
                     state.LeftRegistryAnnounced = true;
-                    Plugin.ModLogger.LogInfo(
+                    ArenaMode.Diagnostics.ArenaLog.Developer(
                         $"Arena corpse release: {corpse.PlayerProfileID} left the profile-id registry (a newer own body replaced it); a source that only shares its profile id can no longer reach it.");
                 }
 
@@ -1374,7 +1374,7 @@ internal static class CorpseCleanupService
                     if (!state.HeldAsSource)
                     {
                         state.HeldAsSource = true;
-                        Plugin.ModLogger.LogInfo(
+                        ArenaMode.Diagnostics.ArenaLog.Developer(
                             $"Arena corpse release: keeping {corpse.PlayerProfileID} hidden — a shot it fired is still in flight, even though it left the profile-id registry.");
                     }
 
@@ -1387,7 +1387,7 @@ internal static class CorpseCleanupService
                 if (state.HeldAsSource)
                 {
                     state.HeldAsSource = false;
-                    Plugin.ModLogger.LogInfo(
+                    ArenaMode.Diagnostics.ArenaLog.Developer(
                         $"Arena corpse release: nothing {corpse.PlayerProfileID} fired is still in flight; it may go after {DamageSourceQuietSeconds:0} s quiet, now that it has left the profile-id registry.");
                 }
 
@@ -1424,7 +1424,7 @@ internal static class CorpseCleanupService
             if (!state.HeldAsSource && source != CorpseDamageSources.Unreadable)
             {
                 state.HeldAsSource = true;
-                Plugin.ModLogger.LogInfo(
+                ArenaMode.Diagnostics.ArenaLog.Developer(
                     $"Arena corpse release: keeping {corpse.PlayerProfileID} hidden while {source} still names it as a damage source.");
             }
 
@@ -1435,7 +1435,7 @@ internal static class CorpseCleanupService
         if (state.HeldAsSource)
         {
             state.HeldAsSource = false;
-            Plugin.ModLogger.LogInfo(
+            ArenaMode.Diagnostics.ArenaLog.Developer(
                 $"Arena corpse release: nothing names {corpse.PlayerProfileID} as a damage source any more; it may go after {DamageSourceQuietSeconds:0} s quiet.");
         }
 

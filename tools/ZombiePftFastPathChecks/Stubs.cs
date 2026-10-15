@@ -120,7 +120,7 @@ namespace ArenaMode
     public class Log
     {
         public List<string> Lines = new();
-        public void LogInfo(object value) => Lines.Add(value.ToString());
+        public void LogInfo(object value) => Lines.Add(value.ToString()); public void LogDebug(object value) => Lines.Add(value.ToString());
         public void LogWarning(object value) => Lines.Add(value.ToString());
     }
     public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public static Log ModLogger = new(); }

@@ -174,7 +174,7 @@ internal sealed class ArenaCharacterPreview : IDisposable
             if (_view.activeInHierarchy) _image.InitCamera(_camera);
             var renderers = _loader.ModelPlayerPoser.GetComponentsInChildren<Renderer>();
             var planes = GeometryUtility.CalculateFrustumPlanes(_camera);
-            Plugin.ModLogger.LogInfo($"Arena character preview ready: side={visual.Info.Side}; separate equipment/camera; "
+            Plugin.ModLogger.LogDebug($"Arena character preview ready: side={visual.Info.Side}; separate equipment/camera; "
                 + $"camera={_camera.transform.position}; body={_loader.ModelPlayerPoser.transform.position}; "
                 + $"visibleBounds={renderers.Count(r => GeometryUtility.TestPlanesAABB(planes, r.bounds))}/{renderers.Length}.");
         }

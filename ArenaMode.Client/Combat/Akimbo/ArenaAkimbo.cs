@@ -192,7 +192,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             _body = body; _hands = hands; _weapon = hands.Item;
             RightShots = LeftShots = BlockedShots = 0;
             hands.IsAiming = false;
-            Plugin.ModLogger.LogInfo($"Arena akimbo bound: {_weapon.TemplateId}, {_view.RendererCount} owned mesh renderers; independent pistol visuals, 2x firing cadence; alternating single shots, two shots per loaded cartridge.");
+            Plugin.ModLogger.LogDebug($"Arena akimbo bound: {_weapon.TemplateId}, {_view.RendererCount} owned mesh renderers; independent pistol visuals, 2x firing cadence; alternating single shots, two shots per loaded cartridge.");
         }
         catch (Exception ex) { Fail(ex, candidate); }
         finally { pendingView?.Dispose(); }
@@ -284,8 +284,8 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         {
             _view.Shot(scope.Left);
         }
-        if (LeftShots + RightShots <= 8)
-            Plugin.ModLogger.LogInfo($"Arena akimbo single shot: {(scope.Left ? "left" : "right")}; right={RightShots}, left={LeftShots}; one projectile, two shots per loaded cartridge.");
+        if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && LeftShots + RightShots <= 8)
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena akimbo single shot: {(scope.Left ? "left" : "right")}; right={RightShots}, left={LeftShots}; one projectile, two shots per loaded cartridge.");
     }
 
     private static void EndShot(ShotScope scope)
@@ -306,7 +306,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         Bindings.Release();
         _view?.Dispose(); _view = null;
         _body = null; _hands = null; _weapon = null; _visualFrame = -10;
-        if (had) Plugin.ModLogger.LogInfo($"Arena akimbo stopped: {reason}; right={RightShots}, left={LeftShots}, obstructed={BlockedShots}.");
+        if (had) Plugin.ModLogger.LogDebug($"Arena akimbo stopped: {reason}; right={RightShots}, left={LeftShots}, obstructed={BlockedShots}.");
     }
     internal static void Reset(string reason = "shutdown")
     {

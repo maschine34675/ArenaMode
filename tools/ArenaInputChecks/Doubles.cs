@@ -38,7 +38,7 @@ namespace ArenaMode
     public class Log
     {
         public List<string> Lines=new();
-        public void LogInfo(object x)=>Lines.Add(x.ToString());
+        public void LogInfo(object x)=>Lines.Add(x.ToString()); public void LogDebug(object x)=>Lines.Add(x.ToString());
         public void LogWarning(object x)=>Lines.Add(x.ToString());
     }
 }
@@ -83,6 +83,20 @@ namespace HarmonyLib
         {
             if(FailUnpatch) throw new Exception("unpatch rejected");
             foreach(var key in Hooks.Where(x=>x.Value.Id==id).Select(x=>x.Key).ToArray())Hooks.Remove(key);
+        }
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
         }
     }
 }

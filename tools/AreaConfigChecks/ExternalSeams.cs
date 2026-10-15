@@ -13,6 +13,6 @@ namespace ArenaMode
     {
         public readonly List<string> Warnings=new(),Info=new();
         public void LogWarning(string message)=>Warnings.Add(message);
-        public void LogInfo(string message)=>Info.Add(message);
+        public void LogInfo(string message)=>Info.Add(message); public void LogDebug(string message)=>Info.Add(message);
     }
 }

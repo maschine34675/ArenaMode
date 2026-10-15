@@ -522,7 +522,7 @@ public sealed class ArenaModeRouter : StaticRouter
                     deathmatchHostility,
                     participants))
             {
-                _logger.Info(
+                _logger.Debug(
                     $"[ArenaMode] Replayed identical committed raid-start for session {sessionId}.");
                 return Json(new
                 {
@@ -807,7 +807,7 @@ public sealed class ArenaModeRouter : StaticRouter
                     });
                 }
 
-                _logger.Info(
+                _logger.Debug(
                     "[ArenaMode] raid-end received while raid result is still pending — restore deferred to post-raid processing.");
                 return Json(new { restored = false, deferred = true, state = state.ToString() });
             }

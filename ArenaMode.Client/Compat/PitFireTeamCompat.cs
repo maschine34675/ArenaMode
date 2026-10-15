@@ -456,7 +456,7 @@ internal static partial class PitFireTeamCompat
             }
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena authenticated PitFireTeam roster: {string.Join(", ", FrozenCompanionAccountIds)}.");
         return true;
     }
@@ -905,7 +905,7 @@ internal static partial class PitFireTeamCompat
                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => pair.Value)
                     .ToArray();
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena adopted PitFireTeam round epoch {lifecycle.Epoch}: the fresh runtime followers are active.");
                 return true;
             }
@@ -1487,7 +1487,7 @@ internal static partial class PitFireTeamCompat
         PitFireTeamRoundLifecycle.Reset();
 
         if (hadState)
-            Plugin.ModLogger.LogInfo($"Arena cleared PitFireTeam compatibility state ({reason}).");
+            Plugin.ModLogger.LogDebug($"Arena cleared PitFireTeam compatibility state ({reason}).");
     }
 
     private static void EnsureInitialized()
@@ -1700,7 +1700,7 @@ internal static partial class PitFireTeamCompat
         if (!_deathSuppressionLogged)
         {
             _deathSuppressionLogged = true;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena kept the PitFireTeam squad active after the local player was eliminated.");
         }
 
@@ -1725,7 +1725,7 @@ internal static partial class PitFireTeamCompat
         if (!_progressSuppressionLogged)
         {
             _progressSuppressionLogged = true;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 "Arena suppressed PitFireTeam follower-progress submission for the protected team raid.");
         }
 

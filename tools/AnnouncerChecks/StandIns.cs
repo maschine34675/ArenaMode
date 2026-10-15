@@ -17,7 +17,7 @@ namespace ArenaMode
     internal sealed class TestLogger
     {
         public List<string> Messages { get; } = new();
-        public void LogInfo(object message) => Messages.Add(message.ToString());
+        public void LogInfo(object message) => Messages.Add(message.ToString()); public void LogDebug(object message) => Messages.Add(message.ToString());
         public void LogWarning(object message) => Messages.Add(message.ToString());
     }
 }
@@ -542,5 +542,19 @@ internal sealed class QueuedContext : SynchronizationContext
         }
         if (!completed())
             throw new InvalidOperationException("The bounded async continuation pump did not finish.");
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

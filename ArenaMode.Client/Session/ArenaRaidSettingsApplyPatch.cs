@@ -32,7 +32,7 @@ internal sealed class ArenaRaidSettingsApplyPatch : ModulePatch
         if (ArenaMenuSelection.RestoreArenaTransitionAfterCloneApply(
                 __instance, __0, __state))
         {
-            Plugin.ModLogger?.LogInfo(
+            Plugin.ModLogger?.LogDebug(
                 "Arena preserved the Common transition after EFT applied its local-ready settings clone.");
         }
     }

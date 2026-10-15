@@ -84,7 +84,7 @@ internal static class ArenaBotAgility
                     transpiler: new HarmonyMethod(typeof(ArenaBotAgility), nameof(Transpiler)),
                     finalizer: new HarmonyMethod(typeof(ArenaBotAgility), nameof(Finalizer)) { priority = Priority.Last });
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena bot agility ready: acceleration x1.5, walk blend time x0.6, remaining weight inertia penalties halved; native clocks, collision and inventory retained.");
+            Plugin.ModLogger.LogDebug("Arena bot agility ready: acceleration x1.5, walk blend time x0.6, remaining weight inertia penalties halved; native clocks, collision and inventory retained.");
         }
         catch (Exception ex) { _ready = false; Patches.UnpatchSelf(); Sites.Clear(); Warn(ex); }
     }
@@ -179,7 +179,7 @@ internal static class ArenaBotAgility
             if (adjusted != native && !ReferenceEquals(_loggedWorld?.Target, Singleton<GameWorld>.Instance))
             {
                 _loggedWorld = new WeakReference(Singleton<GameWorld>.Instance);
-                Plugin.ModLogger.LogInfo("Arena bot agility active: lighter locomotion inertia and faster acceleration/turn blending; no stored weight changes.");
+                Plugin.ModLogger.LogDebug("Arena bot agility active: lighter locomotion inertia and faster acceleration/turn blending; no stored weight changes.");
             }
             return adjusted;
         }

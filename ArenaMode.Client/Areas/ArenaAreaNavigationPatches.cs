@@ -88,7 +88,7 @@ internal static class ArenaAreaNavigationPatches
                     postfix: binding.Postfix == null ? null
                         : new HarmonyMethod(binding.Postfix) { priority = Priority.Last });
             IsReady = true;
-            Plugin.ModLogger.LogInfo("Arena area: native goal, path and teleport guards ready.");
+            Plugin.ModLogger.LogDebug("Arena area: native goal, path and teleport guards ready.");
         }
         catch (Exception exception)
         {

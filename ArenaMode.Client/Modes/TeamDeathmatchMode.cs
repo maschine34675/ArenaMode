@@ -136,7 +136,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                 return;
             }
             if (_reportedUnreadableRoster)
-                Plugin.ModLogger.LogInfo("Team Deathmatch: native roster readable again; " + DescribeState());
+                Plugin.ModLogger.LogInfo("Team Deathmatch: native roster readable again; bot refills resumed.");
             _reportedUnreadableRoster = false;
             foreach (BotOwner bot in owners.ToArray())
             {
@@ -158,7 +158,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                     + "with a terminal 300s watchdog; expired native arrivals are rejected and retain bounded debt; "
                     + DescribeState());
             else if (!stalled && _reportedStall)
-                Plugin.ModLogger.LogInfo("Team Deathmatch: delayed spawn requests settled; " + DescribeState());
+                Plugin.ModLogger.LogInfo("Team Deathmatch: delayed spawn requests settled; bot refills resumed.");
             _reportedStall = stalled;
             bool ready = CountBots(true) == _population.BotTarget(true)
                 && CountBots(false) == _population.BotTarget(false)
@@ -187,7 +187,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (ObserveNativeStop() || IsComplete || !IsCurrentRaid() || Time.time < _retryAt[usec ? 0 : 1]) return;
         if (!_population.TryReserve(usec, CountBots(usec), Time.realtimeSinceStartup, out var ticket)) return;
         var role = usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
-        Plugin.ModLogger.LogInfo($"Team Deathmatch preparing {(usec ? "USEC" : "BEAR")} request {ticket.Id}.");
+        Plugin.ModLogger.LogDebug($"Team Deathmatch preparing {(usec ? "USEC" : "BEAR")} request {ticket.Id}.");
         int planned = BurstSpawnService.SpawnFactionBot(role, ArenaPressure.DifficultyFor(true),
             bot => Adopt(ticket, bot),
             () => IsRequestCurrent(ticket),
@@ -212,7 +212,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         if (!IsRequestCurrent(ticket)
             || !_population.TryBeginDispatch(ticket, CountBots(ticket.Usec), Time.realtimeSinceStartup)) return false;
-        Plugin.ModLogger.LogInfo($"Team Deathmatch submitting {(ticket.Usec ? "USEC" : "BEAR")} request {ticket.Id}: "
+        Plugin.ModLogger.LogDebug($"Team Deathmatch submitting {(ticket.Usec ? "USEC" : "BEAR")} request {ticket.Id}: "
             + FormattableString.Invariant($"prepared={ticket.SubmittedAt - ticket.CreatedAt:F1}s; native arrival budget=45s."));
         return true;
     }
@@ -250,7 +250,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                     int previousFailures = _activationFailures[index];
                     _activationFailures[index] = 0;
                     if (previousFailures > 0)
-                        Plugin.ModLogger.LogInfo($"Team Deathmatch: {(usec ? "USEC" : "BEAR")} activation recovered "
+                        Plugin.ModLogger.LogDebug($"Team Deathmatch: {(usec ? "USEC" : "BEAR")} activation recovered "
                             + $"after {previousFailures} consecutive failures; " + DescribeState());
                 }
                 continue;
@@ -303,7 +303,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             if (!TrySynchronizeScoreboardRoster(out var problem))
                 Fail("scoreboard affiliation drift: " + problem);
             _nextTick = 0f;
-            Plugin.ModLogger.LogInfo($"Team Deathmatch admitted {(ticket.Usec ? "USEC" : "BEAR")} "
+            Plugin.ModLogger.LogDebug($"Team Deathmatch admitted {(ticket.Usec ? "USEC" : "BEAR")} "
                 + $"request {ticket.Id}: {CountBots(ticket.Usec)}/{_population.BotTarget(ticket.Usec)} bots; "
                 + FormattableString.Invariant($"state={bot.BotState}, prepared={ticket.SubmittedAt - ticket.CreatedAt:F1}s, native arrival={Math.Max(0f, Time.realtimeSinceStartup - ticket.SubmittedAt):F1}s."));
         }
@@ -352,7 +352,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         string state = DescribeState(); // capture pending work before Stop clears it
         _population.Stop();
         _pendingGiveUpLife = null;
-        Plugin.ModLogger.LogInfo("Team Deathmatch: native raid shutdown; pending spawn work cancelled; " + state);
+        Plugin.ModLogger.LogDebug("Team Deathmatch: native raid shutdown; pending spawn work cancelled; " + state);
         return true;
     }
 

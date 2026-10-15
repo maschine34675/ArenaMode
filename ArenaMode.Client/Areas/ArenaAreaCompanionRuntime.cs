@@ -38,7 +38,7 @@ internal static partial class ArenaAreaRuntime
         zone = nearest.zone; point = nearest.point;
         lease = new TeamSpawnLease(_token, point, _game.Profile.Info.Side == EPlayerSide.Usec, requireFaction: false);
         TeamReservations.Add(point.Id, lease);
-        Plugin.ModLogger.LogInfo($"Arena area companion reservation: {point.Id}, {point.Position}; area={_area.Id}.");
+        Plugin.ModLogger.LogDebug($"Arena area companion reservation: {point.Id}, {point.Position}; area={_area.Id}.");
         return true;
     }
 

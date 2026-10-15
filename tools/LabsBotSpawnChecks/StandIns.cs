@@ -209,6 +209,6 @@ namespace ArenaMode
     {
         public readonly List<string> Warnings = new();
         public void LogWarning(object message) => Warnings.Add(message.ToString());
-        public void LogInfo(object message) { }
+        public void LogInfo(object message) { } public void LogDebug(object message) { }
     }
 }

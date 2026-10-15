@@ -33,6 +33,7 @@ internal static partial class ArenaReloadHandling
     // controls; other players and ordinary raids must not acquire diagnostics.
     private static void ObserveReload(Player.FirearmController controller)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (!_enabled || Plugin.ModLogger == null || _diagnosticLines >= DiagnosticLimit) return;
@@ -65,6 +66,7 @@ internal static partial class ArenaReloadHandling
 
     private static void SampleReload(Player.FirearmController controller)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (!Diagnostics.TryGetValue(controller, out var diagnostic)) return;
@@ -109,6 +111,7 @@ internal static partial class ArenaReloadHandling
 
     private static void TraceReload(Player.FirearmController controller, string reason, bool once = true)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (Plugin.ModLogger == null || _diagnosticLines >= DiagnosticLimit || controller == null
@@ -120,7 +123,7 @@ internal static partial class ArenaReloadHandling
             double elapsed = (Stopwatch.GetTimestamp() - diagnostic.Started) * 1000d / Stopwatch.Frequency;
             string baseline = lease == null ? "none" : FormattableString.Invariant($"{lease.Arms.Original:0.###}/{lease.Body.Original:0.###}");
             string written = lease == null ? "none" : FormattableString.Invariant($"{lease.Arms.Written:0.###}/{lease.Body.Written:0.###}");
-            Plugin.ModLogger?.LogInfo($"Arena reload diagnostic: {reason}; weapon={operation.Weapon?.TemplateId}; "
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena reload diagnostic: {reason}; weapon={operation.Weapon?.TemplateId}; "
                 + FormattableString.Invariant($"operation={operation.GetType().Name}; factor={diagnostic.Factor:0.###}; tick={diagnostic.Tick}; observedMs={elapsed:0}; ")
                 + $"baseline={baseline}; written={written}; arms=[{AnimatorDiagnostic(controller.FirearmsAnimator?.Animator, 1)}]; "
                 + $"body=[{AnimatorDiagnostic(operation.Player?.MovementContext?.PlayerAnimator?.Animator, -1)}]"

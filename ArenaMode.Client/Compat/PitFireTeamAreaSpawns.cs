@@ -131,7 +131,7 @@ internal static class PitFireTeamAreaSpawns
         if (_pending == null)
         {
             _pending = raid;
-            Plugin.ModLogger.LogInfo("Arena bounded PFT: native companion dispatch waits for enclosure/navigation readiness.");
+            Plugin.ModLogger.LogDebug("Arena bounded PFT: native companion dispatch waits for enclosure/navigation readiness.");
         }
         return false;
     }
@@ -145,7 +145,7 @@ internal static class PitFireTeamAreaSpawns
         try
         {
             _spawnFollowers.Invoke(null, null);
-            Plugin.ModLogger.LogInfo("Arena bounded PFT: released native companion dispatch after area readiness.");
+            Plugin.ModLogger.LogDebug("Arena bounded PFT: released native companion dispatch after area readiness.");
         }
         catch (Exception ex)
         { Plugin.ModLogger.LogError("Arena bounded PFT dispatch failed: " + ex.GetBaseException().Message); }

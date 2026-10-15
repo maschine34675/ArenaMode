@@ -152,7 +152,7 @@ namespace ArenaMode.Respawn
 namespace ArenaMode
 {
     public static class Plugin {public const string PluginGuid="com.maschine.ArenaMode"; public static Log ModLogger=new();}
-    public class Log {public List<string> Lines=new();public void LogInfo(string s)=>Lines.Add(s);public void LogError(string s)=>Lines.Add(s);}
+    public class Log {public List<string> Lines=new();public void LogInfo(string s)=>Lines.Add(s); public void LogDebug(string s)=>Lines.Add(s);public void LogError(string s)=>Lines.Add(s);}
 }
 namespace ArenaMode.Modes {public static class ArenaMatchService {public static List<string> Aborts=new();public static void ScheduleFailedStartAbort(string message)=>Aborts.Add(message);}}
 namespace ArenaMode.Session

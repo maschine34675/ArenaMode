@@ -165,7 +165,7 @@ internal static class BurstSpawnService
             // ever raises them, so a raid never starts easier than it did.
             var difficulty = ArenaPressure.DifficultyFor(wantPmc);
 
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn: {alive} alive ({alivePmc} PMC) / target {target} (PMC floor {pmcFloor}), "
                 + $"in flight {pendingPmc} PMC + {pendingScav} scav (spawner counter {counterAlive}) "
                 + $"— requesting {role} ({difficulty}, pressure {ArenaPressure.Describe()}). "
@@ -247,7 +247,7 @@ internal static class BurstSpawnService
             data = await BotCreationData.Create(profileParams, spawner._botCreator, count, spawner);
             float profileSeconds = Time.realtimeSinceStartup - profileStartedAt;
             if (explicitFaction)
-                Plugin.ModLogger.LogInfo($"Team Deathmatch preparation request {requestId} ({role}): "
+                Plugin.ModLogger.LogDebug($"Team Deathmatch preparation request {requestId} ({role}): "
                     + FormattableString.Invariant($"preflight={preflightSeconds:F3}s, BotCreationData.Create={profileSeconds:F3}s; profiles={data?.Count ?? 0}."));
 
             // GameEnd can run while profile generation is awaiting the server.
@@ -256,7 +256,7 @@ internal static class BurstSpawnService
             if (!IsSpawnLeaseCurrent(operationGeneration, game, world, raidEpoch, controller, spawner))
             {
                 data?.StopSpawn();
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena burst spawn: discarded stale {role} profiles after the raid lease ended.");
                 return;
             }
@@ -267,7 +267,7 @@ internal static class BurstSpawnService
             if (!IsRequestStillCurrent(requestStillCurrent, role))
             {
                 data?.StopSpawn();
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena burst spawn: discarded superseded {role} profiles before dispatch.");
                 return;
             }
@@ -337,7 +337,7 @@ internal static class BurstSpawnService
                     role == WildSpawnType.pmcUSEC, true, out zone, out var boxPoint, out boxSpawnLease))
                 {
                     data.StopSpawn();
-                    Plugin.ModLogger.LogInfo($"Arena Equator team spawn deferred: no safe unoccupied team-box point for {role}.");
+                    Plugin.ModLogger.LogDebug($"Arena Equator team spawn deferred: no safe unoccupied team-box point for {role}.");
                     return;
                 }
                 points = new List<ISpawnPoint> { boxPoint };
@@ -349,8 +349,8 @@ internal static class BurstSpawnService
                     role == WildSpawnType.pmcUSEC, true, out zone, out var teamPoint, out areaSpawnLease))
                 {
                     data.StopSpawn();
-                    Plugin.ModLogger.LogInfo($"Arena team spawn deferred: no unoccupied connected point for {role}.");
-                    Plugin.ModLogger.LogInfo($"Team Deathmatch placement request {requestId} ({role}) deferred: "
+                    Plugin.ModLogger.LogDebug($"Arena team spawn deferred: no unoccupied connected point for {role}.");
+                    Plugin.ModLogger.LogDebug($"Team Deathmatch placement request {requestId} ({role}) deferred: "
                         + FormattableString.Invariant($"fresh plan={Time.realtimeSinceStartup - placementStartedAt:F3}s."));
                     return;
                 }
@@ -365,10 +365,10 @@ internal static class BurstSpawnService
                 grouped: requireExactCount && profileCount > 1);
 
             if (explicitFaction)
-                Plugin.ModLogger.LogInfo($"Team Deathmatch placement request {requestId} ({role}): "
+                Plugin.ModLogger.LogDebug($"Team Deathmatch placement request {requestId} ({role}): "
                     + FormattableString.Invariant($"fresh plan={Time.realtimeSinceStartup - placementStartedAt:F3}s."));
 
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn plan: zone {zone.NameZone}, requested {count}, profiles {profileCount}, "
                 + $"points {preferredAvailable} preferred + {distantAvailable} distant, "
                 + $"selected {points?.Count ?? 0}.");
@@ -602,7 +602,7 @@ internal static class BurstSpawnService
                 spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival);
             }
 
-            Plugin.ModLogger.LogInfo($"Arena burst spawn: dispatched {reserved}x {role}.");
+            Plugin.ModLogger.LogDebug($"Arena burst spawn: dispatched {reserved}x {role}.");
         }
         catch (OperationCanceledException) when (operationGeneration != Volatile.Read(ref _operationGeneration))
         {
@@ -613,7 +613,7 @@ internal static class BurstSpawnService
             // backend round trip is through (r2 saw it 6 s after the stop). An
             // expected end of a late request, not a failure — and the GPU log
             // rules count every "failed:" as one. Nothing to release or retry.
-            Plugin.ModLogger.LogInfo($"Arena burst spawn of {role} cancelled with the raid.");
+            Plugin.ModLogger.LogDebug($"Arena burst spawn of {role} cancelled with the raid.");
         }
         catch (Exception ex)
         {
@@ -732,7 +732,7 @@ internal static class BurstSpawnService
                 bot.GetPlayer?.ActiveHealthController?.Kill(EDamageType.Undefined);
             if (bot.HealthController?.IsAlive == true)
                 throw new InvalidOperationException("the late body is still alive after administrative retirement");
-            Plugin.ModLogger.LogWarning(
+            Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn: retired a late or rejected {role} body.");
         }
         catch (Exception ex)
@@ -829,7 +829,7 @@ internal static class BurstSpawnService
                 try { spawner.SpawnBotsInZoneOnPositions(points, zone, data, onArrival); }
                 finally { if (scope.WasRejected) handedToNative = false; }
             }
-            Plugin.ModLogger.LogInfo($"Arena solo population: request {requestId}, {role}, native={handedToNative}.");
+            Plugin.ModLogger.LogDebug($"Arena solo population: request {requestId}, {role}, native={handedToNative}.");
         }
         catch (Exception ex)
         {
@@ -918,7 +918,7 @@ internal static class BurstSpawnService
             if (asPmc)
                 _nextPmcIsBear = !_nextPmcIsBear;
 
-            Plugin.ModLogger.LogInfo($"Arena squad spawn: requesting {count}x {role} ({difficulty}).");
+            Plugin.ModLogger.LogDebug($"Arena squad spawn: requesting {count}x {role} ({difficulty}).");
             SpawnPair(
                 spawner,
                 zone,
@@ -1077,7 +1077,7 @@ internal static class BurstSpawnService
                 : (zone = PickZone(spawner, 1)) != null && BurstSpawnPointSelector.CountUsable(zone, GetPlayerPosition()) >= 1;
             if (!available)
             {
-                Plugin.ModLogger.LogInfo($"Team Deathmatch preflight request {requestId} ({role}) deferred: no usable point; "
+                Plugin.ModLogger.LogDebug($"Team Deathmatch preflight request {requestId} ({role}) deferred: no usable point; "
                     + FormattableString.Invariant($"preflight={Time.realtimeSinceStartup - preflightStartedAt:F3}s."));
                 NotifyDispatchFinished(dispatchFinished, false);
                 return 0;
@@ -1190,12 +1190,12 @@ internal static class BurstSpawnService
                 string profileId = string.IsNullOrWhiteSpace(bot.ProfileId)
                     ? "<missing>"
                     : bot.ProfileId.Trim();
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena burst spawn: {role} arrived (profile {profileId}, state {bot.BotState}).");
             }
             else
             {
-                Plugin.ModLogger.LogInfo($"Arena burst spawn: {role} arrived.");
+                Plugin.ModLogger.LogDebug($"Arena burst spawn: {role} arrived.");
             }
 
             if (!Settings.HuntPlayer.Value)
@@ -1347,7 +1347,7 @@ internal static class BurstSpawnService
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);
             }
-            Plugin.ModLogger.LogInfo("Arena: PMC profile backup pre-warmed.");
+            Plugin.ModLogger.LogDebug("Arena: PMC profile backup pre-warmed.");
         }
         catch (Exception ex)
         {

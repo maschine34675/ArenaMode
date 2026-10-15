@@ -185,14 +185,14 @@ internal static class ArenaBotMovement
         {
             _loggedWorld = new WeakReference(world); _nextDiagnostic = Time.time + 60f;
             _boosted = _cornerLimited = _stepLimited = 0;
-            Plugin.ModLogger.LogInfo($"Arena bot movement active: walk x{Settings.BotWalkSpeedMult.Value:0.##}, sprint x{Settings.BotSprintSpeedMult.Value:0.##}; both teams, grounded motion only, native collision retained.");
+            Plugin.ModLogger.LogDebug($"Arena bot movement active: walk x{Settings.BotWalkSpeedMult.Value:0.##}, sprint x{Settings.BotSprintSpeedMult.Value:0.##}; both teams, grounded motion only, native collision retained.");
         }
         if (boosted) _boosted++;
         if (corner) _cornerLimited++;
         if (step) _stepLimited++;
         if (Time.time < _nextDiagnostic) return;
         _nextDiagnostic = Time.time + 60f;
-        Plugin.ModLogger.LogInfo($"Arena bot movement (last interval): boostedCalls={_boosted}, cornerLimitedCalls={_cornerLimited}, stepLimitedCalls={_stepLimited}; overlapping counts, 0.3m safety ceiling unchanged.");
+        Plugin.ModLogger.LogDebug($"Arena bot movement (last interval): boostedCalls={_boosted}, cornerLimitedCalls={_cornerLimited}, stepLimitedCalls={_stepLimited}; overlapping counts, 0.3m safety ceiling unchanged.");
         _boosted = _cornerLimited = _stepLimited = 0;
     }
 

@@ -80,6 +80,7 @@ public static class Settings
     public static ConfigEntry<float> GcHeapThresholdGB { get; private set; }
     public static ConfigEntry<int> PoolPrewarmKeepIdle { get; private set; }
 
+    public static ConfigEntry<bool> DeveloperMode { get; private set; }
     public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
     public static ConfigEntry<bool> NoCorpseLooting { get; private set; }
     public static ConfigEntry<bool> NoBotGestures { get; private set; }
@@ -275,7 +276,7 @@ public static class Settings
         }
 
         SettingsSync.Report();
-        Plugin.ModLogger?.LogInfo($"Arena mode selected in map screen: {normalized}.");
+        Plugin.ModLogger?.LogDebug($"Arena mode selected in map screen: {normalized}.");
         return true;
     }
 
@@ -443,7 +444,7 @@ public static class Settings
         try { if (File?.SaveOnConfigSet == false) File.Save(); }
         catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena play-area save failed: {ex.Message}"); }
         SettingsSync.Report();
-        Plugin.ModLogger?.LogInfo($"Arena play area selected in map screen: {areaId}.");
+        Plugin.ModLogger?.LogDebug($"Arena play area selected in map screen: {areaId}.");
         return true;
     }
 
@@ -458,7 +459,7 @@ public static class Settings
         try { if (File?.SaveOnConfigSet == false) File.Save(); }
         catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena area team-size save failed: {ex.Message}"); }
         SettingsSync.Report();
-        Plugin.ModLogger?.LogInfo($"Arena area team size selected in map screen: {size}v{size}.");
+        Plugin.ModLogger?.LogDebug($"Arena area team size selected in map screen: {size}v{size}.");
         return true;
     }
 
@@ -514,6 +515,10 @@ public static class Settings
     public static void Init(ConfigFile config)
     {
         File = config;
+        DeveloperMode = config.Bind("Diagnostics", "DeveloperMode", false,
+            "Enable detailed Arena diagnostic probes (per-body, audio and movement traces). " +
+            "These appear as [dev] Info messages without enabling global BepInEx Debug logging. " +
+            "Ordinary technical details use Debug. Warnings, errors and LogDamageExceptions remain independent.");
         AreaCaptureEnabled = config.Bind("Development - Area outline", "Enabled", false,
             "Opt-in point capture. Normal PMC raids additionally require AllowInNormalPmc. Exports drafts; NEVER changes live boundaries or spawns. " +
             "Use Waypoints for spawn visualization. Draft points survive respawns but clear when disabled or the raid ends; export first.");

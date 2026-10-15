@@ -1768,7 +1768,7 @@ internal static class PitFireTeamRoundLifecycle
         }
 
         _spawnLease = null;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena revoked PitFireTeam follower spawn lease {lease.Epoch} ({reason}).");
     }
 
@@ -3033,7 +3033,7 @@ internal static class PitFireTeamRoundLifecycle
                 + ex.GetBaseException().Message);
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena retired raw PFT LocalPlayer {state.Profile.ProfileId} ({reason}).");
     }
 

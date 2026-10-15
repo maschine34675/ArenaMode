@@ -192,7 +192,7 @@ public sealed class BotTierScalePatch : AbstractPatch
             return;
 
         _lastReported = level;
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Bot tier ramp on {location}: {elapsed.TotalMinutes:0} min in, "
             + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}; "
             + $"clock={(duration > 0 ? "match" : "legacy")}, duration={duration}s, progress={progress:P0}.");

@@ -41,7 +41,7 @@ internal static class TdmMatchExit
                 ArenaRespawnDriver.StandDown = false;
                 reportProblem?.Invoke("Native exit was not committed; retaining the terminal hold.");
             }
-            else Plugin.ModLogger.LogInfo($"Arena match result exit committed ({status}); protected native end follows.");
+            else Plugin.ModLogger.LogDebug($"Arena match result exit committed ({status}); protected native end follows.");
         }
         catch (Exception ex)
         {

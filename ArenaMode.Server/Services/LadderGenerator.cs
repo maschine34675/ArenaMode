@@ -88,7 +88,7 @@ public class LadderGenerator(
             var variants = CreateVariantIndex(templateTable);
             variants.Exclude(exclusions ?? ArenaTemplateEligibility.ExclusionSet(ArenaContext.Config.ExcludedTemplates));
             ArenaContext.WeaponVariants = variants;
-            logger.Info($"[ArenaMode] Weapon variant index ready: {templateTable.Items.Count} live templates; no bot generator/config changes.");
+            logger.Debug($"[ArenaMode] Weapon variant index ready: {templateTable.Items.Count} live templates; no bot generator/config changes.");
         }
         catch (Exception ex)
         {
@@ -109,7 +109,7 @@ public class LadderGenerator(
             }
 
             ArenaContext.LadderJson = pool.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
-            logger.Info($"[ArenaMode] Weapon pool generated: {pool.Count} weapons from the live item database; "
+            logger.Debug($"[ArenaMode] Weapon pool generated: {pool.Count} weapons from the live item database; "
                         + $"{_cartridgesLeftOut} cartridge(s) left out as placeholders or without a handbook entry.");
         }
         catch (Exception ex)
@@ -165,7 +165,7 @@ public class LadderGenerator(
         _handbook = new HashSet<MongoId>(templateTable.Handbook?.Items?.Select(i => i.Id) ?? []);
         _excluded = excluded;
 
-        logger.Info($"[ArenaMode] Templates kept out of the weapon pool and the attachment draw: {excluded.Count} "
+        logger.Debug($"[ArenaMode] Templates kept out of the weapon pool and the attachment draw: {excluded.Count} "
                     + $"({configured.Count} from config, {byName} more by their placeholder name).");
         return excluded;
     }

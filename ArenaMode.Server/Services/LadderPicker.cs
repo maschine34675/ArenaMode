@@ -51,10 +51,15 @@ public static class LadderPicker
     /// this point gets the one the player is actually climbing.
     /// </summary>
     public static string Redraw(string poolJson, int rungs, Action<string>? log = null,
-        ArenaWeaponVariants? variants = null, IEnumerable<string?>? excludedTemplates = null)
+        ArenaWeaponVariants? variants = null, IEnumerable<string?>? excludedTemplates = null,
+        Action<string>? warning = null)
     {
+        // Legacy callers may still supply one sink. The server supplies a
+        // separate warning sink so failed draws remain visible without the
+        // routine per-rung/attachment diagnostics in the Info channel.
+        var reportWarning = warning ?? log;
         var excluded = ArenaTemplateEligibility.ExclusionSet(excludedTemplates);
-        var drawn = Draw(poolJson, rungs, log, excluded);
+        var drawn = Draw(poolJson, rungs, log, excluded, reportWarning);
         if (variants != null)
         {
             try
@@ -69,7 +74,7 @@ public static class LadderPicker
                 log?.Invoke(ArenaWeaponVariants.Summarize("Gun Game", report));
             }
             catch (Exception ex)
-            { log?.Invoke($"[ArenaMode] Gun Game attachment draw failed ({ex.Message}); original drawn builds retained."); }
+            { reportWarning?.Invoke($"[ArenaMode] Gun Game attachment draw failed ({ex.Message}); original drawn builds retained."); }
         }
         lock (Lock)
             _current = drawn;
@@ -200,7 +205,8 @@ public static class LadderPicker
     private static bool IsAmmunitionSite(string? slot)
         => slot == "cartridges" || slot == "patron_in_weapon" || slot?.StartsWith("camora_", StringComparison.Ordinal) == true;
 
-    private static string Draw(string poolJson, int rungs, Action<string>? log, HashSet<string> excluded)
+    private static string Draw(string poolJson, int rungs, Action<string>? log, HashSet<string> excluded,
+        Action<string>? warning)
     {
         try
         {
@@ -281,7 +287,7 @@ public static class LadderPicker
                                 lock (Rng)
                                     index = Rng.Next(low, high);
                                 passedOver--;
-                                log?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: nothing in the pool can be loaded with an "
+                                warning?.Invoke($"[ArenaMode] Gun Game rung {i + 1}: nothing in the pool can be loaded with an "
                                             + $"allowed cartridge; '{NameOf(pool[index])}' goes out with the pool's own load, "
                                             + "which the configuration excludes.");
                             }
@@ -308,7 +314,7 @@ public static class LadderPicker
         }
         catch (Exception ex)
         {
-            log?.Invoke($"[ArenaMode] Ladder draw failed ({ex.Message}) — serving the pool as-is.");
+            warning?.Invoke($"[ArenaMode] Ladder draw failed ({ex.Message}) — serving the pool as-is.");
             return poolJson;
         }
     }

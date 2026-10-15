@@ -158,7 +158,7 @@ namespace ArenaMode
     public class Logger
     {
         public readonly List<string> Lines = new();
-        public void LogInfo(object value) => Lines.Add(value.ToString());
+        public void LogInfo(object value) => Lines.Add(value.ToString()); public void LogDebug(object value) => Lines.Add(value.ToString());
         public void LogWarning(object value) => Lines.Add(value.ToString());
     }
 }

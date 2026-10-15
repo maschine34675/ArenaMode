@@ -73,7 +73,7 @@ internal static class ArenaSoloPopulation
             if (Time.realtimeSinceStartup >= _nextDiagnostic)
             {
                 _nextDiagnostic = Time.realtimeSinceStartup + 30f;
-                Plugin.ModLogger.LogInfo($"Arena solo population: total={population.Capacity + 1} (human slot reserved), "
+                Plugin.ModLogger.LogDebug($"Arena solo population: total={population.Capacity + 1} (human slot reserved), "
                     + $"alive={alive}, bosses={bosses}, PMC={pmcs}, pending={population.Outstanding} "
                     + $"(native uncertain={population.NativeOutstanding}), boss slot={population.BossEnabled}.");
             }

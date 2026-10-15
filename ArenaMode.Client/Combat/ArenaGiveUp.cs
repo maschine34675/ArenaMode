@@ -112,7 +112,7 @@ internal static class ArenaGiveUp
             try
             {
                 _nextAllowedAt = Time.time + CooldownSeconds;
-                Plugin.ModLogger.LogInfo("Arena: player gave up — respawning.");
+                Plugin.ModLogger.LogDebug("Arena: player gave up — respawning.");
                 using (ArenaAdministrativeDeathGate.Enter(player.ProfileId))
                     health.Kill(EDamageType.Undefined);
             }

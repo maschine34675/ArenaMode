@@ -400,7 +400,7 @@ internal static class ZombieNativeEventBridge
 
                     if (sameRaid)
                     {
-                        Plugin.ModLogger.LogInfo(
+                        Plugin.ModLogger.LogDebug(
                             "Arena zombie native bridge: BotsEventsController.Activate() ran a second time for "
                             + "this same raid's GameWorld before its flag could be restored — harmless, the "
                             + "originally-saved value is kept and will still be restored exactly once at raid "
@@ -432,7 +432,7 @@ internal static class ZombieNativeEventBridge
 
                 BotInternalSettingsController.Core.ACTIVE_HALLOWEEN_ZOMBIES_EVENT = true;
                 NativeEventArmed = true;
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     "Arena zombie native bridge: armed the native Halloween infection event for this raid.");
             }
             catch (Exception ex)

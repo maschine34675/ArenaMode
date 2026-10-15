@@ -78,7 +78,7 @@ internal static class ArenaSainPersonalities
             Patches.Patch(select, postfix: new HarmonyMethod(selectionPatch) { priority = Priority.Last });
             Patches.Patch(setter, prefix: new HarmonyMethod(setterPatch) { priority = Priority.Last });
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena: optional SAIN 4.5.1 personality filter ready (Rat, Timmy, Coward -> Normal).");
+            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 personality filter ready (Rat, Timmy, Coward -> Normal).");
             return true;
         }
         catch (Exception exception)
@@ -180,7 +180,7 @@ internal static class ArenaSainPersonalities
             _replacements = 0;
         }
         if (++_replacements <= 3)
-            Plugin.ModLogger.LogInfo($"Arena SAIN personality: {previous} -> Normal (assignment #{_replacements}).");
+            Plugin.ModLogger.LogDebug($"Arena SAIN personality: {previous} -> Normal (assignment #{_replacements}).");
     }
 
     private static void Warn(string message, Exception exception)

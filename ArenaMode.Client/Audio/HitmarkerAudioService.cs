@@ -47,7 +47,7 @@ internal static class HitmarkerAudioService
             catch (Exception ex) { Report("load_" + Names[i], ex.Message); }
         }
         ArenaEvents.OnLocalDamageDealt += OnDamage;
-        Plugin.ModLogger.LogInfo($"Arena hitmarker audio attached: enabled={Settings.HitmarkerSounds.Value}, "
+        Plugin.ModLogger.LogDebug($"Arena hitmarker audio attached: enabled={Settings.HitmarkerSounds.Value}, "
             + $"volume={Settings.HitmarkerVolume.Value:0.##}, clips={ReadyCount()}/3, route=Arena.Master (independent source).");
     }
 
@@ -103,8 +103,8 @@ internal static class HitmarkerAudioService
             if (!Output.TryPlay(cached.GetRuntime(), Volume, out string problem))
             { Report("output", problem); return; }
             _submitted++;
-            if (_submitted <= 3)
-                Plugin.ModLogger.LogInfo($"Arena hitmarker audio play request: {Names[(int)cue]}, volume={Volume:0.##}.");
+            if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && _submitted <= 3)
+                ArenaMode.Diagnostics.ArenaLog.Developer($"Arena hitmarker audio play request: {Names[(int)cue]}, volume={Volume:0.##}.");
         }
         catch (Exception ex) { Report("play_" + Names[(int)cue], ex.Message); }
     }
@@ -136,7 +136,7 @@ internal static class HitmarkerAudioService
             try { clip?.ResetRuntime(); }
             catch (Exception ex) { Report("cleanup", ex.Message); }
         }
-        if (attached) Plugin.ModLogger.LogInfo($"Arena hitmarker audio detached: events={_received}, "
+        if (attached) Plugin.ModLogger.LogDebug($"Arena hitmarker audio detached: events={_received}, "
             + $"playRequests={_submitted}, skipped={_skipped}.");
     }
 }

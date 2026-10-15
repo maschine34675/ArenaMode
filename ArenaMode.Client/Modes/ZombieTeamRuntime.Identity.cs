@@ -479,7 +479,7 @@ internal sealed partial class ZombieTeamRuntime
         _expectedPitLifecycleEpoch = status.Epoch;
         _teamRebindStep = TeamRebindStep.AwaitRetirement;
         _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Zombie team wave {_teamRoundEpoch}: retiring the exact previous follower bodies.");
     }
 
@@ -524,7 +524,7 @@ internal sealed partial class ZombieTeamRuntime
         }
 
         _teamRebindStep = TeamRebindStep.PrepareProfiles;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Zombie team wave {_teamRoundEpoch}: PitFireTeam leader ready — "
             + PitFireTeamRoundLifecycle.Diagnostic);
     }
@@ -548,7 +548,7 @@ internal sealed partial class ZombieTeamRuntime
 
         _teamRebindStep = TeamRebindStep.AwaitProfiles;
         _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Zombie team wave {_teamRoundEpoch}: PitFireTeam follower profile preparation is active.");
     }
 
@@ -568,7 +568,7 @@ internal sealed partial class ZombieTeamRuntime
         else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
         {
             _teamRebindStep = TeamRebindStep.StartFollowers;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Zombie team wave {_teamRoundEpoch}: {TeamCompanionCount} fresh PitFireTeam follower profiles are ready.");
         }
     }
@@ -592,7 +592,7 @@ internal sealed partial class ZombieTeamRuntime
 
         _teamRebindStep = TeamRebindStep.AwaitFollowers;
         _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Zombie team wave {_teamRoundEpoch}: started the fresh PitFireTeam follower spawn.");
     }
 
@@ -615,7 +615,7 @@ internal sealed partial class ZombieTeamRuntime
         else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
         {
             _teamRebindStep = TeamRebindStep.AdoptFollowers;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Zombie team wave {_teamRoundEpoch}: {TeamCompanionCount} fresh follower bodies passed the stable registry barrier.");
         }
     }

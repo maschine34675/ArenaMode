@@ -185,7 +185,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true, Exact = true; public static string ActiveMode = "teamdeathmatch"; public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact; } }
 namespace ArenaMode.Compat { public static class PitFireTeamCompat { public static bool TeamArenaActive = true; } }
-namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); public class Logger { public readonly List<string> Info = new(); public void LogInfo(string text) => Info.Add(text); public void LogWarning(string text) { } } } }
+namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); public class Logger { public readonly List<string> Info = new(); public void LogInfo(string text) => Info.Add(text); public void LogDebug(string text) => Info.Add(text); public void LogWarning(string text) { } } } }
 namespace ArenaMode.Modes
 {
     public interface IMode { bool IsComplete { get; } }
@@ -230,5 +230,19 @@ namespace ArenaMode.Modes
         public void SetOwner(int index, EFT.BotOwner owner) => _boundTeamFollowers[index] = owner;
         public void SetMatch(ArenaMatch match) => _match = match;
         public void SetLeader(EFT.Player player) => _boundLocalPlayer = player;
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

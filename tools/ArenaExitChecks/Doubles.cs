@@ -82,7 +82,7 @@ namespace ArenaMode
     public class Logger
     {
         public List<string> Lines = new();
-        public void LogInfo(object text) => Lines.Add(text.ToString());
+        public void LogInfo(object text) => Lines.Add(text.ToString()); public void LogDebug(object text) => Lines.Add(text.ToString());
         public void LogWarning(object text) => Lines.Add(text.ToString());
     }
 }

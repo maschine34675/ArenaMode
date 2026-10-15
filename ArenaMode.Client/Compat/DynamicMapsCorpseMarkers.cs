@@ -55,7 +55,7 @@ internal static class DynamicMapsCorpseMarkers
             Patches.Patch(add, prefix: new HarmonyMethod(typeof(DynamicMapsCorpseMarkers), nameof(BeforeAddMarker))
                 { priority = Priority.Last });
             _enabled = true;
-            Plugin.ModLogger.LogInfo("Arena DynamicMaps: trimmed-corpse marker cleanup ready (1.2.1).");
+            Plugin.ModLogger.LogDebug("Arena DynamicMaps: trimmed-corpse marker cleanup ready (1.2.1).");
         }
         catch (Exception ex)
         {

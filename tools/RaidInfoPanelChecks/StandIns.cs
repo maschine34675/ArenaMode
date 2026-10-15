@@ -325,7 +325,7 @@ namespace ArenaMode
         public readonly List<string> Warnings = new();
         public readonly List<string> Infos = new();
         public void LogWarning(string message) => Warnings.Add(message);
-        public void LogInfo(string message) => Infos.Add(message);
+        public void LogInfo(string message) => Infos.Add(message); public void LogDebug(string message) => Infos.Add(message);
     }
 }
 namespace ArenaMode.Config

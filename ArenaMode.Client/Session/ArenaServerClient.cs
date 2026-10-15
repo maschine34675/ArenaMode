@@ -728,7 +728,7 @@ public static class ArenaServerClient
                 bool expectedDeferral = response["deferred"]?.Value<bool>() == true
                     && string.Equals(state, "InRaid", StringComparison.Ordinal);
                 if (expectedDeferral)
-                    Plugin.ModLogger.LogInfo(
+                    Plugin.ModLogger.LogDebug(
                         $"Arena raid-end remains pending: {response}");
                 else
                     Plugin.ModLogger.LogWarning(

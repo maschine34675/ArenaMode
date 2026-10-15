@@ -207,7 +207,7 @@ internal static class ArenaLocationSelectionPatch
             }
 
             var buttons = __instance._locationButtonsContainer.GetComponentsInChildren<LocationButton>(true);
-            Plugin.ModLogger.LogInfo($"Arena map view: buttons={buttons.Length}, "
+            Plugin.ModLogger.LogDebug($"Arena map view: buttons={buttons.Length}, "
                 + $"visible={buttons.Count(button => button.gameObject.activeInHierarchy)}, "
                 + $"sharedContainer={__instance._locationButtonsContainer == __instance._locationPathsContainer}, "
                 + $"mode={Settings.SelectedGameModeId}");

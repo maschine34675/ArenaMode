@@ -107,10 +107,11 @@ public sealed class Plugin : BaseUnityPlugin
                 throw new InvalidOperationException("BigBrain did not retain the Arena ground fire escape layer.");
             Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = true;
             Pickups.ArenaPickupRuntime.BotObjectivesAvailable = true;
-            Logger.LogInfo($"Arena pickup layer {pickupLayerId} registered at priority {PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
-            Logger.LogInfo(
+            Logger.LogDebug($"Arena pickup layer {pickupLayerId} registered at priority {PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
+            Logger.LogDebug(
                 $"Arena pursuit layer {layerId} registered for {brains.Count} brains "
                 + $"at priority {PursuitLayerPriority} (BigBrain {SupportedBigBrainVersion}).");
+            Logger.LogInfo("Arena bot movement support is ready (BigBrain).");
         }
         catch (Exception ex)
         {

@@ -34,7 +34,7 @@ internal static class ArenaPickupAudio
             if (_clip == null) return;
             if (!Output.TryPlay(_clip.GetRuntime(), Volume, out string problem)) { Report(problem); return; }
             PlayRequests++;
-            if (PlayRequests <= 3) Plugin.ModLogger.LogInfo($"Arena pickup audio play request {PlayRequests}: volume={Volume:0.##}; Arena.Master.");
+            if (PlayRequests <= 3) Plugin.ModLogger.LogDebug($"Arena pickup audio play request {PlayRequests}: volume={Volume:0.##}; Arena.Master.");
         }
         catch (Exception ex) { Report(ex.GetBaseException().Message); }
     }

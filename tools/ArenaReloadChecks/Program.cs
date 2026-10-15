@@ -235,5 +235,16 @@ Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(families[0]); ArenaMovementSc
 Need(ArenaMode.Plugin.ModLogger.Infos.Count == 0, "diagnostic excludes ordinary or disabled movement scope");
 Fresh(); ArenaMode.Plugin.ModLogger = new() { Throw = true }; Start(families[0]); Tick(); Tick(); Boost();
 controller.CurrentOperation.State = Player.EOperationState.Finished; Native();
+ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled = false;
+try
+{
+    foreach (Type family in families)
+    {
+        Fresh(); ArenaMode.Plugin.ModLogger = new(); Start(family); Tick(); Tick(); Boost();
+        Need(ArenaMode.Plugin.ModLogger.Infos.Count == 0, "developer off suppresses observations without changing reload speed");
+        controller.CurrentOperation.State = Player.EOperationState.Finished; Native();
+    }
+}
+finally { ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled = true; }
 ArenaReloadHandling.Shutdown();
 Console.WriteLine($"ARENA_RELOAD_CHECKS_PASSED ({checks} assertions)");

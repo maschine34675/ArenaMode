@@ -26,7 +26,7 @@ public sealed class PreRaidWipeSkipPatch : AbstractPatch
         if (sessions == null || !sessions.IsInRaid(sessionId))
             return true;
 
-        ArenaContext.Logger?.Info("[ArenaMode] Skipping pre-raid inventory wipe for arena raid.");
+        ArenaContext.Logger?.Debug("[ArenaMode] Skipping pre-raid inventory wipe for arena raid.");
         return false;
     }
 }

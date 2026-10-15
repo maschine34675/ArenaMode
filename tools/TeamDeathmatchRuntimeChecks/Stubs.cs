@@ -278,7 +278,7 @@ namespace ArenaMode
     internal sealed class ModelLogger
     {
         internal readonly List<string> Lines = new();
-        internal void LogInfo(object value) => Lines.Add(value.ToString());
+        internal void LogInfo(object value) => Lines.Add(value.ToString()); internal void LogDebug(object value) => Lines.Add(value.ToString());
         internal void LogWarning(object value) => Lines.Add(value.ToString());
         internal void LogError(object value) => Lines.Add(value.ToString());
     }
@@ -426,5 +426,19 @@ internal static class Model
             game.BotsController.BotSpawner._bots.BotOwners.Add(owner);
         }
         return body;
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

@@ -43,7 +43,7 @@ internal static partial class ArenaAreaRuntime
         if (points.Length == 0) throw new InvalidOperationException("The exact team area has no initial PMC start for " + side);
         selected = points[UnityEngine.Random.Range(0, points.Length)];
         _initialTeamPoint = selected;
-        Plugin.ModLogger.LogInfo($"Arena team initial PMC: {side}, {selected.Id}, position {selected.Position}.");
+        Plugin.ModLogger.LogDebug($"Arena team initial PMC: {side}, {selected.Id}, position {selected.Position}.");
         return true;
     }
 
@@ -98,7 +98,7 @@ internal static partial class ArenaAreaRuntime
     {
         if (!HasTeamStarts || !_teamStarting) return;
         _teamStarting = false;
-        Plugin.ModLogger.LogInfo("Arena team starts released: subsequent placements rank all connected spawns against live enemies.");
+        Plugin.ModLogger.LogDebug("Arena team starts released: subsequent placements rank all connected spawns against live enemies.");
     }
 
     // Only used at a failed preparation deadline. Connectivity diagnostics
@@ -106,6 +106,7 @@ internal static partial class ArenaAreaRuntime
     // participate in the exact native formation (without changing selection).
     private static void LogTeamStartDiagnostics()
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         if (_area?.TeamStarts == null || !IsCurrentActive()) return;
         var zones = (_game as IBotGame)?.BotsController?.BotSpawner?.SpawnZones(false);
         var native = (zones ?? Enumerable.Empty<BotZone>())
@@ -127,12 +128,12 @@ internal static partial class ArenaAreaRuntime
                 bool excluded = _area.IsExcludedSpawn(point.Id)
                     || ArenaBotSpawnPolicy.IsExcludedPoint(_area.MapId, point.Id)
                     || (!pmc && ArenaBotSpawnPolicy.IsExcludedZone(_area.MapId, point.BotZoneName));
-                Plugin.ModLogger.LogInfo($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} "
+                ArenaMode.Diagnostics.ArenaLog.Developer($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} "
                     + $"{point.Id} at {point.Position}; connected={Connected.Contains(point)}, blocked={point.SpawnBlocked}, "
                     + $"category/side={category}, native-dispatch={dispatch}, excluded={excluded}.");
             }
             if (pool.Length == 0)
-                Plugin.ModLogger.LogInfo($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} pool absent from scene candidates.");
+                ArenaMode.Diagnostics.ArenaLog.Developer($"Arena team start diagnostic: {(usec ? "USEC" : "BEAR")} {(pmc ? "PMC" : "bot")} pool absent from scene candidates.");
         }
     }
 
@@ -217,7 +218,7 @@ internal static partial class ArenaAreaRuntime
         {
             lease = new TeamSpawnLease(_token, selectedPoint, usec);
             TeamReservations.Add(lease.PointId, lease);
-            Plugin.ModLogger.LogInfo($"Arena team {(_teamStarting ? "start" : "respawn")}: {(usec ? "USEC" : "BEAR")}, "
+            Plugin.ModLogger.LogDebug($"Arena team {(_teamStarting ? "start" : "respawn")}: {(usec ? "USEC" : "BEAR")}, "
                 + $"{selectedPoint.Id}; nearest enemy {NearestEnemyDistance(selectedPoint.Position, usec):F1}m.");
         }
         return true;

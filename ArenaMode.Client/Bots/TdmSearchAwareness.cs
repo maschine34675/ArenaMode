@@ -93,7 +93,7 @@ internal static class TdmSearchAwareness
             _danger = danger;
             _squad = squad;
             _setHeard = setHeard;
-            Plugin.ModLogger.LogInfo("Arena TDM: optional SAIN one-shot search hearing available (visual state and search delay unchanged).");
+            Plugin.ModLogger.LogDebug("Arena TDM: optional SAIN one-shot search hearing available (visual state and search delay unchanged).");
         }
         catch (Exception ex) { Failure(ex); }
     }
@@ -151,6 +151,7 @@ internal static class TdmSearchAwareness
     // diagnostics must never disable native faction/awareness behavior.
     internal static void Observe(BotOwner source, Player target, object enemy, string status)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (!TeamDeathmatchRelations.Enabled || source == null) return;
@@ -187,7 +188,7 @@ internal static class TdmSearchAwareness
             var reason = shallSearch is bool ? Read(enemyDecisions, "DebugSearchReasons") : null;
             var want = Read(reason, "WantSearchReasons");
             string distance = target == null ? "n/a" : Number(Math.Sqrt((target.Position - position).sqrMagnitude));
-            Plugin.ModLogger.LogInfo($"Arena TDM awareness: bot={sourceId}, side={source.GetPlayer?.Profile?.Info?.Side}, target={targetId}, distance={distance}m, cue={status}, "
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena TDM awareness: bot={sourceId}, side={source.GetPlayer?.Profile?.Info?.Side}, target={targetId}, distance={distance}m, cue={status}, "
                 + $"goal={ActorId(source.Memory?.GoalEnemy?.Person)}, seen={Value(Read(enemy, "Seen"))}, heard={Value(Read(enemy, "Heard"))}, "
                 + $"visible={Value(Read(enemy, "IsVisible"))}, known={Value(Read(enemy, "EnemyKnown"))}, heardAge={Value(Read(enemy, "TimeSinceHeard"))}, "
                 + $"sainGoal={sainGoal}, goalMatchesTarget={goalMatchesTarget}, goalDistance={goalDistance}m, "
@@ -239,7 +240,7 @@ internal static class TdmSearchAwareness
             || !Equals(Read(path, "CurrentIndex"), index)
             || !ReferenceEquals(Read(path, "PathCorners"), corners) || (corners?.Count ?? -1) != count) return;
         observation.MoverDetailLogged = true;
-        Plugin.ModLogger.LogInfo($"Arena TDM mover detail: bot={ActorId(source)}, lowMotionSamples={observation.LowMotionSamples}, {details}. Endpoint samples; cached invalid status alone does not prove a bad active path.");
+        ArenaMode.Diagnostics.ArenaLog.Developer($"Arena TDM mover detail: bot={ActorId(source)}, lowMotionSamples={observation.LowMotionSamples}, {details}. Endpoint samples; cached invalid status alone does not prove a bad active path.");
     }
 
     // Once per physical bot/raid, after two invalid-path samples at the existing
@@ -264,7 +265,7 @@ internal static class TdmSearchAwareness
         // from different selected wrappers; the ordinary snapshot remains intact.
         if (!ReferenceEquals(Read(component, "GoalEnemy"), goalEnemy)) return;
         observation.PathDetailLogged = true;
-        Plugin.ModLogger.LogInfo($"Arena TDM path detail: bot={ActorId(source)}, sainGoal={ActorId(goalPlayer)}, "
+        ArenaMode.Diagnostics.ArenaLog.Developer($"Arena TDM path detail: bot={ActorId(source)}, sainGoal={ActorId(goalPlayer)}, "
             + $"invalidSamples={observation.InvalidPathSamples}, sampleWindow={Number(now - observation.FirstInvalidPathAt)}s, "
             + sourceDetails + ", " + goalDetails
             + $", goalKnown={Point(knownPosition)}, goalKnownMinusNav={Delta(knownPosition, Read(goalNav, "Position"))}, "

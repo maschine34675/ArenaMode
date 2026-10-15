@@ -139,7 +139,7 @@ internal static class ArenaSpectatorService
             if (!owner.TranslateExitScreenInput(command))
                 return false;
             result = InputNode.ETranslateResult.BlockAll;
-            Plugin.ModLogger.LogInfo("Arena spectator routed Escape to the native raid menu.");
+            Plugin.ModLogger.LogDebug("Arena spectator routed Escape to the native raid menu.");
             return true;
         }
         catch (Exception ex)
@@ -286,7 +286,7 @@ internal static class ArenaSpectatorService
         _pendingDeadline = Time.unscaledTime + MaximumPendingSeconds;
         _compatibilityFailureLogged = false;
         SpectatorHealthEffects.ClearForDeadLocal(request.DeadPlayer);
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena spectator pending for epoch {request.Epoch}; waiting for optional camera owners to release.");
         return true;
     }
@@ -478,7 +478,7 @@ internal static class ArenaSpectatorService
         SeenProfiles.Clear();
 
         if (hadState)
-            Plugin.ModLogger.LogInfo($"Arena spectator released ({reason ?? "unspecified"}).");
+            Plugin.ModLogger.LogDebug($"Arena spectator released ({reason ?? "unspecified"}).");
 
         if (returnOwnedCameraToNative || restoreFirstPerson)
             RestoreControllerOperation(playerToRestore, restoreFirstPerson);
@@ -574,7 +574,7 @@ internal static class ArenaSpectatorService
             Application.onBeforeRender += ApplyRenderPose;
             ApplyRenderPose();
 
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena spectator following {_currentTarget.Side.ToString().ToLowerInvariant()} "
                 + $"{_currentTarget.ProfileId}; {LivingTargets.Count} living target(s) available.");
         }

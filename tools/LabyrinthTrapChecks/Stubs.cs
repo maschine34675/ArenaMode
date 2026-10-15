@@ -167,7 +167,7 @@ namespace ArenaMode
     public class Logger
     {
         public List<string> Lines = new();
-        public void LogInfo(string text) => Lines.Add(text);
+        public void LogInfo(string text) => Lines.Add(text); public void LogDebug(string text) => Lines.Add(text);
         public void LogWarning(string text) => Lines.Add(text);
     }
     public static class Plugin { public static Logger ModLogger = new(); }

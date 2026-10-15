@@ -114,7 +114,7 @@ namespace ArenaMode
     {
         public readonly List<string> Warnings = new(), Infos = new();
         public void LogWarning(string text) => Warnings.Add(text);
-        public void LogInfo(string text) => Infos.Add(text);
+        public void LogInfo(string text) => Infos.Add(text); public void LogDebug(string text) => Infos.Add(text);
     }
 }
 namespace Redeploy.Core.Engine

@@ -83,14 +83,14 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
         _match = IsScope(match) ? match : null;
         // This watchdog is outside the render callback: zero callbacks must be
         // diagnosable too. Three samples per HUD lifetime, no per-frame log spam.
-        if (ArenaSession.IsActive && _samples < 3 && Time.unscaledTime >= _nextDiagnostic
+        if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && ArenaSession.IsActive && _samples < 3 && Time.unscaledTime >= _nextDiagnostic
             && (match?.Mode is TeamDeathmatchMode || match?.Mode is TacticalMode tactical && tactical.IsTeamArena
                 || match?.Mode is ZombieMode zombie && zombie.IsTeamArena))
         {
             _samples++;
             _nextDiagnostic = Time.unscaledTime + 10f;
             var camera = CameraManager.Exist ? CameraManager.Instance.Camera : null;
-            Plugin.ModLogger.LogInfo($"Arena friendly markers: phase=canvas-pre-rebuild, scope={_match != null}, " +
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena friendly markers: phase=canvas-pre-rebuild, scope={_match != null}, " +
                 $"cameraReady={camera != null && camera.isActiveAndEnabled}, canvasPasses={_canvasPasses}, " +
                 $"lastPass alive={_scanned}, friendly={_friendly}, heads={_heads}, projected={_projected}, " +
                 $"blocked={_blocked}, shown={_shown}.");

@@ -46,7 +46,7 @@ internal static class ArenaAirControl
                 prefix: Hook(nameof(BeforeMove)), postfix: Hook(nameof(AfterMove)));
             Patches.Patch(AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.CheckFlying)), postfix: Hook(nameof(AfterFlying)));
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena air control: native jump/fall steering ready (planar speed preserved).");
+            Plugin.ModLogger.LogDebug("Arena air control: native jump/fall steering ready (planar speed preserved).");
         }
         catch (Exception ex) { Shutdown(); Warn(ex); }
     }

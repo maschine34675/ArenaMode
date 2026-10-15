@@ -57,7 +57,7 @@ internal static class ArenaSainActionSafety
                     .GetMethod(nameof(BeforeStop), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.First });
             }
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena: optional SAIN 4.5.1 retired-action safeguard ready.");
+            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 retired-action safeguard ready.");
             return true;
         }
         catch (Exception exception)
@@ -99,7 +99,7 @@ internal static class ArenaSainActionSafety
                 if (arguments[1] is UnityEngine.Object registered && registered != null) return true;
             }
             if (ArenaBotLifecycleScope.LogStop(owner))
-                Plugin.ModLogger.LogInfo("Arena SAIN action teardown: missing component; retired Stop completed without movement access.");
+                Plugin.ModLogger.LogDebug("Arena SAIN action teardown: missing component; retired Stop completed without movement access.");
             return false;
         }
         catch (Exception exception)

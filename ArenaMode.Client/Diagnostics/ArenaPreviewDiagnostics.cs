@@ -73,7 +73,8 @@ internal static class ArenaPreviewDiagnostics
         game = null;
         world = null;
         context = null;
-        if (_harmony == null || (!ArenaSession.IsActive && !ArenaSession.LastRaidWasArena)) return false;
+        if (!ArenaLog.DeveloperEnabled || _harmony == null
+            || (!ArenaSession.IsActive && !ArenaSession.LastRaidWasArena)) return false;
         game = Singleton<AbstractGame>.Instantiated ? Singleton<AbstractGame>.Instance : null;
         world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
         if (ArenaSession.IsActive && game is LocalGame local && local.Status == GameStatus.Started
@@ -239,7 +240,7 @@ internal static class ArenaPreviewDiagnostics
         return string.Join("/", parts);
     }
 
-    private static void Log(string message) => Plugin.ModLogger.LogInfo("Arena preview probe: " + message);
+    private static void Log(string message) => ArenaLog.Developer("Arena preview probe: " + message);
 
     private static void Warn(Exception ex)
     {

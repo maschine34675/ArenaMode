@@ -79,7 +79,7 @@ namespace ArenaMode
 {
     public static class ArenaToasts {public static void Show(string x){}}
     public static class Plugin {public static Logger ModLogger=new();}
-    public class Logger {public void LogInfo(string x){} public void LogWarning(string x){} public void LogError(string x){}}
+    public class Logger {public void LogInfo(string x){} public void LogDebug(string x){} public void LogWarning(string x){} public void LogError(string x){}}
 }
 namespace Redeploy.Core.Engine {public static class RespawnEngineState {public static bool IsPipelineRunning;}}
 namespace Redeploy.Core.GameAccess {public static class LocalGameAccessor {public static EFT.EftGamePlayerOwner GetPlayerOwner(EFT.LocalGame g)=>g.Owner;}}

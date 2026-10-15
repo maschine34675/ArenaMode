@@ -64,7 +64,7 @@ internal static class MapAccessPatch
                 // the raid claim a keycard the player is not carrying.
                 settings.KeyId = string.Empty;
 
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena: '{settings.SelectedLocation?.Id}' needs a keycard the arena never issues — waiving it for this raid.");
 
                 __result = true;

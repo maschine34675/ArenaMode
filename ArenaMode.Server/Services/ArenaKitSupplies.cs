@@ -77,7 +77,7 @@ public sealed class ArenaKitSuppliesPostLoad(TemplateTable templates, ISptLogger
         try
         {
             ArenaKitSupplies.Current = new ArenaKitSupplies(templates.Items.Values);
-            logger.Info("[ArenaMode] Optional kit grenade supplies ready: two RGD-5s, rig/pocket space permitting; no added flashbang.");
+            logger.Debug("[ArenaMode] Optional kit grenade supplies ready: two RGD-5s, rig/pocket space permitting; no added flashbang.");
         }
         catch (Exception ex)
         {

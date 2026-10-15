@@ -101,7 +101,7 @@ internal static class ArenaFireRuntime
             || !ReferenceEquals(grenade.WeaponSource, controller.Item) || !ReferenceEquals(grenade.Player?.iPlayer, owner)) return;
         Throws.Add(grenade, new Throw { Owner = owner, Bridge = grenade.Player, Weapon = controller.Item, Born = Time.time });
         Hold(owner, Time.time + 12f);
-        Plugin.ModLogger.LogInfo($"Arena incendiary throw: {grenade.Id}; exact local RGD-5; bot escape={BotEscapeAvailable}.");
+        Plugin.ModLogger.LogDebug($"Arena incendiary throw: {grenade.Id}; exact local RGD-5; bot escape={BotEscapeAvailable}.");
     }
 
     // All owned explosions remain suppressed, including when disabled or leaving.
@@ -119,9 +119,9 @@ internal static class ArenaFireRuntime
                     var fire = new Burn { Source = source, Cells = cells, Until = Time.time + ArenaFirePolicy.Lifetime };
                     fire.View = new ArenaFireView(cells);
                     Fires.Add(fire); Hold(source.Owner, fire.Until + 2f);
-                    Plugin.ModLogger.LogInfo($"Arena incendiary ignited: {cells.Count} floor cells at {cells[0]}; 6s, {ArenaFirePolicy.DamagePerSecond} base HP/s.");
+                    Plugin.ModLogger.LogDebug($"Arena incendiary ignited: {cells.Count} floor cells at {cells[0]}; 6s, {ArenaFirePolicy.DamagePerSecond} base HP/s.");
                 }
-                else Plugin.ModLogger.LogInfo("Arena incendiary expired without a safe nearby floor; no blast or fire.");
+                else Plugin.ModLogger.LogDebug("Arena incendiary expired without a safe nearby floor; no blast or fire.");
             }
         }
         catch (Exception ex) { Warn(ex); }
@@ -176,7 +176,7 @@ internal static class ArenaFireRuntime
                     // Respawned thrower is the same participant, never an enemy of their old life.
                     if (victim.ProfileId == fire.Source.Owner.ProfileId && !ReferenceEquals(victim, fire.Source.Owner)) continue;
                     Ticked.Add(victim);
-                    if (fire.Touched.Add(victim)) Plugin.ModLogger.LogInfo($"Arena incendiary contact: {victim.ProfileId}; bot={victim.IsAI}.");
+                    if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && fire.Touched.Add(victim)) ArenaMode.Diagnostics.ArenaLog.Developer($"Arena incendiary contact: {victim.ProfileId}; bot={victim.IsAI}.");
                     Damage(fire, victim);
                 }
             }

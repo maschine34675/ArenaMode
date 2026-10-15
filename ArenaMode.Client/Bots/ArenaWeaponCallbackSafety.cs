@@ -26,7 +26,7 @@ internal static class ArenaWeaponCallbackSafety
             Patches.Patch(target, prefix: new HarmonyMethod(typeof(ArenaWeaponCallbackSafety)
                 .GetMethod(nameof(BeforeTaken), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.First });
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena: retired bot weapon callback safeguard ready.");
+            Plugin.ModLogger.LogDebug("Arena: retired bot weapon callback safeguard ready.");
         }
         catch (Exception ex) { Shutdown(); Warn(ex); }
     }
@@ -55,7 +55,7 @@ internal static class ArenaWeaponCallbackSafety
             if (!_logged.TryGetValue(__instance, out _))
             {
                 _logged.Add(__instance, new object());
-                Plugin.ModLogger.LogInfo($"Arena bot weapon callback: ignored retired selector; state={owner.BotState}, dead={owner.IsDead}, managerDisposed={manager?._disposed}.");
+                Plugin.ModLogger.LogDebug($"Arena bot weapon callback: ignored retired selector; state={owner.BotState}, dead={owner.IsDead}, managerDisposed={manager?._disposed}.");
             }
             return false;
         }

@@ -41,7 +41,7 @@ internal static class ArenaSainDisableSafety
             Patches.Patch(disable, prefix: new HarmonyMethod(typeof(ArenaSainDisableSafety)
                 .GetMethod(nameof(BeforeDisable), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.First });
             _ready = true;
-            Plugin.ModLogger.LogInfo("Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.");
+            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.");
             return true;
         }
         catch (Exception ex) { Shutdown(); Warn(ex); return false; }
@@ -76,7 +76,7 @@ internal static class ArenaSainDisableSafety
             if (!ReferenceEquals(assigned, null) && !ReferenceEquals(assigned, owner)) return true;
             __instance.StopAllCoroutines();
             if (_reports++ < 8)
-                Plugin.ModLogger.LogInfo("Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained.");
+                Plugin.ModLogger.LogDebug("Arena SAIN teardown: uninitialized Arena component; coroutine cleanup retained.");
             return false;
         }
         catch (Exception ex) { Warn(ex); return true; }

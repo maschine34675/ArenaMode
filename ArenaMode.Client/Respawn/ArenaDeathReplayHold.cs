@@ -79,13 +79,13 @@ internal sealed class ArenaDeathReplayHold
                 {
                     _reportedWait = true;
                     _waitStarted = Time.time;
-                    Plugin.ModLogger.LogInfo("Arena killcam: holding death respawn until replay cleanup completes.");
+                    Plugin.ModLogger.LogDebug("Arena killcam: holding death respawn until replay cleanup completes.");
                 }
             }
             else if (_reportedWait && !_reportedRelease)
             {
                 _reportedRelease = true;
-                Plugin.ModLogger.LogInfo($"Arena killcam: camera released after {Time.time - _waitStarted:0.00}s.");
+                Plugin.ModLogger.LogDebug($"Arena killcam: camera released after {Time.time - _waitStarted:0.00}s.");
             }
 
             // Mode time keeps advancing during playback. No extra fixed delay

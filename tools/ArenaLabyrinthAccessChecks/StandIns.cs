@@ -65,7 +65,7 @@ namespace ArenaMode
     public static class Plugin { public static TestLogger ModLogger = new(); }
     public sealed class TestLogger
     {
-        public void LogInfo(object message) { }
+        public void LogInfo(object message) { } public void LogDebug(object message) { }
         public void LogWarning(object message) { }
         public void LogError(object message) { }
     }

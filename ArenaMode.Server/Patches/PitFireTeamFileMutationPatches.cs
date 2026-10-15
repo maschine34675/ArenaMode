@@ -51,7 +51,7 @@ internal static class PitFireTeamFileMutationPatch
         if (PitFireTeamManagementScope.Authorizes(protectedSessionId))
             return true;
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed PitFireTeam {operation} for protected Arena session {protectedSessionId}.");
         return false;
     }

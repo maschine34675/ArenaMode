@@ -144,7 +144,7 @@ namespace ArenaMode
     internal static class Plugin { internal static Logger ModLogger = new(); }
     internal sealed class Logger
     {
-        internal void LogInfo(string text) => Harness.Log.Add(text);
+        internal void LogInfo(string text) => Harness.Log.Add(text); internal void LogDebug(string text) => Harness.Log.Add(text);
         internal void LogWarning(string text) => Harness.Log.Add(text);
         internal void LogError(string text) => Harness.Log.Add(text);
     }

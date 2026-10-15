@@ -93,7 +93,7 @@ internal static class ZombieMeleePatch
         try
         {
             new MeleeAttackNodePatch().Enable();
-            Plugin.ModLogger.LogInfo("Arena zombie melee: OneMeleeAttackNode prefix installed.");
+            Plugin.ModLogger.LogDebug("Arena zombie melee: OneMeleeAttackNode prefix installed.");
         }
         catch (Exception ex)
         {
@@ -288,7 +288,7 @@ internal static class ZombieMeleePatch
         if (_loggedPathChoice)
             return;
         _loggedPathChoice = true;
-        Plugin.ModLogger.LogInfo(usingReversePatch
+        Plugin.ModLogger.LogDebug(usingReversePatch
             ? "Arena zombie melee: driving infected RunToEnemyUpdate through a HarmonyX reverse patch of the "
               + "native body (bypasses SAIN's global RunToEnemyUpdate prefix entirely)."
             : "Arena zombie melee: driving infected RunToEnemyUpdate through the hand-written fallback "

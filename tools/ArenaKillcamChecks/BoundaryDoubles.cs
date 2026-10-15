@@ -18,7 +18,7 @@ namespace ArenaMode
     internal sealed class TestLogger
     {
         internal readonly List<string> Entries = new();
-        internal void LogInfo(string text) => Entries.Add(text);
+        internal void LogInfo(string text) => Entries.Add(text); internal void LogDebug(string text) => Entries.Add(text);
     }
 }
 

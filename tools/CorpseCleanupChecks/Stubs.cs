@@ -398,7 +398,7 @@ namespace ArenaMode
     {
         public readonly List<string> Warnings = new();
         public readonly List<string> Infos = new();
-        public void LogInfo(string text) => Infos.Add(text);
+        public void LogInfo(string text) => Infos.Add(text); public void LogDebug(string text) => Infos.Add(text);
         public void LogWarning(string text) => Warnings.Add(text);
     }
 }
@@ -523,5 +523,19 @@ namespace ArenaMode.Combat.Fire
             => HeldBody != null && HeldBody.ProfileId == profile ? "Arena fire" : null;
         internal static bool HoldsBody(EFT.Player body, EFT.GameWorld world)
             => HeldBody != null && ReferenceEquals(body, HeldBody);
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

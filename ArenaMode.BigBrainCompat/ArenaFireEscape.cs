@@ -89,7 +89,8 @@ internal sealed class ArenaFireEscape
                 || path.status != NavMeshPathStatus.PathComplete || !RouteAllowed(start, path.corners)) continue;
             lease = new ArenaFireEscape { Bot = bot, Body = bot.GetPlayer, Mover = bot.Mover, Target = nav.position,
                 _generation = ArenaFireRuntime.Generation, _until = Time.time + 4f };
-            Plugin.ModLogger?.LogInfo($"Arena fire escape: {bot.ProfileId}; {start} -> {nav.position}.");
+            if (Diagnostics.ArenaLog.DeveloperEnabled)
+                Diagnostics.ArenaLog.Developer($"Arena fire escape: {bot.ProfileId}; {start} -> {nav.position}.");
             return true;
         }
         return false;

@@ -115,7 +115,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
                 return false;
 
             if (!owner.TranslateExitScreenInput(command)) return false;
-            Plugin.ModLogger.LogInfo("Tactical countdown routed Escape to the native raid menu.");
+            Plugin.ModLogger.LogDebug("Tactical countdown routed Escape to the native raid menu.");
             return true;
         }
         catch (Exception ex)

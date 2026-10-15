@@ -577,7 +577,7 @@ public sealed partial class TacticalMode : IArenaMode
         switch (decision)
         {
             case SoloTacticalRoundStartDecision.HoldBegun:
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Tactical round {RoundNumber}: buy phase over, waiting for the body swap in flight to land "
                     + $"(up to {SoloTacticalRoundStartPolicy.InitialSwapHoldSeconds:0}s).");
                 ArenaToasts.Show($"Round {RoundNumber} — waiting for your kit");
@@ -587,7 +587,7 @@ public sealed partial class TacticalMode : IArenaMode
                 return true;
 
             case SoloTacticalRoundStartDecision.StartAfterHold:
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Tactical round {RoundNumber}: the body swap settled after "
                     + $"{_roundStartHold.LastHoldSeconds:0.0}s; starting the round.");
                 return false;
@@ -748,7 +748,7 @@ public sealed partial class TacticalMode : IArenaMode
         // because the round was not won.
         if (Time.time >= _phaseEndsAt)
         {
-            Plugin.ModLogger.LogWarning(
+            Plugin.ModLogger.LogInfo(
                 $"Tactical: round {RoundNumber} ran out of time with {SquadAlive} enemies left.");
             EndRound(won: false);
             return;
@@ -851,7 +851,7 @@ public sealed partial class TacticalMode : IArenaMode
                 _playerDown = false;
                 _teamRebindStep = TeamRebindStep.RebuildLeader;
                 _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Tactical team Arena round {RoundNumber}: exact replacement PMC body is ready for PitFireTeam rebind.");
             }
             catch (Exception ex)
@@ -1176,7 +1176,7 @@ public sealed partial class TacticalMode : IArenaMode
             },
             requireExactCount: true);
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena: requested exactly {TeamEnemyCount} opponents; spawn service planned {_squadRequested}.");
 
         if (_squadRequested != TeamEnemyCount)
@@ -1700,7 +1700,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
 
         _lastTeamReadinessDiagnostic = problem;
-        Plugin.ModLogger.LogInfo($"Tactical team Arena readiness pending: {problem}.");
+        Plugin.ModLogger.LogDebug($"Tactical team Arena readiness pending: {problem}.");
     }
 
     private bool TryValidateBoundTeamEnemies(out int alive, out string problem)
@@ -2070,7 +2070,7 @@ public sealed partial class TacticalMode : IArenaMode
         _expectedPitLifecycleEpoch = status.Epoch;
         _teamRebindStep = TeamRebindStep.AwaitRetirement;
         _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: retiring the exact previous follower and opponent bodies.");
     }
 
@@ -2122,7 +2122,7 @@ public sealed partial class TacticalMode : IArenaMode
         if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased)
             return;
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: all nine old bot bodies left active registries.");
 
         if (!localDead)
@@ -2187,7 +2187,7 @@ public sealed partial class TacticalMode : IArenaMode
         // Last mutation: releasing HoldRespawn lets the already-running driver
         // consume the complete authorization on its next coroutine continuation.
         _playerDown = false;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: prepared entry loadout and released the exact held PMC respawn.");
     }
 
@@ -2292,7 +2292,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
 
         _teamRebindStep = TeamRebindStep.PrepareProfiles;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: PitFireTeam leader ready — "
             + PitFireTeamRoundLifecycle.Diagnostic);
     }
@@ -2315,7 +2315,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
 
         _teamRebindStep = TeamRebindStep.AwaitProfiles;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: PitFireTeam follower profile preparation is active.");
     }
 
@@ -2335,7 +2335,7 @@ public sealed partial class TacticalMode : IArenaMode
         else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
         {
             _teamRebindStep = TeamRebindStep.StartFollowers;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh PitFireTeam follower profiles are ready.");
         }
     }
@@ -2358,7 +2358,7 @@ public sealed partial class TacticalMode : IArenaMode
         }
 
         _teamRebindStep = TeamRebindStep.AwaitFollowers;
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: started the fresh PitFireTeam follower spawn.");
     }
 
@@ -2381,7 +2381,7 @@ public sealed partial class TacticalMode : IArenaMode
         else if (decision.Decision == PitFireTeamRoundPollDecision.Ready)
         {
             _teamRebindStep = TeamRebindStep.AdoptFollowers;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh follower bodies passed the stable registry barrier.");
         }
     }
@@ -2430,7 +2430,7 @@ public sealed partial class TacticalMode : IArenaMode
         _phase = Phase.Staging;
         _phaseEndsAt = Time.time + TeamAssemblySeconds;
         ArenaToasts.Show($"Round {RoundNumber} — assembling five opponents");
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical team Arena round {RoundNumber}: {TeamCompanionCount} fresh PitFireTeam followers adopted; requesting opponents next.");
     }
 
@@ -2823,7 +2823,7 @@ public sealed partial class TacticalMode : IArenaMode
                 null);
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
             + $"{Money:N0} left.");
 
@@ -2884,7 +2884,7 @@ public sealed partial class TacticalMode : IArenaMode
         if (planned != expected)
             _squadDeadlineAt = SoloTacticalSpawnPolicy.Deadline(Time.time, requestDispatched: false);
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical round {RoundNumber}: requested {expected} opponents; spawn service planned {planned}.");
     }
 

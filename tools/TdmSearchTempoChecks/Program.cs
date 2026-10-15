@@ -70,9 +70,9 @@ static class Program
             && c.Owner.Memory.GoalEnemy == null, "stored timers contacts and goal untouched");
         foreach (float value in new[] { 0, -1, 2, 5, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
             Check(Call(c, value).Equals(value), "short or invalid delay preserved");
-        Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("Arena TDM search tempo:")) == 1, "tempo diagnostics throttled");
+        Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("[dev] Arena TDM search tempo:")) == 1, "tempo diagnostics throttled");
         Time.time += 30; Call(c);
-        Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("Arena TDM search tempo:")) == 2, "tempo diagnostics resume");
+        Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("[dev] Arena TDM search tempo:")) == 2, "tempo diagnostics resume");
         Check(!Plugin.ModLogger.Lines.Any(l => l.Contains("private-")), "no profile ids logged");
         var rejected = new Dictionary<string, Action<Case>>
         {

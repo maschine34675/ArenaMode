@@ -151,5 +151,5 @@ namespace EFT.UI
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger=new(); }
-    public class Logger { public void LogWarning(string text){} public void LogInfo(string text){} }
+    public class Logger { public void LogWarning(string text){} public void LogInfo(string text){} public void LogDebug(string text){} }
 }

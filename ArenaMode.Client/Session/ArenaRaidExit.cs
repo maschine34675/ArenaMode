@@ -36,7 +36,7 @@ internal static class ArenaRaidExit
         _world = world;
         _profileId = game.ProfileId;
         _waitingFor = null;
-        Plugin.ModLogger.LogInfo("Arena leave requested; skipping the item-loss confirmation.");
+        Plugin.ModLogger.LogDebug("Arena leave requested; skipping the item-loss confirmation.");
         Tick();
         return true;
     }
@@ -77,7 +77,7 @@ internal static class ArenaRaidExit
             Clear(); // Never retry a native continuation automatically.
             if (game.Status == GameStatus.Started)
                 throw new InvalidOperationException("the native leave callback did not commit Stop");
-            Plugin.ModLogger.LogInfo("Arena leave committed through native Stop(Left); protected raid end follows.");
+            Plugin.ModLogger.LogDebug("Arena leave committed through native Stop(Left); protected raid end follows.");
         }
         catch (Exception ex)
         {
@@ -101,7 +101,7 @@ internal static class ArenaRaidExit
         if (_waitingFor == reason) return;
         bool first = _waitingFor == null;
         _waitingFor = reason;
-        Plugin.ModLogger.LogInfo($"Arena leave waiting for {reason}; native teardown has not started.");
+        Plugin.ModLogger.LogDebug($"Arena leave waiting for {reason}; native teardown has not started.");
         if (first) Notify("Leaving Arena as soon as the player is ready and the game is unpaused.");
     }
 

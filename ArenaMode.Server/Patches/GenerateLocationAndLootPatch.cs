@@ -72,7 +72,7 @@ public sealed class GenerateLocationAndLootPatch : AbstractPatch
                 ? "silent (the mode spawns its own squads)"
                 : ArenaLocationMutator.AbpsPresent ? "ABPS pump" : "generated waves";
 
-            ArenaContext.Logger?.Info(
+            ArenaContext.Logger?.Debug(
                 $"[ArenaMode] Location clone mutated for arena ({name}, mode={mode ?? "?"}): botMax={__result.BotMax}, " +
                 $"spawn strategy={strategy}, area={areaId}, areaTeamSize={areaTeamSize}, participants={participants}, " +
                 $"raid={ArenaContext.Config.RaidTimeMinutes}min, stripLoot={ArenaContext.Config.StripLoot}.");

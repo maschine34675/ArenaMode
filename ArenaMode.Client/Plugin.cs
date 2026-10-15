@@ -145,7 +145,7 @@ public class Plugin : BaseUnityPlugin
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
         Audio.HitmarkerAudioService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
-        ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version})");
+        ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version}; build/MVID {typeof(Plugin).Module.ModuleVersionId})");
     }
 
     private void OnDestroy()

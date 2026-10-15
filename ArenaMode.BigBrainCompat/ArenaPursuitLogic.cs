@@ -215,9 +215,14 @@ public sealed class ArenaPursuitLogic : CustomLogic
         string key = lease.Epoch + ":" + lease.SourceProfileId + ":" + category;
         if (LoggedFailures.Add(key))
         {
-            Plugin.ModLogger?.LogWarning(
-                $"Arena pursuit {category} rejected for '{lease.SourceProfileId}' "
-                + $"at {lease.Epoch}/{lease.Generation}: {detail}");
+            string message = $"Arena pursuit {category} rejected for '{lease.SourceProfileId}' "
+                + $"at {lease.Epoch}/{lease.Generation}: {detail}";
+            // A stale route or a target that moved out of contact is normal
+            // replanning. Contract failures and exceptions remain warnings.
+            if (category == "route-acquire" || category == "route-refresh" || category == "unresolved-arrival")
+                Plugin.ModLogger?.LogDebug(message);
+            else
+                Plugin.ModLogger?.LogWarning(message);
         }
 
         TeamArenaPursuitLeaseBridge.ReportRejected(

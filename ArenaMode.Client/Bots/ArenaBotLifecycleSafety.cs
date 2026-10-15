@@ -76,7 +76,7 @@ internal static class ArenaBotLifecycleSafety
             int capacity = checked((int)Math.Max(required, (long)entries.Length * 2));
             Array.Resize(ref controller.SortedInfos, capacity);
             if (ArenaBotLifecycleScope.LogGrowth(owner))
-                Plugin.ModLogger.LogInfo($"Arena enemy capacity: {entries.Length} -> {capacity} (used {count}, reserve {extra}).");
+                Plugin.ModLogger.LogDebug($"Arena enemy capacity: {entries.Length} -> {capacity} (used {count}, reserve {extra}).");
         }
         catch (Exception exception) { Warn(exception); } // Original still runs; unrelated failures stay visible.
     }

@@ -87,6 +87,6 @@ internal static class PitFireTeamPortedMapCombat
     {
         if (logged != null && ReferenceEquals(logged.Target, world)) return;
         logged = new WeakReference(world);
-        Plugin.ModLogger.LogInfo($"Arena PFT coverless map {world.LocationId}: {message}.");
+        Plugin.ModLogger.LogDebug($"Arena PFT coverless map {world.LocationId}: {message}.");
     }
 }

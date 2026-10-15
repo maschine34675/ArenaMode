@@ -70,7 +70,7 @@ internal static class FastDeployPatches
 
             _saved = config.TimeBeforeDeployLocal;
             config.TimeBeforeDeployLocal = ArenaCountdownSeconds;
-            Plugin.ModLogger.LogInfo($"Arena fast deploy: countdown {_saved}s -> {ArenaCountdownSeconds}s.");
+            Plugin.ModLogger.LogDebug($"Arena fast deploy: countdown {_saved}s -> {ArenaCountdownSeconds}s.");
         }
     }
 

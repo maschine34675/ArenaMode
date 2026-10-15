@@ -133,7 +133,7 @@ internal static class ArenaDefaultFireMode
         // if one of those callbacks changed hands or ended the raid.
         if (Current(out var current) && ReferenceEquals(current, hands))
             hands.FirearmsAnimator.SetFireMode(Weapon.EFireMode.fullauto, true);
-        Plugin.ModLogger.LogInfo($"Arena default fire mode: {weapon.ShortName} ({weapon.Id}) {before} -> fullauto ({source}).");
+        Plugin.ModLogger.LogDebug($"Arena default fire mode: {weapon.ShortName} ({weapon.Id}) {before} -> fullauto ({source}).");
     }
 
     private static void Warn(Exception ex)

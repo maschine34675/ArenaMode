@@ -151,7 +151,7 @@ namespace ArenaMode.Movement
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger = new(); }
-    public class Logger { public readonly List<string> Lines = new(); public void LogInfo(object x) => Lines.Add(x.ToString()); public void LogWarning(object x) => Lines.Add(x.ToString()); }
+    public class Logger { public readonly List<string> Lines = new(); public void LogInfo(object x) => Lines.Add(x.ToString()); public void LogDebug(object x) => Lines.Add(x.ToString()); public void LogWarning(object x) => Lines.Add(x.ToString()); }
 }
 namespace HarmonyLib
 {

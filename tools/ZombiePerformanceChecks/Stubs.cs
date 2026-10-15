@@ -135,7 +135,7 @@ namespace ArenaMode
     public class Log
     {
         public readonly List<string> Infos = new(), Warnings = new();
-        public void LogInfo(string value) => Infos.Add(value);
+        public void LogInfo(string value) => Infos.Add(value); public void LogDebug(string value) => Infos.Add(value);
         public void LogWarning(string value) => Warnings.Add(value);
     }
 }

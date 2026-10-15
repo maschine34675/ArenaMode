@@ -42,6 +42,7 @@ internal static partial class ArenaAirVault
 
     private static void BeginMotionObservation(Request request, VaultingMovementState movement)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             if (movement == null || !OwnsTarget(request) || !ArenaMovementScope.IsLocal(request.Player)
@@ -66,6 +67,7 @@ internal static partial class ArenaAirVault
 
     private static void TickMotionObservation()
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) { _motionObservation = null; return; }
         var observation = _motionObservation;
         if (observation == null) return;
         try
@@ -101,7 +103,8 @@ internal static partial class ArenaAirVault
 
     private static void ObservationLog(MotionObservation observation, string phase, Func<string> detail)
     {
-        try { Plugin.ModLogger.LogInfo($"Arena mantle motion #{observation.Id} {phase}: {detail()}"); }
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
+        try { ArenaMode.Diagnostics.ArenaLog.Developer($"Arena mantle motion #{observation.Id} {phase}: {detail()}"); }
         catch (Exception) { } // Diagnostic failure cannot affect native movement.
     }
 

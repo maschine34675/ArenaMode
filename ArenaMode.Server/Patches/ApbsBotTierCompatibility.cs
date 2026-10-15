@@ -58,7 +58,7 @@ internal static class ApbsBotTierCompatibility
             harmony.Patch(prepare, prefix: Hook(nameof(PreparePrefix)), finalizer: Hook(nameof(PrepareFinalizer)));
             harmony.Patch(single, prefix: Hook(nameof(SinglePrefix)), finalizer: Hook(nameof(SingleFinalizer)));
             Enabled = true;
-            ArenaContext.Logger?.Info("[ArenaMode] APBS 2.4.1 Arena level-range adapter enabled; normal raids and protected PFT unchanged.");
+            ArenaContext.Logger?.Debug("[ArenaMode] APBS 2.4.1 Arena level-range adapter enabled; normal raids and protected PFT unchanged.");
         }
         catch (Exception ex)
         {
@@ -114,7 +114,7 @@ internal static class ApbsBotTierCompatibility
             // Report the actually applied bounds, not merely the wave request.
             int level = __0.PlayerLevel.GetValueOrDefault();
             if (Interlocked.Exchange(ref _lastAppliedLevel, level) != level)
-                ArenaContext.Logger?.Info($"[ArenaMode] APBS Arena range applied: {__0.Location}, level {range!.Min}-{range.Max} (anchor {level}).");
+                ArenaContext.Logger?.Debug($"[ArenaMode] APBS Arena range applied: {__0.Location}, level {range!.Min}-{range.Max} (anchor {level}).");
         }
         catch (Exception ex) { Warn(ex.Message); }
     }

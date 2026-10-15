@@ -154,7 +154,7 @@ public sealed class ArenaProtectedRaidStartService(
                 }
 
                 response.ServerId = exactNativeEndIdentity;
-                logger.Info(
+                logger.Debug(
                     $"[ArenaMode] Protected native Arena start completed for session {sessionId}; " +
                     "the exact SPT server id is bound for retry-safe end processing.");
                 return httpResponseUtil.GetBody(response);

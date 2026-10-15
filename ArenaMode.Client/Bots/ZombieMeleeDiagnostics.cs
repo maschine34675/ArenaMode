@@ -14,7 +14,7 @@ namespace ArenaMode.Bots;
 /// <c>BotMeleeWeaponData.OnTryHit</c>/<c>OnEnemyHitted</c> events (both
 /// public, decompile-verified: ../_decompiled/BotMeleeWeaponData.cs:104-106)
 /// from <c>ZombieSpawnService.OnZombieArrived</c>, logs the first few swings
-/// and landed hits per raid at Info, counts the rest silently, and reports
+/// and landed hits per raid only in DeveloperMode, counts the rest silently, and reports
 /// the raid's totals once from <c>ZombieMode.OnMatchEnd</c> (which has no
 /// richer existing summary to fold into — see that method's own comment).
 ///
@@ -44,6 +44,7 @@ internal static class ZombieMeleeDiagnostics
     /// <summary>Called from ZombieSpawnService.OnZombieArrived for every bot that just spawned.</summary>
     internal static void OnZombieArrived(BotOwner bot)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         try
         {
             var melee = bot?.WeaponManager?.Melee;
@@ -81,14 +82,14 @@ internal static class ZombieMeleeDiagnostics
     private static void RecordSwing(BotOwner bot)
     {
         int n = Interlocked.Increment(ref _swingsSeen);
-        if (n > LoggedSwingsPerRaid)
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled || n > LoggedSwingsPerRaid)
             return;
 
         try
         {
             var role = bot?.Profile?.Info?.Settings?.Role;
             float distance = bot?.Memory?.GoalEnemy?.Distance ?? -1f;
-            Plugin.ModLogger.LogInfo($"Arena zombie melee: first native swing by {role} at {distance:0.0} m.");
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena zombie melee: first native swing by {role} at {distance:0.0} m.");
         }
         catch (Exception ex)
         {
@@ -99,13 +100,13 @@ internal static class ZombieMeleeDiagnostics
     private static void RecordHit(BotOwner bot)
     {
         int n = Interlocked.Increment(ref _hitsSeen);
-        if (n > LoggedHitsPerRaid)
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled || n > LoggedHitsPerRaid)
             return;
 
         try
         {
             var role = bot?.Profile?.Info?.Settings?.Role;
-            Plugin.ModLogger.LogInfo($"Arena zombie melee: first native landed hit by {role}.");
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena zombie melee: first native landed hit by {role}.");
         }
         catch (Exception ex)
         {

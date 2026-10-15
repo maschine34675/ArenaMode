@@ -80,7 +80,7 @@ internal static class ZombieLoadoutRefill
                 {
                     if (success)
                     {
-                        Plugin.ModLogger.LogInfo(
+                        Plugin.ModLogger.LogDebug(
                             $"Zombie refill after wave {clearedWaveNumber}: kit '{currentKit.Name ?? currentKit.Id}' re-applied.");
                     }
                     // A reported failure is already logged by LiveKitRespawn
@@ -151,7 +151,7 @@ internal static class ZombieLoadoutRefill
                 {
                     if (success)
                     {
-                        Plugin.ModLogger.LogInfo(
+                        Plugin.ModLogger.LogDebug(
                             $"Zombie refill after wave {clearedWaveNumber}: own-gear entry loadout re-applied (epoch {restoredEpoch}).");
                     }
                     // A reported failure is already logged by LiveKitRespawn

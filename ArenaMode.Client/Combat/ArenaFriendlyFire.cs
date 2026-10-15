@@ -40,14 +40,14 @@ internal static class ArenaFriendlyFire
                 blocked = tactical.ShouldBlockFriendlyDamage(victim, attacker);
             else if (mode is ZombieMode zombie)
                 blocked = zombie.ShouldBlockFriendlyDamage(victim, attacker);
-            if (blocked && reportDamage && ReferenceEquals(attacker, world.MainPlayer))
+            if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled && blocked && reportDamage && ReferenceEquals(attacker, world.MainPlayer))
             {
                 // Weak match ownership: no raid/body retention and no tick spam.
                 var report = Reports.GetValue(match, _ => new Report());
                 if (!report.Emitted)
                 {
                     report.Emitted = true;
-                    try { Plugin.ModLogger.LogInfo($"Arena {mode.GetType().Name}: friendly fire blocked (local damage hook, source={attacker.ProfileId}, victim={victim.ProfileId}; frozen mutator OFF)."); }
+                    try { ArenaMode.Diagnostics.ArenaLog.Developer($"Arena {mode.GetType().Name}: friendly fire blocked (local damage hook, source={attacker.ProfileId}, victim={victim.ProfileId}; frozen mutator OFF)."); }
                     catch (Exception) { } // Diagnostics must never change the damage decision.
                 }
             }

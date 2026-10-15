@@ -48,7 +48,7 @@ namespace ArenaMode.Compat
 namespace ArenaMode
 {
     public static class Plugin {public static Logger ModLogger=new();}
-    public class Logger {public int Lines;public void LogInfo(string s)=>Lines++;}
+    public class Logger {public int Lines;public void LogInfo(string s)=>Lines++; public void LogDebug(string s)=>Lines++;}
 }
 namespace HarmonyLib
 {

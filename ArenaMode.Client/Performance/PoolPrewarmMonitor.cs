@@ -121,7 +121,7 @@ internal static class PoolPrewarmMonitor
             }
         }
 
-        Plugin.ModLogger.LogInfo($"Arena pool prewarm clamp ready: {patched}/{PooledResourceTypes.Length} pool types patched.");
+        Plugin.ModLogger.LogDebug($"Arena pool prewarm clamp ready: {patched}/{PooledResourceTypes.Length} pool types patched.");
     }
 
     /// <summary>
@@ -140,12 +140,12 @@ internal static class PoolPrewarmMonitor
     {
         if (PoolPrewarmPolicy.ShouldLogLedger(_poolsTouched.Count))
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena pool prewarm: {_poolsTouched.Count} pool(s) capped at {Settings.PoolPrewarmKeepIdle.Value} idle "
                 + $"this raid, {_expansionsClamped} top-up(s) declined (vanilla adds about one instance per top-up).");
 
             if (_disabledForRaid)
-                Plugin.ModLogger.LogInfo("Arena pool prewarm: the clamp disabled itself partway through this raid (see the warning above) — the ledger above stops at that point, not a complete picture of the whole raid.");
+                Plugin.ModLogger.LogDebug("Arena pool prewarm: the clamp disabled itself partway through this raid (see the warning above) — the ledger above stops at that point, not a complete picture of the whole raid.");
         }
 
         _poolsTouched.Clear();

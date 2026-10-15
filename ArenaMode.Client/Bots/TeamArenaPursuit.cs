@@ -129,7 +129,7 @@ internal static class TeamArenaPursuit
         if (!_activationLogged)
         {
             _activationLogged = true;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Team Arena post-death pursuit active for round epoch {epoch}: "
                 + $"allies {liveAllies.Count}, opponents {liveOpponents.Count}.");
         }
@@ -1305,12 +1305,13 @@ internal static class TeamArenaPursuit
         string adapter,
         float squaredDistance)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         string key = epoch + ":" + (source?.ProfileId ?? "?") + ":"
             + (target?.ProfileId ?? "?") + ":" + adapter;
         if (!LoggedRoutes.Add(key))
             return;
 
-        Plugin.ModLogger.LogInfo(
+        ArenaMode.Diagnostics.ArenaLog.Developer(
             $"Team Arena pursuit {adapter}: {Describe(source)} -> "
             + $"'{target?.Profile?.Nickname ?? "?"}' ({Mathf.Sqrt(Mathf.Max(0f, squaredDistance)):0.0}m).");
     }
@@ -1326,7 +1327,7 @@ internal static class TeamArenaPursuit
         if (!LoggedFailures.Add(key))
             return;
 
-        Plugin.ModLogger.LogWarning(
+        Plugin.ModLogger.LogDebug(
             $"Team Arena pursuit {adapter} could not obtain a usable complete or advancing partial route for {Describe(source)} "
             + $"toward '{target?.Profile?.Nickname ?? "?"}' in round epoch {epoch}; another live target will be tried.");
     }
@@ -1382,7 +1383,7 @@ internal static class TeamArenaPursuit
     {
         string key = AwarenessKey(epoch, source, channel);
         if (AwarenessDiagnostics.Recovery(key, target))
-            Plugin.ModLogger.LogInfo($"Team Arena {channel} awareness validated again for {Describe(source)} "
+            Plugin.ModLogger.LogDebug($"Team Arena {channel} awareness validated again for {Describe(source)} "
                 + $"toward '{target}' in round epoch {epoch}; this confirms binding, not movement execution.");
     }
 
@@ -1425,13 +1426,14 @@ internal static class TeamArenaPursuit
         bool grenade,
         bool door)
     {
+        if (!ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled) return;
         string targetProfile = target?.ProfileId ?? "?";
         string flags = $"medical={medical}, reload={reload}, grenade={grenade}, door={door}";
         string key = epoch + ":" + (source?.ProfileId ?? "?") + ":" + targetProfile + ":decision:" + decision + ":" + flags;
         if (!LoggedFailures.Add(key))
             return;
 
-        Plugin.ModLogger.LogInfo(
+        ArenaMode.Diagnostics.ArenaLog.Developer(
             $"Team Arena pursuit paused for {Describe(source)} toward "
             + $"'{target?.Profile?.Nickname ?? "?"}' in round epoch {epoch}: decision={decision}, {flags}.");
     }

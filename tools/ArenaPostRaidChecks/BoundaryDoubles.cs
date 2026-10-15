@@ -71,7 +71,7 @@ namespace ArenaMode.Session
 namespace ArenaMode
 {
     public static class Plugin { public static Log ModLogger = new(); }
-    public class Log { public void LogWarning(string m) { } public void LogInfo(string m) { } }
+    public class Log { public void LogWarning(string m) { } public void LogInfo(string m) { } public void LogDebug(string m) { } }
 }
 namespace SPT.Reflection.Patching
 {

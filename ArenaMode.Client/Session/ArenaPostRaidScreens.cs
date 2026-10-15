@@ -89,7 +89,7 @@ internal static class ArenaPostRaidScreens
         // This is the XP page's native Next continuation. It preserves optional
         // treatment, menu completion, profile refresh and controller disposal.
         operation.ShowHealthTreatmentScreen();
-        Plugin.ModLogger.LogInfo("Arena post-raid XP page skipped.");
+        Plugin.ModLogger.LogDebug("Arena post-raid XP page skipped.");
         return false;
     }
 

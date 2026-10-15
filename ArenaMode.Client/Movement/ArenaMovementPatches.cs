@@ -369,7 +369,7 @@ internal static class ArenaMovementPatches
                 if (!LoggedThisRaid)
                 {
                     LoggedThisRaid = true;
-                    Plugin.ModLogger.LogInfo(
+                    Plugin.ModLogger.LogDebug(
                         $"Arena inertia values applied (WalkInertia {vanillaWalk:0.###} -> {WalkInertiaFloor}, SprintBrakeInertia -> 0, Inertia -> 0).");
                 }
             }

@@ -177,7 +177,7 @@ internal static class AnnouncerService
             }
 
             if (IsCurrentLoad(loadEpoch, pluginDirectory))
-                Plugin.ModLogger.LogInfo($"Arena announcer load check: loaded={loaded}, reused={reused}, "
+                Plugin.ModLogger.LogDebug($"Arena announcer load check: loaded={loaded}, reused={reused}, "
                     + $"failed={failed}, ready={ReadyCount()}, files={files.Length}.");
         }
         catch (Exception ex)
@@ -241,7 +241,7 @@ internal static class AnnouncerService
         // master switch; tools/AnnouncerChecks pins both the "enabled=" field
         // name and the "Arena announcer attached:" prefix, never the master
         // value in isolation.
-        Plugin.ModLogger.LogInfo($"Arena announcer attached: mode={match.Mode?.Id}, "
+        Plugin.ModLogger.LogDebug($"Arena announcer attached: mode={match.Mode?.Id}, "
             + $"enabled={IsEnabledForLiveMatch()}, "
             + $"volume={Number(Settings.AnnouncerVolume.Value)}, ready={ReadyCount()}, loading={_loading}.");
     }
@@ -259,7 +259,7 @@ internal static class AnnouncerService
             _match.OnCallout -= OnCallout;
             _match.OnAnnouncerCue -= OnAnnouncerCue;
             _match = null;
-            Plugin.ModLogger.LogInfo($"Arena announcer detached: callouts={_calloutsReceived}, cues={_cuesReceived}, "
+            Plugin.ModLogger.LogDebug($"Arena announcer detached: callouts={_calloutsReceived}, cues={_cuesReceived}, "
                 + $"playRequests={_requested}, skipped={_skipped}.");
         }
     }
@@ -335,7 +335,7 @@ internal static class AnnouncerService
         string fallback = ShotAwardFallback(key);
         if (fallback == null || !Play(fallback, out clipLengthSeconds)) return false;
         if (ReportedSkips.Add(key + ":provisional_fallback"))
-            Plugin.ModLogger.LogInfo($"Arena announcer provisional recording: '{key}' uses '{fallback}'.");
+            Plugin.ModLogger.LogDebug($"Arena announcer provisional recording: '{key}' uses '{fallback}'.");
         return true;
     }
 
@@ -437,7 +437,7 @@ internal static class AnnouncerService
             {
                 _pendingStartKey = key;
                 ClearPendingStatus("new round started");
-                Plugin.ModLogger.LogInfo($"Arena announcer start queued: '{key}', "
+                Plugin.ModLogger.LogDebug($"Arena announcer start queued: '{key}', "
                     + $"finishing=prepare_to_fight, waitMs={Number((_calloutBusyUntil - Time.realtimeSinceStartup) * 1000f)}.");
                 return;
             }
@@ -459,7 +459,7 @@ internal static class AnnouncerService
             {
                 _pendingResultKey = key;
                 _pendingResultFallbackKey = fallbackKey;
-                Plugin.ModLogger.LogInfo($"Arena announcer result queued: '{key}', "
+                Plugin.ModLogger.LogDebug($"Arena announcer result queued: '{key}', "
                     + $"waitMs={Number((_calloutBusyUntil - Time.realtimeSinceStartup) * 1000f)}.");
             }
             else if (!string.Equals(_pendingResultKey, key, StringComparison.OrdinalIgnoreCase))
@@ -486,7 +486,7 @@ internal static class AnnouncerService
         if (preservePreparation && PreparationPlaying) return;
         if (!AnnouncerCueCatalog.IsStatus(_activeKey) && !AnnouncerCueCatalog.IsCountdown(_activeKey)) return;
         if (Time.realtimeSinceStartup < _calloutBusyUntil)
-            Plugin.ModLogger.LogInfo($"Arena announcer status canceled: '{_activeKey}', reason={reason}.");
+            Plugin.ModLogger.LogDebug($"Arena announcer status canceled: '{_activeKey}', reason={reason}.");
         // Only our owned output can be stopped safely. Legacy GUISounds shares
         // its source with buttons and other UI; do not stop somebody else's sound.
         if (!Settings.AnnouncerUseUiVolume.Value) ArenaAnnouncerOutput.Reset();
@@ -525,7 +525,7 @@ internal static class AnnouncerService
             string key = _pendingResultKey;
             string fallbackKey = _pendingResultFallbackKey;
             ClearPendingResult();
-            Plugin.ModLogger.LogInfo($"Arena announcer queued result released: '{key}'.");
+            Plugin.ModLogger.LogDebug($"Arena announcer queued result released: '{key}'.");
             StartCallout(key, fallbackKey);
         }
         else if (_pendingStartKey != null)
@@ -554,7 +554,7 @@ internal static class AnnouncerService
         if (key != null)
         {
             _skipped++;
-            Plugin.ModLogger.LogWarning(
+            Plugin.ModLogger.LogDebug(
                 $"Arena announcer skipped: '{key}', reason=queued_result_canceled, {reason}.");
         }
     }
@@ -617,7 +617,8 @@ internal static class AnnouncerService
             }
 
             float volume = Settings.AnnouncerVolume.Value;
-            string clipBeforePlay = RuntimeClipState(clip);
+            bool developerTrace = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled;
+            string clipBeforePlay = developerTrace ? RuntimeClipState(clip) : null;
             if (!TryStartNativeUi(clip, volume, out string problem))
             {
                 Skip(key, problem?.StartsWith("GUISounds:", StringComparison.Ordinal) == true
@@ -628,18 +629,21 @@ internal static class AnnouncerService
 
             _requested++;
             clipLengthSeconds = clip.length;
-            string route = Settings.AnnouncerUseUiVolume.Value
-                ? "GUISounds.SingleUI.Primary" : "Arena.Master";
-            var outputState = $"volume={Number(volume)}, clipGeneration={cached.RuntimeGeneration}, "
-                + $"clipBeforePlay={clipBeforePlay}, clipAfterPlay={RuntimeClipState(clip)}, "
-                + $"clipFrames={clip.samples}, "
-                + $"clipChannels={clip.channels}, clipFrequency={clip.frequency}, "
-                + $"clipLengthMs={Number(clip.length * 1000f)}, clipState={clip.loadState}, "
-                + DescribeOutput(route);
-            if (_requested <= 3 || outputState != _lastOutputState)
-                Plugin.ModLogger.LogInfo($"Arena announcer play request: '{key}', "
-                    + outputState + ".");
-            _lastOutputState = outputState;
+            if (developerTrace)
+            {
+                string route = Settings.AnnouncerUseUiVolume.Value
+                    ? "GUISounds.SingleUI.Primary" : "Arena.Master";
+                var outputState = $"volume={Number(volume)}, clipGeneration={cached.RuntimeGeneration}, "
+                    + $"clipBeforePlay={clipBeforePlay}, clipAfterPlay={RuntimeClipState(clip)}, "
+                    + $"clipFrames={clip.samples}, "
+                    + $"clipChannels={clip.channels}, clipFrequency={clip.frequency}, "
+                    + $"clipLengthMs={Number(clip.length * 1000f)}, clipState={clip.loadState}, "
+                    + DescribeOutput(route);
+                if (_requested <= 3 || outputState != _lastOutputState)
+                    ArenaMode.Diagnostics.ArenaLog.Developer($"Arena announcer play request: '{key}', "
+                        + outputState + ".");
+                _lastOutputState = outputState;
+            }
             return true;
         }
         catch (Exception ex)
@@ -751,7 +755,7 @@ internal static class AnnouncerService
 
             cached.RuntimeClip = clip;
             cached.RuntimeGeneration++;
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Arena announcer runtime clip {(rebuilding ? "rebuilt" : "created")}: '{cached.Key}', "
                 + $"generation={cached.RuntimeGeneration}, previous={previousState}, frames={clip.samples}, "
                 + $"channels={clip.channels}, frequency={clip.frequency}, "
@@ -821,9 +825,18 @@ internal static class AnnouncerService
     private static void Skip(string key, string reason, string detail = null)
     {
         _skipped++;
-        if (ReportedSkips.Add(key + ":" + reason))
-            Plugin.ModLogger.LogWarning($"Arena announcer skipped: '{key}', reason={reason}"
-                + (string.IsNullOrEmpty(detail) ? "." : $", {detail}."));
+        if (!ReportedSkips.Add(key + ":" + reason)) return;
+        string message = $"Arena announcer skipped: '{key}', reason={reason}"
+            + (string.IsNullOrEmpty(detail) ? "." : $", {detail}.");
+        // Muting, channel priority and round transitions are normal policy,
+        // not broken audio. Missing/invalid clips and playback failures remain warnings.
+        if (reason is "disabled" or "volume_zero" or "listener_paused" or "loading"
+            or "round_result_pending" or "superseded_callout" or "lower_priority_callout"
+            or "countdown_not_currently_playable" or "result_already_queued"
+            or "stale_callout" or "queued_callout_canceled")
+            Plugin.ModLogger.LogDebug(message);
+        else
+            Plugin.ModLogger.LogWarning(message);
     }
 
     private static bool IsReady(CachedClip clip)
@@ -982,7 +995,7 @@ internal static class AnnouncerService
             }
 
             float expectedLength = frames / (float)frequency;
-            Plugin.ModLogger.LogInfo(
+            ArenaMode.Diagnostics.ArenaLog.Developer(
                 $"Arena announcer PCM cached: '{key}', frames={frames}, channels={channels}, "
                 + $"frequency={frequency}, lengthMs={Number(expectedLength * 1000f)}, "
                 + $"peak={Number(peak)}, managedBytes={(long)sampleCount * sizeof(float)}.");

@@ -19,7 +19,7 @@ namespace ArenaMode
     {
         public List<string> Warnings = [], Infos = [];
         public void LogWarning(string s) => Warnings.Add(s);
-        public void LogInfo(string s) => Infos.Add(s);
+        public void LogInfo(string s) => Infos.Add(s); public void LogDebug(string s) => Infos.Add(s);
     }
 }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true; } }

@@ -101,7 +101,7 @@ internal static class VaultingTuning
                 // ceiling also changes WHICH move you get. GetVaultingStrategy
                 // tries vault first, so obstacles that used to force the slow
                 // mantle now get the fast hands-over motion instead.
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Arena vaulting reach x{mult:0.00}: vault to {vault.MaxHeight:0.00}m "
                     + $"(was {_vaultMaxHeight:0.00}), climb to {climb.MaxHeight:0.00}m "
                     + $"(was {_climbMaxHeight:0.00}), trigger distance {vault.MinDistantToInteract:0.00}m.");

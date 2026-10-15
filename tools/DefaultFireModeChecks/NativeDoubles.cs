@@ -102,7 +102,7 @@ namespace ArenaMode
         public const string PluginGuid = "fixture";
         public static readonly Log ModLogger = new();
         public class Log
-        { public void LogInfo(string text) { } public void LogWarning(string text) { } }
+        { public void LogInfo(string text) { } public void LogDebug(string text) { } public void LogWarning(string text) { } }
     }
 }
 namespace ArenaMode.Session

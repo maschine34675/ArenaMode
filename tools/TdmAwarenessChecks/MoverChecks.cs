@@ -4,7 +4,7 @@ using SAIN.Components;
 using UnityEngine;
 internal static partial class Program
 {
-    private static string[] MoverDetails() => Plugin.ModLogger.Lines.Where(l => l.StartsWith("Arena TDM mover detail:")).ToArray();
+    private static string[] MoverDetails() => Plugin.ModLogger.Lines.Where(l => l.StartsWith("[dev] Arena TDM mover detail:")).ToArray();
     private static void MoverDiagnostics()
     {
         var raid = Fresh(); raid.Enemy();

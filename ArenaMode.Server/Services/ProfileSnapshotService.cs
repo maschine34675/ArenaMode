@@ -55,7 +55,7 @@ public class ProfileSnapshotService(
                 _snapshots[sessionId.ToString()] = clone;
             }
 
-            logger.Info($"[ArenaMode] Profile snapshot taken for session {sessionId}.");
+            logger.Debug($"[ArenaMode] Profile snapshot taken for session {sessionId}.");
             return true;
         }
         catch (Exception ex)
@@ -136,7 +136,7 @@ public class ProfileSnapshotService(
         lock (_lock)
         {
             if (_snapshots.Remove(sessionId.ToString()))
-                logger.Info($"[ArenaMode] Profile snapshot discarded for session {sessionId}.");
+                logger.Debug($"[ArenaMode] Profile snapshot discarded for session {sessionId}.");
         }
     }
 }

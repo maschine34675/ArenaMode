@@ -51,7 +51,7 @@ internal static class ArenaPickupTeardownSafety
             // after Dispose its Medecine delegate receiver would already be null.
             // Do not invoke completion, move items, or alter the native disposal.
             context.PickupAction = null;
-            Plugin.ModLogger.LogInfo("Arena bot teardown: cancelled pending native pickup before disposal.");
+            Plugin.ModLogger.LogDebug("Arena bot teardown: cancelled pending native pickup before disposal.");
         }
         catch (Exception ex) { Warn(ex); } // Original Dispose always runs.
     }

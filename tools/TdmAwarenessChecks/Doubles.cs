@@ -146,7 +146,7 @@ namespace ArenaMode
     internal class Logger
     {
         internal readonly List<string> Lines = new();
-        internal void LogInfo(object line) => Lines.Add(line.ToString());
+        internal void LogInfo(object line) => Lines.Add(line.ToString()); internal void LogDebug(object line) => Lines.Add(line.ToString());
         internal void LogWarning(object line) => Lines.Add(line.ToString());
     }
 }
@@ -160,5 +160,19 @@ namespace ArenaMode.Session
         internal static GameWorld World;
         internal static bool IsExactActiveRaid(AbstractGame game, GameWorld world)
             => IsActive && ReferenceEquals(Game, game) && ReferenceEquals(World, world);
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

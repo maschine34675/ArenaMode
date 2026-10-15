@@ -157,7 +157,7 @@ namespace ArenaMode
     public static class Plugin { public static Logger ModLogger = new(); }
     public class Logger
     {
-        public void LogInfo(object value) { }
+        public void LogInfo(object value) { } public void LogDebug(object value) { }
         public void LogWarning(object value) { }
     }
 }

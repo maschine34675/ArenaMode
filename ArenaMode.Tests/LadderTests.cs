@@ -17,6 +17,52 @@ public class LadderTests
     private static JsonArray Pool => RepoFiles.LoadArray(RepoFiles.Ladder);
 
     [Fact]
+    public void RoutineDrawDetailsDoNotUseTheWarningSink()
+    {
+        var detail = new List<string>();
+        var warnings = new List<string>();
+        var pool = new JsonArray(Weapon("a", "good", "good"), Weapon("b", "good", "good"));
+        var drawn = LadderPicker.Redraw(pool.ToJsonString(), 1, detail.Add, warning: warnings.Add);
+        Assert.Single(JsonNode.Parse(drawn)!.AsArray());
+        Assert.NotEmpty(detail);
+        Assert.Empty(warnings);
+    }
+
+    [Fact]
+    public void MalformedPoolRetainsItsWarningWithoutRoutineLogging()
+    {
+        var warnings = new List<string>();
+        const string malformed = "{broken-json";
+        Assert.Equal(malformed, LadderPicker.Redraw(malformed, 1, warning: warnings.Add));
+        Assert.Contains(warnings, line => line.Contains("Ladder draw failed"));
+    }
+
+    [Fact]
+    public void AllExcludedAmmoRemainsVisibleAtWarning()
+    {
+        var detail = new List<string>();
+        var warnings = new List<string>();
+        var pool = new JsonArray(Weapon("a", "bad", "bad"), Weapon("b", "bad", "bad"));
+        var drawn = LadderPicker.Redraw(pool.ToJsonString(), 1, detail.Add,
+            excludedTemplates: new[] { "bad" }, warning: warnings.Add);
+        Assert.Single(JsonNode.Parse(drawn)!.AsArray());
+        Assert.Contains(warnings, line => line.Contains("nothing in the pool can be loaded"));
+        Assert.DoesNotContain(detail, line => line.Contains("nothing in the pool can be loaded"));
+    }
+
+    [Fact]
+    public void AttachmentDrawFailureRemainsVisibleAtWarning()
+    {
+        var warnings = new List<string>();
+        // Valid JSON bypasses draw selection but has an invalid typed variant id.
+        // Invalid JSON alone is handled inside CreateCatalog, not by this guard.
+        const string malformed = "[{\"id\":7,\"items\":[]}]";
+        Assert.Equal(malformed, LadderPicker.Redraw(malformed, 0,
+            variants: new ArenaWeaponVariants(new JsonObject()), warning: warnings.Add));
+        Assert.Contains(warnings, line => line.Contains("attachment draw failed"));
+    }
+
+    [Fact]
     public void PoolIsLargeEnoughToDrawALadderFrom()
     {
         Assert.True(Pool.Count >= 24, $"the pool holds {Pool.Count} weapons, which is fewer than a ladder needs");

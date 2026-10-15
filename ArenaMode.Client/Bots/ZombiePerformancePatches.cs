@@ -154,7 +154,7 @@ internal static class ZombiePerformancePatches
             _diagnosticWorld = new WeakReference(world);
             _nextDiagnostic = Time.realtimeSinceStartup + 60f;
             _stepCandidates = _friendlyStepsSkipped = _socialSearchesSkipped = 0;
-            Plugin.ModLogger.LogInfo("Arena zombie performance: friendly-step hearing filter and social-search skip active; 60 s aggregate counters, native combat retained.");
+            Plugin.ModLogger.LogDebug("Arena zombie performance: friendly-step hearing filter and social-search skip active; 60 s aggregate counters, native combat retained.");
         }
         if (hearing)
         {
@@ -164,7 +164,7 @@ internal static class ZombiePerformancePatches
         else if (skipped) _socialSearchesSkipped++;
         if (Time.realtimeSinceStartup < _nextDiagnostic) return;
         _nextDiagnostic = Time.realtimeSinceStartup + 60f;
-        Plugin.ModLogger.LogInfo($"Arena zombie performance (last interval): delayedStepCandidates={_stepCandidates}, friendlyStepsSkipped={_friendlyStepsSkipped}, socialSearchesSkipped={_socialSearchesSkipped}; counts are avoided work, not frame-time savings.");
+        Plugin.ModLogger.LogDebug($"Arena zombie performance (last interval): delayedStepCandidates={_stepCandidates}, friendlyStepsSkipped={_friendlyStepsSkipped}, socialSearchesSkipped={_socialSearchesSkipped}; counts are avoided work, not frame-time savings.");
         _stepCandidates = _friendlyStepsSkipped = _socialSearchesSkipped = 0;
     }
 

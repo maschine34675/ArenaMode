@@ -176,7 +176,7 @@ internal static class ArenaBotPatches
                 // log whether idle bot clusters are still boss-promoted.
                 if (_deniedThisRaid <= 3 || _deniedThisRaid % 10 == 0)
                 {
-                    Plugin.ModLogger.LogInfo(
+                    Plugin.ModLogger.LogDebug(
                         $"Arena: denied boss promotion #{_deniedThisRaid} (role {role.Value}).");
                 }
             }
@@ -397,7 +397,7 @@ internal static class ArenaBotPatches
             __instance._maxCount = cap;
             __instance.BotSpawner?.SetMaxBots(cap);
             __instance.ZonesLeaveController?.SetMaxBots(cap);
-            Plugin.ModLogger.LogInfo($"Arena bot cap set to {cap}.");
+            Plugin.ModLogger.LogDebug($"Arena bot cap set to {cap}.");
         }
     }
 }

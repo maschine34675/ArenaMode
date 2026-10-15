@@ -343,7 +343,7 @@ internal static class PitFireTeamDelayedInviteSideEffectPatch
         if (ArenaContext.Sessions?.IsExternalProfileWriteProtected(sessionId) != true)
             return true;
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed delayed PitFireTeam invite notification for protected session {sessionId}.");
         __result = Task.CompletedTask;
         return false;
@@ -378,7 +378,7 @@ internal static class PitFireTeamDelayedInviteSideEffectPatch
         if (ArenaContext.Sessions?.IsExternalProfileWriteProtected(sessionId) != true)
             return true;
 
-        ArenaContext.Logger?.Info(
+        ArenaContext.Logger?.Debug(
             $"[ArenaMode] Suppressed delayed PitFireTeam invite mail for protected session {sessionId}.");
         return false;
     }

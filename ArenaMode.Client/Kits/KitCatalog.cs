@@ -183,7 +183,7 @@ public static class KitCatalog
         }
 
         _lastKitId = picked.Id;
-        Plugin.ModLogger.LogInfo($"Arena kit drawn: {picked.Name ?? picked.Id}.");
+        Plugin.ModLogger.LogDebug($"Arena kit drawn: {picked.Name ?? picked.Id}.");
         return picked;
     }
 
@@ -236,7 +236,7 @@ public static class KitCatalog
                 _kits = new List<KitDefinition>();
             }
 
-            Plugin.ModLogger.LogInfo($"Kit catalog loaded: {_kits.Count} kits.");
+            Plugin.ModLogger.LogDebug($"Kit catalog loaded: {_kits.Count} kits.");
         }
         catch (Exception ex)
         {

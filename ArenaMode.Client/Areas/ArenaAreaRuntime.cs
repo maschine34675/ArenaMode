@@ -78,7 +78,7 @@ internal static partial class ArenaAreaRuntime
         _teamStarting = area.TeamStarts != null;
         _token = token;
         _phase = Phase.Armed;
-        Plugin.ModLogger.LogInfo($"Arena area armed: {area.Id}; mode={_mode}, verified start capacity {_teamSize} per faction.");
+        Plugin.ModLogger.LogDebug($"Arena area armed: {area.Id}; mode={_mode}, verified start capacity {_teamSize} per faction.");
     }
 
     private static bool IsCurrentActive()
@@ -185,7 +185,7 @@ internal static partial class ArenaAreaRuntime
             Plugin.ModLogger.LogError("Arena area load rejected: " + _failure);
             throw new InvalidOperationException(_failure);
         }
-        Plugin.ModLogger.LogInfo($"Arena area scene spawns: {allowed.Count}/{collection.Count} markers inside {_area.Id}.");
+        Plugin.ModLogger.LogDebug($"Arena area scene spawns: {allowed.Count}/{collection.Count} markers inside {_area.Id}.");
         var filtered = new SpawnPointsCollection(allowed, collection._logger);
         if (loading) _loadingCollection = filtered;
         return filtered;
@@ -215,7 +215,7 @@ internal static partial class ArenaAreaRuntime
             _createdFrame = Time.frameCount;
             _deadline = Time.realtimeSinceStartup + 12f;
             _nextValidation = Time.realtimeSinceStartup;
-            Plugin.ModLogger.LogInfo("Arena area preparing: physical enclosure created; waiting for verified navigation.");
+            Plugin.ModLogger.LogDebug("Arena area preparing: physical enclosure created; waiting for verified navigation.");
             return true;
         }
         catch (Exception ex)
@@ -248,7 +248,7 @@ internal static partial class ArenaAreaRuntime
                 {
                     _phase = Phase.Ready;
                     Hud.ArenaInputBlocker.Request(InputOwner, false);
-                    Plugin.ModLogger.LogInfo($"Arena area READY: {_area.Id}; connected player={Connected.Count(IsPlayerPoint)}, "
+                    Plugin.ModLogger.LogDebug($"Arena area READY: {_area.Id}; connected player={Connected.Count(IsPlayerPoint)}, "
                         + $"bot={Connected.Count(IsBotPoint)}; boundaries and paths verified, mode={_mode}, start capacity {_teamSize} per faction.");
                     ArenaToasts.Show(_area.DisplayName + " — area ready");
                 }
@@ -395,7 +395,7 @@ internal static partial class ArenaAreaRuntime
         {
             var chosen = PickTeamPoint(all, _game.Profile.Info.Side == EPlayerSide.Usec, avoid, _world.MainPlayer);
             if (chosen == null) throw new InvalidOperationException("No unoccupied connected team respawn is available.");
-            Plugin.ModLogger.LogInfo($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, _game.Profile.Info.Side == EPlayerSide.Usec):F1}m.");
+            Plugin.ModLogger.LogDebug($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, _game.Profile.Info.Side == EPlayerSide.Usec):F1}m.");
             return (chosen.Position, chosen.Rotation);
         }
         all.RemoveAll(p => !IsUnoccupied(p.Position, _world.MainPlayer, null));
@@ -485,7 +485,7 @@ internal static partial class ArenaAreaRuntime
         if (_totalRejections <= 6 || Time.realtimeSinceStartup >= _nextRejectionLog)
         {
             _nextRejectionLog = Time.realtimeSinceStartup + 10f;
-            Plugin.ModLogger.LogInfo($"Arena area rejected movement #{_totalRejections}: bot={bot.ProfileId}, {reason}.");
+            ArenaMode.Diagnostics.ArenaLog.Developer($"Arena area rejected movement #{_totalRejections}: bot={bot.ProfileId}, {reason}.");
         }
     }
 
@@ -535,7 +535,7 @@ internal static partial class ArenaAreaRuntime
                 if (state.StalledWindows >= 3)
                 { Abort("bot repeatedly requested forbidden paths without moving or match progress for 60 seconds: " + player.ProfileId); return; }
                 if (stalled)
-                    Plugin.ModLogger.LogInfo($"Arena area movement watch: bot={player.ProfileId}, stationary/rejected window {state.StalledWindows}/3.");
+                    ArenaMode.Diagnostics.ArenaLog.Developer($"Arena area movement watch: bot={player.ProfileId}, stationary/rejected window {state.StalledWindows}/3.");
                 state.WindowStart = Time.realtimeSinceStartup;
                 state.WindowPosition = p;
                 state.WindowScore = score;
@@ -590,7 +590,7 @@ internal static partial class ArenaAreaRuntime
             if (_world.MainPlayer != null) anchors.Add(ToPoint(_world.MainPlayer.Position));
             _enclosurePlan = ArenaAreaEnclosurePlan.CreateForScene(_area.Bounds,
                 navigation.vertices, navigation.indices, ToPoint, anchors);
-            Plugin.ModLogger.LogInfo($"Arena area side walls: {_area.Id}; scene coverage Y "
+            Plugin.ModLogger.LogDebug($"Arena area side walls: {_area.Id}; scene coverage Y "
                 + $"{_enclosurePlan.SideMinY:F1}..{_enclosurePlan.SideMaxY:F1}; no floor, ceiling or spawn-height restriction.");
         }
         _enclosure = new ArenaAreaEnclosure(_root, _enclosurePlan);

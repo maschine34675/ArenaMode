@@ -40,7 +40,7 @@ internal static class PitFireTeamPortedMapSpawns
         if (_loggedController == null || !ReferenceEquals(_loggedController.Target, __0))
         {
             _loggedController = new WeakReference(__0);
-            Plugin.ModLogger.LogInfo($"Arena PFT ported-map spawn: map={Singleton<GameWorld>.Instance.LocationId}, "
+            Plugin.ModLogger.LogDebug($"Arena PFT ported-map spawn: map={Singleton<GameWorld>.Instance.LocationId}, "
                 + $"no baked covers; resolved existing core {point.Id} for companion activation.");
         }
         return false;

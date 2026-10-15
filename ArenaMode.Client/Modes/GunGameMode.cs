@@ -154,7 +154,7 @@ public sealed partial class GunGameMode : IArenaMode
             return CurrentKit;
         };
 
-        Plugin.ModLogger.LogInfo($"Gun Game ladder: {_ladder.Count} tiers — {string.Join(" > ", _ladder.Select(k => k.Id))}");
+        Plugin.ModLogger.LogDebug($"Gun Game ladder: {_ladder.Count} tiers — {string.Join(" > ", _ladder.Select(k => k.Id))}");
     }
 
     /// <summary>
@@ -466,7 +466,7 @@ public sealed partial class GunGameMode : IArenaMode
         // during a promotion sit in the log next to nothing that says which weapon
         // was being handed over, which made seven of them unattributable across a
         // whole raid.
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Gun Game: promoted to tier {_tier + 1}/{_ladder.Count} - {CurrentRung?.Name ?? CurrentRung?.Id}.");
 
         // The swap itself waits out the kill animation on its own; this just
@@ -513,7 +513,7 @@ public sealed partial class GunGameMode : IArenaMode
         // promotions that follow from waiting on a cold bundle.
         ArenaController.RequestKitWarmup();
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Gun Game: new ladder drawn — {string.Join(" > ", _ladder.Select(k => k.Name ?? k.Id))}");
 
         return true;

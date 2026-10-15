@@ -63,7 +63,7 @@ namespace ArenaMode
     public static class Plugin { public static Logger ModLogger = new(); }
     public class Logger
     {
-        public List<string> Lines = new(); public void LogInfo(object s) => Lines.Add(s.ToString());
+        public List<string> Lines = new(); public void LogInfo(object s) => Lines.Add(s.ToString()); public void LogDebug(object s) => Lines.Add(s.ToString());
         public void LogWarning(object s) => Lines.Add(s.ToString()); public void LogError(object s) => Lines.Add(s.ToString());
     }
 }
@@ -167,6 +167,8 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Bots
 {
+    // Crowd behavior is covered by ZombieCrowdChecks; this suite owns wave/team flow.
+    public static class ZombieCrowdRuntime { public static void Reset() { } public static void Tick() { } }
     public static class ZombieNativeEventBridge { public static bool TryGetOpeningSnapshot(out int n,out int s) { n=s=0; return false; } }
     public static class ZombieMeleePatch { public static void Reset() { } }
     public static class ZombieMeleeDiagnostics { public static (int,int) ConsumeTotals() => (0,0); }
@@ -277,5 +279,19 @@ namespace ArenaMode.Compat
         public static PitFireTeamRoundPolicyDecision PollFollowers(GameWorld w,bool protection)
         { if(FollowersReady) Status.Stage=PitFireTeamRoundLifecycleStage.FollowersReady;return new(){Decision=FollowersReady?PitFireTeamRoundPollDecision.Ready:PitFireTeamRoundPollDecision.Pending}; }
         public static void CancelFollowerSpawnLease(string why) => Cancelled++;
+    }
+}
+
+// Explicitly enabled for these diagnostic-observation scenarios; the real
+// default-off BepInEx routing is exercised by tools/LoggingChecks.
+namespace ArenaMode.Diagnostics
+{
+    internal static class ArenaLog
+    {
+        internal static bool DeveloperEnabled = true;
+        internal static void Developer(string message)
+        {
+            if (DeveloperEnabled) ArenaMode.Plugin.ModLogger?.LogInfo("[dev] " + message);
+        }
     }
 }

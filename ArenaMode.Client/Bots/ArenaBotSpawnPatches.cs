@@ -95,7 +95,7 @@ internal static class ArenaBotSpawnPatches
                 // per-point counter. Never modify another spawner's data.
                 _rejectedTeamBatches++;
                 if (_rejectedTeamBatches <= 3 || _rejectedTeamBatches % 25 == 0)
-                    Plugin.ModLogger.LogWarning(
+                    Plugin.ModLogger.LogDebug(
                         $"Arena team deathmatch: rejected unowned bot spawn batch #{_rejectedTeamBatches}.");
                 return false;
             }
@@ -111,7 +111,7 @@ internal static class ArenaBotSpawnPatches
             ArenaSoloSpawnDispatch.MarkRejected(__instance, data);
             _rejectedBatches++;
             if (_rejectedBatches <= 3 || _rejectedBatches % 25 == 0)
-                Plugin.ModLogger.LogWarning($"Arena: rejected excluded bot spawn batch #{_rejectedBatches}.");
+                Plugin.ModLogger.LogDebug($"Arena: rejected excluded bot spawn batch #{_rejectedBatches}.");
             return false;
         }
     }

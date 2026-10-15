@@ -10,7 +10,7 @@ namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public st
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
 namespace ArenaMode {
     public static class Plugin { public static Logger ModLogger = new(); }
-    public sealed class Logger { public void LogWarning(object value) { } public void LogInfo(object value) { } }
+    public sealed class Logger { public void LogWarning(object value) { } public void LogInfo(object value) { } public void LogDebug(object value) { } }
 }
 namespace ArenaMode.Session {
     public static class ArenaSession {

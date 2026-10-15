@@ -45,7 +45,7 @@ namespace ArenaMode
     public class Log
     {
         public readonly List<string> Messages = new();
-        public void LogInfo(object value) => Messages.Add(value.ToString());
+        public void LogInfo(object value) => Messages.Add(value.ToString()); public void LogDebug(object value) => Messages.Add(value.ToString());
         public void LogWarning(object value) => Messages.Add(value.ToString());
     }
 }

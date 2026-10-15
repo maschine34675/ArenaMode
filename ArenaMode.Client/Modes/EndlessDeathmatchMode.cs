@@ -44,7 +44,7 @@ public sealed class EndlessDeathmatchMode : IArenaMode
 
         if (_match.Kills >= _nextMilestone)
         {
-            Plugin.ModLogger.LogInfo($"Arena milestone: {_match.Kills} kills, score {_match.Score}.");
+            Plugin.ModLogger.LogDebug($"Arena milestone: {_match.Kills} kills, score {_match.Score}.");
             ArenaToasts.Show($"{_match.Kills} kills — score {_match.Score:n0}");
             _nextMilestone += MilestoneEvery;
         }

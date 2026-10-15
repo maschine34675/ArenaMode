@@ -126,7 +126,7 @@ namespace ArenaMode.Areas
 namespace ArenaMode
 {
     public static class Plugin {public static Logger ModLogger=new();}
-    public class Logger {public void LogInfo(string message) { } public void LogWarning(string s){} public void LogError(string s){} }
+    public class Logger {public void LogInfo(string message) { } public void LogDebug(string message) { } public void LogWarning(string s){} public void LogError(string s){} }
 }
 namespace HarmonyLib
 {

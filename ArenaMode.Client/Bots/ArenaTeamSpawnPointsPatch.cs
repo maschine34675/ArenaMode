@@ -46,7 +46,7 @@ internal sealed class ArenaTeamSpawnPointsPatch : ModulePatch
             !ArenaBotSpawnPolicy.IsExcludedPoint(ArenaSession.ArmedMap, pair.Key?.Id))
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         __result = new SpawnPointsCollection(allowed, __result._logger);
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena protected team: excluded {original.Count - allowed.Count} unsafe Factory team spawn(s); "
             + $"{allowed.Count}/{original.Count} markers retained.");
     }

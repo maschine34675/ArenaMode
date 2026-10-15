@@ -108,7 +108,7 @@ internal static class ArenaExtractionList
                 if (!_maskedLogged)
                 {
                     _maskedLogged = true;
-                    Plugin.ModLogger.LogInfo("Arena extraction-list: existing native list CanvasGroup hidden.");
+                    Plugin.ModLogger.LogDebug("Arena extraction-list: existing native list CanvasGroup hidden.");
                 }
             }
             UpdateHeader(panel);
@@ -146,7 +146,7 @@ internal static class ArenaExtractionList
             if (!_headerLogged)
             {
                 _headerLogged = true;
-                Plugin.ModLogger.LogInfo("Arena extraction header hidden; numeric timer retained.");
+                Plugin.ModLogger.LogDebug("Arena extraction header hidden; numeric timer retained.");
             }
         }
         catch (Exception ex)
