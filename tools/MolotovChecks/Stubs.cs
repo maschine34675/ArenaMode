@@ -73,7 +73,59 @@ public class GlobalConfiguration
     public class ProfileConfig { public Dictionary<EBodyPart,PartConfig> BodyPartsSettings=Enum.GetValues<EBodyPart>().ToDictionary(p=>p,p=>new PartConfig()); }
     public class PartConfig { public float EnvironmentDamageMultiplier=.5f; }
 }
-namespace EFT.InventoryLogic { public class ThrowWeap { public string TemplateId=ArenaMode.Combat.Fire.ArenaFirePolicy.DonorTemplate; } }
+namespace EFT.InventoryLogic
+{
+    public enum EquipmentSlot { TacticalVest, Pockets }
+    public enum CommandStatus { Begin, Succeed }
+    public class Item { public string TemplateId; }
+    public class ThrowWeap:Item { public ThrowWeap(){TemplateId=ArenaMode.Combat.Fire.ArenaFirePolicy.DonorTemplate;} }
+    public class CompoundItem:Item { public Grid[] Grids={new()}; }
+    public class Slot { public Item ContainedItem=new CompoundItem(); }
+    public class Location { }
+    public class Address { public Grid Grid; }
+    public class Grid
+    {
+        public int Capacity=8;public bool Reject;public List<Item> Items=new();
+        public Location FindFreeSpace(Item item)=>Items.Count<Capacity?new():null;
+        public Address CreateItemAddress(Location location)=>new(){Grid=this};
+    }
+    public class InventoryEquipment
+    {
+        public ThrowWeap TopPriorityGrenade;
+        public Dictionary<EquipmentSlot,Slot> Slots=Enum.GetValues<EquipmentSlot>().ToDictionary(x=>x,x=>new Slot());
+        public Slot GetSlot(EquipmentSlot slot)=>Slots[slot];
+        public IEnumerable<Grid> Grids=>Slots.Values.Select(x=>x.ContainedItem).OfType<CompoundItem>().SelectMany(x=>x.Grids);
+        public List<Item> Items=>Grids.SelectMany(x=>x.Items).ToList();
+    }
+    public class Inventory { public InventoryEquipment Equipment=new(); }
+    public class InventoryController
+    {
+        public Inventory Inventory=new();public bool IsChangingWeapon,BlockActions,Unknown,ThrowEvent;public int Events;
+        public bool CanExecute(AddResult result)=>!BlockActions;
+        public bool Examined(Item item)=>!Unknown;
+        public bool IsAtReachablePlace(Item item)=>Inventory.Equipment.Items.Contains(item);
+    }
+    public class AddResult
+    {
+        public void RaiseEvents(InventoryController inventory,CommandStatus status)
+        { inventory.Events++; if(inventory.ThrowEvent)throw new InvalidOperationException("foreign inventory listener"); }
+    }
+    public class Result { public bool Failed;public AddResult Value=new(); }
+    public static class ItemManipulator
+    {
+        public static Result Add(Item item,Address to,InventoryController inventory,bool simulate=false)
+        {
+            if(to.Grid.Reject||to.Grid.Items.Count>=to.Grid.Capacity)return new(){Failed=true};
+            if(!simulate)to.Grid.Items.Add(item);
+            return new();
+        }
+    }
+    public class ItemFactory
+    {
+        public string NextId=>Guid.NewGuid().ToString();public int Created;
+        public Item CreateItem(string id,string tpl,object upd){Created++;return new ThrowWeap{TemplateId=tpl};}
+    }
+}
 namespace EFT.Ballistics
 {
     public struct DamageInfo
@@ -81,6 +133,7 @@ namespace EFT.Ballistics
 }
 namespace EFT
 {
+    public class ObjectsFactory { }
     public enum EDamageType { Flame,Bullet }
     public enum GameStatus { Started,Stopping }
     public interface IPlayer { string ProfileId {get;} }
@@ -88,7 +141,9 @@ namespace EFT
     {
         public string ProfileId {get;set;} public bool IsAI,IsYourPlayer;public Vector3 Position;
         public Health ActiveHealthController=new(); public Health HealthController=>ActiveHealthController;
-        public ItemHandsController HandsController; public AIData AIData;
+        public ItemHandsController HandsController=new(); public AIData AIData;
+        public EFT.InventoryLogic.InventoryController InventoryController=new SinglePlayerInventoryController();
+        public class SinglePlayerInventoryController:EFT.InventoryLogic.InventoryController { }
         public float Taken;public IPlayer LastSource;public bool Scoped;
         public virtual void ApplyDamageInfo(DamageInfo info,EBodyPart part,EBodyPartColliderType collider,float absorbed)
         {
@@ -123,7 +178,26 @@ namespace EFT
         public Player GetEverExistedPlayerByID(string id)=>GetAlivePlayerByProfileID(id);
     }
     public class AbstractGame { }
-    public class LocalGame:AbstractGame { public GameStatus Status=GameStatus.Started;public GameWorld GameWorld; }
+    public class LocalGame:AbstractGame
+    {
+        public GameStatus Status=GameStatus.Started;public GameWorld GameWorld;
+        private readonly List<Stack<System.Collections.IEnumerator>> Jobs=new();
+        public void StartCoroutine(System.Collections.IEnumerator routine)
+        { var stack=new Stack<System.Collections.IEnumerator>();stack.Push(routine);Jobs.Add(stack);AdvanceCoroutines(); }
+        public void AdvanceCoroutines()
+        {
+            foreach(var stack in Jobs.ToArray())
+            {
+                while(stack.Count>0)
+                {
+                    var top=stack.Peek();if(!top.MoveNext()){stack.Pop();continue;}
+                    if(top.Current is System.Collections.IEnumerator child){stack.Push(child);continue;}
+                    break;
+                }
+                if(stack.Count==0)Jobs.Remove(stack);
+            }
+        }
+    }
 }
 namespace ArenaMode
 {
@@ -133,6 +207,21 @@ namespace ArenaMode
 namespace ArenaMode.Session
 {
     public static class ArenaSession { public static bool IsActive; public static bool IsExactActiveRaid(LocalGame g,GameWorld w)=>IsActive&&ReferenceEquals(g.GameWorld,w); }
+}
+namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
+namespace ArenaMode.Combat { public static class WeaponSwapService { public static bool IsSwapping; } }
+namespace ArenaMode.Kits
+{
+    public class KitDefinition { public string Id;public KitFill Fill; }
+    public class KitFill { public List<KitStackedItem> RigContents; }
+    public class KitStackedItem { public string Tpl;public int Count; }
+    public static class KitBundlePreloader
+    {
+        public static bool IsPreloading,Hold,Fail,Warmed;
+        public static bool IsTemplateWarmed(string tpl)=>Warmed;
+        public static System.Collections.IEnumerator Preload(KitDefinition kit)
+        { while(Hold)yield return null;Warmed=!Fail; }
+    }
 }
 namespace ArenaMode.Modes
 {

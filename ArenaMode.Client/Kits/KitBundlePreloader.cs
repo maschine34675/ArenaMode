@@ -55,6 +55,10 @@ public static partial class KitBundlePreloader
     /// </summary>
     internal static int LoadsCompleted => _loadsCompleted;
 
+    /// <summary>Successful pool warm-up in the current raid, including adopted loading work.</summary>
+    internal static bool IsTemplateWarmed(string templateId)
+        => templateId != null && WarmedTemplates.Contains(templateId);
+
     // Includes the live raid-start swap, whose preload precedes the respawn
     // driver's pipeline flag, and a loading-screen batch that is still running
     // after the raid began. Only used to defer optional catalog work and to let

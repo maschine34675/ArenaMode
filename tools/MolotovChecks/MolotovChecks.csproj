@@ -4,11 +4,13 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PolicySource Condition="'$(PolicySource)'==''">../../ArenaMode.Client/Combat/Fire/ArenaFirePolicy.cs</PolicySource>
     <RuntimeSource Condition="'$(RuntimeSource)'==''">../../ArenaMode.Client/Combat/Fire/ArenaFireRuntime.cs</RuntimeSource>
+    <SupplySource Condition="'$(SupplySource)'==''">../../ArenaMode.Client/Combat/Fire/ArenaFireSupply.cs</SupplySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" /><Compile Include="Stubs.cs" />
     <Compile Include="$(PolicySource)" Link="Production/Policy.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/Runtime.cs" />
+    <Compile Include="$(SupplySource)" Link="Production/Supply.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFireSettings.cs" Link="Production/Settings.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFireGeometry.cs" Link="Production/Geometry.cs" />
     <Compile Include="../../ArenaMode.BigBrainCompat/ArenaFireEscape.cs" Link="Production/Escape.cs" />

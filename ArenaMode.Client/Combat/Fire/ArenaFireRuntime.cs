@@ -98,10 +98,11 @@ internal static class ArenaFireRuntime
         var local = _world.MainPlayer;
         if (!ArenaFirePolicy.Convert(Enabled.Value, true, ReferenceEquals(owner, local) && !owner.IsAI && owner.IsYourPlayer
             && LiveActor(owner) && ReferenceEquals(owner.HandsController, controller), controller.Item?.TemplateId)
+            || !ArenaFireSupply.Owns(owner, controller.Item)
             || !ReferenceEquals(grenade.WeaponSource, controller.Item) || !ReferenceEquals(grenade.Player?.iPlayer, owner)) return;
         Throws.Add(grenade, new Throw { Owner = owner, Bridge = grenade.Player, Weapon = controller.Item, Born = Time.time });
         Hold(owner, Time.time + 12f);
-        Plugin.ModLogger.LogDebug($"Arena incendiary throw: {grenade.Id}; exact local RGD-5; bot escape={BotEscapeAvailable}.");
+        Plugin.ModLogger.LogDebug($"Arena incendiary throw: {grenade.Id}; exact supplied local Molotov; bot escape={BotEscapeAvailable}.");
     }
 
     // All owned explosions remain suppressed, including when disabled or leaving.
@@ -135,6 +136,7 @@ internal static class ArenaFireRuntime
     {
         try
         {
+            ArenaFireSupply.ForgetOutsideRaid(Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null);
             if (Enabled?.Value != true || !Context(out var match, out var world)) { Reset(); return; }
             if (!ReferenceEquals(_match, match) || !ReferenceEquals(_world, world) || _round != Round(match))
             {
@@ -143,6 +145,7 @@ internal static class ArenaFireRuntime
                 if (newWorld) Retain.Clear();
                 _match = match; _world = world; _round = Round(match);
             }
+            if (Time.timeScale > 0) ArenaFireSupply.Tick(world, world.MainPlayer);
             Retired.Clear();
             foreach (var pair in Throws)
                 if (pair.Key == null || pair.Value.Cancelled || pair.Value.Impact.HasValue || Time.time - pair.Value.Born > 8f) Retired.Add(pair.Key);

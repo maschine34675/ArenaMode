@@ -10,6 +10,6 @@ internal static class ArenaFireSettings
     internal static void Bind(ConfigFile config)
     {
         Enabled = config.Bind("Arena incendiary prototype", "Enabled", true,
-            $"WIP: your RGD-5 throws become 6-second ground fire in live Arena only (except Zombies). Existing grenade model; bot grenades and ordinary raids are unchanged. {ArenaFirePolicy.DamagePerSecond} base total HP/s; fire does not stack. Requires the matching BigBrain companion for bot escape. May be toggled between throws; disabling extinguishes owned fire and retires owned grenades safely.");
+            $"WIP: adds one Molotov per equipment loadout in free rig/pocket space during live Arena (except Zombies); existing grenades are kept. G selects the bonus first; later manual selection is preserved. Uses the RGD-5 model/name, but only the bonus creates 6-second ground fire ({ArenaFirePolicy.DamagePerSecond} base total HP/s, non-stacking). Full rig/pockets: no bonus, nothing replaced. Requires the matching BigBrain companion. Disabling safely extinguishes owned fire; no extra supply from toggling off/on.");
     }
 }
