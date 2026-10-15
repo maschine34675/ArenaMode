@@ -18,14 +18,15 @@ namespace ArenaMode.Modes;
 /// Protected squad survival. ZombieMode alone owns infected/waves; this
 /// coordinator admits the exact frozen authenticated followers before allowing a
 /// wave, keeps the dead leader held, and rebuilds PFT only between cleared waves.
-/// Surviving PMC bodies never take the solo Zombie refill/body-swap path.
+/// Surviving PMCs restore through an explicitly leased live swap after PFT
+/// retirement; dead PMCs retain the separate one-use death-respawn lease.
 /// </summary>
 internal sealed partial class ZombieTeamRuntime
 {
     private enum TeamPhase { Staging, Live, Rebinding, Ended }
     private enum TeamRebindStep
     {
-        None, Begin, AwaitRetirement, AwaitLocalRespawn, RebuildLeader,
+        None, Begin, AwaitRetirement, AwaitLocalRespawn, AwaitLocalRefill, RebuildLeader,
         PrepareProfiles, AwaitProfiles, StartFollowers, AwaitFollowers, AdoptFollowers,
     }
     private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
@@ -228,6 +229,7 @@ internal sealed partial class ZombieTeamRuntime
             case TeamRebindStep.Begin: BeginTeamRebind(); break;
             case TeamRebindStep.AwaitRetirement: TickTeamRetirement(); break;
             case TeamRebindStep.AwaitLocalRespawn: break;
+            case TeamRebindStep.AwaitLocalRefill: break;
             case TeamRebindStep.RebuildLeader: RebuildTeamLeader(); break;
             case TeamRebindStep.PrepareProfiles: BeginTeamFollowerProfiles(); break;
             case TeamRebindStep.AwaitProfiles: TickTeamFollowerProfiles(); break;
@@ -258,8 +260,7 @@ internal sealed partial class ZombieTeamRuntime
         {
             if (!TryValidateCurrentTeamLeaderBody(_boundLocalPlayer, out string livingProblem))
             { FailTeamTransition(livingProblem); return; }
-            _teamRebindStep = TeamRebindStep.RebuildLeader;
-            _teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;
+            BeginLivingLeaderRefill();
             return;
         }
         if (!_playerDown || _boundLocalPlayer is not LocalPlayer deadPlayer

@@ -1200,8 +1200,8 @@ public static class Settings
 
         ZombieIntermissionSeconds = config.Bind("Zombie", "IntermissionSeconds", 10,
             new ConfigDescription(
-                "Pause between a cleared wave (everything in it spawned, nothing from it still alive) " +
-                "and the next one starting. Frozen at match start.",
+                "Countdown before the first wave and between cleared waves (everything spawned, " +
+                "nothing from the previous wave still alive). Starts after the player/team is ready. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 60)));
 
         ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 0.75f,
@@ -1241,8 +1241,8 @@ public static class Settings
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +
             "your entry loadout, including ammunition, after each cleared wave; your first death ends " +
-            "the match. With PitFireTeam, own gear is required: companions refill each wave, but a " +
-            "surviving PMC keeps their current ammunition and condition. Fallen squad members return " +
+            "the match. With PitFireTeam, own gear is required: the PMC and companions restore their " +
+            "entry equipment and ammunition each wave, including a surviving PMC. Fallen squad members return " +
             "after a cleared wave; a team wipe ends the match. Frozen at match start.");
 
         RoundKillTarget = config.Bind(

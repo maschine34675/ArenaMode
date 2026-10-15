@@ -253,7 +253,7 @@ internal sealed class ArenaModeSelectionView
         _rules.text = mode.Rules;
         bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
         _description.text = zombieTeam
-            ? "Fallen allies return; team wipe ends play. Only companions refill each wave."
+            ? "Fallen allies return; team wipe ends play. Everyone's entry gear refills each wave."
             : mode.Id == ArenaModeCatalog.TacticalId && _selection.TacticalOnly
                 ? "Eliminate the enemy squad. Fallen allies return next round."
             : mode.Id == ArenaModeCatalog.DeathmatchId && !Settings.DeathmatchFreeForAll.Value

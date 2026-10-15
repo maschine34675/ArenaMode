@@ -78,6 +78,7 @@ public sealed class ZombieMode : IArenaMode
     private int _zombiesKilled;
     private float _nextNudgeAt;
     private float _nextWaveEvaluateAt;
+    private bool _openingCountdownStarted;
 
     // Item 3 ("refill between waves", random-kit mode). _currentKit is kept
     // current by OnKitApplied below — raised after the raid-start swap,
@@ -160,6 +161,10 @@ public sealed class ZombieMode : IArenaMode
     internal bool AssistScoringOpen => IsCurrentRaid() && !IsComplete && (_team == null || _team.IsLive);
     internal bool IsSpawnAdmissionOpen => IsCurrentRaid() && !IsComplete;
     internal bool IsTeamArena => _team != null;
+    // Polling active follower identities after a confirmed terminal result can
+    // misclassify normal dead-body disposal as an unauthorized replacement.
+    internal bool TeamResultOwnsCurrentRaid => _team?.IsComplete == true && IsCurrentRaid()
+        && ReferenceEquals(ArenaMatchService.Current, _match);
     internal bool HasFriendlyRoster => _team?.HasFriendlyRoster == true;
     internal System.Collections.Generic.IReadOnlyList<Player> LiveTeamMembers
         => _team?.LiveTeamMembers ?? Array.Empty<Player>();
@@ -252,7 +257,7 @@ public sealed class ZombieMode : IArenaMode
         }
 
         _rng = new System.Random();
-        _waveState = ZombieWavePolicy.Initial();
+        _waveState = ZombieWavePolicy.InitialCountdown();
         _refillState = ZombieRefillPolicy.Initial();
         _currentKit = null;
         _lastAnnouncedWave = 0;
@@ -261,7 +266,7 @@ public sealed class ZombieMode : IArenaMode
         _nextWaveEvaluateAt = 0f;
         _phase = _waveState.Phase;
         _waveNumber = _waveState.WaveNumber;
-        _waveStatusText = $"WAVE {_waveNumber} | {_config.WaveStartSize} LEFT";
+        _waveStatusText = $"WAVE 1 IN {(int)Math.Ceiling(Math.Max(0f, _config.IntermissionSeconds))}s";
 
         // Tracks "the kit the player currently has" for the intermission
         // refill below — see ZombieLoadoutRefill's own doc comment. Must be
@@ -323,6 +328,18 @@ public sealed class ZombieMode : IArenaMode
             return;
         }
 
+        // A raid-start kit swap must finish before the opening pause begins.
+        // PFT reaches here only after its complete authenticated team is ready.
+        if (!_openingCountdownStarted)
+        {
+            if (LiveKitRespawn.IsInitialSwapPending || ArenaRespawnDriver.IsRespawnInProgress
+                || ArenaRespawnDriver.StandDown || _world.MainPlayer?.HealthController?.IsAlive != true)
+                return;
+            _openingCountdownStarted = true;
+            _waveState.PhaseEndsAt = now + Math.Max(0f, _config.IntermissionSeconds);
+        }
+        if (_team != null) _local = _team.Leader;
+
         if (now >= _nextWaveEvaluateAt)
         {
             _nextWaveEvaluateAt = now + WaveEvaluateIntervalSeconds;
@@ -373,7 +390,7 @@ public sealed class ZombieMode : IArenaMode
                 ZombieSpawnService.RetireAllAliveInfected();
             }
 
-            if (_team != null && _phase == ZombieWavePolicy.Phase.Intermission && !_teamIntermissionRestored)
+            if (_team != null && _waveNumber > 0 && _phase == ZombieWavePolicy.Phase.Intermission && !_teamIntermissionRestored)
             {
                 _teamIntermissionRestored = true;
                 _team.WaveCleared();
@@ -430,7 +447,7 @@ public sealed class ZombieMode : IArenaMode
             // the player's real eligibility right now. ZombieRefillPolicy
             // itself detects the Wave->Intermission edge and the "exactly
             // once" rule; this is just the Unity-facing signal it needs.
-            bool playerEligible = _local != null
+            bool playerEligible = _waveNumber > 0 && _local != null
                 && _local.HealthController != null
                 && _local.HealthController.IsAlive
                 && !ArenaRespawnDriver.IsRespawnInProgress

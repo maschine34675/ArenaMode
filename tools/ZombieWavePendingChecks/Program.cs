@@ -45,9 +45,13 @@ internal static class Program
             Settings.ZombieSpawnIntervalSeconds.Value = .2f; Settings.ZombieIntermissionSeconds.Value = 2;
             Settings.ZombieStuckWaveTimeoutSeconds.Value = watchdog;
             ZombieLoadoutRefill.Calls = 0; ArenaMatchService.Current = Match;
+            LiveKitRespawn.Reset();
             Mode = new(); Match.Mode = Mode; Mode.OnMatchStart(Match); ArenaMode.Events.ArenaEvents.Apply();
+            // These scenarios begin after the independently tested opening
+            // countdown; retain their original wave-relative timeline.
+            Mode.Tick(0);
         }
-        internal void Tick(float time) { Time.time = time; Mode.Tick(.2f); }
+        internal void Tick(float time) { Time.time = time + 2.1f; Mode.Tick(.2f); }
         public void Dispose() => Mode.OnMatchEnd();
     }
 

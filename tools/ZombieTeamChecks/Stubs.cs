@@ -94,6 +94,45 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Respawn
 {
+    public static class LiveKitRespawn
+    {
+        public static bool IsInitialSwapPending, Refuse, Defer, Fail, KeepOldBody;
+        public static int Calls;
+        public static Action Pending;
+        public static Action BeforeCommit, BeforeComplete;
+        public static void Reset()
+        { IsInitialSwapPending=Refuse=Defer=Fail=KeepOldBody=false; Calls=0;Pending=null;BeforeCommit=BeforeComplete=null; }
+        public static bool AtRoundBreakOwnGear(LocalGame game, Action<Profile,LocalPlayer> equipment,
+            float protection, Func<bool> wanted, Action<bool> complete)
+        {
+            Calls++;
+            if (Refuse) return false;
+            var old=game.LocalPlayer;
+            Pending=() =>
+            {
+                Pending=null;
+                if (!wanted()) { complete(false); return; }
+                bool success=!Fail;
+                try
+                {
+                    BeforeCommit?.Invoke();
+                    if (success) equipment(old.Profile,old);
+                    if (success && !KeepOldBody)
+                    {
+                        var next=new LocalPlayer { IsYourPlayer=true,Profile=old.Profile };
+                        var world=Comfort.Common.Singleton<GameWorld>.Instance;
+                        world.RegisteredPlayers.Remove(old);world.RegisteredPlayers.Add(next);
+                        world.Ever[next.ProfileId]=next;world.MainPlayer=next;game.LocalPlayer=next;
+                    }
+                }
+                catch { success=false; }
+                BeforeComplete?.Invoke();
+                complete(success);
+            };
+            if (!Defer) Pending();
+            return true;
+        }
+    }
     public static class ArenaRespawnDriver
     {
         public static bool IsRespawnInProgress, StandDown;
@@ -105,16 +144,30 @@ namespace ArenaMode.Kits
 {
     public class KitDefinition { }
     public static class KitCatalog { public static object KitProvider; }
-    public class TeamArenaPreparedLoadoutRestore { public int RoundEpoch; }
+    public static class AutoQuickSlots
+    {
+        public static int Settles, Remaps;
+        public static void SettleBeforeReissue(Profile p) { Settles++; }
+        public static void NoteItemsReissued(IReadOnlyDictionary<string,string> map) { Remaps++; }
+    }
+    public class TeamArenaLoadoutRestoreResult { public string Failure="commit test failure"; }
+    public class TeamArenaPreparedLoadoutRestore
+    {
+        public int RoundEpoch;
+        public Profile Source;
+        public IReadOnlyDictionary<string,string> NextRuntimeByPreviousRuntimeId => new Dictionary<string,string>();
+        public bool TryCommit(Profile p,out TeamArenaLoadoutRestoreResult result)
+        { TeamArenaLoadoutSnapshot.Commits++;result=new();return ReferenceEquals(p,Source) && TeamArenaLoadoutSnapshot.CommitOkay; }
+    }
     public class TeamArenaLoadoutSnapshot
     {
-        public static bool CaptureOkay = true, ArmOkay = true, PrepareOkay = true;
-        public static int Captures, Arms, Prepares;
+        public static bool CaptureOkay = true, ArmOkay = true, PrepareOkay = true, CommitOkay = true;
+        public static int Captures, Arms, Prepares, Commits;
         public static bool TryCapture(Profile p, out TeamArenaLoadoutSnapshot s, out string problem)
         { Captures++; s = new(); problem = "capture test failure"; return CaptureOkay; }
         public bool TryArm(int n, out string problem) { Arms++; problem = "arm test failure"; return ArmOkay; }
         public bool TryPrepare(Profile p, int n, out TeamArenaPreparedLoadoutRestore s, out string problem)
-        { Prepares++; s = new(){RoundEpoch=n}; problem="prepare test failure"; return PrepareOkay; }
+        { Prepares++; s = new(){RoundEpoch=n,Source=p}; problem="prepare test failure"; return PrepareOkay; }
     }
     public static class ZombieLoadoutRefill
     {

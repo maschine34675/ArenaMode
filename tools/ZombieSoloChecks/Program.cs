@@ -29,6 +29,9 @@ void Check(bool condition, string reason) { checks++; if (!condition) throw new 
     Settings.ZombieWaveStartSize.Value = 2; Settings.ZombieIntermissionSeconds.Value = 2;
     var mode = new ZombieMode(); var match = new ArenaMatch(mode, "local", "You", "PMC");
     ArenaMatchService.Current = match; mode.OnMatchStart(match);
+    LiveKitRespawn.Reset();
+    // Terminal-death scenarios run after the shared opening countdown.
+    mode.Tick(0); Time.time=2.1f;
     ArenaMatchService.GenericAborts = 0;
     return (mode, match, game, world);
 }

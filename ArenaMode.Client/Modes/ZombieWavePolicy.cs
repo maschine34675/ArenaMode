@@ -253,6 +253,17 @@ internal static class ZombieWavePolicy
         LastArrivedTotal = 0,
     };
 
+    /// <summary>Opening break uses the ordinary countdown, without pretending a wave was cleared.</summary>
+    internal static State InitialCountdown()
+    {
+        var state = Initial();
+        state.WaveNumber = 0;
+        state.Phase = Phase.Intermission;
+        // The mode starts this clock only once its local body/team is ready.
+        state.PhaseEndsAt = float.PositiveInfinity;
+        return state;
+    }
+
     /// <summary>Wave n's size: WaveStartSize + WaveGrowth * (n - 1), n &gt;= 1.</summary>
     internal static int WaveSize(Config config, int waveNumber)
         => Math.Max(1, config.WaveStartSize) + Math.Max(0, config.WaveGrowth) * Math.Max(0, waveNumber - 1);

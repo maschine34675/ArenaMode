@@ -37,8 +37,9 @@ internal static class Program
             PitFireTeamRoundLifecycle.Status=new(); PitFireTeamRoundLifecycle.Rebuilt=0; PitFireTeamRoundLifecycle.Teardowns=0;
             PitFireTeamRoundLifecycle.RetireReady=PitFireTeamRoundLifecycle.ProfilesReady=PitFireTeamRoundLifecycle.FollowersReady=true;
             PitFireTeamRoundLifecycle.Spawn=()=> AddFollowers(expectedCount,2);
-            TeamArenaLoadoutSnapshot.CaptureOkay=TeamArenaLoadoutSnapshot.ArmOkay=TeamArenaLoadoutSnapshot.PrepareOkay=true;
-            TeamArenaLoadoutSnapshot.Captures=TeamArenaLoadoutSnapshot.Arms=TeamArenaLoadoutSnapshot.Prepares=0;
+            TeamArenaLoadoutSnapshot.CaptureOkay=TeamArenaLoadoutSnapshot.ArmOkay=TeamArenaLoadoutSnapshot.PrepareOkay=TeamArenaLoadoutSnapshot.CommitOkay=true;
+            TeamArenaLoadoutSnapshot.Captures=TeamArenaLoadoutSnapshot.Arms=TeamArenaLoadoutSnapshot.Prepares=TeamArenaLoadoutSnapshot.Commits=0;
+            LiveKitRespawn.Reset();AutoQuickSlots.Settles=AutoQuickSlots.Remaps=0;
             KillcamReplayCompat.CameraReleased=true; ArenaSpectatorService.Request=null;
             ArenaMode.Effects.ArenaTracerTeams.BindOkay=true; ArenaMode.Effects.ArenaTracerTeams.Binds=0;
             ZombieLoadoutRefill.Calls=0; ZombieSpawnService.Reset();
@@ -122,8 +123,84 @@ internal static class Program
         }
     }
 
+    private static void CheckLivingRefillLease()
+    {
+        foreach (string fault in new[] { "arm", "prepare", "refused", "engine", "commit", "body", "epoch", "persistence", "profile", "bind" })
+        {
+            var f=new Fixture();var runtime=f.Runtime();Step(runtime);runtime.WaveCleared();Step(runtime);
+            switch (fault)
+            {
+                case "arm": TeamArenaLoadoutSnapshot.ArmOkay=false;break;
+                case "prepare": TeamArenaLoadoutSnapshot.PrepareOkay=false;break;
+                case "refused": LiveKitRespawn.Refuse=true;break;
+                case "engine": LiveKitRespawn.Fail=true;break;
+                case "commit": TeamArenaLoadoutSnapshot.CommitOkay=false;break;
+                case "body": LiveKitRespawn.KeepOldBody=true;break;
+                case "epoch": LiveKitRespawn.BeforeCommit=()=>PitFireTeamRoundLifecycle.Status.Epoch++;break;
+                case "persistence": LiveKitRespawn.BeforeCommit=()=>PitFireTeamCompat.PersistenceSuppressionActive=false;break;
+                case "profile": LiveKitRespawn.BeforeCommit=()=>f.Local.Profile=new(){Id="local"};break;
+                case "bind": PitFireTeamCompat.BindOkay=false;break;
+            }
+            Step(runtime);
+            Check(runtime.IsComplete && runtime.HoldRespawn && !runtime.IsLive,"living refill fails closed: "+fault);
+            Check(PitFireTeamRoundLifecycle.Rebuilt==0,"failed living refill cannot rebuild PFT leader: "+fault);
+            Check(!runtime.TryTakeTeamRespawnAuthorization(f.Game,f.Local,out _,out _,out _),"living refill cannot issue a death lease: "+fault);
+            if (fault is "epoch" or "persistence")
+                Check(TeamArenaLoadoutSnapshot.Commits==0,"invalid live refill lease cannot reach inventory commit: "+fault);
+        }
+        {
+            var f=new Fixture();var runtime=f.Runtime();Step(runtime);runtime.WaveCleared();Step(runtime);
+            LiveKitRespawn.Defer=true;Step(runtime);Steps(runtime,3);
+            Check(!runtime.IsLive && !runtime.IsComplete && LiveKitRespawn.Calls==1 && TeamArenaLoadoutSnapshot.Prepares==1,
+                "pending living refill remains exclusive without repeated prepare or follower activation");
+            Check(PitFireTeamRoundLifecycle.Rebuilt==0,"pending refill does not rebuild followers before commit");
+            LiveKitRespawn.Pending();Steps(runtime);
+            Check(runtime.IsLive && TeamArenaLoadoutSnapshot.Commits==1,"async living refill completion releases follower rebuild exactly once");
+            runtime.WaveCleared();Step(runtime);Step(runtime);LiveKitRespawn.Pending();Steps(runtime);
+            Check(runtime.IsLive && runtime.Epoch==3 && TeamArenaLoadoutSnapshot.Commits==2,"successive survivor waves use independent entry restore epochs");
+        }
+        foreach (string stop in new[] { "timeout", "disposed", "new-match", "world", "death" })
+        {
+            var f=new Fixture();var runtime=f.Runtime();Step(runtime);runtime.WaveCleared();Step(runtime);
+            LiveKitRespawn.Defer=true;Step(runtime);var pending=LiveKitRespawn.Pending;
+            switch (stop)
+            {
+                case "timeout": Step(runtime,46);break;
+                case "disposed": runtime.Dispose();break;
+                case "new-match": ArenaMatchService.Current=new();break;
+                case "world": Singleton<GameWorld>.Instance=new();break;
+                case "death": f.Die();runtime.OnLocalDeath();break;
+            }
+            pending();
+            Check(TeamArenaLoadoutSnapshot.Commits==0 && PitFireTeamRoundLifecycle.Rebuilt==0,
+                "stale living replacement never commits or rebinds: "+stop);
+        }
+    }
+
+    private static void CheckTerminalOwnership()
+    {
+        foreach (bool noContest in new[] { false,true })
+        {
+            var f=new Fixture();var mode=f.Mode();Tick(mode);
+            Check(!mode.TeamResultOwnsCurrentRaid,"active team never skips live identity validation");
+            if (noContest) { PitFireTeamCompat.GetOkay=false;Tick(mode); }
+            else { f.Die();mode.OnLocalDeath();foreach(var bot in PitFireTeamCompat.Followers)bot.HealthController.IsAlive=false;Tick(mode); }
+            Check(mode.TeamResultOwnsCurrentRaid,"confirmed current terminal team owns result before Stop");
+            ArenaMatchService.Current=new();Check(!mode.TeamResultOwnsCurrentRaid,"old team result cannot suppress another match's validation");
+            ArenaMatchService.Current=f.Match;ArenaSession.Active=false;Check(!mode.TeamResultOwnsCurrentRaid,"inactive raid has no terminal scope");
+            ArenaSession.Active=true;Singleton<GameWorld>.Instance=new();Check(!mode.TeamResultOwnsCurrentRaid,"different world has no terminal scope");
+            Singleton<GameWorld>.Instance=f.World;f.Game.Status=GameStatus.Stopping;Check(!mode.TeamResultOwnsCurrentRaid,"stopping game is outside live terminal scope");
+            f.Game.Status=GameStatus.Started;mode.OnMatchEnd();Check(!mode.TeamResultOwnsCurrentRaid,"disposed mode cannot retain terminal scope");
+        }
+        var solo=new Fixture(0,false);var soloMode=solo.Mode();solo.Die();soloMode.OnLocalDeath();
+        Check(!soloMode.TeamResultOwnsCurrentRaid,"solo terminal result never suppresses protected-team validation");
+        soloMode.OnMatchEnd();
+    }
+
     public static void Main()
     {
+        CheckLivingRefillLease();
+        CheckTerminalOwnership();
         CheckVariableSquads();
         var f=new Fixture(3);var runtime=f.Runtime();
         Check(!Step(runtime),"three companions must hold initial wave");
@@ -161,9 +238,11 @@ internal static class Program
         oldFollowers[0].HealthController.IsAlive=false;
         runtime.WaveCleared();Check(!runtime.IsLive && runtime.ShouldBlockStagingDamage(original),"wave-clear gates all damage during restore");
         Steps(runtime);
-        Check(runtime.IsLive && ReferenceEquals(original,f.Local),"surviving PMC stays exact same body");
+        Check(runtime.IsLive && !ReferenceEquals(original,f.Local),"surviving PMC installs a validated restored body");
         Check(PitFireTeamRoundLifecycle.Rebuilt==1 && PitFireTeamRoundLifecycle.Teardowns==1,"one complete lifecycle per wave");
-        Check(TeamArenaLoadoutSnapshot.Prepares==0,"living PMC never uses respawn restore transaction");
+        Check(TeamArenaLoadoutSnapshot.Prepares==1 && TeamArenaLoadoutSnapshot.Commits==1
+            && LiveKitRespawn.Calls==1 && AutoQuickSlots.Settles==1 && AutoQuickSlots.Remaps==1,
+            "living PMC restores captured entry gear once through actual coordinator prepare/commit and quickslot remap");
         Check(PitFireTeamCompat.Followers.All(b=>oldFollowers.All(old=>!ReferenceEquals(old,b))),"all companions rebuilt through proven body barrier");
         Check(runtime.LiveTeamMembers.Count==5 && runtime.Epoch==2,"wave two releases only with five ready");
         Check(runtime.ShouldBlockFriendlyDamage(f.Local,oldFollowers[0].GetPlayer),"production rebound Live transition preserves historical friendly source");
@@ -175,6 +254,7 @@ internal static class Program
         Check(!runtime.HoldRespawn && TeamArenaLoadoutSnapshot.Arms==1 && TeamArenaLoadoutSnapshot.Prepares==1,"release follows complete detached loadout preparation");
         Check(!runtime.TryTakeTeamRespawnAuthorization(f.Game,new LocalPlayer(),out _,out _,out _),"wrong corpse cannot consume prepared authorization");
         Check(runtime.TryTakeTeamRespawnAuthorization(f.Game,f.Local,out var prepared,out int epoch,out _) && prepared.RoundEpoch==2 && epoch==2,"matching corpse consumes epoch-two authorization");
+        Check(prepared.TryCommit(f.Game.Profile,out _) && TeamArenaLoadoutSnapshot.Commits==1,"dead leader retains the prepared entry-loadout transaction");
         Check(!runtime.TryTakeTeamRespawnAuthorization(f.Game,f.Local,out _,out _,out _),"authorization is single use");
         var dead=f.Local;f.ReplaceLocal();Check(runtime.OnLocalRespawn(f.Local),"exact replacement local body accepted after consumed authorization");
         ArenaRespawnDriver.IsRespawnInProgress=false;Steps(runtime);
@@ -217,7 +297,10 @@ internal static class Program
         // of the policy: held assembly, pending tail, rebind clock and solo path.
         f=new Fixture(3);var mode=f.Mode();Tick(mode);
         Check(ZombieSpawnService.Dispatched==0,"mode cannot spawn before fourth follower");
-        f.AddFollowers(4,2);Tick(mode);Check(ZombieSpawnService.Dispatched==1,"first infected starts only after team-ready");
+        f.AddFollowers(4,2);Tick(mode);Check(ZombieSpawnService.Dispatched==0 && mode.HudStatusLine.Contains("WAVE 1 IN"),"first countdown starts only after team-ready");
+        Check(PitFireTeamRoundLifecycle.Teardowns==0 && ZombieLoadoutRefill.Calls==0,"opening pause never rebuilds followers or refills gear");
+        Tick(mode,1.8f);Check(ZombieSpawnService.Dispatched==0,"full configured opening countdown is honored");
+        Tick(mode,.3f);Check(ZombieSpawnService.Dispatched==1,"first infected starts after team-ready and countdown");
         ZombieSpawnService.Pending=0;ZombieSpawnService.Alive=1;ZombieSpawnService.ConfirmedArrivals=1;
         Tick(mode);Check(ZombieSpawnService.Dispatched==2,"remaining wave slot dispatched");
         ZombieSpawnService.Alive=0;Tick(mode);
@@ -232,11 +315,20 @@ internal static class Program
         Check(ZombieLoadoutRefill.Calls==0,"all team wave transitions exclude generic refill");
         mode.OnMatchEnd();
 
-        f=new Fixture(4,false);mode=f.Mode();Tick(mode);
-        Check(!mode.IsTeamArena && mode.HoldRespawn && !mode.IsComplete && ZombieSpawnService.Dispatched==1,"solo Zombie starts live with permanent death-respawn hold");
+        f=new Fixture(4,false);mode=f.Mode();LiveKitRespawn.IsInitialSwapPending=true;Tick(mode,8);
+        Check(ZombieSpawnService.Dispatched==0,"initial kit preparation consumes no opening countdown");
+        LiveKitRespawn.IsInitialSwapPending=false;Tick(mode);
+        Check(ZombieSpawnService.Dispatched==0 && ZombieLoadoutRefill.Calls==0,"solo opening pause does not refill initial gear");
+        Tick(mode,1.8f);Check(ZombieSpawnService.Dispatched==0,"solo opening uses full shared duration");
+        Tick(mode,.3f);
+        Check(!mode.IsTeamArena && mode.HoldRespawn && !mode.IsComplete && ZombieSpawnService.Dispatched==1,"solo Zombie starts after opening countdown with permanent death-respawn hold");
         ZombieSpawnService.Pending=0;ZombieSpawnService.Alive=1;Tick(mode);
         ZombieSpawnService.Pending=0;ZombieSpawnService.Alive=0;Tick(mode);
         Check(ZombieLoadoutRefill.Calls==1,"solo own-gear intermission refill remains unchanged");
+        mode.OnMatchEnd();
+
+        f=new Fixture(4,false);Settings.ZombieIntermissionSeconds.Value=0;mode=f.Mode();Tick(mode);
+        Check(ZombieSpawnService.Dispatched==1 && ZombieLoadoutRefill.Calls==0,"configured zero solo countdown begins wave one without an invented clearance/refill");
         mode.OnMatchEnd();
         Console.WriteLine($"ZOMBIE_TEAM_CHECKS_PASSED {_checks} assertions");
     }

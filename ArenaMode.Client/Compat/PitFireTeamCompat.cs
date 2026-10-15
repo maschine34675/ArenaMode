@@ -1425,7 +1425,12 @@ internal static partial class PitFireTeamCompat
     {
         PitFireTeamRoundLifecycle.TickPendingRawPlayerCompletions();
 
-        if (LiveTeamArena && !RoundTransitionActive)
+        // During an exact Zombie team's terminal result, its last followers may
+        // already be disposing. Continue draining creation completions above;
+        // only the obsolete live-roster poll stops, never persistence protection.
+        bool zombieResult = Modes.ArenaMatchService.Current?.Mode is Modes.ZombieMode zombie
+            && zombie.TeamResultOwnsCurrentRaid;
+        if (LiveTeamArena && !RoundTransitionActive && !zombieResult)
             _ = GetLiveFollowers();
     }
 
