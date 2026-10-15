@@ -92,3 +92,9 @@ Repeat with own gear containing no RGD-5, a fresh loadout/respawn and a full rig
 confirm manual hold-G selection remains authoritative and the protected profile
 returns unchanged after leaving.
 
+The subsequent [GPU2 follow-up report](GPU-FOLLOWUPS-20261015.md) verifies the
+three-item kit, G selecting the extra incendiary, original grenade preservation
+and ordinary behavior, and no duplicate on an off/on toggle. Cold-pool own gear
+and full-rig handling remain covered by the offline boundary checks rather than
+a separately repeated native scenario.
+

@@ -1,5 +1,13 @@
 # Protected Zombie survival with PitFireTeam — 2026-10-08
 
+## Opening countdown and PMC refill — 2026-10-15
+
+[ZOMBIE-WAVE-REFILL-20261015.md](ZOMBIE-WAVE-REFILL-20261015.md) supersedes
+the historical surviving-PMC exception below. A cleared wave also restores a
+living PMC's entry gear through the protected body-replacement path. The first
+wave waits for team readiness and then the configured intermission countdown.
+The original implementation and test record below is retained as history.
+
 ## Current roster extension — 2026-10-13
 
 [PFT-SQUAD-SIZE-REVIEW.md](PFT-SQUAD-SIZE-REVIEW.md) supersedes the historical
@@ -8,8 +16,8 @@ that exact count and account/profile mapping frozen before arming. Tactical stil
 has five opponents. Wipe, reconstruction and spectator checks require every
 frozen member; a missing member never reduces the expected roster. Solo defaults
 are 32 alive / 50 first wave / growth 20 / own gear, preserving saved preferences.
-The surviving-PMC refill limitation below remains unchanged and is now explicit
-in the menu.
+At that milestone the surviving-PMC refill limitation remained unchanged; the
+October 15 extension above replaces it.
 
 ## Map admission correction — 2026-10-09
 

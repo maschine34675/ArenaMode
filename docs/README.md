@@ -8,6 +8,10 @@ build/deployment JSON records live here. The automatically discovered
 
 - [Current handoff and test status](HANDOFF.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
+- [Latest player-session log review](LOG-REVIEW-20261015-EVENING.md)
+- [Zombie opening countdown and protected gear refill](ZOMBIE-WAVE-REFILL-20261015.md)
+- [Additional Molotov supply](MOLOTOV-SUPPLY-20261015.md)
+- [Native acceptance of the October 15 follow-ups](GPU-FOLLOWUPS-20261015.md)
 - [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
 - [Future work](FUTURE-WORK.md)
 - [Variable protected PitFireTeam squads](PFT-SQUAD-SIZE-REVIEW.md)

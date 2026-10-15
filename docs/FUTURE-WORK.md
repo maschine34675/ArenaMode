@@ -5,6 +5,14 @@ work unless a section explicitly records implementation or test progress with
 a linked review. Recheck current source and saved configuration when resuming.
 Read `AGENTS.md` and `HANDOFF.md` first.
 
+## Confirmed supply limits from the 2026-10-15 player log
+
+- Gun Game's M60 promotion could not place either 2x2 spare box in the current
+  equipment; an Enforcer respawn also lacked a compatible 2x2 cell for its Grizzly.
+  Reproduce the actual kit/rung combinations and improve supply placement without
+  evicting player/protected items. Do not suppress the warning as a fix.
+  [Evidence and attribution](LOG-REVIEW-20261015-EVENING.md).
+
 ## Zombie follow-ups from the 2026-10-09 performance test
 
 - Pending wave-clear admission fixed in `5637ce7`, including delayed requests,

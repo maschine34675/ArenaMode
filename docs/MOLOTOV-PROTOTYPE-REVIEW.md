@@ -1,5 +1,13 @@
 # Arena incendiary prototype — 2026-09-30
 
+## Supply correction — 2026-10-15
+
+[Additional Molotov supply](MOLOTOV-SUPPLY-20261015.md) replaces the original
+all-local-RGD conversion rule below. One separately tracked extra item is granted
+in free rig/pocket space and initially preferred by G. Existing grenades remain
+native. The donor model/name and all fire/geometry/safety contracts are unchanged.
+The remainder records the original prototype.
+
 ## Player-facing contract
 
 Since 2026-10-12, use **MOLOTOV (WIP)** in the map-screen mutators or F12,

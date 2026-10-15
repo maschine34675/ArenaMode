@@ -93,7 +93,7 @@ The unchanged real loadout snapshot has its separate `TeamArenaLoadoutChecks`
 suite. Final staged build, installed hash, native acceptance and profile/store
 restoration evidence belong to the dated handoff and GPU report.
 
-## Native acceptance still required
+## Native acceptance matrix
 
 With one to four real invited companions, spend ammunition and consumables,
 clear a wave alive and verify the entry gear returns before the next countdown.
@@ -102,3 +102,10 @@ count, no duplicate leader, active movement/weapon controls, and a normal wipe
 without a new physical-roster error. Compare the player profile and PFT stores
 before/after protected exit. Also exercise the opening pause in solo kit and own
 gear modes. These checks are not claimed by the offline fixtures above.
+
+The subsequent [GPU2 follow-up report](GPU-FOLLOWUPS-20261015.md) records the
+observed opening countdown, real ammunition consumption and survivor refill
+with one companion, dead-leader restoration with two companions, terminal wipe
+and manual protected exit. It distinguishes the real infected death from the
+second run's native test death hook. It does not claim every companion count,
+consumable type or solo loadout combination was repeated in-game.

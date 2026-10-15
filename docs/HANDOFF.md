@@ -7,6 +7,68 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Evening player-session follow-ups (2026-10-15):** `f0a6805` adds the first
+  Zombie-wave countdown after player/kit/team readiness and restores a surviving
+  protected PFT leader's entry gear between waves using the existing guarded
+  live-body replacement. Dead-player authorization remains separate. It also
+  stops obsolete live-roster polling during the exact terminal Zombie result;
+  pending completion retirement and persistence guards remain active.
+  `0cd9a48` adds one separately tracked Molotov in free rig/pocket space, preserving
+  all original RGD-5s and preferring the extra once for G. No free slot means no
+  bonus or displacement; the prototype still has the RGD-5 model/icon/name.
+  Zombies remain excluded from Molotov. Own-gear donation waits for native pools
+  and follows entry-snapshot capture; each fresh restored equipment tree gets
+  one bonus, never an extra on toggle or after consumption.
+  Optional KillcamReplay `97c6f4e` / **0.9.13** halves only the Arena live tail:
+  configured 5 s becomes 2.5 s. Recorded playback, slow motion, fades, ordinary
+  raids, saved config and Arena spectator ownership are unchanged.
+  Client staged build: four existing nullable warnings, zero errors; Killcam:
+  zero warnings/errors. Units **968 passed / 2 skipped**; ZombieTeam **176/18**,
+  ZombieSolo **85/13**, WavePending **49 + 33/12**, Molotov **89/13** (assertions /
+  rejected compiled mutants), real protected snapshot **142**; Arena killcam
+  **170/8**, Killcam handoff **72**. Independent four-pass reviews clean.
+  Initial native-test client SHA256
+  `0082D8B2DA7F62F35926F74349FB1F9C8500FC2D9E8B2C881EDB9884FA6A0629`,
+  MVID `dce31fc7-e3b6-4209-98f3-61a75069eee1`. Native testing then found the same
+  obsolete poll after manual Stop. `98c70c8` gates that poll on the committed
+  `Stopping`/`Stopped` state of the exact active game/world; it does not use
+  StandDown or change persistence/finalization. Exit checks **81 / 8 mutants**.
+  `95ca98a` repairs the native preview harness's missing Debug logger fixture
+  member exposed by this regression run. The complete UI interaction wrapper
+  then passes: exit **81/8**, native menu **640**, preview **52/5** and preview
+  host **676/16**; the native-hook compilation also passes without warnings.
+  Final installed client SHA256
+  `25263FA2CE310CEE938EB684930B64C98ECE36D22E2854E52FAF11945DB95F29`,
+  MVID `8323d860-1771-4872-ab4c-90ff96773201`. Killcam SHA256
+  `26809E10FE8C676A10A93CC298D22372FCEA9F7E6BC48FE2E61D365F58D98350`,
+  MVID `bf63cc87-ea36-4c24-a370-6ad72183360d`. Final server/BigBrain bytes match
+  the logging release below; Core/audio/config not deployed. The first unit
+  invocation unintentionally auto-copied its Debug server DLL; the exact original
+  release was restored and verified before the GPU start. Further unit runs use
+  an explicit nonexistent `SPTUserMods` target to prevent that build side effect.
+  GPU2 native acceptance passed: full ten-second opening pause, seven real
+  rounds spent then restored on a surviving leader, and a separate dead-leader
+  wave rebind with actual one-/two-companion squads. Terminal wipe and the final
+  manual-exit retest were clean. Molotov supplied three total grenade identities,
+  G selected the extra for fire, and the next original grenade remained ordinary.
+  Replay LiveHold measured **2.50004768 s** with a configured 5 s; the recorded
+  replay was unchanged. The final process had zero Errors. Cold-pool own gear,
+  full-rig supply and all-map/all-kit coverage are not claimed by these raids.
+  All **304** stored config values restored; all **12** PFT files byte-identical;
+  complete inventory (**401** items) and protected progress match before/after.
+  Health values match; only its native UpdateTime clock advanced. Final state:
+  MainMenu, hooks off, control free, **19/19** loaded assemblies matching.
+  Private snapshots/build manifests stay in `artifacts/followups-20261015/`.
+  The user's latest Customs Yard/PFT Zombies and Equator/Gun Game logs show both
+  protected server completions, 50 + 70 infected arrivals despite five recovered
+  preparation failures, and genuine capacity failures for M60 reserves and an
+  Enforcer Grizzly. Those capacity issues remain open. No new BotMemory damage
+  exception. Full attribution: [evening log review](LOG-REVIEW-20261015-EVENING.md).
+  Contracts: [Zombie refill](ZOMBIE-WAVE-REFILL-20261015.md),
+  [Molotov supply](MOLOTOV-SUPPLY-20261015.md),
+  [replay integration](KILLCAM-MODES-REVIEW.md),
+  [GPU follow-up acceptance](GPU-FOLLOWUPS-20261015.md).
+
 - **Logging cleanup (2026-10-15):** Implementation and regression fixtures in
   `6dc2e59`; no gameplay rules changed. Info now carries player-relevant events,
   ordinary technical details use Debug, and detailed probes require the new

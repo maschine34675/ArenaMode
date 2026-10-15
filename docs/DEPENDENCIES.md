@@ -31,7 +31,7 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 | PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | Vier Begleiter für Tactical 5v5 und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
 | APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
 | ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein | Bay5 und Equator. Keine Pflicht für die gewöhnlichen SPT-Karten. |
-| KillcamReplay | Schnittstellenprüfung statt fester Versionsfreigabe; installiert 0.9.12 | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
+| KillcamReplay | Schnittstellenprüfung statt fester Versionsfreigabe; Arena-Live-Nachlauf ab 0.9.13 halbiert | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
 | DynamicMaps | Leichenmarker-Adapter für 1.2.1 | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
 | Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
 

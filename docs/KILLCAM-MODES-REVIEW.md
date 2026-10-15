@@ -6,6 +6,14 @@ Stand: 30.09.2026. Native Referenz ist die lokale KillcamReplay-Implementierung
 KillcamReplay bleibt eine optionale, separat installierte Mod; keine neue DLL
 oder fremder Quellcode wird gebündelt.
 
+Ergänzung 15.10.2026: KillcamReplay 0.9.13 halbiert in aktiven Arena-Raids den
+konfigurierten Live-Nachlauf (normal 2,5 statt 5 Sekunden). Die aufgezeichnete
+Replaylänge, Zeitlupe, Übergangsblenden und der Arena-Team-Zuschauermodus bleiben
+unverändert. Playback und Wartegrenze verwenden denselben wirksamen Wert;
+gewöhnliche Raids und gespeicherte Einstellungen werden nicht verändert.
+Die Umsetzung gehört zur separat gebauten KillcamReplay-Mod, nicht zu einem
+Arena-Patch auf deren Konfiguration. Build und Spielabnahme stehen im Handoff.
+
 ## Auswahl und Lebensdauer
 
 Im Kartenauswahlbildschirm steht rechts dauerhaft die MUTATORS-

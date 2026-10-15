@@ -17,9 +17,10 @@ Area capacity and the protected server transaction stay unchanged. Tactical stil
 needs five enemy starts. Equator's existing PFT exclusions remain in place.
 
 Zombie defaults become 32 alive, 50 first-wave infected, growth 20, own gear.
-Saved user settings are preserved. Solo replenishes ammunition each wave; PFT
-reconstructs companions but leaves a surviving PMC's equipment and ammunition
-unchanged. Menu text must distinguish these paths.
+Saved user settings are preserved. At this milestone solo replenished ammunition
+each wave while PFT only reconstructed companions. The October 15 follow-up
+[restores the surviving PMC's entry gear as well](ZOMBIE-WAVE-REFILL-20261015.md);
+the menu now describes that shared refill behavior.
 
 ## Acceptance checks
 
