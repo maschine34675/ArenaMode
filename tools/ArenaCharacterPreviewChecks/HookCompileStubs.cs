@@ -12,6 +12,7 @@ namespace ArenaMode
     internal sealed class PreviewCompileLogger
     {
         public void LogInfo(object _) { }
+        public void LogDebug(object _) { }
         public void LogWarning(object _) { }
     }
 }
