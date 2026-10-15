@@ -23,6 +23,20 @@ internal static class ArenaRaidExit
 
     public static void Enable() => new LeavePatch().Enable();
 
+    // Native Stop marks Stopping before it disposes bots. The Arena session
+    // remains active through that fade; an intent/StandDown flag alone does not
+    // prove teardown began (a synchronous Stop failure can leave the raid live).
+    internal static bool NativeStopOwnsCurrentRaid
+    {
+        get
+        {
+            var game = Singleton<AbstractGame>.Instance as LocalGame;
+            var world = Singleton<GameWorld>.Instance;
+            return IsCurrent(game, world) && ReferenceEquals(game.GameWorld, world)
+                && (game.Status == GameStatus.Stopping || game.Status == GameStatus.Stopped);
+        }
+    }
+
     // Return true only when this service owns the native leave request.
     internal static bool Request(LocalGame game)
     {

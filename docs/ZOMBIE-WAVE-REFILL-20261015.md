@@ -55,6 +55,16 @@ all staging, live, rebind and persistence checks stay active. The log did not
 prove which rejected body reference changed, so it is not described as an
 actual unauthorized replacement spawn.
 
+The subsequent GPU run found the related manual-exit case: native `Stop(Left)`
+already disposed a living follower while the Arena session remained active
+through the fade. `ArenaRaidExit.NativeStopOwnsCurrentRaid` now recognizes only
+`Stopping`/`Stopped` on the exact confirmed game/world and its actual world
+reference. The compatibility tick skips its obsolete poll at that boundary as
+well. `Started + StandDown`, failed stops and foreign/missing game-world pairs
+retain observation. No intent flag replaces proof of native commit; creation
+completion draining and persistence suppression are unchanged.
+Production-linked UI/exit checks cover these cases and compiled counterexamples.
+
 ## Offline verification
 
 The checks execute production mode/coordinator source, with explicit native

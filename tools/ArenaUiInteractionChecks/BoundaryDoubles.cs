@@ -12,6 +12,7 @@ namespace EFT
     public class GameWorld { public Player MainPlayer; }
     public class LocalGame : BaseLocalGame<EftGamePlayerOwner>
     {
+        public GameWorld GameWorld;
         public string ProfileId = "local";
         public Player LocalPlayer = new();
         public EftGamePlayerOwner Owner;
@@ -69,7 +70,10 @@ namespace ArenaMode.Session
     public static class ArenaSession
     {
         public static bool IsActive, Exact;
-        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact;
+        public static EFT.AbstractGame StartedGame;
+        public static EFT.GameWorld StartedWorld;
+        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world)
+            => Exact && ReferenceEquals(game, StartedGame) && ReferenceEquals(world, StartedWorld);
     }
 }
 namespace ArenaMode

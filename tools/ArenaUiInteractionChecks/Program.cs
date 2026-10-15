@@ -19,6 +19,8 @@ void Check(bool value, string name) { if (!value) throw new InvalidOperationExce
     UnityEngine.Time.timeScale = 1;
     var game = new LocalGame(); game.Owner = new() { Player = game.LocalPlayer };
     var world = new GameWorld { MainPlayer = game.LocalPlayer };
+    game.GameWorld = world;
+    ArenaSession.StartedGame = game; ArenaSession.StartedWorld = world;
     Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
     MonoBehaviourSingleton<PreloaderUI>.Instance = new();
     return (game, world);
@@ -84,6 +86,26 @@ RespawnEngineState.IsPipelineRunning = false; ArenaRaidExit.Tick();
 Check(!notificationEscaped && game.Calls == 1, "notification failure cannot discard pending exit");
 (game, world) = Fresh(); LocalGameAccessor.Throw = NotificationManager.Throw = true;
 ArenaRaidExit.Request(game); Untouched(game, "owner access fault contained");
+
+foreach (GameStatus status in Enum.GetValues<GameStatus>())
+foreach (bool hold in new[] { false, true })
+{
+    (game, world) = Fresh(); game.Status = status; ArenaRespawnDriver.StandDown = hold;
+    Check(ArenaRaidExit.NativeStopOwnsCurrentRaid == (status is GameStatus.Stopping or GameStatus.Stopped),
+        "only committed native status ends roster observation: " + status + "/" + hold);
+}
+Action[] foreignStop = [() => ArenaSession.IsActive = false, () => ArenaSession.Exact = false,
+    () => Singleton<AbstractGame>.Instance = null, () => Singleton<GameWorld>.Instance = null,
+    () => Singleton<AbstractGame>.Instance = new LocalGame { Status = GameStatus.Stopping, GameWorld = world },
+    () => Singleton<GameWorld>.Instance = new(), () => game.GameWorld = new()];
+foreach (var invalidateStop in foreignStop)
+{
+    (game, world) = Fresh(); game.Status = GameStatus.Stopping; invalidateStop();
+    Check(!ArenaRaidExit.NativeStopOwnsCurrentRaid, "foreign or absent native stop cannot suppress roster observation");
+}
+(game, world) = Fresh(); game.Before = () => throw new Exception("precommit");
+ArenaRaidExit.Request(game);
+Check(!ArenaRaidExit.NativeStopOwnsCurrentRaid, "failed native stop keeps roster observation");
 
 var repo = Path.GetFullPath(args[0]);
 // Verify the installed native seam without loading Unity or executing EFT.

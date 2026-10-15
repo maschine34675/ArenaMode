@@ -16,6 +16,8 @@ $baseline = Invoke-Case 'Release' $sourcePath
 if ($baseline.Code -ne 0 -or !$baseline.Text.Contains('ARENA_EXIT_CHECKS_PASSED')) { throw $baseline.Text }
 $baseline.Text.Trim() | Write-Output
 $mutations = @(
+    @{ Name='StandDownIsNotCommit'; From='&& (game.Status == GameStatus.Stopping || game.Status == GameStatus.Stopped);'; To='&& ArenaRespawnDriver.StandDown;'; Failure='only committed native status ends roster observation' },
+    @{ Name='ForeignStopWorld'; From='IsCurrent(game, world) && ReferenceEquals(game.GameWorld, world)'; To='IsCurrent(game, world)'; Failure='foreign or absent native stop cannot suppress roster observation' },
     @{ Name='PipelineBypass'; From='if (RespawnEngineState.IsPipelineRunning)'; To='if (false)'; Failure='unsafe exit untouched 0' },
     @{ Name='PausedExit'; From='if (Time.timeScale <= 0f)'; To='if (false)'; Failure='unsafe exit untouched 1' },
     @{ Name='ForeignOwner'; From='!ReferenceEquals(owner.Player, local)'; To='false'; Failure='unsafe exit untouched 3' },
