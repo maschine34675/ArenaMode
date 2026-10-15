@@ -1,7 +1,8 @@
 # Additional Molotov supply — 2026-10-15
 
 This supersedes the supply/conversion rule in the September 30 prototype review.
-The damage, geometry, bot escape, attribution and teardown contracts are unchanged.
+The dedicated-item integration later that evening is recorded in
+[MOLOTOV-NATIVE-INTEGRATION-20261015.md](MOLOTOV-NATIVE-INTEGRATION-20261015.md).
 
 ## Player behavior
 
@@ -12,10 +13,10 @@ their native identity, placement and ordinary behavior. Only the added item's
 exact process-local identity creates fire. G initially prefers that item; a later
 manual grenade selection is never overwritten by our ticks.
 
-The prototype still uses the RGD-5 model, icon and displayed name. It has no new
-server template or bottle asset. The added item is behaviorally separate despite
-that visual limitation. Off means native grenade behavior; disabling still retires
-pending owned fire/projectiles safely, without deleting inventory items.
+The supplied item is now the private Arena Molotov, with its own name, bottle
+model and icon. Its native blast is always harmless, including when the mutator
+is off. Disabling retires pending owned fire/projectiles safely, without deleting
+inventory items. Ordinary RGD-5s are never a fallback or conversion target.
 
 Supply is once per equipment tree, not once per tick or grenade throw. Spending,
 dropping, toggling off/on or merely advancing the round counter cannot mint more.
@@ -35,11 +36,14 @@ busy state, and accepts only `Player.SinglePlayerInventoryController`.
 The grant occurs after match setup captured protected own-gear entry snapshots.
 Consequently later own-gear restores exclude the temporary bonus and receive one
 new bonus on their fresh equipment, rather than copying and adding it repeatedly.
-No profile persistence path, template, kit catalog or protection rule is changed.
+The registered private template is separate from ordinary items. No profile
+persistence path, kit catalog or protection rule is changed by the live grant.
 
-Before granting, a donor-only `KitBundlePreloader.Preload` request reuses the
+Before granting, the exact confirmed raid must carry the server's private-item
+capability and its native client template must pass a harmlessness check. A private-item-only `KitBundlePreloader.Preload` request reuses the
 existing per-template resource cache. Both native factories must be present;
-the new read-only `IsTemplateWarmed` query confirms success. This matters for
+the read-only `IsTemplateWarmed` query confirms the subsequent pool preparation.
+A warm-cache entry alone is not template validation. This matters for
 own-gear entry with no RGD-5: adding an unpooled item can otherwise break native
 hands-controller creation. Work is hosted on the local game, never a replaceable
 body. Exact world/match generation checks reject stale asynchronous completions.

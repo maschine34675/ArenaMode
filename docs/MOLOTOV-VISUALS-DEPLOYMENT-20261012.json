@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-12",
+  "branch": "feature/molotov-item",
+  "clientSourceCommit": "19c8fb07303e306e3809ae3a7789344245d08ee8",
+  "sourceChangesAtBuild": [],
+  "clientSha256": "65BED593E76F07161712554B18884EC87EEF239DD3CDB03F7E63B30A18F0BAA5",
+  "loadedClientMvid": "fd62569d-bc98-4864-8fab-9b979688183a",
+  "buildManifest": "artifacts/double-jump-build/e75f20cc157a4144a05febccb68550fc/manifest.json",
+  "deploymentManifest": "artifacts/molotov-visual-v3/manifest.json",
+  "deployment": "Only the client DLL was replaced on stopped GPU1 and synchronized bidirectionally to local/GPU2. No server or companion deployment; idle GPU2 game restarted separately without a server restart or raid test.",
+  "gpu2": {
+    "instance": "5a0aae65",
+    "startedLocal": "2026-10-12T12:21:02+02:00",
+    "state": "MainMenu",
+    "pluginBinding": "19/19 local, disk and loaded plugin identities agree; Core unchanged",
+    "raidTest": false
+  },
+  "rejectedV2": {
+    "source": "26b8ff8a5640ed1240a4241814b4e04fd313015c",
+    "clientSha256": "682366C6A26A065207B324CE907C1336B5AD545879DA2C46EAB87B843E245319",
+    "deploymentManifest": "artifacts/molotov-visual-v2/manifest.json",
+    "reason": "Native base too bright; broad coverage retained but lowered and made translucent in v3"
+  },
+  "unchanged": {
+    "serverAndCompanionSource": "4fd79815d6a8dcd15f4d06d4cf5e0d1543d0b998",
+    "maschine-ArenaMode.Server.dll": "BFDD201F1BF6B8DC2BE868E23780234AA79B8E0DDA970A46B52D560C58676A60",
+    "maschine-ArenaMode.BigBrainCompat.dll": "0C4AC3763CCB170CBD69733AE6765C342136FA9C2CCE8124A2EF4722D95F7AE1",
+    "maschine-Redeploy.Core.dll": "A32326C85C7AD397DA3D2E23BFCB46ADA5375A06987ECCCF8CC804F554BD970D"
+  },
+  "offline": {
+    "clientBuildErrors": 0,
+    "existingClientWarnings": 4,
+    "runtimeAssertions": 103,
+    "nativeRendererClaimFromHarness": false,
+    "independentReview": "No open P0-P2; rotation units checked against installed Unity, partial construction and shared resource cleanup reviewed"
+  },
+  "scope": "Only ArenaFireView presentation; damage, geometry, bot avoidance, item supply, model and audio methods unchanged",
+  "nativeReport": "GPU-MOLOTOV-VISUALS-RESULTS-20261012.md",
+  "nativeVisual": {
+    "acceptedSample": "artifacts/molotov-visual-v3/open-preview.png; original frame 130 in open-shallow capture",
+    "finding": "Root inspected broad orange base and individually visible varied tongues without the V2 yellow washout or obvious quad edges in this view",
+    "limitation": "Second intended downward sample was obscured by close contact effects after a bounced bottle; not counted as another visual pass. No matched A/B or all-angle acceptance."
+  },
+  "postRaidAudit": {
+    "compared": "Complete profile after login versus protected exit and after logout",
+    "profileChange": "Hideout clock only; startup Health.UpdateTime change already present before raid",
+    "inventoryIdsBeforeAndAfter": 422,
+    "unchangedPftFiles": 33,
+    "configDifferencesAfterRestore": 0,
+    "evidence": "artifacts/molotov-visual-v3/post-login-diff.json and logout/audit.json"
+  },
+  "acceptance": "V3 bounded native visual sample accepted. No full combat or worst-case rendering acceptance implied"
+}

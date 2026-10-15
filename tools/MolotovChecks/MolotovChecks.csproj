@@ -7,6 +7,8 @@
     <SupplySource Condition="'$(SupplySource)'==''">../../ArenaMode.Client/Combat/Fire/ArenaFireSupply.cs</SupplySource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/ArenaMolotovItem.cs" Link="Production/Item.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaFriendlyFire.cs" Link="Production/FriendlyFire.cs" />
     <Compile Include="Program.cs" /><Compile Include="Stubs.cs" />
     <Compile Include="$(PolicySource)" Link="Production/Policy.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/Runtime.cs" />

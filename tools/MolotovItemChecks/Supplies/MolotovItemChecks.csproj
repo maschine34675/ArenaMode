@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <RegistrationSource Condition="'$(RegistrationSource)'==''">../../../ArenaMode.Server/Services/ArenaMolotovRegistration.cs</RegistrationSource>
+    <SuppliesSource Condition="'$(SuppliesSource)'==''">../../../ArenaMode.Server/Services/ArenaKitSupplies.cs</SuppliesSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove=".work/**;obj/**;bin/**" />
+    <Compile Include="../../KitPolishChecks/Supplies/Program.cs" Link="Checks/Program.cs" />
+    <Compile Include="../../KitPolishChecks/Supplies/StandIns.cs" Link="Boundary/StandIns.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitBuilder.cs" Link="Production/KitBuilder.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitMerge.cs" Link="Production/KitMerge.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitBundlePreloader.cs" Link="Production/KitBundlePreloader.cs" />
+    <Compile Include="../../../ArenaMode.Client/Kits/KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../../ArenaMode.Shared/ArenaMolotovItem.cs" Link="Production/ArenaMolotovItem.cs" />
+    <Compile Include="$(RegistrationSource)" Link="Production/ArenaMolotovRegistration.cs" />
+    <Compile Include="$(SuppliesSource)" Link="Production/ArenaKitSupplies.cs" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.DI" Version="4.1.0" />
+  </ItemGroup>
+</Project>

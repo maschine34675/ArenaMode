@@ -12,7 +12,7 @@ using TemplateItem = SPTarkov.Server.Core.Models.Eft.Common.Tables.TemplateItem;
 using SPTarkov.Server.Core.Utils.Json;
 using Grid = EFT.InventoryLogic.Grid;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private static void Check(bool condition,string message)
@@ -31,6 +31,7 @@ internal static class Program
         var options=new JsonSerializerOptions{DefaultIgnoreCondition=JsonIgnoreCondition.WhenWritingNull};
         foreach(var converter in new SptJsonConverterRegistrator().GetJsonConverters())options.Converters.Add(converter);
         var templates=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,TemplateItem>>(raw,options)!;
+        RegisterMolotov(templates,db);
         var supplies=new ArenaKitSupplies(templates.Values);
         foreach(string path in new[]{Path.Combine(root,"ArenaMode.Server/defaults/kits.json"),Path.GetFullPath(Path.Combine(Path.GetDirectoryName(database)!,"../../../user/mods/ArenaMode/config/kits.json"))})
         {
@@ -64,6 +65,9 @@ internal static class Program
         PlacementFixtures();
         Console.WriteLine($"KIT_SUPPLIES_ASSERTIONS_PASSED: {_checks}");
     }
+    // Omitted entirely in the historical harness; the private-item harness adds
+    // registration/native-service checks without changing any packing assertion.
+    static partial void RegisterMolotov(Dictionary<string,TemplateItem> templates,JObject database);
     private static InventoryEquipment Build(KitDefinition kit)
     {
         var equipment=new InventoryEquipment();

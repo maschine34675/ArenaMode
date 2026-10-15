@@ -201,8 +201,12 @@ internal static class CombatPatches
                     Headshot = bodyPart == EBodyPart.Head && !Fire.ArenaFireRuntime.OwnsDamage(__instance, aggressor, lethalDamageType),
                     KillerBodyId = ArenaHitHistory.BodyId(aggressor),
                     VictimBodyId = ArenaHitHistory.BodyId(__instance),
-                    ScoreEligible = !TeamDeathmatchRelations.Enabled
-                        || TeamDeathmatchRelations.AreOpponents(aggressor, __instance),
+                    // Attributed fire can now hurt PFT teammates when friendly
+                    // fire is enabled. Health admission must not reward team kills.
+                    ScoreEligible = (!TeamDeathmatchRelations.Enabled
+                        || TeamDeathmatchRelations.AreOpponents(aggressor, __instance))
+                        && (!Fire.ArenaFireRuntime.OwnsDamage(__instance, aggressor, lethalDamageType)
+                            || IsAwardEligible(match, __instance, aggressor, lethalDamageType)),
                     AwardEligible = IsAwardEligible(match, __instance, aggressor, lethalDamageType),
                     SingleHitHeadshot = ArenaHitHistory.IsSingleHitHeadshot(
                         __instance, aggressor, lethalDamageType == EDamageType.Bullet,

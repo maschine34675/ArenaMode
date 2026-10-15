@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -44,6 +45,46 @@ internal static partial class Program
 
     private static LocalRaidSettings Request(ESideType side = ESideType.Pmc, string map = "factory4_day")
         => new() { playerSide = side, location = map, transitionType = ELocationTransition.Common };
+
+    private static void CheckMolotovAvailability()
+    {
+        var fields = new[] { "_pendingArmToken", "_activeArmToken", "_molotovArmToken",
+            "_boundNativeEndIdentity", "<HasPendingArm>k__BackingField", "<HasPendingEnd>k__BackingField" }
+            .Select(name => typeof(ArenaServerClient).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)).ToArray();
+        var saved = fields.Select(field => field.GetValue(null)).ToArray();
+        var previousPost = RequestHandler.Post;
+        void Set(string name, object value) => fields.Single(field => field.Name == name).SetValue(null, value);
+        try
+        {
+            foreach (var capability in new[] { "true", "false", "null", "\"true\"" })
+            {
+                var token = Guid.NewGuid().ToString("N");
+                Set("_pendingArmToken", token);
+                Set("_boundNativeEndIdentity", "native-end");
+                Set("<HasPendingArm>k__BackingField", true);
+                RequestHandler.Post = (route, body) => "{\"confirmed\":true,\"molotovAvailable\":" + capability + "}";
+                Assert(ArenaServerClient.ConfirmRaidStarted(), "optional Molotov capability does not reject a protected raid");
+                Assert(ArenaServerClient.MolotovAvailableForConfirmedRaid == (capability == "true"),
+                    "only explicit boolean server capability authorizes Molotov supply");
+                Set("_activeArmToken", Guid.NewGuid().ToString("N"));
+                Assert(!ArenaServerClient.MolotovAvailableForConfirmedRaid,
+                    "old Molotov capability cannot authorize another raid token");
+            }
+            Set("_pendingArmToken", Guid.NewGuid().ToString("N"));
+            Set("<HasPendingArm>k__BackingField", true);
+            RequestHandler.Post = (route, body) => "{\"confirmed\":false,\"molotovAvailable\":true}";
+            Assert(!ArenaServerClient.ConfirmRaidStarted() && !ArenaServerClient.MolotovAvailableForConfirmedRaid,
+                "unconfirmed raid cannot authorize a private Molotov");
+            RequestHandler.Post = (route, body) => "{\"confirmed\":true}";
+            Assert(ArenaServerClient.ConfirmRaidStarted() && !ArenaServerClient.MolotovAvailableForConfirmedRaid,
+                "older server without item capability supplies no placeholder");
+        }
+        finally
+        {
+            RequestHandler.Post = previousPost;
+            for (int i = 0; i < fields.Length; i++) fields[i].SetValue(null, saved[i]);
+        }
+    }
 
     public static void Main()
     {
@@ -309,6 +350,7 @@ internal static partial class Program
         CheckAreaTeamMenu();
         CheckParticipantNegotiation();
         CheckSessionModeCaption();
+        CheckMolotovAvailability();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

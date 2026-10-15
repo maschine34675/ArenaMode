@@ -78,7 +78,7 @@ namespace EFT.InventoryLogic
     public enum EquipmentSlot { TacticalVest, Pockets }
     public enum CommandStatus { Begin, Succeed }
     public class Item { public string TemplateId; }
-    public class ThrowWeap:Item { public ThrowWeap(){TemplateId=ArenaMode.Combat.Fire.ArenaFirePolicy.DonorTemplate;} }
+    public class ThrowWeap:Item { public ThrowWeap(){TemplateId=ArenaMode.Shared.ArenaMolotovItem.DonorTemplateId;} }
     public class CompoundItem:Item { public Grid[] Grids={new()}; }
     public class Slot { public Item ContainedItem=new CompoundItem(); }
     public class Location { }
@@ -120,9 +120,17 @@ namespace EFT.InventoryLogic
             return new();
         }
     }
+    public class ItemTemplate { }
+    public class ThrowWeapTemplate:ItemTemplate
+    {
+        public float Strength,MinExplosionDistance,MaxExplosionDistance,ExplDelay=3.5f,MinTimeToContactExplode=-1;
+        public int FragmentsCount;public Vector3 Contusion,Blindness,ArmorDistanceDistanceDamage;
+        public string ExplosionEffectType="";public bool CanPlantOnGround,PlayFuzeSound;
+    }
     public class ItemFactory
     {
         public string NextId=>Guid.NewGuid().ToString();public int Created;
+        public Dictionary<string,ItemTemplate> ItemTemplates=new() { [ArenaMode.Shared.ArenaMolotovItem.TemplateId]=new ThrowWeapTemplate() };
         public Item CreateItem(string id,string tpl,object upd){Created++;return new ThrowWeap{TemplateId=tpl};}
     }
 }
@@ -141,15 +149,30 @@ namespace EFT
     {
         public string ProfileId {get;set;} public bool IsAI,IsYourPlayer;public Vector3 Position;
         public Health ActiveHealthController=new(); public Health HealthController=>ActiveHealthController;
-        public ItemHandsController HandsController=new(); public AIData AIData;
+        public ItemHandsController HandsController=new();
         public EFT.InventoryLogic.InventoryController InventoryController=new SinglePlayerInventoryController();
-        public class SinglePlayerInventoryController:EFT.InventoryLogic.InventoryController { }
+        public class SinglePlayerInventoryController:EFT.InventoryLogic.InventoryController { } public AIData AIData;
         public float Taken;public IPlayer LastSource;public bool Scoped;
+        public EFT.InventoryLogic.ThrowWeap LastWeapon;public string LastSourceId;public EDamageType LastDamageType;
+        public bool Protected;public int AdmissionCalls,Deaths;public Action<DamageInfo> OnDeath;
         public virtual void ApplyDamageInfo(DamageInfo info,EBodyPart part,EBodyPartColliderType collider,float absorbed)
         {
+            AdmissionCalls++;
+            if(!HealthController.IsAlive)return;
+            // Boundary double for the real ApplyDamageInfo prefixes. The common
+            // production mutator is linked; team ledgers and protection are not.
+            if(Protected||ArenaMode.Combat.ArenaFriendlyFire.ShouldBlockFriendlyDamage(this,info.Player?.iPlayer))return;
             LastSource=info.Player?.iPlayer;
+            LastWeapon=info.Weapon;LastSourceId=info.SourceId;LastDamageType=info.DamageType;
             Scoped=ArenaMode.Combat.Fire.ArenaFireRuntime.OwnsDamage(this,LastSource,info.DamageType);
             float amount=info.Damage*Comfort.Common.Singleton<GlobalConfiguration>.Instance.Health.ProfileHealthSettings.BodyPartsSettings[part].EnvironmentDamageMultiplier;
+            if(ActiveHealthController.TrackHealth)
+            {
+                var hp=ActiveHealthController.GetBodyPartHealth(part);amount=Math.Min(amount,hp.Current);hp.Current-=amount;
+                ActiveHealthController.Parts[part]=hp;
+                if(hp.Current<=0&&(part==EBodyPart.Head||part==EBodyPart.Chest))
+                {ActiveHealthController.IsAlive=false;Deaths++;OnDeath?.Invoke(info);}
+            }
             Taken+=amount;
         }
         public class ItemHandsController { public Player _player; }
@@ -157,8 +180,14 @@ namespace EFT
     }
     public class Health
     {
-        public bool IsAlive=true;
-        public HealthValue GetBodyPartHealth(EBodyPart part)=>new(){Current=100,Maximum=100};
+        public bool IsAlive=true,TrackHealth;
+        public Dictionary<EBodyPart,HealthValue> Parts=new();
+        public HealthValue GetBodyPartHealth(EBodyPart part)=>Parts.TryGetValue(part,out var hp)?hp:new(){Current=100,Maximum=100};
+        public void StandardProfile()
+        {
+            TrackHealth=true;float[] maxima={35,85,70,60,60,65,65};int i=0;
+            foreach(var part in Enum.GetValues<EBodyPart>())Parts[part]=new(){Current=maxima[i],Maximum=maxima[i++]};
+        }
     }
     public struct HealthValue { public float Current,Maximum; }
     public class Grenade : MonoBehaviour
@@ -177,10 +206,10 @@ namespace EFT
         public Player GetAlivePlayerByProfileID(string id)=>AllAlivePlayersList.FirstOrDefault(p=>p.ProfileId==id);
         public Player GetEverExistedPlayerByID(string id)=>GetAlivePlayerByProfileID(id);
     }
-    public class AbstractGame { }
+    public class AbstractGame { public GameStatus Status=GameStatus.Started; }
     public class LocalGame:AbstractGame
     {
-        public GameStatus Status=GameStatus.Started;public GameWorld GameWorld;
+        public GameWorld GameWorld;
         private readonly List<Stack<System.Collections.IEnumerator>> Jobs=new();
         public void StartCoroutine(System.Collections.IEnumerator routine)
         { var stack=new Stack<System.Collections.IEnumerator>();stack.Push(routine);Jobs.Add(stack);AdvanceCoroutines(); }
@@ -206,8 +235,9 @@ namespace ArenaMode
 }
 namespace ArenaMode.Session
 {
-    public static class ArenaSession { public static bool IsActive; public static bool IsExactActiveRaid(LocalGame g,GameWorld w)=>IsActive&&ReferenceEquals(g.GameWorld,w); }
+    public static class ArenaSession { public static bool IsActive,FriendlyFireEnabledSelection; public static bool IsExactActiveRaid(AbstractGame g,GameWorld w)=>IsActive&&g is LocalGame local&&ReferenceEquals(local.GameWorld,w); }
 }
+namespace ArenaMode.Session { public static class ArenaServerClient { public static bool MolotovAvailableForConfirmedRaid=true; } }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
 namespace ArenaMode.Combat { public static class WeaponSwapService { public static bool IsSwapping; } }
 namespace ArenaMode.Kits
@@ -230,10 +260,24 @@ namespace ArenaMode.Modes
     public static class ArenaMatchService { public static ArenaMatch Current;public static bool TeamStartAbortPending; }
     public class RoundsMode:IArenaMode { public bool Complete;public bool IsComplete=>Complete;public bool AssistScoringOpen=true;public Round Round=new(); }
     public class Round { public int Number=1; }
-    public class TacticalMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true;public int RoundNumber=1;public bool IsOpposingAwardKill(Player v,IPlayer p)=>v.IsAI; }
+    public class TacticalMode:IArenaMode
+    {
+        public bool IsComplete=>false;public bool AssistScoringOpen=true;public int RoundNumber=1;
+        public Func<Player,IPlayer,bool> FriendlyDamageRule=(v,a)=>false;
+        public bool ShouldBlockFriendlyDamage(Player v,IPlayer p)=>FriendlyDamageRule(v,p);
+        public bool IsOpposingAwardKill(Player v,IPlayer p)=>!FriendlyDamageRule(v,p);
+    }
     public class TeamDeathmatchMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true; }
     public class GunGameMode:IArenaMode { public bool IsComplete=>false;public bool AssistScoringOpen=true; }
-    public class ZombieMode:IArenaMode { public bool IsComplete=>false;public bool IsTeamArena;public bool IsOpposingAwardKill(Player v,IPlayer p)=>v.IsAI; }
+    public class ZombieMode:IArenaMode { public bool IsComplete=>false;public bool ShouldBlockFriendlyDamage(Player v,IPlayer p)=>false; }
+}
+namespace ArenaMode.Bots
+{
+    public static class TeamDeathmatchRelations
+    {
+        public static Func<Player,IPlayer,bool> FriendlyDamageRule=(v,a)=>false;
+        public static bool ShouldBlockFriendlyDamage(Player v,IPlayer a)=>FriendlyDamageRule(v,a);
+    }
 }
 namespace ArenaMode.Areas
 {
@@ -318,7 +362,12 @@ namespace ArenaMode.Pickups { public static class ArenaPickupRuntime { public st
 namespace ArenaMode.Combat.Fire
 {
     internal class ArenaFireView : IDisposable
-    { internal static int Alive;public ArenaFireView(IReadOnlyList<Vector3> v){Alive++;} public void Tick(float t){} public void Dispose(){Alive--;} }
+    {
+        internal static int Alive,ConstructorFailures,TickFailures,DisposeFailures;private bool disposed;
+        public ArenaFireView(IReadOnlyList<Vector3> v){if(ConstructorFailures-- > 0)throw new InvalidOperationException("visual constructor failure");Alive++;}
+        public void Tick(float t){if(TickFailures-- > 0)throw new InvalidOperationException("visual tick failure");}
+        public void Dispose(){if(!disposed){disposed=true;Alive--;}if(DisposeFailures-- > 0)throw new InvalidOperationException("visual disposal failure");}
+    }
 }
 
 // Explicitly enabled for these diagnostic-observation scenarios; the real

@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Dedicated Molotov correction (2026-10-15):** Integrates the existing
+  `feature/molotov-item` work through `93d614e`, which was absent from the prior
+  master build. The extra is now the private Arena Molotov with bottle, icon,
+  original fire visuals and synthesized audio. No ordinary RGD conversion or
+  fallback remains. Only the client live-grant supplies it; the old branch's
+  server kit addition is intentionally omitted to prevent duplicates and retain
+  the current mutator/own-gear behavior. Raid confirmation binds availability to
+  the exact registered server object and active token; client template readback
+  also guards grants and presentation/explosion hooks against foreign ID clashes.
+  Saved menu/F12 preference and logging policy are preserved. Server and client
+  both require restart. Source review is clean after the collision guard; exact
+  deployment/native evidence will be recorded separately after the fresh test.
+  See [integration contract](MOLOTOV-NATIVE-INTEGRATION-20261015.md).
+
 - **Evening player-session follow-ups (2026-10-15):** `f0a6805` adds the first
   Zombie-wave countdown after player/kit/team readiness and restores a surviving
   protected PFT leader's entry gear between waves using the existing guarded

@@ -1,5 +1,10 @@
 # Arena incendiary prototype — 2026-09-30
 
+Current integration (15 October): the private item/model is merged into the main
+branch. The single client live-grant replaces the historical server kit addition;
+existing RGDs remain untouched. See [current integration](MOLOTOV-NATIVE-INTEGRATION-20261015.md).
+The original dated implementation/testing below is retained as history.
+
 ## Supply correction — 2026-10-15
 
 [Additional Molotov supply](MOLOTOV-SUPPLY-20261015.md) replaces the original

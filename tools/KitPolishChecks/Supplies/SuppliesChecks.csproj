@@ -5,7 +5,9 @@
     <BuilderSource Condition="'$(BuilderSource)' == ''">../../../ArenaMode.Client/Kits/KitBuilder.cs</BuilderSource>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove=".work/**" />
+    <!-- Mutant builds use isolated intermediates; never compile a prior normal
+         build's generated assembly attributes as source. -->
+    <Compile Remove=".work/**;obj/**;bin/**" />
     <Compile Include="$(BuilderSource)" Link="Production/KitBuilder.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitMerge.cs" Link="Production/KitMerge.cs" />

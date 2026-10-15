@@ -1,0 +1,158 @@
+using ArenaMode.Shared;
+using SPTarkov.Common.Models.Logging;
+using SPTarkov.DI.Annotations;
+using SPTarkov.Server.Core.DI;
+using SPTarkov.Server.Core.Models.Common;
+using SPTarkov.Server.Core.Models.Eft.Common.Tables;
+using SPTarkov.Server.Core.Models.Enums;
+using SPTarkov.Server.Core.Models.Spt.Config;
+using SPTarkov.Server.Core.Models.Spt.Mod;
+using SPTarkov.Server.Core.Models.Spt.Tables;
+using SPTarkov.Server.Core.Models.Utils;
+using SPTarkov.Server.Core.Services.Modding.Custom;
+using SptVector3 = SPTarkov.Server.Core.Models.Eft.Common.Vector3;
+
+namespace ArenaMode.Server.Services;
+
+/// <summary>
+/// A private, natively harmless throwable. The donor supplies its existing rig,
+/// animation and physics, not its damage. No trader, profile or loot pool is edited.
+/// Only a verified object created by this registration may enter the kit snapshot.
+/// </summary>
+// SPT 4.1.6 freezes the item database before SaveCallbacks loads profiles.
+// Adding an item in PostLoad is rejected; only the kit snapshot belongs there.
+[Injectable(TypePriority = OnLoadOrder.Preload)]
+public sealed class ArenaMolotovRegistration(TemplateTable templates, CustomItemService customItems, RagfairConfig ragfairConfig,
+    ISptLogger<ArenaMolotovRegistration> logger) : IOnLoad
+{
+    internal static TemplateItem? RegisteredTemplate { get; private set; }
+    private static IDictionary<MongoId, TemplateItem>? _registeredItems;
+
+    // A client must not trust a lookalike occupying the public template ID.
+    // Recheck the owned native database object and all safety fields at arm time.
+    internal static bool IsAvailable
+    {
+        get
+        {
+            var registered = RegisteredTemplate;
+            var items = _registeredItems;
+            return registered != null && items != null
+                && items.TryGetValue(new MongoId(ArenaMolotovItem.TemplateId), out var current)
+                && ReferenceEquals(current, registered) && IsHarmless(current);
+        }
+    }
+
+    public Task OnLoadAsync(CancellationToken cancellationToken = default)
+    {
+        if (TryRegister(templates.Items, details => customItems.CreateItemFromClone(details),
+            ragfairConfig.Dynamic?.Blacklist?.Custom, out var problem))
+            logger.Debug("[ArenaMode] Private Molotov supply registered; native blast disabled, no trader/flea/loot entry.");
+        else
+            logger.Warning($"[ArenaMode] Molotov supply unavailable ({problem}); existing kit supplies retained.");
+        return Task.CompletedTask;
+    }
+
+    // The delegate is the single SPT boundary. Tests execute this same admission,
+    // verification and rollback path using real SPT DTOs without starting a server.
+    internal static bool TryRegister(IDictionary<MongoId, TemplateItem> items,
+        Func<NewItemFromCloneDetails, CreateItemResult> create, HashSet<MongoId>? customFleaBlacklist, out string problem)
+    {
+        if (customFleaBlacklist == null)
+        { RegisteredTemplate = null; _registeredItems = null; problem = "native custom flea blacklist is unavailable"; return false; }
+        var id = new MongoId(ArenaMolotovItem.TemplateId);
+        if (items.TryGetValue(id, out var occupied))
+        {
+            if (ReferenceEquals(occupied, RegisteredTemplate) && IsHarmless(occupied))
+                return CompleteRegistration(occupied, items, customFleaBlacklist, out problem);
+            RegisteredTemplate = null;
+            _registeredItems = null;
+            problem = "private template ID is already occupied or changed";
+            return false; // Never overwrite another mod's item, even an inert lookalike.
+        }
+        RegisteredTemplate = null;
+        _registeredItems = null;
+        if (!items.TryGetValue(new MongoId(ArenaMolotovItem.DonorTemplateId), out var donor)
+            || donor.Type != "Item" || donor.Properties?.ThrowType != ThrowWeapType.frag_grenade
+            || !(donor.Properties.MinTimeToContactExplode < 0)
+            || string.IsNullOrWhiteSpace(donor.Properties.Prefab?.Path)
+            || !(donor.Properties.Width > 0) || !(donor.Properties.Height > 0))
+        { problem = "native timed RGD-5 donor is missing or incompatible"; return false; }
+
+        try
+        {
+            var result = create(Definition(donor));
+            if (result?.Success != true || result.ItemId != id
+                || !items.TryGetValue(id, out var registered) || !IsHarmless(registered)
+                || registered.Parent != donor.Parent
+                || registered.Properties!.Prefab?.Path != donor.Properties.Prefab.Path
+                || ReferenceEquals(registered, donor) || ReferenceEquals(registered.Properties, donor.Properties))
+                throw new InvalidOperationException("SPT did not publish the verified harmless clone");
+            return CompleteRegistration(registered, items, customFleaBlacklist, out problem);
+        }
+        catch (Exception ex)
+        {
+            // The ID was absent immediately before this synchronous registration.
+            // SPT can throw after inserting it: never leave an explosive partial clone.
+            items.Remove(id);
+            problem = ex.Message;
+            return false;
+        }
+    }
+
+    private static bool CompleteRegistration(TemplateItem registered, IDictionary<MongoId, TemplateItem> items,
+        HashSet<MongoId> customFleaBlacklist, out string problem)
+    {
+        // Native PostDbLoadService makes every non-blacklisted item sellable when
+        // the BSG list is disabled (e.g. by SVM). Protect only our verified clone,
+        // in memory before that pass; never alter the user's broad flea settings.
+        customFleaBlacklist.Add(new MongoId(ArenaMolotovItem.TemplateId));
+        RegisteredTemplate = registered;
+        _registeredItems = items;
+        problem = "";
+        return true;
+    }
+
+    internal static NewItemFromCloneDetails Definition(TemplateItem donor) => new()
+    {
+        ItemTplToClone = new MongoId(ArenaMolotovItem.DonorTemplateId),
+        ParentId = donor.Parent,
+        NewId = new MongoId(ArenaMolotovItem.TemplateId),
+        NewItemName = "arena_private_molotov",
+        AddToHandbook = false,
+        AddToFleaPriceDb = false, // SPT also adds this ID to its PMC loot blacklist.
+        AddToWeaponShelf = false,
+        Locales = new Dictionary<string, LocaleDetails>
+        {
+            ["en"] = new() { Name = ArenaMolotovItem.Name, ShortName = "Molotov",
+                Description = "Arena incendiary. Creates a short-lived fire on impact. Supplied only for Arena matches." },
+            ["ge"] = new() { Name = ArenaMolotovItem.Name, ShortName = "Molotov",
+                Description = "Arena-Brandflasche. Erzeugt beim Aufprall kurzzeitig Feuer. Nur in Arena-Matches erhältlich." }
+        },
+        OverrideProperties = new TemplateItemProperties
+        {
+            Name = ArenaMolotovItem.Name, ShortName = "Molotov",
+            Description = "Arena incendiary; native blast disabled.",
+            ExaminedByDefault = true, CanSellOnRagfair = false, CanRequireOnRagfair = false,
+            Strength = 0, MinExplosionDistance = 0, MaxExplosionDistance = 0, FragmentsCount = 0,
+            Contusion = new SptVector3(0, 0, 0), Blindness = new SptVector3(0, 0, 0),
+            ArmorDistanceDistanceDamage = new SptVector3(0, 0, 0), ExplosionEffectType = "",
+            ExplDelay = 3.5, MinTimeToContactExplode = -1,
+            CanPlantOnGround = false, PlayFuzeSound = false
+        }
+    };
+
+    internal static bool IsHarmless(TemplateItem? item)
+    {
+        var p = item?.Properties;
+        return item?.Id.ToString() == ArenaMolotovItem.TemplateId && item.Type == "Item"
+            && p?.ThrowType == ThrowWeapType.frag_grenade && p.Strength == 0
+            && p.MinExplosionDistance == 0 && p.MaxExplosionDistance == 0 && p.FragmentsCount == 0
+            && Zero(p.Contusion) && Zero(p.Blindness) && Zero(p.ArmorDistanceDistanceDamage)
+            && p.ExplosionEffectType == "" && p.CanPlantOnGround == false && !p.PlayFuzeSound
+            && p.MinTimeToContactExplode < 0 && p.ExplDelay > 0 && p.ExplDelay <= 10
+            && p.ExaminedByDefault == true && p.CanSellOnRagfair == false && p.CanRequireOnRagfair == false
+            && p.Width > 0 && p.Height > 0 && !string.IsNullOrWhiteSpace(p.Prefab?.Path);
+    }
+
+    private static bool Zero(SptVector3? value) => value is { X: 0, Y: 0, Z: 0 };
+}

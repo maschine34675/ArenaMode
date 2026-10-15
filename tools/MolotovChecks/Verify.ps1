@@ -36,11 +36,23 @@ $faults = @(
     @{name='environment-multiplier'; file=$policy; find='amount * maximum / total / environmentMultiplier'; replacement='amount * maximum / total'; fail='normalized first damage tick'},
     @{name='cancelled-retry'; file=$runtime; find='!source.Cancelled && Current()'; replacement='Current()'; fail='cancelled projectile cannot ignite in new round'},
     @{name='victim-retention'; file=$runtime; find='Victims.Clear(); Ticked.Clear();'; replacement='Victims.Clear();'; fail='disable clears transient victim references'},
-    @{name='convert-existing-rgd'; file=$runtime; find='|| !ArenaFireSupply.Owns(owner, controller.Item)'; replacement=''; fail='ordinary local RGD-5 remains explosive'},
-    @{name='unpooled-grant'; file=$supply; find='if (!EnsurePreload(world)) return;'; replacement=''; fail='missing native pool factory cannot grant unpooled item'},
+    @{name='convert-existing-rgd'; file=$runtime; find='|| !ArenaFireSupply.Owns(owner, controller.Item)'; replacement=''; fail='ungranted custom cannot create fire'},
+    @{name='unpooled-grant'; file=$supply; find='if (!Singleton<ItemFactory>.Instantiated || !Singleton<ObjectsFactory>.Instantiated) return false;'; replacement=''; fail='missing native pool factory cannot grant unpooled item'},
+    @{name='unsafe-template'; file=$supply; find='item.Strength == 0'; replacement='true'; fail='unsafe private template never supplied'},
     @{name='no-native-preference'; file=$supply; find='equipment.TopPriorityGrenade = item;'; replacement='equipment.TopPriorityGrenade = equipment.TopPriorityGrenade;'; fail='native G preference is supplied Molotov'},
     @{name='native-action-refusal'; file=$supply; find=' || !inventory.CanExecute(plan.Value)'; replacement=''; fail='native CanExecute refusal preserved'},
-    @{name='toggle-regrant'; file=$runtime; find='if (Enabled?.Value != true || !Context(out var match, out var world)) { Reset(); return; }'; replacement='if (Enabled?.Value != true || !Context(out var match, out var world)) { if (Enabled?.Value != true) ArenaFireSupply.ForgetOutsideRaid(null); Reset(); return; }'; fail='off on cannot duplicate bonus'}
+    @{name='toggle-regrant'; file=$runtime; find='if (Enabled?.Value != true || !Context(out var match, out var world)) { Reset(); return; }'; replacement='if (Enabled?.Value != true || !Context(out var match, out var world)) { if (Enabled?.Value != true) ArenaFireSupply.ForgetOutsideRaid(null); Reset(); return; }'; fail='off on cannot duplicate bonus'},
+    @{name='donor-conversion'; file=$policy; find='template == ArenaMolotovItem.TemplateId'; replacement='template == ArenaMolotovItem.DonorTemplateId'; fail='ordinary custom cannot explode'},
+    @{name='explosive-fallback'; file=$runtime; find='return !ArenaFirePolicy.IsMolotov(grenade.WeaponSource?.TemplateId) || !ArenaFireSupply.HasVerifiedTemplate;'; replacement='return true;'; fail='ordinary custom cannot explode'},
+    @{name='foreign-id-suppression'; file=$runtime; find=' || !ArenaFireSupply.HasVerifiedTemplate'; replacement=''; fail='foreign private-ID collision retains native explosion'},
+    @{name='tactical-award-veto'; file=$runtime; find='var health = victim.ActiveHealthController;'; replacement='if (_match.Mode is TacticalMode tactical && !tactical.IsOpposingAwardKill(victim, fire.Source.Owner)) return; var health = victim.ActiveHealthController;'; fail='friendly damage reaches common mutator'},
+    @{name='respawn-immunity'; file=$runtime; find='Ticked.Add(victim);'; replacement='if (victim.ProfileId == fire.Source.Owner.ProfileId && !ReferenceEquals(victim, fire.Source.Owner)) continue; Ticked.Add(victim);'; fail='respawn protection receives old fire'},
+    @{name='view-constructor-resets-damage'; file=$runtime; find='try { fire.View = new ArenaFireView(cells); } catch (Exception ex) { Warn(ex); }'; replacement='try { fire.View = new ArenaFireView(cells); } catch (Exception ex) { Warn(ex); Reset(); }'; fail='view constructor failure preserves damage'},
+    @{name='view-tick-resets-damage'; file=$runtime; find='catch (Exception ex) { Warn(ex); fire.Dispose(); }'; replacement='catch (Exception ex) { Warn(ex); Reset(); }'; fail='view tick failure preserves damage'},
+    @{name='damage-after-death'; file=$runtime; find='if (!LiveActor(victim)) break;'; replacement='if (false) break;'; fail='dead actor receives no later part dispatch'},
+    @{name='cross-round-ignition'; file=$runtime; find='&& _round == Round(match)'; replacement=''; fail='previous round projectile cannot create fire before tick'},
+    @{name='foreign-physical-source'; file=$runtime; find=' || !ReferenceEquals(grenade.Player?.iPlayer, owner)'; replacement=''; fail='foreign physical bridge cannot own fire'},
+    @{name='substitute-source-weapon'; file=$runtime; find='!ReferenceEquals(grenade.WeaponSource, controller.Item) || '; replacement=''; fail='substitute weapon instance cannot own fire'}
 )
 foreach ($fault in $faults) {
     $source = [IO.File]::ReadAllText($fault.file)

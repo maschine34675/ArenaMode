@@ -23,6 +23,12 @@ public static class ArenaServerClient
     private static readonly string ClientProcessId = Guid.NewGuid().ToString("N");
     private static string _pendingArmToken;
     private static string _activeArmToken;
+    private static string _molotovArmToken;
+
+    // The server validates its exact registered item, not just a matching ID.
+    // Binding to the confirmed token prevents a previous raid authorizing supply.
+    internal static bool MolotovAvailableForConfirmedRaid =>
+        !string.IsNullOrEmpty(_activeArmToken) && _molotovArmToken == _activeArmToken;
     private static string _boundNativeEndIdentity;
     private static string _ordinaryStartIdentity;
     private static string _ordinaryNativeEndIdentity;
@@ -663,6 +669,7 @@ public static class ArenaServerClient
         if (!HasPendingArm)
             return false;
 
+        _molotovArmToken = null;
         try
         {
             if (string.IsNullOrWhiteSpace(_pendingArmToken))
@@ -686,6 +693,8 @@ public static class ArenaServerClient
             HasPendingArm = false;
             HasPendingEnd = false;
             _activeArmToken = _pendingArmToken;
+            _molotovArmToken = response["molotovAvailable"]?.Type == JTokenType.Boolean
+                && response["molotovAvailable"].Value<bool>() ? _activeArmToken : null;
             _pendingArmToken = null;
             return true;
         }

@@ -1,5 +1,6 @@
 #nullable disable
 using Comfort.Common;
+using ArenaMode.Shared;
 using EFT;
 using EFT.InventoryLogic;
 using System;
@@ -11,7 +12,7 @@ namespace ArenaMode.Combat.Fire;
 
 /// <summary>
 /// One extra, process-local incendiary identity per equipment tree. Its native
-/// donor model is still an RGD-5; ordinary RGD-5s are never converted or removed.
+/// item is the private Molotov; ordinary RGD-5s are never converted or removed.
 /// Supply is deliberately after live ownership/entry-loadout capture, so protected
 /// own-gear snapshots do not learn the bonus item and clone it on every restore.
 /// </summary>
@@ -21,14 +22,14 @@ internal static class ArenaFireSupply
     private static ConditionalWeakTable<InventoryEquipment, Grant> _grants = new();
     private static WeakReference<GameWorld> _world;
     private static WeakReference<Modes.ArenaMatch> _match;
-    private static bool _preloadStarted, _preloadReady;
+    private static bool _preloadStarted, _preloadReady, _unavailable;
     private static int _generation;
     private static readonly EquipmentSlot[] Slots = { EquipmentSlot.TacticalVest, EquipmentSlot.Pockets };
-    private static readonly Kits.KitDefinition DonorKit = new()
+    private static readonly Kits.KitDefinition MolotovKit = new()
     {
         Id = "arena-molotov-supply",
         Fill = new Kits.KitFill { RigContents = new List<Kits.KitStackedItem>
-            { new() { Tpl = ArenaFirePolicy.DonorTemplate, Count = 1 } } }
+            { new() { Tpl = ArenaMolotovItem.TemplateId, Count = 1 } } }
     };
 
     internal static void ForgetOutsideRaid(GameWorld world)
@@ -42,7 +43,7 @@ internal static class ArenaFireSupply
         _grants = new();
         _world = world != null ? new WeakReference<GameWorld>(world) : null;
         _match = world != null ? new WeakReference<Modes.ArenaMatch>(match) : null;
-        _preloadStarted = _preloadReady = false;
+        _preloadStarted = _preloadReady = _unavailable = false;
         _generation++;
     }
 
@@ -73,9 +74,9 @@ internal static class ArenaFireSupply
         // event exception must not become an unlimited retry/duplicate source.
         var grant = new Grant();
         _grants.Add(equipment, grant);
-        var item = factory.CreateItem(factory.NextId, ArenaFirePolicy.DonorTemplate, null) as ThrowWeap;
+        var item = factory.CreateItem(factory.NextId, ArenaMolotovItem.TemplateId, null) as ThrowWeap;
         if (item == null)
-            throw new InvalidOperationException("Arena incendiary donor is not a native throwable.");
+            throw new InvalidOperationException("Arena Molotov is not a native throwable.");
         foreach (var slot in Slots)
         {
             if (!(equipment.GetSlot(slot)?.ContainedItem is CompoundItem container) || container.Grids == null) continue;
@@ -112,13 +113,37 @@ internal static class ArenaFireSupply
         Plugin.ModLogger.LogInfo("Arena Molotov skipped: no compatible free rig/pocket space; existing equipment was kept.");
     }
 
+    internal static bool HasVerifiedTemplate =>
+        Session.ArenaServerClient.MolotovAvailableForConfirmedRaid
+        && Singleton<ItemFactory>.Instantiated
+        && Singleton<ItemFactory>.Instance.ItemTemplates.TryGetValue(ArenaMolotovItem.TemplateId, out var template)
+        && template is ThrowWeapTemplate item && item.Strength == 0
+        && item.MinExplosionDistance == 0 && item.MaxExplosionDistance == 0 && item.FragmentsCount == 0
+        && item.Contusion.sqrMagnitude == 0 && item.Blindness.sqrMagnitude == 0
+        && item.ArmorDistanceDistanceDamage.sqrMagnitude == 0 && item.ExplosionEffectType == ""
+        && !item.CanPlantOnGround && !item.PlayFuzeSound && item.ExplDelay > 0 && item.ExplDelay <= 10
+        && item.MinTimeToContactExplode < 0;
+
     private static bool EnsurePreload(GameWorld world)
     {
-        if (_preloadReady) return true;
+        if (_unavailable) return false;
+        if (!Session.ArenaServerClient.MolotovAvailableForConfirmedRaid)
+        {
+            _unavailable = true;
+            Plugin.ModLogger.LogWarning("Arena Molotov not supplied: the server did not confirm its private item; no RGD-5 substitute is used.");
+            return false;
+        }
         // Preload's historical API treats absent factories as an empty request.
         // Never mistake that case for an actually usable hands-controller pool.
         if (!Singleton<ItemFactory>.Instantiated || !Singleton<ObjectsFactory>.Instantiated) return false;
-        if (Kits.KitBundlePreloader.IsTemplateWarmed(ArenaFirePolicy.DonorTemplate))
+        if (!HasVerifiedTemplate)
+        {
+            _unavailable = true;
+            Plugin.ModLogger.LogWarning("Arena Molotov not supplied: its private client template is missing or unsafe; existing equipment was kept.");
+            return false;
+        }
+        if (_preloadReady) return true;
+        if (Kits.KitBundlePreloader.IsTemplateWarmed(ArenaMolotovItem.TemplateId))
             return _preloadReady = true;
         if (_preloadStarted || Kits.KitBundlePreloader.IsPreloading) return false;
         if (!(Singleton<AbstractGame>.Instance is LocalGame game) || !ReferenceEquals(game.GameWorld, world)) return false;
@@ -132,10 +157,10 @@ internal static class ArenaFireSupply
 
     private static IEnumerator Preload(GameWorld world, int generation)
     {
-        yield return Kits.KitBundlePreloader.Preload(DonorKit);
+        yield return Kits.KitBundlePreloader.Preload(MolotovKit);
         if (generation != _generation || !Session.ArenaSession.IsActive
             || !Singleton<GameWorld>.Instantiated || !ReferenceEquals(Singleton<GameWorld>.Instance, world)) yield break;
-        _preloadReady = Kits.KitBundlePreloader.IsTemplateWarmed(ArenaFirePolicy.DonorTemplate);
+        _preloadReady = Kits.KitBundlePreloader.IsTemplateWarmed(ArenaMolotovItem.TemplateId);
         if (!_preloadReady)
             Plugin.ModLogger.LogWarning("Arena Molotov not supplied: its native grenade resources could not be loaded; existing equipment was kept.");
     }

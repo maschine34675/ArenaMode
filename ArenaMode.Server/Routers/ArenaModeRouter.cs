@@ -167,6 +167,7 @@ public sealed class ArenaModeRouter : StaticRouter
                 return new ValueTask<string>(Json(new
                 {
                     confirmed,
+                    molotovAvailable = confirmed && Services.ArenaMolotovRegistration.IsAvailable,
                     state = Sessions?.GetStatus(sessionId).state.ToString()
                         ?? ArenaSessionState.Idle.ToString(),
                 }));

@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-12",
+  "sourceCommit": "4fd79815d6a8dcd15f4d06d4cf5e0d1543d0b998",
+  "sourceChangesAtBuild": [],
+  "branch": "feature/molotov-item",
+  "buildManifest": "artifacts/double-jump-build/c6e49b3807244d04bcd5a0257af3c64d/manifest.json",
+  "artifacts": {
+    "maschine-ArenaMode.Client.dll": "2AABDA1A0EE282F7600BBCDD7577B6068ADFE52BFA7E1CC98E599E6B5C9440FE",
+    "maschine-ArenaMode.BigBrainCompat.dll": "0C4AC3763CCB170CBD69733AE6765C342136FA9C2CCE8124A2EF4722D95F7AE1",
+    "maschine-ArenaMode.Server.dll": "BFDD201F1BF6B8DC2BE868E23780234AA79B8E0DDA970A46B52D560C58676A60"
+  },
+  "unchangedCoreSha256": "A32326C85C7AD397DA3D2E23BFCB46ADA5375A06987ECCCF8CC804F554BD970D",
+  "deployed": true,
+  "deployment": "Three pinned Arena DLLs copied to stopped GPU1, then synchronized to the local installation and stopped GPU2. All twelve resulting Arena/Core disk hashes checked. Bidirectional Syncthing means this is not host-isolated deployment.",
+  "host1": {
+    "purpose": "Final kit, G selection and actual throw checks; complete scenario boundaries in the native report",
+    "instance": "1f8981d4",
+    "startedLocal": "2026-10-12 11:21:09 CEST",
+    "matchingMachinePlugins": "19/19; local=disk=loaded",
+    "clientLoadedMvid": "01ca1713-c3b3-49d0-9699-855f4491c194",
+    "compatLoadedMvid": "f37c870c-128e-485a-b0f6-1de59a731efe",
+    "serverMolotovReadyUtc": "2026-10-12 09:20:42.190",
+    "catalogOptionalRequests": 60,
+    "kitEvidence": "Normal Spartan inventory contains two RGD-5 and one Molotov without giveItem; G selects Molotov after ordinary grenades are used",
+    "profileAudit": "Complete login-to-protected-exit comparison: Hideout clock only; all 422 inventory IDs and 33 PFT files unchanged",
+    "ended": "Protected exit, test settings restored, game and server stopped cleanly"
+  },
+  "host2": {
+    "purpose": "Consistency restart only; no raid acceptance claimed",
+    "instance": "679a486b",
+    "startedLocal": "2026-10-12 11:21:21 CEST",
+    "screen": "MainMenu",
+    "matchingMachinePlugins": "19/19; local=disk=loaded",
+    "core": "local=disk=loaded",
+    "startupSeconds": 61
+  },
+  "nativeReport": "GPU-MOLOTOV-ITEM-RESULTS-20261012.md",
+  "nativeAcceptance": "Per-scenario evidence and unproven cases are in the native report. No blanket native acceptance is implied.",
+  "offline": {
+    "itemAssertions": 1921,
+    "legacyPackingAssertions": 1605,
+    "itemAndPackingCompiledMutants": 12,
+    "runtimeAssertions": 103,
+    "runtimeCompiledMutants": 18,
+    "modelChecks": 56,
+    "modelCompiledMutants": 7,
+    "pcmAssertions": 28,
+    "invalidPcmControls": 3,
+    "xunitPassed": 959,
+    "xunitSkipped": 1,
+    "xunitFailed": 0,
+    "xunitSkip": "InstalledApbsUsesArenaRangeThroughRealNativeCloneAndLevelPipeline",
+    "xunitEvidence": "artifacts/molotov-unit-results/molotov-final-database.trx"
+  },
+  "audio": "Original procedural synthesis. Downloads/molotov reference recordings are not included or redistribution-cleared.",
+  "followupDocsDoNotChangeBuiltCommit": true
+}

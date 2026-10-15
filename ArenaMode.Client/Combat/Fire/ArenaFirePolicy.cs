@@ -1,16 +1,17 @@
 using System;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Combat.Fire;
 
-// Engine-independent limits. This prototype never mutates an item template.
+// Engine-independent limits. Only the private Arena item creates ground fire.
 internal static class ArenaFirePolicy
 {
-    internal const string DonorTemplate = "5448be9a4bdc2dfd2f8b456a"; // RGD-5
     internal const float Lifetime = 6f, Radius = 3f, CellRadius = .72f;
     internal const float TickSeconds = .25f, DamagePerSecond = 100f;
     internal const int MaxFires = 4, MaxThrows = 8;
+    internal static bool IsMolotov(string template) => template == ArenaMolotovItem.TemplateId;
     internal static bool Convert(bool enabled, bool live, bool exactLocal, string template)
-        => enabled && live && exactLocal && template == DonorTemplate;
+        => enabled && live && exactLocal && IsMolotov(template);
     internal static bool Contact(float dx, float dy, float dz, float padding = 0f)
         => Finite(dx) && Finite(dy) && Finite(dz) && Finite(padding) && padding >= 0
         && Math.Abs(dy) <= .6f && dx * dx + dz * dz <= (CellRadius + padding) * (CellRadius + padding);
