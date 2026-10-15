@@ -64,3 +64,47 @@ Both server and client must restart after deployment. No Core, Killcam, audio
 file or configuration deployment is needed. Focused checks and exact fresh-build
 native acceptance are recorded in the dated handoff and GPU integration report;
 they do not imply every map, full-rig or PFT/fire-combat combination was repeated.
+
+## Integration verification
+
+Merge commit `b06d8fe` contains the integrated source. Its clean staged build
+completed with zero errors (four existing client nullable warnings and two
+existing server warnings). Only client and server were deployed:
+
+| Artifact | SHA256 |
+|---|---|
+| Client | `74694DA3CFF91869B9C70239D6AA2743EBFB756C4A9AC57A22D1A82FC56F9E27` |
+| Server | `A5921A299E35EA6C969D104FA12AA3743FB46F34D60EE9550702E0AB02116C53` |
+
+Offline results: units **968 passed / 2 skipped**; fire/supply **138 assertions
+and 25 rejected compiled mutants**; model/native IL **57 and 8**; item/native
+registration **1807 and 12**; historical kit packing **1605 and 2**; native menu
+**654**; presentation/audio **28 and three invalid-audio controls**. The final
+model transcript's old success footer still says seven mutants; all eight
+individual rejection records are present and the footer is corrected in source.
+
+Independent adversarial review identified an unverified private-ID collision in
+the global model/explosion hooks. Both now require the same confirmed capability
+and harmless template readback as supply; tracked own throws remain suppressed
+and pool cleanup remains unconditional. The reviewer repeated the affected
+production checks after the fix and found no remaining P0–P2 issue. This is
+source/offline evidence; native acceptance is recorded separately.
+
+Fresh GPU2 Factory Deathmatch testing passed the focused supply/presentation
+contract on these exact artifacts: two original RGDs off, one additional private
+bottle on, no duplicate after repeated toggling, real G selection, bottle
+icon/hand/projectile and floor fire. The subsequent original RGD retained its
+native model and explosion with no Arena fire. Protected inventory/profile
+values, all 304 saved config values and 12 PFT files were preserved; only the
+native health-update timestamp changed. Parent verification repeated the saved
+state comparison and inspected the screenshots/throw frames. See the
+[native report](GPU-MOLOTOV-INTEGRATION-20261015.md) for capture identities,
+log findings and the limited test scope; this was not a repeat of own-gear cold
+pool, fresh-body refill or PFT fire-combat acceptance.
+
+Ignored local evidence: `artifacts/molotov-native-item-20261015/`, the dated
+`molotov-native-item-20261015-*.log` files, staged build
+`artifacts/double-jump-build/569ce76bd2914cd6b827f149c3e6ef7a/manifest.json`,
+fire mutation run `artifacts/molotov-checks/4ca2d22d632e44439c0e3aa2466ec1d2`,
+model mutation run `artifacts/molotov-model-checks/87ff6461a14c4e739b54b6acfcdbbedf`,
+and item mutation run `artifacts/molotov-item-checks/764618259cc54a0eb050ea21ee0a3fce`.

@@ -45,4 +45,3 @@ foreach ($fault in $faults) {
 }
 Check-Model 'production-final' $sourcePath
 Write-Output "ARENA_MOLOTOV_MODEL_CHECKS_PASSED; eight compiled negative controls; evidence $stage"
-

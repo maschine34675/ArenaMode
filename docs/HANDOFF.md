@@ -17,9 +17,23 @@ current. User-facing communication is normally German.
   the exact registered server object and active token; client template readback
   also guards grants and presentation/explosion hooks against foreign ID clashes.
   Saved menu/F12 preference and logging policy are preserved. Server and client
-  both require restart. Source review is clean after the collision guard; exact
-  deployment/native evidence will be recorded separately after the fresh test.
-  See [integration contract](MOLOTOV-NATIVE-INTEGRATION-20261015.md).
+  both require restart. Integrated source is `b06d8fe`; client SHA256
+  `74694DA3CFF91869B9C70239D6AA2743EBFB756C4A9AC57A22D1A82FC56F9E27`,
+  MVID `59d43a18-d5d5-4f6a-80ef-bc56caa10f9b`; server SHA256
+  `A5921A299E35EA6C969D104FA12AA3743FB46F34D60EE9550702E0AB02116C53`.
+  Core, BigBrain, Killcam, config and audio files were not deployed. Offline
+  units **968 passed / 2 skipped**; supply/runtime **138/25**, model/native IL
+  **57/8**, registration **1807/12**, historical packing **1605/2**, menu **654**,
+  audio/presentation **28 + 3 invalid-input controls**. Source review is clean
+  after fixing the foreign-ID collision guard. Fresh GPU2 Factory DM acceptance
+  confirms two original RGDs plus one private bottle, G preference, toggle
+  deduplication, bottle icon/hand/projectile, actual floor fire and a separate
+  native RGD explosion without fire. The 401-item protected inventory and other
+  protected profile values are unchanged (only native Health.UpdateTime moved);
+  all 304 config values and 12 PFT files are restored. Own-gear cold supply,
+  fresh-body refill and PFT fire combat were not repeated in this bounded run.
+  See [integration contract](MOLOTOV-NATIVE-INTEGRATION-20261015.md) and
+  [native report](GPU-MOLOTOV-INTEGRATION-20261015.md).
 
 - **Evening player-session follow-ups (2026-10-15):** `f0a6805` adds the first
   Zombie-wave countdown after player/kit/team readiness and restores a surviving
