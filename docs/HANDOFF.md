@@ -1,11 +1,23 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-15. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-16. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Private maintenance (2026-10-16):** Report-only anonymization `9f51e8e` is
+  pushed to the unchanged private `ArenaMode-dev` repository. Asset cleanup
+  `cfdaef7` remains local: five obsolete notices removed, nineteen already-used
+  cues moved from reserve to root; all fifty-two recordings byte-identical,
+  required icon/CC0 notices retained, legacy reserve fallback preserved.
+  Announcer/expansion checks **333/893**, decode/metadata negative checks and
+  staged Client/Server/BigBrain build pass. No deployment or publication.
+  A separate source audit identifies **35 unused declarations**; no production
+  code was deleted. Test-only fixtures and framework entry points are excluded.
+  See [asset maintenance](ASSET-MAINTENANCE-20261016.md) and
+  [complete audit/limitations](DEAD-CODE-REVIEW-20261016.md).
 
 - **Dedicated Molotov correction (2026-10-15):** Integrates the existing
   `feature/molotov-item` work through `93d614e`, which was absent from the prior

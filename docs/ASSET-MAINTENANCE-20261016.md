@@ -55,6 +55,11 @@ may remove only those known obsolete copies after verification.
 - All fifty-two clips decoded and their hashes/format/duration checked; nineteen
   destinations changed, no audio content changed. Four current effect WAVs and
   both Skoll icon pairs retain their recorded hashes.
+- Isolated Client/Server/BigBrain build at `cfdaef7`: zero errors; four existing
+  Client and two Server warnings in unchanged files. All seventy-four staged
+  assets match source bytes (sixty-nine audio/notice files plus five separate
+  map-preview files). Installed DLL hashes remained unchanged. See also the
+  [unused-code review](DEAD-CODE-REVIEW-20261016.md).
 
 Private baseline inventory, checks and staged-build evidence live under
 `artifacts/asset-maintenance-20261016/`. Offline checks do not replace native

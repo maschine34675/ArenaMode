@@ -7,6 +7,8 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Current handoff and test status](HANDOFF.md)
+- [Announcer assets and retained license notices](ASSET-MAINTENANCE-20261016.md)
+- [Unused-code audit and cleanup candidates](DEAD-CODE-REVIEW-20261016.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
 - [Latest player-session log review](LOG-REVIEW-20261015-EVENING.md)
 - [Zombie opening countdown and protected gear refill](ZOMBIE-WAVE-REFILL-20261015.md)
