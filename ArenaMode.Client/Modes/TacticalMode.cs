@@ -242,8 +242,6 @@ public sealed partial class TacticalMode : IArenaMode
         return 0;
     }
 
-    internal bool IsTeamStaging => _teamArena && _phase == Phase.Staging;
-
     public float PhaseRemaining => Mathf.Max(0f, _phaseEndsAt - Time.time);
 
     /// <summary>What the player will be handed when the round starts.</summary>

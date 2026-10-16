@@ -159,8 +159,6 @@ internal static class ArenaMenuSelection
         }
     }
 
-    public static string CannotStartReason => CurrentEligibility.Reason;
-
     public static bool IsMapConfigured(string map)
         => Config.Settings.IsArenaMap(map) && ArenaClientConfig.IsMapEnabledOnServer(map)
            && (!ArenaMapCatalog.IsOptionalMap(map)

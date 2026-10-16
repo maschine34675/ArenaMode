@@ -45,7 +45,6 @@ public sealed partial class RoundsMode : IArenaMode
     public string Id => "deathmatch";
     public string DisplayName => "Deathmatch";
     public bool IsComplete => HasResult;
-    public DeathmatchOptions Options => _options;
     public RoundState Round { get; } = new RoundState();
     public bool InIntermission => !_ended && _rules?.Phase == DeathmatchPhase.Intermission;
     internal bool AssistScoringOpen => !_ended && IsCurrentRaid() && _rules?.Phase == DeathmatchPhase.Live;

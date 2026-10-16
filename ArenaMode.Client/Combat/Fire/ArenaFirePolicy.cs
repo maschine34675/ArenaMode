@@ -6,7 +6,7 @@ namespace ArenaMode.Combat.Fire;
 // Engine-independent limits. Only the private Arena item creates ground fire.
 internal static class ArenaFirePolicy
 {
-    internal const float Lifetime = 6f, Radius = 3f, CellRadius = .72f;
+    internal const float Lifetime = 6f, CellRadius = .72f;
     internal const float TickSeconds = .25f, DamagePerSecond = 100f;
     internal const int MaxFires = 4, MaxThrows = 8;
     internal static bool IsMolotov(string template) => template == ArenaMolotovItem.TemplateId;

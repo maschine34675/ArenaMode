@@ -123,24 +123,6 @@ internal static partial class PitFireTeamCompat
     public static bool IsInstalled
         => Chainloader.PluginInfos.ContainsKey(PluginGuid);
 
-    public static PitFireTeamContractState ContractState
-    {
-        get
-        {
-            EnsureInitialized();
-            return _contractState;
-        }
-    }
-
-    public static string ContractProblem
-    {
-        get
-        {
-            EnsureInitialized();
-            return _contractProblem;
-        }
-    }
-
     /// <summary>
     /// PitFireTeam reuses the vanilla side-selection scene for its own "My
     /// Squad" UI. Arena must not reactivate the Random/Arena toggle that PFT
@@ -634,9 +616,6 @@ internal static partial class PitFireTeamCompat
         }
     }
 
-    public static bool BeginRoundTransition(out string reason)
-        => BeginRoundTransition(out _, out _, out reason);
-
     /// <summary>
     /// Atomically adopts a new current round only after the reflection lifecycle
     /// reached FollowersReady. It independently rechecks the frozen account,
@@ -922,9 +901,6 @@ internal static partial class PitFireTeamCompat
             }
         }
     }
-
-    public static bool TryAdoptRoundRoster(Player currentLeader, out string reason)
-        => TryAdoptRoundRoster(currentLeader, out _, out reason);
 
     private static bool LatchRoundTransitionProblemUnsafe(
         string value,

@@ -34,7 +34,6 @@ internal sealed class ArenaModeSelectionView
     private readonly ArenaZombieRulesView _zombieRules = new();
 
     internal GameObject Root => _root;
-    internal string SelectedMode => _selection?.SelectedMode;
 
     internal void Synchronize(string selectedMode, bool tacticalOnly)
     {

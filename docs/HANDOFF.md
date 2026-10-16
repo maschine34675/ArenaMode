@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Confirmed dead-code cleanup (2026-10-16):** 29 Client removal targets and
+  seven Server methods removed after fresh consumer/overload checks. The prior
+  audit's `ArenaEquipmentChoiceState.Label` false positive is retained for its
+  two test consumers. All remaining executable tokens in the cleanup are
+  unchanged. Separate menu repair `53803de` fixes a missing test source link,
+  obsolete PFT refill expectations and two overlong descriptions without
+  weakening existing layout budgets. Final units **969 passed / 1 opt-in APBS
+  check skipped**, all **16 direct harnesses** and staged Client/Server/BigBrain
+  build pass; installed DLLs unchanged. No deployment, push or publication.
+  See [cleanup and validation](DEAD-CODE-CLEANUP-20261016.md).
+
 - **Private maintenance (2026-10-16):** Report-only anonymization `9f51e8e` is
   pushed to the unchanged private `ArenaMode-dev` repository. Asset cleanup
   `cfdaef7` remains local: five obsolete notices removed, nineteen already-used
@@ -14,8 +25,9 @@ current. User-facing communication is normally German.
   required icon/CC0 notices retained, legacy reserve fallback preserved.
   Announcer/expansion checks **333/893**, decode/metadata negative checks and
   staged Client/Server/BigBrain build pass. No deployment or publication.
-  A separate source audit identifies **35 unused declarations**; no production
-  code was deleted. Test-only fixtures and framework entry points are excluded.
+  The separate source audit originally identified 35 candidate declarations;
+  its Label false positive and subsequent implementation are corrected above.
+  Test-only fixtures and framework entry points remain preserved.
   See [asset maintenance](ASSET-MAINTENANCE-20261016.md) and
   [complete audit/limitations](DEAD-CODE-REVIEW-20261016.md).
 

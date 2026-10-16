@@ -58,7 +58,6 @@ internal static class ArenaSpectatorService
 
     internal static bool IsPending => _pending;
     internal static bool IsActive => _ownsCamera;
-    internal static bool IsReleased => !_pending && !_ownsCamera;
     internal static bool OwnsCamera => _ownsCamera;
 
     /// <summary>

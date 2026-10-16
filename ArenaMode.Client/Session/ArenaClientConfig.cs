@@ -24,12 +24,6 @@ public static class ArenaClientConfig
         return _config != null;
     }
 
-    public static void Preload()
-    {
-        _nextAttemptAt = 0f;
-        EnsureLoaded();
-    }
-
     /// <summary>
     /// Whether the SERVER has this map enabled for the arena.
     ///
@@ -73,9 +67,6 @@ public static class ArenaClientConfig
 
     public static int GetBurstCooldownSeconds(string map, int fallback = 8)
         => GetMapValue<int?>(map, "burstCooldownSeconds") ?? fallback;
-
-    public static string GetSpawnZones(string map, string fallback = "BotZone")
-        => GetMapValue<string>(map, "spawnZones") ?? fallback;
 
     private static T GetMapValue<T>(string map, string key)
     {

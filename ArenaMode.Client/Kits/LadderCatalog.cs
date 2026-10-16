@@ -30,9 +30,6 @@ public static class LadderCatalog
         }
     }
 
-    /// <summary>Fetch during a loading screen instead of a gameplay frame.</summary>
-    public static void Preload() => EnsureLoaded();
-
     /// <summary>
     /// Forget the ladder so the next raid asks again. The server cuts a new one
     /// per raid, and a catalogue cached for the whole game session would climb

@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Current handoff and test status](HANDOFF.md)
+- [Confirmed unused-code cleanup and final validation](DEAD-CODE-CLEANUP-20261016.md)
 - [Announcer assets and retained license notices](ASSET-MAINTENANCE-20261016.md)
 - [Unused-code audit and cleanup candidates](DEAD-CODE-REVIEW-20261016.md)
 - [Logging levels and developer diagnostics](LOGGING.md)

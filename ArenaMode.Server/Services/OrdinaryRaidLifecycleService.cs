@@ -192,19 +192,6 @@ public sealed class OrdinaryRaidLifecycleService(
         }
     }
 
-    internal (bool active, OrdinaryRaidPhase? phase, string? startIdentity, string? nativeEndIdentity)
-        GetStatus(MongoId sessionId)
-    {
-        string key = sessionId.ToString();
-        lock (_lock)
-        {
-            PruneLocked(key);
-            return _entries.TryGetValue(key, out Entry? entry)
-                ? (true, entry.Phase, entry.StartIdentity, entry.NativeEndIdentity)
-                : (false, null, null, null);
-        }
-    }
-
     internal (
         bool active,
         OrdinaryRaidPhase? phase,

@@ -193,11 +193,7 @@ public static class KitBuilder
     public static List<CompoundItem> GridContainersOf(InventoryEquipment equipment)
         => equipment == null ? new List<CompoundItem>() : GridContainers(equipment);
 
-    /// <summary>Places an item in the first grid cell that will take it.</summary>
-    public static bool AddToAnyGridOf(List<CompoundItem> containers, Item item)
-        => AddToAnyGridOf(containers, item, out _);
-
-    /// <summary>As above, and says why not when nothing took it.</summary>
+    /// <summary>Places an item in the first grid cell that will take it, and says why not when nothing took it.</summary>
     public static bool AddToAnyGridOf(List<CompoundItem> containers, Item item, out string reason)
     {
         reason = null;
@@ -622,9 +618,6 @@ public static class KitBuilder
 
         return containers;
     }
-
-    private static bool AddToAnyGrid(List<CompoundItem> containers, Item item)
-        => AddToAnyGrid(containers, item, out _);
 
     /// <summary>
     /// Places an item in the first grid cell that will take it, and says what it

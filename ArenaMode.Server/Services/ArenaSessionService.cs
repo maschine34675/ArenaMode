@@ -351,9 +351,6 @@ public class ArenaSessionService
         }
     }
 
-    public void CancelTeamArmPreparation(MongoId sessionId)
-        => CancelArmPreparation(sessionId);
-
     public void CancelArmPreparation(MongoId sessionId)
     {
         string key = sessionId.ToString();
@@ -380,17 +377,6 @@ public class ArenaSessionService
             _pitFireTeamGuard.Clear(key);
         }
     }
-
-    /// <summary>
-    /// Consume the armed flag when a local raid actually starts. Returns true only
-    /// for a live (non-expired) flag whose map matches the starting raid.
-    /// </summary>
-    public bool TryConsumeArm(
-        MongoId sessionId,
-        string? location,
-        string? nativeStartIdentity = null)
-        => ProcessLocalRaidStart(sessionId, location, nativeStartIdentity)
-            == ArenaLocalRaidStartDisposition.ArenaStarted;
 
     /// <summary>
     /// Makes the complete local-start claim under one session lock. Every
@@ -1400,20 +1386,6 @@ public class ArenaSessionService
         }
     }
 
-    public bool IsStashedClone(object candidate)
-    {
-        lock (_lock)
-        {
-            foreach (var entry in _sessions.Values)
-            {
-                if (entry.State == ArenaSessionState.InRaid && ReferenceEquals(entry.LocationClone, candidate))
-                    return true;
-            }
-
-            return false;
-        }
-    }
-
     /// <summary>
     /// Whether an InRaid entry can still plausibly BE a raid.
     ///
@@ -1437,24 +1409,17 @@ public class ArenaSessionService
         return DateTime.UtcNow - entry.InRaidAtUtc <= limit;
     }
 
+    // An arm string can be supplied again by a caller. Retain the actual entry
+    // as well, so deferred bot generation cannot attach to a replacement raid.
+    internal sealed record BotTierIdentity(
+        object Entry, string Session, string Map, string Arm, DateTime StartedAt);
+
     /// <summary>
     /// Atomically bind bot-tier generation to one exact live Arena session and
     /// its map. The protected-team flag decides whether the caller preserves
     /// SPT's native PMC-relative values or applies Arena's solo progression.
     /// Requests from another session on the same map must not inherit either.
     /// </summary>
-    public bool TryGetBotTierContext(
-        MongoId sessionId,
-        string? location,
-        out TimeSpan elapsed,
-        out bool protectedTeam)
-        => TryGetBotTierContext(sessionId, location, out elapsed, out protectedTeam, out _);
-
-    // An arm string can be supplied again by a caller. Retain the actual entry
-    // as well, so deferred bot generation cannot attach to a replacement raid.
-    internal sealed record BotTierIdentity(
-        object Entry, string Session, string Map, string Arm, DateTime StartedAt);
-
     internal bool TryGetBotTierContext(
         MongoId sessionId,
         string? location,
@@ -1549,32 +1514,6 @@ public class ArenaSessionService
                 {
                     mode = entry.Mode;
                     deathmatchHostility = entry.DeathmatchHostility;
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Whether any arena raid is armed or running. Coarser than the per-session
-    /// checks on purpose: some client requests carry no session id — the bulk
-    /// bot-difficulty fetch is one — and still need answering for this raid.
-    /// </summary>
-    public bool AnyArmedOrInRaid()
-    {
-        lock (_lock)
-        {
-            foreach (var entry in _sessions.Values)
-            {
-                if (IsLiveRaid(entry))
-                    return true;
-
-                if (entry.State == ArenaSessionState.Armed
-                    && (DateTime.UtcNow - entry.ArmedAtUtc).TotalSeconds
-                        <= ArenaContext.Config.ArmedFlagTtlSeconds)
-                {
                     return true;
                 }
             }

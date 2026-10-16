@@ -1,4 +1,3 @@
-using BepInEx.Bootstrap;
 using ArenaMode.Combat;
 using Comfort.Common;
 using EFT;
@@ -40,7 +39,6 @@ internal sealed class PitFireTeamRoundLifecycleSnapshot
 /// </summary>
 internal static class PitFireTeamRoundLifecycle
 {
-    public const string PluginGuid = "xyz.pit.fireteam";
     // Only for the "same build after re-configuration" comparison below; the
     // accepted set lives in PitFireTeamVersions and is applied on first configure.
     private static string _configuredVersion;
@@ -292,24 +290,6 @@ internal static class PitFireTeamRoundLifecycle
                 };
             }
         }
-    }
-
-    /// <summary>
-    /// Resolve the already loaded BepInEx plugin. The exact metadata version is
-    /// part of the contract; assembly layout alone never upgrades compatibility.
-    /// </summary>
-    public static PitFireTeamRoundCapability Initialize()
-    {
-        if (!Chainloader.PluginInfos.TryGetValue(PluginGuid, out var pluginInfo)
-            || pluginInfo?.Instance == null)
-        {
-            SetUnavailable("PitFireTeam is not loaded.");
-            return Capability;
-        }
-
-        return Configure(
-            pluginInfo.Instance.GetType().Assembly,
-            pluginInfo.Metadata.Version?.ToString());
     }
 
     /// <summary>
@@ -1611,12 +1591,6 @@ internal static class PitFireTeamRoundLifecycle
     {
         lock (StateLock)
             return _currentFollowers.ToArray();
-    }
-
-    public static IReadOnlyList<BotOwner> GetRetiringBodies()
-    {
-        lock (StateLock)
-            return _retiringBodies.ToArray();
     }
 
     /// <summary>
@@ -4427,12 +4401,6 @@ internal static class PitFireTeamRoundLifecycle
             ? "PitFireTeam round lifecycle failed closed."
             : reason;
         RevokeFollowerSpawnLeaseUnsafe(_diagnostic, cleanupBodies: true);
-    }
-
-    private static void SetUnavailable(string reason)
-    {
-        lock (StateLock)
-            SetUnavailableUnsafe(reason);
     }
 
     private static void SetUnavailableUnsafe(string reason)

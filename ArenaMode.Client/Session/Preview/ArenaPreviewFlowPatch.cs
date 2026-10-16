@@ -24,8 +24,6 @@ internal static class ArenaPreviewFlowPatch
         new ScreenClosePatch().Enable();
     }
 
-    public static void Reset() => ArenaPreviewFlow.Reset();
-
     private sealed class ScreenClosePatch : ModulePatch
     {
         // Loading inherits its Close implementation. Hook the non-generic base,

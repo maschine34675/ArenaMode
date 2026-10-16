@@ -33,7 +33,6 @@ internal sealed class ArenaCharacterPreview : IDisposable
     private EFT.Utilities.XCoordRotation _rotator;
 
     public bool IsAvailable => !_lifetime.IsDisposed && _view != null && _world != null;
-    public MenuPlayerPoser Poser => _ready && IsAvailable ? _loader.ModelPlayerPoser : null;
 
     public ArenaCharacterPreview(MatchMakerSideSelectionScreen screen, Profile profile, Action onUnavailable)
     {

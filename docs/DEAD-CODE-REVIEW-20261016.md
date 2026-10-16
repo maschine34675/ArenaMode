@@ -1,5 +1,12 @@
 # Unused-code review — 16 October 2026
 
+**Implementation correction, 16 October:** The subsequent full unit build found
+that `ArenaEquipmentChoiceState.Label` is read by two tests. It was restored and
+excluded, leaving 34 of the original 35 candidates. The completed cleanup also
+removed two directly orphaned Client dependencies (36 reviewed targets total).
+See [implementation and final checks](DEAD-CODE-CLEANUP-20261016.md). The original
+audit figures below describe the earlier analysis, not current acceptance.
+
 Reviewed source: `cfdaef71c6fe4bc68bfc56f11c97d5f4a0b6f7f7`. **Thirty-five
 declarations have no identified consumer in the audited sources: one old Client
 mode class, twenty-seven further Client members, and seven Server methods.**
@@ -68,7 +75,7 @@ overloads. Removing a whole file/member family based on its name is unsafe.
 | `Session/ArenaCharacterPreview.cs:36` | `Poser` | Unread facade; the implementation uses its owned loader directly. |
 | `Session/ArenaClientConfig.cs:27` | `Preload()` | Unused eager-load wrapper; current consumers use `Refresh`. |
 | `Session/ArenaClientConfig.cs:77` | `GetSpawnZones(string, string)` | Unused Client getter. This does not make the Server spawn-zone configuration obsolete. |
-| `Session/ArenaEquipmentChoiceState.cs:49` | `Label` | Unread combined text property; UI uses separate row/button labels. |
+| `Session/ArenaEquipmentChoiceState.cs:49` | `Label` — **RETAINED after correction** | Read by `ArenaEquipmentChoiceTests.cs:151,153`; the initial audit missed these consumers. |
 | `Session/ArenaMenuSelection.cs:162` | `CannotStartReason` | Unread forwarding property; callers consume `CurrentEligibility`. |
 | `Session/ArenaModeSelectionView.cs:37` | `SelectedMode` | Unread view property; the separate selection-state property is active. |
 | `Session/Preview/ArenaPreviewFlowPatch.cs:27` | `Reset()` | Unused facade; active hooks call `ArenaPreviewFlow.Reset` directly. |

@@ -35,17 +35,8 @@ public static class LadderPicker
     }
 
     /// <summary>
-    /// Cuts a new ladder from the pool. Called when a raid starts; a pool that
-    /// is missing, unreadable or already ladder-sized is passed through
-    /// unchanged, which also keeps a hand-written ladder.json working.
-    /// </summary>
-    public static void DrawForRaid(string poolJson, int rungs, Action<string>? log = null)
-        => Redraw(poolJson, rungs, log);
-
-    /// <summary>
-    /// Cuts a new ladder and returns it, for a player who has climbed the whole
-    /// of the last one and would otherwise walk the same twenty-four weapons a
-    /// second time in the same raid.
+    /// Cuts a new ladder at raid start or after the player has climbed the
+    /// previous one, so another climb need not repeat the same weapons.
     ///
     /// Installs it as Current as well, so a respawn asking for the ladder after
     /// this point gets the one the player is actually climbing.

@@ -71,12 +71,6 @@ namespace ArenaMode.Hud.InfoPanels
             }
         }
 
-        public void Clear()
-        {
-            ClearWeaponLines();
-            _grenadeBar.Hide();
-        }
-
         // Everything that describes the firearm in hand. The grenade counts
         // are carried inventory and stay: holding a grenade (or a knife or
         // meds) is exactly when the remaining grenade count matters.

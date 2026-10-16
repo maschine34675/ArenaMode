@@ -82,9 +82,6 @@ internal static class ZombieSpawnService
     private static int _failedDispatches;
     private static string _pendingFailure;
 
-    /// <summary>True: Stage C's native spawn path (BurstSpawnService.SpawnInfected) is wired.</summary>
-    internal static bool IsReady => true;
-
     /// <summary>Spawn requests accepted but not yet confirmed alive or dead.</summary>
     internal static int Pending => PendingRequests.Count;
 

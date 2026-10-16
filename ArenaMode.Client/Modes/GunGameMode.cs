@@ -67,10 +67,6 @@ public sealed partial class GunGameMode : IArenaMode
     internal bool AssistScoringOpen => !_givenUp && !_preloading && _ladder.Count > 0
         && ReferenceEquals(ArenaMatchService.Current, _match);
 
-    public int Tier => _tier;
-
-    public int TierCount => _ladder.Count;
-
     /// <summary>The rung itself — the weapon the player has earned.</summary>
     public KitDefinition CurrentRung =>
         _ladder.Count > 0 ? _ladder[Mathf.Clamp(_tier, 0, _ladder.Count - 1)] : null;

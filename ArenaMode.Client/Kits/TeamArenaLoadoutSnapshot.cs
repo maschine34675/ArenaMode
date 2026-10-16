@@ -58,12 +58,6 @@ public sealed class TeamArenaLoadoutSnapshot
     }
 
     public int CapturedItemCount { get; }
-    public int ProtectedItemCount => _capturedProtectedIds.Count;
-
-    /// <summary>Diagnostic only; the JSON itself intentionally never leaves process memory.</summary>
-    public int SerializedCharacterCount => _flatItemJson.Length;
-
-    public bool IsPoisoned => _restoreGate.IsPoisoned;
 
     /// <summary>
     /// Captures the live equipment graph. Protected roots are found from the actual
