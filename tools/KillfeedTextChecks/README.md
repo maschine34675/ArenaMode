@@ -20,6 +20,12 @@ missing rosters, unknown identities and match reset. The formatter does not
 write scoring metadata. Customized color strings affect new entries; an already
 formatted entry keeps its original colors.
 
+The PFT fixtures explicitly freeze four companions through the variable-squad
+registry API. The deliberately short replacement roster still expects four,
+so this negative case cannot accidentally become an accepted one-person squad.
+The 2026-10-16 API repair passed all 120 assertions and six compiled faults;
+it changes the fixture calls only, not gameplay or assertions.
+
 KillfeedView reads FriendlyTracerColor/OpponentTracerColor for each Push and
 normalizes the shared HDR palette with the existing friendly-marker UI policy,
 then converts RGB to an opaque HTML color. This Unity adapter and actual F12

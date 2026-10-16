@@ -124,16 +124,16 @@ Check(ArenaTracerTeams.BeginMatch("local", true), "PFT roster starts unbound");
 CheckTeams("pft-awaiting-roster", "local", "enemy", unknownColor, unknownColor, localKill: true);
 var friends = new[] { "friend", "friend2", "friend3", "friend4" };
 var enemies = new[] { "enemy", "enemy2", "enemy3", "enemy4", "enemy5" };
-Check(ArenaTracerTeams.TryBindTeamRound(1, "local", friends, enemies, out _), "PFT complete roster binds");
+Check(ArenaTracerTeams.TryBindTeamRound(1, 4, "local", friends, enemies, out _), "PFT complete roster binds");
 CheckTeams("pft-friend-kill", "friend", "enemy", friendlyColor, opponentColor);
 CheckTeams("pft-local-death", "enemy", "local", opponentColor, friendlyColor, localDeath: true);
 CheckTeams("pft-unknown", "outsider", "friend", unknownColor, friendlyColor);
-Check(ArenaTracerTeams.TryBindTeamRound(2, "local",
+Check(ArenaTracerTeams.TryBindTeamRound(2, 4, "local",
     new[] { "new-f1", "new-f2", "new-f3", "new-f4" },
     new[] { "new-e1", "new-e2", "new-e3", "new-e4", "new-e5" }, out _), "PFT second roster binds");
 CheckTeams("pft-historical-kill", "enemy", "friend", opponentColor, friendlyColor);
 CheckTeams("pft-new-round", "new-f1", "new-e1", friendlyColor, opponentColor);
-Check(!ArenaTracerTeams.TryBindTeamRound(3, "local", new[] { "too-short" }, enemies, out _), "PFT invalid rebind is refused");
+Check(!ArenaTracerTeams.TryBindTeamRound(3, 4, "local", new[] { "too-short" }, enemies, out _), "PFT invalid rebind is refused");
 CheckTeams("pft-invalid-rebind", "local", "enemy", unknownColor, unknownColor, localKill: true);
 ArenaTracerTeams.Reset();
 CheckTeams("after-reset", "local", "friend", unknownColor, unknownColor);
