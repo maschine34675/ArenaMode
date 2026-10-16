@@ -57,6 +57,19 @@ the existing `HoverTooltipArea.SetMessageText/SetUnlockStatus` contract is reuse
 These checks exercise ownership and layout arithmetic, not Unity rendering,
 native click hit-testing, BepInEx file IO, or the runtime's frozen match policy.
 The text-length assertions are copy budgets, not font metric measurements.
+
+The dedicated Molotov template constant is linked from Shared, alongside the
+production fire policy that uses it. PFT Zombie description checks follow the
+October 15 entry-gear refill: the surviving PMC is included, while team-wipe
+defeat and fallen-member restoration remain separately asserted. Reverting
+only this description to the old companions-only wording must fail the check.
+The description is 76 characters, within the unchanged 80-character copy budget;
+the earlier 83-character refill wording exceeded it. This budget is not native
+font-layout acceptance.
+The extra-Molotov/G-priority summary likewise stays within the unchanged
+36-character mutator budget; "extra" preserves the distinction from replacing
+the existing grenades.
+
 GPU acceptance must still inspect the largest Customs area/team-size layout,
 switch TDM/other modes/PFT, and verify custom F12 values (for example 77 kills,
 75 seconds). The runtime owner separately verifies that mid-raid F12 changes

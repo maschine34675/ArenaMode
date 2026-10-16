@@ -280,9 +280,9 @@ Need(Label("Mode description").text.Contains("Ammo refills each wave.", StringCo
     && Label("Mode description").text.Contains("PitFireTeam", StringComparison.Ordinal)
     && Label("RESPAWN value").text == "None", "solo Zombie explains resupply and optional PFT without promising a respawn");
 view.Synchronize("zombie", true);
-Need(Label("Mode description").text.Contains("Only companions refill each wave.", StringComparison.Ordinal)
+Need(Label("Mode description").text.Contains("All entry gear refills each wave.", StringComparison.Ordinal)
     && Label("Mode description").text.Contains("team wipe", StringComparison.Ordinal),
-    "PFT Zombie resupply note excludes the surviving PMC and explains defeat");
+    "PFT Zombie resupply note includes the surviving PMC and explains defeat");
 view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
 view.Synchronize("teamdeathmatch", false);
@@ -349,7 +349,7 @@ foreach (bool ownGear in new[] { false, true })
     Need(Label("Mode description").gameObject.activeSelf
         && Label("Mode description").text.Contains("team wipe ends play", StringComparison.Ordinal)
         && Label("Mode description").text.Contains("Fallen allies return", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("Only companions refill each wave", StringComparison.Ordinal),
+        && Label("Mode description").text.Contains("All entry gear refills each wave", StringComparison.Ordinal),
         "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
             == "ZOMBIES / PFT (WIP)",

@@ -97,7 +97,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",
         ArenaMutator.ArenaHud => "Killfeed, hits, health and weapons.",
-        ArenaMutator.Molotov => "Adds one Molotov; G selects it first. Keeps your grenades.",
+        ArenaMutator.Molotov => "One extra Molotov; G selects first.",
         ArenaMutator.FastBots => "Bot speed and movement bonuses.",
         ArenaMutator.ZombieCrowd => "Harder horde; teleports stragglers.",
         _ => string.Empty
