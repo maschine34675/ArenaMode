@@ -15,6 +15,9 @@ current. User-facing communication is normally German.
   Unit suite969/1skip, eight adjacent consumers,490 staged-DLL checks,
   15compiled faults and8invalid-art inputs pass. Build/deployment/native limits
   are in [the implementation record](UI-ARTWORK-REPLACEMENT-20261016.md).
+  Client and notices deployed; [fresh GPU2 Factory TDM](GPU-UI-ARTWORK-20261016.md)
+  confirms killfeed, real local headshot/skull and both scoreboard banners.
+  Protected exit/config restoration complete; server/Core/other DLLs unchanged.
   No push, publication or Git-history rewrite; old artwork remains in history.
 
 - **Confirmed dead-code cleanup (2026-10-16):** 29 Client removal targets and

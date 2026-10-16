@@ -8,6 +8,7 @@ build/deployment JSON records live here. The automatically discovered
 
 - [Current handoff and test status](HANDOFF.md)
 - [Original categorical UI artwork and validation](UI-ARTWORK-REPLACEMENT-20261016.md)
+- [Native Factory verification of the new UI artwork](GPU-UI-ARTWORK-20261016.md)
 - [Confirmed unused-code cleanup and final validation](DEAD-CODE-CLEANUP-20261016.md)
 - [Earlier UI artwork research and native weapon-icon feasibility](UI-ASSET-REPLACEMENT-REVIEW-20261016.md)
 - [Announcer assets and retained license notices](ASSET-MAINTENANCE-20261016.md)

@@ -75,5 +75,10 @@ Raw reports, review sheets and deployment/native evidence are ignored beneath
 `artifacts/ui-art-replacement-20261016/`; the independent full DLL check is under
 `artifacts/ui-asset-checks/bb0738d7d0534a9f82828ddeb27acc64/`.
 
-Native acceptance is recorded separately; offline mockups/doubles cannot prove
-Unity decoding, real font/layout behavior or actual game-frame appearance.
+The same staged client and three notices were subsequently deployed, with no
+server/library/audio deployment. A fresh Factory Team DM run on SPT-GPU-2
+verified real killfeed categories, local headshot/skull, both scoreboard team
+banners and statistic symbols; two local kills, protected exit and config
+restoration completed. See [native evidence and limits](GPU-UI-ARTWORK-20261016.md),
+including the two logged startup profile repairs and unrelated trace errors.
+Offline mockups/doubles are not substituted for this native observation.
