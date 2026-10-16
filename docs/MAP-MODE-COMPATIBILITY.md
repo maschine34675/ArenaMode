@@ -1,4 +1,4 @@
-# Karten und Modi – Stand 09.10.2026
+# Karten und Modi – Stand 16.10.2026
 
 Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung und
 in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
@@ -10,15 +10,18 @@ Grenzen der Spawn- und Arealverwaltung bleiben erhalten.
 | Bay5 | Ja | Ja | Ja | Ja |
 | Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein |
-| Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, 1v5 / geschütztes 5v5 | Ja, solo / geschützter Fünfertrupp |
+| Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
 
-PFT setzt weiterhin die unterstützte Version, vier eingeladene Begleiter und die
+PFT setzt weiterhin die unterstützte Version, 1–4 eingeladene Begleiter und die
 geschützte Ausrüstung voraus. Portierte Karten brauchen ArenaMapPort auf Client
 und Server; individuelle Karten-Allowlisten bleiben verbindlich. Andere EFT-Karten
 werden durch diese Änderung nicht freigegeben.
 
-Für ganze Karten verwenden die Modi die bestehenden generischen Spawnpunkte.
-Team DM braucht dort keine vermessenen Fraktionsstarts wie die begrenzten Areale.
+Für ganze Karten verwenden die Modi überwiegend die bestehenden generischen
+Spawnpunkte. Ausnahme: Equator-Team-DM nutzt die ursprünglichen Nord-/Süd-Teamboxen
+mit eigenen Arena-Markern für Einstieg und Respawns; siehe
+[Equator-Teamstarts](EQUATOR-TEAM-SPAWNS-REVIEW.md). Auf den übrigen ganzen Karten
+braucht Team DM keine vermessenen Fraktionsstarts wie die begrenzten Areale.
 Bay5 hat auch abseits der Spielerstarts genügend Punkte für den Fünfertrupp.
 Equator hat zwar genügend Punkte am ursprünglichen Spielereinstieg, aber nur vier
 mindestens 25 m entfernte Botpunkte vom Atrium (0, 0.2, 2). Ein überlebender
@@ -28,14 +31,15 @@ kleineren globalen Sicherheitsabstand oder erfundene Startpunkte umgangen.
 
 Zombies mit PFT sind auf Equator ebenfalls ausgeschlossen: Der kompakte Spielraum
 ist für den Fünfertrupp zusammen mit den Zombies zu eng. Solo-Zombies bleiben
-freigegeben. Diese gemeinsame Auswahlregel gilt auch für gespeicherte Auswahlen,
+freigegeben. Die PFT-Sperre gilt auch mit weniger als vier Begleitern. Diese
+gemeinsame Auswahlregel gilt auch für gespeicherte Auswahlen,
 wiederholte Arm-Anfragen und Server-Vorbereitung; eine Equator-only-Allowliste
 bietet folglich keinen PFT-Modus an. Normale PMC-Raids bleiben unverändert.
 
 `ArenaAreaRuntime` aktiviert Wände, Navigation und reservierte Respawns in allen
 Arena-Modi. Erst nach der erfolgreichen Navigationsprüfung beginnen Match,
 Modus-Timer und Ausrüstungswechsel. PFT wartet ebenfalls und reserviert für seine
-vier Begleiter getrennte, überprüfte Punkte innerhalb der Kontur. Der native
+1–4 Begleiter getrennte, überprüfte Punkte innerhalb der Kontur. Der native
 PFT-Ablauf und die authentifizierten Profile bleiben erhalten.
 
 Nur unabhängiges Team DM zeigt die Teamgröße 2v2–5v5; Deathmatch und Gun Game
@@ -49,7 +53,7 @@ Bay5 und Equator besitzen gültige KI-Anker, aber keine nativen Deckungspunkte.
 Der optionale PFT-Adapter ermittelt deshalb in genau diesen geschützten Arena-Raids
 den nächstgelegenen vorhandenen Anker direkt. Er verändert weder PFT-Dateien noch
 Kartengeometrie und erfindet keine Deckungspunkte. Die separate Tactical-Sperre
-auf Equator bleibt bestehen.
+auf Equator bleibt bestehen, auch wenn weniger als vier Begleiter eingeladen sind.
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

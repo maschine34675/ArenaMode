@@ -6,6 +6,9 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Player README and source-build instructions](../README.md)
+- [Forge description — six tabs, ready for the editor](FORGE-DESCRIPTION.md)
+- [Licenses, asset sources and redistribution boundaries](../THIRD-PARTY-NOTICES.md)
 - [Current handoff and test status](HANDOFF.md)
 - [Realistic generated weapon-category pictures](WEAPON-RENDERS-20261016.md)
 - [Four credited game-icons.net HUD symbols](UI-GAME-ICONS-20261016.md)

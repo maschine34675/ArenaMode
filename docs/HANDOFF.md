@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Release documentation (2026-10-16):** English player README, sober six-tab
+  Forge description and central third-party/license overview added, with the
+  existing MIT code designation now backed by a full root LICENSE. Full
+  Drexira MIT notice retained; assets keep their separate CC/announcer terms.
+  Dependency/map reference pages now say 1–4 PFT companions. Core 1.0.7 is the
+  current sibling source version, not a claim that earlier deployed artifacts
+  changed. This is documentation only: no build, deployment, push, visibility
+  change or history rewrite. Forge syntax follows the user's tabset reference;
+  actual rendering in the Forge editor remains a publication-time check.
+  Separate factual and license reviews completed; 31 new-document local links,
+  six-tab structure and the two unchanged full MIT notices checked. No runtime
+  suite rerun is claimed for this documentation-only change.
+  Release still needs packaging including the new root notices, matching public
+  Redeploy.Core source, final archive/source-history and announcer-rights review,
+  and the applicable release checks. Historical restricted assets are not cleared
+  by the new notices. See [README](../README.md), [Forge text](FORGE-DESCRIPTION.md)
+  and [license overview](../THIRD-PARTY-NOTICES.md).
+
 - **Four game-icons.net symbols (2026-10-16):** The user's exact Skull crack,
   Bowie knife, Grenade and Barbed wire motifs replace headshot/melee/grenade/wire.
   These four are CC BY 3.0 (Lorc/Skoll), separately credited from the remaining
