@@ -82,5 +82,58 @@ Independent adversarial source/pixel/layout review found no blocking issue;
 one obsolete white-only loader comment was corrected. No blanket full-suite
 or gameplay acceptance is implied by these scoped checks.
 
-Native test outcome follows separately. No push, publication or history rewrite
-is included.
+## Native verification, 2026-10-16
+
+Implementation commit: `df57ac4`. The client and three readable UI notices were
+deployed, with no server/Core or unrelated plugin rebuild. Client SHA256:
+`B036F5DEC978EB0CE0C5D18677DD7DBB81B0257BFE8642A937BE61F31A040BDE`.
+After the synchronized restart, UiBridge 0.9.4+42bbfb38 reported all nineteen
+maschine assemblies identical between development installation, GPU2 disk and
+the running process. The staged manifest above intentionally remains a record
+of the earlier non-deploying build, not a retroactively edited delivery claim.
+
+SPT-GPU-2 ran a fresh daytime Factory Team DM raid at 1920x1080, approximately
+15:04-15:13 local time. Ordinary bot kills showed the assault-rifle and SMG
+pictures with complete names, team colors, distances and weapon names. A real
+local ADAR 2-15 headshot showed the assault-rifle category picture and separate
+orange headshot badge without overlap. ADAR uses the existing assault-rifle
+classification; this is not evidence for the carbine picture. No fake kill or
+HUD entry was injected. UiBridge godmode was used for bounded visual setup and
+disabled before leaving; infinite ammunition and item/spawn injection were not
+used. Tracking and movement were stopped.
+
+Ignored private evidence is under
+`artifacts/weapon-picture-preview-20261016/native/`: `first-killfeed.png`,
+`mixed-killfeed.png`, and `own-kill/frame-0085-f42497.png` with `index.json`.
+These are actual game backbuffer frames. The own-kill capture reached its
+140-frame limit, so its index is incomplete; the selected encoded frame is
+valid visual evidence, not a complete replay or performance measurement.
+The offline contact sheet additionally covers all eight categories at actual
+display size. Native acceptance is limited to the observed categories and
+headshot layout in this one raid, not all categories, maps or resolutions.
+
+Protected disconnect returned to MainMenu. At 15:13:10 the server logged
+snapshot restoration and a protected end that skipped ordinary post-raid
+processing. Before/after inventories contain the same 323 items and compare
+equal after exactly two missing StackObjectsCount fields repaired to 1 by SPT's
+ProfileFixer at 15:01:41, before this raid. The only other profile differences
+are energy/hydration restored to 100, Health.UpdateTime and the Hideout run
+timestamp. No profile file was overwritten and no healing purchase was made.
+
+The config ledger needed no rollback, but the full pre-test file comparison
+found three different values after restart: pickup SoundVolume, Factory solo
+participant count and GameMode. These were restored through the live config
+API to the saved 0.7, 8 and deathmatch values. Every Arena config key/value pair
+then matched the pre-test copy; comments/ordering are not the comparison rule.
+The installed server and Redeploy Core hashes still match their pre-build
+values. No push, publication or history rewrite is included.
+
+The merged warning/error window contains 91 entries, including the deliberately
+throwing RespawnApiProbe subscriber, stale PerfectCulling sampler warnings,
+optional Fika references, Harmony target warnings, scene script/collider
+warnings, startup profile repairs and Fence warnings. EFT traces also report
+JetMaterial, map-marker, foldable, handler-hash and GetClosePoints messages.
+No replaced-resource, PNG-decode, sprite/texture or changed-HUD failure appears.
+This focused visual test does not establish the unrelated messages' causes or
+certify the entire mod set as error-free. The existing gpu-run Team DM shortcut
+still expects an older menu caption; observed native controls were used instead.

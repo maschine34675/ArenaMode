@@ -10,10 +10,13 @@ current. User-facing communication is normally German.
 - **Realistic weapon pictures (2026-10-16):** The user rejected the initial
   geometric guns and explicitly chose generated render-style pictures. Eight
   stored PNG masters now supply the same fixed categories; the other ten PNGs
-  are byte-identical. Waffen field64x32; feed540/rail80 keep436 text pixels.
-  Scoped checks509 including staged resources,16compiled faults,10bad-art
-  controls and Killfeed120/6faults pass. Independent review is clean; native
-  follow-up is pending at this implementation snapshot. See
+  are byte-identical. Weapon field 64x32; feed 540/rail 80 keep 436 text pixels.
+  Scoped checks: 509 including staged resources, 16 compiled faults, 10 bad-art
+  controls and Killfeed 120/6 faults pass. Independent review is clean.
+  Commit `df57ac4` is deployed; a fresh GPU2 Factory TDM raid confirms rifle/SMG
+  pictures, names/distances/team colors and a real local headshot badge.
+  Protected exit and full config restoration are verified; server/Core unchanged.
+  Other categories have offline visual/resource checks, not individual GPU kills. See
   [the replacement record](WEAPON-RENDERS-20261016.md).
 
 - **Categorical UI artwork replacement (2026-10-16):** User chose static
