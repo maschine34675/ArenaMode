@@ -16,10 +16,16 @@ New-Item -ItemType Directory -Force -Path $OutputDirectory, $PreviewDirectory | 
 $guns = @('assault-rifle', 'carbine', 'sniper', 'marksman', 'machinegun', 'shotgun', 'pistol', 'smg')
 $symbols = @('kill', 'death', 'assist', 'headshot', 'grenade', 'melee', 'bleeding', 'fire', 'barbed-wire')
 $names = @($guns) + @($symbols) + @('team-panel')
+$gameIcons = @{
+    'headshot' = @{ Title = 'Skull crack'; Author = 'Lorc'; Path = 'lorc/skull-crack' }
+    'melee' = @{ Title = 'Bowie knife'; Author = 'Skoll'; Path = 'skoll/bowie-knife' }
+    'grenade' = @{ Title = 'Grenade'; Author = 'Lorc'; Path = 'lorc/grenade' }
+    'barbed-wire' = @{ Title = 'Barbed wire'; Author = 'Lorc'; Path = 'lorc/barbed-wire' }
+}
 function Number([string]$text) { return [double]::Parse($text, $invariant) }
 function New-SvgBrush($node, $svg) {
     $fill = [string]$node.GetAttribute('fill')
-    if ($fill -eq '#ffffff') {
+    if ($fill -in @('#ffffff', '#fff')) {
         $brush = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Colors]::White)
     } elseif ($fill -eq 'url(#fade)') {
         $gradient = $svg.SelectSingleNode("*[local-name()='defs']/*[local-name()='linearGradient' and @id='fade']")
@@ -42,6 +48,7 @@ function New-SvgBrush($node, $svg) {
 $assets = [System.Collections.Generic.List[object]]::new()
 foreach ($name in $names) {
     $isGun = $guns -contains $name
+    $licensedIcon = $gameIcons[$name]
     $sourceFile = if ($isGun) { "tools/ArenaUiArtwork/renders/$name.png" } else { "tools/ArenaUiArtwork/sources/$name.svg" }
     $sourcePath = Join-Path $repo $sourceFile
     $width = if ($name -eq 'team-panel') { 688 } elseif ($isGun) { 128 } else { 64 }
@@ -64,10 +71,17 @@ foreach ($name in $names) {
     } else {
     [xml]$document = Get-Content -LiteralPath $sourcePath -Raw
     $svg = $document.DocumentElement
+    if ($licensedIcon) {
+        # Preserve the exact upstream white/transparent SVG. Its 512px canvas
+        # already has margins; scale the whole viewBox, without cropping paths.
+        if ($svg.viewBox -ne '0 0 512 512') { throw "Unexpected game-icons viewBox for $name." }
+        $drawing.PushTransform([System.Windows.Media.ScaleTransform]::new(0.125, 0.125))
+    } else {
     $width = [int]$svg.width; $height = [int]$svg.height
     $expectedWidth = if ($name -eq 'team-panel') { 688 } elseif ($guns -contains $name) { 128 } else { 64 }
     $expectedHeight = if ($name -eq 'team-panel') { 107 } else { 64 }
     if ($width -ne $expectedWidth -or $height -ne $expectedHeight -or $svg.viewBox -ne "0 0 $width $height") { throw "Unexpected SVG dimensions for $name." }
+    }
     foreach ($node in $svg.ChildNodes) {
         if ($node.LocalName -in @('title', 'desc', 'defs')) { continue }
         if ($node.LocalName -ne 'path') { throw "Unsupported SVG element $($node.LocalName)." }
@@ -75,6 +89,7 @@ foreach ($name in $names) {
         $geometry.FillRule = if ($node.GetAttribute('fill-rule') -eq 'evenodd') { [System.Windows.Media.FillRule]::EvenOdd } else { [System.Windows.Media.FillRule]::Nonzero }
         $drawing.DrawGeometry((New-SvgBrush $node $svg), $null, $geometry)
     }
+    if ($licensedIcon) { $drawing.Pop() }
     }
     $drawing.Close()
     $bitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($width, $height, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
@@ -98,23 +113,29 @@ foreach ($name in $names) {
     $outputPath = Join-Path $OutputDirectory "$name.png"
     $stream = [System.IO.File]::Create($outputPath)
     try { $encoder.Save($stream) } finally { $stream.Dispose() }
-    $assets.Add([ordered]@{
+    $entry = [ordered]@{
         file = "$name.png"
         sha256 = (Get-FileHash -LiteralPath $outputPath -Algorithm SHA256).Hash
         pixelSize = @($width, $height)
-        author = 'maschine / ArenaMode contributors'
-        license = 'MIT'
-        sourceURL = "urn:arenamode:original-ui-artwork:20261016:$name"
+        author = if ($licensedIcon) { $licensedIcon.Author } else { 'maschine / ArenaMode contributors' }
+        license = if ($licensedIcon) { 'CC-BY-3.0' } else { 'MIT' }
+        sourceURL = if ($licensedIcon) { "https://game-icons.net/1x1/$($licensedIcon.Path).html" } else { "urn:arenamode:original-ui-artwork:20261016:$name" }
         sourceFile = $sourceFile
         sourceSha256 = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
-        artworkKind = if ($isGun) { 'generated-weapon-render' } else { 'original-white-symbol' }
-        modifications = if ($isGun) { 'Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image.' } else { 'Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source.' }
-    })
+        artworkKind = if ($isGun) { 'generated-weapon-render' } elseif ($licensedIcon) { 'licensed-white-symbol' } else { 'original-white-symbol' }
+        modifications = if ($isGun) { 'Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image.' } elseif ($licensedIcon) { 'Unmodified upstream white/transparent SVG stored locally. Entire 512x512 viewBox scaled to 64x64 and rasterized offline with WPF; straight RGB normalized to white, antialiasing alpha retained. Existing HUD tint applied at runtime; no cropping or path edits.' } else { 'Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source.' }
+    }
+    if ($licensedIcon) {
+        $entry['title'] = $licensedIcon.Title
+        $entry['licenseURL'] = 'https://creativecommons.org/licenses/by/3.0/'
+        $entry['downloadURL'] = "https://game-icons.net/icons/ffffff/transparent/1x1/$($licensedIcon.Path).svg"
+    }
+    $assets.Add($entry)
 }
 [ordered]@{
     schemaVersion = 2
-    source = 'Generated ArenaMode weapon-category renders and original UI symbols'
-    rights = 'MIT; full permission and copyright notice in MIT-LICENSE.txt. No extracted game artwork.'
+    source = 'Generated ArenaMode weapon-category renders, original UI symbols and four game-icons.net symbols'
+    rights = 'Four named symbols: CC-BY-3.0, credited in NOTICE.md with full terms in CC-BY-3.0.txt. Remaining fourteen assets: MIT, notice in MIT-LICENSE.txt. No extracted game artwork.'
     generator = 'tools/ArenaUiArtwork/Generate-Artwork.ps1'
     assets = @($assets)
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory 'SOURCES.json') -Encoding utf8
@@ -132,8 +153,8 @@ $muted = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(175, 
 $dark = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(16, 21, 27))
 $bright = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(193, 197, 187))
 $panel = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(220, 20, 25, 31))
-$canvas.DrawString('ARENA  /  Original categorical UI artwork', $titleFont, $light, 22, 16)
-$canvas.DrawString('Weapons: generated renders at packed and HUD sizes. Symbols: original neutral artwork. Mock backgrounds only.', $font, $muted, 22, 48)
+$canvas.DrawString('ARENA  /  Categorical UI artwork', $titleFont, $light, 22, 16)
+$canvas.DrawString('Generated weapons; original + credited game-icons.net symbols. Mock backgrounds only.', $font, $muted, 22, 48)
 function Draw-Icon([string]$name, [int]$x, [int]$y, [int]$width, [int]$height, [System.Drawing.Color]$tint) {
     $image = [System.Drawing.Image]::FromFile((Join-Path $OutputDirectory "$name.png"))
     $attributes = [System.Drawing.Imaging.ImageAttributes]::new()

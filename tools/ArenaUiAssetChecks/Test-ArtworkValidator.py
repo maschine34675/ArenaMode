@@ -53,7 +53,11 @@ expect_failure(lambda: decode(encode(size, pixels) + b"extra"), "PNG exact IEND"
 for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent surroundings"),
                      ("hash", "manifest hash"), ("source", "present repository source"),
                      ("license", "complete MIT license"), ("duplicate", "exact manifest asset set"),
-                     ("weapon-white", "shaded weapon render"), ("weapon-border", "transparent border")):
+                     ("weapon-white", "shaded weapon render"), ("weapon-border", "transparent border"),
+                     ("cc-license", "complete CC BY 3.0 license"),
+                     ("cc-mit", "exact licensed author and license"),
+                     ("cc-source", "exact licensed source identity"),
+                     ("cc-credit", "readable named attribution")):
     folder = output / name
     shutil.copytree(source, folder)
     manifest_file = folder / "SOURCES.json"
@@ -76,6 +80,15 @@ for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent su
         (folder / "MIT-LICENSE.txt").write_text("MIT", encoding="utf-8")
     elif name == "duplicate":
         manifest["assets"][1] = manifest["assets"][0]
+    elif name == "cc-license":
+        (folder / "CC-BY-3.0.txt").write_text("CC BY 3.0", encoding="utf-8")
+    elif name == "cc-mit":
+        next(entry for entry in manifest["assets"] if entry["file"] == "headshot.png")["license"] = "MIT"
+    elif name == "cc-source":
+        next(entry for entry in manifest["assets"] if entry["file"] == "melee.png")["sourceURL"] = "https://game-icons.net/"
+    elif name == "cc-credit":
+        notice = folder / "NOTICE.md"
+        notice.write_text(notice.read_text(encoding="utf-8").replace("Bowie knife", "Knife"), encoding="utf-8")
     elif name.startswith("weapon-"):
         gun_size, gun_pixels = decode((source / "assault-rifle.png").read_bytes())
         changed = bytearray(gun_pixels)
@@ -89,4 +102,4 @@ for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent su
         next(entry for entry in manifest["assets"] if entry["file"] == "assault-rifle.png")["sha256"] = hashlib.sha256(png).hexdigest()
     manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
     expect_failure(lambda: validate(repo, folder), reason)
-print("ARTWORK VALIDATOR CONTROLS PASSED (10 invalid inputs)")
+print("ARTWORK VALIDATOR CONTROLS PASSED (14 invalid inputs)")

@@ -9,6 +9,12 @@ import zlib
 
 GUNS = {"assault-rifle", "carbine", "sniper", "marksman", "machinegun", "shotgun", "pistol", "smg"}
 SYMBOLS = {"kill", "death", "assist", "headshot", "grenade", "melee", "bleeding", "fire", "barbed-wire"}
+LICENSED = {
+    "headshot": ("Skull crack", "Lorc", "lorc/skull-crack"),
+    "melee": ("Bowie knife", "Skoll", "skoll/bowie-knife"),
+    "grenade": ("Grenade", "Lorc", "lorc/grenade"),
+    "barbed-wire": ("Barbed wire", "Lorc", "lorc/barbed-wire"),
+}
 EXPECTED = {**{name + ".png": (128, 64) for name in GUNS},
             **{name + ".png": (64, 64) for name in SYMBOLS}, "team-panel.png": (688, 107)}
 
@@ -87,6 +93,11 @@ def validate(repo, asset_dir):
     need("MIT" in notice and "SOURCES.json" in notice, "readable attribution/provenance notice")
     for fragment in ("Permission is hereby granted, free of charge", "The above copyright notice and this permission notice", 'THE SOFTWARE IS PROVIDED "AS IS"', "Copyright"):
         need(fragment in license_text, "complete MIT license")
+    cc_text = (asset_dir / "CC-BY-3.0.txt").read_text(encoding="utf-8")
+    for fragment in ("Attribution 3.0 Unported", "3. License Grant", "4. Restrictions", "8. Miscellaneous"):
+        need(fragment in cc_text, "complete CC BY 3.0 license")
+    need("https://creativecommons.org/licenses/by/3.0/" in notice and "CC-BY-3.0.txt" in notice,
+         "readable CC license notice")
     report = []
     for entry in entries:
         name = entry["file"]
@@ -97,17 +108,30 @@ def validate(repo, asset_dir):
         need(digest == entry["sha256"].lower(), f"{name}: manifest hash")
         size, pixels = decode_rgba(data)
         need(size == EXPECTED[name] == tuple(entry["pixelSize"]), f"{name}: fixed size")
-        need(entry["license"] == "MIT" and bool(entry["author"].strip()), f"{name}: author and MIT license")
-        need("sourceURL" in entry and (entry["sourceURL"] is None or entry["sourceURL"].startswith("urn:arenamode:original-ui-artwork:")), f"{name}: original source identity")
+        stem = Path(name).stem
+        licensed = LICENSED.get(stem)
+        if licensed:
+            title, author, path = licensed
+            source_url = f"https://game-icons.net/1x1/{path}.html"
+            need(entry["license"] == "CC-BY-3.0" and entry["author"] == author,
+                 f"{name}: exact licensed author and license")
+            need(entry.get("title") == title and entry["sourceURL"] == source_url
+                 and entry.get("downloadURL") == f"https://game-icons.net/icons/ffffff/transparent/1x1/{path}.svg"
+                 and entry.get("licenseURL") == "https://creativecommons.org/licenses/by/3.0/",
+                 f"{name}: exact licensed source identity")
+            need(all(value in notice for value in (name, title, author, source_url)),
+                 f"{name}: readable named attribution")
+        else:
+            need(entry["license"] == "MIT" and bool(entry["author"].strip()), f"{name}: author and MIT license")
+            need(entry.get("sourceURL") == f"urn:arenamode:original-ui-artwork:20261016:{stem}", f"{name}: original source identity")
         source = (repo / entry["sourceFile"]).resolve()
         is_gun = Path(name).stem in GUNS
-        source_kind = "generated-weapon-render" if is_gun else "original-white-symbol"
+        source_kind = "generated-weapon-render" if is_gun else "licensed-white-symbol" if licensed else "original-white-symbol"
         need(entry.get("artworkKind") == source_kind, f"{name}: explicit artwork kind")
         expected_source = repo / "tools/ArenaUiArtwork" / ("renders" if is_gun else "sources") / (Path(name).stem + (".png" if is_gun else ".svg"))
         need(source == expected_source.resolve() and source.is_file(), f"{name}: present repository source")
         need(bool(entry["modifications"]), f"{name}: transformation recorded")
-        if "sourceSha256" in entry:
-            need(hashlib.sha256(source.read_bytes()).hexdigest() == entry["sourceSha256"].lower(), f"{name}: source hash")
+        need(hashlib.sha256(source.read_bytes()).hexdigest() == entry.get("sourceSha256", "").lower(), f"{name}: source hash")
         visible, transparent, fractional, shaded = 0, 0, 0, 0
         for index in range(0, len(pixels), 4):
             r, g, b, a = pixels[index:index + 4]

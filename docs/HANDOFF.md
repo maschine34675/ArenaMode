@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Four game-icons.net symbols (2026-10-16):** The user's exact Skull crack,
+  Bowie knife, Grenade and Barbed wire motifs replace headshot/melee/grenade/wire.
+  These four are CC BY 3.0 (Lorc/Skoll), separately credited from the remaining
+  fourteen MIT images. Raw SVGs, per-asset provenance and full license travel
+  through the reproducible packer and client notices. Runtime layout and behavior
+  are unchanged. See [the scoped verification record](UI-GAME-ICONS-20261016.md)
+  for build/deployment and native-test limits; earlier GPU results below predate
+  these four replacements.
+
 - **Realistic weapon pictures (2026-10-16):** The user rejected the initial
   geometric guns and explicitly chose generated render-style pictures. Eight
   stored PNG masters now supply the same fixed categories; the other ten PNGs

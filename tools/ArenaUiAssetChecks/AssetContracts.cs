@@ -43,7 +43,7 @@ internal static class AssetContracts
                 if(ui)candidate.Add(name,embedded);
             }
             Validate(candidate,"client");
-            foreach(string name in new[]{"NOTICE.md","SOURCES.json","MIT-LICENSE.txt"})
+            foreach(string name in new[]{"NOTICE.md","SOURCES.json","MIT-LICENSE.txt","CC-BY-3.0.txt"})
             {
                 string path=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(clientAssembly))!,"ArenaMode","Ui",name);
                 Need(File.Exists(path)&&File.ReadAllBytes(path).SequenceEqual(resources["ArenaMode.Ui."+name]),"readable output notice matches embedded "+name);
@@ -56,7 +56,7 @@ internal static class AssetContracts
         {
             var specs=Enum.GetValues<ArenaUiIcon>().Select(ArenaUiAssets.Describe).ToArray();
             var expected=specs.Select(s=>"ArenaMode.Ui."+s.File)
-                .Concat(new[]{"ArenaMode.Ui.NOTICE.md","ArenaMode.Ui.SOURCES.json","ArenaMode.Ui.MIT-LICENSE.txt"}).ToHashSet(StringComparer.Ordinal);
+                .Concat(new[]{"ArenaMode.Ui.NOTICE.md","ArenaMode.Ui.SOURCES.json","ArenaMode.Ui.MIT-LICENSE.txt","ArenaMode.Ui.CC-BY-3.0.txt"}).ToHashSet(StringComparer.Ordinal);
             Need(expected.SetEquals(bytes.Keys),target+" exact embedded UI resource set");
             using var manifest=JsonDocument.Parse(bytes["ArenaMode.Ui.SOURCES.json"]);
             Need(manifest.RootElement.GetProperty("schemaVersion").GetInt32()==2,target+" provenance schema");
@@ -72,7 +72,7 @@ internal static class AssetContracts
                 Need(dimensions.SequenceEqual(new[]{spec.Width,spec.Height})&&ArenaUiAssets.MatchesHeader(png,spec),target+" manifest loader dimensions "+spec.File);
                 if(target=="client")Need(png.SequenceEqual(resources["ArenaMode.Ui."+spec.File]),"candidate matches checked artwork "+spec.File);
             }
-            if(target=="client")foreach(string name in new[]{"NOTICE.md","SOURCES.json","MIT-LICENSE.txt"})
+            if(target=="client")foreach(string name in new[]{"NOTICE.md","SOURCES.json","MIT-LICENSE.txt","CC-BY-3.0.txt"})
                 Need(bytes["ArenaMode.Ui."+name].SequenceEqual(resources["ArenaMode.Ui."+name]),"candidate notices match current "+name);
         }
     }

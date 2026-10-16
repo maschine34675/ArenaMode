@@ -8,6 +8,7 @@ build/deployment JSON records live here. The automatically discovered
 
 - [Current handoff and test status](HANDOFF.md)
 - [Realistic generated weapon-category pictures](WEAPON-RENDERS-20261016.md)
+- [Four credited game-icons.net HUD symbols](UI-GAME-ICONS-20261016.md)
 - [Original categorical UI artwork and validation](UI-ARTWORK-REPLACEMENT-20261016.md)
 - [Native Factory verification of the new UI artwork](GPU-UI-ARTWORK-20261016.md)
 - [Confirmed unused-code cleanup and final validation](DEAD-CODE-CLEANUP-20261016.md)

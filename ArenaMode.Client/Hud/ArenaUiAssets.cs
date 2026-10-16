@@ -12,7 +12,7 @@ internal enum ArenaUiIcon
     Machinegun, Shotgun, Pistol, Smg, Grenade, Melee, Bleeding, Fire, TeamPanel, BarbedWire,
 }
 
-/// <summary>Private, bounded, cached original icons; provenance travels with the embedded resources.</summary>
+/// <summary>Private, bounded, cached icons; provenance travels with the embedded resources.</summary>
 internal sealed class ArenaUiAssets : IDisposable
 {
     internal readonly struct Spec

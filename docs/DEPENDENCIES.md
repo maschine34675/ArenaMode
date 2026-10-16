@@ -88,10 +88,12 @@ Das ist der Paketierungsplan; die vorhandenen Staging-/Map-Preview-Prüfungen
 sind noch kein vollständiger allgemeiner Release-Packager.
 
 Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
-durch eigene Grafiken ersetzt: acht generierte realistische Waffen-Kategoriebilder
-und zehn geometrische SVG-/PNG-Symbole bzw. Banner, jeweils mit MIT-Hinweis. Quellen,
-Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und vollständige
-MIT-Lizenz reisen im Client und lesbar unter `ArenaMode/Ui` mit.
+durch acht generierte realistische Waffen-Kategoriebilder, sechs eigene Symbole
+bzw. Banner (MIT) sowie vier game-icons.net-Symbole (CC BY 3.0) ersetzt.
+Letztere: Skull crack, Grenade und Barbed wire von Lorc; Bowie knife von Skoll.
+Quellen, Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und
+vollständige MIT-/CC-BY-3.0-Lizenztexte reisen im Client und lesbar unter
+`ArenaMode/Ui` mit. Siehe auch `UI-GAME-ICONS-20261016.md`.
 Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der
 Git-Historie und in früheren Paketen: Der Austausch bereinigt diese nicht und
 ist keine Freigabe zur Veröffentlichung der Historie oder anderer Assets.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "source": "Generated ArenaMode weapon-category renders and original UI symbols",
-  "rights": "MIT; full permission and copyright notice in MIT-LICENSE.txt. No extracted game artwork.",
+  "source": "Generated ArenaMode weapon-category renders, original UI symbols and four game-icons.net symbols",
+  "rights": "Four named symbols: CC-BY-3.0, credited in NOTICE.md with full terms in CC-BY-3.0.txt. Remaining fourteen assets: MIT, notice in MIT-LICENSE.txt. No extracted game artwork.",
   "generator": "tools/ArenaUiArtwork/Generate-Artwork.ps1",
   "assets": [
     {
@@ -171,48 +171,57 @@
     },
     {
       "file": "headshot.png",
-      "sha256": "23044567352204FAC6A8E65C07A1E31AE2B57A3C441CA77FCDE2A3D2E331970F",
+      "sha256": "FCAA52AA9E134A341940CC68904D9439DDE29DCA04C0A8C92204FD8B2D537B2D",
       "pixelSize": [
         64,
         64
       ],
-      "author": "maschine / ArenaMode contributors",
-      "license": "MIT",
-      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:headshot",
+      "author": "Lorc",
+      "license": "CC-BY-3.0",
+      "sourceURL": "https://game-icons.net/1x1/lorc/skull-crack.html",
       "sourceFile": "tools/ArenaUiArtwork/sources/headshot.svg",
-      "sourceSha256": "F7B10C612BA5C79A71687C160E7A762878E77EB1451352A20FBF479030F564F8",
-      "artworkKind": "original-white-symbol",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceSha256": "2906543D9841CE519DD1AE0679F07C96C5881D5FBB6CE429DA930A7667E1B3B3",
+      "artworkKind": "licensed-white-symbol",
+      "modifications": "Unmodified upstream white/transparent SVG stored locally. Entire 512x512 viewBox scaled to 64x64 and rasterized offline with WPF; straight RGB normalized to white, antialiasing alpha retained. Existing HUD tint applied at runtime; no cropping or path edits.",
+      "title": "Skull crack",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
+      "downloadURL": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/skull-crack.svg"
     },
     {
       "file": "grenade.png",
-      "sha256": "74082E2A900F16C56B352E49254C60353A0351F67E635E35B8A0FF4D8D1C413C",
+      "sha256": "6C51468802ED692F2C1F026DCF2ED9EBBB7DE95E41BA230D0F7AD5DFA6EF3D70",
       "pixelSize": [
         64,
         64
       ],
-      "author": "maschine / ArenaMode contributors",
-      "license": "MIT",
-      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:grenade",
+      "author": "Lorc",
+      "license": "CC-BY-3.0",
+      "sourceURL": "https://game-icons.net/1x1/lorc/grenade.html",
       "sourceFile": "tools/ArenaUiArtwork/sources/grenade.svg",
-      "sourceSha256": "49461756DA65B4FB4E674E0881A69E69256349F55FFE1B8EEFE3AB2E41FB4CA3",
-      "artworkKind": "original-white-symbol",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceSha256": "23D544F89C5CEBF4A623B25539CCC1B1B36D507FB334B18D835416305F66110C",
+      "artworkKind": "licensed-white-symbol",
+      "modifications": "Unmodified upstream white/transparent SVG stored locally. Entire 512x512 viewBox scaled to 64x64 and rasterized offline with WPF; straight RGB normalized to white, antialiasing alpha retained. Existing HUD tint applied at runtime; no cropping or path edits.",
+      "title": "Grenade",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
+      "downloadURL": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/grenade.svg"
     },
     {
       "file": "melee.png",
-      "sha256": "E6287E894B27742E7E046CA14D8C97EB1780A9E8D9E3FD919FBE9EECD398466D",
+      "sha256": "DC7B49EF59E28D6C7C7042C4F70D853E9695DB4834F9F631193F606716839540",
       "pixelSize": [
         64,
         64
       ],
-      "author": "maschine / ArenaMode contributors",
-      "license": "MIT",
-      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:melee",
+      "author": "Skoll",
+      "license": "CC-BY-3.0",
+      "sourceURL": "https://game-icons.net/1x1/skoll/bowie-knife.html",
       "sourceFile": "tools/ArenaUiArtwork/sources/melee.svg",
-      "sourceSha256": "A6C851AB9BC20044F5CDBD8D2B4B0624A34936A4AAF7C9BDCE5BE2CB9B60961B",
-      "artworkKind": "original-white-symbol",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceSha256": "AE9D56C1B7C6D9CFCC347FAFD5FB6A349DFC3A573BC9F4776704494851E6DBED",
+      "artworkKind": "licensed-white-symbol",
+      "modifications": "Unmodified upstream white/transparent SVG stored locally. Entire 512x512 viewBox scaled to 64x64 and rasterized offline with WPF; straight RGB normalized to white, antialiasing alpha retained. Existing HUD tint applied at runtime; no cropping or path edits.",
+      "title": "Bowie knife",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
+      "downloadURL": "https://game-icons.net/icons/ffffff/transparent/1x1/skoll/bowie-knife.svg"
     },
     {
       "file": "bleeding.png",
@@ -246,18 +255,21 @@
     },
     {
       "file": "barbed-wire.png",
-      "sha256": "4A52D4D35741E27432C695D2DDD768EB3FE9439EBEBC67C6EF72175691701E27",
+      "sha256": "B7D15C12B825A5B0649DDF289DA4F15E08B5E58E734C4CFE8D82A83625EDDEB6",
       "pixelSize": [
         64,
         64
       ],
-      "author": "maschine / ArenaMode contributors",
-      "license": "MIT",
-      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:barbed-wire",
+      "author": "Lorc",
+      "license": "CC-BY-3.0",
+      "sourceURL": "https://game-icons.net/1x1/lorc/barbed-wire.html",
       "sourceFile": "tools/ArenaUiArtwork/sources/barbed-wire.svg",
-      "sourceSha256": "D2C9DEE48A49396E9B12851923107C693C4195174CA1E2F475EC4353332F44D1",
-      "artworkKind": "original-white-symbol",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceSha256": "292A32E688B2D3BA83DBEF09166831068CA1C8AEF16FD268805A3DF2BF99F08C",
+      "artworkKind": "licensed-white-symbol",
+      "modifications": "Unmodified upstream white/transparent SVG stored locally. Entire 512x512 viewBox scaled to 64x64 and rasterized offline with WPF; straight RGB normalized to white, antialiasing alpha retained. Existing HUD tint applied at runtime; no cropping or path edits.",
+      "title": "Barbed wire",
+      "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
+      "downloadURL": "https://game-icons.net/icons/ffffff/transparent/1x1/lorc/barbed-wire.svg"
     },
     {
       "file": "team-panel.png",
