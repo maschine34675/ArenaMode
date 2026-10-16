@@ -41,8 +41,8 @@ internal static class AnnouncerAssetContract
 
     // The 2026-09-17 supplement, reviewed here independently of its own Python
     // verifier and of the production catalog. It is a SEPARATE manifest because
-    // the original 46 recordings and their record must stay byte-identical, so
-    // the folder-coverage check below is the union of the two.
+    // the original 46 recordings must stay byte-identical. Their record now uses
+    // the promoted package paths; coverage below remains the union of both records.
     private static readonly HashSet<string> AdditionActiveKeys = new(
         "no_scope airborne no_contest embarrassing".Split(' '), StringComparer.Ordinal);
 
@@ -140,7 +140,10 @@ internal static class AnnouncerAssetContract
             string usage = row["usage"]!.GetValue<string>();
             bool active = usage == "active";
             Require(active || usage == "reserve", "unknown loading scope");
-            Require(active == !path.StartsWith("sounds/reserve/", StringComparison.Ordinal), "wrong loading scope");
+            // Keep the historical intake classification while the 19 subsequently
+            // enabled cues now ship at the root alongside the original active set.
+            bool promoted = ReserveRuntimeBindings.ContainsKey(Path.GetFileNameWithoutExtension(path));
+            Require((active || promoted) == !path.StartsWith("sounds/reserve/", StringComparison.Ordinal), "wrong loading scope");
             string? key = row["eventKey"]?.GetValue<string>();
             string? runtimeKey = row["runtimeEventKey"]?.GetValue<string>();
             Require(!string.IsNullOrWhiteSpace(row["spoken"]?.GetValue<string>()), "missing spoken label");
@@ -194,7 +197,7 @@ internal static class AnnouncerAssetContract
         Require(paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() == paths.Length, "duplicate runtime load path");
         var expected = new HashSet<string>(ActiveKeys.Select(key => "sounds/" + key + ".ogg"), StringComparer.Ordinal);
         expected.UnionWith(AdditionActiveKeys.Select(key => "sounds/" + key + ".ogg"));
-        expected.UnionWith(ReserveRuntimeBindings.Keys.Select(key => "sounds/reserve/" + key + ".ogg"));
+        expected.UnionWith(ReserveRuntimeBindings.Keys.Select(key => "sounds/" + key + ".ogg"));
         // 18 original active + 4 reviewed additions + 19 bound reserve. The two
         // reserve additions are absent from the allowlist and must stay unloaded.
         Require(expected.SetEquals(paths) && paths.Length == 41, "runtime loaded cue set differs");

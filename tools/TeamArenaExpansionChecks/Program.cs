@@ -1141,7 +1141,8 @@ internal static class Program
         JsonObject Cue(JsonObject pack, string key) => pack["files"]!.AsArray()
             .Select(row => row!.AsObject()).Single(row => row["eventKey"]?.GetValue<string>() == key);
         JsonObject Reserve(JsonObject pack, string basename) => pack["files"]!.AsArray()
-            .Select(row => row!.AsObject()).Single(row => row["file"]?.GetValue<string>() == "sounds/reserve/" + basename + ".ogg");
+            .Select(row => row!.AsObject()).Single(row => row["usage"]?.GetValue<string>() == "reserve"
+                && Path.GetFileNameWithoutExtension(row["file"]?.GetValue<string>()) == basename);
         var faults = new (string Name, Action<JsonObject> Change, string Failure)[]
         {
             ("missing generator", pack => pack.Remove("generator"), "missing provenance"),
@@ -1174,7 +1175,8 @@ internal static class Program
             ("active runtime override", pack => Cue(pack, "round_won")["runtimeEventKey"] = "victory", "active cue has a reserve runtime binding"),
             ("optional cue hash", pack => Reserve(pack, "clutch")["sha256"] = new string('0', 64), "cue checksum differs"),
             ("optional reviewed speech", pack => Reserve(pack, "clutch")["spoken"] = "VICTORY", "reviewed reserve label differs"),
-            ("promoted reserve intake", pack => Reserve(pack, "clutch")["usage"] = "active", "wrong loading scope")
+            ("promoted reserve intake", pack => Reserve(pack, "clutch")["usage"] = "active", "active cue has a reserve runtime binding"),
+            ("used cue left in reserve", pack => Reserve(pack, "clutch")["file"] = "sounds/reserve/clutch.ogg", "wrong loading scope")
         };
         foreach (var fault in faults)
         {
@@ -1224,9 +1226,9 @@ internal static class Program
 
         string[] loaded = AnnouncerCueCatalog.LoadPaths(Path.Combine(assets, "sounds"));
         AnnouncerAssetContract.ValidateLoadedPaths(assets, loaded);
-        Assert(true, "production loader selects the exact 18 original plus 19 explicitly bound reserve files");
-        Assert(AnnouncerCueCatalog.OptionalReserveKeys.Length == 19
-               && AnnouncerCueCatalog.OptionalReserveKeys.ToHashSet(StringComparer.Ordinal).SetEquals(AnnouncerAssetContract.ReserveRuntimeBindings.Keys),
+        Assert(true, "production loader selects all 41 reviewed used files from sounds without reserve alternatives");
+        Assert(AnnouncerCueCatalog.LegacyReserveKeys.Length == 19
+               && AnnouncerCueCatalog.LegacyReserveKeys.ToHashSet(StringComparer.Ordinal).SetEquals(AnnouncerAssetContract.ReserveRuntimeBindings.Keys),
             "production catalog allowlist matches the independent reviewed 19-cue contract");
         var lifecycleBindings = new Dictionary<ArenaAnnouncerCue, string>
         {

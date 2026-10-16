@@ -1,5 +1,7 @@
 # HUD icon attribution
 
+The packaged [CC BY 3.0 legal text](CC-BY-3.0.txt) applies to both icons below.
+
 ## Kevlar vest
 
 - Title: **Kevlar vest**

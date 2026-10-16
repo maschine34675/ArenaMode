@@ -70,6 +70,15 @@ internal static partial class Program
                 && loaded.Contains(Path.Combine(soundsDir, "three.ogg")),
             "An existing root cue wins its basename once, without an optional reserve overwrite.");
 
+        // Copy-only upgrades can leave all nineteen legacy files in reserve.
+        // The current root layout must still select exactly one path per cue.
+        foreach (var cue in OptionalCues) AddExpansionFile(Path.Combine(soundsDir, cue.Key + ".ogg"));
+        string[] promoted = AnnouncerCueCatalog.LoadPaths(soundsDir);
+        Assert(OptionalCues.All(cue => promoted.Count(path =>
+                Path.GetFileNameWithoutExtension(path) == cue.Key) == 1
+                && promoted.Contains(Path.Combine(soundsDir, cue.Key + ".ogg"))),
+            "Every promoted root cue wins once even with all legacy reserve copies present.");
+
         foreach (var cue in OptionalCues.Where(c => c.Cue != ArenaAnnouncerCue.Clutch))
         {
             AnnouncerService.Attach(match);

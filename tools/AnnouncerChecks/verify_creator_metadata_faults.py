@@ -91,6 +91,8 @@ def main():
         ('intake overwritten', 18, 'usage', 'active', 'Original intake classification changed'),
         ('intake event overwritten', 18, 'eventKey', 'prepare_to_fight', 'Original event mapping changed'),
         ('source cuts changed', 18, 'startFrame', 1, 'Reviewed phrase order, destinations or cuts changed'),
+        ('active cue left in reserve', 18, 'file', 'sounds/reserve/prepare_to_fight.ogg',
+            'Reviewed phrase order, destinations or cuts changed'),
     ]
     for name, index, field, value, expected in cases:
         mutated = copy.deepcopy(manifest)

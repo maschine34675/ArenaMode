@@ -54,14 +54,15 @@ def verify_metadata(manifest):
         and sum(bool(r.get('runtimeEventKey')) for r in rows) == 19, 'Enabled optional cue set differs')
     for row in rows:
         require(row.get('runtimeEventKey') == runtime_key(row['file']), 'Optional runtime mapping differs')
-        active = row['file'] == 'sounds/' + Path(row['file']).stem + '.ogg'
+        # usage/eventKey describe the original intake, not today's directory.
+        active = row['number'] <= 18
         require(row['usage'] == ('active' if active else 'reserve'), 'Original intake classification changed')
         require(row['eventKey'] == (Path(row['file']).stem if active else None), 'Original event mapping changed')
 
 
 def verify_runtime_catalog():
     catalog = (ROOT / 'ArenaMode.Client/Audio/AnnouncerCueCatalog.cs').read_text(encoding='utf-8')
-    match = re.search(r'OptionalReserveKeys\s*=\s*\{([^}]+)\}', catalog)
+    match = re.search(r'LegacyReserveKeys\s*=\s*\{([^}]+)\}', catalog)
     require(match is not None, 'Explicit optional runtime catalog missing')
     keys = re.findall(r'"([a-z_]+)"', match.group(1))
     require(len(keys) == 19 and set(keys) == OPTIONAL, 'Production optional cue set differs')
@@ -80,7 +81,7 @@ def verify_inventory(assets, manifest, supplement):
     require(len(extra_paths) == 6 and paths.isdisjoint(extra_paths), 'Addition destination collision')
     require(sum(r['usage'] == 'active' for r in rows) == 18, 'Original active count differs')
     require(sum(r['usage'] == 'reserve' for r in rows) == 28, 'Original reserve count differs')
-    require({p.stem for p in (assets / 'sounds').glob('*.ogg')} == ACTIVE | ADDITIONS.ACTIVE,
+    require({p.stem for p in (assets / 'sounds').glob('*.ogg')} == ACTIVE | OPTIONAL | ADDITIONS.ACTIVE,
         'Active cue set changed')
     expected = paths | extra_paths
     actual = {p.relative_to(assets).as_posix() for p in (assets / 'sounds').rglob('*.ogg')}
@@ -110,8 +111,9 @@ def main():
         path = args.assets / row['file']
         require(path.resolve().is_relative_to(args.assets.resolve()), 'Unsafe path')
         require(sha(path) == row['sha256'], f'{path}: hash mismatch')
-        active = path.parent == args.assets / 'sounds'
-        require(active == (row['usage'] == 'active'), f'{path}: incorrect original intake classification')
+        active = row['usage'] == 'active'
+        require((path.parent == args.assets / 'sounds') == (active or bool(row.get('runtimeEventKey'))),
+            f'{path}: incorrect current package location')
         require(row['eventKey'] == (path.stem if active else None), 'Event mapping differs')
         probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_streams', '-of', 'json', str(path)]))
         require(len(probe['streams']) == 1, 'Expected one stream')

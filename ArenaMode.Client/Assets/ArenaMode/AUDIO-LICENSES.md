@@ -8,7 +8,8 @@
 no endorsement or warranty is implied. The user supplied an already shortened
 1.399206-second excerpt of the public compilation. Arena retains its first
 0.600 seconds, averages stereo to mono PCM16/44.1 kHz and fades the final 10 ms.
-The removed section is trailing silence. No normalization or pitch change.
+The removed section is trailing silence. On 2026-10-08 the packaged PCM received
+a constant +12 dB gain, without clipping, compression, normalization or pitch change.
 Source/output hashes and processing are in [SOURCES.json](pickups/SOURCES.json);
 the unchanged [CC0 legal text](pickups/CC0-1.0.txt) ships alongside the cue.
 
@@ -20,8 +21,11 @@ They replace all prior free-plan, TripleSnail and WARLORD announcer audio.
 The original intake classified 18 existing cues and 28 reserve recordings.
 Since 2026-09-14, 19 of those reserve recordings have explicit runtime bindings
 (37 usable cues); four alternate results and five CTF recordings remain unused.
-Their binary files and source/license record are unchanged; runtimeEventKey in
-the manifest records the added binding separately from original intake usage.
+Since 2026-10-16 these 19 files live directly in `sounds/`; their audio bytes,
+cuts and rights are unchanged. `usage`/`eventKey` retain the historical intake
+classification, while `runtimeEventKey` identifies the added bindings and `file`
+records the current package path. Together with the supplement, all 41 used
+recordings are at the root and only the 11 unused recordings remain in reserve.
 See [ANNOUNCER-PACK.md](ANNOUNCER-PACK.md) for the ordered mapping and
 [ANNOUNCER-SOURCES.json](ANNOUNCER-SOURCES.json) for hashes and exact cuts.
 
@@ -58,8 +62,8 @@ they live in `sounds/reserve/` outside the runtime allowlist and are never
 loaded. `airborne` replaces the former TRICKSHOT award label, whose recording is
 the now-reserve `trickshot`.
 
-The original 46 recordings and [ANNOUNCER-SOURCES.json](ANNOUNCER-SOURCES.json)
-are byte-identical; the supplement keeps its own record in
+The original 46 recordings remain byte-identical; their manifest now reflects
+the current package paths. The supplement keeps its own record in
 [ANNOUNCER-ADDITIONS-20260917.json](ANNOUNCER-ADDITIONS-20260917.json), with the
 source fingerprint, exact frame cuts and a hash per clip. Processing matches the
 original pack: reviewed inter-phrase cuts, 5 ms fade-in, 10 ms fade-out, uniform
@@ -71,10 +75,12 @@ holds the splitter and the verifier that re-checks both records.
 
 ## Superseded announcer sources
 
-[HISTORICAL-AUDIO-LICENSES.md](HISTORICAL-AUDIO-LICENSES.md) preserves the former
-pack's attribution. `LOCAL-ANNOUNCER-*` and `WARLORD-ADDITIONS.json` are historical
-records, explicitly superseded; their output hashes do not describe current OGGs.
-The unchanged CC license texts are retained for this history. The old
+No TripleSnail, WARLORD or former free-plan recording remains in this package.
+Their obsolete notices and manifests are no longer shipped; the private Git
+history retains the original files and their own rights records, without
+retroactively changing their licenses. `CC-BY-3.0.txt` remains required for the
+current Skoll HUD icons documented in [HUD-ICON-LICENSES.md](HUD-ICON-LICENSES.md).
+The old
 `tools/Convert-WarlordAdditions.ps1` importer would overwrite seven current
 Creator cues and must not be used to refresh this pack. Use the Creator splitter
 and verifier documented in ANNOUNCER-PACK.md instead.
@@ -136,7 +142,7 @@ subscribe to the callouts and Tactical cues; normal raids do not use this
 announcer. A Tactical cue plays when combat actually becomes live and when a
 round is decided. The final protected 5v5 result uses Mission Accomplished or
 Game Over instead of repeating an intermediate round result. Technical
-no-contest exits are silent.
+no-contest exits use the dedicated NO CONTEST recording.
 
 Clips begin loading asynchronously when Arena is selected in the native start
 screen, with round lifecycle cues first. A callout that still occurs before its

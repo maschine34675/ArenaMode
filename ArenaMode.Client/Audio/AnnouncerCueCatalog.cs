@@ -10,9 +10,11 @@ internal enum AnnouncerCueKind { None, Start, Result, Award, Status, Countdown, 
 /// <summary>Explicit runtime mapping, independent of the pack's original intake classification.</summary>
 internal static class AnnouncerCueCatalog
 {
-    // Never recursively scan reserve: its alternate round_won/round_lost share
-    // basenames with the established result recordings, and CTF is unsupported.
-    internal static readonly string[] OptionalReserveKeys =
+    // Current packs place all used cues in sounds/. Retain this explicit fallback
+    // for older installations; a root file always wins, so copy-only upgrades
+    // cannot load the leftover reserve copy twice. Never recursively scan reserve:
+    // alternate round_won/round_lost collide with results, and CTF is unsupported.
+    internal static readonly string[] LegacyReserveKeys =
     {
         "prepare_to_fight", "three", "two", "one", "taken_the_lead", "lost_the_lead",
         "tied_for_the_lead", "one_minute_remaining", "thirty_seconds_remaining",
@@ -25,7 +27,7 @@ internal static class AnnouncerCueCatalog
         var files = new List<string>(Directory.GetFiles(soundsDirectory, "*.ogg"));
         var rootKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in files) rootKeys.Add(Path.GetFileNameWithoutExtension(file));
-        foreach (string key in OptionalReserveKeys)
+        foreach (string key in LegacyReserveKeys)
         {
             string path = Path.Combine(soundsDirectory, "reserve", key + ".ogg");
             if (!rootKeys.Contains(key) && File.Exists(path)) files.Add(path);

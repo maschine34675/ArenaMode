@@ -218,7 +218,7 @@
     {
       "number": 19,
       "spoken": "PREPARE TO FIGHT",
-      "file": "sounds/reserve/prepare_to_fight.ogg",
+      "file": "sounds/prepare_to_fight.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1064798,
@@ -230,7 +230,7 @@
     {
       "number": 20,
       "spoken": "THREE",
-      "file": "sounds/reserve/three.ogg",
+      "file": "sounds/three.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1129540,
@@ -242,7 +242,7 @@
     {
       "number": 21,
       "spoken": "TWO",
-      "file": "sounds/reserve/two.ogg",
+      "file": "sounds/two.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1171323,
@@ -254,7 +254,7 @@
     {
       "number": 22,
       "spoken": "ONE",
-      "file": "sounds/reserve/one.ogg",
+      "file": "sounds/one.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1207768,
@@ -266,7 +266,7 @@
     {
       "number": 23,
       "spoken": "TAKEN THE LEAD",
-      "file": "sounds/reserve/taken_the_lead.ogg",
+      "file": "sounds/taken_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1245535,
@@ -278,7 +278,7 @@
     {
       "number": 24,
       "spoken": "LOST THE LEAD",
-      "file": "sounds/reserve/lost_the_lead.ogg",
+      "file": "sounds/lost_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1303083,
@@ -290,7 +290,7 @@
     {
       "number": 25,
       "spoken": "TIED FOR THE LEAD",
-      "file": "sounds/reserve/tied_for_the_lead.ogg",
+      "file": "sounds/tied_for_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1365135,
@@ -302,7 +302,7 @@
     {
       "number": 26,
       "spoken": "ONE MINUTE REMAINING",
-      "file": "sounds/reserve/one_minute_remaining.ogg",
+      "file": "sounds/one_minute_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1432214,
@@ -314,7 +314,7 @@
     {
       "number": 27,
       "spoken": "THIRTY SECONDS REMAINING",
-      "file": "sounds/reserve/thirty_seconds_remaining.ogg",
+      "file": "sounds/thirty_seconds_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1506639,
@@ -326,7 +326,7 @@
     {
       "number": 28,
       "spoken": "TEN SECONDS REMAINING",
-      "file": "sounds/reserve/ten_seconds_remaining.ogg",
+      "file": "sounds/ten_seconds_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1586559,
@@ -338,7 +338,7 @@
     {
       "number": 29,
       "spoken": "FIVE KILLS REMAINING",
-      "file": "sounds/reserve/five_kills_remaining.ogg",
+      "file": "sounds/five_kills_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1666247,
@@ -350,7 +350,7 @@
     {
       "number": 30,
       "spoken": "ONE KILL REMAINING",
-      "file": "sounds/reserve/one_kill_remaining.ogg",
+      "file": "sounds/one_kill_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1744630,
@@ -362,7 +362,7 @@
     {
       "number": 31,
       "spoken": "MATCH POINT",
-      "file": "sounds/reserve/match_point.ogg",
+      "file": "sounds/match_point.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1822506,
@@ -374,7 +374,7 @@
     {
       "number": 32,
       "spoken": "FINAL ROUND",
-      "file": "sounds/reserve/final_round.ogg",
+      "file": "sounds/final_round.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1878498,
@@ -386,7 +386,7 @@
     {
       "number": 33,
       "spoken": "FINAL WEAPON",
-      "file": "sounds/reserve/final_weapon.ogg",
+      "file": "sounds/final_weapon.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1937681,
@@ -398,7 +398,7 @@
     {
       "number": 34,
       "spoken": "LADDER COMPLETE",
-      "file": "sounds/reserve/ladder_complete.ogg",
+      "file": "sounds/ladder_complete.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1990274,
@@ -410,7 +410,7 @@
     {
       "number": 35,
       "spoken": "DRAW",
-      "file": "sounds/reserve/draw.ogg",
+      "file": "sounds/draw.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2052417,
@@ -422,7 +422,7 @@
     {
       "number": 36,
       "spoken": "SHUTDOWN",
-      "file": "sounds/reserve/shutdown.ogg",
+      "file": "sounds/shutdown.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2087628,
@@ -434,7 +434,7 @@
     {
       "number": 37,
       "spoken": "CLUTCH",
-      "file": "sounds/reserve/clutch.ogg",
+      "file": "sounds/clutch.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2137994,

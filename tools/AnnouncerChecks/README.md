@@ -58,9 +58,10 @@ Coverage includes:
   every event produces at most one native request.
 - Requested WARLORD award keys, priority/coalescing of rapid awards, bounded
   four-second pending age, and match results superseding pending situation cues.
-- Explicit loading of 19 optional reserve basenames; 4 alternate result and 5
-  CTF recordings stay unused. Nested files cannot enter the cache. Existing root
-  customization wins a same-name optional file once. Original pack intake
+- All 41 used files ship in the root; the 19 promoted cues retain explicit
+  legacy reserve fallback for older installs. Four alternate result and five
+  CTF recordings stay unused, alongside two unused supplement cues. Nested files
+  cannot enter the cache. Root files win once even with all old copies present. Original pack intake
   `usage` and `eventKey` remain unchanged; selected rows add `runtimeEventKey`.
 - Multi-kills outrank sprees in either arrival order. One pending phrase is
   shared between combat awards and lower-priority status, with only two seconds

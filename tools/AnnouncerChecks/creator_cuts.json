@@ -109,115 +109,115 @@
   ],
   [
     "PREPARE TO FIGHT",
-    "sounds/reserve/prepare_to_fight.ogg",
+    "sounds/prepare_to_fight.ogg",
     1064798,
     1129540
   ],
   [
     "THREE",
-    "sounds/reserve/three.ogg",
+    "sounds/three.ogg",
     1129540,
     1171323
   ],
   [
     "TWO",
-    "sounds/reserve/two.ogg",
+    "sounds/two.ogg",
     1171323,
     1207768
   ],
   [
     "ONE",
-    "sounds/reserve/one.ogg",
+    "sounds/one.ogg",
     1207768,
     1245535
   ],
   [
     "TAKEN THE LEAD",
-    "sounds/reserve/taken_the_lead.ogg",
+    "sounds/taken_the_lead.ogg",
     1245535,
     1303083
   ],
   [
     "LOST THE LEAD",
-    "sounds/reserve/lost_the_lead.ogg",
+    "sounds/lost_the_lead.ogg",
     1303083,
     1365135
   ],
   [
     "TIED FOR THE LEAD",
-    "sounds/reserve/tied_for_the_lead.ogg",
+    "sounds/tied_for_the_lead.ogg",
     1365135,
     1432214
   ],
   [
     "ONE MINUTE REMAINING",
-    "sounds/reserve/one_minute_remaining.ogg",
+    "sounds/one_minute_remaining.ogg",
     1432214,
     1506639
   ],
   [
     "THIRTY SECONDS REMAINING",
-    "sounds/reserve/thirty_seconds_remaining.ogg",
+    "sounds/thirty_seconds_remaining.ogg",
     1506639,
     1586559
   ],
   [
     "TEN SECONDS REMAINING",
-    "sounds/reserve/ten_seconds_remaining.ogg",
+    "sounds/ten_seconds_remaining.ogg",
     1586559,
     1666247
   ],
   [
     "FIVE KILLS REMAINING",
-    "sounds/reserve/five_kills_remaining.ogg",
+    "sounds/five_kills_remaining.ogg",
     1666247,
     1744630
   ],
   [
     "ONE KILL REMAINING",
-    "sounds/reserve/one_kill_remaining.ogg",
+    "sounds/one_kill_remaining.ogg",
     1744630,
     1822506
   ],
   [
     "MATCH POINT",
-    "sounds/reserve/match_point.ogg",
+    "sounds/match_point.ogg",
     1822506,
     1878498
   ],
   [
     "FINAL ROUND",
-    "sounds/reserve/final_round.ogg",
+    "sounds/final_round.ogg",
     1878498,
     1937681
   ],
   [
     "FINAL WEAPON",
-    "sounds/reserve/final_weapon.ogg",
+    "sounds/final_weapon.ogg",
     1937681,
     1990274
   ],
   [
     "LADDER COMPLETE",
-    "sounds/reserve/ladder_complete.ogg",
+    "sounds/ladder_complete.ogg",
     1990274,
     2052417
   ],
   [
     "DRAW",
-    "sounds/reserve/draw.ogg",
+    "sounds/draw.ogg",
     2052417,
     2087628
   ],
   [
     "SHUTDOWN",
-    "sounds/reserve/shutdown.ogg",
+    "sounds/shutdown.ogg",
     2087628,
     2137994
   ],
   [
     "CLUTCH",
-    "sounds/reserve/clutch.ogg",
+    "sounds/clutch.ogg",
     2137994,
     2183194
   ],

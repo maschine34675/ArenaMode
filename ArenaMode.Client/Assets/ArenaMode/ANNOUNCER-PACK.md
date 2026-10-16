@@ -12,9 +12,12 @@ phrases. ROUND WON/LOST and VICTORY/DEFEAT are alternatives kept in reserve.
 As of 2026-09-14, **19 additional phrases** have explicit runtime triggers in
 existing modes: 37 recordings can play; four alternate results and five CTF lines
 remain unused. The 2026-09-17 supplement below adds four more, for 41. The loader
-reads the root plus an explicit reserve whitelist, never
-a recursive scan. Root custom overrides still win. See
-[ANNOUNCER-EXPANSION-REVIEW.md](../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
+now reads all 41 used recordings directly from `sounds/`. The 19 previously
+enabled reserve files were moved there on 2026-10-16 without changing audio.
+An explicit legacy reserve whitelist remains for older installations, never
+a recursive scan. Root files/custom overrides win and leftover old copies do
+not load twice. The 11 unused clips stay in `sounds/reserve/`. See
+[ANNOUNCER-EXPANSION-REVIEW.md](../../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
 Slicing uses pause midpoints cross-checked against the waveform and a local
 base.en Whisper transcript. The input was not uploaded for transcription.
@@ -44,25 +47,25 @@ encoding headroom. 44.1 kHz stereo Vorbis q7 minimizes another encoding loss.
 | 16 | MISSION FAILED | `sounds/round_lost.ogg` | active |
 | 17 | MISSION ACCOMPLISHED | `sounds/match_won.ogg` | active |
 | 18 | GAME OVER | `sounds/match_lost.ogg` | active |
-| 19 | PREPARE TO FIGHT | `sounds/reserve/prepare_to_fight.ogg` | active (explicit reserve binding) |
-| 20 | THREE | `sounds/reserve/three.ogg` | active (explicit reserve binding) |
-| 21 | TWO | `sounds/reserve/two.ogg` | active (explicit reserve binding) |
-| 22 | ONE | `sounds/reserve/one.ogg` | active (explicit reserve binding) |
-| 23 | TAKEN THE LEAD | `sounds/reserve/taken_the_lead.ogg` | active (explicit reserve binding) |
-| 24 | LOST THE LEAD | `sounds/reserve/lost_the_lead.ogg` | active (explicit reserve binding) |
-| 25 | TIED FOR THE LEAD | `sounds/reserve/tied_for_the_lead.ogg` | active (explicit reserve binding) |
-| 26 | ONE MINUTE REMAINING | `sounds/reserve/one_minute_remaining.ogg` | active (explicit reserve binding) |
-| 27 | THIRTY SECONDS REMAINING | `sounds/reserve/thirty_seconds_remaining.ogg` | active (explicit reserve binding) |
-| 28 | TEN SECONDS REMAINING | `sounds/reserve/ten_seconds_remaining.ogg` | active (explicit reserve binding) |
-| 29 | FIVE KILLS REMAINING | `sounds/reserve/five_kills_remaining.ogg` | active (explicit reserve binding) |
-| 30 | ONE KILL REMAINING | `sounds/reserve/one_kill_remaining.ogg` | active (explicit reserve binding) |
-| 31 | MATCH POINT | `sounds/reserve/match_point.ogg` | active (explicit reserve binding) |
-| 32 | FINAL ROUND | `sounds/reserve/final_round.ogg` | active (explicit reserve binding) |
-| 33 | FINAL WEAPON | `sounds/reserve/final_weapon.ogg` | active (explicit reserve binding) |
-| 34 | LADDER COMPLETE | `sounds/reserve/ladder_complete.ogg` | active (explicit reserve binding) |
-| 35 | DRAW | `sounds/reserve/draw.ogg` | active (explicit reserve binding) |
-| 36 | SHUTDOWN | `sounds/reserve/shutdown.ogg` | active (explicit reserve binding) |
-| 37 | CLUTCH | `sounds/reserve/clutch.ogg` | active (explicit reserve binding) |
+| 19 | PREPARE TO FIGHT | `sounds/prepare_to_fight.ogg` | active (promoted from reserve) |
+| 20 | THREE | `sounds/three.ogg` | active (promoted from reserve) |
+| 21 | TWO | `sounds/two.ogg` | active (promoted from reserve) |
+| 22 | ONE | `sounds/one.ogg` | active (promoted from reserve) |
+| 23 | TAKEN THE LEAD | `sounds/taken_the_lead.ogg` | active (promoted from reserve) |
+| 24 | LOST THE LEAD | `sounds/lost_the_lead.ogg` | active (promoted from reserve) |
+| 25 | TIED FOR THE LEAD | `sounds/tied_for_the_lead.ogg` | active (promoted from reserve) |
+| 26 | ONE MINUTE REMAINING | `sounds/one_minute_remaining.ogg` | active (promoted from reserve) |
+| 27 | THIRTY SECONDS REMAINING | `sounds/thirty_seconds_remaining.ogg` | active (promoted from reserve) |
+| 28 | TEN SECONDS REMAINING | `sounds/ten_seconds_remaining.ogg` | active (promoted from reserve) |
+| 29 | FIVE KILLS REMAINING | `sounds/five_kills_remaining.ogg` | active (promoted from reserve) |
+| 30 | ONE KILL REMAINING | `sounds/one_kill_remaining.ogg` | active (promoted from reserve) |
+| 31 | MATCH POINT | `sounds/match_point.ogg` | active (promoted from reserve) |
+| 32 | FINAL ROUND | `sounds/final_round.ogg` | active (promoted from reserve) |
+| 33 | FINAL WEAPON | `sounds/final_weapon.ogg` | active (promoted from reserve) |
+| 34 | LADDER COMPLETE | `sounds/ladder_complete.ogg` | active (promoted from reserve) |
+| 35 | DRAW | `sounds/draw.ogg` | active (promoted from reserve) |
+| 36 | SHUTDOWN | `sounds/shutdown.ogg` | active (promoted from reserve) |
+| 37 | CLUTCH | `sounds/clutch.ogg` | active (promoted from reserve) |
 | 38 | ROUND WON | `sounds/reserve/round_won.ogg` | reserve |
 | 39 | ROUND LOST | `sounds/reserve/round_lost.ogg` | reserve |
 | 40 | VICTORY | `sounds/reserve/victory.ogg` | reserve |
@@ -115,7 +118,9 @@ python tools/AnnouncerChecks/verify_creator_pack.py
 The splitter validates the source SHA256 and writes only to ignored
 `artifacts/creator-announcer/pack/`. Its adjacent `creator_cuts.json` pins all
 reviewed labels, paths and frame boundaries. Review generated clips and copy them
-with ANNOUNCER-SOURCES.json into tracked assets. Vorbis/Ogg container bytes can
+with ANNOUNCER-SOURCES.json into tracked assets. The manifest's `file` is the
+current location; `usage`/`eventKey` keep the original 18/28 intake classification,
+with `runtimeEventKey` marking the 19 later-enabled recordings. Vorbis/Ogg container bytes can
 vary between encoder versions/runs; the generated manifest records the actual
 output hashes. Do not regenerate during normal builds.
 
