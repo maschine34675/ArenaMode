@@ -262,7 +262,7 @@ live gelesen: `false` (für Raid C nach dem Verlassen nachgetragen: `false`).
 
 ### Profilprüfung
 
-Das Serverprofil `6ab7db1c64f04b565cf78be9` wurde vor und nach dem Own-Gear-Raid
+Das Serverprofil `LOCAL_TEST_PROFILE_2` wurde vor und nach dem Own-Gear-Raid
 (Raid B) über die Freigabe kopiert und verglichen: Inventory, Skills, Quests,
 Encyclopedia, TradersInfo, Health (ohne `UpdateTime`) und Experience (12267) sind
 identisch, 340 Items, 0 geänderte Items. Zwischen den Raids des Tages liegen nur zwei

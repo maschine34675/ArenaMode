@@ -26,7 +26,7 @@ Evidence root: `artifacts/friendly-fire-native-20261011/`.
 - Both ProductVersions: `0.1.0+100c00362c0c2d47992868c4e66bad0dfe0f00f3`.
   Client SHA256 `854B538C4277BC7D3D293D805ED11C1F1C1D9CC391CE4EAC3BCF90F14A367F26`.
   Server SHA256 `DEBDE6F54D874062BF8CEE27ED67B63AEEF3D94AA9970F13B758FF1BC4D6972E`.
-- Restarted profile `SPT-GPU-2` / `6ab7db1c64f04b565cf78be9`; process instance
+- Restarted profile `SPT-GPU-2` / `LOCAL_TEST_PROFILE_2`; process instance
   `97352cd7ce264c26bc7483cac046a664`, started 14:23:26. UiBridge verified all
   43 plugins and five libraries identical between VM disk, GPU disk and loaded
   code. Final process IDs: server 8240, game 18800; launcher 11016 unchanged.
@@ -79,10 +79,10 @@ Protected native exit completed; server snapshot restore logged at 14:30:10.346.
 - Wave 1 exact team ready 14:32:17.659; runtime TeamPhase was Live.
 - `FriendlyFireEnabledSelection` was false. Changing the F12 preference to true
   for the following raid left this frozen value false.
-- Source was PMC `6ab7db1c64f04b565cf78be9`; exact victim test3 was
+- Source was PMC `LOCAL_TEST_PROFILE_2`; exact victim test3 was
   `6ac8a818172cc3431cfcb43c`.
 - Native attack at 14:35:21.175 produced log #3736 at 14:35:21.381:
-  `Arena ZombieMode: friendly fire blocked (local damage hook, source=6ab7db1c64f04b565cf78be9, victim=6ac8a818172cc3431cfcb43c; frozen mutator OFF).`
+  `Arena ZombieMode: friendly fire blocked (local damage hook, source=LOCAL_TEST_PROFILE_2, victim=6ac8a818172cc3431cfcb43c; frozen mutator OFF).`
   This is the local damage-hook diagnostic, not an effect-filter candidate.
 - Sampled head/chest/stomach/left arm/right arm/left leg/right leg values were
   35/85/70/60/60/65/65 before and after (440 HP). LastAggressor remained null;

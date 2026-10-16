@@ -128,7 +128,7 @@ native mode buttons, not the ordinary EQUATOR DEBUG shortcut.
 ### Profile return evidence
 
 Independent read-only comparison and parent recheck compared the complete saved
-profile JSON before/after both raids. Profile `6a9fc7d99347b1276407f8ad` backups
+profile JSON before/after both raids. Profile `LOCAL_TEST_PROFILE_1` backups
 under `SPT_Runtime/user/profiles/backups/2026-09-20_21-05-44`, `_21-08-36`
 and `_21-16-49`, the pre-Gun-Game copy and fresh live profile after MainMenu
 match except `/characters/pmc/Hideout/sptUpdateLastRunTimestamp`. Removing

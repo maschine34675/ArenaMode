@@ -41,7 +41,7 @@ Both installed client and server ProductVersion:
 
 UiBridge ProductVersion `0.7.4+8218b027478e61f98b4119d179fc2a8fe41c928a`.
 Native instance `0a493f4f53024ac4a645b29bf05716e2`, profile `SPT-GPU-2`
-(`6ab7db1c64f04b565cf78be9`), EFT `0.16.9.5-40743-f137e819`, Unity
+(`LOCAL_TEST_PROFILE_2`), EFT `0.16.9.5-40743-f137e819`, Unity
 `2022.3.43f1`, 1920×1080. Loaded/disk/local client identity checks matched 21/21
 at both ends of the run. Core matched; BigBrain, PFT and assets were not changed.
 

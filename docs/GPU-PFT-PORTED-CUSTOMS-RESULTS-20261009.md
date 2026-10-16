@@ -16,7 +16,7 @@ Both report `0.1.0+54d9f7edf38154cc31e3fa48be0de123c1dedb2e`:
 - Server SHA256: `DD7738CE012E64CDE81C4B08D9F02F7723D110FF413E707F217D897E5DD19E7B`.
 - Client: zero errors, four existing nullable warnings. Server: zero errors,
   two existing analyzer warnings. Redeploy.Core and foreign mods were not built.
-- GPU2 restarted as profile `SPT-GPU-2` (`6ab7db1c64f04b565cf78be9`),
+- GPU2 restarted as profile `SPT-GPU-2` (`LOCAL_TEST_PROFILE_2`),
   process instance `1ecabb30`; UiBridge confirmed 21/21 maschine plugins plus Core
   identical between development disk, GPU2 disk and loaded assembly.
 

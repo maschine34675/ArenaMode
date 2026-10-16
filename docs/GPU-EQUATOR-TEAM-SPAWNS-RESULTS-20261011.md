@@ -28,7 +28,7 @@ Evidence root: `artifacts/equator-team-native-20261011/`.
 - EFT restarted at 14:55:42, instance `7c77d5bfc6c747df999ad0529194f2fd`.
   UiBridge verified 43 plugins and five libraries identical between local disk,
   GPU disk and loaded code. Profile `SPT-GPU-2`, USEC,
-  `6ab7db1c64f04b565cf78be9`. Final status confirms the same process/build.
+  `LOCAL_TEST_PROFILE_2`. Final status confirms the same process/build.
 
 ## Native Team DM 3v3
 

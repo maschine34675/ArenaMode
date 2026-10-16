@@ -15,7 +15,7 @@ observed cost does not justify a new production compatibility hook.
 ## Artifacts and environment
 
 Host `SPT-GPU-2`, `192.168.178.109`, installation `C:\SPT41`; test profile
-`SPT-GPU-2`, ID `6ab7db1c64f04b565cf78be9`. Factory day, solo Zombies.
+`SPT-GPU-2`, ID `LOCAL_TEST_PROFILE_2`. Factory day, solo Zombies.
 
 | Artifact | ProductVersion / source | SHA256 |
 |---|---|---|
