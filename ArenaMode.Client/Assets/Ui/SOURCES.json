@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "source": "Original ArenaMode categorical UI artwork",
+  "source": "Generated ArenaMode weapon-category renders and original UI symbols",
   "rights": "MIT; full permission and copyright notice in MIT-LICENSE.txt. No extracted game artwork.",
   "generator": "tools/ArenaUiArtwork/Generate-Artwork.ps1",
   "assets": [
     {
       "file": "assault-rifle.png",
-      "sha256": "40A3DCC79117AF77090C367AE182295F43ACA9EBFB502C0847B0B9D0E6AE00E6",
+      "sha256": "2BE9A72FB25DF9AA6431F61BAB2A3D95ACDEAAC8027A3A46287CC33659F6E2AD",
       "pixelSize": [
         128,
         64
@@ -14,13 +14,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:assault-rifle",
-      "sourceFile": "tools/ArenaUiArtwork/sources/assault-rifle.svg",
-      "sourceSha256": "7E4F894BBA64BB68129749AC771B5A516432D8FFB57F8F248EA3991BE737F195",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/assault-rifle.png",
+      "sourceSha256": "C3D45D244361F2839C2E671C34B3C300338E41C19524327A426EC1B78078E19D",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "carbine.png",
-      "sha256": "380BD60CF86202BF81923D66089A10C9C02674DD51EB87C23B8A615A0DAB81F3",
+      "sha256": "528EA869219DB48CC10AF63C301BA457224BA5199E7A6DDB3F3F9E878D9E151C",
       "pixelSize": [
         128,
         64
@@ -28,13 +29,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:carbine",
-      "sourceFile": "tools/ArenaUiArtwork/sources/carbine.svg",
-      "sourceSha256": "1AC3F9218758C8BC568609591820F88474B458BF8EC108EA77BA24E46205806D",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/carbine.png",
+      "sourceSha256": "2A4811546CA561A867DE416151DFD14A3FC4798EEDB1EA6B9704C7B82C06ED40",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "sniper.png",
-      "sha256": "52CEC361029E8CBA361F2A1DA46DBF6659C88E9C02C367EC9322251785170E49",
+      "sha256": "3BC422EBEA96EFD3F8A46CE2E9B434DB5AE025EA1CF60D751FBE3CF41B93BF20",
       "pixelSize": [
         128,
         64
@@ -42,13 +44,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:sniper",
-      "sourceFile": "tools/ArenaUiArtwork/sources/sniper.svg",
-      "sourceSha256": "8A8D9995E13970321A4E183B55E524D50A6E3FC686D39F22240B890F663A1F52",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/sniper.png",
+      "sourceSha256": "AA5479B2824B5C5E8578EABF85B1E319B2B7CB6FA77EF63CFB21A5FFB11EA482",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "marksman.png",
-      "sha256": "04D3BDF996E7527CAD1EA4B156619BC4573FCD58F4014893FAD9B5FEA27B08AE",
+      "sha256": "B6B465AB928B7C39A86CC51F6F3F39E8448ACAFE85A5426861BD4A83C54D3C27",
       "pixelSize": [
         128,
         64
@@ -56,13 +59,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:marksman",
-      "sourceFile": "tools/ArenaUiArtwork/sources/marksman.svg",
-      "sourceSha256": "AC7B4B251FDFB18A024DD7483C44617B961849FC45F65C6150FE450A2F87B208",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/marksman.png",
+      "sourceSha256": "88362BDAFEAAAC57C99506DC91B46FBC176D55DA9ED43EAE369625F76B835343",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "machinegun.png",
-      "sha256": "BA8BABA7E80318FADB02FD5E944215B5EB02824AD887C94A2E452C770F4AFD5C",
+      "sha256": "8A243F6DF7AD9BF6A3EE2347CF4458090A4DB881BA32BE10140A1505B16330BF",
       "pixelSize": [
         128,
         64
@@ -70,13 +74,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:machinegun",
-      "sourceFile": "tools/ArenaUiArtwork/sources/machinegun.svg",
-      "sourceSha256": "06F25CB094126FDAEA483DD40E3068ADD0E34C7FDE11EE39484917D994779F52",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/machinegun.png",
+      "sourceSha256": "77C1D171E0E6F724F34184F54F9F0862D4F6A7DA43AC89FA4EFEF8591CCA0AAA",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "shotgun.png",
-      "sha256": "4B0FE23ED1548D85A2326EE803A4713F5FDEB766BF1379FB1F9062B08CED2C7D",
+      "sha256": "7541C79E5029A7456832FB3E09321DDC440129E23C0C92245BDA49B48E547165",
       "pixelSize": [
         128,
         64
@@ -84,13 +89,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:shotgun",
-      "sourceFile": "tools/ArenaUiArtwork/sources/shotgun.svg",
-      "sourceSha256": "6F0300A3AE5F8D1FCA3613A2A7A51E8295CC43E7A0B06E5E75169C966EAE2FFA",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/shotgun.png",
+      "sourceSha256": "EECAB048002532E95CB3211109437DBA86D2915AB069CA61DA1928F87EB3C7ED",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "pistol.png",
-      "sha256": "84CECEDD0845DF8435D3D0A9042583D6147C67019CF30FACA0A9A15561B3544D",
+      "sha256": "045FE84C9BD56B14B7D832490F6091C9FAE03D9F2A85A9EDB405871BE7CEB305",
       "pixelSize": [
         128,
         64
@@ -98,13 +104,14 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:pistol",
-      "sourceFile": "tools/ArenaUiArtwork/sources/pistol.svg",
-      "sourceSha256": "3F3FC2C0A9C10E1661F32E13ACF06BF592DD411F21F1A1BD57B027A31811EE3B",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/pistol.png",
+      "sourceSha256": "9A806C8CA2D314182D2FA3ABBCF09D3DC378A15A230DA0E7CE41CC21186DA648",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "smg.png",
-      "sha256": "55EA83F6AB160806F0A587AFEE8CC85348EC4822CC082C439BE13667DE3227B2",
+      "sha256": "EC0834FE34B147A9D2F2253B95F2308D2D57268B64EE4BD0863A0C7348914979",
       "pixelSize": [
         128,
         64
@@ -112,9 +119,10 @@
       "author": "maschine / ArenaMode contributors",
       "license": "MIT",
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:smg",
-      "sourceFile": "tools/ArenaUiArtwork/sources/smg.svg",
-      "sourceSha256": "3D7541843CE310EB1513D002C38A63B9C2F6DC2F8FD4CF89307D93C98B52AD91",
-      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+      "sourceFile": "tools/ArenaUiArtwork/renders/smg.png",
+      "sourceSha256": "E95E38346546798C57672D2792A65FDC42F5A62BDCBA59C9EB2154B1247B5D91",
+      "artworkKind": "generated-weapon-render",
+      "modifications": "Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image."
     },
     {
       "file": "kill.png",
@@ -128,6 +136,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:kill",
       "sourceFile": "tools/ArenaUiArtwork/sources/kill.svg",
       "sourceSha256": "E9C01263475909614129EF01CBD540C641A6A38D520C8326E52CCBC7A2B69C74",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -142,6 +151,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:death",
       "sourceFile": "tools/ArenaUiArtwork/sources/death.svg",
       "sourceSha256": "914BFD7AE189C0B01B4DBA05B5513A3E22CE65E68E3C82E7E0BB6FC69BC608F0",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -156,6 +166,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:assist",
       "sourceFile": "tools/ArenaUiArtwork/sources/assist.svg",
       "sourceSha256": "A9F29A871CEDA2151E37A9047EE038E2061E182E46B8A3329CDFA028E5F59744",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -170,6 +181,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:headshot",
       "sourceFile": "tools/ArenaUiArtwork/sources/headshot.svg",
       "sourceSha256": "F7B10C612BA5C79A71687C160E7A762878E77EB1451352A20FBF479030F564F8",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -184,6 +196,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:grenade",
       "sourceFile": "tools/ArenaUiArtwork/sources/grenade.svg",
       "sourceSha256": "49461756DA65B4FB4E674E0881A69E69256349F55FFE1B8EEFE3AB2E41FB4CA3",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -198,6 +211,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:melee",
       "sourceFile": "tools/ArenaUiArtwork/sources/melee.svg",
       "sourceSha256": "A6C851AB9BC20044F5CDBD8D2B4B0624A34936A4AAF7C9BDCE5BE2CB9B60961B",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -212,6 +226,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:bleeding",
       "sourceFile": "tools/ArenaUiArtwork/sources/bleeding.svg",
       "sourceSha256": "20462CEC18FC12AE5E72727135B94E1ACAD2E63940BAA83DA23663A156001795",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -226,6 +241,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:fire",
       "sourceFile": "tools/ArenaUiArtwork/sources/fire.svg",
       "sourceSha256": "AA3391FAABF3E3404F4A871068ABBCD738AB0A555BC30222633C9D182F299F24",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -240,6 +256,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:barbed-wire",
       "sourceFile": "tools/ArenaUiArtwork/sources/barbed-wire.svg",
       "sourceSha256": "D2C9DEE48A49396E9B12851923107C693C4195174CA1E2F475EC4353332F44D1",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
@@ -254,6 +271,7 @@
       "sourceURL": "urn:arenamode:original-ui-artwork:20261016:team-panel",
       "sourceFile": "tools/ArenaUiArtwork/sources/team-panel.svg",
       "sourceSha256": "E09FDF9A49BC6CF669B19D689CB2212EC372E1BE74188F8318FEAD564CA938CE",
+      "artworkKind": "original-white-symbol",
       "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     }
   ]

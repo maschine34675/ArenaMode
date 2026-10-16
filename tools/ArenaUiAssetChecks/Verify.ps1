@@ -31,6 +31,7 @@ foreach($fault in @(
  @('barbed-stale-rifle','KillfeedIcon.cs','IconSource','case "Barbed": return ArenaUiIcon.BarbedWire;','case "Barbed": return ArenaUiIcon.Sniper;','final cause takes precedence Barbed'),
  @('barbed-stale-headshot','KillfeedView.cs','FeedSource','method == ArenaUiIcon.Bleeding || method == ArenaUiIcon.BarbedWire','method == ArenaUiIcon.Bleeding','wire death uses red categorical wire icon'),
  @('lost-text-width','KillfeedView.cs','FeedSource','FeedWidth - IconRail - 2f * HorizontalPadding','FeedWidth - 2f * HorizontalPadding','icon rail preserves original text width'),
+ @('oversized-hazard','KillfeedView.cs','FeedSource','_ => new Vector2(44f, 22f)','_ => new Vector2(64f, 32f)','fallback keeps original symbol dimensions after weapon reuse'),
  @('wrong-assist-count','ArenaScoreboardPresentation.cs','TableSource','row.Assists.ToString()','row.Deaths.ToString()','K D A HS score order retained'),
  @('global-tint-leak','ArenaScoreboardPresentation.cs','TableSource','finally { GUI.color = previous; }','finally { }','global tint restored'),
  @('skull-on-other-kill','HitmarkerElement.cs','HitmarkerSource','|| !kill.KilledByLocal || kill.LocalIsVictim','|| kill.LocalIsVictim','nonlocal self or ineligible kill does not refresh skull'),

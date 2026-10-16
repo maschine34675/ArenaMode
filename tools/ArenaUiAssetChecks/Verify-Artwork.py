@@ -100,21 +100,34 @@ def validate(repo, asset_dir):
         need(entry["license"] == "MIT" and bool(entry["author"].strip()), f"{name}: author and MIT license")
         need("sourceURL" in entry and (entry["sourceURL"] is None or entry["sourceURL"].startswith("urn:arenamode:original-ui-artwork:")), f"{name}: original source identity")
         source = (repo / entry["sourceFile"]).resolve()
-        need(source.is_relative_to((repo / "tools/ArenaUiArtwork").resolve()) and source.suffix == ".svg" and source.is_file(), f"{name}: present repository source")
+        is_gun = Path(name).stem in GUNS
+        source_kind = "generated-weapon-render" if is_gun else "original-white-symbol"
+        need(entry.get("artworkKind") == source_kind, f"{name}: explicit artwork kind")
+        expected_source = repo / "tools/ArenaUiArtwork" / ("renders" if is_gun else "sources") / (Path(name).stem + (".png" if is_gun else ".svg"))
+        need(source == expected_source.resolve() and source.is_file(), f"{name}: present repository source")
         need(bool(entry["modifications"]), f"{name}: transformation recorded")
         if "sourceSha256" in entry:
             need(hashlib.sha256(source.read_bytes()).hexdigest() == entry["sourceSha256"].lower(), f"{name}: source hash")
-        visible, transparent, fractional = 0, 0, 0
+        visible, transparent, fractional, shaded = 0, 0, 0, 0
         for index in range(0, len(pixels), 4):
             r, g, b, a = pixels[index:index + 4]
             if a:
                 visible += 1
-                need(r == g == b == 255, f"{name}: visible pixels are tint-neutral white")
+                if is_gun:
+                    shaded += a >= 128 and min(r, g, b) < 240 and max(r, g, b) > 24
+                else:
+                    need(r == g == b == 255, f"{name}: visible pixels are tint-neutral white")
                 fractional += a < 255
             else:
                 transparent += 1
         need(visible > 20 and transparent > 20, f"{name}: visible art and transparent surroundings")
         need(fractional > 0, f"{name}: antialiasing or alpha gradient")
+        if is_gun:
+            need(shaded > 20, f"{name}: shaded weapon render rather than white silhouette")
+            width, height = size
+            border = [pixels[(y * width + x) * 4 + 3] for y in range(height) for x in range(width)
+                      if x in (0, width - 1) or y in (0, height - 1)]
+            need(not any(border), f"{name}: transparent border without clipping")
         report.append({"file": name, "size": list(size), "sha256": digest, "visiblePixels": visible, "transparentPixels": transparent, "fractionalAlphaPixels": fractional})
     return report
 

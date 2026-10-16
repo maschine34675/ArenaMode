@@ -49,6 +49,7 @@ var pool=root.GetComponentsInChildren<CanvasGroup>();
 var reused=pool.Single(g=>g.gameObject.name=="Line0");
 Need(!reused.gameObject.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="Headshot").enabled,"pooled headshot is cleared");
 Need(reused.gameObject.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="Kill method").sprite.texture.name.EndsWith("kill.png"),"pooled method replaced by neutral fallback");
+Need(reused.gameObject.GetComponentsInChildren<Image>().Single(i=>i.gameObject.name=="Kill method").rectTransform.sizeDelta.x==44f,"fallback keeps original symbol dimensions after weapon reuse");
 var text=reused.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>().Single();
 Need(text.text.Contains(capture.KillerName)&&text.text.Contains(capture.VictimName)&&text.text.Contains("42 m"),"feed retains complete text");
 Need(text.MeasuredWidth==436f,"icon rail preserves original text width");
@@ -64,6 +65,7 @@ foreach(var bleeding in new[]{"LightBleeding","HeavyBleeding"})
   var images=row.gameObject.GetComponentsInChildren<Image>();
   var method=images.Single(i=>i.gameObject.name=="Kill method");
   Need(method.enabled&&method.sprite.texture.name.EndsWith("bleeding.png")&&method.color==ArenaUiTheme.Danger,"bleed death uses red blood drop");
+  Need(method.rectTransform.sizeDelta.x==44f&&method.rectTransform.sizeDelta.y==22f,"hazard keeps original dimensions after weapon reuse");
   Need(!images.Single(i=>i.gameObject.name=="Headshot").enabled,"bleed death suppresses retained headshot");
  }
  Need(capture.Headshot,"bleed presentation leaves combat metadata unchanged");
@@ -75,6 +77,7 @@ foreach(var row in pool)
  var images=row.gameObject.GetComponentsInChildren<Image>();
  var method=images.Single(i=>i.gameObject.name=="Kill method");
  Need(method.sprite.texture.name.EndsWith("sniper.png")&&method.color==Color.white&&images.Single(i=>i.gameObject.name=="Headshot").enabled,"pooled bleed resets to normal headshot");
+ Need(method.rectTransform.sizeDelta.x==64f&&method.rectTransform.sizeDelta.y==32f,"weapon render is readable after hazard reuse");
 }
 Need(Texture2D.LoadCalls==loadCount,"bleed presentation reuses existing textures");
 var wireDeath=new ArenaUncreditedDeath{VictimName="Wire_<b>victim</b>",VictimRoleLabel="BEAR",VictimProfileId="wire-bot",DamageKind="Barbed"};

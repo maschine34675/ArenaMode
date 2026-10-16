@@ -52,7 +52,8 @@ expect_failure(lambda: decode(encode(size, pixels) + b"extra"), "PNG exact IEND"
 
 for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent surroundings"),
                      ("hash", "manifest hash"), ("source", "present repository source"),
-                     ("license", "complete MIT license"), ("duplicate", "exact manifest asset set")):
+                     ("license", "complete MIT license"), ("duplicate", "exact manifest asset set"),
+                     ("weapon-white", "shaded weapon render"), ("weapon-border", "transparent border")):
     folder = output / name
     shutil.copytree(source, folder)
     manifest_file = folder / "SOURCES.json"
@@ -75,6 +76,17 @@ for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent su
         (folder / "MIT-LICENSE.txt").write_text("MIT", encoding="utf-8")
     elif name == "duplicate":
         manifest["assets"][1] = manifest["assets"][0]
+    elif name.startswith("weapon-"):
+        gun_size, gun_pixels = decode((source / "assault-rifle.png").read_bytes())
+        changed = bytearray(gun_pixels)
+        if name == "weapon-white":
+            for i in range(0, len(changed), 4):
+                changed[i:i+3] = b"\xff\xff\xff"
+        else:
+            changed[:4] = b"\x80\x80\x80\xff"
+        png = encode(gun_size, changed)
+        (folder / "assault-rifle.png").write_bytes(png)
+        next(entry for entry in manifest["assets"] if entry["file"] == "assault-rifle.png")["sha256"] = hashlib.sha256(png).hexdigest()
     manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
     expect_failure(lambda: validate(repo, folder), reason)
-print("ARTWORK VALIDATOR CONTROLS PASSED (8 invalid inputs)")
+print("ARTWORK VALIDATOR CONTROLS PASSED (10 invalid inputs)")

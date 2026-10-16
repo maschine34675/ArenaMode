@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Realistic weapon pictures (2026-10-16):** The user rejected the initial
+  geometric guns and explicitly chose generated render-style pictures. Eight
+  stored PNG masters now supply the same fixed categories; the other ten PNGs
+  are byte-identical. Waffen field64x32; feed540/rail80 keep436 text pixels.
+  Scoped checks509 including staged resources,16compiled faults,10bad-art
+  controls and Killfeed120/6faults pass. Independent review is clean; native
+  follow-up is pending at this implementation snapshot. See
+  [the replacement record](WEAPON-RENDERS-20261016.md).
+
 - **Categorical UI artwork replacement (2026-10-16):** User chose static
   categories, superseding the earlier native per-weapon proposal. All18 extracted
   PNGs are replaced by original MIT SVG/PNG artwork with reproducible offline

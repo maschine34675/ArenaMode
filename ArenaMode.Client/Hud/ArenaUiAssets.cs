@@ -74,8 +74,8 @@ internal sealed class ArenaUiAssets : IDisposable
             texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             if (!texture.LoadImage(bytes, false) || texture.width != spec.Width || texture.height != spec.Height)
                 throw new InvalidDataException("PNG decode failed");
-            // All source art is neutral white/alpha; configured team tints need
-            // no per-pixel rewrite (the decoded pixels are released below).
+            // Keep generated weapon colors and neutral symbol alpha intact.
+            // UI tints need no pixel rewrite; release the readable copy below.
             texture.name = "Arena UI " + spec.File;
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;

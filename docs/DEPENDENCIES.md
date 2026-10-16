@@ -88,7 +88,8 @@ Das ist der Paketierungsplan; die vorhandenen Staging-/Map-Preview-Prüfungen
 sind noch kein vollständiger allgemeiner Release-Packager.
 
 Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
-durch eigene kategorische SVG-/PNG-Grafiken unter MIT ersetzt. Quellen,
+durch eigene Grafiken ersetzt: acht generierte realistische Waffen-Kategoriebilder
+und zehn geometrische SVG-/PNG-Symbole bzw. Banner, jeweils mit MIT-Hinweis. Quellen,
 Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und vollständige
 MIT-Lizenz reisen im Client und lesbar unter `ArenaMode/Ui` mit.
 Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der

@@ -1,4 +1,4 @@
-# Offline renderer for this small, explicit SVG subset. No game/network/runtime dependency.
+# Offline packer for generated weapon renders and the explicit SVG symbol subset.
 [CmdletBinding()]
 param(
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\..\ArenaMode.Client\Assets\Ui'),
@@ -41,22 +41,40 @@ function New-SvgBrush($node, $svg) {
 }
 $assets = [System.Collections.Generic.List[object]]::new()
 foreach ($name in $names) {
-    $sourceFile = "tools/ArenaUiArtwork/sources/$name.svg"
+    $isGun = $guns -contains $name
+    $sourceFile = if ($isGun) { "tools/ArenaUiArtwork/renders/$name.png" } else { "tools/ArenaUiArtwork/sources/$name.svg" }
     $sourcePath = Join-Path $repo $sourceFile
+    $width = if ($name -eq 'team-panel') { 688 } elseif ($isGun) { 128 } else { 64 }
+    $height = if ($name -eq 'team-panel') { 107 } else { 64 }
+    $visual = [System.Windows.Media.DrawingVisual]::new()
+    $drawing = $visual.RenderOpen()
+    if ($isGun) {
+        # Asset preparation only: retain the generated color and alpha. Do not
+        # recolor native game images or perform any rendering in the game.
+        $source = [System.Windows.Media.Imaging.BitmapImage]::new()
+        $source.BeginInit()
+        $source.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+        $source.UriSource = [Uri]::new($sourcePath)
+        $source.EndInit()
+        if ($source.PixelWidth -gt 4096 -or $source.PixelHeight -gt 4096) { throw "Unbounded render source: $name" }
+        [System.Windows.Media.RenderOptions]::SetBitmapScalingMode($visual, [System.Windows.Media.BitmapScalingMode]::HighQuality)
+        $scale = [Math]::Min(($width - 4.0) / $source.PixelWidth, ($height - 4.0) / $source.PixelHeight)
+        $drawWidth = $source.PixelWidth * $scale; $drawHeight = $source.PixelHeight * $scale
+        $drawing.DrawImage($source, [System.Windows.Rect]::new(($width - $drawWidth) / 2, ($height - $drawHeight) / 2, $drawWidth, $drawHeight))
+    } else {
     [xml]$document = Get-Content -LiteralPath $sourcePath -Raw
     $svg = $document.DocumentElement
     $width = [int]$svg.width; $height = [int]$svg.height
     $expectedWidth = if ($name -eq 'team-panel') { 688 } elseif ($guns -contains $name) { 128 } else { 64 }
     $expectedHeight = if ($name -eq 'team-panel') { 107 } else { 64 }
     if ($width -ne $expectedWidth -or $height -ne $expectedHeight -or $svg.viewBox -ne "0 0 $width $height") { throw "Unexpected SVG dimensions for $name." }
-    $visual = [System.Windows.Media.DrawingVisual]::new()
-    $drawing = $visual.RenderOpen()
     foreach ($node in $svg.ChildNodes) {
         if ($node.LocalName -in @('title', 'desc', 'defs')) { continue }
         if ($node.LocalName -ne 'path') { throw "Unsupported SVG element $($node.LocalName)." }
         $geometry = [System.Windows.Media.Geometry]::Parse($node.GetAttribute('d')).CloneCurrentValue()
         $geometry.FillRule = if ($node.GetAttribute('fill-rule') -eq 'evenodd') { [System.Windows.Media.FillRule]::EvenOdd } else { [System.Windows.Media.FillRule]::Nonzero }
         $drawing.DrawGeometry((New-SvgBrush $node $svg), $null, $geometry)
+    }
     }
     $drawing.Close()
     $bitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($width, $height, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
@@ -66,9 +84,13 @@ foreach ($name in $names) {
     $stride = $width * 4
     $pixels = [byte[]]::new($stride * $height)
     $bitmap.CopyPixels($pixels, $stride, 0)
-    for ($pixel = 0; $pixel -lt $pixels.Length; $pixel += 4) {
+    if ($isGun) {
+        # Convert premultiplied WPF output to straight RGBA for PNG/Unity.
+        $converted = [System.Windows.Media.Imaging.FormatConvertedBitmap]::new($bitmap, [System.Windows.Media.PixelFormats]::Bgra32, $null, 0)
+        $converted.CopyPixels($pixels, $stride, 0)
+    } else { for ($pixel = 0; $pixel -lt $pixels.Length; $pixel += 4) {
         $pixels[$pixel] = 255; $pixels[$pixel + 1] = 255; $pixels[$pixel + 2] = 255
-    }
+    } }
     $straight = [System.Windows.Media.Imaging.BitmapSource]::Create($width, $height, 96, 96,
         [System.Windows.Media.PixelFormats]::Bgra32, $null, $pixels, $stride)
     $encoder = [System.Windows.Media.Imaging.PngBitmapEncoder]::new()
@@ -85,12 +107,13 @@ foreach ($name in $names) {
         sourceURL = "urn:arenamode:original-ui-artwork:20261016:$name"
         sourceFile = $sourceFile
         sourceSha256 = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
-        modifications = 'Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source.'
+        artworkKind = if ($isGun) { 'generated-weapon-render' } else { 'original-white-symbol' }
+        modifications = if ($isGun) { 'Generated for ArenaMode with the built-in OpenAI image tool; prompts in tools/ArenaUiArtwork/renders/PROMPTS.json. Offline WPF aspect-fit downscale to 128x64 with 2px minimum padding and straight alpha; original colors retained. No EFT screenshot, game extraction or external reference image.' } else { 'Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source.' }
     })
 }
 [ordered]@{
     schemaVersion = 2
-    source = 'Original ArenaMode categorical UI artwork'
+    source = 'Generated ArenaMode weapon-category renders and original UI symbols'
     rights = 'MIT; full permission and copyright notice in MIT-LICENSE.txt. No extracted game artwork.'
     generator = 'tools/ArenaUiArtwork/Generate-Artwork.ps1'
     assets = @($assets)
@@ -110,7 +133,7 @@ $dark = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(16, 21
 $bright = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(193, 197, 187))
 $panel = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(220, 20, 25, 31))
 $canvas.DrawString('ARENA  /  Original categorical UI artwork', $titleFont, $light, 22, 16)
-$canvas.DrawString('Left: source size. Right: actual HUD pixels on dark / bright-scene glass, including team tints.', $font, $muted, 22, 48)
+$canvas.DrawString('Weapons: generated renders at packed and HUD sizes. Symbols: original neutral artwork. Mock backgrounds only.', $font, $muted, 22, 48)
 function Draw-Icon([string]$name, [int]$x, [int]$y, [int]$width, [int]$height, [System.Drawing.Color]$tint) {
     $image = [System.Drawing.Image]::FromFile((Join-Path $OutputDirectory "$name.png"))
     $attributes = [System.Drawing.Imaging.ImageAttributes]::new()
@@ -128,13 +151,13 @@ for ($i = 0; $i -lt $guns.Count; $i++) {
     $canvas.FillRectangle($dark, $x, $y, 505, 86)
     $canvas.DrawString($guns[$i], $font, $muted, $x + 9, $y + 5)
     Draw-Icon $guns[$i] ($x + 8) ($y + 20) 128 64 $white
-    $canvas.DrawString('44x22', $font, $muted, $x + 166, $y + 8)
-    Draw-Icon $guns[$i] ($x + 170) ($y + 38) 44 22 $white
+    $canvas.DrawString('64x32 HUD', $font, $muted, $x + 160, $y + 8)
+    Draw-Icon $guns[$i] ($x + 160) ($y + 32) 64 32 $white
     $canvas.FillRectangle($bright, $x + 252, $y + 28, 90, 44)
     $canvas.FillRectangle($panel, $x + 256, $y + 32, 82, 36)
-    Draw-Icon $guns[$i] ($x + 275) ($y + 39) 44 22 $white
-    Draw-Icon $guns[$i] ($x + 368) ($y + 39) 44 22 $blue
-    Draw-Icon $guns[$i] ($x + 444) ($y + 39) 44 22 $red
+    Draw-Icon $guns[$i] ($x + 265) ($y + 34) 64 32 $white
+    $canvas.DrawString('previous 44x22', $font, $muted, $x + 360, $y + 8)
+    Draw-Icon $guns[$i] ($x + 368) ($y + 39) 44 22 $white
 }
 for ($i = 0; $i -lt $symbols.Count; $i++) {
     $x = 22 + 352 * ($i % 3); $y = 474 + 103 * [Math]::Floor($i / 3)
@@ -153,7 +176,7 @@ $canvas.DrawString('Kill confirmation 32x32', $font, $muted, 22, 802)
 Draw-Icon 'kill' 73 829 32 32 $white
 $canvas.DrawString('Team banner 688x107, tinted blue; no underlying text baked in', $font, $muted, 270, 802)
 Draw-Icon 'team-panel' 270 827 688 107 $blue
-$canvas.DrawString('Preview only: mock backgrounds/tints, no game capture. Runtime placements and team colors are unchanged.', $font, $muted, 22, 957)
+$canvas.DrawString('Preview only, no game capture. Weapon field 64x32; text width, symbols and team colors retained.', $font, $muted, 22, 957)
 $canvas.Dispose()
 $sheet.Save((Join-Path $PreviewDirectory 'contact-sheet.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 $sheet.Dispose()

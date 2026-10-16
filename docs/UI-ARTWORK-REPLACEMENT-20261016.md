@@ -1,5 +1,9 @@
 # Original categorical UI artwork
 
+**Follow-up:** The user rejected the geometric weapon silhouettes and chose
+generated realistic category pictures. See [the replacement record](WEAPON-RENDERS-20261016.md).
+The measurements and original 44x22 weapon layout below are historical.
+
 Date: 2026-10-16. The user chose fixed category icons after the
 [replacement feasibility review](UI-ASSET-REPLACEMENT-REVIEW-20261016.md).
 No per-weapon native icon rendering or asynchronous inventory previews were added.

@@ -18,8 +18,9 @@ internal sealed class KillfeedView
     private const int MaxLines = 6;
     private const float LineSeconds = 6f;
     private const float FadeSeconds = 1.5f;
-    private const float FeedWidth = 520f;
-    private const float IconRail = 60f;
+    // Rendered weapons need a little more width; keep the text column unchanged.
+    private const float FeedWidth = 540f;
+    private const float IconRail = 80f;
     private const float HorizontalPadding = 12f;
     private const float VerticalPadding = 6f;
     private const float MinLineHeight = 56f;
@@ -76,8 +77,8 @@ internal sealed class KillfeedView
             rail.rectTransform.anchorMax = new Vector2(0f, 1f);
             rail.rectTransform.offsetMin = Vector2.zero;
             rail.rectTransform.offsetMax = new Vector2(IconRail - 4f, 0f);
-            var method = CreateIcon(rect, "Kill method", new Vector2(28f, -22f), new Vector2(44f, 22f));
-            var headshot = CreateIcon(rect, "Headshot", new Vector2(28f, -46f), new Vector2(18f, 18f));
+            var method = CreateIcon(rect, "Kill method", new Vector2(38f, -20f), new Vector2(44f, 22f));
+            var headshot = CreateIcon(rect, "Headshot", new Vector2(38f, -46f), new Vector2(18f, 18f));
             headshot.color = ArenaUiTheme.Headshot;
             var group = lineGo.GetComponent<CanvasGroup>();
             group.interactable = false;
@@ -134,6 +135,14 @@ internal sealed class KillfeedView
         line.Method.sprite = _assets.Sprite(method);
         line.Method.enabled = line.Method.sprite != null;
         line.Method.color = hazard ? ArenaUiTheme.Danger : Color.white;
+        // Reset dimensions on every pooled reuse, including weapon -> hazard.
+        line.Method.rectTransform.sizeDelta = method switch
+        {
+            ArenaUiIcon.AssaultRifle or ArenaUiIcon.Carbine or ArenaUiIcon.Sniper or
+            ArenaUiIcon.Marksman or ArenaUiIcon.Machinegun or ArenaUiIcon.Shotgun or
+            ArenaUiIcon.Pistol or ArenaUiIcon.Smg => new Vector2(64f, 32f),
+            _ => new Vector2(44f, 22f)
+        };
         // A delayed bleed keeps native LastBodyPart from the preceding hit.
         // Keep scoring metadata intact, but never depict that as a lethal headshot.
         line.Headshot.sprite = headshot && !hazard ? _assets.Sprite(ArenaUiIcon.Headshot) : null;
