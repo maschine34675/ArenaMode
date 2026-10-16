@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>ArenaMode bleeding cause</title>
+  <desc>Original heavy falling drop with a broad highlight cutout.</desc>
+  <path fill="#ffffff" fill-rule="evenodd" d="M 32,3 C 27,15 10,30 10,42 C 10,54 19,61 32,61 C 45,61 54,54 54,42 C 54,30 37,15 32,3 Z M 18,38 L 23,39 C 21,47 24,51 31,52 L 31,57 C 20,56 15,49 18,38 Z"/>
+</svg>

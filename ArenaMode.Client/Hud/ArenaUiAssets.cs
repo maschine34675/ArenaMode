@@ -12,7 +12,7 @@ internal enum ArenaUiIcon
     Machinegun, Shotgun, Pistol, Smg, Grenade, Melee, Bleeding, Fire, TeamPanel, BarbedWire,
 }
 
-/// <summary>Private, bounded, cached textures. Original EFT Arena files are documented separately.</summary>
+/// <summary>Private, bounded, cached original icons; provenance travels with the embedded resources.</summary>
 internal sealed class ArenaUiAssets : IDisposable
 {
     internal readonly struct Spec
@@ -23,23 +23,23 @@ internal sealed class ArenaUiAssets : IDisposable
     }
     internal static Spec Describe(ArenaUiIcon icon) => icon switch
     {
-        ArenaUiIcon.Kill => new Spec("kill.png", 20, 20),
-        ArenaUiIcon.Death => new Spec("death.png", 20, 20),
-        ArenaUiIcon.Assist => new Spec("assist.png", 20, 20),
-        ArenaUiIcon.Headshot => new Spec("headshot.png", 20, 20),
-        ArenaUiIcon.AssaultRifle => new Spec("assault-rifle.png", 42, 14),
-        ArenaUiIcon.Carbine => new Spec("carbine.png", 40, 18),
-        ArenaUiIcon.Sniper => new Spec("sniper.png", 43, 11),
-        ArenaUiIcon.Marksman => new Spec("marksman.png", 40, 10),
-        ArenaUiIcon.Machinegun => new Spec("machinegun.png", 37, 16),
-        ArenaUiIcon.Shotgun => new Spec("shotgun.png", 39, 16),
-        ArenaUiIcon.Pistol => new Spec("pistol.png", 22, 15),
-        ArenaUiIcon.Smg => new Spec("smg.png", 25, 18),
-        ArenaUiIcon.Grenade => new Spec("grenade.png", 21, 20),
-        ArenaUiIcon.Melee => new Spec("melee.png", 23, 20),
-        ArenaUiIcon.Bleeding => new Spec("bleeding.png", 20, 20),
-        ArenaUiIcon.BarbedWire => new Spec("barbed-wire.png", 21, 18),
-        ArenaUiIcon.Fire => new Spec("fire.png", 13, 18),
+        ArenaUiIcon.Kill => new Spec("kill.png", 64, 64),
+        ArenaUiIcon.Death => new Spec("death.png", 64, 64),
+        ArenaUiIcon.Assist => new Spec("assist.png", 64, 64),
+        ArenaUiIcon.Headshot => new Spec("headshot.png", 64, 64),
+        ArenaUiIcon.AssaultRifle => new Spec("assault-rifle.png", 128, 64),
+        ArenaUiIcon.Carbine => new Spec("carbine.png", 128, 64),
+        ArenaUiIcon.Sniper => new Spec("sniper.png", 128, 64),
+        ArenaUiIcon.Marksman => new Spec("marksman.png", 128, 64),
+        ArenaUiIcon.Machinegun => new Spec("machinegun.png", 128, 64),
+        ArenaUiIcon.Shotgun => new Spec("shotgun.png", 128, 64),
+        ArenaUiIcon.Pistol => new Spec("pistol.png", 128, 64),
+        ArenaUiIcon.Smg => new Spec("smg.png", 128, 64),
+        ArenaUiIcon.Grenade => new Spec("grenade.png", 64, 64),
+        ArenaUiIcon.Melee => new Spec("melee.png", 64, 64),
+        ArenaUiIcon.Bleeding => new Spec("bleeding.png", 64, 64),
+        ArenaUiIcon.BarbedWire => new Spec("barbed-wire.png", 64, 64),
+        ArenaUiIcon.Fire => new Spec("fire.png", 64, 64),
         ArenaUiIcon.TeamPanel => new Spec("team-panel.png", 688, 107),
         _ => throw new ArgumentOutOfRangeException(nameof(icon)),
     };
@@ -74,18 +74,8 @@ internal sealed class ArenaUiAssets : IDisposable
             texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             if (!texture.LoadImage(bytes, false) || texture.width != spec.Width || texture.height != spec.Height)
                 throw new InvalidDataException("PNG decode failed");
-            if (icon == ArenaUiIcon.TeamPanel)
-            {
-                // Original bytes stay unchanged. Neutralize the borrowed blue
-                // panel in our private texture so configured team hues stay true.
-                var pixels = texture.GetPixels32();
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    byte value = (byte)Math.Max(pixels[i].r, Math.Max(pixels[i].g, pixels[i].b));
-                    pixels[i] = new Color32(value, value, value, pixels[i].a);
-                }
-                texture.SetPixels32(pixels);
-            }
+            // All source art is neutral white/alpha; configured team tints need
+            // no per-pixel rewrite (the decoded pixels are released below).
             texture.name = "Arena UI " + spec.File;
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;

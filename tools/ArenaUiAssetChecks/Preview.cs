@@ -41,7 +41,7 @@ internal static class Preview
   string N(float f)=>f.ToString("0.###",CultureInfo.InvariantCulture);
   string E(string s)=>SecurityElement.Escape(s??"");
   string Hex(Color c)=>$"#{(int)(c.r*255):X2}{(int)(c.g*255):X2}{(int)(c.b*255):X2}";
-  var svg=new StringBuilder($"<svg xmlns='http://www.w3.org/2000/svg' width='854' height='{N(GUILayoutUtility.Y+84)}' viewBox='0 0 854 {N(GUILayoutUtility.Y+84)}'><rect width='100%' height='100%' fill='#0e1217'/><text x='20' y='25' fill='#a8b5c2' font-family='Arial' font-size='12'>OFFLINE LAYOUT — original sprites, estimated font metrics; no EFT screenshot</text><g transform='translate(20 44)'>");
+  var svg=new StringBuilder($"<svg xmlns='http://www.w3.org/2000/svg' width='854' height='{N(GUILayoutUtility.Y+84)}' viewBox='0 0 854 {N(GUILayoutUtility.Y+84)}'><rect width='100%' height='100%' fill='#0e1217'/><text x='20' y='25' fill='#a8b5c2' font-family='Arial' font-size='12'>OFFLINE LAYOUT — current sprites, estimated font metrics; no EFT screenshot</text><g transform='translate(20 44)'>");
   int id=0;
   foreach(var draw in GUI.Images)
   {
@@ -52,7 +52,7 @@ internal static class Preview
    string filter="";
    if(file=="team-panel.png")
    {
-    string f="tint"+(id++);svg.Append($"<defs><filter id='{f}' color-interpolation-filters='sRGB'><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='linear' slope='{N(draw.Color.r)}'/><feFuncG type='linear' slope='{N(draw.Color.g)}'/><feFuncB type='linear' slope='{N(draw.Color.b)}'/></feComponentTransfer></filter></defs>");filter=$" filter='url(#{f})'";
+    string f="tint"+(id++);svg.Append($"<defs><filter id='{f}' color-interpolation-filters='sRGB'><feComponentTransfer><feFuncR type='linear' slope='{N(draw.Color.r)}'/><feFuncG type='linear' slope='{N(draw.Color.g)}'/><feFuncB type='linear' slope='{N(draw.Color.b)}'/></feComponentTransfer></filter></defs>");filter=$" filter='url(#{f})'";
    }
    svg.Append($"<image {geometry} opacity='{N(draw.Color.a)}' preserveAspectRatio='none'{filter} href='data:image/png;base64,{Convert.ToBase64String(bytes.ToArray())}'/>");
   }

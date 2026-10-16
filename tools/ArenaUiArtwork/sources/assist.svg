@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>ArenaMode assist marker</title>
+  <desc>Original pair of linked contributors, two distinct heads above one joining shoulder shape.</desc>
+  <path fill="#ffffff" d="M 21,7 C 15,7 11,11 11,18 C 11,25 15,29 21,29 C 27,29 31,25 31,18 C 31,11 27,7 21,7 Z M 44,10 C 38,10 35,14 35,20 C 35,26 38,30 44,30 C 50,30 54,26 54,20 C 54,14 50,10 44,10 Z M 5,55 L 5,44 C 5,35 11,32 21,32 C 31,32 37,35 37,44 L 37,55 Z M 42,55 L 42,44 C 42,39 40,35 37,33 C 40,32 43,32 46,33 C 56,34 59,39 59,47 L 59,55 Z"/>
+</svg>

@@ -124,7 +124,12 @@ namespace UnityEngine
     public enum TextureWrapMode { Clamp }
     public class Texture2D:Texture
     {
-        public static bool FailNextDecode; public static readonly Texture2D whiteTexture=new(1,1,TextureFormat.RGBA32,false); public Color32[] Pixels; public Color32[] GetPixels32()=>Pixels??=Enumerable.Repeat(new Color32(20,60,120,90),width*height).ToArray(); public void SetPixels32(Color32[] p)=>Pixels=p; public void Apply(bool mipmaps,bool unreadable){MarkedNonReadable=unreadable;}
+        public static bool FailNextDecode; public static readonly Texture2D whiteTexture=new(1,1,TextureFormat.RGBA32,false);
+        // Deliberately no pretend PNG pixels: decoding is independently checked.
+        public static int PixelReads,PixelWrites;
+        public Color32[] GetPixels32(){PixelReads++;return new Color32[width*height];}
+        public void SetPixels32(Color32[] p){PixelWrites++;}
+        public void Apply(bool mipmaps,bool unreadable){MarkedNonReadable=unreadable;}
         public static int LoadCalls;
         public static byte[] LastLoadedBytes;
         public int width,height;

@@ -6,12 +6,13 @@ using UnityEngine.UI;
 using Object=UnityEngine.Object;
 int checks=0;
 void Need(bool value,string reason){if(!value)throw new Exception("CHECK: "+reason);checks++;}
+checks+=AssetContracts.Verify(args.Length>1?args[1]:null);
 var icons=Enum.GetValues<ArenaUiIcon>();
 var assets=new ArenaUiAssets();
 foreach(var icon in icons)
 {
  var spec=ArenaUiAssets.Describe(icon);var texture=assets.Texture(icon);
- Need(texture!=null&&texture.width==spec.Width&&texture.height==spec.Height,"real embedded dimensions "+icon);
+ Need(texture!=null&&texture.width==spec.Width&&texture.height==spec.Height,"embedded PNG header dimensions "+icon);
  Need(texture.MarkedNonReadable,"native texture finalised "+icon);
  Need(ReferenceEquals(texture,assets.Texture(icon))&&ReferenceEquals(assets.Sprite(icon),assets.Sprite(icon)),"cached identity "+icon);
  using var stream=typeof(ArenaUiAssets).Assembly.GetManifestResourceStream("ArenaMode.Ui."+spec.File);
@@ -19,7 +20,9 @@ foreach(var icon in icons)
  Need(ArenaUiAssets.MatchesHeader(bytes,spec),"valid header "+icon);
  bytes[16]^=1;Need(!ArenaUiAssets.MatchesHeader(bytes,spec),"dimension drift rejected "+icon);
 }
-Need(assets.Texture(ArenaUiIcon.TeamPanel).Pixels.All(p=>p.r==p.g&&p.g==p.b&&p.a==90),"panel neutralization preserves alpha");
+// Real alpha/neutral pixels are decoded separately by Verify-Artwork.py. These
+// doubles only prove the loader leaves decoded pixels untouched and releases CPU data.
+Need(Texture2D.PixelReads==0&&Texture2D.PixelWrites==0,"neutral source art requires no pixel rewrite");
 var held=assets.Sprite(ArenaUiIcon.Headshot);var heldTexture=held.texture;
 assets.Dispose();assets.Dispose();Object.EndFrame();
 Need(held.Destroyed&&heldTexture.Destroyed&&assets.Sprite(ArenaUiIcon.Headshot)==null,"disposal releases sprites and textures and prevents reload");
@@ -81,7 +84,7 @@ foreach(var row in pool)
  var images=row.gameObject.GetComponentsInChildren<Image>();
  var method=images.Single(i=>i.gameObject.name=="Kill method");
  var notice=row.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>().Single().text;
- Need(method.enabled&&method.sprite.texture.name.EndsWith("barbed-wire.png")&&method.color==ArenaUiTheme.Danger,"wire death uses red native wire icon");
+ Need(method.enabled&&method.sprite.texture.name.EndsWith("barbed-wire.png")&&method.color==ArenaUiTheme.Danger,"wire death uses red categorical wire icon");
  Need(!images.Single(i=>i.gameObject.name=="Headshot").enabled,"wire notice clears pooled headshot");
  Need(notice.Contains("Wire_‹b›victim‹/b›")&&notice.Contains("BEAR · BARBED WIRE"),"wire notice escapes and identifies victim and cause");
  Need(!notice.Contains(capture.KillerName)&&!notice.Contains("42 m")&&!notice.Contains("HK 416A5")&&!notice.Contains("➔"),"wire notice has no invented attacker weapon or distance");
@@ -176,4 +179,4 @@ using(var fallback=new ArenaScoreboardPresentation(new GUIStyle(),new GUIStyle()
 {GUI.Reset(EventType.Repaint);fallback.Draw("TEAM",rows,friendly,friendly,enemy,814);Need(new[]{"K","D","A","HS","SCORE"}.All(s=>GUI.Labels.Any(l=>l.Text==s)),"missing asset textual headers survive");}
 GUI.ThrowDraw=true;try{table.Draw("TEAM",rows,friendly,friendly,enemy,814);}catch(Exception){}finally{GUI.ThrowDraw=false;}
 Need(GUI.color==sentinel,"global tint restored after render exception");
-Console.WriteLine($"ARENA UI ASSET CONTRACTS PASSED ({checks} checks; native pixels still require EFT)");
+Console.WriteLine($"ARENA UI ASSET CONTRACTS PASSED ({checks} checks; native rendering still requires EFT)");

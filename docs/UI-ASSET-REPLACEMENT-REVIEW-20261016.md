@@ -1,5 +1,10 @@
 # UI artwork replacement — 16 October 2026
 
+**Decision after this review:** the user chose fixed weapon-category icons,
+not native per-weapon images. The implementation and current verification are
+recorded in [Categorical UI artwork](UI-ARTWORK-REPLACEMENT-20261016.md).
+The proposals and asset inventory below describe the earlier research baseline.
+
 Recommendation: use **native EFT weapon-template icons** for bullet kills,
 independently authored or redistribution-licensed small symbols for the other
 events, and an original procedural scoreboard banner. This is a feasibility

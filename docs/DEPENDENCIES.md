@@ -87,11 +87,13 @@ Redeploy-Paket. Ein eigenes Pflicht-Downloadpaket für Core ist nicht nötig.
 Das ist der Paketierungsplan; die vorhandenen Staging-/Map-Preview-Prüfungen
 sind noch kein vollständiger allgemeiner Release-Packager.
 
-Die originalen EFT-Arena-UI-Grafiken sind laut
-`ArenaMode.Client/Assets/Ui/NOTICE.md` für die private Installation integriert;
-eine Weiterverteilungslizenz ist dort nicht nachgewiesen. Diese Frage bleibt
-vor einem öffentlichen Paket getrennt zu klären. Code-Lizenz, eigene generierte
-HUD-Icons und Audio-Lizenzen übertragen sich nicht auf diese Originalgrafiken.
+Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
+durch eigene kategorische SVG-/PNG-Grafiken unter MIT ersetzt. Quellen,
+Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und vollständige
+MIT-Lizenz reisen im Client und lesbar unter `ArenaMode/Ui` mit.
+Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der
+Git-Historie und in früheren Paketen: Der Austausch bereinigt diese nicht und
+ist keine Freigabe zur Veröffentlichung der Historie oder anderer Assets.
 
 Vertiefung: `RAID-INFO-PANELS-REVIEW.md`, `APBS-COMPATIBILITY-REVIEW.md`,
 `FRIENDLY-FIRE-REVIEW.md`, `KILLCAM-MODES-REVIEW.md`,

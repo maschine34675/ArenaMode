@@ -1,0 +1,2 @@
+# SOURCES.json records raw source SHA256; make checkout bytes stable on Windows.
+sources/*.svg text eol=lf

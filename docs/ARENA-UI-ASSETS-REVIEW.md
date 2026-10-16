@@ -1,5 +1,10 @@
 # EFT-Arena-Grafiken für Killfeed und Scoreboard
 
+**Aktualisierung 2026-10-16:** Die hier beschriebenen extrahierten Bilder wurden
+durch eigene kategorische Grafiken ersetzt. Aktuelle Quellen, Lizenz und
+Prüfgrenzen: [UI-ARTWORK-REPLACEMENT-20261016.md](UI-ARTWORK-REPLACEMENT-20261016.md).
+Der folgende Text bleibt als historische Integrationsbeschreibung erhalten.
+
 Stand: 2026-09-29. Darstellung des Killfeeds und der vollständigen F9-Tabelle;
 das kompakte Score-Panel oben mittig bleibt unverändert.
 

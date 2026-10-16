@@ -7,8 +7,9 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Current handoff and test status](HANDOFF.md)
+- [Original categorical UI artwork and validation](UI-ARTWORK-REPLACEMENT-20261016.md)
 - [Confirmed unused-code cleanup and final validation](DEAD-CODE-CLEANUP-20261016.md)
-- [UI artwork replacements and native weapon-icon feasibility](UI-ASSET-REPLACEMENT-REVIEW-20261016.md)
+- [Earlier UI artwork research and native weapon-icon feasibility](UI-ASSET-REPLACEMENT-REVIEW-20261016.md)
 - [Announcer assets and retained license notices](ASSET-MAINTENANCE-20261016.md)
 - [Unused-code audit and cleanup candidates](DEAD-CODE-REVIEW-20261016.md)
 - [Logging levels and developer diagnostics](LOGGING.md)

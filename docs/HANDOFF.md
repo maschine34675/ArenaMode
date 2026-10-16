@@ -7,14 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **UI artwork replacement research (2026-10-16):** All 18 extracted PNGs still
-  have consumers. Recommend native cached weapon-template/default-preset icons
-  for eight gun silhouettes, licensed/original symbols for nine other events,
-  and an original procedural scoreboard banner. Primary Game-icons/Lucide/
-  Kenney sources and exact licenses checked; native cache resolution, async row
-  reuse, resource ownership and final-damage-cause constraints are documented.
-  No artwork replacement, native acceptance or publication is implied.
-  See [source-backed replacement plan](UI-ASSET-REPLACEMENT-REVIEW-20261016.md).
+- **Categorical UI artwork replacement (2026-10-16):** User chose static
+  categories, superseding the earlier native per-weapon proposal. All18 extracted
+  PNGs are replaced by original MIT SVG/PNG artwork with reproducible offline
+  tooling. Existing placement, category/cause rules, team colors and ownership
+  remain unchanged. Notices are embedded and readable in the client output.
+  Unit suite969/1skip, eight adjacent consumers,490 staged-DLL checks,
+  15compiled faults and8invalid-art inputs pass. Build/deployment/native limits
+  are in [the implementation record](UI-ARTWORK-REPLACEMENT-20261016.md).
+  No push, publication or Git-history rewrite; old artwork remains in history.
 
 - **Confirmed dead-code cleanup (2026-10-16):** 29 Client removal targets and
   seven Server methods removed after fresh consumer/overload checks. The prior

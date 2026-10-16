@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>ArenaMode death marker</title>
+  <desc>Original gravestone with a cutout cross and a separate ground line; distinct from the kill skull.</desc>
+  <path fill="#ffffff" fill-rule="evenodd" d="M 13,50 L 13,24 C 13,12 20,6 32,6 C 44,6 51,12 51,24 L 51,50 Z M 28,18 L 28,26 21,26 21,33 28,33 28,43 36,43 36,33 43,33 43,26 36,26 36,18 Z M 7,54 L 57,54 57,60 7,60 Z"/>
+</svg>

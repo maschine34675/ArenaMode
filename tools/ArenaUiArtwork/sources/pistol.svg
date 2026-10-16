@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64">
+  <title>ArenaMode pistol category</title>
+  <desc>Original generic semiautomatic pistol silhouette. Muzzle right; deliberately shorter than long-gun categories.</desc>
+  <path fill="#ffffff" fill-rule="evenodd" d="M 29,17 L 34,17 34,14 38,14 38,17 95,17 95,14 99,14 99,29 70,29 66,38 52,38 46,53 29,50 37,29 29,27 Z M 56,29 L 53,34 63,34 66,29 Z"/>
+</svg>

@@ -1,0 +1,78 @@
+{
+  "baseline": "dcd1c5c",
+  "purpose": "Rejection fingerprints only; no original artwork is bundled.",
+  "assets": [
+    {
+      "file": "kill.png",
+      "sha256": "C5137F655C8C8878B2985D0B6A25F4C379BD6F327862046587297018F8715DD3"
+    },
+    {
+      "file": "death.png",
+      "sha256": "C99BF6E79709658616C1415DEC0D84D18044A32CCF1D5F56895ADB77F0E8D776"
+    },
+    {
+      "file": "assist.png",
+      "sha256": "ED1C949F31631C8AB52012CFC0E1EB374B81B48D27D5F20C2FBC3D4D9944FD0C"
+    },
+    {
+      "file": "headshot.png",
+      "sha256": "509618F02D5B15CF05407B65CB6291C850BD6FD46F391C0BB1B45CDD249E1C09"
+    },
+    {
+      "file": "assault-rifle.png",
+      "sha256": "EC9CF586CDE29FAEB46E24B27FF4EE3C9FA7B3380DDEA46545B510E6B1AD1666"
+    },
+    {
+      "file": "carbine.png",
+      "sha256": "A6E3D403FA5F0F3375948F534E7566451C26712509FF8CF21CB4CC5601DD0330"
+    },
+    {
+      "file": "sniper.png",
+      "sha256": "8A044F6D9305ABC51E7A2597B2E148E475685300EFE0CA0F46A0386232A52377"
+    },
+    {
+      "file": "marksman.png",
+      "sha256": "1E153CF63E4857652CD48845C12CDF44AE66E68C4F6827EB7DF42EE2A1AD9074"
+    },
+    {
+      "file": "machinegun.png",
+      "sha256": "EBC73B691950DE8C0DBB6983AFBCC49D4114E9A839B2EE01EC86E39B4A1C4A73"
+    },
+    {
+      "file": "shotgun.png",
+      "sha256": "A0EBA61D0EDCDAF0C6118982D6677F1F30734042EB837AB8EFCDFE2D5B279B3F"
+    },
+    {
+      "file": "pistol.png",
+      "sha256": "CD98EBC12281F3111480F396046B63FECAFCA0176468BF309DDD40C4C95C7380"
+    },
+    {
+      "file": "smg.png",
+      "sha256": "AF7198F9D8AE49F44F3B52C496DAEBBF31695E787C70B997A9C07E170458BC1F"
+    },
+    {
+      "file": "grenade.png",
+      "sha256": "F2CCB771451F356873E8BC747A09D6129F34AA55C1E606D148F6FBF1A041563D"
+    },
+    {
+      "file": "melee.png",
+      "sha256": "4F75296F5F90858D5ABECED5E4CE4441E66D6AD08607755F8CC28BC7CC26C819"
+    },
+    {
+      "file": "bleeding.png",
+      "sha256": "35843BAC2912BFF6DED271B748A5EBBE03FA393D95BD341135BB93E22749659D"
+    },
+    {
+      "file": "fire.png",
+      "sha256": "57B157B1770B8B8252393F7098FBD7D16D30D0512A39DE9E9A7F82FA48748FB9"
+    },
+    {
+      "file": "team-panel.png",
+      "sha256": "CA110F82E322FEFCC439CE1A36353A9C0A0D500831D577759FFDC547E64BA206"
+    },
+    {
+      "file": "barbed-wire.png",
+      "sha256": "FEDF4B3994F366F1523D5BD9E227F072F38C046EAD14A813BCF91966C11C6CB1"
+    }
+  ]
+}

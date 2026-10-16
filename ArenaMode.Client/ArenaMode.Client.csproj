@@ -49,11 +49,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- User-provided original game UI art: see Assets/Ui/SOURCES.json and NOTICE.md.
-         This is not part of the freely licensed author-generated icon collection. -->
-    <EmbeddedResource Include="Assets\Ui\*.png;Assets\Ui\NOTICE.md;Assets\Ui\SOURCES.json">
+    <!-- Original categorical artwork. Keep provenance and the complete license
+         available in the assembly and as readable files in the mod package. -->
+    <ArenaUiNotice Include="Assets\Ui\NOTICE.md;Assets\Ui\SOURCES.json;Assets\Ui\MIT-LICENSE.txt" />
+    <EmbeddedResource Include="Assets\Ui\*.png;@(ArenaUiNotice)">
       <LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
+    <Content Include="@(ArenaUiNotice)">
+      <Link>ArenaMode\Ui\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -77,6 +83,10 @@
     <!-- Share the existing deploy boundary so staged builds also suppress maps. -->
     <Copy SourceFiles="@(ArenaMapPreviewAsset)"
           DestinationFiles="@(ArenaMapPreviewAsset->'$(SPTPath)\BepInEx\plugins\ArenaMode\MapPreviews\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <!-- Reuse the same suppressible deployment target; never add a second hook. -->
+    <Copy SourceFiles="@(ArenaUiNotice)"
+          DestinationFiles="@(ArenaUiNotice->'$(SPTPath)\BepInEx\plugins\ArenaMode\Ui\%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 

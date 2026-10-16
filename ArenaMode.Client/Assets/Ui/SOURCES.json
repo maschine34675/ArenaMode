@@ -1,298 +1,260 @@
 {
-  "schemaVersion": 1,
-  "source": "User-provided Escape from Tarkov Arena UI extraction",
-  "exportManifestSha256": "2D19F2C7E8C08E607FCD7E2761F7247869988C86E877AEC18FA58EB25970533C",
-  "exportedAt": "2026-09-29T12:35:45.601141+02:00",
-  "rights": "Original game artwork; no redistribution licence established. Not MIT/CC0.",
-  "modification": "PNG files copied byte-for-byte. Team panel is desaturated only in the private runtime texture to permit player-relative colour tint.",
+  "schemaVersion": 2,
+  "source": "Original ArenaMode categorical UI artwork",
+  "rights": "MIT; full permission and copyright notice in MIT-LICENSE.txt. No extracted game artwork.",
+  "generator": "tools/ArenaUiArtwork/Generate-Artwork.ps1",
   "assets": [
     {
-      "file": "kill.png",
-      "sha256": "C5137F655C8C8878B2985D0B6A25F4C379BD6F327862046587297018F8715DD3",
-      "exportPath": "kda/kill.png",
-      "nativeName": "lasthero_observer_kill",
-      "nativeSource": {
-        "root": "arena",
-        "file": "sharedassets1.assets"
-      },
-      "pathId": 3134,
-      "pixelSize": [
-        20,
-        20
-      ],
-      "exportConfidence": "high"
-    },
-    {
-      "file": "death.png",
-      "sha256": "C99BF6E79709658616C1415DEC0D84D18044A32CCF1D5F56895ADB77F0E8D776",
-      "exportPath": "kda/death.png",
-      "nativeName": "lasthero_observer_death",
-      "nativeSource": {
-        "root": "arena",
-        "file": "sharedassets1.assets"
-      },
-      "pathId": 5395,
-      "pixelSize": [
-        20,
-        20
-      ],
-      "exportConfidence": "high"
-    },
-    {
-      "file": "assist.png",
-      "sha256": "ED1C949F31631C8AB52012CFC0E1EB374B81B48D27D5F20C2FBC3D4D9944FD0C",
-      "exportPath": "kda/assist.png",
-      "nativeName": "lasthero_observer_assist",
-      "nativeSource": {
-        "root": "arena",
-        "file": "sharedassets1.assets"
-      },
-      "pathId": 6121,
-      "pixelSize": [
-        20,
-        20
-      ],
-      "exportConfidence": "high"
-    },
-    {
-      "file": "headshot.png",
-      "sha256": "509618F02D5B15CF05407B65CB6291C850BD6FD46F391C0BB1B45CDD249E1C09",
-      "exportPath": "killfeed/method_icon_0.png",
-      "nativeName": "Notification_BattleUI_Killpg_Method_Icons_Small_0",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8358,
-      "pixelSize": [
-        20,
-        20
-      ],
-      "exportConfidence": "high"
-    },
-    {
       "file": "assault-rifle.png",
-      "sha256": "EC9CF586CDE29FAEB46E24B27FF4EE3C9FA7B3380DDEA46545B510E6B1AD1666",
-      "exportPath": "killfeed/weapon_icon_5.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_5",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8286,
+      "sha256": "40A3DCC79117AF77090C367AE182295F43ACA9EBFB502C0847B0B9D0E6AE00E6",
       "pixelSize": [
-        42,
-        14
+        128,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:assault-rifle",
+      "sourceFile": "tools/ArenaUiArtwork/sources/assault-rifle.svg",
+      "sourceSha256": "7E4F894BBA64BB68129749AC771B5A516432D8FFB57F8F248EA3991BE737F195",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "carbine.png",
-      "sha256": "A6E3D403FA5F0F3375948F534E7566451C26712509FF8CF21CB4CC5601DD0330",
-      "exportPath": "killfeed/weapon_icon_9.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_9",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8416,
+      "sha256": "380BD60CF86202BF81923D66089A10C9C02674DD51EB87C23B8A615A0DAB81F3",
       "pixelSize": [
-        40,
-        18
+        128,
+        64
       ],
-      "exportConfidence": "medium"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:carbine",
+      "sourceFile": "tools/ArenaUiArtwork/sources/carbine.svg",
+      "sourceSha256": "1AC3F9218758C8BC568609591820F88474B458BF8EC108EA77BA24E46205806D",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "sniper.png",
-      "sha256": "8A044F6D9305ABC51E7A2597B2E148E475685300EFE0CA0F46A0386232A52377",
-      "exportPath": "killfeed/weapon_icon_0.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_0",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5831,
+      "sha256": "52CEC361029E8CBA361F2A1DA46DBF6659C88E9C02C367EC9322251785170E49",
       "pixelSize": [
-        43,
-        11
+        128,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:sniper",
+      "sourceFile": "tools/ArenaUiArtwork/sources/sniper.svg",
+      "sourceSha256": "8A8D9995E13970321A4E183B55E524D50A6E3FC686D39F22240B890F663A1F52",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "marksman.png",
-      "sha256": "1E153CF63E4857652CD48845C12CDF44AE66E68C4F6827EB7DF42EE2A1AD9074",
-      "exportPath": "killfeed/weapon_icon_10.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_10",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5801,
+      "sha256": "04D3BDF996E7527CAD1EA4B156619BC4573FCD58F4014893FAD9B5FEA27B08AE",
       "pixelSize": [
-        40,
-        10
+        128,
+        64
       ],
-      "exportConfidence": "medium"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:marksman",
+      "sourceFile": "tools/ArenaUiArtwork/sources/marksman.svg",
+      "sourceSha256": "AC7B4B251FDFB18A024DD7483C44617B961849FC45F65C6150FE450A2F87B208",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "machinegun.png",
-      "sha256": "EBC73B691950DE8C0DBB6983AFBCC49D4114E9A839B2EE01EC86E39B4A1C4A73",
-      "exportPath": "killfeed/weapon_icon_1.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_1",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5680,
+      "sha256": "BA8BABA7E80318FADB02FD5E944215B5EB02824AD887C94A2E452C770F4AFD5C",
       "pixelSize": [
-        37,
-        16
+        128,
+        64
       ],
-      "exportConfidence": "medium"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:machinegun",
+      "sourceFile": "tools/ArenaUiArtwork/sources/machinegun.svg",
+      "sourceSha256": "06F25CB094126FDAEA483DD40E3068ADD0E34C7FDE11EE39484917D994779F52",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "shotgun.png",
-      "sha256": "A0EBA61D0EDCDAF0C6118982D6677F1F30734042EB837AB8EFCDFE2D5B279B3F",
-      "exportPath": "killfeed/weapon_icon_2.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_2",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8339,
+      "sha256": "4B0FE23ED1548D85A2326EE803A4713F5FDEB766BF1379FB1F9062B08CED2C7D",
       "pixelSize": [
-        39,
-        16
+        128,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:shotgun",
+      "sourceFile": "tools/ArenaUiArtwork/sources/shotgun.svg",
+      "sourceSha256": "6F0300A3AE5F8D1FCA3613A2A7A51E8295CC43E7A0B06E5E75169C966EAE2FFA",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "pistol.png",
-      "sha256": "CD98EBC12281F3111480F396046B63FECAFCA0176468BF309DDD40C4C95C7380",
-      "exportPath": "killfeed/weapon_icon_6.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_6",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8194,
+      "sha256": "84CECEDD0845DF8435D3D0A9042583D6147C67019CF30FACA0A9A15561B3544D",
       "pixelSize": [
-        22,
-        15
+        128,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:pistol",
+      "sourceFile": "tools/ArenaUiArtwork/sources/pistol.svg",
+      "sourceSha256": "3F3FC2C0A9C10E1661F32E13ACF06BF592DD411F21F1A1BD57B027A31811EE3B",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "smg.png",
-      "sha256": "AF7198F9D8AE49F44F3B52C496DAEBBF31695E787C70B997A9C07E170458BC1F",
-      "exportPath": "killfeed/weapon_icon_7.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_7",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8318,
+      "sha256": "55EA83F6AB160806F0A587AFEE8CC85348EC4822CC082C439BE13667DE3227B2",
       "pixelSize": [
-        25,
-        18
+        128,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:smg",
+      "sourceFile": "tools/ArenaUiArtwork/sources/smg.svg",
+      "sourceSha256": "3D7541843CE310EB1513D002C38A63B9C2F6DC2F8FD4CF89307D93C98B52AD91",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+    },
+    {
+      "file": "kill.png",
+      "sha256": "B3EF76CC13496A12EF0DA150C56193047AF58C2B72BF3CEEE1E31510AA32FDA3",
+      "pixelSize": [
+        64,
+        64
+      ],
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:kill",
+      "sourceFile": "tools/ArenaUiArtwork/sources/kill.svg",
+      "sourceSha256": "E9C01263475909614129EF01CBD540C641A6A38D520C8326E52CCBC7A2B69C74",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+    },
+    {
+      "file": "death.png",
+      "sha256": "9802C5372DEE2D85FA4D7338F1F65F9380C4F3248ADAC3B8B26969D206DB51E4",
+      "pixelSize": [
+        64,
+        64
+      ],
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:death",
+      "sourceFile": "tools/ArenaUiArtwork/sources/death.svg",
+      "sourceSha256": "914BFD7AE189C0B01B4DBA05B5513A3E22CE65E68E3C82E7E0BB6FC69BC608F0",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+    },
+    {
+      "file": "assist.png",
+      "sha256": "1050811CD5C5AE79E9D8E90045A5482AEE1160EB5B7C02B8ADD1BED55D98CB99",
+      "pixelSize": [
+        64,
+        64
+      ],
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:assist",
+      "sourceFile": "tools/ArenaUiArtwork/sources/assist.svg",
+      "sourceSha256": "A9F29A871CEDA2151E37A9047EE038E2061E182E46B8A3329CDFA028E5F59744",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+    },
+    {
+      "file": "headshot.png",
+      "sha256": "23044567352204FAC6A8E65C07A1E31AE2B57A3C441CA77FCDE2A3D2E331970F",
+      "pixelSize": [
+        64,
+        64
+      ],
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:headshot",
+      "sourceFile": "tools/ArenaUiArtwork/sources/headshot.svg",
+      "sourceSha256": "F7B10C612BA5C79A71687C160E7A762878E77EB1451352A20FBF479030F564F8",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "grenade.png",
-      "sha256": "F2CCB771451F356873E8BC747A09D6129F34AA55C1E606D148F6FBF1A041563D",
-      "exportPath": "killfeed/weapon_icon_4.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_4",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8233,
+      "sha256": "74082E2A900F16C56B352E49254C60353A0351F67E635E35B8A0FF4D8D1C413C",
       "pixelSize": [
-        21,
-        20
+        64,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:grenade",
+      "sourceFile": "tools/ArenaUiArtwork/sources/grenade.svg",
+      "sourceSha256": "49461756DA65B4FB4E674E0881A69E69256349F55FFE1B8EEFE3AB2E41FB4CA3",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "melee.png",
-      "sha256": "4F75296F5F90858D5ABECED5E4CE4441E66D6AD08607755F8CC28BC7CC26C819",
-      "exportPath": "killfeed/weapon_icon_8.png",
-      "nativeName": "Notification_BattleUI_Killpg_Icons_Small_8",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5729,
+      "sha256": "E6287E894B27742E7E046CA14D8C97EB1780A9E8D9E3FD919FBE9EECD398466D",
       "pixelSize": [
-        23,
-        20
+        64,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:melee",
+      "sourceFile": "tools/ArenaUiArtwork/sources/melee.svg",
+      "sourceSha256": "A6C851AB9BC20044F5CDBD8D2B4B0624A34936A4AAF7C9BDCE5BE2CB9B60961B",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "bleeding.png",
-      "sha256": "35843BAC2912BFF6DED271B748A5EBBE03FA393D95BD341135BB93E22749659D",
-      "exportPath": "killfeed/method_icon_4.png",
-      "nativeName": "Notification_BattleUI_Killpg_Method_Icons_Small_4",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8216,
+      "sha256": "B9D9295832796A525550D2F8EE5E3D06BE3DFC7D9F24ACBB1CB0E537D34CCF74",
       "pixelSize": [
-        20,
-        20
+        64,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:bleeding",
+      "sourceFile": "tools/ArenaUiArtwork/sources/bleeding.svg",
+      "sourceSha256": "20462CEC18FC12AE5E72727135B94E1ACAD2E63940BAA83DA23663A156001795",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "fire.png",
-      "sha256": "57B157B1770B8B8252393F7098FBD7D16D30D0512A39DE9E9A7F82FA48748FB9",
-      "exportPath": "killfeed/death_icon_2.png",
-      "nativeName": "Notification_BattleUI_Killog_deaths_2",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 8215,
+      "sha256": "B3C210902D3A2637462C08FC478F44E15FFC60D8F8B3D2E25D5B6536C84E5C59",
       "pixelSize": [
-        13,
-        18
+        64,
+        64
       ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:fire",
+      "sourceFile": "tools/ArenaUiArtwork/sources/fire.svg",
+      "sourceSha256": "AA3391FAABF3E3404F4A871068ABBCD738AB0A555BC30222633C9D182F299F24",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
+    },
+    {
+      "file": "barbed-wire.png",
+      "sha256": "4A52D4D35741E27432C695D2DDD768EB3FE9439EBEBC67C6EF72175691701E27",
+      "pixelSize": [
+        64,
+        64
+      ],
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:barbed-wire",
+      "sourceFile": "tools/ArenaUiArtwork/sources/barbed-wire.svg",
+      "sourceSha256": "D2C9DEE48A49396E9B12851923107C693C4195174CA1E2F475EC4353332F44D1",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     },
     {
       "file": "team-panel.png",
-      "sha256": "CA110F82E322FEFCC439CE1A36353A9C0A0D500831D577759FFDC547E64BA206",
-      "exportPath": "scoreboard/roundstats_scorebg_0.png",
-      "nativeName": "RoundStats_Results_ScoreBackgound_0",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5761,
+      "sha256": "9CACFDB7D1A4FFE88215AE4EDF9DEFCE76F0992CB8F2381BE8CC73DC5FCEFF92",
       "pixelSize": [
         688,
         107
       ],
-      "exportConfidence": "high"
-    },
-    {
-      "file": "barbed-wire.png",
-      "sha256": "FEDF4B3994F366F1523D5BD9E227F072F38C046EAD14A813BCF91966C11C6CB1",
-      "exportPath": "killfeed/death_icon_1.png",
-      "nativeName": "Notification_BattleUI_Killog_deaths_1",
-      "nativeSource": {
-        "root": "arena",
-        "file": "resources.assets"
-      },
-      "pathId": 5698,
-      "pixelSize": [
-        21,
-        18
-      ],
-      "exportConfidence": "high"
+      "author": "maschine / ArenaMode contributors",
+      "license": "MIT",
+      "sourceURL": "urn:arenamode:original-ui-artwork:20261016:team-panel",
+      "sourceFile": "tools/ArenaUiArtwork/sources/team-panel.svg",
+      "sourceSha256": "E09FDF9A49BC6CF669B19D689CB2212EC372E1BE74188F8318FEAD564CA938CE",
+      "modifications": "Original geometric SVG, authored for ArenaMode with Codex assistance; rasterized offline with WPF, straight RGB normalized to white while retaining rendered alpha. No game artwork, tracing or third-party visual source."
     }
   ]
 }

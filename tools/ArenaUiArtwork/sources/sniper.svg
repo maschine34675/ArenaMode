@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64">
+  <title>ArenaMode bolt-action sniper category</title>
+  <desc>Original long-barrel bolt rifle with a full stock, large optic and visible bolt handle. Muzzle right.</desc>
+  <path fill="#ffffff" d="M 4,32 L 22,28 33,30 42,25 86,25 86,28 120,28 124,26 124,34 87,32 68,35 47,35 40,42 32,42 35,35 23,38 6,47 4,46 Z M 43,15 L 55,15 55,19 72,19 72,13 86,13 86,24 72,24 72,22 55,22 55,25 43,25 Z M 59,28 L 64,28 64,35 69,40 66,44 60,39 Z"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M 37,32 L 52,32 52,41 41,44 Z M 42,35 L 43,40 48,38 48,35 Z"/>
+</svg>
