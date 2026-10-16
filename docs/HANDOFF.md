@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **UI artwork replacement research (2026-10-16):** All 18 extracted PNGs still
+  have consumers. Recommend native cached weapon-template/default-preset icons
+  for eight gun silhouettes, licensed/original symbols for nine other events,
+  and an original procedural scoreboard banner. Primary Game-icons/Lucide/
+  Kenney sources and exact licenses checked; native cache resolution, async row
+  reuse, resource ownership and final-damage-cause constraints are documented.
+  No artwork replacement, native acceptance or publication is implied.
+  See [source-backed replacement plan](UI-ASSET-REPLACEMENT-REVIEW-20261016.md).
+
 - **Confirmed dead-code cleanup (2026-10-16):** 29 Client removal targets and
   seven Server methods removed after fresh consumer/overload checks. The prior
   audit's `ArenaEquipmentChoiceState.Label` false positive is retained for its
