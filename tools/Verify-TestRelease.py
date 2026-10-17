@@ -52,6 +52,7 @@ def verify(path):
             assert '\\' not in name and ':' not in name and not name.startswith('/'), f'Unsafe entry: {name}'
             assert all(part not in {'', '..', '.'} for part in parts), f'Unsafe entry: {name}'
             assert len(parts) > 1 and parts[0] in {'BepInEx', 'SPT_Runtime'}, f'Unexpected ZIP root payload: {name}'
+            assert not name.casefold().startswith((ASSETS + 'sounds/reserve/').casefold()), f'Unused reserve audio in package: {name}'
             assert name in REQUIRED or any(name.startswith(ASSETS + folder + '/') for folder in
                 ('sounds', 'hitmarkers', 'pickups', 'MapPreviews', 'Ui')), f'Unexpected payload: {name}'
             assert PurePosixPath(name).suffix.lower() not in {'.exe', '.pdb', '.cfg', '.log', '.zip'}, f'Forbidden payload: {name}'

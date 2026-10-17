@@ -48,6 +48,8 @@ foreach ($mapping in @(
     foreach ($file in (Get-ChildItem -LiteralPath $base -File -Recurse)) {
         if ($file.Name -eq '.gitattributes') { continue }
         $relative = [IO.Path]::GetRelativePath($base, $file.FullName).Replace('\', '/')
+        # Unused recordings remain in source/local installs, never in new payloads.
+        if ($mapping.Dest -eq '' -and $relative.StartsWith('sounds/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
         $sourceRelative = "$($mapping.Source)/$relative"
         if ($null -ne $tracked -and -not $tracked.Contains($sourceRelative)) { continue }
         $target = "$($mapping.Dest)$relative"
@@ -133,10 +135,14 @@ foreach ($entry in $documents.GetEnumerator()) {
         if ($body -cne $originalBody) { $bytes = $utf8.GetBytes($body) }
     } elseif ($entry.Key -match '/ANNOUNCER-(SOURCES|ADDITIONS-20260917)\.json$') {
         $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
+        $shippedClips = @()
         foreach ($clip in $record.files) {
             if ($clip.file -notmatch '^sounds/[A-Za-z0-9_/-]+\.ogg$' -or $clip.file.Contains('..')) {
                 throw "Unsafe source audio reference: $($clip.file)"
             }
+            # Intake 'usage' predates promotion of several cues. Filter by their
+            # current path, not usage, so those active root recordings stay shipped.
+            if ($clip.file.StartsWith('sounds/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
             $clipSource = "ArenaMode.Client/Assets/ArenaMode/$($clip.file)"
             if (-not $documents.Contains($clipSource) -or -not $audio.Add($clip.file)) {
                 throw "Missing or duplicate owned audio reference: $($clip.file)"
@@ -145,7 +151,10 @@ foreach ($entry in $documents.GetEnumerator()) {
                 throw "Audio provenance hash mismatch: $($clip.file)"
             }
             $clip.file = '../' + $clip.file
+            $shippedClips += $clip
         }
+        $record.files = $shippedClips
+        $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Only shipped recordings are listed. Unused sounds/reserve recordings remain in the source repository and are excluded from build/deploy/release payloads.' -Force
         $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
     }
     $pending[$entry.Value] = $bytes

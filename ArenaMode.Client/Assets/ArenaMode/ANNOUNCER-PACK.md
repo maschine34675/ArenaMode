@@ -16,7 +16,10 @@ now reads all 41 used recordings directly from `sounds/`. The 19 previously
 enabled reserve files were moved there on 2026-10-16 without changing audio.
 An explicit legacy reserve whitelist remains for older installations, never
 a recursive scan. Root files/custom overrides win and leftover old copies do
-not load twice. The 11 unused clips stay in `sounds/reserve/`. See
+not load twice. The 11 unused clips stay in the source repository's
+`sounds/reserve/`; build/deploy/release payloads exclude them. Existing local
+reserve files are left untouched. The tables below document the full source
+inventory; packaged JSON manifests list only the shipped recordings. See
 [ANNOUNCER-EXPANSION-REVIEW.md](../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
 Slicing uses pause midpoints cross-checked against the waveform and a local

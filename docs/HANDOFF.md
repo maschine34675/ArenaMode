@@ -7,6 +7,12 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Reserve audio excluded from new packages (2026-10-17):** The shared payload
+  writer excludes `sounds/reserve/` and omits those eleven records from packaged
+  audio provenance JSON. All 41 used recordings remain, including earlier
+  reserve cues now promoted to `sounds/`. Source files and existing local reserve
+  files are preserved; the ZIP verifier rejects any reserve-folder entry.
+
 - **Bot-profile batches under a per-frame budget (2026-10-17, merged `4c5ceb9`):**
   Performance `ProfileBuildBudgetMs` (default 3, 0 = native). In the exact live
   Arena raid a low-priority prefix replaces `ClientBackendSession.LoadBots` with

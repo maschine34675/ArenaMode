@@ -154,6 +154,8 @@ of Duty or another commercial game.
 The current set contains **52 user-supplied recordings**, generated using an
 ElevenLabs **Creator** account according to the author's supplied provenance:
 46 initial recordings plus six additions; 41 active cues and 11 reserve files.
+Only the 41 active cues are shipped in build/deploy/release payloads; the unused
+reserve recordings and their complete provenance remain in the source repository.
 They were provided for distribution with ArenaMode.
 
 These files are **not MIT, Creative Commons or public domain**. This repository
