@@ -2,6 +2,8 @@ using System;
 using ArenaMode.Session;
 using Comfort.Common;
 using EFT;
+using Redeploy.Core.Engine;
+using Redeploy.Core.GameAccess;
 using UnityEngine;
 
 namespace ArenaMode.Modes;
@@ -17,6 +19,19 @@ internal static partial class ArenaMatchService
     private static string _teamStartAbortProfileId, _teamStartAbortReason;
     private static int _teamStartAbortFrame;
     private static float _nextTeamStartAbortAttemptAt, _nextTeamStartAbortLogAt;
+
+    internal static bool OwnsFailedStartTeardown(LocalGame game, GameWorld world, string profileId)
+        => TeamStartAbortPending && game != null && world != null
+            && ReferenceEquals(_teamStartAbortGame, game)
+            && ReferenceEquals(_teamStartAbortWorld, world)
+            && ReferenceEquals(Singleton<AbstractGame>.Instance, game)
+            && ReferenceEquals(Singleton<GameWorld>.Instance, world)
+            && ReferenceEquals(game.GameWorld, world)
+            && ArenaSession.IsExactStartedRaid(game, world)
+            && !string.IsNullOrWhiteSpace(profileId)
+            && string.Equals(profileId, _teamStartAbortProfileId, StringComparison.Ordinal)
+            && string.Equals(profileId, game.ProfileId, StringComparison.Ordinal)
+            && IsNativeTeardown(game);
 
     internal static void ScheduleFailedStartAbort(string reason)
     {
@@ -44,7 +59,7 @@ internal static partial class ArenaMatchService
         Compat.PitFireTeamCompat.BeginFinalizing();
         Bots.BurstSpawnService.Reset(); // Invalidate already detached profile requests too.
         Plugin.ModLogger.LogError(
-            $"Arena start is invalid; protected exit queued for the next frame: {_teamStartAbortReason}");
+            $"Arena start is invalid; protected exit queued after the startup frame: {_teamStartAbortReason}");
         // Never call Stop inside OnGameStarted/area Begin. Native startup still
         // owns UI/black-screen transitions on that stack; stopping there left
         // the observed game in Stopping with no usable results screen.
@@ -76,6 +91,13 @@ internal static partial class ArenaMatchService
         }
         if (Time.frameCount <= _teamStartAbortFrame || game.Status != GameStatus.Started
             || Time.unscaledTime < _nextTeamStartAbortAttemptAt) return;
+
+        // Stop dereferences the native owner and uses a scaled-time fade. Do not
+        // race a replacement-body bind or commit a fade while paused.
+        if (RespawnEngineState.IsPipelineRunning || Time.timeScale <= 0f) return;
+        var owner = LocalGameAccessor.GetPlayerOwner(game);
+        if (owner?.Player == null || !ReferenceEquals(owner.Player, game.LocalPlayer)
+            || !ReferenceEquals(world.MainPlayer, game.LocalPlayer)) return;
 
         // The immutable LocalGame profile is authoritative for BaseLocalGame.Stop.
         // MainPlayer can still be unpublished, or already be a replacement body.

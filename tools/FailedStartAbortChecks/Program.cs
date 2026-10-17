@@ -18,6 +18,10 @@ static class Program
     {
         ArenaMatchService.ResetFailedStartAbort(); Plugin.ModLogger=new();
         world=new();game=new(){GameWorld=world};
+        world.MainPlayer=game.LocalPlayer;
+        Redeploy.Core.GameAccess.LocalGameAccessor.Owner=new(){Player=game.LocalPlayer};
+        Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning=false;
+        Time.timeScale=1;
         Singleton<AbstractGame>.Instance=game;Singleton<GameWorld>.Instance=world;
         ArenaSession.StartedGame=game;ArenaSession.StartedWorld=world;
         ArenaSession.IsActive=ArenaSession.LastRaidWasArena=true;
@@ -79,7 +83,17 @@ static class Program
         }
 
         Fresh();world.MainPlayer=null;game.LocalPlayer.HealthController.IsAlive=false;Schedule();Next();
-        Check(game.Exit==ExitStatus.Killed&&game.StopId==game.ProfileId,"NO-MAIN-PLAYER");
+        Check(game.StopCalls==0,"NO-MAIN-PLAYER-WAIT");
+        world.MainPlayer=game.LocalPlayer;Next();
+        Check(game.Exit==ExitStatus.Killed&&game.StopId==game.ProfileId,"DEAD-REBOUND-OWNER");
+        foreach(var blocked in new Action[]{()=>Time.timeScale=0,
+            ()=>Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning=true,
+            ()=>Redeploy.Core.GameAccess.LocalGameAccessor.Owner=null,
+            ()=>Redeploy.Core.GameAccess.LocalGameAccessor.Owner.Player=new Player(),
+            ()=>world.MainPlayer=new Player()})
+        {
+            Fresh();blocked();Schedule();Next();Check(game.StopCalls==0,"NATIVE-OWNER-READINESS");
+        }
         Fresh();game.ProfileId=null;Schedule();Next();Check(game.StopCalls==0&&ArenaMatchService.TeamStartAbortPending,"MISSING-ID-HOLD");
         game.ProfileId="late-profile";Next();Check(game.StopId=="late-profile","PUBLISH-CANONICAL-ID");
         Fresh();Schedule();game.ProfileId="different-profile";Next();Check(game.StopCalls==0&&ArenaMatchService.TeamStartAbortPending,"PROFILE-DRIFT-NO-STOP");
@@ -102,6 +116,8 @@ static class Program
         Fresh();game.OnStop=()=>ArenaMatchService.ResetFailedStartAbort();Schedule();Next();
         Check(!ArenaMatchService.TeamStartAbortPending&&Plugin.ModLogger.Info.Count==0,"SYNCHRONOUS-END-NO-RELATCH");
 
+        IntroChecks();
+
         // Real integration seams, checked separately from the linked state machine.
         var root=Directory.GetCurrentDirectory();while(!File.Exists(Path.Combine(root,"AGENTS.md")))root=Directory.GetParent(root)?.FullName??throw new Exception("repo");
         var burst=File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Bots/BurstSpawnService.cs"));
@@ -112,6 +128,110 @@ static class Program
         Check(controller.Contains("|| Modes.ArenaMatchService.TeamStartAbortPending"),"OPTIONAL-WARMUP-BLOCKED");
         var match=File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Modes/ArenaMatchService.cs"));
         Check(match.Contains("TickFailedStartAbort();")&&match.Contains("ResetFailedStartAbort();"),"MATCH-TICK-END-WIRED");
+        Check(File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Plugin.cs")).Contains("ArenaFailedStartIntro.Enable();"),"INTRO-PATCH-WIRED");
         Console.WriteLine($"FAILED_START_ABORT_CHECKS_PASSED: {checks} assertions; linked production schedule/tick, native boundaries doubled, not GPU proof.");
+    }
+
+    static void IntroChecks()
+    {
+        Fresh();ArenaSession.IsActive=false;ArenaSession.StartedGame=null;ArenaSession.StartedWorld=null;
+        var earlyUi=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=earlyUi;
+        int earlyRan=0;
+        var scope=typeof(ArenaFailedStartIntro).GetNestedType("IntroScopePatch",System.Reflection.BindingFlags.NonPublic);
+        var prefix=scope.GetMethod("Prefix",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+        var finalizer=scope.GetMethod("Finalizer",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+        Check(prefix.IsDefined(typeof(SPT.Reflection.Patching.PatchPrefix),false)
+            &&finalizer.IsDefined(typeof(SPT.Reflection.Patching.PatchFinalizer),false),"SCOPE-PATCH-ATTRIBUTES");
+        object[] args={earlyUi,null};prefix.Invoke(null,args);
+        Coroutine early=null;
+        try
+        {
+            early=ArenaFailedStartIntro.WaitForFade(earlyUi,.5f,()=>earlyRan++);
+            throw new InvalidOperationException("native ShowIntro failure after fade scheduled");
+        }
+        catch(InvalidOperationException) { }
+        finally { finalizer.Invoke(null,new[]{args[1]}); }
+        ArenaSession.StartedGame=game;ArenaSession.StartedWorld=world;Schedule();Next();
+        early.Run();Check(earlyRan==0,"PRE-CONFIRM-SERVER-REJECTED-INTRO");
+        ArenaFailedStartIntro.WaitForFade(earlyUi,.5f,()=>earlyRan++).Run();
+        Check(earlyRan==1,"FINALIZER-THROW-SCOPE-RESTORED");
+
+        // Native boundary model: Stop installs GameEnd on the one black-screen
+        // coroutine; the delayed intro replaces it, without throwing. Keep a
+        // positive unpatched control so 'no errors' cannot masquerade as an exit.
+        foreach(bool guarded in new[]{false,true})
+        foreach(bool introBeforeAbort in new[]{false,true})
+        {
+            Fresh();var ui=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=ui;
+            Action black=null;int ended=0,cosmetic=0;
+            game.OnStop=()=>{game.Status=GameStatus.Stopping;black=()=>{ended++;game.Status=GameStatus.Stopped;};};
+            Action intro=()=>black=()=>cosmetic++;
+            Coroutine delayed=null;
+            void Queue()
+            {
+                ArenaFailedStartIntro.EnterIntro(ui,out var previous);
+                try { delayed=guarded?ArenaFailedStartIntro.WaitForFade(ui,.5f,intro):Utils.WaitSeconds(ui,.5f,intro); }
+                finally { ArenaFailedStartIntro.LeaveIntro(previous); }
+            }
+            if(introBeforeAbort)Queue();Schedule();Next();if(!introBeforeAbort)Queue();
+            delayed.Run();black();
+            Check(guarded?ended==1&&cosmetic==0&&game.Status==GameStatus.Stopped
+                :ended==0&&cosmetic==1&&game.Status==GameStatus.Stopping,"DEFERRED-INTRO-CANCELLATION "+guarded+"/"+introBeforeAbort);
+            Next(5);Check(game.StopCalls==1,"SINGLE-NATIVE-STOP");
+        }
+
+        // The delayed action belongs to the captured raid, not whatever raid
+        // happens to exist when the callback is finally delivered.
+        foreach(string bypass in new[]{"normal-start","ordinary","pending-only","foreign-game","foreign-world",
+            "foreign-owned-world","foreign-started","epoch","profile","reset","preloader","non-intro","nested-scope"})
+        {
+            Fresh();var ui=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=ui;
+            int ran=0;Coroutine delayed;
+            if(bypass=="non-intro")delayed=ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>ran++);
+            else
+            {
+                ArenaFailedStartIntro.EnterIntro(ui,out var previous);
+                if(bypass=="nested-scope")
+                {
+                    ArenaFailedStartIntro.EnterIntro(new EFT.UI.PreloaderUI(),out var parent);
+                    ArenaFailedStartIntro.LeaveIntro(parent);
+                }
+                delayed=ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>ran++);
+                ArenaFailedStartIntro.LeaveIntro(previous);
+            }
+            if(bypass=="ordinary")ArenaSession.IsActive=ArenaSession.LastRaidWasArena=false;
+            if(bypass!="normal-start")Schedule();
+            if(bypass!="pending-only")Next();
+            switch(bypass)
+            {
+                case "foreign-game": Singleton<AbstractGame>.Instance=new LocalGame();break;
+                case "foreign-world": Singleton<GameWorld>.Instance=new GameWorld();break;
+                case "foreign-owned-world": game.GameWorld=new();break;
+                case "foreign-started": ArenaSession.StartedGame=new LocalGame();break;
+                case "epoch": ArenaSession.ArmEpoch++;break;
+                case "profile": game.ProfileId="successor";break;
+                case "reset": ArenaMatchService.ResetFailedStartAbort();break;
+                case "preloader": MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=new();break;
+            }
+            delayed.Run();Check(ran==(bypass=="nested-scope"?0:1),"FADE-SCOPE "+bypass);
+            // The finalizer must restore the normal fade path, even on failure.
+            ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>ran++).Run();
+            Check(ran==(bypass=="nested-scope"?1:2),"FADE-SCOPE-RESTORED "+bypass);
+        }
+
+        var type=typeof(ArenaFailedStartIntro).GetNestedType("DeferredFadePatch",System.Reflection.BindingFlags.NonPublic);
+        var transpile=type.GetMethod("Transpiler",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+        var native=typeof(Utils).GetMethod(nameof(Utils.WaitSeconds));
+        var instruction=new HarmonyLib.CodeInstruction(System.Reflection.Emit.OpCodes.Call,native);
+        var label=default(System.Reflection.Emit.Label);instruction.labels.Add(label);
+        var patched=((IEnumerable<HarmonyLib.CodeInstruction>)transpile.Invoke(null,new object[]{new[]{instruction}})).Single();
+        Check(((System.Reflection.MethodInfo)patched.operand).Name=="WaitForFade"&&patched.labels.Count==1,"TRANSPILER-EXACT-CALL-LABELS");
+        foreach(var count in new[]{0,2})
+        {
+            bool refused=false;
+            try { transpile.Invoke(null,new object[]{Enumerable.Range(0,count).Select(_=>new HarmonyLib.CodeInstruction(System.Reflection.Emit.OpCodes.Call,native))}); }
+            catch(System.Reflection.TargetInvocationException e) { refused=e.InnerException is InvalidOperationException; }
+            Check(refused,"TRANSPILER-DRIFT-REFUSED "+count);
+        }
     }
 }

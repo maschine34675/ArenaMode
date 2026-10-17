@@ -1,4 +1,58 @@
-namespace UnityEngine { static class Time { public static int frameCount; public static float unscaledTime; } }
+namespace UnityEngine
+{
+    static class Time { public static int frameCount; public static float unscaledTime; public static float timeScale=1; }
+    class MonoBehaviour { }
+    class Coroutine { public Action Run; }
+}
+static class Utils
+{
+    public static UnityEngine.Coroutine WaitSeconds(UnityEngine.MonoBehaviour component,float seconds,Action action)
+        => new(){Run=action};
+}
+static class MonoBehaviourSingleton<T> { public static T Instance; }
+namespace EFT.UI
+{
+    class PreloaderUI : UnityEngine.MonoBehaviour
+    {
+        public void ShowRaidStartInfo() { }
+        public void FadeBlackScreen() { }
+    }
+}
+namespace SPT.Reflection.Patching
+{
+    abstract class ModulePatch { protected abstract System.Reflection.MethodBase GetTargetMethod(); public void Enable(){} }
+    class PatchPrefix : Attribute { }
+    class PatchFinalizer : Attribute { }
+    class PatchTranspiler : Attribute { }
+}
+// Reflection/IL contract doubles only; the staged build and GPU startup prove
+// actual SPT/Harmony installation (the Unity Harmony binary cannot run on net10).
+namespace HarmonyLib
+{
+    static class AccessTools
+    {
+        public static System.Reflection.MethodInfo DeclaredMethod(Type type,string name,Type[] parameters=null)
+            => parameters==null?type.GetMethod(name,System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.DeclaredOnly)
+                :type.GetMethod(name,System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.DeclaredOnly,null,parameters,null);
+    }
+    class CodeInstruction
+    {
+        public object operand; public System.Reflection.Emit.OpCode opcode;
+        public List<System.Reflection.Emit.Label> labels=new();
+        public CodeInstruction(System.Reflection.Emit.OpCode op,object arg){opcode=op;operand=arg;}
+        public bool Calls(System.Reflection.MethodInfo method)=>Equals(operand,method)&&opcode==System.Reflection.Emit.OpCodes.Call;
+    }
+}
+namespace Redeploy.Core.Engine { static class RespawnEngineState { public static bool IsPipelineRunning; } }
+namespace Redeploy.Core.GameAccess
+{
+    class PlayerOwner { public EFT.Player Player; }
+    static class LocalGameAccessor
+    {
+        public static PlayerOwner Owner;
+        public static PlayerOwner GetPlayerOwner(EFT.LocalGame game)=>Owner;
+    }
+}
 namespace Comfort.Common { static class Singleton<T> { public static T Instance; public static bool Instantiated => Instance != null; } }
 namespace EFT
 {
@@ -22,7 +76,8 @@ namespace ArenaMode
     static class Plugin { public static Logger ModLogger=new(); }
     class Logger
     {
-        public List<string> Info=new(),Warnings=new(),Errors=new();
+        public List<string> Info=new(),Warnings=new(),Errors=new(),Debug=new();
+        public void LogDebug(string s)=>Debug.Add(s);
         public void LogInfo(string s)=>Info.Add(s); public void LogWarning(string s)=>Warnings.Add(s);
         public void LogError(string s)=>Errors.Add(s);
     }
@@ -32,6 +87,7 @@ namespace ArenaMode.Session
     static class ArenaSession
     {
         public static bool IsActive,LastRaidWasArena;
+        public static int ArmEpoch;
         public static EFT.AbstractGame StartedGame; public static EFT.GameWorld StartedWorld;
         public static bool IsExactStartedRaid(EFT.AbstractGame game,EFT.GameWorld world)
             => game!=null&&world!=null&&ReferenceEquals(StartedGame,game)&&ReferenceEquals(StartedWorld,world);

@@ -124,6 +124,9 @@ Read docs/PORTED-COVER-REVIEW.md for Bay5/Equator's empty-cover combat guards: r
 real native NavMesh results, never manufacture cover points or successful paths.
 Failed starts queue their native Stop after the startup frame and revoke both
 ambient burst work and the separate managed solo population leases.
+The delayed native raid-intro fade can otherwise cancel Stop's GameEnd callback;
+see docs/FAILED-START-INTRO-REVIEW.md. Preserve exact captured identity and native
+teardown checks; do not suppress general fades or replace native GameEnd.
 The September 28 contours use new versioned IDs; all earlier area IDs remain
 invalid on the wire. Config migration preserves exact recognized preferences
 only. Yard adds twenty private per-raid spawn records around two native ground
