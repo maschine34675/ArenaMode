@@ -4,7 +4,7 @@ $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaProject = Join-Path $PSScriptRoot 'EquatorTeamSpawnChecks.csproj'
 $arenaEvidence = Join-Path $PSScriptRoot 'artifacts'
 New-Item -ItemType Directory -Path $arenaEvidence -Force | Out-Null
-$arenaSource = (Get-Content -Raw -LiteralPath (Join-Path $arenaRepo 'ArenaMode.Client\Bots\ArenaEquatorTeamSpawns.cs')).Replace("`r`n", "`n")
+$arenaSource = (Get-Content -Raw -LiteralPath (Join-Path $arenaRepo 'ArenaMode.Client\Bots\ArenaTeamBoxRuntime.cs')).Replace("`r`n", "`n")
 function Invoke-EquatorCheck([string]$Name, [string]$Source = '') {
     $arenaArgs = @('run','--project',$arenaProject,'-c','Release')
     if ($Source) { $arenaArgs += "-p:RuntimeSource=$Source" }
@@ -22,6 +22,7 @@ if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('EQUATOR_TEAM_SPAW
 Write-Output $arenaResult.Output
 # Isolated source mutations only; each must reach the named behavioral check.
 $arenaFaults = @(
+    @('wrong-map-definition', '&& ReferenceEquals(_formation, Catalog.Find(_world.LocationId)) && _formation != null', '&& _formation != null', 'MAP-DRIFT:'),
     @('missing-prepared-fallback', 'internal static bool IsRequired => ArenaSession.IsActive', 'internal static bool IsRequired => Points.Count > 0 && ArenaSession.IsActive', 'FAIL-CLOSED:'),
     @('cross-faction', 'spec.Usec == usec &&', 'true &&', 'CAPACITY-LOG:'),
     @('pending-reuse', 'return !Reservations.Values.Any', 'return true || !Reservations.Values.Any', 'PENDING:'),
@@ -29,7 +30,7 @@ $arenaFaults = @(
     @('unchecked-body', "&& ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)`n                && (player.Position - Position)", '&& (player.Position - Position)', 'ARRIVAL: wrong body'),
     @('actual-geometry', '&& FloorAndClear(player.Position) && Connected(player.Position)', '', 'ARRIVAL-BODY:'),
     @('player-arrival-bypass', '|| !_playerReservation.Accept(player)', '|| false', 'PLAYER-ARRIVAL:'),
-    @('failed-load-not-cancelled', 'ArenaSession.ClearArmed("Equator team-box loading failed");', '', 'LOADING: sync failure'),
+    @('failed-load-not-cancelled', 'ArenaSession.ClearArmed($"{MapLabel} team-box loading failed");', '', 'LOADING: sync failure'),
     @('stale-arm-cancelled', '|| lease.Epoch != ArenaSession.ArmEpoch || lease.Token != ArenaServerClient.PendingArmToken', '', 'REARM-TOKEN:'),
     @('capacity-bypass', 'if (capacity < size)', 'if (false)', 'CAPACITY: blocked slot'),
     @('initial-body-bypass', '|| !FloorAndClear(local.Position) || !Connected(local.Position)', '', 'INITIAL-BODY:')

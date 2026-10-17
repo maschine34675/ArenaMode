@@ -16,14 +16,14 @@ public static class ArenaParticipantPolicy
         => !pitFireTeam && (IsSolo(mode) || !bounded && IsTeam(mode));
     public static int MinimumTotal(string mode) => IsTeam(mode) ? 4 : 2;
     public static int MaximumFor(string map, string mode)
-        => ArenaMapCatalog.IsEquator(map) && IsTeam(mode) ? 20 : MaximumTotal;
+        => ArenaTeamBoxCatalog.Applies(map, mode) ? 20 : MaximumTotal;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
     public static int DefaultTotal(string map, string mode)
         => ArenaMapCatalog.IsEquator(map) ? 4 : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 12 : 10;
 
-    // Null retains the legacy protocol except for Equator's capacity-bound TDM.
+    // Null retains the legacy protocol except for original-box capacity-bound TDM.
     // Explicit values must never be coerced:
     // client/server acknowledge exactly the requested total before native start.
     public static bool TryResolve(string map, string mode, bool bounded, bool pitFireTeam,
@@ -32,8 +32,8 @@ public static class ArenaParticipantPolicy
         selected = null; reason = null;
         if (!requested.HasValue)
         {
-            if (ArenaMapCatalog.IsEquator(map) && IsTeam(mode))
-            { reason = "Equator Team DM requires an explicit participant count (4..20)."; return false; }
+            if (ArenaTeamBoxCatalog.Applies(map, mode))
+            { reason = "Team DM with original team boxes requires an explicit participant count (4..20)."; return false; }
             return true;
         }
         if (!ArenaMapCatalog.IsSupportedMap(map) || !IsSelectable(mode, bounded, pitFireTeam))

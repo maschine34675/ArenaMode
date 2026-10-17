@@ -154,7 +154,7 @@ namespace ArenaMode.Bots
 {
     // External placement seam: this fixture executes BurstSpawnService's actual
     // dispatch/arrival lifecycle. The separate team-box suite owns geometry.
-    internal static class ArenaEquatorTeamSpawns
+    internal static class ArenaTeamBoxRuntime
     {
         internal static bool IsRequired;
         internal static Lease LastLease;
@@ -236,7 +236,7 @@ internal static class Harness
         LeaseCurrent = PlacementAvailable = AcceptPlacement = true;
         DelayArrival = RejectNative = ThrowNative = NativeOwned = false;
         NativeCalls = RealPlans = ReservationReleases = AcceptedBodies = 0; LastLease = null;
-        ArenaEquatorTeamSpawns.IsRequired = false; ArenaEquatorTeamSpawns.LastLease = null;
+        ArenaTeamBoxRuntime.IsRequired = false; ArenaTeamBoxRuntime.LastLease = null;
         ArenaMode.Areas.ArenaAreaRuntime.HasTeamStarts = true;
         BurstSpawnService.ResetTestLedgers();
         ArenaMode.Modes.ArenaMatchService.Current = null;

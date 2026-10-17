@@ -129,7 +129,7 @@ internal static class Program
         foreach (int variant in Enumerable.Range(0, 7))
         {
             var attempt = new Attempt();
-            ArenaEquatorTeamSpawns.IsRequired = true;
+            ArenaTeamBoxRuntime.IsRequired = true;
             ArenaMode.Areas.ArenaAreaRuntime.HasTeamStarts = false;
             Harness.DelayArrival = true;
             if (variant == 0) Harness.PlacementAvailable = false;
@@ -148,17 +148,17 @@ internal static class Program
             if (variant == 1 || variant == 2)
             {
                 Check(Harness.NativeCalls == 0 && attempt.Data.Stops > 0
-                    && (variant == 1 || ArenaEquatorTeamSpawns.LastLease.Disposed),
+                    && (variant == 1 || ArenaTeamBoxRuntime.LastLease.Disposed),
                     "unavailable or refused box dispatch stops only undispatched data and releases its lease");
                 continue;
             }
-            Check(!ArenaEquatorTeamSpawns.LastLease.Disposed && attempt.Data.Stops == 0,
+            Check(!ArenaTeamBoxRuntime.LastLease.Disposed && attempt.Data.Stops == 0,
                 "native pending or uncertain team-box placement retains its reservation");
             if (variant == 3) continue;
             if (variant == 4) Harness.AcceptPlacement = false;
             if (variant == 5) Harness.LeaseCurrent = false;
             Harness.Game.BotsController.BotSpawner.Arrival(Harness.Body);
-            Check(ArenaEquatorTeamSpawns.LastLease.Disposed, "team-box callback releases exact reservation");
+            Check(ArenaTeamBoxRuntime.LastLease.Disposed, "team-box callback releases exact reservation");
             Check(variant == 6 ? attempt.Observers == 1 && !Harness.Body.Retired
                 : attempt.Observers == 0 && Harness.Body.Retired,
                 "team-box arrival must pass live placement and raid checks before admission");

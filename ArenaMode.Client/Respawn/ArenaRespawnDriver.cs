@@ -301,10 +301,10 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             StandDown = true;
             EndPipelineUse(raidEpoch);
             // Box respawns retain their safe-exit owner after a failed handover.
-            if (Bots.ArenaEquatorTeamSpawns.IsRequired)
+            if (Bots.ArenaTeamBoxRuntime.IsRequired)
             {
                 Modes.ArenaMatchService.ScheduleFailedStartAbort(
-                    "Equator team body replacement failed: " + failure.GetBaseException().Message);
+                    "Arena team body replacement failed: " + failure.GetBaseException().Message);
                 yield break;
             }
             if (Areas.ArenaAreaRuntime.CurrentArea != null)
@@ -333,14 +333,14 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         if (respawned == null || !respawned.IsYourPlayer || !ReferenceEquals(game.LocalPlayer, respawned))
         {
             Plugin.ModLogger.LogWarning("Arena respawn finished without the exact new local-player body — no respawn event published.");
-            if (Bots.ArenaEquatorTeamSpawns.IsRequired)
-                Modes.ArenaMatchService.ScheduleFailedStartAbort("Equator player replacement did not return the exact local body.");
+            if (Bots.ArenaTeamBoxRuntime.IsRequired)
+                Modes.ArenaMatchService.ScheduleFailedStartAbort("Arena team-box player replacement did not return the exact local body.");
             yield break;
         }
 
         // Body creation is asynchronous. Revalidate the actual arrival before
         // any kit/respawn subscriber can resume the match or release its hold.
-        if (!Bots.ArenaEquatorTeamSpawns.ReleasePlayerReservation(respawned))
+        if (!Bots.ArenaTeamBoxRuntime.ReleasePlayerReservation(respawned))
             yield break;
 
         if (kit != null)

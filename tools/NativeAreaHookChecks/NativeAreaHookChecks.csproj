@@ -14,6 +14,8 @@
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaParticipantSelectionState.cs" Link="Production/ArenaParticipantSelectionState.cs" />
     <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="$(ProductionLocationPatchSource)" Link="Production/ArenaLocationSelectionPatch.cs" />

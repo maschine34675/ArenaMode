@@ -47,8 +47,8 @@ internal sealed class ArenaSpawnSelector : ISpawnSelector
     {
         // Team-box admission must not fall through to an arbitrary native point
         // if its exact loading state, occupancy or navigation is unavailable.
-        if (Bots.ArenaEquatorTeamSpawns.IsRequired)
-            return Bots.ArenaEquatorTeamSpawns.PickRespawn(game, _avoid?.Invoke() ?? game.LocalPlayer.Position);
+        if (Bots.ArenaTeamBoxRuntime.IsRequired)
+            return Bots.ArenaTeamBoxRuntime.PickRespawn(game, _avoid?.Invoke() ?? game.LocalPlayer.Position);
 
         if (Areas.ArenaAreaRuntime.CurrentArea != null)
             return Areas.ArenaAreaRuntime.PickRespawn(_avoid?.Invoke() ?? game.LocalPlayer.Position, _minDistance);

@@ -7,12 +7,13 @@ using EFT.Game.Spawning;
 using Redeploy.Core.Spawning;
 using UnityEngine;
 using UnityEngine.AI;
-using Runtime=ArenaMode.Bots.ArenaEquatorTeamSpawns;
-using Formation=ArenaMode.Shared.ArenaEquatorTeamSpawns;
+using Runtime=ArenaMode.Bots.ArenaTeamBoxRuntime;
+using Catalog=ArenaMode.Shared.ArenaTeamBoxCatalog;
 
 internal static class Program
 {
     private static int Checks;
+    internal static Catalog.Formation Formation = Catalog.Find("arena_equator");
     private static LocalGame Game;
     private static GameWorld World;
     private static BotZone Zone;
@@ -43,8 +44,8 @@ internal static class Program
         Game=new(){GameWorld=World,Status=GameStatus.Running,Profile=new(){Id="local",Info=new(){Side=side}}};
         Singleton<AbstractGame>.Instance=Game;Singleton<GameWorld>.Instance=World;
         ArenaSession.ExactGame=Game;ArenaSession.ExactWorld=World;ArenaSession.IsActive=false;
-        ArenaSession.ArmedForNextRaid=true;ArenaSession.ArmedMap=Formation.MapId;ArenaSession.ArmedMode=Formation.ModeId;
-        ArenaSession.ActiveMode=Formation.ModeId;ArenaSession.Participants=total;ArenaSession.ArmEpoch++;
+        ArenaSession.ArmedForNextRaid=true;ArenaSession.ArmedMap=Formation.MapId;ArenaSession.ArmedMode=Catalog.ModeId;
+        ArenaSession.ActiveMode=Catalog.ModeId;ArenaSession.Participants=total;ArenaSession.ArmEpoch++;
         ArenaServerClient.PendingArmToken=Guid.NewGuid().ToString("N");
         Game.Settings=new(){location=Formation.MapId,serverId="start:"+ArenaServerClient.PendingArmToken};
         Zone=new(){name=Formation.Zone};FindObjectsProxy.Zones=new(){Zone};Collection=new();
@@ -81,18 +82,19 @@ internal static class Program
         Runtime.Shutdown();SPT.Reflection.Patching.ModulePatch.Fail=true;Runtime.Enable();
         Check(!Runtime.IsReady,"HOOK: failure is unavailable");
         Setup();ArenaSession.Participants=24;Reject(()=>Runtime.Begin(World,Game),"CAPACITY: 12v12 rejected");
-        Setup(total:20);Physics.Floor=p=>p.z<0||p.x> -6;Reject(()=>Runtime.Begin(World,Game),"CAPACITY: blocked slot rejects 10v10");
-        Setup();NavMesh.Path=(a,b)=>a.z<0;Reject(()=>Runtime.Begin(World,Game),"PATH: one disconnected box rejects match");
+        Setup(total:20);var blocked=Formation.Points[0];Physics.Floor=p=>p!=new Vector3(blocked.X,blocked.Y,blocked.Z);Reject(()=>Runtime.Begin(World,Game),"CAPACITY: blocked slot rejects 10v10");
+        Setup();NavMesh.Path=(a,b)=>Formation.InsideBooth(a.x,a.y,a.z,false);Reject(()=>Runtime.Begin(World,Game),"PATH: one disconnected box rejects match");
         Setup();World.MainPlayer.Position+=new Vector3(.5f,0,0);var bodyPosition=World.MainPlayer.Position;
         Physics.Floor=p=>p!=bodyPosition;Reject(()=>Runtime.Begin(World,Game),"INITIAL-BODY: actual floor is required");
     }
     private static void HeadersAndInitial()
     {
-        foreach(string fault in new[]{"missing","unknown","duplicate","side","category","core","delay","sphere","zone"})
+        foreach(string fault in new[]{"missing","unknown","duplicate","side","category","core","delay","sphere","zone","foreign-map"})
         {
             Setup(active:false,restore:false);var pair=Collection._dictionary.First();var point=(SpawnPoint)pair.Key;
             switch(fault)
             {
+                case "foreign-map":point.Id=Catalog.Find(Formation.MapId=="arena_equator"?"arena_bay5":"arena_equator").Points[0].Id;break;
                 case "missing":Collection._dictionary.Remove(point);break;
                 case "unknown":point.Id=Formation.IdPrefix+"unknown";break;
                 case "duplicate":Collection._dictionary.Keys.Skip(1).Cast<SpawnPoint>().First().Id=point.Id;break;
@@ -201,7 +203,20 @@ internal static class Program
     }
     private static async Task Main()
     {
-        ScopeAndFormation();HeadersAndInitial();ReservationsAndArrival();PlayerHandover();await LoadingFailures();
+        foreach(var map in new[]{"arena_equator","arena_bay5"})
+        {
+            Formation=Catalog.Find(map);
+            ScopeAndFormation();HeadersAndInitial();ReservationsAndArrival();PlayerHandover();await LoadingFailures();
+            Setup();World.LocationId=map=="arena_equator"?"arena_bay5":"arena_equator";
+            Check(Runtime.IsRequired,"MAP-DRIFT: supported replacement remains required");
+            Reject(()=>Runtime.Begin(World,Game),"MAP-DRIFT: old formation cannot authorize replacement map");
+            Setup(active:false);ArenaSession.ArmedMap=map=="arena_equator"?"arena_bay5":"arena_equator";
+            object[] args={Game,null};Invoke("BeforeLoad",args);
+            Check(args[1]==null,"CROSS-MAP: loading cannot capture another armed map");
+            var before=Collection._dictionary.Keys.Select(p=>p.Position).ToArray();
+            Invoke("RestoreCollection",Collection);
+            Check(Collection._dictionary.Keys.Select(p=>p.Position).SequenceEqual(before),"CROSS-MAP: no mismatched collection write");
+        }
         Runtime.Shutdown();Console.WriteLine($"EQUATOR_TEAM_SPAWN_CHECKS_PASSED ({Checks} assertions)");
     }
 }

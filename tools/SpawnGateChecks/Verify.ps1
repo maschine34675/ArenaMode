@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaArtifacts = Join-Path $PSScriptRoot 'artifacts'
 New-Item -ItemType Directory -Force $arenaArtifacts | Out-Null
-$arenaRuntime = Get-Content -Raw (Join-Path $arenaRepo 'ArenaMode.Client\Bots\ArenaEquatorTeamSpawns.cs')
+$arenaRuntime = Get-Content -Raw (Join-Path $arenaRepo 'ArenaMode.Client\Bots\ArenaTeamBoxRuntime.cs')
 $arenaGates = Get-Content -Raw (Join-Path $arenaRepo 'ArenaMode.Client\Compat\ArenaMapPortSpawnGates.cs')
 $arenaFlow = Get-Content -Raw (Join-Path $arenaRepo 'ArenaMode.Client\Modes\TeamDeathmatchMatchFlow.cs')
 $arenaMethod = [regex]::Match($arenaFlow, '(?s)    private void TickMatchStart\(bool ready\).*?(?=    // Called before)').Value
@@ -36,16 +36,18 @@ $arenaResult = Invoke-GateCheck 'baseline'
 if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('EQUATOR_SPAWN_GATE_CHECKS_PASSED')) { throw $arenaResult.Output }
 Write-Output $arenaResult.Output
 $arenaFaults = @(
+    @('cross-map-hold','GateSource',$arenaGates,'|| !string.Equals(world.LocationId, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)','','CROSS-MAP-HOLD:'),
+    @('cross-map-settings','GateSource',$arenaGates,'&& string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)','','CROSS-MAP-SETTINGS:'),
     @('foreign-hold','GateSource',$arenaGates,'if (isHeld() || closedParts() <= 0)','if (closedParts() <= 0)','FOREIGN:'),
     @('unconfirmed-token','GateSource',$arenaGates,'return settings != null && Protocol.IsLifecycleRequestId(token)','return true || settings != null && Protocol.IsLifecycleRequestId(token)','TOKEN:'),
     @('stale-epoch','GateSource',$arenaGates,'epoch != ArenaSession.ArmEpoch || ','','STALE-PATH:'),
-    @('no-reset-release','RuntimeSource',$arenaRuntime,'ReleaseGates("ArenaMode Equator reset");','','RESET:'),
+    @('no-reset-release','RuntimeSource',$arenaRuntime,'ReleaseGates($"ArenaMode {MapLabel} reset");','','RESET:'),
     @('post-release-partial','RuntimeSource',$arenaRuntime,'|| _gates?.IsHeld != true','|| _gates == null || (!_gates.IsHeld && !_gates.Released)','RESERVATION:'),
     @('local-path-bypass','RuntimeSource',$arenaRuntime,'&& local.status == NavMeshPathStatus.PathComplete','&& true','LOCAL-PATH:'),
     @('outside-corners','RuntimeSource',$arenaRuntime,'&& local.corners.All(p => InsideBooth(p, usec))','&& true','CORNERS:'),
     @('unsurveyed-position','RuntimeSource',$arenaRuntime,'&& (p.Position - position).sqrMagnitude <= .5625f','&& true','CANONICAL:'),
-    @('rejected-start-leak','RuntimeSource',$arenaRuntime,'ReleaseGates("ArenaMode Equator start not admitted");',';','REJECTED-START:'),
-    @('countdown-before-open','FlowSource',$arenaFlowSource,'&& !Bots.ArenaEquatorTeamSpawns.TryOpenForCombat()) return;','&& false) return;','RELEASE:'),
+    @('rejected-start-leak','RuntimeSource',$arenaRuntime,'ReleaseGates($"ArenaMode {MapLabel} start not admitted");',';','REJECTED-START:'),
+    @('countdown-before-open','FlowSource',$arenaFlowSource,'&& !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;','&& false) return;','RELEASE:'),
     @('exfil-unblocked','RuntimeSource',$arenaRuntime,'DeferredExtractions[__instance] = player;','return true; //','EXFIL:'),
     @('exfil-no-replay','RuntimeSource',$arenaRuntime,'ResumeExtractions();',';','EXFIL-RESUME:'),
     @('exfil-stale-trigger','RuntimeSource',$arenaRuntime,'&& CurrentBoothExit(pair.Key) && pair.Key.Entered.Contains(pair.Value)','&& pair.Key.Entered.Contains(pair.Value)','EXFIL-STALE:'),

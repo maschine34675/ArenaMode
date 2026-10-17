@@ -32,6 +32,8 @@ public sealed class MapModeAccessTests
         };
         if (ArenaEquatorTeamSpawns.Applies(mapId, mode))
             original.SpawnPointParams = [EquatorTeamSpawnTests.Donor()];
+        else if (mapId == ArenaMapCatalog.Bay5Id && mode == "teamdeathmatch")
+            original.SpawnPointParams = [Bay5TeamSpawnTests.Donor()];
         string before = JsonSerializer.Serialize(original);
         var clone = JsonSerializer.Deserialize<LocationBase>(before)!;
         var config = new ArenaModeConfig();

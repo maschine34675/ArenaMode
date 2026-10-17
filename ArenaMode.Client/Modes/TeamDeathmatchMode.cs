@@ -351,7 +351,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
-        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
+        ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
         string state = DescribeState(); // capture pending work before Stop clears it
         _population.Stop();
         _pendingGiveUpLife = null;
@@ -517,7 +517,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
-        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM failure");
+        ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM failure");
         string state = DescribeState();
         _population?.Stop();
         Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason + "; " + state);
@@ -550,7 +550,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void OnMatchEnd()
     {
-        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");
+        ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");
         _ended = true;
         _pendingGiveUpLife = null;
         _creditedGiveUpLife = null;

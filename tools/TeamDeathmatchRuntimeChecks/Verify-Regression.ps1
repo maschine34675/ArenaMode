@@ -33,7 +33,7 @@ if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_TDM_RUNTIME_CHECK
 $cases = @(
     @{
         Name = 'spawn-gates-countdown'; Path = $flow; Property = 'FlowSource';
-        Find = '&& !Bots.ArenaEquatorTeamSpawns.TryOpenForCombat()) return;';
+        Find = '&& !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;';
         Replace = '&& false) return;';
         Failure = 'GATES: incomplete opening keeps timer and round cue held'
     },

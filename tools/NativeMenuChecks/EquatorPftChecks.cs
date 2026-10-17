@@ -16,7 +16,7 @@ internal static partial class Program
             {
                 ConfigureAreaNegotiation();
                 Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
-                ArenaMode.Bots.ArenaEquatorTeamSpawns.IsReady = ready;
+                ArenaMode.Bots.ArenaTeamBoxRuntime.IsReady = ready;
                 Select(ArenaMapCatalog.EquatorId);
                 int before = RequestHandler.StartCount;
                 Assert(Start(Request(map: ArenaMapCatalog.EquatorId), out var task) == ready,
@@ -34,7 +34,7 @@ internal static partial class Program
                 ConfigureAreaNegotiation();
                 Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
                 Settings.GameMode.Value = pair.Item2;
-                ArenaMode.Bots.ArenaEquatorTeamSpawns.IsReady = false;
+                ArenaMode.Bots.ArenaTeamBoxRuntime.IsReady = false;
                 Select(pair.Item1);
                 int before = RequestHandler.StartCount;
                 Assert(Start(Request(map: pair.Item1), out var task) && task == null
@@ -42,7 +42,7 @@ internal static partial class Program
                     "EQUATOR-BOX-SCOPE: unavailable hooks leave unrelated maps and modes unchanged");
             }
             ConfigureAreaNegotiation();
-            ArenaMode.Bots.ArenaEquatorTeamSpawns.IsReady = false;
+            ArenaMode.Bots.ArenaTeamBoxRuntime.IsReady = false;
             ArenaMenuSelection.EndFlow();
             int ordinaryBefore = RequestHandler.StartCount;
             Assert(Start(Request(map: ArenaMapCatalog.EquatorId), out var ordinaryTask)
@@ -51,7 +51,7 @@ internal static partial class Program
         }
         finally
         {
-            ArenaMode.Bots.ArenaEquatorTeamSpawns.IsReady = true;
+            ArenaMode.Bots.ArenaTeamBoxRuntime.IsReady = true;
             plugins.Remove(ArenaMapCatalog.ArenaMapPortPluginId);
             ConfigureAreaNegotiation();
         }

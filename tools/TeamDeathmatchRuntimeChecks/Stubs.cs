@@ -353,7 +353,7 @@ namespace ArenaMode.Bots
 {
     // External geometry result; the linked production mode must await it before
     // scoring/time/announcements. Physical validation has its own runtime harness.
-    internal static class ArenaEquatorTeamSpawns
+    internal static class ArenaTeamBoxRuntime
     {
         internal static bool OpenAllowed = true, GatesOpening;
         internal static int OpenCalls;

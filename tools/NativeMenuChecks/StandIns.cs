@@ -79,7 +79,7 @@ namespace ArenaMode.Bots
     internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; }
     // Native Harmony installation is an external dependency of this menu-only
     // harness. The Equator runtime harness verifies the real spawn implementation.
-    internal static class ArenaEquatorTeamSpawns { internal static bool IsReady = true; }
+    internal static class ArenaTeamBoxRuntime { internal static bool IsReady = true; }
 }
 namespace ArenaMode
 {

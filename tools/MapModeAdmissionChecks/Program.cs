@@ -41,15 +41,41 @@ foreach (string mode in modes)
     Need(!ArenaAreaCatalog.TryResolveTeamSize(area, 5, out _, out _),
         "FULL-SIZE: stale bounded team size cannot become a full-map override");
     bool selectable = mode is "deathmatch" or "gungame" or "teamdeathmatch";
-    foreach (int total in new[] { 4, 8, 20, 24 })
+    foreach (int total in new[] { 4, 8, 20, 22, 24 })
     {
-        bool expected = selectable && !(ArenaMapCatalog.IsEquator(map) && mode == "teamdeathmatch" && total > 20);
+        bool expected = selectable && !(mode == "teamdeathmatch" && total > 20
+            && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id));
         Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out int? selected, out _)
             == expected && (!expected || selected == total), "PARTICIPANTS: exact frozen total " + map + "/" + mode);
     }
 }
 Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.EquatorId, "teamdeathmatch", false, false, 24, out _, out _),
     "EQUATOR-TEAM-CAPACITY: twenty native places cannot promise 24 participants");
+foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.Bay5Id.ToUpperInvariant() })
+foreach (string mode in new[] { "teamdeathmatch", "TEAMDEATHMATCH" })
+{
+    Need(ArenaParticipantPolicy.DefaultTotal(map, mode) == 8 && ArenaParticipantPolicy.MaximumFor(map, mode) == 20,
+        "BAY5-TEAM-CAPACITY: keep the eight-player default and twenty original places");
+    for (int total = 4; total <= 20; total += 2)
+        Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out var selected, out var reason)
+            && selected == total && reason == null, "BAY5-EXACT-TOTAL: acknowledge every even 2v2..10v10 format");
+    foreach (int? total in new int?[] { null, int.MinValue, 0, 2, 3, 5, 19, 21, 22, 24, int.MaxValue })
+        Need(!ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out var selected, out var reason)
+            && selected == null && !string.IsNullOrWhiteSpace(reason),
+            "BAY5-BOUNDARY: no omitted, odd, undersized or oversized count can enter team boxes");
+    Need(!ArenaParticipantPolicy.TryResolve(map, mode, true, false, 8, out _, out _)
+        && !ArenaParticipantPolicy.TryResolve(map, mode, false, true, 8, out _, out _),
+        "BAY5-SCOPE: independent full-map teams cannot become a bounded or PFT override");
+}
+foreach (string mode in new[] { "deathmatch", "gungame" })
+{
+    Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.Bay5Id, mode, false, false, 24, out var selected, out _)
+        && selected == 24, "BAY5-SOLO-CAPACITY: other continuous modes keep 24 participants");
+    Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.Bay5Id, mode, false, false, null, out selected, out _)
+        && selected == null, "BAY5-LEGACY-SOLO: other modes keep their omitted-count behavior");
+}
+Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.AirPitId, "teamdeathmatch", false, false, 24, out _, out _),
+    "AIRPIT-UNCHANGED: Bay5 original boxes do not cap generic map starts");
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
@@ -118,6 +144,8 @@ foreach (string map in maps)
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     Need(document.RootElement.GetProperty("Id").GetString() == map, "DATA-ID: inspect the exact installed map");
     var markers = document.RootElement.GetProperty("SpawnPointParams").EnumerateArray().ToArray();
+    Need(markers.All(row => !ArenaTeamBoxCatalog.Owns(row.GetProperty("Id").GetString())),
+        "PRIVATE-CLONE-ONLY: installed shared locations contain no per-raid team-box markers");
     Vector3 Position(JsonElement row)
     {
         var p = row.GetProperty("Position");
@@ -125,6 +153,21 @@ foreach (string map in maps)
     }
     bool Category(JsonElement row, string value)
         => row.GetProperty("Categories").EnumerateArray().Any(c => c.GetString() == value);
+    if (map == ArenaMapCatalog.Bay5Id)
+    {
+        var donors = markers.Where(row => row.GetProperty("Id").GetString() == "arena_bay5-bot-west-centre").ToArray();
+        Need(donors.Length == 1, "BAY5-DONOR: exactly one original west-centre donor");
+        var donor = donors.Single();
+        var position = Position(donor);
+        Need(position.x == 63.497f && position.y == -3.8574f && position.z == 42.2217f,
+            "BAY5-DONOR: installed anchor retains its exact authored position");
+        Need(donor.GetProperty("BotZoneName").GetString() == "BotZone_Main"
+            && donor.GetProperty("CorePointId").GetInt32() == 0
+            && donor.GetProperty("DelayToCanSpawnSec").GetInt32() == 4
+            && donor.GetProperty("Categories").GetArrayLength() == 2
+            && Category(donor, "Bot") && Category(donor, "BotPmc"),
+            "BAY5-DONOR: installed native header matches the server admission contract");
+    }
     var zones = markers.Where(row => (Category(row, "Bot") || Category(row, "BotPmc"))
             && row.TryGetProperty("BotZoneName", out var z) && !string.IsNullOrWhiteSpace(z.GetString()))
         .GroupBy(row => row.GetProperty("BotZoneName").GetString())

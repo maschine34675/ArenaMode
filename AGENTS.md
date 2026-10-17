@@ -50,8 +50,10 @@ generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
 Its original north team box is outside the shipped navigation surface; do not
 adopt those authored team positions without a separate geometry review.
 See docs/AIRPIT-INTEGRATION-20261017.md for migration and native-test boundaries.
-Independent Equator Team DM uses the original north USEC and south BEAR team
-boxes for initial placement and respawns (4–20 total participants). The exact
+Independent Equator and Bay5 Team DM use their original team boxes for initial
+placement and respawns (4–20 total participants). Equator is north USEC / south
+BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
+docs/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact
 raid clone adds twenty private versioned markers; never move or overwrite the
 common MapPort markers. Read docs/EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
 MapPort repair ordering, initial physics/live navigation gates, reservations or

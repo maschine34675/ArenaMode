@@ -43,7 +43,7 @@ public sealed partial class TeamDeathmatchMode
         if (_rules == null || _announcedReady) return;
         var before = _rules.Phase;
         if (ready && before == TdmMatchPhase.Countdown && Time.time >= _gateCountdownEndsAt
-            && !Bots.ArenaEquatorTeamSpawns.TryOpenForCombat()) return;
+            && !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;
         _rules.Update(Time.time, ready, 0, 0);
         if (before != TdmMatchPhase.Countdown && _rules.Phase == TdmMatchPhase.Countdown)
             _gateCountdownEndsAt = Time.time + TeamDeathmatchMatchPolicy.CountdownSeconds;
@@ -110,7 +110,7 @@ public sealed partial class TeamDeathmatchMode
             return true;
         }
         if (_rules?.Phase == TdmMatchPhase.Live || _rules == null) return false;
-        heading = Bots.ArenaEquatorTeamSpawns.GatesOpening ? "OPENING SPAWN GATES"
+        heading = Bots.ArenaTeamBoxRuntime.GatesOpening ? "OPENING SPAWN GATES"
             : _rules.Phase == TdmMatchPhase.Countdown
             ? "MATCH STARTS IN " + _rules.CountdownRemaining(Time.time) : "ASSEMBLING TEAMS";
         detail = $"{FriendlyFaction}: {CountBots(_population.LocalUsec) + (_local?.HealthController?.IsAlive == true ? 1 : 0)}/{TeamSize}"

@@ -10,7 +10,7 @@ using Redeploy.Core.GameAccess;
 namespace ArenaMode.Compat;
 
 /// <summary>
-/// Optional MapPort contract, resolved only after an exact Equator TDM loading
+/// Optional MapPort contract, resolved only after an exact team-box TDM loading
 /// owner exists. The API is process-global, so never borrow an existing hold or
 /// release it from a replacement world/arm. No menu-time request is made.
 /// </summary>
@@ -32,8 +32,8 @@ internal static class ArenaMapPortSpawnGates
     {
         if (type == null || game == null || world == null
             || !ArenaSession.ArmedForNextRaid
-            || !Shared.ArenaEquatorTeamSpawns.Applies(ArenaSession.ArmedMap, ArenaSession.ArmedMode)
-            || !string.Equals(world.LocationId, Shared.ArenaEquatorTeamSpawns.MapId, StringComparison.OrdinalIgnoreCase)
+            || !Shared.ArenaTeamBoxCatalog.Applies(ArenaSession.ArmedMap, ArenaSession.ArmedMode)
+            || !string.Equals(world.LocationId, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)
             || !IsOwner(game, world, epoch, token)) return null;
         const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
         MethodInfo hold, release, held, parts;
@@ -60,7 +60,7 @@ internal static class ArenaMapPortSpawnGates
             lease = new Lease(game, world, epoch, token, isHeld,
                 (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), release));
             var request = (Func<string, bool>)Delegate.CreateDelegate(typeof(Func<string, bool>), hold);
-            if (!request("ArenaMode Equator TDM assembling")) return null;
+            if (!request("ArenaMode team-box TDM assembling")) return null;
             lease.Accepted = true;
             if (lease.IsHeld) return lease;
             lease.Release("ArenaMode hold did not remain active");
@@ -70,7 +70,7 @@ internal static class ArenaMapPortSpawnGates
             // A throwing Hold may already have changed MapPort's request. We
             // observed it unheld immediately before this synchronous attempt.
             if (lease != null) { lease.Accepted = true; lease.Release("ArenaMode gate request failed"); }
-            Plugin.ModLogger.LogWarning("Equator spawn gates unavailable: " + ex.GetBaseException().Message);
+            Plugin.ModLogger.LogWarning("Arena team-box spawn gates unavailable: " + ex.GetBaseException().Message);
         }
         return null;
     }
@@ -82,6 +82,7 @@ internal static class ArenaMapPortSpawnGates
             || !Singleton<GameWorld>.Instantiated || !ReferenceEquals(Singleton<GameWorld>.Instance, world)) return false;
         var settings = LocalGameAccessor.GetLocalRaidSettings(game);
         return settings != null && Protocol.IsLifecycleRequestId(token)
+            && string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)
             && (Protocol.IsNativeStartIdentity(settings.serverId, token)
                 || Protocol.HasNativeEndIdentity(settings.serverId, token));
     }
@@ -108,7 +109,7 @@ internal static class ArenaMapPortSpawnGates
             if (!IsOwner(_game, _world, _epoch, _token)) { Released = true; return; }
             try { _release(reason); Released = true; }
             catch (Exception ex)
-            { Plugin.ModLogger.LogWarning("Equator spawn gate release failed: " + ex.GetBaseException().Message); }
+            { Plugin.ModLogger.LogWarning("Arena team-box spawn gate release failed: " + ex.GetBaseException().Message); }
         }
     }
 }

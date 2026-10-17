@@ -6,7 +6,7 @@ using Comfort.Common;
 using EFT;
 using UnityEngine;
 using UnityEngine.AI;
-using Runtime = ArenaMode.Bots.ArenaEquatorTeamSpawns;
+using Runtime = ArenaMode.Bots.ArenaTeamBoxRuntime;
 using Gates = ArenaMapPort.Client.SpawnGates;
 
 internal sealed class FixturePlugin { }
@@ -40,7 +40,8 @@ internal static class GateProgram
     {
         // Physical gate carve splits the atrium path, booth's interior remains
         // navigable. This seam reports actual path statuses, never changes them.
-        NavMesh.Path = (a, b) => Math.Abs(b.z - 2f) > .001f;
+        var destination=Program.Formation.Destination;
+        NavMesh.Path = (a, b) => Math.Abs(b.x-destination.X)>.001f || Math.Abs(b.z-destination.Z)>.001f;
     }
     private static ArenaMapPortSpawnGates.Lease Hold(Type type)
         => ArenaMapPortSpawnGates.TryHoldContract(type, Game, World, ArenaSession.ArmEpoch, ArenaServerClient.PendingArmToken);
@@ -234,8 +235,37 @@ internal static class GateProgram
     }
     public static async Task Main()
     {
-        OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();ExtractionPreparation();Runtime.Shutdown();
+        OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();ExtractionPreparation();
+        Bay5();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
+    }
+    private static void Bay5()
+    {
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5;
+        OptionalContracts();
+        Setup();
+        var formation=Program.Formation;
+        void Sealed() => NavMesh.Path=(a,b)=>Math.Abs(b.x-formation.Destination.X)>.001f;
+        Sealed();Runtime.Begin(World,Game);
+        foreach(var spec in formation.Points)
+            Check(Connected(new Vector3(spec.X,spec.Y,spec.Z)),"BAY5-SEALED: original point including depot elevations "+spec.Id);
+        Check(!Connected(new Vector3(134,-2.892f,65)),"BAY5-CANONICAL: unsurveyed warehouse interior denied");
+        NavMesh.Corners=(a,b)=>new[]{a,new Vector3(52.183f,-3.815f,-6.296f),b};
+        Check(!Connected(World.MainPlayer.Position),"BAY5-CROSS-BOX: path cannot cross into other faction interior");
+        NavMesh.Corners=null;
+        var flow=new ArenaMode.Modes.GateCountdownFixture();flow.Tick(true);Time.time=3;flow.Tick(true);
+        Check(!Gates.Held&&flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"BAY5-SLIDE: wait for all real paths");
+        NavMesh.Path=(a,b)=>true;flow.Tick(true);
+        Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live,"BAY5-LIVE: full paths precede score/time");
+        Runtime.PickRespawn(Game,default);Call("RestoreCollection",Collection);
+        Check(Gates.Holds==1&&Gates.Releases==1,"BAY5-RESPAWN: no reclose after release");
+        foreach(var name in new[]{"Bay5 North Loading Bay","Bay5 South Container Lane","Equator North Gate"})
+        {Setup();var exit=Exit(name);Check(Proceed(exit)&&exit.Proceeds==1,"BAY5-EXFIL: no suppression outside original boxes");}
+        Setup(active:false,installed:false);ArenaSession.ArmedMap="arena_equator";
+        Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-HOLD: supported different armed map denied");
+        Setup(active:false,installed:false);Game.Settings.location="arena_equator";
+        Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-SETTINGS: native settings must match world");
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
     }
     public static class MissingContract { }
     public static class WrongContract

@@ -33,6 +33,8 @@ internal static class Program
             Need(ArenaParticipantSettings.TrySelect(ArenaMapCatalog.EquatorId, "deathmatch", 24), "Equator recommendation is not a cap");
             Need(ArenaParticipantSettings.TrySelect(Day, "deathmatch", 7), "solo selection accepted");
             Need(ArenaParticipantSettings.TrySelect(Day, "teamdeathmatch", 14), "even TDM selection accepted");
+            Need(ArenaParticipantSettings.TrySelect(ArenaMapCatalog.Bay5Id, "teamdeathmatch", 20),
+                "Bay5 original boxes accept the full 10v10 format");
             Need(config.SaveOnConfigSet == autoSave, "writer restores host save policy");
             Need(File.Exists(path) && File.ReadAllText(path).Contains("factory4_day_solo = 7"), "PERSISTENCE: accepted value reaches file without test save");
             ArenaParticipantSettings.Init(new ConfigFile(path, false) { SaveOnConfigSet = false });
@@ -41,12 +43,17 @@ internal static class Program
                 "reload preserves separate mode families");
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.FactoryNightId, "deathmatch") == 10, "Factory variants have separate saved owners");
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "deathmatch") == 8, "another map keeps its default");
+            Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "teamdeathmatch") == 20,
+                "Bay5 reload preserves valid original-box capacity separately from solo preferences");
 
             byte[] before = File.ReadAllBytes(path);
             foreach (int invalid in new[] { int.MinValue, -1, 0, 1, 25, int.MaxValue })
                 Need(!ArenaParticipantSettings.TrySelect(Day, "deathmatch", invalid), "invalid solo count refused");
             foreach (int invalid in new[] { 2, 3, 5, 13, 25 })
                 Need(!ArenaParticipantSettings.TrySelect(Day, "teamdeathmatch", invalid), "invalid TDM count refused");
+            foreach (int invalid in new[] { 2, 3, 5, 19, 21, 22, 24, 25 })
+                Need(!ArenaParticipantSettings.TrySelect(ArenaMapCatalog.Bay5Id, "teamdeathmatch", invalid),
+                    "Bay5 refuses odd or unavailable original-box counts without changing saved preferences");
             foreach (var invalid in new[] { ("", "deathmatch"), ("woods", "deathmatch"), (Day, "tactical"), (Day, "unknown") })
                 Need(!ArenaParticipantSettings.TrySelect(invalid.Item1, invalid.Item2, 10), "unknown map or fixed mode refused");
             ArenaSession.IsActive = true;
@@ -58,12 +65,15 @@ internal static class Program
         }
 
         string invalidPath = Path.Combine(scratch, "invalid.cfg");
-        File.WriteAllText(invalidPath, "[Map participants]\nfactory4_day_solo = 99\nfactory4_day_team = 7\n");
+        File.WriteAllText(invalidPath, "[Map participants]\nfactory4_day_solo = 99\nfactory4_day_team = 7\narena_bay5_team = 24\narena_bay5_solo = 24\n");
         var invalidFile = new ConfigFile(invalidPath, false) { SaveOnConfigSet = false };
         ArenaParticipantSettings.Init(invalidFile);
         var bytes = File.ReadAllBytes(invalidPath);
         Need(ArenaParticipantSettings.Get(Day, "deathmatch") == 10 && ArenaParticipantSettings.Get(Day, "teamdeathmatch") == 10,
             "invalid persisted counts use the recommendation without clamping");
+        Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "teamdeathmatch") == 8
+            && ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "deathmatch") == 24,
+            "old Bay5 12v12 preference falls back to eight while valid solo 24 remains available");
         Need(bytes.SequenceEqual(File.ReadAllBytes(invalidPath)), "read-time validation has no persistence side effect");
         Need(ArenaParticipantSettings.TrySelect(Day, "deathmatch", 2), "minimum solo accepted");
         Need(ArenaParticipantSettings.TrySelect(Day, "teamdeathmatch", 4), "minimum team accepted");
@@ -127,7 +137,8 @@ internal static class Program
                 view.Refresh(candidate, false, selection);
                 Bounds();
                 bool expected = candidate.Available && mode != "tactical"
-                    && count <= (map == ArenaMapCatalog.EquatorId && mode == "teamdeathmatch" ? 20 : 24)
+                    && count <= (mode == "teamdeathmatch"
+                        && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id) ? 20 : 24)
                     && (mode != "teamdeathmatch" || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),
@@ -141,6 +152,22 @@ internal static class Program
             "Equator rejects 12v12 rather than offering unavailable box positions");
         Need(ArenaParticipantSelectionState.Create(Area(ArenaMapCatalog.EquatorId, "deathmatch"), false, 24).Available,
             "Equator FFA keeps its independent 24 participant limit");
+        var bay5Team = Area(ArenaMapCatalog.Bay5Id, "teamdeathmatch");
+        var bay5Twenty = ArenaParticipantSelectionState.Create(bay5Team, false, 20);
+        Need(bay5Twenty.Available && !bay5Twenty.CanIncrease && bay5Twenty.CanDecrease,
+            "Bay5 original-box capacity disables plus at 10v10");
+        view.Refresh(bay5Team, false, bay5Twenty); Bounds();
+        Need(!Plus().interactable && Minus().interactable && Text("Participant value") == "20 (10v10)",
+            "Bay5 native controls display and enforce the original-box maximum");
+        var bay5Four = ArenaParticipantSelectionState.Create(bay5Team, false, 4);
+        Need(bay5Four.Available && bay5Four.CanIncrease && !bay5Four.CanDecrease,
+            "Bay5 original-box minimum remains 2v2");
+        foreach (int invalid in new[] { 2, 3, 19, 21, 22, 24 })
+            Need(!ArenaParticipantSelectionState.Create(bay5Team, false, invalid).Available,
+                "Bay5 menu refuses unavailable or asymmetric team counts");
+        foreach (string mode in new[] { "deathmatch", "gungame" })
+            Need(ArenaParticipantSelectionState.Create(Area(ArenaMapCatalog.Bay5Id, mode), false, 24).Available,
+                "Bay5 solo modes keep their independent 24 participant limit");
         Refresh(); Bounds();
         Need(Text("Team size").Contains("you included") && Text("Mode restriction") == "Recommended: 10", "participant labels explain total and default");
         var stable = Plus(); Refresh(); Need(ReferenceEquals(stable, Plus()), "periodic same-context refresh preserves button listeners");

@@ -166,7 +166,7 @@ foreach (bool alive in new[] { true, false })
 foreach (bool required in new[] { true, false })
 {
     var (g, _, _) = NewExit();
-    ArenaMode.Bots.ArenaEquatorTeamSpawns.IsRequired = required;
+    ArenaMode.Bots.ArenaTeamBoxRuntime.IsRequired = required;
     ArenaMatchService.AbortCalls = 0;
     var probe = new RespawnGuardProbe();
     var failure = probe.AfterBoxFailure(new Exception("box became occupied during body creation"));
@@ -183,12 +183,12 @@ foreach (bool required in new[] { true, false })
     }
     foreach (bool valid in new[] { true, false })
     {
-        ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalValid = valid;
-        ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalChecks = 0;
+        ArenaMode.Bots.ArenaTeamBoxRuntime.ArrivalValid = valid;
+        ArenaMode.Bots.ArenaTeamBoxRuntime.ArrivalChecks = 0;
         probe = new RespawnGuardProbe();
         var continuation = probe.BeforeRespawnEvents(g, g.LocalPlayer);
         Check(!continuation.MoveNext() && probe.EnteredEngine == (!required || valid)
-            && ArenaMode.Bots.ArenaEquatorTeamSpawns.ArrivalChecks == 1,
+            && ArenaMode.Bots.ArenaTeamBoxRuntime.ArrivalChecks == 1,
             "Equator arrival is revalidated before kit and respawn subscribers");
     }
 }

@@ -174,7 +174,7 @@ namespace Redeploy.Core.Spawning {public interface ISpawnSelector {(Vector3 posi
 namespace ArenaMode.Respawn
 {
     public class ArenaSpawnSelector:Redeploy.Core.Spawning.ISpawnSelector
-    { public (Vector3 position,Quaternion rotation) Resolve(LocalGame game)=>ArenaMode.Bots.ArenaEquatorTeamSpawns.PickRespawn(game,default); }
+    { public (Vector3 position,Quaternion rotation) Resolve(LocalGame game)=>ArenaMode.Bots.ArenaTeamBoxRuntime.PickRespawn(game,default); }
 }
 namespace ArenaMode
 {
@@ -196,7 +196,7 @@ namespace ArenaMode.Session
         public static bool IsExactActiveRaid(LocalGame game,GameWorld world)=>ReferenceEquals(game,ExactGame)&&ReferenceEquals(world,ExactWorld);
         public static bool IsExactStartedRaid(LocalGame game,GameWorld world)=>ReferenceEquals(game,ExactGame)&&ReferenceEquals(world,ExactWorld);
         public static int CancelCount;
-        public static void ClearArmed(string reason){ArmedForNextRaid=false;ArenaServerClient.PendingArmToken=null;CancelCount++;ArenaMode.Bots.ArenaEquatorTeamSpawns.Reset();}
+        public static void ClearArmed(string reason){ArmedForNextRaid=false;ArenaServerClient.PendingArmToken=null;CancelCount++;ArenaMode.Bots.ArenaTeamBoxRuntime.Reset();}
     }
     public static class ArenaServerClient {public static string PendingArmToken;}
     public static class ArenaMenuSelection {public static int ClearCount;public static void ClearCompatibilityState(string reason)=>ClearCount++;}

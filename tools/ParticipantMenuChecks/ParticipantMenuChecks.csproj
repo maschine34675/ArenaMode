@@ -19,6 +19,8 @@
     <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />

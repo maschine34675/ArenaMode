@@ -111,9 +111,9 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // not make the client create a different mode than the protected
             // location clone the server just armed.
             var requestedMode = Settings.SelectedGameModeId;
-            if (Shared.ArenaEquatorTeamSpawns.Applies(settings.location, requestedMode)
-                && !Bots.ArenaEquatorTeamSpawns.IsReady)
-                throw new InvalidOperationException("Equator Team DM box placement is unavailable; restart after updating the client.");
+            if (Shared.ArenaTeamBoxCatalog.Applies(settings.location, requestedMode)
+                && !Bots.ArenaTeamBoxRuntime.IsReady)
+                throw new InvalidOperationException("Team DM box placement is unavailable; restart after updating the client.");
             var deathmatch = requestedMode == ArenaModeCatalog.DeathmatchId ? Settings.FreezeDeathmatchRules() : null;
             var hostility = deathmatch == null ? null : (deathmatch.FreeForAll
                 ? Shared.DeathmatchSelection.FreeForAll : Shared.DeathmatchSelection.AllVsPlayer);

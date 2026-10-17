@@ -55,9 +55,9 @@ if ($positive.Exit -ne 0 -or !$positive.Output.Contains('ARENA_TDM_BURST_PREPARA
 Write-Output $positive.Output.Trim()
 if (!$BaselineOnly) {
     $faults = @(
-        @{ Name = 'equator-unrestricted-preflight'; Find = 'bool available = ArenaEquatorTeamSpawns.IsRequired'; Replace = 'bool available = false';
+        @{ Name = 'equator-unrestricted-preflight'; Find = 'bool available = ArenaTeamBoxRuntime.IsRequired'; Replace = 'bool available = false';
            Failure = 'Equator faction preflight uses team box' },
-        @{ Name = 'equator-unrestricted-async-placement'; Find = 'bool boxTeamSpawn = explicitFaction && ArenaEquatorTeamSpawns.IsRequired;'; Replace = 'bool boxTeamSpawn = false;';
+        @{ Name = 'equator-unrestricted-async-placement'; Find = 'bool boxTeamSpawn = explicitFaction && ArenaTeamBoxRuntime.IsRequired;'; Replace = 'bool boxTeamSpawn = false;';
            Failure = 'Equator replans its own box after profile await' },
         @{ Name = 'equator-invalid-arrival-admitted'; Find = 'bool accepted = boxSpawnLease.Accept(bot?.GetPlayer);'; Replace = 'bool accepted = true;';
            Failure = 'team-box arrival must pass live placement and raid checks before admission' },

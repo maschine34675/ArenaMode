@@ -103,7 +103,7 @@ namespace ArenaMode.Bots
 {
     // The actual box lease is tested separately; this fixture exposes its
     // decision to the production driver's before-event/failure continuations.
-    internal static class ArenaEquatorTeamSpawns
+    internal static class ArenaTeamBoxRuntime
     {
         internal static bool IsRequired, ArrivalValid = true;
         internal static int ArrivalChecks;

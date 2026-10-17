@@ -428,7 +428,7 @@ internal static partial class ArenaMatchService
 
     private static void OnLocalRespawned(Player player)
     {
-        if (!Bots.ArenaEquatorTeamSpawns.ReleasePlayerReservation(player))
+        if (!Bots.ArenaTeamBoxRuntime.ReleasePlayerReservation(player))
             return;
         Areas.ArenaAreaRuntime.ReleasePlayerReservation(player);
         Current?.ReportLocalRespawn(player);

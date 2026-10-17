@@ -219,7 +219,7 @@ internal static class BurstSpawnService
         // Ambient and existing faction call paths retain their own ownership.
         bool ownedInfected = role.IsInfected() && dispatchFinished != null && beginNativeDispatch != null;
         Areas.ArenaAreaRuntime.TeamSpawnLease areaSpawnLease = null;
-        ArenaEquatorTeamSpawns.Lease boxSpawnLease = null;
+        ArenaTeamBoxRuntime.Lease boxSpawnLease = null;
 
         try
         {
@@ -308,7 +308,7 @@ internal static class BurstSpawnService
             // zone again from the current scene state instead of trusting the
             // synchronous preflight performed by SpawnSquad.
             bool areaTeamSpawn = explicitFaction && Areas.ArenaAreaRuntime.HasTeamStarts;
-            bool boxTeamSpawn = explicitFaction && ArenaEquatorTeamSpawns.IsRequired;
+            bool boxTeamSpawn = explicitFaction && ArenaTeamBoxRuntime.IsRequired;
             if (requireExactCount && !areaTeamSpawn && !boxTeamSpawn)
             {
                 zone = PickZone(spawner, count);
@@ -333,11 +333,11 @@ internal static class BurstSpawnService
             int preferredAvailable, distantAvailable;
             if (boxTeamSpawn)
             {
-                if (profileCount != 1 || !ArenaEquatorTeamSpawns.TryPlanBot(spawner.SpawnZones(false),
+                if (profileCount != 1 || !ArenaTeamBoxRuntime.TryPlanBot(spawner.SpawnZones(false),
                     role == WildSpawnType.pmcUSEC, true, out zone, out var boxPoint, out boxSpawnLease))
                 {
                     data.StopSpawn();
-                    Plugin.ModLogger.LogDebug($"Arena Equator team spawn deferred: no safe unoccupied team-box point for {role}.");
+                    Plugin.ModLogger.LogDebug($"Arena Arena team spawn deferred: no safe unoccupied team-box point for {role}.");
                     return;
                 }
                 points = new List<ISpawnPoint> { boxPoint };
@@ -515,7 +515,7 @@ internal static class BurstSpawnService
                     if (!accepted)
                     {
                         ReleaseReservedIfCurrent(ledger, 1, operationGeneration);
-                        Plugin.ModLogger.LogWarning($"Arena Equator team arrival rejected: {role}, marker {boxSpawnLease.PointId}, "
+                        Plugin.ModLogger.LogWarning($"Arena Arena team arrival rejected: {role}, marker {boxSpawnLease.PointId}, "
                             + $"reserved {boxSpawnLease.Position}, actual {bot?.GetPlayer?.Position}; "
                             + "reservation, faction, occupancy or navigation no longer valid.");
                         RetireStaleSpawn(bot, role);
@@ -1068,8 +1068,8 @@ internal static class BurstSpawnService
 
             BotZone zone;
             float preflightStartedAt = Time.realtimeSinceStartup;
-            bool available = ArenaEquatorTeamSpawns.IsRequired
-                ? ArenaEquatorTeamSpawns.TryPlanBot(spawner.SpawnZones(false), role == WildSpawnType.pmcUSEC,
+            bool available = ArenaTeamBoxRuntime.IsRequired
+                ? ArenaTeamBoxRuntime.TryPlanBot(spawner.SpawnZones(false), role == WildSpawnType.pmcUSEC,
                     false, out zone, out _, out _)
                 : Areas.ArenaAreaRuntime.HasTeamStarts
                 ? Areas.ArenaAreaRuntime.TryPlanTeamBot(spawner.SpawnZones(false), role == WildSpawnType.pmcUSEC,
