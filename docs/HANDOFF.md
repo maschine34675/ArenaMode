@@ -10,10 +10,15 @@ current. User-facing communication is normally German.
 - **AirPit original team boxes (2026-10-17):** Independent TDM uses north USEC /
   south BEAR, twenty private starts, even totals 4-20 (default eight). MapPort
   0.2.2 navigation/passport gates required. Other modes and normal markers stay
-  unchanged. Source and GPU1 acceptance tracked in [AirPit review](AIRPIT-TEAM-BOXES-REVIEW.md).
-  Current task uses an isolated worktree and includes committed Zombie performance
-  changes through cd2ede5 to avoid rolling back their deployed client. Native
-  acceptance/deployment are not yet complete.
+  unchanged. Implementation `341999f`, deployed clean source `132549d`, including
+  committed Zombie work through `cd2ede5`. GPU1 passed native 3v3 and 10v10: both
+  formations, countdown gates, all twenty outside paths, real walking, player
+  respawns and both-team replacements. Profiles restored (424/424 items each).
+  One south-box walking route took a long NavMesh detour; continuation arrived
+  after leaving the box. No gate/teardown error. See the
+  [AirPit review](AIRPIT-TEAM-BOXES-REVIEW.md) for hashes and limitations.
+  Test-owned settings restored; synchronized concurrent Zombie preferences left
+  intact. GPU1 remains in the main menu, godmode off and control lease free.
 
 
 - **Unified build/deploy folder (2026-10-17):** The canonical Arena plugin folder
