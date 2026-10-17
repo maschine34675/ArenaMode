@@ -87,6 +87,37 @@ den Durchschnitt, 1/8-Glättung und negative Uhren, Tick-Umrechnung,
 Übernahmebedingungen, Budget 0 = eins je Frame). Mutant: ohne die Regel
 „erstes Profil je Frame immer" fallen zwei Tests.
 
-## 4. Ergebnis GPU-2
+## 4. Ergebnis GPU-2 (Testraid 21:56–21:59, Client `247d6cc`, Factory, MaxAlive 32)
 
-_(wird nach dem Lauf eingetragen)_
+Solo-Zombie-Raid mit Godmode, ohne Schuss; ModProfiler kopflos ab 21:56:05.
+Die Debug-Zeile des Budgets um 21:57:31, rund 90 s nach dem Start:
+
+```
+Arena profile build budget: 240 bot profiles built over 240 frame(s), 687.2 ms of construction,
+longest frame share 5.2 ms (budget 3 ms, one build per open batch per frame guaranteed),
+3436 ms wall from answer to completion.
+```
+
+Der Stapel ist also größer als vermutet: 240 Profile, ≈ 2,9 ms je Profil, in
+Summe 687 ms Konstruktion, die nativ in einem Frame lagen (625/627 ms in den
+Vergleichsraids desselben Tages, 1763 ms auf Host 1). Mit Budget baute der
+Client genau ein Profil je Frame (2,9 + 2,9 ms überschreiten die 3 ms), 240
+Frames lang, längster Frame-Anteil 5,2 ms; der Stapel war 3,4 s nach der
+Antwort vollständig. ModProfilers Spitzenliste für das Intervall 21:57:05 bis
+21:57:35 nennt als größten Frame 48 ms, und der stammt von einem Zombie-Tod
+(`GameWorld.DoWorldTick` 35 ms, `KillCapturePatch`), nicht vom Profilbau; das
+Intervall lief mit 96 fps gegenüber 101 fps davor (die +3 ms je Frame über 3,4
+s). Die Horde stand danach wieder bei 32 Lebenden, keine Warnung und kein
+Fehler von ArenaMode im Raid.
+
+Bewertung: Der Hänger ist beseitigt, der Preis ist eine um gut drei Sekunden
+spätere Ankunft der nächsten Spawns bei ≈ 100 fps (auf Host 1 bei ≈ 20 fps
+entsprechend ≈ 12 s für 240 Profile). Wer den Nachschub schneller will, hebt
+das Budget: 6 ms baut zwei Profile je Frame und halbiert die Wartezeit; 0
+stellt den nativen Einzelframe wieder her. Standard bleibt 3 ms.
+
+Aufräumzustand: Raid verlassen, `Capture/Headless` per Ledger zurück auf
+`false`, Host 2 im Hauptmenü. Hinweis: beim Deploy war das Spiel auf Host 2
+bereits seit 21:03 beendet (fremder Neustart ohne Abschlusszeile); `gpu-run
+start` brachte es zurück. KillcamReplay lag dort als 0.9.14 auf der Platte,
+während 0.9.13 geladen war (fremde Sitzung, nicht Teil dieses Tests).
