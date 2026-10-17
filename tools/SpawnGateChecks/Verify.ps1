@@ -51,7 +51,10 @@ $arenaFaults = @(
     @('exfil-stale-trigger','RuntimeSource',$arenaRuntime,'&& CurrentBoothExit(pair.Key) && pair.Key.Entered.Contains(pair.Value)','&& pair.Key.Entered.Contains(pair.Value)','EXFIL-STALE:'),
     @('stop-wrong-profile','RuntimeSource',$arenaRuntime,'&& profileId == _game?.Profile?.Id','&& true','STOP-PROFILE:'),
     @('stop-suppressed','RuntimeSource',$arenaRuntime,'&& (_game.Status == GameStatus.Stopping || _game.Status == GameStatus.Stopped)','&& true','STOP-SUPPRESSED:'),
-    @('pause-timeout','RuntimeSource',$arenaRuntime,'Time.time - _openingStartedAt >= 10f','Time.realtimeSinceStartup - _openingStartedAt >= 10f','PAUSE:')
+    @('pause-timeout','RuntimeSource',$arenaRuntime,'Time.time - _openingStartedAt >= 10f','Time.realtimeSinceStartup - _openingStartedAt >= 10f','PAUSE:'),
+    @('premature-load-release','RuntimeSource',$arenaRuntime,'try { await original; }','try { await original; if (!IsRequired) ReleaseGates("fixture premature release"); }','RUN-BEFORE-EVENT:'),
+    @('started-pair-unguarded','RuntimeSource',$arenaRuntime,'|| !ArenaSession.IsExactStartedRaid(_game, world)','|| false','STALE-START:'),
+    @('armed-event-released','RuntimeSource',$arenaRuntime,'if (ArenaSession.ArmedForNextRaid || _gates?.OwnsCurrentRaid != true','if (_gates?.OwnsCurrentRaid != true','UNCONSUMED:')
 )
 try {
     foreach ($arenaFault in $arenaFaults) {

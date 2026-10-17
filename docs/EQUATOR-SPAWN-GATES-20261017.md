@@ -33,9 +33,14 @@ request and callbacks, rather than claiming MapPort provides per-caller leases.
 Cleanup releases only the captured owner after a native `LocalGame.Stop` for
 the exact local profile actually committed `Stopping`/`Stopped`, on match
 failure, match end, failed native loading, canceled arming, session reset and
-plugin shutdown. The successful native Run observer also releases a consumed
-arm that the raid-start callback rejected (including rejected server
-confirmation), even though it is no longer `ArmedForNextRaid`. Old mode teardown
+plugin shutdown. Successful native Run completion leaves the hold untouched:
+`TarkovApplication` awaits `Run` before calling `GameWorld.OnGameStarted`. A
+`RaidLifecycle.OnRaidStarted` observer registered after ArenaSession releases a
+consumed arm that ArenaSession rejected (including rejected server
+confirmation), even though it is no longer `ArmedForNextRaid`. That observer
+requires the exact current gate owner, world and ArenaSession started pair;
+an unconsumed arm or stale event cannot release it. Shutdown and failed enable
+unsubscribe the observer. Old mode teardown
 supplies its captured game/world/epoch; it cannot release a new match's gates.
 Stale world/token/epoch leases never call the global API into a successor raid;
 MapPort's owned-scene unload disposes that old scene's gate state.
@@ -127,7 +132,7 @@ pwsh -NoProfile -File tools/EquatorTeamSpawnChecks/Verify.ps1
 The first check's success marker is `EQUATOR_SPAWN_GATE_CHECKS_PASSED`; both
 harnesses also compile isolated source mutants and require their named negative
 checks to fail. Generated sources and evidence stay in ignored `artifacts`
-subfolders. Final worker results: **88 spawn-gate assertions and 16 negative
+subfolders. Final worker results: **100 spawn-gate assertions and 19 negative
 controls**, **100 formation assertions and 11 negative controls**, with both
 restored baselines green. The formation harness's arrival mutation now anchors
 its exact lease context, because the new extraction guard legitimately also
@@ -135,6 +140,25 @@ validates a registered local body. They do not deploy or control the game. The
 parent integration run records compiled artifact identities and native
 acceptance separately; these engine doubles do not prove physical sliding or
 native bot movement.
+
+## First native run and ordering correction
+
+The first native run of client `983b774` closed the doors successfully, but
+aborted before assembly with USEC capacity 0/10. The old successful-Run observer
+released the hold while the arm was still awaiting ArenaSession admission.
+MapPort cleared `IsHeld` immediately, removing the narrow local-path exception,
+while its carvers remained during the slide. Its later `released` log describes
+completed sliding, so the visible line appeared after the Arena failure.
+
+The correction above follows the real native sequence rather than interpreting
+Run completion as raid admission. The harness now completes Run with native
+status Started while Arena remains armed, then separately raises the raid-start
+event for accepted and rejected starts. It also exercises early and duplicate
+events, stale game/world/epoch/token/started pairs, and subscription teardown.
+Three new negative controls detect premature Run release, missing started-pair
+validation and release of an unconsumed arm. Independent source review found no
+remaining correction defect. Corrected native acceptance remains pending the
+parent's fresh build and GPU retry.
 
 ## Native acceptance still required
 

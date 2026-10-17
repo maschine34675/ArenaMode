@@ -15,6 +15,7 @@ using EFT.Bots;
 using EFT.InventoryLogic;
 using HarmonyLib;
 using Redeploy.Core.GameAccess;
+using Redeploy.Core.Engine;
 using Redeploy.Core.Spawning;
 using SPT.Reflection.Patching;
 using UnityEngine;
@@ -95,10 +96,15 @@ internal static class ArenaEquatorTeamSpawns
                 throw new MissingMethodException("Native exfiltration Proceed contract changed.");
             LoadingPatches.Patch(proceed,
                 prefix: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(BeforeExtraction)));
+            // ArenaSession registered first in Plugin.Awake. Native Run finishes
+            // BEFORE GameWorld.OnGameStarted; only this later event observes
+            // whether ArenaSession admitted or rejected the consumed arm.
+            RaidLifecycle.OnRaidStarted += OnNativeStarted;
             IsReady = true;
         }
         catch (Exception ex)
         {
+            RaidLifecycle.OnRaidStarted -= OnNativeStarted;
             _initialPatch?.Disable(); _collectionPatch?.Disable();
             LoadingPatches.UnpatchSelf();
             _initialPatch = null; _collectionPatch = null; IsReady = false;
@@ -108,6 +114,7 @@ internal static class ArenaEquatorTeamSpawns
 
     internal static void Shutdown()
     {
+        RaidLifecycle.OnRaidStarted -= OnNativeStarted;
         IsReady = false; Reset(); LoadingPatches.UnpatchSelf();
         _initialPatch?.Disable(); _collectionPatch?.Disable();
         _initialPatch = null; _collectionPatch = null;
@@ -167,16 +174,15 @@ internal static class ArenaEquatorTeamSpawns
 
     private static async Task ObserveLoad(Task original, LoadingLease lease)
     {
-        try
-        {
-            await original;
-            // Run completes after the raid-start callbacks. A consumed but
-            // rejected arm must not leave an otherwise ordinary raid sealed.
-            if (ReferenceEquals(lease.Game, _game) && ReferenceEquals(lease.World, _world)
-                && lease.Epoch == _armEpoch && lease.Token == _token && !IsRequired)
-                ReleaseGates("ArenaMode Equator start not admitted");
-        }
+        try { await original; }
         catch (Exception ex) { LoadingFailed(lease, ex); throw; }
+    }
+
+    private static void OnNativeStarted(GameWorld world)
+    {
+        if (ArenaSession.ArmedForNextRaid || _gates?.OwnsCurrentRaid != true
+            || !ReferenceEquals(world, _world) || !ArenaSession.IsExactStartedRaid(_game, world)) return;
+        if (!IsRequired) ReleaseGates("ArenaMode Equator start not admitted");
     }
 
     private static void AfterStop(LocalGame __instance, string profileId)

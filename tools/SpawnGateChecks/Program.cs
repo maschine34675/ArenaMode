@@ -109,14 +109,46 @@ internal static class GateProgram
         var task=(Task)Call("ObserveLoad",Task.FromException(failure),args[1]);
         try{await task;}catch(InvalidOperationException){ }
         Check(!Gates.Held&&Gates.Releases==1,"ASYNC-FAIL: async failed load releases hold");
-        Setup(active:false);args=new object[]{Game,null};Call("BeforeLoad",args);
-        ArenaSession.ArmedForNextRaid=false; // consumed, but ConfirmRaidStarted rejected it
+        // Native TarkovApplication awaits Run before calling OnGameStarted.
+        // GameStatus already says Started during this still-armed gap.
+        Setup(active:false);args=new object[]{Game,null};Call("BeforeLoad",args);Game.Status=GameStatus.Started;SealedPaths();
         await (Task)Call("ObserveLoad",Task.CompletedTask,args[1]);
-        Check(!Gates.Held&&Gates.Releases==1,"REJECTED-START: successful native loading cannot leak rejected hold");
+        Check(Gates.Held&&Gates.Releases==0,"RUN-BEFORE-EVENT: completed native load must retain the armed hold");
+        Redeploy.Core.Engine.RaidLifecycle.RaiseStarted(World); // defensive: arm not consumed yet
+        Check(Gates.Held&&Gates.Releases==0,"UNCONSUMED: no early event may release an armed hold");
+        ArenaSession.ArmedForNextRaid=false;ArenaSession.IsActive=true;
+        Runtime.Begin(World,Game);Redeploy.Core.Engine.RaidLifecycle.RaiseStarted(World);
+        Check(Gates.Held&&Gates.Releases==0,"CONFIRMED-START: native local-path admission retains preparation hold");
+        Setup(active:false);args=new object[]{Game,null};Call("BeforeLoad",args);Game.Status=GameStatus.Started;
+        await (Task)Call("ObserveLoad",Task.CompletedTask,args[1]);
+        ArenaSession.ArmedForNextRaid=false; // consumed, but ConfirmRaidStarted rejected it
+        Redeploy.Core.Engine.RaidLifecycle.RaiseStarted(World);
+        Check(!Gates.Held&&Gates.Releases==1,"REJECTED-START: later native start event releases rejected hold");
+        Redeploy.Core.Engine.RaidLifecycle.RaiseStarted(World);
+        Check(Gates.Releases==1,"REJECTED-ONCE: duplicate native event does not release again");
+        foreach(var stale in new[]{"world","game","epoch","token","started-pair"})
+        {
+            Setup(active:false);ArenaSession.ArmedForNextRaid=false;var eventWorld=World;
+            switch(stale)
+            {
+                case "world":eventWorld=new GameWorld();break;
+                case "game":Singleton<AbstractGame>.Instance=new LocalGame{GameWorld=World};break;
+                case "epoch":ArenaSession.ArmEpoch++;break;
+                case "token":Game.Settings.serverId="ordinary";break;
+                case "started-pair":ArenaSession.ExactWorld=new GameWorld();break;
+            }
+            Redeploy.Core.Engine.RaidLifecycle.RaiseStarted(eventWorld);
+            Check(Gates.Held&&Gates.Releases==0,"STALE-START: callback cannot release different "+stale);
+        }
         Setup();Call("AfterStop",Game,Game.Profile.Id);Check(Gates.Releases==0&&Gates.Held,"STOP-SUPPRESSED: life-only Give Up leaves gates held");
         Game.Status=GameStatus.Stopping;Call("AfterStop",Game,"other-profile");Check(Gates.Releases==0&&Gates.Held,"STOP-PROFILE: unrelated extraction cannot release local hold");
         Call("AfterStop",Game,Game.Profile.Id);Runtime.Reset();Check(Gates.Releases==1,"STOP: committed native shutdown releases once");
-        Setup();Runtime.Shutdown();Check(Gates.Releases==1,"SHUTDOWN: plugin shutdown releases");
+        Setup();Check(Redeploy.Core.Engine.RaidLifecycle.Subscribers==1,"SUBSCRIBE: exactly one native-start observer");
+        Runtime.Enable();Check(Redeploy.Core.Engine.RaidLifecycle.Subscribers==1,"SUBSCRIBE: repeated enable remains singular");
+        Runtime.Shutdown();Check(Gates.Releases==1&&Redeploy.Core.Engine.RaidLifecycle.Subscribers==0,"SHUTDOWN: plugin shutdown releases and unsubscribes");
+        SPT.Reflection.Patching.ModulePatch.Fail=true;Runtime.Enable();
+        Check(!Runtime.IsReady&&Redeploy.Core.Engine.RaidLifecycle.Subscribers==0,"HOOK-FAIL: no native-start subscription survives failed enable");
+        SPT.Reflection.Patching.ModulePatch.Fail=false;
     }
     private static void OpeningAndCountdown()
     {

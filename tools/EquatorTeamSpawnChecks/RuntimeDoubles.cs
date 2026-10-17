@@ -161,6 +161,15 @@ namespace SPT.Reflection.Patching
     public abstract class ModulePatch {public static bool Fail;protected abstract MethodBase GetTargetMethod();public void Enable(){if(Fail||GetTargetMethod()==null)throw new Exception("fixture hook unavailable");}public void Disable(){}}
 }
 namespace Redeploy.Core.GameAccess {public static class LocalGameAccessor {public static RaidSettings GetLocalRaidSettings(LocalGame game)=>game.Settings;}}
+namespace Redeploy.Core.Engine
+{
+    public static class RaidLifecycle
+    {
+        public static event Action<GameWorld> OnRaidStarted;
+        public static int Subscribers=>OnRaidStarted?.GetInvocationList().Length??0;
+        public static void RaiseStarted(GameWorld world)=>OnRaidStarted?.Invoke(world);
+    }
+}
 namespace Redeploy.Core.Spawning {public interface ISpawnSelector {(Vector3 position,Quaternion rotation) Resolve(LocalGame game);}}
 namespace ArenaMode.Respawn
 {
@@ -185,6 +194,7 @@ namespace ArenaMode.Session
         public static bool IsActive,ArmedForNextRaid;public static int ArmEpoch;public static int? Participants;
         public static string ActiveMode,ArmedMode,ArmedMap;public static LocalGame ExactGame;public static GameWorld ExactWorld;
         public static bool IsExactActiveRaid(LocalGame game,GameWorld world)=>ReferenceEquals(game,ExactGame)&&ReferenceEquals(world,ExactWorld);
+        public static bool IsExactStartedRaid(LocalGame game,GameWorld world)=>ReferenceEquals(game,ExactGame)&&ReferenceEquals(world,ExactWorld);
         public static int CancelCount;
         public static void ClearArmed(string reason){ArmedForNextRaid=false;ArenaServerClient.PendingArmToken=null;CancelCount++;ArenaMode.Bots.ArenaEquatorTeamSpawns.Reset();}
     }
