@@ -49,19 +49,33 @@ Population and starting equipment can be changed in the menu.
 #### Mutators
 
 - Faster movement, double jump, bunnyhop, air control, sliding, airborne hip
-  fire and vaulting. A master switch disables the movement group.
+  fire and vaulting. Less inertia/weight slowdown and shorter landing recovery.
+  A master switch disables the movement group.
+- **Slow walking with CMS/Surv12**, up to 1 m/s with Fast Movement enabled;
+  sprint/jump/prone/vault remain blocked during surgery.
+- Faster drawing, holstering, reloading, magazine packing and medical use.
+  Supported weapons select full-auto when drawn; manual changes remain possible.
 - Backpack items and magazines, automatic medical quickslots, instant search.
 - Arena HUD and announcer switches; separate announcer/hitmarker volume.
+  Kill skull, optional combined burst damage, detailed health/ammo/grenade
+  panels and a scoreboard with damage-share assists.
 - Team tracer/laser colors and friendly fire. Friendly fire defaults off for
   PFT Zombies, on for Team DM and PFT Tactical.
 - Akimbo pistols (WIP), additional Molotov (WIP), bot movement options.
 - Killcam replays with KillcamReplay installed and DeathReplay enabled.
+  PFT team spectating has a target-HP display and works without the replay mod.
 - Factory day/night pickups in Deathmatch and Team DM: health, shield, double
   damage, jump boots, unlimited ammo and an M60. Positions rotate during play.
   Other maps do not have built-in pickup layouts.
 
 Molotov and deliberate bot pickup steering require BigBrain 1.5.0 plus
 ArenaMode's companion DLL. Molotov is unavailable in Zombies.
+
+Labyrinth entrance traps/toxic pool and its center alarm are handled separately
+for Arena. Way Up uses a 10-second countdown. Round-state lighting is available
+on Labs, Factory and Labyrinth. Quest/achievement/XP notifications and the
+extraction list are suppressed; the misleading item-loss warning is hidden and
+the post-raid XP page skipped.
 
 ### Setup and controls
 
@@ -81,7 +95,8 @@ Default controls:
 - **F9:** scoreboard and live Arena settings.
 - **Backspace:** give up the current life; ends solo Zombies.
 - **Escape:** raid menu / leave match.
-- **Left/right mouse** while team spectating: cycle living bots, including enemies.
+- **Left/right mouse** while team spectating: cycle living bots; Tactical also
+  allows observing opponents.
 - **F12:** advanced settings, if a BepInEx configuration UI is installed.
 
 Most switches are in the map-screen Mutators panel. Server configuration is

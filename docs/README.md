@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Player README and source-build instructions](../README.md)
+- [Complete implemented feature inventory and mutator list](FEATURES.md)
 - [Forge description — six tabs, ready for the editor](FORGE-DESCRIPTION.md)
 - [Licenses, asset sources and redistribution boundaries](../THIRD-PARTY-NOTICES.md)
 - [Current handoff and test status](HANDOFF.md)

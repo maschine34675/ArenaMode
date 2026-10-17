@@ -19,8 +19,9 @@ prepared. Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
 Zombie defaults are **32 alive at once, 50 in the first wave, +20 per wave** and
 **own gear**. Population and starting equipment are selectable in the menu.
-Protected PFT squads use their entry gear, restored between rounds/waves,
-including the surviving player in Zombies.
+PFT squads use entry gear. A dead Tactical PMC receives it again next round;
+a surviving Tactical PMC keeps the current loadout. Zombies refills the combat
+loadout between cleared waves, including for the surviving player.
 
 ## Maps
 
@@ -38,30 +39,96 @@ have separate team starts and a visible boundary when approached.
 
 ## Features and mutators
 
-- Scoreboard, damage assists, readable killfeed, hitmarkers, damage numbers,
-  health/armor and weapon panels. Friendly bots have an overhead marker.
-- Announcer cues for kills, streaks and match events. Announcer and hitmarker
-  volume have their own controls; announcer volume is independent of Interface
-  volume by default.
-- Arena kits and a generated weapon ladder, including optics and other
-  attachments. Own-gear options depend on the mode.
-- Faster movement, double jump, timed bunnyhops, air control, sliding, airborne
-  hip fire and vaulting within reach. The movement master switch disables the
-  group; individual switches remain available.
-- Faster handling, reloading, magazine loading and healing; backpack item and
-  magazine access, automatic medical quickslots and instant search.
-- Team-colored tracers and lasers, configurable friendly fire, and independent
-  bot movement settings. Friendly fire defaults off for PFT Zombies, on for Team
-  DM and PFT Tactical.
-- **Factory day/night, Deathmatch and Team DM:** rotating pickups for health,
-  temporary shield, double damage, jump boots, unlimited ammunition or an M60.
-  Built-in pickup layouts are not provided for the other maps. BigBrain
-  integration lets bots deliberately seek health, shield and damage pickups.
-- **Akimbo (WIP):** a second pistol with alternating fire. **Molotov (WIP):** an
-  extra fire bottle, without replacing normal grenades; requires the BigBrain
-  integration and is unavailable in Zombies.
-- Optional KillcamReplay integration. Team spectating works separately from
-  recorded killcam replays.
+The [complete feature inventory](docs/FEATURES.md) also covers smaller changes,
+current defaults, mode restrictions, all mutators and the supporting source.
+
+### Movement and handling
+
+- Faster walk/sprint, less inertia and weight slowdown, quicker strafing/leaning,
+  faster ADS and direct sprint-to-aim transitions.
+- Double jump, including after stepping off an edge; timed bunnyhops, air
+  control, sliding, airborne hip fire and vaulting within reach.
+- Higher jumps, faster vaulting, optional unlimited stamina, no bush slowdown
+  and no fall damage; hard-landing slowdown lasts half as long by default.
+- **Walk while using CMS or Surv12**, at up to **1 m/s**. Requires Fast Movement;
+  surgery still blocks sprint, jump, prone and vaulting.
+- Reduced broken/blacked-leg walking penalties, with a separate control from
+  Fast Movement. Injuries still need treatment.
+- Faster drawing, holstering and reloading, plus separate medical-use and
+  magazine-packing speeds. The movement master disables its bonuses and
+  abilities without deleting the individual preferences.
+
+### Equipment and combat
+
+- Twenty kits, fixed/random kit selection and a generated weapon ladder with
+  compatible optics/attachments. Solo Zombies offers own gear or kits; PFT
+  Tactical/Zombies uses own gear automatically.
+- Supported weapons select full-auto when drawn; manual changes remain possible.
+- Backpack medical-item use and magazine reload access, stable medical
+  quickslots, instant search and automatic searching of opened corpses.
+- Two RGD-5s in supplied kits where space permits, temporary elite skills/mastery,
+  stronger bleeding and configurable spawn protection.
+- **Akimbo (WIP):** eligible pistols alternate one shot per trigger, with doubled
+  cadence and two shots per cartridge. Shared reload, hip fire only (no ADS);
+  off by default and unavailable in Zombies.
+- **Molotov (WIP):** an extra dedicated fire bottle in free rig/pocket space,
+  initially preferred by G, without converting normal grenades. Requires the
+  BigBrain companion and is unavailable in Zombies.
+
+### Pickups and bots
+
+- **Factory day/night, Deathmatch and Team DM:** rotating health, shield,
+  double-damage, jump-boots, unlimited-ammo and M60 pickups. Eight candidate
+  spots; no built-in layouts for other maps. Ammo and shield effects have
+  weapon/damage-type limits detailed in the feature inventory.
+- Colored pickup beams, collection sound and active-effect timers. The M60
+  transfers into a free compatible inactive weapon slot; it is not drawn for you.
+- Bots can collect health/shield/damage pickups; BigBrain integration lets them
+  deliberately seek useful powerups.
+- Independent bot movement/agility and reduced weight penalties, more active
+  pursuit, and optional exclusion of passive SAIN personalities.
+- Fixed participant/faction slots, including a retained Labyrinth boss slot.
+  Difficulty pressure and bot gear progression are separate; timed Team DM
+  scales both time curves to match duration.
+- Zombie voice budgeting and optional Zombie Crowd behavior. Old-corpse and
+  resource-pool cleanup reduce accumulation during long matches.
+
+### HUD, teams and audio
+
+- Match scoreboard with kills/deaths/assists/headshots/points and team totals.
+  Damage-share assists add points without reducing the killer's reward.
+- Left-side killfeed with names, distances, team colors, weapon/cause icons and
+  own environmental deaths. Score-panel and killfeed offsets are configurable.
+- Hitmarkers, a kill skull above the crosshair and optional combined burst
+  damage numbers, with separate body/armor damage.
+- Health, armor/helmet durability, injury and weight panels; weapon/fire-mode,
+  chamber/ammunition, spare-magazine and grenade information. Armored rigs count.
+- Friendly diamonds, team-colored tracers even for tracerless ammunition,
+  team laser colors and separate point/beam brightness controls.
+- Friendly fire defaults off for PFT Zombies, on for Team DM and PFT Tactical.
+  Solo modes do not use the team tracer/laser options.
+- Multikill, spree, First Blood, single-hit Headshot, Payback, Shutdown, Airborne,
+  No Scope, last-survivor/clutch and match-progress announcements.
+- Independent announcer/hitmarker/pickup volume. Announcer volume bypasses the
+  Interface slider by default; overall game volume still applies.
+
+### Maps, replay and quality of life
+
+- Polygon Customs areas with in-area starts and approaching-boundary grids;
+  unsafe Labs gate and Factory courtyard bot starts are excluded.
+- Labyrinth access without EnableLabyrinth, disabled entrance traps and drained
+  toxic pool, optional center-alarm muting and a 10-second Way Up countdown.
+  Not every environmental hazard is removed.
+- Round-state lighting on Labs, Factory and Labyrinth, without editing the maps.
+- KillcamReplay support in every mode, with respawn delayed until camera cleanup;
+  separate PFT third-person spectating with the observed bot's HP.
+- Death-related concussion effects are cleared from spectator/replay views;
+  Escape remains available to leave the match.
+- Faster raid setup; suppressed extraction-list clutter and quest/achievement/XP
+  toasts. Misleading lost-item exit warnings are hidden and the XP result page
+  is skipped while the required native result flow remains intact.
+- Area/pickup drafting tools for development, including an explicitly enabled
+  ordinary-PMC surveying mode; drafts do not automatically become live layouts.
 
 Most gameplay switches are in the map-screen **Mutators** panel. Match rules
 are fixed when entering a raid; some advanced preferences are available during
@@ -117,7 +184,7 @@ WIP features. Leaving through the game's raid menu is supported.
 | **F9** | Scoreboard and live Arena settings |
 | **Backspace** | Give up the current life; counts as a death, and ends solo Zombies |
 | **Escape** | Raid menu and leave match |
-| **Left/right mouse button** while team spectating | Cycle living targets: left = next, right = previous; enemies can also be observed |
+| **Left/right mouse button** while team spectating | Cycle living targets: left = next, right = previous; Tactical also allows observing opponents |
 | Native jump / crouch bindings | Movement features; crouch while sprinting to slide |
 | **F12**, with a BepInEx configuration UI installed | Advanced Arena settings |
 

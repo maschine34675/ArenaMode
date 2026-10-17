@@ -1,11 +1,28 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-16. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-17. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Complete feature inventory (2026-10-17):** Added [FEATURES.md](FEATURES.md)
+  against source baseline `67cad48`, including movement/surgical walking,
+  equipment/handling, modes/scoring, pickups, HUD/audio, maps, bot behavior,
+  protection/performance, integrations and all map-screen mutators. README is
+  expanded and Forge remains a six-tab summary. Current source wins over old
+  reviews: own-gear selection is Zombie-only outside forced PFT own gear;
+  surviving PFT Tactical leaders are not fully refilled each round; only timed
+  independent TDM normalizes both difficulty time curves to match duration.
+  Three independent source reviews corrected Akimbo ADS, separate leg-injury
+  controls, free Tactical starters and uncertain weapon-pickup transfers.
+  Documentation checks passed: 128 local references (15 heading anchors),
+  23 mutator entries, surgical walking in all three player-facing documents,
+  six Forge tabs and clean whitespace. No runtime tests needed for this
+  documentation-only change; no new gameplay acceptance is claimed.
+  This is documentation only, not a gameplay change, deployment, new native
+  acceptance, publication or Git-history rewrite.
 
 - **Release documentation (2026-10-16):** English player README, sober six-tab
   Forge description and central third-party/license overview added, with the
