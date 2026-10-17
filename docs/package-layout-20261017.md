@@ -102,9 +102,8 @@ It is **not** a new DLL build, release candidate, deployment or native test.
   the old archived revision, a legacy audio-path caller, a hard BigBrain
   prerequisite and removal of the non-inlining boundary.
 
-A newly committed source build and full package validation must be recorded
-separately before distributing a replacement ZIP. No upload or deployment is
-performed by either packaging tool.
+The newly committed source build is recorded below. The fixture above remains
+layout-only evidence. No upload or deployment is performed by either tool.
 
 ## Runtime integration evidence
 
@@ -134,3 +133,39 @@ performed by either packaging tool.
   reproduced using the unchanged `ArenaAreaCapture.cs` from baseline `fd314a8`.
   The only capture change here is its export directory; the scope/admission
   behavior was not changed. This harness is not reported as passed.
+
+## Replacement archive
+
+- Arena revision: `acd048482643413f26837bbf01e70382c82eb086` / **0.1.0**.
+  Includes the separately committed failed-start exit fix `63466e4`.
+- Core revision: `bf227f2c1aa00060d68136c159a16bc13addc0c8` / **1.0.7**.
+- Local archive: `ArenaMode-0.1.0-test-acd0484.zip`, **3,653,604 bytes**.
+- SHA256: `8f125826554be410cf272c6d4e479dcda6c6082bf85d7db9e83d1e397b381498`.
+- Ignored output directory: `artifacts/test-releases/e9d8dc5b26fa4446b9e1584766ed1182/`.
+  Distribute only the named ZIP and optional checksum sidecar, never the sibling
+  source snapshots, logs, tools or test files.
+
+Both Release project graphs built successfully; the frozen source's unit suite
+passed **1026 tests**, with the opt-in native APBS and installed PFT contract
+tests skipped. Existing unrelated compiler warnings remain. The final archive
+passes the verifier: **88 files**, exactly four owned DLLs, only the two root
+folders, matching manifest hashes, **36 local document links**, **52 audio
+provenance records** and ZIP CRC. The deployment sentinel stayed absent and the
+installation's before/after hashes matched. Gitleaks 8.30.1 with default rules
+and an empty ignore file found **0** findings in the actual packaged directory;
+the redacted report is `package-gitleaks.redacted.json` beside the ZIP.
+
+Independent review of the final ZIP also verified all 88 entries against the
+staging bytes, 62 unchanged audio/default/map payloads against frozen source,
+26 embedded UI/map resources and notices, actual Arena/Core PE revision stamps,
+and the client's Core-built-against version 1.0.7. No packaging blocker remained.
+
+The grouped announcer case was additionally replayed against the unchanged
+`fd314a8` source through the harness's existing source override. It failed at
+the new grouped-folder discovery assertion; the current source then passed all
+**335** checks after a clean harness rebuild. Production source hashes stayed
+unchanged. This proves the path regression, not an in-game audio test.
+
+No files were deployed, no GitHub release was created and nothing was uploaded.
+The new grouped installation and missing-BigBrain startup still need native
+Unity/Mono acceptance before treating this trial package as gameplay-tested.

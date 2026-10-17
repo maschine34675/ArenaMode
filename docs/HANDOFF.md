@@ -16,7 +16,10 @@ current. User-facing communication is normally German.
   warning. Real registration/type/priority/brain checks remain mandatory; all
   capabilities stay off on registration failure. See [package rules and evidence](package-layout-20261017.md)
   and [optional-loader harness](../tools/BigBrainCompatibilityChecks/README.md).
-  No deployment or new native game acceptance is implied by packaging.
+  Replacement ZIP `ArenaMode-0.1.0-test-acd0484.zip`: 88 files, folder-only root,
+  1026 unit tests passed/2 skipped, Gitleaks zero findings. Source/Core hashes
+  and archive SHA256 are in the linked report. Not deployed or uploaded; no
+  new native game acceptance is implied by packaging.
 
 - **Early failed-start hang fixed and tested (2026-10-17):** Client `63466e4`
   deployed locally/GPU2, SHA256 `2E2CA630881FE2E7F880E2895E9295F59C20647E848071114D9426D48B7F401F`.
