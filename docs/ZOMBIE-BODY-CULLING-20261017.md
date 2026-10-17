@@ -249,9 +249,39 @@ siehe Abschnitte 1–2).
   erzeugen einzelne 55–90-ms-Frames (`UiBridge Plugin.Update`); sie liegen in
   allen Phasen gleich und fallen aus den 30-s-Mittelwerten heraus.
 
+### 7b. Referenz SPT-GPU-1 (21:27–21:38, gleicher Build, 50 Infizierte)
+
+Gleiches Rezept auf dem langsameren Host (Wachhund per Ledger aus, MaxAlive 56,
+Welle 50, Godmode, Teleport alle 25 s). Dort kostet der Frame rund viermal so
+viel, und der Befund ist derselbe:
+
+| Phase | Mittel ms | P95 (Median) | fps | Exports ms/Frame | ArenaMode ms/Frame | Mods gesamt ms/Frame |
+|---|---|---|---|---|---|---|
+| Basis (Aufwärmen) | 58,1 | 55,0 | 18,9 | 47,8 | 1,56 | 18,7 |
+| Basis | 45,9 | 54,7 | 21,9 | 45,2 · 44,3 | 1,17 · 1,83 | 16,1 · 18,4 |
+| Animator | 47,9 | 57,3 | 21,0 | 46,9 · 50,6 | 2,57 · 2,13 | 22,0 · 24,1 |
+| Schatten | 49,4 | 65,1 | 20,3 | 47,9 · 50,9 | 2,18 · 2,97 | 21,0 · 24,8 |
+| beide | 45,1 | 53,6 | 22,2 | 43,8 · 44,9 · 47,2 | 1,45 · 1,53 · 2,84 | 16,5 · 17,6 · 23,5 |
+| Basis | 45,2 | 53,4 | 22,2 | 45,7 · 45,9 · 43,4 | 2,35 · 1,17 · 1,08 | 21,2 · 17,8 · 15,7 |
+| beide | 48,3 | 63,4 | 20,8 | 49,7 · 46,6 | 3,00 · 2,47 | 25,3 · 21,2 |
+
+Kein Gewinn, eher ein leichter Verlust in den Schalterphasen; die
+instrumentierten Mods wachsen dort von 16–18 auf 21–25 ms je Frame, weil die
+Postfix-Arbeit je Körper auf der langsamen CPU sichtbar wird
+(`VisualPassPatch.Postfix` 0,13 ms je Frame bei 50 Körpern). Wo die Zeit auf
+Host 1 liegt (letzter Export, ms je Frame): `GameWorld.DoWorldTick` 5,5,
+`Player.ComplexUpdate` 4,1, `AICoreController.Update` 3,1 (davon BigBrain 3,0
+und `BotOwner.UpdateManual` 2,6), ArenaModes `MeleeAttackNodePatch.Prefix` 0,9
+(der native `RunToEnemyUpdate`-Körper, 9 Aufrufe je Frame à ≈ 100 µs). Der
+Profil-Stapel bei ≈ 90 s kostete hier **1763 ms** in einem Frame (21:28:34,
+wieder `ItemDeserializer.CreateItem` obenauf); siehe
+[PROFILE-BUILD-BUDGET-20261017.md](PROFILE-BUILD-BUDGET-20261017.md).
+Harness-Aufrufe erzeugen auf Host 1 Frames von 150–210 ms (`UiBridge
+Plugin.Update`), in allen Phasen gleich.
+
 ## 8. Aufräumzustand
 
-Alle drei Raids verlassen; `CullOffscreenAnimators`, `HideOffscreenShadows`
+Alle drei Raids auf Host 2 und der Referenzraid auf Host 1 verlassen; `CullOffscreenAnimators`, `HideOffscreenShadows`
 auf `false`, `MaxAlive` wieder 32, `StuckWaveTimeoutSeconds` per Ledger auf
 100 und `Capture/Headless` per Ledger auf `false` zurückgestellt
 (Abschluss-Export geschrieben). Zwischenfall beim Deploy: die erste Kopie des
