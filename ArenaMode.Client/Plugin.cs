@@ -99,6 +99,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ZombieBodyCullingRuntime.EnablePatch();
         RaidLifecycle.OnRaidEnded += Bots.ZombieBodyCullingRuntime.Reset;
         Performance.ArenaBotHotPaths.Initialize();
+        Performance.ProfileBuildBudget.Initialize();
         Bots.ZombieMeleePatch.EnablePatch();
         Areas.ArenaAreaNavigationPatches.Enable();
         Areas.ArenaAreaSpawnPointsPatch.EnablePatch();

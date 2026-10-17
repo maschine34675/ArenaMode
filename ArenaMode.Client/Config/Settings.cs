@@ -81,6 +81,7 @@ public static class Settings
     public static ConfigEntry<int> PoolPrewarmKeepIdle { get; private set; }
     public static ConfigEntry<bool> TrimDeadBrainList { get; private set; }
     public static ConfigEntry<bool> SkipBotFovCoroutine { get; private set; }
+    public static ConfigEntry<float> ProfileBuildBudgetMs { get; private set; }
 
     public static ConfigEntry<bool> DeveloperMode { get; private set; }
     public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
@@ -1017,6 +1018,20 @@ public static class Settings
             "and puts a drifted scale back at the end of the frame; nothing reads either " +
             "value in between for a bot. Your own body keeps its coroutine. Off = vanilla. " +
             "Applies immediately.");
+
+        ProfileBuildBudgetMs = config.Bind(
+            "Performance",
+            "ProfileBuildBudgetMs",
+            3f,
+            new ConfigDescription(
+                "Build the bot profiles of one server answer over several frames, spending at most " +
+                "this many milliseconds per frame on them, during an arena raid. The game builds " +
+                "every profile of a /client/game/bot/generate answer in the frame it arrives, which " +
+                "in a Zombie raid is one frame of 600-1700 ms about 90-100 s in (the next spawn " +
+                "batch). The request itself is unchanged and the caller still receives the whole " +
+                "batch at once, a few frames later. At least one profile is built per frame, so a " +
+                "batch never stalls. 0 = native (all in one frame). Applies to the next batch.",
+                new AcceptableValueRange<float>(0f, 20f)));
 
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in
