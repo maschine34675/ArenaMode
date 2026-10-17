@@ -157,10 +157,10 @@ event for accepted and rejected starts. It also exercises early and duplicate
 events, stale game/world/epoch/token/started pairs, and subscription teardown.
 Three new negative controls detect premature Run release, missing started-pair
 validation and release of an unconsumed arm. Independent source review found no
-remaining correction defect. Corrected native acceptance remains pending the
-parent's fresh build and GPU retry.
+remaining correction defect. The parent's corrected client `ab3506b` subsequently
+passed two native 3v3 runs on GPU2; see the [delivery and native report](GPU-AIRPIT-EQUATOR-20261017.md).
 
-## Native acceptance still required
+## Native acceptance and remaining coverage
 
 On the exact new client and current MapPort: Equator Team DM must show the
 closed gates while bots assemble, slide once after countdown, then allow both
@@ -168,5 +168,7 @@ teams to leave and fight. The first local and bot replacements must remain in
 their original faction boxes without re-closing. Also exercise protected early
 exit and a subsequent ordinary/nonteam selection. Stand inside an original
 booth exit beyond eight seconds during assembly to confirm no extraction,
-then test a fresh native timer after the doors have opened. No worker native
-acceptance is claimed here; deployment and GPU control belong to the parent.
+then test a fresh native timer after the doors have opened. The parent verified
+those opening/deferral/departure behaviors and local respawn on GPU2. Full-size
+10v10 teams, long replacement cycles and the south extraction trigger remain
+outside this short native sample; offline tests cover their exact-owner rules.

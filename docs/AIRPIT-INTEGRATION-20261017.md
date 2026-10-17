@@ -113,3 +113,11 @@ Server/TMP stand-ins and source checks do not prove
 Unity rendering, real spawn occupancy, PFT follower activation, combat or round
 transitions. Native testing, staged client/server builds, deployment and commits
 are separate parent-integration steps; this document does not claim them.
+
+## Native delivery
+
+[GPU2 report](GPU-AIRPIT-EQUATOR-20261017.md): client `ab3506b`, server `983b774`.
+Gold native-position selection, Deathmatch with one player/seven active bots,
+replacement arrivals, local respawn and protected exit passed. Ordinary PMC
+selection restored its native labels and omitted Arena controls. This verifies
+one representative mode, not all PFT/mode combinations or long-match behavior.

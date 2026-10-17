@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **AirPit/Equator delivery accepted on GPU2 (2026-10-17):** Client `ab3506b`
+  with server `983b774` is installed locally and on GPU2. Two Equator 3v3 raids
+  verified closed preparation booths, opening before Live, both teams leaving,
+  local respawn without re-closing and deferred native extraction. AirPit DM
+  filled seven AI slots and respawned the player. Protected exits restored and
+  persisted snapshots; ordinary PMC selection restored its native UI. PFT on
+  AirPit and maximum-size Equator teams are not native-certified by these runs.
+  DeveloperMode, prior mode and area were restored; game exited normally, server
+  remains running. No push or MapPort changes. The report preserves the initial
+  lifecycle failure, corrected build hashes and the separate early-abort hang
+  follow-up: [GPU evidence and audit](GPU-AIRPIT-EQUATOR-20261017.md).
+
 - **Equator original spawn gates (2026-10-17):** Independent Team DM acquires
   MapPort's optional gate API only for its exact loading game/world/arm token.
   Assembly/countdown permits narrowly checked paths within the original booth;

@@ -46,8 +46,9 @@ Modus-Timer und Ausrüstungswechsel. PFT wartet ebenfalls und reserviert für se
 1–4 Begleiter getrennte, überprüfte Punkte innerhalb der Kontur. Der native
 PFT-Ablauf und die authentifizierten Profile bleiben erhalten.
 
-Nur unabhängiges Team DM zeigt die Teamgröße 2v2–5v5; Deathmatch und Gun Game
-behalten ihre Teilnehmerzahl. Tactical und Zombies verwalten ihre Besetzung selbst.
+Unabhängiges Team DM zeigt die Teamgröße: auf Customs 2v2–5v5, in Equators
+Teamboxen bis 10v10. Deathmatch und Gun Game behalten ihre Teilnehmerzahl.
+Tactical und Zombies verwalten ihre Besetzung selbst.
 Auf Customs bleibt eine gültige gespeicherte Kontur erhalten. Eine alte
 Ganzkarten-Präferenz wird bei der Menüauswahl auf das erste Areal umgestellt;
 ein endgültiger Raid-Start ohne gültige Customs-Kontur wird abgelehnt. Normale
@@ -73,6 +74,6 @@ Native Abnahme ist separat im aktuellen GPU-Bericht/Handoff dokumentiert; die
 Freigabematrix behauptet keinen vollständigen Dauertest aller Kombinationen.
 
 Hinweis für Testautomatisierung: Die externe UiBridge-`gpu-run raid`-Tabelle vom
-06.10.2026 kennt die neuen Freigaben noch nicht. Neue Kombinationen bis zu deren
+17.10.2026 kennt AirPit noch nicht. Neue Kombinationen bis zu deren
 Aktualisierung über die echten Menübuttons auswählen; ihre alte Ablehnung ist
 keine Arena-Laufzeitsperre. Bay5-Zeiten und Equator-Wetter bleiben ArenaMapPort-Sache.
