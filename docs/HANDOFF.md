@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bay5 original team boxes (2026-10-17, implementation/offline checked):**
+  Independent TDM now shares `ArenaTeamBoxRuntime` with Equator, using map-keyed
+  data in `ArenaTeamBoxCatalog`. Bay5 uses ten USEC warehouse and ten BEAR depot
+  starts, explicit 4–20 participants (default 8), owned preparation gates and
+  full native paths before Live; live respawns never re-close. Bay5 exits remain
+  untouched. Other modes and AirPit are unchanged. Read
+  [Bay5 review](BAY5-TEAM-BOXES-REVIEW.md) for source/build/test evidence and the
+  still-pending GPU acceptance; do not infer native approval from offline checks.
+
 - **Release layout v2 and optional BigBrain (2026-10-17):** Local test packages
   now contain only `BepInEx/` and `SPT_Runtime/` at the root. Both Arena client
   DLLs go in `plugins/ArenaMode`, notices/docs in its `docs/` folder; shared

@@ -12,35 +12,35 @@ internal static partial class Program
     private static void MatchSpawnGateRelease()
     {
         var raid = AssembleForCountdown();
-        Check(ArenaEquatorTeamSpawns.OpenCalls == 0, "GATES: no opening before countdown end");
-        ArenaEquatorTeamSpawns.OpenAllowed = false;
-        ArenaEquatorTeamSpawns.GatesOpening = true;
+        Check(ArenaTeamBoxRuntime.OpenCalls == 0, "GATES: no opening before countdown end");
+        ArenaTeamBoxRuntime.OpenAllowed = false;
+        ArenaTeamBoxRuntime.GatesOpening = true;
         raid.Step(Time.time + TeamDeathmatchMatchPolicy.CountdownSeconds + 1);
         Check(!raid.Mode.InitialRosterReady && raid.Mode.PlayingElapsed == 0 && raid.Match.Cues.Count == 0,
             "GATES: incomplete opening keeps timer and round cue held");
         Check(raid.Mode.ShouldBlockMatchDamage(raid.Local) && !raid.Mode.TryBeginScoredEvent(),
             "GATES: no scored damage during slide or incomplete path");
         raid.Step(Time.time + 2);
-        Check(!raid.Mode.InitialRosterReady && ArenaEquatorTeamSpawns.OpenCalls >= 2,
+        Check(!raid.Mode.InitialRosterReady && ArenaTeamBoxRuntime.OpenCalls >= 2,
             "GATES: opening is polled without entering live early");
-        ArenaEquatorTeamSpawns.OpenAllowed = true;
-        ArenaEquatorTeamSpawns.GatesOpening = false;
+        ArenaTeamBoxRuntime.OpenAllowed = true;
+        ArenaTeamBoxRuntime.GatesOpening = false;
         raid.Step(Time.time + 1);
         Check(raid.Mode.InitialRosterReady && raid.Mode.PlayingElapsed == 0 && raid.Match.Cues.Count == 1,
             "GATES: connected opening releases one cue and starts clock now");
-        int opens = ArenaEquatorTeamSpawns.OpenCalls;
+        int opens = ArenaTeamBoxRuntime.OpenCalls;
         raid.Step(Time.time + 2);
-        Check(ArenaEquatorTeamSpawns.OpenCalls == opens, "GATES: live ticks do not re-close or re-open gates");
+        Check(ArenaTeamBoxRuntime.OpenCalls == opens, "GATES: live ticks do not re-close or re-open gates");
         raid.Mode.OnMatchEnd();
-        Check(ArenaEquatorTeamSpawns.Releases.Count > 0, "GATES: match end releases owned gate state");
+        Check(ArenaTeamBoxRuntime.Releases.Count > 0, "GATES: match end releases owned gate state");
 
         raid = AssembleForCountdown();
-        ArenaEquatorTeamSpawns.OpenAllowed = false;
+        ArenaTeamBoxRuntime.OpenAllowed = false;
         raid.Game.Status = GameStatus.Stopping;
         raid.Step(Time.time + 1);
-        Check(ArenaEquatorTeamSpawns.Releases.Count > 0 && !raid.Mode.InitialRosterReady,
+        Check(ArenaTeamBoxRuntime.Releases.Count > 0 && !raid.Mode.InitialRosterReady,
             "GATES: native stop during preparation releases without live transition");
-        ArenaEquatorTeamSpawns.Reset();
+        ArenaTeamBoxRuntime.Reset();
     }
 
     private static void MatchDifficultyClock()

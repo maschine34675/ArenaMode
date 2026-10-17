@@ -82,7 +82,7 @@ internal static class Program
         Runtime.Shutdown();SPT.Reflection.Patching.ModulePatch.Fail=true;Runtime.Enable();
         Check(!Runtime.IsReady,"HOOK: failure is unavailable");
         Setup();ArenaSession.Participants=24;Reject(()=>Runtime.Begin(World,Game),"CAPACITY: 12v12 rejected");
-        Setup(total:20);var blocked=Formation.Points[0];Physics.Floor=p=>p!=new Vector3(blocked.X,blocked.Y,blocked.Z);Reject(()=>Runtime.Begin(World,Game),"CAPACITY: blocked slot rejects 10v10");
+        Setup(total:20);var blocked=Formation.Points[1];Physics.Floor=p=>p!=new Vector3(blocked.X,blocked.Y,blocked.Z);Reject(()=>Runtime.Begin(World,Game),"CAPACITY: blocked slot rejects 10v10");
         Setup();NavMesh.Path=(a,b)=>Formation.InsideBooth(a.x,a.y,a.z,false);Reject(()=>Runtime.Begin(World,Game),"PATH: one disconnected box rejects match");
         Setup();World.MainPlayer.Position+=new Vector3(.5f,0,0);var bodyPosition=World.MainPlayer.Position;
         Physics.Floor=p=>p!=bodyPosition;Reject(()=>Runtime.Begin(World,Game),"INITIAL-BODY: actual floor is required");

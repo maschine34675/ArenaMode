@@ -52,6 +52,24 @@ harness now exercises both maps; gate checks include Bay5's two elevations,
 cross-map rejection, countdown, respawn and untouched Bay5 exits. Existing
 Equator negative controls are retained.
 
-Build and native acceptance evidence will be recorded after the final
-integrated source is frozen. No offline test is a substitute for live
-floor/clearance/path and actual departure checks.
+Offline verification after integration with release-layout changes:
+
+- Full server/data suite: 1075 passed, one explicitly skipped installed-APBS
+  probe. Bay5 fixtures also consume the real installed donor via admission checks.
+- Both-map linked runtime: 212 assertions, twelve rejected behavioral mutants.
+- Gates/countdown/exits: 144 assertions, twenty-one rejected behavioral mutants.
+- Participants: 4244 assertions; map/mode admission: 648.
+- Native-menu model: 717; TDM mode/relations: 340; extracted burst preparation:
+  93; give-up: 626; failed-start abort: 112; Customs: 392; area menu: 66;
+  native area hook: 195. These are production-linked offline models, not native
+  gameplay proof.
+- TDM match/exit model: 247 assertions plus its existing fault controls.
+- Isolated client/server build passed on clean `18cff75`; staged manifest
+  `artifacts/area-map-delivery/533f9a6aca0440d088301ec90fbf5323/manifest.json`.
+  Staging verified 89 installed files unchanged. Only existing compiler warnings.
+- Independent read-only review found no outstanding source defect. All twenty
+  exact positions still need live floor/clearance/path checks, particularly the
+  two depot elevations and starts near warehouse navigation edges.
+
+Native acceptance and final delivery remain pending. No offline test is a
+substitute for live geometry and actual departure checks.
