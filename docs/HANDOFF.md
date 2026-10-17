@@ -7,6 +7,16 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Local test release package (2026-10-17):** User published the existing repo
+  as `maschine34675/ArenaMode`; this task only builds a local trial ZIP. Source
+  is frozen at `a728802`, Core `bf227f2` / 1.0.7; concurrent failed-start work
+  is excluded. New `tools/Package-TestRelease.ps1` builds isolated committed
+  snapshots without deployment, packages explicit runtime inputs and places the
+  optional BigBrain companion outside the auto-loaded plugin tree. 88 files,
+  3,651,293 bytes; unit suite 1016 passed/2 skipped, archive checks and seven
+  negative controls passed, package Gitleaks zero findings. No upload/deployment
+  or new GPU acceptance. See [package and evidence](TEST-RELEASE-20261017.md).
+
 - **AirPit/Equator delivery accepted on GPU2 (2026-10-17):** Client `ab3506b`
   with server `983b774` is installed locally and on GPU2. Two Equator 3v3 raids
   verified closed preparation booths, opening before Live, both teams leaving,

@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Local test release ZIP and packaging instructions](TEST-RELEASE-20261017.md)
 - [Player README and source-build instructions](../README.md)
 - [Complete implemented feature inventory and mutator list](FEATURES.md)
 - [Forge description — six tabs, ready for the editor](FORGE-DESCRIPTION.md)
