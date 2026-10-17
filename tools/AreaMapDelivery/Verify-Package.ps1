@@ -8,6 +8,16 @@ $mapAssets = Join-Path $mapRepo 'ArenaMode.Client\Assets\MapPreviews'
 $required = @('customs-ground.png', 'ATTRIBUTION.md', 'MAP-SOURCES.json',
     'Source\Shebuka-LICENSE-MODIFIED BY ACIDPHANTASM.md')
 
+function Normalize-MapNoticeLinks([string]$Body) {
+    # The shared payload writer URL-encodes Markdown destinations (including
+    # spaces) without changing license prose or the referenced source. Compare
+    # only that equivalent spelling; embedded resources remain byte-exact.
+    return [regex]::Replace($Body, '\]\(([^)]+)\)', {
+        param($match)
+        return '](' + [Uri]::UnescapeDataString($match.Groups[1].Value.Trim('<', '>')) + ')'
+    })
+}
+
 # Read PE metadata, never load the Unity-dependent client assembly into this
 # PowerShell process. Check the real embedded bytes, not project-file intent.
 $mapStream = [IO.File]::OpenRead([IO.Path]::GetFullPath($ClientDll))
@@ -39,8 +49,15 @@ try {
     foreach ($source in Get-ChildItem -LiteralPath $mapAssets -File -Recurse | Where-Object Name -ne '.gitattributes') {
         $relative = [IO.Path]::GetRelativePath($mapAssets, $source.FullName)
         $destination = Join-Path $ContentRoot $relative
-        if (-not (Test-Path -LiteralPath $destination) -or
-            (Get-FileHash -LiteralPath $destination).Hash -ne (Get-FileHash -LiteralPath $source.FullName).Hash) {
+        if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+            throw "Map source/licensing missing in staged content: $relative"
+        }
+        $same = (Get-FileHash -LiteralPath $destination).Hash -eq (Get-FileHash -LiteralPath $source.FullName).Hash
+        if (-not $same -and $source.Extension -eq '.md') {
+            $same = (Normalize-MapNoticeLinks (Get-Content -LiteralPath $destination -Raw)) -ceq
+                (Normalize-MapNoticeLinks (Get-Content -LiteralPath $source.FullName -Raw))
+        }
+        if (-not $same) {
             throw "Map source/licensing missing or changed in staged content: $relative"
         }
     }
