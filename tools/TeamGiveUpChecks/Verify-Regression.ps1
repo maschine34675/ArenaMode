@@ -9,7 +9,9 @@ $flowPath = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchFlow.cs'
 $policyPath = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs'
 $matchPath = Join-Path $repo 'ArenaMode.Client/Modes/ArenaMatch.cs'
 $originalHashes = @{}
-foreach ($path in @($modePath, $giveUpPath, $scoreboardPath, $flowPath, $policyPath, $matchPath)) {
+foreach ($path in @($modePath, $giveUpPath, $scoreboardPath, $flowPath, $policyPath, $matchPath,
+    (Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.SpawnProtection.cs'),
+    (Join-Path $repo 'ArenaMode.Client/Modes/TeamSpawnProtectionLease.cs'))) {
     $originalHashes[$path] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
 }
 $scratch = Join-Path $PSScriptRoot ('obj/giveup-regression-' + [guid]::NewGuid().ToString('N'))

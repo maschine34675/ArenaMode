@@ -9,11 +9,15 @@
     <PolicySource Condition="'$(PolicySource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMatchPolicy.cs</PolicySource>
     <PopulationSource Condition="'$(PopulationSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchPopulation.cs</PopulationSource>
     <RelationsSource Condition="'$(RelationsSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TeamDeathmatchRelations.cs</RelationsSource>
+    <ShieldSource Condition="'$(ShieldSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.SpawnProtection.cs</ShieldSource>
+    <ShieldLeaseSource Condition="'$(ShieldLeaseSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamSpawnProtectionLease.cs</ShieldLeaseSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Remove="BurstIntegration/**/*.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(ShieldSource)" Link="Production/TeamDeathmatchMode.SpawnProtection.cs" />
+    <Compile Include="$(ShieldLeaseSource)" Link="Production/TeamSpawnProtectionLease.cs" />
     <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />
     <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(PopulationSource)" Link="Production/TeamDeathmatchPopulation.cs" />

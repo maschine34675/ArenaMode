@@ -9,6 +9,7 @@ using EFT;
 
 namespace UnityEngine
 {
+    public sealed class Transform { public Vector3 position; }
     public static class Time { public static float time; public static float realtimeSinceStartup; public static float unscaledTime; }
     public readonly struct Vector3
     {
@@ -52,6 +53,7 @@ namespace EFT
     public sealed class BotStorage { public List<BotOwner> BotOwners = new(); }
     public sealed class GameWorld
     {
+        public UnityEngine.Transform transform = new();
         public Player MainPlayer;
         public readonly Dictionary<string, Player> Players = new(StringComparer.Ordinal);
         public Player GetAlivePlayerByProfileID(string id) => Players.GetValueOrDefault(id);
@@ -69,6 +71,7 @@ namespace EFT
     }
     public class Player : IPlayer
     {
+        public UnityEngine.Transform Transform = new();
         public string ProfileId { get; set; }
         public bool IsAI { get; set; }
         public Profile Profile = new();
@@ -288,6 +291,7 @@ namespace ArenaMode.Config
     internal sealed class Entry<T> { internal T Value; internal Entry(T value) => Value = value; }
     internal static partial class Settings
     {
+        internal static readonly Entry<float> SpawnProtectionSeconds = new(0f);
         internal static readonly Entry<int> TeamDeathmatchSize = new(5);
         internal static readonly Entry<int> TeamDeathmatchKillLimit = new(0);
         internal static readonly Entry<int> TeamDeathmatchTimeLimitSeconds = new(0);
@@ -316,6 +320,14 @@ namespace ArenaMode.Respawn
 }
 namespace ArenaMode.Effects
 {
+    internal sealed class ArenaSpawnShieldView : IDisposable
+    {
+        internal static int Active;
+        private bool _disposed;
+        internal ArenaSpawnShieldView(UnityEngine.Transform world) { Active++; }
+        internal void Update(UnityEngine.Vector3 position) { }
+        public void Dispose() { if (!_disposed) Active--; _disposed = true; }
+    }
     internal static class ArenaTracerPatches { internal static void ResetDiagnostics() { } }
 }
 namespace ArenaMode.Modes

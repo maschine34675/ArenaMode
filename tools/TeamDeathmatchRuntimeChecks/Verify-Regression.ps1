@@ -8,7 +8,9 @@ $relations = Join-Path $repo 'ArenaMode.Client/Bots/TeamDeathmatchRelations.cs'
 $awareness = Join-Path $repo 'ArenaMode.Client/Bots/TdmSearchAwareness.cs'
 $flow = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchFlow.cs'
 $policy = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs'
-$sources = @($mode, $population, $relations, $awareness, $flow, $policy)
+$shield = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.SpawnProtection.cs'
+$shieldLease = Join-Path $repo 'ArenaMode.Client/Modes/TeamSpawnProtectionLease.cs'
+$sources = @($mode, $population, $relations, $awareness, $flow, $policy, $shield, $shieldLease)
 $before = @{}
 foreach ($source in $sources) { $before[$source] = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
 $scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-tdm-runtime-mutations-' + [Guid]::NewGuid().ToString('N'))
@@ -31,6 +33,21 @@ if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_TDM_RUNTIME_CHECK
     throw ('Runtime model baseline failed: ' + $baseline.Output)
 }
 $cases = @(
+    @{
+        Name = 'spawn-shield-no-expiry'; Path = $shieldLease; Property = 'ShieldLeaseSource';
+        Find = 'now - _started.Value >= _seconds'; Replace = 'false';
+        Failure = 'pending activation does not consume duration, configuration capped at 30 seconds'
+    },
+    @{
+        Name = 'spawn-shield-no-attack-release'; Path = $shield; Property = 'ShieldSource';
+        Find = 'shield.Lease.End();'; Replace = '';
+        Failure = 'first attack ends damage shield and hides its visual synchronously'
+    },
+    @{
+        Name = 'spawn-shield-no-world-registration'; Path = $shield; Property = 'ShieldSource';
+        Find = '&& ReferenceEquals(_world.GetAlivePlayerByProfileID(shield.ProfileId), shield.Body)'; Replace = '';
+        Failure = 'stale body/game/identity cannot retain immunity'
+    },
     @{
         Name = 'spawn-gates-countdown'; Path = $flow; Property = 'FlowSource';
         Find = '&& !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;';

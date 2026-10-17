@@ -78,6 +78,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _spawnGateEpoch = ArenaSession.ArmEpoch;
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
+        _spawnShieldSeconds = Settings.SpawnProtectionSeconds?.Value ?? 4f;
         _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
             Settings.TeamDeathmatchTimeLimitSeconds.Value);
         EPlayerSide? faction = TeamDeathmatchRelations.Faction(_local);
@@ -103,6 +104,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void Tick(float deltaTime)
     {
+        TickSpawnShields();
         if (ObserveNativeStop()) return;
         CheckMatchLimits();
         if (HasResult) { TickResult(); return; }
@@ -300,6 +302,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                 return;
             }
             _bots.Add(bot); // PreActive already occupies its slot
+            TrackSpawnShield(bot);
             _activationDeadline.Add(bot, Time.time + TeamDeathmatchPopulation.RequestTimeout);
             _population.Settle(ticket);
             if (!TrySynchronizeScoreboardRoster(out var problem))
@@ -351,6 +354,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
+        ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
         string state = DescribeState(); // capture pending work before Stop clears it
         _population.Stop();
@@ -550,6 +554,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void OnMatchEnd()
     {
+        ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");
         _ended = true;
         _pendingGiveUpLife = null;

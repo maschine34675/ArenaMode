@@ -48,6 +48,7 @@ internal static class CombatPatches
         ArenaSelfGrenadeTaunt.Enable();
         ArenaAssistCapture.Enable();
         ArenaFriendlyExplosionEffects.Enable();
+        TeamSpawnProtectionHooks.Enable();
     }
 
     public static void ResetRaidState()
@@ -292,6 +293,7 @@ internal static class CombatPatches
             ref PlayerHitInfo __result, out IDisposable __state)
         {
             __state = null;
+            TeamSpawnProtectionHooks.Attacked(damageInfo.Player?.iPlayer);
             if (!ShouldBlockProtectedTeamMutation(__instance, "shot")
                 && !ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer))
             {
@@ -335,6 +337,7 @@ internal static class CombatPatches
             out IDisposable __state)
         {
             __state = null;
+            TeamSpawnProtectionHooks.Attacked(damageInfo.Player?.iPlayer);
             if (ShouldBlockProtectedTeamMutation(__instance, "player-damage")
                 || ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance, damageInfo.Player?.iPlayer)) return false;
             __state = BeginHitContext(__instance, damageInfo, bodyPartType, shot: false);
@@ -388,6 +391,7 @@ internal static class CombatPatches
         private static bool Prefix(ActiveHealthController __instance, ref float damage, DamageInfo damageInfo,
             ref float __result)
         {
+            if (damage > 0f) TeamSpawnProtectionHooks.Attacked(damageInfo.Player?.iPlayer);
             if (!ShouldBlockProtectedTeamMutation(__instance?.Player, "health-damage")
                 && !ArenaFriendlyFire.ShouldBlockFriendlyDamage(__instance?.Player, damageInfo.Player?.iPlayer))
             {

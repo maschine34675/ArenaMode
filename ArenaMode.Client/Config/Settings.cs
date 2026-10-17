@@ -592,7 +592,8 @@ public static class Settings
             "Respawn",
             "SpawnProtectionSeconds",
             4f,
-            "Invulnerability after an arena respawn (0 = disabled).");
+            "Invulnerability after an arena respawn (0 = disabled). Team DM bots also receive a visible damage shield " +
+            "for this duration (maximum 30s, frozen per match), ending on their first attack.");
 
         DisableLabyrinthSpawnTraps = config.Bind(
             "Arena", "DisableLabyrinthSpawnTraps", true,

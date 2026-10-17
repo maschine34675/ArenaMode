@@ -28,7 +28,7 @@ internal static partial class Program
         internal Raid(bool usec = true, int size = 5, bool active = true,
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
             bool bounded = false, bool areaPending = false, int? areaSize = null,
-            int killLimit = 0, int timeLimit = 0, int? participants = null)
+            int killLimit = 0, int timeLimit = 0, int? participants = null, float protection = 0f)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaTeamBoxRuntime.Reset();
@@ -59,6 +59,7 @@ internal static partial class Program
             Settings.TeamDeathmatchSize.Value = size;
             Settings.TeamDeathmatchKillLimit.Value = killLimit;
             Settings.TeamDeathmatchTimeLimitSeconds.Value = timeLimit;
+            Settings.SpawnProtectionSeconds.Value = protection;
             Settings.NoCorpseLooting.Value = true;
             TeamDeathmatchRelations.Reset();
             ArenaTracerTeams.Reset();
@@ -775,6 +776,7 @@ internal static partial class Program
         MatchReadinessLossBetweenRosterTicks();
         MatchTerminalPopulationAndPresentation();
         MatchTimeLimitAndRuleSnapshot();
+        BotSpawnShields();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");
         Console.WriteLine("ARENA_TDM_RUNTIME_CHECKS_PASSED");
     }

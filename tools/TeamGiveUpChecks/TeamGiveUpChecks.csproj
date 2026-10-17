@@ -17,6 +17,8 @@
     <Compile Include="../../ArenaMode.Client/Modes/ArenaMatchResult.cs" Link="Production/ArenaMatchResult.cs" />
     <Compile Include="$(GiveUpSource)" Link="Production/ArenaGiveUp.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMode.SpawnProtection.cs" Link="Production/TeamDeathmatchMode.SpawnProtection.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamSpawnProtectionLease.cs" Link="Production/TeamSpawnProtectionLease.cs" />
     <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />
     <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />

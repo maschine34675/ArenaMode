@@ -91,8 +91,8 @@ public sealed partial class TeamDeathmatchMode
     /// <summary>Uses the same captured world even after IsComplete turns true.</summary>
     internal bool ShouldBlockMatchDamage(Player victim)
     {
-        if (victim == null || !IsCurrentRaid() || !ReferenceEquals(ArenaMatchService.Current, _match)
-            || (_rules?.Phase == TdmMatchPhase.Live && !HasResult)) return false;
+        if (victim == null || !IsCurrentRaid() || !ReferenceEquals(ArenaMatchService.Current, _match)) return false;
+        if (_rules?.Phase == TdmMatchPhase.Live && !HasResult) return IsBotSpawnProtected(victim);
         if (ReferenceEquals(victim, _world.MainPlayer) && victim.ProfileId == _localId) return true;
         var owner = victim.AIData?.BotOwner;
         return owner != null && ReferenceEquals(owner.GetPlayer, victim)

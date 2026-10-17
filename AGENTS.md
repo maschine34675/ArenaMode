@@ -29,6 +29,10 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See docs/DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See docs/TEAM-DEATHMATCH-REVIEW.md.
+Independent TDM bots also own finite exact-body spawn damage shields, with a
+world-space cage and first-attack release. Read docs/TDM-BOT-SPAWN-SHIELD-20261017.md
+before changing damage admission, attack hooks or shield lifetime. Never reuse
+historical team IDs as shield authority or modify their DamageCoeff.
 Team Friendly Fire is a raid-frozen mutator: Team DM and PFT Tactical default on,
 PFT Zombies off; solo is unavailable. Read docs/FRIENDLY-FIRE-REVIEW.md before changing
 damage admission, physical team identities or attributed grenade effects. Do not
