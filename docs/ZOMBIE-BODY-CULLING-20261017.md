@@ -164,12 +164,102 @@ Besitz und Rücknahme, die Lehre aus dem zurückgenommenen Crowd-Versuch
   (Zombie) bzw. 60 s (Performance) aggregierte Zähler (vermiedene Arbeit, keine
   Frame-Zeit).
 
-## 6. Messrezept und Ergebnis
+## 6. Messrezept
 
-Siehe Abschnitt 7; A/B-Lauf in einem Raid, MaxAlive 32, Factory, Godmode,
-stehend, Phasen zu je 90 s: Basis (nur Performance-Schalter) → Animator →
-Schatten → beide → Basis → beide, dazu ModProfiler-Exports alle 30 s.
+A/B-Lauf innerhalb eines Raids (SPT-GPU-2, Factory, Solo, eigenes Gear mit
+Bajonett, Godmode, kein Schuss, kein Kill): die Schalter werden per
+`uibridge_config_set` live umgeschaltet, Phasen zu je 90 s, in jeder Phase
+alle 25 s ein Teleport auf den nächsten von sechs Spawnpunkten (≥ 24 m
+Abstand), damit die Horde aus allen Richtungen heranläuft (Körper 4–10 m
+hinter der Kamera sind der Fall des Animator-Schalters). Alle 5 s
+`uibridge_status` (300-Frame-Fenster: Mittel, P95, Max) und `uibridge_player`
+(Lebende, nächste Abstände); dazu ModProfiler 1.4.0 kopflos mit Exports alle
+30 s (Frames/Sekunden je Intervall, ms/Frame je Mod, Spitzenliste). Skript
+`zombie-ab.mjs`, Auswertung `ab_analyze.py` (Sitzungs-Scratchpad; Rohdaten
+`run1.jsonl`, `run3.jsonl`, Exportordner `20261017-202636`).
 
-## 7. Ergebnis GPU-2
+Zwei Vorläufe lehrten das Rezept: Lauf 1 (MaxAlive 32) wurde dreimal vom
+Wellen-Wachhund abgeräumt (ohne Spielerkills feuert er nach 100 s Sättigung,
+die Bot-Zahl fiel von 32 auf 11), Lauf 2 starb der Spieler vor dem Godmode.
+Lauf 3 lief mit `StuckWaveTimeoutSeconds = 0` (per Ledger gepinnt, 0 = aus)
+und MaxAlive 56 bei Wellengröße 50, also konstant 50 lebende Infizierte ohne
+Nachspawn, unterhalb der 120-fps-Kappe des Hosts.
 
-_(wird nach dem Lauf eingetragen)_
+## 7. Ergebnis GPU-2 (Lauf 3, 20:45–20:57, Client `cd2ede5`, 50 Infizierte)
+
+| Phase | Mittel ms | P95 (Median der Fenster) | fps | Lebende | Exports ms/Frame | ArenaMode ms/Frame |
+|---|---|---|---|---|---|---|
+| Basis (nur Perf-Schalter) | 11,73 | 13,14 | 85,9 | 49,9 | 11,86 · 11,48 · 11,25 | 0,37 · 0,32 · 0,33 |
+| Basis | 12,31 | 14,11 | 81,9 | 50,0 | 12,93 · 12,74 · 11,79 | 0,54 · 0,44 · 0,41 |
+| Animator | 12,88 | 14,57 | 77,9 | 50,0 | 13,44 · 12,51 · 13,12 | 0,81 · 0,40 · 0,61 |
+| Schatten | 12,61 | 14,37 | 79,6 | 50,0 | 13,41 · 12,39 | 0,56 · 0,48 |
+| beide | 13,28 | 15,18 | 76,0 | 48,9 | 13,77 · 12,03 | 0,55 · 0,35 |
+| Basis | 13,64 | 15,56 | 73,6 | 48,0 | 13,35 · 13,46 | 0,52 · 0,52 |
+| beide | 13,21 | 13,95 | 76,3 | 46,5 | 13,89 · 12,81 | 0,57 · 0,43 |
+
+Die Schalter griffen nachweislich (Debug-Zähler je 30 s): Animator-Culling
+bis 31 Körper je Frame in der Spitze, im Mittel ≈ 12 von 50; Schatten bis 50
+von 50 Körpern aus; Rücknahmen beim Pool-Return 0 (keine Ausrüstungsrückgabe
+ohne Tote) bzw. 4 und 17 in Lauf 1 (Wachhund-Abräumung). Keine Warnung, kein
+Fehler aus den neuen Patches in drei Raids.
+
+**Befund: kein messbarer Gewinn.** Die Frame-Zeit steigt über den Lauf
+unabhängig vom Schalter (Basis 11,7 → 12,3 → 13,6 ms bei konstant 50
+Lebenden), und die Schalterphasen liegen innerhalb dieses Drifts (ABAB-Wechsel
+ohne Sprung). ArenaModes eigener Anteil wächst mit den Schaltern um ≈ 0,1–0,3
+ms (die Postfix-Arbeit je Körper je Frame). Deutung: auf diesem Host (RTX 4070
+Ti, CPU-gebunden) ist weder die Animator-Auswertung der Nahhorde noch der
+Schattenpass der begrenzende Posten; Factory hat zudem kaum Sonnenschatten.
+Die Engine-Kosten je Zombie liegen demnach in Physik (Hit-Collider,
+Ragdolls), KI und dem Spielcode, nicht in Animation und Schatten. Beide
+Zombie-Schalter bleiben **aus** als dokumentierte Messschalter; ein Lauf auf
+einer Außenkarte mit tiefer Sonne (Customs-Areal) stünde noch aus, bevor man
+sie streicht.
+
+Die Performance-Schalter liefen in allen Phasen mit (≈ 200.000 übersprungene
+Coroutinen je Minute bei 32 Bots, 1–6 geleerte Löscheinträge je Minute); ihr
+Nutzen ist Allokationsvermeidung und Speicherfreigabe, nicht Frame-Zeit, und
+war in diesem Aufbau nicht isoliert messbar. Sie bleiben an (verhaltensgleich,
+siehe Abschnitte 1–2).
+
+**Nebenbefunde aus der Spitzenliste (Sidecar `spikes`):**
+
+- **Der ~100-s-Hänger ist die Profil-Deserialisierung.** Zweimal reproduziert,
+  je ≈ 90 s nach Raidstart: 625 ms (20:30:07) und 627 ms (20:47:14), oben
+  jeweils `ItemDeserializer.CreateItem` (über UIFixes' Postfix sichtbar), kein
+  GC. Das ist der Stapel neuer Bot-Profile, den der Server für die weiteren
+  Spawns liefert und den der Client in einem Frame zu Items baut. Damit ist
+  der unerklärte Hänger der Benchmarks vom 13.10. (730–1708 ms bei 102–105 s)
+  zugeordnet; die passende Technik ist Kandidat 9 der Bewertung (Profile je
+  Frame unter einem Zeitbudget bauen, wie Smoothie `ProfileBudget`).
+- **Synchrone Nahkampf-Pfadsuche.** Beim Verlassen des Raids (20:57:32–34)
+  zehn Frames in Folge mit 130–180 ms, davon 101–111 ms in
+  `AICoreController.Update` → BigBrain → `MeleeAttackNodePatch.Prefix`
+  (der native `RunToEnemyUpdate`-Körper mit `CanRunToEnemyToHit`): alle 50
+  Infizierten berechneten im selben Frame ihren Pfad zum plötzlich
+  unerreichbaren Ziel neu. Im Spiel entspricht das einem Spieler, der für die
+  Horde unerreichbar wird (Vorsprung, Leiter). Noch nicht angefasst; ein
+  Kandidat wäre, die Pfadneuberechnungen je Frame zu deckeln.
+- Wachhund-Abräumung von 32 Infizierten: ein Frame mit 207 ms
+  (`ArenaController.Update` 358 ms inklusiv, davon `RespawnEngine.RunRespawn`
+  172 ms); PitFireTeams `FollowerWeaponSelectorManualUpdatePatch` einmal
+  98 ms in einem Frame; der Raidstart kostet weiterhin 3,7–4,1 s in
+  PitFireTeams englischer Stimm-Nachladung (nur Ladebildschirm).
+- Die Harness-Aufrufe selbst (`uibridge_status`, `config_set`, Teleport)
+  erzeugen einzelne 55–90-ms-Frames (`UiBridge Plugin.Update`); sie liegen in
+  allen Phasen gleich und fallen aus den 30-s-Mittelwerten heraus.
+
+## 8. Aufräumzustand
+
+Alle drei Raids verlassen; `CullOffscreenAnimators`, `HideOffscreenShadows`
+auf `false`, `MaxAlive` wieder 32, `StuckWaveTimeoutSeconds` per Ledger auf
+100 und `Capture/Headless` per Ledger auf `false` zurückgestellt
+(Abschluss-Export geschrieben). Zwischenfall beim Deploy: die erste Kopie des
+Builds landete im alten Wurzelpfad `plugins\maschine-ArenaMode.Client.dll`,
+während eine andere Sitzung den Client bereits nach
+`plugins\maschine-ArenaMode\` verlegt hatte; BepInEx lud die Wurzelkopie (die
+Zweitkopie wurde als Duplikat übersprungen), die Messung lief also mit diesem
+Build. Die Wurzelkopie wurde entfernt, der Client liegt nur noch im
+kanonischen Ordner, und EFT wurde danach neu gestartet. Der No-Deploy-Build
+(`SPTModType=Library`, `SPTUserMods=<nicht existent>`) kopiert die
+Arena-Assets trotzdem nach `BepInEx\plugins\ArenaMode` (inhaltlich identisch).

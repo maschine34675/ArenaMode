@@ -15,6 +15,8 @@ build/deployment JSON records live here. The automatically discovered
 - [Current handoff and test status](HANDOFF.md)
 - [AirPit map admission and saved-map migration](AIRPIT-INTEGRATION-20261017.md)
 - [Equator original spawn gates and preparation safety](EQUATOR-SPAWN-GATES-20261017.md)
+- [Zombie body culling and bot hot-path switches (four performance toggles)](ZOMBIE-BODY-CULLING-20261017.md)
+- [Zombie performance levers, assessment after two control raids](ZOMBIE-PERFORMANCE-IDEAS-20261017.md)
 - [AirPit and Equator GPU acceptance, deployment and recovery audit](GPU-AIRPIT-EQUATOR-20261017.md)
 - [Realistic generated weapon-category pictures](WEAPON-RENDERS-20261016.md)
 - [Four credited game-icons.net HUD symbols](UI-GAME-ICONS-20261016.md)
