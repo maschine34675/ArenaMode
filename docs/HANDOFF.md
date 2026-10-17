@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Early failed-start hang fixed and tested (2026-10-17):** Client `63466e4`
+  deployed locally/GPU2, SHA256 `2E2CA630881FE2E7F880E2895E9295F59C20647E848071114D9426D48B7F401F`.
+  Protects only the exact failed Arena exit from the deferred native raid-intro
+  fade overwriting GameEnd. GPU2 `b4b60417`: deliberate foreign-gate rejection
+  reached results/menu and restored profile; next normal Equator3v3 reached Live
+  and left normally. 112 abort/intro assertions, 23 negative controls; adjacent
+  gate suite100/19; staged build passed. Both raid profiles314/314 items, only
+  Hideout timestamp differs. Settings restored; game/server stopped as initially.
+  Server `983b774` and MapPort assets unchanged. Bay5/AirPit team-box gaps are
+  documented, not implemented. See [cause, acceptance and remaining map work](FAILED-START-INTRO-REVIEW.md).
+  The separately prepared frozen trial ZIP below does not contain this fix.
+
 - **Local test release package (2026-10-17):** User published the existing repo
   as `maschine34675/ArenaMode`; this task only builds a local trial ZIP. Source
   is frozen at `a728802`, Core `bf227f2` / 1.0.7; concurrent failed-start work
