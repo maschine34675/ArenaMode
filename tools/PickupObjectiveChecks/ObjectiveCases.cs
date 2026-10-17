@@ -176,5 +176,49 @@ internal static partial class Program
         Check(ArenaPowerups.Grants.Count==1,"bot collects relocated pickup after reentry");
         Console.WriteLine("PICKUP_OBJECTIVE_ROTATION_PASSED");
     }
-    private static void ObjectiveCases(){HealthCases();AiCases();AiRotationCases();Console.WriteLine("PICKUP_OBJECTIVE_BEHAVIOR_PASSED");}
+
+    private static void NativeRouteFailureCases()
+    {
+        var bot=AiReady();var lease=Acquire(bot);var logic=new ArenaPickupLogic(bot);
+        // Unity's sampled preflight succeeded, but EFT's unsampled direct path
+        // now fails. A coverless map must refuse that trip without reconstruction.
+        bot.NativeDirectPathFails=true;
+        logic.Update(new ArenaPickupAction(lease));
+        Check(bot.RouteCalls==1&&bot.CoverFallbackCalls==0,"failed native direct pickup route never enters cover fallback");
+        Check(bot.TeleportFallbackCalls==0,"failed pickup path cannot teleport the bot");
+        Check(lease.Released&&!bot.Mover.HasPathAndNoComplete,"native direct failure releases pickup lease and movement");
+        Check(!ArenaMode.Plugin.ModLogger.Lines.Any(s=>s.StartsWith("Warning: Arena pickup trip failed")),
+            "ordinary native path refusal is not reported as an exception");
+
+        bot=AiReady();lease=Acquire(bot);logic=new(bot);
+        var failure=new PickupProbeException();bot.MoveFailure=failure;
+        ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled=false;
+        try
+        {
+            logic.Update(new ArenaPickupAction(lease));
+            Check(lease.Released&&!bot.Mover.HasPathAndNoComplete,"exception cleanup remains active with diagnostics disabled");
+            Check(ArenaMode.Plugin.ModLogger.Lines.Count(s=>s.StartsWith("Warning: Arena pickup trip failed"))==1,
+                "unexpected native pickup failure warns when developer diagnostics are disabled");
+            Check(failure.DetailReads==0&&!ArenaMode.Plugin.ModLogger.Lines.Any(s=>s.Contains("Arena pickup exception detail:")),
+                "disabled developer diagnostics do not format full exception stacks");
+
+            lease=Acquire(bot);logic.Update(new ArenaPickupAction(lease));
+            Check(lease.Released&&ArenaMode.Plugin.ModLogger.Lines.Count(s=>s.StartsWith("Warning: Arena pickup trip failed"))==1,
+                "repeated native pickup failures warn at most once per logic instance");
+
+            ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled=true;
+            lease=Acquire(bot);logic.Update(new ArenaPickupAction(lease));
+            string detail=ArenaMode.Plugin.ModLogger.Lines.Single(s=>s.Contains("Arena pickup exception detail:"));
+            Check(failure.DetailReads==1&&detail.Contains("stage=native movement update")&&detail.Contains("RunToEnemy.DoorOpen")
+                &&detail.Contains("ArenaPickupLogic.Update")&&detail.Contains("target=one"),
+                "developer exception detail retains stage target and original native stack");
+            lease=Acquire(bot);logic.Update(new ArenaPickupAction(lease));
+            Check(lease.Released&&failure.DetailReads==1
+                &&ArenaMode.Plugin.ModLogger.Lines.Count(s=>s.Contains("Arena pickup exception detail:"))==1,
+                "repeated native pickup failures format at most one full diagnostic per logic instance");
+        }
+        finally { ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled=true; }
+    }
+
+    private static void ObjectiveCases(){HealthCases();AiCases();AiRotationCases();NativeRouteFailureCases();Console.WriteLine("PICKUP_OBJECTIVE_BEHAVIOR_PASSED");}
 }

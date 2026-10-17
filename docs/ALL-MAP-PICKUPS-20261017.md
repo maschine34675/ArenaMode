@@ -83,3 +83,26 @@ Native members were checked against local decompilation:
 `EFT.Game.Spawning/SpawnPointParams.cs`, `ESpawnCategoryMask.cs`, `ClassVector3.cs`.
 No optional MapPort assembly API is required; absent ported maps are never offered
 by the existing map selection and therefore cannot start this pickup runtime.
+
+## Native test follow-up: bot routes on ported maps
+
+The first AirPit run exposed three caught native exceptions during one bot's
+pickup objective. The old message had no stack, so their exact origin is not
+established. Source review did identify a reachable unsafe path: after our
+sampled NavMesh preflight succeeds, native `GoToPoint` recalculates from the raw
+body position. If that direct calculation fails, its default cover-graph fallback
+can dereference a missing node on a ported map.
+
+Only our owned pickup route now requests `onlyShortTrie: true` together with the
+existing `mustHaveWay: false`. Native complete routes remain authoritative;
+failure releases the objective without cover reconstruction or teleportation.
+No general AI/navigation patch or fabricated path is introduced. Unexpected
+exceptions warn once per logic instance; an optional, separately bounded
+DeveloperMode record includes the original stack and execution stage. Cleanup
+does not depend on either diagnostic switch.
+
+The updated objective suite passes **612 assertions and 16 compiled faults**,
+including direct-path refusal, cover/teleport regressions and diagnostic bounds.
+Evidence: `artifacts/pickup-objective-checks/d564dd1d5f40496ba3978cfec8159b57/manifest.json`.
+This follow-up requires an updated BigBrain companion; the original all-map
+client DLL is unchanged. Native repetition is recorded in the GPU report.

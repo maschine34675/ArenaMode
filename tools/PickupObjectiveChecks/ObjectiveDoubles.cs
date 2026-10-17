@@ -76,7 +76,11 @@ public class RunToEnemy
     protected BotOwner _owner;
     public RunToEnemy(BotOwner owner){_owner=owner;}
     public virtual void UpdateNodeByBrain(CoreActionResultParams data)=>throw new Exception("Stock enemy action must not execute");
-    public DoorInteractionStatus DoorOpen()=>_owner.DoorStatus;
+    public DoorInteractionStatus DoorOpen()
+    {
+        if (_owner.MoveFailure != null) throw _owner.MoveFailure;
+        return _owner.DoorStatus;
+    }
     public void PeriodChangeWeapon() { }
 }
 namespace EFT
@@ -106,15 +110,36 @@ namespace EFT
         public NavMeshPathStatus RouteResult=NavMeshPathStatus.PathComplete;
         public Vector3? WrongTarget;
         public int RouteCalls;public bool Sprinting;
+        public bool NativeDirectPathFails;
+        public int CoverFallbackCalls, TeleportFallbackCalls;
+        public Exception MoveFailure;
         public void MovementResume() { }
         public void StopMove()=>Mover.Stop();
         public void Sprint(bool val)=>Sprinting=val;
         public void SetPose(float value) { }
         public void SetTargetMoveSpeed(float value) { }
-        public NavMeshPathStatus GoToPoint(Vector3 point,bool slowAtTheEnd,float reachDist,bool getUpWithCheck,bool mustHaveWay)
+        public NavMeshPathStatus GoToPoint(Vector3 point,bool slowAtTheEnd,float reachDist,bool getUpWithCheck,bool mustHaveWay,bool mustGetUp=true,bool onlyShortTrie=false)
         {
-            RouteCalls++;Mover.TargetPoint=WrongTarget??point;Mover.HasPathAndNoComplete=true;
+            RouteCalls++;
+            // Model the inspected native ordering: the direct calculation is
+            // independent of the sampled preflight and can fail later. Short
+            // failure returns before a cover dereference; mustHaveWay owns the
+            // separate teleport branch. This is not native NavMesh execution.
+            if (NativeDirectPathFails)
+            {
+                if (!onlyShortTrie) { CoverFallbackCalls++; throw new NullReferenceException("missing native cover node"); }
+                if (mustHaveWay) TeleportFallbackCalls++;
+                return NavMeshPathStatus.PathInvalid;
+            }
+            Mover.TargetPoint=WrongTarget??point;Mover.HasPathAndNoComplete=true;
             Mover.Corners=[Position,point];Mover.DistDestination=(point-Position).magnitude;return RouteResult;
         }
     }
+}
+
+internal sealed class PickupProbeException : Exception
+{
+    internal int DetailReads;
+    internal PickupProbeException() : base("synthetic native movement failure") { }
+    public override string ToString() { DetailReads++; return base.ToString(); }
 }

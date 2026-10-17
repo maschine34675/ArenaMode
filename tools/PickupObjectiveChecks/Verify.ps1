@@ -40,7 +40,11 @@ $faults=@(
     @{Name='pileup';File='ArenaPickupObjective.cs';Find='others >= 2';Replace='others >= 20';Reject='at most two competing bots reserve a pickup'},
     @{Name='door-progress';File='ArenaPickupObjective.cs';Find='if (handlingDoor || _handlingDoor)';Replace='if (false)';Reject='door distance cannot poison resumed route progress'},
     @{Name='door-revival';File='ArenaPickupLogic.cs';Find='if (BotOwner.Mover.CurrentState == EBotMoverState.NearDoor) ClearDefaultRoute();';Replace='';Reject='door entry detaches default route before delayed native return'},
-    @{Name='unbounded-trip';File='ArenaPickupObjective.cs';Find='_expires = Time.time + 20f;';Replace='_expires = Time.time + 200f;';Reject='continuous progress cannot exceed twenty-second trip cap'}
+    @{Name='unbounded-trip';File='ArenaPickupObjective.cs';Find='_expires = Time.time + 20f;';Replace='_expires = Time.time + 200f;';Reject='continuous progress cannot exceed twenty-second trip cap'},
+    @{Name='cover-fallback';File='ArenaPickupLogic.cs';Find='onlyShortTrie: true';Replace='onlyShortTrie: false';Reject='failed native direct pickup route never enters cover fallback'},
+    @{Name='teleport-fallback';File='ArenaPickupLogic.cs';Find='mustHaveWay: false';Replace='mustHaveWay: true';Reject='failed pickup path cannot teleport the bot'},
+    @{Name='diagnostic-stack-spam';File='ArenaPickupLogic.cs';Find='if (!_failureDetailed && Diagnostics.ArenaLog.DeveloperEnabled)';Replace='if (Diagnostics.ArenaLog.DeveloperEnabled)';Reject='repeated native pickup failures format at most one full diagnostic per logic instance'},
+    @{Name='diagnostic-always-on';File='ArenaPickupLogic.cs';Find='if (!_failureDetailed && Diagnostics.ArenaLog.DeveloperEnabled)';Replace='if (!_failureDetailed)';Reject='disabled developer diagnostics do not format full exception stacks'}
 )
 foreach($fault in $faults){
     $root=Join-Path $pickupEvidence ($fault.Name+'/source')

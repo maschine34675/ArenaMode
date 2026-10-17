@@ -17,15 +17,20 @@ public sealed class ArenaPickupLogic : CustomLogic
     private AbstractBotPath _ownedPath;
     private bool _wasHandlingDoor;
     private float _refreshAt;
-    public ArenaPickupLogic(BotOwner bot) : base(bot) { _move = new PickupMove(bot); }
+    private readonly string _profileId;
+    private bool _failureWarned, _failureDetailed;
+    private string _stage;
+    public ArenaPickupLogic(BotOwner bot) : base(bot) { _move = new PickupMove(bot); _profileId = bot?.ProfileId ?? "<unknown>"; }
 
     public override void Update(CustomLayer.ActionData data)
     {
         try
         {
+            _stage = "lease validation";
             var lease = (data as ArenaPickupAction)?.Lease;
             if (lease == null || !ReferenceEquals(lease.Bot, BotOwner) || !lease.Current()) { StopOwned(); return; }
             if (!ReferenceEquals(_lease, lease)) { StopOwned(); _lease = lease; }
+            _stage = "SAIN movement handoff";
             var handoff = ArenaSainMovementHandoff.EnsureSuspended(BotOwner, out var reason);
             if (handoff == ArenaSainHandoffState.Unavailable) { Fail("SAIN handoff: " + reason); return; }
             if (handoff != ArenaSainHandoffState.Ready) return;
@@ -34,12 +39,15 @@ public sealed class ArenaPickupLogic : CustomLogic
             {
                 // We now own BigBrain's action slot. No patrol-state mutation:
                 // the previous layer was already stopped by BigBrain.
+                _stage = "native movement preparation";
                 BotOwner.Mover.Stop(); BotOwner.MovementResume();
                 if (!AcquireRoute()) { Fail("native route refused"); return; }
                 _ownsMovement = true; _ownedMover = BotOwner.Mover; _ownedBody = BotOwner.GetPlayer;
                 lease.Started = true; _refreshAt = Time.time + 1f;
             }
+            _stage = "native movement update";
             _move.UpdateNodeByBrain(null);
+            _stage = "route progress";
             bool inDoor = _move.HandlingDoor || BotOwner.Mover.CurrentState == EBotMoverState.NearDoor;
             lease.Progress(inDoor);
             if (inDoor)
@@ -66,13 +74,26 @@ public sealed class ArenaPickupLogic : CustomLogic
                 if (!AcquireRoute()) Fail("native route refresh refused");
             }
         }
-        catch (Exception ex) { Fail("native exception: " + ex.GetBaseException().Message); }
+        catch (Exception ex)
+        {
+            string stage = _stage;
+            string target = _lease?.Target.Id ?? "<unassigned>";
+            // Revocation/cleanup must not depend on DeveloperMode or logging.
+            try { Fail("native exception: " + ex.GetBaseException().Message); }
+            finally { ReportFailure(ex, stage, target); }
+        }
     }
 
     private bool AcquireRoute()
     {
+        _stage = "route preflight";
         if (!_lease.Current() || !ArenaPickupObjective.RouteAllowed(BotOwner.Position, _lease.Target.Position)) return false;
-        var result = BotOwner.GoToPoint(_lease.Target.Position, slowAtTheEnd: true, reachDist: .45f, getUpWithCheck: false, mustHaveWay: false);
+        // The objective already requires a complete direct NavMesh path. Native
+        // acquisition can still fail from the unsampled body position; do not
+        // enter cover-graph reconstruction (absent on ports) or teleport fallback.
+        _stage = "native GoToPoint";
+        var result = BotOwner.GoToPoint(_lease.Target.Position, slowAtTheEnd: true, reachDist: .45f, getUpWithCheck: false, mustHaveWay: false, onlyShortTrie: true);
+        _stage = "native route ownership";
         if (result == NavMeshPathStatus.PathComplete && BotOwner.Mover.TargetPoint is Vector3 point
             && (point - _lease.Target.Position).sqrMagnitude <= .1225f
             && ArenaPickupObjective.CornersAllowed(BotOwner.Position, BotOwner.Mover.GetCornersFromIndex(0)))
@@ -83,6 +104,24 @@ public sealed class ArenaPickupLogic : CustomLogic
         }
         // Native GoToPoint can write a partial route even on failure.
         BotOwner.Mover.Stop(); return false;
+    }
+
+    private void ReportFailure(Exception ex, string stage, string target)
+    {
+        try
+        {
+            if (!_failureWarned)
+            {
+                _failureWarned = true;
+                Plugin.ModLogger?.LogWarning($"Arena pickup trip failed for bot {_profileId} ({target}, {stage}): {ex.GetBaseException().Message}");
+            }
+            if (!_failureDetailed && Diagnostics.ArenaLog.DeveloperEnabled)
+            {
+                _failureDetailed = true;
+                Diagnostics.ArenaLog.Developer($"Arena pickup exception detail: bot={_profileId}; target={target}; stage={stage}; {ex}");
+            }
+        }
+        catch { /* A diagnostic failure must not prevent the already requested release. */ }
     }
 
     private void Fail(string reason) { _lease?.Release(reason); StopOwned(); }
