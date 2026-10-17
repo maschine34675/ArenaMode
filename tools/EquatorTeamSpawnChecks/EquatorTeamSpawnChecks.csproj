@@ -7,6 +7,7 @@
   <ItemGroup>
     <Compile Remove="artifacts/**" />
     <Compile Include="$(RuntimeSource)" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="../../ArenaMode.Client/Compat/ArenaMapPortSpawnGates.cs" Link="Production/ArenaMapPortSpawnGates.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/Formation.cs" />
   </ItemGroup>
 </Project>

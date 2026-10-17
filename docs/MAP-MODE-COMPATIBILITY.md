@@ -22,6 +22,10 @@ Spawnpunkte. Ausnahme: Equator-Team-DM nutzt die ursprünglichen Nord-/Süd-Team
 mit eigenen Arena-Markern für Einstieg und Respawns; siehe
 [Equator-Teamstarts](EQUATOR-TEAM-SPAWNS-REVIEW.md). Auf den übrigen ganzen Karten
 braucht Team DM keine vermessenen Fraktionsstarts wie die begrenzten Areale.
+Mit aktueller ArenaMapPort-Version bleiben Equators originale Türen während
+Vorbereitung und Countdown geschlossen. Der Kampf beginnt erst nach Öffnung
+und erfolgreicher Wegeprüfung; bei laufenden Respawns bleiben die Türen offen.
+Siehe [Spawn-Tore und Vorbereitungsschutz](EQUATOR-SPAWN-GATES-20261017.md).
 Bay5 hat auch abseits der Spielerstarts genügend Punkte für den Fünfertrupp.
 Equator hat zwar genügend Punkte am ursprünglichen Spielereinstieg, aber nur vier
 mindestens 25 m entfernte Botpunkte vom Atrium (0, 0.2, 2). Ein überlebender

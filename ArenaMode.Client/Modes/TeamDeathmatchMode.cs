@@ -40,6 +40,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     private string _failure;
     private Player _pendingGiveUpLife;
     private Player _creditedGiveUpLife;
+    private int _spawnGateEpoch;
 
     public string Id => ArenaModeCatalog.TeamDeathmatchId;
     public string DisplayName => "Team Deathmatch";
@@ -74,6 +75,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _match = match;
         _world = Singleton<GameWorld>.Instance;
         _game = Singleton<AbstractGame>.Instance as LocalGame;
+        _spawnGateEpoch = ArenaSession.ArmEpoch;
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
         _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
@@ -349,6 +351,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
+        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
         string state = DescribeState(); // capture pending work before Stop clears it
         _population.Stop();
         _pendingGiveUpLife = null;
@@ -514,6 +517,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
+        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM failure");
         string state = DescribeState();
         _population?.Stop();
         Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason + "; " + state);
@@ -546,6 +550,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void OnMatchEnd()
     {
+        ArenaEquatorTeamSpawns.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");
         _ended = true;
         _pendingGiveUpLife = null;
         _creditedGiveUpLife = null;

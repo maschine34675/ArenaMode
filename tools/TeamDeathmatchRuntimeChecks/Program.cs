@@ -31,6 +31,7 @@ internal static partial class Program
             int killLimit = 0, int timeLimit = 0, int? participants = null)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
+            ArenaEquatorTeamSpawns.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
             if (areaSize.HasValue)
             {
@@ -769,6 +770,7 @@ internal static partial class Program
         ScoreAwardsTracersAndLoot();
         BoundedAreaModeContract();
         MatchReadinessAndCountdown();
+        MatchSpawnGateRelease();
         MatchDifficultyClock();
         MatchReadinessLossBetweenRosterTicks();
         MatchTerminalPopulationAndPresentation();

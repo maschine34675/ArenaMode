@@ -33,6 +33,7 @@ internal static partial class Program
             int killLimit = 0, int timeLimit = 0)
         {
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
+            ArenaEquatorTeamSpawns.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;
             Usec = usec;
             Time.time = Time.realtimeSinceStartup = Time.unscaledTime = 0;

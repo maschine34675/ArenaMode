@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Equator original spawn gates (2026-10-17):** Independent Team DM acquires
+  MapPort's optional gate API only for its exact loading game/world/arm token.
+  Assembly/countdown permits narrowly checked paths within the original booth;
+  combat waits for opening and complete atrium paths. Doors stay open for live
+  respawns. Stale mode cleanup cannot release a successor's hold, and booth
+  extraction admission is deferred during preparation. The user references
+  MapPort's `docs/progress/spawn-gates.md`; no MapPort source/assets are changed.
+  See [ownership, validation and limits](EQUATOR-SPAWN-GATES-20261017.md).
+
 - **AirPit admission (2026-10-17):** Optional `arena_airpit` is offered in all
   five modes, including the exact protected PFT Tactical/Zombie paths. It uses
   existing generic markers and `BotZone_Main`; original northern team-box

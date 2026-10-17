@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <StartupObject>GateProgram</StartupObject>
+    <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Bots/ArenaEquatorTeamSpawns.cs</RuntimeSource>
+    <GateSource Condition="'$(GateSource)' == ''">../../ArenaMode.Client/Compat/ArenaMapPortSpawnGates.cs</GateSource>
+    <FlowSource Condition="'$(FlowSource)' == ''">artifacts/Flow.cs</FlowSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="artifacts/**" />
+    <Compile Include="$(RuntimeSource)" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="$(GateSource)" Link="Production/ArenaMapPortSpawnGates.cs" />
+    <Compile Include="$(FlowSource)" Link="Production/Countdown.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/Formation.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/MatchPolicy.cs" />
+    <Compile Include="../EquatorTeamSpawnChecks/RuntimeDoubles.cs" Link="Fixtures/Engine.cs" />
+    <Compile Include="../EquatorTeamSpawnChecks/Program.cs" Link="Fixtures/OriginalSpawnChecks.cs" />
+  </ItemGroup>
+</Project>

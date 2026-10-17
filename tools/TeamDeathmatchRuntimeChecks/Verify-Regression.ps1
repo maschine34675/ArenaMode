@@ -32,6 +32,12 @@ if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_TDM_RUNTIME_CHECK
 }
 $cases = @(
     @{
+        Name = 'spawn-gates-countdown'; Path = $flow; Property = 'FlowSource';
+        Find = '&& !Bots.ArenaEquatorTeamSpawns.TryOpenForCombat()) return;';
+        Replace = '&& false) return;';
+        Failure = 'GATES: incomplete opening keeps timer and round cue held'
+    },
+    @{
         Name = 'search-phase-admission'; Path = $flow; Property = 'FlowSource';
         Find = 'internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;';
         Replace = 'internal bool IsSearchActive => IsCurrentMatch();';

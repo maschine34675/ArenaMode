@@ -298,6 +298,7 @@ namespace ArenaMode.Session
 {
     internal static class ArenaSession
     {
+        internal static int ArmEpoch = 1;
         internal static bool IsActive;
         internal static string ActiveMode;
         internal static int? Participants;
@@ -350,6 +351,17 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Bots
 {
+    // External geometry result; the linked production mode must await it before
+    // scoring/time/announcements. Physical validation has its own runtime harness.
+    internal static class ArenaEquatorTeamSpawns
+    {
+        internal static bool OpenAllowed = true, GatesOpening;
+        internal static int OpenCalls;
+        internal static readonly List<string> Releases = new();
+        internal static bool TryOpenForCombat() { OpenCalls++; return OpenAllowed; }
+        internal static void ReleaseGates(EFT.LocalGame game, EFT.GameWorld world, int epoch, string reason) { Releases.Add(reason); GatesOpening = false; }
+        internal static void Reset() { OpenAllowed = true; GatesOpening = false; OpenCalls = 0; Releases.Clear(); }
+    }
     internal static class ArenaPressure { internal static BotDifficulty DifficultyFor(bool pmc) => BotDifficulty.normal; }
     internal static class ArenaHostility
     {

@@ -43,6 +43,7 @@ namespace UnityEngine
     }
     public static class Mathf { public static float Abs(float x)=>MathF.Abs(x); public static float Min(float a,float b)=>MathF.Min(a,b); }
     public static class Random { public static int Range(int a,int b)=>a; }
+    public static class Time { public static float realtimeSinceStartup, time; }
 }
 namespace UnityEngine.AI
 {
@@ -54,9 +55,11 @@ namespace UnityEngine.AI
         public const int AllAreas=-1;
         public static Func<Vector3,bool> Sample=p=>true;
         public static Func<Vector3,Vector3,bool> Path=(a,b)=>true;
+        public static Func<Vector3,Vector3,NavMeshPathStatus?> Status;
+        public static Func<Vector3,Vector3,Vector3[]> Corners;
         public static bool SamplePosition(Vector3 p,out NavMeshHit hit,float radius,int mask) {hit=new(){position=p};return Sample(p);}
         public static bool CalculatePath(Vector3 a,Vector3 b,int mask,NavMeshPath path)
-        {bool ok=Path(a,b);path.status=ok?NavMeshPathStatus.PathComplete:NavMeshPathStatus.PathPartial;path.corners=new[]{a,b};return true;}
+        {bool ok=Path(a,b);path.status=Status?.Invoke(a,b)??(ok?NavMeshPathStatus.PathComplete:NavMeshPathStatus.PathPartial);path.corners=Corners?.Invoke(a,b)??new[]{a,b};return true;}
     }
 }
 namespace Comfort.Common { public static class Singleton<T> where T:class {public static T Instance;public static bool Instantiated=>Instance!=null;} }
@@ -64,7 +67,8 @@ namespace EFT
 {
     public enum EPlayerSide {Usec=1,Bear=2,Savage=4}
     [Flags] public enum EPlayerSideMask {Usec=1,Bear=2,Savage=4,All=7}
-    public enum GameStatus {Running,Started,Stopped}
+    public enum GameStatus {Running,Started,Stopping,Stopped}
+    public enum ExitStatus { Left }
     public class Profile { public string Id; public ProfileInfo Info=new(); }
     public class ProfileInfo { public EPlayerSide Side; }
     public class Health {public bool IsAlive=true;}
@@ -77,12 +81,26 @@ namespace EFT
     public class AbstractGame { }
     public class EftGamePlayerOwner { }
     public class BaseLocalGame<T>:AbstractGame {public Task Run(BotControllerSettings settings,string backend,EFT.InventoryLogic.InventoryController inventory)=>Task.CompletedTask;}
-    public class LocalGame:BaseLocalGame<EftGamePlayerOwner> {public GameWorld GameWorld; public GameStatus Status;public Profile Profile=new(); public RaidSettings Settings=new();}
+    public class LocalGame:BaseLocalGame<EftGamePlayerOwner> {public GameWorld GameWorld; public GameStatus Status;public Profile Profile=new(); public RaidSettings Settings=new();public void Stop(string profileId,ExitStatus status,string exitName,float delay){} }
     public class RaidSettings {public string location,serverId;}
     public class BotControllerSettings { }
     public static class InGameStatus {public static bool InRaid;}
 }
 namespace EFT.InventoryLogic {public class InventoryController {}}
+namespace EFT.Interactive
+{
+    public class ExitTriggerSettings {public string Name;}
+    public class ExfiltrationPoint
+    {
+        public ExitTriggerSettings Settings=new();public List<Player> Entered=new();public int Proceeds;
+        public void Proceed(Player player,bool manuallyStarted=false){Proceeds++;}
+    }
+}
+namespace CommonAssets.Scripts.Game
+{
+    public class ExfiltrationController
+    {public static ExfiltrationController Instance;public EFT.Interactive.ExfiltrationPoint[] ExfiltrationPoints;}
+}
 namespace EFT.Bots {public class NamespaceMarker {}}
 public static class LayersMaskController {public static int PlayerStaticCollisionsMask=1;}
 public class BotZone
@@ -135,7 +153,7 @@ namespace HarmonyLib
     public class HarmonyAfter:Attribute {public HarmonyAfter(string owner){}}
     public class HarmonyMethod {public HarmonyMethod(Type type,string name){}}
     public class Harmony {public Harmony(string id){} public void Patch(MethodBase target,HarmonyMethod prefix=null,HarmonyMethod postfix=null,HarmonyMethod finalizer=null){}public void UnpatchSelf(){}}
-    public static class AccessTools {public static MethodInfo Method(Type type,string name,Type[] args=null)=>type.GetMethod(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance,null,args??Type.EmptyTypes,null);}
+    public static class AccessTools {public static MethodInfo Method(Type type,string name,Type[] args=null)=>type.GetMethod(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance,null,args??Type.EmptyTypes,null);public static MethodInfo DeclaredMethod(Type type,string name,Type[] args=null)=>Method(type,name,args);}
 }
 namespace SPT.Reflection.Patching
 {
@@ -152,7 +170,12 @@ namespace ArenaMode.Respawn
 namespace ArenaMode
 {
     public static class Plugin {public const string PluginGuid="com.maschine.ArenaMode"; public static Log ModLogger=new();}
-    public class Log {public List<string> Lines=new();public void LogInfo(string s)=>Lines.Add(s); public void LogDebug(string s)=>Lines.Add(s);public void LogError(string s)=>Lines.Add(s);}
+    public class Log {public List<string> Lines=new();public void LogInfo(string s)=>Lines.Add(s); public void LogDebug(string s)=>Lines.Add(s);public void LogError(string s)=>Lines.Add(s);public void LogWarning(string s)=>Lines.Add(s);}
+}
+namespace BepInEx.Bootstrap
+{
+    public class PluginInfo {public object Instance;}
+    public static class Chainloader {public static Dictionary<string,PluginInfo> PluginInfos=new();}
 }
 namespace ArenaMode.Modes {public static class ArenaMatchService {public static List<string> Aborts=new();public static void ScheduleFailedStartAbort(string message)=>Aborts.Add(message);}}
 namespace ArenaMode.Session

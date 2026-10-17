@@ -26,7 +26,7 @@ $arenaFaults = @(
     @('cross-faction', 'spec.Usec == usec &&', 'true &&', 'CAPACITY-LOG:'),
     @('pending-reuse', 'return !Reservations.Values.Any', 'return true || !Reservations.Values.Any', 'PENDING:'),
     @('wrong-category', '&& point.Categories == (ESpawnCategoryMask.Player | ESpawnCategoryMask.Bot | ESpawnCategoryMask.BotPmc)', '', 'HEADERS: category'),
-    @('unchecked-body', '&& ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)', '', 'ARRIVAL: wrong body'),
+    @('unchecked-body', "&& ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)`n                && (player.Position - Position)", '&& (player.Position - Position)', 'ARRIVAL: wrong body'),
     @('actual-geometry', '&& FloorAndClear(player.Position) && Connected(player.Position)', '', 'ARRIVAL-BODY:'),
     @('player-arrival-bypass', '|| !_playerReservation.Accept(player)', '|| false', 'PLAYER-ARRIVAL:'),
     @('failed-load-not-cancelled', 'ArenaSession.ClearArmed("Equator team-box loading failed");', '', 'LOADING: sync failure'),

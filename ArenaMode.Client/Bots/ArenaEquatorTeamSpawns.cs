@@ -4,9 +4,12 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using ArenaMode.Session;
+using ArenaMode.Compat;
 using ArenaMode.Shared;
 using Comfort.Common;
+using CommonAssets.Scripts.Game;
 using EFT;
+using EFT.Interactive;
 using EFT.Game.Spawning;
 using EFT.Bots;
 using EFT.InventoryLogic;
@@ -35,6 +38,10 @@ internal static class ArenaEquatorTeamSpawns
     private static int _armEpoch = -1;
     private static string _token;
     private static ISpawnPointsCollection _collection;
+    private static ArenaMapPortSpawnGates.Lease _gates;
+    private static float _openingStartedAt = -1f;
+    private static bool _gatesOpened;
+    private static readonly Dictionary<ExfiltrationPoint, Player> DeferredExtractions = new();
     private static readonly Dictionary<string, ISpawnPoint> Points = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Lease> Reservations = new(StringComparer.Ordinal);
     private static Lease _playerReservation;
@@ -77,6 +84,17 @@ internal static class ArenaEquatorTeamSpawns
                 prefix: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(BeforeLoad)),
                 postfix: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(AfterLoad)),
                 finalizer: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(FinalizeLoad)));
+            var stop = AccessTools.DeclaredMethod(typeof(LocalGame), nameof(LocalGame.Stop),
+                new[] { typeof(string), typeof(ExitStatus), typeof(string), typeof(float) });
+            if (stop == null) throw new MissingMethodException("LocalGame.Stop contract changed.");
+            LoadingPatches.Patch(stop,
+                postfix: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(AfterStop)));
+            var proceed = AccessTools.DeclaredMethod(typeof(ExfiltrationPoint), nameof(ExfiltrationPoint.Proceed),
+                new[] { typeof(Player), typeof(bool) });
+            if (proceed == null || proceed.ReturnType != typeof(void))
+                throw new MissingMethodException("Native exfiltration Proceed contract changed.");
+            LoadingPatches.Patch(proceed,
+                prefix: new HarmonyMethod(typeof(ArenaEquatorTeamSpawns), nameof(BeforeExtraction)));
             IsReady = true;
         }
         catch (Exception ex)
@@ -149,8 +167,27 @@ internal static class ArenaEquatorTeamSpawns
 
     private static async Task ObserveLoad(Task original, LoadingLease lease)
     {
-        try { await original; }
+        try
+        {
+            await original;
+            // Run completes after the raid-start callbacks. A consumed but
+            // rejected arm must not leave an otherwise ordinary raid sealed.
+            if (ReferenceEquals(lease.Game, _game) && ReferenceEquals(lease.World, _world)
+                && lease.Epoch == _armEpoch && lease.Token == _token && !IsRequired)
+                ReleaseGates("ArenaMode Equator start not admitted");
+        }
         catch (Exception ex) { LoadingFailed(lease, ex); throw; }
+    }
+
+    private static void AfterStop(LocalGame __instance, string profileId)
+    {
+        // Native Stop can be called for an extracted bot and ignores that
+        // profile. Redeploy can also suppress it for a life-only Give Up.
+        // Only a committed native shutdown releases this local match's hold.
+        if (ReferenceEquals(__instance, _game) && !string.IsNullOrEmpty(profileId)
+            && profileId == _game?.Profile?.Id
+            && (_game.Status == GameStatus.Stopping || _game.Status == GameStatus.Stopped))
+            ReleaseGates("ArenaMode Equator native stop");
     }
 
     private static void LoadingFailed(LoadingLease lease, Exception failure)
@@ -172,6 +209,8 @@ internal static class ArenaEquatorTeamSpawns
 
     internal static void Reset()
     {
+        ReleaseGates("ArenaMode Equator reset");
+        _gates = null; _openingStartedAt = -1f; _gatesOpened = false;
         Reservations.Clear(); Points.Clear(); _playerReservation = null;
         _game = null; _world = null; _collection = null; _token = null; _armEpoch = -1;
     }
@@ -249,6 +288,11 @@ internal static class ArenaEquatorTeamSpawns
         Points.Clear();
         foreach (var pair in owned) Points.Add(pair.Key.Id, pair.Key);
         _collection = collection;
+        // MapPort's collection postfix has now offered the real door parts;
+        // the native NavMesh is installed later. Repeated collection restores
+        // must not re-close gates, including after a later player respawn.
+        if (loading && _gates == null && !_gatesOpened)
+            _gates = ArenaMapPortSpawnGates.TryHold(_game, _world, _armEpoch, _token);
         Plugin.ModLogger.LogDebug("Equator Team DM: restored 10 USEC north / 10 BEAR south box markers.");
     }
 
@@ -292,8 +336,113 @@ internal static class ArenaEquatorTeamSpawns
             || HorizontalSquared(anchor.position, Atrium) > .09f || Mathf.Abs(anchor.position.y - Atrium.y) > .3f)
             return false;
         var path = new NavMeshPath();
-        return NavMesh.CalculatePath(point.position, anchor.position, NavMesh.AllAreas, path)
-            && path.status == NavMeshPathStatus.PathComplete && path.corners.Length >= 2;
+        if (!NavMesh.CalculatePath(point.position, anchor.position, NavMesh.AllAreas, path)) return false;
+        if (path.status == NavMeshPathStatus.PathComplete && path.corners.Length >= 2) return true;
+        // Only our own still-held gates may temporarily split this exact
+        // original booth from the atrium. Invalid paths, external holds and
+        // positions outside the canonical formation have no exception.
+        if (path.status != NavMeshPathStatus.PathPartial || _gates?.IsHeld != true
+            || !TryBooth(position, out bool usec)) return false;
+        var boothAnchor = Position(Formation.Points[usec ? 2 : 12]);
+        if (!FloorAndClear(boothAnchor)
+            || !NavMesh.SamplePosition(boothAnchor, out var booth, .4f, NavMesh.AllAreas)
+            || HorizontalSquared(booth.position, boothAnchor) > .09f
+            || Mathf.Abs(booth.position.y - boothAnchor.y) > .3f) return false;
+        var local = new NavMeshPath();
+        return NavMesh.CalculatePath(point.position, booth.position, NavMesh.AllAreas, local)
+            && local.status == NavMeshPathStatus.PathComplete && local.corners.Length > 0
+            && local.corners.All(p => InsideBooth(p, usec));
+    }
+
+    private static bool TryBooth(Vector3 position, out bool usec)
+    {
+        usec = position.z > 0f;
+        return InsideBooth(position, usec) && Points.Values.Any(p => PointCurrent(p, position.z > 0f)
+            && (p.Position - position).sqrMagnitude <= .5625f);
+    }
+
+    // Native SPAWN_BOUND_FIGHTER interiors, inset at the doorway and kept on
+    // the surveyed floor; the enclosed south rear compartment is not a spawn.
+    private static bool InsideBooth(Vector3 p, bool usec)
+        => p.x >= -9.8f && p.x <= 9.8f && p.y >= -.22f && p.y <= .38f
+           && (usec ? p.z >= 40.5f && p.z <= 51f : p.z >= -43f && p.z <= -34f);
+
+    internal static bool GatesOpening => _openingStartedAt >= 0f && !_gatesOpened;
+
+    internal static void ReleaseGates(LocalGame game, GameWorld world, int epoch, string reason)
+    {
+        if (ReferenceEquals(game, _game) && ReferenceEquals(world, _world) && epoch == _armEpoch)
+            ReleaseGates(reason);
+    }
+
+    private static void ReleaseGates(string reason)
+    {
+        // Teardown never starts an extraction or retains a local player body.
+        DeferredExtractions.Clear();
+        _gates?.Release(reason);
+    }
+
+    private static bool CurrentLocal(Player player)
+        => player != null && _world != null && _game != null
+           && ReferenceEquals(player, _world.MainPlayer) && player.ProfileId == _game.Profile.Id
+           && player.HealthController?.IsAlive == true
+           && ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player);
+
+    private static bool CurrentBoothExit(ExfiltrationPoint point)
+        => point != null && (point.Settings?.Name == "Equator North Gate" || point.Settings?.Name == "Equator South Gate")
+           && ExfiltrationController.Instance?.ExfiltrationPoints?.Any(p => ReferenceEquals(p, point)) == true;
+
+    private static bool BeforeExtraction(ExfiltrationPoint __instance, Player player)
+    {
+        if (_gates?.OwnsCurrentRaid != true || (!_gates.IsHeld && !GatesOpening)
+            || !(IsRequired || ArenaSession.ArmedForNextRaid
+                && Formation.Applies(ArenaSession.ArmedMap, ArenaSession.ArmedMode))
+            || !CurrentLocal(player) || !CurrentBoothExit(__instance) || !__instance.Entered.Contains(player)) return true;
+        // Both original booth exits overlap genuine team starts. Let native
+        // Entered track the body, but do not register an eight-second escape
+        // while its only doorway is deliberately sealed for preparation.
+        DeferredExtractions[__instance] = player;
+        return false;
+    }
+
+    private static void ResumeExtractions()
+    {
+        var deferred = DeferredExtractions.ToArray();
+        DeferredExtractions.Clear();
+        foreach (var pair in deferred)
+            if (Current && _gates?.OwnsCurrentRaid == true && CurrentLocal(pair.Value)
+                && CurrentBoothExit(pair.Key) && pair.Key.Entered.Contains(pair.Value))
+                pair.Key.Proceed(pair.Value);
+    }
+
+    internal static bool TryOpenForCombat()
+    {
+        if (!IsRequired || _gates == null || _gatesOpened) return true;
+        if (!Current) throw new InvalidOperationException("Equator gate opening lost its exact raid owner.");
+        if (_openingStartedAt < 0f)
+        {
+            _openingStartedAt = Time.time;
+            // Keep deferred native exit entries through the slide. Cleanup
+            // paths use ReleaseGates instead and deliberately discard them.
+            _gates.Release("ArenaMode Equator TDM countdown finished");
+        }
+        // IsHeld becomes false before MapPort's 0..5 s slide removes carvers.
+        // Keep damage, score, clock and announcement blocked until native
+        // complete paths prove both booths have really reopened.
+        bool connected = _gates.Released && Points.Values.All(p =>
+            PointCurrent(p, Formation.Find(p.Id).Usec) && FloorAndClear(p.Position) && Connected(p.Position));
+        if (connected)
+        {
+            _gatesOpened = true;
+            ResumeExtractions();
+            Plugin.ModLogger.LogDebug("Equator Team DM gates open: all twenty formation paths revalidated.");
+            return true;
+        }
+        // Use the same simulation clock as MapPort's slide coroutine: pausing
+        // the game must not turn a paused animation into a failed opening.
+        if (Time.time - _openingStartedAt >= 10f)
+            throw new InvalidOperationException("Equator team boxes did not reconnect after opening their spawn gates.");
+        return false;
     }
 
     private static bool Unoccupied(Vector3 position, Player ignore, Lease own)

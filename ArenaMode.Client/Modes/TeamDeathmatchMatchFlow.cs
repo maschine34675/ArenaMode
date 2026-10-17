@@ -10,6 +10,7 @@ public sealed partial class TeamDeathmatchMode
     private bool _resultPublished, _localDeathCounted, _resultExitRequested;
     private float _resultDisplayAt = -1f, _nextStopAttempt;
     private string _resultExitProblem;
+    private float _gateCountdownEndsAt;
 
     internal bool HasResult => _rules?.Phase == TdmMatchPhase.Finished;
     // Read-only: AI admission must never advance clocks or publish a result.
@@ -41,7 +42,11 @@ public sealed partial class TeamDeathmatchMode
     {
         if (_rules == null || _announcedReady) return;
         var before = _rules.Phase;
+        if (ready && before == TdmMatchPhase.Countdown && Time.time >= _gateCountdownEndsAt
+            && !Bots.ArenaEquatorTeamSpawns.TryOpenForCombat()) return;
         _rules.Update(Time.time, ready, 0, 0);
+        if (before != TdmMatchPhase.Countdown && _rules.Phase == TdmMatchPhase.Countdown)
+            _gateCountdownEndsAt = Time.time + TeamDeathmatchMatchPolicy.CountdownSeconds;
         if (before != _rules.Phase)
             Plugin.ModLogger.LogDebug($"Team Deathmatch phase: {before} -> {_rules.Phase}; "
                 + $"killLimit={_rules.KillLimit}, timeLimit={_rules.TimeLimitSeconds}s.");
@@ -105,7 +110,8 @@ public sealed partial class TeamDeathmatchMode
             return true;
         }
         if (_rules?.Phase == TdmMatchPhase.Live || _rules == null) return false;
-        heading = _rules.Phase == TdmMatchPhase.Countdown
+        heading = Bots.ArenaEquatorTeamSpawns.GatesOpening ? "OPENING SPAWN GATES"
+            : _rules.Phase == TdmMatchPhase.Countdown
             ? "MATCH STARTS IN " + _rules.CountdownRemaining(Time.time) : "ASSEMBLING TEAMS";
         detail = $"{FriendlyFaction}: {CountBots(_population.LocalUsec) + (_local?.HealthController?.IsAlive == true ? 1 : 0)}/{TeamSize}"
             + $"  |  {OpponentFaction}: {CountBots(!_population.LocalUsec)}/{TeamSize}  |  Damage and scoring disabled";

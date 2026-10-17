@@ -56,6 +56,11 @@ raid clone adds twenty private versioned markers; never move or overwrite the
 common MapPort markers. Read docs/EQUATOR-TEAM-SPAWNS-REVIEW.md before changing the
 MapPort repair ordering, initial physics/live navigation gates, reservations or
 body-arrival validation. No map-wide fallback is allowed after box negotiation.
+With MapPort's optional SpawnGates API, those booths stay closed through assembly
+and countdown. Only the exact owned hold permits a complete intra-booth path
+instead of the temporarily cut atrium route; Live still requires full navigation
+after opening. See docs/EQUATOR-SPAWN-GATES-20261017.md for gate ownership,
+preparation extraction deferral and cleanup. Never re-close during live respawns.
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any
