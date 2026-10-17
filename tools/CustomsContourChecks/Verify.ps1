@@ -2,6 +2,10 @@ param(
     [Parameter(Mandatory = $true)][ValidateSet('Policy', 'Runtime', 'Integration', 'Build')][string]$Stage,
     [string]$SptRoot = 'D:\SPT41'
 )
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSpt = (Resolve-Path -LiteralPath $SptRoot).Path
@@ -44,7 +48,7 @@ function Get-ContourHash([string]$Path) {
 Push-Location $arenaRepo
 Start-Transcript -Path (Join-Path $arenaResults "$Stage.log") -Force | Out-Null
 $arenaLive = @(
-    (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
     (Join-Path $arenaSpt 'BepInEx\plugins\maschine-Redeploy.Core.dll'),
     (Join-Path $arenaRuntime 'user\mods\ArenaMode\maschine-ArenaMode.Server.dll'))
 $arenaBefore = @{}
@@ -98,3 +102,7 @@ try {
     Write-Output ('CUSTOMS_CONTOUR_' + $Stage.ToUpperInvariant() + '_PASSED')
 }
 finally { Stop-Transcript | Out-Null; Pop-Location }
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

@@ -1,13 +1,17 @@
 param([string]$SptPath = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $botRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $botEvidence = Join-Path $botRepo ('artifacts/bot-movement-regressions/' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($botEvidence)
 $botInstalled = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $botPath = Join-Path $SptPath $relative
-    $botInstalled[$botPath] = (Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash
+    $botInstalled[$botPath] = (Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash
 }
 Push-Location $botRepo
 try {
@@ -21,10 +25,14 @@ try {
 } finally {
     Pop-Location
     foreach ($botPath in $botInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInstalled[$botPath]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInstalled[$botPath]) {
             throw "Installed binary changed during source-linked checks: $botPath"
         }
     }
     $botInstalled | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $botEvidence 'installed-before-after.json')
 }
 Write-Output "BOT MOVEMENT REGRESSIONS PASSED; installed binaries unchanged; evidence: $botEvidence"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

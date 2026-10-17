@@ -193,7 +193,7 @@ External, outside the repo:
 |---|---|
 | `../_decompiled/` | The complete decompiled game source. **Verify every claim about game internals here.** |
 | `../_reference/` | Other people's mods, for technique. Licence rules below. |
-| `D:\SPT41\` | The game. Client DLLs deploy to `BepInEx\plugins\`. |
+| `D:\SPT41\` | The game. Arena client DLLs/assets deploy to `BepInEx\plugins\maschine-ArenaMode\`; shared Core stays flat. |
 | `D:\SPT41\SPT_Runtime\` | The server. Server DLL deploys to `user\mods\ArenaMode\`. |
 
 ## Build and deploy
@@ -207,6 +207,17 @@ All mod projects copy themselves into place on build. The tests cover the SERVER
 half and the generated data; the client half is Harmony patches against Unity and EFT
 types that cannot load outside the game, so **for anything client-side, verification is
 still a raid.**
+
+Build/deploy and release packaging share `tools/Write-ArenaAssets.ps1`; do not
+reintroduce direct copies of source notice JSON after its relocation to `docs/`.
+`tools/Deploy-ArenaClient.ps1` migrates the old `plugins/ArenaMode` folder and
+flat owned DLL/PDBs into `plugins/maschine-ArenaMode`, preserving user data and
+archiving replaced files outside plugin discovery. Keep both existing deployment
+target names overridable: `SPTClientDeploy` and `DeployArenaAudioAssets`.
+`StageArenaAssets`/`StageArenaPublishAssets` write only build/publish output.
+Read [docs/UNIFIED-DEPLOY-20261017.md](docs/UNIFIED-DEPLOY-20261017.md) for migration
+limits, no-deploy checks and current evidence. Core's separate sibling target
+must remain suppressed in offline builds too.
 
 - **Client changes** need the game restarted, nothing else.
 - **`config.json` changes** need nothing: hot-reload via the config page.

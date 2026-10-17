@@ -1,4 +1,8 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $shotRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $shotSource = Join-Path $shotRoot 'ArenaMode.Client/Combat'
@@ -10,15 +14,15 @@ $shotBound = @($shotFiles | ForEach-Object { 'ArenaMode.Client/Combat/' + $_ }) 
     'ArenaMode.Client/Combat/CombatPatches.cs','ArenaMode.Client/Modes/ArenaMatch.cs'
 ) + @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ShotAwardIntegrationChecks/' + $_.Name })
 $shotHashes = @{}
-foreach ($path in $shotBound) { $shotHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $shotRoot $path)).Hash }
+foreach ($path in $shotBound) { $shotHashes[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $shotRoot $path)).Hash }
 $shotInstalledPaths = @(
-    'BepInEx/plugins/maschine-ArenaMode.Client.dll',
+    'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll'
 )
 $shotInstalledHashes = @{}
-foreach ($path in $shotInstalledPaths) { $shotInstalledHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash }
+foreach ($path in $shotInstalledPaths) { $shotInstalledHashes[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash }
 
 function Run-Probe([string]$name, [string]$sourceRoot, [string]$suite = 'all', [string]$failure = '') {
     $dir = Join-Path $shotScratch $name
@@ -71,11 +75,11 @@ try {
     }
     Run-Probe 'production-final' $shotSource
     foreach ($path in $shotBound) {
-        if ((Get-FileHash -LiteralPath (Join-Path $shotRoot $path)).Hash -ne $shotHashes[$path]) { throw "Bound source changed; rerun required: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $shotRoot $path)).Hash -ne $shotHashes[$path]) { throw "Bound source changed; rerun required: $path" }
     }
 } finally {
     foreach ($path in $shotInstalledPaths) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $shotInstalledHashes[$path]) { throw "Installed binary changed during verification: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $shotInstalledHashes[$path]) { throw "Installed binary changed during verification: $path" }
     }
 }
 [ordered]@{
@@ -84,3 +88,7 @@ try {
     limitation='Adapter behavior uses explicit native boundary doubles. Native metadata and source wiring checks are read-only, not in-game runtime proof.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $shotScratch 'manifest.json')
 Write-Output "SHOT AWARD INTEGRATION PASSED; $($faults.Count) compiled faults rejected; installed Arena client/server/Core unchanged; evidence: $shotScratch"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

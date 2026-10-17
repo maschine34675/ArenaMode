@@ -26,12 +26,9 @@ $run = Join-Path ([IO.Path]::GetFullPath($OutputDirectory)) ([guid]::NewGuid().T
 New-Item -ItemType Directory -Path $run | Out-Null
 $payload = Join-Path $run 'package'
 New-Item -ItemType Directory -Path $payload | Out-Null
-$assetRoot = 'BepInEx/plugins/ArenaMode'
+$assetRoot = 'BepInEx/plugins/maschine-ArenaMode'
 $docsRoot = "$assetRoot/docs"
-$relocatedNotices = @(
-    'ANNOUNCER-ADDITIONS-20260917.json', 'ANNOUNCER-PACK.md', 'ANNOUNCER-SOURCES.json',
-    'AUDIO-LICENSES.md', 'CC-BY-3.0.txt', 'HUD-ICON-LICENSES.md'
-)
+
 
 function Get-InstalledSnapshot {
     $files = @(
@@ -39,10 +36,12 @@ function Get-InstalledSnapshot {
         'BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll',
         'BepInEx/plugins/ArenaMode/maschine-ArenaMode.Client.dll',
         'BepInEx/plugins/ArenaMode/maschine-ArenaMode.BigBrainCompat.dll',
+        'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll',
+        'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll',
         'BepInEx/plugins/maschine-Redeploy.Core.dll',
         'BepInEx/config/com.maschine.ArenaMode.cfg'
     )
-    foreach ($folder in @('BepInEx/plugins/ArenaMode', 'SPT_Runtime/user/mods/ArenaMode')) {
+    foreach ($folder in @('BepInEx/plugins/ArenaMode', 'BepInEx/plugins/maschine-ArenaMode', 'SPT_Runtime/user/mods/ArenaMode')) {
         $path = Join-Path $SptPath $folder
         if (Test-Path -LiteralPath $path) {
             $files += Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object {
@@ -75,7 +74,10 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
     # needs both relocated asset lookup and an optional, isolated BigBrain entry.
     # These are baseline/source checks, not a substitute for the runtime harness.
     $seams = [ordered]@{
-        'ArenaMode.Client/ArenaAssetPaths.cs' = @('static string FromPluginDirectory\(')
+        'ArenaMode.Client/ArenaAssetPaths.cs' = @(
+            'static string FromPluginDirectory\(', 'const string DirectoryName = "maschine-ArenaMode"'
+        )
+        'tools/Write-ArenaAssets.ps1' = @('function Convert-AssetLinks', 'REDEPLOY-CORE-LICENSE')
         'ArenaMode.Client/Audio/AnnouncerService.cs' = @('ArenaAssetPaths\.FromPluginDirectory\(')
         'ArenaMode.Client/Audio/HitmarkerAudioService.cs' = @('ArenaAssetPaths\.FromPluginDirectory\(')
         'ArenaMode.Client/Pickups/ArenaPickupAudio.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
@@ -93,12 +95,12 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
     foreach ($entry in $seams.GetEnumerator()) {
         $path = Join-Path $SourceRoot $entry.Key
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Selected Arena revision predates package layout v2: missing $($entry.Key). Select the grouped-layout/optional-loader revision or later."
+            throw "Selected Arena revision predates package layout v3: missing $($entry.Key). Select the canonical-folder/shared-payload revision or later."
         }
         $body = Get-Content -LiteralPath $path -Raw
         foreach ($pattern in $entry.Value) {
             if ($body -notmatch $pattern) {
-                throw "Selected Arena revision lacks a required package layout v2 seam in $($entry.Key). Select the grouped-layout/optional-loader revision or later; review this guard when refactoring."
+                throw "Selected Arena revision lacks a required package layout v3 seam in $($entry.Key). Select the canonical-folder/shared-payload revision or later; review this guard when refactoring."
             }
         }
     }
@@ -168,84 +170,9 @@ foreach ($dll in $dlls) {
 foreach ($name in @('kits.json', 'ladder.json')) {
     Copy-Payload (Join-Path $source "ArenaMode.Server/defaults/$name") "SPT_Runtime/user/mods/ArenaMode/config/$name"
 }
-# Record the complete source-to-package mapping before rewriting document links.
-# Only tracked files exist in these source snapshots; do not copy a build folder.
-$documents = [ordered]@{
-    'LICENSE' = "$docsRoot/LICENSE"
-    'README.md' = "$docsRoot/README.md"
-    'THIRD-PARTY-NOTICES.md' = "$docsRoot/THIRD-PARTY-NOTICES.md"
-}
-foreach ($mapping in @(
-    @{Source='ArenaMode.Client/Assets/ArenaMode'; Dest=$assetRoot},
-    @{Source='ArenaMode.Client/Assets/MapPreviews'; Dest="$assetRoot/MapPreviews"}
-)) {
-    $base = Join-Path $source $mapping.Source
-    foreach ($file in (Get-ChildItem -LiteralPath $base -File -Recurse)) {
-        if ($file.Name -eq '.gitattributes') { continue }
-        $relative = [IO.Path]::GetRelativePath($base, $file.FullName).Replace('\', '/')
-        $destination = "$($mapping.Dest)/$relative"
-        if ($mapping.Dest -eq $assetRoot -and -not $relative.Contains('/')) {
-            if ($relative -notin $relocatedNotices) { throw "Unclassified root asset: $relative" }
-            $destination = "$docsRoot/$relative"
-        }
-        $documents["$($mapping.Source)/$relative"] = $destination
-    }
-}
-foreach ($name in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt', 'CC-BY-3.0.txt')) {
-    $documents["ArenaMode.Client/Assets/Ui/$name"] = "$assetRoot/Ui/$name"
-}
-
-function Convert-PackageLinks([string]$Body, [string]$SourceRelative, [string]$DestinationRelative) {
-    # Keep shipped references local; pin source-only references to the exact build.
-    $sourceFolder = Split-Path (Join-Path $source $SourceRelative)
-    $destinationFolder = Split-Path (Join-Path $payload $DestinationRelative)
-    return [regex]::Replace($Body, '\]\(([^)]+)\)', {
-        param($match)
-        $target = $match.Groups[1].Value.Trim('<', '>')
-        if ($target -match '^[a-z]+:|^#') { return $match.Value }
-        $parts = $target.Split('#', 2)
-        $resolved = [IO.Path]::GetFullPath((Join-Path $sourceFolder ([Uri]::UnescapeDataString($parts[0]))))
-        $sourceTarget = [IO.Path]::GetRelativePath($source, $resolved).Replace('\', '/')
-        if ($sourceTarget.StartsWith('../') -or -not (Test-Path -LiteralPath $resolved)) {
-            throw "Broken source reference in ${SourceRelative}: $target"
-        }
-        if ($documents.Contains($sourceTarget)) {
-            $relativeTarget = [IO.Path]::GetRelativePath($destinationFolder, (Join-Path $payload $documents[$sourceTarget])).Replace('\', '/')
-            $encoded = ($relativeTarget.Split('/') | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
-        } else {
-            $encoded = 'https://github.com/maschine34675/ArenaMode/blob/' + $arenaCommit + '/' +
-                (($sourceTarget.Split('/') | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/')
-        }
-        if ($parts.Length -eq 2) { $encoded += '#' + $parts[1] }
-        return "]($encoded)"
-    })
-}
-
-foreach ($entry in $documents.GetEnumerator()) {
-    $inputFile = Join-Path $source $entry.Key
-    if ([IO.Path]::GetExtension($entry.Key) -eq '.md') {
-        $originalBody = Get-Content -LiteralPath $inputFile -Raw
-        $body = Convert-PackageLinks $originalBody $entry.Key $entry.Value
-        if ($entry.Key -eq 'ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md') {
-            $body = $body.Replace('File (relative to this folder)', 'File (relative to the parent ArenaMode folder)')
-        }
-        if ($body -ceq $originalBody) {
-            # Preserve unchanged legal texts and their recorded source hashes.
-            Copy-Payload $inputFile $entry.Value
-        } else {
-            New-Item -ItemType Directory -Path (Split-Path (Join-Path $payload $entry.Value)) -Force | Out-Null
-            $body | Set-Content -LiteralPath (Join-Path $payload $entry.Value) -Encoding utf8 -NoNewline
-        }
-    } elseif ($entry.Key -match '/ANNOUNCER-(SOURCES|ADDITIONS-20260917)\.json$') {
-        # The audio stays byte-identical. Only the packaged provenance record moves.
-        $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
-        foreach ($clip in $record.files) { $clip.file = '../' + $clip.file }
-        $record | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $payload $entry.Value) -Encoding utf8
-    } else {
-        Copy-Payload $inputFile $entry.Value
-    }
-}
-Copy-Payload (Join-Path $coreSource 'LICENSE') "$docsRoot/REDEPLOY-CORE-LICENSE.txt"
+# The same payload writer serves normal deployment and release snapshots.
+& (Join-Path $source 'tools/Write-ArenaAssets.ps1') -SourceRoot $source `
+    -Destination (Join-Path $payload $assetRoot) -SourceRevision $arenaCommit -CoreSourceRoot $coreSource
 @"
 ArenaMode $version - LOCAL TEST PACKAGE
 Arena source: $arenaCommit
@@ -257,7 +184,12 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    BepInEx/plugins/maschine-ArenaMode.Client.dll and
    BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll, if present.
    Keep exactly one copy of each Arena DLL anywhere under BepInEx/plugins.
-   This ZIP now places both DLLs in BepInEx/plugins/ArenaMode.
+   Migrate the old BepInEx/plugins/ArenaMode folder into
+   BepInEx/plugins/maschine-ArenaMode before copying this ZIP. Preserve custom
+   Pickups.json, AreaDrafts, PickupDrafts and other personal files; if both folders
+   exist, compare conflicts rather than discarding either copy. Then remove only
+   duplicate Arena DLLs from the old folder; do not delete unrelated files.
+   This ZIP places both DLLs in BepInEx/plugins/maschine-ArenaMode.
    Then copy BepInEx and SPT_Runtime into the SPT installation root.
    Merge the folders; do not replace or delete the whole existing directories.
    The ZIP contains default kits.json and ladder.json. Preserve any intentional
@@ -275,10 +207,10 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    must be installed separately. Fika is unsupported.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
-BepInEx/plugins/ArenaMode/docs. Retain this folder and the adjacent asset
+BepInEx/plugins/maschine-ArenaMode/docs. Retain this folder and the adjacent asset
 notices with the package. Audio/artwork have separate terms; the entire package
 is not MIT. Relative paths in the audio prose such as sounds/ and pickups/
-refer to the parent ArenaMode folder; packaged announcer JSON paths are relative
+refer to the parent maschine-ArenaMode folder; packaged announcer JSON paths are relative
 to their JSON file and their recorded audio hashes are unchanged.
 This package has build/offline checks only; packaging is not a new in-game test.
 Nothing is installed or uploaded by the packaging script.
@@ -287,7 +219,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 "@ | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/INSTALL.txt") -Encoding utf8
 
 $manifest = [ordered]@{
-    schemaVersion=2; layout='spt-root-folders-v2'; kind='local-test'; arenaVersion=$version; arenaCommit=$arenaCommit
+    schemaVersion=2; layout='spt-root-folders-v3'; kind='local-test'; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false
     files=@(Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {

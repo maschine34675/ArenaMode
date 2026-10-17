@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Unified build/deploy and maschine-ArenaMode folder](UNIFIED-DEPLOY-20261017.md)
+
 - [Current test package layout and optional BigBrain loading](package-layout-20261017.md)
 - [First local test release ZIP (superseded layout)](TEST-RELEASE-20261017.md)
 - [Player README and source-build instructions](../README.md)

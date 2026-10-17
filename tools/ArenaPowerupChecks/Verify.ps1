@@ -1,4 +1,8 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $powerRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $powerSource = Join-Path $powerRepo 'ArenaMode.Client/Pickups'
@@ -8,11 +12,11 @@ $powerInputs = @{}
 $powerInputPaths = @('ArenaMode.Client/Pickups/ArenaPowerups.cs','ArenaMode.Client/Pickups/ArenaPowerupState.cs',
     'ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs','ArenaMode.Client/Combat/CombatPatches.cs','ArenaMode.Client/Combat/ArenaAssistCapture.cs')
 $powerInputPaths += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPowerupChecks/' + $_.Name })
-foreach ($path in $powerInputPaths) { $powerInputs[$path] = (Get-FileHash -LiteralPath (Join-Path $powerRepo $path)).Hash }
+foreach ($path in $powerInputPaths) { $powerInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $powerRepo $path)).Hash }
 $powerInstalled = @{}
-foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
+foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll')) {
-    $powerInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
+    $powerInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Power([string]$name, [string]$source, [string]$failure = '') {
     $powerDir = Join-Path $powerEvidence $name; [void][IO.Directory]::CreateDirectory($powerDir)
@@ -59,11 +63,11 @@ try {
     }
     Run-Power 'production-final' $powerSource
     foreach ($path in $powerInputs.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $powerRepo $path)).Hash -ne $powerInputs[$path]) { throw "Bound source changed; rerun required: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $powerRepo $path)).Hash -ne $powerInputs[$path]) { throw "Bound source changed; rerun required: $path" }
     }
 } finally {
     foreach ($path in $powerInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $powerInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $powerInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes=$powerInputs; installedHashes=$powerInstalled; sourcesUnchanged=$true; installedUnchanged=$true;
@@ -71,3 +75,7 @@ try {
     limitation='Actual production effects policy/adapter use explicit native/world/mode boundary doubles. Installed IL/source contracts verify native ordering. No Unity/Harmony execution, full client build or deployment.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $powerEvidence 'manifest.json')
 Write-Output "ARENA POWERUP CHECKS PASSED; $($faults.Count) compiled faults rejected; evidence: $powerEvidence"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

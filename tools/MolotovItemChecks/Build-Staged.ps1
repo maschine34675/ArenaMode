@@ -1,11 +1,15 @@
 param([string]$SptRoot = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $installed = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $path = Join-Path $SptRoot $relative
-    $installed[$path] = (Get-FileHash -LiteralPath $path).Hash
+    $installed[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash
 }
 $output = & (Join-Path $repo 'tools/MolotovChecks/Build-Staged.ps1') -SptRoot $SptRoot
 $output | Write-Output
@@ -23,14 +27,18 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Staged server build failed' }
     $server = Join-Path $stage 'server/maschine-ArenaMode.Server.dll'
     $manifest | Add-Member -NotePropertyName ServerPath -NotePropertyValue $server
-    $manifest | Add-Member -NotePropertyName ServerSha256 -NotePropertyValue (Get-FileHash -LiteralPath $server).Hash
+    $manifest | Add-Member -NotePropertyName ServerSha256 -NotePropertyValue (Get-ArenaObservedFileHash -LiteralPath $server).Hash
     $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath
 } finally {
     foreach ($path in $installed.Keys) {
-        if ((Get-FileHash -LiteralPath $path).Hash -ne $installed[$path]) { throw "Installed artifact changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath $path).Hash -ne $installed[$path]) { throw "Installed artifact changed: $path" }
     }
 }
 if ((& git -C $repo rev-parse HEAD) -ne $manifest.SourceCommit -or
     (@(& git -C $repo status --short) -join "`n") -cne (@($manifest.SourceChanges) -join "`n")) { throw 'Source state changed during staged build' }
 Write-Output "Molotov item build manifest: $manifestPath"
 Write-Output 'ARENA_MOLOTOV_ITEM_BUILD_PASSED'
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

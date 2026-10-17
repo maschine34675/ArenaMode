@@ -15,7 +15,7 @@ using UnityEngine.Networking;
 namespace ArenaMode.Audio;
 
 /// <summary>
-/// Announcer stingers: .ogg files from &lt;plugin dir&gt;/ArenaMode/sounds keyed by
+/// Announcer stingers: .ogg files from the resolved maschine-ArenaMode/sounds folder keyed by
 /// filename. Kill labels are normalized to keys ("DOUBLE KILL" becomes
 /// "double_kill"); typed round cues map to fixed keys. Clips load asynchronously
 /// and are revalidated at each match. Missing optional sounds never block a raid;

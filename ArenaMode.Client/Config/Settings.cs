@@ -532,7 +532,7 @@ public static class Settings
         AreaCaptureUndo = config.Bind("Development - Area outline", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
             "Remove the last draft point.");
         AreaCaptureExport = config.Bind("Development - Area outline", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
-            "Validate and export a new draft JSON to BepInEx/plugins/ArenaMode/AreaDrafts. Not automatically loaded or applied.");
+            "Validate and export a new draft JSON to BepInEx/plugins/maschine-ArenaMode/AreaDrafts. Not automatically loaded or applied.");
         AreaCaptureMinY = config.Bind("Development - Area outline", "FloorY", 0f,
             "Draft enclosing floor in absolute map Y coordinates. Defaults match the existing Customs candidate.");
         AreaCaptureMaxY = config.Bind("Development - Area outline", "CeilingY", 12f,
@@ -1566,7 +1566,7 @@ public static class Settings
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,
             "Short Arena hit, headshot and kill sounds, independent of the visual HUD and announcer. " +
-            "Replaceable PCM16 mono WAVs in BepInEx/plugins/ArenaMode/hitmarkers/; see AUDIO-LICENSES.md.");
+            "Replaceable PCM16 mono WAVs in BepInEx/plugins/maschine-ArenaMode/hitmarkers/; see docs/AUDIO-LICENSES.md.");
 
         HitmarkerVolume = config.Bind(
             "Audio", "HitmarkerVolume", 0.7f,
@@ -1579,7 +1579,7 @@ public static class Settings
             "Announcer",
             true,
             "Announcer stingers (combat awards, streaks, Tactical round/match cues) — plays .ogg files from " +
-            "BepInEx/plugins/ArenaMode/sounds/. Missing sounds are skipped and logged. " +
+            "BepInEx/plugins/maschine-ArenaMode/sounds/. Missing sounds are skipped and logged. " +
             "Master switch: when off, the on-screen kill callouts (DOUBLE KILL, ...) are hidden too.");
 
         AnnouncerVolume = config.Bind(

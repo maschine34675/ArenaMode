@@ -1,4 +1,8 @@
 param([string]$SptRoot = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSpt = (Resolve-Path -LiteralPath $SptRoot).Path
@@ -25,7 +29,7 @@ function Get-AreaTeamFileHash([string]$Path) {
 }
 
 $arenaLive = @(
-    (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
     (Join-Path $arenaSpt 'BepInEx\plugins\maschine-Redeploy.Core.dll'),
     (Join-Path $arenaRuntime 'user\mods\ArenaMode\maschine-ArenaMode.Server.dll'))
 $arenaBefore = @{}
@@ -64,4 +68,8 @@ finally {
     Pop-Location
     $env:SPT_DATABASE = $arenaPreviousDatabase
     $env:SPT_RUNTIME = $arenaPreviousRuntime
+}
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
 }

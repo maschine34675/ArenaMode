@@ -6,7 +6,7 @@ $previewRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 & dotnet build (Join-Path $previewRepo 'ArenaMode.Client/ArenaMode.Client.csproj') -c Release --no-restore "-p:SPTPath=$SptPath"
 if ($LASTEXITCODE -ne 0) { throw 'Preview diagnostic client build failed' }
 foreach ($pair in @(
-    @('ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-ArenaMode.Client.dll'),
+    @('ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'),
     @('../Redeploy/Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll')
 )) {
     $built = (Get-FileHash -LiteralPath (Join-Path $previewRepo $pair[0]) -Algorithm SHA256).Hash

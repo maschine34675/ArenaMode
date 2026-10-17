@@ -77,8 +77,8 @@ function Get-ReferencePayloadHashes {
 }
 
 $pairs = @(
-    @('client', 'ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
-    @('bigbrain-compat', 'ArenaMode.BigBrainCompat\bin\Release\maschine-ArenaMode.BigBrainCompat.dll', 'BepInEx\plugins\maschine-ArenaMode.BigBrainCompat.dll'),
+    @('client', 'ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
+    @('bigbrain-compat', 'ArenaMode.BigBrainCompat\bin\Release\maschine-ArenaMode.BigBrainCompat.dll', 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.BigBrainCompat.dll'),
     @('server', 'build\server\Release\maschine-ArenaMode.Server\maschine-ArenaMode.Server.dll', 'SPT_Runtime\user\mods\ArenaMode\maschine-ArenaMode.Server.dll')
 )
 
@@ -102,7 +102,7 @@ $ownedTrees = @(
     (Join-Path $repo 'ArenaMode.Client\bin\Release'),
     (Join-Path $repo 'ArenaMode.BigBrainCompat\bin\Release'),
     (Join-Path $repo 'build\server\Release'),
-    (Join-Path $installation 'BepInEx\plugins\ArenaMode'),
+    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode'),
     (Join-Path $installation 'SPT_Runtime\user\mods\ArenaMode')
 )
 $referenceHashes = Get-ReferencePayloadHashes
@@ -112,8 +112,8 @@ foreach ($tree in $ownedTrees) {
 }
 
 $ownedFiles = @(
-    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
-    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode.BigBrainCompat.dll')
+    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
+    (Join-Path $installation 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.BigBrainCompat.dll')
 )
 foreach ($file in $ownedFiles) {
     Assert-OwnedFileClean $file $referenceHashes

@@ -150,7 +150,7 @@ has used SPT 4.1.6; other SPT major/minor versions are not supported by this bui
 SPT installation/
   BepInEx/plugins/
     maschine-Redeploy.Core.dll
-    ArenaMode/
+    maschine-ArenaMode/
       maschine-ArenaMode.Client.dll
       maschine-ArenaMode.BigBrainCompat.dll
       sounds/, hitmarkers/, pickups/   audio
@@ -175,6 +175,9 @@ itself and other mods are installed separately. Preserve documentation and notic
 When upgrading from a flat installation, remove the old Arena client/companion
 DLLs directly under `BepInEx/plugins` to avoid duplicate plugin copies; keep
 existing assets, drafts and configuration.
+Rename the old `BepInEx/plugins/ArenaMode` asset folder to `maschine-ArenaMode`
+before extracting. If both folders exist, preserve and compare custom files
+such as `Pickups.json`, `AreaDrafts` and `PickupDrafts` before merging them.
 
 4. Start the SPT server, then the game. Select **ARENA**, choose the mode, map,
    area and mutators, then start the raid. For a PFT squad, invite **1–4
@@ -241,7 +244,7 @@ download. **Fika is blocked**, rather than merely untested. See
   private information before sharing logs. Do not upload your full profile.
 
 To uninstall, close the game/server and remove only ArenaMode's DLLs, its
-`BepInEx/plugins/ArenaMode/` assets and its server mod folder. Back up customized
+`BepInEx/plugins/maschine-ArenaMode/` assets and its server mod folder. Back up customized
 files first. Keep Redeploy.Core if another installed mod uses it. Do not remove
 the BepInEx or SPT user directories themselves.
 
@@ -258,6 +261,14 @@ available alongside a public Arena release. Do not substitute an arbitrary Core
 DLL for the source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**
+Build/deploy tools require PowerShell 7 (`pwsh`). Both Arena DLLs, audio and
+notices use `BepInEx/plugins/maschine-ArenaMode/`, matching the release ZIP.
+The build migrates the old `ArenaMode` asset folder and flat Arena DLL/PDB copies,
+preserves custom files, and keeps recoverable replaced copies outside plugin
+discovery in `BepInEx/backups/maschine-ArenaMode-layout/`. Conflicting custom
+files, locked files or junctions stop migration before changes. An interrupted
+multi-file deployment can be rerun; it is not a transaction across all files.
+Shared Core remains flat and server files stay in `SPT_Runtime/user/mods/ArenaMode/`.
 Use a development installation and close its game/server first. Pass its paths
 explicitly to every command, including the referenced Core project. Replace
 the example paths below with your development installation:
@@ -281,6 +292,10 @@ is **not** a release package: do not ship copied game/Unity/SPT/BepInEx assembli
 other mods, test tooling, local settings or profiles. The release archive must
 include the kit/ladder defaults, assets and their notices. See
 [development documentation](docs/README.md) for feature reviews and dated tests.
+The client build/publish output keeps the DLL at its normal output location and
+stages its assets/notices in the adjacent `maschine-ArenaMode/` folder. The same
+payload writer supplies staged assets, the installation and release archives;
+only release `INSTALL.txt` and `PACKAGE-MANIFEST.json` are package-specific.
 
 ## Licenses and credits
 

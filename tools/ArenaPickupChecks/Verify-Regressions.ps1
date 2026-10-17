@@ -1,12 +1,16 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $pickupRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $pickupEvidence = Join-Path $pickupRepo ('artifacts/pickup-regressions/' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($pickupEvidence)
 $pickupInstalled = @{}
-foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
+foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
-    $pickupInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
+    $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 $pickupInputs = @{}
 Push-Location $pickupRepo
@@ -16,7 +20,7 @@ try {
     $inputPaths = @(& rg --files ArenaMode.Client ArenaMode.Shared ArenaMode.Server ArenaMode.Tests tools -g '*.cs' -g '*.csproj' -g '*.ps1')
     if ($LASTEXITCODE -ne 0) { throw 'Cannot enumerate source inputs.' }
     $inputPaths += 'Shared.props'
-    foreach ($path in $inputPaths) { $pickupInputs[$path] = (Get-FileHash -LiteralPath $path).Hash }
+    foreach ($path in $inputPaths) { $pickupInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash }
     # The selected console projects link production source, never native mod projects.
     $runs = @(
         @('AssistChecks','ASSIST_PRODUCTION_PASSED:'),
@@ -51,12 +55,12 @@ try {
     if (!(Test-Path -LiteralPath (Join-Path $pickupEvidence 'units.trx'))) { throw 'Unit results were not emitted.' }
     Write-Output $units.Trim()
     foreach ($path in $pickupInputs.Keys) {
-        if ((Get-FileHash -LiteralPath $path).Hash -ne $pickupInputs[$path]) { throw "Bound regression input changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath $path).Hash -ne $pickupInputs[$path]) { throw "Bound regression input changed: $path" }
     }
 } finally {
     Pop-Location
     foreach ($path in $pickupInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $pickupInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $pickupInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes=$pickupInputs; installedHashes=$pickupInstalled; sourcesUnchanged=$true; installedUnchanged=$true;
@@ -64,3 +68,7 @@ try {
     limitation='Targeted source-linked assist, combat, mode, movement and HUD regressions plus server/data units. Native client/game is not executed or deployed.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $pickupEvidence 'manifest.json')
 Write-Output "ARENA PICKUP REGRESSIONS PASSED; installed binaries unchanged; evidence: $pickupEvidence"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

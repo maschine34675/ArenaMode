@@ -27,7 +27,7 @@ $after = ExternalHashes
 if ($before.Count -ne $after.Count) { throw 'External mod files changed during validation' }
 foreach ($file in $before.Keys) { if ($before[$file] -ne $after[$file]) { throw "External mod file changed: $file" } }
 Add-Type -Path (Join-Path $SptPath 'BepInEx/core/Mono.Cecil.dll')
-$client = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode.Client.dll'))
+$client = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'))
 try {
     if (@($client.MainModule.AssemblyReferences | Where-Object { $_.Name -match 'SAIN|BigBrain|pitFireTeam' }).Count -ne 0) { throw 'Client acquired hard external bot dependency' }
     $plugin = $client.MainModule.GetType('ArenaMode.Plugin')

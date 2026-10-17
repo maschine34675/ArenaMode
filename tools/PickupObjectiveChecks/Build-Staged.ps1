@@ -1,11 +1,15 @@
 param([string]$SptRoot = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $pickupRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $pickupInstalled = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $path = Join-Path $SptRoot $relative
-    $pickupInstalled[$path] = (Get-FileHash -LiteralPath $path).Hash
+    $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash
 }
 $clientOutput = & (Join-Path $pickupRepo 'tools/DoubleJumpChecks/Build-Staged.ps1') -SptRoot $SptRoot
 $clientOutput | Write-Output
@@ -37,14 +41,18 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Staged companion build failed' }
     $compat = Join-Path $stage 'compat/maschine-ArenaMode.BigBrainCompat.dll'
     $manifest | Add-Member -NotePropertyName CompatPath -NotePropertyValue $compat
-    $manifest | Add-Member -NotePropertyName CompatSha256 -NotePropertyValue (Get-FileHash -LiteralPath $compat).Hash
+    $manifest | Add-Member -NotePropertyName CompatSha256 -NotePropertyValue (Get-ArenaObservedFileHash -LiteralPath $compat).Hash
     $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath
 } finally {
     foreach ($path in $pickupInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath $path).Hash -ne $pickupInstalled[$path]) { throw "Installed artifact changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath $path).Hash -ne $pickupInstalled[$path]) { throw "Installed artifact changed: $path" }
     }
 }
 if ((& git -C $pickupRepo rev-parse HEAD) -ne $manifest.SourceCommit -or
     (@(& git -C $pickupRepo status --short) -join "`n") -cne (@($manifest.SourceChanges) -join "`n")) { throw 'Source state changed during build' }
 Write-Output "Pickup build manifest: $manifestPath"
 Write-Output 'PICKUP OBJECTIVE BUILD PASSED'
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

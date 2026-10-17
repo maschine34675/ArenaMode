@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <Version>0.1.0</Version>
+    <ArenaRepoRoot>$(MSBuildThisFileDirectory)</ArenaRepoRoot>
     <!-- Game binaries + BepInEx (EscapeFromTarkov.exe, Managed/, BepInEx/) -->
     <SPTPath>$(MSBuildThisFileDirectory)..\..</SPTPath>
     <!-- Profiles, server mods, configs (user/) — 4.1 renamed the nested folder SPT -> SPT_Runtime -->
@@ -15,13 +16,7 @@
   <Import Project="Shared.props.user" Condition="Exists('Shared.props.user')" />
 
   <Target Name="SPTClientDeploy" AfterTargets="PostBuildEvent" Condition="'$(SPTModType)'=='Client'">
-    <Exec
-      Command='
-        xcopy /F /Y "$(TargetPath)" "$(SPTPath)\BepInEx\plugins\"
-
-        if $(ConfigurationName) == Debug (
-          xcopy /F /Y "$(ProjectDir)$(OutDir)$(TargetName).pdb" "$(SPTPath)\BepInEx\plugins\"
-        )'
-    />
+    <!-- Preserve this suppressible boundary for every offline/staged build. -->
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Deploy-ArenaClient.ps1" -AssemblyPath "$(TargetPath)" -SptPath "$(SPTPath)" -Configuration "$(Configuration)"' />
   </Target>
 </Project>

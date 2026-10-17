@@ -18,8 +18,8 @@ foreach ($project in @('ArenaMode.Server/ArenaMode.Server.csproj', 'ArenaMode.Bi
     if ($LASTEXITCODE -ne 0) { throw "Release build failed: $project" }
 }
 foreach ($pair in @(
-    @('ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-ArenaMode.Client.dll'),
-    @('ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll', 'BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll'),
+    @('ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'),
+    @('ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll', 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll'),
     @('build/server/Release/maschine-ArenaMode.Server/maschine-ArenaMode.Server.dll', 'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll'),
     @('../Redeploy/Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll')
 )) {

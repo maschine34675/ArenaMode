@@ -1,5 +1,9 @@
 param([ValidateSet('Ammo','Backpack')][string]$Mode='Ammo',
     [string]$SptPath=([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference='Stop'
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $isAmmo=$Mode -eq 'Ammo'
@@ -14,9 +18,9 @@ $inputs=@{}
 $paths=@($sourcePath,(Join-Path $repo 'ArenaMode.Client/Plugin.cs'),(Join-Path $repo 'ArenaMode.Client/Pickups/ArenaPowerupState.cs'))
 $paths+=@(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object FullName)
 if (!$isAmmo) { $paths+=@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../BackpackReloadChecks') -File | ForEach-Object FullName) }
-foreach($path in $paths){$inputs[$path]=(Get-FileHash -LiteralPath $path).Hash}
+foreach($path in $paths){$inputs[$path]=(Get-ArenaObservedFileHash -LiteralPath $path).Hash}
 $installed=@{}
-foreach($rel in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll','BepInEx/core/0Harmony.dll')) {$p=Join-Path $SptPath $rel;$installed[$p]=(Get-FileHash -LiteralPath $p).Hash}
+foreach($rel in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll','BepInEx/core/0Harmony.dll')) {$p=Join-Path $SptPath $rel;$installed[$p]=(Get-ArenaObservedFileHash -LiteralPath $p).Hash}
 $source=[IO.File]::ReadAllText($sourcePath).Replace("`r`n","`n")
 function Run([string]$name,[string]$path,[string]$failure='') {
     $out=Join-Path $work $name;[void][IO.Directory]::CreateDirectory($out)
@@ -50,8 +54,12 @@ try {
         if($source.Split(@($fault[1]),[StringSplitOptions]::None).Count -ne 2){throw "Fault anchor not unique: $($fault[0])"}
         $path=Join-Path $work ($fault[0]+'.cs');[IO.File]::WriteAllText($path,$source.Replace($fault[1],$fault[2]));Run $fault[0] $path $fault[3]
     }
-    foreach($p in $inputs.Keys){if((Get-FileHash -LiteralPath $p).Hash -ne $inputs[$p]){throw "Source changed: $p"}}
-} finally {foreach($p in $installed.Keys){if((Get-FileHash -LiteralPath $p).Hash -ne $installed[$p]){throw "Installed file changed: $p"}}}
+    foreach($p in $inputs.Keys){if((Get-ArenaObservedFileHash -LiteralPath $p).Hash -ne $inputs[$p]){throw "Source changed: $p"}}
+} finally {foreach($p in $installed.Keys){if((Get-ArenaObservedFileHash -LiteralPath $p).Hash -ne $installed[$p]){throw "Installed file changed: $p"}}}
 [ordered]@{sourceHashes=$inputs;installedHashes=$installed;faultsRejected=$faults.Count;completedUtc=[DateTime]::UtcNow.ToString('o');limitation='Source-linked adapters, explicit native doubles and installed IL; no Unity/Harmony execution or deployment.'} | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $work 'manifest.json')
 $label=if($isAmmo){'INFINITE AMMO'}else{'BACKPACK RELOAD'}
 Write-Output "ARENA $label CHECKS PASSED; evidence: $work"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

@@ -1,4 +1,8 @@
 param([string]$SptPath = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $botRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $botProject = Join-Path $PSScriptRoot 'BotMovementChecks.csproj'
@@ -6,18 +10,18 @@ $botEvidence = Join-Path $botRepo ('artifacts/bot-movement-checks/' + [guid]::Ne
 [void][IO.Directory]::CreateDirectory($botEvidence)
 $botSourcePath = Join-Path $botRepo 'ArenaMode.Client/Movement/ArenaBotMovement.cs'
 $botSource = [IO.File]::ReadAllText($botSourcePath).Replace("`r`n", "`n")
-$botSourceHash = (Get-FileHash -LiteralPath $botSourcePath -Algorithm SHA256).Hash
+$botSourceHash = (Get-ArenaObservedFileHash -LiteralPath $botSourcePath -Algorithm SHA256).Hash
 $botInputs = @{}
 $botInputPaths = @($botSourcePath, (Join-Path $botRepo 'ArenaMode.Client/Movement/ArenaBotMovementSain.cs'))
 $botInputPaths += @(Get-ChildItem -LiteralPath $PSScriptRoot -Recurse -File | Where-Object {
     $_.FullName -notmatch '[\\/](bin|obj)[\\/]' -and $_.Extension -in @('.cs', '.csproj', '.ps1')
 } | ForEach-Object { $_.FullName })
-foreach ($botPath in $botInputPaths) { $botInputs[$botPath] = (Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash }
+foreach ($botPath in $botInputPaths) { $botInputs[$botPath] = (Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash }
 $botInstalled = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll', 'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $botPath = Join-Path $SptPath $relative
-    $botInstalled[$botPath] = (Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash
+    $botInstalled[$botPath] = (Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash
 }
 function Run-Behavior([string]$Name, [string]$Override = '') {
     $botArgs = @('build', $botProject, '-t:Rebuild', '-c', 'Release', '--nologo')
@@ -68,16 +72,16 @@ try {
     }
 } finally {
     Positive 'production-after'
-    if ((Get-FileHash -LiteralPath $botSourcePath -Algorithm SHA256).Hash -ne $botSourceHash) {
+    if ((Get-ArenaObservedFileHash -LiteralPath $botSourcePath -Algorithm SHA256).Hash -ne $botSourceHash) {
         throw 'Production source changed during checks; re-run the exact final source'
     }
     foreach ($botPath in $botInputs.Keys) {
-        if ((Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInputs[$botPath]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInputs[$botPath]) {
             throw "Production adapter or harness changed during checks: $botPath"
         }
     }
     foreach ($botPath in $botInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInstalled[$botPath]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath $botPath -Algorithm SHA256).Hash -ne $botInstalled[$botPath]) {
             throw "Installed binary changed during source-linked checks: $botPath"
         }
     }
@@ -86,3 +90,7 @@ try {
     CheckedUtc = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath (Join-Path $botEvidence 'evidence.json')
 Write-Output "BOT MOVEMENT CHECKS PASSED; $botRejected compiled negative controls; evidence: $botEvidence"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

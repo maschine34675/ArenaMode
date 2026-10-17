@@ -22,7 +22,7 @@ foreach ($project in @('tools/LabsBotSpawnChecks', 'tools/PitFireTeamChecks', 't
 & dotnet build (Join-Path $repo 'ArenaMode.Client/ArenaMode.Client.csproj') -c Release --no-restore "-p:SPTPath=$SptPath"
 if ($LASTEXITCODE -ne 0) { throw 'Arena client Release build failed' }
 foreach ($pair in @(
-    @((Join-Path $repo 'ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll'), (Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode.Client.dll')),
+    @((Join-Path $repo 'ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll'), (Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll')),
     @((Join-Path $repo '../Redeploy/Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll'), (Join-Path $SptPath 'BepInEx/plugins/maschine-Redeploy.Core.dll'))
 )) {
     if ((Get-FileHash -LiteralPath $pair[0] -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $pair[1] -Algorithm SHA256).Hash) { throw "Live/build mismatch: $($pair[1])" }
@@ -36,7 +36,7 @@ $resolver.AddSearchDirectory((Join-Path $SptPath 'BepInEx/core'))
 $resolver.AddSearchDirectory((Join-Path $SptPath 'EscapeFromTarkov_Data/Managed'))
 $reader = [Mono.Cecil.ReaderParameters]::new()
 $reader.AssemblyResolver = $resolver
-$client = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode.Client.dll'), $reader)
+$client = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'), $reader)
 try {
     if (@($client.MainModule.AssemblyReferences | Where-Object { $_.Name -like 'SAIN*' }).Count -ne 0) { throw 'Client acquired a hard SAIN assembly dependency' }
     $plugin = $client.MainModule.GetType('ArenaMode.Plugin')

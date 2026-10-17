@@ -1,4 +1,8 @@
 param([string]$SptRoot = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaGame = [IO.Path]::GetFullPath($SptRoot)
@@ -9,19 +13,20 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot read staged build source state' }
 $arenaStage = Join-Path $arenaRepo ('artifacts\double-jump-build\' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($arenaStage) | Out-Null
 $arenaInstalled = @(
-    (Join-Path $arenaGame 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    (Join-Path $arenaGame 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
     (Join-Path $arenaGame 'SPT_Runtime\user\mods\ArenaMode\maschine-ArenaMode.Server.dll'),
     (Join-Path $arenaGame 'BepInEx\plugins\maschine-Redeploy.Core.dll'))
 $arenaHashes = @{}
 foreach ($arenaPath in $arenaInstalled) {
-    $arenaHashes[$arenaPath] = (Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
+    $arenaHashes[$arenaPath] = (Get-ArenaObservedFileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
 }
+foreach ($arenaPath in $arenaLayoutSnapshot.Keys) { $arenaHashes[$arenaPath] = $arenaLayoutSnapshot[$arenaPath] }
 # The staged project still imports/links these two external source files. Bind
 # them without building or deploying Redeploy, and reject a concurrent edit.
 $arenaExternalHashes = @{}
 foreach ($arenaRelative in @('../Redeploy/Redeploy.Core/CoreVersion.props', '../Redeploy/drivers/CoreVersionGate.cs')) {
     $arenaPath = [IO.Path]::GetFullPath((Join-Path $arenaRepo $arenaRelative))
-    $arenaExternalHashes[$arenaPath] = (Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
+    $arenaExternalHashes[$arenaPath] = (Get-ArenaObservedFileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash
 }
 
 # Imported after the real client project. Replace only the external project
@@ -60,12 +65,12 @@ try {
 }
 finally {
     foreach ($arenaPath in $arenaInstalled) {
-        if ((Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash -ne $arenaHashes[$arenaPath]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash -ne $arenaHashes[$arenaPath]) {
             throw "Installed artifact changed during staged build: $arenaPath"
         }
     }
     foreach ($arenaPath in $arenaExternalHashes.Keys) {
-        if ((Get-FileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash -ne $arenaExternalHashes[$arenaPath]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath $arenaPath -Algorithm SHA256).Hash -ne $arenaExternalHashes[$arenaPath]) {
             throw "External source changed during staged build: $arenaPath"
         }
     }
@@ -81,7 +86,7 @@ $arenaManifest = [ordered]@{
     SourceCommit = $arenaSourceCommit
     SourceChanges = $arenaSourceChanges
     ClientPath = $arenaDll
-    ClientSha256 = (Get-FileHash -LiteralPath $arenaDll -Algorithm SHA256).Hash
+    ClientSha256 = (Get-ArenaObservedFileHash -LiteralPath $arenaDll -Algorithm SHA256).Hash
     InstalledUnchanged = $arenaHashes
     ExternalBuildSources = $arenaExternalHashes
     Deployed = $false
@@ -90,3 +95,7 @@ $arenaManifest = [ordered]@{
 $arenaManifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $arenaStage 'manifest.json')
 Write-Output "Staged client: $arenaDll"
 Write-Output 'ARENA_DOUBLE_JUMP_STAGED_BUILD_PASSED'
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

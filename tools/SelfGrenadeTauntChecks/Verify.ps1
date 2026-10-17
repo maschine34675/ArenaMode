@@ -1,4 +1,8 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Support.ps1')
 $tauntRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -12,11 +16,11 @@ $tauntBound = @($tauntFiles | ForEach-Object { 'ArenaMode.Client/Combat/' + $_ }
     'ArenaMode.Client/Hud/ArenaHud.cs','ArenaMode.Client/Audio/AnnouncerService.cs'
 ) + @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/SelfGrenadeTauntChecks/' + $_.Name })
 $tauntHashes = @{}
-foreach ($path in $tauntBound) { $tauntHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $tauntRoot $path)).Hash }
+foreach ($path in $tauntBound) { $tauntHashes[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $tauntRoot $path)).Hash }
 $tauntInstalled = @{}
-foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
+foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll')) {
-    $tauntInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
+    $tauntInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Taunt([string]$name, [string]$source, [string]$suite = 'all', [string]$failure = '', [bool]$audioFault = $false) {
     $dir = Join-Path $tauntScratch $name; [void][IO.Directory]::CreateDirectory($dir)
@@ -54,11 +58,11 @@ try {
     Run-Taunt 'text-routed-to-combat-audio' $tauntSource 'positive' 'proven own grenade emits exactly the HUD text' $true
     Run-Taunt 'production-final' $tauntSource
     foreach ($path in $tauntBound) {
-        if ((Get-FileHash -LiteralPath (Join-Path $tauntRoot $path)).Hash -ne $tauntHashes[$path]) { throw "Bound source changed; rerun required: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $tauntRoot $path)).Hash -ne $tauntHashes[$path]) { throw "Bound source changed; rerun required: $path" }
     }
 } finally {
     foreach ($path in $tauntInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $tauntInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $tauntInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes=$tauntHashes; installedHashes=$tauntInstalled; sourcesUnchanged=$true; installedUnchanged=$true;
@@ -66,3 +70,7 @@ try {
     limitation='Full production taunt and actual extracted ArenaMatch text dispatch use explicit native boundary doubles. Metadata/source checks are not Unity/Harmony runtime or deployment proof.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $tauntScratch 'manifest.json')
 Write-Output "SELF GRENADE TAUNT CHECKS PASSED; three compiled faults rejected; source and installed binaries unchanged; evidence: $tauntScratch"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

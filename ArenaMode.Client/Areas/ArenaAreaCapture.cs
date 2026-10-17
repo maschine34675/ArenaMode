@@ -149,7 +149,7 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
         string path = ArenaAreaDraftFile.Write(directory, json);
         _status = "Saved " + Path.GetFileName(path);
         Plugin.ModLogger.LogInfo("Arena outline draft exported (not activated): " + path);
-        ArenaToasts.Show("Outline saved to BepInEx/plugins/ArenaMode/AreaDrafts. Live area unchanged.");
+        ArenaToasts.Show("Outline saved to BepInEx/plugins/maschine-ArenaMode/AreaDrafts. Live area unchanged.");
     }
 
     private void OnGUI()

@@ -15,7 +15,7 @@ internal static class ArenaPickupSettings
     internal static void Init(ConfigFile config)
     {
         Enabled = config.Bind("Arena pickups", "Enabled", true,
-            "Arena-owned pickups in Deathmatch and Team Deathmatch. Factory day/night prototype is built in; optional ArenaMode/Pickups.json replaces it. Layouts are frozen per match. Disabling clears this match's pickups and effects.");
+            "Arena-owned pickups in Deathmatch and Team Deathmatch. Factory day/night prototype is built in; optional maschine-ArenaMode/Pickups.json replaces it. Layouts are frozen per match. Disabling clears this match's pickups and effects.");
         SoundVolume = config.Bind("Arena pickups", "SoundVolume", .7f,
             new ConfigDescription("Successful local pickup sound volume; 0 mutes it. Independent of interface, hitmarker and announcer volume; master mute remains respected.", new AcceptableValueRange<float>(0f, 1f)));
         BotsCollectPowerups = config.Bind("Arena pickups", "BotsCollectPowerups", true,

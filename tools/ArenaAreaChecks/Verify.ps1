@@ -69,8 +69,8 @@ try {
             # Build the actual Release client + companion last, serially.
             Invoke-ArenaDotnet (@('build', 'ArenaMode.BigBrainCompat\ArenaMode.BigBrainCompat.csproj') + $arenaBuildArgs)
             $arenaPairs = @(
-                @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode.Client.dll')),
-                @('ArenaMode.BigBrainCompat\bin\Release\maschine-ArenaMode.BigBrainCompat.dll', (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode.BigBrainCompat.dll')),
+                @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll')),
+                @('ArenaMode.BigBrainCompat\bin\Release\maschine-ArenaMode.BigBrainCompat.dll', (Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.BigBrainCompat.dll')),
                 @('build\server\Release\maschine-ArenaMode.Server\maschine-ArenaMode.Server.dll', (Join-Path $arenaRuntime 'user\mods\ArenaMode\maschine-ArenaMode.Server.dll')),
                 @('..\Redeploy\Redeploy.Core\bin\Release\maschine-Redeploy.Core.dll', (Join-Path $arenaSpt 'BepInEx\plugins\maschine-Redeploy.Core.dll'))
             )

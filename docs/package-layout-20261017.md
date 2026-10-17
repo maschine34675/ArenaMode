@@ -1,5 +1,10 @@
 # Test package layout v2
 
+Historical v2 layout. The subsequent [unified deployment change](UNIFIED-DEPLOY-20261017.md)
+renames `plugins/ArenaMode` to `plugins/maschine-ArenaMode` and aligns ordinary
+build deployment with release packaging. The old ZIP below is not the current
+folder-layout candidate; its original hashes and evidence remain historical.
+
 Date: 2026-10-17. This replaces the layout of the earlier
 [trial archive](TEST-RELEASE-20261017.md), following the user's reorganized
 example. It does not change source-asset bytes or install anything.

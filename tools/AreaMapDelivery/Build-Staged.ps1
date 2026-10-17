@@ -1,18 +1,27 @@
 param([string]$SptRoot='D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $mapRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $mapGame = (Resolve-Path -LiteralPath $SptRoot).Path
 $mapStage = Join-Path $mapRepo ('artifacts\area-map-delivery\' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $mapStage -Force | Out-Null
-$mapDlls = @('BepInEx\plugins\maschine-ArenaMode.Client.dll',
+$mapDlls = @('BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll',
     'SPT_Runtime\user\mods\ArenaMode\maschine-ArenaMode.Server.dll',
     'BepInEx\plugins\maschine-Redeploy.Core.dll', 'BepInEx\plugins\maschine-Redeploy.Client.dll')
 function Read-InstalledMaps {
     $paths = @($mapDlls | ForEach-Object { Join-Path $mapGame $_ })
-    $paths += @(Get-ChildItem -LiteralPath (Join-Path $mapGame 'BepInEx\plugins\ArenaMode') -File -Recurse |
-        Where-Object { $_.FullName -notmatch '\\AreaDrafts\\' } | ForEach-Object FullName)
+    foreach ($folder in @('BepInEx/plugins/ArenaMode', 'BepInEx/plugins/maschine-ArenaMode')) {
+        $assetFolder = Join-Path $mapGame $folder
+        if (Test-Path -LiteralPath $assetFolder) {
+            $paths += @(Get-ChildItem -LiteralPath $assetFolder -File -Recurse |
+                Where-Object { $_.FullName -notmatch '\\AreaDrafts\\' } | ForEach-Object FullName)
+        }
+    }
     $inventory = @{}
-    foreach ($path in $paths) { $inventory[$path] = (Get-FileHash -LiteralPath $path).Hash }
+    foreach ($path in $paths) { $inventory[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash }
     return $inventory
 }
 $mapBefore = Read-InstalledMaps
@@ -34,13 +43,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Staged server build failed.' }
     $serverDll = Join-Path $serverOutput 'maschine-ArenaMode.Server.dll'
     if (-not (Test-Path -LiteralPath $serverDll)) { throw 'Staged server artifact missing.' }
-    $contentRoot = Join-Path ([IO.Path]::GetDirectoryName($clientDll)) 'ArenaMode\MapPreviews'
+    $contentRoot = Join-Path ([IO.Path]::GetDirectoryName($clientDll)) 'maschine-ArenaMode\MapPreviews'
     & (Join-Path $PSScriptRoot 'Verify-Package.ps1') -ClientDll $clientDll -ContentRoot $contentRoot
     $mapManifest = [ordered]@{
         SourceCommit = (& git -C $mapRepo rev-parse HEAD)
         SourceChanges = @(& git -C $mapRepo -c core.safecrlf=false status --short)
-        Client = @{ Path=$clientDll; SHA256=(Get-FileHash -LiteralPath $clientDll).Hash }
-        Server = @{ Path=$serverDll; SHA256=(Get-FileHash -LiteralPath $serverDll).Hash }
+        Client = @{ Path=$clientDll; SHA256=(Get-ArenaObservedFileHash -LiteralPath $clientDll).Hash }
+        Server = @{ Path=$serverDll; SHA256=(Get-ArenaObservedFileHash -LiteralPath $serverDll).Hash }
         MapContent = $contentRoot
         InstalledFilesChecked = $mapBefore.Count
         Deployed = $false
@@ -57,3 +66,7 @@ finally {
 $mapManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $mapStage 'manifest.json')
 Write-Output "Delivery manifest: $mapStage\manifest.json"
 Write-Output 'AREA MAP STAGED DELIVERY PASSED'
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

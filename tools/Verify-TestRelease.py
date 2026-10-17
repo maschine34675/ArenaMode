@@ -8,7 +8,7 @@ import sys
 from urllib.parse import unquote, urlsplit
 import zipfile
 
-ASSETS = 'BepInEx/plugins/ArenaMode/'
+ASSETS = 'BepInEx/plugins/maschine-ArenaMode/'
 DOCS = ASSETS + 'docs/'
 MANIFEST = DOCS + 'PACKAGE-MANIFEST.json'
 DLLS = {
@@ -59,7 +59,7 @@ def verify(path):
         assert {name for name in names if name.lower().endswith('.dll')} == DLLS, 'Unexpected DLL set'
         manifest = json.loads(archive.read(MANIFEST))
         assert manifest['schemaVersion'] == 2 and manifest['kind'] == 'local-test'
-        assert manifest['layout'] == 'spt-root-folders-v2', 'Unexpected package layout version'
+        assert manifest['layout'] == 'spt-root-folders-v3', 'Unexpected package layout version'
         assert not manifest['deployed'] and not manifest['uploaded']
         for key in ('arenaCommit', 'redeployCoreCommit'):
             assert len(manifest[key]) == 40 and all(c in '0123456789abcdef' for c in manifest[key]), key
@@ -82,6 +82,8 @@ def verify(path):
             for target in re.findall(r'\]\(([^)]+)\)', archive.read(name).decode('utf-8-sig')):
                 target = target.strip('<>')
                 reference = urlsplit(target)
+                if target.startswith('https://github.com/maschine34675/ArenaMode/blob/'):
+                    assert target.startswith('https://github.com/maschine34675/ArenaMode/blob/' + manifest['arenaCommit'] + '/'), f'Unpinned source link: {name}: {target}'
                 if reference.scheme or reference.netloc or not reference.path:
                     continue
                 resolved = resolve_reference(name, reference.path)

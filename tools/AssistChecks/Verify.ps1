@@ -1,4 +1,8 @@
-$ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {$ErrorActionPreference = 'Stop'
 $assistRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $assistStage = Join-Path $assistRepo ('artifacts/assist-checks/' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($assistStage)
@@ -13,15 +17,15 @@ $assistSources = @('ArenaMode.Client/Modes/ArenaMatch.cs', 'ArenaMode.Client/Mod
         ForEach-Object { 'tools/AssistChecks/' + $_.Name })
 $assistHashes = @{}
 foreach ($relative in $assistSources) {
-    $assistHashes[$relative] = (Get-FileHash -LiteralPath (Join-Path $assistRepo $relative)).Hash
+    $assistHashes[$relative] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $assistRepo $relative)).Hash
 }
 $assistSpt = [IO.Path]::GetFullPath((Join-Path $assistRepo '../..'))
 $assistInstalled = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $path = Join-Path $assistSpt $relative
-    if (Test-Path -LiteralPath $path) { $assistInstalled[$path] = (Get-FileHash -LiteralPath $path).Hash }
+    if (Test-Path -LiteralPath $path) { $assistInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash }
 }
 function Invoke-Assist([string]$Name, [string]$Source, [string]$Suite = 'all', [string]$Failure = '') {
     $directory = Join-Path $assistStage $Name
@@ -70,13 +74,13 @@ try {
         $reset.Value.Replace('_assistVictims.Clear();', '') 'lifecycle' 'assist ledger cleared at round'
     Invoke-Assist 'production-final' $assistBoard
     foreach ($relative in $assistSources) {
-        if ((Get-FileHash -LiteralPath (Join-Path $assistRepo $relative)).Hash -ne $assistHashes[$relative]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $assistRepo $relative)).Hash -ne $assistHashes[$relative]) {
             throw "Bound source changed; rerun required: $relative"
         }
     }
 } finally {
     foreach ($path in $assistInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath $path).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath $path).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes = $assistHashes; installedHashes = $assistInstalled;
@@ -85,3 +89,7 @@ try {
     limitation = 'Full production match, scoreboard, kill DTO, role rules and awards run with explicit native/mode boundary doubles. Native damage attribution and GPU UI require separate verification.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $assistStage 'manifest.json')
 Write-Output "ASSIST SCORING CHECKS PASSED; three compiled faults rejected; source and installed binaries unchanged; evidence: $assistStage"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

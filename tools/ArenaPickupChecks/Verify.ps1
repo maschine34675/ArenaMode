@@ -1,4 +1,8 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $pickupRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $pickupSource = Join-Path $pickupRepo 'ArenaMode.Client/Pickups'
@@ -9,12 +13,12 @@ $pickupBound = @('ArenaMode.Client/Plugin.cs','ArenaMode.Client/ArenaController.
     'ArenaMode.Client/Hud/ArenaPowerupPanel.cs','ArenaMode.Client/Kits/KitModels.cs')
 $pickupBound += @(Get-ChildItem -LiteralPath $pickupSource -File | ForEach-Object { 'ArenaMode.Client/Pickups/' + $_.Name })
 $pickupBound += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPickupChecks/' + $_.Name })
-foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-FileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
+foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
 $pickupInstalled = @{}
-foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
+foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',
     'SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json','SPT_Runtime/SPT_Data/database/locations/factory4_night/base.json')) {
-    $pickupInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
+    $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {
     $directory = Join-Path $pickupEvidence $name; [void][IO.Directory]::CreateDirectory($directory)
@@ -124,11 +128,11 @@ try {
     }
     Run-Pickup 'production-final' $pickupSource
     foreach ($path in $pickupInputs.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash -ne $pickupInputs[$path]) { throw "Bound source changed; rerun required: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash -ne $pickupInputs[$path]) { throw "Bound source changed; rerun required: $path" }
     }
 } finally {
     foreach ($path in $pickupInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $pickupInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $pickupInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes=$pickupInputs; installedHashes=$pickupInstalled; sourcesUnchanged=$true; installedUnchanged=$true;
@@ -136,3 +140,7 @@ try {
     limitation='Actual production runtime/state/layout/geometry use controlled world, physics/navigation, UI, powerup and native inventory result boundaries. Source contracts inspect wiring only. Native game behavior and visuals require GPU acceptance; no client build or deployment.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $pickupEvidence 'manifest.json')
 Write-Output "ARENA PICKUP CHECKS PASSED; $($faults.Count) compiled faults rejected; evidence: $pickupEvidence"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

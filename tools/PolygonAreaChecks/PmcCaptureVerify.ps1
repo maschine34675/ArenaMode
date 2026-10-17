@@ -2,16 +2,17 @@ param(
     [Parameter(Mandatory = $true)][ValidateSet('Scope', 'Build')][string]$Stage,
     [string]$SptRoot = 'D:\SPT41'
 )
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSpt = (Resolve-Path -LiteralPath $SptRoot).Path
 $arenaArtifacts = Join-Path $arenaRepo 'artifacts\pmc-capture'
 New-Item -ItemType Directory -Path $arenaArtifacts -Force | Out-Null
 function Get-PmcHash([string]$Path) {
-    $arenaStream = [IO.File]::OpenRead($Path)
-    $arenaSha = [Security.Cryptography.SHA256]::Create()
-    try { return [BitConverter]::ToString($arenaSha.ComputeHash($arenaStream)).Replace('-', '') }
-    finally { $arenaSha.Dispose(); $arenaStream.Dispose() }
+    return (Get-ArenaObservedFileHash -LiteralPath $Path).Hash
 }
 function Invoke-PmcDotnet([string[]]$Arguments) {
     & dotnet @Arguments
@@ -33,7 +34,7 @@ try {
         $arenaStagePlugins = New-Item -ItemType Directory -Path (Join-Path $arenaStage 'BepInEx\plugins')
         New-Item -ItemType Junction -Path (Join-Path $arenaStageData.FullName 'Managed') -Target (Join-Path $arenaSpt 'EscapeFromTarkov_Data\Managed') | Out-Null
         New-Item -ItemType Junction -Path (Join-Path $arenaStagePlugins.FullName 'spt') -Target (Join-Path $arenaSpt 'BepInEx\plugins\spt') | Out-Null
-        $arenaClientInstall = Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode.Client.dll'
+        $arenaClientInstall = Join-Path $arenaSpt 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'
         $arenaCoreInstall = Join-Path $arenaSpt 'BepInEx\plugins\maschine-Redeploy.Core.dll'
         $arenaClientBefore = Get-PmcHash $arenaClientInstall
         $arenaCoreBefore = Get-PmcHash $arenaCoreInstall
@@ -43,7 +44,7 @@ try {
             throw 'Staged verification changed an installed DLL.'
         }
         $arenaBuilt = Join-Path $arenaRepo 'ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll'
-        $arenaStaged = Join-Path $arenaStagePlugins.FullName 'maschine-ArenaMode.Client.dll'
+        $arenaStaged = Join-Path $arenaStagePlugins.FullName 'maschine-ArenaMode\maschine-ArenaMode.Client.dll'
         $arenaHash = Get-PmcHash $arenaBuilt
         if ($arenaHash -ne (Get-PmcHash $arenaStaged)) { throw 'Staged client does not match built client.' }
         [pscustomobject]@{ Built=$arenaBuilt; Staged=$arenaStaged; SHA256=$arenaHash; PreviousInstalledSHA256=$arenaClientBefore } |
@@ -53,3 +54,7 @@ try {
     Write-Output ('ARENA_PMC_CAPTURE_' + $Stage.ToUpperInvariant() + '_PASSED')
 }
 finally { Stop-Transcript | Out-Null; Pop-Location }
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

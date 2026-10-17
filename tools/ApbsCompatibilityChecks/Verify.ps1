@@ -1,5 +1,9 @@
 #requires -Version 7.0
 param([string]$SptRoot)
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+if (![string]::IsNullOrWhiteSpace($SptRoot)) { $arenaSnapshotRoot = $SptRoot } else { $arenaSnapshotRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..')) }
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 if (!$SptRoot) { $SptRoot = [IO.Path]::GetFullPath((Join-Path $repo '../..')) }
@@ -7,15 +11,15 @@ $stage = Join-Path $repo ('artifacts/apbs-compat/tests/' + [Guid]::NewGuid().ToS
 [IO.Directory]::CreateDirectory($stage) | Out-Null
 $paths = @(
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
-    'BepInEx/plugins/maschine-ArenaMode.Client.dll',
-    'BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll',
+    'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll',
+    'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'BepInEx/plugins/maschine-Redeploy.Client.dll',
     'SPT_Runtime/user/mods/acidphantasm-progressivebotsystem/acidphantasm-progressivebotsystem.dll',
     'SPT_Runtime/user/mods/acidphantasm-progressivebotsystem/config.json'
 )
 $before = @{}
-foreach ($path in $paths) { $before[$path] = (Get-FileHash -LiteralPath (Join-Path $SptRoot $path) -Algorithm SHA256).Hash }
+foreach ($path in $paths) { $before[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptRoot $path) -Algorithm SHA256).Hash }
 $oldTestRoot = $env:ARENA_APBS_TEST_ROOT
 try {
     $env:ARENA_APBS_TEST_ROOT = $SptRoot
@@ -27,7 +31,7 @@ try {
 } finally {
     $env:ARENA_APBS_TEST_ROOT = $oldTestRoot
     foreach ($path in $paths) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptRoot $path) -Algorithm SHA256).Hash -ne $before[$path]) {
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptRoot $path) -Algorithm SHA256).Hash -ne $before[$path]) {
             throw "Verification altered installed file: $path"
         }
     }
@@ -35,3 +39,7 @@ try {
 }
 Write-Output "Evidence: $stage"
 Write-Output 'ARENA_APBS_CHECKS_PASSED'
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

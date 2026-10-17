@@ -1,14 +1,18 @@
-$ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {$ErrorActionPreference = 'Stop'
 $assistRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $assistStage = Join-Path $assistRepo ('artifacts/assist-regressions/' + [guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($assistStage)
 $assistSpt = [IO.Path]::GetFullPath((Join-Path $assistRepo '../..'))
 $assistInstalled = @{}
-foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode.Client.dll',
+foreach ($relative in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll')) {
     $path = Join-Path $assistSpt $relative
-    if (Test-Path -LiteralPath $path) { $assistInstalled[$path] = (Get-FileHash -LiteralPath $path).Hash }
+    if (Test-Path -LiteralPath $path) { $assistInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath $path).Hash }
 }
 Push-Location $assistRepo
 try {
@@ -39,7 +43,11 @@ try {
 } finally {
     Pop-Location
     foreach ($path in $assistInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath $path).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath $path).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 Write-Output "ASSIST REGRESSIONS PASSED; installed binaries unchanged; evidence: $assistStage"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

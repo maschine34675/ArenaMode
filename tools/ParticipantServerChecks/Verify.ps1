@@ -1,4 +1,8 @@
 param([string]$SptRoot = 'D:\SPT41')
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptRoot
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $participantRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $participantRun = Join-Path $participantRepo ('artifacts/participant-server/' + [Guid]::NewGuid().ToString('N'))
@@ -12,11 +16,11 @@ $env:SPT_RUNTIME = Join-Path $SptRoot 'SPT_Runtime'
 
 function Get-ParticipantHash([string]$Path) {
     if (!(Test-Path -LiteralPath $Path)) { return '<absent>' }
-    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    return (Get-ArenaObservedFileHash -LiteralPath $Path -Algorithm SHA256).Hash
 }
 
 $participantInstalled = @(
-    (Join-Path $SptRoot 'BepInEx/plugins/maschine-ArenaMode.Client.dll'),
+    (Join-Path $SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'),
     (Join-Path $SptRoot 'BepInEx/plugins/maschine-Redeploy.Core.dll'),
     (Join-Path $SptRoot 'BepInEx/plugins/Redeploy.Core.dll'),
     (Join-Path $SptRoot 'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll'))
@@ -139,3 +143,7 @@ finally {
     }
 }
 Write-Output "PARTICIPANT SERVER CHECKS PASSED (evidence $participantRun/receipt.json)"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}

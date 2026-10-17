@@ -32,13 +32,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Keep voice clips and their attribution together in build/publish output. -->
+    <!-- The shared payload writer supplies build, publish and installed assets. -->
     <ArenaAudioAsset Include="Assets\ArenaMode\**\*" />
-    <Content Include="@(ArenaAudioAsset)">
-      <Link>ArenaMode\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -56,11 +51,6 @@
     <EmbeddedResource Include="Assets\Ui\*.png;@(ArenaUiNotice)">
       <LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
-    <Content Include="@(ArenaUiNotice)">
-      <Link>ArenaMode\Ui\%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -70,25 +60,20 @@
       <LogicalName>ArenaMode.MapPreviews.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
     <ArenaMapPreviewAsset Include="Assets\MapPreviews\**\*" Exclude="Assets\MapPreviews\**\.gitattributes" />
-    <Content Include="@(ArenaMapPreviewAsset)">
-      <Link>ArenaMode\MapPreviews\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
 
   <Target Name="DeployArenaAudioAssets" AfterTargets="SPTClientDeploy">
-    <Copy SourceFiles="@(ArenaAudioAsset)"
-          DestinationFiles="@(ArenaAudioAsset->'$(SPTPath)\BepInEx\plugins\ArenaMode\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-    <!-- Share the existing deploy boundary so staged builds also suppress maps. -->
-    <Copy SourceFiles="@(ArenaMapPreviewAsset)"
-          DestinationFiles="@(ArenaMapPreviewAsset->'$(SPTPath)\BepInEx\plugins\ArenaMode\MapPreviews\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-    <!-- Reuse the same suppressible deployment target; never add a second hook. -->
-    <Copy SourceFiles="@(ArenaUiNotice)"
-          DestinationFiles="@(ArenaUiNotice->'$(SPTPath)\BepInEx\plugins\ArenaMode\Ui\%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <!-- This remains the only installed-asset hook; NoDeploy overrides it. -->
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Write-ArenaAssets.ps1" -SourceRoot "$(ArenaRepoRoot)." -Destination "$(SPTPath)\BepInEx\plugins\maschine-ArenaMode" -SourceRevision "$(SourceRevisionId)"' />
+  </Target>
+
+  <Target Name="StageArenaAssets" AfterTargets="Build">
+    <!-- Build output only: deliberately independent of live deployment. -->
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Write-ArenaAssets.ps1" -SourceRoot "$(ArenaRepoRoot)." -Destination "$(TargetDir)maschine-ArenaMode" -SourceRevision "$(SourceRevisionId)"' />
+  </Target>
+
+  <Target Name="StageArenaPublishAssets" AfterTargets="Publish">
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Write-ArenaAssets.ps1" -SourceRoot "$(ArenaRepoRoot)." -Destination "$(PublishDir)maschine-ArenaMode" -SourceRevision "$(SourceRevisionId)"' />
   </Target>
 
   <ItemGroup>

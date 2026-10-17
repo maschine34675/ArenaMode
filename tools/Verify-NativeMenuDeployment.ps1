@@ -8,7 +8,7 @@ function Read-Sha256([string] $path) {
     finally { $stream.Dispose(); $sha.Dispose() }
 }
 $pairs = @(
-    @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', 'BepInEx\plugins\maschine-ArenaMode.Client.dll'),
+    @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', 'BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Client.dll'),
     @('build\server\Release\maschine-ArenaMode.Server\maschine-ArenaMode.Server.dll', 'SPT_Runtime\user\mods\ArenaMode\maschine-ArenaMode.Server.dll')
 )
 foreach ($pair in $pairs) {

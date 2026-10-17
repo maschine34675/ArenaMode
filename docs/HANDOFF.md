@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Unified build/deploy folder (2026-10-17):** The canonical Arena plugin folder
+  is now `BepInEx/plugins/maschine-ArenaMode`, for both owned DLLs and assets.
+  Normal builds and ZIPs share the same document/provenance writer. The deployer
+  preserves drafts/custom layouts while migrating the old folder and flat DLLs;
+  recoverable originals stay outside plugins in `BepInEx/backups/`.
+  Core remains flat and server paths are unchanged. Existing offline guards
+  observe old/new paths and still suppress all install writes. See the
+  [migration contract and current validation](UNIFIED-DEPLOY-20261017.md).
+
 - **Bay5 original team boxes (2026-10-17, deployed and GPU2 accepted):**
   Independent TDM now shares `ArenaTeamBoxRuntime` with Equator, using map-keyed
   data in `ArenaTeamBoxCatalog`. Bay5 uses ten USEC warehouse and ten BEAR depot

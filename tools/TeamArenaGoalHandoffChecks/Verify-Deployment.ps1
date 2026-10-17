@@ -23,7 +23,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Companion Release build failed' }
 & pwsh -NoProfile -File (Join-Path $repo 'tools/BotLifecycleSafetyChecks/Verify-Deployment.ps1') -SptPath $SptPath
 if ($LASTEXITCODE -ne 0) { throw 'Existing team/PFT/Release checks failed' }
 $built = Join-Path $repo 'ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll'
-$live = Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode.BigBrainCompat.dll'
+$live = Join-Path $SptPath 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.BigBrainCompat.dll'
 if ((Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $live).Hash) { throw 'Companion deployment mismatch' }
 $after = ExternalHashes
 if ($before.Count -ne $after.Count) { throw 'External mod file set changed' }

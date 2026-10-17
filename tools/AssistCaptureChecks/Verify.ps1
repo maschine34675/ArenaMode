@@ -1,4 +1,8 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+$arenaSnapshotRoot = $SptPath
+$arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
+try {
 $ErrorActionPreference = 'Stop'
 $assistRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $assistSource = Join-Path $assistRoot 'ArenaMode.Client/Combat'
@@ -8,11 +12,11 @@ $assistFiles = @('ArenaAssistCapture.cs','ArenaKill.cs','ArenaCombatAwards.cs','
 $assistBound = @($assistFiles | ForEach-Object { 'ArenaMode.Client/Combat/' + $_ }) +
     @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/AssistCaptureChecks/' + $_.Name })
 $assistHashes = @{}
-foreach ($path in $assistBound) { $assistHashes[$path] = (Get-FileHash -LiteralPath (Join-Path $assistRoot $path)).Hash }
+foreach ($path in $assistBound) { $assistHashes[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $assistRoot $path)).Hash }
 $assistInstalled = @{}
-foreach ($path in @('BepInEx/plugins/maschine-ArenaMode.Client.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
+foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll')) {
-    $assistInstalled[$path] = (Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash
+    $assistInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Assist([string]$name, [string]$source, [string]$suite = 'all', [string]$failure = '') {
     $dir = Join-Path $assistScratch $name; [void][IO.Directory]::CreateDirectory($dir)
@@ -49,11 +53,11 @@ try {
     }
     Run-Assist 'production-final' $assistSource
     foreach ($path in $assistBound) {
-        if ((Get-FileHash -LiteralPath (Join-Path $assistRoot $path)).Hash -ne $assistHashes[$path]) { throw "Bound source changed; rerun required: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $assistRoot $path)).Hash -ne $assistHashes[$path]) { throw "Bound source changed; rerun required: $path" }
     }
 } finally {
     foreach ($path in $assistInstalled.Keys) {
-        if ((Get-FileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
+        if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash -ne $assistInstalled[$path]) { throw "Installed binary changed: $path" }
     }
 }
 [ordered]@{ sourceHashes=$assistHashes; installedHashes=$assistInstalled; sourcesUnchanged=$true; installedUnchanged=$true;
@@ -61,3 +65,7 @@ try {
     limitation='Production capture adapter and data/history link against explicit native/mode boundary doubles. Installed IL contracts prove native ordering, not Unity/Harmony execution or deployment.'
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $assistScratch 'manifest.json')
 Write-Output "ASSIST CAPTURE CHECKS PASSED; five compiled faults rejected; source and installed binaries unchanged; evidence: $assistScratch"
+
+} finally {
+    Assert-ArenaInstalledSnapshotUnchanged $arenaLayoutSnapshot $arenaSnapshotRoot
+}
