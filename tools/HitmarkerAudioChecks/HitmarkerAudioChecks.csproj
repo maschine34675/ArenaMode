@@ -13,4 +13,7 @@
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
     <Compile Include="../AnnouncerChecks/StandIns.cs" Link="StandIns.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/ArenaAssetPaths.cs" Link="Production/ArenaAssetPaths.cs" />
+  </ItemGroup>
 </Project>

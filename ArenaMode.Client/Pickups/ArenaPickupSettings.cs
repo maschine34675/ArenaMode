@@ -19,7 +19,7 @@ internal static class ArenaPickupSettings
         SoundVolume = config.Bind("Arena pickups", "SoundVolume", .7f,
             new ConfigDescription("Successful local pickup sound volume; 0 mutes it. Independent of interface, hitmarker and announcer volume; master mute remains respected.", new AcceptableValueRange<float>(0f, 1f)));
         BotsCollectPowerups = config.Bind("Arena pickups", "BotsCollectPowerups", true,
-            "Allow living Arena bots on either side to collect damage/shield/health pickups. The optional BigBrain 1.5.0 companion also directs idle/searching bots to useful available pickups, yielding to combat and danger. Weapons, Jump Boots and Infinite Ammo are local-player-only.");
+            "Allow living Arena bots on either side to collect damage/shield/health pickups. The bundled companion for BigBrain 1.5.0 or newer also directs idle/searching bots to useful available pickups, yielding to combat and danger. Weapons, Jump Boots and Infinite Ammo are local-player-only.");
         WeaponKit = config.Bind("Arena pickups", "PrototypeWeaponKit", ArenaPickupWeapons.M60Id,
             "Pickup weapon: pickup-m60-retzrestdfg is the copied M60E6 with MRS, blue laser and 100 M993 rounds. Any existing catalogue kit ID also works (weapon only, no spare magazines or armor). Read at match start.");
         var weaponDefaultMigrated = config.Bind("Arena pickups", "M60DefaultMigrated", false,

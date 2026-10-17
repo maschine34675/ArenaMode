@@ -42,7 +42,7 @@ internal static class HitmarkerAudioService
             try
             {
                 if (string.IsNullOrEmpty(_pluginDirectory)) throw new InvalidOperationException("Plugin directory unavailable.");
-                Clips[i] = HitmarkerPcmClip.Load(Path.Combine(_pluginDirectory, "ArenaMode", "hitmarkers", Names[i] + ".wav"));
+                Clips[i] = HitmarkerPcmClip.Load(Path.Combine(ArenaAssetPaths.FromPluginDirectory(_pluginDirectory), "hitmarkers", Names[i] + ".wav"));
             }
             catch (Exception ex) { Report("load_" + Names[i], ex.Message); }
         }

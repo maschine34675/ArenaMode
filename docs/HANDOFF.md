@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Release layout v2 and optional BigBrain (2026-10-17):** Local test packages
+  now contain only `BepInEx/` and `SPT_Runtime/` at the root. Both Arena client
+  DLLs go in `plugins/ArenaMode`, notices/docs in its `docs/` folder; shared
+  Core stays flat. `ArenaAssetPaths` retains flat-install compatibility for all
+  six audio/custom-layout/draft paths. The always-shipped companion stays inactive
+  without BigBrain, requires at least 1.5.0, and attempts newer versions with one
+  warning. Real registration/type/priority/brain checks remain mandatory; all
+  capabilities stay off on registration failure. See [package rules and evidence](package-layout-20261017.md)
+  and [optional-loader harness](../tools/BigBrainCompatibilityChecks/README.md).
+  Replacement ZIP `ArenaMode-0.1.0-test-acd0484.zip`: 88 files, folder-only root,
+  1026 unit tests passed/2 skipped, Gitleaks zero findings. Source/Core hashes
+  and archive SHA256 are in the linked report. Not deployed or uploaded; no
+  new native game acceptance is implied by packaging.
+
 - **Early failed-start hang fixed and tested (2026-10-17):** Client `63466e4`
   deployed locally/GPU2, SHA256 `2E2CA630881FE2E7F880E2895E9295F59C20647E848071114D9426D48B7F401F`.
   Protects only the exact failed Arena exit from the deferred native raid-intro

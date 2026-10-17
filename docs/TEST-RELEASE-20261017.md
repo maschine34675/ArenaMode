@@ -1,5 +1,9 @@
 # Local test release ZIP — 2026-10-17
 
+Historical first package. Its layout and manual BigBrain instructions are
+superseded by [package layout v2](package-layout-20261017.md); do not use this
+older archive to test the new grouped plugin layout.
+
 The user published/renamed the existing GitHub repository to
 `maschine34675/ArenaMode`, then requested a **local trial release ZIP**. This
 task does not upload a release, change Git history or deploy into an installation.

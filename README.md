@@ -149,9 +149,13 @@ has used SPT 4.1.6; other SPT major/minor versions are not supported by this bui
 ```text
 SPT installation/
   BepInEx/plugins/
-    maschine-ArenaMode.Client.dll
     maschine-Redeploy.Core.dll
-    ArenaMode/                         audio, map previews and license notices
+    ArenaMode/
+      maschine-ArenaMode.Client.dll
+      maschine-ArenaMode.BigBrainCompat.dll
+      sounds/, hitmarkers/, pickups/   audio
+      MapPreviews/, Ui/                assets and notices
+      docs/                           documentation, licenses and manifest
   SPT_Runtime/user/mods/ArenaMode/
     maschine-ArenaMode.Server.dll
     config/
@@ -164,9 +168,13 @@ mod. Use the version supplied for the Arena build, keeping only one copy in the
 plugin tree. The current source builds against Core **1.0.7**. An older installed
 Arena build may have been compiled against a different Core version.
 
-The optional `maschine-ArenaMode.BigBrainCompat.dll` belongs next to the client
-when using **BigBrain 1.5.0**. Other mods and their dependencies are installed
-separately. Preserve the package's documentation and license notices.
+The package always includes ArenaMode's own BigBrain companion. Without BigBrain
+it stays inactive; **1.5.0** is the tested minimum. Newer versions are attempted
+with a warning and runtime API checks, not certified as compatible. BigBrain
+itself and other mods are installed separately. Preserve documentation and notices.
+When upgrading from a flat installation, remove the old Arena client/companion
+DLLs directly under `BepInEx/plugins` to avoid duplicate plugin copies; keep
+existing assets, drafts and configuration.
 
 4. Start the SPT server, then the game. Select **ARENA**, choose the mode, map,
    area and mutators, then start the raid. For a PFT squad, invite **1–4
@@ -207,7 +215,7 @@ or future version has been tested. Optional mods retain their own prerequisites.
 |---|---|
 | **PitFireTeam** client and server | Exactly **0.10.0 or 0.10.3**; 1–4 companions for Tactical and Zombies. Not required for independent Team DM. |
 | **SAIN** | **4.5.1** adapters for personalities, pursuit and movement. Native AI remains available without it. |
-| **BigBrain** | Exactly **1.5.0**, with ArenaMode's own companion DLL: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
+| **BigBrain** | **1.5.0+** (tested on 1.5.0; newer versions warn), with the bundled ArenaMode companion: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
 | **APBS** | **2.4.1** equipment/progression adapter. Not required for kit or bot generation. |
 | **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
 | **KillcamReplay** | Compatible API and enabled DeathReplay required for replays; shortened Arena live tail supported from **0.9.13**. |

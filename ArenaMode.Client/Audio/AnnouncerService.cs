@@ -104,7 +104,7 @@ internal static class AnnouncerService
     {
         try
         {
-            var soundsDir = Path.Combine(pluginDirectory, "ArenaMode", "sounds");
+            var soundsDir = Path.Combine(ArenaAssetPaths.FromPluginDirectory(pluginDirectory), "sounds");
             if (!Directory.Exists(soundsDir))
             {
                 _directoryScanned = false;

@@ -189,7 +189,7 @@ internal static partial class ArenaPickupRuntime
 
     private static void LoadLayout(string map, string area)
     {
-        string path = Path.Combine(Path.GetDirectoryName(Plugin.Instance.Info.Location), "ArenaMode", "Pickups.json");
+        string path = Path.Combine(ArenaAssetPaths.FromPluginFile(Plugin.Instance.Info.Location), "Pickups.json");
         ArenaPickupLayoutFile file;
         _builtInLayout = !File.Exists(path);
         if (!_builtInLayout)

@@ -27,4 +27,7 @@
     <Compile Include="$(ObjectiveSourceRoot)/ArenaPickupLayer.cs"/>
     <Compile Include="$(ObjectiveSourceRoot)/ArenaPickupLogic.cs"/>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/ArenaAssetPaths.cs" Link="Production/ArenaAssetPaths.cs" />
+  </ItemGroup>
 </Project>

@@ -182,7 +182,7 @@ hold the sequences and failure pictures; this file keeps only what is Arena-spec
 | Path | What |
 |---|---|
 | `ArenaMode.Client/` | BepInEx plugin (netstandard2.1, Harmony). The bulk of the mod. |
-| `ArenaMode.BigBrainCompat/` | Optional BigBrain 1.5.0 action owner for post-death Tactical 5v5 pursuit. |
+| `ArenaMode.BigBrainCompat/` | Optional BigBrain 1.5.0+ action owner for post-death Tactical 5v5 pursuit. |
 | `ArenaMode.Server/` | SPT server mod (net10.0) + the Blazor config page. |
 | `ArenaMode.Shared/` | Linked source compiled into BOTH — routes and DTOs only. |
 | `tools/` | Offline generators for the kit catalogue and the weapon ladder. |
@@ -611,7 +611,7 @@ Open:
   best-of-N round lifecycle and still needs a GPU playtest. It preserves the PMC entry
   loadout after a death, rebuilds fresh follower/opponent bodies between rounds, offers
   post-death third-person spectating, refreshes both teams' pursuit knowledge, and uses
-  an optional companion for exact BigBrain 1.5.0 to own bounded movement toward live opponents while
+  a bundled optional companion for BigBrain 1.5.0+ (newer versions warn) to own bounded movement toward live opponents while
   the PMC is down. It excludes teammate bots/corpses from Arena cleanup/counts and blocks
   both SPT-profile effects and PitFireTeam's separate teammate persistence. Every
   teardown/rebind step fails closed as no-contest when the exact reflected contract or
