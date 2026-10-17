@@ -77,12 +77,14 @@ current defaults, mode restrictions, all mutators and the supporting source.
 
 ### Pickups and bots
 
-- **Factory day/night, Deathmatch and Team DM:** rotating health, shield,
-  double-damage, jump-boots, unlimited-ammo and M60 pickups. Eight candidate
-  spots; no built-in layouts for other maps. Ammo and shield effects have
+- **Every supported Arena map, Deathmatch and Team DM:** rotating health, shield,
+  double-damage, jump-boots, unlimited-ammo and M60 pickups. Factory keeps its
+  eight reviewed spots; other maps use checked native positions, within the
+  selected Customs area where applicable. Ammo and shield effects have
   weapon/damage-type limits detailed in the feature inventory.
-- Colored pickup beams, collection sound and active-effect timers. The M60
-  transfers into a free compatible inactive weapon slot; it is not drawn for you.
+- Colored pickup beams up to six metres, collection sound and active-effect
+  timers. The M60 transfers into a free compatible inactive weapon slot;
+  it is not drawn for you.
 - Bots can collect health/shield/damage pickups; BigBrain integration lets them
   deliberately seek useful powerups.
 - Independent bot movement/agility and reduced weight penalties, more active
@@ -90,6 +92,8 @@ current defaults, mode restrictions, all mutators and the supporting source.
 - Fixed participant/faction slots, including a retained Labyrinth boss slot.
   Difficulty pressure and bot gear progression are separate; timed Team DM
   scales both time curves to match duration.
+- Team DM bots receive visible spawn protection, default four seconds from
+  activation in live combat. Firing or throwing a grenade ends their shield.
 - Zombie voice budgeting and optional Zombie Crowd behavior. Old-corpse and
   resource-pool cleanup reduce accumulation during long matches.
 
@@ -119,7 +123,8 @@ current defaults, mode restrictions, all mutators and the supporting source.
 - Labyrinth access without EnableLabyrinth, disabled entrance traps and drained
   toxic pool, optional center-alarm muting and a 10-second Way Up countdown.
   Not every environmental hazard is removed.
-- Round-state lighting on Labs, Factory and Labyrinth, without editing the maps.
+- Round-state lighting on every supported Arena map, including the ports,
+  without editing the maps.
 - KillcamReplay support in every mode, with respawn delayed until camera cleanup;
   separate PFT third-person spectating with the observed bot's HP.
 - Death-related concussion effects are cleared from spectator/replay views;

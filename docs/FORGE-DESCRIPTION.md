@@ -64,16 +64,18 @@ Population and starting equipment can be changed in the menu.
 - Akimbo pistols (WIP), additional Molotov (WIP), bot movement options.
 - Killcam replays with KillcamReplay installed and DeathReplay enabled.
   PFT team spectating has a target-HP display and works without the replay mod.
-- Factory day/night pickups in Deathmatch and Team DM: health, shield, double
-  damage, jump boots, unlimited ammo and an M60. Positions rotate during play.
-  Other maps do not have built-in pickup layouts.
+- Pickups on every supported Arena map in Deathmatch and Team DM: health,
+  shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
+  rotate during play, within the selected Customs area where applicable.
+- Visible Team DM bot spawn protection, default four seconds; firing, throwing
+  a grenade or dealing damage ends it.
 
 Molotov and deliberate bot pickup steering require BigBrain 1.5.0 or newer plus
 ArenaMode's companion DLL. Molotov is unavailable in Zombies.
 
 Labyrinth entrance traps/toxic pool and its center alarm are handled separately
 for Arena. Way Up uses a 10-second countdown. Round-state lighting is available
-on Labs, Factory and Labyrinth. Quest/achievement/XP notifications and the
+on every supported Arena map. Quest/achievement/XP notifications and the
 extraction list are suppressed; the misleading item-loss warning is hidden and
 the post-raid XP page skipped.
 

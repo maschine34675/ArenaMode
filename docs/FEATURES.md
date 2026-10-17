@@ -52,7 +52,7 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   and explanations when a feature cannot be used. They are locked once the
   raid is armed or active; unavailable settings do not silently enable a mod.
 - Optional skip of the intermediate game-settings, insurance and confirmation
-  screens, plus a shortened deployment countdown (2 seconds by default).
+  screens, plus a shortened deployment countdown (1 second by default).
   The confirmation screen remains whenever PitFireTeam is installed, preserving
   its companion setup.
 - Clear assembly/readiness and countdown notices. Tactical's combat-start
@@ -97,6 +97,10 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Independent **USEC vs BEAR**, without requiring PitFireTeam. Teammates are
   friendly to each other; the player's faction determines the team.
 - Continuous replacement of dead participants into fixed faction slots.
+- Visible protection for newly spawned bots on both teams, using the configured
+  spawn-protection duration (default **4 seconds**). The timer starts in live
+  combat when the bot is active. Firing, throwing a grenade or dealing outgoing
+  damage ends the shield immediately.
 - Team kill and time limits; defaults are **50 kills / 10 minutes**. The result
   can be a win, loss or draw. Readiness and countdown precede live combat.
 - Giving up the current life awards a kill to the opposing team.
@@ -294,9 +298,9 @@ Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
 
 ## 5. Pickups and powerups
 
-Built-in layouts cover **Factory day and night**, only in **Deathmatch and
-independent Team DM**. No built-in pickup layout is implied for Customs, Labs,
-Labyrinth, Bay5 or Equator. Gun Game, Tactical/PFT and Zombies do not use them.
+Built-in layouts cover **every supported Arena map**, only in **Deathmatch and
+independent Team DM**: Factory day/night, Labs, Labyrinth, the selected Customs
+area, Equator, Bay5 and AirPit. Gun Game, Tactical/PFT and Zombies do not use them.
 
 | Pickup | Effect |
 |---|---|
@@ -307,14 +311,17 @@ Labyrinth, Bay5 or Equator. Gun Game, Tactical/PFT and Zombies do not use them.
 | Unlimited ammo | **10 seconds** without cartridge consumption in a compatible already-loaded magazine weapon. Does not fill an empty weapon; launchers/revolvers/break-actions excluded. |
 | Weapon | **M60E6 FDE** with MRS, blue laser and 100 M993 rounds, based on the supplied preset; transferred into a free compatible inactive weapon slot, not automatically drawn. |
 
-- Six pickups use eight distinct candidate spots on Factory. Pickups vary
-  between candidate positions across rounds and also rotate after cooldown or
-  60 seconds left uncollected. A custom `Pickups.json` can replace the built-in
-  layouts.
+- Six pickups use eight distinct candidate spots on Factory. Other maps use
+  up to sixteen positions derived from the current raid's native bot starts,
+  excluding known unsafe zones and team boxes. Actual placement still requires
+  floor, clearance, navigation and selected-area checks. Pickups vary between
+  positions across rounds and also rotate after cooldown or 60 seconds left
+  uncollected. A custom `Pickups.json` replaces the built-in layouts.
 - Respawn cooldowns: Health **20 seconds**; Damage, Shield and Jump Boots
   **30 seconds**; Ammo and Weapon **45 seconds**.
-- Colored models/markers, a matching vertical light beam, collection sound and
-  a HUD display of active effects and remaining duration.
+- Colored models/markers, a matching vertical light beam up to **6 metres**
+  (clipped below ceilings), collection sound and a HUD display of active effects
+  and remaining duration.
 - Walk-over collection for eligible pickups, including the weapon. Geometry,
   grounding, room and inventory checks can reject unsafe placement or transfer;
   a confirmed transfer refusal leaves the weapon available. An uncertain
@@ -329,6 +336,7 @@ Labyrinth, Bay5 or Equator. Gun Game, Tactical/PFT and Zombies do not use them.
   the weapon are player pickups.
 
 Sources: [pickup system](PICKUPS-REVIEW.md),
+[all-map layouts](ALL-MAP-PICKUPS-20261017.md),
 [current layouts](../ArenaMode.Client/Pickups/ArenaPickupLayout.cs),
 [pickup implementations](../ArenaMode.Client/Pickups).
 
@@ -536,7 +544,7 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
   events or other sounds. The option can be switched off.
 - **Way Up** is available immediately but uses a **10-second extraction
   countdown**, avoiding an instant exit when crossing the doorway.
-- Additive round-state lighting on **Labs, Factory day/night and Labyrinth**:
+- Additive round-state lighting on **every supported Arena map**:
   countdown/start feedback, late-round pressure and Tactical result colors.
   It leaves map bundles, ordinary lamps, weather and AI vision unchanged.
   Blackout/Going Dark can suppress this layer by default to avoid competition.
@@ -548,7 +556,7 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
 [Labyrinth access](../ArenaMode.Client/Session/ArenaLabyrinthAccess.cs),
 [trap handling](LABYRINTH-SPAWN-TRAPS-REVIEW.md),
 [exit timing](../ArenaMode.Server/Services/ArenaLocationMutator.cs),
-[lighting](ARENA-LIGHTING-REVIEW.md).
+[lighting](MAP-LIGHTING-20261017.md).
 
 ## 11. Bot behavior and difficulty
 

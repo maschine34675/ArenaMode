@@ -7,6 +7,41 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **All-map effects, pickups and TDM bot shields (2026-10-17):** Implementation
+  commits `29cc93e` (phase lights on all eight location IDs; native deploy 1s),
+  `a374295` (exact-body TDM spawn shields), `e1237e9` (all-map pickup pools,
+  6m ceiling-clipped beams and descriptions). Candidate `da437d3` also includes
+  the parallel reserve-audio package change. Pickup modes remain DM/independent
+  TDM; Factory positions/custom layouts stay intact. The three selected Customs
+  areas have separate pools, never a full-map fallback. Bots use the frozen
+  SpawnProtectionSeconds setting (default 4 seconds), a cyan/white world-space cage,
+  and first-attack release; ordinary raids/PFT/local protection are unchanged.
+  Read [lighting](MAP-LIGHTING-20261017.md),
+  [pickup layouts](ALL-MAP-PICKUPS-20261017.md) and
+  [spawn shields](TDM-BOT-SPAWN-SHIELD-20261017.md).
+  Release build passes with four existing nullable warnings. Unit suite:
+  1,159 passed, two optional skips. Lighting: 498; pickups: 462; pickup objectives:
+  612; TDM runtime: 380; give-up: 626. Behavioral checks and fault controls pass.
+  The Arena Client DLL was updated: SHA256
+  `E224D3A79FB8BB641B4222F62DDD2CA5052FFC1F34613082C646C8A2A5285C95`.
+  Companion follow-up `dab2760` avoids the native cover-graph fallback only for
+  owned pickup routes on maps without cover nodes and bounds unexpected exception
+  diagnostics; SHA256 `496016C0271072070F0F6D63DC7DD90939FD7FD7D33682930CEBB3A095571984`.
+  Build/local/GPU2 copies match; Server and Redeploy.Core stayed unchanged.
+  The GPU test also exposed a separate cached-weather provider error, corrected
+  in ArenaMapPort `6c6a38c` with a client-only deployment. Its 2,239 protected
+  non-client files, including the server (12,009,189,770 bytes), were hash-verified unchanged.
+  Native samples and their explicit coverage limits are recorded in
+  [the GPU2 report](GPU-MAP-FEATURES-20261017.md).
+  AirPit, Customs Yard, Labyrinth and Equator placed 6/6 pickups, with real
+  player collection; AirPit had a 6m40s bot-objective repeat without recurrence.
+  The visible shield passed real protected/unprotected headshots on the same bot
+  (native test duration 30s; precise 4s/attack timing remains offline coverage).
+  Equator -> Labyrinth -> Equator, Customs and Hideout passed after the MapPort fix.
+  Final BepInEx log has no Error entries; 68 other native EFT diagnostics are
+  preserved without claiming every stream is clean. All 223 Arena settings were
+  restored and independently compared; GPU2 is in MainMenu with no active test hooks.
+
 - **Reserve audio excluded from new packages (2026-10-17):** The shared payload
   writer excludes `sounds/reserve/` and omits those eleven records from packaged
   audio provenance JSON. All 41 used recordings remain, including earlier
