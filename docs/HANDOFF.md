@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **AirPit original team boxes (2026-10-17):** Independent TDM uses north USEC /
+  south BEAR, twenty private starts, even totals 4-20 (default eight). MapPort
+  0.2.2 navigation/passport gates required. Other modes and normal markers stay
+  unchanged. Source and GPU1 acceptance tracked in [AirPit review](AIRPIT-TEAM-BOXES-REVIEW.md).
+  Current task uses an isolated worktree and includes committed Zombie performance
+  changes through cd2ede5 to avoid rolling back their deployed client. Native
+  acceptance/deployment are not yet complete.
+
+
 - **Unified build/deploy folder (2026-10-17):** The canonical Arena plugin folder
   is now `BepInEx/plugins/maschine-ArenaMode`, for both owned DLLs and assets.
   Normal builds and ZIPs share the same document/provenance writer. The deployer

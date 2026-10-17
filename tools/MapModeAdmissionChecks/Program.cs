@@ -11,7 +11,7 @@ void Need(bool condition, string message)
     if (!condition) throw new InvalidOperationException(message);
 }
 
-string[] maps = { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.CustomsId };
+string[] maps = { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.CustomsId };
 string[] modes = { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" };
 string[] areas = { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
     ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId };
@@ -44,14 +44,14 @@ foreach (string mode in modes)
     foreach (int total in new[] { 4, 8, 20, 22, 24 })
     {
         bool expected = selectable && !(mode == "teamdeathmatch" && total > 20
-            && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id));
+            && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId));
         Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out int? selected, out _)
             == expected && (!expected || selected == total), "PARTICIPANTS: exact frozen total " + map + "/" + mode);
     }
 }
 Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.EquatorId, "teamdeathmatch", false, false, 24, out _, out _),
     "EQUATOR-TEAM-CAPACITY: twenty native places cannot promise 24 participants");
-foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.Bay5Id.ToUpperInvariant() })
+foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.Bay5Id.ToUpperInvariant(), ArenaMapCatalog.AirPitId, ArenaMapCatalog.AirPitId.ToUpperInvariant() })
 foreach (string mode in new[] { "teamdeathmatch", "TEAMDEATHMATCH" })
 {
     Need(ArenaParticipantPolicy.DefaultTotal(map, mode) == 8 && ArenaParticipantPolicy.MaximumFor(map, mode) == 20,
@@ -74,8 +74,8 @@ foreach (string mode in new[] { "deathmatch", "gungame" })
     Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.Bay5Id, mode, false, false, null, out selected, out _)
         && selected == null, "BAY5-LEGACY-SOLO: other modes keep their omitted-count behavior");
 }
-Need(ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.AirPitId, "teamdeathmatch", false, false, 24, out _, out _),
-    "AIRPIT-UNCHANGED: Bay5 original boxes do not cap generic map starts");
+Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.AirPitId, "teamdeathmatch", false, false, 24, out _, out _),
+    "AIRPIT-CAPACITY: original boxes cannot promise more than twenty participants");
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
@@ -167,6 +167,20 @@ foreach (string map in maps)
             && donor.GetProperty("Categories").GetArrayLength() == 2
             && Category(donor, "Bot") && Category(donor, "BotPmc"),
             "BAY5-DONOR: installed native header matches the server admission contract");
+    }
+    if (map == ArenaMapCatalog.AirPitId)
+    {
+        var donors = markers.Where(row => row.GetProperty("Id").GetString() == "arena_airpit-bot-center-east").ToArray();
+        Need(donors.Length == 1, "AIRPIT-DONOR: exactly one original center-east marker");
+        var donor = donors.Single(); var position = Position(donor);
+        Need(position.x == -3.21f && position.y == .1f && position.z == -12.09f,
+            "AIRPIT-DONOR: installed position matches the admission contract");
+        Need(donor.GetProperty("BotZoneName").GetString() == "BotZone_Main"
+            && donor.GetProperty("CorePointId").GetInt32() == 0
+            && donor.GetProperty("DelayToCanSpawnSec").GetInt32() == 4
+            && donor.GetProperty("Categories").GetArrayLength() == 2
+            && Category(donor, "Bot") && Category(donor, "BotPmc"),
+            "AIRPIT-DONOR: installed header matches the admission contract");
     }
     var zones = markers.Where(row => (Category(row, "Bot") || Category(row, "BotPmc"))
             && row.TryGetProperty("BotZoneName", out var z) && !string.IsNullOrWhiteSpace(z.GetString()))

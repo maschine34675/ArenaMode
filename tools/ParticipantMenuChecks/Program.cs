@@ -24,7 +24,7 @@ internal static class Program
             string path = Path.Combine(scratch, "preferences-" + autoSave + ".cfg");
             var config = new ConfigFile(path, false) { SaveOnConfigSet = autoSave };
             ArenaParticipantSettings.Init(config);
-            foreach (var pair in new[] { (ArenaMapCatalog.EquatorId, 4), (ArenaMapCatalog.Bay5Id, 8),
+            foreach (var pair in new[] { (ArenaMapCatalog.EquatorId, 4), (ArenaMapCatalog.Bay5Id, 8), (ArenaMapCatalog.AirPitId, 8),
                 (Day, 10), (ArenaMapCatalog.FactoryNightId, 10), (ArenaMapCatalog.LaboratoryId, 16), (ArenaMapCatalog.LabyrinthId, 12) })
             {
                 Need(ArenaParticipantSettings.Get(pair.Item1, "deathmatch") == pair.Item2, "map-specific default");
@@ -65,7 +65,7 @@ internal static class Program
         }
 
         string invalidPath = Path.Combine(scratch, "invalid.cfg");
-        File.WriteAllText(invalidPath, "[Map participants]\nfactory4_day_solo = 99\nfactory4_day_team = 7\narena_bay5_team = 24\narena_bay5_solo = 24\n");
+        File.WriteAllText(invalidPath, "[Map participants]\nfactory4_day_solo = 99\nfactory4_day_team = 7\narena_bay5_team = 24\narena_bay5_solo = 24\narena_airpit_team = 24\narena_airpit_solo = 24\n");
         var invalidFile = new ConfigFile(invalidPath, false) { SaveOnConfigSet = false };
         ArenaParticipantSettings.Init(invalidFile);
         var bytes = File.ReadAllBytes(invalidPath);
@@ -74,6 +74,9 @@ internal static class Program
         Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "teamdeathmatch") == 8
             && ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "deathmatch") == 24,
             "old Bay5 12v12 preference falls back to eight while valid solo 24 remains available");
+        Need(ArenaParticipantSettings.Get(ArenaMapCatalog.AirPitId, "teamdeathmatch") == 8
+            && ArenaParticipantSettings.Get(ArenaMapCatalog.AirPitId, "deathmatch") == 24,
+            "old AirPit 12v12 preference falls back to eight without changing solo capacity");
         Need(bytes.SequenceEqual(File.ReadAllBytes(invalidPath)), "read-time validation has no persistence side effect");
         Need(ArenaParticipantSettings.TrySelect(Day, "deathmatch", 2), "minimum solo accepted");
         Need(ArenaParticipantSettings.TrySelect(Day, "teamdeathmatch", 4), "minimum team accepted");
@@ -138,7 +141,7 @@ internal static class Program
                 Bounds();
                 bool expected = candidate.Available && mode != "tactical"
                     && count <= (mode == "teamdeathmatch"
-                        && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id) ? 20 : 24)
+                        && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId) ? 20 : 24)
                     && (mode != "teamdeathmatch" || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),

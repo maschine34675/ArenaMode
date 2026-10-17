@@ -12,7 +12,7 @@ internal static partial class Program
         plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
         try
         {
-            foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+            foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId })
             foreach (bool ready in new[] { false, true })
             {
                 ConfigureAreaNegotiation();
@@ -28,9 +28,9 @@ internal static partial class Program
                     : task.IsFaulted && !ArenaSession.ArmedForNextRaid,
                     "EQUATOR-BOX-ARM: failed box hook readiness never publishes an arm");
             }
-            // Hook failure is scoped to independent Equator/Bay5 TDM; other maps,
+            // Hook failure is scoped to independent Equator/Bay5/AirPit TDM; other maps,
             // supported solo modes and an ordinary PMC retain native admission.
-            foreach (var pair in new[] { ("factory4_day", "teamdeathmatch"), (ArenaMapCatalog.EquatorId, "zombie") })
+            foreach (var pair in new[] { ("factory4_day", "teamdeathmatch"), (ArenaMapCatalog.EquatorId, "zombie"), (ArenaMapCatalog.AirPitId, "deathmatch"), (ArenaMapCatalog.AirPitId, "zombie") })
             {
                 ConfigureAreaNegotiation();
                 Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;

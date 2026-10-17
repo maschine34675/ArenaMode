@@ -136,7 +136,7 @@ public sealed class AirPitMapTests
     [Theory]
     [InlineData("arena_airpit")]
     [InlineData("ARENA_AIRPIT")]
-    public void AirPitIsSelectableWithEightParticipantsButNoInventedTeamLayout(string id)
+    public void AirPitIsSelectableWithEightParticipantsAndItsOwnTeamLayout(string id)
     {
         Assert.True(ArenaMapCatalog.IsSupportedMap(id));
         Assert.Equal(ArenaMapCatalog.AirPitId, ArenaMapCatalog.CanonicalOptionalMapId(id));
@@ -145,6 +145,7 @@ public sealed class AirPitMapTests
         Assert.True(ArenaMapCatalog.AnyMapAvailable(ArenaMapCatalog.IsAirPit));
         Assert.True(ArenaMapCatalog.RequiresModeFilteredView(id));
         Assert.False(ArenaEquatorTeamSpawns.Applies(id, "teamdeathmatch"));
+        Assert.Same(ArenaTeamBoxCatalog.AirPit, ArenaTeamBoxCatalog.Find(id));
         foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch" })
         {
             Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(id, mode));

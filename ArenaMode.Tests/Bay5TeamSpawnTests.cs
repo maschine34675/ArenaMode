@@ -78,7 +78,7 @@ public sealed class Bay5TeamSpawnTests
         Assert.True(formation.BoothAnchor(true).Usec);
         Assert.False(formation.BoothAnchor(false).Usec);
         Assert.Null(formation.Find("arena-bay5-tdm-v1-warehouse-11"));
-        Assert.Null(ArenaTeamBoxCatalog.Find("arena_airpit"));
+        Assert.Null(ArenaTeamBoxCatalog.Find("factory4_day"));
         Assert.False(formation.Owns(ArenaEquatorTeamSpawns.Points[0].Id));
         Assert.False(ArenaTeamBoxCatalog.Applies("arena_bay5", "tactical"));
     }

@@ -62,3 +62,5 @@ The documentation move did not rewrite historical absolute paths, artifact
 contents, recorded hashes or original test results. References to removed
 worktrees can be recovered using the archive described in the cleanup record.
 New reports and review documents should be added here rather than to the root.
+
+- [AirPit original team boxes](AIRPIT-TEAM-BOXES-REVIEW.md): MapPort 0.2.2, independent TDM, GPU1 acceptance.

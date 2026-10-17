@@ -203,7 +203,7 @@ internal static class Program
     }
     private static async Task Main()
     {
-        foreach(var map in new[]{"arena_equator","arena_bay5"})
+        foreach(var map in new[]{"arena_equator","arena_bay5","arena_airpit"})
         {
             Formation=Catalog.Find(map);
             ScopeAndFormation();HeadersAndInitial();ReservationsAndArrival();PlayerHandover();await LoadingFailures();

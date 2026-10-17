@@ -116,7 +116,7 @@ public sealed class EquatorTeamSpawnTests
             Assert.False(ArenaParticipantPolicy.TryResolve("arena_equator", "teamdeathmatch", false, false, total, out _, out _));
         Assert.True(ArenaParticipantPolicy.TryResolve("arena_equator", "deathmatch", false, false, 24, out _, out _));
         Assert.False(ArenaParticipantPolicy.TryResolve("arena_bay5", "teamdeathmatch", false, false, 24, out _, out _));
-        Assert.True(ArenaParticipantPolicy.TryResolve("arena_airpit", "teamdeathmatch", false, false, 24, out _, out _));
+        Assert.False(ArenaParticipantPolicy.TryResolve("arena_airpit", "teamdeathmatch", false, false, 24, out _, out _));
         Assert.False(ArenaParticipantPolicy.TryResolve("arena_equator", "teamdeathmatch", false, true, 4, out _, out _));
         Assert.Equal(20, ArenaEquatorTeamSpawns.Points.Select(p => p.Id).Distinct().Count());
         foreach (bool usec in new[] { true, false })

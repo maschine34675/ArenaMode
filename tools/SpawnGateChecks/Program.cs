@@ -236,31 +236,48 @@ internal static class GateProgram
     public static async Task Main()
     {
         OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();ExtractionPreparation();
-        Bay5();Runtime.Shutdown();
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5);
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
-    private static void Bay5()
+    private static void OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Formation selected)
     {
-        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5;
+        Program.Formation=selected;
+        if (selected == ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit)
+        {
+            Setup(active:false,installed:false);
+            Gates.Parts=42; Gates.HeldGatesClosed=true;
+            Check(!Gates.IsHeld,"AIRPIT-NATIVE: closed passport gate is not a foreign hold");
+            Runtime.Reset();
+            Check(Gates.Releases==0 && Gates.HeldGatesClosed,"AIRPIT-UNOWNED: cleanup cannot open native passport gate");
+            Gates.Release("unowned test");
+            Check(Gates.HeldGatesClosed,"AIRPIT-CONTRACT: release without hold leaves native gate shut");
+            var lease=Hold(typeof(Gates));
+            Check(lease != null && Gates.Held,"AIRPIT-OWNED: native gate can acquire an exact raid hold");
+            lease.Release("test complete");
+            Check(!Gates.Held && !Gates.HeldGatesClosed,"AIRPIT-OPEN: owned release opens passport gate");
+        }
         OptionalContracts();
         Setup();
         var formation=Program.Formation;
         void Sealed() => NavMesh.Path=(a,b)=>Math.Abs(b.x-formation.Destination.X)>.001f;
         Sealed();Runtime.Begin(World,Game);
         foreach(var spec in formation.Points)
-            Check(Connected(new Vector3(spec.X,spec.Y,spec.Z)),"BAY5-SEALED: original point including depot elevations "+spec.Id);
-        Check(!Connected(new Vector3(134,-2.892f,65)),"BAY5-CANONICAL: unsurveyed warehouse interior denied");
-        NavMesh.Corners=(a,b)=>new[]{a,new Vector3(52.183f,-3.815f,-6.296f),b};
-        Check(!Connected(World.MainPlayer.Position),"BAY5-CROSS-BOX: path cannot cross into other faction interior");
+            Check(Connected(new Vector3(spec.X,spec.Y,spec.Z)),"BOX-SEALED: original point including authored elevations "+spec.Id);
+        var first=formation.Points[0];
+        Check(!Connected(new Vector3(first.X+.76f,first.Y,first.Z+.76f)),"BOX-CANONICAL: unsurveyed interior denied");
+        var other=formation.BoothAnchor(false);
+        NavMesh.Corners=(a,b)=>new[]{a,new Vector3(other.X,other.Y,other.Z),b};
+        Check(!Connected(World.MainPlayer.Position),"BOX-CROSS-BOX: path cannot cross into other faction interior");
         NavMesh.Corners=null;
         var flow=new ArenaMode.Modes.GateCountdownFixture();flow.Tick(true);Time.time=3;flow.Tick(true);
-        Check(!Gates.Held&&flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"BAY5-SLIDE: wait for all real paths");
+        Check(!Gates.Held&&flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"BOX-SLIDE: wait for all real paths");
         NavMesh.Path=(a,b)=>true;flow.Tick(true);
-        Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live,"BAY5-LIVE: full paths precede score/time");
+        Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live,"BOX-LIVE: full paths precede score/time");
         Runtime.PickRespawn(Game,default);Call("RestoreCollection",Collection);
-        Check(Gates.Holds==1&&Gates.Releases==1,"BAY5-RESPAWN: no reclose after release");
-        foreach(var name in new[]{"Bay5 North Loading Bay","Bay5 South Container Lane","Equator North Gate"})
-        {Setup();var exit=Exit(name);Check(Proceed(exit)&&exit.Proceeds==1,"BAY5-EXFIL: no suppression outside original boxes");}
+        Check(Gates.Holds==1&&Gates.Releases==1,"BOX-RESPAWN: no reclose after release");
+        foreach(var name in new[]{"Bay5 North Loading Bay","Bay5 South Container Lane","AirPit North Gate","AirPit South Gate","Equator North Gate"})
+        {Setup();var exit=Exit(name);Check(Proceed(exit)&&exit.Proceeds==1,"BOX-EXFIL: no suppression outside original boxes");}
         Setup(active:false,installed:false);ArenaSession.ArmedMap="arena_equator";
         Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-HOLD: supported different armed map denied");
         Setup(active:false,installed:false);Game.Settings.location="arena_equator";
@@ -278,11 +295,11 @@ namespace ArenaMapPort.Client
 {
     public static class SpawnGates
     {
-        public static bool Enabled,Held,ThrowHold;public static int Holds,Releases,Parts;
+        public static bool Enabled,Held,ThrowHold,HeldGatesClosed;public static int Holds,Releases,Parts;
         public static bool IsHeld=>Held;
         public static int ClosedParts=>Parts;
         public static bool Hold(string reason){Holds++;if(!Enabled)return false;Held=true;if(ThrowHold)throw new InvalidOperationException("fixture hold failed");return true;}
-        public static void Release(string reason){Releases++;Held=false;}
-        public static void Reset(){Enabled=true;Held=ThrowHold=false;Holds=Releases=0;Parts=15;}
+        public static void Release(string reason){Releases++;if(Held)HeldGatesClosed=false;Held=false;}
+        public static void Reset(){Enabled=true;Held=ThrowHold=HeldGatesClosed=false;Holds=Releases=0;Parts=15;}
     }
 }

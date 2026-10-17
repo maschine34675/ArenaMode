@@ -47,10 +47,10 @@ Equator remains unavailable for Tactical and is also excluded from PFT Zombies
 because the five-person squad obstructs itself; solo Zombies stays supported.
 Air Pit is an optional full map for all current modes, using its existing safe
 generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
-Its original north team box is outside the shipped navigation surface; do not
-adopt those authored team positions without a separate geometry review.
+Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
+for its original north USEC / south BEAR boxes; see docs/AIRPIT-TEAM-BOXES-REVIEW.md.
 See docs/AIRPIT-INTEGRATION-20261017.md for migration and native-test boundaries.
-Independent Equator and Bay5 Team DM use their original team boxes for initial
+Independent Equator, Bay5 and AirPit Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
 docs/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact
