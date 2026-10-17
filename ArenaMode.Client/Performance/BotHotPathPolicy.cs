@@ -45,14 +45,15 @@ internal static class BotHotPathPolicy
     }
 
     /// <summary>
-    /// Whether a body's per-frame FOV coroutine may be replaced by its two
-    /// direct calls. Only an AI body under the third-person strategy
-    /// qualifies: <c>ThirdPersonStrategy.ApplyFovAdjustments</c> sets
-    /// <c>RibcageScaleCurrent = 1</c> and <c>ResetFovAdjustments</c> puts a
-    /// drifted ribcage scale back to one (../_decompiled/ThirdPersonStrategy.cs:
-    /// 50-62); neither depends on anything that happens between the start and
-    /// the end of the frame for a bot. The local player's first-person strategy
-    /// keeps its coroutine untouched.
+    /// Whether a body's per-frame FOV coroutine may be replaced by its direct
+    /// call. Only an AI body under the third-person strategy qualifies:
+    /// <c>ThirdPersonStrategy.ApplyFovAdjustments</c> sets
+    /// <c>RibcageScaleCurrent = 1</c> at once and <c>ResetFovAdjustments</c>,
+    /// after the frame has rendered, puts a drifted ribcage scale back to one
+    /// (../_decompiled/ThirdPersonStrategy.cs:50-62). The caller additionally
+    /// requires that scale to be one already, so the deferred reset it skips
+    /// would have done nothing. The local player's first-person strategy keeps
+    /// its coroutine untouched.
     /// </summary>
     internal static bool ShouldShortCircuitFov(bool enabled, bool arenaActive, bool isAI, bool thirdPersonStrategy)
         => enabled && arenaActive && isAI && thirdPersonStrategy;

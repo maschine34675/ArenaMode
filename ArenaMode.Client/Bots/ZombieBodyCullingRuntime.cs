@@ -41,12 +41,27 @@ namespace ArenaMode.Bots;
 /// (GPU-ZOMBIE-REVIEW-20261014.md P1/P2): only this code's own writes are
 /// remembered, per renderer, with the mode they replaced; they are put back
 /// when the body is in view again, when it dies or leaves eligibility, when
-/// the switch goes off, when the raid ends, and — because clothing and gear
-/// models are pooled and nothing native resets their shadow mode on return
-/// (<c>Dress.Deinit</c> has no caller) — in a prefix on the instance
-/// <c>AssetPoolObject.ReturnToPool()</c> for any pooled object above a
-/// changed renderer, before the pool sees it. A renderer whose mode somebody
-/// else changed meanwhile is left as they set it.
+/// the switch goes off, when the raid ends, and — because clothing,
+/// gear and the item in the hands are pooled models, and the native reset on
+/// return covers only dresses of a model that owns a ContainerCollectionView
+/// (<c>AssetPoolObject.ReturnToPool</c> → <c>DisposeContainerCollectionView</c>
+/// → <c>IDress.Deinit</c> → <c>AdjustShadowMode(ThirdPerson)</c>; rigs and
+/// backpacks), while weapon and other slot models get none — in a prefix on
+/// the instance <c>AssetPoolObject.ReturnToPool()</c> for any pooled object
+/// above a changed renderer, before the pool sees it. Shadows are only ever
+/// hidden while that prefix is installed. A renderer whose mode somebody
+/// else changed meanwhile is left as they set it. The item in the hands is
+/// included on purpose: <c>SlotView</c> leaves it out of
+/// <c>GetRenderersNonAlloc</c>, and one casting renderer under the body's
+/// animator keeps Unity from culling it.
+///
+/// What the shadow switch does NOT see: local lights. The reach test follows
+/// the sky's directional light only (TOD_Sky), up to 15 m along the ground,
+/// so the shadow an unseen infected throws into the picture from the sun or
+/// moon stays, while a shadow from a lamp behind the player can vanish while
+/// its caster is outside the padded view. The camera pose is the one of this
+/// frame's LateUpdate; a hard cut (spectator switch, killcam start) can show
+/// one frame without the shadows of bodies near the new view.
 ///
 /// The player's own body, PitFireTeam companions, bosses and every
 /// non-Zombie raid are untouched; both switches fail open to the native
@@ -76,6 +91,7 @@ internal static class ZombieBodyCullingRuntime
     private static readonly List<State> Tracked = new List<State>();
     private static readonly Dictionary<AssetPoolObject, State> ByPool = new Dictionary<AssetPoolObject, State>();
     private static readonly List<Renderer> Scratch = new List<Renderer>(64);
+    private static readonly List<Renderer> HandsScratch = new List<Renderer>(16);
     private static readonly Plane[] PlaneScratch = new Plane[6];
     private static readonly float[] Planes = new float[24];
 
@@ -84,6 +100,8 @@ internal static class ZombieBodyCullingRuntime
     private static bool _raidOk, _hasCamera, _optic, _mainValid;
     private static Vector3 _cameraPosition, _cameraForward, _mainPosition;
     private static float _cullDistance;
+    private static float _shadowOffsetX, _shadowOffsetZ;
+    private static bool _poolWarned;
 
     private static WeakReference _diagnosticWorld;
     private static float _nextDiagnostic;
@@ -125,6 +143,17 @@ internal static class ZombieBodyCullingRuntime
             if (body == null)
                 return;
             bool animators = AnimatorsOn, shadows = ShadowsOn;
+            if (shadows && !_poolEnabled)
+            {
+                // Without the pool-return restore there is no safe way to hide a
+                // pooled model's shadow: fail open to native shadows.
+                shadows = false;
+                if (!_poolWarned)
+                {
+                    _poolWarned = true;
+                    Plugin.ModLogger.LogWarning("Arena zombie body culling: HideOffscreenShadows is on but the pool-return restore patch is not installed; shadows stay native.");
+                }
+            }
             if (!animators && !shadows)
             {
                 if (Tracked.Count > 0) RestoreAll();
@@ -240,8 +269,9 @@ internal static class ZombieBodyCullingRuntime
         float now = Time.time;
         Vector3 centre = position;
         centre.y += ZombieBodyCullingPolicy.ViewBoxCentreHeight;
-        bool inView = ZombieBodyCullingPolicy.InsideFrustum(Planes, centre.x, centre.y, centre.z,
-            ZombieBodyCullingPolicy.ViewBoxHalfX, ZombieBodyCullingPolicy.ViewBoxHalfY, ZombieBodyCullingPolicy.ViewBoxHalfZ);
+        bool inView = ZombieBodyCullingPolicy.InsideFrustumWithShadow(Planes, centre.x, centre.y, centre.z,
+            ZombieBodyCullingPolicy.ViewBoxHalfX, ZombieBodyCullingPolicy.ViewBoxHalfY, ZombieBodyCullingPolicy.ViewBoxHalfZ,
+            _shadowOffsetX, _shadowOffsetZ);
         bool opticCovers = ZombieBodyCullingPolicy.OpticCovers(_optic, Vector3.Dot(_cameraForward, position - _cameraPosition));
         if (inView || opticCovers) state.OutsideSince = float.NaN;
         else if (float.IsNaN(state.OutsideSince)) state.OutsideSince = now;
@@ -266,6 +296,16 @@ internal static class ZombieBodyCullingRuntime
             return;
         Scratch.Clear();
         playerBody.GetRenderersNonAlloc(Scratch);
+        // The item in the hands (SlotView leaves it out): its renderer sits under the
+        // body animator's hierarchy and would keep the animator visible on its own.
+        var hands = body.HandsController?.ControllerGameObject;
+        if (hands != null)
+        {
+            HandsScratch.Clear();
+            hands.GetComponentsInChildren(true, HandsScratch);
+            Scratch.AddRange(HandsScratch);
+            HandsScratch.Clear();
+        }
         int changed = 0;
         for (int i = 0; i < Scratch.Count; i++)
         {
@@ -449,6 +489,20 @@ internal static class ZombieBodyCullingRuntime
         }
         var optic = manager.OpticCameraManager;
         _optic = optic != null && optic.IsAnyOpticCameraRendering;
+
+        // The sky's directional light (sun by day, moon by night) decides how far
+        // an unseen body's shadow can reach into the picture. No sky: no reach,
+        // the plain padded frustum test remains.
+        _shadowOffsetX = _shadowOffsetZ = 0f;
+        if (TOD_Sky.Instantiated)
+        {
+            var light = TOD_Sky.Instance?.Components?.LightTransform;
+            if (light != null)
+            {
+                var forward = light.forward;
+                ZombieBodyCullingPolicy.ShadowReachOffset(forward.x, forward.y, forward.z, out _shadowOffsetX, out _shadowOffsetZ);
+            }
+        }
     }
 
     private static void Diagnose()

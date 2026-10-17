@@ -24,8 +24,10 @@ namespace ArenaMode.Performance;
 ///    agent loop, so clearing after the loop would drop a queued agent before
 ///    it was ever removed.
 /// 2. <c>ProceduralWeaponAnimation.StartFovCoroutine</c>: for an AI body under
-///    <c>ThirdPersonStrategy</c> the coroutine's two statements run directly
-///    instead of allocating an iterator and a Coroutine per bot per frame
+///    <c>ThirdPersonStrategy</c> whose ribcage scale is one (the only state
+///    in which the coroutine's deferred reset is a no-op) the coroutine's
+///    remaining statement runs directly instead of allocating an iterator and
+///    a Coroutine per bot per frame
 ///    (<c>Player.LateUpdate</c>, ../_decompiled/EFT/Player.cs:25979, for every
 ///    alive body). Measured context: ≈ 13 MB/s managed allocation in a
 ///    32-zombie raid, see ZOMBIE-PERFORMANCE-IDEAS-20261017.md.
@@ -102,12 +104,16 @@ internal static class ArenaBotHotPaths
             if (!BotHotPathPolicy.ShouldShortCircuitFov(Settings.SkipBotFovCoroutine?.Value == true,
                     ArenaSession.IsActive, player.IsAI, thirdPerson))
                 return true;
-            // The coroutine body for this strategy, in its order: ApplyFovAdjustments
-            // now (RibcageScaleCurrent = 1), ResetFovAdjustments at the end of the
-            // frame (ribcage/hands scale back to one only if it drifted). Nothing
-            // reads either value for an AI body between those two points.
+            // The coroutine body for this strategy: ApplyFovAdjustments now
+            // (RibcageScaleCurrent = 1), then, after the frame has rendered,
+            // ResetFovAdjustments, which only acts when the ribcage scale is not
+            // one. Taken over only while that scale IS one, where the reset is a
+            // no-op and the frame renders the same pose either way; a drifted
+            // scale keeps the native coroutine so the reset stays after the render.
+            var ribcage = player.PlayerBones?.Ribcage?.Original;
+            if (ribcage == null || !Mathf.Approximately(ribcage.localScale.z, 1f))
+                return true;
             player.RibcageScaleCurrent = 1f;
-            animation.ResetFovAdjustments(player);
             _fovShortCircuits++;
             Diagnose();
             return false;

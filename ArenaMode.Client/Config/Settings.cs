@@ -1271,16 +1271,20 @@ public static class Settings
             "the game already does beyond it. The infected keeps moving and deciding; only " +
             "retargeting and bone writes pause while it is unseen. Never applied to an infected " +
             "within reach of a possible target or mid-swing, so hits from behind still land. " +
-            "Pays off together with HideOffscreenShadows. Performance switch for measurement; " +
-            "off = native. Applies immediately.");
+            "Trade-off, the same the game accepts beyond 10 m: an unseen body keeps its last " +
+            "written pose (hit zones included) until it is seen again, and a corpse made unseen " +
+            "starts its fall from that pose. Pays off together with HideOffscreenShadows. " +
+            "Performance switch for measurement; off = native. Applies immediately.");
 
         ZombieHideOffscreenShadows = config.Bind("Zombie", "HideOffscreenShadows", false,
             "Switch off the shadows of a generic infected while it is outside the camera's view, " +
             "so it is no longer drawn into every shadow cascade behind the player. Only Arena's " +
             "own changes are tracked and put back the moment the body is in view again, when it " +
             "dies, when its pooled gear returns to the pool, and at raid end. While a magnified " +
-            "scope renders, everything in front of you keeps its shadows. Performance switch for " +
-            "measurement; off = native. Applies immediately.");
+            "scope renders, everything in front of you keeps its shadows. A shadow the sky light " +
+            "throws into your view from an unseen infected stays (up to 15 m along the ground); " +
+            "shadows from lamps behind you are not predicted and can vanish with their caster. " +
+            "Performance switch for measurement; off = native. Applies immediately.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +

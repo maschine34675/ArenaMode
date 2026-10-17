@@ -53,7 +53,7 @@ public sealed class ZombieBodyCullingPolicyTests
         // A possible target within reach keeps the exact pose.
         Assert.False(ZombieBodyCullingPolicy.ShouldCullAnimator(true, true, 6f, 10f, 4f, 4f, false));
         Assert.False(ZombieBodyCullingPolicy.ShouldCullAnimator(true, true, 6f, 10f, 0f, 4f, false));
-        // Mid-swing: the knife box cast comes from the animated hand.
+        // Mid-swing: the hit window (body-animator events) and the WeaponRoot pose come from the body animator.
         Assert.False(ZombieBodyCullingPolicy.ShouldCullAnimator(true, true, 6f, 10f, 12f, 4f, true));
         Assert.False(ZombieBodyCullingPolicy.ShouldCullAnimator(false, true, 6f, 10f, 12f, 4f, false));
         Assert.False(ZombieBodyCullingPolicy.ShouldCullAnimator(true, false, 6f, 10f, 12f, 4f, false));
@@ -115,6 +115,43 @@ public sealed class ZombieBodyCullingPolicyTests
         var planes = Frustum();
         planes[3] = float.NaN;
         Assert.True(ZombieBodyCullingPolicy.InsideFrustum(planes, 0f, 0f, -6f, 2f, 1.5f, 2f));
+    }
+
+    [Fact]
+    public void ShadowReachFollowsTheLightAndIsCapped()
+    {
+        // Sun 45 degrees up, shining toward +X: shadow as long as the caster is tall.
+        ZombieBodyCullingPolicy.ShadowReachOffset(0.7071f, -0.7071f, 0f, out float ox, out float oz);
+        Assert.Equal(ZombieBodyCullingPolicy.CasterHeight, ox, 3);
+        Assert.Equal(0f, oz, 5);
+        // Low sun: capped at the maximum reach.
+        ZombieBodyCullingPolicy.ShadowReachOffset(0f, -0.05f, 0.9987f, out ox, out oz);
+        Assert.Equal(0f, ox, 5);
+        Assert.Equal(ZombieBodyCullingPolicy.MaxShadowReach, oz, 3);
+        // At or above the horizon: maximum reach along the horizontal part.
+        ZombieBodyCullingPolicy.ShadowReachOffset(-1f, 0.1f, 0f, out ox, out oz);
+        Assert.Equal(-ZombieBodyCullingPolicy.MaxShadowReach, ox, 3);
+        // Straight down or unusable: no reach.
+        ZombieBodyCullingPolicy.ShadowReachOffset(0f, -1f, 0f, out ox, out oz);
+        Assert.Equal(0f, ox); Assert.Equal(0f, oz);
+        ZombieBodyCullingPolicy.ShadowReachOffset(float.NaN, -1f, 0f, out ox, out oz);
+        Assert.Equal(0f, ox); Assert.Equal(0f, oz);
+    }
+
+    [Fact]
+    public void AShadowFallingIntoTheViewKeepsAnUnseenCasterVisible()
+    {
+        var planes = Frustum();
+        float ex = ZombieBodyCullingPolicy.ViewBoxHalfX, ey = ZombieBodyCullingPolicy.ViewBoxHalfY, ez = ZombieBodyCullingPolicy.ViewBoxHalfZ;
+        // Caster 6 m behind the camera, light shining toward +Z with a 10 m reach: the
+        // far end of the shadow is 4 m in front of the camera, inside the view.
+        Assert.False(ZombieBodyCullingPolicy.InsideFrustum(planes, 0f, 0f, -6f, ex, ey, ez));
+        Assert.True(ZombieBodyCullingPolicy.InsideFrustumWithShadow(planes, 0f, 0f, -6f, ex, ey, ez, 0f, 10f));
+        // Same caster, light shining away from the view: still unseen.
+        Assert.False(ZombieBodyCullingPolicy.InsideFrustumWithShadow(planes, 0f, 0f, -6f, ex, ey, ez, 0f, -10f));
+        // No light known: the plain test decides.
+        Assert.False(ZombieBodyCullingPolicy.InsideFrustumWithShadow(planes, 0f, 0f, -6f, ex, ey, ez, 0f, 0f));
+        Assert.True(ZombieBodyCullingPolicy.InsideFrustumWithShadow(planes, 0f, 0f, 8f, ex, ey, ez, 0f, 0f));
     }
 
     [Fact]

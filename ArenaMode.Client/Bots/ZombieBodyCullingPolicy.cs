@@ -21,12 +21,23 @@ namespace ArenaMode.Bots;
 /// body within <c>CULLING_PLAYER_DISTANCE</c> (30 m) rendered regardless of
 /// the view (ObservedCullingManager.cs:31-44), so the near horde is drawn
 /// into every shadow cascade even behind the player. An infected's melee
-/// hit is a box cast from its knife collider, i.e. from the animated hand
-/// (EFT/KnifeCollider.cs:91-118), and the swing is a body-animator trigger
-/// for simplified skeletons (EFT/Player.cs:18590-18609); the hit attempt
-/// itself requires <c>GoalEnemy.Distance &lt; DIST_TO_HIT_MELEE</c>
-/// (BotMeleeWeaponData.cs:151-168, default 2 m, BotGlobalShootData.cs:157).
-/// A body that could swing therefore keeps its native AlwaysAnimate.
+/// hit depends on its BODY animator twice: for an AI owner
+/// <c>KnifeCollider.ManualUpdate</c> takes <c>ManualUpdateServerAI</c>
+/// (EFT/KnifeCollider.cs:76-88, 156-168), an overlap box from the skeleton
+/// bone <c>Owner.WeaponRoot</c> along the look direction, and it runs only
+/// while <c>OnHit</c> is set, a window the body animator's own animation
+/// events open and close (OnZombieFireBullet/OnZombieFireEnd,
+/// EFT/Player.cs:17776-17777, 18191-18218) during the Kick that
+/// <c>MakeKnifeKick</c> triggers on the body animator for simplified
+/// skeletons (EFT/Player.cs:18590-18609). A culled body animator would
+/// deliver neither the bone pose nor, provably, those events. The hit
+/// attempt itself requires <c>GoalEnemy.Distance &lt; DIST_TO_HIT_MELEE</c>
+/// (BotMeleeWeaponData.cs:151-168, default 2 m, BotGlobalShootData.cs:157)
+/// and the near radius is twice that, so a body is exempt before its first
+/// swing frame can even be observed as a Kick. That CullUpdateTransforms
+/// keeps root motion and events running is Unity's documented behavior and
+/// vanilla's own precedent beyond 10 m, not something the decompile proves;
+/// the GPU run checks that culled bodies still approach.
 /// </summary>
 internal static class ZombieBodyCullingPolicy
 {
@@ -93,6 +104,51 @@ internal static class ZombieBodyCullingPolicy
     /// outside when it lies wholly behind any one plane. An unusable plane
     /// array counts as "in view": nothing is culled on unknown data.
     /// </summary>
+    /// <summary>Longest shadow this code accounts for, along the ground.</summary>
+    internal const float MaxShadowReach = 15f;
+
+    /// <summary>Caster height used for the shadow length.</summary>
+    internal const float CasterHeight = 1.8f;
+
+    /// <summary>
+    /// Horizontal offset from a caster's feet to the far end of its shadow for a
+    /// directional light shining along (dx, dy, dz): the light's forward,
+    /// pointing down and away from the light. A light at or above the horizon
+    /// gives the maximum reach along its horizontal part; a light straight
+    /// down, or an unusable direction, gives no reach.
+    /// </summary>
+    internal static void ShadowReachOffset(float dx, float dy, float dz, out float ox, out float oz)
+    {
+        ox = 0f;
+        oz = 0f;
+        if (float.IsNaN(dx) || float.IsNaN(dy) || float.IsNaN(dz))
+            return;
+        float horizontal = (float)Math.Sqrt(dx * dx + dz * dz);
+        if (horizontal < 1e-4f)
+            return;
+        float reach = dy < -1e-3f ? CasterHeight * horizontal / -dy : MaxShadowReach;
+        reach = Math.Min(reach, MaxShadowReach);
+        ox = dx / horizontal * reach;
+        oz = dz / horizontal * reach;
+    }
+
+    /// <summary>
+    /// In view when the body's box, the far end of its shadow or the point
+    /// between them intersects the frustum, so a shadow that falls into the
+    /// picture from an unseen caster is kept. (ox, oz) from
+    /// <see cref="ShadowReachOffset"/>; zero means "no light known".
+    /// </summary>
+    internal static bool InsideFrustumWithShadow(float[] planes, float cx, float cy, float cz, float ex, float ey, float ez,
+        float ox, float oz)
+    {
+        if (InsideFrustum(planes, cx, cy, cz, ex, ey, ez))
+            return true;
+        if (ox == 0f && oz == 0f)
+            return false;
+        return InsideFrustum(planes, cx + ox * 0.5f, cy, cz + oz * 0.5f, ex, ey, ez)
+            || InsideFrustum(planes, cx + ox, cy, cz + oz, ex, ey, ez);
+    }
+
     internal static bool InsideFrustum(float[] planes, float cx, float cy, float cz, float ex, float ey, float ez)
     {
         if (planes == null || planes.Length < 24)
