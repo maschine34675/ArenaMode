@@ -108,7 +108,11 @@ internal static class ArenaLightingPolicy
         => string.Equals(locationId?.Trim(), "laboratory", StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId?.Trim(), "factory4_day", StringComparison.OrdinalIgnoreCase)
            || string.Equals(locationId?.Trim(), "factory4_night", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(locationId?.Trim(), "labyrinth", StringComparison.OrdinalIgnoreCase);
+           || string.Equals(locationId?.Trim(), "labyrinth", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "bigmap", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "arena_equator", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "arena_bay5", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(locationId?.Trim(), "arena_airpit", StringComparison.OrdinalIgnoreCase);
 
     internal static ArenaLightingFrame Evaluate(in ArenaLightingContext context)
     {

@@ -8,11 +8,13 @@
     <ProductionDirectorSource Condition="'$(ProductionDirectorSource)' == ''">../../ArenaMode.Client/Effects/ArenaLightingDirector.cs</ProductionDirectorSource>
     <ProductionPaletteSource Condition="'$(ProductionPaletteSource)' == ''">../../ArenaMode.Client/Effects/ArenaTracerColor.cs</ProductionPaletteSource>
     <ProductionCueSource Condition="'$(ProductionCueSource)' == ''">../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs</ProductionCueSource>
+    <ProductionFastDeploySource Condition="'$(ProductionFastDeploySource)' == ''">../../ArenaMode.Client/Movement/FastDeployPatches.cs</ProductionFastDeploySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaLightingPolicy.cs" />
     <Compile Include="$(ProductionDirectorSource)" Link="Production/ArenaLightingDirector.cs" />
     <Compile Include="$(ProductionPaletteSource)" Link="Production/ArenaTracerColor.cs" />
     <Compile Include="$(ProductionCueSource)" Link="Production/ArenaAnnouncerCue.cs" />
+    <Compile Include="$(ProductionFastDeploySource)" Link="Production/FastDeployPatches.cs" />
   </ItemGroup>
 </Project>

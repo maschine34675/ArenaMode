@@ -17,12 +17,12 @@ namespace ArenaMode.Movement;
 /// countdown coroutine's construction and vmethod_6 (restored there, plus
 /// defensively at raid end). The field has exactly one reader (the countdown),
 /// so the "never touch GlobalConfiguration" rule does not bite here — noted
-/// deliberately. Floor of 2s: a 0s countdown pops the audio fade and shows the
-/// pre-raid GC hitch.
+/// deliberately. Keep one second for the native audio fade rather than skipping
+/// the countdown coroutine entirely.
 /// </summary>
 internal static class FastDeployPatches
 {
-    private const int ArenaCountdownSeconds = 2;
+    private const int ArenaCountdownSeconds = 1;
 
     private static int _saved = -1;
 
@@ -56,7 +56,7 @@ internal static class FastDeployPatches
             // prefix and the vmethod_6 restore without ever reaching GameEnd —
             // no other hook fires in that window. Since this prefix runs for
             // EVERY local raid's countdown before the value is read, restoring
-            // here guarantees a leaked 2s can never reach a normal raid.
+            // here guarantees a leaked Arena countdown can never reach a normal raid.
             Restore();
 
             // ArmedForNextRaid, NOT IsActive: the IsActive latch fires after this

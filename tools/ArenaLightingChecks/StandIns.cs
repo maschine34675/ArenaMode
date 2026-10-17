@@ -202,6 +202,44 @@ namespace EFT
     {
         public string LocationId { get; set; }
     }
+
+    public sealed class GlobalConfiguration
+    {
+        public int TimeBeforeDeployLocal;
+    }
+
+    public sealed class LocalGame
+    {
+        public void vmethod_2() { }
+    }
+
+    public sealed class BaseLocalGame<T>
+    {
+        public void vmethod_6() { }
+    }
+
+    public sealed class EftGamePlayerOwner { }
+}
+
+namespace HarmonyLib
+{
+    public static class AccessTools
+    {
+        public static System.Reflection.MethodBase Method(Type type, string name)
+            => type.GetMethod(name);
+    }
+}
+
+namespace SPT.Reflection.Patching
+{
+    public abstract class ModulePatch
+    {
+        protected abstract System.Reflection.MethodBase GetTargetMethod();
+        public void Enable() { }
+    }
+
+    public sealed class PatchPrefixAttribute : Attribute { }
+    public sealed class PatchPostfixAttribute : Attribute { }
 }
 
 namespace ArenaMode.Config
@@ -214,6 +252,7 @@ namespace ArenaMode.Config
 
     internal static class Settings
     {
+        internal static FakeConfigEntry<bool> FastDeploy { get; } = new(true);
         internal static FakeConfigEntry<bool> ArenaLightingEnabled { get; } = new(true);
         internal static FakeConfigEntry<float> ArenaLightingStrength { get; } = new(1f);
         internal static FakeConfigEntry<int> ArenaLightingPressureSeconds { get; } = new(30);
@@ -231,6 +270,7 @@ namespace ArenaMode.Session
     internal static class ArenaSession
     {
         internal static bool IsActive { get; set; }
+        internal static bool ArmedForNextRaid { get; set; }
     }
 }
 

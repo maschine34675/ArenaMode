@@ -2,6 +2,7 @@ using ArenaMode;
 using ArenaMode.Config;
 using ArenaMode.Effects;
 using ArenaMode.Modes;
+using ArenaMode.Movement;
 using ArenaMode.Session;
 using BepInEx.Bootstrap;
 using Comfort.Common;
@@ -12,6 +13,11 @@ using UnityEngine;
 internal static class Program
 {
     private const string LightName = "ArenaMode_PhaseLighting";
+    private static readonly string[] SupportedMaps =
+    {
+        "laboratory", "factory4_day", "factory4_night", "labyrinth", "bigmap",
+        "arena_equator", "arena_bay5", "arena_airpit",
+    };
     private static int _assertions;
 
     private static int Main()
@@ -20,13 +26,14 @@ internal static class Program
         {
             CheckPolicySafetyAndMapScope();
             CheckPolicyPrecedenceAndFades();
-            foreach (string map in new[] { "laboratory", "factory4_day", "factory4_night", "labyrinth" })
+            foreach (string map in SupportedMaps)
             {
                 CheckRuntimeOwnershipAndCleanup(map);
                 CheckModeTransitions(map);
                 CheckExternalLightingCompatibility(map);
                 CheckStaleWorldAndCreationFailure(map);
             }
+            CheckFastDeployIsolation();
             CheckSourceContract();
             Console.WriteLine($"ARENA_LIGHTING_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -51,6 +58,14 @@ internal static class Program
         Assert(!ArenaLightingPolicy.SupportsMap("labyrinth_extra"), "unknown Labyrinth variant is rejected");
         Assert(!ArenaLightingPolicy.SupportsMap("shoreline"), "unsupported map is rejected");
         Assert(!ArenaLightingPolicy.SupportsMap(null), "missing map is rejected");
+        foreach (string map in SupportedMaps)
+        {
+            Assert(ArenaLightingPolicy.SupportsMap(map), $"supported Arena map {map}");
+            Assert(ArenaLightingPolicy.SupportsMap($" {map.ToUpperInvariant()} "),
+                $"normalized supported Arena map {map}");
+            Assert(!ArenaLightingPolicy.SupportsMap(map + "_extra"),
+                $"unknown map variant {map}_extra is rejected");
+        }
 
         ArenaLightingContext context = BaseContext();
         context.Enabled = false;
@@ -318,6 +333,68 @@ internal static class Program
         Assert(!light.enabled, "live disable immediately turns owned light off");
     }
 
+    private static void CheckFastDeployIsolation()
+    {
+        ResetHarness();
+        var config = new GlobalConfiguration { TimeBeforeDeployLocal = 20 };
+        Singleton<GlobalConfiguration>.Instance = config;
+        ArenaSession.IsActive = true;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        Assert(config.TimeBeforeDeployLocal == 20,
+            "ordinary unarmed countdown remains unchanged even if an active latch was stale");
+
+        ArenaSession.IsActive = false;
+        ArenaSession.ArmedForNextRaid = true;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        Assert(config.TimeBeforeDeployLocal == 1,
+            "armed Arena loading countdown is exactly one second before IsActive");
+        InvokeDeployHook("RestoreAfterCountdownPatch", "Postfix");
+        Assert(config.TimeBeforeDeployLocal == 20, "native countdown completion restores original duration");
+        FastDeployPatches.Restore();
+        Assert(config.TimeBeforeDeployLocal == 20, "repeated teardown preserves original duration");
+
+        config.TimeBeforeDeployLocal = 35;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        ArenaSession.ArmedForNextRaid = false;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        Assert(config.TimeBeforeDeployLocal == 35,
+            "ordinary raid after aborted Arena load heals original duration before its arm gate");
+
+        ArenaSession.ArmedForNextRaid = true;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        Settings.FastDeploy.Value = false;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        Assert(config.TimeBeforeDeployLocal == 35,
+            "disabled fast deploy heals aborted Arena duration before its setting gate");
+
+        Settings.FastDeploy.Value = true;
+        foreach (int existing in new[] { 0, 1 })
+        {
+            config.TimeBeforeDeployLocal = existing;
+            InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+            Assert(config.TimeBeforeDeployLocal == existing,
+                $"short existing duration {existing} is never increased");
+            FastDeployPatches.Restore();
+            Assert(config.TimeBeforeDeployLocal == existing,
+                $"unchanged duration {existing} creates no restoration lease");
+        }
+
+        Singleton<GlobalConfiguration>.Instance = null;
+        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        FastDeployPatches.Restore();
+        Assert(Singleton<GlobalConfiguration>.Instance == null,
+            "missing configuration is ignored without manufacturing global state");
+    }
+
+    private static void InvokeDeployHook(string patchName, string hookName)
+    {
+        Type patch = typeof(FastDeployPatches).GetNestedType(patchName, BindingFlags.NonPublic)
+            ?? throw new MissingMemberException(typeof(FastDeployPatches).FullName, patchName);
+        MethodInfo hook = patch.GetMethod(hookName, BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(patch.FullName, hookName);
+        hook.Invoke(null, null);
+    }
+
     private static void CheckSourceContract()
     {
         string root = FindRepositoryRoot();
@@ -406,6 +483,10 @@ internal static class Program
 
     private static void ResetHarness()
     {
+        FastDeployPatches.Restore();
+        Singleton<GlobalConfiguration>.Instance = null;
+        ArenaSession.ArmedForNextRaid = false;
+        Settings.FastDeploy.Value = true;
         ArenaLightingDirector.Reset();
         GameObject.Created.Clear();
         Singleton<GameWorld>.Instance = null;

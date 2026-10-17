@@ -799,7 +799,7 @@ public static class Settings
             "General",
             "FastDeploy",
             true,
-            "Shorten the pre-raid deploy countdown to 2s for arena raids.");
+            "Shorten the pre-raid deploy countdown to 1s for arena raids.");
 
         SkipPreRaidScreens = config.Bind(
             "General",
@@ -1684,7 +1684,7 @@ public static class Settings
             "Effects",
             "ArenaLighting",
             true,
-            "Labs, Factory (day/night) and Labyrinth: add restrained runtime lighting for round starts, the final seconds, " +
+            "All Arena maps, including ported maps: add restrained runtime lighting for round starts, the final seconds, " +
             "and Tactical victory/defeat. No map bundles or shared map materials are changed.");
 
         ArenaLightingStrength = config.Bind(
@@ -1692,7 +1692,7 @@ public static class Settings
             "ArenaLightingStrength",
             1f,
             new ConfigDescription(
-                "Brightness multiplier for Arena's additive phase light on Labs, Factory and Labyrinth (0 = invisible).",
+                "Brightness multiplier for Arena's additive phase light on all supported maps (0 = invisible).",
                 new AcceptableValueRange<float>(0f, 2f)));
 
         ArenaLightingPressureSeconds = config.Bind(
