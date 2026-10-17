@@ -16,8 +16,9 @@ public static class ArenaMapCatalog
     public const string CustomsId = "bigmap";
     public const string EquatorId = "arena_equator";
     public const string Bay5Id = "arena_bay5";
+    public const string AirPitId = "arena_airpit";
     public const string ArenaMapPortPluginId = "com.maschine.ArenaMapPort";
-    public const int OptionalMapsRevision = 2;
+    public const int OptionalMapsRevision = 3;
 
     public const string LegacyDefaultClientAllowlist =
         FactoryDayId + "," + LabyrinthId + "," + LaboratoryId;
@@ -28,7 +29,8 @@ public static class ArenaMapCatalog
     public const string NativeDefaultClientAllowlist = PreviousDefaultClientAllowlist + "," + CustomsId;
 
     public const string EquatorDefaultClientAllowlist = NativeDefaultClientAllowlist + "," + EquatorId;
-    public const string DefaultClientAllowlist = EquatorDefaultClientAllowlist + "," + Bay5Id;
+    public const string Bay5DefaultClientAllowlist = EquatorDefaultClientAllowlist + "," + Bay5Id;
+    public const string DefaultClientAllowlist = Bay5DefaultClientAllowlist + "," + AirPitId;
 
     public static bool IsSupportedMap(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
@@ -44,7 +46,15 @@ public static class ArenaMapCatalog
     public static bool IsBay5(string locationId)
         => string.Equals(locationId, Bay5Id, StringComparison.OrdinalIgnoreCase);
 
-    public static bool IsOptionalMap(string locationId) => IsEquator(locationId) || IsBay5(locationId);
+    public static bool IsAirPit(string locationId)
+        => string.Equals(locationId, AirPitId, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Explicit canonical lookup; unknown names return empty, never another map's ID.</summary>
+    public static string CanonicalOptionalMapId(string locationId)
+        => IsEquator(locationId) ? EquatorId : IsBay5(locationId) ? Bay5Id
+            : IsAirPit(locationId) ? AirPitId : string.Empty;
+
+    public static bool IsOptionalMap(string locationId) => CanonicalOptionalMapId(locationId).Length != 0;
 
     public static bool RequiresModeFilteredView(string locationId)
         => string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsOptionalMap(locationId);
@@ -78,12 +88,15 @@ public static class ArenaMapCatalog
         => UpgradeOptionalClientAllowlist(allowlist, 0, false);
 
     /// <summary>
-    /// Revision 2 extends the exact Equator default. The earlier boolean marker
-    /// still protects an intentional Equator removal that resembles an old default.
+    /// Revision 3 extends the exact Bay5 default. Earlier revisions keep their own
+    /// cutoffs: an Equator-only list at revision 2 means Bay5 was removed, and
+    /// must not acquire either Bay5 or AirPit. The old boolean likewise protects
+    /// an intentional Equator removal that resembles a pre-Equator default.
     /// </summary>
     public static string UpgradeOptionalClientAllowlist(string allowlist, int revision, bool equatorMigrationRecorded)
         => revision < OptionalMapsRevision
-           && (string.Equals(allowlist, EquatorDefaultClientAllowlist, StringComparison.Ordinal)
+           && (string.Equals(allowlist, Bay5DefaultClientAllowlist, StringComparison.Ordinal)
+               || revision < 2 && string.Equals(allowlist, EquatorDefaultClientAllowlist, StringComparison.Ordinal)
                || revision <= 0 && !equatorMigrationRecorded
                    && (string.Equals(allowlist, LegacyDefaultClientAllowlist, StringComparison.Ordinal)
                        || string.Equals(allowlist, PreviousDefaultClientAllowlist, StringComparison.Ordinal)
@@ -99,7 +112,8 @@ public static class ArenaMapCatalog
                || isAvailable(LaboratoryId)
                || isAvailable(CustomsId)
                || isAvailable(EquatorId)
-               || isAvailable(Bay5Id));
+               || isAvailable(Bay5Id)
+               || isAvailable(AirPitId));
 
     /// <summary>
     /// EFT represents both Factory variants with the day tile. Keep the night

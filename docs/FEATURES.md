@@ -45,7 +45,7 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   supported modes; Tactical displays the actual party size, such as 3v5 PFT.
 - Customs area selection includes a map preview with the actual polygon
   highlighted; thumbnails remain visible without the long vanilla description.
-- Bay5 and Equator have gold labels without the old `Arena:` prefix and their
+- Bay5, Equator and Air Pit have gold labels without the old `Arena:` prefix and their
   own positions on the map overview. Bay5 supports its native time choices;
   Equator's night selection is presented with its rainy weather.
 - Mutators are embedded directly in the screen, with active/inactive colors
@@ -514,7 +514,7 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
 - Team starts, spacing, connected navigation and occupancy checks precede the
   match. Customs Yard has additional Arena-only start candidates; it does not
   overwrite normal map spawn records.
-- Optional ArenaMapPort maps: **Bay5** supports all modes; **Equator** supports
+- Optional ArenaMapPort maps: **Bay5** and **Air Pit** support all modes; **Equator** supports
   Gun Game, DM, TDM and solo Zombies, but no Tactical or PFT Zombies, even with
   fewer companions. ArenaMode does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving

@@ -15,7 +15,7 @@ internal sealed class ArenaPortedMapPresentation
     private Func<bool> _selected;
     private Vector2 _anchorMin, _anchorMax, _position, _target;
     private string _headerText, _sizeText, _name;
-    private bool _headerEnabled;
+    private bool _headerEnabled, _reposition;
     private CanvasGroup _headerGroup;
     private bool _addedGroup, _groupInteractable, _groupBlocksRaycasts;
     private float _groupAlpha;
@@ -23,7 +23,8 @@ internal sealed class ArenaPortedMapPresentation
     private static readonly Color SelectedGold = new(.38f, .25f, .06f, 1f);
 
     internal static string DisplayName(string id, string fallback)
-        => ArenaMapCatalog.IsBay5(id) ? "BAY 5" : ArenaMapCatalog.IsEquator(id) ? "EQUATOR" : fallback;
+        => ArenaMapCatalog.IsBay5(id) ? "BAY 5" : ArenaMapCatalog.IsEquator(id) ? "EQUATOR"
+            : ArenaMapCatalog.IsAirPit(id) ? "AIR PIT" : fallback;
 
     internal static ArenaPortedMapPresentation Create(string id, RectTransform rect,
         TMP_Text header, TMP_Text size, Func<bool> selected)
@@ -37,6 +38,8 @@ internal sealed class ArenaPortedMapPresentation
             _name = DisplayName(id, header.text),
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
+            // AirPit retains the native MapPort position, including any later update.
+            _reposition = ArenaMapCatalog.IsBay5(id) || ArenaMapCatalog.IsEquator(id),
             _target = ArenaMapCatalog.IsBay5(id) ? new Vector2(.47f, .82f) : new Vector2(.70f, .29f)
         };
         try
@@ -77,8 +80,8 @@ internal sealed class ArenaPortedMapPresentation
     internal void Refresh()
     {
         if (_rect == null || _header == null || _label == null) return;
-        _rect.anchorMin = _rect.anchorMax = _target;
-        _rect.anchoredPosition = Vector2.zero;
+        if (_reposition)
+        { _rect.anchorMin = _rect.anchorMax = _target; _rect.anchoredPosition = Vector2.zero; }
         _header.text = _name;
         if (_size != null) _size.text = _name;
         _label.text = _name;
@@ -95,7 +98,7 @@ internal sealed class ArenaPortedMapPresentation
 
     internal void Close()
     {
-        if (_rect != null)
+        if (_rect != null && _reposition)
         { _rect.anchorMin = _anchorMin; _rect.anchorMax = _anchorMax; _rect.anchoredPosition = _position; }
         if (_header != null) { _header.text = _headerText; _header.enabled = _headerEnabled; }
         if (_size != null) _size.text = _sizeText;

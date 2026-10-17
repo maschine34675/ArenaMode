@@ -546,7 +546,7 @@ public static class Settings
             "General",
             "Maps",
             ArenaMapCatalog.DefaultClientAllowlist,
-            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, Customs, optional Equator/Bay5). " +
+            "Arena map allowlist (Factory day/night, Labyrinth, The Lab, Customs, optional Equator/Bay5/AirPit). " +
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
@@ -561,9 +561,9 @@ public static class Settings
             if (!string.Equals(upgradedMaps, Maps.Value, StringComparison.Ordinal))
             {
                 Maps.Value = upgradedMaps;
-                Plugin.ModLogger?.LogInfo("Arena default map allowlist upgraded with optional Equator/Bay5.");
+                Plugin.ModLogger?.LogInfo("Arena default map allowlist upgraded with optional Equator/Bay5/AirPit.");
             }
-            // Record even an edited list; deleting Equator later must not
+            // Record even an edited list; deleting an optional map later must not
             // accidentally recreate an exact old default and re-enable it.
             optionalMapsMigrated.Value = true;
             optionalMapsRevision.Value = ArenaMapCatalog.OptionalMapsRevision;

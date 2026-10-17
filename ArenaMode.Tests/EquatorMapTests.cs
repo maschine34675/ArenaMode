@@ -29,6 +29,7 @@ public sealed class EquatorMapConfigTests
     [Theory]
     [InlineData(ArenaMapCatalog.EquatorId)]
     [InlineData(ArenaMapCatalog.Bay5Id)]
+    [InlineData(ArenaMapCatalog.AirPitId)]
     public void DefaultsUseRealZoneAndSmallMapPopulation(string mapId)
     {
         var map = new ArenaModeConfig().Maps[mapId];
@@ -98,7 +99,7 @@ public sealed partial class ArenaAreaServerTests
 {
     public static IEnumerable<object?[]> OptionalRouteCases()
     {
-        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.CustomsId })
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.CustomsId })
             foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", "endless", "rounds", null })
                 yield return new object?[] { map, mode,
                     (mode is "deathmatch" or "gungame" or "tactical" or "teamdeathmatch" or "zombie")
@@ -137,7 +138,7 @@ public sealed partial class ArenaAreaServerTests
 
     public static IEnumerable<object[]> OptionalUnavailableCases()
     {
-        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
+        foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId })
             foreach (string scenario in new[] { "missing", "disabled", "wrong-id", "other-imported-map", "throws" })
                 yield return new object[] { map, scenario };
     }

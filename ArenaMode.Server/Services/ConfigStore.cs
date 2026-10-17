@@ -161,8 +161,8 @@ public static class ConfigStore
     internal static bool FillMissingKeys(JsonNode? saved, JsonNode? defaults)
     {
         // Evaluate the saved map set before generic repair adds native maps.
-        // Revision 1 may have already recorded a deliberate Equator removal;
-        // only its exact complete Equator default can gain Bay5 at revision 2.
+        // Each historical default has its own cutoff. In particular, revision 2
+        // with no Bay5 is an intentional removal, not an older Equator default.
         bool migrated = false;
         if (saved is JsonObject root && root["maps"] is JsonObject maps
             && defaults is JsonObject defaultRoot && defaultRoot["maps"] is JsonObject)
@@ -175,8 +175,10 @@ public static class ConfigStore
                 && new[] { ArenaMapCatalog.LegacyDefaultClientAllowlist,
                     ArenaMapCatalog.PreviousDefaultClientAllowlist, ArenaMapCatalog.NativeDefaultClientAllowlist }
                     .Any(ExactMapSet);
-            bool equatorDefault = revision < ArenaMapCatalog.OptionalMapsRevision
+            bool equatorDefault = revision < 2
                 && ExactMapSet(ArenaMapCatalog.EquatorDefaultClientAllowlist);
+            bool bay5Default = revision < 3
+                && ExactMapSet(ArenaMapCatalog.Bay5DefaultClientAllowlist);
 
             // Detached defaults retain per-map field repair for existing entries,
             // including explicitly disabled or customized optional entries.
@@ -185,6 +187,8 @@ public static class ConfigStore
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.EquatorId);
             if (!maps.ContainsKey(ArenaMapCatalog.Bay5Id) && !nativeDefault && !equatorDefault)
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.Bay5Id);
+            if (!maps.ContainsKey(ArenaMapCatalog.AirPitId) && !nativeDefault && !equatorDefault && !bay5Default)
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.AirPitId);
             if (revision < ArenaMapCatalog.OptionalMapsRevision)
             {
                 root["optionalMapsRevision"] = ArenaMapCatalog.OptionalMapsRevision;

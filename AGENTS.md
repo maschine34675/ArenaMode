@@ -45,6 +45,11 @@ in docs/GPU-MOLOTOV-ITEM-RESULTS-20261012.md. The current integration and single
 client supply authority are documented in docs/MOLOTOV-NATIVE-INTEGRATION-20261015.md.
 Equator remains unavailable for Tactical and is also excluded from PFT Zombies
 because the five-person squad obstructs itself; solo Zombies stays supported.
+Air Pit is an optional full map for all current modes, using its existing safe
+generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
+Its original north team box is outside the shipped navigation surface; do not
+adopt those authored team positions without a separate geometry review.
+See docs/AIRPIT-INTEGRATION-20261017.md for migration and native-test boundaries.
 Independent Equator Team DM uses the original north USEC and south BEAR team
 boxes for initial placement and respawns (4–20 total participants). The exact
 raid clone adds twenty private versioned markers; never move or overwrite the

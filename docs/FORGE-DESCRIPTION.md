@@ -41,7 +41,7 @@ Population and starting equipment can be changed in the menu.
 - Factory, day and night; Labs; Labyrinth.
 - Customs: Factory Center, Factory Side and Customs Yard. Only these bounded
   areas are available, in all five modes.
-- With ArenaMapPort: Bay5 in all modes; Equator in Gun Game, Deathmatch, Team DM
+- With ArenaMapPort: Bay5 and Air Pit in all modes; Equator in Gun Game, Deathmatch, Team DM
   and solo Zombies. Equator does not support Tactical or PFT Zombies.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
@@ -112,7 +112,7 @@ Optional integration targets:
 - **SAIN 4.5.1:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0:** ArenaMode's optional bot action companion.
 - **APBS 2.4.1:** equipment/progression adapter.
-- **ArenaMapPort:** Bay5 and Equator, with client/server and map assets.
+- **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
 - **KillcamReplay:** compatible API required; 0.9.13 adds the shorter Arena live
   tail. Team spectating itself does not require it.
 - **DynamicMaps 1.2.1:** corpse-marker cleanup integration.

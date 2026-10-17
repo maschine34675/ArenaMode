@@ -269,7 +269,7 @@ try
 
     // Real presentation logic, external TMP/layout surfaces. No native map data
     // or event wiring is involved; both leases must exactly restore their rows.
-    foreach(var id in new[]{ArenaMapCatalog.Bay5Id,ArenaMapCatalog.EquatorId})
+    foreach(var id in new[]{ArenaMapCatalog.Bay5Id,ArenaMapCatalog.EquatorId,ArenaMapCatalog.AirPitId,"ARENA_AIRPIT"})
     {
         var row=Child(screen,"native optional map",typeof(RectTransform));
         var rowRect=(RectTransform)row.transform;
@@ -280,20 +280,37 @@ try
         bool selectedMarker=false;
         var marker=ArenaPortedMapPresentation.Create(id,rowRect,header,size,()=>selectedMarker);
         var gold=row.GetComponentsInChildren<TextMeshProUGUI>().Single(t=>t.gameObject.name.StartsWith("Arena ported map label"));
-        var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":"EQUATOR";
+        var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":id==ArenaMapCatalog.EquatorId?"EQUATOR":"AIR PIT";
         Need(gold.text==expected&&size.text==expected&&header.enabled&&header.GetComponent<CanvasGroup>()?.alpha==0,
             "PORTED-LABEL","Hidden native TMP stays enabled for preferred-size layout; short text sizes the entire toggle.");
         Need(gold.color==ArenaPortedMapPresentation.Gold&&gold.raycastTarget==header.raycastTarget,"PORTED-LABEL","Gold is independent of native text tint while preserving a native header hit surface.");
         Need(gold.GetComponent<LayoutElement>().ignoreLayout,"PORTED-LABEL","New text does not add a second element to native layout calculation.");
-        Need(rowRect.anchorMin==rowRect.anchorMax&&rowRect.anchoredPosition==Vector2.zero,"PORTED-POSITION","New anchors retain native normalized positioning semantics.");
-        Need(id==ArenaMapCatalog.Bay5Id?rowRect.anchorMin.y>.75f:rowRect.anchorMin.x>.66f&&rowRect.anchorMin.y<.36f,
-            "PORTED-POSITION","Bay 5 moves north; Equator sits immediately south-east of native Interchange.");
+        if (ArenaMapCatalog.IsAirPit(id))
+        {
+            Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)
+                &&rowRect.anchoredPosition==new Vector2(2,3),"AIRPIT-NATIVE-POSITION","AirPit keeps the complete native MapPort geometry, not the Equator fallback.");
+            // Later native placement changes likewise remain authoritative during refresh.
+            rowRect.anchorMin=new Vector2(.2f,.7f);rowRect.anchorMax=new Vector2(.3f,.8f);rowRect.anchoredPosition=new Vector2(4,5);
+            marker.Refresh();
+            Need(rowRect.anchorMin==new Vector2(.2f,.7f)&&rowRect.anchorMax==new Vector2(.3f,.8f)
+                &&rowRect.anchoredPosition==new Vector2(4,5),"AIRPIT-REFRESH-POSITION","Gold label refresh does not overwrite current native placement.");
+        }
+        else
+        {
+            Need(rowRect.anchorMin==rowRect.anchorMax&&rowRect.anchoredPosition==Vector2.zero,"PORTED-POSITION","New anchors retain native normalized positioning semantics.");
+            Need(id==ArenaMapCatalog.Bay5Id?rowRect.anchorMin.y>.75f:rowRect.anchorMin.x>.66f&&rowRect.anchorMin.y<.36f,
+                "PORTED-POSITION","Bay 5 moves north; Equator sits immediately south-east of native Interchange.");
+        }
         header.color=new Color(0,0,0,1);marker.Refresh();
         Need(gold.color==ArenaPortedMapPresentation.Gold,"PORTED-COLOR","Native text animation cannot overwrite own gold label.");
         selectedMarker=true;marker.Refresh();
         Need(gold.color.r<ArenaPortedMapPresentation.Gold.r,"PORTED-COLOR","Selected label uses a darker gold on native light selection background.");
         marker.Close();UObject.EndFrame();
-        Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)&&rowRect.anchoredPosition==new Vector2(2,3),"PORTED-RESTORE","Original native geometry is restored exactly.");
+        if (ArenaMapCatalog.IsAirPit(id))
+            Need(rowRect.anchorMin==new Vector2(.2f,.7f)&&rowRect.anchorMax==new Vector2(.3f,.8f)&&rowRect.anchoredPosition==new Vector2(4,5),
+                "AIRPIT-CLOSE-POSITION","Closing a label-only lease leaves newer native coordinates untouched.");
+        else
+            Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)&&rowRect.anchoredPosition==new Vector2(2,3),"PORTED-RESTORE","Original native geometry is restored exactly.");
         Need(header.enabled&&header.GetComponent<CanvasGroup>()==null&&header.text=="ARENA: ORIGINAL"&&size.text=="native size"&&gold.Destroyed,"PORTED-RESTORE","Original labels restored; own label and visibility group released.");
         var existingHeaderGroup=header.gameObject.AddComponent<CanvasGroup>();
         existingHeaderGroup.alpha=.6f;existingHeaderGroup.interactable=false;existingHeaderGroup.blocksRaycasts=true;

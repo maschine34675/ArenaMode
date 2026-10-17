@@ -1,4 +1,4 @@
-# Karten und Modi – Stand 16.10.2026
+# Karten und Modi – Stand 17.10.2026
 
 Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung und
 in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
@@ -7,7 +7,7 @@ Grenzen der Spawn- und Arealverwaltung bleiben erhalten.
 | Karte | Deathmatch / Gun Game | Team DM | Tactical solo / PFT | Zombies solo / PFT |
 |---|---|---|---|---|
 | Factory Tag/Nacht, Labs, Labyrinth | Ja | Ja | Ja | Ja |
-| Bay5 | Ja | Ja | Ja | Ja |
+| Bay5, Air Pit | Ja | Ja | Ja | Ja |
 | Equator | Ja | Ja | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
@@ -49,11 +49,19 @@ Ganzkarten-Präferenz wird bei der Menüauswahl auf das erste Areal umgestellt;
 ein endgültiger Raid-Start ohne gültige Customs-Kontur wird abgelehnt. Normale
 PMC-Raids sind davon nicht betroffen.
 
-Bay5 und Equator besitzen gültige KI-Anker, aber keine nativen Deckungspunkte.
+Bay5, Equator und Air Pit besitzen gültige KI-Anker, aber keine nativen Deckungspunkte.
 Der optionale PFT-Adapter ermittelt deshalb in genau diesen geschützten Arena-Raids
 den nächstgelegenen vorhandenen Anker direkt. Er verändert weder PFT-Dateien noch
 Kartengeometrie und erfindet keine Deckungspunkte. Die separate Tactical-Sperre
 auf Equator bleibt bestehen, auch wenn weniger als vier Begleiter eingeladen sind.
+
+Air Pit verwendet seine vier vorhandenen Spieler- und 14 Bot-Spawns. Eine neue
+Kartenstandard-Migration ergänzt nur erkannte frühere Standardlisten; individuelle
+Listen und ausdrücklich entfernte oder deaktivierte Karten bleiben erhalten.
+Die ursprüngliche nördliche Air-Pit-Teambox liegt außerhalb der aktuellen
+Navigationsfläche und wird nicht als fester Teamstart übernommen. Team DM und
+Tactical verwenden hier zunächst die allgemeinen Spawnverfahren. Die Freigabe
+umfasst kein neues Pickup-Layout; siehe [Air-Pit-Integration](AIRPIT-INTEGRATION-20261017.md).
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

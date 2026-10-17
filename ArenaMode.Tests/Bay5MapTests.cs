@@ -29,7 +29,7 @@ public sealed class Bay5MapMigrationTests
         string originalDefaults = defaults!.ToJsonString();
         Assert.True(ConfigStore.FillMissingKeys(saved, defaults));
         var maps = saved["maps"]!.AsObject();
-        Assert.Equal(2, saved["optionalMapsRevision"]!.GetValue<int>());
+        Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, saved["optionalMapsRevision"]!.GetValue<int>());
         Assert.True(maps[ArenaMapCatalog.Bay5Id]!["enabled"]!.GetValue<bool>());
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.Bay5Id]!["spawnZones"]!.GetValue<string>());
         Assert.Equal(8, maps[ArenaMapCatalog.Bay5Id]!["botMax"]!.GetValue<int>());
@@ -62,7 +62,7 @@ public sealed class Bay5MapMigrationTests
             Assert.False(saved["maps"]!.AsObject().ContainsKey(ArenaMapCatalog.Bay5Id));
             if (!ids.Split(',').Contains(ArenaMapCatalog.EquatorId))
                 Assert.False(saved["maps"]!.AsObject().ContainsKey(ArenaMapCatalog.EquatorId));
-            Assert.Equal(Math.Max(2, revision), saved["optionalMapsRevision"]!.GetValue<int>());
+            Assert.Equal(Math.Max(ArenaMapCatalog.OptionalMapsRevision, revision), saved["optionalMapsRevision"]!.GetValue<int>());
         }
     }
 
@@ -79,7 +79,7 @@ public sealed class Bay5MapMigrationTests
     }
 
     [Fact]
-    public void RealServerReloadPersistsRevisionTwoAndRetainsSubsequentBay5Removal()
+    public void RealServerReloadPersistsCurrentRevisionAndRetainsSubsequentBay5Removal()
     {
         string oldDir = ConfigStore.ConfigDir;
         var oldConfig = ArenaContext.Config;
@@ -92,7 +92,7 @@ public sealed class Bay5MapMigrationTests
             Assert.Equal(ConfigResult.Success, ConfigStore.Reload(out _));
             Assert.True(ArenaContext.Config.IsMapEnabled(ArenaMapCatalog.Bay5Id));
             var saved = JsonNode.Parse(File.ReadAllText(ConfigStore.ConfigFile))!;
-            Assert.Equal(2, saved["optionalMapsRevision"]!.GetValue<int>());
+            Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, saved["optionalMapsRevision"]!.GetValue<int>());
             saved["maps"]!.AsObject().Remove(ArenaMapCatalog.Bay5Id);
             File.WriteAllText(ConfigStore.ConfigFile, saved.ToJsonString());
             for (int pass = 0; pass < 2; pass++)
@@ -118,6 +118,10 @@ public sealed partial class ArenaAreaServerTests
     [Theory]
     [InlineData(ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id)]
     [InlineData(ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId)]
+    [InlineData(ArenaMapCatalog.AirPitId, ArenaMapCatalog.Bay5Id)]
+    [InlineData(ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId)]
+    [InlineData(ArenaMapCatalog.AirPitId, ArenaMapCatalog.EquatorId)]
+    [InlineData(ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId)]
     public void OptionalTransportViewChecksEachLocationFreshAndNeverBorrowsAvailability(string present, string absent)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
@@ -132,7 +136,7 @@ public sealed partial class ArenaAreaServerTests
             using var first = JsonDocument.Parse(ArenaOptionalMapPolicy.ClientConfigJson(config));
             Assert.True(first.RootElement.GetProperty("maps").TryGetProperty(present, out _));
             Assert.False(first.RootElement.GetProperty("maps").TryGetProperty(absent, out _));
-            Assert.Equal(new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id }, calls);
+            Assert.Equal(new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId }, calls);
             Assert.True(ArenaOptionalMapPolicy.IsAvailable(present.ToUpperInvariant()));
             Assert.Equal(before, JsonSerializer.Serialize(config));
             Assert.Equal(locationBefore, JsonSerializer.Serialize(location));

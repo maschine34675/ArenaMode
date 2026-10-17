@@ -36,7 +36,7 @@ try
 
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId,ArenaMapCatalog.CustomsId,
-        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id})
+        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId})
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
@@ -162,7 +162,9 @@ try
         (Name: "custom-order", Maps: "arena_equator,"+ArenaMapCatalog.NativeDefaultClientAllowlist, Legacy: true, Revision: 0, Gain: false),
         (Name: "revision-one", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 1, Gain: true),
         (Name: "bay5-removed", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 2, Gain: false),
-        (Name: "future-version", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 3, Gain: false),
+        (Name: "bay5-release", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 2, Gain: true),
+        (Name: "airpit-removed", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 3, Gain: false),
+        (Name: "future-version", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 4, Gain: false),
     })
     {
         string path=Path.Combine(scratch,"optional-"+migration.Name+".cfg");
@@ -173,7 +175,7 @@ try
         string expected=migration.Gain?ArenaMapCatalog.DefaultClientAllowlist:migration.Maps;
         Need(Settings.Maps.Value==expected,"OPTIONAL-MAP-UPGRADE",
             "Actual Settings.Init must honor the revision and saved Equator marker for "+migration.Name);
-        Need((int)persistedConfig[new ConfigDefinition("General","OptionalMapsRevision")].BoxedValue==Math.Max(2,migration.Revision),
+        Need((int)persistedConfig[new ConfigDefinition("General","OptionalMapsRevision")].BoxedValue==Math.Max(ArenaMapCatalog.OptionalMapsRevision,migration.Revision),
             "OPTIONAL-MAP-MARKER","Internal revision records the upgrade decision without reducing a future marker.");
         Settings.Init(new ConfigFile(path,false){SaveOnConfigSet=true});
         Need(Settings.Maps.Value==expected,"OPTIONAL-MAP-PERSISTED","Optional map upgrade survives a fresh real ConfigFile binding.");

@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **AirPit admission (2026-10-17):** Optional `arena_airpit` is offered in all
+  five modes, including the exact protected PFT Tactical/Zombie paths. It uses
+  existing generic markers and `BotZone_Main`; original northern team-box
+  positions remain excluded because they lie outside the shipped navigation
+  surface. Gold `AIR PIT` retains MapPort's native menu position. Revision 3
+  upgrades recognized earlier default map lists without undoing deliberate
+  exclusions or disabled entries. Equator's Tactical/PFT-Zombie exclusions are
+  unchanged. See [scope and offline checks](AIRPIT-INTEGRATION-20261017.md).
+  Staged build/deployment/native acceptance are recorded separately; the
+  implementation's offline checks do not certify those outcomes.
+
 - **Complete feature inventory (2026-10-17):** Added [FEATURES.md](FEATURES.md)
   against source baseline `67cad48`, including movement/surgical walking,
   equipment/handling, modes/scoring, pickups, HUD/audio, maps, bot behavior,

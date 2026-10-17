@@ -30,7 +30,7 @@ loadout between cleared waves, including for the surviving player.
 | Factory, day and night | All five modes |
 | Labs / Labyrinth | All five modes |
 | Customs: Factory Center, Factory Side, Customs Yard | All five modes, within the selected boundary; no whole-map Customs option |
-| Bay5, with ArenaMapPort | All five modes |
+| Bay5 / Air Pit, with ArenaMapPort | All five modes |
 | Equator, with ArenaMapPort | Gun Game, Deathmatch, Team DM and solo Zombies; no Tactical or PFT Zombies |
 
 Deathmatch and Gun Game let you select the participant total, including yourself.
@@ -209,7 +209,7 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **SAIN** | **4.5.1** adapters for personalities, pursuit and movement. Native AI remains available without it. |
 | **BigBrain** | Exactly **1.5.0**, with ArenaMode's own companion DLL: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
 | **APBS** | **2.4.1** equipment/progression adapter. Not required for kit or bot generation. |
-| **ArenaMapPort** | Optional Bay5/Equator client, server and map assets. |
+| **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
 | **KillcamReplay** | Compatible API and enabled DeathReplay required for replays; shortened Arena live tail supported from **0.9.13**. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1**; not required for Arena's static Customs preview. |
 

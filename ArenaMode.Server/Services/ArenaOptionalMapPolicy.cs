@@ -17,7 +17,7 @@ internal static class ArenaOptionalMapPolicy
         if (!ArenaMapCatalog.IsOptionalMap(map!)) return true;
         try
         {
-            string canonicalId = ArenaMapCatalog.IsEquator(map!) ? ArenaMapCatalog.EquatorId : ArenaMapCatalog.Bay5Id;
+            string canonicalId = ArenaMapCatalog.CanonicalOptionalMapId(map!);
             var location = FindLocation?.Invoke(canonicalId);
             return location?.Enabled == true && string.Equals(location.Id, canonicalId, StringComparison.OrdinalIgnoreCase);
         }
@@ -33,6 +33,8 @@ internal static class ArenaOptionalMapPolicy
             view["maps"]?.AsObject().Remove(ArenaMapCatalog.EquatorId);
         if (!IsAvailable(ArenaMapCatalog.Bay5Id))
             view["maps"]?.AsObject().Remove(ArenaMapCatalog.Bay5Id);
+        if (!IsAvailable(ArenaMapCatalog.AirPitId))
+            view["maps"]?.AsObject().Remove(ArenaMapCatalog.AirPitId);
         return view.ToJsonString();
     }
 }
