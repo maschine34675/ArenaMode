@@ -7,14 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Bay5 original team boxes (2026-10-17, implementation/offline checked):**
+- **Bay5 original team boxes (2026-10-17, deployed and GPU2 accepted):**
   Independent TDM now shares `ArenaTeamBoxRuntime` with Equator, using map-keyed
   data in `ArenaTeamBoxCatalog`. Bay5 uses ten USEC warehouse and ten BEAR depot
   starts, explicit 4–20 participants (default 8), owned preparation gates and
   full native paths before Live; live respawns never re-close. Bay5 exits remain
   untouched. Other modes and AirPit are unchanged. Read
-  [Bay5 review](BAY5-TEAM-BOXES-REVIEW.md) for source/build/test evidence and the
-  still-pending GPU acceptance; do not infer native approval from offline checks.
+  [Bay5 review](BAY5-TEAM-BOXES-REVIEW.md) for source/build/test evidence. Final
+  build `4d5565f` passed Bay5 10v10 and an Equator 3v3 control after the initial
+  Bay5 3v3 trial; both formations, countdown/opening, real departures and Bay5
+  respawn/replacements were verified. Native yaw serialization avoids false
+  rotation repairs while preserving original headings. 1081 unit tests passed,
+  one installed-APBS probe skipped; runtime/gate suites and mutants passed.
+  All three raid profiles restored (314/314 items); PFT files/configs and other
+  mod DLLs unchanged. Test preferences restored, game/server stopped. Only client
+  and server DLLs updated; no push. Raw evidence: `artifacts/bay5-native-20261017/`.
 
 - **Release layout v2 and optional BigBrain (2026-10-17):** Local test packages
   now contain only `BepInEx/` and `SPT_Runtime/` at the root. Both Arena client

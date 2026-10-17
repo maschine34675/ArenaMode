@@ -60,7 +60,7 @@ Equator negative controls are retained.
 
 Offline verification after integration with release-layout changes:
 
-- Full server/data suite: 1075 passed, one explicitly skipped installed-APBS
+- Full server/data suite: 1081 passed, one explicitly skipped installed-APBS
   probe. Bay5 fixtures also consume the real installed donor via admission checks.
 - Both-map linked runtime: 212 assertions, twelve rejected behavioral mutants.
 - Gates/countdown/exits: 144 assertions, twenty-one rejected behavioral mutants.
@@ -70,12 +70,70 @@ Offline verification after integration with release-layout changes:
   native area hook: 195. These are production-linked offline models, not native
   gameplay proof.
 - TDM match/exit model: 247 assertions plus its existing fault controls.
-- Isolated client/server build passed on clean `18cff75`; staged manifest
-  `artifacts/area-map-delivery/533f9a6aca0440d088301ec90fbf5323/manifest.json`.
+- Final isolated client/server build passed on clean `4d5565f`; staged manifest
+  `artifacts/area-map-delivery/9a5563f15d1049aa91b06194939e780d/manifest.json`.
   Staging verified 89 installed files unchanged. Only existing compiler warnings.
-- Independent read-only review found no outstanding source defect. All twenty
-  exact positions still need live floor/clearance/path checks, particularly the
-  two depot elevations and starts near warehouse navigation edges.
+- Independent read-only source and native-log reviews found no outstanding
+  defect in the scoped box/gate implementation.
 
-Native acceptance and final delivery remain pending. No offline test is a
-substitute for live geometry and actual departure checks.
+## Native acceptance and delivery — GPU2, 2026-10-17
+
+The final source build is `4d5565f10e41b8ba4897bffb19b91375e58f52ec`:
+
+| Artifact | SHA256 |
+|---|---|
+| Client | `07186D3395CB7D273DD85098B1E44E971B2E10E984695CE2B5B3A60F2CB52359` |
+| Server | `0D532C499742950F55178971F1921D5DA3772F734232151AE3A349347AA1DA41` |
+
+Only these two DLLs were deployed locally and synchronized to GPU2. UiBridge
+confirmed all 20 `maschine-*` plugins matched VM, host disk and loaded process;
+44 plugins loaded successfully. Core, MapPort and other mod DLLs were preserved.
+Concurrent release-layout work was merged before building, not overwritten.
+
+- **Bay5 3v3, preliminary `6e2849c`, instance `24ea0706`:** both 10-place
+  formations passed native floor, headroom and navigation checks. All five bots
+  appeared on their faction's original starts. After the countdown, all twenty
+  outside paths completed. Both bot teams left their boxes; the player reached
+  the yard by real walking. A death with replay returned the player to the USEC
+  warehouse, followed by another successful walk out. Natural USEC/BEAR losses
+  produced replacements in the correct boxes. This trial exposed the harmless
+  scalar-yaw mismatch, corrected in the final build.
+- **Bay5 10v10, final build, instance `7eff8fc9`:** nine allied and ten enemy
+  bots became active. Both formations reported 10/10 safe places, ten required.
+  Exactly one hold at 15:32:53.707 reclosed twenty parts and installed seven
+  carvers. Assembly completed at 15:33:42.574; release at 15:33:45.584 disabled
+  all twenty parts and removed all seven carvers. At 15:33:46.590 all twenty
+  outside paths passed and Live began. Both bot teams entered the arena and
+  fought. Player walks of 64.6 m and, after respawn, 69.3 m both arrived in the
+  yard. The replacement player arrived at warehouse-03 at 15:34:23.458. No new
+  hold or closure occurred before the protected exit; natural bot replacement
+  continued. The warehouse rotation errors were absent.
+- **Equator 3v3, same final process after Bay5:** all twenty places passed;
+  original faction starts, countdown and opening remained correct. Nine
+  probeable doors changed from partial paths while held to complete paths
+  after release. All twenty outside paths passed at 15:36:18.140. All five bots
+  left their respective booths, and the player walked 45.5 m to the atrium.
+- **Protection:** all three native raids returned to the menu normally. Each
+  actual server entry backup compared with the post-raid profile had 314/314
+  items; only the normal Hideout timestamp differed. The broader pre-start
+  baseline additionally differs in the menu's health-update timestamp. All
+  twelve PFT follower files and the server config were unchanged. The sole
+  changed client preference, Bay5's test participant count, was restored to 8.
+  Game and server were stopped after testing.
+
+Bay5's MapPort doorway probe could not grade individual openings because its
+probe endpoints were already disconnected on that map's mesh. Do not treat that
+probe as a success: the acceptance above uses Arena's complete paths, active
+gate/collider logs (including blocked depot rays while held), real departures
+and correct lifecycle. No claim is made that every possible bottleneck is free
+of congestion at 10v10, or that 10v10 is a performance recommendation.
+
+No ArenaMode warning/error occurred during the final Bay5 raid. EFT still logs
+existing common MapPort marker reconciliation, `JetMaterial == null`, weather
+and scene-singleton messages; these were not suppressed or attributed to this
+change. Ordinary raids, other modes and PFT were covered by offline scope checks,
+not a new native gameplay run in this acceptance.
+
+Evidence is retained under `artifacts/bay5-native-20261017/`: both client logs,
+merged native/server logs, loaded-build status, bot positions, walk results,
+per-raid profile comparisons, baseline/config/PFT audit and delivery manifests.
