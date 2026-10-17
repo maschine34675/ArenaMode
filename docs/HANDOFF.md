@@ -7,6 +7,22 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot-profile batches under a per-frame budget (2026-10-17, merged `4c5ceb9`):**
+  Performance `ProfileBuildBudgetMs` (default 3, 0 = native). In the exact live
+  Arena raid a low-priority prefix replaces `ClientBackendSession.LoadBots` with
+  the same request followed by one `Profile(descriptor)` per frame (more only
+  while the running average fits the budget; one guaranteed build per open batch
+  per frame; honours `__runOriginal`). GPU2 test raid: the ~90 s batch is 240
+  profiles / 687 ms of construction, now spread over 240 frames with a 5.2 ms
+  longest share instead of one 625 ms frame; horde refilled to 32, no warnings.
+  Spawns arrive about 3.4 s later at ~100 fps. Read
+  [docs/PROFILE-BUILD-BUDGET-20261017.md](PROFILE-BUILD-BUDGET-20261017.md).
+  SPT-GPU-1 reference run of the body-culling switches (50 infected): 44-48 ms
+  base vs 44-51 ms switch phases, no gain either; its ~90 s batch cost 1763 ms
+  natively. Host 1 and host 2 are back in MainMenu with all pins restored;
+  host 2 loads the merged build from the canonical folder (KillcamReplay
+  0.9.14 on its disk vs 0.9.13 loaded comes from another session).
+
 - **Zombie body-culling and bot hot-path switches (2026-10-17, merged `b8695b4`):**
   Four F12 switches from docs/ZOMBIE-PERFORMANCE-IDEAS-20261017.md. Performance
   `TrimDeadBrainList` and `SkipBotFovCoroutine` (default on, any Arena raid,
