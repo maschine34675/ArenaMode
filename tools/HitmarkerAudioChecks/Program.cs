@@ -131,9 +131,9 @@ internal static class Program
             for (int i = 0; i < 50; i++) { ArenaEvents.Damage(); Step(); }
             Check(ArenaEvents.Subscribers == 1, "Missing files do not block match attachment");
             Check(ArenaMode.Plugin.ModLogger.Messages.Count(m => m.Contains("missing_hit,")) == 1, "Repeated missing cue diagnostics bounded");
-            HitmarkerAudioService.SetPluginDirectory(pluginDirectory);
+            HitmarkerAudioService.SetPluginDirectory(Path.Combine(pluginDirectory, "ArenaMode"));
             HitmarkerAudioService.Attach(ArenaMatchService.Current); ArenaEvents.Damage(); Step();
-            Check(host.gameObject.LastAudioSource.clip.samples > 0, "Repaired assets recover next match");
+            Check(host.gameObject.LastAudioSource.clip.samples > 0, "Grouped plugin installation loads the same actual PCM assets");
             Console.WriteLine($"HITMARKER_PRODUCTION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }

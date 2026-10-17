@@ -61,6 +61,13 @@ internal static partial class Program
             VerifySixCues(pluginDir, context);
             VerifyPreparationTransitions();
             VerifyNativeUiOutputLifecycle();
+            AnnouncerService.Shutdown();
+            int requestsBeforeGroupedLoad = UnityWebRequestMultimedia.Requests.Count;
+            AnnouncerService.SetPluginDirectory(Path.Combine(pluginDir, "ArenaMode"));
+            AnnouncerService.EnsureLoaded();
+            FinishLoads(context);
+            Assert(UnityWebRequestMultimedia.Requests.Count > requestsBeforeGroupedLoad,
+                "Grouped plugin installation discovers existing sound files without another ArenaMode subfolder.");
             Console.WriteLine($"ARENA_ANNOUNCER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }

@@ -1290,6 +1290,7 @@ internal static class Program
         string sainSourcePolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaSainSourcePolicy.cs");
         string bigBrainProject = Read(root, "ArenaMode.BigBrainCompat", "ArenaMode.BigBrainCompat.csproj");
         string bigBrainPlugin = Read(root, "ArenaMode.BigBrainCompat", "Plugin.cs");
+        string bigBrainRegistration = Read(root, "ArenaMode.BigBrainCompat", "BigBrainRuntime.cs");
         string bigBrainLayer = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLayer.cs");
         string bigBrainLogic = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLogic.cs");
         string bigBrainRuntime = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitRuntime.cs");
@@ -1886,13 +1887,16 @@ internal static class Program
             "<Private>false</Private>");
         RequireAll(bigBrainPlugin,
             "[BepInDependency(ArenaMode.Plugin.PluginGuid, ArenaMode.Plugin.PluginVersion)]",
-            "[BepInDependency(BigBrainPluginGuid, SupportedBigBrainVersion)]",
-            "SupportedBigBrainVersion = \"1.5.0\"",
+            "[BepInDependency(BigBrainPluginGuid, BepInDependency.DependencyFlags.SoftDependency)]",
+            "TestedBigBrainVersion = \"1.5.0\"",
             "PursuitLayerPriority = 74",
+            "BigBrainRuntime.Register(",
+            "TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid)");
+        RequireAll(bigBrainRegistration,
+            "[MethodImpl(MethodImplOptions.NoInlining)]",
             "BrainManager.AddCustomLayer(",
             "BrainManager.CustomLayersReadOnly.TryGetValue",
-            "TeamArenaPursuitLeaseBridge.RegisterConsumer(PluginGuid)",
-            "TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid)");
+            "TeamArenaPursuitLeaseBridge.RegisterConsumer(Plugin.PluginGuid)");
         RequireAll(bigBrainLayer,
             "public override string GetName() => \"Arena Combat Pursuit\"",
             "ArenaPursuitRuntime.HasExactTeamArenaContext()",

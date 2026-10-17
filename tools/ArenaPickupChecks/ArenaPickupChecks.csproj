@@ -22,4 +22,7 @@
     <Compile Include="$(PickupSourceRoot)/ArenaPickupLayout.cs" Link="Production/ArenaPickupLayout.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupGeometry.cs" Link="Production/ArenaPickupGeometry.cs"/>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/ArenaAssetPaths.cs" Link="Production/ArenaAssetPaths.cs" />
+  </ItemGroup>
 </Project>

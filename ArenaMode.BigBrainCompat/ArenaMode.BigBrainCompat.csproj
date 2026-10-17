@@ -20,8 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- API reference only. BigBrain remains a user-installed hard dependency
-         and is never copied into ArenaMode's build or release output. -->
+    <!-- API reference only. BigBrain is user-installed and optional at runtime;
+         the guarded bootstrap stays inactive if it is absent. The foreign DLL
+         is never copied into ArenaMode's build or release output. -->
     <Reference Include="DrakiaXYZ-BigBrain">
       <HintPath>$(SPTPath)\BepInEx\plugins\DrakiaXYZ-BigBrain.dll</HintPath>
       <Private>false</Private>

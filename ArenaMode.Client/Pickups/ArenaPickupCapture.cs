@@ -71,7 +71,7 @@ internal sealed class ArenaPickupCapture : MonoBehaviour
             {
                 if (_draft.Points.Count == 0) { _status = "Capture at least one point first."; return; }
                 var file = new ArenaPickupLayoutFile(); file.Layouts.Add(_draft);
-                string directory = Path.Combine(Path.GetDirectoryName(Plugin.Instance.Info.Location), "ArenaMode", "PickupDrafts");
+                string directory = Path.Combine(ArenaAssetPaths.FromPluginFile(Plugin.Instance.Info.Location), "PickupDrafts");
                 string path = ArenaPickupLayouts.Export(directory, file);
                 _status = "Saved " + Path.GetFileName(path) + ". Review/copy as Pickups.json; next match only.";
                 Plugin.ModLogger.LogInfo("Arena pickup draft exported: " + path); return;

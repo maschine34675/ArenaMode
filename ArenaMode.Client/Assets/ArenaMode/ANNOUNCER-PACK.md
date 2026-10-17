@@ -17,7 +17,7 @@ enabled reserve files were moved there on 2026-10-16 without changing audio.
 An explicit legacy reserve whitelist remains for older installations, never
 a recursive scan. Root files/custom overrides win and leftover old copies do
 not load twice. The 11 unused clips stay in `sounds/reserve/`. See
-[ANNOUNCER-EXPANSION-REVIEW.md](../../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
+[ANNOUNCER-EXPANSION-REVIEW.md](../../../docs/ANNOUNCER-EXPANSION-REVIEW.md) for trigger and priority rules.
 
 Slicing uses pause midpoints cross-checked against the waveform and a local
 base.en Whisper transcript. The input was not uploaded for transcription.

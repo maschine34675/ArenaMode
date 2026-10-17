@@ -145,7 +145,7 @@ internal sealed class ArenaAreaCapture : MonoBehaviour
     {
         if (!_draft.TryExport(_minY, _maxY, _spawnMinY, _spawnMaxY, out var json, out var reason))
         { _status = "Export refused: " + reason; return; }
-        var directory = Path.Combine(Path.GetDirectoryName(Plugin.Instance.Info.Location), "ArenaMode", "AreaDrafts");
+        var directory = Path.Combine(ArenaAssetPaths.FromPluginFile(Plugin.Instance.Info.Location), "AreaDrafts");
         string path = ArenaAreaDraftFile.Write(directory, json);
         _status = "Saved " + Path.GetFileName(path);
         Plugin.ModLogger.LogInfo("Arena outline draft exported (not activated): " + path);

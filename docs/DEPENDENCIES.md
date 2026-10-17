@@ -1,6 +1,6 @@
 # Abhängigkeiten, Integrationen und Veröffentlichung
 
-Stand: 2026-10-16. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
+Stand: 2026-10-17. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
 nicht die jeweils neueste Veröffentlichung anderer Mods. Versionsgebundene
 Adapter sind keine pauschale Freigabe späterer Versionen. Gemeinsames Laden
 beweist nicht die vollständige Kompatibilität jeder Funktion.
@@ -27,7 +27,7 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 | Mod/Komponente | Geprüfter Vertrag | Zweck / Verhalten ohne sie |
 |---|---|---|
 | SAIN | 4.5.1 für die versionsgebundenen Arena-Adapter | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |
-| BigBrain + ArenaMode.BigBrainCompat | BigBrain exakt 1.5.0 | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und kein Molotov-Feuer; das private Molotov-Item bleibt dann harmlos, normale Granaten bleiben unverändert. Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
+| BigBrain + ArenaMode.BigBrainCompat | Ab 1.5.0, damit getestet; neuere Versionen mit Warnung und Laufzeitprüfung | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und kein Molotov-Feuer; das private Molotov-Item bleibt dann harmlos, normale Granaten bleiben unverändert. Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
 | PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
 | APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
 | ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
@@ -37,8 +37,11 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 
 Die optionalen Mods behalten ihre eigenen Voraussetzungen. Fremde
 SAIN/APBS/PFT/BigBrain-DLLs werden gemäß `AGENTS.md` nicht in Arena mitgeliefert.
-`ArenaMode.BigBrainCompat` ist dagegen eigener Arena-Code und kann als optionale
-Komponente im Arena-Paket liegen.
+`ArenaMode.BigBrainCompat` ist eigener Arena-Code und wird immer mitgeliefert.
+Ohne geladenes BigBrain bleibt der Begleiter still inaktiv. Ältere Versionen
+als 1.5.0 oder fehlerhafte API-Verträge deaktivieren die Integration sicher.
+Neuere Versionen werden mit einer einmaligen Warnung versucht; das ist keine
+Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
