@@ -71,6 +71,7 @@ namespace EFT
     public class AbstractGame { }
     public class LocalGame:AbstractGame
     {
+        public LocationData Location=new();
         public GameStatus Status=GameStatus.Started;
         public GameWorld GameWorld; public Player LocalPlayer;
         public readonly List<Stack<IEnumerator>> Coroutines=[];
@@ -90,6 +91,7 @@ namespace EFT
             }
         }
     }
+    public class LocationData { public EFT.Game.Spawning.SpawnPointParams[] SpawnPointParams=[]; }
     public class Health { public bool IsAlive=true; public float DamageCoeff=1; }
     public class MovementContext { public bool IsGrounded=true; }
     public class Inventory { public bool IsChangingWeapon; }
@@ -123,16 +125,22 @@ namespace ArenaMode
         public class Logger { public List<string> Lines=[];public void LogWarning(object x)=>Lines.Add("Warning: "+x);public void LogInfo(object x)=>Lines.Add("Info: "+x); public void LogDebug(object x)=>Lines.Add("Debug: "+x); }
     }
 }
-namespace ArenaMode.Shared { public struct ArenaAreaPoint(float x,float y,float z) {public float X=x,Y=y,Z=z;} }
+public class ClassVector3 { public float x,y,z; }
+namespace EFT.Game.Spawning
+{
+    [Flags] public enum ESpawnCategoryMask { None=0,Player=1,Bot=2,Boss=4,Coop=8,Group=16,Opposite=32,BotPmc=64,All=71 }
+    public struct SpawnPointParams { public string Id,BotZoneName; public ClassVector3 Position; public ESpawnCategoryMask Categories; }
+}
 namespace ArenaMode.Areas
 {
     public class Bounds
     {
         public bool PointAllowed=true,PathAllowed=true;
-        public bool Contains(float x,float y,float z,float inset)=>PointAllowed;
+        public ArenaMode.Shared.ArenaAreaBounds? Native;
+        public bool Contains(float x,float y,float z,float inset)=>PointAllowed&&(Native?.Contains(x,y,z,inset)??true);
         public bool ContainsPath<T>(ArenaMode.Shared.ArenaAreaPoint anchor,IReadOnlyList<T> points,bool closed,Func<T,ArenaMode.Shared.ArenaAreaPoint> projection,float inset)=>PathAllowed;
     }
-    public class Area {public string Id;public Bounds Bounds=new();}
+    public class Area {public string Id;public Bounds Bounds=new();public ArenaMode.Shared.ArenaAreaDefinition Native;public bool IsExcludedSpawn(string id)=>Native?.IsExcludedSpawn(id)??false;}
     public static class ArenaAreaRuntime { public static bool IsPending;public static Area CurrentArea; }
 }
 namespace ArenaMode.Combat { }

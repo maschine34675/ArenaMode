@@ -12,6 +12,13 @@
     <Compile Include="../ArenaPickupChecks/Program.cs"/><Compile Include="../ArenaPickupChecks/Doubles.cs"/><Compile Include="../ArenaPickupChecks/HealthDoubles.cs"/>
     <Compile Include="../ArenaPickupChecks/RotationCases.cs"/>
     <Compile Include="../ArenaPickupChecks/AudioChecks.cs"/>
+    <Compile Include="../ArenaPickupChecks/AllMapCases.cs"/>
+    <Compile Include="$(PickupSourceRoot)/ArenaPickupMapLayout.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupAudio.cs"/>
     <Compile Include="ObjectiveCases.cs"/><Compile Include="ObjectiveDoubles.cs"/>
     <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs"/>

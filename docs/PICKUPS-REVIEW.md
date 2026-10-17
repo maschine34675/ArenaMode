@@ -1,5 +1,12 @@
 # Arena pickups — initial prototype
 
+The Factory-only map restriction below is historical. Since 2026-10-17 all
+supported Arena maps and all three selected Customs areas have built-in pickup
+candidate pools in Deathmatch and independent Team DM. Factory's reviewed eight
+positions and custom layouts remain unchanged. Vertical beams now reach up to
+6m (previously 4m), still clipped below ceilings. See
+[all-map layouts and validation](ALL-MAP-PICKUPS-20261017.md).
+
 ## Collection sound (2026-10-07)
 
 Confirmed local collections play one 600 ms CC0 cue, IENBA's **Game Pick Up**.

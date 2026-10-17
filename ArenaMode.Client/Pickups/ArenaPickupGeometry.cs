@@ -77,7 +77,7 @@ internal static class ArenaPickupGeometry
 
     internal static float BeamLength(Vector3 floor)
     {
-        const float maximum = 4f;
+        const float maximum = 6f; // 50% taller; ceilings still clip the visible beam.
         float length = maximum;
         int count = QueryHits(floor + Vector3.up * .15f, Vector3.up, maximum, out var hits);
         for (int i = 0; i < count; i++)

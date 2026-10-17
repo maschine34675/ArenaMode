@@ -197,7 +197,7 @@ internal static partial class ArenaPickupRuntime
             if (new FileInfo(path).Length > 512 * 1024) throw new InvalidDataException("Pickups.json exceeds 512 KiB.");
             file = ArenaPickupLayouts.Parse(File.ReadAllText(path));
         }
-        else file = ArenaPickupLayouts.Factory(ArenaPickupSettings.WeaponKit.Value);
+        else file = ArenaPickupMapLayout.Create(_game, map, area, ArenaPickupSettings.WeaponKit.Value);
         _layout = ArenaPickupLayouts.Select(file, map, area);
         var weapons = _layout?.Points.Where(point => point.Kind == ArenaPickupKind.Weapon)
             .Select(point => point.Id + ":" + point.KitId) ?? Enumerable.Empty<string>();

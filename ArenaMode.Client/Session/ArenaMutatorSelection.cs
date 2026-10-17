@@ -82,7 +82,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.NoFallDamage => "Land without taking fall damage.",
         ArenaMutator.Backpack => "Use backpack items/magazines.",
         ArenaMutator.Killcam => "Replay before respawn.",
-        ArenaMutator.Pickups => "DM/Team DM with pickup layouts.",
+        ArenaMutator.Pickups => "DM/Team DM: all Arena maps.",
         ArenaMutator.Tracers => "Team colors for every bullet.",
         ArenaMutator.Lasers => "Team colors; same brightness.",
         ArenaMutator.Akimbo => "Dual pistols; shared magazine.",

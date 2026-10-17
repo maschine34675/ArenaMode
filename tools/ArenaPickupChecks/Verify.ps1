@@ -10,14 +10,19 @@ $pickupEvidence = Join-Path $pickupRepo ('artifacts/pickup-checks/' + [guid]::Ne
 [void][IO.Directory]::CreateDirectory($pickupEvidence)
 $pickupInputs = @{}
 $pickupBound = @('ArenaMode.Client/Plugin.cs','ArenaMode.Client/ArenaController.cs','ArenaMode.Client/Hud/ArenaHud.cs',
-    'ArenaMode.Client/Hud/ArenaPowerupPanel.cs','ArenaMode.Client/Kits/KitModels.cs')
+    'ArenaMode.Client/Hud/ArenaPowerupPanel.cs','ArenaMode.Client/Kits/KitModels.cs',
+    'ArenaMode.Shared/ArenaAreaCatalog.cs','ArenaMode.Shared/ArenaMapCatalog.cs','ArenaMode.Shared/ArenaBotSpawnPolicy.cs',
+    'ArenaMode.Shared/ArenaTeamBoxCatalog.cs','ArenaMode.Shared/ArenaEquatorTeamSpawns.cs')
 $pickupBound += @(Get-ChildItem -LiteralPath $pickupSource -File | ForEach-Object { 'ArenaMode.Client/Pickups/' + $_.Name })
 $pickupBound += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPickupChecks/' + $_.Name })
 foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
 $pickupInstalled = @{}
 foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',
-    'SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json','SPT_Runtime/SPT_Data/database/locations/factory4_night/base.json')) {
+    'SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json','SPT_Runtime/SPT_Data/database/locations/factory4_night/base.json',
+    'SPT_Runtime/SPT_Data/database/locations/laboratory/base.json','SPT_Runtime/SPT_Data/database/locations/labyrinth/base.json',
+    'SPT_Runtime/SPT_Data/database/locations/bigmap/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_equator/base.json',
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bay5/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_airpit/base.json')) {
     $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {
@@ -80,6 +85,10 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
+        @{Name='factory-only-runtime';File='ArenaPickupRuntime.cs';Find='else file = ArenaPickupMapLayout.Create(_game, map, area, ArenaPickupSettings.WeaponKit.Value);';Replace='else file = ArenaPickupLayouts.Factory(ArenaPickupSettings.WeaponKit.Value);';Failure='new-map runtime places six pickups through normal live geometry gates'},
+        @{Name='sealed-gate-pickups';File='ArenaPickupMapLayout.cs';Find='|| ArenaBotSpawnPolicy.IsExcludedZone(map, row.BotZoneName)';Replace='';Failure='sealed Labs gates, snipers, player entries and malformed seeds cannot become pickups'},
+        @{Name='box-pickups';File='ArenaPickupMapLayout.cs';Find='|| formation != null && (formation.Owns(row.Id) || NearBooth(formation, p.x, p.y, p.z))';Replace='';Failure='team-box identity and generic in-box positions excluded: arena_equator'},
+        @{Name='short-beam';File='ArenaPickupGeometry.cs';Find='const float maximum = 6f;';Replace='const float maximum = 4f;';Failure='open sky beacon height increased by fifty percent to six metres'},
         @{Name='no-live-rotation';File='ArenaPickupRuntime.cs';Find='private const float AvailableRotationSeconds = 60f;';Replace='private const float AvailableRotationSeconds = 600f;';Failure='unclaimed pickup rotates after sixty gameplay seconds'},
         @{Name='same-cooldown-position';File='ArenaPickupRuntime.cs';Find='                    TryRotate(entry, rearming: true);';Replace='';Failure='collected pickup chooses different safe spot after cooldown'},
         @{Name='rotation-token-alias';File='ArenaPickupState.cs';Find='        ++_reservation;';Replace='';Failure='relocation invalidates the previous appearance'},
@@ -116,7 +125,7 @@ try {
     )
     foreach ($fault in $faults) {
         $faultRoot = Join-Path $pickupEvidence ($fault.Name + '/source'); [void][IO.Directory]::CreateDirectory($faultRoot)
-        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs','ArenaHealthPickup.cs','ArenaPowerupState.cs')) {
+        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupMapLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs','ArenaHealthPickup.cs','ArenaPowerupState.cs')) {
             $text = [IO.File]::ReadAllText((Join-Path $pickupSource $name))
             if ($name -eq $fault.File) {
                 if ($text.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne 2) { throw "Ambiguous fault anchor: $($fault.Name)" }

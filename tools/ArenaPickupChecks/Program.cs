@@ -314,11 +314,11 @@ internal static partial class Program
         var fixedPositions=ArenaPickupView.Created.Select(v=>v.Floor.x).ToArray();Step(80);
         Check(ArenaPickupView.Created.Select(v=>v.Floor.x).SequenceEqual(fixedPositions),"rotation retains position when only alternative overlaps a fixed pickup");
 
-        Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==4,"open sky beacon height capped at four metres");
+        Fixture();Check(ArenaPickupGeometry.BeamLength(origin)==6,"open sky beacon height increased by fifty percent to six metres");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=3},new(){collider=new Collider(),distance=1}];
         Check(Math.Abs(ArenaPickupGeometry.BeamLength(origin)-.9f)<.001,"nearest ceiling clips beam with clearance");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider{Owner=_local},distance=.2f}];
-        Check(ArenaPickupGeometry.BeamLength(origin)==4,"actor overhead does not permanently shorten beam");
+        Check(ArenaPickupGeometry.BeamLength(origin)==6,"actor overhead does not permanently shorten beam");
         Physics.Rays=(a,b,c)=>[new(){collider=new Collider(),distance=.05f}];
         Check(ArenaPickupGeometry.BeamLength(origin)==0,"very low ceiling yields no negative beam");
     }
@@ -412,12 +412,12 @@ internal static partial class Program
     public static int Main(string[] args)
     {
         try {
-            Policy();Layouts();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();OccupiedRotationCases();
+            Policy();Layouts();AllMapCases();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();OccupiedRotationCases();
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif
             AudioChecks();
-            if(args.Length==1)NativeCandidates(args[0]);Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
+            if(args.Length==1){NativeCandidates(args[0]);NativeAllMapCandidates(args[0]);}Console.WriteLine($"ARENA_PICKUP_BEHAVIOR_PASSED: {_checks} assertions; source-linked runtime/state/layout/geometry; scratch {Scratch}");return 0;}
         catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
         finally {ArenaMatchService.Current=null;ArenaPickupRuntime.Tick();}
     }
