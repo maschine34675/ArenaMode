@@ -7,6 +7,26 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Zombie body-culling and bot hot-path switches (2026-10-17, merged `b8695b4`):**
+  Four F12 switches from docs/ZOMBIE-PERFORMANCE-IDEAS-20261017.md. Performance
+  `TrimDeadBrainList` and `SkipBotFovCoroutine` (default on, any Arena raid,
+  behavior-preserving: empty AICoreController's dead-brain queue after applying
+  it; run a third-person bot's FOV coroutine statement directly while its
+  ribcage scale is one). Zombie `CullOffscreenAnimators` and
+  `HideOffscreenShadows` (default OFF): measured on GPU2 with 50 infected held
+  constant (watchdog pinned to 0, godmode, 90 s A/B phases, relocation every
+  25 s) and found no gain inside the run's own drift (base 11.7-13.6 ms,
+  switch phases 12.6-13.3 ms; ArenaMode's share +0.1-0.3 ms). They stay off as
+  documented measurement switches; an outdoor low-sun map was not tested. The
+  profiler spike list attributes the benchmarks' ~100 s hitch to the next
+  bot-profile batch being deserialized to items (625/627 ms, twice) and shows
+  all 50 infected recomputing melee paths in the same frames when the player
+  became unreachable (10 x 130-180 ms). Read
+  [docs/ZOMBIE-BODY-CULLING-20261017.md](ZOMBIE-BODY-CULLING-20261017.md).
+  Deploy incident: a client copy went to the flat `plugins\maschine-ArenaMode.Client.dll`
+  while the canonical folder was already in use; removed, host restarted, one
+  ArenaMode load (no duplicate skip). Settings/pins restored; GPU2 in MainMenu.
+
 - **AirPit original team boxes (2026-10-17):** Independent TDM uses north USEC /
   south BEAR, twenty private starts, even totals 4-20 (default eight). MapPort
   0.2.2 navigation/passport gates required. Other modes and normal markers stay
