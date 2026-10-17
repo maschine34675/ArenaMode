@@ -1,6 +1,7 @@
 #nullable disable
 using ArenaMode.Config;
 using ArenaMode.Session;
+using Comfort.Common;
 using EFT;
 using HarmonyLib;
 using SPT.Reflection.Patching;
@@ -15,31 +16,47 @@ using UnityEngine;
 namespace ArenaMode.Performance;
 
 /// <summary>
-/// Harmony half of <see cref="ProfileBuildBudgetPolicy"/>. In an active Arena
-/// raid, <c>ClientBackendSession.LoadBots</c> is replaced by a method that
-/// sends the identical request (same URL, parameters and retries as
-/// ../_decompiled/EFT/ClientBackendSession.cs:1886-1895) and then builds the
-/// answered profiles one at a time under a per-frame time budget
-/// (<c>Settings.ProfileBuildBudgetMs</c>, 0 = native), yielding to the next
-/// frame whenever the budget is spent. The caller still awaits one task that
-/// completes with the whole array, so nothing in the game sees a profile
-/// before its batch is complete; to the game this is the server answering a
-/// few frames later. The same main thread builds the profiles as in vanilla
-/// (a <c>Task.Yield</c> on Unity's synchronization context resumes in the next
-/// frame), so no item code runs off-thread.
+/// Harmony half of <see cref="ProfileBuildBudgetPolicy"/>. In the exact live
+/// Arena raid, <c>ClientBackendSession.LoadBots</c> is replaced by a method
+/// that sends the identical request (same URL, parameters and retries as
+/// ../_decompiled/EFT/ClientBackendSession.cs:1886-1895) and then constructs
+/// the answered profiles one at a time under a per-frame time budget
+/// (<c>Settings.ProfileBuildBudgetMs</c>, 0 = native), yielding whenever the
+/// frame has had its share. The caller keeps awaiting one task, which
+/// completes only with the complete array: the batch is handed over whole,
+/// just later than the single frame the native method would have spent on it.
+/// Construction stays on the main thread as in vanilla: the request's
+/// continuation lands on the main thread (EFT's HTTP layer completes there),
+/// and <c>Task.Yield</c> posts to Unity's synchronization context, whose next
+/// pass runs on the main thread again. The very first yield can resume later
+/// in the SAME frame (Unity runs the posted queue after Update, the HTTP
+/// completion arrives before that), every later one resumes in a later frame;
+/// the budget is keyed on <c>Time.frameCount</c>, so that does not matter.
 ///
-/// Runs AFTER <c>ArenaBotDifficultyClockPatch</c>'s own prefix on the same
-/// method (<c>Priority.Low</c>), so the conditions list it may have rewritten
-/// is the one that is sent. Fails open: any exception before the request is
-/// sent returns to the native method; after the request, the task faults
-/// exactly where the native one would (a null answer, a throwing
-/// constructor). Gate: <c>ArenaSession.IsActive</c>; the loading-screen
-/// preload runs before it latches and stays native by design.
+/// Fairness: every open batch gets one guaranteed build per frame, see
+/// <see cref="ProfileBuildBudgetPolicy.MayStart"/>; the open-batch count is
+/// kept here.
+///
+/// Prefix order: <c>Priority.Low</c>, so <c>ArenaBotDifficultyClockPatch</c>'s
+/// prefix on the same method runs first and the conditions list it may have
+/// rewritten is the one that is sent. If another prefix already replaced the
+/// call (<c>__runOriginal</c> false), this one leaves its result alone rather
+/// than sending a second request.
+///
+/// Fail-open covers the gate: any exception while deciding returns to the
+/// native method. Once the replacement task runs, it faults where the native
+/// one would (a request failure, a null answer, a throwing constructor); it
+/// adds no catch of its own. Gate: the exact started Arena raid
+/// (<c>ArenaSession.IsExactActiveRaid</c>), not the bare <c>IsActive</c>
+/// latch, so a latch left over from a raid that missed its GameEnd cannot
+/// reach the next ordinary raid's loading-screen preload. The Zombie opening
+/// preload runs in the loading screen before any latch and stays native.
 /// </summary>
 internal static class ProfileBuildBudget
 {
     private static bool _enabled, _warned;
     private static ProfileBuildBudgetPolicy.State _state;
+    private static int _activeBatches;
 
     internal static void Initialize()
     {
@@ -48,14 +65,16 @@ internal static class ProfileBuildBudget
         catch (Exception ex) { Warn(ex); }
     }
 
-    /// <summary>True when the native method must still run.</summary>
-    internal static bool RunNative(ClientBackendSession session, List<CountTypeBotWave> conditions, ref Task<Profile[]> result)
+    /// <summary>True when the native method must still run (or another prefix already replaced it).</summary>
+    internal static bool RunNative(ClientBackendSession session, List<CountTypeBotWave> conditions, bool runOriginal, ref Task<Profile[]> result)
     {
         try
         {
+            if (!runOriginal)
+                return false;
             float budgetMs = Settings.ProfileBuildBudgetMs?.Value ?? 0f;
             if (!ProfileBuildBudgetPolicy.ShouldTakeOver(Settings.ProfileBuildBudgetMs != null, budgetMs,
-                    ArenaSession.IsActive, SynchronizationContext.Current != null, conditions?.Count ?? 0))
+                    ExactArenaRaid(), SynchronizationContext.Current != null, conditions?.Count ?? 0))
                 return true;
             if (session == null || session._backendUrls == null)
                 return true;
@@ -69,6 +88,15 @@ internal static class ProfileBuildBudget
         }
     }
 
+    private static bool ExactArenaRaid()
+    {
+        if (!ArenaSession.IsActive || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated)
+            return false;
+        var world = Singleton<GameWorld>.Instance;
+        var game = Singleton<AbstractGame>.Instance;
+        return world != null && game != null && ArenaSession.IsExactActiveRaid(game, world);
+    }
+
     private static async Task<Profile[]> LoadUnderBudget(ClientBackendSession session, List<CountTypeBotWave> conditions, float budgetMs)
     {
         // The native request, field for field.
@@ -78,39 +106,49 @@ internal static class ProfileBuildBudget
             Params = new BotGenerateRequestParams<List<CountTypeBotWave>>(conditions),
             Retries = SendRequest.DefaultRetries,
         });
-        // Native: (await Send(...)).Select(...) on a null answer throws here too.
+        // Native: Enumerable.Select over a null answer throws ArgumentNullException("source").
         if (descriptors == null)
-            throw new NullReferenceException("bot/generate answered without descriptors");
+            throw new ArgumentNullException("source", "bot/generate answered without descriptors");
 
         var profiles = new Profile[descriptors.Length];
         long budgetTicks = ProfileBuildBudgetPolicy.BudgetTicks(budgetMs, Stopwatch.Frequency);
-        int firstFrame = Time.frameCount, frames = 1, lastFrame = firstFrame;
+        int frames = 0, lastBuiltFrame = -1;
         long totalTicks = 0, frameTicks = 0, longestFrameTicks = 0;
         long started = Stopwatch.GetTimestamp();
-        for (int i = 0; i < descriptors.Length; i++)
+        _activeBatches++;
+        try
         {
-            while (!ProfileBuildBudgetPolicy.MayStart(ref _state, Time.frameCount, budgetTicks))
-                await Task.Yield();
-            int frame = Time.frameCount;
-            if (frame != lastFrame)
+            for (int i = 0; i < descriptors.Length; i++)
             {
-                frames++;
-                lastFrame = frame;
-                frameTicks = 0;
+                while (!ProfileBuildBudgetPolicy.MayStart(ref _state, Time.frameCount, budgetTicks, _activeBatches,
+                           lastBuiltFrame == Time.frameCount))
+                    await Task.Yield();
+                int frame = Time.frameCount;
+                if (frame != lastBuiltFrame)
+                {
+                    frames++;
+                    lastBuiltFrame = frame;
+                    frameTicks = 0;
+                }
+                long t0 = Stopwatch.GetTimestamp();
+                profiles[i] = new Profile(descriptors[i]);
+                long took = Stopwatch.GetTimestamp() - t0;
+                ProfileBuildBudgetPolicy.Record(ref _state, took);
+                totalTicks += took;
+                frameTicks += took;
+                if (frameTicks > longestFrameTicks) longestFrameTicks = frameTicks;
             }
-            long t0 = Stopwatch.GetTimestamp();
-            profiles[i] = new Profile(descriptors[i]);
-            long took = Stopwatch.GetTimestamp() - t0;
-            ProfileBuildBudgetPolicy.Record(ref _state, took);
-            totalTicks += took;
-            frameTicks += took;
-            if (frameTicks > longestFrameTicks) longestFrameTicks = frameTicks;
+        }
+        finally
+        {
+            _activeBatches--;
         }
         double toMs = 1000.0 / Stopwatch.Frequency;
         Plugin.ModLogger.LogDebug(
             $"Arena profile build budget: {profiles.Length} bot profiles built over {frames} frame(s), "
             + $"{totalTicks * toMs:0.0} ms of construction, longest frame share {longestFrameTicks * toMs:0.0} ms "
-            + $"(budget {budgetMs:0.#} ms), {(Stopwatch.GetTimestamp() - started) * toMs:0} ms wall from answer to completion.");
+            + $"(budget {budgetMs:0.#} ms, one build per open batch per frame guaranteed), "
+            + $"{(Stopwatch.GetTimestamp() - started) * toMs:0} ms wall from answer to completion.");
         return profiles;
     }
 
@@ -129,7 +167,7 @@ internal static class ProfileBuildBudget
 
         // Low priority: the difficulty clock's prefix rewrites `conditions` first.
         [PatchPrefix, HarmonyPriority(Priority.Low)]
-        private static bool Prefix(ClientBackendSession __instance, List<CountTypeBotWave> conditions, ref Task<Profile[]> __result)
-            => RunNative(__instance, conditions, ref __result);
+        private static bool Prefix(ClientBackendSession __instance, List<CountTypeBotWave> conditions, bool __runOriginal, ref Task<Profile[]> __result)
+            => RunNative(__instance, conditions, __runOriginal, ref __result);
     }
 }

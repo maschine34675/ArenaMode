@@ -1025,12 +1025,14 @@ public static class Settings
             3f,
             new ConfigDescription(
                 "Build the bot profiles of one server answer over several frames, spending at most " +
-                "this many milliseconds per frame on them, during an arena raid. The game builds " +
-                "every profile of a /client/game/bot/generate answer in the frame it arrives, which " +
-                "in a Zombie raid is one frame of 600-1700 ms about 90-100 s in (the next spawn " +
-                "batch). The request itself is unchanged and the caller still receives the whole " +
-                "batch at once, a few frames later. At least one profile is built per frame, so a " +
-                "batch never stalls. 0 = native (all in one frame). Applies to the next batch.",
+                "this many milliseconds per frame on ADDITIONAL profiles, during an arena raid. The " +
+                "game builds every profile of a /client/game/bot/generate answer in the frame it " +
+                "arrives, which in a Zombie raid is one frame of 600-1700 ms about 90-100 s in (the " +
+                "next spawn batch). One profile per open batch is always built per frame, so the " +
+                "effective cap is this budget or one profile's cost (about 9 ms here), whichever is " +
+                "larger, and a batch of N profiles takes at most about N frames; the request itself " +
+                "is unchanged and the caller still receives the whole batch at once, about a second " +
+                "later than before. 0 = native (all in one frame). Applies to the next batch.",
                 new AcceptableValueRange<float>(0f, 20f)));
 
         // Reports only when a damage event actually throws, which a healthy raid

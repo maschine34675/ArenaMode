@@ -56,6 +56,12 @@ in [the access-check sources](tools/ArenaLabyrinthAccessChecks/EnableLabyrinth-L
 copyright (c) 2025 acidphantasm. See the
 [implementation boundary](tools/ArenaLabyrinthAccessChecks/README.md).
 
+Smoothie (CC BY-NC-SA 4.0) was read as a technique reference for building a
+server batch of bot profiles under a per-frame time budget
+(`ArenaMode.Client/Performance/ProfileBuildBudget*.cs`); no code or text was
+copied, the implementation follows the decompiled native method and its own
+tests. Its license does not apply to ArenaMode.
+
 SAIN, APBS, ABPS/BotPlacementSystem, PitFireTeam, BigBrain and other optional
 mods retain their own licenses. Compatibility adapters do not grant permission
 to bundle those mods. No foreign mod DLL is required to be redistributed as

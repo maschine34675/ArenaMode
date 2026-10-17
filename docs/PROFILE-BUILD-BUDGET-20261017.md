@@ -28,11 +28,19 @@ Methode durch eine eigene asynchrone: dieselbe Anfrage Feld für Feld (URL,
 über das öffentliche `Backend.Send<T>`, danach die Profile einzeln, auf
 demselben Hauptthread, unter einem Zeitbudget je Frame:
 
-- Das erste Profil eines Frames wird immer gebaut (ein Stapel kann nie
-  stecken bleiben, ein einzelnes langsames Profil kostet nur seinen Frame).
-- Weitere nur, solange `verbraucht + laufender Durchschnitt ≤ Budget`;
-  sonst `await Task.Yield()`, was auf Unitys Synchronisationskontext im
-  nächsten Frame fortsetzt.
+- Jeder offene Stapel baut je Frame garantiert ein Profil (ein Stapel kann
+  nie stecken bleiben, und ein kurzer, dringender Stapel wartet nicht hinter
+  einem langen, der früher kam: Unity setzt wartende Fortsetzungen in
+  Eingangsreihenfolge fort, ohne den Platz je Stapel gewönne der ältere jeden
+  Frame).
+- Weitere Profile nur, solange `verbraucht + laufender Durchschnitt ≤ Budget`;
+  sonst `await Task.Yield()`. Die wirksame Obergrenze je Frame ist also das
+  Budget oder ein Profil je offenem Stapel, je nachdem, was größer ist; bei
+  rund 9 ms je Profil baut das 3-ms-Budget genau eines je Frame. Das erste
+  `Yield` nach der Antwort kann noch im selben Frame fortsetzen (Unity
+  arbeitet die Warteschlange nach `Update` ab, die HTTP-Antwort kommt davor),
+  alle weiteren im nächsten; das Budget hängt an `Time.frameCount`, nicht an
+  der Zahl der Yields.
 - Der laufende Durchschnitt gewichtet neue Messungen mit 1/8.
 - Der Aufrufer bekommt weiterhin eine Task, die mit dem ganzen Array
   abschließt: niemand sieht ein Teilergebnis, für das Spiel antwortet der
@@ -48,15 +56,28 @@ demselben Hauptthread, unter einem Zeitbudget je Frame:
   betreffen den nativen Spawner, den Arenas eigener Wellendirektor ersetzt.
 
 Schalter: Performance › `ProfileBuildBudgetMs`, Standard 3 ms, 0 = nativ (alles
-in einem Frame), Bereich 0 bis 20, gilt für den nächsten Stapel. Gate
-`ArenaSession.IsActive`: der Ladebildschirm-Preload der Zombie-Eröffnungswelle
-läuft vor dem Latch und bleibt nativ (dort fällt ein langer Frame nicht auf).
+in einem Frame), Bereich 0 bis 20, gilt für den nächsten Stapel. Der
+Ladebildschirm-Preload der Zombie-Eröffnungswelle läuft vor dem Start des
+exakten Raids und bleibt nativ (dort fällt ein langer Frame nicht auf).
 Je Stapel eine Debug-Zeile: Profile, Frames, Bauzeit, längster Frame-Anteil,
 Wanduhrzeit von Antwort bis Abschluss.
 
-Erwartung bei 3 ms und ≈ 80 fps: ein 625-ms-Stapel verteilt sich auf rund
-200 Frames (≈ 2,6 s); Arenas Zombie-Anforderungsbuch toleriert 60 s bis zum
-nativen Eintreffen (`ZombieSpawnService.NativeArrivalTimeoutSeconds`).
+Erwartung bei ≈ 9 ms je Profil: ein 625-ms-Stapel (≈ 70 Profile) verteilt
+sich auf ≈ 70 Frames, bei 80 fps knapp eine Sekunde, auf Host 1 (1763 ms,
+≈ 20 fps) auf ≈ 3,5 s; der nächste Spawn kommt um diese Zeit später. Arenas
+Zombie-Anforderungsbuch toleriert 60 s bis zum nativen Eintreffen
+(`ZombieSpawnService.NativeArrivalTimeoutSeconds`), BurstSpawnService schützt
+die Zwischenzeit mit seiner Abkühlung (8 s, unter Volllast 4 s). Fehlerpfade:
+die Übernahmeentscheidung fällt bei jeder Ausnahme auf die native Methode
+zurück; die laufende Ersatz-Task scheitert dort, wo die native scheiterte
+(Anfragefehler, Antwort ohne Deskriptoren → `ArgumentNullException` wie
+`Enumerable.Select`, werfender Konstruktor). Hat ein anderer Prefix die
+Methode bereits ersetzt (`__runOriginal` false), bleibt sein Ergebnis stehen
+und es wird keine zweite Anfrage gesendet. Das Gate ist der exakte gestartete
+Arena-Raid (`IsExactActiveRaid`), nicht der bloße `IsActive`-Latch: ein nach
+einem verpassten GameEnd hängengebliebener Latch darf den Ladebildschirm des
+nächsten normalen Raids (Preload von ≈ 335 Profilen auf Customs) nicht
+berühren.
 
 ## 3. Tests
 

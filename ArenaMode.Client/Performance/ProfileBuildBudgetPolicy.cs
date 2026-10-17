@@ -52,12 +52,22 @@ internal static class ProfileBuildBudgetPolicy
         => budgetMs <= 0f || ticksPerSecond <= 0 ? 0L : (long)(budgetMs * ticksPerSecond / 1000.0);
 
     /// <summary>
-    /// May one more profile be built in <paramref name="frame"/>? The first
-    /// profile of a frame always may, so a batch can never stall and a single
-    /// slow profile only costs its own frame; after that only a profile the
-    /// running average expects to fit into what is left of the budget.
+    /// May a batch build one more profile in <paramref name="frame"/>?
+    ///
+    /// Every batch that is still open gets one guaranteed build per frame:
+    /// while fewer builds than <paramref name="activeBatches"/> have started
+    /// in this frame and this batch has not built yet (<paramref
+    /// name="batchBuiltThisFrame"/>), the answer is yes. That keeps progress
+    /// independent of the budget (a frame can never be spent on nothing) and
+    /// keeps a short, urgent batch from waiting behind a long one that
+    /// arrived earlier: Unity resumes yielded continuations in posting order,
+    /// so without the per-batch slot the older loop would win every frame.
+    /// Beyond those slots a build starts only while the running average says
+    /// it still fits into what is left of the budget. The effective frame cap
+    /// is therefore the budget or one build per open batch, whichever is
+    /// larger.
     /// </summary>
-    internal static bool MayStart(ref State state, int frame, long budgetTicks)
+    internal static bool MayStart(ref State state, int frame, long budgetTicks, int activeBatches, bool batchBuiltThisFrame)
     {
         if (state.Frame != frame)
         {
@@ -65,7 +75,8 @@ internal static class ProfileBuildBudgetPolicy
             state.SpentTicks = 0;
             state.Started = 0;
         }
-        if (state.Started == 0)
+        int slots = activeBatches < 1 ? 1 : activeBatches;
+        if (!batchBuiltThisFrame && state.Started < slots)
             return true;
         return state.SpentTicks + state.AverageTicks <= budgetTicks;
     }

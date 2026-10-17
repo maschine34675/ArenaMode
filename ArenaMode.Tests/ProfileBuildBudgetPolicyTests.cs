@@ -6,46 +6,79 @@ public sealed class ProfileBuildBudgetPolicyTests
 {
     private const long Budget = 3000; // ticks per frame in these tests
 
+    private static bool May(ref ProfileBuildBudgetPolicy.State state, int frame, bool builtThisFrame = false, int batches = 1)
+        => ProfileBuildBudgetPolicy.MayStart(ref state, frame, Budget, batches, builtThisFrame);
+
     [Fact]
     public void TheFirstProfileOfAFrameAlwaysStarts()
     {
         var state = new ProfileBuildBudgetPolicy.State();
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 10, Budget));
-        // Even when the previous frame was far over budget and the average is huge.
+        Assert.True(May(ref state, 10));
+        // Even when the previous build was far over budget and the average is huge:
+        // the batch has built in this frame, so only the fit test remains, which fails...
         ProfileBuildBudgetPolicy.Record(ref state, 50_000);
-        Assert.False(ProfileBuildBudgetPolicy.MayStart(ref state, 10, Budget));
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 11, Budget));
+        Assert.False(May(ref state, 10, builtThisFrame: true));
+        // ...and the next frame grants the slot again.
+        Assert.True(May(ref state, 11));
     }
 
     [Fact]
     public void FurtherProfilesStartOnlyWhileTheAverageStillFits()
     {
         var state = new ProfileBuildBudgetPolicy.State();
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 1, Budget));
+        Assert.True(May(ref state, 1));
         ProfileBuildBudgetPolicy.Record(ref state, 1000);            // spent 1000, average 1000
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 1, Budget));   // 1000 + 1000 <= 3000
+        Assert.True(May(ref state, 1, builtThisFrame: true));      // 1000 + 1000 <= 3000
         ProfileBuildBudgetPolicy.Record(ref state, 1000);            // spent 2000
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 1, Budget));   // 2000 + 1000 <= 3000
+        Assert.True(May(ref state, 1, builtThisFrame: true));      // 2000 + 1000 <= 3000
         ProfileBuildBudgetPolicy.Record(ref state, 1000);            // spent 3000
-        Assert.False(ProfileBuildBudgetPolicy.MayStart(ref state, 1, Budget));  // 3000 + 1000 > 3000
+        Assert.False(May(ref state, 1, builtThisFrame: true));     // 3000 + 1000 > 3000
         // The next frame starts fresh.
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 2, Budget));
+        Assert.True(May(ref state, 2));
         Assert.Equal(0, state.SpentTicks);
         Assert.Equal(0, state.Started);
+    }
+
+    [Fact]
+    public void EveryOpenBatchGetsOneGuaranteedBuildPerFrame()
+    {
+        // Two batches, each build 9000 ticks (three times the budget).
+        var state = new ProfileBuildBudgetPolicy.State();
+        Assert.True(May(ref state, 5, builtThisFrame: false, batches: 2));   // older batch, slot 1 of 2
+        ProfileBuildBudgetPolicy.Record(ref state, 9000);
+        Assert.False(May(ref state, 5, builtThisFrame: true, batches: 2));   // older batch again: over budget
+        Assert.True(May(ref state, 5, builtThisFrame: false, batches: 2));   // newer batch, slot 2 of 2
+        ProfileBuildBudgetPolicy.Record(ref state, 9000);
+        Assert.False(May(ref state, 5, builtThisFrame: false, batches: 2));  // a third batch this frame: no slot left
+        Assert.False(May(ref state, 5, builtThisFrame: true, batches: 2));
+        // With a single batch the second slot does not exist.
+        var single = new ProfileBuildBudgetPolicy.State();
+        Assert.True(May(ref single, 5));
+        ProfileBuildBudgetPolicy.Record(ref single, 9000);
+        Assert.False(May(ref single, 5, builtThisFrame: false, batches: 1));
+    }
+
+    [Fact]
+    public void AZeroOrNegativeBatchCountStillGrantsOneSlot()
+    {
+        var state = new ProfileBuildBudgetPolicy.State();
+        Assert.True(May(ref state, 3, builtThisFrame: false, batches: 0));
+        ProfileBuildBudgetPolicy.Record(ref state, 9000);
+        Assert.False(May(ref state, 3, builtThisFrame: false, batches: -4));
     }
 
     [Fact]
     public void ANewFrameResetsSpentButKeepsTheAverage()
     {
         var state = new ProfileBuildBudgetPolicy.State();
-        ProfileBuildBudgetPolicy.MayStart(ref state, 1, Budget);
+        May(ref state, 1);
         ProfileBuildBudgetPolicy.Record(ref state, 2000);
-        ProfileBuildBudgetPolicy.MayStart(ref state, 2, Budget);
+        May(ref state, 2);
         Assert.Equal(0, state.SpentTicks);
         Assert.Equal(2000, state.AverageTicks);
         // A 2000-tick average after one 2000-tick build in frame 2 leaves no room for a second.
         ProfileBuildBudgetPolicy.Record(ref state, 2000);
-        Assert.False(ProfileBuildBudgetPolicy.MayStart(ref state, 2, Budget));
+        Assert.False(May(ref state, 2, builtThisFrame: true));
     }
 
     [Fact]
@@ -88,9 +121,9 @@ public sealed class ProfileBuildBudgetPolicyTests
     public void AZeroBudgetStillBuildsOneProfilePerFrameAndNeverMore()
     {
         var state = new ProfileBuildBudgetPolicy.State();
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 7, 0));
+        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 7, 0, 1, false));
         ProfileBuildBudgetPolicy.Record(ref state, 10);
-        Assert.False(ProfileBuildBudgetPolicy.MayStart(ref state, 7, 0));
-        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 8, 0));
+        Assert.False(ProfileBuildBudgetPolicy.MayStart(ref state, 7, 0, 1, true));
+        Assert.True(ProfileBuildBudgetPolicy.MayStart(ref state, 8, 0, 1, false));
     }
 }
