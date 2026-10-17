@@ -79,6 +79,8 @@ public static class Settings
     public static ConfigEntry<bool> ReleaseTrimmedCorpses { get; private set; }
     public static ConfigEntry<float> GcHeapThresholdGB { get; private set; }
     public static ConfigEntry<int> PoolPrewarmKeepIdle { get; private set; }
+    public static ConfigEntry<bool> TrimDeadBrainList { get; private set; }
+    public static ConfigEntry<bool> SkipBotFovCoroutine { get; private set; }
 
     public static ConfigEntry<bool> DeveloperMode { get; private set; }
     public static ConfigEntry<bool> LogDamageExceptions { get; private set; }
@@ -206,6 +208,8 @@ public static class Settings
     public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieVoiceBudgetEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieCrowdEnabled { get; private set; }
+    public static ConfigEntry<bool> ZombieCullOffscreenAnimators { get; private set; }
+    public static ConfigEntry<bool> ZombieHideOffscreenShadows { get; private set; }
     public static ConfigEntry<float> ZombieReplaySeconds { get; private set; }
     public static ConfigEntry<int> AreaTeamSize { get; private set; }
     public static ConfigEntry<string> TeamDeathmatchArea { get; private set; }
@@ -991,6 +995,29 @@ public static class Settings
                 "surplus is bounded. See POOL-PREWARM-REVIEW.md for the measured cost.",
                 new AcceptableValueRange<int>(0, 64)));
 
+        TrimDeadBrainList = config.Bind(
+            "Performance",
+            "TrimDeadBrainList",
+            true,
+            "Empty the AI core's removal queue of dead bot brains after it has been applied, " +
+            "during an arena raid. The game removes every queued brain from its agent set on " +
+            "every frame but never clears the queue, so a raid with hundreds of bot deaths " +
+            "repeats the whole removal each frame and keeps every dead brain (with its " +
+            "BotOwner) reachable until the raid ends. The agent set ends up exactly as the " +
+            "native pass leaves it; only the repeated no-op work and the retention go. Off = " +
+            "vanilla. Applies immediately.");
+
+        SkipBotFovCoroutine = config.Bind(
+            "Performance",
+            "SkipBotFovCoroutine",
+            true,
+            "Run the two statements of a bot's per-frame FOV coroutine directly instead of " +
+            "starting a coroutine for every alive bot on every frame, during an arena raid. " +
+            "For a third-person (bot) body the coroutine only sets the ribcage scale to one " +
+            "and puts a drifted scale back at the end of the frame; nothing reads either " +
+            "value in between for a bot. Your own body keeps its coroutine. Off = vanilla. " +
+            "Applies immediately.");
+
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in
         // CORPSE-CLEANUP-REVIEW.md is open, and costs a null check until then.
@@ -1237,6 +1264,23 @@ public static class Settings
             "keep native vision. Rendering is always native. OFF restores pre-Crowd behavior " +
             "without crowd teleports, sight or avoidance overrides; applies immediately. " +
             "Previously moved bots stay at their current position. Existing saved choices are preserved.");
+
+        ZombieCullOffscreenAnimators = config.Bind("Zombie", "CullOffscreenAnimators", false,
+            "Let Unity skip the body animation of a generic infected that no camera renders " +
+            "(shadows included), even inside the game's own 10 m always-animate radius, the way " +
+            "the game already does beyond it. The infected keeps moving and deciding; only " +
+            "retargeting and bone writes pause while it is unseen. Never applied to an infected " +
+            "within reach of a possible target or mid-swing, so hits from behind still land. " +
+            "Pays off together with HideOffscreenShadows. Performance switch for measurement; " +
+            "off = native. Applies immediately.");
+
+        ZombieHideOffscreenShadows = config.Bind("Zombie", "HideOffscreenShadows", false,
+            "Switch off the shadows of a generic infected while it is outside the camera's view, " +
+            "so it is no longer drawn into every shadow cascade behind the player. Only Arena's " +
+            "own changes are tracked and put back the moment the body is in view again, when it " +
+            "dies, when its pooled gear returns to the pool, and at raid end. While a magnified " +
+            "scope renders, everything in front of you keeps its shadows. Performance switch for " +
+            "measurement; off = native. Applies immediately.");
 
         ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +
