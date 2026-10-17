@@ -24,8 +24,11 @@ Since 2026-09-14, 19 of those reserve recordings have explicit runtime bindings
 Since 2026-10-16 these 19 files live directly in `sounds/`; their audio bytes,
 cuts and rights are unchanged. `usage`/`eventKey` retain the historical intake
 classification, while `runtimeEventKey` identifies the added bindings and `file`
-records the current package path. Together with the supplement, all 41 used
-recordings are at the root and only the 11 unused recordings remain in reserve.
+records the current source path. Together with the supplement, all 41 used
+recordings are at the root. The 11 unused recordings remain in the source
+repository's reserve folder and are excluded from build/deploy/release payloads.
+Packaged manifests list only the 41 shipped recordings; the source manifests
+retain the full recording history. Existing local reserve files are not removed.
 See [ANNOUNCER-PACK.md](ANNOUNCER-PACK.md) for the ordered mapping and
 [ANNOUNCER-SOURCES.json](ANNOUNCER-SOURCES.json) for hashes and exact cuts.
 
@@ -58,12 +61,13 @@ public-domain or standalone asset-reuse grant.
 
 Four are wired: `no_scope`, `airborne`, `no_contest` and `embarrassing`. Two —
 `trickshot` and `air_superiority` — are recorded but deliberately not wired, so
-they live in `sounds/reserve/` outside the runtime allowlist and are never
+they live in the source repository's `sounds/reserve/`, are excluded from
+packages, and are outside the runtime allowlist. They are never
 loaded. `airborne` replaces the former TRICKSHOT award label, whose recording is
 the now-reserve `trickshot`.
 
 The original 46 recordings remain byte-identical; their manifest now reflects
-the current package paths. The supplement keeps its own record in
+the current source paths. The supplement keeps its own record in
 [ANNOUNCER-ADDITIONS-20260917.json](ANNOUNCER-ADDITIONS-20260917.json), with the
 source fingerprint, exact frame cuts and a hash per clip. Processing matches the
 original pack: reviewed inter-phrase cuts, 5 ms fade-in, 10 ms fade-out, uniform
