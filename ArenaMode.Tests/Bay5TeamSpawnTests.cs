@@ -126,7 +126,9 @@ public sealed class Bay5TeamSpawnTests
             Assert.NotSame(native[0], point);
             Assert.NotSame(native[0].ColliderParams, point.ColliderParams);
             Assert.Equal(spec.X, point.Position!.Value.X); Assert.Equal(spec.Y, point.Position.Value.Y);
-            Assert.Equal(spec.Z, point.Position.Value.Z); Assert.Equal(spec.Yaw, point.Rotation);
+            Assert.Equal(spec.Z, point.Position.Value.Z);
+            // Native FixParams compares scalar Euler yaw, so -90 must be 270.
+            Assert.Equal(spec.Usec ? 269.999645f : spec.Yaw, point.Rotation);
             Assert.Equal(new[] { "Player", "Bot", "BotPmc" }, point.Categories);
             Assert.Equal(new[] { spec.Usec ? "Usec" : "Bear" }, point.Sides);
             Assert.Equal("ArenaBay5", point.Infiltration); Assert.Equal("BotZone_Main", point.BotZoneName);
@@ -142,6 +144,21 @@ public sealed class Bay5TeamSpawnTests
         ArenaLocationMutator.Mutate(clone, new(), new(), "teamdeathmatch", participants: total);
         Assert.Equal(once, JsonSerializer.Serialize(clone));
         Assert.Equal(sourceBefore, JsonSerializer.Serialize(original));
+    }
+
+    [Theory]
+    [InlineData(-90.000355f, 269.999645f)]
+    [InlineData(-.000273f, -.000273f)]
+    [InlineData(-.000002f, -.000002f)]
+    [InlineData(359.999f, -.0010070801f)]
+    [InlineData(180f, 180f)]
+    [InlineData(0f, 0f)]
+    public void BackendYawMatchesNativeEulerRangeWithoutChangingAuthoredYaw(float source, float expected)
+    {
+        var point = new ArenaTeamBoxCatalog.Point("test", true, 0, 0, 0, source);
+        Assert.Equal(expected, point.NativeYaw);
+        Assert.Equal(source, point.Yaw);
+        Assert.All(ArenaTeamBoxCatalog.Equator.Points, p => Assert.Equal(p.Yaw, p.NativeYaw));
     }
 
     [Theory]

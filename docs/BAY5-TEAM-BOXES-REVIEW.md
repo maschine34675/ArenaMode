@@ -21,6 +21,12 @@ colliders. The original `arena_bay5-bot-west-centre` donor at
 The separately surveyed outside path destination is the central yard at
 `(89.159,-3.693,35.203)`. The donor is not the path destination.
 
+Authored headings remain unchanged in the catalog. Backend marker rotations
+use Unity's Euler representation (including its small negative zero tolerance):
+EFT `SpawnPointMarker.FixParams` compares scalar yaw, so sending the warehouse's
+original -90 degrees instead of its equivalent 270 produced false map errors.
+The native 3v3 trial exposed this; validation remains strict and no log is filtered.
+
 Both client and server reject foreign map prefixes, missing/duplicate markers
 and drifted headers. Native floor, headroom, occupancy and NavMesh checks
 remain mandatory. Loading/initial selection/respawn and pending reservations

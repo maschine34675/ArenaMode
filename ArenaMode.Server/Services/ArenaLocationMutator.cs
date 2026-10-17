@@ -249,7 +249,7 @@ public static class ArenaLocationMutator
             {
                 Id = spec.Id,
                 Position = new Vector3(spec.X, spec.Y, spec.Z),
-                Rotation = spec.Yaw,
+                Rotation = spec.NativeYaw,
                 Categories = ["Player", "Bot", "BotPmc"],
                 Sides = [spec.Usec ? "Usec" : "Bear"],
                 Infiltration = formation.Infiltration,

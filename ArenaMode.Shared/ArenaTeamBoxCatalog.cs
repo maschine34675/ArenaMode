@@ -14,6 +14,19 @@ public static class ArenaTeamBoxCatalog
         public readonly string Id;
         public readonly bool Usec;
         public readonly float X, Y, Z, Yaw;
+        // EFT compares backend yaw with Quaternion.eulerAngles.y as a scalar,
+        // not an angle. Preserve the authored yaw above, but serialize its
+        // Euler equivalent using Unity's Internal_MakePositive tolerance.
+        // Tiny negative source values must stay negative near zero.
+        public float NativeYaw
+        {
+            get
+            {
+                float yaw = Yaw % 360f;
+                if (yaw < -.005729578f) return yaw + 360f;
+                return yaw > 359.99427f ? yaw - 360f : yaw;
+            }
+        }
         public Point(string id, bool usec, float x, float y, float z, float yaw = 0f)
         { Id = id; Usec = usec; X = x; Y = y; Z = z; Yaw = yaw; }
     }
