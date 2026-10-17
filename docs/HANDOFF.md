@@ -15,6 +15,10 @@ current. User-facing communication is normally German.
   Core remains flat and server paths are unchanged. Existing offline guards
   observe old/new paths and still suppress all install writes. See the
   [migration contract and current validation](UNIFIED-DEPLOY-20261017.md).
+  Implementation `ef04897` is locally deployed for both client DLLs; server/Core
+  were left untouched. The matching v3 test ZIP has 88 files, passed independent
+  layout/provenance verification and Gitleaks; unit suite 1,082 passed / 2 skipped.
+  This is file/deployment evidence only, not a new GPU gameplay acceptance.
 
 - **Bay5 original team boxes (2026-10-17, deployed and GPU2 accepted):**
   Independent TDM now shares `ArenaTeamBoxRuntime` with Equator, using map-keyed
