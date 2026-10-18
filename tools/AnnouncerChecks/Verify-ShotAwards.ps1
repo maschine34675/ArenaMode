@@ -25,6 +25,12 @@ foreach ($check in $(if ($ShotOnly) { @() } else { @('tools/AnnouncerChecks/Veri
 }
 
 $shotFaults = @(
+    @{ Name='collateral-label-suppressed'; Property='AwardsSource';
+       Find='&& ArenaShotAwardHistory.ReportCollateralDeath(kill.CollateralProof, kill.VictimBodyId)'; Replace='&& false';
+       Failure='collateral takes presentation precedence over DOUBLE KILL' },
+    @{ Name='text-only-attempts-audio'; Property='AnnouncerServiceSource';
+       Find='if (key == "collateral") return;'; Replace='';
+       Failure='Text-only collateral neither plays nor diagnoses missing audio' },
     @{ Name='spree-before-shot'; Property='AwardsSource';
        Find=': kill.ScoreEligible && kill.AirborneHipFire ? "AIRBORNE"';
        Replace=': existingLabel != null ? existingLabel : kill.ScoreEligible && kill.AirborneHipFire ? "AIRBORNE"';

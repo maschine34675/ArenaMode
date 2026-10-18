@@ -273,6 +273,9 @@ internal static class AnnouncerService
 
         _calloutsReceived++;
         var key = label.ToLowerInvariant().Replace(' ', '_');
+        // Deliberately text-only until a recording is supplied. Do not enqueue,
+        // report a missing clip, or disturb the current/pending audio phrase.
+        if (key == "collateral") return;
         SubmitCallout(key);
     }
 

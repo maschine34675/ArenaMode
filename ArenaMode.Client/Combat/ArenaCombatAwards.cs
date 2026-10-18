@@ -55,9 +55,12 @@ internal sealed class ArenaCombatAwards
         }
         if (!kill.KilledByLocal) return null;
         // One HUD/audio label per kill. The match supplies Shutdown or its
-        // selected multi/spree label; only sprees yield to verified shot awards.
+        // selected multi/spree label. Collateral takes precedence; posture-only
+        // shot awards still yield to multi-kills and the existing special awards.
         // These are presentation facts, with no new score or streak bonus.
-        return first ? "FIRST BLOOD"
+        return kill.ScoreEligible
+            && ArenaShotAwardHistory.ReportCollateralDeath(kill.CollateralProof, kill.VictimBodyId) ? "COLLATERAL"
+            : first ? "FIRST BLOOD"
             : payback ? "PAYBACK"
             : existingLabel is "SHUTDOWN" or "DOUBLE KILL" or "TRIPLE KILL"
                 or "MULTI KILL" or "MONSTER KILL" ? existingLabel

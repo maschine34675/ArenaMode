@@ -263,12 +263,27 @@ internal static class Program
         return new WeakReference(shot);
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference RegisterCollectableCollateral(out ArenaCollateralProof proof)
+    {
+        var shot = new object();
+        ArenaShotAwardHistory.RecordCreated(shot, null, 5, Weapon, Fire, true, false, false, singleBullet: true);
+        proof = ArenaShotAwardHistory.CaptureCollateral(shot, ArenaShotAwardHistory.ForImpact(shot, 5, Weapon, Fire));
+        return new WeakReference(shot);
+    }
+
     private static void WeakOwnership()
     {
         Reset();
         var reference = RegisterCollectableProjectile();
         GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
         Check(!reference.IsAlive, "history does not retain dead projectile keys");
+        var collateral = RegisterCollectableCollateral(out var proof);
+        GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+        Check(!collateral.IsAlive, "pending managed collateral proof cannot retain a pooled projectile");
+        Check(!ArenaShotAwardHistory.ReportCollateralDeath(proof, 21)
+            && ArenaShotAwardHistory.ReportCollateralDeath(proof, 22),
+            "native-free scalar proof survives projectile collection for synchronous settlement");
     }
 
     public static void Main(string[] args)

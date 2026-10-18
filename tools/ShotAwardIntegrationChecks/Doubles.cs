@@ -26,7 +26,7 @@ namespace EFT.InventoryLogic
         public Item Item => this;
         public bool IsUnderbarrelWeapon { get; set; }
     }
-    public class Ammo : Item { }
+    public class Ammo : Item { public int ProjectileCount = 1; }
 }
 namespace EFT
 {
@@ -76,6 +76,7 @@ namespace EFT.Ballistics
         public bool IsFlyingOutOfTime;
         // Only target selection is exercised here. Full native signature is checked with Cecil.
         public static Shot Create() => new();
+        public void CreateDeviatedFragment() { }
     }
     public readonly struct ShotId(string ammoId, int fragmentIndex)
     {

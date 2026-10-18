@@ -222,6 +222,9 @@ internal static class CombatPatches
                     Time = Time.time,
                 };
 
+                kill.CollateralProof = kill.KilledByLocal && !kill.LocalIsVictim
+                    && kill.AwardEligible && kill.ScoreEligible
+                    ? ArenaShotAwardHooks.CaptureCollateral(shotAwards) : default;
                 ArenaAssistCapture.PrepareKill(match, __instance, aggressor, lethalDamageType);
                 match.ReportKill(kill);
             }

@@ -17,6 +17,19 @@ internal static partial class Program
         var match = new ArenaMatch();
         AnnouncerService.Attach(match);
         int logStart = Plugin.ModLogger.Messages.Count;
+        int beforeTextOnly = sounds.PlayRequests.Count;
+        for (int i = 0; i < 4; i++) match.Callout("COLLATERAL");
+        Assert(sounds.PlayRequests.Count == beforeTextOnly
+            && !Plugin.ModLogger.Messages.Skip(logStart).Any(line => line.Contains("collateral")),
+            "Text-only collateral neither plays nor diagnoses missing audio");
+        match.Cue(ArenaAnnouncerCue.RoundStart);
+        match.Callout("DOUBLE KILL");
+        beforeTextOnly = sounds.PlayRequests.Count;
+        match.Callout("COLLATERAL");
+        Time.realtimeSinceStartup += .2f; AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Count == beforeTextOnly + 1 && sounds.PlayRequests[^1].Clip.Name == "double_kill",
+            "Text-only collateral preserves an unrelated pending audio phrase");
+        Time.realtimeSinceStartup += 3;
         foreach (string label in new[] { "AIRBORNE", "NO SCOPE", "AIRBORNE", "NO SCOPE" })
         {
             int before = sounds.PlayRequests.Count;

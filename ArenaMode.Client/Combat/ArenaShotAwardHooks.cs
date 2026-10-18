@@ -25,6 +25,7 @@ internal static class ArenaShotAwardHooks
     private static bool _enabled, _warned;
     private static FireScope _fire;
     private static ImpactScope _impact;
+    private static ContinuationScope _continuation;
     internal const float MinimumAirborneSeconds = 0.5f;
     private static FlightObservation _flight;
 
@@ -44,6 +45,7 @@ internal static class ArenaShotAwardHooks
             new CreatePatch().Enable();
             new ImpactPatch().Enable();
             new FlightPatch().Enable();
+            new ContinuationPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -53,6 +55,7 @@ internal static class ArenaShotAwardHooks
     {
         _fire = null;
         _impact = null;
+        _continuation = null;
         _flight = default;
         ArenaShotAwardHistory.Reset();
     }
@@ -92,12 +95,14 @@ internal static class ArenaShotAwardHooks
                 || !ReferenceEquals(local.HandsController, firearm)
                 || weapon == null || weapon.IsUnderbarrelWeapon
                 || weapon.Item is not Weapon actual || actual.IsGrenadeLauncher
-                || !ReferenceEquals(firearm.Item, actual) || firearm.IsAiming) return scope;
+                || !ReferenceEquals(firearm.Item, actual)) return scope;
             scope.BodyId = ArenaHitHistory.BodyId(local);
+            scope.WorldId = ArenaHitHistory.BodyId(world);
+            scope.GameId = ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance);
             scope.WeaponId = actual.Id;
             scope.Known = true;
-            scope.Airborne = HasQualifiedFlight(world, local);
-            scope.BoltAction = actual.BoltAction;
+            scope.Airborne = !firearm.IsAiming && HasQualifiedFlight(world, local);
+            scope.BoltAction = !firearm.IsAiming && actual.BoltAction;
         }
         catch (Exception ex) { scope.Known = false; Warn(ex); }
         return scope;
@@ -162,11 +167,20 @@ internal static class ArenaShotAwardHooks
             // Always overwrite a pooled instance, even for bots/unknown shots.
             long bodyId = ArenaHitHistory.BodyId(shot.Player?.iPlayer);
             string weaponId = shot.Weapon?.Id;
-            bool known = TryLocal(out _, out var local) && ReferenceEquals(shot.Player?.iPlayer, local)
+            bool localShot = TryLocal(out var world, out var local) && ReferenceEquals(shot.Player?.iPlayer, local);
+            long worldId = ArenaHitHistory.BodyId(world), gameId = ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance);
+            bool known = localShot
                 && _fire != null && _fire.Known && _fire.Epoch == ArenaShotAwardHistory.CurrentEpoch
+                && _fire.WorldId == worldId && _fire.GameId == gameId
                 && _fire.BodyId == bodyId && string.Equals(_fire.WeaponId, weaponId, StringComparison.Ordinal);
+            bool singleBullet = localShot && shot.Ammo is Ammo ammo && ammo.ProjectileCount == 1;
+            bool continued = localShot && _continuation?.Parent != null
+                && ReferenceEquals(shot.Parent, _continuation.Parent)
+                && shot.FragmentIndex == _continuation.FragmentIndex
+                && ReferenceEquals(shot.Ammo, _continuation.Ammo);
             ArenaShotAwardHistory.RecordCreated(shot, shot.Parent, bodyId, weaponId, shot.FireIndex,
-                known, known && _fire.Airborne, known && _fire.BoltAction);
+                known, known && _fire.Airborne, known && _fire.BoltAction,
+                singleBullet, continued, continued ? _continuation.Token : 0, worldId, gameId);
         }
         catch (Exception ex)
         {
@@ -185,7 +199,8 @@ internal static class ArenaShotAwardHooks
             if (!TryLocal(out var currentWorld, out var local) || !ReferenceEquals(world, currentWorld)
                 || shot == null || shot.IsFlyingOutOfTime || !ReferenceEquals(shot.Player?.iPlayer, local)) return scope;
             scope.Facts = ArenaShotAwardHistory.ForImpact(shot, ArenaHitHistory.BodyId(local),
-                shot.Weapon?.Id, shot.FireIndex);
+                shot.Weapon?.Id, shot.FireIndex, ArenaHitHistory.BodyId(world),
+                ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance));
             if (!scope.Facts.IsKnown) return scope;
             scope.World = world;
             scope.Shot = shot;
@@ -211,21 +226,79 @@ internal static class ArenaShotAwardHooks
             // Re-read at each accepted contact: reject in-stack reuse of the
             // same pooled native object even while ShotDelegate is on the stack.
             var current = ArenaShotAwardHistory.ForImpact(scope.Shot, ArenaHitHistory.BodyId(local),
-                info.Weapon?.Id, info.FireIndex);
+                info.Weapon?.Id, info.FireIndex, ArenaHitHistory.BodyId(world),
+                ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance));
             return current.ProjectileToken == scope.Facts.ProjectileToken ? current : default;
         }
         catch (Exception ex) { Warn(ex); return default; }
+    }
+
+    // Capture only proof here. The match must still admit/classify the death
+    // before ArenaCombatAwards may settle its contribution to this lineage.
+    internal static ArenaCollateralProof CaptureCollateral(ArenaShotAwardFacts facts)
+    {
+        try
+        {
+            var scope = _impact;
+            if (scope?.Shot == null || !ArenaShotAwardHistory.IsCurrent(facts)
+                || facts.ProjectileToken != scope.Facts.ProjectileToken
+                || !TryLocal(out var world, out var local) || !ReferenceEquals(world, scope.World)) return default;
+            var current = ArenaShotAwardHistory.ForImpact(scope.Shot, ArenaHitHistory.BodyId(local),
+                scope.Shot.Weapon?.Id, scope.Shot.FireIndex, ArenaHitHistory.BodyId(world),
+                ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance));
+            return current.ProjectileToken == facts.ProjectileToken
+                ? ArenaShotAwardHistory.CaptureCollateral(scope.Shot, current) : default;
+        }
+        catch (Exception ex) { Warn(ex); return default; }
+    }
+
+    internal static IDisposable BeginContinuation(Shot parent)
+    {
+        if (!_enabled || !ArenaSession.IsActive) return null;
+        var scope = new ContinuationScope(_continuation);
+        _continuation = scope;
+        try
+        {
+            if (!TryLocal(out var world, out var local) || parent == null
+                || !ReferenceEquals(parent.Player?.iPlayer, local)) return scope;
+            var facts = ArenaShotAwardHistory.ForImpact(parent, ArenaHitHistory.BodyId(local),
+                parent.Weapon?.Id, parent.FireIndex, ArenaHitHistory.BodyId(world),
+                ArenaHitHistory.BodyId(Singleton<AbstractGame>.Instance));
+            if (!facts.IsKnown) return scope;
+            scope.Ammo = parent.Ammo;
+            scope.FragmentIndex = parent.FragmentIndex;
+            scope.Token = facts.ProjectileToken;
+            scope.Parent = parent;
+        }
+        catch (Exception ex) { scope.Parent = null; Warn(ex); }
+        return scope;
     }
 
     private sealed class FireScope : IDisposable
     {
         private readonly FireScope _previous;
         internal readonly long Epoch = ArenaShotAwardHistory.CurrentEpoch;
-        internal long BodyId;
+        internal long BodyId, WorldId, GameId;
         internal string WeaponId;
         internal bool Known, Airborne, BoltAction;
         internal FireScope(FireScope previous) { _previous = previous; }
         public void Dispose() { if (ReferenceEquals(_fire, this)) _fire = _previous; }
+    }
+
+    private sealed class ContinuationScope : IDisposable
+    {
+        private readonly ContinuationScope _previous;
+        internal Shot Parent;
+        internal Item Ammo;
+        internal int FragmentIndex;
+        internal long Token;
+        internal ContinuationScope(ContinuationScope previous) { _previous = previous; }
+        public void Dispose()
+        {
+            if (ReferenceEquals(_continuation, this)) _continuation = _previous;
+            Parent = null;
+            Ammo = null;
+        }
     }
 
     private sealed class ImpactScope : IDisposable
@@ -283,6 +356,21 @@ internal static class ArenaShotAwardHooks
         [PatchPrefix]
         private static void Prefix(ClientGameWorld __instance, Shot shotResult, out IDisposable __state)
             => __state = BeginImpact(__instance, shotResult);
+        [PatchFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        { __state?.Dispose(); return __exception; }
+    }
+
+    // Native penetration creates a child with the SAME FragmentIndex, while
+    // ricochet and fragmentation create independent projectiles. Do not infer
+    // a lineage from a shared FireIndex, cartridge ID, timestamp or parent alone.
+    private sealed class ContinuationPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(Shot), nameof(Shot.CreateDeviatedFragment), Type.EmptyTypes);
+        [PatchPrefix]
+        private static void Prefix(Shot __instance, out IDisposable __state)
+            => __state = BeginContinuation(__instance);
         [PatchFinalizer]
         private static Exception Finalizer(Exception __exception, IDisposable __state)
         { __state?.Dispose(); return __exception; }

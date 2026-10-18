@@ -55,6 +55,10 @@ $combatHistorical = (& git -C $combatRoot show '5593ea7:ArenaMode.Client/Modes/A
 if ($LASTEXITCODE -ne 0) { throw 'Historical announcer baseline unavailable' }
 Invoke-CombatProbe 'historical-spree-first' 'MatchSource' $combatHistorical 'multi' 'multi-kill must beat simultaneous spree'
 $combatFaults = @(
+    @{ Name='collateral-before-mode-admission'; Property='MatchSource'; Part='shot';
+       Find='if (Mode is ZombieMode zombie && !zombie.IsTeamArena)';
+       Replace="ArenaShotAwardHistory.ReportCollateralDeath(kill.CollateralProof, kill.VictimBodyId);`n        if (Mode is ZombieMode zombie && !zombie.IsTeamArena)";
+       Failure='second physical bullet death replaces ordinary double kill callout' },
     @{ Name='post-reset-shutdown'; Property='MatchSource'; Part='shutdown';
        Find="bool shutdown = Scoreboard.IsShutdown(kill);`n        Scoreboard.ReportKill(kill);";
        Replace="Scoreboard.ReportKill(kill);`n        bool shutdown = Scoreboard.IsShutdown(kill);";
