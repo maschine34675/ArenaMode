@@ -112,12 +112,12 @@ internal static class ZombieBodyCullingRuntime
     {
         if (!_visualEnabled)
         {
-            try { new VisualPassPatch().Enable(); _visualEnabled = true; }
+            try { new ArenaZombieCullingVisualPassPatch().Enable(); _visualEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
         if (!_poolEnabled)
         {
-            try { new PoolReturnPatch().Enable(); _poolEnabled = true; }
+            try { new ArenaZombieShadowPoolReturnPatch().Enable(); _poolEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
     }
@@ -538,7 +538,7 @@ internal static class ZombieBodyCullingRuntime
         Plugin.ModLogger.LogWarning("Arena zombie body culling: optimization unavailable for this call; native behavior retained. " + ex.GetBaseException().Message);
     }
 
-    private sealed class VisualPassPatch : ModulePatch
+    private sealed class ArenaZombieCullingVisualPassPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.VisualPass), Type.EmptyTypes);
@@ -547,7 +547,7 @@ internal static class ZombieBodyCullingRuntime
         private static void Postfix(Player __instance) => AfterVisualPass(__instance);
     }
 
-    private sealed class PoolReturnPatch : ModulePatch
+    private sealed class ArenaZombieShadowPoolReturnPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(AssetPoolObject), nameof(AssetPoolObject.ReturnToPool), Type.EmptyTypes);

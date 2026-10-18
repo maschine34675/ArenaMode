@@ -92,7 +92,7 @@ internal static class ArenaLightingDirector
                 _externalOwnerLogged = true;
                 Plugin.ModLogger?.LogInfo(
                     $"Arena phase lighting stayed off because {externalOwner} owns map lighting. "
-                    + "Disable RespectExternalLightingMods in F12 to force the additive layer.");
+                    + "Disable Effects > Respect Blackout / Going Dark (RespectExternalLightingMods) in F12 to force the additive layer.");
             }
 
             Apply(ArenaLightingFrame.Off);

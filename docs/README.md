@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [F12 settings menu: names, order, advanced developer tools](CONFIG-MENU-20261018.md)
 - [Audio folders and consolidated package notices](AUDIO-LAYOUT-20261018.md)
 - [Killcam rename, config migration and native replay/respawn acceptance](KILLCAM-RENAME-20261018.md)
 - [Implemented log-audit recommendations](LOG-FOLLOWUP-20261018.md)

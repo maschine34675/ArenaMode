@@ -252,7 +252,8 @@ still requires normal geometry validation and never uses the built-in nearby
 fallback. Fixed custom points are placed first and retain their authored spacing;
 rotating points must stay at least 3m away from those and other selected points.
 
-Enable F12 **Development - Pickups / Enabled**. Select `Kind` and `RespawnSeconds`
+Enable F12 **Development - Pickups / Pickup Capture** (.cfg `Development - Pickups/Enabled`;
+the Development sections are shown with F12's **Advanced settings**). Select `Kind` and `RespawnSeconds`
 before adding a point; weapons use `PrototypeWeaponKit`.
 
 | Default shortcut | Action |
@@ -268,7 +269,8 @@ layout. Review/copy or merge desired layouts into `Pickups.json` for a later mat
 Draft state ends with the raid.
 
 For surveying outside an Arena contour use an ordinary **local PMC** raid, also
-enabling **Development - Area outline / AllowInNormalPmc**. Both opt-ins default
+enabling **Development - Area outline / AllowInNormalPmc** (F12: Allow In Normal PMC Raids,
+advanced). Both opt-ins default
 off. Only coordinates/exports are permitted there: no items, effects, protection
 or Arena activation. Scav, Hideout, dead/spectator and non-BattleUI capture excluded.
 

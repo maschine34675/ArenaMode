@@ -61,7 +61,7 @@ internal static class ProfileBuildBudget
     internal static void Initialize()
     {
         if (_enabled) return;
-        try { new LoadBotsPatch().Enable(); _enabled = true; }
+        try { new ArenaProfileBudgetLoadBotsPatch().Enable(); _enabled = true; }
         catch (Exception ex) { Warn(ex); }
     }
 
@@ -159,7 +159,7 @@ internal static class ProfileBuildBudget
         Plugin.ModLogger.LogWarning("Arena profile build budget: unavailable for this call; native profile loading retained. " + ex.GetBaseException().Message);
     }
 
-    private sealed class LoadBotsPatch : ModulePatch
+    private sealed class ArenaProfileBudgetLoadBotsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(ClientBackendSession), nameof(ClientBackendSession.LoadBots),
