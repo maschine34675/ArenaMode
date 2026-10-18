@@ -7,6 +7,32 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Disabled mode surfaces and merged-log audit (2026-10-18):** `53fa560`
+  gives only the Capture the Flag and Domination preview clones a neutral gray
+  disabled background; ordinary/playable buttons are unchanged. GPU2 confirms
+  the complete surfaces and inert clicks (all 224 Arena settings unchanged).
+  The menu harness passes 2,527 assertions. The paired Release build passes
+  with four existing nullable warnings. Loaded process `14e1597f` uses Client
+  SHA256 `AD92778F7761D008AAEE6CED737A45F0C016FC5AE59C82F807B4A84DBC7D47F4`
+  and BigBrainCompat
+  `936FCFCC9FD56AC66C6F4B7ED086C2B1D47B66BAF72E66DDC1646FE9DB779B63`;
+  Server, Redeploy and KillcamReplay were not deployed.
+  See [the representative native samples](GPU-LOG-AUDIT-20261018.md)
+  and [source-backed log attribution](LOG-SOURCE-AUDIT-20261018.md).
+  These reports distinguish verified replay/respawn behavior from native asset
+  diagnostics and the intentional PFT-exit roster false alarm. No runtime log
+  suppression or sibling-mod changes were made as part of this audit.
+  Factory DM and AirPit TDM cover three actual enemy-caused deaths with replay
+  and respawn; Factory PFT Tactical covers a deterministic native test death
+  and round-two rebinding. The final capture has 11,436 unique records across
+  BepInEx/server/EFT, with no truncated Warning/Error stack. All three protected
+  entry/exit profile comparisons pass (314 items each), twelve PFT files remain
+  byte-identical and all 224 settings are restored. GPU2 is free at MainMenu.
+  Recommended next work: exact native-stop guard for PFT live-roster reads,
+  scoped Core/Killcam routine-log cleanup, then object-specific diagnostics for
+  unresolved native startup/model errors. Do not mute the live goal-handoff
+  refusals or protection alarms to obtain a clean log.
+
 - **PMC equipment choice for PFT Tactical (2026-10-18):** The map screen now
   offers Own gear (default) or Arena kits for the local PMC only. PFT companions
   retain their stored equipment. One base kit is issued before the first native

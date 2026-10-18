@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Representative GPU2 gameplay and merged-log audit](GPU-LOG-AUDIT-20261018.md)
+- [ArenaMode, Redeploy and KillcamReplay log attribution](LOG-SOURCE-AUDIT-20261018.md)
 - [PFT Tactical: own gear or a supplied PMC kit](PFT-TACTICAL-KITS-20261018.md)
 - [Native PFT Tactical kit checks on GPU2](GPU-PFT-TACTICAL-KITS-20261018.md)
 - [Arena-owned BigBrain library and Redeploy server boundary](BIGBRAIN-LIBRARY-20261018.md)
