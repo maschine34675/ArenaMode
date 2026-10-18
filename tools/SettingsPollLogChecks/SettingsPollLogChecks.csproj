@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SptRuntime Condition="'$(SptRuntime)' == ''">../../../../SPT_Runtime</SptRuntime>
+    <SettingsPatchSource Condition="'$(SettingsPatchSource)' == ''">../../ArenaMode.Server/Patches/ArenaSettingsRequestLogPatch.cs</SettingsPatchSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="0Harmony"><HintPath>$(SptRuntime)/0Harmony.dll</HintPath></Reference>
+    <Reference Include="Mono.Cecil"><HintPath>$(SptRuntime)/Mono.Cecil.dll</HintPath></Reference>
+    <Compile Include="$(SettingsPatchSource)" Link="Production/ArenaSettingsRequestLogPatch.cs" />
+    <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
+  </ItemGroup>
+</Project>
