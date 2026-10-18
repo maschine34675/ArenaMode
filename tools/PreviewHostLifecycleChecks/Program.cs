@@ -27,6 +27,7 @@ internal static class Program
             EquipmentChoiceFollowsActualModes();
             EquipmentChangesRestoreNativeAndKeepPendingLoad();
             LoadingArmFreezesEquipmentAndRejectsStaleArm();
+            FrozenTacticalChoiceOverridesMenuAndExpiresWithLoadingHost();
             TeammateAndReconnectKeepNativeEquipment();
             Console.WriteLine($"PREVIEW_HOST_LIFECYCLE_CHECKS_PASSED: {_assertions} assertions; simulated lifecycle boundary, no Unity rendering executed.");
             return 0;
@@ -55,6 +56,7 @@ internal static class Program
             ArenaMode.Config.Settings.OwnGear = false;
             ArenaMenuSelection.CurrentEligibility = new();
             ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = false;
+            ArenaMode.Kits.TacticalTeamKitEntry.Selected = false;
             Plugin.ModLogger.Warnings.Clear();
             ArenaMenuSelection.Selected = Settings;
             Preview = new(loading);
@@ -334,7 +336,8 @@ internal static class Program
             ArenaMode.Config.Settings.OwnGear = own;
             ArenaMenuSelection.CurrentEligibility = new() { Allowed = allowed, IsTeam = team };
             bool native = mode.Trim().Equals("zombie", StringComparison.OrdinalIgnoreCase) && own
-                || (mode == "tactical" || mode == "zombie") && allowed && team;
+                || mode == "zombie" && allowed && team
+                || mode == "tactical" && allowed && team && own;
             var accept = new Widget();
             ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
             Check(ArenaPreviewFlow.TryShowAccept(accept.Model) == !native,
@@ -428,6 +431,51 @@ internal static class Program
         fixture.Tick();
         Check(!next.Raw.enabled && fixture.Preview.Shows == 1,
             "frozen provided-kit decision overrides earlier own-gear menu choice");
+    }
+
+    private static void FrozenTacticalChoiceOverridesMenuAndExpiresWithLoadingHost()
+    {
+        foreach (bool issued in new[] { false, true })
+        {
+            var fixture = new Fixture();
+            ArenaMode.Config.Settings.SelectedGameModeId = "tactical";
+            // Opposite menu choice makes the newer arm's precedence observable.
+            ArenaMode.Config.Settings.OwnGear = issued;
+            ArenaMenuSelection.CurrentEligibility = new() { Allowed = true, IsTeam = true };
+            var loading = new LoadingWidget(fixture.Settings);
+            ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+            Check(ArenaPreviewFlow.TryShowLoading(loading.Screen) == !issued,
+                "Tactical loading starts with its current menu equipment choice");
+
+            ArenaSession.ArmedForNextRaid = true;
+            ArenaSession.ArmedMode = "tactical";
+            ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = true;
+            ArenaMode.Kits.TacticalTeamKitEntry.Selected = issued;
+            ArenaSession.ArmEpoch++;
+            fixture.Tick();
+            Check(loading.Raw.enabled == !issued && loading.Camera.enabled == !issued,
+                issued ? "frozen issued PFT kit selects Arena figure" : "frozen own PFT gear selects native figure");
+            Check(ArenaPreviewFlow.TryShowLoading(loading.Screen) == issued,
+                "frozen Tactical equipment controls subsequent local requests");
+
+            ArenaMode.Config.Settings.SelectedGameModeId = "deathmatch";
+            ArenaMenuSelection.CurrentEligibility = new() { Allowed = false, IsTeam = false };
+            fixture.Tick();
+            ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);
+            Check(ArenaPreviewFlow.TryShowLoading(loading.Screen) == issued,
+                "frozen Tactical own/issued choice survives F12 edits and same-host re-show");
+
+            ArenaPreviewFlow.HideForMap(fixture.Settings);
+            ArenaMode.Config.Settings.SelectedGameModeId = "tactical";
+            ArenaMenuSelection.CurrentEligibility = new() { Allowed = true, IsTeam = true };
+            var next = new LoadingWidget(fixture.Settings);
+            ArenaPreviewFlow.PrepareLoading(next.Screen, next.Controller);
+            Check(ArenaPreviewFlow.TryShowLoading(next.Screen) == !issued,
+                "old Tactical arm cannot override a new loading host's opposite menu choice");
+            Check(fixture.Preview.Releases == 0, "Tactical equipment changes retain the single Arena preview owner");
+        }
+        _ = new Fixture();
+        Check(!ArenaMode.Kits.TacticalTeamKitEntry.Selected, "next fixture resets frozen issued-kit ownership");
     }
 
     private static void TeammateAndReconnectKeepNativeEquipment()

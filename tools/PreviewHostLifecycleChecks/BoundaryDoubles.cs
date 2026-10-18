@@ -272,3 +272,8 @@ namespace ArenaMode.Compat
     }
     internal static class PitFireTeamCompat { public static bool HasFrozenTeamRoster; }
 }
+namespace ArenaMode.Kits
+{
+    // Frozen issued-PMC-kit decision; owned by the separate production entry coordinator.
+    internal static class TacticalTeamKitEntry { public static bool Selected; }
+}

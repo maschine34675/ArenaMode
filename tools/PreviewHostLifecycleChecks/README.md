@@ -39,9 +39,15 @@ late pending-body completion, stale/current arm epochs, frozen selection across
 F12 edits and same-screen re-show, abort/back, local-player click reconciliation,
 explicit teammate selection and reconnect. Own-gear cases delegate to native
 preview boundaries; supplied cases reuse the same representative Arena body.
+Protected Tactical honors the local PMC's own/issued equipment choice; PFT Zombies
+still requires own gear. The entry coordinator's frozen `TacticalTeamKitEntry.Selected`
+is an explicit boundary value reset for every fixture. Both frozen Tactical
+choices override opposite menu settings, survive subsequent F12 edits/same-host
+re-show, and cease to own the preview when an aborted load opens a new host.
 
 The compiled negative controls remove confirmation/loading equipment selection,
-admit a rejected team, use an old arm, ignore frozen own gear, drop texture
+admit a rejected team, use an old arm, ignore frozen own gear or either frozen
+Tactical equipment choice, drop texture
 restoration, overwrite teammate views, lose frozen source on re-show or stop
 reconciliation after a local own-gear click. Existing controls dispose the map owner or leave it visible,
 restore inline callback cleanup, remove the
