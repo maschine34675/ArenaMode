@@ -17,6 +17,7 @@ internal static partial class Program
             .Select(name => typeof(ArenaServerClient).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)).ToArray();
         var saved = fields.Select(field => field.GetValue(null)).ToArray();
         var issue = TacticalTeamKitEntry.Issue;
+        bool failCapture = TacticalTeamKitEntry.FailCapture;
         var post = RequestHandler.Post;
         bool armed = ArenaSession.ArmedForNextRaid, inRaid = InGameStatus.InRaid;
         int epoch = ArenaSession.ArmEpoch;
@@ -30,7 +31,7 @@ internal static partial class Program
             Set("_boundNativeEndIdentity", null); InGameStatus.InRaid = true;
             return token;
         }
-        Task<LocalSettings> Run(Task<LocalSettings> native) => (Task<LocalSettings>)observe.Invoke(null, new object[] { native, new EftClientBackendSession() });
+        Task<LocalSettings> Run(Task<LocalSettings> native) => (Task<LocalSettings>)observe.Invoke(null, new object[] { native, new EftClientBackendSession(), Request() });
         void Reject(Task task, string why)
         {
             bool refused = false;
@@ -76,11 +77,19 @@ internal static partial class Program
             Reject(task, "current entry error is propagated");
             Assert(cancelPosts > prior && !ArenaSession.ArmedForNextRaid && !InGameStatus.InRaid,
                 "current failed entry cancels its own protected start");
+
+            token = Begin(); nativePending = new(); TacticalTeamKitEntry.FailCapture = true;
+            prior = cancelPosts; task = Run(nativePending.Task);
+            Assert(!task.IsCompleted && cancelPosts == prior, "capture failure drains dispatched HTTP before cancellation");
+            nativePending.SetResult(new LocalSettings { serverId = Protocol.BuildNativeEndIdentity("native", token) });
+            Reject(task, "capture fault propagates after native HTTP completion");
+            Assert(cancelPosts > prior && !ArenaSession.ArmedForNextRaid, "settled capture failure cancels its own server arm");
         }
         finally
         {
             for (int i = 0; i < fields.Length; i++) fields[i].SetValue(null, saved[i]);
             TacticalTeamKitEntry.Issue = issue; RequestHandler.Post = post;
+            TacticalTeamKitEntry.FailCapture = failCapture;
             ArenaSession.ArmedForNextRaid = armed; ArenaSession.ArmEpoch = epoch; InGameStatus.InRaid = inRaid;
         }
     }

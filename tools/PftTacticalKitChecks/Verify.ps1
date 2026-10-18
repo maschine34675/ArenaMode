@@ -29,7 +29,9 @@ $faults=@(
     @{Name='inactive-optic-guard';Kind='preload';Old='loadingScreen: true';New='loadingScreen: false'},
     @{Name='unawaited-native-entry';Kind='wrapper';Old='await Kits.TacticalTeamKitEntry.IssueAsync';New='_ = Kits.TacticalTeamKitEntry.IssueAsync'},
     @{Name='stale-failure-cleanup';Kind='wrapper';Old='if (OwnsStart())';New='if (ArenaSession.ArmEpoch == armEpoch)'},
-    @{Name='stale-response-bind';Kind='wrapper';Old='if (!OwnsStart())';New='if (false)'}
+    @{Name='stale-response-bind';Kind='wrapper';Old='if (!OwnsStart())';New='if (false)'},
+    @{Name='cancel-before-http-settled';Kind='wrapper';Old='catch (Exception ex) { captureFailure = ex; }';New='catch (Exception) { throw; }'},
+    @{Name='wrong-native-map';Kind='entry';Old='&& string.Equals(request.RequestedMap, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)';New=''}
 )
 foreach($fault in $faults){
     $source=switch($fault.Kind){entry{$entry} preload{$preload} wrapper{$wrapper}}

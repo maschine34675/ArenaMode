@@ -22,6 +22,7 @@ internal static class TacticalTeamKitEntry
         internal string ProfileId;
         internal string AccountId;
         internal string ArmToken;
+        internal string RequestedMap;
         internal GameWorld World;
         internal Inventory Inventory;
         internal InventoryEquipment Original;
@@ -41,7 +42,7 @@ internal static class TacticalTeamKitEntry
 
     internal static void Reset() => _request = null;
 
-    internal static Request CaptureRequest(Profile profile)
+    internal static Request CaptureRequest(Profile profile, string requestedMap)
     {
         var request = _request;
         if (request == null) return null;
@@ -50,6 +51,7 @@ internal static class TacticalTeamKitEntry
         request.ProfileId = profile.Id;
         request.AccountId = profile.AccountId;
         request.ArmToken = ArenaServerClient.PendingArmToken;
+        request.RequestedMap = requestedMap;
         request.Inventory = profile.Inventory;
         request.Original = profile.Inventory?.Equipment;
         request.World = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
@@ -86,7 +88,13 @@ internal static class TacticalTeamKitEntry
            && request.World != null && Singleton<GameWorld>.Instantiated
            && ReferenceEquals(Singleton<GameWorld>.Instance, request.World)
            && request.World.MainPlayer == null
-           && string.Equals(request.World.LocationId, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)
+           // EFT assigns GameWorld.LocationId only in BaseLocalGame.Run, after
+           // this awaited entry. The native request already authenticated the
+           // map before arming; never infer it from an uninitialized world field.
+           && !string.IsNullOrWhiteSpace(request.RequestedMap)
+           && string.Equals(request.RequestedMap, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)
+           && (string.IsNullOrEmpty(request.World.LocationId)
+               || string.Equals(request.World.LocationId, request.RequestedMap, StringComparison.OrdinalIgnoreCase))
            && ReferenceEquals(profile, request.Profile) && profile != null
            && !string.IsNullOrWhiteSpace(request.ProfileId) && profile.Id == request.ProfileId
            && !string.IsNullOrWhiteSpace(request.AccountId) && profile.AccountId == request.AccountId
@@ -97,7 +105,11 @@ internal static class TacticalTeamKitEntry
     private static void RequireCurrent(Request request, Profile profile)
     {
         if (!IsCurrent(request, profile))
-            throw new InvalidOperationException("Tactical kit entry lost its exact protected arm, map, profile or pre-body ownership.");
+            throw new InvalidOperationException("Tactical kit entry lost its exact protected arm, map, profile or pre-body ownership. "
+                + $"Armed={ArenaSession.ArmedForNextRaid}, active={ArenaSession.IsActive}, "
+                + $"epoch={request.Epoch}/{ArenaSession.ArmEpoch}, requestedMap='{request.RequestedMap}', "
+                + $"armedMap='{ArenaSession.ArmedMap}', worldMap='{request.World?.LocationId}', "
+                + $"profileMatches={ReferenceEquals(profile, request.Profile)}, bodyPresent={request.World?.MainPlayer != null}.");
     }
 
     internal static void VerifyIssued(Profile profile, GameWorld world)
@@ -108,6 +120,7 @@ internal static class TacticalTeamKitEntry
         if (!ArenaSession.IsActive || ArenaSession.ActiveMode != Shared.ArenaPopulationPolicy.Tactical
             || !PitFireTeamCompat.TeamArenaActive || request.Epoch != ArenaSession.ArmEpoch
             || !ReferenceEquals(request.World, world) || !ReferenceEquals(request.Profile, profile)
+            || !string.Equals(world?.LocationId, request.RequestedMap, StringComparison.OrdinalIgnoreCase)
             || request.Issued == null || !ReferenceEquals(profile?.Inventory, request.Inventory)
             || !ReferenceEquals(profile.Inventory.Equipment, request.Issued))
             throw new InvalidOperationException("Tactical team could not verify its issued PMC entry kit.");

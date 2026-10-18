@@ -192,10 +192,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
     }
 
     [PatchPostfix]
-    private static void Postfix(EftClientBackendSession __instance, ref Task<LocalSettings> __result)
+    private static void Postfix(EftClientBackendSession __instance, LocalRaidSettings settings, ref Task<LocalSettings> __result)
     {
         if (ArenaSession.ArmedForNextRaid || ArenaServerClient.HasPendingArm)
-            __result = ObserveLocalStart(__result, __instance);
+            __result = ObserveLocalStart(__result, __instance, settings);
         else if (ArenaServerClient.HasOrdinaryLifecycle)
             __result = ObserveOrdinaryLocalStart(__result);
     }
@@ -221,7 +221,8 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
         }
     }
 
-    private static async Task<LocalSettings> ObserveLocalStart(Task<LocalSettings> original, EftClientBackendSession session)
+    private static async Task<LocalSettings> ObserveLocalStart(Task<LocalSettings> original, EftClientBackendSession session,
+        LocalRaidSettings settings)
     {
         int armEpoch = ArenaSession.ArmEpoch;
         string armToken = ArenaServerClient.PendingArmToken;
@@ -230,13 +231,21 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             && string.Equals(armToken, ArenaServerClient.PendingArmToken, StringComparison.Ordinal);
         try
         {
-            var kitRequest = Kits.TacticalTeamKitEntry.CaptureRequest(session.Profile);
+            // Harmony receives an already-dispatched native HTTP task. Even a
+            // synchronous capture failure must drain it before cancelling its
+            // server arm, otherwise SPT's retries continue after cancellation.
+            Kits.TacticalTeamKitEntry.Request kitRequest = null;
+            Exception captureFailure = null;
+            try { kitRequest = Kits.TacticalTeamKitEntry.CaptureRequest(session.Profile, settings?.location); }
+            catch (Exception ex) { captureFailure = ex; }
             var result = await original;
             if (!OwnsStart())
                 throw new InvalidOperationException("This Arena loading request no longer owns the protected start.");
             if (!ArenaServerClient.BindNativeEndIdentity(result))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-end request to its exact arm token.");
+            if (captureFailure != null)
+                throw new InvalidOperationException("Arena could not capture its protected entry kit request.", captureFailure);
 
             // Await before returning to LocalGameCreate: PFT must bind the very
             // first PMC body, already wearing its selected kit. Own-gear/team

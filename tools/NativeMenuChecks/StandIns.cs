@@ -156,8 +156,10 @@ namespace ArenaMode.Kits
 {
     public static class TacticalTeamKitEntry
     {
+        public sealed class Request { }
         public static Func<Task> Issue = () => Task.CompletedTask;
-        public static object CaptureRequest(object profile) => profile;
+        public static bool FailCapture;
+        public static Request CaptureRequest(object profile, string map) => FailCapture ? throw new InvalidOperationException("capture fault") : new();
         public static Task IssueAsync(object request, Func<object> profile) => Issue();
     }
 }

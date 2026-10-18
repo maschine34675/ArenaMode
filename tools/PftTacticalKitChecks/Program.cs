@@ -35,10 +35,11 @@ foreach (bool own in new[] { false, true })
     Setup(); TacticalTeamKitEntry.Capture(mode, team, own, 10);
     Need(TacticalTeamKitEntry.Selected == (mode == "tactical" && team && !own), "selection matrix");
     if (!TacticalTeamKitEntry.Selected)
-    { Need(TacticalTeamKitEntry.CaptureRequest(null) == null, "non-kit mode does not inspect profile"); await TacticalTeamKitEntry.IssueAsync(null, () => throw new Exception()); }
+    { Need(TacticalTeamKitEntry.CaptureRequest(null, null) == null, "non-kit mode does not inspect profile"); await TacticalTeamKitEntry.IssueAsync(null, () => throw new Exception()); }
 }
 var profile = Setup(); var original = profile.Inventory.Equipment;
-var request = TacticalTeamKitEntry.CaptureRequest(profile);
+Need(Singleton<GameWorld>.Instance.LocationId == null, "native pre-Run world has no location id yet");
+var request = TacticalTeamKitEntry.CaptureRequest(profile, "factory4_day");
 var pools = Singleton<ObjectsFactory>.Instance;
 pools.Pending = new();
 Task pending = TacticalTeamKitEntry.IssueAsync(request, () => profile);
@@ -50,7 +51,11 @@ Need(request.Original == null, "old personal combat items not retained");
 await Reject(() => TacticalTeamKitEntry.IssueAsync(request, () => profile), "duplicate continuation");
 Need(TeamArenaEntryKit.Commits == 1, "duplicate has no second commit");
 ArenaSession.ArmedForNextRaid = false; ArenaSession.IsActive = true; ArenaSession.ActiveMode = "tactical";
+Singleton<GameWorld>.Instance.LocationId = "factory4_day"; // Assigned by native BaseLocalGame.Run.
 TacticalTeamKitEntry.VerifyIssued(profile, Singleton<GameWorld>.Instance); Need(true, "actual issued root accepted at match start");
+Singleton<GameWorld>.Instance.LocationId = "other";
+await Reject(() => { TacticalTeamKitEntry.VerifyIssued(profile, Singleton<GameWorld>.Instance); return Task.CompletedTask; }, "active world must now match the requested map");
+Singleton<GameWorld>.Instance.LocationId = "factory4_day";
 await Reject(() => { TacticalTeamKitEntry.VerifyIssued(new Profile(), Singleton<GameWorld>.Instance); return Task.CompletedTask; }, "foreign profile cannot become entry snapshot");
 profile.Inventory.Equipment = new();
 await Reject(() => { TacticalTeamKitEntry.VerifyIssued(profile, Singleton<GameWorld>.Instance); return Task.CompletedTask; }, "changed root cannot become entry snapshot");
@@ -58,6 +63,7 @@ await Reject(() => { TacticalTeamKitEntry.VerifyIssued(profile, Singleton<GameWo
 foreach (var change in new Action<Profile>[] {
     p => ArenaSession.ArmEpoch++, p => ArenaSession.ArmedForNextRaid = false,
     p => ArenaSession.IsActive = true, p => ArenaSession.ArmedMode = "zombie",
+    p => ArenaSession.ArmedMap = "other",
     p => ArenaServerClient.HasPendingArm = false, p => PitFireTeamCompat.TeamArenaActive = false,
     p => ArenaServerClient.PendingArmToken = "new-arm",
     p => Singleton<GameWorld>.Instance = new(), p => Singleton<GameWorld>.Instance.MainPlayer = new(),
@@ -69,11 +75,17 @@ foreach (var change in new Action<Profile>[] {
 })
 {
     profile = Setup(); original = profile.Inventory.Equipment;
-    request = TacticalTeamKitEntry.CaptureRequest(profile); pools = Singleton<ObjectsFactory>.Instance; pools.Pending = new();
+    request = TacticalTeamKitEntry.CaptureRequest(profile, "factory4_day"); pools = Singleton<ObjectsFactory>.Instance; pools.Pending = new();
     pending = TacticalTeamKitEntry.IssueAsync(request, () => profile);
     change(profile); pools.Pending.SetResult(true);
     await Reject(() => pending, "ownership drift during awaited loading");
     Need(TeamArenaEntryKit.Commits == 0, "drift never commits");
+}
+foreach (var map in new[] { null, "", "other" })
+{
+    profile = Setup();
+    await Reject(() => { TacticalTeamKitEntry.CaptureRequest(profile, map); return Task.CompletedTask; }, "missing or wrong native request map");
+    Need(TeamArenaEntryKit.Prepares == 0 && TeamArenaEntryKit.Commits == 0, "bad request map cannot issue");
 }
 foreach (string failure in new[] { "kit", "prepare", "pool", "empty", "unknown", "malformed", "commit" })
 {
@@ -85,7 +97,7 @@ foreach (string failure in new[] { "kit", "prepare", "pool", "empty", "unknown",
     if (failure == "malformed") Singleton<ItemFactory>.Instance.ItemTemplates[new("rifle")].Malformed = true;
     if (failure == "unknown") Singleton<ItemFactory>.Instance.ItemTemplates.Clear();
     if (failure == "commit") TeamArenaEntryKit.FailCommit = true;
-    request = TacticalTeamKitEntry.CaptureRequest(profile);
+    request = TacticalTeamKitEntry.CaptureRequest(profile, "factory4_day");
     await Reject(() => TacticalTeamKitEntry.IssueAsync(request, () => profile), failure);
     Need(ReferenceEquals(original, profile.Inventory.Equipment), failure + " no successful profile publication");
     Need(request.Issued == null, failure + " not falsely marked issued");

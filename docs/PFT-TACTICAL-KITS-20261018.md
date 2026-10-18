@@ -25,6 +25,13 @@ inventory root and matching world before awaiting. Both sides of the wait requir
 the same protected Tactical start and no local body. A stale HTTP result cannot
 bind an identity; a stale load failure cannot cancel a newer ordinary or Arena
 start, even when its numeric epoch did not change. Issuance is one-shot.
+Native verification found that `GameWorld.LocationId` is still null here: EFT
+assigns it in `BaseLocalGame.Run` after this continuation. Loading therefore uses
+the original native `LocalRaidSettings.location`, already authenticated against
+the frozen arm, and rejects any conflicting nonempty world location. Match start
+additionally verifies the now-populated world location. Early capture errors still
+await the already-dispatched HTTP task before cancellation, so native retries
+cannot race a prematurely cancelled arm.
 
 `TeamArenaEntryKit` constructs the base kit off-profile with fresh item IDs and
 the original pockets template. It rejects duplicate/orphan graphs, incomplete
@@ -48,3 +55,25 @@ transaction checks include deliberately compiled faults. Real EFT API compilatio
 and the existing loadout/kit/Zombie/PFT regression checks remain separate from
 native acceptance. Deployment identities and actual GPU observations are recorded
 in the accompanying handoff/native report, never inferred from these unit checks.
+
+Implementation: inventory transaction `81b1072`, menu/loading integration
+`3652dda`. Existing Zombie warmup test doubles were refreshed separately in
+`46af869`; no Zombie gameplay changes were made.
+
+Parent verification before the native timing correction: 1,167 unit tests passed, two optional
+installed-content checks skipped. Menu 2,527; native observer/menu 735; entry
+coordinator/resources 150; inventory 106; kit supplies 1,605; loadout 142; team
+expansion 895; round lifecycle 500; Zombie team 176; Zombie warmup 90; optic
+preload 73 assertions passed. Eight loading/observer and fifteen inventory
+compiled fault variants were rejected, with the original source rerun afterwards.
+Client/library Release and preview-hook native API builds passed. The full rebuild
+reported only four pre-existing nullable-context warnings.
+
+The native timing correction passes 165 coordinator/resource and 738 observer/menu
+assertions, including ten compiled faults (also wrong native map and cancellation
+before HTTP completion). Original source passes again after every fault batch.
+
+Reproduce from the repo root with `tools/PftTacticalKitChecks/Verify.ps1`,
+`tools/PftTacticalKitChecks/Verify-Integration.ps1` and
+`tools/PftKitEntryChecks/Verify.ps1`. Integration builds explicitly suppress
+deployment. These local checks need the documented SPT installation/database.

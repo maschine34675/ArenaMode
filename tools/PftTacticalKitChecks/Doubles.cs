@@ -11,7 +11,7 @@ namespace EFT
         public InventoryLogic.Inventory Inventory = new();
     }
     public sealed class Info { public EPlayerSide Side; }
-    public sealed class GameWorld { public string LocationId = "factory4_day"; public object MainPlayer; }
+    public sealed class GameWorld { public string LocationId; public object MainPlayer; }
     public sealed class ItemFactory { public Dictionary<MongoID, ItemTemplate> ItemTemplates = new() { [new("equipment")] = new(), [new("rifle")] = new() }; }
     public sealed class ItemTemplate
     {
