@@ -192,13 +192,19 @@ void CheckPreviews()
         .SequenceEqual(new[] { "CAPTURE THE FLAG", "DOMINATION" }), "both future modes are visible in order");
     string saved = Settings.GameMode.Value;
     int beforeSaves = config.Saves;
+    var playable = Buttons().First(b => b.name.StartsWith("Arena Mode "));
+    playable.GetComponent<Animator>().SimulateNativeLabelColor();
+    var nativeColor = playable.GetComponentInChildren<TMP_Text>(true).color;
+    Need(nativeColor.r != nativeColor.g, "native animation color positive control runs on playable rows");
     foreach (var preview in previews)
     {
         Need(preview.gameObject.activeInHierarchy && !preview.interactable
             && preview.navigation.mode == Navigation.Mode.None && preview.onClick.Snapshot().Length == 0,
             "future mode has neither pointer, keyboard nor inherited callback admission");
+        foreach (var animator in preview.gameObject.GetComponentsInChildren<Animator>(true))
+            animator.SimulateNativeLabelColor();
         var color = preview.GetComponentInChildren<TMP_Text>(true).color;
-        Need(color.r == color.g && color.g == color.b && color.r < .6f, "preview text is gray");
+        Need(color.r == color.g && color.g == color.b && color.r < .6f, "preview text stays gray after native animation update");
         preview.onClick.Invoke();
     }
     Need(Settings.GameMode.Value == saved && config.Saves == beforeSaves, "forced preview dispatch cannot persist a mode");

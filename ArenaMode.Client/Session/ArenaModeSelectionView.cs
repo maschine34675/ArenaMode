@@ -233,6 +233,10 @@ internal sealed class ArenaModeSelectionView
     {
         var button = UnityEngine.Object.Instantiate(template, _root.transform, false);
         button.name = "Arena Preview " + title;
+        // The cloned native Animator writes the label color again after activation.
+        // These inert rows need no native transitions; leave playable rows alone.
+        foreach (var animator in button.gameObject.GetComponentsInChildren<Animator>(true))
+            animator.enabled = false;
         // Replace all prefab events; even explicit event dispatch must be inert.
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;

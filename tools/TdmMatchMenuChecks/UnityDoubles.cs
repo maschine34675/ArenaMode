@@ -6,7 +6,7 @@ namespace UnityEngine
     {
         public static T Instantiate<T>(T original, Transform parent, bool world) where T:Component
         {
-            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Image),typeof(UnityEngine.UI.Button));
+            var result = new GameObject("cloned native row",typeof(RectTransform),typeof(UnityEngine.UI.Image),typeof(UnityEngine.UI.Button),typeof(Animator));
             result.GetComponent<UnityEngine.UI.Button>().targetGraphic = result.GetComponent<UnityEngine.UI.Image>();
             result.transform.SetParent(parent,false);
             var label=new GameObject("native label",typeof(RectTransform),typeof(TMPro.TextMeshProUGUI));
@@ -39,6 +39,15 @@ namespace UnityEngine
     public struct Color(float red,float green,float blue,float alpha)
     { public float r=red,g=green,b=blue,a=alpha; public static Color white=>new(1,1,1,1); }
     public class CanvasRenderer:Component{}
+    // Native dropdown Animator overwrites text after the clone is activated.
+    public class Animator:Component
+    {
+        public bool enabled=true;
+        public void SimulateNativeLabelColor()
+        {
+            if(enabled) GetComponentInChildren<TMPro.TMP_Text>(true).color=new Color(.48235f,.4902f,.45098f,1f);
+        }
+    }
     public class GameObject:Object
     {
         public string name;
