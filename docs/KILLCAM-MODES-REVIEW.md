@@ -26,8 +26,8 @@ Deathmatch/Gun Game/Team Deathmatch bleiben standardmäßig aus; Tactical behäl
 seinen bisherigen Standard von drei Sekunden und vorhandene Konfigurationen.
 
 Ohne verfügbare und aktivierte KillcamReplay-Mod zeigt der Schalter N/A und
-erklärt den Grund unter dem Schalter. `KillAndDamageInfo` deaktiviert dort DeathReplay
-ebenfalls. Kein Schreiben in die fremde Konfiguration und keine Serverroute.
+erklärt den Grund unter dem Schalter. (Killcam 1.0.0 schaltet DeathReplay zusätzlich ab,
+solange `KillAndDamageInfo` installiert ist; spätere Killcam-Versionen nicht mehr.) Kein Schreiben in die fremde Konfiguration und keine Serverroute.
 Die wirksame Dauer wird beim erfolgreichen Arena-Arm eingefroren und bei
 Abbruch, Ablehnung oder Raidende gelöscht. F12-Änderungen im laufenden Match
 ändern weder dessen Replaylänge noch seine Respawnfreigabe. Ein bereits

@@ -35,7 +35,7 @@ internal static class KillcamCompat
             if (_deathReplayActiveProperty?.PropertyType != typeof(bool))
             { reason = "Update Killcam: its enabled-state API is unavailable."; return false; }
             if (!(bool)_deathReplayActiveProperty.GetValue(null))
-            { reason = "Enable DeathReplay in Killcam; KillAndDamageInfo also disables it."; return false; }
+            { reason = "Enable DeathReplay in Killcam."; return false; }
             if (_replayControllerField.GetValue(null) == null)
             { reason = "Killcam is not ready."; return false; }
             return true;
