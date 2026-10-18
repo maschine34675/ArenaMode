@@ -9,6 +9,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Arena-NoticeLayout.ps1')
+$noticeMoves = Get-ArenaNoticeMoves
 $SourceRoot = [IO.Path]::TrimEndingDirectorySeparator((Resolve-Path -LiteralPath $SourceRoot).Path)
 $Destination = [IO.Path]::GetFullPath($Destination)
 if (-not $CoreSourceRoot) { $CoreSourceRoot = Join-Path $SourceRoot '../Redeploy' }
@@ -62,6 +64,10 @@ foreach ($mapping in @(
 }
 foreach ($name in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt', 'CC-BY-3.0.txt')) {
     $documents["ArenaMode.Client/Assets/Ui/$name"] = "Ui/$name"
+}
+foreach ($key in @($documents.Keys)) {
+    $current = $documents[$key]
+    if ($noticeMoves.Contains($current)) { $documents[$key] = $noticeMoves[$current] }
 }
 foreach ($name in $relocatedNotices) {
     if (-not $documents.Contains("ArenaMode.Client/Assets/ArenaMode/$name")) {
@@ -133,6 +139,23 @@ foreach ($entry in $documents.GetEnumerator()) {
             $body = $body.Replace('File (relative to this folder)', 'File (relative to the parent maschine-ArenaMode folder)')
         }
         if ($body -cne $originalBody) { $bytes = $utf8.GetBytes($body) }
+    } elseif ($entry.Key -match '/(hitmarkers|pickups)/SOURCES\.json$') {
+        $category = $Matches[1]
+        $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
+        $clips = if ($category -eq 'hitmarkers') { @($record.files) } else { @($record) }
+        foreach ($clip in $clips) {
+            $sourceClip = "ArenaMode.Client/Assets/ArenaMode/$category/$($clip.file)"
+            if (-not $documents.Contains($sourceClip) -or
+                (Get-FileHash -LiteralPath (Join-Path $SourceRoot $sourceClip)).Hash -ine $clip.sha256) {
+                throw "Missing audio or provenance hash mismatch: $sourceClip"
+            }
+            $clip.file = "../../../$category/$($clip.file)"
+        }
+        $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
+    } elseif ($entry.Key -eq 'ArenaMode.Client/Assets/Ui/SOURCES.json') {
+        $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
+        $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Asset file names identify resources embedded in maschine-ArenaMode.Client.dll, not loose files beside this notice.' -Force
+        $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
     } elseif ($entry.Key -match '/ANNOUNCER-(SOURCES|ADDITIONS-20260917)\.json$') {
         $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
         $shippedClips = @()

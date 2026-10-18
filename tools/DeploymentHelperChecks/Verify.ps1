@@ -82,4 +82,19 @@ Require ($normalized[(Join-Path $canonical 'docs/ANNOUNCER-SOURCES.json')] -eq '
 $duplicates.Remove((Join-Path $canonical 'maschine-ArenaMode.Client.dll'))
 $normalized = ConvertTo-AnnouncerCanonicalInventory $duplicates $stage
 Require ($normalized[(Join-Path $canonical 'maschine-ArenaMode.Client.dll')] -eq 'grouped-old') 'migrated grouped DLL wins over retired flat DLL'
+foreach ($move in (Get-ArenaNoticeMoves).GetEnumerator()) {
+    $candidates = @((Join-Path $canonical $move.Value), (Join-Path $legacy $move.Value),
+        (Join-Path $canonical $move.Key), (Join-Path $legacy $move.Key))
+    $copies = @{}
+    for ($i = 0; $i -lt $candidates.Count; $i++) { $copies[$candidates[$i]] = "copy$i" }
+    for ($i = 0; $i -lt $candidates.Count; $i++) {
+        $normalized = ConvertTo-AnnouncerCanonicalInventory $copies $stage
+        Require ($normalized[(Join-Path $canonical $move.Value)] -eq "copy$i") "notice precedence $i for $($move.Key)"
+        $copies.Remove($candidates[$i])
+    }
+}
+$copies = @{ (Join-Path $legacy 'Ui/custom.txt') = 'keep' }
+foreach ($relative in Get-ArenaRetiredNotices) { $copies[(Join-Path $canonical $relative)] = 'retired' }
+$normalized = ConvertTo-AnnouncerCanonicalInventory $copies $stage
+Require ($normalized.Count -eq 1 -and $normalized[(Join-Path $canonical 'Ui/custom.txt')] -eq 'keep') 'only exact retired notices excluded'
 Write-Output "DEPLOYMENT_HELPER_CHECKS_PASSED checks=$script:checks evidence=$stage; no build or deployment"

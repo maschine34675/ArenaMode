@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+. (Join-Path $PSScriptRoot '../Arena-NoticeLayout.ps1')
 
 function Read-AnnouncerDeliveryInventory([string]$SptRoot) {
     $inventory = @{}
@@ -32,6 +33,8 @@ function ConvertTo-AnnouncerCanonicalInventory([hashtable]$Inventory, [string]$S
         'AUDIO-LICENSES.md', 'CC-BY-3.0.txt', 'HUD-ICON-LICENSES.md')
     $result = @{}
     $priorities = @{}
+    $moves = Get-ArenaNoticeMoves
+    $retired = Get-ArenaRetiredNotices
     foreach ($path in $Inventory.Keys) {
         $target = $path
         $priority = 4
@@ -43,9 +46,15 @@ function ConvertTo-AnnouncerCanonicalInventory([hashtable]$Inventory, [string]$S
             $target = Join-Path $canonical ([IO.Path]::GetFileName($path))
             $priority = 1
         }
-        if ([IO.Path]::GetDirectoryName($target) -eq $canonical -and [IO.Path]::GetFileName($target) -in $notices) {
-            $target = Join-Path $canonical ('docs/' + [IO.Path]::GetFileName($target))
-            if ($priority -eq 4) { $priority = 3 }
+        if ($target.StartsWith($canonical + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+            $relative = [IO.Path]::GetRelativePath($canonical, $target).Replace('\', '/')
+            if ($relative -in $retired) { continue }
+            if ($moves.Contains($relative)) {
+                $target = Join-Path $canonical $moves[$relative]
+                $priority = if ($priority -eq 4) { 2 } else { 1 }
+            } elseif ($relative -in $moves.Values) {
+                $priority = if ($priority -eq 4) { 4 } else { 3 }
+            }
         }
         # A canonical copy wins during migration; the shared deployer performs
         # its own conflict checks and archives redundant retired copies.

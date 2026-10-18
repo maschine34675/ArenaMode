@@ -39,7 +39,7 @@ the entire repository history is ready for publication.
 **MIT — Copyright (c) 2026 maschine.** The full, unchanged text is identical to
 the project [LICENSE](LICENSE). This includes the shared Core library and the
 linked `drivers/CoreVersionGate.cs` source from the separate Redeploy project.
-The current Arena source references Core **1.0.7**; use the exact matching
+The current Arena source references Core **1.0.8**; use the exact matching
 source/build when packaging. The complete Redeploy mod is not an Arena
 dependency. Public availability of matching Core source is a release requirement,
 not established by this notice.

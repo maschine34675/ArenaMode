@@ -8,6 +8,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Arena-NoticeLayout.ps1')
+$noticeMoves = Get-ArenaNoticeMoves
 $AssemblyPath = (Resolve-Path -LiteralPath $AssemblyPath).Path
 $SptPath = (Resolve-Path -LiteralPath $SptPath).Path
 $name = [IO.Path]::GetFileName($AssemblyPath)
@@ -81,6 +83,19 @@ foreach ($spec in @(@{Source='ArenaMode.Client/Assets/ArenaMode'; Prefix=''}, @{
     }
 }
 foreach ($notice in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt', 'CC-BY-3.0.txt')) { [void]$ownedAssets.Add('Ui/' + $notice) }
+foreach ($entry in $noticeMoves.GetEnumerator()) {
+    [void]$ownedAssets.Add($entry.Key)
+    [void]$ownedAssets.Add($entry.Value)
+    $destination = Join-Path $canonical $entry.Value
+    Assert-SafePath $destination
+    if (Test-Path -LiteralPath $destination -PathType Container) { throw "Notice destination is a directory: $destination" }
+    # Detect a file blocking a future destination directory before replacing DLLs.
+    $parent = Split-Path $destination
+    while ($parent -ne $canonical) {
+        if (Test-Path -LiteralPath $parent -PathType Leaf) { throw "Notice parent is a file: $parent" }
+        $parent = Split-Path $parent
+    }
+}
 foreach ($file in $oldFiles) {
     $relative = [IO.Path]::GetRelativePath($legacy, $file.FullName).Replace('\', '/')
     $other = Join-Path $canonical $relative
@@ -143,14 +158,22 @@ try {
 if ($Configuration -eq 'Debug') { Copy-Item -LiteralPath $sourcePdb -Destination $targetPdb -Force }
 else { Archive-File $targetPdb ('symbols/' + [IO.Path]::GetFileName($targetPdb)) }
 foreach ($file in $flatFiles) { Archive-File $file ('flat/' + [IO.Path]::GetFileName($file)) }
-foreach ($notice in $notices) {
-    $old = Join-Path $canonical $notice
+foreach ($entry in $noticeMoves.GetEnumerator()) {
+    $old = Join-Path $canonical $entry.Key
     if (-not (Test-Path -LiteralPath $old)) { continue }
-    $new = Join-Path $canonical ('docs/' + $notice)
+    $new = Join-Path $canonical $entry.Value
     if (-not (Test-Path -LiteralPath $new)) {
         New-Item -ItemType Directory -Path (Split-Path $new) -Force | Out-Null
         Move-Item -LiteralPath $old -Destination $new
-    } else { Archive-File $old ('notices/' + $notice) }
+    } else { Archive-File $old ('notices/' + $entry.Key) }
+}
+foreach ($relative in Get-ArenaRetiredNotices) { Archive-File (Join-Path $canonical $relative) ('retired/' + $relative) }
+foreach ($relative in @('MapPreviews/Source', 'MapPreviews', 'Ui')) {
+    $directory = Join-Path $canonical $relative
+    Assert-SafePath $directory
+    if ((Test-Path -LiteralPath $directory -PathType Container) -and @(Get-ChildItem -LiteralPath $directory -Force).Count -eq 0) {
+        Remove-Item -LiteralPath $directory
+    }
 }
 Write-Output "ARENA_CLIENT_DEPLOYED $targetDll"
 if (Test-Path -LiteralPath $backup) { Write-Output "ARENA_LAYOUT_BACKUP $backup" }

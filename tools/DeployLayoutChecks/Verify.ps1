@@ -50,6 +50,11 @@ Deploy $fresh
 $target = Join-Path $fresh 'BepInEx/plugins/maschine-ArenaMode'
 Check (Test-Path -LiteralPath (Join-Path $target $dll)) 'fresh target is canonical'
 Check (Test-Path -LiteralPath (Join-Path $target 'docs/README.md')) 'normal target writes shared documents'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'Ui'))) 'fresh payload has no notice-only Ui folder'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'MapPreviews'))) 'preview provenance is grouped with licenses'
+foreach ($relative in @('ui/NOTICE.md', 'hitmarkers/SOURCES.json', 'pickups/SOURCES.json', 'map-previews/ATTRIBUTION.md')) {
+    Check (Test-Path -LiteralPath (Join-Path $target ('docs/licenses/' + $relative))) ('retained notice ' + $relative)
+}
 Check (-not (Test-Path -LiteralPath (Join-Path $fresh ('BepInEx/plugins/' + $dll)))) 'fresh deploy never writes flat DLL'
 
 $old = Join-Path $run 'legacy'
@@ -58,6 +63,10 @@ Put $old 'BepInEx/plugins/ArenaMode/PickupDrafts/custom.json' 'pickup-user-data'
 Put $old 'BepInEx/plugins/ArenaMode/Pickups.json' 'custom-layout'
 Put $old 'BepInEx/plugins/ArenaMode/sounds/custom.ogg' 'custom-audio'
 Put $old 'BepInEx/plugins/ArenaMode/AUDIO-LICENSES.md' 'old notice'
+Put $old 'BepInEx/plugins/ArenaMode/Ui/NOTICE.md' 'old UI notice'
+Put $old 'BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg' 'old map provenance'
+Put $old 'BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-IMPACT-LICENSE.txt' 'obsolete notice'
+Put $old 'BepInEx/plugins/ArenaMode/pickups/custom.txt' 'user pickup notes'
 Put $old 'BepInEx/config/com.maschine.ArenaMode.cfg' 'user-settings'
 Put $old 'BepInEx/plugins/maschine-Redeploy.Core.dll' 'untouched-shared-core'
 Put $old 'BepInEx/plugins/Foreign.dll' 'untouched-foreign-mod'
@@ -78,6 +87,10 @@ foreach ($name in @($dll, $compat)) {
 }
 Check (Test-Path -LiteralPath (Join-Path $target ([IO.Path]::ChangeExtension($dll, '.pdb')))) 'debug symbols grouped'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'AUDIO-LICENSES.md'))) 'old notice leaves asset root'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'Ui'))) 'empty retired UI folder removed'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'MapPreviews'))) 'empty retired preview tree removed'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'hitmarkers/KENNEY-IMPACT-LICENSE.txt'))) 'unused owned license archived'
+Check ([IO.File]::ReadAllText((Join-Path $target 'pickups/custom.txt')) -ceq 'user pickup notes') 'unknown pickup files preserved'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/config/com.maschine.ArenaMode.cfg')) -ceq 'user-settings') 'user config unchanged'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/maschine-Redeploy.Core.dll')) -ceq 'untouched-shared-core') 'shared Core unchanged by client deploy'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/Foreign.dll')) -ceq 'untouched-foreign-mod') 'other mod unchanged'
@@ -111,10 +124,20 @@ Check ((Snapshot $locked) -ceq $before) 'locked old DLL blocks before folder mig
 $merge = Join-Path $run 'merge'
 Put $merge 'BepInEx/plugins/ArenaMode/AreaDrafts/old.json' 'old draft'
 Put $merge 'BepInEx/plugins/maschine-ArenaMode/PickupDrafts/new.json' 'new draft'
+Put $merge 'BepInEx/plugins/maschine-ArenaMode/Ui/custom.txt' 'custom UI note'
+Put $merge 'BepInEx/plugins/maschine-ArenaMode/MapPreviews/custom.png' 'custom map'
 Deploy $merge
 Check ([IO.File]::ReadAllText((Join-Path $merge 'BepInEx/plugins/maschine-ArenaMode/AreaDrafts/old.json')) -ceq 'old draft') 'coexisting layout retains legacy-only draft'
 Check ([IO.File]::ReadAllText((Join-Path $merge 'BepInEx/plugins/maschine-ArenaMode/PickupDrafts/new.json')) -ceq 'new draft') 'coexisting layout retains canonical-only draft'
 Check (-not (Test-Path -LiteralPath (Join-Path $merge 'BepInEx/plugins/ArenaMode'))) 'merged old folder is archived outside plugins'
+Check ([IO.File]::ReadAllText((Join-Path $merge 'BepInEx/plugins/maschine-ArenaMode/Ui/custom.txt')) -ceq 'custom UI note') 'custom UI data retained'
+Check ([IO.File]::ReadAllText((Join-Path $merge 'BepInEx/plugins/maschine-ArenaMode/MapPreviews/custom.png')) -ceq 'custom map') 'custom map data retained'
+
+$blocked = Join-Path $run 'blocked-notice'
+Put $blocked 'BepInEx/plugins/maschine-ArenaMode/docs/licenses/ui/NOTICE.md/keep.txt' 'do not touch'
+$before = Snapshot $blocked
+Deploy $blocked 'Release' $false $true
+Check ((Snapshot $blocked) -ceq $before) 'notice destination collision aborts before DLL or asset writes'
 
 $linked = Join-Path $run 'linked'
 $external = Join-Path $run 'link-destination'

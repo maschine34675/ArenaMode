@@ -43,7 +43,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Staged server build failed.' }
     $serverDll = Join-Path $serverOutput 'maschine-ArenaMode.Server.dll'
     if (-not (Test-Path -LiteralPath $serverDll)) { throw 'Staged server artifact missing.' }
-    $contentRoot = Join-Path ([IO.Path]::GetDirectoryName($clientDll)) 'maschine-ArenaMode\MapPreviews'
+    $contentRoot = Join-Path ([IO.Path]::GetDirectoryName($clientDll)) 'maschine-ArenaMode\docs\licenses\map-previews'
     & (Join-Path $PSScriptRoot 'Verify-Package.ps1') -ClientDll $clientDll -ContentRoot $contentRoot
     $mapManifest = [ordered]@{
         SourceCommit = (& git -C $mapRepo rev-parse HEAD)

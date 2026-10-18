@@ -99,7 +99,8 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
         'ArenaMode.Client/Areas/ArenaAreaCapture.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
         'ArenaMode.Client/Plugin.cs' = @(
             'BepInDependency\(ArenaBigBrainLibrary.BigBrainGuid,\s*BepInDependency\.DependencyFlags\.SoftDependency\)',
-            'private void Start\(\) => ArenaBigBrainLibrary.Initialize', 'ArenaBigBrainLibrary.Shutdown\('
+            'CoreVersionGate.Check\(', 'if \(_runtimeStarted\) StartRuntime\(\);',
+            '\[MethodImpl\(MethodImplOptions.NoInlining\)\]\s*private void StartRuntime\(\)', 'ArenaBigBrainLibrary.Shutdown\('
         )
         'ArenaMode.Client/Compat/ArenaBigBrainLibrary.cs' = @('Assembly.LoadFrom\(path\)', 'entry.GetMethod\("Initialize"')
         'ArenaMode.BigBrainCompat/Library.cs' = @(
@@ -255,7 +256,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 "@ | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/INSTALL.txt") -Encoding utf8
 
 $manifest = [ordered]@{
-    schemaVersion=2; layout='spt-root-folders-v3'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
+    schemaVersion=2; layout='spt-root-folders-v4'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
     redeployCoreBinary= $(if ($CoreAssemblyPath) { 'verified-input' } else { 'source-build' })
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false

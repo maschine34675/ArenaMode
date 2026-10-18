@@ -25,9 +25,11 @@ REQUIRED = DLLS | {
     DOCS + 'AUDIO-LICENSES.md', DOCS + 'HUD-ICON-LICENSES.md',
     'SPT_Runtime/user/mods/ArenaMode/config/kits.json',
     'SPT_Runtime/user/mods/ArenaMode/config/ladder.json',
-    ASSETS + 'Ui/NOTICE.md', ASSETS + 'Ui/SOURCES.json',
-    ASSETS + 'Ui/MIT-LICENSE.txt', ASSETS + 'Ui/CC-BY-3.0.txt',
-    ASSETS + 'MapPreviews/ATTRIBUTION.md',
+    DOCS + 'licenses/ui/NOTICE.md', DOCS + 'licenses/ui/SOURCES.json',
+    DOCS + 'licenses/ui/MIT-LICENSE.txt', DOCS + 'licenses/ui/CC-BY-3.0.txt',
+    DOCS + 'licenses/map-previews/ATTRIBUTION.md',
+    DOCS + 'licenses/hitmarkers/CC0-1.0.txt', DOCS + 'licenses/hitmarkers/SOURCES.json',
+    DOCS + 'licenses/pickups/CC0-1.0.txt', DOCS + 'licenses/pickups/SOURCES.json', DOCS + 'licenses/pickups/README.md',
 }
 
 
@@ -54,7 +56,9 @@ def verify(path):
             assert len(parts) > 1 and parts[0] in {'BepInEx', 'SPT_Runtime'}, f'Unexpected ZIP root payload: {name}'
             assert not name.casefold().startswith((ASSETS + 'sounds/reserve/').casefold()), f'Unused reserve audio in package: {name}'
             assert name in REQUIRED or any(name.startswith(ASSETS + folder + '/') for folder in
-                ('sounds', 'hitmarkers', 'pickups', 'MapPreviews', 'Ui')), f'Unexpected payload: {name}'
+                ('sounds', 'hitmarkers', 'pickups', 'docs/licenses/map-previews')), f'Unexpected payload: {name}'
+            if name.startswith((ASSETS + 'hitmarkers/', ASSETS + 'pickups/')):
+                assert name.endswith('.wav'), f'Non-runtime file outside docs: {name}'
             assert PurePosixPath(name).suffix.lower() not in {'.exe', '.pdb', '.cfg', '.log', '.zip'}, f'Forbidden payload: {name}'
         assert REQUIRED <= set(names), f'Missing files: {REQUIRED - set(names)}'
         assert {name for name in names if name.lower().endswith('.dll')} == DLLS, 'Unexpected DLL set'
@@ -63,7 +67,7 @@ def verify(path):
         label = 'RELEASE PACKAGE' if manifest['kind'] == 'release' else 'LOCAL TEST PACKAGE'
         install = archive.read(DOCS + 'INSTALL.txt').decode('utf-8-sig')
         assert install.splitlines()[0] == f"ArenaMode {manifest['arenaVersion']} - {label}", 'Package label/manifest mismatch'
-        assert manifest['layout'] == 'spt-root-folders-v3', 'Unexpected package layout version'
+        assert manifest['layout'] == 'spt-root-folders-v4', 'Unexpected package layout version'
         assert not manifest['deployed'] and not manifest['uploaded']
         for key in ('arenaCommit', 'redeployCoreCommit'):
             assert len(manifest[key]) == 40 and all(c in '0123456789abcdef' for c in manifest[key]), key
@@ -103,6 +107,14 @@ def verify(path):
                 audio_files.add(resolved)
                 assert hashlib.sha256(archive.read(resolved)).hexdigest() == clip['sha256'].lower(), f'Audio provenance hash mismatch: {resolved}'
         assert audio_files == {name for name in names if name.endswith('.ogg')}, 'Unrecorded/missing announcer file'
+        for category in ('hitmarkers', 'pickups'):
+            document = DOCS + 'licenses/' + category + '/SOURCES.json'
+            record = json.loads(archive.read(document))
+            for clip in record['files'] if category == 'hitmarkers' else [record]:
+                resolved = resolve_reference(document, clip['file'])
+                assert hashlib.sha256(archive.read(resolved)).hexdigest() == clip['sha256'].lower(), resolved
+            license_path = resolve_reference(document, record['licenseFile'])
+            assert hashlib.sha256(archive.read(license_path)).hexdigest() == record['licenseSha256'].lower(), license_path
         assert archive.testzip() is None, 'ZIP CRC failure'
         print(f'TEST_RELEASE_VERIFIED: {len(names)} files; folder-only root, exact DLL set, paths, hashes, defaults, {links} local notice links and {len(audio_files)} audio provenance records')
 

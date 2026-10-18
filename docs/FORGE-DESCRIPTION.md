@@ -92,6 +92,8 @@ the post-raid XP page skipped.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
 - Use the supplied `maschine-Redeploy.Core.dll` (1.0.8); keep only one copy,
   directly in `BepInEx/plugins/`.
+  Arena requires at least this version and disables itself before initialization
+  if Core is missing, unreadable or older. Restart after correcting the files.
   The full Redeploy mod is not required.
 - Install optional mods separately, with their own prerequisites.
 - Start server and game, select ARENA, then configure and enter the match.

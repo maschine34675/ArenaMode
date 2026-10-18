@@ -162,8 +162,8 @@ SPT installation/
       maschine-ArenaMode.Client.dll
       maschine-ArenaMode.BigBrainCompat.dll
       sounds/, hitmarkers/, pickups/   audio
-      MapPreviews/, Ui/                assets and notices
-      docs/                           documentation, licenses and manifest
+      docs/                           documentation and manifest
+        licenses/                     UI, audio and map-source notices
   SPT_Runtime/user/mods/ArenaMode/
     maschine-ArenaMode.Server.dll
     config/
@@ -173,8 +173,11 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. This release uses Core **1.0.8**. An older installed
-Arena build may have been compiled against a different Core version.
+plugin tree. This build requires Core **1.0.8 or newer**. If Core is missing,
+unreadable or too old, Arena disables itself before settings, hooks or components
+start and reports an error in the client log and SPT dependency list. Install the
+supplied Core and restart the game. This minimum check permits newer versions;
+it does not certify future API changes.
 Redeploy's standalone client and server are not required: Core owns local
 respawning, while Arena's own server protects and restores the raid profile.
 

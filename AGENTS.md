@@ -653,3 +653,10 @@ self-contained commits with a message that explains the reasoning. Verify game
 internals against `../_decompiled/` rather than assuming — the decompiled source is
 complete and it has contradicted confident guesses many times. When a playtest disagrees
 with your explanation, the explanation is wrong; measure before you theorise again.
+
+Core admission: both clients fail closed before runtime initialization when the loaded
+Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
+1.0.8). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
+Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
+provenance go under docs/licenses; preserve unknown user files during migration.
