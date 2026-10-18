@@ -18,6 +18,18 @@ Turning DeveloperMode off stops these probes again. Existing saved settings are
 not reset. Zombie melee observation only attaches to bots arriving while enabled;
 enable it before the raid for full coverage of that diagnostic counter.
 
+DeveloperMode also opts each new Arena respawn request into Core 1.0.8's detailed
+pipeline timing. With it off, state/reflection counters and following-frame
+measurements are not collected. The standalone Redeploy driver has its own
+`Diagnostics/EnablePipelineTiming` switch, also off by default. A measurement
+already started finishes normally if the switch changes mid-respawn.
+
+Native model faults receive bounded object/body context only in an admitted
+Arena world. See [the exact hooks and limits](NATIVE-MODEL-DIAGNOSTICS-20261018.md).
+Original native errors remain unchanged. The server independently omits only
+successful exact settings GET request lines; failures and other routes keep
+their diagnostics ([scope and checks](SETTINGS-POLL-LOGGING-20261018.md)).
+
 A BepInEx installation configured with disk/console `LogLevels = All` still
 records Debug messages. This cleanup does not change that global setting or
 Harmony's independent trace channels.

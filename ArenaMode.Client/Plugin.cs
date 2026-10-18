@@ -44,6 +44,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 
         ArenaSession.Initialize();
+        Diagnostics.ArenaNativeModelDiagnostics.Enable();
         DynamicMapsCorpseMarkers.Enable();
         Hud.ArenaExtractionList.Enable();
         // After ArenaSession: RaidLifecycle handlers run in subscription order and
@@ -196,6 +197,7 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaBotAgility.Shutdown();
         Notifications.ArenaProgressNotifications.Shutdown();
         Diagnostics.ArenaPreviewDiagnostics.Shutdown();
+        Diagnostics.ArenaNativeModelDiagnostics.Shutdown();
         Hud.ArenaHud.Detach();
         Combat.ArenaMagazinePatches.Shutdown();
         Combat.ArenaMedicalPatches.Shutdown();

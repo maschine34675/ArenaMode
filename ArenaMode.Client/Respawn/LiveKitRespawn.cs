@@ -312,6 +312,7 @@ internal static class LiveKitRespawn
 
         var request = new RespawnRequest
         {
+            EnablePipelineTiming = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled,
             Game = game,
             DeadPlayer = oldBody,
             // Resolved here, not by the caller: for the raid-start swap "where

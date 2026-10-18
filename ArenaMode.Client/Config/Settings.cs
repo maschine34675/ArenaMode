@@ -519,7 +519,7 @@ public static class Settings
     {
         File = config;
         DeveloperMode = config.Bind("Diagnostics", "DeveloperMode", false,
-            "Enable detailed Arena diagnostic probes (per-body, audio and movement traces). " +
+            "Enable detailed Arena diagnostic probes (per-body, audio, movement and native model faults) and Core respawn timing. " +
             "These appear as [dev] Info messages without enabling global BepInEx Debug logging. " +
             "Ordinary technical details use Debug. Warnings, errors and LogDamageExceptions remain independent.");
         AreaCaptureEnabled = config.Bind("Development - Area outline", "Enabled", false,

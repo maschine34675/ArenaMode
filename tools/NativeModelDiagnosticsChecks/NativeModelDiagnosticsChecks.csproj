@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <NativeModelSource Condition="'$(NativeModelSource)' == ''">../../ArenaMode.Client/Diagnostics/ArenaNativeModelDiagnostics.cs</NativeModelSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(NativeModelSource)" Link="ArenaNativeModelDiagnostics.cs" />
+    <Reference Include="Mono.Cecil"><HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

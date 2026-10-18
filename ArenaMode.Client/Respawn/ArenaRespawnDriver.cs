@@ -248,6 +248,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         var request = new RespawnRequest
         {
+            EnablePipelineTiming = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled,
             Game = game,
             DeadPlayer = deadPlayer,
             // Random and away from the body, rather than the engine's "farthest
@@ -364,6 +365,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         var startedAt = Time.realtimeSinceStartup;
         var request = new RespawnRequest
         {
+            EnablePipelineTiming = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled,
             Game = game,
             DeadPlayer = deadPlayer,
             SpawnSelector = new ArenaSpawnSelector(
@@ -479,6 +481,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         int restoreEpoch = 0;
         var request = new RespawnRequest
         {
+            EnablePipelineTiming = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled,
             Game = game,
             DeadPlayer = deadPlayer,
             SpawnSelector = preparedSpawn,

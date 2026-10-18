@@ -11,7 +11,7 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 |---|---|
 | SPT 4.1.x | Einschließlich der mit SPT gelieferten BepInEx-/Client-Komponenten. Aktuelle GPU-Prüfung mit SPT 4.1.6. |
 | ArenaMode Client und Server | Beide Hälften sowie die eigenen benötigten Daten/Assets gehören zum Paket. |
-| `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand referenziert 1.0.7; ältere Test-/Buildberichte können noch 1.0.6 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
+| `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain und DynamicMaps als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
