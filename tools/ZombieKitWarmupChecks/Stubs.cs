@@ -23,6 +23,7 @@ namespace ArenaMode.Session
         public static bool IsActive, ArmedForNextRaid, ZombieOwnGearArmed;
         public static string ActiveMode, ArmedMode;
         public static int ArmEpoch;
+        public static void TickAreaStart() { }
     }
     public static class ArenaMenuSelection { public static bool CompatibilityTeamArenaActive; }
     public static class ArenaRaidExit { public static void Tick() { } }
@@ -30,6 +31,8 @@ namespace ArenaMode.Session
 }
 namespace ArenaMode.Compat
 {
+    public static class ZombiePftFastPath { public static void TickDiagnostics() { } }
+    public static class PitFireTeamAreaSpawns { public static void Tick() { } }
     public static class PitFireTeamCompat
     {
         public static bool TeamArenaActive, IsFinalizing;
@@ -80,12 +83,13 @@ namespace ArenaMode.Modes
     }
     public static class TacticalMode { public static ArenaMode.Kits.KitDefinition SelectOpeningKit() => ArenaMode.Kits.KitCatalog.Opening; }
     public class Match { public object Mode; }
-    public static class ArenaMatchService { public static Match Current; public static void Tick() { } }
+    public static class ArenaMatchService { public static Match Current; public static bool TeamStartAbortPending; public static void Tick() { } }
 }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
-namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static void Tick() { } } }
+namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static bool IsPending; public static void Tick() { } } }
 namespace ArenaMode.Bots
 {
+    public static class ZombieVoiceBudget { public static void Tick() { } }
     public static class BurstSpawnService { public static void Tick() { } }
     public static class BotLoadBoost { public static void Tick() { } }
     public static class ArenaHostility { public static void Tick() { } }
@@ -99,6 +103,7 @@ namespace ArenaMode.Pickups { public static class ArenaPickupRuntime { public st
 namespace ArenaMode.Combat.Fire { public static class ArenaFireRuntime { public static void Tick() { } } }
 namespace ArenaMode.Combat
 {
+    public static class ArenaDefaultFireMode { public static void Tick() { } }
     public static class ArenaSkills { public static void Tick() { } }
     public static class ArenaGiveUp { public static void Tick() { } }
 }
