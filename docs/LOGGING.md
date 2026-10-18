@@ -23,6 +23,10 @@ pipeline timing. With it off, state/reflection counters and following-frame
 measurements are not collected. The standalone Redeploy driver has its own
 `Diagnostics/EnablePipelineTiming` switch, also off by default. A measurement
 already started finishes normally if the switch changes mid-respawn.
+The per-raid timing sequence counts measured pipelines; respawns while disabled
+do not consume a diagnostic sequence number.
+Core timing uses its own ordinary Info lines; Arena's other detailed probes
+retain the `[dev]` prefix.
 
 Native model faults receive bounded object/body context only in an admitted
 Arena world. See [the exact hooks and limits](NATIVE-MODEL-DIAGNOSTICS-20261018.md).

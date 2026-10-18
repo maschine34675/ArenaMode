@@ -7,6 +7,32 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Log-audit recommendations implemented and GPU2 checked (2026-10-18):**
+  Arena `9769c00` quiets only successful exact settings GETs; `f64d74f` stops
+  progression/new PFT roster discovery after the exact native raid begins
+  stopping; `1ffe0b5` adds bounded opt-in model context and Core timing.
+  Redeploy `aca6e7a` supplies required Core **1.0.8**, default-off detailed
+  measurement and quieter routine recovery. Killcam `00939e5` moves routine
+  setup details to Debug. Genuine warnings, profile protection and original
+  native errors remain. No global logger settings were changed.
+  See [implementation and independent checks](LOG-FOLLOWUP-20261018.md) and
+  [fresh GPU2 evidence and exact binary identities](GPU-LOG-FOLLOWUP-20261018.md).
+  Process `4a1afffbdb8243d1a53bff93d05990c3` loaded the reviewed five client-side
+  modules; the server restarted with the sixth matching binary. Two actual DM
+  deaths cover replay/respawn and timing off/on. A deterministic PFT test death
+  covers spectating, kit/leader/follower rebuild, round two and three live,
+  firing after rebuild and ordinary disconnect without the former false alarm.
+  Final merged capture: 10,675 unique records; one oversized Info payload is
+  clipped, no Warning/Error stack is. Native model errors remain unresolved;
+  context includes both inactive pooled objects and active AI views. Do not
+  infer one root cause or silence them. Profile/store/config comparisons pass,
+  test hooks/invitations are cleared and GPU2 is free at MainMenu.
+  Offline: Arena 1,167 pass/two optional skips, Core 183 pass, full UI chain
+  green after test-only frozen-Tactical fixture repair `f081c66`. The tested
+  runtime candidate remains `1ffe0b5`; later fixture/report commits do not
+  change its binaries. Next diagnostic work should use the captured object and
+  lifetime context to reproduce unresolved native model failures selectively.
+
 - **Disabled mode surfaces and merged-log audit (2026-10-18):** `53fa560`
   gives only the Capture the Flag and Domination preview clones a neutral gray
   disabled background; ordinary/playable buttons are unchanged. GPU2 confirms
@@ -28,10 +54,10 @@ current. User-facing communication is normally German.
   BepInEx/server/EFT, with no truncated Warning/Error stack. All three protected
   entry/exit profile comparisons pass (314 items each), twelve PFT files remain
   byte-identical and all 224 settings are restored. GPU2 is free at MainMenu.
-  Recommended next work: exact native-stop guard for PFT live-roster reads,
-  scoped Core/Killcam routine-log cleanup, then object-specific diagnostics for
-  unresolved native startup/model errors. Do not mute the live goal-handoff
-  refusals or protection alarms to obtain a clean log.
+  The recommended native-stop guard, Core/Killcam routine-log cleanup and
+  object-specific diagnostics are completed by the follow-up above. Native
+  startup/model root causes remain open. Do not mute live goal-handoff refusals
+  or protection alarms to obtain a clean log.
 
 - **PMC equipment choice for PFT Tactical (2026-10-18):** The map screen now
   offers Own gear (default) or Arena kits for the local PMC only. PFT companions
