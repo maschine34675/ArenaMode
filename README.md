@@ -316,6 +316,10 @@ and run `pwsh -File tools/Package-TestRelease.ps1 -Release -SptPath C:\SPT41`.
 This uses isolated source snapshots, builds both halves, runs the unit suite and
 verifies the archive. Omit `-Release` for a distinctly named local test package.
 Neither form uploads anything. Published DLL scan links are in the release notes.
+When coordinating with a Redeploy release, pass its verified Core DLL through
+`-CoreAssemblyPath` and its independently checked hash through
+`-CoreAssemblySha256`. The packager checks the assembly identity, version and
+exact source commit so both downloads can contain the same shared DLL bytes.
 
 ## Licenses and credits
 

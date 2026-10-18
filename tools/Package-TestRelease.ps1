@@ -5,7 +5,9 @@ param(
     [string]$SptPath = (Join-Path $PSScriptRoot '..\..\..'),
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\artifacts\test-releases'),
     [string]$ArenaRevision,
-    [switch]$Release
+    [switch]$Release,
+    [string]$CoreAssemblyPath,
+    [string]$CoreAssemblySha256
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -13,6 +15,16 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $coreRepo = (Resolve-Path (Join-Path $repo '..\Redeploy')).Path
 $SptPath = (Resolve-Path $SptPath).Path
+if ([bool]$CoreAssemblyPath -ne [bool]$CoreAssemblySha256) {
+    throw 'CoreAssemblyPath and its independently verified SHA256 must be supplied together.'
+}
+if ($CoreAssemblyPath) {
+    $CoreAssemblyPath = (Resolve-Path -LiteralPath $CoreAssemblyPath).Path
+    if ($CoreAssemblySha256 -notmatch '^[0-9a-fA-F]{64}$' -or
+        (Get-FileHash -LiteralPath $CoreAssemblyPath -Algorithm SHA256).Hash -ne $CoreAssemblySha256) {
+        throw 'Supplied Core assembly does not match its verified release hash.'
+    }
+}
 foreach ($root in @($repo, $coreRepo)) {
     if ($root -eq $repo -and $ArenaRevision) { continue }
     & git -C $root diff --quiet HEAD
@@ -167,14 +179,26 @@ $dlls = @(
     @{Source=(Join-Path $coreSource 'Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll'); Dest='BepInEx/plugins/maschine-Redeploy.Core.dll'; Version=$coreVersion},
     @{Source=(Join-Path $source 'ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll'); Dest="$assetRoot/maschine-ArenaMode.BigBrainCompat.dll"; Version=$version}
 )
+# Keep the shared library byte-identical across independently built mod packages.
+# A supplied published binary must match the frozen Core source revision/version,
+# not just a caller-selected filename. The regular build still checks its API.
+if ($CoreAssemblyPath) { $dlls[2].Source = $CoreAssemblyPath }
 . (Join-Path $source 'tools/Assert-BigBrainLibrary.ps1')
 Assert-BigBrainLibrary $dlls[0].Source $dlls[3].Source (Join-Path $SptPath 'BepInEx/core/Mono.Cecil.dll')
 foreach ($dll in $dlls) {
     $actual = [Reflection.AssemblyName]::GetAssemblyName($dll.Source).Version
     if ($actual -ne [version]($dll.Version + '.0')) { throw "Unexpected assembly version: $($dll.Dest): $actual" }
+    if ($dll.Dest.EndsWith('maschine-Redeploy.Core.dll') -and
+        [Reflection.AssemblyName]::GetAssemblyName($dll.Source).Name -ne 'maschine-Redeploy.Core') {
+        throw 'The supplied shared library is not Redeploy.Core.'
+    }
     $revision = if ($dll.Dest.EndsWith('maschine-Redeploy.Core.dll')) { $coreCommit } else { $arenaCommit }
     $productVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll.Source).ProductVersion
     if ($productVersion -ne ($dll.Version + '+' + $revision)) { throw "Unexpected embedded source revision: $($dll.Dest): $productVersion" }
+    if ($CoreAssemblyPath -and $dll.Dest.EndsWith('maschine-Redeploy.Core.dll') -and
+        (Get-FileHash -LiteralPath $dll.Source -Algorithm SHA256).Hash -ne $CoreAssemblySha256) {
+        throw 'Supplied Core assembly changed during the build.'
+    }
     Copy-Payload $dll.Source $dll.Dest
 }
 foreach ($name in @('kits.json', 'ladder.json')) {
@@ -233,6 +257,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 $manifest = [ordered]@{
     schemaVersion=2; layout='spt-root-folders-v3'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
+    redeployCoreBinary= $(if ($CoreAssemblyPath) { 'verified-input' } else { 'source-build' })
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false
     files=@(Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {
         [ordered]@{path=[IO.Path]::GetRelativePath($payload, $_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
