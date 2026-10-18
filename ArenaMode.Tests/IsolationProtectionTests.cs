@@ -71,9 +71,11 @@ public sealed class IsolationProtectionTests
     [Fact]
     public void PluginUnloadRestoresClientMutations()
     {
-        string unload = MethodBody(
-            File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Client", "Plugin.cs")),
-            "private void OnDestroy()");
+        string source = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Client", "Plugin.cs"));
+        string entry = MethodBody(source, "private void OnDestroy()");
+        Assert.Contains("if (!_runtimeStarted) return;", entry, StringComparison.Ordinal);
+        Assert.Contains("ShutdownRuntime();", entry, StringComparison.Ordinal);
+        string unload = MethodBody(source, "private void ShutdownRuntime()");
         Assert.Contains("Combat.ArenaSkills.Restore();", unload, StringComparison.Ordinal);
         Assert.Contains("Movement.VaultingTuning.Restore();", unload, StringComparison.Ordinal);
         Assert.Contains("Movement.FastDeployPatches.Restore();", unload, StringComparison.Ordinal);
