@@ -334,7 +334,8 @@ contour. This does not authorize ordinary-raid gameplay/profile changes, Arena
 activation, invulnerability, Scav/Hideout capture or weakening any Arena barrier.
 Both switches default off. See `docs/POLYGON-AREA-REVIEW.md` for the exact boundary.
 The accepted pickup prototype extends this read-only exception to its separate
-`Development - Pickups / Enabled` capture tool plus the same explicit
+`Development - Pickups / Enabled` capture tool (both Development sections and
+Diagnostics are F12 advanced entries, see docs/CONFIG-MENU-20261018.md) plus the same explicit
 `AllowInNormalPmc` switch. It may preview coordinates and export new PickupDrafts;
 it must never spawn loot, grant effects or automatically install a layout there.
 See `docs/PICKUPS-REVIEW.md` for per-map/area layout admission and capture shortcuts.

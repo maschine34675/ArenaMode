@@ -1,4 +1,3 @@
-using ArenaMode.Config;
 using BepInEx.Configuration;
 using System;
 using System.IO;
@@ -97,6 +96,6 @@ internal static class InfoPanelSettings
             try { initial = legacy.Bind(section, key, fallback).Value; }
             catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena panel setting {section}/{key} not imported: {ex.Message}"); }
         }
-        return config.BindArena("HUD Panels - " + section, key, initial, description);
+        return config.Bind("HUD Panels - " + section, key, initial, description);
     }
 }

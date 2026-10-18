@@ -10,7 +10,8 @@ companion only; it does not filter Unity, SPT or other mods' output.
 | Developer | Detailed movement, audio, renderer, AI and corpse probes, including individual hits/jumps. Opt-in, with existing rate limits. |
 | Warning / Error | Real failures, degraded behavior, rejected protection/identity contracts, failed restore, missing assets and unexpected native exceptions. |
 
-In F12, enable **Diagnostics → DeveloperMode** to collect detailed probes. It
+In F12, tick **Advanced settings** and enable **Diagnostics → Developer Mode**
+(.cfg key `Diagnostics/DeveloperMode`) to collect detailed probes. It
 defaults to **false**, is not a gameplay mutator and can be changed at runtime.
 Enabled probes appear as **`[dev]` Info** so no global BepInEx Debug change is
 needed. Ordinary Debug messages still use the logger's native Debug setting.

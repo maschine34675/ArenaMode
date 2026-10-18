@@ -172,8 +172,9 @@ public class Plugin : BaseUnityPlugin
         Audio.AnnouncerService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
         Audio.HitmarkerAudioService.SetPluginDirectory(System.IO.Path.GetDirectoryName(Info.Location));
 
-        // Last: every ArenaMode entry is bound by now (fire/pickup settings bind late).
-        ArenaConfigMenu.ApplySectionOrder(Config);
+        // Last: every ArenaMode entry is bound by now (the incendiary prototype binds
+        // late, in ArenaFireRuntime.Enable). Display names, order, advanced/hidden.
+        ArenaConfigMenu.Apply(Config);
 
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version}; build/MVID {typeof(Plugin).Module.ModuleVersionId})");
     }

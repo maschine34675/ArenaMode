@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using ArenaMode.Config;
 
@@ -5,67 +6,159 @@ namespace ArenaMode.Tests;
 
 public sealed class ArenaConfigMenuLayoutTests
 {
-    private static readonly string[] BindFiles =
-    {
-        "ArenaMode.Client/Config/Settings.cs",
-        "ArenaMode.Client/Config/ArenaParticipantSettings.cs",
-        "ArenaMode.Client/Pickups/ArenaPickupSettings.cs",
-        "ArenaMode.Client/Hud/InfoPanels/InfoPanelSettings.cs",
-        "ArenaMode.Client/Combat/Fire/ArenaFireSettings.cs",
-    };
+    private sealed record BindSite(string File, string Section, string Key, string Statement);
 
-    private static string Source(string relative)
-        => File.ReadAllText(Path.Combine(RepoFiles.Root, relative.Replace('/', Path.DirectorySeparatorChar)));
-
-    /// <summary>Every (section, key) the five settings files bind, read from their source.</summary>
-    private static HashSet<(string Section, string Key)> BoundKeys()
+    private static IEnumerable<string> ClientSources()
     {
-        var keys = new HashSet<(string, string)>();
-        foreach (var file in BindFiles)
+        var root = Path.Combine(RepoFiles.Root, "ArenaMode.Client");
+        foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
         {
-            var text = Source(file);
-            foreach (Match m in Regex.Matches(text, "BindArena\\(\\s*\"([^\"]+)\"\\s*,\\s*\"([^\"]+)\""))
-                keys.Add((m.Groups[1].Value, m.Groups[2].Value));
-            foreach (Match m in Regex.Matches(text, "BindReplay\\(\\s*config\\s*,\\s*\"([^\"]+)\"\\s*\\)"))
-                keys.Add((m.Groups[1].Value, "ReplaySeconds"));
-            foreach (Match m in Regex.Matches(text, "BindAnnouncer\\(\\s*config\\s*,\\s*\"([^\"]+)\""))
-                keys.Add((m.Groups[1].Value, "Announcer"));
-            if (file.EndsWith("InfoPanelSettings.cs", StringComparison.Ordinal))
-                foreach (Match m in Regex.Matches(text, "Bind\\(\\s*config\\s*,\\s*legacy\\s*,\\s*\"([^\"]+)\"\\s*,\\s*\"([^\"]+)\""))
-                    keys.Add(("HUD Panels - " + m.Groups[1].Value, m.Groups[2].Value));
+            var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
+            if (relative.StartsWith("bin/", StringComparison.Ordinal) || relative.StartsWith("obj/", StringComparison.Ordinal))
+                continue;
+            yield return path;
         }
-        return keys;
     }
 
-    [Fact]
-    public void EverySettingsFileBindsOnlyThroughTheLayout()
+    /// <summary>
+    /// The whole call starting at <paramref name="index"/>: up to the parenthesis that
+    /// closes the first one, skipping string literals (descriptions contain ';' and
+    /// parentheses).
+    /// </summary>
+    private static string StatementFrom(string text, int index)
     {
-        foreach (var file in BindFiles)
+        int open = text.IndexOf('(', index);
+        if (open < 0) return text.Substring(index);
+        int depth = 0;
+        bool inString = false;
+        for (int i = open; i < text.Length; i++)
         {
-            var text = Source(file);
-            Assert.DoesNotMatch(@"\b(config|file)\.Bind\(", text);
-            Assert.DoesNotContain("new { Browsable", text);
+            char c = text[i];
+            if (inString)
+            {
+                if (c == '\\') { i++; continue; }
+                if (c == '"') inString = false;
+                continue;
+            }
+            if (c == '"') { inString = true; continue; }
+            if (c == '(') depth++;
+            else if (c == ')' && --depth == 0) return text.Substring(index, i - index + 1);
         }
+        return text.Substring(index);
+    }
+
+    /// <summary>
+    /// Every ArenaMode setting the client binds, read from the source: literal
+    /// config/file Bind calls, the per-mode helpers BindReplay/BindAnnouncer and the
+    /// info-panel helper (which prefixes "HUD Panels - "). legacy.Bind reads the old
+    /// RaidInfoPanels file and is not an ArenaMode entry.
+    /// </summary>
+    private static List<BindSite> BindSites()
+    {
+        var sites = new List<BindSite>();
+        foreach (var path in ClientSources())
+        {
+            var text = File.ReadAllText(path);
+            var file = Path.GetFileName(path);
+            foreach (Match m in Regex.Matches(text, "\\b(?:config|file|Config|_config)\\.Bind\\(\\s*\"([^\"]+)\"\\s*,\\s*\"([^\"]+)\""))
+                sites.Add(new BindSite(file, m.Groups[1].Value, m.Groups[2].Value, StatementFrom(text, m.Index)));
+            foreach (Match m in Regex.Matches(text, "BindReplay\\(\\s*config\\s*,\\s*\"([^\"]+)\"\\s*\\)"))
+                sites.Add(new BindSite(file, m.Groups[1].Value, "ReplaySeconds", "new AcceptableValueRange<float>(0f, 10f)"));
+            foreach (Match m in Regex.Matches(text, "BindAnnouncer\\(\\s*config\\s*,\\s*\"([^\"]+)\""))
+                sites.Add(new BindSite(file, m.Groups[1].Value, "Announcer", ""));
+            foreach (Match m in Regex.Matches(text, "Bind\\(\\s*config\\s*,\\s*legacy\\s*,\\s*\"([^\"]+)\"\\s*,\\s*\"([^\"]+)\""))
+                sites.Add(new BindSite(file, "HUD Panels - " + m.Groups[1].Value, m.Groups[2].Value, StatementFrom(text, m.Index)));
+        }
+        return sites;
+    }
+
+    /// <summary>
+    /// Bind calls whose section or key is not a literal. Each one is covered by a
+    /// helper pattern above or a "*" layout entry; a new one must be added here and
+    /// to the layout on purpose.
+    /// </summary>
+    private static readonly HashSet<string> KnownDynamicBinds = new(StringComparer.Ordinal)
+    {
+        "Settings.cs:config.Bind(section, \"ReplaySeconds\"",
+        "Settings.cs:config.Bind(section, \"Announcer\"",
+        "ArenaParticipantSettings.cs:file.Bind(\"Map participants\", key",
+        "InfoPanelSettings.cs:config.Bind(\"HUD Panels - \" + section, key",
+        "InfoPanelSettings.cs:legacy.Bind(section, key",
+    };
+
+    [Fact]
+    public void EveryNonLiteralBindIsAKnownHelper()
+    {
+        var dynamic = new List<string>();
+        foreach (var path in ClientSources())
+        {
+            var text = File.ReadAllText(path);
+            foreach (Match m in Regex.Matches(text, "\\b\\w+\\.Bind\\((?!\\s*\"[^\"]+\"\\s*,\\s*\")([^,]+,[^,]+)"))
+            {
+                var site = Path.GetFileName(path) + ":" + text.Substring(m.Index, m.Length).Trim();
+                if (site.Contains(".Bind(config)", StringComparison.Ordinal) || site.Contains("Roster.Bind(", StringComparison.Ordinal))
+                    continue;
+                dynamic.Add(site);
+            }
+        }
+        var unknown = dynamic.Where(d => !KnownDynamicBinds.Contains(d)).ToList();
+        Assert.True(unknown.Count == 0, "unlisted dynamic Bind call(s): " + string.Join(" | ", unknown));
     }
 
     [Fact]
     public void EveryBoundKeyHasALayoutEntry()
     {
-        var bound = BoundKeys();
-        Assert.True(bound.Count > 180, $"source scan found only {bound.Count} keys; the patterns no longer match the code");
-        var missing = bound.Where(k => !ArenaConfigMenuLayout.TryResolve(k.Section, k.Key, out _)).ToList();
-        Assert.True(missing.Count == 0, "no layout entry: " + string.Join(", ", missing.Select(k => k.Section + "/" + k.Key)));
+        var sites = BindSites();
+        Assert.True(sites.Count > 180, $"source scan found only {sites.Count} binds; the patterns no longer match the code");
+        var missing = sites.Where(s => !ArenaConfigMenuLayout.TryResolve(s.Section, s.Key, out _)).ToList();
+        Assert.True(missing.Count == 0, "no layout entry: " + string.Join(", ", missing.Select(s => $"{s.File} {s.Section}/{s.Key}")));
+        // The per-map participant keys are built at runtime (map_solo / map_team).
+        Assert.True(ArenaConfigMenuLayout.TryResolve("Map participants", "factory4_day_solo", out var participants));
+        Assert.True(participants.Hidden);
     }
 
     [Fact]
     public void EveryLayoutEntryIsActuallyBound()
     {
-        var bound = BoundKeys();
+        var bound = BindSites().Select(s => (s.Section, s.Key)).ToHashSet();
         var stale = ArenaConfigMenuLayout.Sections
             .SelectMany(s => s.Items.Where(i => i.Key != "*").Select(i => (s.Name, i.Key)))
             .Where(k => !bound.Contains(k)).ToList();
         Assert.True(stale.Count == 0, "layout entry without a bind: " + string.Join(", ", stale.Select(k => k.Name + "/" + k.Key)));
-        Assert.Contains("file.BindArena(\"Map participants\"", Source(BindFiles[1]));
+    }
+
+    [Fact]
+    public void PercentFlagsMatchTheBoundRanges()
+    {
+        var percentLooking = new HashSet<(string, string)>();
+        foreach (var site in BindSites())
+        {
+            var m = Regex.Match(site.Statement, "AcceptableValueRange<(int|float)>\\(\\s*([-0-9.]+)f?\\s*,\\s*([-0-9.]+)f?\\s*\\)");
+            if (!m.Success) continue;
+            object min, max;
+            if (m.Groups[1].Value == "int")
+            {
+                min = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+                max = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                min = float.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+                max = float.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            }
+            if (ArenaConfigMenuLayout.LooksLikePercentRange(min, max))
+                percentLooking.Add((site.Section, site.Key));
+        }
+        Assert.True(percentLooking.Count >= 8, $"range scan found only {percentLooking.Count} percent-looking ranges");
+
+        var flagged = ArenaConfigMenuLayout.Sections
+            .SelectMany(s => s.Items.Where(i => i.Percent).Select(i => (s.Name, i.Key))).ToHashSet();
+        // A Percent flag only means something on a range the manager would guess as percent.
+        Assert.True(flagged.IsSubsetOf(percentLooking),
+            "percent flag on a non-percent range: " + string.Join(", ", flagged.Except(percentLooking)));
+        // Every percent-looking range needs a decision: these two are absolute counts.
+        var absolute = percentLooking.Except(flagged).OrderBy(k => k.Item1 + "/" + k.Item2).ToArray();
+        Assert.Equal(new[] { ("Deathmatch", "Rounds"), ("Zombie", "WaveGrowth") }, absolute);
     }
 
     [Fact]
@@ -85,8 +178,8 @@ public sealed class ArenaConfigMenuLayoutTests
             {
                 Assert.False(string.IsNullOrWhiteSpace(item.DisplayName), section.Name + "/" + item.Key);
                 Assert.Equal(item.DisplayName.Trim(), item.DisplayName);
-                // A human-readable name, not the raw CamelCase key.
-                Assert.True(item.DisplayName.Contains(' ') || item.DisplayName != item.Key || item.Key.Length <= 9,
+                // A human-readable name, not the raw CamelCase key (single words like "Killfeed" excepted).
+                Assert.True(item.DisplayName != item.Key || !Regex.IsMatch(item.Key, "[a-z][A-Z]"),
                     $"{section.Name}/{item.Key} still shows its raw key");
             }
         }
@@ -149,7 +242,7 @@ public sealed class ArenaConfigMenuLayoutTests
                      ("General", "OptionalMapsMigrated"), ("General", "OptionalMapsRevision"),
                      ("Deathmatch", "LegacyRulesMigrated"), ("Arena pickups", "M60DefaultMigrated"),
                      ("Match", "RoundKillTarget"), ("Match", "RoundTimeLimitSeconds"),
-                     ("Map participants", "factory4_day:deathmatch"),
+                     ("Map participants", "bigmap_team"),
                  })
         {
             Assert.True(ArenaConfigMenuLayout.TryResolve(section, key, out var resolved), section + "/" + key);
@@ -181,12 +274,17 @@ public sealed class ArenaConfigMenuLayoutTests
         Assert.False(ArenaConfigMenuLayout.LooksLikePercentRange(0.1f, 1f));
         Assert.False(ArenaConfigMenuLayout.LooksLikePercentRange(0f, 2f));
         Assert.False(ArenaConfigMenuLayout.LooksLikePercentRange(null, null));
-        // An absolute count on a 0..100 range must not be drawn as a percentage.
-        Assert.True(ArenaConfigMenuLayout.TryResolve("Zombie", "WaveGrowth", out var growth));
-        Assert.False(growth.Percent);
-        Assert.True(ArenaConfigMenuLayout.TryResolve("Deathmatch", "Rounds", out var rounds));
-        Assert.False(rounds.Percent);
-        Assert.True(ArenaConfigMenuLayout.TryResolve("Zombie", "ShooterPercent", out var shooters));
-        Assert.True(shooters.Percent);
+    }
+
+    [Fact]
+    public void PluginAppliesTheLayoutLastAndTheSettingsFilesStayPlain()
+    {
+        var plugin = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Client", "Plugin.cs"));
+        int apply = plugin.IndexOf("ArenaConfigMenu.Apply(Config);", StringComparison.Ordinal);
+        int fire = plugin.IndexOf("ArenaFireRuntime.Enable(Config);", StringComparison.Ordinal);
+        Assert.True(apply > 0 && fire > 0 && apply > fire, "ArenaConfigMenu.Apply must run after the last bind (ArenaFireRuntime.Enable)");
+        // Offline harnesses compile these files against stub ConfigFiles: no extension binds.
+        foreach (var path in ClientSources())
+            Assert.DoesNotContain("BindArena", File.ReadAllText(path));
     }
 }

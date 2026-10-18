@@ -13,9 +13,9 @@ namespace ArenaMode.Config;
 /// Rules of SPT's ConfigurationManager 18.4.0 (decompiled, BepInEx\plugins\spt\
 /// ConfigurationManager): a plugin's sections are shown in the order of their
 /// first entry in the plugin's ConfigFile, entries inside a section by Order
-/// descending, then by display name. <see cref="ArenaConfigMenu"/> applies the
-/// section order below once every entry is bound, and gives each entry its
-/// display name and an Order derived from its position in <see cref="Sections"/>
+/// descending, then by display name. <see cref="ArenaConfigMenu.Apply"/> runs once
+/// every entry is bound: it applies the section order below and gives each entry
+/// its display name and an Order derived from its position in <see cref="Sections"/>
 /// (first listed = top).
 ///
 /// No Unity or BepInEx types, so ArenaMode.Tests links this file.
@@ -60,7 +60,11 @@ internal static class ArenaConfigMenuLayout
 
         internal string Name { get; }
 
-        /// <summary>Shown only with ConfigurationManager's "Show advanced" filter.</summary>
+        /// <summary>
+        /// IsAdvanced: hidden by default, shown with the manager's "Advanced settings"
+        /// filter or when a search term matches (the manager skips the filter while
+        /// searching). Hidden items (Browsable false) stay hidden in search too.
+        /// </summary>
         internal bool Advanced { get; }
 
         internal Item[] Items { get; }
