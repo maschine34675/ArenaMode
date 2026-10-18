@@ -99,4 +99,14 @@ identity and are searchable in F12.
   (`-p:CustomAfterMicrosoftCommonTargets=tools/AirPitChecks/NoDeploy.targets`).
 - AreaConfigChecks, TdmMatchMenuChecks and RaidInfoPanelChecks build unchanged
   (they compile the settings files, which this change leaves as they were).
-- In-game check: see HANDOFF.
+- In-game check on SPT-GPU-2 (2026-10-18 21:44, client from master `1014a29`, main
+  menu, F12 window read through UiBridge): log line `Arena F12 layout: 224 of 224
+  entries named and ordered in 33 listed sections`, no unmapped warning. Sections
+  General, Arena, Match, Deathmatch, Rounds, Gun Game, Team Deathmatch, Tactical,
+  Tactical Team, Zombie, ... HUD, HUD Panels, ... Performance, Diagnostics,
+  Development - Area outline, Development - Pickups in that order; display names
+  in table order; the seven hidden entries and the Map participants section absent;
+  ShooterPercent drawn as 20 %, WaveGrowth as a number. With *Advanced settings*
+  switched off the ArenaMode list ends after Performance (Diagnostics and both
+  Development sections hidden); the host's own filter value (on) was restored.
+  `com.maschine.ArenaMode.cfg` unchanged: same 232 keys and values before and after.

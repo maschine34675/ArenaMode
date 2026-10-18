@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **F12 settings menu schema (2026-10-18, merged `1014a29`, GPU2 checked):** all 224
+  ArenaMode entries get readable names and a deliberate order (General, Match and the
+  modes first, Performance last), Diagnostics and both Development sections are
+  IsAdvanced (shown with F12 Advanced settings or a search), seven internal markers
+  plus the map-screen participant totals are hidden. Display only: .cfg sections,
+  keys, values unchanged. The bind calls stay plain `config.Bind` (harnesses compile
+  them against stubs); `ArenaConfigMenu.Apply(Config)` at the end of
+  InitializeRuntime adds the tags and orders the sections. New settings need a row in
+  `ArenaConfigMenuLayout` (tests enforce it). UiBridge now refuses to set the hidden
+  entries. Read [CONFIG-MENU-20261018.md](CONFIG-MENU-20261018.md). Same merge renames
+  five patch classes from 2026-10-17 that shared Smoothie's Harmony IDs on the same
+  targets. Side finding for the deploy owners: a fresh Windows checkout with
+  core.autocrlf=true gets a CRLF `LICENSE`, and tools/Write-ArenaAssets.ps1 then fails
+  its byte-hash comparison with Redeploy's LF `LICENSE` (worktree builds break).
+
 - **Killcam renamed and GPU2 checked (2026-10-18):** Arena `5d53458` now binds
   the optional `com.maschine.Killcam` identity and rejects leftover Replay DLLs
   as incompatible camera owners. Killcam 0.9.15 preserves old settings and
