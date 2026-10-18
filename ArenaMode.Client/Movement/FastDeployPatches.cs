@@ -28,8 +28,8 @@ internal static class FastDeployPatches
 
     public static void Enable()
     {
-        new ShortenCountdownPatch().Enable();
-        new RestoreAfterCountdownPatch().Enable();
+        new ArenaFastDeployShortenCountdownPatch().Enable();
+        new ArenaFastDeployRestoreAfterCountdownPatch().Enable();
     }
 
     public static void Restore()
@@ -44,7 +44,7 @@ internal static class FastDeployPatches
         _saved = -1;
     }
 
-    private sealed class ShortenCountdownPatch : ModulePatch
+    private sealed class ArenaFastDeployShortenCountdownPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(LocalGame), "vmethod_2");
@@ -74,7 +74,7 @@ internal static class FastDeployPatches
         }
     }
 
-    private sealed class RestoreAfterCountdownPatch : ModulePatch
+    private sealed class ArenaFastDeployRestoreAfterCountdownPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BaseLocalGame<EftGamePlayerOwner>), "vmethod_6");

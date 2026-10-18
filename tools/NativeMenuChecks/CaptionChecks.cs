@@ -37,21 +37,21 @@ internal static partial class Program
         string sideCode = NormalizeCode(ReadCaptionSource("ARENA_CAPTION_SIDE_SOURCE", "ArenaMode.Client", "Session", "ArenaSideSelectionPatch.cs"));
         string pluginCode = NormalizeCode(ReadCaptionSource("ARENA_CAPTION_PLUGIN_SOURCE", "ArenaMode.Client", "Plugin.cs"));
 
-        string location = ClassBody(patchCode, "LocationPatch");
+        string location = ClassBody(patchCode, "ArenaSessionModeCaptionLocationPatch");
         Assert(location.Contains("nameof(MatchMakerSelectionLocationScreen.ShowInternal)", StringComparison.Ordinal)
                && location.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the location caption is written after ShowInternal, which finishes every Show");
         Assert(HasGuardedApply(location, "ArenaMenuSelection.IsSelectedFor(raidSettings)"),
             "location caption is gated on the exact Arena RaidSettings");
 
-        string accept = ClassBody(patchCode, "AcceptPatch");
+        string accept = ClassBody(patchCode, "ArenaSessionModeCaptionAcceptPatch");
         Assert(accept.Contains("typeof(MatchMakerAcceptScreen.MatchmakerAcceptScreenController)", StringComparison.Ordinal)
                && accept.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the accept caption is written after Show(MatchmakerAcceptScreenController)");
         Assert(HasGuardedApply(accept, "controller != null && ArenaMenuSelection.IsSelectedFor(controller.RaidSettings)"),
             "accept caption is gated on the exact Arena RaidSettings");
 
-        string deploying = ClassBody(patchCode, "DeployingPatch");
+        string deploying = ClassBody(patchCode, "ArenaSessionModeCaptionDeployingPatch");
         Assert(deploying.Contains("typeof(MatchmakerTimeHasCome.TimeHasComeScreenController)", StringComparison.Ordinal)
                && deploying.Contains("[PatchPostfix]", StringComparison.Ordinal),
             "the deploying caption is written after Show(TimeHasComeScreenController)");
@@ -81,14 +81,14 @@ internal static partial class Program
         // must hold here is that every caption goes through the ONE static ledger
         // (a fresh ledger per call would forget what it replaced).
         string apply = patchCode.Substring(patchCode.IndexOf("internal static void Apply(", StringComparison.Ordinal));
-        apply = apply.Substring(0, apply.IndexOf("private sealed class LocationPatch", StringComparison.Ordinal));
+        apply = apply.Substring(0, apply.IndexOf("private sealed class ArenaSessionModeCaptionLocationPatch", StringComparison.Ordinal));
         Assert(Regex.Matches(patchCode, @"ArenaSessionModeCaptionLedger<").Count == 1
                && patchCode.Contains("private static readonly ArenaSessionModeCaptionLedger<TextMeshProUGUI> Ledger = new();", StringComparison.Ordinal)
                && apply.Contains("Ledger.Apply(caption, arena, label => label.text, (label, text) => label.text = text);", StringComparison.Ordinal)
                && apply.Contains("if (caption == null)", StringComparison.Ordinal),
             "every caption goes through the one static ledger, which restores only what it replaced");
-        // Apply is the cosmetic call that the side screen's ShowPatch.Postfix and
-        // SelectPatch.Postfix (ArenaSideSelectionPatch) make inside their own work:
+        // Apply is the cosmetic call that the side screen's ArenaSideSelectionShowPatch.Postfix and
+        // ArenaSideSelectionSelectPatch.Postfix (ArenaSideSelectionPatch) make inside their own work:
         // the first sits in a catch that clears the Arena selection and hides the
         // ARENA toggle, the second has no try at all. So an exception must never
         // leave Apply. Pinned as: a try that holds the ledger call, closed by a plain
@@ -104,9 +104,9 @@ internal static partial class Program
             "Apply never rethrows what its catch swallowed");
         string enable = patchCode.Substring(patchCode.IndexOf("public static void Enable()", StringComparison.Ordinal));
         enable = enable.Substring(0, enable.IndexOf("}", StringComparison.Ordinal));
-        Assert(enable.Contains("new LocationPatch().Enable();", StringComparison.Ordinal)
-               && enable.Contains("new AcceptPatch().Enable();", StringComparison.Ordinal)
-               && enable.Contains("new DeployingPatch().Enable();", StringComparison.Ordinal),
+        Assert(enable.Contains("new ArenaSessionModeCaptionLocationPatch().Enable();", StringComparison.Ordinal)
+               && enable.Contains("new ArenaSessionModeCaptionAcceptPatch().Enable();", StringComparison.Ordinal)
+               && enable.Contains("new ArenaSessionModeCaptionDeployingPatch().Enable();", StringComparison.Ordinal),
             "all three caption patches are enabled");
         Assert(pluginCode.Contains("ArenaSessionModeCaptionPatch.Enable();", StringComparison.Ordinal),
             "Plugin enables the session caption patches");
@@ -114,8 +114,8 @@ internal static partial class Program
         // The ARENA toggle on the side screen (the native third toggle): Show and
         // SetSelectedSide both sync the caption, after the PitFireTeam squad-screen
         // early return so a squad-management screen is never touched.
-        string showPatch = Slice(sideCode, "private sealed class ShowPatch", "private sealed class ClosePatch");
-        string selectPatch = Slice(sideCode, "private sealed class SelectPatch", "private static void SetDescription");
+        string showPatch = Slice(sideCode, "private sealed class ArenaSideSelectionShowPatch", "private sealed class ArenaSideSelectionClosePatch");
+        string selectPatch = Slice(sideCode, "private sealed class ArenaSideSelectionSelectPatch", "private static void SetDescription");
         const string sync = "ArenaSessionModeCaptionPatch.Apply(__instance._subCaption, ArenaMenuSelection.IsSelected);";
         Assert(showPatch.Contains(sync, StringComparison.Ordinal) && selectPatch.Contains(sync, StringComparison.Ordinal),
             "side screen caption follows the ARENA toggle state in Show and SetSelectedSide");

@@ -21,7 +21,7 @@ namespace ArenaMode.Session;
 internal static class LabyrinthSpawnTraps
 {
     internal const string ScenePath = "Assets/Content/Locations/Labyrinth/Labyrinth_DesignStuff.unity";
-    private static readonly ModulePatch[] Patches = { new DamageStartPatch(), new ShootPatch(), new EffectPatch(), new LoopStartPatch() };
+    private static readonly ModulePatch[] Patches = { new ArenaLabyrinthSpawnTrapsDamageStartPatch(), new ArenaLabyrinthSpawnTrapsShootPatch(), new ArenaLabyrinthSpawnTrapsEffectPatch(), new ArenaLabyrinthSpawnTrapsLoopStartPatch() };
     private static readonly FieldInfo PlayCoroutineField = AccessTools.Field(typeof(HandlerPlaySoundSequenced), "_playCoroutine");
     private static bool _enabled;
     private static bool _reportedFailure;
@@ -290,25 +290,25 @@ internal static class LabyrinthSpawnTraps
         Plugin.ModLogger?.LogWarning($"Arena Labyrinth spawn trap guard failed open: {ex.Message}");
     }
 
-    private sealed class DamageStartPatch : ModulePatch
+    private sealed class ArenaLabyrinthSpawnTrapsDamageStartPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(HandlerDamage), nameof(HandlerDamage.OnTriggerStartDamage), new[] { typeof(TriggerEvent) });
         [PatchPrefix] private static bool Prefix(HandlerDamage __instance) => AllowDamageStart(__instance);
     }
-    private sealed class ShootPatch : ModulePatch
+    private sealed class ArenaLabyrinthSpawnTrapsShootPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(HandlerShoot), nameof(HandlerShoot.OnShootEvent), new[] { typeof(TriggerEvent) });
         [PatchPrefix] private static bool Prefix(HandlerShoot __instance) => AllowShoot(__instance);
     }
-    private sealed class LoopStartPatch : ModulePatch
+    private sealed class ArenaLabyrinthSpawnTrapsLoopStartPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(HandlerPlaySoundSequenced), nameof(HandlerPlaySoundSequenced.PlaySound), Type.EmptyTypes);
         [PatchPrefix] private static bool Prefix(HandlerPlaySoundSequenced __instance) => AllowLoopStart(__instance);
     }
-    private sealed class EffectPatch : ModulePatch
+    private sealed class ArenaLabyrinthSpawnTrapsEffectPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(HandlerEffect), nameof(HandlerEffect.HandleEvent), new[] { typeof(TriggerEvent) });

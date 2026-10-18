@@ -53,7 +53,7 @@ public sealed class ZombieServerTests : IDisposable
         var before = JsonSerializer.Serialize(sourceEntries);
         Start(Session, "zombie", location);
 
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
 
         Assert.Same(sourceEntries, location.BotLocationModifier.AdditionalHostilitySettings);
         Assert.Equal(before, JsonSerializer.Serialize(location.BotLocationModifier.AdditionalHostilitySettings));

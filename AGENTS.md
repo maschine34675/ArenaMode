@@ -404,7 +404,7 @@ warm a kit early, the player-prefab preload in `TarkovApplication.LocalGameMatch
 runs BEFORE `LocalRaidStarted` and so before the arena is armed; a hook there fires
 for nothing. The first moment that is armed AND has the raid's `GameWorld` with its
 raid pools registered (`GameWorld.InitLevel` inside `LoadMapAndData`) is the
-continuation of the `LocalRaidStarted` task in `LocalRaidStartedPatch.ObserveLocalStart`,
+continuation of the `LocalRaidStarted` task in `ArenaLocalRaidStartedPatch.ObserveLocalStart`,
 which resumes on the main thread (the HTTP layer completes on it, and nothing in the
 game uses `ConfigureAwait`). From there until `OnGameStarted` the game's force mode is
 on and the bundle lock unlimited. Bookkeeping traps around it: `ResetSession` runs at

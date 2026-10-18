@@ -202,7 +202,7 @@ public sealed partial class BotTierScalePatchTests
             _controller = new BotController(TestLogger.Create<BotController>(), null!, _generator, null!, null!, null!, null!,
                 Blank<MatchBotDetailsCacheService>(), null!, null!, random, null!, null!, new NativeCloner());
             _harmony.Patch(AccessTools.Method(typeof(BotController), "GenerateBotWave"),
-                prefix: new HarmonyMethod(typeof(BotTierScalePatch), nameof(BotTierScalePatch.Prefix)));
+                prefix: new HarmonyMethod(typeof(ArenaBotTierScalePatch), nameof(ArenaBotTierScalePatch.Prefix)));
         }
 
         // SPT AbstractPatch.Enable rejects callers outside its owning assembly.

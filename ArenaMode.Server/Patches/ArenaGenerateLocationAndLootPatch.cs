@@ -13,7 +13,7 @@ namespace ArenaMode.Server.Patches;
 /// fields). Runs inside StartLocalRaidAsync AFTER our arm-consumption prefix, so
 /// the session is already InRaid for an arena raid.
 /// </summary>
-public sealed class GenerateLocationAndLootPatch : AbstractPatch
+public sealed class ArenaGenerateLocationAndLootPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

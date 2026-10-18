@@ -137,7 +137,7 @@ static class Program
         Fresh();ArenaSession.IsActive=false;ArenaSession.StartedGame=null;ArenaSession.StartedWorld=null;
         var earlyUi=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=earlyUi;
         int earlyRan=0;
-        var scope=typeof(ArenaFailedStartIntro).GetNestedType("IntroScopePatch",System.Reflection.BindingFlags.NonPublic);
+        var scope=typeof(ArenaFailedStartIntro).GetNestedType("ArenaFailedStartIntroIntroScopePatch",System.Reflection.BindingFlags.NonPublic);
         var prefix=scope.GetMethod("Prefix",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
         var finalizer=scope.GetMethod("Finalizer",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
         Check(prefix.IsDefined(typeof(SPT.Reflection.Patching.PatchPrefix),false)
@@ -219,7 +219,7 @@ static class Program
             Check(ran==(bypass=="nested-scope"?1:2),"FADE-SCOPE-RESTORED "+bypass);
         }
 
-        var type=typeof(ArenaFailedStartIntro).GetNestedType("DeferredFadePatch",System.Reflection.BindingFlags.NonPublic);
+        var type=typeof(ArenaFailedStartIntro).GetNestedType("ArenaFailedStartIntroDeferredFadePatch",System.Reflection.BindingFlags.NonPublic);
         var transpile=type.GetMethod("Transpiler",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
         var native=typeof(Utils).GetMethod(nameof(Utils.WaitSeconds));
         var instruction=new HarmonyLib.CodeInstruction(System.Reflection.Emit.OpCodes.Call,native);

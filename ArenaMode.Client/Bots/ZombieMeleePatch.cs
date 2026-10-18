@@ -92,7 +92,7 @@ internal static class ZombieMeleePatch
     {
         try
         {
-            new MeleeAttackNodePatch().Enable();
+            new ArenaZombieMeleeMeleeAttackNodePatch().Enable();
             Plugin.ModLogger.LogDebug("Arena zombie melee: OneMeleeAttackNode prefix installed.");
         }
         catch (Exception ex)
@@ -104,7 +104,7 @@ internal static class ZombieMeleePatch
         }
     }
 
-    private sealed class MeleeAttackNodePatch : ModulePatch
+    private sealed class ArenaZombieMeleeMeleeAttackNodePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(OneMeleeAttackNode), nameof(OneMeleeAttackNode.UpdateNodeByBrain));
@@ -172,7 +172,7 @@ internal static class ZombieMeleePatch
     /// caught and demotes to the other/no-op rather than ever propagating
     /// into the Harmony prefix above. Returns whether anything was actually
     /// driven — false only when BOTH the reverse patch and the fallback
-    /// failed this call, so <see cref="MeleeAttackNodePatch.Prefix"/> can
+    /// failed this call, so <see cref="ArenaZombieMeleeMeleeAttackNodePatch.Prefix"/> can
     /// fall back to vanilla/SAIN-suppressed behaviour for this tick instead
     /// of silently doing nothing while still reporting the node as handled
     /// (F1 from the implementation review — see this class's own doc

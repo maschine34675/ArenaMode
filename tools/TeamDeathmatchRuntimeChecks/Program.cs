@@ -757,7 +757,7 @@ internal static partial class Program
     private static void Main()
     {
         TeamDeathmatchRelations.Enable();
-        new NoCorpseLootingPatch().Enable();
+        new ArenaNoCorpseLootingPatch().Enable();
         InitializationAndReady();
         LoadingAndPreActiveOccupancy();
         HumanDeathRespawnAndAwareness();

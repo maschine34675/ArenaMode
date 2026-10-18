@@ -14,22 +14,22 @@ Op Fresh(bool hammer=false){ArenaAkimbo.Eligible=true;ArenaAkimbo.Reserved=Arena
 AkimboAmmo.Enable();
 foreach(bool hammer in new[]{false,true}) {
     var op=Fresh(hammer);var source=op._cylinderMagazine.GetFirstAmmo(!hammer);
-    Need(!(bool)Call("PreparePatch","Prefix",op,true),"free cylinder preparation replaces consumption");
+    Need(!(bool)Call("ArenaAkimboAmmoPreparePatch","Prefix",op,true),"free cylinder preparation replaces consumption");
     Need(ArenaAkimbo.Reserved&&op._singleShotData.AmmoToFire.IsUsed&&!ReferenceEquals(source,op._singleShotData.AmmoToFire),"free clone reserved and detached");
     Need(!source.IsUsed&&source.CurrentAddress!=null&&op._cylinderMagazine.Count==6&&op._cylinderMagazine.CurrentCamoraIndex==0,"free cylinder retains native source and index");
-    object[] fire={op,null};Call("FirePatch","Prefix",fire);
-    Need(!(bool)Call("ShellPatch","Prefix",op.Controller.Firearms,op._camoraIndex),"free shell visual suppressed");
-    Need((bool)Call("ShellPatch","Prefix",new Firearms(),op._camoraIndex),"foreign firearm visual untouched");
-    Call("FirePatch","Finalizer",op,fire[1],null);
-    Need((bool)Call("ShellPatch","Prefix",op.Controller.Firearms,op._camoraIndex),"shell scope ends with native fire");
-    Need(!(bool)Call("ChamberPatch","Prefix",op)&&op.Weapon.CylinderHammerClosed==hammer,"free chamber completion retains hammer selection");
+    object[] fire={op,null};Call("ArenaAkimboAmmoFirePatch","Prefix",fire);
+    Need(!(bool)Call("ArenaAkimboAmmoShellPatch","Prefix",op.Controller.Firearms,op._camoraIndex),"free shell visual suppressed");
+    Need((bool)Call("ArenaAkimboAmmoShellPatch","Prefix",new Firearms(),op._camoraIndex),"foreign firearm visual untouched");
+    Call("ArenaAkimboAmmoFirePatch","Finalizer",op,fire[1],null);
+    Need((bool)Call("ArenaAkimboAmmoShellPatch","Prefix",op.Controller.Firearms,op._camoraIndex),"shell scope ends with native fire");
+    Need(!(bool)Call("ArenaAkimboAmmoChamberPatch","Prefix",op)&&op.Weapon.CylinderHammerClosed==hammer,"free chamber completion retains hammer selection");
     Need(ReferenceEquals(source,op._cylinderMagazine.GetFirstAmmo(!op.Weapon.CylinderHammerClosed)),"paid half sees same source chamber");
-    Call("ResetPatch","Prefix",op);Need((bool)Call("ChamberPatch","Prefix",op),"operation reset removes receipt");
+    Call("ArenaAkimboAmmoResetPatch","Prefix",op);Need((bool)Call("ArenaAkimboAmmoChamberPatch","Prefix",op),"operation reset removes receipt");
 }
-var denied=Fresh();ArenaAkimbo.Eligible=false;Need((bool)Call("PreparePatch","Prefix",denied,true),"ordinary or paid preparation stays native");
-var veto=Fresh();Need((bool)Call("PreparePatch","Prefix",veto,false)&&!ArenaAkimbo.Reserved,"earlier veto cannot reserve free shot");
+var denied=Fresh();ArenaAkimbo.Eligible=false;Need((bool)Call("ArenaAkimboAmmoPreparePatch","Prefix",denied,true),"ordinary or paid preparation stays native");
+var veto=Fresh();Need((bool)Call("ArenaAkimboAmmoPreparePatch","Prefix",veto,false)&&!ArenaAkimbo.Reserved,"earlier veto cannot reserve free shot");
 var broken=Fresh();broken.FirearmsAnimator.Throw=true;
-Need((bool)Call("PreparePatch","Prefix",broken,true)&&ArenaAkimbo.Failed&&ArenaAkimbo.Reserved,"post reservation failure falls back without refunding credit");
+Need((bool)Call("ArenaAkimboAmmoPreparePatch","Prefix",broken,true)&&ArenaAkimbo.Failed&&ArenaAkimbo.Reserved,"post reservation failure falls back without refunding credit");
 Need(broken._cylinderMagazine.Count==6,"failed prepare never edits native inventory");
-var cloneFail=Fresh();Ammo.Throw=true;Need((bool)Call("PreparePatch","Prefix",cloneFail,true)&&ArenaAkimbo.Failed&&!ArenaAkimbo.Reserved,"clone exception fails open before reservation");
+var cloneFail=Fresh();Ammo.Throw=true;Need((bool)Call("ArenaAkimboAmmoPreparePatch","Prefix",cloneFail,true)&&ArenaAkimbo.Failed&&!ArenaAkimbo.Reserved,"clone exception fails open before reservation");
 Console.WriteLine($"AKIMBO_CYLINDER_CHECKS_PASSED ({checks} assertions; native boundaries modeled, no Unity execution)");

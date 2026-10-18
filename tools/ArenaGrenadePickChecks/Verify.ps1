@@ -42,7 +42,7 @@ Invoke-Mutant 'ordinary-raid-leak' `
     (Get-Mutant 'private static bool PickGuardWanted => ArenaSession\.IsActive;' 'private static bool PickGuardWanted => true;') `
     'ordinary raid keeps the native stale pick, icon and fallback exactly'
 Invoke-Mutant 'enable-aborts-plugin' `
-    (Get-Mutant 'EnablePickPatch\(\(\) => new PickAfterRemovalPatch\(\)\);' 'new PickAfterRemovalPatch().Enable();') `
+    (Get-Mutant 'EnablePickPatch\(\(\) => new ArenaReachPickAfterRemovalPatch\(\)\);' 'new ArenaReachPickAfterRemovalPatch().Enable();') `
     'a pick patch that cannot be enabled never stops the rest of the plugin'
 
 # The removal cleanup.

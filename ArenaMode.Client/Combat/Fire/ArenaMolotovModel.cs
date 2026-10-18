@@ -27,10 +27,10 @@ internal static class ArenaMolotovModel
 
     internal static void Enable()
     {
-        new ItemModelPatch().Enable();
-        new ThrownModelPatch().Enable();
-        new PoolReturnPatch().Enable();
-        new PoolGetPatch().Enable();
+        new ArenaMolotovModelItemModelPatch().Enable();
+        new ArenaMolotovModelThrownModelPatch().Enable();
+        new ArenaMolotovModelPoolReturnPatch().Enable();
+        new ArenaMolotovModelPoolGetPatch().Enable();
     }
 
     // The armed exception is presentation only: kit models/icons are also built while loading.
@@ -104,7 +104,7 @@ internal static class ArenaMolotovModel
         Plugin.ModLogger.LogWarning("Arena Molotov bottle presentation unavailable; native item mechanics retained: " + reason);
     }
 
-    private sealed class ItemModelPatch : ModulePatch
+    private sealed class ArenaMolotovModelItemModelPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.GetDeclaredMethods(typeof(ObjectsFactory))
             .Single(m => m.Name == "CreateItemAsync" && m.ReturnType == typeof(Task<GameObject>)
@@ -113,7 +113,7 @@ internal static class ArenaMolotovModel
         private static void Postfix(Item item, ref Task<GameObject> __result) => __result = Wrap(__result, item);
     }
 
-    private sealed class ThrownModelPatch : ModulePatch
+    private sealed class ArenaMolotovModelThrownModelPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player.BaseGrenadeHandsController),
             nameof(Player.BaseGrenadeHandsController.CreateAndRegisterGrenade),
@@ -122,7 +122,7 @@ internal static class ArenaMolotovModel
         private static void Postfix(Grenade __result) => ApplyThrown(__result);
     }
 
-    private sealed class PoolReturnPatch : ModulePatch
+    private sealed class ArenaMolotovModelPoolReturnPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(AssetPoolObject),
             nameof(AssetPoolObject.ReturnToPool), Type.EmptyTypes);
@@ -130,7 +130,7 @@ internal static class ArenaMolotovModel
         private static void Prefix(AssetPoolObject __instance) => Restore(__instance);
     }
 
-    private sealed class PoolGetPatch : ModulePatch
+    private sealed class ArenaMolotovModelPoolGetPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(AssetPoolObject),
             nameof(AssetPoolObject.OnGetFromPool), Type.EmptyTypes);

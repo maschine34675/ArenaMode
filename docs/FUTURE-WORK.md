@@ -62,7 +62,7 @@ Current mechanisms established by read-only inspection:
   4, bounded by the map refill target; base cooldown 8 s -> 4 s at full pressure.
   Map targets are Factory 12, Labs/Labyrinth 10. Additional native/mod waves and
   bosses have separate paths; this is not a universal maximum or AI override.
-- `BotTierScalePatch`: separate server generation curve, saved midpoint level
+- `ArenaBotTierScalePatch`: separate server generation curve, saved midpoint level
   1 -> 66 over 15 minutes with a +/-5 range. Affects generation context, not
   existing bot gear or an Arena HP/damage multiplier. Protected PFT is excluded;
   TDM is not. Cached, already generated profiles can retain older equipment.
@@ -107,7 +107,7 @@ current config route reads config. Native difficulty datasets are process-cached
 do not clear global caches to force an Arena-only tuning change. Relevant entry
 points: `Config/Settings.cs`, `Config/SettingsSync.cs`, `Bots/ArenaPressure.cs`,
 `Bots/ArenaSainPersonalities.cs`, `Session/ArenaClientConfig.cs` under the client;
-server `Patches/BotTierScalePatch.cs` and `Services/ArenaSessionService.cs`.
+server `Patches/ArenaBotTierScalePatch.cs` and `Services/ArenaSessionService.cs`.
 
 ## Smaller playable areas within larger maps
 

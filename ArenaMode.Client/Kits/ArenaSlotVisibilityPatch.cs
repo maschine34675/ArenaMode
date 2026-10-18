@@ -35,8 +35,8 @@ internal static class ArenaSlotVisibilityPatches
 {
     public static void Enable()
     {
-        new SeeSlotPatch().Enable();
-        new SeeEquipmentSlotPatch().Enable();
+        new ArenaSlotVisibilitySeeSlotPatch().Enable();
+        new ArenaSlotVisibilitySeeEquipmentSlotPatch().Enable();
     }
 
     private static void Hide(ref bool visible, EquipmentSlot slotName)
@@ -50,7 +50,7 @@ internal static class ArenaSlotVisibilityPatches
         visible = false;
     }
 
-    private sealed class SeeSlotPatch : ModulePatch
+    private sealed class ArenaSlotVisibilitySeeSlotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InventoryController), nameof(InventoryController.IsAllowedToSeeSlot));
@@ -64,7 +64,7 @@ internal static class ArenaSlotVisibilityPatches
     /// and not the other would hide the container in one panel and show it,
     /// empty, in the next.
     /// </summary>
-    private sealed class SeeEquipmentSlotPatch : ModulePatch
+    private sealed class ArenaSlotVisibilitySeeEquipmentSlotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InventoryController), nameof(InventoryController.IsAllowedToSeeEquipmentSlot));

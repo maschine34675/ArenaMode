@@ -8,7 +8,7 @@
     <ProductionConditionalMapSource Condition="'$(ProductionConditionalMapSource)' == ''">../../ArenaMode.Client/Session/ArenaConditionalMapView.cs</ProductionConditionalMapSource>
     <ProductionAreaCatalogSource Condition="'$(ProductionAreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</ProductionAreaCatalogSource>
     <ProductionMenuSelectionSource Condition="'$(ProductionMenuSelectionSource)' == ''">../../ArenaMode.Client/Session/ArenaMenuSelection.cs</ProductionMenuSelectionSource>
-    <ProductionLocalStartSource Condition="'$(ProductionLocalStartSource)' == ''">../../ArenaMode.Client/Session/LocalRaidStartedPatch.cs</ProductionLocalStartSource>
+    <ProductionLocalStartSource Condition="'$(ProductionLocalStartSource)' == ''">../../ArenaMode.Client/Session/ArenaLocalRaidStartedPatch.cs</ProductionLocalStartSource>
     <ProductionSessionModeCaptionSource Condition="'$(ProductionSessionModeCaptionSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionModeCaption.cs</ProductionSessionModeCaptionSource>
   </PropertyGroup>
   <ItemGroup>
@@ -24,7 +24,7 @@
     <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
     <Compile Include="$(ProductionConditionalMapSource)" Link="Production/ArenaConditionalMapView.cs" />
     <Compile Include="$(ProductionServerClientSource)" Link="Production/ArenaServerClient.cs" />
-    <Compile Include="$(ProductionLocalStartSource)" Link="Production/LocalRaidStartedPatch.cs" />
+    <Compile Include="$(ProductionLocalStartSource)" Link="Production/ArenaLocalRaidStartedPatch.cs" />
     <Compile Include="$(ProductionSessionModeCaptionSource)" Link="Production/ArenaSessionModeCaption.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />

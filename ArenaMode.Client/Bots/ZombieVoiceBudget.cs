@@ -57,14 +57,14 @@ internal static class ZombieVoiceBudget
             // The property creates a source on access; read the existing field
             // instead so a refused clip does not create/prewarm/occlude one.
             _speechSource = AccessTools.FieldRefAccess<Player, BetterSource>("_speechSource");
-            new PhrasePatch().Enable();
+            new ArenaZombieVoiceBudgetPhrasePatch().Enable();
             _enabled = true;
             Plugin.ModLogger.LogDebug("Arena zombie voices: audio admission installed (6 repetitive voices, 4 distant; nearby attack calls exempt).");
         }
         catch (Exception ex) { Warn(ex); }
     }
 
-    private sealed class PhrasePatch : ModulePatch
+    private sealed class ArenaZombieVoiceBudgetPhrasePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.OnPhraseTold),

@@ -102,11 +102,11 @@ namespace FastAnimatorSystem
 internal static partial class Harness
 {
     public static object Begin(FastAnimatorProcessor p,FastLayerInfo layer,int index,int recursion)
-    { object[] args={p,layer,index,recursion,null}; Method("AnimatorFramePatch","Prefix").Invoke(null,args); return args[4]; }
+    { object[] args={p,layer,index,recursion,null}; Method("ArenaAirVaultAnimatorFramePatch","Prefix").Invoke(null,args); return args[4]; }
     public static Exception End(Exception error,object previous)
-        =>(Exception)Method("AnimatorFramePatch","Finalizer").Invoke(null,new[]{error,previous});
+        =>(Exception)Method("ArenaAirVaultAnimatorFramePatch","Finalizer").Invoke(null,new[]{error,previous});
     public static AnimatorControllerTransition Transition(AbstractAnimatorControllerState s,AnimatorControllerTransition result)
-    { object[] args={s,result}; Method("AnimatorTransitionPatch","Postfix").Invoke(null,args); return (AnimatorControllerTransition)args[1]; }
+    { object[] args={s,result}; Method("ArenaAirVaultAnimatorTransitionPatch","Postfix").Invoke(null,args); return (AnimatorControllerTransition)args[1]; }
 }
 internal static class AnimatorFixture
 {

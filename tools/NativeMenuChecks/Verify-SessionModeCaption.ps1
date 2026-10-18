@@ -160,12 +160,12 @@ Invoke-CaptionMutant 'plugin-enable-commented-out' 'plugin' `
     'Plugin enables the session caption patches'
 foreach ($patchName in @('Location', 'Accept', 'Deploying')) {
     Invoke-CaptionMutant ('enable-' + $patchName.ToLowerInvariant() + '-commented-out') 'patch' `
-        "new ${patchName}Patch().Enable();" "// new ${patchName}Patch().Enable();" `
+        "new ArenaSessionModeCaption${patchName}Patch().Enable();" "// new ArenaSessionModeCaption${patchName}Patch().Enable();" `
         'all three caption patches are enabled'
 }
 
 # Round 2 (R2-L3 / R2-T3): Apply is the cosmetic call made INSIDE the side screen's
-# own postfixes (ShowPatch.Postfix's catch clears the Arena selection; SelectPatch.Postfix
+# own postfixes (ArenaSideSelectionShowPatch.Postfix's catch clears the Arena selection; ArenaSideSelectionSelectPatch.Postfix
 # has no try), so it must swallow everything. Multi-line anchors: sources are LF-normalised.
 $applyLog = 'Plugin.ModLogger?.LogWarning($"Arena session caption left native: {ex.Message}");'
 $applyCatch = @('catch (Exception ex)', '        {', ('            ' + $applyLog), '        }') -join "`n"

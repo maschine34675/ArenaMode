@@ -28,11 +28,11 @@ internal static class ArenaTracerPatches
 
     private static bool _loggedRendererFailure;
 
-    public static void Enable() => new TeamTracerPatch().Enable();
+    public static void Enable() => new ArenaTracerTeamTracerPatch().Enable();
 
     internal static void ResetDiagnostics() => _loggedRendererFailure = false;
 
-    private sealed class TeamTracerPatch : ModulePatch
+    private sealed class ArenaTracerTeamTracerPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(

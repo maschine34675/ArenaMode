@@ -48,7 +48,7 @@ internal static class Program
             SourceId = type == EDamageType.Bullet ? Grenade.FragmentType : Grenade.TemplateId,
             FireIndex = type == EDamageType.Bullet ? 1 : -1
         };
-        internal void Throw() => Patch("ThrowPatch", "Prefix").Invoke(null, new object[] { Hands });
+        internal void Throw() => Patch("ArenaSelfGrenadeTauntThrowPatch", "Prefix").Invoke(null, new object[] { Hands });
         internal void Die(DamageInfo info, EDamageType? lethal = null, Player victim = null, IPlayer aggressor = null)
         {
             victim ??= Local; aggressor ??= Local;
@@ -85,8 +85,8 @@ internal static class Program
             && ModulePatch.Targets[0].Name == "CreateAndRegisterGrenade", "exact actual hand throw path hooked");
         Check(ModulePatch.Targets[1].DeclaringType == typeof(Player)
             && ModulePatch.Targets[1].Name == "ApplyDamageInfo", "actual local damage path hooked");
-        Check(Patch("ThrowPatch", "Prefix").IsDefined(typeof(PatchPrefixAttribute)), "throw observation is a prefix before any prewarmed explosion");
-        Check(Patch("DamagePatch", "Finalizer").IsDefined(typeof(PatchFinalizerAttribute)), "damage scope uses exception-safe finalizer");
+        Check(Patch("ArenaSelfGrenadeTauntThrowPatch", "Prefix").IsDefined(typeof(PatchPrefixAttribute)), "throw observation is a prefix before any prewarmed explosion");
+        Check(Patch("ArenaSelfGrenadeTauntDamagePatch", "Finalizer").IsDefined(typeof(PatchFinalizerAttribute)), "damage scope uses exception-safe finalizer");
         foreach (var type in new[] { EDamageType.GrenadeFragment, EDamageType.Bullet })
         {
             var f = new Fixture(); f.Throw(); var info = f.Info(type);
@@ -215,9 +215,9 @@ internal static class Program
         }
         f = new Fixture(); f.Throw(); info = f.Info();
         object[] args = { f.Local, info, null };
-        Patch("DamagePatch", "Prefix").Invoke(null, args);
+        Patch("ArenaSelfGrenadeTauntDamagePatch", "Prefix").Invoke(null, args);
         var exception = new InvalidOperationException("native damage failure");
-        var returned = Patch("DamagePatch", "Finalizer").Invoke(null, new object[] { exception, args[2] });
+        var returned = Patch("ArenaSelfGrenadeTauntDamagePatch", "Finalizer").Invoke(null, new object[] { exception, args[2] });
         Check(ReferenceEquals(exception, returned), "native damage finalizer preserves exception");
         f.Local.HealthController.IsAlive = false;
         ArenaSelfGrenadeTaunt.ObserveDeath(f.Local, f.Local, info, info.DamageType);

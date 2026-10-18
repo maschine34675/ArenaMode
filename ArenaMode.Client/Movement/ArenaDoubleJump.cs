@@ -64,10 +64,10 @@ internal static class ArenaDoubleJump
         try
         {
             VaultingTiming = AccessTools.FieldRefAccess<Player, float>("_vaultingTiming");
-            new JumpEnterPatch().Enable();
-            new FallEnterPatch().Enable();
-            new LandingPatch().Enable();
-            new JumpCommandPatch().Enable();
+            new ArenaDoubleJumpJumpEnterPatch().Enable();
+            new ArenaDoubleJumpFallEnterPatch().Enable();
+            new ArenaDoubleJumpLandingPatch().Enable();
+            new ArenaDoubleJumpJumpCommandPatch().Enable();
             Settings.DoubleJumpEnabled.SettingChanged += ClearCredits;
             Settings.MovementEnabled.SettingChanged += ClearCredits;
             RaidLifecycle.OnRaidEnded += ResetCredits;
@@ -118,7 +118,7 @@ internal static class ArenaDoubleJump
     private static void Invalidate(Credit credit)
     {
         // A switch changed while standing on confirmed ground must work on the
-        // next jump. Once airborne, only LandingPatch can establish a new credit.
+        // next jump. Once airborne, only ArenaDoubleJumpLandingPatch can establish a new credit.
         credit.Spent = credit.Airborne || !credit.Context.IsGrounded
             || credit.Player.CharacterController == null || !credit.Player.CharacterController.isGrounded;
     }
@@ -347,14 +347,14 @@ internal static class ArenaDoubleJump
         }
     }
 
-    private sealed class JumpEnterPatch : ModulePatch
+    private sealed class ArenaDoubleJumpJumpEnterPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(JumpPlayerState), nameof(JumpPlayerState.Enter));
         [PatchPrefix]
         private static void Prefix(JumpPlayerState __instance, out Request __state)
             => __state = __instance.GetType() == typeof(JumpPlayerState) ? CaptureNativeEntry(__instance) : null;
-        // JumpHeightPatch must have applied the existing first-jump multiplier.
+        // ArenaMovementJumpHeightPatch must have applied the existing first-jump multiplier.
         [PatchPostfix, HarmonyPriority(Priority.Last)]
         private static void Postfix(JumpPlayerState __instance, Request __state)
         {
@@ -375,7 +375,7 @@ internal static class ArenaDoubleJump
         }
     }
 
-    private sealed class FallEnterPatch : ModulePatch
+    private sealed class ArenaDoubleJumpFallEnterPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(FallDown), nameof(FallDown.Enter));
@@ -387,7 +387,7 @@ internal static class ArenaDoubleJump
             => CompleteNativeEntry(__instance, __state);
     }
 
-    private sealed class LandingPatch : ModulePatch
+    private sealed class ArenaDoubleJumpLandingPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.CheckFlying));
@@ -422,7 +422,7 @@ internal static class ArenaDoubleJump
         }
     }
 
-    private sealed class JumpCommandPatch : ModulePatch
+    private sealed class ArenaDoubleJumpJumpCommandPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(MoveInputTranslator), nameof(MoveInputTranslator.TranslateCommand));

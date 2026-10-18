@@ -24,7 +24,7 @@ namespace ArenaMode.Audio;
 internal static class LabyrinthAlarmPatches
 {
     internal const string ScenePath = "Assets/Content/Locations/Labyrinth/Labyrinth_DesignStuff.unity";
-    private static readonly AlarmSourcePatch Patch = new();
+    private static readonly ArenaLabyrinthAlarmAlarmSourcePatch Patch = new();
     private static bool _enabled;
     private static bool _patchAttempted;
     private static bool _reportedFailure;
@@ -181,7 +181,7 @@ internal static class LabyrinthAlarmPatches
         Plugin.ModLogger?.LogWarning($"Arena Labyrinth alarm suppression failed open: {ex.Message}");
     }
 
-    private sealed class AlarmSourcePatch : ModulePatch
+    private sealed class ArenaLabyrinthAlarmAlarmSourcePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(SyncLoopSoundPlayer),

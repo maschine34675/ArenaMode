@@ -45,14 +45,14 @@ public sealed partial class BotTierScalePatchTests : IDisposable
                 },
             },
         };
-        BotTierScalePatch.ResetReporting();
+        ArenaBotTierScalePatch.ResetReporting();
     }
 
     public void Dispose()
     {
         ArenaContext.Sessions = _previousSessions;
         ArenaContext.Config = _previousConfig;
-        BotTierScalePatch.ResetReporting();
+        ArenaBotTierScalePatch.ResetReporting();
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         ArenaContext.Sessions = StartArena(sessionId, "factory4_day", protectedTeam: true);
         var details = Details("factory4_day", playerLevel: 47, min: 33, max: 61);
 
-        BotTierScalePatch.Prefix(sessionId, details);
+        ArenaBotTierScalePatch.Prefix(sessionId, details);
 
         Assert.Equal(47, details.PlayerLevel);
         Assert.Equal(33, details.LocationSpecificPmcLevelOverride!.Min);
@@ -76,7 +76,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         ArenaContext.Sessions = StartArena(sessionId, "factory4_day", protectedTeam: false);
         var details = Details("factory4_day", playerLevel: 47, min: 33, max: 61);
 
-        BotTierScalePatch.Prefix(sessionId, details);
+        ArenaBotTierScalePatch.Prefix(sessionId, details);
 
         Assert.Equal(12, details.PlayerLevel);
         Assert.Equal(7, details.LocationSpecificPmcLevelOverride!.Min);
@@ -90,7 +90,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         ArenaContext.Sessions = StartArena(arenaSessionId, "factory4_day", protectedTeam: false);
         var details = Details("factory4_day", playerLevel: 38, min: 25, max: 55);
 
-        BotTierScalePatch.Prefix(new MongoId(OrdinarySession), details);
+        ArenaBotTierScalePatch.Prefix(new MongoId(OrdinarySession), details);
 
         Assert.Equal(38, details.PlayerLevel);
         Assert.Equal(25, details.LocationSpecificPmcLevelOverride!.Min);
@@ -104,7 +104,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         ArenaContext.Sessions = StartArena(sessionId, "factory4_day", protectedTeam: false);
         var details = Details("laboratory", playerLevel: 38, min: 25, max: 55);
 
-        BotTierScalePatch.Prefix(sessionId, details);
+        ArenaBotTierScalePatch.Prefix(sessionId, details);
 
         Assert.Equal(38, details.PlayerLevel);
         Assert.Equal(25, details.LocationSpecificPmcLevelOverride!.Min);
@@ -120,7 +120,7 @@ public sealed partial class BotTierScalePatchTests : IDisposable
         ArenaContext.Sessions = sessions;
         var details = Details("factory4_day", playerLevel: 38, min: 25, max: 55);
 
-        BotTierScalePatch.Prefix(sessionId, details);
+        ArenaBotTierScalePatch.Prefix(sessionId, details);
 
         Assert.Equal(38, details.PlayerLevel);
         Assert.Equal(25, details.LocationSpecificPmcLevelOverride!.Min);
@@ -130,11 +130,11 @@ public sealed partial class BotTierScalePatchTests : IDisposable
     [Fact]
     public void PatchTargetsExactSessionAwareGenerateBotWaveOverloadAsPrefix()
     {
-        MethodInfo resolver = typeof(BotTierScalePatch).GetMethod(
+        MethodInfo resolver = typeof(ArenaBotTierScalePatch).GetMethod(
             "GetTargetMethod",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         var target = Assert.IsAssignableFrom<MethodInfo>(
-            resolver.Invoke(new BotTierScalePatch(), null));
+            resolver.Invoke(new ArenaBotTierScalePatch(), null));
 
         Assert.Equal("GenerateBotWave", target.Name);
         Assert.Equal(typeof(BotController), target.DeclaringType);
@@ -142,11 +142,11 @@ public sealed partial class BotTierScalePatchTests : IDisposable
             [typeof(MongoId), typeof(GenerateCondition), typeof(BotGenerationDetails)],
             target.GetParameters().Select(parameter => parameter.ParameterType).ToArray());
 
-        MethodInfo prefix = typeof(BotTierScalePatch).GetMethod(
-            nameof(BotTierScalePatch.Prefix),
+        MethodInfo prefix = typeof(ArenaBotTierScalePatch).GetMethod(
+            nameof(ArenaBotTierScalePatch.Prefix),
             BindingFlags.Static | BindingFlags.Public)!;
         Assert.NotNull(prefix.GetCustomAttribute<PatchPrefixAttribute>());
-        Assert.Null(typeof(BotTierScalePatch).GetMethod(
+        Assert.Null(typeof(ArenaBotTierScalePatch).GetMethod(
             "Postfix",
             BindingFlags.Static | BindingFlags.Public));
     }

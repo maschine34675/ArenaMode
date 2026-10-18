@@ -35,14 +35,14 @@ internal static class SkipPreRaidScreensPatch
 {
     public static void Enable()
     {
-        new SkipGameSettingsPatch().Enable();
-        new SkipConfirmationPatch().Enable();
+        new ArenaSkipPreRaidScreensSkipGameSettingsPatch().Enable();
+        new ArenaSkipPreRaidScreensSkipConfirmationPatch().Enable();
     }
 
     private static bool WouldBeArena(RaidSettings settings)
         => Settings.SkipPreRaidScreens.Value && ArenaClaim.WouldTakeOver(settings);
 
-    private sealed class SkipGameSettingsPatch : ModulePatch
+    private sealed class ArenaSkipPreRaidScreensSkipGameSettingsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MainMenuShowOperation), nameof(MainMenuShowOperation.method_50));
@@ -124,7 +124,7 @@ internal static class SkipPreRaidScreensPatch
         }
     }
 
-    private sealed class SkipConfirmationPatch : ModulePatch
+    private sealed class ArenaSkipPreRaidScreensSkipConfirmationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MainMenuShowOperation), nameof(MainMenuShowOperation.method_52));

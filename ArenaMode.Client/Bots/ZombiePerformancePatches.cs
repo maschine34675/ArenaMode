@@ -27,12 +27,12 @@ internal static class ZombiePerformancePatches
     {
         if (!_hearingEnabled)
         {
-            try { new HearingPatch().Enable(); _hearingEnabled = true; }
+            try { new ArenaZombiePerformanceHearingPatch().Enable(); _hearingEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
         if (!_socialEnabled)
         {
-            try { new SocialPatch().Enable(); _socialEnabled = true; }
+            try { new ArenaZombiePerformanceSocialPatch().Enable(); _socialEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
     }
@@ -175,7 +175,7 @@ internal static class ZombiePerformancePatches
         Plugin.ModLogger.LogWarning("Arena zombie performance: optimization unavailable for this call; native behavior retained. " + ex.GetBaseException().Message);
     }
 
-    private sealed class HearingPatch : ModulePatch
+    private sealed class ArenaZombiePerformanceHearingPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(BotHearingSensor), nameof(BotHearingSensor.OnSoundPlayed),
@@ -185,7 +185,7 @@ internal static class ZombiePerformancePatches
             => ShouldRunHearing(__instance, player, type);
     }
 
-    private sealed class SocialPatch : ModulePatch
+    private sealed class ArenaZombiePerformanceSocialPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(BotFriendChecker), nameof(BotFriendChecker.ManualUpdate), Type.EmptyTypes);

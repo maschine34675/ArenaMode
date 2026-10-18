@@ -11,7 +11,7 @@ namespace ArenaMode.Session;
 
 /// <summary>
 /// Client-side arena session state. Armed-for-next-raid is set by the
-/// LocalRaidStartedPatch after the server accepted the raid-start announcement;
+/// ArenaLocalRaidStartedPatch after the server accepted the raid-start announcement;
 /// IsActive is a per-raid latch flipped when the armed raid actually starts.
 /// Every arena patch gates on IsActive as its first check, so normal raids are
 /// bit-identical with the mod installed.

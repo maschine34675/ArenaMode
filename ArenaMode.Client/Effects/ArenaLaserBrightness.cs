@@ -25,7 +25,7 @@ internal static class ArenaLaserBrightness
     private static readonly int FactorId = Shader.PropertyToID("_Factor");
     private static ConditionalWeakTable<LaserBeam, Baseline> Baselines = new();
 
-    internal static void Enable() => new AwakePatch().Enable();
+    internal static void Enable() => new ArenaLaserBrightnessAwakePatch().Enable();
     internal static void Reset() => Baselines = new ConditionalWeakTable<LaserBeam, Baseline>();
 
     internal static void Capture(LaserBeam laser)
@@ -87,7 +87,7 @@ internal static class ArenaLaserBrightness
 
     internal static bool Positive(float value) => value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
 
-    private sealed class AwakePatch : ModulePatch
+    private sealed class ArenaLaserBrightnessAwakePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(LaserBeam), nameof(LaserBeam.Awake));
         [PatchPrefix, HarmonyPriority(Priority.First)]

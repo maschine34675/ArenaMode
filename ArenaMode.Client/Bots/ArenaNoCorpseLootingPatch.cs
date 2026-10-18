@@ -52,7 +52,7 @@ namespace ArenaMode.Bots;
 /// them rather than two hundred, and what they pick up is picked up because the
 /// player asked for it.
 /// </summary>
-internal sealed class NoCorpseLootingPatch : ModulePatch
+internal sealed class ArenaNoCorpseLootingPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
         => AccessTools.Method(typeof(BotDeadBodyWork), nameof(BotDeadBodyWork.UpdateCheck));

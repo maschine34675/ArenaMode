@@ -56,8 +56,8 @@ internal static class ArenaPowerups
         _attempted = true;
         try
         {
-            new DamagePatch().Enable();
-            new DeathPatch().Enable();
+            new ArenaPowerupsDamagePatch().Enable();
+            new ArenaPowerupsDeathPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -259,7 +259,7 @@ internal static class ArenaPowerups
         Plugin.ModLogger.LogWarning("Arena powerups unavailable: " + ex.GetBaseException().Message);
     }
 
-    private sealed class DamagePatch : ModulePatch
+    private sealed class ArenaPowerupsDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(ActiveHealthController), nameof(ActiveHealthController.ApplyDamage),
@@ -271,7 +271,7 @@ internal static class ArenaPowerups
             => damage = Adjust(__instance, bodyPart, damage, damageInfo, __runOriginal);
     }
 
-    private sealed class DeathPatch : ModulePatch
+    private sealed class ArenaPowerupsDeathPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.OnDead), new[] { typeof(EDamageType) });

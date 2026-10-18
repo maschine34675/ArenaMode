@@ -270,7 +270,7 @@ namespace EFT.InventoryLogic
         // included — unlike the one-level query above), gated on Examined; here
         // simplified to the two slots this project's items ever occupy (no
         // weapon/holster/scabbard fixtures exist in these tests). With
-        // ArenaWidenReach on, ArenaReachPatches.ReachableAnywherePatch turns a
+        // ArenaWidenReach on, ArenaReachPatches.ArenaReachableAnywherePatch turns a
         // native false into true for any worn, examined item anywhere in
         // Equipment — modeled the same way, over the whole equipment tree.
         public bool IsAtReachablePlace(Item item)

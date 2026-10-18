@@ -13,18 +13,18 @@ internal static class ArenaPreviewFlowPatch
 {
     public static void Enable()
     {
-        new MapShowPatch().Enable();
-        new OfflineShowPatch().Enable();
-        new AcceptShowPatch().Enable();
-        new AcceptVisualPatch().Enable();
-        new LoadingShowPatch().Enable();
-        new LoadingModelPatch().Enable();
-        new LoadingPlayerClickPatch().Enable();
-        new ClearSelectionPatch().Enable();
-        new ScreenClosePatch().Enable();
+        new ArenaPreviewFlowMapShowPatch().Enable();
+        new ArenaPreviewFlowOfflineShowPatch().Enable();
+        new ArenaPreviewFlowAcceptShowPatch().Enable();
+        new ArenaPreviewFlowAcceptVisualPatch().Enable();
+        new ArenaPreviewFlowLoadingShowPatch().Enable();
+        new ArenaPreviewFlowLoadingModelPatch().Enable();
+        new ArenaPreviewFlowLoadingPlayerClickPatch().Enable();
+        new ArenaPreviewFlowClearSelectionPatch().Enable();
+        new ArenaPreviewFlowScreenClosePatch().Enable();
     }
 
-    private sealed class ScreenClosePatch : ModulePatch
+    private sealed class ArenaPreviewFlowScreenClosePatch : ModulePatch
     {
         // Loading inherits its Close implementation. Hook the non-generic base,
         // restricted to these known setup screens and the exact owned subtree.
@@ -39,7 +39,7 @@ internal static class ArenaPreviewFlowPatch
         }
     }
 
-    private sealed class MapShowPatch : ModulePatch
+    private sealed class ArenaPreviewFlowMapShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.Show),
@@ -50,7 +50,7 @@ internal static class ArenaPreviewFlowPatch
             => ArenaPreviewFlow.HideForMap(controller.RaidSettings);
     }
 
-    private sealed class OfflineShowPatch : ModulePatch
+    private sealed class ArenaPreviewFlowOfflineShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchmakerOfflineRaidScreen), nameof(MatchmakerOfflineRaidScreen.Show),
@@ -61,7 +61,7 @@ internal static class ArenaPreviewFlowPatch
             => ArenaPreviewFlow.ShowCompact(__instance.transform, controller.RaidSettings);
     }
 
-    private sealed class AcceptShowPatch : ModulePatch
+    private sealed class ArenaPreviewFlowAcceptShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerAcceptScreen), nameof(MatchMakerAcceptScreen.Show),
@@ -72,7 +72,7 @@ internal static class ArenaPreviewFlowPatch
             => ArenaPreviewFlow.PrepareAccept(__instance, controller.RaidSettings);
     }
 
-    private sealed class AcceptVisualPatch : ModulePatch
+    private sealed class ArenaPreviewFlowAcceptVisualPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerPlayerPreview), nameof(MatchMakerPlayerPreview.UpdateVisual));
@@ -81,7 +81,7 @@ internal static class ArenaPreviewFlowPatch
             => !ArenaPreviewFlow.TryShowAccept(__instance);
     }
 
-    private sealed class LoadingShowPatch : ModulePatch
+    private sealed class ArenaPreviewFlowLoadingShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.Show),
@@ -92,7 +92,7 @@ internal static class ArenaPreviewFlowPatch
             => ArenaPreviewFlow.PrepareLoading(__instance, controller);
     }
 
-    private sealed class LoadingModelPatch : ModulePatch
+    private sealed class ArenaPreviewFlowLoadingModelPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.ShowPlayerModel),
@@ -112,7 +112,7 @@ internal static class ArenaPreviewFlowPatch
         }
     }
 
-    private sealed class LoadingPlayerClickPatch : ModulePatch
+    private sealed class ArenaPreviewFlowLoadingPlayerClickPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.HandleOnPlayerClick));
@@ -121,7 +121,7 @@ internal static class ArenaPreviewFlowPatch
             => !ArenaPreviewFlow.TryShowLoadingPlayer(__instance, raidPlayer);
     }
 
-    private sealed class ClearSelectionPatch : ModulePatch
+    private sealed class ArenaPreviewFlowClearSelectionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ArenaMenuSelection), nameof(ArenaMenuSelection.Clear));

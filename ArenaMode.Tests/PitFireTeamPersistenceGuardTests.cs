@@ -134,11 +134,11 @@ public class PitFireTeamPersistenceGuardTests
 
         Type[] patchTypes =
         [
-            typeof(PitFireTeamTextWritePatch),
-            typeof(PitFireTeamByteWritePatch),
-            typeof(PitFireTeamAsyncTextWritePatch),
-            typeof(PitFireTeamAsyncByteWritePatch),
-            typeof(PitFireTeamDeleteFilePatch),
+            typeof(ArenaPitFireTeamTextWritePatch),
+            typeof(ArenaPitFireTeamByteWritePatch),
+            typeof(ArenaPitFireTeamAsyncTextWritePatch),
+            typeof(ArenaPitFireTeamAsyncByteWritePatch),
+            typeof(ArenaPitFireTeamDeleteFilePatch),
         ];
 
         var targets = patchTypes.Select(type =>
@@ -200,15 +200,15 @@ public class PitFireTeamPersistenceGuardTests
                 "1234.json");
 
             // No active Arena: every prefix exits before optional-mod path work.
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
 
             // Solo Arena deliberately leaves PitFireTeam persistence alone.
             sessions.Arm(sessionId, "factory4_day", mode);
             Assert.False(sessions.IsExternalProfileWriteProtected(sessionId));
             Assert.False(sessions.AnyExternalProfileWriteProtection());
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
             Assert.False(sessions.BeginPostRaidFinalization(sessionId));
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
 
             // Only an explicitly requested PFT team raid owns this boundary.
             sessions.Arm(
@@ -218,25 +218,25 @@ public class PitFireTeamPersistenceGuardTests
                 protectPitFireTeam: true);
             Assert.True(sessions.IsExternalProfileWriteProtected(sessionId));
             Assert.True(sessions.AnyExternalProfileWriteProtection());
-            Assert.False(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
-            Assert.False(PitFireTeamByteWritePatch.Prefix(fileUtil, profile));
+            Assert.False(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.False(ArenaPitFireTeamByteWritePatch.Prefix(fileUtil, profile));
 
             Task asyncTextResult = Task.Delay(1);
-            Assert.False(PitFireTeamAsyncTextWritePatch.Prefix(
+            Assert.False(ArenaPitFireTeamAsyncTextWritePatch.Prefix(
                 fileUtil,
                 profile,
                 ref asyncTextResult));
             Assert.True(asyncTextResult.IsCompletedSuccessfully);
 
             Task asyncByteResult = Task.Delay(1);
-            Assert.False(PitFireTeamAsyncByteWritePatch.Prefix(
+            Assert.False(ArenaPitFireTeamAsyncByteWritePatch.Prefix(
                 fileUtil,
                 profile,
                 ref asyncByteResult));
             Assert.True(asyncByteResult.IsCompletedSuccessfully);
 
             bool deleteResult = true;
-            Assert.False(PitFireTeamDeleteFilePatch.Prefix(
+            Assert.False(ArenaPitFireTeamDeleteFilePatch.Prefix(
                 fileUtil,
                 profile,
                 ref deleteResult));
@@ -248,10 +248,10 @@ public class PitFireTeamPersistenceGuardTests
                 "teammates",
                 OtherSession,
                 "1234.json");
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, otherProfile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, otherProfile));
 
             sessions.MarkIdle(sessionId);
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
         }
         finally
         {
@@ -1094,7 +1094,7 @@ public class PitFireTeamPersistenceGuardTests
                 out managementState));
             Assert.Null(managementState);
             Assert.False(PitFireTeamManagementScope.HasActiveScope());
-            Assert.False(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.False(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
             Assert.False(PitFireTeamDynamicPersistencePatches.ShouldRunRecovery(
                 [sessionId],
                 recoveryMethod));
@@ -1113,8 +1113,8 @@ public class PitFireTeamPersistenceGuardTests
 
             Assert.True(PitFireTeamManagementScope.Authorizes(Session));
             Assert.False(PitFireTeamManagementScope.Authorizes(OtherSession));
-            Assert.True(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
-            Assert.False(PitFireTeamTextWritePatch.Prefix(fileUtil, otherProfile));
+            Assert.True(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.False(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, otherProfile));
             Assert.True(PitFireTeamDynamicPersistencePatches.ShouldRunRecovery(
                 [sessionId],
                 recoveryMethod));
@@ -1141,7 +1141,7 @@ public class PitFireTeamPersistenceGuardTests
 
             Assert.False(PitFireTeamManagementScope.HasActiveScope());
             Assert.False(PitFireTeamManagementScope.Authorizes(Session));
-            Assert.False(PitFireTeamTextWritePatch.Prefix(fileUtil, profile));
+            Assert.False(ArenaPitFireTeamTextWritePatch.Prefix(fileUtil, profile));
             Assert.False(PitFireTeamDynamicPersistencePatches.ShouldRunRecovery(
                 [sessionId],
                 recoveryMethod));

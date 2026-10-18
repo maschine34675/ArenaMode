@@ -12,7 +12,7 @@ namespace ArenaMode.Server.Patches;
 /// postfix runs after THAT, so arena hostility always wins. Reference-equality
 /// against the stashed clone guarantees normal raids are never touched.
 /// </summary>
-public sealed class AdjustBotHostilityPatch : AbstractPatch
+public sealed class ArenaAdjustBotHostilityPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

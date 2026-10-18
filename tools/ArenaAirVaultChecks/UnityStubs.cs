@@ -88,9 +88,9 @@ namespace EFT
 }
 internal static partial class Harness
 {
-    public static void UnityBody(Player player)=>Method("UnityBodyPatch","Prefix").Invoke(null,new object[]{player});
+    public static void UnityBody(Player player)=>Method("ArenaAirVaultUnityBodyPatch","Prefix").Invoke(null,new object[]{player});
     public static Exception UnityEntry(Exception error,PlayerStateContainer c,Animator a,AnimatorStateInfo s,int layer)
-        =>(Exception)Method("UnityEntryPatch","Finalizer").Invoke(null,new object[]{error,c,a,s,layer});
+        =>(Exception)Method("ArenaAirVaultUnityEntryPatch","Finalizer").Invoke(null,new object[]{error,c,a,s,layer});
 }
 internal static class UnityFixture
 {

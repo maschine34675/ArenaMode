@@ -21,10 +21,10 @@ internal static class ArenaSpectatorInputPatch
             return;
 
         _enabled = true;
-        new EftOwnerTranslateCommandPatch().Enable();
+        new ArenaSpectatorInputEftOwnerTranslateCommandPatch().Enable();
     }
 
-    private sealed class EftOwnerTranslateCommandPatch : ModulePatch
+    private sealed class ArenaSpectatorInputEftOwnerTranslateCommandPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(

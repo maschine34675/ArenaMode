@@ -513,7 +513,7 @@ internal static class Program
         rig.Unsearched = false;
         Counts(2, 2, 1, 1, 2, 1, "Re-searching the rig restores its candidates on G");
 
-        // ArenaReachPatches.ReachableAnywherePatch: any worn, examined grenade
+        // ArenaReachPatches.ArenaReachableAnywherePatch: any worn, examined grenade
         // anywhere in Equipment becomes reachable, without changing what G's
         // own candidate list is built from.
         f.Player.InventoryController.ArenaWidenReach = true;

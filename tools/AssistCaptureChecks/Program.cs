@@ -286,12 +286,12 @@ internal static class Program
         Reset();
         Assert(ModulePatch.Targets.Count == 2 && ModulePatch.Targets.Any(x => x.Name == nameof(Player.OnHealthChanged))
             && ModulePatch.Targets.Any(x => x.Name == nameof(Player.OnDead)), "only HP event and death cleanup are observed");
-        var hp = Patch("HealthChangedPatch", "Prefix");
+        var hp = Patch("ArenaAssistCaptureHealthChangedPatch", "Prefix");
         Assert(hp.GetCustomAttribute<PatchPrefixAttribute>() != null, "HP observation is prefix before native callback body");
         hp.Invoke(null, new object[] { _victim, -35f, new DamageInfo { DamageType = EDamageType.Bullet, Player = new Bridge { iPlayer = _attacker } } });
         Assert(_match.Damage.Single().Damage == 35, "lethal event contribution exists before death callback scoring");
-        var before = Patch("DeathCleanupPatch", "Prefix");
-        var finish = Patch("DeathCleanupPatch", "Finalizer");
+        var before = Patch("ArenaAssistCaptureDeathCleanupPatch", "Prefix");
+        var finish = Patch("ArenaAssistCaptureDeathCleanupPatch", "Finalizer");
         Assert(finish.GetCustomAttribute<PatchFinalizerAttribute>() != null, "cleanup survives native death callback exceptions");
         var state = new object[] { null }; before.Invoke(null, state);
         Assert(ReferenceEquals(state[0], _match) && _match.Forgotten.Count == 0, "death entry does not clear contributions before scoring");

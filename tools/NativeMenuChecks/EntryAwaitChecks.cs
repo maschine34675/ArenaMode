@@ -21,7 +21,7 @@ internal static partial class Program
         var post = RequestHandler.Post;
         bool armed = ArenaSession.ArmedForNextRaid, inRaid = InGameStatus.InRaid;
         int epoch = ArenaSession.ArmEpoch;
-        var observe = typeof(LocalRaidStartedPatch).GetMethod("ObserveLocalStart", BindingFlags.Static | BindingFlags.NonPublic);
+        var observe = typeof(ArenaLocalRaidStartedPatch).GetMethod("ObserveLocalStart", BindingFlags.Static | BindingFlags.NonPublic);
         void Set(string name, object value) => fields.Single(field => field.Name == name).SetValue(null, value);
         string Begin()
         {

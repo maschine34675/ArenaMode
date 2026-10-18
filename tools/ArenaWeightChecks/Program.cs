@@ -402,10 +402,10 @@ internal static class Program
     private static void InvokePostfix(PhysicalBase physical)
     {
         Type nested = typeof(ArenaWeightPatches).GetNestedType(
-            "WeightLimitsPatch", BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("WeightLimitsPatch missing");
+            "ArenaWeightLimitsPatch", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ArenaWeightLimitsPatch missing");
         MethodInfo postfix = nested.GetMethod("Postfix", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("WeightLimitsPatch.Postfix missing");
+            ?? throw new InvalidOperationException("ArenaWeightLimitsPatch.Postfix missing");
         postfix.Invoke(null, new object[] { physical });
     }
 

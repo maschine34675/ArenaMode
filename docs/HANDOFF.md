@@ -2850,7 +2850,7 @@ current. User-facing communication is normally German.
 
 - **Gesture gate, corpse-looting gate registered, r2 classified, r3 issued
   (2026-09-13):** three commits on `fix/offline-harness-contracts` after
-  Codex's r2 report `7cc2391`. `1e1ca6d` `NoBotGesturesPatch`: prefix on
+  Codex's r2 report `7cc2391`. `1e1ca6d` `ArenaNoBotGesturesPatch`: prefix on
   `BotPeacefulActions.SetActiveAction` (the only raiser of
   `OnStartPeacefulMove`), gated on `IsActive || ArmedForNextRaid` (bots tick
   during the countdown), F12 Bots/`NoBotGestures` default on — no friendly
@@ -2909,7 +2909,7 @@ current. User-facing communication is normally German.
   period is dead once the process has run a minute), `_nextTimePossible`
   starts at 0, `IsTrue100(160)` is always true, and the gesture partner is
   the nearest bot of any side (`BotsConnections` is raid-wide). Fix options
-  were assessed; the user chose the Arena-only gate (`NoBotGesturesPatch`,
+  were assessed; the user chose the Arena-only gate (`ArenaNoBotGesturesPatch`,
   see the entry above) since normal raids are not bothered by it. The
   standalone item-level fix for normal raids (client postfix on
   `FindItemToDropToBot` returning null for `Meds` plus setting

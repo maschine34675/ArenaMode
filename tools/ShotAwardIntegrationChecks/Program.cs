@@ -40,7 +40,7 @@ internal static partial class Program
         {
             UnityEngine.Time.time = at;
             UnityEngine.Time.deltaTime = deltaTime;
-            PatchMethod("FlightPatch", "Postfix").Invoke(null, new object[] { Local.MovementContext, deltaTime });
+            PatchMethod("ArenaShotAwardHooksFlightPatch", "Postfix").Invoke(null, new object[] { Local.MovementContext, deltaTime });
         }
         internal void FlyUntil(float end)
         {
@@ -92,13 +92,13 @@ internal static partial class Program
     private static IDisposable FirePrefix(Fixture f)
     {
         object[] args = { f.Gun, f.Weapon, null };
-        PatchMethod("FirePatch", "Prefix").Invoke(null, args);
+        PatchMethod("ArenaShotAwardHooksFirePatch", "Prefix").Invoke(null, args);
         return (IDisposable)args[2];
     }
     private static IDisposable ImpactPrefix(Fixture f, Shot shot)
     {
         object[] args = { f.World, shot, null };
-        PatchMethod("ImpactPatch", "Prefix").Invoke(null, args);
+        PatchMethod("ArenaShotAwardHooksImpactPatch", "Prefix").Invoke(null, args);
         return (IDisposable)args[2];
     }
     private static Exception Finalize(string patch, Exception exception, IDisposable scope)
@@ -115,14 +115,14 @@ internal static partial class Program
             && ModulePatch.Targets[2].Name == "ShotDelegate", "impact hook targets local world override");
         Check(ModulePatch.Targets[3].DeclaringType == typeof(MovementContext)
             && ModulePatch.Targets[3].Name == "CheckFlying", "flight observation follows native ground refresh");
-        Check(PatchMethod("FlightPatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "flight observer is postfix only");
+        Check(PatchMethod("ArenaShotAwardHooksFlightPatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "flight observer is postfix only");
         Check(ModulePatch.Targets[4].Name == "CreateDeviatedFragment", "continuation hook targets native penetration only");
-        foreach (var patch in new[] { "FirePatch", "ImpactPatch", "ContinuationPatch" })
+        foreach (var patch in new[] { "ArenaShotAwardHooksFirePatch", "ArenaShotAwardHooksImpactPatch", "ArenaShotAwardHooksContinuationPatch" })
         {
             Check(PatchMethod(patch, "Prefix").IsDefined(typeof(PatchPrefixAttribute)), patch + " has prefix attribute");
             Check(PatchMethod(patch, "Finalizer").IsDefined(typeof(PatchFinalizerAttribute)), patch + " has finalizer attribute");
         }
-        Check(PatchMethod("CreatePatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "creation hook has postfix attribute");
+        Check(PatchMethod("ArenaShotAwardHooksCreatePatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "creation hook has postfix attribute");
     }
     private static void Conditions()
     {
@@ -388,18 +388,18 @@ internal static partial class Program
     {
         var f = new Fixture(); var shot = f.Raw();
         var fire = FirePrefix(f);
-        PatchMethod("CreatePatch", "Postfix").Invoke(null, new object[] { shot });
+        PatchMethod("ArenaShotAwardHooksCreatePatch", "Postfix").Invoke(null, new object[] { shot });
         var exception = new InvalidOperationException("native fire failure");
-        Check(ReferenceEquals(exception, Finalize("FirePatch", exception, fire)), "fire finalizer preserves native exception");
+        Check(ReferenceEquals(exception, Finalize("ArenaShotAwardHooksFirePatch", exception, fire)), "fire finalizer preserves native exception");
         var afterFailure = f.Raw(40); ArenaShotAwardHooks.Created(afterFailure);
         Check(!f.Impact(afterFailure).IsKnown, "fire exception finalizer clears capture");
         Check(f.Impact(shot).IsKnown, "created projectile survives later fire exception");
         var impact = ImpactPrefix(f, shot);
         Check(ArenaShotAwardHooks.CurrentFacts(Damage(shot), Id(shot)).IsKnown, "impact prefix exposes frozen projectile");
         exception = new InvalidOperationException("native damage failure");
-        Check(ReferenceEquals(exception, Finalize("ImpactPatch", exception, impact)), "impact finalizer preserves native exception");
+        Check(ReferenceEquals(exception, Finalize("ArenaShotAwardHooksImpactPatch", exception, impact)), "impact finalizer preserves native exception");
         Check(!ArenaShotAwardHooks.CurrentFacts(Damage(shot), Id(shot)).IsKnown, "impact exception finalizer clears contact");
-        Check(Finalize("ImpactPatch", null, null) == null, "empty finalizer leaves native result unchanged");
+        Check(Finalize("ArenaShotAwardHooksImpactPatch", null, null) == null, "empty finalizer leaves native result unchanged");
         using (ArenaShotAwardHooks.BeginFire(null, f.Weapon))
         {
             var invalid = f.Raw(41); ArenaShotAwardHooks.Created(invalid);

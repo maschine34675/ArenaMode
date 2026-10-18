@@ -19,10 +19,10 @@ internal static class ArenaSpectatorCameraPatches
             return;
 
         _enabled = true;
-        new ForceSetPositionPatch().Enable();
+        new ArenaSpectatorCameraForceSetPositionPatch().Enable();
     }
 
-    private sealed class ForceSetPositionPatch : ModulePatch
+    private sealed class ArenaSpectatorCameraForceSetPositionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(

@@ -49,13 +49,13 @@ that file at the baseline, including logger delegates.
 |---|---:|---|
 | `ConfigLoader.cs` | 5 | First-time default file creation stays Info, since the user may need its path. Map list, successful kit/ladder reads and missing optional ladder notice become Debug; the runtime generator can replace the optional ladder anyway. Actual missing kit/error paths stay Warning/Error. |
 | `PatchManager.cs` | 1 | Info: one server integration enabled notice. Individual patches are not listed at Info. |
-| `Patches/AdjustBotHostilityPatch.cs` | 4 | Debug: applying the selected hostility rule or retaining native infected hostility is ordinary setup. |
+| `Patches/ArenaAdjustBotHostilityPatch.cs` | 4 | Debug: applying the selected hostility rule or retaining native infected hostility is ordinary setup. |
 | `Patches/ApbsBotTierCompatibility.cs` | 2 | Debug: adapter installation and changing level-range details. An unavailable adapter remains Warning. |
-| `Patches/BotTierScalePatch.cs` | 1 | Debug: difficulty clock/level ramp details, not an actionable player notice. |
-| `Patches/GenerateLocationAndLootPatch.cs` | 1 | Debug: exact location clone, caps, spawn strategy and area/participant parameters. |
+| `Patches/ArenaBotTierScalePatch.cs` | 1 | Debug: difficulty clock/level ramp details, not an actionable player notice. |
+| `Patches/ArenaGenerateLocationAndLootPatch.cs` | 1 | Debug: exact location clone, caps, spawn strategy and area/participant parameters. |
 | `Patches/PitFireTeamDynamicPersistencePatches.cs` | 8 | Debug: absent optional assembly, successful patch counts and six normal protected-write/transaction suppression paths. |
 | `Patches/PitFireTeamFileMutationPatches.cs` | 1 | Debug: expected protected-file mutation suppression. |
-| `Patches/PreRaidWipeSkipPatch.cs` | 1 | Debug: expected inventory-wipe suppression. |
+| `Patches/ArenaPreRaidWipeSkipPatch.cs` | 1 | Debug: expected inventory-wipe suppression. |
 | `Routers/ArenaModeRouter.cs` | 2 | Debug: idempotent raid-start replay and end-request deferral while the native result is pending. |
 | `Services/ArenaKitSupplies.cs` | 1 | Debug: successful grenade supply preparation. |
 | `Services/ArenaProtectedRaidStartService.cs` | 1 | Debug: native start identity binding detail. |
@@ -103,12 +103,12 @@ the session row includes the two newly separated ladder warning sinks.
 | `ConfigLoader.cs` | 2 / 1 | Invalid/repaired configuration, missing kits and load failure materially affect play. |
 | `PatchManager.cs` | 0 / 1 | Rollback of partial PFT protection failed. |
 | `Patches/ApbsBotTierCompatibility.cs` | 1 / 0 | Exact adapter contract unavailable or application failed; one-shot warning retained. |
-| `Patches/BotTierScalePatch.cs` | 1 / 0 | Difficulty scaling exception; actual fallback rather than normal progression. |
-| `Patches/GenerateLocationAndLootPatch.cs` | 0 / 2 | Required mutation failed or solo fallback to vanilla spawns. |
+| `Patches/ArenaBotTierScalePatch.cs` | 1 / 0 | Difficulty scaling exception; actual fallback rather than normal progression. |
+| `Patches/ArenaGenerateLocationAndLootPatch.cs` | 0 / 2 | Required mutation failed or solo fallback to vanilla spawns. |
 | `Patches/PitFireTeamDynamicPersistencePatches.cs` | 5 / 0 | Discovery, missing persistence guards, unsupported installed version, patch/rollback and exact-contract failures. Absence of the optional mod itself is Debug. |
 | `Patches/PitFireTeamFileMutationPatches.cs` | 1 / 0 | Path check threw and failed open; protection diagnosis must remain visible. |
-| `Patches/PostRaidPmcSkipPatch.cs` | 0 / 1 | Protected native end identity mismatch. |
-| `Patches/TeamDeathmatchArmbandPatch.cs` | 1 / 0 | Armband application exception, not normal equipment generation. |
+| `Patches/ArenaPostRaidPmcSkipPatch.cs` | 0 / 1 | Protected native end identity mismatch. |
+| `Patches/ArenaTeamDeathmatchArmbandPatch.cs` | 1 / 0 | Armband application exception, not normal equipment generation. |
 | `Routers/ArenaModeRouter.cs` | 3 / 6 | Stale snapshot, rejected PFT start, externally disabled bots; failed lifecycle recovery and snapshot/persistence operations. |
 | `Services/ArenaKitSupplies.cs` | 1 / 0 | Failed grenade supply preparation. |
 | `Services/ArenaProtectedRaidEndService.cs` | 0 / 1 | End transaction failed and is retained for an exact retry. |

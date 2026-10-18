@@ -163,7 +163,7 @@ ArenaTeamLaserColors.Reset();
 // Invoke the actual Harmony finalizer entrypoint, not just its End helper.
 Setup(); var faulted = Fixture(); original = faulted.laser.NativeBeam;
 render = ArenaTeamLaserColors.Begin(faulted.laser);
-var patch = typeof(ArenaTeamLaserColors).GetNestedType("LateUpdatePatch", System.Reflection.BindingFlags.NonPublic);
+var patch = typeof(ArenaTeamLaserColors).GetNestedType("ArenaTeamLaserColorsLateUpdatePatch", System.Reflection.BindingFlags.NonPublic);
 var finalizer = patch.GetMethod("Finalizer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 var nativeException = new InvalidOperationException("native failure identity");
 var result = finalizer.Invoke(null, new object[] { nativeException, render });

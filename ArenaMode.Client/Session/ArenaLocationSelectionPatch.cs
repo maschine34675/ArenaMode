@@ -80,13 +80,13 @@ internal static class ArenaLocationSelectionPatch
 
     public static void Enable()
     {
-        new ShowPatch().Enable();
-        new DisplayPatch().Enable();
-        new SelectionPatch().Enable();
-        new SelectedValuePatch().Enable();
-        new ButtonLocationPatch().Enable();
-        new FactoryTimePatch().Enable();
-        new ClosePatch().Enable();
+        new ArenaLocationSelectionShowPatch().Enable();
+        new ArenaLocationSelectionDisplayPatch().Enable();
+        new ArenaLocationSelectionSelectionPatch().Enable();
+        new ArenaLocationSelectionSelectedValuePatch().Enable();
+        new ArenaLocationSelectionButtonLocationPatch().Enable();
+        new ArenaLocationSelectionFactoryTimePatch().Enable();
+        new ArenaLocationSelectionClosePatch().Enable();
     }
 
     private static bool IsArena(MatchMakerSelectionLocationScreen screen)
@@ -98,7 +98,7 @@ internal static class ArenaLocationSelectionPatch
             state.Restore();
     }
 
-    private sealed class ShowPatch : ModulePatch
+    private sealed class ArenaLocationSelectionShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.ShowInternal));
@@ -214,7 +214,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class DisplayPatch : ModulePatch
+    private sealed class ArenaLocationSelectionDisplayPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.DisplayLocation));
@@ -236,7 +236,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class SelectionPatch : ModulePatch
+    private sealed class ArenaLocationSelectionSelectionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.OnLocationSelected));
@@ -267,7 +267,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class SelectedValuePatch : ModulePatch
+    private sealed class ArenaLocationSelectionSelectedValuePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.PropertySetter(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.SelectedLocation));
@@ -287,7 +287,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class ButtonLocationPatch : ModulePatch
+    private sealed class ArenaLocationSelectionButtonLocationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(LocationButton), nameof(LocationButton.Show), new[]
@@ -356,7 +356,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class FactoryTimePatch : ModulePatch
+    private sealed class ArenaLocationSelectionFactoryTimePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.GetLocationByTime));
@@ -378,7 +378,7 @@ internal static class ArenaLocationSelectionPatch
         }
     }
 
-    private sealed class ClosePatch : ModulePatch
+    private sealed class ArenaLocationSelectionClosePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen), nameof(MatchMakerSelectionLocationScreen.Close));

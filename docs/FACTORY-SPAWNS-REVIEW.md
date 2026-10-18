@@ -96,7 +96,7 @@ position separately; replacing a variant's ID or moving a target breaks the chec
 
 ## Consumers reviewed
 
-- `LocalRaidStartedPatch` passes `settings.location` to
+- `ArenaLocalRaidStartedPatch` passes `settings.location` to
   `ArenaSession.MarkArmed`; the selected night ID is retained. Native
   `../_decompiled/EFT/BaseLocalGame.cs:525` sets the current world's location ID
   before `SpawnPointsCollection.CreateFromScene`, then uses that collection for

@@ -111,7 +111,7 @@ the wrong scope and could break other maps/renderers.
 Native `EFT/Player.cs:13495–13516` checks `_firearmsAnimator != null` then calls
 `SetBoltCatch(false)`, but the wrapper's Unity animator can already be destroyed.
 The stack ends in `Player.OnDestroy`/`LocalPlayer.Dispose`, in the same shutdown
-burst. Arena's `ArenaHandlingPatches.ControllerDestroyPatch` is indeed installed
+burst. Arena's `ArenaHandlingPatches.ArenaHandlingControllerDestroyPatch` is indeed installed
 on that method; its prefix releases only previously owned handling leases and does
 not write bolt-catch state or destroy the native animator. The current visit is not
 an Arena session, so no corresponding movement lease was acquired. Presence of the

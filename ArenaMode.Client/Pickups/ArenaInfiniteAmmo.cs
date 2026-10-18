@@ -20,7 +20,7 @@ internal static class ArenaInfiniteAmmo
     {
         if (_attempted) return;
         _attempted = true;
-        try { new ShotPatch().Enable(); Enabled = true; }
+        try { new ArenaInfiniteAmmoShotPatch().Enable(); Enabled = true; }
         catch (Exception ex) { Warn(ex); }
     }
 
@@ -62,7 +62,7 @@ internal static class ArenaInfiniteAmmo
             && !ammo.GetTemplate<AmmoTemplate>().HasGrenaderComponent;
     }
 
-    private sealed class ShotPatch : ModulePatch
+    private sealed class ArenaInfiniteAmmoShotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ShotOperation), nameof(ShotOperation.ProcessInventoryOperationsForSingleShot));

@@ -42,7 +42,7 @@ public sealed class FirearmsAnimator
     public void SetSpeedParameters(float reload = 1, float draw = 1)
     {
         object[] args = [this, draw, null];
-        Hook.Call("SpeedParametersPatch", "Prefix", args);
+        Hook.Call("ArenaHandlingSpeedParametersPatch", "Prefix", args);
         draw = (float)args[1];
         Exception failure = null;
         try
@@ -52,7 +52,7 @@ public sealed class FirearmsAnimator
             Animator.SetFloat(11, draw);
         }
         catch (Exception ex) { failure = ex; throw; }
-        finally { Hook.Call("SpeedParametersPatch", "Finalizer", failure, args[2]); }
+        finally { Hook.Call("ArenaHandlingSpeedParametersPatch", "Finalizer", failure, args[2]); }
     }
 }
 namespace EFT
@@ -74,8 +74,8 @@ namespace EFT
             public FirearmsAnimator FirearmsAnimator = new();
             public FirearmOperation CurrentOperation;
             public bool Destroyed;
-            public void ManualUpdate(float delta) => Hook.Call("ControllerUpdatePatch", "Prefix", this);
-            public void Destroy() { Hook.Call("ControllerDestroyPatch", "Prefix", this); Destroyed = true; }
+            public void ManualUpdate(float delta) => Hook.Call("ArenaHandlingControllerUpdatePatch", "Prefix", this);
+            public void Destroy() { Hook.Call("ArenaHandlingControllerDestroyPatch", "Prefix", this); Destroyed = true; }
             public abstract class FirearmOperation : ObjectInHandsOperation
             {
                 public Player Player;
@@ -86,7 +86,7 @@ namespace EFT
             public class SpawnOperation : FirearmOperation
             {
                 public void Start(Action callback) => ArenaMode.Movement.ArenaHandlingPatches.BeginHandlingOperation(this);
-                public void WeaponAppeared() { Hook.Call("DrawCompletePatch", "Prefix", this); State = EOperationState.Finished; }
+                public void WeaponAppeared() { Hook.Call("ArenaHandlingDrawCompletePatch", "Prefix", this); State = EOperationState.Finished; }
             }
             public class Remove : FirearmOperation
             { public void Start(Action callback, bool fastDrop = false, InventoryLogic.Item item = null) => ArenaMode.Movement.ArenaHandlingPatches.BeginHandlingOperation(this); }

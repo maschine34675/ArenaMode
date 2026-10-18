@@ -312,20 +312,20 @@ internal static class Program
         IHealthEffect effect)
     {
         Type patch = typeof(ArenaMedicalPatches).GetNestedType(
-            "MedicalEffectPatch", BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MedicalEffectPatch missing");
+            "ArenaMedicalEffectPatch", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ArenaMedicalEffectPatch missing");
         MethodInfo postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MedicalEffectPatch.Postfix missing");
+            ?? throw new InvalidOperationException("ArenaMedicalEffectPatch.Postfix missing");
         postfix.Invoke(null, new object[] { health, item, effect });
     }
 
     private static void InvokeDestroy(Player.MedsController controller)
     {
         Type patch = typeof(ArenaMedicalPatches).GetNestedType(
-            "MedsControllerDestroyPatch", BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MedsControllerDestroyPatch missing");
+            "ArenaMedicalMedsControllerDestroyPatch", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ArenaMedicalMedsControllerDestroyPatch missing");
         MethodInfo prefix = patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("MedsControllerDestroyPatch.Prefix missing");
+            ?? throw new InvalidOperationException("ArenaMedicalMedsControllerDestroyPatch.Prefix missing");
         prefix.Invoke(null, new object[] { controller });
     }
 

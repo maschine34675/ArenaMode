@@ -244,7 +244,7 @@ public sealed partial class ArenaAreaServerTests
         Assert.False(Sessions.ValidateAreaLocation(Session, out _));
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, end));
         var location = ParticipantLocation();
-        GenerateLocationAndLootPatch.Postfix(Session, Map, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Map, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);
         Assert.False(Sessions.ValidateAreaResponse(Session, location with { }, out _));
         Assert.False(Sessions.ValidateAreaResponse(Session, null, out _));
@@ -267,7 +267,7 @@ public sealed partial class ArenaAreaServerTests
         Sessions.Arm(Session, Map, "gungame", armToken: Token, participants: 4);
         string end = Start();
         var location = ParticipantLocation();
-        GenerateLocationAndLootPatch.Postfix(Session, Map, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Map, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var valid), valid);
         switch (drift)
         {
@@ -318,7 +318,7 @@ public sealed partial class ArenaAreaServerTests
         if (failure == "wrong-callback-map") map = ArenaMapCatalog.FactoryNightId;
         if (failure == "wrong-clone-map") location.Id = ArenaMapCatalog.FactoryNightId;
         string before = JsonSerializer.Serialize(location);
-        GenerateLocationAndLootPatch.Postfix(Session, map, failure == "no-clone" ? null! : location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, map, failure == "no-clone" ? null! : location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
         Assert.False(Sessions.ValidateAreaResponse(Session, location, out var reason));
         Assert.False(string.IsNullOrWhiteSpace(reason));
@@ -331,7 +331,7 @@ public sealed partial class ArenaAreaServerTests
     {
         var original = ParticipantLocation();
         string before = JsonSerializer.Serialize(original);
-        GenerateLocationAndLootPatch.Postfix(Session, Map, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Map, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
         Sessions.Arm(Session, Map, "gungame", armToken: Token);
         string end = Start();
@@ -339,9 +339,9 @@ public sealed partial class ArenaAreaServerTests
         Assert.False(Sessions.GetParticipantBosses(Session));
         Assert.True(Sessions.ValidateAreaResponse(Session, null, out _));
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, end));
-        GenerateLocationAndLootPatch.Postfix(Other, Map, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Other, Map, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
-        GenerateLocationAndLootPatch.Postfix(Session, Map, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Map, original);
         Assert.True(original.NewSpawn);
         Assert.True(original.OfflineNewSpawn);
         Assert.NotEmpty(original.BossLocationSpawn!);

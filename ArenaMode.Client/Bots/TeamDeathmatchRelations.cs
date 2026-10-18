@@ -67,9 +67,9 @@ internal static class TeamDeathmatchRelations
 
     internal static void Enable()
     {
-        new GroupEnemyAdmissionPatch().Enable();
-        new MemoryEnemyAdmissionPatch().Enable();
-        new MemoryGoalAdmissionPatch().Enable();
+        new ArenaTeamDeathmatchRelationsGroupEnemyAdmissionPatch().Enable();
+        new ArenaTeamDeathmatchRelationsMemoryEnemyAdmissionPatch().Enable();
+        new ArenaTeamDeathmatchRelationsMemoryGoalAdmissionPatch().Enable();
     }
 
     internal static void Reset()
@@ -468,7 +468,7 @@ internal static class TeamDeathmatchRelations
         Plugin.ModLogger.LogWarning($"Arena TDM {operation} failed (further relationship warnings silenced this raid): {ex.Message}");
     }
 
-    private sealed class GroupEnemyAdmissionPatch : ModulePatch
+    private sealed class ArenaTeamDeathmatchRelationsGroupEnemyAdmissionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.AddEnemy),
@@ -482,7 +482,7 @@ internal static class TeamDeathmatchRelations
         }
     }
 
-    private sealed class MemoryEnemyAdmissionPatch : ModulePatch
+    private sealed class ArenaTeamDeathmatchRelationsMemoryEnemyAdmissionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotMemory), nameof(BotMemory.AddEnemy),
@@ -492,7 +492,7 @@ internal static class TeamDeathmatchRelations
             => !TryGroupRelationship(__instance?._owner?.BotsGroup, enemy, out bool enemies) || enemies;
     }
 
-    private sealed class MemoryGoalAdmissionPatch : ModulePatch
+    private sealed class ArenaTeamDeathmatchRelationsMemoryGoalAdmissionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.PropertySetter(typeof(BotMemory), nameof(BotMemory.GoalEnemy));

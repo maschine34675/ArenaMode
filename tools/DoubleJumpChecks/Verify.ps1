@@ -45,8 +45,8 @@ function Test-Mutant([string]$Name, [string]$Before, [string]$After, [string]$As
 try {
     # Ground-hook wiring only; native Harmony ordering/trajectory still need a raid.
     $arenaGround = [IO.File]::ReadAllText((Join-Path $arenaRepo 'ArenaMode.Client/Movement/ArenaMovementPatches.cs'))
-    $arenaGround = $arenaGround.Substring($arenaGround.IndexOf('private sealed class JumpHeightPatch'))
-    $arenaGround = $arenaGround.Substring(0, $arenaGround.IndexOf('private sealed class VaultSpeedPatch'))
+    $arenaGround = $arenaGround.Substring($arenaGround.IndexOf('private sealed class ArenaMovementJumpHeightPatch'))
+    $arenaGround = $arenaGround.Substring(0, $arenaGround.IndexOf('private sealed class ArenaMovementVaultSpeedPatch'))
     if ($arenaGround -notmatch 'if \(mult > 1f && IsArenaMovement\(__instance.MovementContext\)\)\s+__instance\._liftForce \*= Mathf.Sqrt\(mult\);\s+//[^\r\n]*\r?\n\s+ArenaJumpBoots.ApplyEntry\(__instance\);') {
         throw 'Ground jump must apply boots after base height without the base-height setting gate.'
     }

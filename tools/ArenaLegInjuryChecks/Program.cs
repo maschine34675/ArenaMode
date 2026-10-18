@@ -175,10 +175,10 @@ internal static class Program
         Player.ESpeedLimit cause)
     {
         Type patch = typeof(ArenaLegInjuryPatches).GetNestedType(
-            "HealthConditionSpeedPatch", BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("HealthConditionSpeedPatch missing");
+            "ArenaLegInjuryHealthConditionSpeedPatch", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ArenaLegInjuryHealthConditionSpeedPatch missing");
         MethodInfo prefix = patch.GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("HealthConditionSpeedPatch.Prefix missing");
+            ?? throw new InvalidOperationException("ArenaLegInjuryHealthConditionSpeedPatch.Prefix missing");
         object[] arguments = { context, speedLimit, cause };
         prefix.Invoke(null, arguments);
         return (float)arguments[1];

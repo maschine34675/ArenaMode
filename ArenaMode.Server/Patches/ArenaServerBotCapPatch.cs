@@ -9,7 +9,7 @@ namespace ArenaMode.Server.Patches;
 /// raid is running on that location. Math.Max keeps a higher cap set by other
 /// mods (e.g. SVM) intact; normal raids are unaffected (session gate).
 /// </summary>
-public sealed class BotCapPatch : AbstractPatch
+public sealed class ArenaServerBotCapPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

@@ -343,21 +343,21 @@ internal static partial class Program
     private static IEnumerable<BotZone> RunZonePostfix(IEnumerable<BotZone> result)
     {
         var arguments = new object[] { result };
-        PatchMethod("SpawnZonesPatch", "Postfix").Invoke(null, arguments);
+        PatchMethod("ArenaBotSpawnSpawnZonesPatch", "Postfix").Invoke(null, arguments);
         return (IEnumerable<BotZone>)arguments[0];
     }
 
     private static (bool RunOriginal, List<ISpawnPoint> Result) RunAiPrefix(BotZone zone, List<ISpawnPoint> result)
     {
         var arguments = new object[] { zone, result };
-        var runOriginal = (bool)PatchMethod("SelectAiPointsPatch", "Prefix").Invoke(null, arguments);
+        var runOriginal = (bool)PatchMethod("ArenaBotSpawnSelectAiPointsPatch", "Prefix").Invoke(null, arguments);
         return (runOriginal, (List<ISpawnPoint>)arguments[1]);
     }
 
     private static List<ISpawnPoint> RunAiPostfix(List<ISpawnPoint> result)
     {
         var arguments = new object[] { result };
-        PatchMethod("SelectAiPointsPatch", "Postfix").Invoke(null, arguments);
+        PatchMethod("ArenaBotSpawnSelectAiPointsPatch", "Postfix").Invoke(null, arguments);
         return (List<ISpawnPoint>)arguments[0];
     }
 
@@ -365,7 +365,7 @@ internal static partial class Program
         => RunDispatchPrefix(new BotSpawner(), new BotCreationData(), points, zone);
 
     private static bool RunDispatchPrefix(BotSpawner spawner, BotCreationData data, List<ISpawnPoint> points, BotZone zone)
-        => (bool)PatchMethod("DispatchPatch", "Prefix").Invoke(null, new object[] { spawner, points, zone, data });
+        => (bool)PatchMethod("ArenaBotSpawnDispatchPatch", "Prefix").Invoke(null, new object[] { spawner, points, zone, data });
 
     private static void CheckTeamDispatchAccounting()
     {

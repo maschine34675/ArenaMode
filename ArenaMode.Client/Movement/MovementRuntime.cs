@@ -19,8 +19,8 @@ internal static class MovementRuntime
 {
     // NOTE: the FieldKit-style per-frame MovePlayerState direction snap was
     // removed (choppy strafes); direction-blend responsiveness now lives in
-    // StrafeBlendPatch (per-frame dial read, no re-trigger needed). Inertia VALUES
-    // are written by InertiaValuesPatch on WeightRelatedValuesUpdated; the trigger
+    // ArenaMovementStrafeBlendPatch (per-frame dial read, no re-trigger needed). Inertia VALUES
+    // are written by ArenaMovementInertiaValuesPatch on WeightRelatedValuesUpdated; the trigger
     // below runs that recompute once per raid and when NoInertia is toggled,
     // because no natural weight update fires on a config edit.
 
@@ -124,7 +124,7 @@ internal static class MovementRuntime
                 player.Physical.Oxygen.Current = player.Physical.Oxygen.TotalCapacity;
             }
 
-            // Vaulting limits are deliberately NOT touched here. VaultingReachPatch
+            // Vaulting limits are deliberately NOT touched here. ArenaMovementVaultingReachPatch
             // sets them before the vaulting component is built, which is the only
             // moment the obstacle search reads them; changing them afterwards moves
             // one of the two gates and not the other. An F12 edit therefore lands

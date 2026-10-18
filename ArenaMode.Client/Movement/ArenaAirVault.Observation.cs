@@ -114,7 +114,7 @@ internal static partial class ArenaAirVault
         internal Vector3 Before, Requested;
     }
 
-    private sealed class ObservedMotionPatch : ModulePatch
+    private sealed class ArenaAirVaultObservedMotionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(VaultingMovementState), nameof(VaultingMovementState.ApplyMotion));

@@ -47,7 +47,7 @@ public sealed partial class ArenaAreaServerTests
         var location=ReadAreaTeamLocation();
         Sessions.Arm(Session,Customs,Mode,armToken:Token,areaId:ArenaAreaCatalog.CustomsYardId,areaTeamSize:5);
         string nativeEnd=Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session,Customs,location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session,Customs,location);
         Assert.True(Sessions.ValidateAreaResponse(Session,location,out var reason),reason);
         var points=location.SpawnPointParams!.ToList();
         var extra=points.Single(p=>p.Id==ArenaAreaCatalog.CustomsYardSpawns[0].Id);

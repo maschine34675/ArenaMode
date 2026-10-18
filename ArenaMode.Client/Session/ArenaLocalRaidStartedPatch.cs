@@ -15,9 +15,9 @@ namespace ArenaMode.Session;
 /// request goes out — the server must snapshot the profile and arm the per-raid flag
 /// ahead of StartLocalRaidAsync. The HTTP call is synchronous, guaranteeing order.
 /// </summary>
-internal sealed class LocalRaidStartedPatch : ModulePatch
+internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
 {
-    public static void EnablePatch() => new LocalRaidStartedPatch().Enable();
+    public static void EnablePatch() => new ArenaLocalRaidStartedPatch().Enable();
 
     protected override MethodBase GetTargetMethod()
     {

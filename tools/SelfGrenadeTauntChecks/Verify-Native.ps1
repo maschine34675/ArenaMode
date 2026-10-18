@@ -62,7 +62,7 @@ $audio = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Audio/Announc
 $match = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Modes/ArenaMatch.cs'))
 Assert-Taunt ((Get-TauntMethod $combat 'public static void Enable()').Contains('ArenaSelfGrenadeTaunt.Enable();')) 'combat enables taunt observation'
 Assert-Taunt ((Get-TauntMethod $combat 'public static void ResetRaidState()').Contains('ArenaSelfGrenadeTaunt.Reset();')) 'raid clears origins and report state'
-$kill = Get-TauntMethod $combat 'private sealed class KillCapturePatch'
+$kill = Get-TauntMethod $combat 'private sealed class ArenaCombatKillCapturePatch'
 $observe = $kill.IndexOf('ArenaSelfGrenadeTaunt.ObserveDeath(__instance, aggressor, damageInfo, lethalDamageType);')
 $selfReturn = [regex]::Match($kill, 'if \(string\.IsNullOrEmpty\(victimId\) \|\| aggressor\.ProfileId == victimId\)\s*return;')
 Assert-Taunt ($observe -ge 0 -and $selfReturn.Success -and $observe -lt $selfReturn.Index) 'observe before unchanged score-excluding self-kill return'

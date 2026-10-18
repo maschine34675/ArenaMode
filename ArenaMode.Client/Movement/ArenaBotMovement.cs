@@ -42,7 +42,7 @@ internal static class ArenaBotMovement
         {
             _player = AccessTools.FieldRefAccess<MovementContext, Player>("_player");
             ArenaBotMovementSain.Enable();
-            new MotionPatch().Enable();
+            new ArenaBotMovementMotionPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -212,7 +212,7 @@ internal static class ArenaBotMovement
 
     private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-    private sealed class MotionPatch : ModulePatch
+    private sealed class ArenaBotMovementMotionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.DirectApplyMotion),

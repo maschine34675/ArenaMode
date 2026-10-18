@@ -189,7 +189,7 @@ public sealed partial class ArenaAreaServerTests
             p.Position.Value.Y, p.Position.Value.Z, p.Id)).ToArray();
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: TeamArea, areaTeamSize: size);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
         Assert.Equal(29, clone.SpawnPointParams!.Count());
         Assert.Equal(expected, clone.SpawnPointParams);
         Assert.True(Sessions.ValidateAreaResponse(Session, clone, out var reason), reason);
@@ -212,12 +212,12 @@ public sealed partial class ArenaAreaServerTests
         Assert.DoesNotContain(clone.SpawnPointParams!, p => p.Id == "6e771bc5-ce82-4ab8-88e2-d50dedf4e34e");
         Assert.Equal(before, JsonSerializer.Serialize(source, CustomsJsonOptions));
         string once = JsonSerializer.Serialize(clone, CustomsJsonOptions);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
         Assert.Equal(once, JsonSerializer.Serialize(clone, CustomsJsonOptions));
-        GenerateLocationAndLootPatch.Postfix(Other, Customs, source);
+        ArenaGenerateLocationAndLootPatch.Postfix(Other, Customs, source);
         Assert.Equal(before, JsonSerializer.Serialize(source, CustomsJsonOptions));
         Sessions.MarkIdle(Session);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, source);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, source);
         Assert.Equal(before, JsonSerializer.Serialize(source, CustomsJsonOptions));
     }
 
@@ -243,7 +243,7 @@ public sealed partial class ArenaAreaServerTests
         var location = ReadAreaTeamLocation();
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: TeamArea, areaTeamSize: 5);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var validReason), validReason);
         var points = location.SpawnPointParams!.ToList();
         var westBots = points.Where(p => TeamDefinition.TeamStarts!.Allows(true, false, p.Id)).ToArray();

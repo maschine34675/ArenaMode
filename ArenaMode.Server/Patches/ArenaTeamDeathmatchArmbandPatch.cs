@@ -14,7 +14,7 @@ namespace ArenaMode.Server.Patches;
 /// not cached the bot or rewritten its side to Savage, and the client has not
 /// received it for bundle preloading. No APBS hook/order/config dependency.
 /// </summary>
-public sealed class TeamDeathmatchArmbandPatch : AbstractPatch
+public sealed class ArenaTeamDeathmatchArmbandPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
         => typeof(BotGenerator).GetMethod(nameof(BotGenerator.PrepareAndGenerateBot),

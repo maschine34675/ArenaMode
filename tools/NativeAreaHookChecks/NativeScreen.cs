@@ -74,7 +74,7 @@ namespace EFT.UI
             bool overloaded, bool isNew, Action<LocationSettings.Location> onSelected, bool special, bool boss)
         {
             object[] args = [location, onAtStart, onSelected];
-            NativeHooks.Call("ButtonLocationPatch", "Prefix", args);
+            NativeHooks.Call("ArenaLocationSelectionButtonLocationPatch", "Prefix", args);
             location = (LocationSettings.Location)args[0]; onAtStart = (bool)args[1];
             Location = location;
             gameObject.SetActive(true);
@@ -83,7 +83,7 @@ namespace EFT.UI
             var captured = location;
             // Native LocationButton.cs:102-108 invokes only on switching ON.
             _spawnableToggle.Toggle.Changed = active => { if (active) onSelected(captured); };
-            NativeHooks.Call("ButtonLocationPatch", "Postfix", this, location, onSelected);
+            NativeHooks.Call("ArenaLocationSelectionButtonLocationPatch", "Postfix", this, location, onSelected);
         }
         public void Select(bool value) => _spawnableToggle.Toggle.IsToggled = true;
     }
@@ -143,7 +143,7 @@ namespace EFT.UI.Matchmaker
             set
             {
                 object[] args = [this, value];
-                NativeHooks.Call("SelectedValuePatch", "Prefix", args);
+                NativeHooks.Call("ArenaLocationSelectionSelectedValuePatch", "Prefix", args);
                 value = (LocationSettings.Location)args[1];
                 NativeHooks.Trace.Add("native-set:" + (value?.Id ?? "null") + ":" + Settings.TeamDeathmatchArea.Value);
                 _selectedLocation = value;
@@ -160,7 +160,7 @@ namespace EFT.UI.Matchmaker
 
         public void ShowInternal(RaidSettings settings)
         {
-            NativeHooks.Call("ShowPatch", "Prefix", this, settings);
+            NativeHooks.Call("ArenaLocationSelectionShowPatch", "Prefix", this, settings);
             ShowCalls++;
             OnLocationSelected(settings.SelectedLocation);
             var path = new GameObject("Native path"); path.transform.SetParent(_locationPathsContainer, false); path.AddComponent<LocationPath>();
@@ -173,13 +173,13 @@ namespace EFT.UI.Matchmaker
             }
             // Native ShowInternal appends, and has no corresponding disposal.
             SubscriptionCount += 2;
-            NativeHooks.Call("ShowPatch", "Postfix", this);
+            NativeHooks.Call("ArenaLocationSelectionShowPatch", "Postfix", this);
         }
 
         public bool DisplayLocation(LocationSettings.Location location)
         {
             object[] args = [this, location, location.Enabled && location.Id != ArenaMapCatalog.FactoryNightId];
-            NativeHooks.Call("DisplayPatch", "Postfix", args);
+            NativeHooks.Call("ArenaLocationSelectionDisplayPatch", "Postfix", args);
             return (bool)args[2];
         }
 
@@ -190,7 +190,7 @@ namespace EFT.UI.Matchmaker
             try
             {
                 object[] args = [this, location];
-                NativeHooks.Call("SelectionPatch", "Prefix", args);
+                NativeHooks.Call("ArenaLocationSelectionSelectionPatch", "Prefix", args);
                 location = (LocationSettings.Location)args[1];
                 NativeHooks.Trace.Add("native-select:" + (location?.Id ?? "null"));
                 if (location == null) { SelectedLocation = null; return; }
@@ -207,14 +207,14 @@ namespace EFT.UI.Matchmaker
             finally
             {
                 _selectionDepth--;
-                NativeHooks.Call("SelectionPatch", "Postfix", this);
+                NativeHooks.Call("ArenaLocationSelectionSelectionPatch", "Postfix", this);
             }
         }
 
         public LocationSettings.Location GetLocationByTime(LocationSettings.Location location, EDateTime time)
         {
             object[] args = [this, location, time];
-            NativeHooks.Call("FactoryTimePatch", "Prefix", args);
+            NativeHooks.Call("ArenaLocationSelectionFactoryTimePatch", "Prefix", args);
             time = (EDateTime)args[2];
             var result = location.Id is ArenaMapCatalog.FactoryDayId or ArenaMapCatalog.FactoryNightId
                 ? Locations[time == EDateTime.CURR ? ArenaMapCatalog.FactoryDayId : ArenaMapCatalog.FactoryNightId] : location;
@@ -233,7 +233,7 @@ namespace EFT.UI.Matchmaker
         public void GroupRefresh() => SelectedLocation = GetLocationByLevel(SelectedLocation);
         public void Close()
         {
-            NativeHooks.Call("ClosePatch", "Prefix", this);
+            NativeHooks.Call("ArenaLocationSelectionClosePatch", "Prefix", this);
             foreach (var button in Buttons) UnityEngine.Object.Destroy(button.gameObject);
             Buttons.Clear(); SubscriptionCount = 0;
             foreach (var path in _locationPathsContainer.GetComponentsInChildren<LocationPath>(true)) UnityEngine.Object.Destroy(path.gameObject);

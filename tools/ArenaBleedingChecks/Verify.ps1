@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $combat=[IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Combat/CombatPatches.cs'))
-$start=$combat.IndexOf('private static bool Prefix(ActiveHealthController __instance, ref float damage', $combat.IndexOf('class TeamStagingDamagePatch'))
+$start=$combat.IndexOf('private static bool Prefix(ActiveHealthController __instance, ref float damage', $combat.IndexOf('class ArenaCombatTeamStagingDamagePatch'))
 if($start -lt 0) { throw 'Actual health prefix not found' }
 $open=$combat.IndexOf('{',$start); $depth=1; $end=$open+1
 while($depth -gt 0 -and $end -lt $combat.Length) { if($combat[$end] -eq '{'){$depth++}; if($combat[$end] -eq '}'){$depth--}; $end++ }

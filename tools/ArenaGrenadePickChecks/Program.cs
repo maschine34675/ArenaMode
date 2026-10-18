@@ -12,8 +12,8 @@ internal static class Program
 {
     private static int _assertions;
 
-    private static readonly Type AfterRemoval = PatchType("PickAfterRemovalPatch");
-    private static readonly Type BeforeTap = PatchType("PickBeforeTapThrowPatch");
+    private static readonly Type AfterRemoval = PatchType("ArenaReachPickAfterRemovalPatch");
+    private static readonly Type BeforeTap = PatchType("ArenaReachPickBeforeTapThrowPatch");
 
     private static int Main()
     {
@@ -513,8 +513,8 @@ internal static class Program
             "source: Arena's only own write to the pick is clearing it");
         Assert(!source.Contains("_sortedGrenadeList") && !source.Contains("GrenadeThrowingSlots ="),
             "source: the view's private list and the slot list are never touched");
-        Assert(source.Contains("EnablePickPatch(() => new PickAfterRemovalPatch());")
-               && source.Contains("EnablePickPatch(() => new PickBeforeTapThrowPatch());"),
+        Assert(source.Contains("EnablePickPatch(() => new ArenaReachPickAfterRemovalPatch());")
+               && source.Contains("EnablePickPatch(() => new ArenaReachPickBeforeTapThrowPatch());"),
             "source: both pick patches are enabled, contained, with reach");
     }
 

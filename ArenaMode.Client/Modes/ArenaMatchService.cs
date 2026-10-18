@@ -312,7 +312,7 @@ internal static partial class ArenaMatchService
                 // TDM/Tactical return early above, just without a per-mode roster
                 // of their own to build instead. An UNCONDITIONAL early return
                 // here, though, would mean every killed infected's permanent
-                // ArenaScoreboardEntry (CombatPatches.KillCapturePatch captures
+                // ArenaScoreboardEntry (CombatPatches.ArenaCombatKillCapturePatch captures
                 // every Arena kill unconditionally, independent of mode; see
                 // ArenaMatch.ReportKill -> ArenaScoreboard.ReportKill/Resolve)
                 // keeps IsCurrentRoster=true forever: that flag is only ever

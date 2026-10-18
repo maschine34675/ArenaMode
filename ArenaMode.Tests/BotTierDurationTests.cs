@@ -41,7 +41,7 @@ public sealed partial class BotTierScalePatchTests
         var token=StartTimedArena(); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
         var condition=Condition(token,duration,elapsed);
         Assert.IsType<JsonElement>(condition.ExtensionData![ArenaDifficultyClock.WireKey]);
-        BotTierScalePatch.Prefix(new MongoId(ArenaSession),details,condition);
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,condition);
         Assert.Equal(level,details.PlayerLevel); Assert.Equal(Math.Max(1,level-5),details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(level+5,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(1,details.BotCountToGenerate);
         Assert.Equal(15,ArenaContext.Config.Maps["factory4_day"].BotTierRampMinutes);
@@ -59,7 +59,7 @@ public sealed partial class BotTierScalePatchTests
         if(cause=="malformed") condition.ExtensionData![ArenaDifficultyClock.WireKey]=JsonSerializer.SerializeToElement("invalid");
         if(cause=="oldRaid") MakeRaidStale(ArenaContext.Sessions!,new MongoId(ArenaSession));
         var details=Details(cause=="wrongMap"?"laboratory":"factory4_day",47,33,61); details.BotCountToGenerate=15;
-        BotTierScalePatch.Prefix(new MongoId(cause=="otherSession"?OrdinarySession:ArenaSession),details,condition);
+        ArenaBotTierScalePatch.Prefix(new MongoId(cause=="otherSession"?OrdinarySession:ArenaSession),details,condition);
         Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(15,details.BotCountToGenerate);
     }
@@ -76,7 +76,7 @@ public sealed partial class BotTierScalePatchTests
         // happens, this test is the one that has to change.
         StartTimedArena(mode);
         var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=45;
-        BotTierScalePatch.Prefix(new MongoId(ArenaSession),details,
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,
             new GenerateCondition {Role="assault",Limit=2,Difficulty="normal"});
         Assert.Equal(45,details.BotCountToGenerate);
     }
@@ -86,7 +86,7 @@ public sealed partial class BotTierScalePatchTests
     {
         var token=StartTimedArena(); ArenaContext.Config.Maps["factory4_day"].ScaleBotTier=false;
         var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
-        BotTierScalePatch.Prefix(new MongoId(ArenaSession),details,Condition(token,300,240));
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,Condition(token,300,240));
         Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(1,details.BotCountToGenerate);
     }
@@ -94,7 +94,7 @@ public sealed partial class BotTierScalePatchTests
     public void AbsentClockKeepsLegacyCurveAndBatch()
     {
         StartTimedArena(); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
-        BotTierScalePatch.Prefix(new MongoId(ArenaSession),details,new GenerateCondition());
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,new GenerateCondition());
         Assert.Equal(1,details.PlayerLevel); Assert.Equal(15,details.BotCountToGenerate);
     }
     [Fact]

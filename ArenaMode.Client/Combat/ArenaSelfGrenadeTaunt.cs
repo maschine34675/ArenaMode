@@ -37,8 +37,8 @@ internal static class ArenaSelfGrenadeTaunt
         try
         {
             Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
-            new ThrowPatch().Enable();
-            new DamagePatch().Enable();
+            new ArenaSelfGrenadeTauntThrowPatch().Enable();
+            new ArenaSelfGrenadeTauntDamagePatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -168,7 +168,7 @@ internal static class ArenaSelfGrenadeTaunt
         }
     }
 
-    private sealed class ThrowPatch : ModulePatch
+    private sealed class ArenaSelfGrenadeTauntThrowPatch : ModulePatch
     {
         // This hand-controller path carries the physical thrower, unlike
         // Grenade.Init's profile lookup. Planted tripwires never call it.
@@ -179,7 +179,7 @@ internal static class ArenaSelfGrenadeTaunt
         private static void Prefix(Player.BaseGrenadeHandsController __instance) => ObserveThrow(__instance);
     }
 
-    private sealed class DamagePatch : ModulePatch
+    private sealed class ArenaSelfGrenadeTauntDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.ApplyDamageInfo),

@@ -76,7 +76,7 @@ there; Bay5 and the three bounded Customs areas remain available to the squad.
 
 ## Implementation boundaries
 
-`PitFireTeamSelectionPolicy`, `ArenaModeCatalog`, `LocalRaidStartedPatch` and
+`PitFireTeamSelectionPolicy`, `ArenaModeCatalog`, `ArenaLocalRaidStartedPatch` and
 server `PitFireTeamRaidStartPolicy` now admit `zombie` as well as `tactical`.
 All original roster, version, special-companion, Fika/co-op and external-store
 protection checks remain mandatory. The client freezes own gear for a protected

@@ -154,7 +154,7 @@ public sealed partial class ArenaAreaServerTests
         Assert.True(Sessions.TryGetStashedCloneMode(location, out var mode, out var actualChoice));
         Assert.Equal("deathmatch", mode);
         Assert.Equal(choice, actualChoice);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         var result = location.BotLocationModifier.AdditionalHostilitySettings!.ToList();
         Assert.Equal(source, JsonSerializer.Serialize(sourceEntries));
         Assert.NotSame(sourceEntries, result);
@@ -189,13 +189,13 @@ public sealed partial class ArenaAreaServerTests
         Sessions.Arm(Session, Map, "deathmatch", armToken: Token, deathmatchHostility: choice);
         Start();
         Sessions.StashLocationClone(Session, location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         var entries = location.BotLocationModifier.AdditionalHostilitySettings!.ToList();
         Assert.Equal(new[] { "pmcUSEC", "pmcBEAR", "assault", "marksman" }, entries.Select(entry => entry.BotRole));
         foreach (var entry in entries)
             Assert.Equal(4, (choice == "ffa" ? entry.AlwaysEnemies : entry.AlwaysFriends)!.Count);
         string first = JsonSerializer.Serialize(location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.Equal(first, JsonSerializer.Serialize(location));
     }
 
@@ -223,7 +223,7 @@ public sealed partial class ArenaAreaServerTests
         }
         string before = JsonSerializer.Serialize(location);
         Assert.False(Sessions.TryGetStashedCloneMode(location, out _, out _));
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
     }
 

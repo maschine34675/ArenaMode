@@ -4,8 +4,8 @@ using Comfort.Common;
 using EFT;
 using UnityEngine;
 
-const string GroupPatch = "DeathmatchIndividualGroupPatch";
-const string CreationPatch = "DeathmatchAfterCreationPatch";
+const string GroupPatch = "ArenaBotDeathmatchIndividualGroupPatch";
+const string CreationPatch = "ArenaBotDeathmatchAfterCreationPatch";
 int assertions = 0;
 void Check(bool condition, string reason)
 {
@@ -278,7 +278,7 @@ foreach (var scenario in new[] { "all-vs-player", "ordinary", "tactical", "teamd
         object[] enemyArgs = [untouched.group, other.GetPlayer, true];
         GroupProbe.Call("ArenaIsPlayerEnemyPatch", "Postfix", enemyArgs);
         object[] friendArgs = [untouched.group, other.GetPlayer, true];
-        Check((bool)enemyArgs[2] && (bool)GroupProbe.Invoke("DeathmatchBotFriendshipPatch", "Prefix", friendArgs)
+        Check((bool)enemyArgs[2] && (bool)GroupProbe.Invoke("ArenaBotDeathmatchBotFriendshipPatch", "Prefix", friendArgs)
             && (bool)friendArgs[2], scenario + " retains native AI hostility and aggression admission");
     }
 }
@@ -326,7 +326,7 @@ foreach (bool ffa in new[] { false, true })
     GroupProbe.Call("ArenaIsPlayerEnemyPatch", "Postfix", enemyArgs);
     Check((bool)enemyArgs[2] == ffa, "owned AI relationship follows frozen FFA/all-vs-player choice");
     object[] friendArgs = [own, target.GetPlayer, true];
-    var runNative = (bool)GroupProbe.Invoke("DeathmatchBotFriendshipPatch", "Prefix", friendArgs);
+    var runNative = (bool)GroupProbe.Invoke("ArenaBotDeathmatchBotFriendshipPatch", "Prefix", friendArgs);
     Check(runNative == ffa && (ffa || !(bool)friendArgs[2]), "all-vs-player blocks forced bot-bot aggression admission");
     object[] selfArgs = [own, own._initialBot.GetPlayer, true];
     GroupProbe.Call("ArenaIsPlayerEnemyPatch", "Postfix", selfArgs);
@@ -336,10 +336,10 @@ foreach (bool ffa in new[] { false, true })
     GroupProbe.Call("ArenaIsPlayerEnemyPatch", "Postfix", foreignEnemy);
     Check((bool)foreignEnemy[2] == !ffa, "foreign game AI relation remains native while Deathmatch runs");
     object[] foreignFriend = [foreign, target.GetPlayer, true];
-    Check((bool)GroupProbe.Invoke("DeathmatchBotFriendshipPatch", "Prefix", foreignFriend)
+    Check((bool)GroupProbe.Invoke("ArenaBotDeathmatchBotFriendshipPatch", "Prefix", foreignFriend)
         && (bool)foreignFriend[2], "foreign game aggression remains native while Deathmatch runs");
     object[] humanFriend = [own, new Player { IsAI = false }, true];
-    Check((bool)GroupProbe.Invoke("DeathmatchBotFriendshipPatch", "Prefix", humanFriend),
+    Check((bool)GroupProbe.Invoke("ArenaBotDeathmatchBotFriendshipPatch", "Prefix", humanFriend),
         "all-vs-player friendship never blocks aggression against the human PMC");
 }
 

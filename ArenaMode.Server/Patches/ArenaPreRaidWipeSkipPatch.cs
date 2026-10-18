@@ -10,7 +10,7 @@ namespace ArenaMode.Server.Patches;
 /// Guard: lostOnDeathConfig.WipeOnRaidStart would wipe the REAL equipped inventory
 /// at arena raid start. Arena raids must never touch the real gear.
 /// </summary>
-public sealed class PreRaidWipeSkipPatch : AbstractPatch
+public sealed class ArenaPreRaidWipeSkipPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

@@ -15,7 +15,7 @@ namespace ArenaMode.Server.Patches;
 /// share one protected task; ordinary starts keep the caller's cancellation and
 /// otherwise preserve SPT's native behavior.
 /// </summary>
-public sealed class StartLocalRaidPatch : AbstractPatch
+public sealed class ArenaStartLocalRaidPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

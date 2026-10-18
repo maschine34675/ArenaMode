@@ -29,7 +29,7 @@ internal static class ArenaBotPatches
 {
     LIFECYCLE
     PATCHES
-    private static class NoAccidentalBossPatch { internal static void ResetRaidState() { } }
+    private static class ArenaBotNoAccidentalBossPatch { internal static void ResetRaidState() { } }
 }
 '@
 [IO.Directory]::CreateDirectory($OutputPath) | Out-Null

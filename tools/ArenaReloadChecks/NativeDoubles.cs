@@ -73,7 +73,7 @@ namespace EFT
             public FirearmOperation CurrentOperation;
             public void SetAnimatorAndProceduralValues() { }
             public Action NativeDeath;
-            public void OnPlayerDead() { Hook.Call("DeathPatch", "Prefix", this); NativeDeath?.Invoke(); }
+            public void OnPlayerDead() { Hook.Call("ArenaReloadHandlingDeathPatch", "Prefix", this); NativeDeath?.Invoke(); }
             public abstract class FirearmOperation
             {
                 public Player Player;
@@ -90,7 +90,7 @@ namespace EFT
                     get => base.State;
                     set
                     {
-                        Hook.Call("ReloadStatePatch", "Prefix", this, value);
+                        Hook.Call("ArenaReloadHandlingReloadStatePatch", "Prefix", this, value);
                         BeforeNativeStateChanged?.Invoke();
                         base.State = value;
                     }
@@ -109,15 +109,15 @@ namespace EFT
             public class InsertMagOperation : FirearmOperation
             {
                 public Action NativeContinuation;
-                public void SwitchToIdlingState() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
-                public void HideWeapon() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
-                public void Reset() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
+                public void SwitchToIdlingState() { Hook.Call("ArenaReloadHandlingMagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void HideWeapon() { Hook.Call("ArenaReloadHandlingMagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void Reset() { Hook.Call("ArenaReloadHandlingMagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
             }
             public class PullOutMagOperation : FirearmOperation
             {
                 public Action NativeContinuation;
-                public void OnMagPuttedToRig() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
-                public void Reset() { Hook.Call("MagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
+                public void OnMagPuttedToRig() { Hook.Call("ArenaReloadHandlingMagazineBoundaryPatch", "Prefix", this); State=EOperationState.Finished; NativeContinuation?.Invoke(); }
+                public void Reset() { Hook.Call("ArenaReloadHandlingMagazineBoundaryPatch", "Prefix", this); State=EOperationState.Ready; NativeContinuation?.Invoke(); }
             }
             public class UnknownInsert : InsertMagOperation { }
             public class UnknownPullOut : PullOutMagOperation { }

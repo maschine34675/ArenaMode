@@ -289,11 +289,11 @@ public sealed partial class ArenaAreaServerTests
             CustomsPoint(sniperId, 400, 1, -80, "Bot"),
         }).ToList();
         string before = JsonSerializer.Serialize(location);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.Equal(before, JsonSerializer.Serialize(location)); // no ordinary-raid mutation
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: contour, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);
         Assert.Contains(location.SpawnPointParams!, point => point.Id == "low-player");
         Assert.Contains(location.SpawnPointParams!, point => point.Id == "high-bot");

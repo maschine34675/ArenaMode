@@ -151,7 +151,7 @@ internal static partial class ArenaAirVault
             || (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).fullPathHash == hash);
     }
 
-    private sealed class UnityBodyPatch : ModulePatch
+    private sealed class ArenaAirVaultUnityBodyPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.BodyUpdate));
@@ -197,7 +197,7 @@ internal static partial class ArenaAirVault
         }
     }
 
-    private sealed class UnityEntryPatch : ModulePatch
+    private sealed class ArenaAirVaultUnityEntryPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(PlayerStateContainer), nameof(PlayerStateContainer.OnStateEnter));

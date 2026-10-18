@@ -20,12 +20,12 @@ internal static class ArenaPostRaidScreens
 
     public static void Enable()
     {
-        new BeginResultPatch().Enable();
-        new BindOperationPatch().Enable();
-        new WarningPatch().Enable();
-        new SkipExperiencePatch().Enable();
-        new HealthSequencePatch().Enable();
-        new CompletePatch().Enable();
+        new ArenaPostRaidScreensBeginResultPatch().Enable();
+        new ArenaPostRaidScreensBindOperationPatch().Enable();
+        new ArenaPostRaidScreensWarningPatch().Enable();
+        new ArenaPostRaidScreensSkipExperiencePatch().Enable();
+        new ArenaPostRaidScreensHealthSequencePatch().Enable();
+        new ArenaPostRaidScreensCompletePatch().Enable();
     }
 
     // Called before ArenaSession clears its exact game/world pair. Retain only
@@ -126,7 +126,7 @@ internal static class ArenaPostRaidScreens
     private static void Report(Exception ex)
         => Plugin.ModLogger.LogWarning($"Arena post-raid presentation unavailable; retaining native UI: {ex.Message}");
 
-    private sealed class BeginResultPatch : ModulePatch
+    private sealed class ArenaPostRaidScreensBeginResultPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(TarkovApplication), nameof(TarkovApplication.OnGameEnd));
@@ -138,7 +138,7 @@ internal static class ArenaPostRaidScreens
             => BeginResult(____localRaidSettings, __instance.CurrentRaidSettings, profileId);
     }
 
-    private sealed class BindOperationPatch : ModulePatch
+    private sealed class ArenaPostRaidScreensBindOperationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(SessionResultShowOperation), nameof(SessionResultShowOperation.Init));
@@ -148,7 +148,7 @@ internal static class ArenaPostRaidScreens
         private static void Prefix(SessionResultShowOperation __instance) => Bind(__instance);
     }
 
-    private sealed class WarningPatch : ModulePatch
+    private sealed class ArenaPostRaidScreensWarningPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(SessionResultExitStatus), nameof(SessionResultExitStatus.Show),
@@ -159,7 +159,7 @@ internal static class ArenaPostRaidScreens
             => HideWarning(__instance, controller);
     }
 
-    private sealed class SkipExperiencePatch : ModulePatch
+    private sealed class ArenaPostRaidScreensSkipExperiencePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(SessionResultShowOperation), nameof(SessionResultShowOperation.ProceedFromStatistics));
@@ -168,7 +168,7 @@ internal static class ArenaPostRaidScreens
         private static bool Prefix(SessionResultShowOperation __instance) => ProceedFromStatistics(__instance);
     }
 
-    private sealed class HealthSequencePatch : ModulePatch
+    private sealed class ArenaPostRaidScreensHealthSequencePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(ScreenManager<EEftScreenType>), "ShowScreenSequence");
@@ -178,7 +178,7 @@ internal static class ArenaPostRaidScreens
             => FilterHealthSequence(ref controllers);
     }
 
-    private sealed class CompletePatch : ModulePatch
+    private sealed class ArenaPostRaidScreensCompletePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(SessionResultShowOperation), nameof(SessionResultShowOperation.ConcludeOperation));

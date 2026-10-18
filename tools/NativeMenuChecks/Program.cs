@@ -15,7 +15,7 @@ using SPT.Common.Http;
 internal static partial class Program
 {
     private static int _checks;
-    private static readonly MethodInfo Hook = typeof(LocalRaidStartedPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly MethodInfo Hook = typeof(ArenaLocalRaidStartedPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
 
     private static void Assert(bool condition, string scenario)
     {

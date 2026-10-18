@@ -35,7 +35,7 @@ Non-Wave-Limits auf null gesetzt. Ein fehlender Modifier wird dafür angelegt;
 ein vorhandener Modifier wird kopiert. Wellen werden vor der Lab-Zonenfilterung
 entfernt, damit auch versehentlich geteilte Schedule-Objekte unverändert bleiben.
 
-`GenerateLocationAndLootPatch` verlangt bei expliziter Zahl bereits vor der
+`ArenaGenerateLocationAndLootPatch` verlangt bei expliziter Zahl bereits vor der
 Mutation passende Session-, Callback- und Klon-Kartenidentitäten. Fehlende,
 abgeschaltete oder unpassende Karten und fehlgeschlagene Mutationen werden als
 fehlende Freigabe gespeichert; sie dürfen nicht mit Vanilla-Spawns weiterlaufen.

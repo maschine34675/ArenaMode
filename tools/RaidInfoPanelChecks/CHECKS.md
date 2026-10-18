@@ -38,7 +38,7 @@ The net10 executable links these production files unchanged:
   and adds `IsAtReachablePlace`: native rig/pockets recursion (nested pouches
   included, unlike the one-level query) unaffected by search state, widened by
   a settable `ArenaWidenReach` flag standing in for
-  `ArenaReachPatches.ReachableAnywherePatch`. Cases cover on-G and usable
+  `ArenaReachPatches.ArenaReachableAnywherePatch`. Cases cover on-G and usable
   agreeing for direct children, a nested-rig grenade usable without widening
   while a backpack one is not, ArmorVest/secure exclusion, unexamined
   exclusion, an unsearched rig dropping out of G's list without affecting

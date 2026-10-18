@@ -66,7 +66,7 @@ internal static class ArenaFireRuntime
     {
         ArenaFireSettings.Bind(config);
         Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
-        new ThrowPatch().Enable(); new CollisionPatch().Enable(); new ExplosionPatch().Enable();
+        new ArenaFireRuntimeThrowPatch().Enable(); new ArenaFireRuntimeCollisionPatch().Enable(); new ArenaFireRuntimeExplosionPatch().Enable();
     }
 
     private static bool Context(out ArenaMatch match, out GameWorld world)
@@ -287,14 +287,14 @@ internal static class ArenaFireRuntime
     private static void Warn(Exception ex)
     { if (_warned) return; _warned = true; Plugin.ModLogger.LogWarning("Arena incendiary failed safely: " + ex); }
 
-    private sealed class ThrowPatch : ModulePatch
+    private sealed class ArenaFireRuntimeThrowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Player.BaseGrenadeHandsController),
             "CreateAndRegisterGrenade", new[] { typeof(Vector3), typeof(Quaternion), typeof(Vector3), typeof(float) });
         [PatchPostfix] private static void Postfix(Player.BaseGrenadeHandsController __instance, Grenade __result)
         { try { Bind(__instance, __result); } catch (Exception ex) { Warn(ex); } }
     }
-    private sealed class CollisionPatch : ModulePatch
+    private sealed class ArenaFireRuntimeCollisionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Grenade), "OnCollisionEnter");
         [PatchPostfix] private static void Postfix(Grenade __instance, Collision collision)
@@ -304,7 +304,7 @@ internal static class ArenaFireRuntime
             { var contact = collision.GetContact(i); if (contact.normal.y >= .7f) { source.Impact = contact.point; break; } }
         }
     }
-    private sealed class ExplosionPatch : ModulePatch
+    private sealed class ArenaFireRuntimeExplosionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Grenade), nameof(Grenade.Explosion), Type.EmptyTypes);
         [PatchPrefix] private static bool Prefix(Grenade __instance) => Explosion(__instance);

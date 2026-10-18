@@ -149,13 +149,13 @@ var bodySetter = typeof(PlayerAnimator).GetMethod("SetSpeedParameters");
 List<CodeInstruction> Calls(int armCount, int bodyCount) => Enumerable.Range(0, armCount).Select(_ => new CodeInstruction(OpCodes.Callvirt, armSetter))
     .Concat(Enumerable.Range(0, bodyCount).Select(_ => new CodeInstruction(OpCodes.Callvirt, bodySetter))).ToList();
 var nativeCalls = Calls(3, 2);
-var transformed = ((IEnumerable<CodeInstruction>)Hook.Call("RefreshPatch", "Transpiler", nativeCalls)).ToArray();
+var transformed = ((IEnumerable<CodeInstruction>)Hook.Call("ArenaReloadHandlingRefreshPatch", "Transpiler", nativeCalls)).ToArray();
 Need(transformed.Count(x => x.operand is MethodInfo m && m.Name == "SetFirearmSpeeds") == 3
     && transformed.Count(x => x.operand is MethodInfo m && m.Name == "SetBodySpeeds") == 2, "all native refresh branches use exact wrappers");
 foreach (var bad in new[] { Calls(2, 2), Calls(3, 1), Calls(4, 2), Calls(3, 3) })
 {
     bool rejected = false;
-    try { Hook.Call("RefreshPatch", "Transpiler", bad); } catch (InvalidOperationException) { rejected = true; }
+    try { Hook.Call("ArenaReloadHandlingRefreshPatch", "Transpiler", bad); } catch (InvalidOperationException) { rejected = true; }
     Need(rejected, "drifted native refresh IL is rejected");
 }
 foreach (Type magazineType in new[] { typeof(Player.FirearmController.InsertMagOperation), typeof(Player.FirearmController.PullOutMagOperation) })

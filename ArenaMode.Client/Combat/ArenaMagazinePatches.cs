@@ -28,8 +28,8 @@ internal static class ArenaMagazinePatches
 {
     private const string LoadPatchId = Plugin.PluginGuid + ".Magazine.LoadProcess";
     private const string UnloadPatchId = Plugin.PluginGuid + ".Magazine.UnloadProcess";
-    private static readonly LoadProcessPatch LoadPatch = new();
-    private static readonly UnloadProcessPatch UnloadPatch = new();
+    private static readonly ArenaMagazineLoadProcessPatch LoadPatch = new();
+    private static readonly ArenaMagazineUnloadProcessPatch UnloadPatch = new();
     private static bool _loadPatchAttempted;
     private static bool _unloadPatchAttempted;
     private static bool _enabled;
@@ -173,9 +173,9 @@ internal static class ArenaMagazinePatches
         }
     }
 
-    private sealed class LoadProcessPatch : ModulePatch
+    private sealed class ArenaMagazineLoadProcessPatch : ModulePatch
     {
-        internal LoadProcessPatch() : base(LoadPatchId) { }
+        internal ArenaMagazineLoadProcessPatch() : base(LoadPatchId) { }
 
         protected override MethodBase GetTargetMethod()
             => AccessTools.Constructor(
@@ -197,9 +197,9 @@ internal static class ArenaMagazinePatches
             => ScaleLocalArenaDelay(inventoryController, ref loadOneAmmoSpeed);
     }
 
-    private sealed class UnloadProcessPatch : ModulePatch
+    private sealed class ArenaMagazineUnloadProcessPatch : ModulePatch
     {
-        internal UnloadProcessPatch() : base(UnloadPatchId) { }
+        internal ArenaMagazineUnloadProcessPatch() : base(UnloadPatchId) { }
 
         protected override MethodBase GetTargetMethod()
             => AccessTools.Constructor(

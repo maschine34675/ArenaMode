@@ -190,7 +190,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         string sourceJson = JsonSerializer.Serialize(original);
         var clone = JsonSerializer.Deserialize<LocationBase>(sourceJson)!;
         ArmAndStart();
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, clone);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
         Assert.Equal(new[] { TestUsecPlayer, TestBearPlayer, TestUsecBot1, TestUsecBot2, TestBearBot1, TestBearBot2, "inside-boss", "inside-unknown" },
             clone.SpawnPointParams!.Select(point => point.Id));
@@ -198,7 +198,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Assert.True(Sessions.TryGetStashedCloneMode(clone, out var mode));
         Assert.Equal(Mode, mode);
         string once = JsonSerializer.Serialize(clone);
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, clone);
         Assert.Equal(once, JsonSerializer.Serialize(clone));
 
         // The direct mutator also copies only the list; its retained marker
@@ -211,13 +211,13 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Assert.Equal(markersBefore, JsonSerializer.Serialize(markerList));
         Assert.Same(markerList!.First(), aliased.SpawnPointParams!.First());
 
-        GenerateLocationAndLootPatch.Postfix(Other, BoundedMap, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Other, BoundedMap, original);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
         Sessions.MarkIdle(Session);
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
         Sessions.Arm(Session, BoundedMap, Mode, areaId: Area, areaTeamSize: AreaSize);
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, original);
         Assert.Equal(sourceJson, JsonSerializer.Serialize(original));
     }
 
@@ -244,7 +244,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         foreach (var point in location.SpawnPointParams!.Where(point => point.Categories!.Contains("Player")))
             point.Sides = [side];
         string nativeEnd = ArmAndStart();
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
         Assert.Equal(2, location.SpawnPointParams!.Count(point => point.Categories!.Contains("Player")));
         Assert.All(location.SpawnPointParams!.Where(point => point.Categories!.Contains("Player")),
             point => Assert.Equal([side], point.Sides));
@@ -275,7 +275,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Assert.Equal(before, JsonSerializer.Serialize(location));
 
         string nativeEnd = ArmAndStart();
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
         Assert.False(Sessions.ValidateAreaLocation(Session, out var reason));
         Assert.False(string.IsNullOrWhiteSpace(reason));
@@ -292,7 +292,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
         Sessions.MarkLocationMutationReady(Session);
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, Location());
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, Location());
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, "forged"));
         Assert.False(Sessions.ConfirmClientRaidStarted(Other, Token, nativeEnd));
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
@@ -304,7 +304,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     {
         string nativeEnd = ArmAndStart();
         var location = Location();
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);
         Assert.False(Sessions.ValidateAreaResponse(Session, null, out _));
         Assert.False(Sessions.ValidateAreaResponse(Session,
@@ -326,7 +326,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
         var location = Location();
         if (failure == "disabled") ArenaContext.Config.Maps[BoundedMap].Enabled = false;
         if (failure == "wrong-clone-map") location.Id = "laboratory";
-        GenerateLocationAndLootPatch.Postfix(Session, BoundedMap, failure == "null" ? null! : location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, BoundedMap, failure == "null" ? null! : location);
         Assert.False(Sessions.ValidateAreaLocation(Session, out _));
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
     }

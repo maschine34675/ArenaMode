@@ -21,7 +21,7 @@ namespace ArenaMode.Movement;
 /// </summary>
 internal static class ArenaLegInjuryPatches
 {
-    public static void Enable() => new HealthConditionSpeedPatch().Enable();
+    public static void Enable() => new ArenaLegInjuryHealthConditionSpeedPatch().Enable();
 
     private static bool IsLocalArenaContext(MovementContext context)
     {
@@ -34,7 +34,7 @@ internal static class ArenaLegInjuryPatches
                && ReferenceEquals(mainPlayer.MovementContext, context);
     }
 
-    private sealed class HealthConditionSpeedPatch : ModulePatch
+    private sealed class ArenaLegInjuryHealthConditionSpeedPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(

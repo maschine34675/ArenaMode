@@ -603,10 +603,10 @@ internal static class Program
     private static bool InvokePrefix(TracersLight renderer, Shot shot)
     {
         Type nested = typeof(ArenaTracerPatches).GetNestedType(
-            "TeamTracerPatch", BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("TeamTracerPatch missing");
+            "ArenaTracerTeamTracerPatch", BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ArenaTracerTeamTracerPatch missing");
         MethodInfo prefix = nested.GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("TeamTracerPatch.Prefix missing");
+            ?? throw new InvalidOperationException("ArenaTracerTeamTracerPatch.Prefix missing");
         return (bool)prefix.Invoke(null, new object[] { renderer, shot });
     }
 

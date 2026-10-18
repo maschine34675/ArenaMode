@@ -178,9 +178,9 @@ internal static class Program
 
         Harness.Reset(); var spawner = Harness.Spawner; var data = new BotCreationData(); data.Profiles.Add(Profile.For(WildSpawnType.pmcUSEC));
         Check(!ArenaSoloSpawnDispatch.CanDispatch(spawner, data), "selected solo rejects unowned spawner batch");
-        Check(!Harness.Call("SoloActivationPatch", spawner._botCreator, data, null)
-            && !Harness.Call("SoloProfileActivationPatch", new object[] { null })
-            && !Harness.Call("SoloCreationPatch", spawner._botCreator, data.Profiles[0], null),
+        Check(!Harness.Call("ArenaBotSpawnSoloActivationPatch", spawner._botCreator, data, null)
+            && !Harness.Call("ArenaBotSpawnSoloProfileActivationPatch", new object[] { null })
+            && !Harness.Call("ArenaBotSpawnSoloCreationPatch", spawner._botCreator, data.Profiles[0], null),
             "direct creator activation and profile creation cannot bypass owned dispatch");
         using (var scope = ArenaSoloSpawnDispatch.Enter(spawner, data))
         {

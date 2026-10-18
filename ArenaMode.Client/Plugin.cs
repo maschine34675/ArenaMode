@@ -71,7 +71,7 @@ public class Plugin : BaseUnityPlugin
         Modes.ArenaMatchService.Initialize();
         Performance.GcThresholdMonitor.Initialize();
         Spectator.ArenaSpectatorService.Initialize();
-        LocalRaidStartedPatch.EnablePatch();
+        ArenaLocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaRaidExit.Enable();
         ArenaFailedStartIntro.Enable();
@@ -97,8 +97,8 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaMedicalPatches.Enable();
         Combat.ArenaMagazinePatches.Enable();
         Bots.ArenaBotPatches.Enable();
-        new Bots.NoBotGesturesPatch().Enable();
-        new Bots.NoCorpseLootingPatch().Enable();
+        new Bots.ArenaNoBotGesturesPatch().Enable();
+        new Bots.ArenaNoCorpseLootingPatch().Enable();
         Bots.ArenaBotLifecycleSafety.Enable();
         Bots.ArenaPickupTeardownSafety.Enable();
         Bots.ArenaWeaponCallbackSafety.Enable();

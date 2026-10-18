@@ -52,7 +52,7 @@ namespace ArenaMode.Bots;
 /// cleared on one arena bot would stay cleared for every PMC of that difficulty
 /// in every later normal raid of the session.
 /// </summary>
-internal sealed class NoBotGesturesPatch : ModulePatch
+internal sealed class ArenaNoBotGesturesPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
         => AccessTools.Method(typeof(BotPeacefulActions), nameof(BotPeacefulActions.SetActiveAction));
@@ -62,7 +62,7 @@ internal sealed class NoBotGesturesPatch : ModulePatch
     {
         // Armed too: bots spawn and tick during the deploy countdown, before
         // OnGameStarted latches IsActive, and two bots placed side by side can
-        // roll their first sign in that window (the same one NoAccidentalBossPatch
+        // roll their first sign in that window (the same one ArenaBotNoAccidentalBossPatch
         // closes). OnRaidStarted clears the armed flag before it decides, so a
         // refused arm hands an ordinary raid back to vanilla at that moment.
         if (!ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid)

@@ -4,7 +4,7 @@ $artifact=Join-Path $root ('artifacts/pft-tactical-entry-checks/'+[Guid]::NewGui
 [IO.Directory]::CreateDirectory($artifact)|Out-Null
 $entry=Join-Path $root 'ArenaMode.Client/Kits/TacticalTeamKitEntry.cs'
 $preload=Join-Path $root 'ArenaMode.Client/Kits/KitBundlePreloader.RequiredEntry.cs'
-$wrapper=Join-Path $root 'ArenaMode.Client/Session/LocalRaidStartedPatch.cs'
+$wrapper=Join-Path $root 'ArenaMode.Client/Session/ArenaLocalRaidStartedPatch.cs'
 function Run([string]$name,[string]$project,[string[]]$properties,[string]$token,[bool]$pass) {
     $result=& dotnet run --project $project -c Release --nologo @properties 2>&1
     $code=$LASTEXITCODE; $result|Set-Content -LiteralPath (Join-Path $artifact ($name+'.log'))

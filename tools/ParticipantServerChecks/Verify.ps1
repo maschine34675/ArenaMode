@@ -27,7 +27,7 @@ $participantInstalled = @(
 $participantBefore = @{}
 foreach ($participantPath in $participantInstalled) { $participantBefore[$participantPath] = Get-ParticipantHash $participantPath }
 $participantSources = @('ArenaMode.Server/Services/ArenaSessionService.cs',
-    'ArenaMode.Server/Services/ArenaLocationMutator.cs', 'ArenaMode.Server/Patches/GenerateLocationAndLootPatch.cs',
+    'ArenaMode.Server/Services/ArenaLocationMutator.cs', 'ArenaMode.Server/Patches/ArenaGenerateLocationAndLootPatch.cs',
     'ArenaMode.Server/Routers/ArenaModeRouter.cs', 'ArenaMode.Shared/ArenaParticipantPolicy.cs',
     'ArenaMode.Tests/ParticipantCountTests.cs')
 $participantSourceHashes = @{}

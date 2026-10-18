@@ -80,14 +80,14 @@ internal static partial class ArenaAirVault
     {
         try
         {
-            new HeldVaultPatch().Enable();
-            new StrategyPatch().Enable();
-            new CommitPatch().Enable();
-            new AnimatorFramePatch().Enable();
-            new AnimatorTransitionPatch().Enable();
-            new UnityBodyPatch().Enable();
-            new UnityEntryPatch().Enable();
-            new ObservedMotionPatch().Enable();
+            new ArenaAirVaultHeldVaultPatch().Enable();
+            new ArenaAirVaultStrategyPatch().Enable();
+            new ArenaAirVaultCommitPatch().Enable();
+            new ArenaAirVaultAnimatorFramePatch().Enable();
+            new ArenaAirVaultAnimatorTransitionPatch().Enable();
+            new ArenaAirVaultUnityBodyPatch().Enable();
+            new ArenaAirVaultUnityEntryPatch().Enable();
+            new ArenaAirVaultObservedMotionPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { _enabled = false; Warn(ex); }
@@ -314,7 +314,7 @@ internal static partial class ArenaAirVault
             + exception.GetBaseException().Message);
     }
 
-    private sealed class HeldVaultPatch : ModulePatch
+    private sealed class ArenaAirVaultHeldVaultPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.ToggleVaulting));
@@ -362,7 +362,7 @@ internal static partial class ArenaAirVault
         }
     }
 
-    private sealed class StrategyPatch : ModulePatch
+    private sealed class ArenaAirVaultStrategyPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(VaultingComponent), nameof(VaultingComponent.GetVaultingStrategy));
@@ -381,7 +381,7 @@ internal static partial class ArenaAirVault
         }
     }
 
-    private sealed class CommitPatch : ModulePatch
+    private sealed class ArenaAirVaultCommitPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(VaultingComponent), nameof(VaultingComponent.DoVaultingByStrategy));

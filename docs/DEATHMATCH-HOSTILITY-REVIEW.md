@@ -28,7 +28,7 @@ guards is included here.
 
 ## Applying relationships
 
-`AdjustBotHostilityPatch` reads mode and frozen choice under the same session
+`ArenaAdjustBotHostilityPatch` reads mode and frozen choice under the same session
 lock, and only for the exact reference-identical stashed live location clone.
 Same-map objects, stale raids, preparing/armed entries and ordinary raids are
 not eligible. The canonical Deathmatch branch never reads or edits mutable

@@ -21,8 +21,8 @@ internal static class AkimboCadence
     {
         new TimerPatch(typeof(Player.FirearmController.FireOperation)).Enable();
         new TimerPatch(typeof(Player.FirearmController.AutomaticFireOperation)).Enable();
-        new FastAnimatorPatch().Enable(); new ControllerPatch().Enable();
-        new StatePatch().Enable();
+        new ArenaAkimboCadenceFastAnimatorPatch().Enable(); new ArenaAkimboCadenceControllerPatch().Enable();
+        new ArenaAkimboCadenceStatePatch().Enable();
     }
 
     private static bool Positive(float value) => value > 0 && !float.IsNaN(value) && !float.IsInfinity(value);
@@ -91,13 +91,13 @@ internal static class AkimboCadence
         [PatchFinalizer] private static Exception Finalizer(Exception __exception, Player.FirearmController.FireOperationBase __instance)
         { if (__exception != null && ArenaAkimbo.OwnsHands(__instance?.Controller)) { Reset(); ArenaAkimbo.AmmoFailed(__exception); } return __exception; }
     }
-    private sealed class FastAnimatorPatch : ModulePatch
+    private sealed class ArenaAkimboCadenceFastAnimatorPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(FastAnimatorProcessor), "Update", new[] { typeof(float) });
         [PatchPrefix] private static void Prefix(FastAnimatorProcessor __instance, ref float deltaTime)
         { try { AdvanceAnimator(__instance, ref deltaTime); } catch (Exception ex) { ArenaAkimbo.AmmoFailed(ex); } }
     }
-    private sealed class ControllerPatch : ModulePatch
+    private sealed class ArenaAkimboCadenceControllerPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Player.FirearmController), "ManualUpdate");
         [PatchPostfix] private static void Postfix(Player.FirearmController __instance)
@@ -111,7 +111,7 @@ internal static class AkimboCadence
             catch (Exception ex) { Reset(); ArenaAkimbo.AmmoFailed(ex); }
         }
     }
-    private sealed class StatePatch : ModulePatch
+    private sealed class ArenaAkimboCadenceStatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.PropertySetter(typeof(Player.ObjectInHandsOperation), nameof(Player.ObjectInHandsOperation.State));
         [PatchPrefix] private static void Prefix(Player.ObjectInHandsOperation __instance, Player.EOperationState value)

@@ -37,13 +37,13 @@ internal static class ArenaHandlingPatches
         if (_enabled) return;
         try
         {
-            new LandingPatch().Enable();
-            new DrawStartPatch().Enable();
-            new HolsterStartPatch().Enable();
-            new DrawCompletePatch().Enable();
-            new SpeedParametersPatch().Enable();
-            new ControllerUpdatePatch().Enable();
-            new ControllerDestroyPatch().Enable();
+            new ArenaHandlingLandingPatch().Enable();
+            new ArenaHandlingDrawStartPatch().Enable();
+            new ArenaHandlingHolsterStartPatch().Enable();
+            new ArenaHandlingDrawCompletePatch().Enable();
+            new ArenaHandlingSpeedParametersPatch().Enable();
+            new ArenaHandlingControllerUpdatePatch().Enable();
+            new ArenaHandlingControllerDestroyPatch().Enable();
             ArenaReloadHandling.Enable();
             RaidLifecycle.OnRaidEnded += ResetPerRaidState;
             _enabled = true;
@@ -242,7 +242,7 @@ internal static class ArenaHandlingPatches
         catch (Exception ex) { Warn(ex); }
     }
 
-    private sealed class LandingPatch : ModulePatch
+    private sealed class ArenaHandlingLandingPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player), nameof(Player.LandingAdjustments), new[] { typeof(float) });
@@ -274,27 +274,27 @@ internal static class ArenaHandlingPatches
         }
         return result;
     }
-    private sealed class DrawStartPatch : ModulePatch
+    private sealed class ArenaHandlingDrawStartPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController.SpawnOperation), nameof(Player.FirearmController.SpawnOperation.Start), new[] { typeof(Action) });
         [PatchTranspiler] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             => ReplaceOperationStarts(instructions, 1);
     }
-    private sealed class HolsterStartPatch : ModulePatch
+    private sealed class ArenaHandlingHolsterStartPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController.Remove), nameof(Player.FirearmController.Remove.Start), new[] { typeof(Action), typeof(bool), typeof(Item) });
         [PatchTranspiler] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             => ReplaceOperationStarts(instructions, 2);
     }
-    private sealed class DrawCompletePatch : ModulePatch
+    private sealed class ArenaHandlingDrawCompletePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController.SpawnOperation), nameof(Player.FirearmController.SpawnOperation.WeaponAppeared), Type.EmptyTypes);
         [PatchPrefix] private static void Prefix(Player.FirearmController.SpawnOperation __instance) => Release(__instance?.FirearmsAnimator);
     }
-    private sealed class SpeedParametersPatch : ModulePatch
+    private sealed class ArenaHandlingSpeedParametersPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(FirearmsAnimator), nameof(FirearmsAnimator.SetSpeedParameters), new[] { typeof(float), typeof(float) });
@@ -303,13 +303,13 @@ internal static class ArenaHandlingPatches
         [PatchFinalizer] private static Exception Finalizer(Exception __exception, NativeSpeedWrite __state)
         { CompleteNativeSpeedParameters(__state, __exception); return __exception; }
     }
-    private sealed class ControllerUpdatePatch : ModulePatch
+    private sealed class ArenaHandlingControllerUpdatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.ManualUpdate), new[] { typeof(float) });
         [PatchPrefix] private static void Prefix(Player.FirearmController __instance) => OnControllerUpdate(__instance);
     }
-    private sealed class ControllerDestroyPatch : ModulePatch
+    private sealed class ArenaHandlingControllerDestroyPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.Destroy), Type.EmptyTypes);

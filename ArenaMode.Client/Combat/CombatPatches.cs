@@ -35,15 +35,15 @@ internal static class CombatPatches
 
     public static void Enable()
     {
-        new KillCapturePatch().Enable();
+        new ArenaCombatKillCapturePatch().Enable();
         new ArenaUncreditedDeathPatch().Enable();
-        new TeamStagingShotPatch().Enable();
-        new TeamStagingPlayerDamagePatch().Enable();
-        new TeamStagingExplosionArmorPatch().Enable();
-        new TeamStagingDamagePatch().Enable();
-        new TeamStagingContusionPatch().Enable();
-        new DamageFeedPatch().Enable();
-        new RagdollImpulsePatch().Enable();
+        new ArenaCombatTeamStagingShotPatch().Enable();
+        new ArenaCombatTeamStagingPlayerDamagePatch().Enable();
+        new ArenaCombatTeamStagingExplosionArmorPatch().Enable();
+        new ArenaCombatTeamStagingDamagePatch().Enable();
+        new ArenaCombatTeamStagingContusionPatch().Enable();
+        new ArenaCombatDamageFeedPatch().Enable();
+        new ArenaCombatRagdollImpulsePatch().Enable();
         ArenaShotAwardHooks.Enable();
         ArenaSelfGrenadeTaunt.Enable();
         ArenaAssistCapture.Enable();
@@ -114,7 +114,7 @@ internal static class CombatPatches
         }
     }
 
-    private sealed class KillCapturePatch : ModulePatch
+    private sealed class ArenaCombatKillCapturePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player), nameof(Player.OnBeenKilledByAggressor));
@@ -276,7 +276,7 @@ internal static class CombatPatches
     /// The later ActiveHealthController guard remains necessary for explosions,
     /// fire, falls and every other non-shot health path.
     /// </summary>
-    private sealed class TeamStagingShotPatch : ModulePatch
+    private sealed class ArenaCombatTeamStagingShotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(
@@ -321,7 +321,7 @@ internal static class CombatPatches
     /// ActiveHealthController.ApplyDamage. Blocking only the latter still changes
     /// wound/aggressor/debuff/stamina/BeingHit state, so stop at Player first.
     /// </summary>
-    private sealed class TeamStagingPlayerDamagePatch : ModulePatch
+    private sealed class ArenaCombatTeamStagingPlayerDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(
@@ -359,7 +359,7 @@ internal static class CombatPatches
     /// Grenade armor durability is applied after environmental body damage via a
     /// separate Player method. It must share the same staging/aftermath freeze.
     /// </summary>
-    private sealed class TeamStagingExplosionArmorPatch : ModulePatch
+    private sealed class ArenaCombatTeamStagingExplosionArmorPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(
@@ -384,7 +384,7 @@ internal static class CombatPatches
     /// profiles are still loading. Only known actors in that short staging phase
     /// are protected; every other raid and every unrelated body fails open.
     /// </summary>
-    private sealed class TeamStagingDamagePatch : ModulePatch
+    private sealed class ArenaCombatTeamStagingDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.ApplyDamage),
@@ -415,7 +415,7 @@ internal static class CombatPatches
     /// ExplosionSharedMethods applies contusion independently after body and
     /// armor damage. Blocking it keeps the protected aftermath mutation-free.
     /// </summary>
-    private sealed class TeamStagingContusionPatch : ModulePatch
+    private sealed class ArenaCombatTeamStagingContusionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(
@@ -428,7 +428,7 @@ internal static class CombatPatches
             => !ShouldBlockProtectedTeamMutation(__instance?.Player, "contusion");
     }
 
-    private sealed class DamageFeedPatch : ModulePatch
+    private sealed class ArenaCombatDamageFeedPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.ApplyDamage),
@@ -524,7 +524,7 @@ internal static class CombatPatches
     /// impulse. Targets the FAT Collider overload — the Rigidbody one is a
     /// ~17-byte inline candidate whose only caller sits in the same class.
     /// </summary>
-    private sealed class RagdollImpulsePatch : ModulePatch
+    private sealed class ArenaCombatRagdollImpulsePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(CorpseRagdoll), nameof(CorpseRagdoll.ApplyImpulse),

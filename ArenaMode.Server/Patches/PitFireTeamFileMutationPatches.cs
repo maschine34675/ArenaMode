@@ -57,7 +57,7 @@ internal static class PitFireTeamFileMutationPatch
     }
 }
 
-public sealed class PitFireTeamTextWritePatch : AbstractPatch
+public sealed class ArenaPitFireTeamTextWritePatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod() => typeof(FileUtil).GetMethod(
         nameof(FileUtil.WriteFile),
@@ -71,7 +71,7 @@ public sealed class PitFireTeamTextWritePatch : AbstractPatch
         => PitFireTeamFileMutationPatch.ShouldRunOriginal(__instance, __0, "text write");
 }
 
-public sealed class PitFireTeamByteWritePatch : AbstractPatch
+public sealed class ArenaPitFireTeamByteWritePatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod() => typeof(FileUtil).GetMethod(
         nameof(FileUtil.WriteFile),
@@ -85,7 +85,7 @@ public sealed class PitFireTeamByteWritePatch : AbstractPatch
         => PitFireTeamFileMutationPatch.ShouldRunOriginal(__instance, __0, "byte write");
 }
 
-public sealed class PitFireTeamAsyncTextWritePatch : AbstractPatch
+public sealed class ArenaPitFireTeamAsyncTextWritePatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod() => typeof(FileUtil).GetMethod(
         nameof(FileUtil.WriteFileAsync),
@@ -105,7 +105,7 @@ public sealed class PitFireTeamAsyncTextWritePatch : AbstractPatch
     }
 }
 
-public sealed class PitFireTeamAsyncByteWritePatch : AbstractPatch
+public sealed class ArenaPitFireTeamAsyncByteWritePatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod() => typeof(FileUtil).GetMethod(
         nameof(FileUtil.WriteFileAsync),
@@ -125,7 +125,7 @@ public sealed class PitFireTeamAsyncByteWritePatch : AbstractPatch
     }
 }
 
-public sealed class PitFireTeamDeleteFilePatch : AbstractPatch
+public sealed class ArenaPitFireTeamDeleteFilePatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod() => typeof(FileUtil).GetMethod(
         nameof(FileUtil.DeleteFile),

@@ -70,9 +70,9 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         && (EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.MainMenu)
             || EftScreenManager.Instance.CheckCurrentScreen(EEftScreenType.Settings));
 
-    internal static void ApplyInputPatch() => new CountdownEscapePatch().Enable();
+    internal static void ApplyInputPatch() => new ArenaTacticalBuyPanelCountdownEscapePatch().Enable();
 
-    private sealed class CountdownEscapePatch : ModulePatch
+    private sealed class ArenaTacticalBuyPanelCountdownEscapePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(EftGamePlayerOwner),

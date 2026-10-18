@@ -78,9 +78,9 @@ try {
     # These source integration checks complement the linked policy tests. They
     # deliberately do not claim to execute Unity navigation or Harmony here.
     $source = [IO.File]::ReadAllText($PatchSource)
-    $selectedStart = $source.IndexOf('private sealed class SelectedValuePatch', [StringComparison]::Ordinal)
-    $buttonStart = $source.IndexOf('private sealed class ButtonLocationPatch', [StringComparison]::Ordinal)
-    $buttonEnd = $source.IndexOf('private sealed class FactoryTimePatch', [StringComparison]::Ordinal)
+    $selectedStart = $source.IndexOf('private sealed class ArenaLocationSelectionSelectedValuePatch', [StringComparison]::Ordinal)
+    $buttonStart = $source.IndexOf('private sealed class ArenaLocationSelectionButtonLocationPatch', [StringComparison]::Ordinal)
+    $buttonEnd = $source.IndexOf('private sealed class ArenaLocationSelectionFactoryTimePatch', [StringComparison]::Ordinal)
     if ($selectedStart -lt 0 -or $buttonStart -le $selectedStart -or $buttonEnd -le $buttonStart) {
         throw 'Production map projection patch layout changed; review new hook boundaries.'
     }
@@ -98,7 +98,7 @@ try {
     )) {
         if (!$buttonHook.Contains($required)) { throw "Button ownership/signature projection hook is missing: $required" }
     }
-    if (!$source.Contains('new ButtonLocationPatch().Enable();')) { throw 'Button projection patch is not registered.' }
+    if (!$source.Contains('new ArenaLocationSelectionButtonLocationPatch().Enable();')) { throw 'Button projection patch is not registered.' }
     Write-Output ('Game SHA256 ' + (Get-FileHash -LiteralPath $labGamePath -Algorithm SHA256).Hash)
     Write-Output ('SPT core SHA256 ' + (Get-FileHash -LiteralPath $labServerPath -Algorithm SHA256).Hash)
     Write-Output 'ARENA_LABYRINTH_ACCESS_CONTRACTS_PASSED'

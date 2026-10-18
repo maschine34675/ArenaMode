@@ -47,8 +47,8 @@ internal static class ArenaTeamBoxRuntime
     private static readonly Dictionary<string, ISpawnPoint> Points = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Lease> Reservations = new(StringComparer.Ordinal);
     private static Lease _playerReservation;
-    private static CollectionPatch _collectionPatch;
-    private static InitialPatch _initialPatch;
+    private static ArenaTeamBoxRuntimeCollectionPatch _collectionPatch;
+    private static ArenaTeamBoxRuntimeInitialPatch _initialPatch;
     private static readonly Harmony LoadingPatches = new Harmony(Plugin.PluginGuid + ".TeamBoxLoading");
     private static string MapLabel => _formation?.DisplayName ?? "Arena team-box";
     private const float OccupancySquared = 2.25f;
@@ -75,9 +75,9 @@ internal static class ArenaTeamBoxRuntime
         if (IsReady) return;
         try
         {
-            _collectionPatch = new CollectionPatch();
+            _collectionPatch = new ArenaTeamBoxRuntimeCollectionPatch();
             _collectionPatch.Enable();
-            _initialPatch = new InitialPatch();
+            _initialPatch = new ArenaTeamBoxRuntimeInitialPatch();
             _initialPatch.Enable();
             var target = AccessTools.Method(typeof(BaseLocalGame<EftGamePlayerOwner>), "Run",
                 new[] { typeof(BotControllerSettings), typeof(string), typeof(InventoryController) });
@@ -610,7 +610,7 @@ internal static class ArenaTeamBoxRuntime
         }
     }
 
-    private sealed class CollectionPatch : ModulePatch
+    private sealed class ArenaTeamBoxRuntimeCollectionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(SpawnPointsCollection), nameof(SpawnPointsCollection.CreateFromScene),
@@ -619,7 +619,7 @@ internal static class ArenaTeamBoxRuntime
         private static void Postfix(SpawnPointsCollection __result) => RestoreCollection(__result);
     }
 
-    private sealed class InitialPatch : ModulePatch
+    private sealed class ArenaTeamBoxRuntimeInitialPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
         {

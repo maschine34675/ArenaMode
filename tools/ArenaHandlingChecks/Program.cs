@@ -16,7 +16,7 @@ Need(SPT.Reflection.Patching.ModulePatch.Targets.Count == 7, "seven exact native
 var target = typeof(MovementContext).GetMethod(nameof(MovementContext.ChangeSpeedLimit));
 List<CodeInstruction> LandingInstructions() => [new(OpCodes.Ldarg_0), new(OpCodes.Ldarg_1), new(OpCodes.Ldarg_2), new(OpCodes.Ldarg_3), new(OpCodes.Callvirt, target), new(OpCodes.Ret)];
 var original = LandingInstructions();
-var patched = ((IEnumerable<CodeInstruction>)Hook.Call("LandingPatch", "Transpiler", original)).ToArray();
+var patched = ((IEnumerable<CodeInstruction>)Hook.Call("ArenaHandlingLandingPatch", "Transpiler", original)).ToArray();
 Need(patched.Length == original.Count && patched[4].operand is MethodInfo m && m.Name == "ApplyLandingLimit",
     "landing transpiler replaces its single duration-bearing call");
 var call = new DynamicMethod("native_landing_call", typeof(void), [typeof(MovementContext), typeof(float), typeof(Player.ESpeedLimit), typeof(float)], typeof(Program).Module, true);
@@ -24,7 +24,7 @@ var il = call.GetILGenerator();
 foreach (var instruction in patched)
     if (instruction.operand is MethodInfo method) il.Emit(instruction.opcode, method); else il.Emit(instruction.opcode);
 var landing = (Action<MovementContext, float, Player.ESpeedLimit, float>)call.CreateDelegate(typeof(Action<MovementContext, float, Player.ESpeedLimit, float>));
-foreach (var (patchName, expectedCalls) in new[] { ("DrawStartPatch", 1), ("HolsterStartPatch", 2) })
+foreach (var (patchName, expectedCalls) in new[] { ("ArenaHandlingDrawStartPatch", 1), ("ArenaHandlingHolsterStartPatch", 2) })
 {
     var startCall = typeof(Player.ObjectInHandsOperation).GetMethod("Start");
     var startInstructions = Enumerable.Range(0, expectedCalls).SelectMany(_ => new[] { new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Call, startCall) }).ToArray();
@@ -38,7 +38,7 @@ foreach (var (patchName, expectedCalls) in new[] { ("DrawStartPatch", 1), ("Hols
 foreach (var malformed in new[] { new List<CodeInstruction> { new(OpCodes.Ret) }, new List<CodeInstruction> { new(OpCodes.Call, target), new(OpCodes.Call, target) } })
 {
     bool refused = false;
-    try { Hook.Call("LandingPatch", "Transpiler", malformed); } catch (InvalidOperationException) { refused = true; }
+    try { Hook.Call("ArenaHandlingLandingPatch", "Transpiler", malformed); } catch (InvalidOperationException) { refused = true; }
     Need(refused, "changed landing IL fails instead of patching a guessed site");
 }
 landing(local.MovementContext, .35f, Player.ESpeedLimit.Fall, 4f);

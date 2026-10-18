@@ -113,7 +113,7 @@ internal static partial class ArenaAirVault
         return found;
     }
 
-    private sealed class AnimatorFramePatch : ModulePatch
+    private sealed class ArenaAirVaultAnimatorFramePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(FastAnimatorProcessor), nameof(FastAnimatorProcessor.ProcessState));
@@ -188,7 +188,7 @@ internal static partial class ArenaAirVault
         }
     }
 
-    private sealed class AnimatorTransitionPatch : ModulePatch
+    private sealed class ArenaAirVaultAnimatorTransitionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(AbstractAnimatorControllerState), nameof(AbstractAnimatorControllerState.GetTriggeredTransition));

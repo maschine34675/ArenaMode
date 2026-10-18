@@ -41,8 +41,8 @@ internal static class ArenaMedicalPatches
         if (_enabled)
             return;
 
-        new MedicalEffectPatch().Enable();
-        new MedsControllerDestroyPatch().Enable();
+        new ArenaMedicalEffectPatch().Enable();
+        new ArenaMedicalMedsControllerDestroyPatch().Enable();
         RaidLifecycle.EnsurePatched();
         RaidLifecycle.OnRaidStarted += OnRaidStarted;
         RaidLifecycle.OnRaidEnded += OnRaidEnded;
@@ -165,7 +165,7 @@ internal static class ArenaMedicalPatches
         }
     }
 
-    private sealed class MedicalEffectPatch : ModulePatch
+    private sealed class ArenaMedicalEffectPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(
@@ -240,7 +240,7 @@ internal static class ArenaMedicalPatches
         }
     }
 
-    private sealed class MedsControllerDestroyPatch : ModulePatch
+    private sealed class ArenaMedicalMedsControllerDestroyPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.MedsController), nameof(Player.MedsController.Destroy));

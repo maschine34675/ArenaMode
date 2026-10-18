@@ -39,7 +39,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         var before = JsonSerializer.Serialize(sourceEntries);
         Start(Session, "teamdeathmatch", location);
 
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
 
         var result = location.BotLocationModifier.AdditionalHostilitySettings!.ToList();
         Assert.Equal(before, JsonSerializer.Serialize(sourceEntries));
@@ -71,7 +71,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         ArenaContext.Config.HostilityMode = hostilityMode;
         var location = Location();
         Start(Session, "TEAMDEATHMATCH", location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         var entries = location.BotLocationModifier!.AdditionalHostilitySettings!.ToList();
         AssertFaction(entries[0], "pmcUSEC", "pmcBEAR");
         AssertFaction(entries[1], "pmcBEAR", "pmcUSEC");
@@ -86,7 +86,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         var other = location.BotLocationModifier!.AdditionalHostilitySettings!.Last();
         location.BotLocationModifier.AdditionalHostilitySettings = nullSettings ? null : [other];
         Start(Session, "teamdeathmatch", location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         var entries = location.BotLocationModifier.AdditionalHostilitySettings!.ToList();
         Assert.Equal(nullSettings ? 2 : 3, entries.Count);
         AssertFaction(entries.Single(entry => entry.BotRole == "pmcUSEC"), "pmcUSEC", "pmcBEAR", false);
@@ -101,7 +101,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         Start(Session, "teamdeathmatch", Location());
         var ordinary = Location();
         var before = JsonSerializer.Serialize(ordinary);
-        AdjustBotHostilityPatch.Postfix(ordinary);
+        ArenaAdjustBotHostilityPatch.Postfix(ordinary);
         Assert.Equal(before, JsonSerializer.Serialize(ordinary));
         Assert.False(ArenaContext.Sessions!.TryGetStashedCloneMode(ordinary, out var mode));
         Assert.Null(mode);
@@ -135,7 +135,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         }
 
         var before = JsonSerializer.Serialize(location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
         Assert.False(sessions.TryGetStashedCloneMode(location, out _));
     }
@@ -152,7 +152,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         Start(OtherSession, mode, location);
         Assert.True(ArenaContext.Sessions!.TryGetStashedCloneMode(location, out var actualMode));
         Assert.Equal(mode, actualMode);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.All(location.BotLocationModifier!.AdditionalHostilitySettings!, entry =>
         {
             Assert.Equal("AlwaysEnemies", entry.UsecPlayerBehaviour);
@@ -173,7 +173,7 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         var sharedChances = source.ChancedEnemies;
         var friends = source.AlwaysFriends;
         Start(Session, "endless", location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.Same(sharedChances, source.ChancedEnemies);
         Assert.Same(friends, source.AlwaysFriends);
         Assert.Equal(100, source.ChancedEnemies![0].EnemyChance);
@@ -190,14 +190,14 @@ public sealed class TeamDeathmatchServerTests : IDisposable
         var location = Location();
         location.BotLocationModifier = null!;
         Start(Session, "teamdeathmatch", location);
-        AdjustBotHostilityPatch.Postfix(location);
+        ArenaAdjustBotHostilityPatch.Postfix(location);
         Assert.Null(location.BotLocationModifier);
         Assert.False(ArenaContext.Sessions!.TryGetStashedCloneMode(null!, out _));
         ArenaContext.Sessions = null;
         var ordinary = Location();
         var before = JsonSerializer.Serialize(ordinary);
-        AdjustBotHostilityPatch.Postfix(ordinary);
-        AdjustBotHostilityPatch.Postfix(null!);
+        ArenaAdjustBotHostilityPatch.Postfix(ordinary);
+        ArenaAdjustBotHostilityPatch.Postfix(null!);
         Assert.Equal(before, JsonSerializer.Serialize(ordinary));
     }
 

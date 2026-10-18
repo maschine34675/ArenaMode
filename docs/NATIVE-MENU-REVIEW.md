@@ -178,13 +178,13 @@ trap); every target is a non-generic override or method of the concrete screen:
 The deploying screen patches the controller override instead of the three-argument
 overload, because only the controller tells a reconnect to a
 running ordinary raid (`ReconnectTimeHasComeScreenController`, `:20`) apart, and
-`ArenaPreviewFlowPatch.LoadingShowPatch` already patches that same method.
+`ArenaPreviewFlowPatch.ArenaPreviewFlowLoadingShowPatch` already patches that same method.
 
 The deploying gate does NOT accept `ArenaSession.ArmedForNextRaid` (the first
 draft had it as a fallback; removed in the second review round). The flag is set
 too late to help and can only mislead here: `TarkovApplication.LocalGameMatching`
 shows this screen (`TarkovApplication.cs:2525`) before `LocalGameCreate` calls
-`LocalRaidStarted` (`:2991`), the call `LocalRaidStartedPatch` arms in, so at the
+`LocalRaidStarted` (`:2991`), the call `ArenaLocalRaidStartedPatch` arms in, so at the
 moment of `Show` a set flag is always a stale arm left by an earlier aborted load,
 and trusting it would put "ARENA ZONE" on the loading screen of an ordinary raid.
 The selection is the reliable signal: the side, location, accept and deploying

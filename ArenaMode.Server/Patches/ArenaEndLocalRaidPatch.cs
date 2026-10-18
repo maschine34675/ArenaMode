@@ -13,7 +13,7 @@ namespace ArenaMode.Server.Patches;
 /// async pipeline remains under the per-session lifecycle gate, and identical
 /// HTTP retries share one task/response.
 /// </summary>
-public sealed class EndLocalRaidPatch : AbstractPatch
+public sealed class ArenaEndLocalRaidPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

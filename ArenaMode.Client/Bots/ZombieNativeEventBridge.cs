@@ -161,7 +161,7 @@ internal static class ZombieNativeEventBridge
     internal static bool? NativeEventArmed { get; private set; }
 
     /// <summary>
-    /// WaveStartSize/ShooterPercent as read by hook 3 (GetProfilesOnStartPatch)
+    /// WaveStartSize/ShooterPercent as read by hook 3 (ArenaZombieNativeEventBridgeGetProfilesOnStartPatch)
     /// the moment it first consumes them for this raid's native opening-wave
     /// preload — strictly BEFORE hook 1 ever runs (see the class doc comment).
     /// ZombieMode.OnMatchStart reads this same snapshot via
@@ -212,11 +212,11 @@ internal static class ZombieNativeEventBridge
 
     internal static void EnablePatch()
     {
-        TryEnable(() => new GetProfilesOnStartPatch().Enable(), "the opening-profile preload replacement");
-        TryEnable(() => new AddBackupProfilesPatch().Enable(), "the native backup-profile order skip");
-        TryEnable(() => new DisposePatch().Enable(), "the native-flag restore on raid teardown");
-        TryEnable(() => new ActivatePatch().Enable(), "the native-flag arm on raid activation");
-        TryEnable(() => new SuppressSpawnTeleportPatch().Enable(),
+        TryEnable(() => new ArenaZombieNativeEventBridgeGetProfilesOnStartPatch().Enable(), "the opening-profile preload replacement");
+        TryEnable(() => new ArenaZombieNativeEventBridgeAddBackupProfilesPatch().Enable(), "the native backup-profile order skip");
+        TryEnable(() => new ArenaZombieNativeEventBridgeDisposePatch().Enable(), "the native-flag restore on raid teardown");
+        TryEnable(() => new ArenaZombieNativeEventBridgeActivatePatch().Enable(), "the native-flag arm on raid activation");
+        TryEnable(() => new ArenaZombieNativeEventBridgeSuppressSpawnTeleportPatch().Enable(),
             "the native ctor-time spawn-ring teleport suppression");
     }
 
@@ -306,7 +306,7 @@ internal static class ZombieNativeEventBridge
     }
 
     /// <summary>Converts ZombieMode's opening-wave plan into the native CountTypeBotWave
-    /// list GetProfilesOnStartPatch hands back as __result. Takes the two tunables as
+    /// list ArenaZombieNativeEventBridgeGetProfilesOnStartPatch hands back as __result. Takes the two tunables as
     /// parameters, rather than reading Settings itself, so the Prefix below can capture
     /// the exact snapshot it both uses here AND publishes via TryGetOpeningSnapshot —
     /// one read, two consumers.</summary>
@@ -327,7 +327,7 @@ internal static class ZombieNativeEventBridge
         return waves;
     }
 
-    private sealed class ActivatePatch : ModulePatch
+    private sealed class ArenaZombieNativeEventBridgeActivatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotsEventsController), nameof(BotsEventsController.Activate));
@@ -444,7 +444,7 @@ internal static class ZombieNativeEventBridge
         }
     }
 
-    private sealed class DisposePatch : ModulePatch
+    private sealed class ArenaZombieNativeEventBridgeDisposePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotsEventsController), nameof(BotsEventsController.Dispose));
@@ -453,7 +453,7 @@ internal static class ZombieNativeEventBridge
         private static void Postfix() => RestoreFlag();
     }
 
-    private sealed class GetProfilesOnStartPatch : ModulePatch
+    private sealed class ArenaZombieNativeEventBridgeGetProfilesOnStartPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotHalloweenWithZombies), nameof(BotHalloweenWithZombies.GetProfilesOnStart));
@@ -468,7 +468,7 @@ internal static class ZombieNativeEventBridge
             {
                 // The one read of these two settings for the whole raid (see
                 // _openingSnapshot's doc comment) — this hook fires before hook
-                // 1 (ActivatePatch) in LocalGame.vmethod_1, so it is the
+                // 1 (ArenaZombieNativeEventBridgeActivatePatch) in LocalGame.vmethod_1, so it is the
                 // earliest possible moment to capture them.
                 int waveStartSize = Settings.ZombieWaveStartSize.Value;
                 int shooterPercent = Settings.ZombieShooterPercent.Value;
@@ -489,7 +489,7 @@ internal static class ZombieNativeEventBridge
     /// <summary>Hook 5 — see the class doc comment. Gated on the live raid/mode, not
     /// the loading-time armed check hooks 1/3/4 use, because this only ever matters
     /// once bots are actually being spawned into a running raid.</summary>
-    private sealed class SuppressSpawnTeleportPatch : ModulePatch
+    private sealed class ArenaZombieNativeEventBridgeSuppressSpawnTeleportPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InfectedLayersStrategy), nameof(InfectedLayersStrategy.TeleportBotNearToTarget));
@@ -515,7 +515,7 @@ internal static class ZombieNativeEventBridge
         }
     }
 
-    private sealed class AddBackupProfilesPatch : ModulePatch
+    private sealed class ArenaZombieNativeEventBridgeAddBackupProfilesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotHalloweenWithZombies), nameof(BotHalloweenWithZombies.AddBackupProfiles));

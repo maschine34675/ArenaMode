@@ -136,7 +136,7 @@ namespace ArenaMode.Hud.InfoPanels
                 // (InventoryController.cs:448-464: native rig/pockets/weapon
                 // slots, recursively, so nested pouches inside THOSE count
                 // natively). Inside the arena with UseItemsAnywhere on,
-                // ArenaReachPatches.ReachableAnywherePatch turns this true for
+                // ArenaReachPatches.ArenaReachableAnywherePatch turns this true for
                 // ANY worn, examined, whole grenade — backpack top level or a
                 // pouch nested anywhere, including inside the backpack
                 // (ArenaMode.Client/Kits/ArenaReachPatches.cs). With it off,

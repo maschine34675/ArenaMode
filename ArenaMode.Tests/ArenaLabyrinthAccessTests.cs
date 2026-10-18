@@ -46,7 +46,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
         var clone = JsonSerializer.Deserialize<LocationBase>(sourceJson)!;
         Start();
 
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
 
         Assert.True(clone.Enabled);
         Assert.False(clone.ForceOnlineRaidInPVE);
@@ -63,7 +63,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
 
         // Idempotent Arena access must not duplicate optional upstream exits.
         var once = JsonSerializer.Serialize(clone);
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
         Assert.Equal(once, JsonSerializer.Serialize(clone));
 
         // Later mutations to this real per-raid copy cannot reach database aliases.
@@ -96,22 +96,22 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
     {
         var ordinary = Location(coInstalled);
         var baseline = JsonSerializer.Serialize(ordinary);
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
         ArenaContext.Sessions!.Arm(Session, "labyrinth", "teamdeathmatch");
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
         Start();
-        GenerateLocationAndLootPatch.Postfix(OtherSession, "labyrinth", ordinary);
+        ArenaGenerateLocationAndLootPatch.Postfix(OtherSession, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
 
         ArenaContext.Config.Maps["labyrinth"].Enabled = false;
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
         ArenaContext.Config.Maps["labyrinth"].Enabled = true;
 
         ArenaContext.Sessions.BeginPostRaidFinalization(Session);
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", ordinary);
         Assert.Equal(baseline, JsonSerializer.Serialize(ordinary));
         Assert.False(ArenaContext.Sessions.TryGetStashedCloneMode(ordinary, out _));
     }
@@ -127,7 +127,7 @@ public sealed class ArenaLabyrinthAccessTests : IDisposable
         var original = Location(coInstalled: true);
         var clone = JsonSerializer.Deserialize<LocationBase>(JsonSerializer.Serialize(original))!;
         Start(mode);
-        GenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, "labyrinth", clone);
         AssertOnlyWayUpTimersChanged(original.Exits!, clone.Exits!);
     }
 

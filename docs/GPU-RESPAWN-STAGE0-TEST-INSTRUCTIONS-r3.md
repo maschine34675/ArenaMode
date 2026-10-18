@@ -80,7 +80,7 @@ benannt; die 16 geschützten Feldvergleiche müssen weiterhin gleich sein.
 
 ## Was der Build a2fcced ändert
 
-1. **Gesten-Abschaltung** (`NoBotGesturesPatch`, F12 → ArenaMode → Bots →
+1. **Gesten-Abschaltung** (`ArenaNoBotGesturesPatch`, F12 → ArenaMode → Bots →
    `NoBotGestures`, Standard an; nicht verstellen). Prefix auf
    `BotPeacefulActions.SetActiveAction`, nur bei aktiver oder scharf geschalteter Arena.
    Hintergrund: die freundliche Geste zwischen zwei nahen Bots (beliebiger Seite) löst
@@ -89,7 +89,7 @@ benannt; die 16 geschützten Feldvergleiche müssen weiterhin gleich sein.
    vergleicht gegen ein nie gesetztes Feld und ist tot; in der Arena lagen die Kits
    deshalb Sekunden nach dem Rundenstart am Boden (Log vom 13.09., vier Würfe 1,9–11,7 s
    nach dem Spawn).
-2. **Corpse-Looting-Sperre erstmals aktiv** (`NoCorpseLootingPatch`, F12 → Performance →
+2. **Corpse-Looting-Sperre erstmals aktiv** (`ArenaNoCorpseLootingPatch`, F12 → Performance →
    `NoCorpseLooting`, Standard an; nicht verstellen). Seit `c8bb849` existierte der Patch,
    war aber nie registriert. Jetzt Prefix auf `BotDeadBodyWork.UpdateCheck`: Bots wählen
    in der Arena keine Leiche mehr zum Durchsuchen. PFT-Teamkameraden bleiben ausgenommen.
@@ -121,9 +121,9 @@ Müssen stehen: `Redeploy.Core 0.9.0.0 initialized`,
 `Death-interception driver registered: ArenaMode (priority 100)`,
 `Death-interception driver registered: Redeploy (priority 0)`, und im Harmony-Teil
 des Startlogs je einmal `Patching void BotPeacefulActions::SetActiveAction(…) with 1
-prefixes` (Prefix `ArenaMode.Bots.NoBotGesturesPatch::Prefix`) sowie `Patching void
+prefixes` (Prefix `ArenaMode.Bots.ArenaNoBotGesturesPatch::Prefix`) sowie `Patching void
 BotDeadBodyWork::UpdateCheck() with 1 prefixes` (Prefix
-`ArenaMode.Bots.NoCorpseLootingPatch::Prefix`). Fehlt eine der beiden Zeilen, ist es
+`ArenaMode.Bots.ArenaNoCorpseLootingPatch::Prefix`). Fehlt eine der beiden Zeilen, ist es
 nicht der gebundene Build: blockiert berichten.
 
 Dürfen nicht stehen (vor dem Raid blockiert berichten):

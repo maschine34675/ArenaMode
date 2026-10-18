@@ -36,9 +36,9 @@ internal static class SprintAdsPatches
 
     public static void Enable()
     {
-        new AimCancelsSprintPatch().Enable();
-        new AimStateGatePatch().Enable();
-        new KeepAimThroughSprintExitPatch().Enable();
+        new ArenaSprintAdsAimCancelsSprintPatch().Enable();
+        new ArenaSprintAdsAimStateGatePatch().Enable();
+        new ArenaSprintAdsKeepAimThroughSprintExitPatch().Enable();
     }
 
     private static bool IsArenaFirearm(Player.FirearmController controller)
@@ -58,7 +58,7 @@ internal static class SprintAdsPatches
     }
 
     /// <summary>Aim press while sprinting: kill the sprint and open the bypass window.</summary>
-    private sealed class AimCancelsSprintPatch : ModulePatch
+    private sealed class ArenaSprintAdsAimCancelsSprintPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.ToggleAim));
@@ -84,7 +84,7 @@ internal static class SprintAdsPatches
     }
 
     /// <summary>Let the aim request through while the animator still says Sprint/Transition.</summary>
-    private sealed class AimStateGatePatch : ModulePatch
+    private sealed class ArenaSprintAdsAimStateGatePatch : ModulePatch
     {
         private static readonly FieldInfo IdlingTimeField =
             AccessTools.Field(typeof(Player.FirearmController.Idling), "_idlingTime");
@@ -145,7 +145,7 @@ internal static class SprintAdsPatches
     /// ADS back off. Only while coasting OUT of a sprint — a real sprint start
     /// cancels ADS through the separate SprintStateChangedEvent path, untouched.
     /// </summary>
-    private sealed class KeepAimThroughSprintExitPatch : ModulePatch
+    private sealed class ArenaSprintAdsKeepAimThroughSprintExitPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.StateChangedHandler));

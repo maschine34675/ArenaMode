@@ -22,14 +22,14 @@ internal static class ArenaSideSelectionPatch
 
     public static void Enable()
     {
-        new ShowPatch().Enable();
-        new ClosePatch().Enable();
-        new SelectPatch().Enable();
-        new HealthWarningPatch().Enable();
-        new LeaveSetupPatch().Enable();
+        new ArenaSideSelectionShowPatch().Enable();
+        new ArenaSideSelectionClosePatch().Enable();
+        new ArenaSideSelectionSelectPatch().Enable();
+        new ArenaSideSelectionHealthWarningPatch().Enable();
+        new ArenaSideSelectionLeaveSetupPatch().Enable();
     }
 
-    private sealed class ShowPatch : ModulePatch
+    private sealed class ArenaSideSelectionShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSideSelectionScreen), nameof(MatchMakerSideSelectionScreen.Show),
@@ -72,7 +72,7 @@ internal static class ArenaSideSelectionPatch
                 // This is BSG's existing third toggle. Keep its ToggleGroup,
                 // animation listeners intact; align its view with the other
                 // character choices and translate its
-                // otherwise unused Random selection to PMC in SelectPatch.
+                // otherwise unused Random selection to PMC in ArenaSideSelectionSelectPatch.
                 var arena = __instance._randomButton;
                 var eligibility = EvaluateEligibility(
                     Controller(__instance), allowPendingModeSelection: true);
@@ -118,7 +118,7 @@ internal static class ArenaSideSelectionPatch
         }
     }
 
-    private sealed class ClosePatch : ModulePatch
+    private sealed class ArenaSideSelectionClosePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSideSelectionScreen), nameof(MatchMakerSideSelectionScreen.Close));
@@ -136,7 +136,7 @@ internal static class ArenaSideSelectionPatch
         }
     }
 
-    private sealed class SelectPatch : ModulePatch
+    private sealed class ArenaSideSelectionSelectPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSideSelectionScreen), nameof(MatchMakerSideSelectionScreen.SetSelectedSide));
@@ -252,7 +252,7 @@ internal static class ArenaSideSelectionPatch
             : reason;
     }
 
-    private sealed class HealthWarningPatch : ModulePatch
+    private sealed class ArenaSideSelectionHealthWarningPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSideSelectionScreen), nameof(MatchMakerSideSelectionScreen.SetObjectVisibility));
@@ -270,7 +270,7 @@ internal static class ArenaSideSelectionPatch
         }
     }
 
-    private sealed class LeaveSetupPatch : ModulePatch
+    private sealed class ArenaSideSelectionLeaveSetupPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MainMenuShowOperation), nameof(MainMenuShowOperation.ScreenChangeHandler));

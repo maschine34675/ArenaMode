@@ -76,7 +76,7 @@ is an original Harmony integration against the installed API. Reference sources:
 
 ## Ownership and behavior
 
-`BotTierScalePatch` still chooses the existing Arena anchor and +/-5 level range.
+`ArenaBotTierScalePatch` still chooses the existing Arena anchor and +/-5 level range.
 Finite independent TDM uses its frozen playing clock and reaches the end of the
 configured curve at 80% of match duration. Other solo modes retain server raid
 time. Protected PFT teams and maps with tier scaling disabled remain excluded.

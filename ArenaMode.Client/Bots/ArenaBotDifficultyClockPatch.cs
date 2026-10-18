@@ -24,7 +24,7 @@ internal sealed class ArenaBotDifficultyClockPatch : ModulePatch
     internal static void EnablePatch()
     {
         _ready = false;
-        ModulePatch[] patches = { new DemandPatch(), new BackupPatch(), new ArenaBotDifficultyClockPatch() };
+        ModulePatch[] patches = { new ArenaBotDifficultyClockDemandPatch(), new ArenaBotDifficultyClockBackupPatch(), new ArenaBotDifficultyClockPatch() };
         try
         {
             foreach (var patch in patches) patch.Enable();
@@ -98,7 +98,7 @@ internal sealed class ArenaBotDifficultyClockPatch : ModulePatch
     private static bool IsPmc(WildSpawnType role)
         => role == WildSpawnType.pmcUSEC || role == WildSpawnType.pmcBEAR;
 
-    private sealed class DemandPatch : ModulePatch
+    private sealed class ArenaBotDifficultyClockDemandPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotProfileClient), nameof(BotProfileClient.CreateProfile),
@@ -137,7 +137,7 @@ internal sealed class ArenaBotDifficultyClockPatch : ModulePatch
         }
     }
 
-    private sealed class BackupPatch : ModulePatch
+    private sealed class ArenaBotDifficultyClockBackupPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotProfileBackuploader), nameof(BotProfileBackuploader.AddProfileForBackup), new[] { typeof(BotCreationData) });

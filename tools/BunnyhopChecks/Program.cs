@@ -37,7 +37,7 @@ static class Program
         internal void State(MovementState s) { C.PreviousState=C.CurrentState; C.CurrentState=P.CurrentManagedState=s; }
         internal void Ground(bool g) { C.IsGrounded=P.CharacterController.isGrounded=g; }
         internal void Air() { Ground(false); J._jumpState=JumpPlayerState.EJumpState.Jump; J._currentLiftforce=new(0,-2,0); Tick(); }
-        internal void Tick() { Call("Tick",C); Dj("LandingPatch","Postfix",C); }
+        internal void Tick() { Call("Tick",C); Dj("ArenaDoubleJumpLandingPatch","Postfix",C); }
         internal object Dj(string patch,string method,params object[] args)
             => typeof(ArenaDoubleJump).GetNestedType(patch,BindingFlags.NonPublic).GetMethod(method,Flags).Invoke(null,args);
         internal void Motion(float speed,float dt=.02f) {
@@ -47,10 +47,10 @@ static class Program
         }
         internal void Enter() {
             State(J); object[] args=[J,null]; Call("BeforeEntry",args);
-            object[] dj=[J,null]; Dj("JumpEnterPatch","Prefix",dj);
+            object[] dj=[J,null]; Dj("ArenaDoubleJumpJumpEnterPatch","Prefix",dj);
             P.Physical.OnJump(true); J._jumpState=JumpPlayerState.EJumpState.PushingFromTheGround;
             J._liftForce=new(0,8,0); ArenaJumpBoots.ApplyEntry(J);
-            Dj("JumpEnterPatch","Postfix",J,dj[1]);
+            Dj("ArenaDoubleJumpJumpEnterPatch","Postfix",J,dj[1]);
             Call("AfterEntry",J,args[1]);
         }
         internal bool Press() => ArenaBunnyhop.TryBufferJump(P);
@@ -132,7 +132,7 @@ static class Program
         }) { f=new F(); f.Hop(); change(f); Check(Near(f.Carry().x,.01f),"invalid scope cannot inject carry"); }
         f=new F();
         var translator=new MoveInputTranslator(f.P);
-        var patch=typeof(ArenaDoubleJump).GetNestedType("JumpCommandPatch",BindingFlags.NonPublic);
+        var patch=typeof(ArenaDoubleJump).GetNestedType("ArenaDoubleJumpJumpCommandPatch",BindingFlags.NonPublic);
         object[] input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input);
         patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
         Check(f.P.Physical.Debits==1,"near landing consumed before doublejump");

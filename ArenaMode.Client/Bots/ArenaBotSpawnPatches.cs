@@ -20,12 +20,12 @@ internal static class ArenaBotSpawnPatches
     public static void Enable()
     {
         SoloPopulationReady = false;
-        new SpawnZonesPatch().Enable();
-        new SelectAiPointsPatch().Enable();
-        new DispatchPatch().Enable();
-        new SoloActivationPatch().Enable();
-        new SoloProfileActivationPatch().Enable();
-        new SoloCreationPatch().Enable();
+        new ArenaBotSpawnSpawnZonesPatch().Enable();
+        new ArenaBotSpawnSelectAiPointsPatch().Enable();
+        new ArenaBotSpawnDispatchPatch().Enable();
+        new ArenaBotSpawnSoloActivationPatch().Enable();
+        new ArenaBotSpawnSoloProfileActivationPatch().Enable();
+        new ArenaBotSpawnSoloCreationPatch().Enable();
         new ArenaTeamSpawnPointsPatch().Enable();
         SoloPopulationReady = true;
     }
@@ -36,7 +36,7 @@ internal static class ArenaBotSpawnPatches
         _rejectedTeamBatches = 0;
     }
 
-    private sealed class SpawnZonesPatch : ModulePatch
+    private sealed class ArenaBotSpawnSpawnZonesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.SpawnZones));
@@ -47,7 +47,7 @@ internal static class ArenaBotSpawnPatches
             => __result = ArenaBotSpawnFilter.FilterZones(__result);
     }
 
-    private sealed class SelectAiPointsPatch : ModulePatch
+    private sealed class ArenaBotSpawnSelectAiPointsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(SpawnSystem), nameof(SpawnSystem.SelectAISpawnPoints),
@@ -71,7 +71,7 @@ internal static class ArenaBotSpawnPatches
             => __result = ArenaBotSpawnFilter.FilterBotPoints(__result);
     }
 
-    private sealed class DispatchPatch : ModulePatch
+    private sealed class ArenaBotSpawnDispatchPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.SpawnBotsInZoneOnPositions));
@@ -120,7 +120,7 @@ internal static class ArenaBotSpawnPatches
     // call the creator directly. All three entry points must carry the same
     // synchronous lease. Native one-profile creation reaches CreateBot before
     // its first await; no global or AsyncLocal permission survives that call.
-    private sealed class SoloActivationPatch : ModulePatch
+    private sealed class ArenaBotSpawnSoloActivationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
@@ -135,7 +135,7 @@ internal static class ArenaBotSpawnPatches
         }
     }
 
-    private sealed class SoloProfileActivationPatch : ModulePatch
+    private sealed class ArenaBotSpawnSoloProfileActivationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.ActivateBot),
@@ -150,7 +150,7 @@ internal static class ArenaBotSpawnPatches
         }
     }
 
-    private sealed class SoloCreationPatch : ModulePatch
+    private sealed class ArenaBotSpawnSoloCreationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotCreatorClient), nameof(BotCreatorClient.CreateBot),

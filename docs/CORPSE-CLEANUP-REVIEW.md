@@ -189,7 +189,7 @@ renderers that may already belong to a living bot.
 | `GameWorld.RegisteredPlayers`, `AllAlivePlayersList`, `allAlivePlayersByID`, `AllAlivePlayerBridges`, `PlayersColliders`, `ItemOwners` | `Player.Dispose` → `UnregisterPlayer`. Already done at death by `OnDeadCoroutine`, so this is the idempotent repeat the game itself performs. |
 | `GameWorld.LootList`, `LootItems`, the corpse's `ItemOwner` | `DestroyLoot`. |
 | `GameWorld._allPlayersEverExisted`, `AllPlayerBridgesEverExisted` | Never cleaned by the game. The entries survive as destroyed Unity objects, which is what the DynamicMaps gate below is about. |
-| `DeadBodiesController` (bots pathing to bodies to loot) | Step 3. The only reader in Arena is `BotDeadBodyWork.UpdateCheck`, which `NoCorpseLootingPatch` gates off. |
+| `DeadBodiesController` (bots pathing to bodies to loot) | Step 3. The only reader in Arena is `BotDeadBodyWork.UpdateCheck`, which `ArenaNoCorpseLootingPatch` gates off. |
 | `BotsGroup` enemy/neutral memory, each member's `BotMemory` | Step 1. A group created later can only add living players (`CheckAndAddEnemy` refuses a dead one). |
 | SAIN | Drops its `BotComponent` at death already: it subscribes to `BotSpawner.OnBotRemoved`, which `BotSpawner.BotDied` raises from `BotOwner.OnDied`, and its tables are keyed by profile id. Nothing of SAIN's survives to see the destroy. |
 | PitFireTeam | Roster members are **never released**, not even for a round-start clear, which does lift the hiding exemption. Recorded at trim time (`TrimState.Protected`, when PFT's answer is still reliable) and re-read at release. |

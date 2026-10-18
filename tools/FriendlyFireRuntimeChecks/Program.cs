@@ -218,12 +218,12 @@ internal static class Program
         Check(ReferenceEquals(ArenaFriendlyExplosionEffects.FilterBlast(foreignCache),foreignCache),"foreign blast arguments not attributed to grenade");
         ArenaFriendlyExplosionEffects.FilterFlash(ref foreignList,ref foreignCache);
         Check(ReferenceEquals(foreignCache,foreignCacheOriginal)&&ReferenceEquals(foreignList,foreignListOriginal),"reentrant non-explosion flash source not inherited");
-        var blastPatch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("BlastTargetsPatch",BindingFlags.NonPublic).GetMethod("Prefix",BindingFlags.Static|BindingFlags.NonPublic);
+        var blastPatch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("ArenaFriendlyExplosionEffectsBlastTargetsPatch",BindingFlags.NonPublic).GetMethod("Prefix",BindingFlags.Static|BindingFlags.NonPublic);
         object[] blastArgs={false,map};blastPatch.Invoke(null,blastArgs);
         Check(ReferenceEquals(blastArgs[1],map),"suppressed blast prefix leaves arguments");
         blastArgs=new object[]{true,map};blastPatch.Invoke(null,blastArgs);
         Check(!((IReadOnlyDictionary<IObserverToPlayerBridge,PlayerEmitterCache>)blastArgs[1]).ContainsKey(friend),"production blast prefix filters");
-        var flashPatch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("FlashTargetsPatch",BindingFlags.NonPublic).GetMethod("Prefix",BindingFlags.Static|BindingFlags.NonPublic);
+        var flashPatch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("ArenaFriendlyExplosionEffectsFlashTargetsPatch",BindingFlags.NonPublic).GetMethod("Prefix",BindingFlags.Static|BindingFlags.NonPublic);
         var flashList=map.Keys.ToList();object[] flashArgs={false,flashList,map};flashPatch.Invoke(null,flashArgs);
         Check(ReferenceEquals(flashArgs[1],flashList)&&ReferenceEquals(flashArgs[2],map),"suppressed flash prefix leaves arguments");
         flashArgs=new object[]{true,flashList,map};flashPatch.Invoke(null,flashArgs);
@@ -239,7 +239,7 @@ internal static class Program
             ArenaMatchService.Current=new ArenaMatch{Mode=f.Tactical};Check(ReferenceEquals(ArenaFriendlyExplosionEffects.FilterBlast(map),map),"context cannot cross match");ArenaMatchService.Current=f.Match;
         }
         // Execute actual Harmony entry/finalizer and preserve the original exception.
-        var patch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("ExplosionContextPatch",BindingFlags.NonPublic);
+        var patch=typeof(ArenaFriendlyExplosionEffects).GetNestedType("ArenaFriendlyExplosionEffectsExplosionContextPatch",BindingFlags.NonPublic);
         object[] args={f.Local.ProfileId,true,null};patch.GetMethod("Prefix",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,args);
         Check(!ArenaFriendlyExplosionEffects.FilterBlast(map).ContainsKey(friend),"production context prefix wired");
         var fault=new InvalidOperationException("native fault");var final=patch.GetMethod("Finalizer",BindingFlags.Static|BindingFlags.NonPublic);

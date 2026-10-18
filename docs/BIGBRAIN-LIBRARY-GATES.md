@@ -7,7 +7,7 @@ with an Arena-owned optional library, retaining absence safety and bot ownership
 No publication or live deployment is required for this code/package change.
 
 - [x] G1: Core/server dependency answer follows actual requests and driver callbacks.
-  EVIDENCE: Independent redeploy_guid_audit traced standalone ServerModCheck/ping and inventory/postraid patches; Core has only local respawn/session callbacks. Arena PostRaidPmcSkipPatch and ArenaProtectedRaidEndService own protected profile restoration. See BIGBRAIN-LIBRARY-20261018.md.
+  EVIDENCE: Independent redeploy_guid_audit traced standalone ServerModCheck/ping and inventory/postraid patches; Core has only local respawn/session callbacks. Arena ArenaPostRaidPmcSkipPatch and ArenaProtectedRaidEndService own protected profile restoration. See BIGBRAIN-LIBRARY-20261018.md.
 
 - [x] G2: Isolated production bootstrap checks cover optional absence, registration failures, repeated init and teardown.
   CHECK: dotnet run --project tools/BigBrainCompatibilityChecks -c Release

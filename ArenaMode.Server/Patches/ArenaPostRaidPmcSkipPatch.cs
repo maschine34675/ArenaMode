@@ -14,7 +14,7 @@ namespace ArenaMode.Server.Patches;
 /// completed retry and a delayed foreign request before any post-raid side
 /// effect runs.
 /// </summary>
-public sealed class PostRaidPmcSkipPatch : AbstractPatch
+public sealed class ArenaPostRaidPmcSkipPatch : AbstractPatch
 {
     protected override MethodBase GetTargetMethod()
     {

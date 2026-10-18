@@ -295,7 +295,7 @@ private static bool Prefix(object __instance, ref int objectsCount, string reaso
 The outer `!ArenaSession.IsActive` check is a fast-path optimisation, not the source of
 truth — `Decide` re-checks `arenaActive` itself, so the whole gate is provably correct
 from the checks project's unit tests even if this fast path were ever removed by
-accident. This mirrors `NoBotGesturesPatch`/`NoCorpseLootingPatch`'s own
+accident. This mirrors `ArenaNoBotGesturesPatch`/`ArenaNoCorpseLootingPatch`'s own
 `if (!ArenaSession.IsActive) return true;` and satisfies AGENTS.md's rule that "every
 patch starts with an `ArenaSession.IsActive` gate and fails open to vanilla."
 

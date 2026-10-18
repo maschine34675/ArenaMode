@@ -58,7 +58,7 @@ public sealed partial class ArenaAreaServerTests
         Sessions.Arm(Session, Customs, mode, armToken: Token, areaId: area,
             deathmatchHostility: mode == "deathmatch" ? "ffa" : null, participants: total);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
         Assert.True(Sessions.ValidateAreaResponse(Session, clone, out var reason), reason);
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
         Assert.True(ArenaAreaCatalog.TryResolve(area, Customs, mode, false, out var definition, out _));

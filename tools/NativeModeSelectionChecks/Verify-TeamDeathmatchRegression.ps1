@@ -20,7 +20,7 @@ function Get-TdmSource([string] $RelativePath) {
 }
 
 $tdmState = 'ArenaMode.Client\Session\ArenaModeSelectionState.cs'
-$tdmHostility = 'ArenaMode.Server\Patches\AdjustBotHostilityPatch.cs'
+$tdmHostility = 'ArenaMode.Server\Patches\ArenaAdjustBotHostilityPatch.cs'
 $tdmLocation = 'ArenaMode.Server\Services\ArenaLocationMutator.cs'
 $tdmOriginals = @{}
 foreach ($tdmFile in @($tdmState, $tdmHostility, $tdmLocation)) {
@@ -39,13 +39,13 @@ if ($tdmResult.Exit -eq 0 -or -not $tdmResult.Output.Contains('protected team re
 Write-Output 'Rejected mutant: protected-team selection bypasses state guard'
 
 $tdmMutants = @(
-    @{ Name = 'FfaTeams'; Source = $tdmHostility; Compile = 'Patches\AdjustBotHostilityPatch.cs';
+    @{ Name = 'FfaTeams'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
        From = 'if (string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))'; To = 'if (false)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
-    @{ Name = 'SharedChance'; Source = $tdmHostility; Compile = 'Patches\AdjustBotHostilityPatch.cs';
+    @{ Name = 'SharedChance'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
        From = '.Select(chanced => chanced with { })'; To = '.Select(chanced => chanced)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
-    @{ Name = 'ChancedPmc'; Source = $tdmHostility; Compile = 'Patches\AdjustBotHostilityPatch.cs';
+    @{ Name = 'ChancedPmc'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
        From = '.Where(chanced => !IsPmcRole(chanced.Role))'; To = '.Where(chanced => true)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
     @{ Name = 'AmbientTeams'; Source = $tdmLocation; Compile = 'Services\ArenaLocationMutator.cs';

@@ -37,19 +37,19 @@ internal static class ArenaMovementPatches
 
     public static void Enable()
     {
-        new MotionScalePatch().Enable();
-        new AdsSlowdownPatch().Enable();
-        new AdsTransitionPatch().Enable();
-        new InertiaValuesPatch().Enable();
-        new StrafeBlendPatch().Enable();
-        new InstantLeanPatch().Enable();
-        new SlideAnimPatch().Enable();
-        new BushSlowdownPatch().Enable();
-        new JumpHeightPatch().Enable();
-        new FallDamagePatch().Enable();
-        new VaultSpeedPatch().Enable();
-        new VaultMotionPatch().Enable();
-        new VaultingReachPatch().Enable();
+        new ArenaMovementMotionScalePatch().Enable();
+        new ArenaMovementAdsSlowdownPatch().Enable();
+        new ArenaMovementAdsTransitionPatch().Enable();
+        new ArenaMovementInertiaValuesPatch().Enable();
+        new ArenaMovementStrafeBlendPatch().Enable();
+        new ArenaMovementInstantLeanPatch().Enable();
+        new ArenaMovementSlideAnimPatch().Enable();
+        new ArenaMovementBushSlowdownPatch().Enable();
+        new ArenaMovementJumpHeightPatch().Enable();
+        new ArenaMovementFallDamagePatch().Enable();
+        new ArenaMovementVaultSpeedPatch().Enable();
+        new ArenaMovementVaultMotionPatch().Enable();
+        new ArenaMovementVaultingReachPatch().Enable();
     }
 
     private static Player _slidePlayer;
@@ -57,7 +57,7 @@ internal static class ArenaMovementPatches
 
     internal static void ResetPerRaidState()
     {
-        InertiaValuesPatch.LoggedThisRaid = false;
+        ArenaMovementInertiaValuesPatch.LoggedThisRaid = false;
         _slidePlayer = null;
         _slide = null;
         ArenaHandlingPatches.ResetPerRaidState();
@@ -106,7 +106,7 @@ internal static class ArenaMovementPatches
     // target, m/s cap lifted) but produced ZERO visible speed change in playtest —
     // the sprint blend's root motion saturates near its vanilla range, which no
     // C#-side value can push past. Sprint speed therefore scales displacement in
-    // MotionScalePatch like walk does.
+    // ArenaMovementMotionScalePatch like walk does.
 
     /// <summary>
     /// The ONE arena bracket on DirectApplyMotion: slide velocity injection
@@ -127,7 +127,7 @@ internal static class ArenaMovementPatches
         return !float.IsNaN(scale) && !float.IsInfinity(scale) && scale > 1f ? scale : 1f;
     }
 
-    private sealed class MotionScalePatch : ModulePatch
+    private sealed class ArenaMovementMotionScalePatch : ModulePatch
     {
         private static MovementContext _limitRestoreContext;
         private static float _limitRestoreValue;
@@ -223,7 +223,7 @@ internal static class ArenaMovementPatches
     /// Animator blend-tree speed while sliding / fading out of a slide
     /// (absorbed CombatSlide AnimSpeedPatch, arena-gated).
     /// </summary>
-    private sealed class SlideAnimPatch : ModulePatch
+    private sealed class ArenaMovementSlideAnimPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.PlayerAnimatorSetCharacterMovementSpeed));
@@ -266,7 +266,7 @@ internal static class ArenaMovementPatches
     /// could silently never fire; AddStateSpeedLimit is safely above it and the
     /// Aiming cause uniquely identifies the path.
     /// </summary>
-    private sealed class AdsSlowdownPatch : ModulePatch
+    private sealed class ArenaMovementAdsSlowdownPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.AddStateSpeedLimit),
@@ -282,7 +282,7 @@ internal static class ArenaMovementPatches
         }
     }
 
-    private sealed class AdsTransitionPatch : ModulePatch
+    private sealed class ArenaMovementAdsTransitionPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ProceduralWeaponAnimation), nameof(ProceduralWeaponAnimation.UpdateWeaponVariables));
@@ -338,11 +338,11 @@ internal static class ArenaMovementPatches
     /// value (instant accelerate/stop), and Physical.Inertia = 0 kills the
     /// direction-reversal dead-stop (MoveTimeRange.Evaluate) plus the diagonal stay
     /// time. The strafe dial does NOT live here: the direction blend is dominated
-    /// by the MinDirectionBlendTime floor, which only StrafeBlendPatch can scale.
+    /// by the MinDirectionBlendTime floor, which only ArenaMovementStrafeBlendPatch can scale.
     /// Every value is freshly recomputed from weight before this postfix runs, so
     /// the writes never compound.
     /// </summary>
-    private sealed class InertiaValuesPatch : ModulePatch
+    private sealed class ArenaMovementInertiaValuesPatch : ModulePatch
     {
         internal const float WalkInertiaFloor = 0.005f;
 
@@ -395,7 +395,7 @@ internal static class ArenaMovementPatches
     /// StrafeSmoothing: 1 = the vanilla path bit-for-bit (prefix falls through),
     /// 0 = instant flip. Prone falls through to vanilla entirely.
     /// </summary>
-    private sealed class StrafeBlendPatch : ModulePatch
+    private sealed class ArenaMovementStrafeBlendPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovePlayerState), nameof(MovePlayerState.ProcessDirection));
@@ -451,7 +451,7 @@ internal static class ArenaMovementPatches
     }
 
     /// <summary>BSG left the pre-inertia fast lean in the binary — redirect to it.</summary>
-    private sealed class InstantLeanPatch : ModulePatch
+    private sealed class ArenaMovementInstantLeanPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.InertiaSmoothTilt));
@@ -475,7 +475,7 @@ internal static class ArenaMovementPatches
     // (walk-bob while standing still, defeated landing deceleration).
 
     /// <summary>Foliage slowdown lives in the obstacle list, not in any speed getter.</summary>
-    private sealed class BushSlowdownPatch : ModulePatch
+    private sealed class ArenaMovementBushSlowdownPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.OnEnterObstacle));
@@ -493,7 +493,7 @@ internal static class ArenaMovementPatches
     /// <summary>
     /// sqrt so the config value is a true HEIGHT multiplier (apex scales with v²).
     /// </summary>
-    private sealed class JumpHeightPatch : ModulePatch
+    private sealed class ArenaMovementJumpHeightPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(JumpPlayerState), nameof(JumpPlayerState.Enter));
@@ -519,7 +519,7 @@ internal static class ArenaMovementPatches
     /// (overloaded or injured), so a hurt vault stays slower than a healthy one
     /// instead of every vault collapsing onto one speed.
     /// </summary>
-    private sealed class VaultSpeedPatch : ModulePatch
+    private sealed class ArenaMovementVaultSpeedPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MovementContext), nameof(MovementContext.SetVaultingSpeed));
@@ -547,11 +547,11 @@ internal static class ArenaMovementPatches
     ///
     /// VaultingMovementState.ApplyMotion is the choke point, and neither VaultState
     /// nor ClimbState overrides it, so one patch covers both. The bracket is the
-    /// same shape as MotionScalePatch's, self-heal included: a plain postfix is
+    /// same shape as ArenaMovementMotionScalePatch's, self-heal included: a plain postfix is
     /// skipped when the original throws, and a SpeedLimit stranded at -1 would
     /// disable the metres-per-second clamp for the rest of the raid.
     /// </summary>
-    private sealed class VaultMotionPatch : ModulePatch
+    private sealed class ArenaMovementVaultMotionPatch : ModulePatch
     {
         private static MovementContext _limitRestoreContext;
         private static float _limitRestoreValue;
@@ -614,7 +614,7 @@ internal static class ArenaMovementPatches
     /// wide. Every respawn builds a new player and runs this again, which is also
     /// how the setting reaches a player who died before it was changed.
     /// </summary>
-    private sealed class VaultingReachPatch : ModulePatch
+    private sealed class ArenaMovementVaultingReachPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(Player), nameof(Player.InitVaultingComponent));
@@ -632,7 +632,7 @@ internal static class ArenaMovementPatches
         }
     }
 
-    private sealed class FallDamagePatch : ModulePatch
+    private sealed class ArenaMovementFallDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.HandleFall));

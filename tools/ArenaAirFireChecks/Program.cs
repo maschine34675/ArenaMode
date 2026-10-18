@@ -92,7 +92,7 @@ static class Program
         Check(!ArenaAirFire.SuitableForAirFire(nonfire), "other hand types never gain permission");
     }
     static List<CodeInstruction> Rewrite(List<CodeInstruction> input)
-        => ((IEnumerable<CodeInstruction>)typeof(ArenaAirFire).GetNestedType("TriggerStatePatch",BindingFlags.NonPublic)
+        => ((IEnumerable<CodeInstruction>)typeof(ArenaAirFire).GetNestedType("ArenaAirFireTriggerStatePatch",BindingFlags.NonPublic)
             .GetMethod("Transpiler",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{input})).ToList();
     static void Transpiler()
     {

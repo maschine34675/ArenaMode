@@ -41,7 +41,7 @@ namespace ArenaMode.Session;
 /// The deploying screen deliberately does NOT also accept <see cref="ArenaSession.
 /// ArmedForNextRaid"/>: <c>TarkovApplication.LocalGameMatching</c> shows it
 /// (decompile line 2525) before <c>LocalGameCreate</c> reaches
-/// <c>LocalRaidStarted</c> (line 2991), which is where <c>LocalRaidStartedPatch</c>
+/// <c>LocalRaidStarted</c> (line 2991), which is where <c>ArenaLocalRaidStartedPatch</c>
 /// arms, so a set flag at this moment can only be a stale arm left by an earlier
 /// aborted load, and trusting it would label an ordinary raid "ARENA ZONE". The
 /// menu selection is the reliable signal: the side, location, accept and
@@ -66,9 +66,9 @@ internal static class ArenaSessionModeCaptionPatch
 
     public static void Enable()
     {
-        new LocationPatch().Enable();
-        new AcceptPatch().Enable();
-        new DeployingPatch().Enable();
+        new ArenaSessionModeCaptionLocationPatch().Enable();
+        new ArenaSessionModeCaptionAcceptPatch().Enable();
+        new ArenaSessionModeCaptionDeployingPatch().Enable();
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ internal static class ArenaSessionModeCaptionPatch
         }
     }
 
-    private sealed class LocationPatch : ModulePatch
+    private sealed class ArenaSessionModeCaptionLocationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerSelectionLocationScreen),
@@ -112,7 +112,7 @@ internal static class ArenaSessionModeCaptionPatch
         }
     }
 
-    private sealed class AcceptPatch : ModulePatch
+    private sealed class ArenaSessionModeCaptionAcceptPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchMakerAcceptScreen), nameof(MatchMakerAcceptScreen.Show),
@@ -134,7 +134,7 @@ internal static class ArenaSessionModeCaptionPatch
         }
     }
 
-    private sealed class DeployingPatch : ModulePatch
+    private sealed class ArenaSessionModeCaptionDeployingPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MatchmakerTimeHasCome), nameof(MatchmakerTimeHasCome.Show),

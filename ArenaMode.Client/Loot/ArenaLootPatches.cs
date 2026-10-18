@@ -16,9 +16,9 @@ internal static class ArenaLootPatches
 {
     public static void Enable()
     {
-        new InstantSearchPatch().Enable();
-        new MuteInstantSearchJinglePatch().Enable();
-        new KillListNamesPatch().Enable();
+        new ArenaLootInstantSearchPatch().Enable();
+        new ArenaLootMuteInstantSearchJinglePatch().Enable();
+        new ArenaLootKillListNamesPatch().Enable();
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ internal static class ArenaLootPatches
     /// only caller in the same class, so a prefix on it can silently never fire.
     /// The sound-group filter keeps every other item sound untouched.
     /// </summary>
-    private sealed class MuteInstantSearchJinglePatch : ModulePatch
+    private sealed class ArenaLootMuteInstantSearchJinglePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(GUISounds), nameof(GUISounds.PlayItemSound),
@@ -53,7 +53,7 @@ internal static class ArenaLootPatches
     /// subclass; the network operation does not derive from this type, so Fika
     /// paths are untouched by construction.
     /// </summary>
-    private sealed class InstantSearchPatch : ModulePatch
+    private sealed class ArenaLootInstantSearchPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => typeof(ActiveSearchContentOperation).GetConstructors().First();
@@ -74,7 +74,7 @@ internal static class ArenaLootPatches
     /// level and the kill-detail line together. Gated on the LastRaidWasArena latch:
     /// this screen shows after IsActive has already been cleared.
     /// </summary>
-    private sealed class KillListNamesPatch : ModulePatch
+    private sealed class ArenaLootKillListNamesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(KillListVictim), nameof(KillListVictim.Show));

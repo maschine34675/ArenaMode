@@ -107,7 +107,7 @@ internal static partial class Program
         var finalized = new Fixture(); var p = finalized.Fire();
         var pending = ArenaShotAwardHooks.BeginContinuation(p);
         var nativeError = new Exception("native continuation failed");
-        Check(ReferenceEquals(nativeError, Finalize("ContinuationPatch", nativeError, pending)), "continuation finalizer preserves native exception");
+        Check(ReferenceEquals(nativeError, Finalize("ArenaShotAwardHooksContinuationPatch", nativeError, pending)), "continuation finalizer preserves native exception");
         var after = Continue(finalized, p, nativeContinuation: false);
         Check(!KillWith(finalized, p, new object()) && !KillWith(finalized, after, new object()),
             "continuation exception finalizer does not lend scope to later child");

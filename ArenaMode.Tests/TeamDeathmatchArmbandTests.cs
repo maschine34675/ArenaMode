@@ -43,12 +43,12 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
     {
         Start();
         var details = Details(side);
-        TeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
+        ArenaTeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
         // APBS can produce any band after our prefix; the final result wins.
         var source = Bot(side, band: "5b3f16c486f7747c327f55f7");
         var before = JsonSerializer.Serialize(source);
         var output = source;
-        TeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref output);
+        ArenaTeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref output);
 
         Assert.Equal(expected, Band(output).Template.ToString());
         Assert.Equal(before, JsonSerializer.Serialize(source));
@@ -146,10 +146,10 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
         var details = Details();
         var bot = Bot();
         var original = bot;
-        TeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
+        ArenaTeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
         Assert.NotNull(state);
         Start();
-        TeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref bot);
+        ArenaTeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref bot);
         Assert.Same(original, bot);
         Assert.NotSame(original, Generate(original, details));
     }
@@ -160,10 +160,10 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
         var details = Details();
         var bot = Bot();
         var original = bot;
-        TeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
+        ArenaTeamDeathmatchArmbandPatch.Prefix(Session, details, out var state);
         Assert.Null(state);
         Start();
-        TeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref bot);
+        ArenaTeamDeathmatchArmbandPatch.Postfix(Session, details, state, ref bot);
         Assert.Same(original, bot);
     }
 
@@ -221,8 +221,8 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
     [Fact]
     public void PatchTargetsExactSynchronousOuterGeneratorAndUsesPairedState()
     {
-        var patch = new TeamDeathmatchArmbandPatch();
-        var target = (MethodInfo)typeof(TeamDeathmatchArmbandPatch)
+        var patch = new ArenaTeamDeathmatchArmbandPatch();
+        var target = (MethodInfo)typeof(ArenaTeamDeathmatchArmbandPatch)
             .GetMethod("GetTargetMethod", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(patch, null)!;
         Assert.Equal(typeof(BotGenerator), target.DeclaringType);
@@ -231,8 +231,8 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
         Assert.Null(target.GetCustomAttribute<AsyncStateMachineAttribute>());
         Assert.Equal([typeof(MongoId), typeof(BotGenerationDetails)],
             target.GetParameters().Select(parameter => parameter.ParameterType).ToArray());
-        Assert.NotNull(typeof(TeamDeathmatchArmbandPatch).GetMethod("Prefix")!.GetCustomAttribute<PatchPrefixAttribute>());
-        Assert.NotNull(typeof(TeamDeathmatchArmbandPatch).GetMethod("Postfix")!.GetCustomAttribute<PatchPostfixAttribute>());
+        Assert.NotNull(typeof(ArenaTeamDeathmatchArmbandPatch).GetMethod("Prefix")!.GetCustomAttribute<PatchPrefixAttribute>());
+        Assert.NotNull(typeof(ArenaTeamDeathmatchArmbandPatch).GetMethod("Postfix")!.GetCustomAttribute<PatchPostfixAttribute>());
         // Compile the actual Harmony wrapper in this isolated test process.
         // AbstractPatch.Enable deliberately ignores other-assembly callers;
         // production registration is performed by the owning server assembly.
@@ -240,8 +240,8 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
         try
         {
             harmony.Patch(target,
-                prefix: new HarmonyMethod(typeof(TeamDeathmatchArmbandPatch).GetMethod("Prefix")),
-                postfix: new HarmonyMethod(typeof(TeamDeathmatchArmbandPatch).GetMethod("Postfix")));
+                prefix: new HarmonyMethod(typeof(ArenaTeamDeathmatchArmbandPatch).GetMethod("Prefix")),
+                postfix: new HarmonyMethod(typeof(ArenaTeamDeathmatchArmbandPatch).GetMethod("Postfix")));
             Assert.Contains(harmony.Id, Harmony.GetPatchInfo(target)!.Owners);
         }
         finally { harmony.UnpatchSelf(); }
@@ -249,8 +249,8 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
 
     private static BotBase Generate(BotBase bot, BotGenerationDetails details, MongoId? session = null)
     {
-        TeamDeathmatchArmbandPatch.Prefix(session ?? Session, details, out var state);
-        TeamDeathmatchArmbandPatch.Postfix(session ?? Session, details, state, ref bot);
+        ArenaTeamDeathmatchArmbandPatch.Prefix(session ?? Session, details, out var state);
+        ArenaTeamDeathmatchArmbandPatch.Postfix(session ?? Session, details, state, ref bot);
         return bot;
     }
 

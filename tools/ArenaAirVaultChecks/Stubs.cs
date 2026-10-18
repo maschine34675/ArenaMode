@@ -235,18 +235,18 @@ namespace EFT.Vaulting
 internal static partial class Harness
 {
     public static object MotionBefore(VaultingMovementState movement,UnityEngine.Vector3 motion)
-    { object[] args={movement,motion,null}; Method("ObservedMotionPatch","Prefix").Invoke(null,args); return args[2]; }
+    { object[] args={movement,motion,null}; Method("ArenaAirVaultObservedMotionPatch","Prefix").Invoke(null,args); return args[2]; }
     public static Exception MotionAfter(Exception error,object sample)
-        =>(Exception)Method("ObservedMotionPatch","Finalizer").Invoke(null,new[]{error,sample});
+        =>(Exception)Method("ArenaAirVaultObservedMotionPatch","Finalizer").Invoke(null,new[]{error,sample});
     public static bool HasObservation=>typeof(ArenaMode.Movement.ArenaAirVault).GetField("_motionObservation",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null)!=null;
     private static MethodInfo Method(string patch,string name)=>typeof(ArenaMode.Movement.ArenaAirVault)
         .GetNestedType(patch,BindingFlags.NonPublic).GetMethod(name,BindingFlags.NonPublic|BindingFlags.Static);
-    public static void Held(Player p)=>Method("HeldVaultPatch","Postfix").Invoke(null,new object[]{p});
+    public static void Held(Player p)=>Method("ArenaAirVaultHeldVaultPatch","Postfix").Invoke(null,new object[]{p});
     public static EVaultingStrategy Strategy(VaultingComponent c,EVaultingStrategy result)
-    { object[] args={c,result}; Method("StrategyPatch","Postfix").Invoke(null,args); return (EVaultingStrategy)args[1]; }
+    { object[] args={c,result}; Method("ArenaAirVaultStrategyPatch","Postfix").Invoke(null,args); return (EVaultingStrategy)args[1]; }
     public static bool CanCommit(VaultingComponent c,EVaultingStrategy s,ref bool result)
-    { object[] args={c,s,result}; bool allow=(bool)Method("CommitPatch","Prefix").Invoke(null,args); result=(bool)args[2]; return allow; }
-    public static void Committed(VaultingComponent c,EVaultingStrategy s,bool result)=>Method("CommitPatch","Postfix").Invoke(null,new object[]{c,s,result});
+    { object[] args={c,s,result}; bool allow=(bool)Method("ArenaAirVaultCommitPatch","Prefix").Invoke(null,args); result=(bool)args[2]; return allow; }
+    public static void Committed(VaultingComponent c,EVaultingStrategy s,bool result)=>Method("ArenaAirVaultCommitPatch","Postfix").Invoke(null,new object[]{c,s,result});
 }
 
 // Explicitly enabled for these diagnostic-observation scenarios; the real

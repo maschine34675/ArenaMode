@@ -29,12 +29,12 @@ internal static class Program
         return (provider,new BotCreationData { _botCreator=creator },mode);
     }
     private static object Begin(BotProfileClient provider,BotCreationData data,bool withDelete=true,CancellationToken token=default)
-    { object[] args={provider,data,token,withDelete,null}; Method(Nested("DemandPatch"),"Prefix").Invoke(null,args); return args[4]; }
-    private static void End(object state)=>Method(Nested("DemandPatch"),"Postfix").Invoke(null,new[]{state});
+    { object[] args={provider,data,token,withDelete,null}; Method(Nested("ArenaBotDifficultyClockDemandPatch"),"Prefix").Invoke(null,args); return args[4]; }
+    private static void End(object state)=>Method(Nested("ArenaBotDifficultyClockDemandPatch"),"Postfix").Invoke(null,new[]{state});
     private static List<CountTypeBotWave> Decorate(BotProfileClient provider,List<CountTypeBotWave> waves)
     { object[] args={provider._backEndSession,waves}; Method(Patch,"Prefix").Invoke(null,args); return (List<CountTypeBotWave>)args[1]; }
     private static List<CountTypeBotWave> Waves()=>new(){new(3,WildSpawnType.pmcUSEC,BotDifficulty.hard)};
-    private static bool Backup(BotProfileClient p,BotCreationData data)=>(bool)Method(Nested("BackupPatch"),"Prefix").Invoke(null,new object[]{p._backupLoader,data})!;
+    private static bool Backup(BotProfileClient p,BotCreationData data)=>(bool)Method(Nested("ArenaBotDifficultyClockBackupPatch"),"Prefix").Invoke(null,new object[]{p._backupLoader,data})!;
     private sealed class ForeignWave():CountTypeBotWave(3,WildSpawnType.pmcUSEC,BotDifficulty.hard) { public int External=7; }
     private static void Main()
     {
@@ -76,7 +76,7 @@ internal static class Program
             Check(ReferenceEquals(Decorate(s.Provider,waves),waves),"stale nested provider cannot borrow current scope"); End(nested);
             Check(!ReferenceEquals(Decorate(s.Provider,waves),waves),"outer scope restored after nested call");
             var exception=new InvalidOperationException("native");
-            Check(ReferenceEquals(Method(Nested("DemandPatch"),"Finalizer").Invoke(null,new[]{exception,state}),exception),"native exception preserved");
+            Check(ReferenceEquals(Method(Nested("ArenaBotDifficultyClockDemandPatch"),"Finalizer").Invoke(null,new[]{exception,state}),exception),"native exception preserved");
             End(state); Check(ReferenceEquals(Decorate(s.Provider,waves),waves),"scope cleared before await continuation");
             // Installed old profiles are not disposed or altered by removal.
             Check(old.Info.Settings.Role==WildSpawnType.pmcUSEC,"discarding unused cache does not mutate profile");

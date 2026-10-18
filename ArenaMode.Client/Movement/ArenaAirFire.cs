@@ -27,7 +27,7 @@ internal static class ArenaAirFire
         try
         {
             Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
-            new TriggerStatePatch().Enable();
+            new ArenaAirFireTriggerStatePatch().Enable();
             _enabled = true;
         }
         catch (Exception exception) { Warn(exception.GetBaseException().Message); }
@@ -66,7 +66,7 @@ internal static class ArenaAirFire
         catch (Exception exception) { Warn(exception.GetBaseException().Message); return original; }
     }
 
-    private sealed class TriggerStatePatch : ModulePatch
+    private sealed class ArenaAirFireTriggerStatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player.FirearmController.Idling), "SetTriggerPressed", new[] { typeof(bool) });

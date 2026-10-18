@@ -56,7 +56,7 @@ internal static class ArenaTeamLaserColors
     internal static void Enable()
     {
         ArenaLaserBrightness.Enable();
-        new LateUpdatePatch().Enable();
+        new ArenaTeamLaserColorsLateUpdatePatch().Enable();
     }
 
     /// <summary>Cleanup catches inactive/pooled beams which no longer call LateUpdate.</summary>
@@ -305,7 +305,7 @@ internal static class ArenaTeamLaserColors
         States.Remove(laser);
     }
 
-    private sealed class LateUpdatePatch : ModulePatch
+    private sealed class ArenaTeamLaserColorsLateUpdatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(LaserBeam), nameof(LaserBeam.LateUpdate));
         [PatchPrefix]

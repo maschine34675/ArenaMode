@@ -24,14 +24,14 @@ internal static class OpenLootTracker
 
     public static void Enable()
     {
-        new ShowPatch().Enable();
-        new ClosePatch().Enable();
+        new ArenaOpenLootTrackerShowPatch().Enable();
+        new ArenaOpenLootTrackerClosePatch().Enable();
     }
 
     public static bool IsOpen(Item rootItem)
         => CurrentOpenLoot != null && ReferenceEquals(CurrentOpenLoot, rootItem);
 
-    private sealed class ShowPatch : ModulePatch
+    private sealed class ArenaOpenLootTrackerShowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
         {
@@ -62,7 +62,7 @@ internal static class OpenLootTracker
         }
     }
 
-    private sealed class ClosePatch : ModulePatch
+    private sealed class ArenaOpenLootTrackerClosePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InventoryScreen), nameof(InventoryScreen.Close));

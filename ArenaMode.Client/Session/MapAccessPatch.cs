@@ -25,9 +25,9 @@ namespace ArenaMode.Session;
 /// </summary>
 internal static class MapAccessPatch
 {
-    public static void Enable() => new KeycardBypassPatch().Enable();
+    public static void Enable() => new ArenaMapAccessKeycardBypassPatch().Enable();
 
-    private sealed class KeycardBypassPatch : ModulePatch
+    private sealed class ArenaMapAccessKeycardBypassPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(MainMenuShowOperation), nameof(MainMenuShowOperation.method_54));

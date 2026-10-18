@@ -46,9 +46,9 @@ internal static class ArenaFriendlyExplosionEffects
 
     internal static void Enable()
     {
-        new ExplosionContextPatch().Enable();
-        new BlastTargetsPatch().Enable();
-        new FlashTargetsPatch().Enable();
+        new ArenaFriendlyExplosionEffectsExplosionContextPatch().Enable();
+        new ArenaFriendlyExplosionEffectsBlastTargetsPatch().Enable();
+        new ArenaFriendlyExplosionEffectsFlashTargetsPatch().Enable();
     }
 
     internal static Scope Begin(string throwerId, bool runOriginal)
@@ -117,7 +117,7 @@ internal static class ArenaFriendlyExplosionEffects
         caches = copy;
     }
 
-    private sealed class ExplosionContextPatch : ModulePatch
+    private sealed class ArenaFriendlyExplosionEffectsExplosionContextPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ExplosionSharedMethods), nameof(ExplosionSharedMethods.Explosion));
@@ -132,7 +132,7 @@ internal static class ArenaFriendlyExplosionEffects
         }
     }
 
-    private sealed class BlastTargetsPatch : ModulePatch
+    private sealed class ArenaFriendlyExplosionEffectsBlastTargetsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(ExplosionSharedMethods), nameof(ExplosionSharedMethods.AffectPlayersShared));
@@ -144,7 +144,7 @@ internal static class ArenaFriendlyExplosionEffects
         }
     }
 
-    private sealed class FlashTargetsPatch : ModulePatch
+    private sealed class ArenaFriendlyExplosionEffectsFlashTargetsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(FirearmControllerSharedMethods), nameof(FirearmControllerSharedMethods.ApplyLightAndSoundHealthEffects));

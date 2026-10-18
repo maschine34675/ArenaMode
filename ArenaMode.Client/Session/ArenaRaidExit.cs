@@ -21,7 +21,7 @@ internal static class ArenaRaidExit
     private static string _profileId;
     private static string _waitingFor;
 
-    public static void Enable() => new LeavePatch().Enable();
+    public static void Enable() => new ArenaRaidExitLeavePatch().Enable();
 
     // Native Stop marks Stopping before it disposes bots. The Arena session
     // remains active through that fade; an intent/StandDown flag alone does not
@@ -133,7 +133,7 @@ internal static class ArenaRaidExit
         _waitingFor = null;
     }
 
-    private sealed class LeavePatch : ModulePatch
+    private sealed class ArenaRaidExitLeavePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(BaseLocalGame<EftGamePlayerOwner>), "vmethod_4", Type.EmptyTypes);

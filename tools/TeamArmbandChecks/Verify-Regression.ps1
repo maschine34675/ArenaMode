@@ -7,7 +7,7 @@ $armNoDeploy = Join-Path $armScratch 'no-server-deploy'
 if (Test-Path -LiteralPath $armNoDeploy) { throw 'No-deploy path must not exist.' }
 $armProject = Join-Path $armRepo 'ArenaMode.Tests'
 $armSourcePaths = @('ArenaMode.Server/Services/TeamDeathmatchArmbandPolicy.cs',
-    'ArenaMode.Server/Patches/TeamDeathmatchArmbandPatch.cs', 'ArenaMode.Server/Services/ArenaSessionService.cs')
+    'ArenaMode.Server/Patches/ArenaTeamDeathmatchArmbandPatch.cs', 'ArenaMode.Server/Services/ArenaSessionService.cs')
 $armOriginals = @{}
 foreach ($path in $armSourcePaths) { $armOriginals[$path] = [IO.File]::ReadAllText((Join-Path $armRepo $path)) }
 
@@ -26,7 +26,7 @@ $armMutants = @(
     @{ Name = 'OrdinaryModeLeak'; Source = $armSourcePaths[2]; Compile = 'Services\ArenaSessionService.cs';
        From = '|| !string.Equals(entry.Mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)'; To = '|| false';
        Test = 'OtherModesAndProtectedPftLeaveEquipmentUntouched' },
-    @{ Name = 'NewRaidAdoption'; Source = $armSourcePaths[1]; Compile = 'Patches\TeamDeathmatchArmbandPatch.cs';
+    @{ Name = 'NewRaidAdoption'; Source = $armSourcePaths[1]; Compile = 'Patches\ArenaTeamDeathmatchArmbandPatch.cs';
        From = '|| !string.Equals(__state, identity, StringComparison.Ordinal)'; To = '|| false';
        Test = 'OldGenerationCannotAdoptNewRaidIdentity' }
 )

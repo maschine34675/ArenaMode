@@ -28,7 +28,7 @@ internal static class Program
     }
     private static object Initial(ESpawnCategory category,EPlayerSide side,string profile,SpawnSystem system,out ISpawnPoint selected)
     {
-        var patch=typeof(Runtime).GetNestedType("InitialPatch",BindingFlags.NonPublic);
+        var patch=typeof(Runtime).GetNestedType("ArenaTeamBoxRuntimeInitialPatch",BindingFlags.NonPublic);
         object[] args={system,category,side,profile,null};
         try{var result=patch.GetMethod("Prefix",BindingFlags.NonPublic|BindingFlags.Static).Invoke(null,args);selected=(ISpawnPoint)args[4];return result;}
         catch(TargetInvocationException ex){ExceptionDispatchInfo.Capture(ex.InnerException).Throw();throw;}

@@ -21,7 +21,7 @@ namespace ArenaMode.Movement;
 /// </summary>
 internal static class ArenaWeightPatches
 {
-    public static void Enable() => new WeightLimitsPatch().Enable();
+    public static void Enable() => new ArenaWeightLimitsPatch().Enable();
 
     private static bool IsLocalArenaPhysical(PhysicalBase physical)
     {
@@ -47,7 +47,7 @@ internal static class ArenaWeightPatches
         }
     }
 
-    private sealed class WeightLimitsPatch : ModulePatch
+    private sealed class ArenaWeightLimitsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(PhysicalBase), nameof(PhysicalBase.UpdateWeightLimits));

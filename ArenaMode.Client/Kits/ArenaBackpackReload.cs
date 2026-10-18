@@ -26,9 +26,9 @@ internal static class ArenaBackpackReload
     {
         try
         {
-            new ReloadCandidatesPatch().Enable();
-            new SelectorCandidatesPatch().Enable();
-            new InventoryCandidatesPatch().Enable();
+            new ArenaBackpackReloadReloadCandidatesPatch().Enable();
+            new ArenaBackpackReloadSelectorCandidatesPatch().Enable();
+            new ArenaBackpackReloadInventoryCandidatesPatch().Enable();
         }
         catch (Exception ex) { Warn(ex); }
     }
@@ -116,7 +116,7 @@ internal static class ArenaBackpackReload
         return code;
     }
 
-    private sealed class ReloadCandidatesPatch : ModulePatch
+    private sealed class ArenaBackpackReloadReloadCandidatesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => typeof(FirearmHandsInputTranslator).GetMethod(nameof(FirearmHandsInputTranslator.ReloadExternalMagazine));
@@ -124,7 +124,7 @@ internal static class ArenaBackpackReload
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) => ReplaceQuery(instructions, true);
     }
 
-    private sealed class SelectorCandidatesPatch : ModulePatch
+    private sealed class ArenaBackpackReloadSelectorCandidatesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => typeof(AmmoSelector.CG_FindAmmoForWeapon).GetMethod(nameof(AmmoSelector.CG_FindAmmoForWeapon.method_0));
@@ -132,7 +132,7 @@ internal static class ArenaBackpackReload
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) => ReplaceQuery(instructions, false);
     }
 
-    private sealed class InventoryCandidatesPatch : ModulePatch
+    private sealed class ArenaBackpackReloadInventoryCandidatesPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => typeof(ItemUiContext).GetMethod(nameof(ItemUiContext.FindSuitableMagazine));

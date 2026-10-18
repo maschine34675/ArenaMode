@@ -139,7 +139,7 @@ public sealed partial class ArenaAreaServerTests
 
         string nativeEnd = Start(Customs);
         var location = CustomsLocation();
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
         Assert.Equal(CustomsArea, Sessions.GetAreaId(Session));
@@ -173,7 +173,7 @@ public sealed partial class ArenaAreaServerTests
         string nativeEnd = Start(Customs);
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
         var location = CustomsLocation();
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.True(Sessions.ValidateAreaResponse(Session, location, out var reason), reason);
         var response = location;
         if (tamper == "outside")
@@ -201,13 +201,13 @@ public sealed partial class ArenaAreaServerTests
             Assert.Equal(JsonSerializer.Serialize(original.SpawnPointParams), JsonSerializer.Serialize(clone.SpawnPointParams));
             Assert.Equal(before, JsonSerializer.Serialize(original));
         }
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
         Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Other, Customs, original);
+        ArenaGenerateLocationAndLootPatch.Postfix(Other, Customs, original);
         Assert.Equal(before, JsonSerializer.Serialize(original));
     }
 
@@ -231,7 +231,7 @@ public sealed partial class ArenaAreaServerTests
         Assert.Equal(before, JsonSerializer.Serialize(location));
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, location);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, location);
         Assert.Equal(before, JsonSerializer.Serialize(location));
         Assert.False(Sessions.ValidateAreaResponse(Session, location, out _));
         Assert.False(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
@@ -250,7 +250,7 @@ public sealed partial class ArenaAreaServerTests
         var clone = JsonSerializer.Deserialize<LocationBase>(before, CustomsJsonOptions)!;
         Sessions.Arm(Session, Customs, Mode, armToken: Token, areaId: CustomsArea, areaTeamSize: AreaSize);
         string nativeEnd = Start(Customs);
-        GenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
+        ArenaGenerateLocationAndLootPatch.Postfix(Session, Customs, clone);
         Assert.True(Sessions.ValidateAreaResponse(Session, clone, out var reason), reason);
         Assert.True(Sessions.ConfirmClientRaidStarted(Session, Token, nativeEnd));
 

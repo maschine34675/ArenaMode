@@ -35,12 +35,12 @@ internal static class ZombieCrowdRuntime
     {
         if (!_sightEnabled)
         {
-            try { new SightPatch().Enable(); _sightEnabled = true; }
+            try { new ArenaZombieCrowdRuntimeSightPatch().Enable(); _sightEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
         if (!_avoidEnabled)
         {
-            try { new AvoidancePatch().Enable(); _avoidEnabled = true; }
+            try { new ArenaZombieCrowdRuntimeAvoidancePatch().Enable(); _avoidEnabled = true; }
             catch (Exception ex) { Warn(ex); }
         }
     }
@@ -302,7 +302,7 @@ internal static class ZombieCrowdRuntime
             + ex.GetBaseException().Message);
     }
 
-    private sealed class SightPatch : ModulePatch
+    private sealed class ArenaZombieCrowdRuntimeSightPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(EnemyPartVision), nameof(EnemyPartVision.CheckLineOfSight));
@@ -312,7 +312,7 @@ internal static class ZombieCrowdRuntime
             => ShouldRunSight(__instance, owner, part);
     }
 
-    private sealed class AvoidancePatch : ModulePatch
+    private sealed class ArenaZombieCrowdRuntimeAvoidancePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(BotLocalAvoidance), nameof(BotLocalAvoidance.ManualUpdate));

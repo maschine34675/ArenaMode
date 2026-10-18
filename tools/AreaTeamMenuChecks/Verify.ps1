@@ -36,7 +36,7 @@ $arenaFaults = @(
     @('wrong-ack','ArenaMode.Client\Session\ArenaServerClient.cs',
       'parsed["areaTeamSize"].Value<int>() == selectedSize','true',
       $arenaNative,'ProductionServerClientSource','missing, wrong or coercible size acknowledgement'),
-    @('lost-frozen-size','ArenaMode.Client\Session\LocalRaidStartedPatch.cs',
+    @('lost-frozen-size','ArenaMode.Client\Session\ArenaLocalRaidStartedPatch.cs',
       'Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);',
       'Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, 0);',
       $arenaNative,'ProductionLocalStartSource','real negotiation arms exact menu size'),

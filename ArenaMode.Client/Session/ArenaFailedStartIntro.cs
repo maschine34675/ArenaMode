@@ -22,8 +22,8 @@ internal static class ArenaFailedStartIntro
 
     public static void Enable()
     {
-        new IntroScopePatch().Enable();
-        new DeferredFadePatch().Enable();
+        new ArenaFailedStartIntroIntroScopePatch().Enable();
+        new ArenaFailedStartIntroDeferredFadePatch().Enable();
     }
 
     internal static void EnterIntro(PreloaderUI preloader, out PreloaderUI previous)
@@ -60,7 +60,7 @@ internal static class ArenaFailedStartIntro
         });
     }
 
-    private sealed class IntroScopePatch : ModulePatch
+    private sealed class ArenaFailedStartIntroIntroScopePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(PreloaderUI), nameof(PreloaderUI.ShowRaidStartInfo));
@@ -73,7 +73,7 @@ internal static class ArenaFailedStartIntro
         private static void Finalizer(PreloaderUI __state) => LeaveIntro(__state);
     }
 
-    private sealed class DeferredFadePatch : ModulePatch
+    private sealed class ArenaFailedStartIntroDeferredFadePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(PreloaderUI), nameof(PreloaderUI.FadeBlackScreen));

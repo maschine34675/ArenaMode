@@ -27,8 +27,8 @@ internal static class ArenaAssistCapture
         if (_enabled) return;
         try
         {
-            new HealthChangedPatch().Enable();
-            new DeathCleanupPatch().Enable();
+            new ArenaAssistCaptureHealthChangedPatch().Enable();
+            new ArenaAssistCaptureDeathCleanupPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -241,7 +241,7 @@ internal static class ArenaAssistCapture
         catch (Exception ex) { Warn(ex); }
     }
 
-    private sealed class HealthChangedPatch : ModulePatch
+    private sealed class ArenaAssistCaptureHealthChangedPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.OnHealthChanged),
@@ -251,7 +251,7 @@ internal static class ArenaAssistCapture
             => ObserveHealthChange(__instance, diff, damageInfo);
     }
 
-    private sealed class DeathCleanupPatch : ModulePatch
+    private sealed class ArenaAssistCaptureDeathCleanupPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.OnDead), new[] { typeof(EDamageType) });

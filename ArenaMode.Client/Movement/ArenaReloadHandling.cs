@@ -39,12 +39,12 @@ internal static partial class ArenaReloadHandling
     private static readonly List<WeakReference<Player.FirearmController>> Owners = new();
     private static readonly ModulePatch[] Patches =
     {
-        new ReloadStatePatch(), new RefreshPatch(), new DeathPatch(),
-        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "SwitchToIdlingState"),
-        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "HideWeapon"),
-        new MagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "Reset"),
-        new MagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "OnMagPuttedToRig"),
-        new MagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "Reset")
+        new ArenaReloadHandlingReloadStatePatch(), new ArenaReloadHandlingRefreshPatch(), new ArenaReloadHandlingDeathPatch(),
+        new ArenaReloadHandlingMagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "SwitchToIdlingState"),
+        new ArenaReloadHandlingMagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "HideWeapon"),
+        new ArenaReloadHandlingMagazineBoundaryPatch(typeof(Player.FirearmController.InsertMagOperation), "Reset"),
+        new ArenaReloadHandlingMagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "OnMagPuttedToRig"),
+        new ArenaReloadHandlingMagazineBoundaryPatch(typeof(Player.FirearmController.PullOutMagOperation), "Reset")
     };
     private static int _attempted;
     private static bool _enabled, _warned;
@@ -348,24 +348,24 @@ internal static partial class ArenaReloadHandling
         finally { CompleteNativeWrite(pending, succeeded); }
     }
 
-    private sealed class ReloadStatePatch : ModulePatch
+    private sealed class ArenaReloadHandlingReloadStatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.PropertySetter(typeof(Player.FirearmController.BaseReloadOperation), nameof(Player.FirearmController.BaseReloadOperation.State));
         [PatchPrefix] private static void Prefix(Player.FirearmController.BaseReloadOperation __instance, Player.EOperationState value)
             => BeforeReloadState(__instance, value);
     }
 
-    private sealed class DeathPatch : ModulePatch
+    private sealed class ArenaReloadHandlingDeathPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.OnPlayerDead), Type.EmptyTypes);
         [PatchPrefix] private static void Prefix(Player.FirearmController __instance) => Release(__instance);
     }
 
-    private sealed class MagazineBoundaryPatch : ModulePatch
+    private sealed class ArenaReloadHandlingMagazineBoundaryPatch : ModulePatch
     {
         private readonly Type _type;
         private readonly string _method;
-        internal MagazineBoundaryPatch(Type type, string method)
+        internal ArenaReloadHandlingMagazineBoundaryPatch(Type type, string method)
             : base("ArenaReload." + type.Name + "." + method)
         { _type = type; _method = method; }
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(_type, _method);
@@ -373,7 +373,7 @@ internal static partial class ArenaReloadHandling
             => BeforeMagazineBoundary(__instance);
     }
 
-    private sealed class RefreshPatch : ModulePatch
+    private sealed class ArenaReloadHandlingRefreshPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.SetAnimatorAndProceduralValues), Type.EmptyTypes);
         [PatchTranspiler]

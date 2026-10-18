@@ -14,7 +14,7 @@ nor checks for Redeploy.Server.
 The standalone Redeploy.Client's ServerModCheck performs that ping. Its server
 patches repair the equipment root after native inventory/postraid imports.
 Confirmed Arena raids instead bypass normal PMC postraid processing through
-PostRaidPmcSkipPatch and restore their protected snapshot through
+ArenaPostRaidPmcSkipPatch and restore their protected snapshot through
 ArenaProtectedRaidEndService/ProfileSnapshotService. These are different owners
 of the two workflows, not a missing Core dependency.
 

@@ -28,8 +28,8 @@ internal static class ArenaSurgicalWalk
         if (_enabled) return;
         try
         {
-            new IdleWalkPatch().Enable();
-            new MovingWalkPatch().Enable();
+            new ArenaSurgicalWalkIdleWalkPatch().Enable();
+            new ArenaSurgicalWalkMovingWalkPatch().Enable();
             _enabled = _idleBound && _moveBound;
             if (_enabled) Plugin.ModLogger.LogDebug("Arena surgical walking hooks ready (maximum 1 m/s).");
         }
@@ -116,7 +116,7 @@ internal static class ArenaSurgicalWalk
         return code;
     }
 
-    private sealed class IdleWalkPatch : ModulePatch
+    private sealed class ArenaSurgicalWalkIdleWalkPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(IdlePlayerState), nameof(IdlePlayerState.Move), new[] { typeof(Vector2) });
@@ -125,7 +125,7 @@ internal static class ArenaSurgicalWalk
             => Rewrite(instructions, out _idleBound);
     }
 
-    private sealed class MovingWalkPatch : ModulePatch
+    private sealed class ArenaSurgicalWalkMovingWalkPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(MovePlayerState), nameof(MovePlayerState.ManualAnimatorMoveUpdate), new[] { typeof(float) });

@@ -38,7 +38,7 @@ namespace ArenaMode.Server.Patches;
 /// APBS 2.4.1 instead reads its global raid level; the optional range adapter
 /// carries this request's explicit Arena bounds through SPT's per-bot clone.
 /// </summary>
-public sealed class BotTierScalePatch : AbstractPatch
+public sealed class ArenaBotTierScalePatch : AbstractPatch
 {
     /// <summary>
     /// How far a bot's level may sit either side of where the ramp currently is.

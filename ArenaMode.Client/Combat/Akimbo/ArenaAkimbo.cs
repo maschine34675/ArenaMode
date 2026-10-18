@@ -51,8 +51,8 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         try
         {
             Limbs = AccessTools.FieldRefAccess<Player, LimbIK[]>("_limbs");
-            new PosePatch().Enable(); new VisualPatch().Enable(); new ShotPatch().Enable(); new AimPatch().Enable();
-            new MuzzlePatch().Enable(); new AfterFireEventsPatch().Enable();
+            new ArenaAkimboPosePatch().Enable(); new ArenaAkimboVisualPatch().Enable(); new ArenaAkimboShotPatch().Enable(); new ArenaAkimboAimPatch().Enable();
+            new ArenaAkimboMuzzlePatch().Enable(); new ArenaAkimboAfterFireEventsPatch().Enable();
             AkimboAmmo.Enable();
             AkimboCadence.Enable();
             _available = true;
@@ -323,19 +323,19 @@ internal sealed class ArenaAkimbo : MonoBehaviour
     }
     private void OnDestroy() => Reset();
 
-    private sealed class PosePatch : ModulePatch
+    private sealed class ArenaAkimboPosePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.IkProcess));
         [PatchPostfix] private static void Postfix(Player __instance)
         { try { Pose(__instance); } catch (Exception ex) { Fail(ex); } }
     }
-    private sealed class VisualPatch : ModulePatch
+    private sealed class ArenaAkimboVisualPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.VisualPass));
         [PatchPostfix] private static void Postfix(Player __instance)
         { try { Visual(__instance, true); } catch (Exception ex) { Fail(ex); } }
     }
-    private sealed class AfterFireEventsPatch : ModulePatch
+    private sealed class ArenaAkimboAfterFireEventsPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player), nameof(Player.ArmsLateUpdate));
         [PatchPostfix] private static void Postfix(Player __instance)
@@ -349,7 +349,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             catch (Exception ex) { Fail(ex); }
         }
     }
-    private sealed class ShotPatch : ModulePatch
+    private sealed class ArenaAkimboShotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Player.FirearmController),
             nameof(Player.FirearmController.InitiateShot), new[] { typeof(IWeapon), typeof(Ammo), typeof(Vector3), typeof(Vector3), typeof(Vector3), typeof(int), typeof(float) });
@@ -379,7 +379,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         private static Exception Finalizer(Exception __exception, ShotScope __state)
         { EndShot(__state); if (__exception != null && __state?.Lease != null) Fail(__exception, __state.Lease.Owner); return __exception; }
     }
-    private sealed class MuzzlePatch : ModulePatch
+    private sealed class ArenaAkimboMuzzlePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Firearms), nameof(Firearms.PlayShotEffects));
         [PatchPrefix] private static bool Prefix(Firearms __instance)
@@ -389,7 +389,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             catch (Exception ex) { Fail(ex); return true; }
         }
     }
-    private sealed class AimPatch : ModulePatch
+    private sealed class ArenaAkimboAimPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.PropertySetter(typeof(Player.FirearmController), nameof(Player.FirearmController.IsAiming));
         [PatchPrefix] private static void Prefix(Player.FirearmController __instance, ref bool value)

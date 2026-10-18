@@ -37,23 +37,23 @@ public sealed class PatchManager(
         ArenaOptionalMapPolicy.FindLocation = id => locationTable.GetDictionary()
             .TryGetValue(id, out var location) ? location.Base : null;
 
-        new StartLocalRaidPatch().Enable();
-        new EndLocalRaidPatch().Enable();
-        new PostRaidPmcSkipPatch().Enable();
-        new PreRaidWipeSkipPatch().Enable();
-        new GenerateLocationAndLootPatch().Enable();
-        new AdjustBotHostilityPatch().Enable();
-        new BotCapPatch().Enable();
-        new BotTierScalePatch().Enable();
+        new ArenaStartLocalRaidPatch().Enable();
+        new ArenaEndLocalRaidPatch().Enable();
+        new ArenaPostRaidPmcSkipPatch().Enable();
+        new ArenaPreRaidWipeSkipPatch().Enable();
+        new ArenaGenerateLocationAndLootPatch().Enable();
+        new ArenaAdjustBotHostilityPatch().Enable();
+        new ArenaServerBotCapPatch().Enable();
+        new ArenaBotTierScalePatch().Enable();
         ApbsBotTierCompatibility.TryEnable(loadedMods);
-        new TeamDeathmatchArmbandPatch().Enable();
+        new ArenaTeamDeathmatchArmbandPatch().Enable();
         AbstractPatch[] pitFireTeamFilePatches =
         [
-            new PitFireTeamTextWritePatch(),
-            new PitFireTeamByteWritePatch(),
-            new PitFireTeamAsyncTextWritePatch(),
-            new PitFireTeamAsyncByteWritePatch(),
-            new PitFireTeamDeleteFilePatch(),
+            new ArenaPitFireTeamTextWritePatch(),
+            new ArenaPitFireTeamByteWritePatch(),
+            new ArenaPitFireTeamAsyncTextWritePatch(),
+            new ArenaPitFireTeamAsyncByteWritePatch(),
+            new ArenaPitFireTeamDeleteFilePatch(),
         ];
         bool pitFireTeamFilesReady = true;
         string? pitFireTeamFileFailure = null;

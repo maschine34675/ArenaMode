@@ -100,11 +100,11 @@ namespace EFT
         internal IEnumerable<BotZone> SpawnZones(bool v) => new[] { new BotZone() };
         internal void SpawnBotsInZoneOnPositions(List<ISpawnPoint> points, BotZone botZone, BotCreationData data, Action<BotOwner> callback)
         {
-            if (!Harness.Call("DispatchPatch", this, points, botZone, data)) return;
+            if (!Harness.Call("ArenaBotSpawnDispatchPatch", this, points, botZone, data)) return;
             Harness.NativeCalls++;
             if (Harness.ThrowNative) throw new InvalidOperationException("uncertain native handoff");
-            if (!Harness.Call("SoloActivationPatch", _botCreator, data, null)) return;
-            if (!Harness.Call("SoloCreationPatch", _botCreator, data.Profiles[0], null)) return;
+            if (!Harness.Call("ArenaBotSpawnSoloActivationPatch", _botCreator, data, null)) return;
+            if (!Harness.Call("ArenaBotSpawnSoloCreationPatch", _botCreator, data.Profiles[0], null)) return;
             var body = new BotOwner(data.Profiles[0]);
             Harness.Arrivals.Add((body, callback));
             if (!Harness.DelayRegistration) _bots.BotOwners.Add(body);

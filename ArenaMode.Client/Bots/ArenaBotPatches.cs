@@ -18,12 +18,12 @@ internal static class ArenaBotPatches
     {
         TeamDeathmatchRelations.Enable();
         new ArenaIsPlayerEnemyPatch().Enable();
-        new DeathmatchBotFriendshipPatch().Enable();
-        new DeathmatchIndividualGroupPatch().Enable();
-        new DeathmatchAfterCreationPatch().Enable();
+        new ArenaBotDeathmatchBotFriendshipPatch().Enable();
+        new ArenaBotDeathmatchIndividualGroupPatch().Enable();
+        new ArenaBotDeathmatchAfterCreationPatch().Enable();
         new ArenaBossAttackPatch().Enable();
         new ArenaBotCapPatch().Enable();
-        new NoAccidentalBossPatch().Enable();
+        new ArenaBotNoAccidentalBossPatch().Enable();
         ArenaBotSpawnPatches.Enable();
     }
 
@@ -117,7 +117,7 @@ internal static class ArenaBotPatches
         if (!DeathmatchRulesActive()) IndividualGroups.Clear();
         else foreach (var pair in IndividualGroups.ToArray())
             if (!OwnsDeathmatchSpawner(pair.Value.Spawner)) IndividualGroups.Remove(pair.Key);
-        NoAccidentalBossPatch.ResetRaidState();
+        ArenaBotNoAccidentalBossPatch.ResetRaidState();
         ArenaBotSpawnPatches.ResetRaidState();
     }
 
@@ -135,7 +135,7 @@ internal static class ArenaBotPatches
     /// Skipping the promotion leaves the patrol mode the bot already got from
     /// PatrollingData.Activate: plain roaming. Real bosses are untouched.
     /// </summary>
-    private sealed class NoAccidentalBossPatch : ModulePatch
+    private sealed class ArenaBotNoAccidentalBossPatch : ModulePatch
     {
         private static int _deniedThisRaid;
 
@@ -258,7 +258,7 @@ internal static class ArenaBotPatches
         spawner._freeForAll = false;
     }
 
-    private sealed class DeathmatchIndividualGroupPatch : ModulePatch
+    private sealed class ArenaBotDeathmatchIndividualGroupPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.GetGroupAndSetEnemies));
@@ -285,7 +285,7 @@ internal static class ArenaBotPatches
         { if (__state.HasValue) __instance._freeForAll = __state.Value; }
     }
 
-    private sealed class DeathmatchAfterCreationPatch : ModulePatch
+    private sealed class ArenaBotDeathmatchAfterCreationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotSpawner), nameof(BotSpawner.AfterCreation));
@@ -304,7 +304,7 @@ internal static class ArenaBotPatches
         { if (__state.HasValue) __instance._freeForAll = __state.Value; }
     }
 
-    private sealed class DeathmatchBotFriendshipPatch : ModulePatch
+    private sealed class ArenaBotDeathmatchBotFriendshipPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.AddEnemy), new[] { typeof(IPlayer), typeof(EBotEnemyCause) });

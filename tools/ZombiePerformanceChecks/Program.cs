@@ -181,10 +181,10 @@ internal static class Program
         Check(installed[0].DeclaringType == typeof(BotHearingSensor) && installed[0].Name == "OnSoundPlayed", "early scheduling boundary");
         Check(installed[1].DeclaringType == typeof(BotFriendChecker) && installed[1].Name == "ManualUpdate", "only social boundary");
         fixture = new Fixture();
-        var nested = typeof(ZombiePerformancePatches).GetNestedType("HearingPatch", BindingFlags.NonPublic);
+        var nested = typeof(ZombiePerformancePatches).GetNestedType("ArenaZombiePerformanceHearingPatch", BindingFlags.NonPublic);
         var prefix = nested.GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static);
         Check(!(bool)prefix.Invoke(null, new object[] { fixture.Listener.HearingSensor, fixture.Source.GetPlayer, AISoundType.step }), "hearing prefix forwards result");
-        prefix = typeof(ZombiePerformancePatches).GetNestedType("SocialPatch", BindingFlags.NonPublic).GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static);
+        prefix = typeof(ZombiePerformancePatches).GetNestedType("ArenaZombiePerformanceSocialPatch", BindingFlags.NonPublic).GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static);
         Check(!(bool)prefix.Invoke(null, new object[] { fixture.Listener.FriendChecker }), "social prefix forwards result");
 
         fixture = new Fixture(); Check(!fixture.Hearing(), "aggregate starts");

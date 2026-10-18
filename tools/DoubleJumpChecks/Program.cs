@@ -58,7 +58,7 @@ internal static class Program
             ArenaDoubleJump.Enable();
             if (observe) Tick();
         }
-        internal void Tick() => Invoke("LandingPatch", "Postfix", Context);
+        internal void Tick() => Invoke("ArenaDoubleJumpLandingPatch", "Postfix", Context);
         internal void Airborne() { Context.IsGrounded = false; Player.CharacterController.isGrounded = false; }
         internal void Land()
         {
@@ -69,7 +69,7 @@ internal static class Program
         internal void Entry(JumpPlayerState state, bool nativeDebit = false, Action duringNative = null)
         {
             Jump = state; Player.CurrentManagedState = state;
-            string patch = state is FallDown ? "FallEnterPatch" : "JumpEnterPatch";
+            string patch = state is FallDown ? "ArenaDoubleJumpFallEnterPatch" : "ArenaDoubleJumpJumpEnterPatch";
             object[] args = { state, null };
             Invoke(patch, "Prefix", args);
             if (nativeDebit) Player.Physical.OnJump(true);
@@ -85,9 +85,9 @@ internal static class Program
         internal void Press(Action native = null, ECommand command = ECommand.Jump)
         {
             object[] args = { Translator, command, null };
-            Invoke("JumpCommandPatch", "Prefix", args);
+            Invoke("ArenaDoubleJumpJumpCommandPatch", "Prefix", args);
             native?.Invoke();
-            Invoke("JumpCommandPatch", "Postfix", Translator, args[2]);
+            Invoke("ArenaDoubleJumpJumpCommandPatch", "Postfix", Translator, args[2]);
         }
     }
     private static void Denied(Fixture f, string name)
@@ -428,9 +428,9 @@ internal static class Program
         var translate = (MethodInfo)ModulePatch.Registrations.Single(p => p.Target.Name == "TranslateCommand").Target;
         Check(translate.ReturnType == typeof(InputNode.ETranslateResult) && translate.GetParameters().Single().ParameterType == typeof(ECommand),
             "translator target retains native method signature");
-        Check(typeof(ArenaDoubleJump).GetNestedType("JumpCommandPatch", BindingFlags.NonPublic).GetMethod("Prefix", PrivateStatic).ReturnType == typeof(void),
+        Check(typeof(ArenaDoubleJump).GetNestedType("ArenaDoubleJumpJumpCommandPatch", BindingFlags.NonPublic).GetMethod("Prefix", PrivateStatic).ReturnType == typeof(void),
             "command prefix never suppresses native input");
-        Check(typeof(ArenaDoubleJump).GetNestedType("JumpEnterPatch", BindingFlags.NonPublic).GetMethod("Postfix", PrivateStatic)
+        Check(typeof(ArenaDoubleJump).GetNestedType("ArenaDoubleJumpJumpEnterPatch", BindingFlags.NonPublic).GetMethod("Postfix", PrivateStatic)
             .GetCustomAttribute<HarmonyPriority>().Priority == Priority.Last, "native first height patch precedes reserved air height scaling");
         f.Airborne(); ArenaDoubleJump.Shutdown(); Denied(f, "shutdown denies action");
         Check(Settings.DoubleJumpEnabled.Subscribers == 0 && Settings.MovementEnabled.Subscribers == 0 && RaidLifecycle.Subscribers == 0,

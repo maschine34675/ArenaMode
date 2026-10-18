@@ -55,10 +55,10 @@ internal static class ArenaReachPatches
 
     public static void Enable()
     {
-        new BindableAnywherePatch().Enable();
-        new ReachableAnywherePatch().Enable();
-        EnablePickPatch(() => new PickAfterRemovalPatch());
-        EnablePickPatch(() => new PickBeforeTapThrowPatch());
+        new ArenaReachBindableAnywherePatch().Enable();
+        new ArenaReachableAnywherePatch().Enable();
+        EnablePickPatch(() => new ArenaReachPickAfterRemovalPatch());
+        EnablePickPatch(() => new ArenaReachPickBeforeTapThrowPatch());
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ internal static class ArenaReachPatches
         return controller.Inventory.Equipment.Contains(item) && controller.Examined(item);
     }
 
-    private sealed class BindableAnywherePatch : ModulePatch
+    private sealed class ArenaReachBindableAnywherePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InventoryController), nameof(InventoryController.IsAtBindablePlace));
@@ -159,7 +159,7 @@ internal static class ArenaReachPatches
         }
     }
 
-    private sealed class ReachableAnywherePatch : ModulePatch
+    private sealed class ArenaReachableAnywherePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(InventoryController), nameof(InventoryController.IsAtReachablePlace));
@@ -198,7 +198,7 @@ internal static class ArenaReachPatches
     /// single try (ItemController.SafeRemoveItemEvent), so a throw here would
     /// skip every subscriber after the view.
     /// </summary>
-    private sealed class PickAfterRemovalPatch : ModulePatch
+    private sealed class ArenaReachPickAfterRemovalPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(FastAccessGrenadeItemView), nameof(FastAccessGrenadeItemView.OnItemRemoved));
@@ -251,7 +251,7 @@ internal static class ArenaReachPatches
     /// busy, and so on); clearing then is harmless, because G could never have
     /// drawn that pick anyway.
     /// </summary>
-    private sealed class PickBeforeTapThrowPatch : ModulePatch
+    private sealed class ArenaReachPickBeforeTapThrowPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.Method(typeof(PlayerInputTranslator), nameof(PlayerInputTranslator.vmethod_1));

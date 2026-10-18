@@ -12,8 +12,8 @@ internal static class TeamSpawnProtectionHooks
 {
     internal static void Enable()
     {
-        new ShotPatch().Enable();
-        new GrenadePatch().Enable();
+        new ArenaTeamSpawnProtectionHooksShotPatch().Enable();
+        new ArenaTeamSpawnProtectionHooksGrenadePatch().Enable();
     }
 
     internal static void Attacked(IPlayer attacker)
@@ -25,7 +25,7 @@ internal static class TeamSpawnProtectionHooks
     // Native InitiateShot calls this before BallisticsCalculator.Shoot. It covers
     // offline bot shots and underbarrels without ending protection on aiming or
     // merely holding the fire button with an empty chamber.
-    private sealed class ShotPatch : ModulePatch
+    private sealed class ArenaTeamSpawnProtectionHooksShotPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.OnMakingShot));
         [PatchPrefix, HarmonyPriority(Priority.Last)]
@@ -33,7 +33,7 @@ internal static class TeamSpawnProtectionHooks
         { if (__runOriginal) Attacked(__instance); }
     }
 
-    private sealed class GrenadePatch : ModulePatch
+    private sealed class ArenaTeamSpawnProtectionHooksGrenadePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(Player.BaseGrenadeHandsController),
             nameof(Player.BaseGrenadeHandsController.CreateAndRegisterGrenade),

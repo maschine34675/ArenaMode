@@ -538,7 +538,7 @@ internal static class Program
         var kitPreloader = Read(repo, "ArenaMode.Client/Kits/KitBundlePreloader.cs");
         var skip = Read(repo, "ArenaMode.Client/Session/SkipPreRaidScreensPatch.cs");
         var settingsApply = Read(repo, "ArenaMode.Client/Session/ArenaRaidSettingsApplyPatch.cs");
-        var localStart = Read(repo, "ArenaMode.Client/Session/LocalRaidStartedPatch.cs");
+        var localStart = Read(repo, "ArenaMode.Client/Session/ArenaLocalRaidStartedPatch.cs");
         var menu = Read(repo, "ArenaMode.Client/Session/ArenaMenuSelection.cs");
         var side = Read(repo, "ArenaMode.Client/Session/ArenaSideSelectionPatch.cs");
         var session = Read(repo, "ArenaMode.Client/Session/ArenaSession.cs");
@@ -572,15 +572,15 @@ internal static class Program
         var sessionService = Read(repo,
             "ArenaMode.Server/Services/ArenaSessionService.cs");
         var postRaid = Read(repo,
-            "ArenaMode.Server/Patches/PostRaidPmcSkipPatch.cs");
+            "ArenaMode.Server/Patches/ArenaPostRaidPmcSkipPatch.cs");
         var protectedEnd = Read(repo,
             "ArenaMode.Server/Services/ArenaProtectedRaidEndService.cs");
         var protectedStart = Read(repo,
             "ArenaMode.Server/Services/ArenaProtectedRaidStartService.cs");
         var startLocalRaid = Read(repo,
-            "ArenaMode.Server/Patches/StartLocalRaidPatch.cs");
+            "ArenaMode.Server/Patches/ArenaStartLocalRaidPatch.cs");
         var endLocalRaid = Read(repo,
-            "ArenaMode.Server/Patches/EndLocalRaidPatch.cs");
+            "ArenaMode.Server/Patches/ArenaEndLocalRaidPatch.cs");
         var ordinaryLifecycle = Read(repo,
             "ArenaMode.Server/Services/OrdinaryRaidLifecycleService.cs");
         var protocol = Read(repo, "ArenaMode.Shared/Protocol.cs");
@@ -589,7 +589,7 @@ internal static class Program
         var nativeEndAdmission = Read(repo,
             "ArenaMode.Server/Services/ArenaNativeEndAdmission.cs");
         var locationPatch = Read(repo,
-            "ArenaMode.Server/Patches/GenerateLocationAndLootPatch.cs");
+            "ArenaMode.Server/Patches/ArenaGenerateLocationAndLootPatch.cs");
         var patchManager = Read(repo, "ArenaMode.Server/PatchManager.cs");
         var mapMenu = Read(repo, "ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs");
         var boost = Read(repo, "ArenaMode.Client/Bots/BotLoadBoost.cs");
@@ -1056,11 +1056,11 @@ internal static class Program
                && burstSpawn.Contains("callback normally observes", StringComparison.Ordinal)
                && burstSpawn.Contains("includeLifecycleIdentity: requireExactCount", StringComparison.Ordinal),
             "exact-squad outcome logs expose callback profile and lifecycle state without expanding ambient burst logs");
-        Assert(combat.Contains("new TeamStagingShotPatch().Enable()", StringComparison.Ordinal)
-               && combat.Contains("new TeamStagingPlayerDamagePatch().Enable()", StringComparison.Ordinal)
-               && combat.Contains("new TeamStagingExplosionArmorPatch().Enable()", StringComparison.Ordinal)
-               && combat.Contains("new TeamStagingDamagePatch().Enable()", StringComparison.Ordinal)
-               && combat.Contains("new TeamStagingContusionPatch().Enable()", StringComparison.Ordinal)
+        Assert(combat.Contains("new ArenaCombatTeamStagingShotPatch().Enable()", StringComparison.Ordinal)
+               && combat.Contains("new ArenaCombatTeamStagingPlayerDamagePatch().Enable()", StringComparison.Ordinal)
+               && combat.Contains("new ArenaCombatTeamStagingExplosionArmorPatch().Enable()", StringComparison.Ordinal)
+               && combat.Contains("new ArenaCombatTeamStagingDamagePatch().Enable()", StringComparison.Ordinal)
+               && combat.Contains("new ArenaCombatTeamStagingContusionPatch().Enable()", StringComparison.Ordinal)
                && combat.Contains("nameof(Player.ApplyShot)", StringComparison.Ordinal)
                && combat.Contains("nameof(Player.ApplyDamageInfo)", StringComparison.Ordinal)
                && combat.Contains("nameof(Player.ApplyExplosionDamageToArmor)", StringComparison.Ordinal)
@@ -1463,11 +1463,11 @@ internal static class Program
             "global PFT settings are either authorized for every protected session or blocked as a whole callback");
         foreach (var patch in new[]
                  {
-                     "PitFireTeamTextWritePatch",
-                     "PitFireTeamByteWritePatch",
-                     "PitFireTeamAsyncTextWritePatch",
-                     "PitFireTeamAsyncByteWritePatch",
-                     "PitFireTeamDeleteFilePatch"
+                     "ArenaPitFireTeamTextWritePatch",
+                     "ArenaPitFireTeamByteWritePatch",
+                     "ArenaPitFireTeamAsyncTextWritePatch",
+                     "ArenaPitFireTeamAsyncByteWritePatch",
+                     "ArenaPitFireTeamDeleteFilePatch"
                  })
         {
             Assert(patchManager.Contains($"new {patch}()", StringComparison.Ordinal),

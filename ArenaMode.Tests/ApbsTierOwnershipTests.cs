@@ -15,7 +15,7 @@ public sealed partial class BotTierScalePatchTests
         var token = StartTimedArena();
         var wave = Details("factory4_day", 47, 33, 61);
         wave.IsPmc = true; wave.Role = "pmcUSEC"; wave.Side = "Usec"; wave.BotCountToGenerate = 15;
-        BotTierScalePatch.Prefix(new MongoId(ArenaSession), wave, Condition(token, 300, 240));
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession), wave, Condition(token, 300, 240));
         return wave;
     }
 
@@ -52,7 +52,7 @@ public sealed partial class BotTierScalePatchTests
         var wave = OwnedWave();
         var sessions = ArenaContext.Sessions!;
         var clone = new NativeCloner().Clone(wave)!;
-        if (cause == "ordinaryWaveReuse") BotTierScalePatch.Prefix(new(OrdinarySession), wave);
+        if (cause == "ordinaryWaveReuse") ArenaBotTierScalePatch.Prefix(new(OrdinarySession), wave);
         var scope = ArenaBotTierOwnership.Begin(new(cause == "foreignDispatch" ? OrdinarySession : ArenaSession), wave);
         try
         {

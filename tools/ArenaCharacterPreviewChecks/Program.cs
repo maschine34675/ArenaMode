@@ -76,9 +76,9 @@ var side = Read("ArenaMode.Client/Session/ArenaSideSelectionPatch.cs");
 bool NoGlobalModelHook(string source) => !source.Contains("typeof(PlayerModelView)")
     && !source.Contains("typeof(PlayerModelLoader)") && !source.Contains("typeof(PlayerBody)");
 Check(NoGlobalModelHook(patches), "hooks target native setup owners rather than every model");
-var mapHook = patches.Substring(patches.IndexOf("private sealed class MapShowPatch", StringComparison.Ordinal),
-    patches.IndexOf("private sealed class OfflineShowPatch", StringComparison.Ordinal)
-    - patches.IndexOf("private sealed class MapShowPatch", StringComparison.Ordinal));
+var mapHook = patches.Substring(patches.IndexOf("private sealed class ArenaPreviewFlowMapShowPatch", StringComparison.Ordinal),
+    patches.IndexOf("private sealed class ArenaPreviewFlowOfflineShowPatch", StringComparison.Ordinal)
+    - patches.IndexOf("private sealed class ArenaPreviewFlowMapShowPatch", StringComparison.Ordinal));
 Check(mapHook.Contains("ArenaPreviewFlow.HideForMap(controller.RaidSettings)")
     && !mapHook.Contains("ShowCompact"), "map adapter hides instead of attaching compact avatar");
 Check(!NoGlobalModelHook(patches + " typeof(PlayerModelView)"), "global hook negative control");

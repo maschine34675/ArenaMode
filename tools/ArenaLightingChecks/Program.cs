@@ -339,31 +339,31 @@ internal static class Program
         var config = new GlobalConfiguration { TimeBeforeDeployLocal = 20 };
         Singleton<GlobalConfiguration>.Instance = config;
         ArenaSession.IsActive = true;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         Assert(config.TimeBeforeDeployLocal == 20,
             "ordinary unarmed countdown remains unchanged even if an active latch was stale");
 
         ArenaSession.IsActive = false;
         ArenaSession.ArmedForNextRaid = true;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         Assert(config.TimeBeforeDeployLocal == 1,
             "armed Arena loading countdown is exactly one second before IsActive");
-        InvokeDeployHook("RestoreAfterCountdownPatch", "Postfix");
+        InvokeDeployHook("ArenaFastDeployRestoreAfterCountdownPatch", "Postfix");
         Assert(config.TimeBeforeDeployLocal == 20, "native countdown completion restores original duration");
         FastDeployPatches.Restore();
         Assert(config.TimeBeforeDeployLocal == 20, "repeated teardown preserves original duration");
 
         config.TimeBeforeDeployLocal = 35;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         ArenaSession.ArmedForNextRaid = false;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         Assert(config.TimeBeforeDeployLocal == 35,
             "ordinary raid after aborted Arena load heals original duration before its arm gate");
 
         ArenaSession.ArmedForNextRaid = true;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         Settings.FastDeploy.Value = false;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         Assert(config.TimeBeforeDeployLocal == 35,
             "disabled fast deploy heals aborted Arena duration before its setting gate");
 
@@ -371,7 +371,7 @@ internal static class Program
         foreach (int existing in new[] { 0, 1 })
         {
             config.TimeBeforeDeployLocal = existing;
-            InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+            InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
             Assert(config.TimeBeforeDeployLocal == existing,
                 $"short existing duration {existing} is never increased");
             FastDeployPatches.Restore();
@@ -380,7 +380,7 @@ internal static class Program
         }
 
         Singleton<GlobalConfiguration>.Instance = null;
-        InvokeDeployHook("ShortenCountdownPatch", "Prefix");
+        InvokeDeployHook("ArenaFastDeployShortenCountdownPatch", "Prefix");
         FastDeployPatches.Restore();
         Assert(Singleton<GlobalConfiguration>.Instance == null,
             "missing configuration is ignored without manufacturing global state");

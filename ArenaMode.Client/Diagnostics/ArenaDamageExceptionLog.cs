@@ -74,8 +74,8 @@ internal static class ArenaDamageExceptionLog
 
     internal static void Enable()
     {
-        new PlayerDamagePatch().Enable();
-        new ShotImpactPatch().Enable();
+        new ArenaDamageExceptionLogPlayerDamagePatch().Enable();
+        new ArenaDamageExceptionLogShotImpactPatch().Enable();
     }
 
     internal static void Reset()
@@ -150,7 +150,7 @@ internal static class ArenaDamageExceptionLog
     /// throwing NullReferenceExceptions only in the raids that release bodies
     /// (none in either control raid, three and two in the two release raids),
     /// and its trace is truncated by the same Harmony rethrow — an Arena prefix
-    /// sits on it too (ArenaShotAwardHooks.ImpactPatch). Recorded, not assumed.
+    /// sits on it too (ArenaShotAwardHooks.ArenaShotAwardHooksImpactPatch). Recorded, not assumed.
     /// </summary>
     private static void ReportShot(Exception exception, Shot shot)
     {
@@ -389,11 +389,11 @@ internal static class ArenaDamageExceptionLog
 
     /// <summary>
     /// Finalizer only. It shares the method with two Arena prefixes
-    /// (CombatPatches.TeamStagingPlayerDamagePatch and
-    /// ArenaSelfGrenadeTaunt.DamagePatch) and their own finalizers, all of which
+    /// (CombatPatches.ArenaCombatTeamStagingPlayerDamagePatch and
+    /// ArenaSelfGrenadeTaunt.ArenaSelfGrenadeTauntDamagePatch) and their own finalizers, all of which
     /// pass the exception through unchanged, so this one sees whatever they saw.
     /// </summary>
-    private sealed class PlayerDamagePatch : ModulePatch
+    private sealed class ArenaDamageExceptionLogPlayerDamagePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player), nameof(Player.ApplyDamageInfo),
@@ -418,7 +418,7 @@ internal static class ArenaDamageExceptionLog
         }
     }
 
-    private sealed class ShotImpactPatch : ModulePatch
+    private sealed class ArenaDamageExceptionLogShotImpactPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(ClientGameWorld), nameof(ClientGameWorld.ShotDelegate),

@@ -68,7 +68,7 @@ Installed SPT 4.1 source under `Development/_decompiled` is the reference:
   consumption (`Physical.cs:1139`). `FallDown.cs:12` calls that whole entry and
   then zeroes lift. The extra FallDown action reconstructs just the documented
   lift formula; it never calls Enter again or duplicates its physical/animator
-  side effects. `ArenaMovementPatches.JumpHeightPatch` applies existing Arena
+  side effects. `ArenaMovementPatches.ArenaMovementJumpHeightPatch` applies existing Arena
   height; the Jump entry postfix runs last to retain that native lift basis.
 - `EFT/JumpPlayerState.cs:127,219` keeps all HeadBump, Halt, LimitMotion,
   ApplyMotion and gravity work. Only vertical lift/clock, potential-height

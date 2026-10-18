@@ -97,8 +97,8 @@ internal static class Program
                        typeof(float), typeof(bool),
                     }),
             "unload hook resolves the exact named SPT 4.1 process constructor");
-        AssertPrefixContract("LoadProcessPatch");
-        AssertPrefixContract("UnloadProcessPatch");
+        AssertPrefixContract("ArenaMagazineLoadProcessPatch");
+        AssertPrefixContract("ArenaMagazineUnloadProcessPatch");
 
         ArenaMagazinePatches.Shutdown();
         Assert(ModulePatch.EnabledTargets.Count == 0
@@ -162,9 +162,9 @@ internal static class Program
     private static void CheckLocalArenaScaling()
     {
         TestContext context = Context(arena: true, multiplier: 2f);
-        AssertNear(Invoke("LoadProcessPatch", context.Controller, 1.5266f), 0.7633f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", context.Controller, 1.5266f), 0.7633f,
             "load delay preserves vanilla inputs and applies the Arena factor");
-        AssertNear(Invoke("UnloadProcessPatch", context.Controller, 0.3f), 0.15f,
+        AssertNear(Invoke("ArenaMagazineUnloadProcessPatch", context.Controller, 0.3f), 0.15f,
             "unload delay uses the same Arena factor");
         Assert(Plugin.ModLogger.Infos.Count(message =>
                    message.Contains("Arena magazine handling speed active")) == 1,
@@ -194,62 +194,62 @@ internal static class Program
             "negative native timing passes through unchanged");
 
         TestContext vanilla = Context(arena: true, multiplier: 1f);
-        AssertNear(Invoke("LoadProcessPatch", vanilla.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", vanilla.Controller, 0.8f), 0.8f,
             "an active Arena with a 1x setting retains vanilla timing");
 
         TestContext capped = Context(arena: true, multiplier: 10f);
-        AssertNear(Invoke("LoadProcessPatch", capped.Controller, 0.03f), 0.025f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", capped.Controller, 0.03f), 0.025f,
             "the live patch applies both multiplier cap and constructor-delay floor");
         TestContext disabled = Context(arena: true, multiplier: float.NaN);
-        AssertNear(Invoke("LoadProcessPatch", disabled.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", disabled.Controller, 0.8f), 0.8f,
             "an invalid configured factor leaves live timing untouched");
     }
 
     private static void CheckRaidAndActorGates()
     {
         TestContext ordinary = Context(arena: false, multiplier: 2f);
-        AssertNear(Invoke("LoadProcessPatch", ordinary.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", ordinary.Controller, 0.8f), 0.8f,
             "ordinary raids retain vanilla loading timing");
 
         TestContext stopped = Context(arena: true, multiplier: 2f);
         ArenaMagazinePatches.Shutdown();
-        AssertNear(Invoke("UnloadProcessPatch", stopped.Controller, 0.3f), 0.3f,
+        AssertNear(Invoke("ArenaMagazineUnloadProcessPatch", stopped.Controller, 0.3f), 0.3f,
             "plugin shutdown leaves the dormant Harmony prefixes inert");
 
         TestContext noWorld = Context(arena: true, multiplier: 2f);
         Singleton<GameWorld>.Instance = null;
-        AssertNear(Invoke("LoadProcessPatch", noWorld.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", noWorld.Controller, 0.8f), 0.8f,
             "missing raid world retains vanilla timing");
 
         TestContext bot = Context(arena: true, multiplier: 2f);
         bot.Player.IsAI = true;
-        AssertNear(Invoke("LoadProcessPatch", bot.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", bot.Controller, 0.8f), 0.8f,
             "an AI main-player stand-in is never accelerated");
 
         TestContext dead = Context(arena: true, multiplier: 2f);
         dead.Player.HealthController.IsAlive = false;
-        AssertNear(Invoke("UnloadProcessPatch", dead.Controller, 0.3f), 0.3f,
+        AssertNear(Invoke("ArenaMagazineUnloadProcessPatch", dead.Controller, 0.3f), 0.3f,
             "a dead local player is never accelerated");
 
         TestContext generic = Context(arena: true, multiplier: 2f);
-        AssertNear(Invoke("LoadProcessPatch", new InventoryController(), 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", new InventoryController(), 0.8f), 0.8f,
             "a non-player inventory controller is untouched");
 
         TestContext foreign = Context(arena: true, multiplier: 2f);
         var foreignPlayer = new Player();
         var foreignController = new Player.PlayerInventoryController { Player = foreignPlayer };
         foreignPlayer.InventoryController = foreignController;
-        AssertNear(Invoke("LoadProcessPatch", foreignController, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", foreignController, 0.8f), 0.8f,
             "a foreign player inventory controller is untouched");
 
         TestContext mismatchedOwner = Context(arena: true, multiplier: 2f);
         mismatchedOwner.Controller.Player = new Player();
-        AssertNear(Invoke("LoadProcessPatch", mismatchedOwner.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", mismatchedOwner.Controller, 0.8f), 0.8f,
             "a controller with a mismatched Player field is untouched");
 
         TestContext mismatchedInventory = Context(arena: true, multiplier: 2f);
         mismatchedInventory.Player.InventoryController = new InventoryController();
-        AssertNear(Invoke("UnloadProcessPatch", mismatchedInventory.Controller, 0.3f), 0.3f,
+        AssertNear(Invoke("ArenaMagazineUnloadProcessPatch", mismatchedInventory.Controller, 0.3f), 0.3f,
             "a stale controller absent from the player is untouched");
     }
 
@@ -261,9 +261,9 @@ internal static class Program
         replacement.InventoryController = replacementController;
         Singleton<GameWorld>.Instance.MainPlayer = replacement;
 
-        AssertNear(Invoke("LoadProcessPatch", old.Controller, 0.8f), 0.8f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", old.Controller, 0.8f), 0.8f,
             "a pre-respawn controller cannot inherit Arena acceleration");
-        AssertNear(Invoke("LoadProcessPatch", replacementController, 0.8f), 0.4f,
+        AssertNear(Invoke("ArenaMagazineLoadProcessPatch", replacementController, 0.8f), 0.4f,
             "the replacement local controller receives Arena acceleration");
     }
 

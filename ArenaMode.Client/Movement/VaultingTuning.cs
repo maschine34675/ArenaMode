@@ -26,7 +26,7 @@ namespace ArenaMode.Movement;
 ///      the bounds that <c>WeightCalculatorModel</c> uses to decide which points
 ///      are even candidate obstacles — the search.
 /// A verdict on an obstacle the search never found is no verdict at all, which is
-/// why VaultingReachPatch applies this before the component is built rather than
+/// why ArenaMovementVaultingReachPatch applies this before the component is built rather than
 /// leaving it to the first frame of the raid.
 ///
 /// The same asymmetry is why nothing calls Apply or Restore mid-raid. The snapshot

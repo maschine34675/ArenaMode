@@ -10,7 +10,7 @@ internal static class Program
     private static int _checks;
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
     private static readonly MethodInfo Keycard = typeof(MapAccessPatch)
-        .GetNestedType("KeycardBypassPatch", BindingFlags.NonPublic)!
+        .GetNestedType("ArenaMapAccessKeycardBypassPatch", BindingFlags.NonPublic)!
         .GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private static void Assert(bool condition, string text)

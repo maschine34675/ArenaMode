@@ -41,11 +41,11 @@ internal static class ArenaShotAwardHooks
         try
         {
             Owner = AccessTools.FieldRefAccess<Player.ItemHandsController, Player>("_player");
-            new FirePatch().Enable();
-            new CreatePatch().Enable();
-            new ImpactPatch().Enable();
-            new FlightPatch().Enable();
-            new ContinuationPatch().Enable();
+            new ArenaShotAwardHooksFirePatch().Enable();
+            new ArenaShotAwardHooksCreatePatch().Enable();
+            new ArenaShotAwardHooksImpactPatch().Enable();
+            new ArenaShotAwardHooksFlightPatch().Enable();
+            new ArenaShotAwardHooksContinuationPatch().Enable();
             _enabled = true;
         }
         catch (Exception ex) { Warn(ex); }
@@ -317,7 +317,7 @@ internal static class ArenaShotAwardHooks
         }
     }
 
-    private sealed class FirePatch : ModulePatch
+    private sealed class ArenaShotAwardHooksFirePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Player.FirearmController), nameof(Player.FirearmController.InitiateShot),
@@ -330,7 +330,7 @@ internal static class ArenaShotAwardHooks
         { __state?.Dispose(); return __exception; }
     }
 
-    private sealed class FlightPatch : ModulePatch
+    private sealed class ArenaShotAwardHooksFlightPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(MovementContext), nameof(MovementContext.CheckFlying), new[] { typeof(float) });
@@ -338,7 +338,7 @@ internal static class ArenaShotAwardHooks
         private static void Postfix(MovementContext __instance, float deltaTime) => ObserveFlight(__instance, deltaTime);
     }
 
-    private sealed class CreatePatch : ModulePatch
+    private sealed class ArenaShotAwardHooksCreatePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => typeof(Shot).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
@@ -347,7 +347,7 @@ internal static class ArenaShotAwardHooks
         private static void Postfix(Shot __result) => Created(__result);
     }
 
-    private sealed class ImpactPatch : ModulePatch
+    private sealed class ArenaShotAwardHooksImpactPatch : ModulePatch
     {
         // Offline ClientLocalGameWorld inherits this override; the base
         // GameWorld.ShotDelegate is NOT called by it.
@@ -364,7 +364,7 @@ internal static class ArenaShotAwardHooks
     // Native penetration creates a child with the SAME FragmentIndex, while
     // ricochet and fragmentation create independent projectiles. Do not infer
     // a lineage from a shared FireIndex, cartridge ID, timestamp or parent alone.
-    private sealed class ContinuationPatch : ModulePatch
+    private sealed class ArenaShotAwardHooksContinuationPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(Shot), nameof(Shot.CreateDeviatedFragment), Type.EmptyTypes);

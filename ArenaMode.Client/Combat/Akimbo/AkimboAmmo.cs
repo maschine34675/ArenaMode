@@ -26,11 +26,11 @@ internal static class AkimboAmmo
 
     internal static void Enable()
     {
-        new PreparePatch().Enable(); new FirePatch().Enable(); new ShellPatch().Enable(); new ResetPatch().Enable();
-        new ChamberPatch().Enable();
+        new ArenaAkimboAmmoPreparePatch().Enable(); new ArenaAkimboAmmoFirePatch().Enable(); new ArenaAkimboAmmoShellPatch().Enable(); new ArenaAkimboAmmoResetPatch().Enable();
+        new ArenaAkimboAmmoChamberPatch().Enable();
     }
 
-    private sealed class PreparePatch : ModulePatch
+    private sealed class ArenaAkimboAmmoPreparePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(CylinderOp), nameof(CylinderOp.PrepareShot));
         [PatchPrefix, HarmonyPriority(Priority.Last)]
@@ -76,7 +76,7 @@ internal static class AkimboAmmo
             return false;
         }
     }
-    private sealed class FirePatch : ModulePatch
+    private sealed class ArenaAkimboAmmoFirePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(CylinderOp), nameof(CylinderOp.OnFireEvent));
         [PatchPrefix] private static void Prefix(CylinderOp __instance, out Receipt __state)
@@ -90,18 +90,18 @@ internal static class AkimboAmmo
         [PatchFinalizer] private static Exception Finalizer(CylinderOp __instance, Receipt __state, Exception __exception)
         { _firing = __state; if (__exception != null) Prepared.Remove(__instance); return __exception; }
     }
-    private sealed class ShellPatch : ModulePatch
+    private sealed class ArenaAkimboAmmoShellPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(Firearms), nameof(Firearms.MoveAmmoFromChamberToShellPort));
         [PatchPrefix] private static bool Prefix(Firearms __instance, int chamberIndex)
             => _firing == null || !ReferenceEquals(_firing.Firearms, __instance) || _firing.Camora != chamberIndex;
     }
-    private sealed class ResetPatch : ModulePatch
+    private sealed class ArenaAkimboAmmoResetPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(CylinderOp), nameof(CylinderOp.Reset));
         [PatchPrefix] private static void Prefix(CylinderOp __instance) => Prepared.Remove(__instance);
     }
-    private sealed class ChamberPatch : ModulePatch
+    private sealed class ArenaAkimboAmmoChamberPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(typeof(CylinderOp), nameof(CylinderOp.OnAddAmmoInChamber));
         [PatchPrefix] private static bool Prefix(CylinderOp __instance)

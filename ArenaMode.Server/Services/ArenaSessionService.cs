@@ -482,7 +482,7 @@ public class ArenaSessionService
                     key,
                     TimeSpan.FromMinutes(Math.Max(1, ArenaContext.Config.RaidTimeMinutes) + 15));
             }
-            Patches.BotTierScalePatch.ResetReporting();
+            Patches.ArenaBotTierScalePatch.ResetReporting();
 
             // KitCatalog preloads while Armed, before this native request. Keep
             // that exact result, or draw here if no catalogue was requested yet.
