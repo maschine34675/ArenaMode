@@ -10,8 +10,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Arena-NoticeLayout.ps1')
 $noticeMoves = Get-ArenaNoticeMoves
-$AssemblyPath = (Resolve-Path -LiteralPath $AssemblyPath).Path
-$SptPath = (Resolve-Path -LiteralPath $SptPath).Path
+$AssemblyPath = (Resolve-Path -LiteralPath $AssemblyPath).ProviderPath
+$SptPath = (Resolve-Path -LiteralPath $SptPath).ProviderPath
 $name = [IO.Path]::GetFileName($AssemblyPath)
 $ownedDlls = @('maschine-ArenaMode.Client.dll', 'maschine-ArenaMode.BigBrainCompat.dll')
 if ($name -cnotin $ownedDlls -or [Reflection.AssemblyName]::GetAssemblyName($AssemblyPath).Name -cne [IO.Path]::GetFileNameWithoutExtension($name)) {
