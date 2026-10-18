@@ -220,7 +220,7 @@ inside their collection radius.
 Each full pass logs actor/anchor coordinates, the number of top-level alternatives
 actually tried, raw geometry probe count (including nearby fallbacks), and counts
 of every rejection reason. Distance/level fallback limits and pickup spacing are
-also counted. Intermediate failures are Info summaries, not final skip warnings.
+also counted. Intermediate failures are Debug summaries, not final skip warnings.
 One final summary distinguishes success from deadline exhaustion; missing points
 report their last complete pass diagnostics rather than only its last candidate.
 The 2026-09-25 18:54:41 Factory log showed 0/6 from the previous one-shot pass;

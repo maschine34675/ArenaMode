@@ -7,14 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Factory pickup anchor (2026-10-18):** full built-in Factory day/night now
+- **Factory pickup anchor (2026-10-18, `321644a`, GPU2 checked):** full built-in Factory day/night now
   derive placement/rotation authority from a freshly validated connected majority
   of the eight authored pickup floors instead of the player's possibly isolated
   Main Gate entry. Custom layouts/other maps, clearance, bounded repairs and real
   destination paths are unchanged. Offline: 500 pickup / 650 objective assertions,
   41 pickup fault controls, targeted regressions and 1179 units passed (two skips).
-  Client/companion built without deployment; GPU2 regression follows delivery.
-  Details: [FACTORY-PICKUP-ANCHOR-20261018.md](FACTORY-PICKUP-ANCHOR-20261018.md).
+  Client/companion rebuilt and deployed together; server/Core unchanged. GPU2:
+  Factory night independent TDM placed 6/6 on attempt one while the player was at
+  the exact isolated failure origin; Factory day DM placed 6/6 and later exchanged
+  boots/ammo while the player occupied that origin. Native path probes still
+  reject the island-to-interior route. Both protected returns completed, inventory
+  unchanged (314 items), original config restored, EFT stopped. No Arena warning
+  or BepInEx error in those runs; no claim of all six live rotations or collection.
+  Details: [FACTORY-PICKUP-ANCHOR-20261018.md](FACTORY-PICKUP-ANCHOR-20261018.md),
+  [native evidence](GPU-FACTORY-PICKUP-ANCHOR-20261018.md).
 
 - **Patch class names, LICENSE, gameplay log levels (2026-10-18 late, branch
   `feature/patch-ids-log-levels`, not GPU-checked):** all 222 `ModulePatch` classes are

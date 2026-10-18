@@ -66,5 +66,9 @@ Evidence: `artifacts/pickup-checks/00b013605b3a47a4ba8d677624850669/`,
 `artifacts/tdm-match-checks/58b597f7cf2f4d49a543e46e31a40647/`.
 
 Native results and exact deployed identities are recorded separately in
-`GPU-FACTORY-PICKUP-ANCHOR-20261018.md`. Offline checks are not Unity navigation
-or pickup collection acceptance.
+[GPU-FACTORY-PICKUP-ANCHOR-20261018.md](GPU-FACTORY-PICKUP-ANCHOR-20261018.md).
+Factory night independent TDM placed all six on attempt one at the exact former
+failure origin. Factory day DM also placed six immediately and later exchanged
+boots/ammo with the actor on that isolated island. Native route probes still
+refused access from the island to the interior. This verifies the targeted
+placement correction and a live exchange, not every rotation or collection path.
