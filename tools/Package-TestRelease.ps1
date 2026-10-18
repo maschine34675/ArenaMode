@@ -1,10 +1,11 @@
 #Requires -Version 7.0
-# Builds a LOCAL test package from committed sources. Never deploys or uploads.
+# Builds an installable package from committed sources. Never deploys or uploads.
 [CmdletBinding()]
 param(
     [string]$SptPath = (Join-Path $PSScriptRoot '..\..\..'),
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\artifacts\test-releases'),
-    [string]$ArenaRevision
+    [string]$ArenaRevision,
+    [switch]$Release
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -123,6 +124,8 @@ $coreSource = Join-Path $run 'source/Redeploy'
 Assert-SourceLayoutCompatibility $source
 $version = ([xml](Get-Content -Raw -LiteralPath (Join-Path $source 'Shared.props'))).Project.PropertyGroup.Version
 $coreVersion = ([xml](Get-Content -Raw -LiteralPath (Join-Path $coreSource 'Redeploy.Core/CoreVersion.props'))).Project.PropertyGroup.RedeployCoreVersion
+$packageKind = if ($Release) { 'release' } else { 'local-test' }
+$packageLabel = if ($Release) { 'RELEASE PACKAGE' } else { 'LOCAL TEST PACKAGE' }
 $noDeploy = Join-Path $run 'NoDeploy.targets'
 @'
 <Project>
@@ -181,7 +184,7 @@ foreach ($name in @('kits.json', 'ladder.json')) {
 & (Join-Path $source 'tools/Write-ArenaAssets.ps1') -SourceRoot $source `
     -Destination (Join-Path $payload $assetRoot) -SourceRevision $arenaCommit -CoreSourceRoot $coreSource
 @"
-ArenaMode $version - LOCAL TEST PACKAGE
+ArenaMode $version - $packageLabel
 Arena source: $arenaCommit
 Redeploy.Core $coreVersion source: $coreCommit
 
@@ -228,7 +231,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 "@ | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/INSTALL.txt") -Encoding utf8
 
 $manifest = [ordered]@{
-    schemaVersion=2; layout='spt-root-folders-v3'; kind='local-test'; arenaVersion=$version; arenaCommit=$arenaCommit
+    schemaVersion=2; layout='spt-root-folders-v3'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false
     files=@(Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName | ForEach-Object {
@@ -236,7 +239,8 @@ $manifest = [ordered]@{
     })
 }
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/PACKAGE-MANIFEST.json") -Encoding utf8
-$zip = Join-Path $run "ArenaMode-$version-test-$($arenaCommit.Substring(0,7)).zip"
+$zipName = if ($Release) { "ArenaMode-$version.zip" } else { "ArenaMode-$version-test-$($arenaCommit.Substring(0,7)).zip" }
+$zip = Join-Path $run $zipName
 [IO.Compression.ZipFile]::CreateFromDirectory($payload, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
 & python (Join-Path $PSScriptRoot 'Verify-TestRelease.py') $zip
 if ($LASTEXITCODE -ne 0) { throw 'Archive verification failed.' }

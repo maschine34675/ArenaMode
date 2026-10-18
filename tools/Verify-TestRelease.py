@@ -59,7 +59,10 @@ def verify(path):
         assert REQUIRED <= set(names), f'Missing files: {REQUIRED - set(names)}'
         assert {name for name in names if name.lower().endswith('.dll')} == DLLS, 'Unexpected DLL set'
         manifest = json.loads(archive.read(MANIFEST))
-        assert manifest['schemaVersion'] == 2 and manifest['kind'] == 'local-test'
+        assert manifest['schemaVersion'] == 2 and manifest['kind'] in {'local-test', 'release'}
+        label = 'RELEASE PACKAGE' if manifest['kind'] == 'release' else 'LOCAL TEST PACKAGE'
+        install = archive.read(DOCS + 'INSTALL.txt').decode('utf-8-sig')
+        assert install.splitlines()[0] == f"ArenaMode {manifest['arenaVersion']} - {label}", 'Package label/manifest mismatch'
         assert manifest['layout'] == 'spt-root-folders-v3', 'Unexpected package layout version'
         assert not manifest['deployed'] and not manifest['uploaded']
         for key in ('arenaCommit', 'redeployCoreCommit'):
