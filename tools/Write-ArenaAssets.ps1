@@ -192,7 +192,11 @@ $ownedOgg = @($documents.Values | Where-Object { $_.EndsWith('.ogg', [StringComp
 if ($ownedOgg.Count -ne $audio.Count) { throw 'Unrecorded or missing announcer audio file.' }
 $coreLicense = Join-Path $CoreSourceRoot 'LICENSE'
 Assert-NoReparsePath $coreLicense
-if ((Get-FileHash -LiteralPath $coreLicense).Hash -cne (Get-FileHash -LiteralPath (Join-Path $SourceRoot 'LICENSE')).Hash) {
+# Compare the license TEXT: line endings are a checkout detail (core.autocrlf=true
+# turns LF into CRLF in a fresh clone or worktree), not a different license.
+# .gitattributes pins LICENSE to LF in both repositories as well.
+function Get-LicenseText([string]$path) { [IO.File]::ReadAllText($path).Replace("`r`n", "`n") }
+if ((Get-LicenseText $coreLicense) -cne (Get-LicenseText (Join-Path $SourceRoot 'LICENSE'))) {
     throw 'Core license differs from the shared project notice; include its separate notice before packaging.'
 }
 foreach ($entry in $pending.GetEnumerator()) {

@@ -1,0 +1,3 @@
+# LICENSE is compared with Redeploy's LICENSE by tools/Write-ArenaAssets.ps1 and shipped
+# as docs/LICENSE. Pin it to LF so core.autocrlf=true cannot check it out with CRLF.
+LICENSE text eol=lf
