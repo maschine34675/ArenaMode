@@ -138,6 +138,14 @@ Put $blocked 'BepInEx/plugins/maschine-ArenaMode/docs/licenses/ui/NOTICE.md/keep
 $before = Snapshot $blocked
 Deploy $blocked 'Release' $false $true
 Check ((Snapshot $blocked) -ceq $before) 'notice destination collision aborts before DLL or asset writes'
+foreach ($case in @(@('legacy-parent', 'docs/licenses'), @('legacy-notice-directory', 'Ui/NOTICE.md/keep.txt'),
+    @('legacy-retired-directory', 'hitmarkers/KENNEY-IMPACT-LICENSE.txt/keep.txt'))) {
+    $root = Join-Path $run $case[0]
+    Put $root ('BepInEx/plugins/ArenaMode/' + $case[1]) 'user file must survive'
+    $before = Snapshot $root
+    Deploy $root 'Release' $false $true
+    Check ((Snapshot $root) -ceq $before) ('legacy collision fails before any mutation: ' + $case[0])
+}
 
 $linked = Join-Path $run 'linked'
 $external = Join-Path $run 'link-destination'

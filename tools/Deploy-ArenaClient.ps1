@@ -86,14 +86,24 @@ foreach ($notice in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt', 'CC-BY-3.0
 foreach ($entry in $noticeMoves.GetEnumerator()) {
     [void]$ownedAssets.Add($entry.Key)
     [void]$ownedAssets.Add($entry.Value)
-    $destination = Join-Path $canonical $entry.Value
-    Assert-SafePath $destination
-    if (Test-Path -LiteralPath $destination -PathType Container) { throw "Notice destination is a directory: $destination" }
-    # Detect a file blocking a future destination directory before replacing DLLs.
-    $parent = Split-Path $destination
-    while ($parent -ne $canonical) {
-        if (Test-Path -LiteralPath $parent -PathType Leaf) { throw "Notice parent is a file: $parent" }
-        $parent = Split-Path $parent
+    foreach ($root in @($canonical, $legacy)) {
+        $oldNotice = Join-Path $root $entry.Key
+        if (Test-Path -LiteralPath $oldNotice -PathType Container) { throw "Notice source is a directory: $oldNotice" }
+        $destination = Join-Path $root $entry.Value
+        Assert-SafePath $destination
+        if (Test-Path -LiteralPath $destination -PathType Container) { throw "Notice destination is a directory: $destination" }
+        # Check legacy parents too: they may be merged into the canonical tree.
+        $parent = Split-Path $destination
+        while ($parent -ne $root) {
+            if (Test-Path -LiteralPath $parent -PathType Leaf) { throw "Notice parent is a file: $parent" }
+            $parent = Split-Path $parent
+        }
+    }
+}
+foreach ($root in @($canonical, $legacy)) {
+    foreach ($relative in Get-ArenaRetiredNotices) {
+        $source = Join-Path $root $relative
+        if (Test-Path -LiteralPath $source -PathType Container) { throw "Retired notice is a directory: $source" }
     }
 }
 foreach ($file in $oldFiles) {
