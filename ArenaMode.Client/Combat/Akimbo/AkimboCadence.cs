@@ -19,8 +19,8 @@ internal static class AkimboCadence
     internal static int AcceleratedUpdates { get; private set; }
     internal static void Enable()
     {
-        new TimerPatch(typeof(Player.FirearmController.FireOperation)).Enable();
-        new TimerPatch(typeof(Player.FirearmController.AutomaticFireOperation)).Enable();
+        new ArenaAkimboCadenceTimerPatch(typeof(Player.FirearmController.FireOperation)).Enable();
+        new ArenaAkimboCadenceTimerPatch(typeof(Player.FirearmController.AutomaticFireOperation)).Enable();
         new ArenaAkimboCadenceFastAnimatorPatch().Enable(); new ArenaAkimboCadenceControllerPatch().Enable();
         new ArenaAkimboCadenceStatePatch().Enable();
     }
@@ -83,7 +83,7 @@ internal static class AkimboCadence
     }
     internal static void Reset() { ReleaseSpeed(); _blocked = null; }
 
-    private sealed class TimerPatch(Type type) : ModulePatch
+    private sealed class ArenaAkimboCadenceTimerPatch(Type type) : ModulePatch
     {
         protected override MethodBase GetTargetMethod() => AccessTools.DeclaredMethod(type, "Update", new[] { typeof(float) });
         [PatchPrefix] private static void Prefix(Player.FirearmController.FireOperationBase __instance, ref float deltaTime)

@@ -167,8 +167,8 @@ grenade in a container nested in the rig/backpack.
 6. **Ordinary PMC raid** afterwards: G, hold-G and number keys behave as before.
    With the mod installed, a nested-pouch grenade thrown by number key still blocks
    tap G there — that is the mod's own behaviour, unchanged by Arena.
-7. `BepInEx\LogOutput.log` shows `Enabled patch PickAfterRemovalPatch` and
-   `Enabled patch PickBeforeTapThrowPatch` at startup, and no "Arena grenade pick
+7. `BepInEx\LogOutput.log` shows `Enabled patch ArenaReachPickAfterRemovalPatch` and
+   `Enabled patch ArenaReachPickBeforeTapThrowPatch` at startup, and no "Arena grenade pick
    cleanup failed" or "Arena grenade pick patch not enabled" line.
 
 ## Delivery

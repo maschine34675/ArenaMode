@@ -70,15 +70,15 @@ dotnet run --project tools/NativeAreaHookChecks/NativeAreaHookChecks.csproj -c R
 
 Meaningful controls and their targeted assertions:
 
-- Remove the `SelectionPatch` early area-write preflight: the rejected Customs
+- Remove the `ArenaLocationSelectionSelectionPatch` early area-write preflight: the rejected Customs
   write reaches the retained native dereference and fails
   `rejected Customs area write enters native null branch, not its later dereference`.
-- Remove `SelectedValuePatch` repair: direct Customs assignment after Factory
+- Remove `ArenaLocationSelectionSelectedValuePatch` repair: direct Customs assignment after Factory
   fails `direct setter repairs area from incoming Customs despite old Factory settings`.
 - Restore strict `IsMapAvailable` in the Factory time availability predicate:
   South prevents night and fails
   `Factory South does not suppress the configured native night variant`.
-- Restore discovery-based materialization in `DisplayPatch`: strict PFT
+- Restore discovery-based materialization in `ArenaLocationSelectionDisplayPatch`: strict PFT
   eligibility with a wrong saved mode prevents rows from being created before
   mode repair, failing `PFT wrong saved mode must not prevent native map materialization before postfix mode repair`.
 - Make a stale updater generation call shared `state.Restore()`: the new view
