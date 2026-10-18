@@ -248,7 +248,21 @@ public static class KitBuilder
         FillGrids(equipment, factory, kit, created);
     }
 
-    private static Item CreateAndAttach(Item parent, KitItemNode node, ItemFactory factory)
+    // Entry issuance has no old body and cannot accept the ordinary builder's
+    // best-effort partial tree. Keep that stricter contract at this named seam.
+    internal static Item CreateEntryNode(Item parent, KitItemNode node, ItemFactory factory)
+    {
+        if (FindOccupied(parent, node.SlotId) != null)
+            throw new InvalidOperationException($"Entry kit slot '{node.SlotId}' is already occupied");
+        return CreateAndAttach(parent, node, factory, strict: true)
+               ?? throw new InvalidOperationException($"Entry kit could not attach '{node.Tpl}' to '{node.SlotId}'");
+    }
+
+    internal static void FillEntryGrids(InventoryEquipment equipment, ItemFactory factory,
+        KitDefinition kit, Dictionary<string, Item> created)
+        => FillGrids(equipment, factory, kit, created, strict: true);
+
+    private static Item CreateAndAttach(Item parent, KitItemNode node, ItemFactory factory, bool strict = false)
     {
         // Occupied target slot (Pockets from the surgeon, transferred SecuredContainer/
         // Scabbard/ArmBand): reuse the live item as mapping target for the node's
@@ -290,7 +304,7 @@ public static class KitBuilder
         }
 
         var item = factory.CreateItem(factory.NextId, node.Tpl, null);
-        ApplyUpd(item, node.Upd);
+        ApplyUpd(item, node.Upd, strict);
 
         // Magazine ammo lives in a StackSlot, which is not a Slot.
         if (parent is Magazine magazine && node.SlotId == "cartridges")
@@ -429,7 +443,7 @@ public static class KitBuilder
         return FindSlot(parent, slotId)?.ContainedItem;
     }
 
-    private static void ApplyUpd(Item item, JObject upd)
+    private static void ApplyUpd(Item item, JObject upd, bool strict = false)
     {
         if (upd == null)
             return;
@@ -474,6 +488,8 @@ public static class KitBuilder
         }
         catch (Exception ex)
         {
+            if (strict)
+                throw new InvalidOperationException($"Entry kit upd for '{item?.TemplateId}' is invalid", ex);
             Plugin.ModLogger.LogWarning($"Kit: applying upd to {item.TemplateId} failed: {ex.Message}");
         }
     }
@@ -555,7 +571,7 @@ public static class KitBuilder
         }
     }
 
-    private static void FillGrids(InventoryEquipment equipment, ItemFactory factory, KitDefinition kit, Dictionary<string, Item> created)
+    private static void FillGrids(InventoryEquipment equipment, ItemFactory factory, KitDefinition kit, Dictionary<string, Item> created, bool strict = false)
     {
         if (kit.Fill == null)
             return;
@@ -597,6 +613,8 @@ public static class KitBuilder
                 }
                 if (!AddToAnyGrid(entry.OptionalQuickUseOnly ? grenadeContainers : containers, item, out var reason))
                 {
+                    if (strict && !entry.OptionalQuickUseOnly)
+                        throw new InvalidOperationException($"Entry kit required supply '{entry.Tpl}' did not fit: {reason}");
                     if (entry.OptionalQuickUseOnly)
                         Plugin.ModLogger.LogInfo($"Kit: optional grenade {Describe(item)} skipped; no compatible quick-use space ({reason}).");
                     else

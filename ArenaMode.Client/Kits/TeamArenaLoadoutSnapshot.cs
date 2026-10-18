@@ -409,17 +409,33 @@ public sealed class TeamArenaLoadoutSnapshot
             throw new InvalidOperationException($"reflatten validation failed: {reason}");
     }
 
+    /// <summary>Loading-screen issuance shares the round restore's protected
+    /// transfers and metadata rollback, without requiring a corpse or live body.</summary>
+    internal static void CommitEntryEquipment(Profile profile, InventoryEquipment expectedEquipment,
+        InventoryEquipment preparedEquipment)
+    {
+        if (profile?.Inventory == null || !ReferenceEquals(profile.Inventory.Equipment, expectedEquipment)
+            || expectedEquipment == null || preparedEquipment == null
+            || ReferenceEquals(expectedEquipment, preparedEquipment) || preparedEquipment.CurrentAddress != null)
+            throw new InvalidOperationException("entry kit equipment identity changed before commit");
+        CommitEquipmentTransaction(profile, expectedEquipment, preparedEquipment,
+            new Dictionary<string, string>(StringComparer.Ordinal), registerIssued: true);
+    }
+
     private static void CommitEquipmentTransaction(
         Profile profile,
         InventoryEquipment oldEquipment,
         InventoryEquipment newEquipment,
-        IReadOnlyDictionary<string, string> currentToFreshIds)
+        IReadOnlyDictionary<string, string> currentToFreshIds,
+        bool registerIssued = false)
     {
         EftInventory inventory = profile.Inventory;
+        Item[] issuedItems = registerIssued ? newEquipment.GetAllItems().ToArray() : Array.Empty<Item>();
         SanitizerState sanitizerState = SanitizerState.Capture(profile, FastAccessField(inventory));
         List<SlotTransfer> plan = BuildProtectedTransferPlan(oldEquipment, newEquipment);
         var completedTransfers = new List<SlotTransfer>(plan.Count);
         var rollbackErrors = new List<string>();
+        var learnedIssuedTemplates = new List<MongoID>();
         bool committed = false;
 
         try
@@ -431,6 +447,20 @@ public sealed class TeamArenaLoadoutSnapshot
             committed = true;
             ProfileInventorySanitizer.Sanitize(profile);
             sanitizerState.ApplyRemapped(profile, newEquipment, currentToFreshIds, FastAccessField);
+            if (registerIssued)
+            {
+                KitBuilder.RegisterAsChecked(profile, issuedItems);
+                // Null means "all examined" in EFT. Preserve that exact meaning;
+                // otherwise only learn templates actually issued, including M60
+                // parts that are not examined by default. No source profile clone.
+                foreach (Item item in issuedItems)
+                {
+                    if (profile.Encyclopedia == null || profile.Examined(item))
+                        continue;
+                    profile.Encyclopedia.Add(item.TemplateId, false);
+                    learnedIssuedTemplates.Add(item.TemplateId);
+                }
+            }
 
             if (!ReferenceEquals(inventory.Equipment, newEquipment))
                 throw new InvalidOperationException("Equipment FieldRef commit did not retain the reconstructed root");
@@ -439,6 +469,8 @@ public sealed class TeamArenaLoadoutSnapshot
         }
         catch (Exception failure)
         {
+            foreach (MongoID template in learnedIssuedTemplates)
+                profile.Encyclopedia.Remove(template);
             if (committed)
             {
                 try
