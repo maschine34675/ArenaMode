@@ -45,7 +45,7 @@ internal static class ArenaBotHotPaths
     {
         if (!_deadAgentsEnabled)
         {
-            try { new DeadAgentsPatch().Enable(); _deadAgentsEnabled = true; }
+            try { new ArenaDeadBrainQueuePatch().Enable(); _deadAgentsEnabled = true; }
             catch (Exception ex) { Warn("dead-brain queue trim", ex); }
         }
         if (!_fovEnabled)
@@ -56,7 +56,7 @@ internal static class ArenaBotHotPaths
             }
             else
             {
-                try { new FovCoroutinePatch().Enable(); _fovEnabled = true; }
+                try { new ArenaBotFovCoroutinePatch().Enable(); _fovEnabled = true; }
                 catch (Exception ex) { Warn("bot FOV coroutine short-circuit", ex); }
             }
         }
@@ -162,7 +162,7 @@ internal static class ArenaBotHotPaths
         Plugin.ModLogger.LogWarning("Arena bot hot paths: " + what + " unavailable for this call; native behavior retained. " + ex.GetBaseException().Message);
     }
 
-    private sealed class DeadAgentsPatch : ModulePatch
+    private sealed class ArenaDeadBrainQueuePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(AICoreController), nameof(AICoreController.Update), Type.EmptyTypes);
@@ -171,7 +171,7 @@ internal static class ArenaBotHotPaths
         private static void Prefix(AICoreController __instance) => TrimDeadAgents(__instance);
     }
 
-    private sealed class FovCoroutinePatch : ModulePatch
+    private sealed class ArenaBotFovCoroutinePatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()
             => AccessTools.DeclaredMethod(typeof(ProceduralWeaponAnimation), nameof(ProceduralWeaponAnimation.StartFovCoroutine),
