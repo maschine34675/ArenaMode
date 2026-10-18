@@ -25,4 +25,7 @@
   <EmbeddedResource Include="../../ArenaMode.Client/Assets/Ui/*.png;../../ArenaMode.Client/Assets/Ui/NOTICE.md;../../ArenaMode.Client/Assets/Ui/SOURCES.json;../../ArenaMode.Client/Assets/Ui/MIT-LICENSE.txt;../../ArenaMode.Client/Assets/Ui/CC-BY-3.0.txt"><LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName></EmbeddedResource>
   <EmbeddedResource Include="RetiredArtwork.json"><LogicalName>Checks.RetiredArtwork.json</LogicalName></EmbeddedResource>
  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs" />
+  </ItemGroup>
 </Project>

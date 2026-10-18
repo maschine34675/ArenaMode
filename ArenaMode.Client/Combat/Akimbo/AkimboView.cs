@@ -29,6 +29,7 @@ internal sealed class AkimboView : IDisposable
     private readonly Transform _source;
     private GameObject _root, _rightRoot, _rightFlash, _leftFlash;
     private Material _flashMaterial;
+    private AkimboAimLaser _aimLaser;
     private Vector3 _restPosition;
     private Quaternion _restRotation;
     private Transform _camera;
@@ -60,6 +61,7 @@ internal sealed class AkimboView : IDisposable
             _leftFlash = MakeFlash(firearm.CurrentFireport.Original.gameObject.layer);
             _rightFlash = MakeFlash(firearm.CurrentFireport.Original.gameObject.layer);
             UseFireport(firearm.CurrentFireport.Original);
+            _aimLaser = new AkimboAimLaser();
         }
         catch { Dispose(); throw; }
     }
@@ -124,7 +126,7 @@ internal sealed class AkimboView : IDisposable
 
     internal void UseFireport(Transform source)
     {
-        if (source == null || !_copies.TryGetValue(source, out var node) || node.Left == null || node.Right == null)
+        if (source == null || !_copies.TryGetValue(source, out var node) || node.Left == null || node.Right == null || !Owned(node))
             throw new InvalidOperationException("Pistol muzzle is outside the owned model");
         Fireport = node.Left; RightFireport = node.Right;
         _leftFlash.transform.SetParent(Fireport, false); _leftFlash.transform.localPosition = Vector3.zero;
@@ -249,9 +251,24 @@ internal sealed class AkimboView : IDisposable
         target.SetParent(hand, true);
     }
     internal void Shot(bool left) { _animation.Shot(left, Time.time); _poseFrame = -1; }
+
+    internal void Aim(Vector3 camera, Vector3 nativeOrigin, Vector3 nativeDirection,
+        Vector3 nativeMuzzle, Transform self, Color color)
+    {
+        if (!Visible || _aimLaser == null) { _aimLaser?.Hide(); return; }
+        if (!_copies.TryGetValue(_source, out var source) || !Owned(source))
+            throw new InvalidOperationException("Akimbo aiming owner changed");
+        _aimLaser.Draw(0, camera, nativeOrigin, nativeDirection, RightFireport.position, self, color);
+        if (AkimboShotGeometry.TryLeft(camera, nativeOrigin, nativeDirection, nativeMuzzle,
+            Fireport.position, out var leftOrigin, out var leftDirection))
+            _aimLaser.Draw(1, camera, leftOrigin, leftDirection, Fireport.position, self, color);
+        else _aimLaser.Hide(1); // The actual shot falls back to native right geometry too.
+    }
+
     internal void Hide()
     {
         Visible = false;
+        _aimLaser?.Hide();
         if (_root != null) _root.SetActive(false);
         if (_rightRoot != null) _rightRoot.SetActive(false);
         RestoreNative();
@@ -283,6 +300,7 @@ internal sealed class AkimboView : IDisposable
     public void Dispose()
     {
         Hide();
+        _aimLaser?.Dispose(); _aimLaser = null;
         if (_root != null) UnityEngine.Object.Destroy(_root);
         if (_rightRoot != null) UnityEngine.Object.Destroy(_rightRoot);
         if (_flashMaterial != null) UnityEngine.Object.Destroy(_flashMaterial);

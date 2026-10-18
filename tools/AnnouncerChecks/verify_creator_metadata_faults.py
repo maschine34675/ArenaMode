@@ -33,6 +33,17 @@ def verify_inventory_faults(manifest):
             shutil.copy2(ASSETS / name, target)
         verify_inventory(assets, manifest, supplement)
 
+        # Git may check out this TEXT manifest as LF or CRLF. Both must retain
+        # the reviewed canonical pin; audio bytes and semantic mutations remain
+        # exact. Exercise temporary copies only, never rewrite the source pack.
+        manifest_path = assets / 'ANNOUNCER-SOURCES.json'
+        original_bytes = manifest_path.read_bytes()
+        lf_bytes = original_bytes.replace(b'\r\n', b'\n')
+        for endings in (lf_bytes, lf_bytes.replace(b'\n', b'\r\n')):
+            manifest_path.write_bytes(endings)
+            verify_inventory(assets, manifest, supplement)
+        manifest_path.write_bytes(original_bytes)
+
         # Unknown root, reserve and nested files must not pass a subset test.
         for name, expected in [('sounds/unknown.ogg', 'Active cue set changed'),
                                ('sounds/reserve/unknown.ogg', 'Missing/unrecorded OGGs'),

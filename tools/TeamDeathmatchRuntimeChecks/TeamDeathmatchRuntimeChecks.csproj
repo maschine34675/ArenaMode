@@ -34,4 +34,7 @@
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs" />
+  </ItemGroup>
 </Project>

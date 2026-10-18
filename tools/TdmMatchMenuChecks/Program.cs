@@ -180,11 +180,46 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-// 5 modes (Deathmatch/Gun Game/Tactical/Team DM/Zombie) + 9 TDM + 17 Deathmatch
+// 5 modes + 2 inert previews + 9 TDM + 17 Deathmatch
 // + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
 // 2026-10-06 follow-up) is built unconditionally in Create() just like the
 // TDM/Deathmatch rules rows, only its own visibility differs by mode.
-Need(Buttons().Length == 33 && RuleRoot().activeInHierarchy, "five modes, nine TDM, seventeen Deathmatch and two equipment-choice buttons exist without a mutators opener");
+Need(Buttons().Length == 35 && RuleRoot().activeInHierarchy, "five modes, two previews and existing rules exist without a mutators opener");
+void CheckPreviews()
+{
+    var previews = Buttons().Where(b => b.name.StartsWith("Arena Preview ")).ToArray();
+    Need(previews.Length == 2 && previews.Select(b => b.GetComponentInChildren<TMP_Text>(true).text)
+        .SequenceEqual(new[] { "CAPTURE THE FLAG", "DOMINATION" }), "both future modes are visible in order");
+    string saved = Settings.GameMode.Value;
+    int beforeSaves = config.Saves;
+    var playable = Buttons().First(b => b.name.StartsWith("Arena Mode "));
+    playable.GetComponent<Animator>().SimulateNativeLabelColor();
+    var nativeColor = playable.GetComponentInChildren<TMP_Text>(true).color;
+    Need(nativeColor.r != nativeColor.g, "native animation color positive control runs on playable rows");
+    foreach (var preview in previews)
+    {
+        Need(preview.gameObject.activeInHierarchy && !preview.interactable
+            && preview.navigation.mode == Navigation.Mode.None && preview.onClick.Snapshot().Length == 0,
+            "future mode has neither pointer, keyboard nor inherited callback admission");
+        foreach (var animator in preview.gameObject.GetComponentsInChildren<Animator>(true))
+            animator.SimulateNativeLabelColor();
+        var color = preview.GetComponentInChildren<TMP_Text>(true).color;
+        Need(color.r == color.g && color.g == color.b && color.r < .6f, "preview text stays gray after native animation update");
+        preview.onClick.Invoke();
+    }
+    Need(Settings.GameMode.Value == saved && config.Saves == beforeSaves, "forced preview dispatch cannot persist a mode");
+    Need(ArenaModeCatalog.All.Count == 5, "future previews never become launchable catalog entries");
+    int writes = 0;
+    var selection = new ArenaModeSelectionState("deathmatch", false, _ => { writes++; return true; });
+    Need(!selection.TrySelectIndex(5) && !selection.TrySelectIndex(6) && writes == 0,
+        "preview positions cannot be selected through the real state owner");
+    var rows = Buttons().Where(b => b.name.StartsWith("Arena Mode ") || b.name.StartsWith("Arena Preview "))
+        .Select(b => (RectTransform)b.transform).OrderBy(r => -r.anchoredPosition.y).ToArray();
+    for (int i = 0; i < rows.Length; i++)
+        Need(-rows[i].anchoredPosition.y + rows[i].sizeDelta.y < (i + 1 < rows.Length
+            ? -rows[i + 1].anchoredPosition.y : 274f), "mode hit areas neither overlap nor cross the facts divider");
+}
+CheckPreviews();
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(Label("OBJECTIVE label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM retains all common facts above its limit controls");
@@ -227,6 +262,7 @@ KillButton(50).onClick.Invoke();
 Need(!RuleRoot().activeSelf && Label("OBJECTIVE label").gameObject.activeSelf
     && Settings.TeamDeathmatchKillLimit.Value == 25, "other mode restores facts and rejects hidden rule events");
 view.Synchronize("tactical", true);
+CheckPreviews();
 Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 530
     && Label("EQUIPMENT value").text == "PMC entry gear", "PFT layout and entry equipment preserved");
 view.Synchronize("deathmatch", false);

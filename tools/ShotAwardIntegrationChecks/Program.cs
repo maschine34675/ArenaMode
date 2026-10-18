@@ -8,7 +8,7 @@ using EFT.InventoryLogic;
 using SPT.Reflection.Patching;
 using System.Reflection;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
     private sealed class Fixture
@@ -52,7 +52,7 @@ internal static class Program
         internal Shot Raw(int fire = 11, Shot parent = null) => new()
         {
             Player = new() { iPlayer = Local }, Weapon = Weapon,
-            Ammo = new() { Id = "cartridge-" + fire, TemplateId = "ammo-template" },
+            Ammo = new Ammo { Id = "cartridge-" + fire, TemplateId = "ammo-template" },
             FireIndex = fire, Parent = parent
         };
         internal Shot Fire(int fire = 11)
@@ -106,7 +106,7 @@ internal static class Program
 
     private static void NativeBoundary()
     {
-        Check(ModulePatch.Targets.Count == 4, "all four native hook targets registered");
+        Check(ModulePatch.Targets.Count == 5, "all five native hook targets registered");
         Check(ModulePatch.Targets[0].DeclaringType == typeof(Player.FirearmController)
             && ModulePatch.Targets[0].Name == "InitiateShot", "fire hook targets actual initiation");
         Check(ModulePatch.Targets[1].DeclaringType == typeof(Shot)
@@ -116,7 +116,8 @@ internal static class Program
         Check(ModulePatch.Targets[3].DeclaringType == typeof(MovementContext)
             && ModulePatch.Targets[3].Name == "CheckFlying", "flight observation follows native ground refresh");
         Check(PatchMethod("FlightPatch", "Postfix").IsDefined(typeof(PatchPostfixAttribute)), "flight observer is postfix only");
-        foreach (var patch in new[] { "FirePatch", "ImpactPatch" })
+        Check(ModulePatch.Targets[4].Name == "CreateDeviatedFragment", "continuation hook targets native penetration only");
+        foreach (var patch in new[] { "FirePatch", "ImpactPatch", "ContinuationPatch" })
         {
             Check(PatchMethod(patch, "Prefix").IsDefined(typeof(PatchPrefixAttribute)), patch + " has prefix attribute");
             Check(PatchMethod(patch, "Finalizer").IsDefined(typeof(PatchFinalizerAttribute)), patch + " has finalizer attribute");
@@ -136,7 +137,7 @@ internal static class Program
             f.Gun.IsAiming = aiming;
             f.Weapon.BoltAction = bolt;
             var facts = f.Impact(f.Fire());
-            Check(facts.IsKnown == !aiming, "aimed fire has no award snapshot");
+            Check(facts.IsKnown, "aimed fire retains physical bullet identity for collateral");
             Check(facts.AirborneHipFire == (!aiming && !movementGround && !capsuleGround), "airborne requires both native ground checks and no ADS");
             Check(facts.BoltActionHipFire == (!aiming && bolt), "no scope requires actual bolt action and no ADS");
         }
@@ -413,7 +414,8 @@ internal static class Program
             var suites = new Dictionary<string, Action>
             {
                 ["boundary"] = NativeBoundary, ["conditions"] = Conditions, ["airtime"] = Airtime, ["admission"] = Admission,
-                ["correlation"] = Correlation, ["lifetime"] = Lifetime, ["finalizers"] = Finalizers
+                ["correlation"] = Correlation, ["lifetime"] = Lifetime, ["finalizers"] = Finalizers,
+                ["collateral"] = Collateral
             };
             foreach (var suite in suites)
                 if (args.Length == 0 || args[0] == "all" || args[0] == suite.Key) suite.Value();

@@ -15,6 +15,8 @@ internal sealed class ArenaModeSelectionView
 {
     private const float PanelWidth = 360f;
     private const float Inset = 20f;
+    private const float ModeRowHeight = 25f;
+    private const float ModeRowStep = 27f;
     private readonly List<Button> _buttons = new();
     private readonly List<GameObject> _markers = new();
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
@@ -151,7 +153,10 @@ internal sealed class ArenaModeSelectionView
         _subtitle = subtitle;
 
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
-            CreateRow(template, typography, index, 84f + index * 36f);
+            CreateRow(template, typography, index, 84f + index * ModeRowStep);
+        // Presentation only: previews never enter the playable catalog or its indices.
+        CreatePreviewRow(template, "CAPTURE THE FLAG", 84f + ArenaModeCatalog.All.Count * ModeRowStep);
+        CreatePreviewRow(template, "DOMINATION", 84f + (ArenaModeCatalog.All.Count + 1) * ModeRowStep);
 
         CreateRule(274f, typography);
         _description = CreateText("Mode description", typography, string.Empty, 14f, 284f, 42f);
@@ -176,7 +181,7 @@ internal sealed class ArenaModeSelectionView
         button.name = "Arena Mode " + ArenaModeCatalog.All[index].Id;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, Inset, top, PanelWidth - 2f * Inset, 34f);
+        SetRect((RectTransform)button.transform, Inset, top, PanelWidth - 2f * Inset, ModeRowHeight);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
@@ -188,7 +193,7 @@ internal sealed class ArenaModeSelectionView
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
-        SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, 34f);
+        SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, ModeRowHeight);
 
         var allowed = _selection.CanSelectIndex(index);
         var tooltip = button.GetComponent<HoverTooltipArea>();
@@ -209,7 +214,7 @@ internal sealed class ArenaModeSelectionView
         var marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         marker.transform.SetParent(button.transform, false);
         marker.transform.SetAsLastSibling();
-        SetRect((RectTransform)marker.transform, 0f, 0f, 3f, 34f);
+        SetRect((RectTransform)marker.transform, 0f, 0f, 3f, ModeRowHeight);
         var markerImage = marker.GetComponent<Image>();
         markerImage.color = Hud.ArenaUiTheme.Accent;
         markerImage.raycastTarget = false;
@@ -221,6 +226,44 @@ internal sealed class ArenaModeSelectionView
                 || !_buttons.Contains(button) || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) return;
             Select(index);
         });
+        button.gameObject.SetActive(true);
+    }
+
+    private void CreatePreviewRow(Button template, string title, float top)
+    {
+        var button = UnityEngine.Object.Instantiate(template, _root.transform, false);
+        button.name = "Arena Preview " + title;
+        // The cloned native Animator writes the label color again after activation.
+        // These inert rows need no native transitions; leave playable rows alone.
+        foreach (var animator in button.gameObject.GetComponentsInChildren<Animator>(true))
+            animator.enabled = false;
+        // Replace all prefab events; even explicit event dispatch must be inert.
+        button.onClick = new Button.ButtonClickedEvent();
+        button.transform.localScale = Vector3.one;
+        SetRect((RectTransform)button.transform, Inset, top, PanelWidth - 2f * Inset, ModeRowHeight);
+        var layout = button.GetComponent<LayoutElement>();
+        if (layout != null) layout.ignoreLayout = true;
+        var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
+            ?? throw new InvalidOperationException("The native mode-row label is missing.");
+        label.text = title;
+        label.fontSize = 19f;
+        label.enableWordWrapping = false;
+        label.overflowMode = TextOverflowModes.Ellipsis;
+        label.alignment = TextAlignmentOptions.MidlineLeft;
+        label.raycastTarget = false;
+        Hud.ArenaUiTheme.StyleButton(button, label);
+        label.color = new Color(.48f, .48f, .48f, 1f);
+        SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, ModeRowHeight);
+        button.interactable = false;
+        var navigation = button.navigation;
+        navigation.mode = Navigation.Mode.None;
+        button.navigation = navigation;
+        var tooltip = button.GetComponent<HoverTooltipArea>();
+        if (tooltip != null)
+        {
+            tooltip.SetMessageText("Planned mode — not available yet.", rawText: true);
+            tooltip.SetUnlockStatus(false);
+        }
         button.gameObject.SetActive(true);
     }
 

@@ -7,6 +7,11 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Arena-owned BigBrain library and Redeploy server boundary](BIGBRAIN-LIBRARY-20261018.md)
+- [GPU2 powerup indicators, Akimbo lasers and mode-preview acceptance](GPU-FEEDBACK-20261018.md)
+- [Automatic Akimbo aiming lasers](AKIMBO-LASER-20261018.md)
+- [Bot Shield and Double Damage indicators](POWERUP-INDICATORS-20261018.md)
+- [Same-bullet Collateral announcement](COLLATERAL-ANNOUNCEMENT-20261018.md)
+- [Disabled Capture the Flag and Domination previews](MODE-PREVIEWS-20261018.md)
 - [GPU2 map-feature tests and rendering follow-up](GPU-MAP-FEATURES-20261017.md)
 - [All-map lighting and one-second deploy countdown](MAP-LIGHTING-20261017.md)
 - [All-map pickup layouts and longer beams](ALL-MAP-PICKUPS-20261017.md)

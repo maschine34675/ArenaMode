@@ -37,6 +37,8 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   leftover equipment appearing in later inventory previews.
 - Mode order: **Gun Game, Deathmatch, Team DM, Tactical (WIP), Zombies (WIP)**.
   Mode descriptions use a common objective/respawn/equipment scheme.
+  **Capture the Flag** and **Domination** appear below as gray, disabled previews;
+  they are not playable or saved as selected modes.
 - Native map filtering, mode-specific equipment choices, participant/team-size
   controls, time choices and match rules in the map-selection screen.
 - Own gear versus Arena kits is offered for solo Zombies; PFT Tactical/Zombies
@@ -267,6 +269,11 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   launchers, shotgun revolvers or pistol-named SMGs. **Hip fire only: ADS is
   disabled while Akimbo is active.** Replicas hide during reload, sprint and
   other busy states; hand/finger posing remains WIP.
+- Automatically enabled visual aiming lasers follow both pistol muzzles, including
+  pistols and revolvers without an attachment rail. Green by default, or the
+  friendly team color when team lasers apply. These Arena-owned visual aids do
+  not add inventory attachments or native laser accuracy bonuses; they hide with
+  the Akimbo presentation and stop at detected cover.
 - Shares the real weapon's ammunition/reload state; it is not a second
   independently equipped inventory weapon. Off by default; unavailable in
   Zombies. Native weapon restrictions still apply.
@@ -334,6 +341,10 @@ area, Equator, Bay5 and AirPit. Gun Game, Tactical/PFT and Zombies do not use th
 - Bots may collect health, shield and damage powerups; deliberate pursuit of
   these objectives requires the BigBrain companion. Boots, unlimited ammo and
   the weapon are player pickups.
+- Bots carrying Shield or Double Damage show blue or pink world-space rings,
+  respectively, matching their pickup colors. Both may appear together, alongside
+  the separate pale spawn shield. Each follows its own effect lifetime, remains
+  independent of the HUD switch and disappears when its effect or body ends.
 
 Sources: [pickup system](PICKUPS-REVIEW.md),
 [all-map layouts](ALL-MAP-PICKUPS-20261017.md),
@@ -442,6 +453,10 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
 - Streaks: **Killing Spree, Rampage, Dominating, Unstoppable, Godlike**.
 - Special events include **First Blood, Headshot, Payback, Shutdown, Last Man
   Standing, Clutch, Airborne and No Scope**; cues depend on the mode/event rules.
+- **COLLATERAL** is a text-only award for two distinct enemies killed by the same
+  physical bullet, including its penetration continuation. Separate rapid shots,
+  shotgun pellets, fragments, ricochets, teamkills and delayed bleeding do not
+  qualify. It adds no score bonus and has no recording yet.
 - Headshot award uses the single-headshot-kill condition; an ordinary headshot
   hitmarker is a separate event. Airborne requires an unaimed killing shot after
   at least **0.5 seconds in the air**. No Scope is for eligible bolt-action shots.
@@ -455,7 +470,7 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
 - Priority handling favors an earned multikill over a simultaneous ordinary
   spree cue. A bounded pending cue and expiry prevent a backlog of stale speech.
   Results wait for an active kill callout instead of cutting it off immediately.
-- One main award label is chosen per kill: First Blood → Payback → Shutdown →
+- One main award label is chosen per kill: Collateral → First Blood → Payback → Shutdown →
   multikill → Airborne → No Scope → spree → Headshot. These labels do not grant
   separate new point bonuses. Shot awards use the state when fired, not impact;
   delayed bleeding does not inherit the preceding shot's Airborne/No Scope.
@@ -713,9 +728,9 @@ Source: [mutator selection policy](../ArenaMode.Client/Session/ArenaMutatorSelec
   describes implemented behavior, not a new certification of every scenario.
 - M60 spare boxes and some large kit medical supplies still have recorded
   placement limits. See the [known follow-ups](FUTURE-WORK.md).
-- No network multiplayer/Fika support, Capture the Flag, King of the Hill or
-  persistent online leaderboard is implemented. Reserved flag voice files do
-  not make Capture the Flag an available mode.
+- No network multiplayer/Fika support, Capture the Flag, Domination, King of the
+  Hill or persistent online leaderboard is implemented. The disabled mode
+  previews and reserved flag recordings do not make those modes playable.
 - Difficulty-menu unification, more pickup layouts and general AI/navigation
   improvements remain follow-up work; native bots do not gain player vaulting
   or guaranteed pathfinding through every obstacle.

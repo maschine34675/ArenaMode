@@ -4,7 +4,9 @@ Collection refreshes Double Damage for up to **20 seconds of game time** and
 Shield and Jump Boots for up to **30 seconds**; collecting twice never stacks the multiplier,
 timer or shield. Shield refills to at most **220 impact points**. Effects belong to the exact physical body and health
 controller, are cleared on native death, and cannot survive runtime generation or
-round/raid reset. State uses weak body keys so discarded corpses are not retained.
+round/raid reset. State uses weak body keys. Only current bot effects additionally
+hold their bodies for frame-following indicators; expiry, native death, invalid
+registration and reset remove these references and dispose their owned views.
 
 Double damage applies to **non-launcher firearm bullet health damage at impact
 time** from the current living Arena body. It is not a firing-time snapshot.
@@ -60,8 +62,9 @@ Assembly-CSharp IL by `Verify-Native.ps1` where the check is executable:
 ## Verification
 
 Run `pwsh -NoProfile -File tools/ArenaPowerupChecks/Verify.ps1` from the repository.
-The project source-links both production powerup files and the real administrative
-death gate, exercises the actual patch prefix via reflection, and compiles nine
+The project source-links the production powerup policy, adapter, palette, both
+indicator/view classes and the real administrative death gate, exercises the actual
+patch prefix via reflection, and compiles 18
 faulty production copies to prove important tests reject their named bugs. Installed
 IL contracts check signatures, native ordering and the relevant internal vetoes.
 Native/world/mode boundaries are explicit doubles, so these checks do not claim a
@@ -76,3 +79,11 @@ own this dependency; it is not replaced by the doubles in this project.
 Boots tests cover exact expiry, non-stacking refresh, invalid durations, bot
 refusal and body/health/generation/scope reset. Actual ground/air impulse integration
 is source-linked separately by `tools/DoubleJumpChecks/Verify.ps1`.
+
+The 2026-10-18 indicator checks also construct the actual three-ring production
+view against explicit Unity rendering doubles. They check pickup colors,
+simultaneous spawn/shield/damage geometry, frame following, exact expiry, immediate
+depletion, disabled-body hide/reappear, death, recycled registration, body-health
+replacement, round/reset disposal and missing-shader failure isolation. These
+cannot certify actual shader output, native Unity object lifetime or DLSS output.
+The native GPU seams are listed in `docs/POWERUP-INDICATORS-20261018.md`.

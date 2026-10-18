@@ -3,6 +3,12 @@ using ArenaMode.Modes;
 
 internal static partial class Program
 {
+    private static ArenaCollateralProof BulletProof()
+    {
+        var shot = new object();
+        ArenaShotAwardHistory.RecordCreated(shot, null, 1, "test-weapon", 7, true, false, false, singleBullet: true);
+        return ArenaShotAwardHistory.CaptureCollateral(shot, ArenaShotAwardHistory.ForImpact(shot, 1, "test-weapon", 7));
+    }
     private static ArenaKill Shot(bool airborne, bool bolt, float time = 100)
     {
         var kill = Kill(time: time);
@@ -14,6 +20,63 @@ internal static partial class Program
 
     private static void ShotAwards()
     {
+        foreach (string competing in new[] { "DOUBLE KILL", "TRIPLE KILL", "MULTI KILL", "MONSTER KILL",
+            "SHUTDOWN", "KILLING SPREE", "HEADSHOT" })
+        {
+            var awards = new ArenaCombatAwards();
+            awards.ReportKill(Kill("other", 30), null);
+            var collateral = Shot(true, true); collateral.CollateralProof = BulletProof();
+            ArenaShotAwardHistory.ReportCollateralDeath(collateral.CollateralProof, 9876);
+            Check(awards.ReportKill(collateral, competing) == "COLLATERAL",
+                "collateral takes presentation precedence over " + competing);
+        }
+        var collateralMatch = New(); var ordinaryMatch = New();
+        var bullet = BulletProof();
+        for (int i = 0; i < 2; i++)
+        {
+            var collateral = Kill(time: 100 + i * .001f); collateral.CollateralProof = bullet;
+            var ordinary = Kill(time: 100 + i * .001f);
+            collateralMatch.Match.ReportKill(collateral); ordinaryMatch.Match.ReportKill(ordinary);
+        }
+        Check(collateralMatch.Labels.SequenceEqual(new[] { "FIRST BLOOD", "COLLATERAL" }),
+            "second physical bullet death replaces ordinary double kill callout");
+        Check(collateralMatch.Match.Score == ordinaryMatch.Match.Score
+            && collateralMatch.Match.Kills == ordinaryMatch.Match.Kills
+            && collateralMatch.Match.Streak == ordinaryMatch.Match.Streak,
+            "collateral changes no score kills or streak rules");
+        foreach (string invalid in new[] { "not-local", "local-victim", "ineligible", "not-scored", "tdm-friendly", "closed" })
+        {
+            var s = New(new TeamDeathmatchMode { FriendlyKill = invalid == "tdm-friendly", AdmitScores = invalid != "closed" });
+            s.Match.ReportKill(Kill("other", 30));
+            var collateral = Shot(true, true); collateral.CollateralProof = BulletProof();
+            ArenaShotAwardHistory.ReportCollateralDeath(collateral.CollateralProof, 9876);
+            if (invalid == "not-local") collateral.KilledByLocal = false;
+            if (invalid == "local-victim") collateral.LocalIsVictim = true;
+            if (invalid == "ineligible") collateral.AwardEligible = false;
+            if (invalid == "not-scored") collateral.ScoreEligible = false;
+            s.Match.ReportKill(collateral);
+            Check(!s.Labels.Contains("COLLATERAL"), "collateral retains existing admission: " + invalid);
+        }
+        foreach (bool classifiedFriendly in new[] { false, true })
+        {
+            var mode = new TeamDeathmatchMode { AdmitScores = classifiedFriendly, FriendlyKill = classifiedFriendly };
+            var s = New(mode);
+            var proof = BulletProof();
+            var rejected = Kill(); rejected.CollateralProof = proof;
+            s.Match.ReportKill(rejected);
+            mode.AdmitScores = true; mode.FriendlyKill = false;
+            var firstAccepted = Kill(time: 20); firstAccepted.CollateralProof = proof;
+            s.Match.ReportKill(firstAccepted);
+            Check(!s.Labels.Contains("COLLATERAL"), "unadmitted or team-classified first death does not seed collateral: " + classifiedFriendly);
+            var secondAccepted = Kill(time: 21); secondAccepted.CollateralProof = proof;
+            s.Match.ReportKill(secondAccepted);
+            Check(s.Labels.Last() == "COLLATERAL", "two later admitted enemy deaths still earn collateral: " + classifiedFriendly);
+        }
+        var resetProof = BulletProof(); ArenaShotAwardHistory.ReportCollateralDeath(resetProof, 9999);
+        ArenaShotAwardHistory.Reset();
+        var expired = Kill(); expired.CollateralProof = resetProof;
+        Check(new ArenaCombatAwards().ReportKill(expired, "DOUBLE KILL") != "COLLATERAL",
+            "proof captured before round reset cannot settle afterward");
         foreach (var facts in new[] { (Air: true, Bolt: false, Label: "AIRBORNE"),
             (Air: false, Bolt: true, Label: "NO SCOPE"), (Air: true, Bolt: true, Label: "AIRBORNE") })
         {

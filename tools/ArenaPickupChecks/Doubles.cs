@@ -189,6 +189,7 @@ namespace ArenaMode.Pickups
     {
         internal static List<(Player Player,string Kind,float Points,float Seconds)> Grants=[];internal static int Resets;internal static bool GrantResult=true;
         internal static void Reset()=>Resets++;
+        internal static void TickIndicators() { }
         internal static bool GrantDamage(Player p,float seconds){if(GrantResult)Grants.Add((p,"damage",0,seconds));return GrantResult;}
         internal static bool GrantShield(Player p,float points,float seconds){if(GrantResult)Grants.Add((p,"shield",points,seconds));return GrantResult;}
         internal static bool GrantJump(Player p,float seconds){if(GrantResult)Grants.Add((p,"boots",0,seconds));return GrantResult;}

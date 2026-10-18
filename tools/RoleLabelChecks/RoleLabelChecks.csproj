@@ -18,4 +18,7 @@
     <Compile Include="$(NativeSourceRoot)/BotDifficulty.cs" Link="Native/BotDifficulty.cs" />
     <Compile Include="$(NativeSourceRoot)/EFT/ProfileSettings.cs" Link="Native/ProfileSettings.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs" />
+  </ItemGroup>
 </Project>

@@ -19,6 +19,45 @@ current. User-facing communication is normally German.
   had no findings. No live deployment was made;
   native Unity/Mono startup and bot behavior for the new lifecycle remain pending.
 
+- **Powerup feedback, Collateral, mode previews and Akimbo lasers (2026-10-18):**
+  `26dedc0` adds disabled Capture the Flag/Domination rows without new playable
+  mode IDs; native follow-up `0913670` disables only their cloned Animators so
+  neutral gray survives activation. `6812a25` adds blue Shield/pink Double Damage bot cages, independently
+  owned alongside the pale spawn shield; `6209e0a` adds automatic aiming beams
+  to supported Akimbo pistols, including models without rails. These beams are
+  visual aids, not inventory attachments or native laser accuracy bonuses.
+  `200b1b2` adds text-only COLLATERAL for two admitted enemy deaths from the same
+  physical bullet and its native penetration continuation, settled only after
+  mode admission. No damage, ammunition, score, asset or profile changes.
+  See [powerup indicators](POWERUP-INDICATORS-20261018.md),
+  [Akimbo lasers](AKIMBO-LASER-20261018.md),
+  [Collateral](COLLATERAL-ANNOUNCEMENT-20261018.md) and
+  [mode previews](MODE-PREVIEWS-20261018.md).
+  Parent verification: unit suite 1,159 passed/two optional skips; client Release
+  no-deploy build passed with four existing nullable warnings. Menu 2,526,
+  powerups 417, Akimbo 2,268 plus 49 negative controls, Team DM 14,972 and runtime
+  380 assertions passed. Collateral history/native adapter/full-match/audio
+  production-linked checks and deliberate faults passed. Harness-only repairs
+  `47f5e51` and `029034c` exclude stale generated sources and accept CRLF/LF in
+  the pinned text manifest without weakening byte-exact audio hashes.
+  Only the Client DLL was deployed, final source `0913670`, MVID
+  `d1d8d6c1-bca5-43ce-b729-81eb60cee3a5`, SHA256
+  `1D2464EEAE7E4DB642D2C730B1FB1C1C6F1612C74FB718FC915D8A61ECDF292B`.
+  Server, BigBrain companion and Redeploy.Core hashes stayed unchanged.
+  GPU2 verification is complete: real disabled preview clicks and gray labels,
+  PB/PM(t) laser samples, natural blue Shield/pink Double Damage bot effects,
+  and effect cleanup were observed. All 223 original preferences are restored;
+  GPU2 is at MainMenu with no active hooks or retained effect objects. Read
+  [the native report and coverage limits](GPU-FEEDBACK-20261018.md).
+  Collateral remains offline-verified, without a native double-penetration kill
+  demonstration. BepInEx/server logged no errors; EFT's native animation-handler
+  `hash 0` message recurred without a causal stack and remains unresolved.
+  Parallel main changes to the optional BigBrain library are preserved in source,
+  but not included in this deployment or native acceptance. Do not replace only
+  one DLL from that newer lifecycle; its paired rollout remains a separate task.
+  Combined client/library Release integration build passed without deployment;
+  the installed candidate and protected DLL hashes were rechecked unchanged.
+
 - **All-map effects, pickups and TDM bot shields (2026-10-17):** Implementation
   commits `29cc93e` (phase lights on all eight location IDs; native deploy 1s),
   `a374295` (exact-body TDM spawn shields), `e1237e9` (all-map pickup pools,

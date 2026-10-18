@@ -51,8 +51,8 @@ try {
     $faults = @(
         @{ Name='instant-airtime'; File='ArenaShotAwardHooks.cs'; Suite='airtime';
            Find='MinimumAirborneSeconds = 0.5f'; Replace='MinimumAirborneSeconds = 0f'; Failure='airtime threshold is inclusive and rejects short drops' },
-        @{ Name='allow-aimed-fire'; File='ArenaShotAwardHooks.cs'; Suite='conditions';
-           Find='|| firearm.IsAiming'; Replace=''; Failure='aimed fire has no award snapshot' },
+        @{ Name='allow-aimed-airborne'; File='ArenaShotAwardHooks.cs'; Suite='conditions';
+           Find='!firearm.IsAiming && HasQualifiedFlight'; Replace='HasQualifiedFlight'; Failure='airborne requires both native ground checks and no ADS' },
         @{ Name='foreign-active-world'; File='ArenaShotAwardHooks.cs'; Suite='admission';
            Find='&& ArenaSession.IsExactActiveRaid(game, world)'; Replace='&& true'; Failure='foreign active raid cannot create award facts' },
         @{ Name='wrong-ammunition-source'; File='ArenaShotAwardHooks.cs'; Suite='correlation';
@@ -60,7 +60,19 @@ try {
         @{ Name='pooled-shot-retains-old-facts'; File='ArenaShotAwardHistory.cs'; Suite='lifetime';
            Find='_shots.Remove(shot);'; Replace='if (_shots.TryGetValue(shot, out _)) return;'; Failure='unknown pooled create erases former firing facts' },
         @{ Name='missing-native-finalizer-cleanup'; File='ArenaShotAwardHooks.cs'; Suite='finalizers';
-           Find='__state?.Dispose(); return __exception;'; Replace='return __exception;'; Occurrences=2; Failure='fire exception finalizer clears capture' }
+           Find='__state?.Dispose(); return __exception;'; Replace='return __exception;'; Occurrences=3; Failure='fire exception finalizer clears capture' },
+        @{ Name='pellets-count-as-bullet'; File='ArenaShotAwardHooks.cs'; Suite='collateral';
+           Find='ammo.ProjectileCount == 1'; Replace='ammo.ProjectileCount >= 1'; Failure='independent fragments pellets rounds and invalid deaths do not combine: pellets' },
+        @{ Name='generic-parent-is-continuation'; File='ArenaShotAwardHistory.cs'; Suite='collateral';
+           Find='singleBullet && continuedBullet && parentToken == inherited.ProjectileToken'; Replace='singleBullet'; Failure='independent fragments pellets rounds and invalid deaths do not combine: fragment' },
+        @{ Name='copied-lineage-loses-first-victim'; File='ArenaShotAwardHistory.cs'; Suite='collateral';
+           Find='collateral = source.Collateral;'; Replace='collateral = new CollateralLineage();'; Failure='native penetration preserves first victim across precreated child' },
+        @{ Name='duplicate-victim-counted'; File='ArenaShotAwardHistory.cs'; Suite='collateral';
+           Find=' || lineage.FirstVictim == victimBodyId'; Replace=''; Failure='duplicate victim callback cannot earn collateral' },
+        @{ Name='collateral-repeats'; File='ArenaShotAwardHistory.cs'; Suite='collateral';
+           Find='lineage.Awarded = true;'; Replace='lineage.Awarded = false;'; Failure='third victim cannot repeat collateral' },
+        @{ Name='world-identity-ignored'; File='ArenaShotAwardHistory.cs'; Suite='collateral';
+           Find='|| entry.WorldId != worldId || entry.GameId != gameId'; Replace=''; Failure='stale bullet lineage cannot award: world' }
     )
     foreach ($fault in $faults) {
         $faultRoot = Join-Path $shotScratch ($fault.Name + '/source')

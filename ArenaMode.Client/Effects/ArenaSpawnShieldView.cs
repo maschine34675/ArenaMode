@@ -11,20 +11,25 @@ internal sealed class ArenaSpawnShieldView : IDisposable
     private Material _material;
 
     internal ArenaSpawnShieldView(Transform world)
+        : this(world, "ArenaBotSpawnShield", new Color(.65f, 1f, 1f, .85f), .52f, .98f) { }
+
+    // Each owner retains its own view. Concentric pickup cages must never recolor
+    // or dispose an independently active spawn-protection cage.
+    internal ArenaSpawnShieldView(Transform world, string name, Color color, float radius, float halfHeight)
     {
         try
         {
             var shader = Shader.Find("Sprites/Default");
             if (shader == null) throw new InvalidOperationException("Sprites/Default shader missing");
-            _material = new Material(shader) { name = "ArenaBotSpawnShieldMaterial" };
-            _root = new GameObject("ArenaBotSpawnShield");
+            _material = new Material(shader) { name = name + "Material" };
+            _root = new GameObject(name);
             _root.transform.SetParent(world, false);
-            Ring(0); Ring(1); Ring(2);
+            Ring(0, color, radius, halfHeight); Ring(1, color, radius, halfHeight); Ring(2, color, radius, halfHeight);
         }
         catch { Dispose(); throw; }
     }
 
-    private void Ring(int plane)
+    private void Ring(int plane, Color color, float radius, float halfHeight)
     {
         var ring = new GameObject("ShieldRing" + plane);
         ring.transform.SetParent(_root.transform, false);
@@ -34,8 +39,7 @@ internal sealed class ArenaSpawnShieldView : IDisposable
         line.loop = true;
         line.positionCount = 48;
         line.startWidth = line.endWidth = .035f;
-        // Pale cyan/white is deliberately distinct from red/blue team identity.
-        line.startColor = line.endColor = new Color(.65f, 1f, 1f, .85f);
+        line.startColor = line.endColor = color;
         line.shadowCastingMode = ShadowCastingMode.Off;
         line.receiveShadows = false;
         line.lightProbeUsage = LightProbeUsage.Off;
@@ -43,10 +47,10 @@ internal sealed class ArenaSpawnShieldView : IDisposable
         for (int i = 0; i < line.positionCount; i++)
         {
             float angle = 2f * Mathf.PI * i / line.positionCount;
-            float x = .52f * Mathf.Cos(angle), y = Mathf.Sin(angle);
-            line.SetPosition(i, plane == 0 ? new Vector3(x, .08f, .52f * y)
-                : plane == 1 ? new Vector3(x, 1.02f + .98f * y, 0f)
-                : new Vector3(0f, 1.02f + .98f * y, x));
+            float x = radius * Mathf.Cos(angle), y = Mathf.Sin(angle);
+            line.SetPosition(i, plane == 0 ? new Vector3(x, .08f, radius * y)
+                : plane == 1 ? new Vector3(x, .04f + halfHeight + halfHeight * y, 0f)
+                : new Vector3(0f, .04f + halfHeight + halfHeight * y, x));
         }
     }
 

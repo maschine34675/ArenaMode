@@ -101,9 +101,13 @@ namespace UnityEngine
         public static Vector3 zero => new(0, 0, 0);
         public static Vector3 one => new(1, 1, 1);
         public static Vector3 forward => new(0, 0, 1);
+        public float sqrMagnitude => Native.LengthSquared();
+        public float magnitude => Native.Length();
+        public Vector3 normalized => From(NVector3.Normalize(Native));
         public static Vector3 operator +(Vector3 a, Vector3 b) => From(a.Native + b.Native);
         public static Vector3 operator -(Vector3 a, Vector3 b) => From(a.Native - b.Native);
         public static Vector3 operator *(Vector3 a, float b) => From(a.Native * b);
+        public static Vector3 operator /(Vector3 a, float b) => From(a.Native / b);
         public static Vector3 Scale(Vector3 a, Vector3 b) => From(a.Native * b.Native);
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => From(NVector3.Lerp(a.Native, b.Native, Math.Clamp(t, 0, 1)));
     }
@@ -132,10 +136,18 @@ namespace UnityEngine
         public int lightProbeUsage, reflectionProbeUsage;
     }
     public sealed class MeshRenderer : Renderer { }
+    public sealed class LineRenderer : Renderer
+    {
+        public bool useWorldSpace;
+        public int positionCount;
+        public float startWidth, endWidth;
+        public readonly Vector3[] Points = new Vector3[2];
+        public void SetPosition(int index, Vector3 position) => Points[index] = position;
+    }
     public sealed class SkinnedMeshRenderer : Renderer { }
     public sealed class MeshFilter : Component { public Mesh sharedMesh; }
     public sealed class Mesh : Object { }
-    public sealed class Collider : Component { public bool enabled = true; }
+    public sealed class Collider : Component { public bool enabled = true; public bool isTrigger; }
     public sealed class Shader : Object
     {
         public static bool Available = true;
@@ -144,8 +156,37 @@ namespace UnityEngine
     public sealed class Material(Shader shader) : Object { public Shader Shader = shader; public Color color; }
     public struct Color(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
     public enum PrimitiveType { Sphere }
+    public struct LayerMask { public static int NameToLayer(string name) => name == "Default" ? 0 : 1; }
+    public enum QueryTriggerInteraction { Ignore, Collide }
+    public struct RaycastHit { public Collider collider; public Vector3 point, normal; public float distance; }
+    public static class Physics
+    {
+        public static Func<Vector3, Vector3, int, QueryTriggerInteraction, bool> Line = (_, _, _, _) => false;
+        public static Func<Vector3, float, int, QueryTriggerInteraction, bool> Sphere = (_, _, _, _) => false;
+        public static Func<Vector3, Vector3, float, int, QueryTriggerInteraction, RaycastHit[]> Ray = (_, _, _, _, _) => Array.Empty<RaycastHit>();
+        public static readonly List<(Vector3 Origin, Vector3 Direction, float Distance, int Mask, QueryTriggerInteraction Trigger)> Rays = new();
+        public static bool Linecast(Vector3 from, Vector3 to, int mask, QueryTriggerInteraction trigger) => Line(from, to, mask, trigger);
+        public static bool CheckSphere(Vector3 at, float radius, int mask, QueryTriggerInteraction trigger) => Sphere(at, radius, mask, trigger);
+        public static int RaycastNonAlloc(Vector3 origin, Vector3 direction, RaycastHit[] results, float distance, int mask, QueryTriggerInteraction trigger)
+        {
+            Rays.Add((origin, direction, distance, mask, trigger));
+            var hits = Ray(origin, direction, distance, mask, trigger);
+            Array.Copy(hits, results, Math.Min(results.Length, hits.Length));
+            return Math.Min(results.Length, hits.Length);
+        }
+        public static void Reset()
+        {
+            Line = (_, _, _, _) => false; Sphere = (_, _, _, _) => false;
+            Ray = (_, _, _, _, _) => Array.Empty<RaycastHit>(); Rays.Clear();
+        }
+    }
     public static class Time { public static int frameCount; public static float time; public static float deltaTime = .016f; }
     public static class Mathf { public static float Exp(float x) => MathF.Exp(x); }
+}
+public static class LayersMaskController
+{
+    public const int HighPolyWithTerrainMask = 3;
+    public const int HitColliderMask = 4;
 }
 namespace UnityEngine.Rendering { public enum ShadowCastingMode { Off, On } }
 namespace EFT.AssetsManager

@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="CollateralChecks.cs" />
     <Compile Include="Doubles.cs" />
     <Compile Include="$(ShotSourceRoot)/ArenaShotAwardHooks.cs" Link="Production/ArenaShotAwardHooks.cs" />
     <Compile Include="$(ShotSourceRoot)/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs" />

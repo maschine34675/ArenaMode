@@ -52,6 +52,15 @@ try {
     $create = $createMethods[0]
     Assert-Contract ($create.Parameters.Count -eq 25 -and $create.Parameters[23].ParameterType.FullName -eq 'EFT.Ballistics.Shot') 'native creation exposes exact parent parameter'
     Assert-Contract (Has-Call $create 'EFT.Ballistics.Shot' 'GetShotFromPool') 'creation uses pool before snapshot'
+    $continuation = Native-Method 'EFT.Ballistics.Shot' 'CreateDeviatedFragment' @()
+    Assert-Contract (Has-Call $continuation 'EFT.Ballistics.Shot' 'Create') 'penetration creates a new pooled Shot'
+    $projectileCount = Native-Method 'EFT.InventoryLogic.Ammo' 'get_ProjectileCount' @()
+    Assert-Contract ($projectileCount.ReturnType.FullName -eq 'System.Int32') 'native ammunition exposes pellet count'
+    foreach ($name in @('CreateBulletFragments','CreateRicochetedFragment')) {
+        $parameters = if ($name -eq 'CreateRicochetedFragment') { @('System.Boolean') } else { @() }
+        $fragment = Native-Method 'EFT.Ballistics.Shot' $name $parameters
+        Assert-Contract (Has-Call $fragment 'EFT.Ballistics.Shot' 'Create') "$name creates independent child objects"
+    }
     foreach ($field in @(@('Player','EFT.IObserverToPlayerBridge'),@('Weapon','EFT.InventoryLogic.Item'),@('Ammo','EFT.InventoryLogic.Item'),@('Parent','EFT.Ballistics.Shot'),@('FireIndex','System.Int32'))) {
         Assert-Contract (@((Native-Type 'EFT.Ballistics.Shot').Fields | Where-Object { $_.Name -eq $field[0] -and $_.FieldType.FullName -eq $field[1] }).Count -eq 1) "projectile field $($field[0])"
     }
@@ -104,6 +113,24 @@ Assert-Contract ($damagePatch.Contains('shot: false') -and $damagePatch -match '
 $killPatch = Method-Text $combat 'private sealed class KillCapturePatch'
 Assert-Contract ($killPatch -match 'ArenaHitHistory\.ShotAwards\(__instance, aggressor,\s*lethalDamageType == EDamageType\.Bullet\)') 'death restricts captured awards to lethal bullet'
 Assert-Contract ($killPatch.Contains('AirborneHipFire = shotAwards.AirborneHipFire') -and $killPatch.Contains('BoltActionHipFire = shotAwards.BoltActionHipFire')) 'kill event receives frozen scalar awards'
+Assert-Contract ($killPatch -match 'kill\.CollateralProof = kill\.KilledByLocal && !kill\.LocalIsVictim\s*&& kill\.AwardEligible && kill\.ScoreEligible\s*\? ArenaShotAwardHooks\.CaptureCollateral\(shotAwards\) : default') 'native capture creates only local direct enemy proof, never settles before mode admission'
+Assert-Contract ($killPatch.IndexOf('ArenaShotAwardHooks.CaptureCollateral') -lt $killPatch.IndexOf('match.ReportKill(kill)')) 'synchronous proof capture precedes leaving the native impact stack'
+$matchKill = Method-Text $match 'public void ReportKill('
+Assert-Contract ($matchKill.IndexOf('teams.ClassifyKill(kill)') -lt $matchKill.IndexOf('_awards.ReportKill(kill') -and $matchKill.IndexOf('deathmatch.TryBeginScoredEvent()') -lt $matchKill.IndexOf('_awards.ReportKill(kill')) 'production award settlement follows mode admission and team classification'
 Assert-Contract ((Method-Text $match 'internal void BeginAwardRound(').Contains('ArenaShotAwardHistory.Reset();')) 'award round resets in-flight projectile facts'
+
+# Decompiled details complement the installed-method/field contracts above. Native
+# Tick creates continuations before delivering the old bullet's lethal callback.
+$decompiled = Join-Path $SptPath 'Development/_decompiled'
+$nativeShot = [IO.File]::ReadAllText((Join-Path $decompiled 'EFT.Ballistics/Shot.cs'))
+$nativeCalculator = [IO.File]::ReadAllText((Join-Path $decompiled 'EFT.Ballistics/BallisticsCalculator.cs'))
+$nativeContinuation = Method-Text $nativeShot 'public void CreateDeviatedFragment()'
+Assert-Contract ($nativeContinuation.Contains('Create(Ammo, FragmentIndex,') -and $nativeContinuation.Contains('Weapon, FireIndex, this)')) 'penetration preserves FragmentIndex and exact parent'
+foreach ($signature in @('public void CreateBulletFragments()', 'public void CreateRicochetedFragment(')) {
+    Assert-Contract ((Method-Text $nativeShot $signature).Contains('Create(Ammo, FragmentIndex + 1,')) 'actual fragments and ricochets increment FragmentIndex'
+}
+$nativeUpdate = Method-Text $nativeCalculator 'public void UpdateShots('
+Assert-Contract ($nativeUpdate.IndexOf('shot.Tick(') -lt $nativeUpdate.IndexOf('_shotDelegate(shot)')) 'child creation occurs before parent impact callback'
+Assert-Contract ((Method-Text $nativeShot 'public void HandleCollision(').Contains('CreateFragments();')) 'native collision prepares continuation during Tick'
 Write-Output "SHOT_AWARD_NATIVE_SOURCE_CONTRACT_PASSED: $shotContractCount metadata and wiring assertions; not native runtime proof"
 Write-Output "Assembly-CSharp SHA256: $((Get-FileHash -LiteralPath $shotAssemblyPath).Hash)"

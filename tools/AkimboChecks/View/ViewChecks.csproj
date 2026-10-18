@@ -4,9 +4,13 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <ViewSource Condition="'$(ViewSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboView.cs</ViewSource>
     <PresentationSource Condition="'$(PresentationSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboPresentation.cs</PresentationSource>
+    <LaserSource Condition="'$(LaserSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboAimLaser.cs</LaserSource>
+    <GeometrySource Condition="'$(GeometrySource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboShotGeometry.cs</GeometrySource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ViewSource)" Link="Production/AkimboView.cs" />
     <Compile Include="$(PresentationSource)" Link="Production/AkimboPresentation.cs" />
+    <Compile Include="$(LaserSource)" Link="Production/AkimboAimLaser.cs" />
+    <Compile Include="$(GeometrySource)" Link="Production/AkimboShotGeometry.cs" />
   </ItemGroup>
 </Project>

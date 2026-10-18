@@ -58,6 +58,7 @@ public sealed class ArenaKill
     // from the player's current posture after impact or a weapon swap.
     internal bool AirborneHipFire;
     internal bool BoltActionHipFire;
+    internal ArenaCollateralProof CollateralProof;
 
     /// <summary>Time.time at capture.</summary>
     public float Time;

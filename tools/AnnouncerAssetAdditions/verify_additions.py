@@ -65,7 +65,10 @@ def verify_metadata(manifest):
 
 def verify_originals(assets):
     original = assets / 'ANNOUNCER-SOURCES.json'
-    require(sha(original) == ORIGINAL_MANIFEST_SHA, 'Original manifest changed')
+    # Git may check this reviewed text manifest out as CRLF on Windows. Pin its
+    # LF content; keep every recording's checksum byte-exact below.
+    manifest_sha = hashlib.sha256(original.read_bytes().replace(b'\r\n', b'\n')).hexdigest().upper()
+    require(manifest_sha == ORIGINAL_MANIFEST_SHA, 'Original manifest changed')
     rows = json.loads(original.read_text(encoding='utf-8'))['files']
     require(len(rows) == 46, 'Original phrase count changed')
     for row in rows:
