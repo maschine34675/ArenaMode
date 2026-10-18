@@ -8,6 +8,9 @@ is disabled, and the tooltip explicitly says the mode is planned.
 The preview clones also disable their inherited Animators before styling: the
 native disabled animation otherwise overwrites the neutral gray label after
 activation. The shared prefab and playable rows keep their animations.
+The preview surface itself also uses a darker, neutral gray disabled tint;
+the regular blue-gray theme remains on the playable rows. This override belongs
+only to the two clones and does not alter the shared theme or native prefab.
 
 Seven compact rows fit above the existing facts divider. The panel footprint,
 native map controls, area selector and rule rows retain their previous positions.

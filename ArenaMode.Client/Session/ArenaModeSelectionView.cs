@@ -253,6 +253,12 @@ internal sealed class ArenaModeSelectionView
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
         label.color = new Color(.48f, .48f, .48f, 1f);
+        // Planned modes get a neutral, darker surface as well as gray text.
+        // Keep this on the two clones; other unavailable/playable rows retain
+        // their normal theme and native state transitions.
+        var colors = button.colors;
+        colors.disabledColor = new Color(.07f, .07f, .07f, .95f);
+        button.colors = colors;
         SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, ModeRowHeight);
         button.interactable = false;
         var navigation = button.navigation;
