@@ -122,11 +122,13 @@ See the [artwork notice](ArenaMode.Client/Assets/Ui/NOTICE.md),
 [full MIT text](ArenaMode.Client/Assets/Ui/MIT-LICENSE.txt) and
 [generation records](tools/ArenaUiArtwork/renders/PROMPTS.json).
 
-The project thumbnail is a generated photorealistic illustration of crossed AK
-and M4 rifles made with OpenAI's image tool, using the project's earlier
-thumbnail and generated assault-rifle artwork as references. It is not a
-photograph or an extracted game asset. The [generation record](docs/THUMBNAIL-20261018.json)
-contains the prompt and source/export hashes. It is offered under the project
+The project thumbnail is a generated, simplified illustration of crossed AK
+and M4 rifles framed by a laurel wreath in graphite, ivory and ochre. It was
+made with OpenAI's image tool by reworking the project's previous realistic
+thumbnail, which used the earlier thumbnail and generated assault-rifle artwork
+as references. It is not a photograph or an extracted game asset.
+The [generation record](docs/THUMBNAIL-20261018.json) contains the prompts,
+revision history and source/export hashes. It is offered under the project
 MIT license to the extent copyright or related rights apply to the contributors' work.
 
 The remaining original HUD graphics (excluding the two credited equipment
