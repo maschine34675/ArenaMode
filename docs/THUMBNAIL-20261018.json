@@ -1,41 +1,79 @@
 {
   "date": "2026-10-18",
-  "description": "Simplified generated raster illustration of crossed AK and M4 rifles framed by a laurel wreath, in graphite, ivory and ochre. Based on the previous realistic thumbnail; not a photograph or extracted game asset.",
+  "description": "Simplified generated raster illustration of crossed AK and M4 rifles, both in matching ivory, framed by an ochre laurel wreath on graphite. Only the AK color was changed from the preceding accepted composition. Not a photograph or extracted game asset.",
   "tool": "OpenAI built-in image generation tool",
-  "prompt": "Use case: style-transfer.\nEdit target: the supplied ArenaMode thumbnail with crossed realistic AK and M4.\nPrimary request: make this specific composition noticeably more schematic and restrained, using the established graphite, warm ivory and muted ochre visual identity, and add a simple laurel wreath as an arena/victory symbol.\nKeep: exactly one recognizable AK and one recognizable M4 in the same crossed X arrangement, muzzles at upper corners, stocks at lower corners; M4 crossing in front of AK. Preserve convincing real firearm proportions and distinctive shapes, including the AK curved magazine and fixed stock and the M4 carry handle and adjustable stock.\nChange style: simplify the existing photographic forms into a subdued duotone poster illustration / softly modeled emblem. Remove fine scratches, screws, woodgrain, bright metallic sheen and tiny mechanical details. Keep only a few large shadow planes and restrained shape-defining highlights. The result should sit between a realistic inventory illustration and a silhouette. Do not revert to the previous crude geometric rifle pictograms.\nPalette: plain solid graphite background #171b1c. Main M4 form in warm ivory #eceae3, AK in muted ochre #bfa15d, with graphite shadows. No brown or orange wood color, no silver metal, no extra saturated colors. Flat matte tonal treatment, no glossy gold.\nWreath: two balanced elegant laurel branches in muted ochre #bfa15d, framing the rifles from below and along both sides, open at the top. About 8 broad simple leaves per branch, clean shapes with no interior leaf veins. Branch stems meet subtly at bottom center. Keep a clear graphite gap between wreath leaves and the rifle silhouettes, no clutter or crossing through the main weapon shapes. The wreath should be secondary to the guns and recall a restrained arena champion emblem.\nLayout: square, centered, generous consistent outer margin around complete guns and wreath. Wreath stays fully visible. If needed scale the crossed rifles down modestly so the wreath frames them naturally. Maintain strong legibility at 64 x 64 pixels.\nNo text, numbers, logo, badge shield, stars, ribbon, border, sparks, smoke, flames, background texture, gradient, vignette or dramatic lighting. Produce a finished raster illustration, not an SVG.",
+  "prompt": "Use case: precise-object-edit.\nEdit the supplied ArenaMode emblem. Make ONE color change only: recolor the entire ochre AK rifle to exactly the same warm ivory/off-white color family as the existing M4 rifle (#eceae3 for its lit surfaces, matching dark graphite shadows and muted grey-beige midtones).\nThe AK is the rifle running from the fixed stock at the lower left to the barrel at the upper right, including its visible receiver, fore-end, front sight, barrel, pistol grip and curved magazine below the center. Recolor all those AK parts consistently; no gold/ochre should remain on the AK.\nPreserve the accepted image otherwise as precisely as possible: identical firearm geometry and level of detail, same positions and scale, same crossing/occlusion, same M4 colors, same laurel leaves and stems in ochre #bfa15d, same dark graphite background, framing, margins and lighting. Do not recolor the laurel wreath. Do not add anything or change the composition. Both rifles should now share the same ivory treatment and stand apart from the ochre laurel. Retain opaque background and square format.",
   "references": [
     {
-      "file": "assets/archive/2026-10-18-realistic/thumbnail.png",
-      "sha256": "551140e462d3243823a0b8a18a32010a9679873b9977d10a525e03569b0f33af"
+      "file": "assets/archive/2026-10-18-ochre-ak/thumbnail-master.png",
+      "sha256": "fabde0f978d24ef06cdc0222230bedb5e242ab750010b1918387cffd189967c0"
     }
   ],
   "master": {
     "file": "assets/thumbnail-master.png",
-    "sha256": "fabde0f978d24ef06cdc0222230bedb5e242ab750010b1918387cffd189967c0"
+    "sha256": "8f26d42358342f55072f983a6769a51feb0b6de58d912505f3a4233699754260"
   },
   "exports": [
     {
       "file": "assets/thumbnail.png",
       "width": 1024,
       "height": 1024,
-      "sha256": "87abd984a3745ddcc6be76164aa792ec0fd05f618b9395c52bb5ef39ce5ddae8"
+      "sha256": "98b06d76723fe4b2fdc92ab57643ad9efff5597e7dc11859c92e1f32e404d132"
     },
     {
       "file": "assets/thumbnail-128.png",
       "width": 128,
       "height": 128,
-      "sha256": "667e8d8e7de9c3d7f59e7ce3a5edf00bc970d4f873d6f15f53fc1c995c772b2b"
+      "sha256": "ed9299faf16f25f630e0aaaf9853c1a837fd8f784705df9479187a270927363d"
     },
     {
       "file": "assets/thumbnail-64.png",
       "width": 64,
       "height": 64,
-      "sha256": "54db0100a9afb413cb3c21cc9e7bd17fc247b56548c28023f66d04a9ecec9ddd"
+      "sha256": "c4834df7cef23f899b810a28b03a8e498a7bf9fecdabe103a58b20c4635adec3"
     }
   ],
-  "previousAssets": "assets/archive/2026-10-18-realistic",
+  "previousAssets": "assets/archive/2026-10-18-ochre-ak",
   "processing": "Only downscaling to 1024, 128 and 64 px and exporting opaque RGB sRGB PNGs; master copied byte-for-byte.",
   "previousGenerations": [
+    {
+      "date": "2026-10-18",
+      "description": "Simplified generated raster illustration of crossed AK and M4 rifles framed by a laurel wreath, in graphite, ivory and ochre. Based on the previous realistic thumbnail; not a photograph or extracted game asset.",
+      "tool": "OpenAI built-in image generation tool",
+      "prompt": "Use case: style-transfer.\nEdit target: the supplied ArenaMode thumbnail with crossed realistic AK and M4.\nPrimary request: make this specific composition noticeably more schematic and restrained, using the established graphite, warm ivory and muted ochre visual identity, and add a simple laurel wreath as an arena/victory symbol.\nKeep: exactly one recognizable AK and one recognizable M4 in the same crossed X arrangement, muzzles at upper corners, stocks at lower corners; M4 crossing in front of AK. Preserve convincing real firearm proportions and distinctive shapes, including the AK curved magazine and fixed stock and the M4 carry handle and adjustable stock.\nChange style: simplify the existing photographic forms into a subdued duotone poster illustration / softly modeled emblem. Remove fine scratches, screws, woodgrain, bright metallic sheen and tiny mechanical details. Keep only a few large shadow planes and restrained shape-defining highlights. The result should sit between a realistic inventory illustration and a silhouette. Do not revert to the previous crude geometric rifle pictograms.\nPalette: plain solid graphite background #171b1c. Main M4 form in warm ivory #eceae3, AK in muted ochre #bfa15d, with graphite shadows. No brown or orange wood color, no silver metal, no extra saturated colors. Flat matte tonal treatment, no glossy gold.\nWreath: two balanced elegant laurel branches in muted ochre #bfa15d, framing the rifles from below and along both sides, open at the top. About 8 broad simple leaves per branch, clean shapes with no interior leaf veins. Branch stems meet subtly at bottom center. Keep a clear graphite gap between wreath leaves and the rifle silhouettes, no clutter or crossing through the main weapon shapes. The wreath should be secondary to the guns and recall a restrained arena champion emblem.\nLayout: square, centered, generous consistent outer margin around complete guns and wreath. Wreath stays fully visible. If needed scale the crossed rifles down modestly so the wreath frames them naturally. Maintain strong legibility at 64 x 64 pixels.\nNo text, numbers, logo, badge shield, stars, ribbon, border, sparks, smoke, flames, background texture, gradient, vignette or dramatic lighting. Produce a finished raster illustration, not an SVG.",
+      "references": [
+        {
+          "file": "assets/archive/2026-10-18-realistic/thumbnail.png",
+          "sha256": "551140e462d3243823a0b8a18a32010a9679873b9977d10a525e03569b0f33af"
+        }
+      ],
+      "master": {
+        "file": "assets/archive/2026-10-18-ochre-ak/thumbnail-master.png",
+        "sha256": "fabde0f978d24ef06cdc0222230bedb5e242ab750010b1918387cffd189967c0"
+      },
+      "exports": [
+        {
+          "file": "assets/archive/2026-10-18-ochre-ak/thumbnail.png",
+          "width": 1024,
+          "height": 1024,
+          "sha256": "87abd984a3745ddcc6be76164aa792ec0fd05f618b9395c52bb5ef39ce5ddae8"
+        },
+        {
+          "file": "assets/archive/2026-10-18-ochre-ak/thumbnail-128.png",
+          "width": 128,
+          "height": 128,
+          "sha256": "667e8d8e7de9c3d7f59e7ce3a5edf00bc970d4f873d6f15f53fc1c995c772b2b"
+        },
+        {
+          "file": "assets/archive/2026-10-18-ochre-ak/thumbnail-64.png",
+          "width": 64,
+          "height": 64,
+          "sha256": "54db0100a9afb413cb3c21cc9e7bd17fc247b56548c28023f66d04a9ecec9ddd"
+        }
+      ],
+      "previousAssets": "assets/archive/2026-10-18-realistic",
+      "processing": "Only downscaling to 1024, 128 and 64 px and exporting opaque RGB sRGB PNGs; master copied byte-for-byte."
+    },
     {
       "date": "2026-10-18",
       "description": "Photorealistic generated illustration of crossed AK and M4 rifles for the ArenaMode thumbnail. Not a photograph or extracted game asset.",
