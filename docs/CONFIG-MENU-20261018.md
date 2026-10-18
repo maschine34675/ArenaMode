@@ -81,6 +81,12 @@ where it should appear. The tests fail otherwise:
   advanced set is exactly Diagnostics and the two Development sections, seven
   hidden items.
 
+UiBridge reads the same tags: `uibridge_config` reports the advanced flag, and
+`uibridge_config_set`/`gpu-run config-pin` refuse the seven hidden entries
+(403 config_protected). gpu-run sets only the Zombie sliders that way; participant
+totals are chosen on the map screen, as before. Edit the `.cfg` by hand (EFT closed)
+if a hidden marker ever has to be changed.
+
 Descriptions (tooltips and `.cfg` comments) still refer to other settings by
 their `.cfg` keys (e.g. "Overrides SelectedKit"); those keys remain the stored
 identity and are searchable in F12.
