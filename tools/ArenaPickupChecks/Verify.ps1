@@ -85,6 +85,10 @@ try {
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
     Run-Pickup 'production' $pickupSource
     $faults = @(
+        @{Name='factory-local-anchor';File='ArenaPickupRuntime.cs';Find='|| ArenaPickupGeometry.TryFactoryAnchor(_layout, out anchor);';Replace='|| true;';Failure='isolated local Factory spawn still places all six connected pickups: factory4_day'},
+        @{Name='factory-local-rotation';File='ArenaPickupRuntime.cs';Find='if (!TryPlacementAnchor(anchor, out anchor))';Replace='if (false)';Failure='Factory rotation uses the same independent network while player remains isolated: factory4_day'},
+        @{Name='factory-minority-anchor';File='ArenaPickupGeometry.cs';Find='members * 2 <= nodes.Count';Replace='false';Failure='Factory quorum cannot bypass native navigation or physical safety: split'},
+        @{Name='factory-one-way-anchor';File='ArenaPickupGeometry.cs';Find='!NavMesh.CalculatePath(nodes[j], nodes[i], NavMesh.AllAreas, path)';Replace='false';Failure='Factory quorum cannot bypass native navigation or physical safety: one-way'},
         @{Name='factory-only-runtime';File='ArenaPickupRuntime.cs';Find='else file = ArenaPickupMapLayout.Create(_game, map, area, ArenaPickupSettings.WeaponKit.Value);';Replace='else file = ArenaPickupLayouts.Factory(ArenaPickupSettings.WeaponKit.Value);';Failure='new-map runtime places six pickups through normal live geometry gates'},
         @{Name='sealed-gate-pickups';File='ArenaPickupMapLayout.cs';Find='|| ArenaBotSpawnPolicy.IsExcludedZone(map, row.BotZoneName)';Replace='';Failure='sealed Labs gates, snipers, player entries and malformed seeds cannot become pickups'},
         @{Name='box-pickups';File='ArenaPickupMapLayout.cs';Find='|| formation != null && (formation.Owns(row.Id) || NearBooth(formation, p.x, p.y, p.z))';Replace='';Failure='team-box identity and generic in-box positions excluded: arena_equator'},

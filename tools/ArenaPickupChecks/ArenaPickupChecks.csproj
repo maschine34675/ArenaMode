@@ -13,6 +13,7 @@
     <Compile Include="RotationCases.cs"/>
     <Compile Include="AudioChecks.cs"/>
     <Compile Include="AllMapCases.cs"/>
+    <Compile Include="FactoryAnchorCases.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupMapLayout.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs"/>

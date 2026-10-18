@@ -342,7 +342,7 @@ internal static partial class Program
         Check(NavMesh.Paths==paths,"full placement retries are throttled to one second");
         Step(.7f);
         Check(ArenaPickupView.Created.Count==1&&NavMesh.LastPathStart.x==-8,"failed placement recovers using fresh moved anchor");
-        Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("attempt 1:")&&s.Contains("anchor=(-3.000")&&s.Contains("geometryProbes=1")&&s.Contains("no complete native path from the local actor=1")),"attempt diagnostics include anchor and actual refusal counts");
+        Check(Plugin.ModLogger.Lines.Any(s=>s.Contains("attempt 1:")&&s.Contains("anchor=(-3.000")&&s.Contains("geometryProbes=1")&&s.Contains("no complete native path from the placement anchor=1")),"attempt diagnostics include anchor and actual refusal counts");
         Step(2);Check(Plugin.ModLogger.Lines.Count(s=>s.Contains("points placed"))==1,"successful retry reports completion only once");
 
         Fixture(ArenaPickupKind.Weapon);var mixed=FileFor(Point(ArenaPickupKind.Weapon));
@@ -406,13 +406,13 @@ internal static partial class Program
         Physics.Capsule=(p,b,r)=>p.x==0&&p.z==0?[new Collider()]:[];NavMesh.PathOk=false;
         Check(!ArenaPickupGeometry.TryPlacePoint(new(),_local.Position,true,out _,out _,out _,diagnostics),"diagnostic probes retain unsafe placement rejection");
         Check(diagnostics.Probes==33&&diagnostics.ToString().Contains("pedestal clearance obstructed=1")
-            &&diagnostics.ToString().Contains("no complete native path from the local actor=32"),"geometry diagnostics count every actual fallback failure not just the last candidate");
+            &&diagnostics.ToString().Contains("no complete native path from the placement anchor=32"),"geometry diagnostics count every actual fallback failure not just the last candidate");
     }
 
     public static int Main(string[] args)
     {
         try {
-            Policy();Layouts();AllMapCases();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();OccupiedRotationCases();
+            Policy();Layouts();AllMapCases();Admission();Collection();Weapons();LifecycleAndGeometry();NearbyPlacement();PlacementRetries();RotationCases();OccupiedRotationCases();FactoryAnchorCases();
 #if PICKUP_OBJECTIVES
             ObjectiveCases();
 #endif

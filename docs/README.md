@@ -25,6 +25,7 @@ build/deployment JSON records live here. The automatically discovered
 - [GPU2 map-feature tests and rendering follow-up](GPU-MAP-FEATURES-20261017.md)
 - [All-map lighting and one-second deploy countdown](MAP-LIGHTING-20261017.md)
 - [All-map pickup layouts and longer beams](ALL-MAP-PICKUPS-20261017.md)
+- [Factory pickup connectivity independent of player entry](FACTORY-PICKUP-ANCHOR-20261018.md)
 - [Visible Team DM bot spawn protection](TDM-BOT-SPAWN-SHIELD-20261017.md)
 - [Unified build/deploy and maschine-ArenaMode folder](UNIFIED-DEPLOY-20261017.md)
 

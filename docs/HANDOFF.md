@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Factory pickup anchor (2026-10-18):** full built-in Factory day/night now
+  derive placement/rotation authority from a freshly validated connected majority
+  of the eight authored pickup floors instead of the player's possibly isolated
+  Main Gate entry. Custom layouts/other maps, clearance, bounded repairs and real
+  destination paths are unchanged. Offline: 500 pickup / 650 objective assertions,
+  41 pickup fault controls, targeted regressions and 1179 units passed (two skips).
+  Client/companion built without deployment; GPU2 regression follows delivery.
+  Details: [FACTORY-PICKUP-ANCHOR-20261018.md](FACTORY-PICKUP-ANCHOR-20261018.md).
+
 - **Patch class names, LICENSE, gameplay log levels (2026-10-18 late, branch
   `feature/patch-ids-log-levels`, not GPU-checked):** all 222 `ModulePatch` classes are
   `Arena…` (scheme and reason in AGENTS.md next to the Harmony pitfalls); Redeploy and

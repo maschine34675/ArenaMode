@@ -183,7 +183,19 @@ Sources: native `SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json`
 and corresponding `factory4_night/base.json`. At the first live phase the runtime
 allows up to 15 gameplay seconds for anchor acquisition and missing-point placement.
 It checks readiness every 0.25 seconds; a full placement pass is limited to once
-per second and always gets a fresh grounded local NavMesh anchor. Respawn, weapon
+per second and requires a fresh grounded local NavMesh sample. Custom layouts and
+maps other than full built-in Factory use that sample as their path anchor.
+Factory day/night instead elect a fresh independent anchor from their eight
+existing pickup candidates: shared floor/clearance and bounded 2m repair checks,
+at least three resolved positions separated by 3m in XZ, complete native paths
+in both directions, and a strict majority of valid distinct positions. An isolated
+player entry such as Main Gate therefore cannot veto the entire map's pickup
+network. A missing connected majority fails closed, without falling back to the
+player. Each destination still requires its actual complete path from that anchor.
+Rotation and reciprocal exchanges use the same policy, rechecked each time;
+no connectivity success survives a call, round or world change. The election is
+bounded to eight seeds and at most 56 directed path checks, never a scene scan.
+Respawn, weapon
 swap and a paused game postpone attempts without extending the gameplay deadline.
 The deadline is checked before starting another pass, including when an anchor
 first becomes available after expiry. Only missing point IDs are retried; created
@@ -216,7 +228,11 @@ the exact disconnected origin was not recorded, so that native cause remains an
 inference. Offline tests cover total/partial recovery, moved anchor, timeout,
 throttling, pause, respawn readiness, preserved weapon/cooldown state, spacing,
 late-spawn contact, cancellation and diagnostic counts. Native recovery in that
-specific Factory situation still requires a GPU test.
+specific Factory situation was not established by those offline checks. The
+2026-10-18 audio test subsequently reproduced 0/6 for all 15 attempts at the
+Main Gate player entry, but 6/6 immediately from a different start. See
+[the independent Factory anchor correction](FACTORY-PICKUP-ANCHOR-20261018.md)
+for the resulting fix and its own validation evidence.
 
 ## Layouts and authoring
 

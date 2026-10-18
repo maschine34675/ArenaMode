@@ -147,8 +147,11 @@ internal static partial class ArenaPickupRuntime
                         && ArenaPickupGeometry.TryAnchor(_world, out var anchor))
                     {
                         _nextPlacement = Time.time + 1f;
-                        PlaceMissing(anchor);
-                        if (Entries.Count == _layout.Points.Count) FinishPlacement("complete");
+                        if (TryPlacementAnchor(anchor, out anchor))
+                        {
+                            PlaceMissing(anchor);
+                            if (Entries.Count == _layout.Points.Count) FinishPlacement("complete");
+                        }
                     }
                 }
             }
@@ -253,6 +256,13 @@ internal static partial class ArenaPickupRuntime
             $"Arena pickup placement attempt {_placementAttempts}: round {_round}; actor=({actor.x:F3}, {actor.y:F3}, {actor.z:F3}); anchor=({anchor.x:F3}, {anchor.y:F3}, {anchor.z:F3}); placed={Entries.Count}/{_layout.Points.Count}; alternatives={candidates}; geometryProbes={total.Probes}; refusals=[{total}]."));
     }
 
+    private static bool TryPlacementAnchor(Vector3 localAnchor, out Vector3 anchor)
+    {
+        anchor = localAnchor;
+        return !_builtInLayout || !ArenaPickupGeometry.IsFullFactory(_layout)
+            || ArenaPickupGeometry.TryFactoryAnchor(_layout, out anchor);
+    }
+
     private static bool TryRotate(Entry entry, bool rearming = false)
     {
         if (!CanRelocate(entry, rearming)) return false;
@@ -260,6 +270,8 @@ internal static partial class ArenaPickupRuntime
         { RotationBlocked(entry, "gameplay paused or body/weapon swap active"); return false; }
         if (!ArenaPickupGeometry.TryAnchor(_world, out var anchor))
         { RotationBlocked(entry, "local actor has no ready grounded navigation anchor"); return false; }
+        if (!TryPlacementAnchor(anchor, out anchor))
+        { RotationBlocked(entry, "Factory pickup floors have no connected majority"); return false; }
 
         var diagnostics = new ArenaPickupGeometry.PlacementDiagnostics();
         var candidates = ArenaPickupLayouts.Candidates(entry.Candidates, PositionRandom);
@@ -369,7 +381,7 @@ internal static partial class ArenaPickupRuntime
     {
         _placementPending = false;
         if (_placementAttempts == 0)
-            Plugin.ModLogger.LogWarning("Arena pickups skipped this round: no ready grounded local navigation anchor within 15 seconds (body must be outside respawn/weapon swap).");
+            Plugin.ModLogger.LogWarning("Arena pickups skipped this round: no safe placement anchor within 15 seconds (requires a grounded live body outside respawn/weapon swap and, on built-in Factory, connected pickup floors).");
         foreach (var definition in _layout.Points)
         {
             if (Entries.Any(entry => entry.Definition.Id == definition.Id)) continue;

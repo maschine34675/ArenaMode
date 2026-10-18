@@ -45,10 +45,16 @@ internal static class ArenaPickupGeometry
     // Every candidate runs the original floor, clearance, contour and path checks.
     internal static bool TryPlacePoint(Vector3 requested, Vector3 anchor, bool allowNearby,
         out Vector3 floor, out string reason, out bool relocated, PlacementDiagnostics diagnostics = null)
+        => TryResolvePoint(requested, anchor, allowNearby, out floor, out reason, out relocated, diagnostics);
+
+    // A null anchor is only used to survey Factory's fixed seed pool. Those floors
+    // are not placement authority until their independent native network is proven.
+    private static bool TryResolvePoint(Vector3 requested, Vector3? anchor, bool allowNearby,
+        out Vector3 floor, out string reason, out bool relocated, PlacementDiagnostics diagnostics = null)
     {
         relocated = false;
         if (diagnostics != null) diagnostics.Probes++;
-        if (TryPlace(requested, anchor, out floor, out reason)) return true;
+        if (TryCandidate(requested, anchor, out floor, out reason)) return true;
         diagnostics?.Refused(reason);
         if (!allowNearby) return false;
         string originalReason = reason;
@@ -59,7 +65,7 @@ internal static class ArenaPickupGeometry
             float radius = ring * .5f;
             var candidate = requested + new Vector3((float)Math.Cos(angle) * radius, 0, (float)Math.Sin(angle) * radius);
             if (diagnostics != null) diagnostics.Probes++;
-            if (!TryPlace(candidate, anchor, out var alternative, out var refusal))
+            if (!TryCandidate(candidate, anchor, out var alternative, out var refusal))
             { diagnostics?.Refused(refusal); continue; }
             var delta = alternative - requested;
             // NavMesh sampling may move an additional .75m; bound the FINAL floor,
@@ -98,10 +104,30 @@ internal static class ArenaPickupGeometry
 
     internal static bool TryPlace(Vector3 requested, Vector3 anchor, out Vector3 floor, out string reason)
     {
+        if (!TryFloor(requested, out floor, out var navigation, out reason)) return false;
+        var path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(anchor, navigation, NavMesh.AllAreas, path)
+            || path.status != NavMeshPathStatus.PathComplete)
+        { reason = "no complete native path from the placement anchor"; return false; }
+        var area = ArenaAreaRuntime.CurrentArea;
+        if (area != null && !area.Bounds.ContainsPath(new ArenaAreaPoint(anchor.x, anchor.y, anchor.z),
+            path.corners, true, p => new ArenaAreaPoint(p.x, p.y, p.z), .1f))
+        { reason = "path leaves the active area"; return false; }
+        reason = null; return true;
+    }
+
+    private static bool TryCandidate(Vector3 requested, Vector3? anchor, out Vector3 floor, out string reason)
+        => anchor.HasValue ? TryPlace(requested, anchor.Value, out floor, out reason)
+            : TryFloor(requested, out floor, out _, out reason);
+
+    private static bool TryFloor(Vector3 requested, out Vector3 floor, out Vector3 navigation, out string reason)
+    {
         floor = default;
+        navigation = default;
         reason = "no nearby floor on the navigation mesh";
         if (!NavMesh.SamplePosition(requested, out var nav, .75f, NavMesh.AllAreas)
             || Math.Abs(nav.position.y - requested.y) > .5f) return false;
+        navigation = nav.position;
         var origin = nav.position + Vector3.up * .65f;
         RaycastHit? support = null;
         var hits = Physics.RaycastAll(origin, Vector3.down, 1.4f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
@@ -118,14 +144,58 @@ internal static class ArenaPickupGeometry
         foreach (var collider in Physics.OverlapCapsule(floor + Vector3.up * .4f, floor + Vector3.up * 1.1f,
             .25f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             if (!Ignored(collider)) { reason = "pedestal clearance obstructed"; return false; }
-        var path = new NavMeshPath();
-        if (!NavMesh.CalculatePath(anchor, nav.position, NavMesh.AllAreas, path)
-            || path.status != NavMeshPathStatus.PathComplete)
-        { reason = "no complete native path from the local actor"; return false; }
-        if (area != null && !area.Bounds.ContainsPath(new ArenaAreaPoint(anchor.x, anchor.y, anchor.z),
-            path.corners, true, p => new ArenaAreaPoint(p.x, p.y, p.z), .1f))
-        { reason = "path leaves the active area"; return false; }
         reason = null; return true;
+    }
+
+    internal static bool IsFullFactory(ArenaPickupLayout layout) => layout != null && layout.AreaId == null
+        && ArenaAreaRuntime.CurrentArea == null
+        && (string.Equals(layout.MapId, "factory4_day", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(layout.MapId, "factory4_night", StringComparison.OrdinalIgnoreCase));
+
+    // Factory has legitimate human entries on isolated NavMesh islands. A human
+    // can jump out, while using that entry as the map-wide path origin rejects
+    // every pickup. Prove the reviewed pickup pool's main network independently.
+    // No scene-wide search, self-path authority or persistent navigation cache.
+    internal static bool TryFactoryAnchor(ArenaPickupLayout layout, out Vector3 anchor)
+    {
+        anchor = default;
+        if (!IsFullFactory(layout) || layout.Points == null) return false;
+        var seeds = layout.Points.SelectMany(p => new[] { new ArenaPickupPosition { X = p.X, Y = p.Y, Z = p.Z } }
+                .Concat(p.Alternatives ?? new List<ArenaPickupPosition>()))
+            .GroupBy(p => (p.X, p.Y, p.Z)).Select(g => g.First())
+            .OrderBy(p => p.X).ThenBy(p => p.Z).ThenBy(p => p.Y).Take(9).ToArray();
+        // This policy belongs only to the existing eight-position Factory pool.
+        if (seeds.Length > 8) return false;
+        var nodes = new List<Vector3>();
+        foreach (var seed in seeds)
+        {
+            if (!TryResolvePoint(new Vector3(seed.X, seed.Y, seed.Z), null, true,
+                out var floor, out _, out _, null)
+                || !NavMesh.SamplePosition(floor, out var nav, .75f, NavMesh.AllAreas)
+                || Math.Abs(nav.position.y - floor.y) > .5f) continue;
+            if (nodes.Any(p => (p.x - nav.position.x) * (p.x - nav.position.x)
+                + (p.z - nav.position.z) * (p.z - nav.position.z) < 9f)) continue;
+            nodes.Add(nav.position);
+        }
+        if (nodes.Count < 3) return false;
+        var connections = new int[nodes.Count];
+        var path = new NavMeshPath();
+        for (int i = 0; i < nodes.Count; i++)
+        for (int j = i + 1; j < nodes.Count; j++)
+        {
+            if (!NavMesh.CalculatePath(nodes[i], nodes[j], NavMesh.AllAreas, path)
+                || path.status != NavMeshPathStatus.PathComplete
+                || !NavMesh.CalculatePath(nodes[j], nodes[i], NavMesh.AllAreas, path)
+                || path.status != NavMeshPathStatus.PathComplete) continue;
+            connections[i]++; connections[j]++;
+        }
+        int best = 0;
+        for (int i = 1; i < nodes.Count; i++)
+            if (connections[i] > connections[best]) best = i;
+        int members = connections[best] + 1;
+        if (members < 3 || members * 2 <= nodes.Count) return false;
+        anchor = nodes[best];
+        return true;
     }
 
     private static bool Ignored(Collider collider) => collider == null || collider.GetComponentInParent<Player>() != null
