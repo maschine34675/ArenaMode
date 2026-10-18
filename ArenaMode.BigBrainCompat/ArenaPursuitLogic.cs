@@ -39,7 +39,7 @@ public sealed class ArenaPursuitLogic : CustomLogic
 
     public override void Update(CustomLayer.ActionData data)
     {
-        if (!Plugin.RuntimeEnabled
+        if (!Library.RuntimeEnabled
             || data is not ArenaPursuitActionData pursuitData
             || !ArenaPursuitRuntime.TryGetUsableLease(
                 BotOwner,
@@ -220,13 +220,13 @@ public sealed class ArenaPursuitLogic : CustomLogic
             // A stale route or a target that moved out of contact is normal
             // replanning. Contract failures and exceptions remain warnings.
             if (category == "route-acquire" || category == "route-refresh" || category == "unresolved-arrival")
-                Plugin.ModLogger?.LogDebug(message);
+                Library.ModLogger?.LogDebug(message);
             else
-                Plugin.ModLogger?.LogWarning(message);
+                Library.ModLogger?.LogWarning(message);
         }
 
         TeamArenaPursuitLeaseBridge.ReportRejected(
-            Plugin.PluginGuid,
+            Library.ConsumerId,
             lease.SourceProfileId,
             lease.Epoch,
             lease.Generation);
@@ -263,7 +263,7 @@ public sealed class ArenaPursuitLogic : CustomLogic
     private void ReportStartedOrStop(TeamArenaPursuitLease lease)
     {
         if (!TeamArenaPursuitLeaseBridge.ReportStarted(
-                Plugin.PluginGuid,
+                Library.ConsumerId,
                 lease.SourceProfileId,
                 lease.Epoch,
                 lease.Generation))

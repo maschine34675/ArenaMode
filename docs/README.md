@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Arena-owned BigBrain library and Redeploy server boundary](BIGBRAIN-LIBRARY-20261018.md)
 - [GPU2 map-feature tests and rendering follow-up](GPU-MAP-FEATURES-20261017.md)
 - [All-map lighting and one-second deploy countdown](MAP-LIGHTING-20261017.md)
 - [All-map pickup layouts and longer beams](ALL-MAP-PICKUPS-20261017.md)

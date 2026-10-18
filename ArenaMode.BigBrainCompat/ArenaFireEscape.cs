@@ -38,7 +38,7 @@ public sealed class ArenaFireEscapeLayer : CustomLayer
             if (!found) _next = Time.time + .75f;
             return found;
         }
-        catch (Exception ex) { Plugin.ModLogger?.LogWarning("Arena fire escape skipped: " + ex.GetBaseException().Message); _next = Time.time + 5f; return false; }
+        catch (Exception ex) { Library.ModLogger?.LogWarning("Arena fire escape skipped: " + ex.GetBaseException().Message); _next = Time.time + 5f; return false; }
     }
     public override Action GetNextAction() => new(typeof(ArenaFireEscapeLogic), "Leaving ground fire", new FireAction(_lease));
     public override bool IsCurrentActionEnding()
@@ -58,7 +58,7 @@ internal sealed class ArenaFireEscape
     internal bool Released;
     private int _generation;
     private float _until;
-    internal static bool Eligible(BotOwner bot) => Plugin.RuntimeEnabled && ArenaFireRuntime.HasFire && Time.timeScale > 0
+    internal static bool Eligible(BotOwner bot) => Library.RuntimeEnabled && ArenaFireRuntime.HasFire && Time.timeScale > 0
         && bot != null && !bot.IsDead && bot.BotState == EBotState.Active && bot.Mover != null
         && bot.GetPlayer?.IsAI == true && ReferenceEquals(bot.GetPlayer.AIData?.BotOwner, bot)
         && ArenaFireRuntime.LiveActor(bot.GetPlayer)
@@ -170,7 +170,7 @@ public sealed class ArenaFireEscapeLogic : CustomLogic
             }
             _move.UpdateNodeByBrain(null);
         }
-        catch (Exception ex) { Plugin.ModLogger?.LogWarning("Arena fire escape interrupted: " + ex.GetBaseException().Message); StopOwned(); }
+        catch (Exception ex) { Library.ModLogger?.LogWarning("Arena fire escape interrupted: " + ex.GetBaseException().Message); StopOwned(); }
     }
     private void StopOwned()
     {

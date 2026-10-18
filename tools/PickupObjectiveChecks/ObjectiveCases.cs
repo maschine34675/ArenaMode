@@ -56,7 +56,7 @@ internal static partial class Program
     private static BotOwner AiReady(ArenaPickupKind kind=ArenaPickupKind.DoubleDamage)
     {
         ArenaAdministrativeDeathGate.Active=false;ArenaPowerups.Snapshot=default;
-        ArenaMode.BigBrainCompat.Plugin.RuntimeEnabled=true;ArenaMode.Movement.ArenaBotMovementSain.Allowed=true;
+        ArenaMode.BigBrainCompat.Library.RuntimeEnabled=true;ArenaMode.Movement.ArenaBotMovementSain.Allowed=true;
         ArenaSainMovementHandoff.State=ArenaSainHandoffState.Ready;ArenaSainMovementHandoff.Calls=0;
         Ready(kind);ArenaPickupObjective.ResetClaims();
         var bot=Bot("seeker",-10).AIData.BotOwner;Step();Step();return bot;
@@ -72,7 +72,7 @@ internal static partial class Program
         foreach(var reject in new Action<BotOwner>[] {b=>b.Memory.IsUnderFire=true,b=>b.Medecine.FirstAid.Using=true,b=>b.Medecine.SurgicalKit.Using=true,
             b=>b.WeaponManager.Reload.Reloading=true,b=>b.WeaponManager.Grenades.ThrowindNow=true,b=>b.BewareGrenade.Active=true,b=>b.BewareBTR.Active=true,
             b=>b.ArtilleryDangerPlace.Active=true,b=>b.FlashGrenade.IsFlashed=true,b=>b.DoorOpener.Interacting=true,b=>b.Mover.CurrentState=EBotMoverState.NearDoor,
-            b=>ArenaMode.Movement.ArenaBotMovementSain.Allowed=false,b=>ArenaMode.BigBrainCompat.Plugin.RuntimeEnabled=false,
+            b=>ArenaMode.Movement.ArenaBotMovementSain.Allowed=false,b=>ArenaMode.BigBrainCompat.Library.RuntimeEnabled=false,
             b=>ArenaPickupSettings.BotsCollectPowerups.Value=false,b=>b.GetPlayer.ActiveHealthController=new(){Player=b.GetPlayer}})
         {
             bot=AiReady();lease=Acquire(bot);reject(bot);Check(!lease.Current(),"combat danger busy state or owner change yields objective");

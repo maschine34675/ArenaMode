@@ -1289,7 +1289,7 @@ internal static class Program
         string pursuitOwnerPolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaPursuitOwnerPolicy.cs");
         string sainSourcePolicy = Read(root, "ArenaMode.Client", "Bots", "TeamArenaSainSourcePolicy.cs");
         string bigBrainProject = Read(root, "ArenaMode.BigBrainCompat", "ArenaMode.BigBrainCompat.csproj");
-        string bigBrainPlugin = Read(root, "ArenaMode.BigBrainCompat", "Plugin.cs");
+        string bigBrainPlugin = Read(root, "ArenaMode.BigBrainCompat", "Library.cs");
         string bigBrainRegistration = Read(root, "ArenaMode.BigBrainCompat", "BigBrainRuntime.cs");
         string bigBrainLayer = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLayer.cs");
         string bigBrainLogic = Read(root, "ArenaMode.BigBrainCompat", "ArenaPursuitLogic.cs");
@@ -1886,17 +1886,17 @@ internal static class Program
             "<Reference Include=\"UnityEngine.AIModule\" Private=\"false\" />",
             "<Private>false</Private>");
         RequireAll(bigBrainPlugin,
-            "[BepInDependency(ArenaMode.Plugin.PluginGuid, ArenaMode.Plugin.PluginVersion)]",
-            "[BepInDependency(BigBrainPluginGuid, BepInDependency.DependencyFlags.SoftDependency)]",
+            "public static class Library",
+            "public static bool Initialize(ManualLogSource logger)",
             "TestedBigBrainVersion = \"1.5.0\"",
             "PursuitLayerPriority = 74",
             "BigBrainRuntime.Register(",
-            "TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid)");
+            "TeamArenaPursuitLeaseBridge.UnregisterConsumer(ConsumerId)");
         RequireAll(bigBrainRegistration,
             "[MethodImpl(MethodImplOptions.NoInlining)]",
             "BrainManager.AddCustomLayer(",
             "BrainManager.CustomLayersReadOnly.TryGetValue",
-            "TeamArenaPursuitLeaseBridge.RegisterConsumer(Plugin.PluginGuid)");
+            "TeamArenaPursuitLeaseBridge.RegisterConsumer(Library.ConsumerId)");
         RequireAll(bigBrainLayer,
             "public override string GetName() => \"Arena Combat Pursuit\"",
             "ArenaPursuitRuntime.HasExactTeamArenaContext()",

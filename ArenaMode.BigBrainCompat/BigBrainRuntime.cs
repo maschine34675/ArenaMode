@@ -8,8 +8,8 @@ using System.Runtime.CompilerServices;
 namespace ArenaMode.BigBrainCompat;
 
 /// <summary>
-/// Optional typed boundary. Never move BigBrain types into the plugin entry
-/// type or inline this method: the bundled plugin must load without BigBrain.
+/// Optional typed boundary. Never move BigBrain types into the library entry
+/// type or inline this method: the bootstrap must remain safe without BigBrain.
 /// </summary>
 internal static class BigBrainRuntime
 {
@@ -24,20 +24,20 @@ internal static class BigBrainRuntime
             "PmcBear", "PmcUsec", "ExUsec", "PMC", "Assault", "Obdolbs", "CursAssault"
         };
 
-        int layerId = BrainManager.AddCustomLayer(typeof(ArenaPursuitLayer), brains, Plugin.PursuitLayerPriority);
+        int layerId = BrainManager.AddCustomLayer(typeof(ArenaPursuitLayer), brains, Library.PursuitLayerPriority);
         if (!BrainManager.CustomLayersReadOnly.TryGetValue(layerId, out BrainManager.LayerInfo layer)
             || layer.customLayerType != typeof(ArenaPursuitLayer)
-            || layer.customLayerPriority != Plugin.PursuitLayerPriority
+            || layer.customLayerPriority != Library.PursuitLayerPriority
             || brains.Any(brain => !layer.CustomLayerBrains.Contains(brain)))
             throw new InvalidOperationException("BigBrain did not retain the exact Arena pursuit layer registration.");
 
-        if (!Bots.TeamArenaPursuitLeaseBridge.RegisterConsumer(Plugin.PluginGuid))
+        if (!Bots.TeamArenaPursuitLeaseBridge.RegisterConsumer(Library.ConsumerId))
             throw new InvalidOperationException("Arena's pursuit lease bridge is already owned by another consumer.");
 
-        int pickupLayerId = BrainManager.AddCustomLayer(typeof(ArenaPickupLayer), brains, Plugin.PickupLayerPriority);
+        int pickupLayerId = BrainManager.AddCustomLayer(typeof(ArenaPickupLayer), brains, Library.PickupLayerPriority);
         if (!BrainManager.CustomLayersReadOnly.TryGetValue(pickupLayerId, out var pickupLayer)
             || pickupLayer.customLayerType != typeof(ArenaPickupLayer)
-            || pickupLayer.customLayerPriority != Plugin.PickupLayerPriority
+            || pickupLayer.customLayerPriority != Library.PickupLayerPriority
             || brains.Any(brain => !pickupLayer.CustomLayerBrains.Contains(brain)))
             throw new InvalidOperationException("BigBrain did not retain the Arena pickup layer registration.");
 
@@ -52,8 +52,8 @@ internal static class BigBrainRuntime
         // passed their retained type/priority/brain checks.
         prunePickups = ArenaPickupObjective.Prune;
         resetPickups = ArenaPickupObjective.ResetClaims;
-        logger.LogDebug($"Arena pickup layer {pickupLayerId} registered at priority {Plugin.PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
+        logger.LogDebug($"Arena pickup layer {pickupLayerId} registered at priority {Library.PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
         logger.LogDebug($"Arena pursuit layer {layerId} registered for {brains.Count} brains "
-            + $"at priority {Plugin.PursuitLayerPriority} (BigBrain {actualVersion}).");
+            + $"at priority {Library.PursuitLayerPriority} (BigBrain {actualVersion}).");
     }
 }

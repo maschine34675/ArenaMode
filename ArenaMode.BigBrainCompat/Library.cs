@@ -5,18 +5,13 @@ using System;
 
 namespace ArenaMode.BigBrainCompat;
 
-// Keep this entry type free of BigBrain types (including fields and signatures).
-// BepInEx discovers plugins through Cecil, then loads only this named type. A
-// soft dependency orders an installed BigBrain first without making its absence
-// a loader error; the typed implementation is reached only after the checks.
-[BepInPlugin(PluginGuid, PluginName, PluginVersion)]
-[BepInDependency(ArenaMode.Plugin.PluginGuid, ArenaMode.Plugin.PluginVersion)]
-[BepInDependency(BigBrainPluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
-public sealed class Plugin : BaseUnityPlugin
+// Plain library, explicitly owned by Arena's Start/Update/OnDestroy lifecycle.
+// Keep this type free of BigBrain types; only the NoInlining boundary may use them.
+public static class Library
 {
-    public const string PluginGuid = "com.maschine.ArenaMode.BigBrainCompat";
-    public const string PluginName = "maschine-ArenaMode.BigBrainCompat";
-    public const string PluginVersion = "0.1.0";
+    public const int ApiVersion = 1;
+    // Internal lease identity only, retained across migration; not a plugin GUID.
+    public const string ConsumerId = "com.maschine.ArenaMode.BigBrainCompat";
     public const string BigBrainPluginGuid = "xyz.drakia.bigbrain";
     public const string TestedBigBrainVersion = "1.5.0";
     public const int PursuitLayerPriority = 74;
@@ -27,87 +22,97 @@ public sealed class Plugin : BaseUnityPlugin
 
     internal static bool RuntimeEnabled { get; private set; }
     internal static ManualLogSource ModLogger { get; private set; }
-    private Action _prunePickups;
-    private Action _resetPickups;
-    private float _nextPickupPrune;
+    private static Action _prunePickups;
+    private static Action _resetPickups;
+    private static float _nextPickupPrune;
+    private static bool _attempted;
 
-    private void Update()
+    public static void Tick()
     {
         if (!RuntimeEnabled || _prunePickups == null || UnityEngine.Time.time < _nextPickupPrune) return;
         _nextPickupPrune = UnityEngine.Time.time + .5f;
         try { _prunePickups(); }
-        catch { _resetPickups?.Invoke(); }
+        catch (Exception ex)
+        {
+            DisableRuntime();
+            ModLogger?.LogError($"Arena BigBrain maintenance failed; movement support disabled: {ex}");
+        }
     }
 
-    private void Awake()
+    public static bool Initialize(ManualLogSource logger)
     {
-        ModLogger = Logger;
+        // BigBrain retains registered layer types for the process lifetime.
+        // Repeated calls (including after shutdown/failure) must not add duplicates.
+        if (_attempted) return RuntimeEnabled;
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        _attempted = true;
+        ModLogger = logger;
         RuntimeEnabled = false;
 
         if (!Chainloader.PluginInfos.TryGetValue(BigBrainPluginGuid, out BepInEx.PluginInfo bigBrain))
         {
-            // The companion is always shipped. No warning is needed for an
+            // The library is always shipped. No warning is needed for an
             // intentionally absent optional mod, and no BigBrain type is touched.
-            Logger.LogDebug("Arena BigBrain companion is inactive: optional BigBrain is not installed.");
-            enabled = false;
-            return;
+            ModLogger.LogDebug("Arena BigBrain library is inactive: optional BigBrain is not installed.");
+            return false;
         }
 
         Version actual = bigBrain.Metadata?.Version;
         if (bigBrain.Instance == null || actual == null || actual < MinimumBigBrainVersion)
         {
-            Logger.LogWarning("Arena bot movement support is disabled: BigBrain "
+            ModLogger.LogWarning("Arena bot movement support is disabled: BigBrain "
                 + $"{actual?.ToString() ?? "unknown"} is not loaded or is older than {MinimumBigBrainVersion}.");
-            enabled = false;
-            return;
+            return false;
         }
 
         if (!HasExactArenaDependency(out string arenaProblem))
         {
-            Logger.LogError("Arena BigBrain movement ownership stays disabled: " + arenaProblem);
-            enabled = false;
-            return;
+            ModLogger.LogError("Arena BigBrain movement ownership stays disabled: " + arenaProblem);
+            return false;
         }
 
         if (actual > MinimumBigBrainVersion)
-            Logger.LogWarning($"Arena BigBrain support was tested with {TestedBigBrainVersion}; "
+            ModLogger.LogWarning($"Arena BigBrain support was tested with {TestedBigBrainVersion}; "
                 + $"installed {actual} is newer. Trying the existing API with runtime safety checks.");
 
         try
         {
             // NoInlining on Register prevents either JIT from resolving its
             // BigBrain layer types while compiling this optional bootstrap.
-            BigBrainRuntime.Register(Logger, actual, out _prunePickups, out _resetPickups);
+            BigBrainRuntime.Register(ModLogger, actual, out _prunePickups, out _resetPickups);
             RuntimeEnabled = true;
             Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = true;
             Pickups.ArenaPickupRuntime.BotObjectivesAvailable = true;
-            Logger.LogInfo("Arena bot movement support is ready (BigBrain).");
+            ModLogger.LogInfo("Arena bot movement support is ready (BigBrain).");
+            return true;
         }
         catch (Exception ex)
         {
             DisableRuntime();
-            Logger.LogError($"Arena BigBrain movement ownership could not be registered: {ex}");
-            enabled = false;
+            ModLogger.LogError($"Arena BigBrain movement ownership could not be registered: {ex}");
+            return false;
         }
     }
 
-    private void OnDestroy()
+    public static void Shutdown()
     {
         DisableRuntime();
         ModLogger = null;
     }
 
-    private void DisableRuntime()
+    private static void DisableRuntime()
     {
         RuntimeEnabled = false;
         Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = false;
         Pickups.ArenaPickupRuntime.BotObjectivesAvailable = false;
         // Registration can fail after claiming the bridge. Revocation only
         // removes our exact consumer ID, never an unrelated owner's lease.
-        Bots.TeamArenaPursuitLeaseBridge.UnregisterConsumer(PluginGuid);
-        _resetPickups?.Invoke();
+        Bots.TeamArenaPursuitLeaseBridge.UnregisterConsumer(ConsumerId);
+        Action reset = _resetPickups;
         _prunePickups = null;
         _resetPickups = null;
+        try { reset?.Invoke(); }
+        catch (Exception ex) { ModLogger?.LogError($"Arena BigBrain claim cleanup failed: {ex}"); }
     }
 
     private static bool HasExactArenaDependency(out string problem)
@@ -116,7 +121,7 @@ public sealed class Plugin : BaseUnityPlugin
         if (!Chainloader.PluginInfos.TryGetValue(ArenaMode.Plugin.PluginGuid, out BepInEx.PluginInfo info)
             || info.Instance == null)
         {
-            problem = $"hard dependency '{ArenaMode.Plugin.PluginGuid}' is not loaded";
+            problem = $"owning plugin '{ArenaMode.Plugin.PluginGuid}' is not loaded";
             return false;
         }
 

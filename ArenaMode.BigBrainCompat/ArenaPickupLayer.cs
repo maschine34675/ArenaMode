@@ -22,7 +22,7 @@ public sealed class ArenaPickupLayer : CustomLayer
         catch (System.Exception ex)
         {
             _lease?.Release("selection failed"); _lease = null; _nextAttempt = Time.time + 8f;
-            if (!_warned) { _warned = true; Plugin.ModLogger?.LogWarning("Arena pickup selection skipped: " + ex.GetBaseException().Message); }
+            if (!_warned) { _warned = true; Library.ModLogger?.LogWarning("Arena pickup selection skipped: " + ex.GetBaseException().Message); }
             return false;
         }
     }

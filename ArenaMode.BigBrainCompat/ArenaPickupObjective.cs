@@ -41,7 +41,7 @@ internal sealed class ArenaPickupObjective
         try
         {
             var player = bot?.GetPlayer;
-            if (!Plugin.RuntimeEnabled || player?.IsAI != true || bot.IsDead || bot.BotState != EBotState.Active
+            if (!Library.RuntimeEnabled || player?.IsAI != true || bot.IsDead || bot.BotState != EBotState.Active
                 || !ReferenceEquals(player.AIData?.BotOwner, bot) || !ArenaPickupRuntime.IsLiveActor(player)
                 || ArenaPickupSettings.BotsCollectPowerups?.Value != true || Time.timeScale <= 0
                 || bot.Mover == null || bot.Memory == null || bot.BotsGroup == null || bot.EnemiesController?.EnemyInfos == null

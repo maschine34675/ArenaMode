@@ -186,7 +186,7 @@ hold the sequences and failure pictures; this file keeps only what is Arena-spec
 | Path | What |
 |---|---|
 | `ArenaMode.Client/` | BepInEx plugin (netstandard2.1, Harmony). The bulk of the mod. |
-| `ArenaMode.BigBrainCompat/` | Optional BigBrain 1.5.0+ action owner for post-death Tactical 5v5 pursuit. |
+| `ArenaMode.BigBrainCompat/` | Plain optional BigBrain 1.5.0+ library for pursuit, pickups and fire avoidance; no separate plugin GUID. |
 | `ArenaMode.Server/` | SPT server mod (net10.0) + the Blazor config page. |
 | `ArenaMode.Shared/` | Linked source compiled into BOTH — routes and DTOs only. |
 | `tools/` | Offline generators for the kit catalogue and the weapon ladder. |
@@ -201,6 +201,13 @@ External, outside the repo:
 | `D:\SPT41\SPT_Runtime\` | The server. Server DLL deploys to `user\mods\ArenaMode\`. |
 
 ## Build and deploy
+
+BigBrainCompat is owned by Arena's Start/Update/OnDestroy, not an independent
+plugin. Preserve lazy named-type loading and the NoInlining typed boundary;
+do not add BigBrain types or a hard companion reference to the main client.
+Update both Arena client DLLs together. Read docs/BIGBRAIN-LIBRARY-20261018.md
+before changing this contract. Arena needs Arena.Server for profile protection;
+Redeploy.Core itself has no server dependency.
 
 ```bash
 dotnet build ArenaMode.sln -c Release   # builds and deploys both halves

@@ -38,7 +38,7 @@ public sealed class ArenaPursuitLayer : CustomLayer
         }
 
         EnsureSourceRegistered();
-        return Plugin.RuntimeEnabled
+        return Library.RuntimeEnabled
                && _sourceRegistered
                && ArenaPursuitRuntime.TryGetUsableLease(BotOwner, out _);
     }
@@ -46,7 +46,7 @@ public sealed class ArenaPursuitLayer : CustomLayer
     public override Action GetNextAction()
     {
         EnsureSourceRegistered();
-        if (!Plugin.RuntimeEnabled
+        if (!Library.RuntimeEnabled
             || !_sourceRegistered
             || !ArenaPursuitRuntime.TryGetUsableLease(BotOwner, out TeamArenaPursuitLease lease))
         {
@@ -68,7 +68,7 @@ public sealed class ArenaPursuitLayer : CustomLayer
 
     public override bool IsCurrentActionEnding()
     {
-        if (!Plugin.RuntimeEnabled || _actionEpoch < 0 || _actionGeneration <= 0)
+        if (!Library.RuntimeEnabled || _actionEpoch < 0 || _actionGeneration <= 0)
             return true;
 
         return !ArenaPursuitRuntime.TryGetUsableLease(
@@ -96,7 +96,7 @@ public sealed class ArenaPursuitLayer : CustomLayer
         if (BotOwner?.GetPlayer != null)
             BotOwner.GetPlayer.OnPlayerDeadOrUnspawn -= OnPlayerDeadOrUnspawn;
         TeamArenaPursuitLeaseBridge.UnregisterSource(
-            Plugin.PluginGuid,
+            Library.ConsumerId,
             _sourceProfileId);
         _sourceRegistered = false;
     }
@@ -104,12 +104,12 @@ public sealed class ArenaPursuitLayer : CustomLayer
     private void EnsureSourceRegistered()
     {
         if (_sourceRegistered
-            || !Plugin.RuntimeEnabled
+            || !Library.RuntimeEnabled
             || !ArenaPursuitRuntime.HasExactTeamArenaContext())
             return;
 
         _sourceRegistered = TeamArenaPursuitLeaseBridge.RegisterSource(
-            Plugin.PluginGuid,
+            Library.ConsumerId,
             _sourceProfileId);
         if (_sourceRegistered && BotOwner?.GetPlayer != null)
             BotOwner.GetPlayer.OnPlayerDeadOrUnspawn += OnPlayerDeadOrUnspawn;

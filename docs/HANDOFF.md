@@ -1,11 +1,20 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-17. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-18. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **BigBrainCompat as a plain library (2026-10-18):** Arena.Client now owns
+  initialization, maintenance and teardown; the companion has no plugin GUID.
+  BigBrain stays optional, tested minimum 1.5.0 with warnings for newer versions.
+  Update both Arena client DLLs together. Core needs no standalone Redeploy.Server;
+  Arena.Server owns Arena's protected profile restoration. Read
+  [the implementation and test boundaries](BIGBRAIN-LIBRARY-20261018.md) and
+  [verification gates](BIGBRAIN-LIBRARY-GATES.md). No live deployment was made;
+  native Unity/Mono startup and bot behavior for the new lifecycle remain pending.
 
 - **All-map effects, pickups and TDM bot shields (2026-10-17):** Implementation
   commits `29cc93e` (phase lights on all eight location IDs; native deploy 1s),

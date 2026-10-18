@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>maschine-ArenaMode.BigBrainCompat</AssemblyName>
+  </PropertyGroup>
+  <!-- Verify-Library builds Probe first, then isolates each fixture output. -->
+  <ItemGroup>
+    <Reference Include="Probe" Private="false">
+      <HintPath>../Probe/bin/$(Configuration)/net10.0/Probe.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

@@ -84,8 +84,13 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
         'ArenaMode.Client/Pickups/ArenaPickupRuntime.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
         'ArenaMode.Client/Pickups/ArenaPickupCapture.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
         'ArenaMode.Client/Areas/ArenaAreaCapture.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
-        'ArenaMode.BigBrainCompat/Plugin.cs' = @(
-            'BepInDependency\(BigBrainPluginGuid,\s*BepInDependency\.DependencyFlags\.SoftDependency\)',
+        'ArenaMode.Client/Plugin.cs' = @(
+            'BepInDependency\(ArenaBigBrainLibrary.BigBrainGuid,\s*BepInDependency\.DependencyFlags\.SoftDependency\)',
+            'private void Start\(\) => ArenaBigBrainLibrary.Initialize', 'ArenaBigBrainLibrary.Shutdown\('
+        )
+        'ArenaMode.Client/Compat/ArenaBigBrainLibrary.cs' = @('Assembly.LoadFrom\(path\)', 'entry.GetMethod\("Initialize"')
+        'ArenaMode.BigBrainCompat/Library.cs' = @(
+            'public static class Library', 'public static bool Initialize\(ManualLogSource logger\)',
             'PluginInfos\.TryGetValue\(BigBrainPluginGuid,', 'BigBrainRuntime\.Register\('
         )
         'ArenaMode.BigBrainCompat/BigBrainRuntime.cs' = @(
@@ -159,6 +164,8 @@ $dlls = @(
     @{Source=(Join-Path $coreSource 'Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll'); Dest='BepInEx/plugins/maschine-Redeploy.Core.dll'; Version=$coreVersion},
     @{Source=(Join-Path $source 'ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll'); Dest="$assetRoot/maschine-ArenaMode.BigBrainCompat.dll"; Version=$version}
 )
+. (Join-Path $source 'tools/Assert-BigBrainLibrary.ps1')
+Assert-BigBrainLibrary $dlls[0].Source $dlls[3].Source (Join-Path $SptPath 'BepInEx/core/Mono.Cecil.dll')
 foreach ($dll in $dlls) {
     $actual = [Reflection.AssemblyName]::GetAssemblyName($dll.Source).Version
     if ($actual -ne [version]($dll.Version + '.0')) { throw "Unexpected assembly version: $($dll.Dest): $actual" }
@@ -197,8 +204,10 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    BepInEx settings, profiles or other mods are included.
 3. Keep exactly one maschine-Redeploy.Core.dll in BepInEx/plugins (including
    its subfolders). Use the supplied version; never downgrade a newer Core.
-4. The Arena BigBrain companion is always included. Without BigBrain it stays
-   inactive; you do not need to remove its DLL. BigBrain 1.5.0 is the tested
+4. The Arena BigBrain library is always included and has no separate plugin GUID.
+   Arena starts it only when BigBrain is loaded; you do not need to remove its DLL.
+   Update both Arena client DLLs together and remove old duplicate copies.
+   BigBrain 1.5.0 is the tested
    baseline. Newer versions are allowed with a warning, not certified compatible;
    older versions are not enabled. Bot pickup pursuit, post-death pursuit and
    Molotov support require its usable integration. BigBrain and its own

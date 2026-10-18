@@ -26,7 +26,7 @@ namespace DrakiaXYZ.BigBrain.Brains
 }
 namespace ArenaMode.BigBrainCompat
 {
-    internal static class Plugin { internal static bool RuntimeEnabled=true; internal static ArenaMode.Plugin.Logger ModLogger=>ArenaMode.Plugin.ModLogger; }
+    internal static class Library { internal static bool RuntimeEnabled=true; internal static ArenaMode.Plugin.Logger ModLogger=>ArenaMode.Plugin.ModLogger; }
     internal enum ArenaSainHandoffState { Ready, WaitingForDeactivation, Unavailable }
     internal static class ArenaSainMovementHandoff
     {

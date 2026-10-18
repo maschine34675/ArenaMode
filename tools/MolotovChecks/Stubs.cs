@@ -354,7 +354,7 @@ namespace DrakiaXYZ.BigBrain.Brains
 namespace ArenaMode.Movement { public static class ArenaBotMovementSain { public static bool Safe=true;public static bool AllowsBoost(EFT.BotOwner b,EFT.Player p)=>Safe; } }
 namespace ArenaMode.BigBrainCompat
 {
-    public static class Plugin { public static bool RuntimeEnabled=true;public static ArenaMode.Logger ModLogger=new(); }
+    public static class Library { public static bool RuntimeEnabled=true;public static ArenaMode.Logger ModLogger=new(); }
     public enum ArenaSainHandoffState { Unavailable,Ready,WaitingForDeactivation }
     public static class ArenaSainMovementHandoff { public static ArenaSainHandoffState EnsureSuspended(EFT.BotOwner b,out string r){r=null;return ArenaSainHandoffState.Ready;} }
 }

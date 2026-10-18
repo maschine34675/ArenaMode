@@ -2,7 +2,8 @@
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../BigBrainApi/BigBrainApi.csproj" />
-    <Compile Include="../../../ArenaMode.BigBrainCompat/Plugin.cs" Link="Production/Plugin.cs" />
+    <Compile Include="../../../ArenaMode.BigBrainCompat/Library.cs" Link="Production/Library.cs" />
+    <Compile Include="../../../ArenaMode.Client/Compat/ArenaBigBrainLibrary.cs" Link="Production/ArenaBigBrainLibrary.cs" />
     <Compile Include="../../../ArenaMode.BigBrainCompat/BigBrainRuntime.cs" Link="Production/BigBrainRuntime.cs" />
   </ItemGroup>
 </Project>

@@ -14,6 +14,7 @@ namespace ArenaMode;
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInDependency("com.SPT.core", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(ArenaBigBrainLibrary.BigBrainGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(PitFireTeamCompat.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("me.sol.sain", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(DynamicMapsCorpseMarkers.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -154,8 +155,13 @@ public class Plugin : BaseUnityPlugin
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version}; build/MVID {typeof(Plugin).Module.ModuleVersionId})");
     }
 
+    private void Start() => ArenaBigBrainLibrary.Initialize(ModLogger, Info.Location);
+
+    private void Update() => ArenaBigBrainLibrary.Tick();
+
     private void OnDestroy()
     {
+        ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();

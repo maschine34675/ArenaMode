@@ -1,6 +1,6 @@
 # Abhängigkeiten, Integrationen und Veröffentlichung
 
-Stand: 2026-10-17. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
+Stand: 2026-10-18. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
 nicht die jeweils neueste Veröffentlichung anderer Mods. Versionsgebundene
 Adapter sind keine pauschale Freigabe späterer Versionen. Gemeinsames Laden
 beweist nicht die vollständige Kompatibilität jeder Funktion.
@@ -13,11 +13,17 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 | ArenaMode Client und Server | Beide Hälften sowie die eigenen benötigten Daten/Assets gehören zum Paket. |
 | `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand referenziert 1.0.7; ältere Test-/Buildberichte können noch 1.0.6 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
-Der Hauptclient deklariert SPT Core, PFT, SAIN und DynamicMaps als weiche
+Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain und DynamicMaps als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
 keine zusätzlichen Mod-Downloads.
+
+`Redeploy.Server` wird von Core nicht benötigt. Der eigenständige Redeploy-Client
+fragt dessen `/redeploy/ping` ab; Core selbst führt keine solchen Serveranfragen
+aus. Arenas Server übernimmt seinen eigenen geschützten Raid-Abschluss und die
+Profilwiederherstellung. Deshalb gehören weder Redeploy.Client noch Redeploy.Server
+ins Arena-Paket. Siehe [Quellprüfung und Bibliotheksumbau](BIGBRAIN-LIBRARY-20261018.md).
 
 Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
 `ArenaMode.Server/ModMetadata.cs`, `../Redeploy/Redeploy.Core/CoreVersion.props`.
@@ -38,7 +44,11 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 Die optionalen Mods behalten ihre eigenen Voraussetzungen. Fremde
 SAIN/APBS/PFT/BigBrain-DLLs werden gemäß `AGENTS.md` nicht in Arena mitgeliefert.
 `ArenaMode.BigBrainCompat` ist eigener Arena-Code und wird immer mitgeliefert.
-Ohne geladenes BigBrain bleibt der Begleiter still inaktiv. Ältere Versionen
+Seit dem Bibliotheksumbau registriert diese DLL kein BepInEx-Plugin und keine
+eigene Plugin-GUID mehr. Arena lädt sie gezielt neben seiner Client-DLL und
+übernimmt Start, Pflege und Abschaltung. Beide DLLs gemeinsam aktualisieren;
+alte Plugin-Kopien entfernen und das Spiel neu starten.
+Ohne geladenes BigBrain bleibt die Bibliothek still inaktiv. Ältere Versionen
 als 1.5.0 oder fehlerhafte API-Verträge deaktivieren die Integration sicher.
 Neuere Versionen werden mit einer einmaligen Warnung versucht; das ist keine
 Bestätigung vollständiger Kompatibilität.

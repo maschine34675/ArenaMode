@@ -4,9 +4,10 @@ Run from the ArenaMode repository:
 
 ```powershell
 dotnet run --project tools/BigBrainCompatibilityChecks -c Release
+pwsh -NoProfile -File tools/BigBrainCompatibilityChecks/Verify-Library.ps1 -SptPath D:/SPT41
 ```
 
-The harness compiles the production [plugin bootstrap](../../ArenaMode.BigBrainCompat/Plugin.cs)
+The harness compiles the production [library bootstrap](../../ArenaMode.BigBrainCompat/Library.cs)
 and [typed registration boundary](../../ArenaMode.BigBrainCompat/BigBrainRuntime.cs)
 against small BepInEx/Arena doubles and a **separate** BigBrain API assembly.
 Each case runs in an isolated assembly load context. Cases that must stay
@@ -25,16 +26,27 @@ The 15 scenarios cover:
 - Successful initialization, throttled maintenance, teardown, complete capability
   rollback, and preserving a foreign consumer through failed initialization.
 
+Repeated initialization/shutdown cannot duplicate layers or revoke another owner.
+Three client-loader cases cover absent BigBrain, missing files and a loaded legacy
+plugin. The verification script additionally builds real binaries without deployment
+and reads Cecil metadata: only the main client registers a plugin, its BigBrain
+dependency is soft, it has no hard AI assembly reference, and its three lifecycle
+methods call the library owner.
+
+Disk-loaded fixtures in fresh processes exercise the real reflection loader:
+success, initialization refusal/exception, maintenance/cleanup exceptions,
+wrong API, assembly version/name, and an old plugin-shaped DLL without the new API.
+These tests use logger/API doubles, not game AI. The script also runs the pickup,
+Molotov and team expansion regression harnesses and compares installed file hashes.
+
 The loader dependency is checked as soft, and the typed entry method must retain
 `NoInlining`. No movement logic, bot identities, path safety, or layer priorities
 are replaced by these tests; their existing behavioral harnesses remain relevant.
 
-On 2026-10-17 the final run passed **142 assertions**. The real companion also
-built against the installed game/BigBrain API with zero warnings and errors,
-using isolated output and overridden deployment targets. Nothing was deployed.
 The installed BepInEx chainloader was independently inspected: discovery reads
-Cecil metadata, then loads the named plugin type with `Assembly.GetType`; it does
-not require loading every BigBrain-derived layer while the dependency is absent.
+Cecil metadata and ignores static types as plugin entries. The main client's
+Start runs after BepInEx assigns its plugin instance and BigBrain patches Awake.
+See the [dated results](../../docs/BIGBRAIN-LIBRARY-20261018.md).
 
 These are CoreCLR isolation and source-contract checks, **not native Unity/Mono
 startup acceptance** or certification of a future BigBrain release. Future

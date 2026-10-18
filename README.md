@@ -172,11 +172,16 @@ SPT installation/
 mod. Use the version supplied for the Arena build, keeping only one copy in the
 plugin tree. The current source builds against Core **1.0.7**. An older installed
 Arena build may have been compiled against a different Core version.
+Redeploy's standalone client and server are not required: Core owns local
+respawning, while Arena's own server protects and restores the raid profile.
 
-The package always includes ArenaMode's own BigBrain companion. Without BigBrain
+The package always includes ArenaMode's own BigBrain integration library. It has
+no separate plugin GUID; Arena starts and stops it. Without BigBrain
 it stays inactive; **1.5.0** is the tested minimum. Newer versions are attempted
 with a warning and runtime API checks, not certified as compatible. BigBrain
 itself and other mods are installed separately. Preserve documentation and notices.
+Update both Arena client DLLs together and restart the game. Mixing the new
+client with the old companion plugin disables the new integration with an error.
 When upgrading from a flat installation, remove the old Arena client/companion
 DLLs directly under `BepInEx/plugins` to avoid duplicate plugin copies; keep
 existing assets, drafts and configuration.

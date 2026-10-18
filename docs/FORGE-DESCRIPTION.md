@@ -112,7 +112,7 @@ Optional integration targets:
 - **PitFireTeam 0.10.0 or 0.10.3**, client and server: 1–4 companions in Tactical
   or Zombies. Other PFT versions are not accepted.
 - **SAIN 4.5.1:** personality, pursuit and movement adapters.
-- **BigBrain 1.5.0+:** bundled ArenaMode bot action companion; inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
+- **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1:** equipment/progression adapter.
 - **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
 - **KillcamReplay:** compatible API required; 0.9.13 adds the shorter Arena live

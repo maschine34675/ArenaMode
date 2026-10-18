@@ -2,11 +2,11 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Bootstrap;
 using ArenaMode.BigBrainCompat;
-using Companion = ArenaMode.BigBrainCompat.Plugin;
+using Companion = ArenaMode.BigBrainCompat.Library;
 
 public static class Entry
 {
-    private static Companion _plugin;
+    private static BepInEx.Logging.ManualLogSource _logger;
     public static void Start(string version, string scenario)
     {
         Chainloader.PluginInfos[ArenaMode.Plugin.PluginGuid] = new PluginInfo
@@ -21,19 +21,34 @@ public static class Entry
                 Instance = scenario == "not-loaded" ? null : new object()
             };
         if (scenario == "foreign-owner") ArenaMode.Bots.TeamArenaPursuitLeaseBridge.Consumer = "foreign";
-        _plugin = new Companion();
-        Invoke("Awake");
+        _logger = new();
+        Companion.Initialize(_logger);
     }
-    public static void Invoke(string method) => typeof(Companion).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(_plugin, null);
+    public static void Invoke(string method) => typeof(Companion).GetMethod(method, BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
+    public static bool InitializeAgain() => Companion.Initialize(_logger);
+    public static void StartHost(string version, string path, bool legacy)
+    {
+        _logger = new();
+        if (version != "absent") Chainloader.PluginInfos[Companion.BigBrainPluginGuid] = new()
+        { Metadata = new BepInPlugin("bb", "bb", version), Instance = new object() };
+        if (legacy) Chainloader.PluginInfos[Companion.ConsumerId] = new() { Instance = new object() };
+        ArenaMode.Compat.ArenaBigBrainLibrary.Initialize(_logger, path);
+        ArenaMode.Compat.ArenaBigBrainLibrary.Initialize(_logger, path);
+        ArenaMode.Compat.ArenaBigBrainLibrary.Tick();
+        ArenaMode.Compat.ArenaBigBrainLibrary.Shutdown();
+        ArenaMode.Compat.ArenaBigBrainLibrary.Shutdown();
+        ArenaMode.Compat.ArenaBigBrainLibrary.Tick();
+    }
     public static string[] State() => new[]
     {
-        Companion.RuntimeEnabled.ToString(), _plugin.enabled.ToString(),
+        Companion.RuntimeEnabled.ToString(), Companion.RuntimeEnabled.ToString(),
         ArenaMode.Combat.Fire.ArenaFireRuntime.BotEscapeAvailable.ToString(),
         ArenaMode.Pickups.ArenaPickupRuntime.BotObjectivesAvailable.ToString(),
         ArenaMode.Bots.TeamArenaPursuitLeaseBridge.Consumer ?? "none",
         ArenaPickupObjective.Prunes.ToString(), ArenaPickupObjective.Resets.ToString(),
-        string.Join("\n", _plugin.Logger.Lines)
+        string.Join("\n", _logger.Lines)
     };
-    public static bool SoftDependency() => typeof(Companion).GetCustomAttributes<BepInDependency>()
-        .Single(x => x.Guid == Companion.BigBrainPluginGuid).Flags == BepInDependency.DependencyFlags.SoftDependency;
+    public static bool IsPlainLibrary() => !typeof(Companion).GetCustomAttributes<BepInPlugin>().Any()
+        && !typeof(BaseUnityPlugin).IsAssignableFrom(typeof(Companion))
+        && typeof(Companion).IsAbstract && typeof(Companion).IsSealed;
 }

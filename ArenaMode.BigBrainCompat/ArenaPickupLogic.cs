@@ -113,7 +113,7 @@ public sealed class ArenaPickupLogic : CustomLogic
             if (!_failureWarned)
             {
                 _failureWarned = true;
-                Plugin.ModLogger?.LogWarning($"Arena pickup trip failed for bot {_profileId} ({target}, {stage}): {ex.GetBaseException().Message}");
+                Library.ModLogger?.LogWarning($"Arena pickup trip failed for bot {_profileId} ({target}, {stage}): {ex.GetBaseException().Message}");
             }
             if (!_failureDetailed && Diagnostics.ArenaLog.DeveloperEnabled)
             {
