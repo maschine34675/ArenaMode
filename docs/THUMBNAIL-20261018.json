@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "description": "Photorealistic generated illustration of crossed AK and M4 rifles for the ArenaMode thumbnail. Not a photograph or extracted game asset.",
+  "tool": "OpenAI built-in image generation tool",
+  "prompt": "Use case: product-mockup.\nAsset type: square 1024 x 1024 thumbnail for the ArenaMode game mod.\nEdit target: image 1 is the current ArenaMode thumbnail. Replace its two flat vector rifle silhouettes with detailed, convincingly photorealistic depictions of exactly one classic AKM/AK-47 rifle and one M4A1 carbine, laid across one another in the same clear X composition. Image 2 is an AK reference for credible side-profile shape, proportions, wood and metal details.\nComposition: AK butt at lower left and muzzle at upper right; M4 butt at lower right and muzzle at upper left. Both entire weapons fully visible with about 12 percent outer margin. Full lateral side profiles, gently raised from the backdrop like clean photographic cutouts. The M4 lies in front of the AK at their single central crossing. Preserve continuous, physically coherent rifles with unambiguous separate barrels, stocks, magazines and grips. No impossible fused parts.\nSubject: classic AK with worn muted warm walnut fixed stock and fore-end, dark steel receiver and pronounced curved steel magazine. Authentic classic M4A1 with dark grey metal receiver, black polymer adjustable stock, ribbed carbine handguard, carry handle, correct triangular front sight and standard thirty-round magazine. No scopes, suppressors, straps or unnecessary attachments.\nStyle: restrained studio product photograph / extremely realistic game inventory render, not a drawing or vector. Crisp but natural materials, believable restrained wear. Light the dark metal sufficiently brightly for readability at 64 pixels, with soft ivory highlights and muted wood warmth that fits the original ochre accent.\nBackground: retain an entirely plain, uniform opaque graphite background #171b1c, no gradient or scenery. No glow, sparks, smoke, vignette, texture on the background, border, badges, letters, logo, text or watermark.\nDo not reproduce the original abstract silhouette geometry. The two actual recognizable firearm forms are the whole image.",
+  "references": [
+    {
+      "file": "assets/archive/2026-10-18-vector/thumbnail.png",
+      "sha256": "56c3e76fa5adff577ecc67cc51dff93d70ba5dcd5bd284f8d88892aa6b1ca1e1"
+    },
+    {
+      "file": "tools/ArenaUiArtwork/renders/assault-rifle.png",
+      "sha256": "c3d45d244361f2839c2e671c34b3c300338e41c19524327a426ec1b78078e19d"
+    }
+  ],
+  "master": {
+    "file": "assets/thumbnail-master.png",
+    "sha256": "ffbf96cce008f49f07c6eea1ef633b2fe505e2fccf9b9fa85c0db7ccaeda9f76"
+  },
+  "exports": [
+    {
+      "file": "assets/thumbnail.png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "551140e462d3243823a0b8a18a32010a9679873b9977d10a525e03569b0f33af"
+    },
+    {
+      "file": "assets/thumbnail-128.png",
+      "width": 128,
+      "height": 128,
+      "sha256": "d6a0841b072a730c63aec04e71307851bff23e54f03830b3d04d4386424b64f6"
+    },
+    {
+      "file": "assets/thumbnail-64.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "d88345c3ec942e0c2b52a383868767e5ec433969fafc8cda77d1eb76c968abea"
+    }
+  ],
+  "previousAssets": "assets/archive/2026-10-18-vector",
+  "processing": "Only downscaling to 1024, 128 and 64 px and exporting opaque RGB sRGB PNGs; master copied byte-for-byte."
+}
