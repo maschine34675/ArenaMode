@@ -86,4 +86,6 @@ try {
 if($LASTEXITCODE -ne 0){throw 'Final timing production run failed'}
 & (Join-Path $PSScriptRoot 'View/Check-Mutants.ps1')
 if($LASTEXITCODE -ne 0){throw 'View lifetime checks failed'}
+& (Join-Path $PSScriptRoot 'View/Check-LaserMutants.ps1')
+if($LASTEXITCODE -ne 0){throw 'Laser lifecycle and native API checks failed'}
 Write-Output 'AKIMBO_REGRESSION_PASSED'

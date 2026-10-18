@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GameRoot Condition="'$(GameRoot)' == ''">D:/SPT41</GameRoot>
+    <AimSource Condition="'$(AimSource)' == ''">../../../ArenaMode.Client/Combat/Akimbo/AkimboNativeAim.cs</AimSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AimSource)" Link="Production/AkimboNativeAim.cs" />
+    <Reference Include="Assembly-CSharp"><HintPath>$(GameRoot)/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameRoot)/EscapeFromTarkov_Data/Managed/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

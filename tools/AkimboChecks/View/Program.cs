@@ -163,6 +163,135 @@ view.Hide(); view.FollowHand(0, solved[0].transform);
 Need(!view.Visible && roots.All(x => !x.gameObject.activeSelf), "late hand following cannot resurrect hidden visuals");
 view.Dispose();
 Need(solved.All(x => !x.Destroyed), "dispose never destroys native solved hands");
+
+// The real aiming view is owned by the same mesh lifetime. Boundary physics
+// returns deliberately unordered collisions including the shooter's own body.
+Physics.Reset();
+f = new Fixture(); nativeObjects = f.NativeObjects(); createdBefore = GameObject.All.Count;
+view = new AkimboView(f.Hands); Pose(view, f);
+var laserRoots = GameObject.All.Skip(createdBefore).Where(x => x.name.EndsWith("aim laser")).ToArray();
+var beams = laserRoots.Select(x => x.GetComponent<LineRenderer>()).ToArray();
+Need(laserRoots.Length == 2 && laserRoots.All(x => !x.activeSelf), "new laser lifetime starts hidden until an admitted solved pose");
+var wall = new GameObject("wall").AddComponent<Collider>();
+var enemy = new GameObject("enemy").AddComponent<Collider>();
+var ownCollider = new GameObject("own body").AddComponent<Collider>();
+ownCollider.transform.SetParent(f.HandsRoot.transform, false);
+var rootCollider = f.HandsRoot.AddComponent<Collider>();
+RaycastHit Hit(Collider collider, Vector3 origin, Vector3 direction, float z)
+{
+    float distance = (z - origin.z) / direction.z;
+    return new RaycastHit { collider = collider, point = origin + direction * distance,
+        normal = new Vector3(0, 0, -1), distance = distance };
+}
+Physics.Ray = (origin, direction, length, mask, trigger) => new[] {
+    Hit(wall, origin, direction, 5f), Hit(enemy, origin, direction, 10f),
+    Hit(ownCollider, origin, direction, .75f), Hit(rootCollider, origin, direction, .8f)
+}.Where(x => x.distance >= 0 && x.distance <= length).ToArray();
+Vector3 nativeMuzzle = f.Hands.CurrentFireport.Original.position;
+Vector3 nativeOrigin = nativeMuzzle - new Vector3(0, 0, .1f);
+var aimColor = new Color(.2f, 1f, .16f, 1f);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => x.activeSelf), "admitted pistol automatically shows both aiming lasers");
+Need(Near(beams[0].Points[0], view.RightFireport.position) && Near(beams[1].Points[0], view.Fireport.position), "laser starts follow both visible solved muzzles");
+Need(beams.All(x => Math.Abs(x.Points[1].z - 5f) < .0001f), "nearest wall wins over enemy and own body in unsorted collisions");
+Need(Physics.Rays.Count == 4 && Physics.Rays.All(x => x.Mask == 7 && x.Trigger == QueryTriggerInteraction.Collide), "bounded ballistic and drawn-segment queries include hit colliders without scene scans");
+Need(laserRoots.All(x => x.layer == 0) && beams.All(x => x.useWorldSpace && x.sharedMaterial.Shader.name == "Unlit/Color"), "ordinary world depth-tested laser geometry cannot overlay walls");
+Need(laserRoots.All(x => x.transform.Children.Single().gameObject.activeSelf), "surface hits show owned aim points");
+Need(laserRoots.All(x => x.transform.Children.Single().GetComponent<Collider>() == null), "aim point never owns an active physics collider");
+Need(beams.All(x => x.sharedMaterial.color.g == 1f) && f.SharedMaterial.color.g == 0f, "laser tint touches private material only");
+
+var nonCombatTrigger = new GameObject("non-combat trigger").AddComponent<Collider>();
+nonCombatTrigger.isTrigger = true;
+enemy.isTrigger = true; enemy.gameObject.layer = 2;
+Physics.Ray = (origin, direction, length, mask, trigger) => new[] {
+    Hit(nonCombatTrigger, origin, direction, 2f), Hit(enemy, origin, direction, 3f), Hit(wall, origin, direction, 5f)
+}.Where(x => x.distance >= 0 && x.distance <= length).ToArray();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(beams.All(x => Math.Abs(x.Points[1].z - 3f) < .0001f), "non-combat triggers ignored while hit-collider triggers remain aiming targets");
+Physics.Ray = (origin, direction, length, mask, trigger) => new[] {
+    Hit(wall, origin, direction, 5f),
+    new RaycastHit { collider = wall, point = origin + Vector3.forward, normal = Vector3.forward, distance = float.NaN }
+}.Where(x => float.IsNaN(x.distance) || x.distance >= 0 && x.distance <= length).ToArray();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(beams.All(x => Math.Abs(x.Points[1].z - 5f) < .0001f), "non-finite collision distance cannot replace a valid near hit");
+
+// Fresh endpoints every solve, hide the dot on miss, never reuse a prior hit.
+Physics.Reset();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => x.activeSelf && !x.transform.Children.Single().gameObject.activeSelf), "ray miss keeps beams but removes stale aim dots");
+Need(Math.Abs(beams[0].Points[1].z - (nativeOrigin.z + 100f)) < .0001f, "laser uses bounded native corrected ray instead of camera center");
+
+// Physical visible muzzle can differ from the corrected native origin. Its
+// independent occlusion cast may find an obstruction absent from the shot ray.
+Physics.Reset();
+Physics.Ray = (origin, direction, length, mask, trigger) => Near(origin, view.RightFireport.position)
+    ? new[] { new RaycastHit { collider = wall, distance = .2f, point = origin + direction * .2f, normal = new Vector3(0, 0, -1) } }
+    : Array.Empty<RaycastHit>();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need((beams[0].Points[1] - beams[0].Points[0]).magnitude < .21f, "visible muzzle segment clips before an intervening wall");
+
+Physics.Reset(); Physics.Line = (_, _, _, _) => true;
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => !x.activeSelf), "camera-to-muzzle obstruction hides aim aids instead of showing through cover");
+Physics.Reset(); Physics.Line = (from, to, _, _) => Near(from, f.Camera.transform.position) && Near(to, nativeOrigin);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(!laserRoots[0].activeSelf, "camera to corrected origin wall hides right aiming laser");
+Physics.Reset(); Physics.Line = (from, to, _, _) => Near(from, f.Camera.transform.position) && Near(to, view.RightFireport.position);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(!laserRoots[0].activeSelf, "camera to visible muzzle wall hides right aiming laser");
+Physics.Reset(); Physics.Sphere = (_, _, _, _) => true;
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => !x.activeSelf), "muzzle inside geometry hides aim aids");
+Physics.Reset(); Physics.Sphere = (at, _, _, _) => Near(at, nativeOrigin);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(!laserRoots[0].activeSelf, "corrected origin inside geometry hides right laser");
+Physics.Reset(); Physics.Sphere = (at, _, _, _) => Near(at, view.RightFireport.position);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(!laserRoots[0].activeSelf, "visible muzzle inside geometry hides right laser");
+Physics.Reset();
+Physics.Ray = (origin, direction, length, mask, trigger) => Enumerable.Range(0, 16)
+    .Select(_ => Hit(wall, origin, direction, 5f)).ToArray();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => !x.activeSelf), "full unsorted hit buffer fails closed instead of missing nearer wall");
+Physics.Reset();
+view.Aim(f.Camera.transform.position, nativeOrigin, new Vector3(float.NaN, 0, 0), nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => !x.activeSelf) && Physics.Rays.Count == 0, "invalid shot vectors never enter physics or retain previous laser");
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+view.Hide();
+Need(laserRoots.All(x => !x.activeSelf), "view hide immediately deactivates aiming aids before another callback");
+Physics.Reset();
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => !x.activeSelf) && Physics.Rays.Count == 0, "hidden busy or retired view cannot resurrect its aiming aids");
+Pose(view, f);
+view.Aim(f.Camera.transform.position, nativeOrigin, Vector3.forward, nativeMuzzle, f.HandsRoot.transform, aimColor);
+Need(laserRoots.All(x => x.activeSelf), "returning to ready reuses the same aiming aids");
+f.Hands.CurrentFireport.Original.SetParent(foreignPool.transform, false);
+Reject(() => view.UseFireport(f.Hands.CurrentFireport.Original), "transferred native muzzle cannot drive an old aiming view in the same frame");
+var material = beams[0].sharedMaterial;
+view.Dispose(); view.Dispose();
+Need(laserRoots.All(x => x.Destroyed) && material.Destroyed && nativeObjects.All(x => !x.Destroyed), "laser disposal destroys only owned geometry and private material");
+
+// The aiming helper and actual left shot share production geometry, including
+// FOV-adjusted origin and fifty-metre convergence. No ammo/cadence action occurs.
+Physics.Reset();
+var muzzle = new Vector3(.2f, 1.5f, .6f); var origin0 = muzzle - Vector3.forward * .1f;
+var leftMuzzle = muzzle + new Vector3(-.3f, 0, 0);
+Need(AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out var shifted, out var aimed), "clear left geometry admitted");
+Need(Near(shifted, origin0 + new Vector3(-.3f, 0, 0)), "left shot keeps corrected origin offset");
+float toConvergence = (origin0.z + 50f - shifted.z) / aimed.z;
+Need(Near(shifted + aimed * toConvergence, origin0 + Vector3.forward * 50f), "left aid and projectile converge on exact native fifty metre ray");
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, muzzle + new Vector3(-.7f, 0, 0), out _, out _), "excessive copied-muzzle separation rejects left geometry");
+Physics.Line = (from, to, _, _) => Near(from, origin0) && Near(to, origin0 + new Vector3(-.3f, 0, 0));
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out _, out _), "wall between native and shifted origin rejects left geometry");
+Physics.Reset(); Physics.Line = (from, to, _, _) => Near(from, Vector3.zero);
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out _, out _), "camera cover rejects left geometry");
+Physics.Reset(); Physics.Line = (from, to, _, _) => Near(to, leftMuzzle);
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out _, out _), "shifted origin to muzzle cover rejects left geometry");
+Physics.Reset(); Physics.Sphere = (at, _, _, _) => Near(at, leftMuzzle);
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out _, out _), "left muzzle occupancy rejects left geometry");
+Physics.Reset(); Physics.Sphere = (at, _, _, _) => Near(at, origin0 + new Vector3(-.3f, 0, 0));
+Need(!AkimboShotGeometry.TryLeft(Vector3.zero, origin0, Vector3.forward, muzzle, leftMuzzle, out _, out _), "left corrected origin occupancy rejects left geometry");
+Physics.Reset();
 Console.WriteLine($"AKIMBO_VIEW_CHECKS_PASSED ({checks} assertions)");
 
 sealed class Fixture

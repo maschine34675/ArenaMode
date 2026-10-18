@@ -1,5 +1,6 @@
 using ArenaMode.Areas;
 using ArenaMode.Config;
+using ArenaMode.Effects;
 using ArenaMode.Hud;
 using ArenaMode.Modes;
 using ArenaMode.Respawn;
@@ -225,6 +226,17 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         {
             var limbs = Limbs(body);
             for (int i = 0; i < 2; i++) _view.FollowHand(i, limbs[i].solver.bone3.transform);
+            // Native WeaponDirection includes the pistol's own shot-axis/zeroing;
+            // transform.forward would be wrong on some pistol/revolver models.
+            // Match Shot's FOV/back-offset correction, without random spread.
+            _view.UseFireport(_hands.CurrentFireport.Original);
+            var aim = AkimboNativeAim.Read(body, _hands);
+            bool teamColor = Settings.TeamLasers?.Value == true && (ArenaMatchService.Current.Mode is TeamDeathmatchMode
+                || ArenaMatchService.Current.Mode is TacticalMode tactical && tactical.IsTeamArena);
+            Color color = teamColor
+                ? ArenaTracerPalette.Resolve(Settings.FriendlyTracerColor?.Value ?? ArenaTracerColor.Cyan)
+                : new Color(.2f, 1f, .16f, 1f);
+            _view.Aim(CameraManager.Instance.Camera.transform.position, aim.Origin, aim.Direction, aim.Muzzle, aim.Body, color);
         }
         if (ready && _view.Visible) _visualFrame = Time.frameCount;
     }
@@ -254,19 +266,10 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             _view.UseFireport(hands.CurrentFireport.Original);
             // Preserve native AdjustShotVectors' FOV/back-offset correction. Shift
             // that corrected origin by the difference between the two visual muzzles.
-            Vector3 delta = _view.Fireport.position - fireportPosition;
-            origin = shotPosition + delta;
-            visualOrigin = fireportPosition + delta;
-            int mask = (int)LayersMaskController.HighPolyWithTerrainMask;
-            bool clear = Finite(origin) && Finite(shotPosition) && Finite(shotDirection)
-                && Finite(visualOrigin) && shotDirection.sqrMagnitude > .9f && delta.sqrMagnitude <= .65f * .65f
-                && !Physics.Linecast(shotPosition, origin, mask, QueryTriggerInteraction.Ignore)
-                && !Physics.Linecast(CameraManager.Instance.Camera.transform.position, origin, mask, QueryTriggerInteraction.Ignore)
-                && !Physics.Linecast(origin, visualOrigin, mask, QueryTriggerInteraction.Ignore)
-                && !Physics.CheckSphere(origin, .025f, mask, QueryTriggerInteraction.Ignore)
-                && !Physics.CheckSphere(visualOrigin, .025f, mask, QueryTriggerInteraction.Ignore);
+            visualOrigin = _view.Fireport.position;
+            bool clear = AkimboShotGeometry.TryLeft(CameraManager.Instance.Camera.transform.position,
+                shotPosition, shotDirection, fireportPosition, visualOrigin, out origin, out direction);
             if (!clear) { BlockedShots++; left = false; } // Native right shot remains safe/unchanged.
-            else direction = (shotPosition + shotDirection.normalized * 50f - origin).normalized;
         }
         if (!lease.BeginShot(Current(), runOriginal, Ready(), sourceValid, true)) return null;
         var scope = new ShotScope { Lease = lease, Hands = hands, Firearms = hands.Firearms, Left = left, Free = free };
@@ -294,9 +297,6 @@ internal sealed class ArenaAkimbo : MonoBehaviour
         scope.Lease?.EndShot();
         if (ReferenceEquals(_shot, scope)) _shot = scope.Previous;
     }
-
-    private static bool Finite(Vector3 value) => !(float.IsNaN(value.x) || float.IsInfinity(value.x)
-        || float.IsNaN(value.y) || float.IsInfinity(value.y) || float.IsNaN(value.z) || float.IsInfinity(value.z));
 
     private static void Release(string reason)
     {
