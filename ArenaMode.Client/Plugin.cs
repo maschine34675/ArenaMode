@@ -9,6 +9,7 @@ using Redeploy.Core;
 using Redeploy.Core.Compat;
 using Redeploy.Core.Engine;
 using Redeploy.Drivers;
+using System.Runtime.CompilerServices;
 
 namespace ArenaMode;
 
@@ -28,12 +29,30 @@ public class Plugin : BaseUnityPlugin
 
     public static Plugin Instance { get; private set; }
 
+    private bool _runtimeStarted;
+
     private void Awake()
     {
-        Instance = this;
         ModLogger = base.Logger;
+        string error = CoreVersionGate.Check(PluginName, typeof(Plugin).Assembly);
+        if (error != null)
+        {
+            ModLogger.LogError(error);
+            Chainloader.DependencyErrors.Add(error);
+            enabled = false;
+            return;
+        }
+        Instance = this;
+        // Preserve cleanup after partial initialization, but never run it for a
+        // rejected dependency: Unity may call OnDestroy on disabled components.
+        _runtimeStarted = true;
+        InitializeRuntime();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void InitializeRuntime()
+    {
         RedeployCore.Init(ModLogger);
-        WarnIfCoreIsOlderThanBuild();
         Settings.Init(Config);
         ArenaParticipantSettings.Init(Config);
         Pickups.ArenaPickupSettings.Init(Config);
@@ -156,11 +175,31 @@ public class Plugin : BaseUnityPlugin
         ModLogger.LogInfo($"{PluginName} {PluginVersion} loaded (Redeploy.Core {RedeployCore.Version}; build/MVID {typeof(Plugin).Module.ModuleVersionId})");
     }
 
-    private void Start() => ArenaBigBrainLibrary.Initialize(ModLogger, Info.Location);
+    private void Start()
+    {
+        if (_runtimeStarted) StartRuntime();
+    }
 
-    private void Update() => ArenaBigBrainLibrary.Tick();
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void StartRuntime() => ArenaBigBrainLibrary.Initialize(ModLogger, Info.Location);
+
+    private void Update()
+    {
+        if (_runtimeStarted) UpdateRuntime();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void UpdateRuntime() => ArenaBigBrainLibrary.Tick();
 
     private void OnDestroy()
+    {
+        if (!_runtimeStarted) return;
+        _runtimeStarted = false;
+        ShutdownRuntime();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ShutdownRuntime()
     {
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
@@ -212,28 +251,4 @@ public class Plugin : BaseUnityPlugin
         Hud.ArenaInputBlocker.Shutdown();
     }
 
-    /// <summary>
-    /// Driver skew check (Redeploy docs/RESPAWN-API.md 3.9): every zip carries the same flat
-    /// maschine-Redeploy.Core.dll and the last one unpacked wins, so an older zip can put an
-    /// older Core under this build. Arena keeps running on it, without its fixes; the finding
-    /// goes to the log and to Chainloader.DependencyErrors, which SPT reports after loading.
-    /// RedeployCore.Version exists since Core 0.9, so reading it is safe against any Core.
-    /// </summary>
-    private static void WarnIfCoreIsOlderThanBuild()
-    {
-        try
-        {
-            var warning = CoreVersionGate.Evaluate(
-                PluginName, RedeployCore.Version, CoreVersionGate.ReadBuiltAgainst(typeof(Plugin).Assembly));
-            if (warning == null)
-                return;
-
-            ModLogger.LogWarning(warning);
-            Chainloader.DependencyErrors.Add(warning);
-        }
-        catch (System.Exception ex)
-        {
-            ModLogger.LogWarning($"Core version check skipped: {ex.Message}");
-        }
-    }
 }

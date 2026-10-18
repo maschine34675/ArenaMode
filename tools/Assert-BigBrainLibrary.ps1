@@ -28,11 +28,18 @@ function Assert-BigBrainLibrary([string]$ClientPath, [string]$LibraryPath, [stri
             $_.ConstructorArguments[1].Value -eq 2
         })
         if ($dependency.Count -ne 1) { throw 'Main client lacks the optional BigBrain load-order dependency.' }
-        foreach ($hook in @(@('Start','Initialize'), @('Update','Tick'), @('OnDestroy','Shutdown'))) {
+        foreach ($hook in @(@('Start','StartRuntime','Initialize'), @('Update','UpdateRuntime','Tick'), @('OnDestroy','ShutdownRuntime','Shutdown'))) {
             $method = @($plugins[0].Methods | Where-Object Name -eq $hook[0])
             if ($method.Count -ne 1 -or -not $method[0].HasBody) { throw "Missing owner lifecycle: $($hook[0])" }
             $calls = ($method[0].Body.Instructions | ForEach-Object { [string]$_.Operand }) -join "`n"
-            if (-not $calls.Contains("ArenaMode.Compat.ArenaBigBrainLibrary::$($hook[1])(")) { throw "Unwired owner lifecycle: $($hook[0])" }
+            if (-not $calls.Contains("ArenaMode.Plugin::$($hook[1])(")) { throw "Unwired guarded lifecycle: $($hook[0])" }
+            if (-not $calls.Contains('ArenaMode.Plugin::_runtimeStarted')) { throw "Missing lifecycle admission guard: $($hook[0])" }
+            $runtime = @($plugins[0].Methods | Where-Object Name -eq $hook[1])
+            if ($runtime.Count -ne 1 -or ($runtime[0].ImplAttributes -band [Mono.Cecil.MethodImplAttributes]::NoInlining) -eq 0) {
+                throw "Missing lifecycle JIT boundary: $($hook[1])"
+            }
+            $runtimeCalls = ($runtime[0].Body.Instructions | ForEach-Object { [string]$_.Operand }) -join "`n"
+            if (-not $runtimeCalls.Contains("ArenaMode.Compat.ArenaBigBrainLibrary::$($hook[2])(")) { throw "Unwired owner lifecycle: $($hook[0])" }
         }
         $entry = $library.MainModule.GetType('ArenaMode.BigBrainCompat.Library')
         if (-not $entry -or -not $entry.IsAbstract -or -not $entry.IsSealed) { throw 'Missing static library entry.' }
