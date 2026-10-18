@@ -74,8 +74,9 @@ harnesses and a frozen release package. Installed Arena/Core files are compared
 before/after checks. Independent review found no production blocker and inspected
 installed BepInEx/BigBrain lifecycle code directly.
 
-These checks do not certify Unity/Mono startup or live AI. Native acceptance of
-the new library lifecycle is still pending; prior gameplay tests used the plugin.
+These offline checks do not certify Unity/Mono startup or live AI. At the end of
+this package run, native acceptance was pending and prior gameplay tests used the
+plugin. The later paired rollout below records the additional native evidence.
 
 ## Frozen package result
 
@@ -96,3 +97,15 @@ file: zero findings (`package-gitleaks.redacted.json` in that run directory).
 Build, test and scan logs are local artifacts, not shipped. No deployment, push
 or publication was performed. Parallel thumbnail commits are independent of this
 frozen runtime/package revision.
+
+## Subsequent paired native rollout
+
+The PFT Tactical equipment work deployed both client DLLs from `6fc7ca4` and
+verified their exact loaded hashes in fresh GPU2 process `fe952cf9`. The plain
+library initialized through Arena, registered pursuit layer 9078, and reported
+bot movement support ready. After native PMC death, several Tactical bots used
+Arena Combat Pursuit, moved and continued combat; the next round rebuilt its
+leader and nine bot bodies. See [the dated native report](GPU-PFT-TACTICAL-KITS-20261018.md)
+for deployment hashes, cleanup and evidence limits. This is startup and sampled
+PFT Tactical gameplay acceptance, not a new package release or exhaustive
+acceptance of every mode, missing-library case or failure path.

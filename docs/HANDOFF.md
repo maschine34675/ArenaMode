@@ -7,6 +7,33 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **PMC equipment choice for PFT Tactical (2026-10-18):** The map screen now
+  offers Own gear (default) or Arena kits for the local PMC only. PFT companions
+  retain their stored equipment. One base kit is issued before the first native
+  player/leader body; the existing protected round restore reissues that entry
+  kit after PMC death. No team buy phase or Zombie behavior was changed.
+  Implementation: `81b1072`, `3652dda`, native loading-order fix `6fc7ca4`;
+  test-only warmup stand-ins: `46af869`. Read [the design and checks](PFT-TACTICAL-KITS-20261018.md)
+  and [GPU2 acceptance and limitations](GPU-PFT-TACTICAL-KITS-20261018.md).
+  The final candidate pairs Client SHA256
+  `F0D46F531B0A1D112D2A94758DC29793113AF29252F7F19E363E16B71B8550A0`
+  with BigBrainCompat SHA256
+  `D933C9BEF702CDCE101A46FE8C49BBB61A3FAC759E0AB30CB8D55A1F9D765CF9`.
+  Both are loaded in GPU2 process `fe952cf9`; Server and Core were not deployed.
+  Own-gear control, supplied-kit entry with optional warmup Off, unchanged
+  companion equipment and native death/round-two kit restoration were observed.
+  Protected exit restored all 314 inventory items, Encyclopedia/FastPanel and
+  the other compared profile state; all twelve PFT files remained byte-identical.
+  All 224 Arena settings, including default own gear, were restored afterwards.
+  A PFT roster/no-contest diagnostic occurred immediately after intentional
+  Stop(Left) in both own-gear and kit tests; it did not prevent restoration.
+  The native report preserves that exit-order follow-up and separate EFT preview
+  diagnostics rather than claiming clean logs.
+  Parent checks pass: 1,167 unit tests, two optional skips; 165 entry/resource,
+  738 native observer/menu and 106 inventory assertions, plus ten loading and
+  fifteen inventory compiled fault variants. The full relevant regression run,
+  client/library Release build and preview-hook API compilation passed.
+
 - **BigBrainCompat as a plain library (2026-10-18):** Arena.Client now owns
   initialization, maintenance and teardown; the companion has no plugin GUID.
   BigBrain stays optional, tested minimum 1.5.0 with warnings for newer versions.
@@ -16,8 +43,10 @@ current. User-facing communication is normally German.
   [verification gates](BIGBRAIN-LIBRARY-GATES.md). Implementation `5bed649`;
   all five gates passed, unit suite 1,159 passed / two optional skips.
   Refreshed test ZIP is recorded in the implementation document; payload Gitleaks
-  had no findings. No live deployment was made;
-  native Unity/Mono startup and bot behavior for the new lifecycle remain pending.
+  had no findings. That frozen package run made no live deployment. The paired
+  Tactical-kit rollout above subsequently verified native Unity/Mono startup
+  and observed pursuit in PFT Tactical; absence/failure cases and the remaining
+  bot modes still have their separately recorded coverage limits.
 
 - **Powerup feedback, Collateral, mode previews and Akimbo lasers (2026-10-18):**
   `26dedc0` adds disabled Capture the Flag/Domination rows without new playable
@@ -53,8 +82,9 @@ current. User-facing communication is normally German.
   demonstration. BepInEx/server logged no errors; EFT's native animation-handler
   `hash 0` message recurred without a causal stack and remains unresolved.
   Parallel main changes to the optional BigBrain library are preserved in source,
-  but not included in this deployment or native acceptance. Do not replace only
-  one DLL from that newer lifecycle; its paired rollout remains a separate task.
+  but were not included in that feedback deployment or native acceptance. The
+  later paired rollout is recorded above; never replace only one DLL across
+  the old plugin/new library lifecycle boundary.
   Combined client/library Release integration build passed without deployment;
   the installed candidate and protected DLL hashes were rechecked unchanged.
 

@@ -69,7 +69,7 @@ compiled fault variants were rejected, with the original source rerun afterwards
 Client/library Release and preview-hook native API builds passed. The full rebuild
 reported only four pre-existing nullable-context warnings.
 
-The native timing correction passes 165 coordinator/resource and 738 observer/menu
+The native timing correction `6fc7ca4` passes 165 coordinator/resource and 738 observer/menu
 assertions, including ten compiled faults (also wrong native map and cancellation
 before HTTP completion). Original source passes again after every fault batch.
 
@@ -77,3 +77,8 @@ Reproduce from the repo root with `tools/PftTacticalKitChecks/Verify.ps1`,
 `tools/PftTacticalKitChecks/Verify-Integration.ps1` and
 `tools/PftKitEntryChecks/Verify.ps1`. Integration builds explicitly suppress
 deployment. These local checks need the documented SPT installation/database.
+
+Native own-gear control, supplied-kit entry with optional warmup Off and PMC death
+followed by round-two restoration were exercised on GPU2. Companion equipment was
+compared separately; kit selection affects only the PMC. Read [the native report](GPU-PFT-TACTICAL-KITS-20261018.md)
+for exact loaded build identities, profile/store restoration and coverage limits.

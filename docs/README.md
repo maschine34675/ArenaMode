@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [PFT Tactical: own gear or a supplied PMC kit](PFT-TACTICAL-KITS-20261018.md)
+- [Native PFT Tactical kit checks on GPU2](GPU-PFT-TACTICAL-KITS-20261018.md)
 - [Arena-owned BigBrain library and Redeploy server boundary](BIGBRAIN-LIBRARY-20261018.md)
 - [GPU2 powerup indicators, Akimbo lasers and mode-preview acceptance](GPU-FEEDBACK-20261018.md)
 - [Automatic Akimbo aiming lasers](AKIMBO-LASER-20261018.md)

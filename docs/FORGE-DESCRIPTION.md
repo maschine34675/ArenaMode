@@ -24,8 +24,9 @@ before playing, particularly when combining mods.
 - **Team DM:** USEC against BEAR, with respawns and team kill/time limits.
   Does not require PitFireTeam.
 - **Tactical (WIP):** round-based elimination. Solo defaults to 1v5 with a kit
-  buy menu. With PitFireTeam, bring your gear and 1–4 companions against five
-  opponents. Spectate after death and return next round.
+  buy menu. With PitFireTeam, choose own gear or a supplied PMC kit and bring
+  1–4 companions against five opponents. Companions keep their own gear.
+  Spectate after death and return next round with the selected entry loadout.
 - **Zombies (WIP):** increasing waves, with ammunition replenished between
   waves. Solo death ends the match. A PitFireTeam squad can keep fighting after
   your death; fallen members return after the wave is cleared. A wipe ends the
