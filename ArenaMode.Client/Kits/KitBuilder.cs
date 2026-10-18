@@ -531,7 +531,7 @@ public static class KitBuilder
 
             if (!AddToAnyGrid(containers, magazine, out var reason))
             {
-                // Info when some fit, warning only when none did. A belt-fed
+                // Debug when some fit, warning only when none did. A belt-fed
                 // weapon carrying a 2x2 box genuinely cannot stow a second one in
                 // a rig made of 1x2 cells; that is the loadout being honest about
                 // itself, not something going wrong. Ending up with NO reserve at
@@ -540,7 +540,7 @@ public static class KitBuilder
                               + $"remaining cell ({reason})";
 
                 if (i > 0)
-                    Plugin.ModLogger.LogInfo(message + ".");
+                    Plugin.ModLogger.LogDebug(message + ".");
                 else
                     Plugin.ModLogger.LogWarning(message + " — this loadout has no reserve at all.");
 
@@ -608,7 +608,7 @@ public static class KitBuilder
                 var item = factory.CreateItem(factory.NextId, entry.Tpl, null);
                 if (entry.OptionalQuickUseOnly && !(item is ThrowWeap))
                 {
-                    Plugin.ModLogger.LogInfo($"Kit: optional grenade {entry.Tpl} is not a throwable in the live database; skipped.");
+                    Plugin.ModLogger.LogDebug($"Kit: optional grenade {entry.Tpl} is not a throwable in the live database; skipped.");
                     break;
                 }
                 if (!AddToAnyGrid(entry.OptionalQuickUseOnly ? grenadeContainers : containers, item, out var reason))
@@ -616,7 +616,7 @@ public static class KitBuilder
                     if (strict && !entry.OptionalQuickUseOnly)
                         throw new InvalidOperationException($"Entry kit required supply '{entry.Tpl}' did not fit: {reason}");
                     if (entry.OptionalQuickUseOnly)
-                        Plugin.ModLogger.LogInfo($"Kit: optional grenade {Describe(item)} skipped; no compatible quick-use space ({reason}).");
+                        Plugin.ModLogger.LogDebug($"Kit: optional grenade {Describe(item)} skipped; no compatible quick-use space ({reason}).");
                     else
                         Plugin.ModLogger.LogWarning($"Kit: {Describe(item)} did not fit - {reason}");
                     break;

@@ -5,10 +5,16 @@ companion only; it does not filter Unity, SPT or other mods' output.
 
 | Level | Purpose |
 |---|---|
-| Info | Loaded build, available integrations, live rounds/waves, results, profile restoration and player-visible limitations or recovery. |
-| Debug | Successful hook/asset setup, spawn requests, placement, lifecycle/identity details, audio queue policy and normal cancellation. |
+| Info | Loaded build, available integrations, the armed mode and its frozen raid settings, loadout protection, profile restoration and player-visible limitations or recovery. |
+| Debug | Successful hook/asset setup, spawn requests, placement, lifecycle/identity details, audio queue policy, normal cancellation and gameplay: match, round and wave starts, results, scores, money and per-spawn kit details. |
 | Developer | Detailed movement, audio, renderer, AI and corpse probes, including individual hits/jumps. Opt-in, with existing rate limits. |
 | Warning / Error | Real failures, degraded behavior, rejected protection/identity contracts, failed restore, missing assets and unexpected native exceptions. |
+
+Gameplay is not an Info topic (user decision 2026-10-18). Match, round and wave
+lines, results with scores, Tactical money and kit details such as skipped
+optional grenades or spare magazines that did not fit are Debug. A no-contest
+round and a kit without any reserve stay Warning: there the round has no valid
+result or the player fights on the loaded magazine alone.
 
 In F12, tick **Advanced settings** and enable **Diagnostics → Developer Mode**
 (.cfg key `Diagnostics/DeveloperMode`) to collect detailed probes. It

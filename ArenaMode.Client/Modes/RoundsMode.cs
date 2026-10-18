@@ -249,7 +249,7 @@ public sealed partial class RoundsMode : IArenaMode
         _publishedRound = Round.Number;
         UpdateRoundState();
         if (!HasResult) BeginIntermission();
-        Plugin.ModLogger.LogInfo($"Arena {RoundResultLine}; {Round.Kills} kills / {Round.Deaths} deaths / {Round.Score} points.");
+        Plugin.ModLogger.LogDebug($"Arena {RoundResultLine}; {Round.Kills} kills / {Round.Deaths} deaths / {Round.Score} points.");
         ArenaToasts.Show(HasResult ? ResultHeading + " — " + ResultDetail : RoundResultLine);
         if (HasResult)
         {
@@ -320,7 +320,7 @@ public sealed partial class RoundsMode : IArenaMode
         _scoreAtRoundStart = _match.Score;
         UpdateRoundState();
         _match.BeginAwardRound(clearRevenge: false);
-        Plugin.ModLogger.LogInfo($"Arena Deathmatch round {Round.Number} started.");
+        Plugin.ModLogger.LogDebug($"Arena Deathmatch round {Round.Number} started.");
         if (Round.Number > 1) ArenaToasts.Show($"Round {Round.Number} — fight!");
         try { OnRoundStarted?.Invoke(Round.Number); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena round-start subscriber failed: {ex}"); }

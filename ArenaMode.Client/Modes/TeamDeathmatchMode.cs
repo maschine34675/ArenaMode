@@ -98,7 +98,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         ArenaTracerTeams.BeginFactionMatch(_localId);
         var spawner = Singleton<IBotGame>.Instance?.BotsController?.BotSpawner;
         spawner?.SetMaxBots(2 * TeamSize - 1);
-        Plugin.ModLogger.LogInfo($"Team Deathmatch: {TeamSize}v{TeamSize}, local {FriendlyFaction}, "
+        Plugin.ModLogger.LogDebug($"Team Deathmatch: {TeamSize}v{TeamSize}, local {FriendlyFaction}, "
             + $"{TeamSize - 1} friendly / {TeamSize} opposing bot slots; no PFT followers.");
     }
 
@@ -177,7 +177,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                 _announcedReady = true;
                 Areas.ArenaAreaRuntime.FinishTeamAssembly();
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
-                Plugin.ModLogger.LogInfo($"Team Deathmatch ready: {TeamSize}v{TeamSize}.");
+                Plugin.ModLogger.LogDebug($"Team Deathmatch ready: {TeamSize}v{TeamSize}.");
             }
         }
         catch (Exception ex)

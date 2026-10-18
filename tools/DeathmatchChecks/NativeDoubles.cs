@@ -53,6 +53,7 @@ namespace ArenaMode
     public sealed class Logger
     {
         public void LogInfo(object value) { }
+        public void LogDebug(object value) { }
         public void LogWarning(object value) { }
     }
 }

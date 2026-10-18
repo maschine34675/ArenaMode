@@ -486,7 +486,7 @@ internal static class WeaponSwapService
         // and its SIZE — which is the part that was missing. Eight of the 139
         // ladder weapons feed from a 2x2 belt box or drum, and a rig built from
         // 1x2 cells cannot hold one; only the backpack's 3x3 can, and only one.
-        // So this is Info when at least one got stowed and a warning only when
+        // So this is Debug when at least one got stowed and a warning only when
         // the player is going into a fight on the loaded magazine alone.
         if (lastRefused != null)
         {
@@ -494,7 +494,7 @@ internal static class WeaponSwapService
                           + $"{Kits.KitBuilder.DescribeItem(lastRefused)} fits no free cell ({lastRefusal})";
 
             if (placed > 0)
-                Plugin.ModLogger.LogInfo(message + ".");
+                Plugin.ModLogger.LogDebug(message + ".");
             else
                 Plugin.ModLogger.LogWarning(message + " — no reserve for this rung.");
         }

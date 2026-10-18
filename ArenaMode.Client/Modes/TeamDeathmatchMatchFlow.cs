@@ -81,7 +81,7 @@ public sealed partial class TeamDeathmatchMode
         // Keep the death driver registered through the final-hit callbacks.
         // Its terminal hold blocks new engine entries; a started replacement
         // must unwind before the native raid owner can be safely stopped.
-        Plugin.ModLogger.LogInfo($"Team Deathmatch result: {_rules.Result}; {_rules.Reason}; "
+        Plugin.ModLogger.LogDebug($"Team Deathmatch result: {_rules.Result}; {_rules.Reason}; "
             + $"{FriendlyFaction} {friendly}:{opponent} {OpponentFaction}; played={PlayingElapsed:F1}s.");
         ArenaToasts.Show(ResultHeading + " — " + ResultDetail);
         if (_rules.Result == TdmMatchResult.Won) _match.ReportAnnouncerCue(ArenaAnnouncerCue.MatchWon);

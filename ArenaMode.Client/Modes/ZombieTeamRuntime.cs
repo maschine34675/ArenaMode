@@ -177,7 +177,7 @@ internal sealed partial class ZombieTeamRuntime
                 { FailTeamTransition("team identities could not bind presentation: " + tracerProblem); return false; }
                 BindFriendlyFireRoster();
                 _phase = TeamPhase.Live;
-                Plugin.ModLogger.LogInfo($"Zombie team wave {_teamRoundEpoch}: exact {TeamCompanionCount + 1}-player team ready.");
+                Plugin.ModLogger.LogDebug($"Zombie team wave {_teamRoundEpoch}: exact {TeamCompanionCount + 1}-player team ready.");
             }
             if (_boundTeamFollowers.Length != TeamCompanionCount
                 || _boundTeamFollowers.Any(bot => bot == null || bot.GetPlayer == null || bot.HealthController == null)
@@ -217,7 +217,7 @@ internal sealed partial class ZombieTeamRuntime
         _authorizedDeadTeamPlayer = null;
         _teamRespawnAuthorizationAvailable = _teamRespawnAuthorizationConsumed = false;
         _nextObservationAt = 0f;
-        Plugin.ModLogger.LogInfo($"Zombie team: wave {_teamRoundEpoch - 1} survived; restoring the {TeamCompanionCount} companions before wave {_teamRoundEpoch}.");
+        Plugin.ModLogger.LogDebug($"Zombie team: wave {_teamRoundEpoch - 1} survived; restoring the {TeamCompanionCount} companions before wave {_teamRoundEpoch}.");
     }
 
     private void TickTeamRebinding()
@@ -428,7 +428,7 @@ internal sealed partial class ZombieTeamRuntime
         _match.ReportTextCallout(noContest ? "NO CONTEST" : "TEAM ELIMINATED");
         string result = $"Zombie team ended after wave {_teamRoundEpoch}: {(noContest ? "no contest" : "defeat")} — {reason}.";
         if (noContest) Plugin.ModLogger.LogWarning(result);
-        else Plugin.ModLogger.LogInfo(result);
+        else Plugin.ModLogger.LogDebug(result);
     }
 
     private void EndTeamRaid()

@@ -9,7 +9,7 @@ namespace HarmonyLib { public static class AccessTools { public delegate ref F F
 namespace ArenaMode
 {
     public static class Plugin { public static readonly Logger ModLogger = new(); }
-    public class Logger { public void LogWarning(string s) { } public void LogInfo(string s) { } }
+    public class Logger { public void LogWarning(string s) { } public void LogInfo(string s) { } public void LogDebug(string s) { } }
 }
 namespace Redeploy.Core.Inventory
 {

@@ -448,7 +448,7 @@ public sealed partial class GunGameMode : IArenaMode
         {
             _wins++;
             _tier = 0;
-            Plugin.ModLogger.LogInfo($"Gun Game ladder completed ({_wins}x).");
+            Plugin.ModLogger.LogDebug($"Gun Game ladder completed ({_wins}x).");
 
             var fresh = RedrawLadder();
             ArenaToasts.Show(fresh
@@ -554,6 +554,6 @@ public sealed partial class GunGameMode : IArenaMode
         _preloading = false;
         KitCatalog.KitProvider = null;
         Combat.WeaponSwapService.Reset();
-        Plugin.ModLogger.LogInfo($"Gun Game ended on tier {_tier + 1}/{Mathf.Max(1, _ladder.Count)}, {_wins} ladders completed.");
+        Plugin.ModLogger.LogDebug($"Gun Game ended on tier {_tier + 1}/{Mathf.Max(1, _ladder.Count)}, {_wins} ladders completed.");
     }
 }

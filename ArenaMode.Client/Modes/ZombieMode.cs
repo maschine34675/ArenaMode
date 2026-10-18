@@ -291,7 +291,7 @@ public sealed class ZombieMode : IArenaMode
         // raid's — see ZombieMeleePatch.Reset()'s own doc comment.
         ZombieMeleePatch.Reset();
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Zombie match started: wave 1 of {_config.WaveStartSize}, +{_config.WaveGrowth}/wave, "
             + $"max alive {_config.MaxAlive}, spawn every {_config.SpawnIntervalSeconds:0.##}s, "
             + $"intermission {_config.IntermissionSeconds:0.##}s, shooter share {_shooterPercent}%.");
@@ -516,7 +516,7 @@ public sealed class ZombieMode : IArenaMode
         _soloDefeatedAt = Time.unscaledTime;
         _match.Scoreboard.ResetAssists();
         _match.ReportTextCallout(ResultHeading);
-        Plugin.ModLogger.LogInfo("Zombie solo survival ended on local death; respawn held through protected exit.");
+        Plugin.ModLogger.LogDebug("Zombie solo survival ended on local death; respawn held through protected exit.");
     }
 
     private void TickSoloResult()

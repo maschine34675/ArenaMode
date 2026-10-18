@@ -110,7 +110,7 @@ internal static class ArenaFireSupply
                 return;
             }
         }
-        Plugin.ModLogger.LogInfo("Arena Molotov skipped: no compatible free rig/pocket space; existing equipment was kept.");
+        Plugin.ModLogger.LogDebug("Arena Molotov skipped: no compatible free rig/pocket space; existing equipment was kept.");
     }
 
     internal static bool HasVerifiedTemplate =>

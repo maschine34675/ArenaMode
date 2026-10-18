@@ -140,7 +140,7 @@ internal static partial class ArenaMatchService
             mode.OnMatchStart(match);
             SynchronizeScoreboard(match);
             Hud.ArenaHud.Attach(match);
-            Plugin.ModLogger.LogInfo($"Arena match started ({mode.DisplayName}).");
+            Plugin.ModLogger.LogDebug($"Arena match started ({mode.DisplayName}).");
         }
         catch (Exception ex)
         {
@@ -190,7 +190,7 @@ internal static partial class ArenaMatchService
         Try(Hud.ArenaHud.Detach, "hud detach");
         Try(Audio.AnnouncerService.Detach, "announcer detach");
         Try(match.End, "mode end");
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Arena match ended: {match.Kills} kills / {match.Deaths} deaths, "
             + $"score {match.Score}, best streak {match.BestStreak}, "
             + $"{match.Elapsed / 60f:0.0} min.");

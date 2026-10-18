@@ -75,7 +75,7 @@ internal static class TacticalTeamKitEntry
             throw new InvalidOperationException("Tactical kit entry did not retain its prepared equipment.");
         request.Issued = equipment;
         request.Original = null; // Never retain the replaced personal combat gear for the whole match.
-        Plugin.ModLogger.LogInfo($"Tactical team: issued Arena kit '{kit.Name ?? kit.Id}' to the PMC; companion gear is unchanged.");
+        Plugin.ModLogger.LogDebug($"Tactical team: issued Arena kit '{kit.Name ?? kit.Id}' to the PMC; companion gear is unchanged.");
     }
 
     private static bool IsCurrent(Request request, Profile profile)

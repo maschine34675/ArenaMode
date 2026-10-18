@@ -58,7 +58,7 @@ namespace ArenaMode.Session
 namespace ArenaMode
 {
     public static class Plugin { public static Log ModLogger = new(); }
-    public sealed class Log { public void LogInfo(string value) { } }
+    public sealed class Log { public void LogInfo(string value) { } public void LogDebug(string value) { } }
 }
 namespace ArenaMode.Kits
 {

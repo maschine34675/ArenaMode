@@ -658,8 +658,9 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 - Zombie voice budgeting and native-infected PFT fast paths reduce redundant
   work; AI combat/navigation is retained. High populations remain dependent on
   hardware, map and other mods.
-- Info logs focus on player-relevant state/results; routine internals use Debug
-  and detailed probes require DeveloperMode. Settings polling avoids the old
+- Info logs focus on setup, protection and player-relevant limitations; gameplay
+  (rounds, waves, results, scores) and routine internals use Debug, and detailed
+  probes require DeveloperMode. Settings polling avoids the old
   repeated RequestHandler request/success spam. Real failures remain visible.
 
 Sources: [protection services](../ArenaMode.Server/Services),

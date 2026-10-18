@@ -21,7 +21,7 @@ inventory items. Ordinary RGD-5s are never a fallback or conversion target.
 Supply is once per equipment tree, not once per tick or grenade throw. Spending,
 dropping, toggling off/on or merely advancing the round counter cannot mint more.
 A newly equipped kit or restored own-gear tree receives its own one-item supply.
-Full/incompatible rig and pockets skip the bonus and report this at Info; nothing
+Full/incompatible rig and pockets skip the bonus and report this at Debug; nothing
 is evicted, repacked, replaced, pushed into a secure container or put in a backpack.
 The attempt is not repeated on that same equipment tree after freeing a cell.
 Ordinary raids, bots and the still-unsupported Zombie mode receive nothing.

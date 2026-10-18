@@ -501,7 +501,7 @@ public sealed partial class TacticalMode : IArenaMode
             ?? throw new InvalidOperationException("Solo Tactical has no buildable starter kit");
         KitCatalog.KitProvider = IssueSoloKit;
         EnterBuy();
-        Plugin.ModLogger.LogInfo($"Tactical: match started with {Money:N0} roubles.");
+        Plugin.ModLogger.LogDebug($"Tactical: match started with {Money:N0} roubles.");
     }
 
     public void Tick(float deltaTime)
@@ -737,7 +737,7 @@ public sealed partial class TacticalMode : IArenaMode
             {
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart, beginAwardRound: false);
                 ArenaToasts.Show($"Round {RoundNumber} — fight! ({ready} opponents ready)");
-                Plugin.ModLogger.LogInfo($"Tactical round {RoundNumber} live: {ready} active opponents, {eliminated} already eliminated.");
+                Plugin.ModLogger.LogDebug($"Tactical round {RoundNumber} live: {ready} active opponents, {eliminated} already eliminated.");
             }
         }
 
@@ -747,7 +747,7 @@ public sealed partial class TacticalMode : IArenaMode
         // because the round was not won.
         if (Time.time >= _phaseEndsAt)
         {
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Tactical: round {RoundNumber} ran out of time with {SquadAlive} enemies left.");
             EndRound(won: false);
             return;
@@ -947,7 +947,7 @@ public sealed partial class TacticalMode : IArenaMode
         _preferredSpectatorProfileId = null;
         _lastTeamReadinessDiagnostic = null;
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical ended: {RoundsWon}-{RoundsLost} over {RoundNumber} round(s), {Money:N0} roubles left.");
     }
 
@@ -1112,7 +1112,7 @@ public sealed partial class TacticalMode : IArenaMode
                 TeamArenaPursuit.BeginRound(_teamRoundEpoch);
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
                 ArenaToasts.Show($"{TeamMatchLabel} — fight!");
-                Plugin.ModLogger.LogInfo(
+                Plugin.ModLogger.LogDebug(
                     $"Tactical team Arena round {RoundNumber} live: {TeamCompanionCount + 1} allies versus five opponents.");
                 return;
             }
@@ -1927,7 +1927,7 @@ public sealed partial class TacticalMode : IArenaMode
         // of readiness, identity and lifecycle failures, which end a round with no
         // valid result at all.
         if (result == TeamArenaRoundResult.NoContest) Plugin.ModLogger.LogWarning(roundResult);
-        else Plugin.ModLogger.LogInfo(roundResult);
+        else Plugin.ModLogger.LogDebug(roundResult);
     }
 
     private static string DescribeTeamRoundResult(TeamArenaRoundResult result)
@@ -2680,7 +2680,7 @@ public sealed partial class TacticalMode : IArenaMode
             PitFireTeamCompat.BeginFinalizing();
             _teamStopRequested = true;
             game.Stop(profileId, exitStatus, "Arena", 0f);
-            Plugin.ModLogger.LogInfo(
+            Plugin.ModLogger.LogDebug(
                 $"Tactical team Arena ended {RoundsWon}-{RoundsLost} after {RoundNumber} round(s) "
                 + $"with native status {exitStatus}.");
         }
@@ -2951,7 +2951,7 @@ public sealed partial class TacticalMode : IArenaMode
             ArenaToasts.Show($"Round {RoundNumber} lost  (+{Settings.TacticalLossBonus.Value:N0} ₽)");
         }
 
-        Plugin.ModLogger.LogInfo(
+        Plugin.ModLogger.LogDebug(
             $"Tactical round {RoundNumber} {(won ? "won" : "lost")} — {RoundsWon}-{RoundsLost}, {Money:N0} roubles.");
 
         RoundNumber++;
