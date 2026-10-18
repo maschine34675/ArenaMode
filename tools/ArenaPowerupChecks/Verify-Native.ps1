@@ -103,4 +103,12 @@ Assert-Power ($source.Contains('bool __runOriginal') -and $source.Contains('Harm
 Assert-Power (!(($source + $policy) -match '\.DamageCoeff\s*=(?!=)|\.DamageMultiplier\s*=(?!=)|\.SetDamageCoeff\s*\(|\.Template\b')) 'production never writes shared health coefficients or templates'
 Assert-Power ($source.Contains('info.DamageType == EDamageType.Bullet && info.Weapon is Weapon weapon && !weapon.IsGrenadeLauncher') -and $source.Contains('&& ArenaPickupRuntime.IsLiveActor(attacker)')) 'outgoing bonus requires firearm bullet and current living source; no physical grenade fragment bonus'
 Assert-Power ($combat.Contains('BodyDamage = __result,') -and $assist.Contains('Damage = -(double)diff')) 'damage feed and assist policy still use actual native HP deltas'
+$runtime = [IO.File]::ReadAllText((Join-Path $powerRepo 'ArenaMode.Client/Pickups/ArenaPickupRuntime.cs'))
+$view = [IO.File]::ReadAllText((Join-Path $powerRepo 'ArenaMode.Client/Pickups/ArenaPickupView.cs'))
+$indicator = [IO.File]::ReadAllText((Join-Path $powerRepo 'ArenaMode.Client/Effects/ArenaPowerupIndicator.cs'))
+Assert-Power ($runtime.Contains('ArenaPowerups.TickIndicators();') -and
+    $runtime.IndexOf('ArenaPowerups.TickIndicators();') -lt $runtime.IndexOf('if (Time.time < _nextScan || Time.timeScale <= 0f) return;')) 'indicator follow and cleanup run before pickup scan throttling or pause return'
+Assert-Power ($view.Contains('ArenaPickupColors.DoubleDamage') -and $view.Contains('ArenaPickupColors.Shield') -and
+    $indicator.Contains('ArenaPickupColors.DoubleDamage') -and $indicator.Contains('ArenaPickupColors.Shield')) 'beacons and bot indicators share the same pickup palette'
+Assert-Power (!(($source + $indicator) -match 'ArenaHudEnabled|ArenaHudScope|HudEnabled|WorldToScreenPoint')) 'world-space indicators do not depend on HUD or screen projection'
 Write-Output "ARENA_POWERUP_NATIVE_PASSED: $powerContractCount installed IL/source contracts; not Unity/Harmony runtime proof"

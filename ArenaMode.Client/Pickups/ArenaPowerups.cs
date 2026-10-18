@@ -1,6 +1,7 @@
 #nullable disable
 using ArenaMode.Bots;
 using ArenaMode.Combat;
+using ArenaMode.Effects;
 using ArenaMode.Modes;
 using ArenaMode.Session;
 using Comfort.Common;
@@ -11,6 +12,7 @@ using EFT.InventoryLogic;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -38,10 +40,13 @@ internal static class ArenaPowerups
     {
         internal readonly ActiveHealthController Health;
         internal readonly ArenaPowerupState State = new();
+        internal ArenaPowerupIndicator Indicator;
         internal Life(ActiveHealthController health) => Health = health;
     }
 
     private static ConditionalWeakTable<Player, Life> _lives = new();
+    // Only active visible bot effects hold bodies here; no historical profile-ID lookup.
+    private static readonly List<Player> IndicatorBodies = new();
     private static int _generation;
     private static bool _enabled, _attempted, _warned;
 
@@ -60,19 +65,34 @@ internal static class ArenaPowerups
 
     internal static void Reset()
     {
+        foreach (var player in IndicatorBodies)
+            if (_lives.TryGetValue(player, out var life)) life.Indicator?.Dispose();
+        IndicatorBodies.Clear();
         _lives = new ConditionalWeakTable<Player, Life>();
         _generation = ArenaPickupRuntime.Generation;
     }
 
     internal static bool GrantDamage(Player player, float duration)
     {
-        try { return CurrentLife(player, create: true)?.State.GrantDamage(Time.time, duration) == true; }
+        try
+        {
+            var life = CurrentLife(player, create: true);
+            if (life?.State.GrantDamage(Time.time, duration) != true) return false;
+            RefreshIndicator(player, life);
+            return true;
+        }
         catch (Exception ex) { Warn(ex); return false; }
     }
 
     internal static bool GrantShield(Player player, float points, float duration)
     {
-        try { return CurrentLife(player, create: true)?.State.GrantShield(Time.time, points, duration) == true; }
+        try
+        {
+            var life = CurrentLife(player, create: true);
+            if (life?.State.GrantShield(Time.time, points, duration) != true) return false;
+            RefreshIndicator(player, life);
+            return true;
+        }
         catch (Exception ex) { Warn(ex); return false; }
     }
 
@@ -104,20 +124,70 @@ internal static class ArenaPowerups
         if (!ArenaPickupRuntime.IsLiveActor(player) || player.ActiveHealthController?.IsAlive != true
             || ArenaAdministrativeDeathGate.IsActive(player.ProfileId))
         {
-            _lives.Remove(player);
+            Forget(player);
             return null;
         }
         if (_lives.TryGetValue(player, out var life))
         {
             if (ReferenceEquals(life.Health, player.ActiveHealthController)) return life;
-            _lives.Remove(player);
+            Forget(player);
         }
         return create ? _lives.GetValue(player, body => new Life(body.ActiveHealthController)) : null;
     }
 
     internal static void Forget(Player player)
     {
-        if (!ReferenceEquals(player, null)) _lives.Remove(player);
+        if (ReferenceEquals(player, null)) return;
+        if (_lives.TryGetValue(player, out var life)) ReleaseIndicator(player, life);
+        _lives.Remove(player);
+    }
+
+    internal static void TickIndicators()
+    {
+        if (_generation != ArenaPickupRuntime.Generation || !_enabled || !ArenaSession.IsActive)
+        { Reset(); return; }
+        for (int i = IndicatorBodies.Count - 1; i >= 0; i--)
+        {
+            var player = IndicatorBodies[i];
+            try
+            {
+                var life = CurrentLife(player, create: false);
+                if (life != null) RefreshIndicator(player, life);
+            }
+            catch (Exception ex) { Forget(player); Warn(ex); }
+        }
+    }
+
+    private static void ReleaseIndicator(Player player, Life life)
+    {
+        life.Indicator?.Dispose(); life.Indicator = null;
+        for (int i = IndicatorBodies.Count - 1; i >= 0; i--)
+            if (ReferenceEquals(IndicatorBodies[i], player)) IndicatorBodies.RemoveAt(i);
+    }
+
+    private static void RefreshIndicator(Player player, Life life)
+    {
+        // Presentation is subordinate to the same validated physical effect life.
+        // Never bind through a profile ID or the local HUD visibility preference.
+        try
+        {
+            var state = life.State.Read(Time.time);
+            if (!player.IsAI || (state.DamageSeconds <= 0f && state.ShieldPoints <= 0f))
+            { ReleaseIndicator(player, life); return; }
+            if (life.Indicator == null)
+            {
+                var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
+                if (world == null) return;
+                life.Indicator = new ArenaPowerupIndicator(world.transform);
+                IndicatorBodies.Add(player);
+            }
+            // A temporarily disabled native body must not leave its cage visible.
+            // Keep the timer/life while hidden; re-enabling this exact registered
+            // body can show only whatever effect time remains, never a fresh grant.
+            life.Indicator.Update(player.gameObject.activeInHierarchy ? player.Position : default,
+                player.gameObject.activeInHierarchy ? state : default);
+        }
+        catch (Exception ex) { ReleaseIndicator(player, life); Warn(ex); }
     }
 
     // Last prefix + __runOriginal keeps an earlier Harmony damage veto authoritative.
@@ -174,8 +244,10 @@ internal static class ArenaPowerups
             var outgoing = info.DamageType == EDamageType.Bullet && info.Weapon is Weapon weapon && !weapon.IsGrenadeLauncher
                 && ArenaPickupRuntime.IsLiveActor(attacker)
                 && CurrentLife(attacker, create: false)?.State.Read(now).DamageSeconds > 0f;
-            var shield = CurrentLife(victim, create: false)?.State;
-            return ArenaPowerupState.Adjust(damage, multiplier, outgoing, shield, now);
+            var victimLife = CurrentLife(victim, create: false);
+            float adjusted = ArenaPowerupState.Adjust(damage, multiplier, outgoing, victimLife?.State, now);
+            if (victimLife != null) RefreshIndicator(victim, victimLife); // Shield depletion hides it in the same call.
+            return adjusted;
         }
         catch (Exception ex) { Warn(ex); return damage; }
     }

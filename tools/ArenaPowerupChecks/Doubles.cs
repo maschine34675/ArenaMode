@@ -3,7 +3,74 @@ using System.Reflection;
 // Boundary doubles only. The production effects, pool policy and administrative
 // gate are linked above; no alternate effects implementation lives in this file.
 public enum EBodyPart { Head, Chest, Stomach, LeftArm, RightArm, LeftLeg, RightLeg, Common }
-namespace UnityEngine { public static class Time { public static float time; } }
+namespace UnityEngine
+{
+    public static class Time { public static float time; }
+    public class Object
+    {
+        public bool Destroyed;
+        public static void Destroy(Object value)
+        {
+            value.Destroyed = true;
+            if (value is GameObject go)
+                foreach (var child in go.transform.Children.ToArray()) Destroy(child.GameObject);
+        }
+    }
+    public class Transform : Object
+    {
+        public GameObject GameObject;
+        public Transform Parent;
+        public readonly List<Transform> Children = new();
+        public Vector3 position;
+        public void SetParent(Transform parent, bool keepWorld) { Parent = parent; parent?.Children.Add(this); }
+    }
+    public class GameObject : Object
+    {
+        public static readonly List<GameObject> Created = new();
+        public string name;
+        public bool Active = true;
+        public bool activeInHierarchy => Active && !Destroyed;
+        public readonly Transform transform;
+        public readonly List<object> Components = new();
+        public GameObject(string name) { this.name = name; transform = new() { GameObject = this }; Created.Add(this); }
+        public T AddComponent<T>() where T : new() { var value = new T(); Components.Add(value); return value; }
+        public void SetActive(bool value) => Active = value;
+    }
+    public struct Vector3 { public float x, y, z; public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; } }
+    public struct Color { public float r, g, b, a; public Color(float r, float g, float b, float a = 1) { this.r = r; this.g = g; this.b = b; this.a = a; } }
+    public sealed class Shader
+    {
+        public static bool Missing;
+        public static int Lookups;
+        public static Shader Find(string name) { Lookups++; return Missing ? null : new(); }
+    }
+    public class Material : Object
+    {
+        public static readonly List<Material> Created = new();
+        public string name;
+        public Material(Shader shader) { Created.Add(this); }
+    }
+    public class LineRenderer
+    {
+        public Material sharedMaterial;
+        public bool useWorldSpace, loop, receiveShadows;
+        public int positionCount;
+        public float startWidth, endWidth;
+        public Color startColor, endColor;
+        public Rendering.ShadowCastingMode shadowCastingMode;
+        public Rendering.LightProbeUsage lightProbeUsage;
+        public Rendering.ReflectionProbeUsage reflectionProbeUsage;
+        public readonly Dictionary<int, Vector3> Positions = new();
+        public void SetPosition(int i, Vector3 point) => Positions[i] = point;
+    }
+    public static class Mathf { public const float PI = MathF.PI; public static float Sin(float angle) => MathF.Sin(angle); public static float Cos(float angle) => MathF.Cos(angle); }
+}
+namespace UnityEngine.Rendering
+{
+    public enum ShadowCastingMode { Off }
+    public enum LightProbeUsage { Off }
+    public enum ReflectionProbeUsage { Off }
+}
 namespace Comfort.Common { public static class Singleton<T> where T : class { public static T Instance; public static bool Instantiated => Instance != null; } }
 namespace EFT
 {
@@ -28,6 +95,8 @@ namespace EFT
         public AIData AIData = new();
         public bool IsAI => AIData.IsAI;
         public HealthSystem.ActiveHealthController ActiveHealthController;
+        public UnityEngine.Vector3 Position;
+        public readonly UnityEngine.GameObject gameObject = new("Player");
         public Player(string id) { ProfileId = id; ActiveHealthController = new() { Player = this }; }
         public virtual void OnDead(EDamageType type) { }
     }
@@ -38,6 +107,7 @@ namespace EFT
     public class MindSettings { public bool MUTUAL_IGNORE_FRIENDLY_FIRE; }
     public class GameWorld
     {
+        public readonly UnityEngine.Transform transform = new();
         public Player MainPlayer;
         public readonly Dictionary<string, Player> Ever = new();
         public Player GetEverExistedPlayerByID(string id) => id != null && Ever.TryGetValue(id, out var p) ? p : null;

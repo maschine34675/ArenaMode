@@ -24,8 +24,8 @@ internal sealed class ArenaPickupView : IDisposable
         _name = point.Kind switch { ArenaPickupKind.DoubleDamage => "DOUBLE DAMAGE", ArenaPickupKind.Shield => "SHIELD", ArenaPickupKind.JumpBoots => "JUMP BOOTS", ArenaPickupKind.InfiniteAmmo => "INFINITE AMMO", ArenaPickupKind.Health => $"HEALTH +{ArenaHealthPickup.Amount:0}", _ => "WEAPON" };
         Color color = point.Kind switch
         {
-            ArenaPickupKind.DoubleDamage => new Color(1f, .25f, .7f),
-            ArenaPickupKind.Shield => new Color(.25f, .8f, 1f),
+            ArenaPickupKind.DoubleDamage => ArenaPickupColors.DoubleDamage,
+            ArenaPickupKind.Shield => ArenaPickupColors.Shield,
             ArenaPickupKind.JumpBoots => new Color(.4f, 1f, .3f),
             ArenaPickupKind.InfiniteAmmo => new Color(1f, .35f, .06f),
             ArenaPickupKind.Health => new Color(.95f, .95f, 1f),

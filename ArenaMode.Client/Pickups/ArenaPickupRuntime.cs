@@ -134,6 +134,7 @@ internal static partial class ArenaPickupRuntime
                 _nextPlacement = 0;
             }
             ArenaPickupAudio.Tick();
+            ArenaPowerups.TickIndicators();
             if (_placementPending && Time.timeScale > 0f)
             {
                 // The window bounds placement as well as anchor acquisition.

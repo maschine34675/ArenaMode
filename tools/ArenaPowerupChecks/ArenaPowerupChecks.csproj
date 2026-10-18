@@ -4,11 +4,15 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PowerupSourceRoot Condition="'$(PowerupSourceRoot)' == ''">../../ArenaMode.Client/Pickups</PowerupSourceRoot>
+    <IndicatorSourceRoot Condition="'$(IndicatorSourceRoot)' == ''">../../ArenaMode.Client/Effects</IndicatorSourceRoot>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs"/><Compile Include="Doubles.cs"/>
     <Compile Include="$(PowerupSourceRoot)/ArenaPowerups.cs" Link="Production/ArenaPowerups.cs"/>
     <Compile Include="$(PowerupSourceRoot)/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs"/>
+    <Compile Include="$(PowerupSourceRoot)/ArenaPickupColors.cs" Link="Production/ArenaPickupColors.cs"/>
+    <Compile Include="$(IndicatorSourceRoot)/ArenaSpawnShieldView.cs" Link="Production/ArenaSpawnShieldView.cs"/>
+    <Compile Include="$(IndicatorSourceRoot)/ArenaPowerupIndicator.cs" Link="Production/ArenaPowerupIndicator.cs"/>
     <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs"/>
   </ItemGroup>
 </Project>
