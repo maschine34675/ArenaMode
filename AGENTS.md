@@ -459,6 +459,15 @@ each on the GPU host. Never call `GC.Collect` or `GC.GetTotalMemory(true)` from 
 code, not even for diagnostics. `GcThresholdMonitor` switches the incremental collector
 back on past `GcHeapThresholdGB`; see `docs/GC-THRESHOLD-REVIEW.md`.
 
+**Every `ModulePatch` subclass is named `Arena…`.** SPT's parameterless `ModulePatch`
+constructor uses the bare class name as the Harmony id, so a nested `LocationPatch` or
+`TimerPatch` shows up without the mod name and can share an id with another mod's patch.
+Scheme (2026-10-18): `Arena` + outer type without its leading `Arena` and trailing
+`Patches`/`Patch` + the class name, unless the name already starts with that stem
+(`ArenaSessionModeCaptionPatch.LocationPatch` -> `ArenaSessionModeCaptionLocationPatch`); a
+top-level class is `Arena` + name, the server bot cap patch `ArenaServerBotCapPatch`. A
+primary constructor (`class X(Type t) : ModulePatch`) is a patch class too.
+
 **A Harmony patch that asks for `__originalMethod` on a method declared on a generic
 type throws on every call, before the patch body ever runs — even for a closed
 instantiation.** First hit patching `ComponentSystem<MuzzleManager, MuzzleSystem>.Update`

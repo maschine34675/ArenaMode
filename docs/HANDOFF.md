@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Patch class names, LICENSE, gameplay log levels (2026-10-18 late, branch
+  `feature/patch-ids-log-levels`, not GPU-checked):** all 222 `ModulePatch` classes are
+  `Arena…` (scheme and reason in AGENTS.md next to the Harmony pitfalls); Redeploy and
+  Killcam got the same rename (`RedeployCore…`/`Redeploy…`, `Killcam…`). Class names only:
+  no config key, log text or Harmony GUID depends on them. `tools/Write-ArenaAssets.ps1`
+  compares the shared LICENSE as text with normalised line endings, and `.gitattributes`
+  (also in Redeploy) checks LICENSE out as LF, so fresh worktrees build again. Gameplay
+  lines (match/round/wave starts and ends, results, scores, Tactical money, per-spawn kit
+  details) are Debug now, see LOGGING.md. Killcam no longer turns its death replay off next
+  to KillAndDamageInfo; ArenaMode's N/A reason only asks to enable DeathReplay (Killcam
+  1.0.0 still has the old guard until its next release). Evidence: builds, 1179 unit tests,
+  the text-anchor and linked harnesses as on master, the 27 harness runs over the changed
+  log sites, one adversarial review (its findings are fixed).
+
 - **F12 settings menu schema (2026-10-18, merged `1014a29`, GPU2 checked):** all 224
   ArenaMode entries get readable names and a deliberate order (General, Match and the
   modes first, Performance last), Diagnostics and both Development sections are
