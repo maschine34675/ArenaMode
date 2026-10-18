@@ -41,8 +41,10 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   they are not playable or saved as selected modes.
 - Native map filtering, mode-specific equipment choices, participant/team-size
   controls, time choices and match rules in the map-selection screen.
-- Own gear versus Arena kits is offered for solo Zombies; PFT Tactical/Zombies
-  use own gear automatically. This is not a universal equipment toggle for DM,
+- Own gear versus Arena kits is offered for solo Zombies and PFT Tactical.
+  Tactical defaults to own gear; only the PMC receives a kit, while companions
+  keep their equipment. PFT Zombies keeps own gear automatically.
+  This is not a universal equipment toggle for DM,
   Gun Game or Team DM. Invited PFT companions restrict selection to their two
   supported modes; Tactical displays the actual party size, such as 3v5 PFT.
 - Customs area selection includes a map preview with the actual polygon
@@ -121,7 +123,8 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   death without a purchase, the best affordable kit is selected automatically;
   if none is affordable, the cheapest buildable kit is free again.
 - Optional PitFireTeam: **player plus 1–4 invited companions against five
-  enemies**, using protected entry gear instead of the solo kit economy.
+  enemies**, using own gear (default) or one supplied PMC kit instead of the
+  solo kit economy. The menu choice never replaces companions' equipment.
 - The match continues after player death; watch the remaining combatants and
   return at the next round. Fallen companions are rebuilt for subsequent rounds.
 - Multiple protected team rounds; default target **three round wins**.
@@ -222,8 +225,8 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   without a valid optic path may still use iron sights.
 - Invalid/unfinished game templates are excluded from generated equipment.
   Generated item trees and required bundles are checked before use.
-- Own gear is a mode-dependent alternative. PFT Tactical/Zombies preserve the
-  entry loadout rather than replacing it with Gun Game's level-one equipment.
+- Own gear is a mode-dependent alternative. PFT Tactical preserves the selected
+  entry loadout (own gear or a supplied PMC kit), and PFT Zombies uses own gear.
 - Two **RGD-5** grenades in supplied kits, placed in accessible rig/pocket space
   where possible; no automatic Zarya flash grenade. Molotov is an additional
   dedicated item, not a renamed or converted RGD-5.

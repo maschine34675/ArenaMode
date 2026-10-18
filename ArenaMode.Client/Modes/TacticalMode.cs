@@ -470,6 +470,7 @@ public sealed partial class TacticalMode : IArenaMode
                     "protected 5v5 could not bind the exact active LocalGame and PMC body");
             }
 
+            TacticalTeamKitEntry.VerifyIssued(teamGame.Profile, world);
             if (!TeamArenaLoadoutSnapshot.TryCapture(
                     teamGame.Profile,
                     out _teamLoadoutSnapshot,

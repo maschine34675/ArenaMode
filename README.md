@@ -14,12 +14,12 @@ prepared. Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 | **Gun Game** | Each kill advances your weapon. The ladder repeats after the last weapon. Respawn at your current stage. |
 | **Deathmatch** | Free-for-all or all bots against the player. Optional kill/time limits per round and a finite or unlimited number of rounds. Without limits, play continues without round breaks. |
 | **Team DM** | USEC against BEAR, with continuous respawns and team kill/time limits. Does not require PitFireTeam. |
-| **Tactical (WIP)** | Round-based elimination. Solo defaults to 1v5 with a kit buy menu. With PitFireTeam, bring your own gear and 1–4 companions against five enemies. Watch surviving teammates after death; return next round. |
+| **Tactical (WIP)** | Round-based elimination. Solo defaults to 1v5 with a kit buy menu. With PitFireTeam, choose own gear or a supplied PMC kit and bring 1–4 companions against five enemies. Companions keep their gear. Watch surviving teammates after death; return next round. |
 | **Zombies (WIP)** | Increasing waves of infected. Solo death ends the match. With PitFireTeam, surviving teammates can finish the wave; fallen members return for the next wave. A team wipe ends the match. Ammunition is replenished between waves. |
 
 Zombie defaults are **32 alive at once, 50 in the first wave, +20 per wave** and
 **own gear**. Population and starting equipment are selectable in the menu.
-PFT squads use entry gear. A dead Tactical PMC receives it again next round;
+PFT companions keep their entry gear. A dead Tactical PMC receives the selected entry loadout again next round;
 a surviving Tactical PMC keeps the current loadout. Zombies refills the combat
 loadout between cleared waves, including for the surviving player.
 
@@ -61,8 +61,9 @@ current defaults, mode restrictions, all mutators and the supporting source.
 ### Equipment and combat
 
 - Twenty kits, fixed/random kit selection and a generated weapon ladder with
-  compatible optics/attachments. Solo Zombies offers own gear or kits; PFT
-  Tactical/Zombies uses own gear automatically.
+  compatible optics/attachments. Solo Zombies and PFT Tactical offer own gear
+  or kits for the PMC. PFT Tactical defaults to own gear; its kit is issued once
+  before entry, without a buy phase. PFT Zombies keeps own gear automatically.
 - Supported weapons select full-auto when drawn; manual changes remain possible.
 - Backpack medical-item use and magazine reload access, stable medical
   quickslots, instant search and automatic searching of opened corpses.

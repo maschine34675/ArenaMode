@@ -12,7 +12,7 @@ namespace ArenaMode.Session;
 /// Two inline choices ("Arena kits" / "Own gear") inside the LEFT mode panel,
 /// replacing only the plain EQUIPMENT value for any mode
 /// <see cref="Modes.ArenaEquipmentChoice.IsOfferedFor"/> returns true for
-/// (today: Zombie only). The common EQUIPMENT label stays in the same position
+/// (solo Zombies and protected Tactical). The common EQUIPMENT label stays in the same position
 /// as every other mode; selected buttons carry the current value. These controls
 /// retain their own state lock and exact callback ownership when hidden/retired.
 /// </summary>

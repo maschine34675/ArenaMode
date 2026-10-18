@@ -272,6 +272,12 @@ test above was verified that way — reintroduce the comma and three tests go re
    `ArenaSession.IsActive` gate and fails open to vanilla. A setting that leaks into a
    non-arena raid is a bug even if it is harmless.
    Loading-time exceptions are documented here and at their call sites:
+   Protected PFT Tactical may issue one PMC-only Arena kit after the exact
+   native local-start identity binds, before LocalGame creates the first body.
+   Read docs/PFT-TACTICAL-KITS-20261018.md: exact arm token/epoch, profile,
+   equipment root, matching world and no local body are mandatory on both sides
+   of the required pool await. Preserve protected slots transactionally, never
+   replace a PFT leader later, never change companions or PFT Zombies.
    `ArenaProfilePreloadPatch` runs inside the loading screen, where `IsActive`
    cannot yet be latched, so it gates on ARMED + the map being loaded instead.
    If the server then refuses the arm token, that raid runs ordinary with an

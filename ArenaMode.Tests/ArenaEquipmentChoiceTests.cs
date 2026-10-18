@@ -16,7 +16,7 @@ namespace ArenaMode.Tests;
 public sealed class ArenaEquipmentChoiceTests
 {
     [Fact]
-    public void OnlyZombieOffersAChoiceToday()
+    public void OnlySoloZombiesOfferAChoiceWithoutAProtectedTeam()
     {
         Assert.True(ArenaEquipmentChoice.IsOfferedFor(ArenaPopulationPolicy.Zombie));
         Assert.True(ArenaEquipmentChoice.IsOfferedFor("ZOMBIE"));
@@ -86,17 +86,48 @@ public sealed class ArenaEquipmentChoiceTests
     }
 
     [Fact]
-    public void ProtectedTeamNeverShowsTheRowEvenIfATableEntryExistedForIt()
+    public void ProtectedZombiesKeepTheirOwnGearWithoutAChoice()
     {
         var fx = new Fixture();
-        // Zombie can never be a tacticalOnly mode in practice, but the guard
-        // is defensive: assert it independently of ArenaEquipmentChoice's own
-        // table so a future table entry cannot silently leak a toggle into a
-        // protected-team screen.
+        // PFT Zombies still preserve entry gear; only PFT Tactical offers kits.
         fx.State.Synchronize(ArenaPopulationPolicy.Zombie, tacticalOnly: true);
-        Assert.False(fx.State.Visible, "a protected team must never show an equipment choice row");
+        Assert.False(fx.State.Visible, "protected Zombies must not show an equipment choice row");
         Assert.False(fx.State.TrySelect(true));
     }
+
+    [Fact]
+    public void ProtectedTacticalOffersItsOwnIndependentPreference()
+    {
+        var fx = new Fixture();
+        fx.Backing["tactical"] = true;
+        fx.Backing["zombie"] = true;
+        fx.State.Synchronize("tactical", tacticalOnly: true);
+        Assert.True(fx.State.Visible);
+        Assert.True(fx.State.OwnGear);
+        Assert.True(fx.State.TrySelect(false));
+        Assert.False(fx.Backing["tactical"]);
+        Assert.True(fx.Backing["zombie"]);
+        fx.Locked = true;
+        Assert.False(fx.State.TrySelect(true));
+        Assert.False(fx.State.OwnGear);
+        fx.Locked = false;
+        fx.State.Synchronize("tactical", tacticalOnly: false);
+        Assert.False(fx.State.Visible);
+        Assert.False(fx.State.TrySelect(true));
+        fx.State.Synchronize("tactical", tacticalOnly: true);
+        Assert.False(fx.State.OwnGear);
+    }
+
+    [Theory]
+    [InlineData("tactical", true)]
+    [InlineData(" TACTICAL ", true)]
+    [InlineData("zombie", false)]
+    [InlineData("gungame", false)]
+    [InlineData("teamdeathmatch", false)]
+    [InlineData("deathmatch", false)]
+    [InlineData(null, false)]
+    public void ProtectedChoiceIsOnlyAvailableForTactical(string? mode, bool offered)
+        => Assert.Equal(offered, ArenaEquipmentChoice.IsOfferedFor(mode!, protectedTeam: true));
 
     [Fact]
     public void TogglingWritesThroughTheInjectedSetter()

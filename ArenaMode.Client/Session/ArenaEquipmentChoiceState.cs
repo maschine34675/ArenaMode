@@ -3,22 +3,9 @@ using System;
 namespace ArenaMode.Session;
 
 /// <summary>
-/// Pre-raid menu contract for item 1 of the 2026-10-06 follow-up ("own gear to
-/// the left"): a single two-way equipment choice row in the LEFT mode panel,
-/// mode-independent the same way <see cref="ArenaDeathmatchRulesState"/> and
-/// <see cref="ArenaTdmMatchRulesState"/> are — this class owns no setting of
-/// its own, it only decides visibility/editability and forwards an accepted
-/// choice to whatever getter/setter the caller wired up for the CURRENT mode.
-///
-/// Mode-awareness is delegated entirely to <see cref="Modes.
-/// ArenaEquipmentChoice.IsOfferedFor"/>: today only Zombie offers a choice, so
-/// this row is built once in <see cref="ArenaModeSelectionView"/> and simply
-/// stays invisible for every other mode, following the same HIDE-when-
-/// inapplicable convention the TDM/Deathmatch rules rows already use (not the
-/// right-hand mutators panel's "grey out + N/A" convention — see
-/// ArenaEquipmentChoice's own doc comment on why this needed its own class
-/// rather than reusing <c>ArenaMutatorSelection</c>'s per-row availability
-/// check).
+/// Visibility and guarded persistence for the inline PMC equipment selector.
+/// Mode/roster policy lives in ArenaEquipmentChoice; hidden or armed controls
+/// cannot change the saved preference.
 /// </summary>
 internal sealed class ArenaEquipmentChoiceState
 {
@@ -36,14 +23,10 @@ internal sealed class ArenaEquipmentChoiceState
     }
 
     /// <summary>
-    /// Tactical is excluded the same way DM/TDM already exclude themselves
-    /// under a protected team (<c>!_tacticalOnly &amp;&amp;</c>), even though
-    /// <c>ArenaEquipmentChoice.IsOfferedFor</c> can never itself resolve to
-    /// Tactical today — belt and suspenders against a future mode table entry
-    /// that would otherwise leak a toggle into Tactical's own, different,
-    /// automatic own-gear path.
+    /// Only solo Zombies and protected Tactical offer the row. Changing group
+    /// membership re-evaluates this before any stale button can write a setting.
     /// </summary>
-    internal bool Visible => !_tacticalOnly && Modes.ArenaEquipmentChoice.IsOfferedFor(_mode);
+    internal bool Visible => Modes.ArenaEquipmentChoice.IsOfferedFor(_mode, _tacticalOnly);
     internal bool Editable => Visible && !_locked();
     internal bool OwnGear => _get(_mode);
     internal string Label => "EQUIPMENT: " + Modes.ArenaEquipmentChoice.Label(OwnGear);

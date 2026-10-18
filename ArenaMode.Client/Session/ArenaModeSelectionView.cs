@@ -297,7 +297,7 @@ internal sealed class ArenaModeSelectionView
         _description.text = zombieTeam
             ? "Fallen allies return; team wipe ends play. All entry gear refills each wave."
             : mode.Id == ArenaModeCatalog.TacticalId && _selection.TacticalOnly
-                ? "Eliminate the enemy squad. Fallen allies return next round."
+                ? "Fallen allies return next round. Equipment choice affects only your PMC."
             : mode.Id == ArenaModeCatalog.DeathmatchId && !Settings.DeathmatchFreeForAll.Value
                 ? "All opponents hunt you. Set limits to end rounds."
             : mode.Description;
@@ -319,7 +319,9 @@ internal sealed class ArenaModeSelectionView
         // dispatch instead of a Zombie-only literal, so a future mode added to
         // ArenaEquipmentChoice needs no edit here. Self-contained (does not
         // depend on _equipmentChoice.Synchronize having run yet this frame).
-        _equipment.text = _selection.TacticalOnly ? "PMC entry gear"
+        _equipment.text = _selection.TacticalOnly
+            ? mode.Id == ArenaModeCatalog.TacticalId && !Settings.GetEquipmentChoiceOwnGear(mode.Id)
+                ? Modes.ArenaEquipmentChoice.ArenaKitsLabel : "PMC entry gear"
             : Modes.ArenaEquipmentChoice.IsOfferedFor(mode.Id) && Settings.GetEquipmentChoiceOwnGear(mode.Id)
                 ? Modes.ArenaEquipmentChoice.OwnGearLabel
             : mode.Equipment;

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EntrySource Condition="'$(EntrySource)' == ''">../../ArenaMode.Client/Kits/TacticalTeamKitEntry.cs</EntrySource>
+    <PreloadSource Condition="'$(PreloadSource)' == ''">../../ArenaMode.Client/Kits/KitBundlePreloader.RequiredEntry.cs</PreloadSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(EntrySource)" Link="Production/TacticalTeamKitEntry.cs" />
+    <Compile Include="$(PreloadSource)" Link="Production/KitBundlePreloader.RequiredEntry.cs" />
+  </ItemGroup>
+</Project>

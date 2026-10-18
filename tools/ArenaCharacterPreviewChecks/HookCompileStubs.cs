@@ -63,3 +63,8 @@ namespace ArenaMode.Compat
     }
     internal static class PitFireTeamCompat { public static bool HasFrozenTeamRoster => false; }
 }
+
+namespace ArenaMode.Kits
+{
+    internal static class TacticalTeamKitEntry { public static bool Selected => false; }
+}

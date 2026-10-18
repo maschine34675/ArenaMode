@@ -192,10 +192,10 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
     }
 
     [PatchPostfix]
-    private static void Postfix(ref Task<LocalSettings> __result)
+    private static void Postfix(EftClientBackendSession __instance, ref Task<LocalSettings> __result)
     {
         if (ArenaSession.ArmedForNextRaid || ArenaServerClient.HasPendingArm)
-            __result = ObserveLocalStart(__result);
+            __result = ObserveLocalStart(__result, __instance);
         else if (ArenaServerClient.HasOrdinaryLifecycle)
             __result = ObserveOrdinaryLocalStart(__result);
     }
@@ -221,14 +221,27 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
         }
     }
 
-    private static async Task<LocalSettings> ObserveLocalStart(Task<LocalSettings> original)
+    private static async Task<LocalSettings> ObserveLocalStart(Task<LocalSettings> original, EftClientBackendSession session)
     {
+        int armEpoch = ArenaSession.ArmEpoch;
+        string armToken = ArenaServerClient.PendingArmToken;
+        bool OwnsStart() => ArenaSession.ArmedForNextRaid && ArenaSession.ArmEpoch == armEpoch
+            && ArenaServerClient.HasPendingArm && !string.IsNullOrEmpty(armToken)
+            && string.Equals(armToken, ArenaServerClient.PendingArmToken, StringComparison.Ordinal);
         try
         {
+            var kitRequest = Kits.TacticalTeamKitEntry.CaptureRequest(session.Profile);
             var result = await original;
+            if (!OwnsStart())
+                throw new InvalidOperationException("This Arena loading request no longer owns the protected start.");
             if (!ArenaServerClient.BindNativeEndIdentity(result))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-end request to its exact arm token.");
+
+            // Await before returning to LocalGameCreate: PFT must bind the very
+            // first PMC body, already wearing its selected kit. Own-gear/team
+            // Zombies never enter this mutation, and companions are untouched.
+            await Kits.TacticalTeamKitEntry.IssueAsync(kitRequest, () => session.Profile);
 
             // The raid's kit bundles, while the loading screen still has the
             // loader to itself. This is the earliest point where the arena is
@@ -255,13 +268,16 @@ internal sealed class LocalRaidStartedPatch : ModulePatch
             // though StartLocalRaidAsync later faulted. The matching token and
             // unconfirmed flag let the server restore only this failed attempt;
             // a genuinely running raid cannot be cancelled by this path.
-            ArenaSession.ClearArmed("local raid start failed");
-            ArenaMenuSelection.ClearCompatibilityState("local raid start failed");
-            if (ArenaServerClient.HasPendingArm)
-                ArenaServerClient.PostRaidCancel(startFailed: true);
+            if (OwnsStart())
+            {
+                ArenaSession.ClearArmed("local raid start failed");
+                ArenaMenuSelection.ClearCompatibilityState("local raid start failed");
+                if (ArenaServerClient.HasPendingArm)
+                    ArenaServerClient.PostRaidCancel(startFailed: true);
 #pragma warning disable CS0618
-            InGameStatus.InRaid = false;
+                InGameStatus.InRaid = false;
 #pragma warning restore CS0618
+            }
             throw;
         }
     }

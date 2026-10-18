@@ -56,7 +56,7 @@ internal sealed class ArenaAreaSelectionState
             : string.Empty;
         ModeHint = selected == null ? string.Empty
             : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Opposing faction starts"
-            : pitFireTeam ? "PitFireTeam squad - own equipment"
+            : pitFireTeam ? "PitFireTeam squad"
             : ArenaMapCatalog.IsEquator(map) ? "No Tactical or PFT Zombies: limited space"
             : string.Empty;
     }

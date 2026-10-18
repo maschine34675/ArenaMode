@@ -77,6 +77,7 @@ public static class ArenaSession
     /// from what the live raid actually does. False outside an arena raid.
     /// </summary>
     internal static bool ZombieOwnGearSelection { get; private set; }
+    internal static bool TacticalTeamOwnGearSelection { get; private set; } = true;
 
     /// <summary>
     /// True when ZombieOwnGearSelection applies to the raid currently ARMING
@@ -213,6 +214,10 @@ public static class ArenaSession
         GunGameLadderSelection = Settings.GunGameLadder.Value;
         ZombieOwnGearSelection = Settings.ZombieOwnGear.Value
             || (mode == Shared.ArenaPopulationPolicy.Zombie && PitFireTeamCompat.HasFrozenTeamRoster);
+        TacticalTeamOwnGearSelection = mode != Shared.ArenaPopulationPolicy.Tactical
+            || !PitFireTeamCompat.HasFrozenTeamRoster || Settings.TacticalTeamOwnGear?.Value != false;
+        Kits.TacticalTeamKitEntry.Capture(mode, PitFireTeamCompat.HasFrozenTeamRoster,
+            TacticalTeamOwnGearSelection, ArmEpoch);
         AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
         FriendlyFireEnabledSelection = Settings.GetFriendlyFireEnabled(mode, PitFireTeamCompat.HasFrozenTeamRoster);
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
@@ -230,6 +235,8 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
+        TacticalTeamOwnGearSelection = true;
+        Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
         FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;
@@ -312,6 +319,8 @@ public static class ArenaSession
             ArmedMode = null;
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            TacticalTeamOwnGearSelection = true;
+            Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
@@ -345,6 +354,8 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            TacticalTeamOwnGearSelection = true;
+            Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
@@ -362,6 +373,8 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            TacticalTeamOwnGearSelection = true;
+            Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
@@ -383,6 +396,8 @@ public static class ArenaSession
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
+            TacticalTeamOwnGearSelection = true;
+            Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
@@ -588,6 +603,8 @@ public static class ArenaSession
         ArmedMode = null;
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
+        TacticalTeamOwnGearSelection = true;
+        Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
         FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;

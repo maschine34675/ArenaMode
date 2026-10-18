@@ -338,6 +338,17 @@ Settings.ZombieOwnGear.Value = false;
 foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch" })
 {
     view.Synchronize(mode, mode == "tactical");
+    if (mode == "tactical" && view.Root != null)
+    {
+        Need(EquipmentChoiceRoot().activeSelf && Marked(EquipmentChoiceButton(true)),
+            "protected Tactical offers own gear by default");
+        EquipmentChoiceButton(false).onClick.Invoke();
+        Need(!Settings.TacticalTeamOwnGear.Value && Marked(EquipmentChoiceButton(false)) && !Settings.ZombieOwnGear.Value,
+            "protected Tactical kit choice changes only its own preference");
+        EquipmentChoiceButton(true).onClick.Invoke();
+        Need(Settings.TacticalTeamOwnGear.Value, "protected Tactical can return to own gear");
+        continue;
+    }
     Need(!EquipmentChoiceRoot().activeSelf, "equipment choice stays hidden for mode " + mode);
     Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
             "the plain EQUIPMENT fact remains for mode " + mode);

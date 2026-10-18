@@ -110,7 +110,7 @@ internal static partial class Program
     private static KitDefinition Request(params KitStackedItem[] entries)=>new(){Id="fixture",Fill=new(){SpareMagazines=0,RigContents=entries.ToList()}};
     private static KitStackedItem Optional(string tpl)=>new(){Tpl=tpl,Count=1,OptionalQuickUseOnly=true};
     private static void RunFill(InventoryEquipment eq,KitDefinition kit,Dictionary<string,Item> created=null)
-        =>Fill.Invoke(null,[eq,Singleton<ItemFactory>.Instance,kit,created??new Dictionary<string,Item>()]);
+        =>Fill.Invoke(null,[eq,Singleton<ItemFactory>.Instance,kit,created??new Dictionary<string,Item>(),false]);
     private static void PlacementFixtures()
     {
         var factory=Singleton<ItemFactory>.Instance;

@@ -151,14 +151,16 @@ internal static class ArenaPreviewFlow
             && ArenaSession.ArmEpoch != _loadingArmEpoch)
             return ArenaSession.ZombieOwnGearArmed
                 || (Compat.PitFireTeamSelectionPolicy.SupportsMode(ArenaSession.ArmedMode)
-                    && Compat.PitFireTeamCompat.HasFrozenTeamRoster);
+                    && Compat.PitFireTeamCompat.HasFrozenTeamRoster
+                    && !Kits.TacticalTeamKitEntry.Selected);
 
         var mode = Config.Settings.SelectedGameModeId;
         if (Modes.ZombieOwnGearGate.IsSelectedFor(mode, Config.Settings.GetEquipmentChoiceOwnGear(mode)))
             return true;
         if (!Compat.PitFireTeamSelectionPolicy.SupportsMode(mode)) return false;
         var eligibility = ArenaMenuSelection.CurrentEligibility;
-        return eligibility.Allowed && eligibility.IsTeam;
+        return eligibility.Allowed && eligibility.IsTeam
+            && (mode != Modes.ArenaModeCatalog.TacticalId || Config.Settings.GetEquipmentChoiceOwnGear(mode));
     }
 
     private static bool UseNativeEquipment(Transform host)

@@ -206,6 +206,7 @@ public static class Settings
     public static ConfigEntry<int> ZombieShooterPercent { get; private set; }
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
+    public static ConfigEntry<bool> TacticalTeamOwnGear { get; private set; }
     public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieVoiceBudgetEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieCrowdEnabled { get; private set; }
@@ -375,18 +376,15 @@ public static class Settings
     internal static bool GetAnnouncerPerModeEnabled(string mode) => AnnouncerEntry(mode)?.Value == true;
 
     /// <summary>
-    /// Backing entry for item 1 of the 2026-10-06 follow-up ("own gear to the
-    /// left")'s left-panel equipment-choice row, dispatched by mode the same
-    /// way <see cref="ReplayEntry"/> dispatches Killcam. Null for any mode
-    /// <see cref="Modes.ArenaEquipmentChoice.IsOfferedFor"/> does not offer a
-    /// choice for (today: every mode except Zombie) — adding Deathmatch/Gun
-    /// Game later is one more switch arm plus a new bound entry, not a new
-    /// read/write path.
+    /// Independent preferences for solo Zombies and protected Tactical. The
+    /// selection policy additionally checks the current party before exposing
+    /// either entry; a stored preference never enables another mode's kit path.
     /// </summary>
     private static ConfigEntry<bool> EquipmentChoiceEntry(string mode)
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
             ArenaModeCatalog.ZombieId => ZombieOwnGear,
+            ArenaModeCatalog.TacticalId => TacticalTeamOwnGear,
             _ => null,
         };
 
@@ -1398,6 +1396,12 @@ public static class Settings
                 "How many enemies a round spawns. The round is over when they are " +
                 "all dead — or when you are.",
                 new AcceptableValueRange<int>(1, 15)));
+
+        TacticalTeamOwnGear = config.Bind("Tactical", "TeamOwnGear", true,
+            "With PitFireTeam, bring your own protected PMC equipment (default) or receive an Arena kit. " +
+            "Only your PMC changes; companions keep their own gear. The issued kit is restored after " +
+            "your death at the next round, using the same protected round lifecycle. Survivors retain " +
+            "their current equipment. No buy phase is added. Frozen at match start; solo Tactical is unchanged.");
 
         TacticalSquadIsPmc = config.Bind(
             "Tactical",

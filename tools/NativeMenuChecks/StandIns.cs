@@ -23,7 +23,7 @@ namespace EFT
         public ESideType playerSide;
         public ELocationTransition transitionType;
     }
-    public class EftClientBackendSession { public Task<JsonType.LocalSettings> LocalRaidStarted(LocalRaidSettings settings) => throw new NotSupportedException(); }
+    public class EftClientBackendSession { public object Profile = new(); public Task<JsonType.LocalSettings> LocalRaidStarted(LocalRaidSettings settings) => throw new NotSupportedException(); }
     public static class InGameStatus { public static bool InRaid; }
 }
 namespace JsonType
@@ -152,6 +152,15 @@ namespace ArenaMode.Audio
 }
 namespace ArenaMode.Shared { public class ClientSettingsSchema { } }
 namespace ArenaMode.Kits { public static class KitBundlePreloader { public static void DiscardRaidStart(string reason) { } public static void BeginRaidStart() { } } public static class KitCatalog { public static void Preload() { } } }
+namespace ArenaMode.Kits
+{
+    public static class TacticalTeamKitEntry
+    {
+        public static Func<Task> Issue = () => Task.CompletedTask;
+        public static object CaptureRequest(object profile) => profile;
+        public static Task IssueAsync(object request, Func<object> profile) => Issue();
+    }
+}
 namespace ArenaMode.Session
 {
     public static class ArenaClientConfig
@@ -162,6 +171,7 @@ namespace ArenaMode.Session
     }
     public static class ArenaSession
     {
+        public static int ArmEpoch;
         public static bool ArmedForNextRaid;
         public static string ArmedMode;
         public static ArenaMode.Modes.DeathmatchOptions FrozenDeathmatch;
@@ -171,6 +181,7 @@ namespace ArenaMode.Session
             int? participants = null, bool participantBosses = false)
         {
             ArmedForNextRaid = true;
+            ArmEpoch++;
             ArmedMode = mode;
             FrozenDeathmatch = deathmatch;
             Participants = participants;
