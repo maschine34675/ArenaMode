@@ -244,8 +244,8 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    must be installed separately. Fika is unsupported.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
-BepInEx/plugins/maschine-ArenaMode/docs. Retain this folder and the adjacent asset
-notices with the package. Audio/artwork have separate terms; the entire package
+BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.
+Retain this documentation with the package. Audio/artwork have separate terms; the entire package
 is not MIT. Relative paths in the audio prose such as sounds/ and pickups/
 refer to the parent maschine-ArenaMode folder; packaged announcer JSON paths are relative
 to their JSON file and their recorded audio hashes are unchanged.

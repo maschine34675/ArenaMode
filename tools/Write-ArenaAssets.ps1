@@ -138,6 +138,10 @@ foreach ($entry in $documents.GetEnumerator()) {
         if ($entry.Key -eq 'ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md') {
             $body = $body.Replace('File (relative to this folder)', 'File (relative to the parent maschine-ArenaMode folder)')
         }
+        if ($entry.Key -eq 'ArenaMode.Client/Assets/Ui/NOTICE.md') {
+            $body = $body.Replace('This directory contains eighteen PNGs with two distinct licenses.',
+                'The client assembly maschine-ArenaMode.Client.dll embeds eighteen PNGs with two distinct licenses. This folder contains their notices and license texts.')
+        }
         if ($body -cne $originalBody) { $bytes = $utf8.GetBytes($body) }
     } elseif ($entry.Key -match '/(hitmarkers|pickups)/SOURCES\.json$') {
         $category = $Matches[1]
