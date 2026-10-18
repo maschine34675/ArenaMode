@@ -36,8 +36,8 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 | BigBrain + ArenaMode.BigBrainCompat | Ab 1.5.0, damit getestet; neuere Versionen mit Warnung und Laufzeitprüfung | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und kein Molotov-Feuer; das private Molotov-Item bleibt dann harmlos, normale Granaten bleiben unverändert. Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
 | PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
 | APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
-| ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
-| Killcam | Schnittstellenprüfung statt fester Versionsfreigabe; Arena-Live-Nachlauf ab 0.9.13 halbiert | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
+| ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein; Air Pit Team DM benötigt die Teamstarts aus 0.2.2 oder neuer | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
+| Killcam | Aktuelles Integrationsziel 1.0.0; Schnittstellenprüfung statt fester Versionsfreigabe | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Das frühere KillcamReplay-Plugin wird nicht akzeptiert. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
 | DynamicMaps | Leichenmarker-Adapter für 1.2.1 | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
 | Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
 
@@ -94,20 +94,23 @@ behalten ihre vorhandene Attribution; auch dessen Mod-DLL wird nicht benötigt.
 
 ## Release-Grenzen
 
-Vorgesehen: Arena-Client, Server, eigene Daten/Assets und genau eine passende
+Das Release enthält Arena-Client, Server, eigene Daten/Assets und genau eine passende
 flache Redeploy.Core-DLL, bytegleich zur Bibliothek in einem gleichzeitigen
 Redeploy-Paket. Ein eigenes Pflicht-Downloadpaket für Core ist nicht nötig.
-Das ist der Paketierungsplan; die vorhandenen Staging-/Map-Preview-Prüfungen
-sind noch kein vollständiger allgemeiner Release-Packager.
+`tools/Package-TestRelease.ps1 -Release` baut aus isolierten, committeten
+Quellständen ohne Deployment und prüft Tests, Archivinhalt und Prüfsummen.
+Ohne diesen Schalter entsteht ein ausdrücklich als lokaler Test gekennzeichnetes
+Paket. Beide Varianten verwenden dieselben Laufzeitassets und Lizenznachweise.
 
 Spielertexte liegen in [README](../README.md) und der
 [Forge-Beschreibung mit sechs Tabs](FORGE-DESCRIPTION.md). Die zentrale
 [Lizenzübersicht](../THIRD-PARTY-NOTICES.md) grenzt eigenen MIT-Code von den
-separaten Bild-/Audiorechten ab. Sie und die neue [LICENSE](../LICENSE) müssen
-bei der späteren Paketierung zusätzlich zu den bisherigen Asset-Notices
-mitgeführt werden. Diese Dokumentationsänderung baut oder verteilt nichts.
-Der Source-Build benötigt außerdem das benachbarte Redeploy-Repository;
-dessen passender Quellstand muss für eine Veröffentlichung zugänglich sein.
+separaten Bild-/Audiorechten ab. Sie und die [LICENSE](../LICENSE) werden
+zusammen mit den Asset-Notices ausgeliefert. Die lesbaren Dokumente liegen unter
+`BepInEx/plugins/maschine-ArenaMode/docs/`, UI-Nachweise daneben unter `Ui/`.
+Der Source-Build benötigt das benachbarte öffentliche
+[Redeploy-Repository](https://github.com/maschine34675/Redeploy); dessen exakter
+Quellstand steht im Paketmanifest. Core bleibt bei Version 1.0.8.
 
 Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
 durch acht generierte realistische Waffen-Kategoriebilder, sechs eigene Symbole
@@ -115,7 +118,7 @@ bzw. Banner (MIT) sowie vier game-icons.net-Symbole (CC BY 3.0) ersetzt.
 Letztere: Skull crack, Grenade und Barbed wire von Lorc; Bowie knife von Skoll.
 Quellen, Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und
 vollständige MIT-/CC-BY-3.0-Lizenztexte reisen im Client und lesbar unter
-`ArenaMode/Ui` mit. Siehe auch `UI-GAME-ICONS-20261016.md`.
+`maschine-ArenaMode/Ui` mit. Siehe auch `UI-GAME-ICONS-20261016.md`.
 Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der
 Git-Historie und in früheren Paketen: Der Austausch bereinigt diese nicht und
 ist keine Freigabe zur Veröffentlichung der Historie oder anderer Assets.

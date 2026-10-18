@@ -641,6 +641,13 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 - Initial kit assets can preload during the loading screen. Bot/kit resource
   loading has a bounded scheduler boost to reduce the former long assembly
   stalls; this is not a guarantee of a fixed load time.
+- Bot profile construction is spread across frames with a default 3 ms budget
+  for additional work. Each open batch still builds at least one profile per
+  frame, so this is not a hard 3 ms limit. It reduces long single-frame parsing
+  stalls at the cost of a potentially later completed batch.
+- Dead-brain removal and bot FOV updates avoid redundant repeated work.
+  Experimental offscreen Zombie animator/shadow switches remain off by default;
+  the recorded A/B test did not show a measurable frame-time improvement.
 - Old corpses can be hidden, stripped and subsequently released when no longer
   needed. PFT bodies and other still-referenced bodies have lifecycle exemptions;
   this is more than simply leaving every dead player invisible in the scene.
@@ -661,6 +668,8 @@ Sources: [protection services](../ArenaMode.Server/Services),
 [DynamicMaps cleanup](DYNAMICMAPS-CORPSE-REVIEW.md),
 [heap threshold](GC-THRESHOLD-REVIEW.md),
 [pool prewarm](POOL-PREWARM-REVIEW.md), [logging policy](LOGGING.md).
+See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
+[Zombie body-culling checks](ZOMBIE-BODY-CULLING-20261017.md).
 
 ## 13. Configuration, integrations and authoring tools
 

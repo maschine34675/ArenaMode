@@ -46,6 +46,7 @@ Population and starting equipment can be changed in the menu.
   and solo Zombies. Equator does not support Tactical or PFT Zombies.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
+- Air Pit Team DM requires ArenaMapPort 0.2.2 or newer for its team-start boxes.
 
 #### Mutators
 
@@ -85,9 +86,12 @@ the post-raid XP page skipped.
 - Requires **SPT 4.1.x**; native testing has used 4.1.6.
 - Close the game and server. Extract the release into the SPT folder containing
   `EscapeFromTarkov.exe`, keeping its directory structure.
-- Both the client and server are required. Keep the `ArenaMode` asset directory
-  beside the client DLL, including its audio and license files.
-- Use the supplied matching `maschine-Redeploy.Core.dll`; keep only one copy.
+- Both the client and server are required. The two Arena client DLLs, audio,
+  assets and notices belong in `BepInEx/plugins/maschine-ArenaMode/`.
+  The server belongs in `SPT_Runtime/user/mods/ArenaMode/`.
+  When updating, preserve custom files and remove duplicate old Arena DLLs.
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.8); keep only one copy,
+  directly in `BepInEx/plugins/`.
   The full Redeploy mod is not required.
 - Install optional mods separately, with their own prerequisites.
 - Start server and game, select ARENA, then configure and enter the match.
@@ -116,8 +120,8 @@ Optional integration targets:
 - **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1:** equipment/progression adapter.
 - **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
-- **Killcam:** compatible API required; 0.9.13 adds the shorter Arena live
-  tail. Team spectating itself does not require it.
+- **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
+  KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1:** corpse-marker cleanup integration.
 
 These targets are not a blanket guarantee for future versions or every mod

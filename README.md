@@ -4,8 +4,9 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Current source version: **0.1.0 (development)**. Release packaging is still being
-prepared. Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
+Current version: **0.1.0**. Download the installable ZIP from
+[GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
+Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
 ## Modes
 
@@ -36,6 +37,7 @@ loadout between cleared waves, including for the surviving player.
 Deathmatch and Gun Game let you select the participant total, including yourself.
 Team DM offers team sizes within the selected map/area's limits. Customs areas
 have separate team starts and a visible boundary when approached.
+**Air Pit Team DM requires ArenaMapPort 0.2.2 or newer** for its team-start boxes.
 
 ## Features and mutators
 
@@ -171,7 +173,7 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. The current source builds against Core **1.0.7**. An older installed
+plugin tree. This release uses Core **1.0.8**. An older installed
 Arena build may have been compiled against a different Core version.
 Redeploy's standalone client and server are not required: Core owns local
 respawning, while Arena's own server protects and restores the raid profile.
@@ -232,7 +234,7 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **BigBrain** | **1.5.0+** (tested on 1.5.0; newer versions warn), with the bundled ArenaMode companion: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
 | **APBS** | **2.4.1** equipment/progression adapter. Not required for kit or bot generation. |
 | **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
-| **Killcam** | Compatible API and enabled DeathReplay required for replays; shortened Arena live tail supported from **0.9.13**. |
+| **Killcam** | **1.0.0** is the current integration target; compatible API and enabled DeathReplay required. The former KillcamReplay plugin is not accepted. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1**; not required for Arena's static Customs preview. |
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant
@@ -265,11 +267,12 @@ Windows, the **.NET 10 SDK**, an installed **SPT 4.1** game and NuGet restore ar
 required. The client targets netstandard2.1; the server targets net10.0. Game
 assemblies must come from your own installation.
 
-The source also requires a sibling `../Redeploy` checkout containing
+The source also requires a sibling [Redeploy](https://github.com/maschine34675/Redeploy)
+checkout containing
 `Redeploy.Core/`, its `CoreVersion.props`, and `drivers/CoreVersionGate.cs`.
-This checkout is not self-contained; the matching Core source must be made
-available alongside a public Arena release. Do not substitute an arbitrary Core
-DLL for the source dependency.
+Use the exact Redeploy commit recorded in the release's `PACKAGE-MANIFEST.json`;
+this release uses Core 1.0.8. Do not substitute an arbitrary Core DLL for the
+source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**
 Build/deploy tools require PowerShell 7 (`pwsh`). Both Arena DLLs, audio and
@@ -307,6 +310,12 @@ The client build/publish output keeps the DLL at its normal output location and
 stages its assets/notices in the adjacent `maschine-ArenaMode/` folder. The same
 payload writer supplies staged assets, the installation and release archives;
 only release `INSTALL.txt` and `PACKAGE-MANIFEST.json` are package-specific.
+
+To build an installable release ZIP without deploying, commit the source first
+and run `pwsh -File tools/Package-TestRelease.ps1 -Release -SptPath C:\SPT41`.
+This uses isolated source snapshots, builds both halves, runs the unit suite and
+verifies the archive. Omit `-Release` for a distinctly named local test package.
+Neither form uploads anything. Published DLL scan links are in the release notes.
 
 ## Licenses and credits
 
