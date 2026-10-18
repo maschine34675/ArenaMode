@@ -87,8 +87,8 @@ namespace BepInEx.Bootstrap
 }
 
 // These exact names and public signatures are the external reflection boundary,
-// not a replacement for KillcamReplayCompat's state selection algorithm.
-namespace KillcamReplay
+// not a replacement for KillcamCompat's state selection algorithm.
+namespace Killcam
 {
     public sealed class Plugin
     {

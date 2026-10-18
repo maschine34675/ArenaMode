@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 using EFT;
 using System.Collections;
 using UnityEngine;
-using Replay = KillcamReplay.Replay.ReplayController;
+using Replay = Killcam.Replay.ReplayController;
 
 internal static class Program
 {
@@ -102,28 +102,40 @@ internal static class Program
         Reset();
         Chainloader.PluginInfos.Entries.Clear();
         Check(Read(out _, out _) == OptionalCameraOwnerState.Absent, "absent plugin detected");
-        Check(KillcamReplayCompat.CameraReleased, "absent camera cannot consume replacement budget");
+        Check(KillcamCompat.CameraReleased, "absent camera cannot consume replacement budget");
+        foreach (bool currentAlsoPresent in new[] { false, true })
+        {
+            Reset();
+            var legacy = Chainloader.PluginInfos.Entries["com.maschine.Killcam"];
+            if (!currentAlsoPresent) Chainloader.PluginInfos.Entries.Clear();
+            Chainloader.PluginInfos.Entries["com.maschine.KillcamReplay"] = legacy;
+            Check(Read(out _, out var oldProblem) == OptionalCameraOwnerState.Incompatible
+                && oldProblem.Contains("Remove the old"), "leftover replay identity is incompatible");
+            Check(!KillcamCompat.CameraReleased && !KillcamCompat.ReplayMayRun,
+                "legacy camera ownership cannot release a replacement");
+            Check(!KillcamCompat.CanPlay(out _), "legacy installation is unavailable in menu");
+        }
         Reset();
         Check(Read(out var remaining, out var reason) == OptionalCameraOwnerState.Idle && remaining == 0f && reason == null,
             "no recording is idle without reading replay delay");
         Check(Replay.DelayReads == 0, "idle does not probe duration");
-        Check(KillcamReplayCompat.CameraReleased, "settled camera releases protected rebind");
+        Check(KillcamCompat.CameraReleased, "settled camera releases protected rebind");
         foreach (var state in new[] { "lead-in", "playback", "cleanup", "pending-and-playing", "all-owned" })
         {
             Reset();
             Replay.PendingReplayKiller = state is "lead-in" or "pending-and-playing" or "all-owned" ? new object() : null;
-            KillcamReplay.Plugin.ReplayCtrl.Playing = state is "playback" or "pending-and-playing" or "all-owned";
-            KillcamReplay.Plugin.ReplayCtrl.Ready = state is not ("cleanup" or "all-owned");
+            Killcam.Plugin.ReplayCtrl.Playing = state is "playback" or "pending-and-playing" or "all-owned";
+            Killcam.Plugin.ReplayCtrl.Ready = state is not ("cleanup" or "all-owned");
             Check(Read(out remaining, out reason) == OptionalCameraOwnerState.Busy && remaining == 2f && reason == null,
                 "production reflection owns " + state);
-            Check(!KillcamReplayCompat.CameraReleased, "protected rebind waits for " + state);
+            Check(!KillcamCompat.CameraReleased, "protected rebind waits for " + state);
         }
         Reset();
-        KillcamReplay.Plugin.ReplayCtrl = null;
+        Killcam.Plugin.ReplayCtrl = null;
         Check(Read(out _, out reason) == OptionalCameraOwnerState.Incompatible && reason.Contains("null"), "missing controller unsafe");
-        Check(!KillcamReplayCompat.CameraReleased, "unknown camera cannot release protected rebind");
+        Check(!KillcamCompat.CameraReleased, "unknown camera cannot release protected rebind");
         Reset();
-        KillcamReplay.Plugin.ReplayCtrl.ThrowState = true;
+        Killcam.Plugin.ReplayCtrl.ThrowState = true;
         Check(Read(out _, out reason) == OptionalCameraOwnerState.Incompatible && reason.Contains("fixture read failure"), "state exception unsafe");
         foreach (float bad in new[] { -1f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
         {
@@ -133,28 +145,28 @@ internal static class Program
         Reset(); Pending(); Replay.ThrowDelay = true;
         Check(Read(out _, out reason) == OptionalCameraOwnerState.Incompatible && reason.Contains("fixture delay failure"), "duration exception unsafe");
         Reset();
-        Chainloader.PluginInfos.Entries["com.maschine.KillcamReplay"].Instance = new object();
+        Chainloader.PluginInfos.Entries["com.maschine.Killcam"].Instance = new object();
         Check(Read(out _, out reason) == OptionalCameraOwnerState.Incompatible && reason != null, "unrecognized plugin surface unsafe");
     }
 
     private static void Availability()
     {
         Reset();
-        Check(KillcamReplayCompat.CanPlay(out var reason) && reason == null,
+        Check(KillcamCompat.CanPlay(out var reason) && reason == null,
             "enabled plugin with public controller is available in menu");
-        KillcamReplay.Plugin.DeathReplayActive = false;
-        Check(!KillcamReplayCompat.CanPlay(out reason) && reason.Contains("Enable DeathReplay"),
+        Killcam.Plugin.DeathReplayActive = false;
+        Check(!KillcamCompat.CanPlay(out reason) && reason.Contains("Enable DeathReplay"),
             "disabled dependency explains unavailable menu choice");
-        KillcamReplay.Plugin.DeathReplayActive = true;
-        Check(KillcamReplayCompat.CanPlay(out _), "dependency enabled setting is read live in menu");
-        KillcamReplay.Plugin.ReplayCtrl = null;
-        Check(!KillcamReplayCompat.CanPlay(out reason) && reason.Contains("not ready"),
+        Killcam.Plugin.DeathReplayActive = true;
+        Check(KillcamCompat.CanPlay(out _), "dependency enabled setting is read live in menu");
+        Killcam.Plugin.ReplayCtrl = null;
+        Check(!KillcamCompat.CanPlay(out reason) && reason.Contains("not ready"),
             "unready controller cannot arm replay");
         Reset(); Chainloader.PluginInfos.Entries.Clear();
-        Check(!KillcamReplayCompat.CanPlay(out reason) && reason.Contains("Requires"),
+        Check(!KillcamCompat.CanPlay(out reason) && reason.Contains("Requires"),
             "absent dependency explains installation requirement");
-        Reset(); Chainloader.PluginInfos.Entries["com.maschine.KillcamReplay"].Instance = new object();
-        Check(!KillcamReplayCompat.CanPlay(out reason) && reason.Contains("compatibility"),
+        Reset(); Chainloader.PluginInfos.Entries["com.maschine.Killcam"].Instance = new object();
+        Check(!KillcamCompat.CanPlay(out reason) && reason.Contains("compatibility"),
             "incompatible dependency cannot arm replay");
     }
 
@@ -190,11 +202,11 @@ internal static class Program
         var wait = hold.Wait();
         Check(wait.MoveNext() && !hold.CanRespawn, "pending lead-in retains dead owner");
         Replay.PendingReplayKiller = null;
-        KillcamReplay.Plugin.ReplayCtrl.Playing = true;
+        Killcam.Plugin.ReplayCtrl.Playing = true;
         Time.time = 10.3f;
         Check(wait.MoveNext() && !hold.CanRespawn, "playback retains dead owner");
-        KillcamReplay.Plugin.ReplayCtrl.Playing = false;
-        KillcamReplay.Plugin.ReplayCtrl.Ready = false;
+        Killcam.Plugin.ReplayCtrl.Playing = false;
+        Killcam.Plugin.ReplayCtrl.Ready = false;
         Time.time = 11f;
         Check(wait.MoveNext() && !hold.CanRespawn, "cleanup retains dead owner");
         Settled(); Time.time = 11.1f;
@@ -255,7 +267,7 @@ internal static class Program
         state = Reset(); Pending(); Time.time = float.NaN;
         hold = NewHold(state);
         Check(!hold.Wait().MoveNext() && !hold.CanRespawn && ArenaMatchService.Aborts.Count == 1, "nonfinite simulation clock aborts closed");
-        state = Reset(); KillcamReplay.Plugin.ReplayCtrl = null;
+        state = Reset(); Killcam.Plugin.ReplayCtrl = null;
         hold = NewHold(state);
         Check(!hold.Wait().MoveNext() && !hold.CanRespawn && ArenaMatchService.Aborts.Single().Contains("null"),
             "incompatible ownership uses existing protected abort");
@@ -341,7 +353,7 @@ internal static class Program
 
     private static Fixture Reset()
     {
-        KillcamReplayCompat.Reset();
+        KillcamCompat.Reset();
         ArenaMode.Plugin.ModLogger.Entries.Clear();
         ArenaMatchService.Aborts.Clear();
         ArenaMatchService.Current = new ArenaMatch();
@@ -355,11 +367,11 @@ internal static class Program
         Replay.ThrowDelay = false;
         Replay.DelayReads = 0;
         Replay.StateReads = 0;
-        KillcamReplay.Plugin.ReplayCtrl = new Replay();
-        KillcamReplay.Plugin.DeathReplayActive = true;
+        Killcam.Plugin.ReplayCtrl = new Replay();
+        Killcam.Plugin.DeathReplayActive = true;
         Chainloader.PluginInfos.Reads = 0;
         Chainloader.PluginInfos.Entries.Clear();
-        Chainloader.PluginInfos.Entries.Add("com.maschine.KillcamReplay", new TestPluginInfo { Instance = new KillcamReplay.Plugin() });
+        Chainloader.PluginInfos.Entries.Add("com.maschine.Killcam", new TestPluginInfo { Instance = new Killcam.Plugin() });
         var body = new LocalPlayer();
         return new Fixture(new LocalGame { LocalPlayer = body }, body);
     }
@@ -368,14 +380,14 @@ internal static class Program
         => new(state.Game, state.Body, ArenaRespawnDriver.Epoch);
 
     private static OptionalCameraOwnerState Read(out float remaining, out string reason)
-        => KillcamReplayCompat.ReadState(out remaining, out reason);
+        => KillcamCompat.ReadState(out remaining, out reason);
 
     private static void Pending() => Replay.PendingReplayKiller = new object();
 
     private static void Settled()
     {
         Replay.PendingReplayKiller = null;
-        KillcamReplay.Plugin.ReplayCtrl.Playing = false;
-        KillcamReplay.Plugin.ReplayCtrl.Ready = true;
+        Killcam.Plugin.ReplayCtrl.Playing = false;
+        Killcam.Plugin.ReplayCtrl.Ready = true;
     }
 }

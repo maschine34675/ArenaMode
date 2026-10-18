@@ -116,7 +116,7 @@ public sealed class ZombieMode : IArenaMode
     /// <summary>Solo ends on the first death; a protected squad finishes after a wipe or unsafe transition.</summary>
     public bool IsComplete => _soloDefeated || _team?.IsComplete == true;
 
-    public float DeathReplaySeconds => IsTeamArena && !Spectator.ArenaSpectatorService.OptionalKillcamReplayMayRun
+    public float DeathReplaySeconds => IsTeamArena && !Spectator.ArenaSpectatorService.OptionalKillcamMayRun
         ? 0f : ArenaReplaySelection.Seconds;
 
     /// <summary>Solo never replaces a dead body; protected squads restore after a cleared wave.</summary>
@@ -522,12 +522,12 @@ public sealed class ZombieMode : IArenaMode
     private void TickSoloResult()
     {
         if (!ResultOwnsCurrentRaid || TdmMatchExit.PipelineRunning) return;
-        // Let every native death listener, including optional KillcamReplay,
+        // Let every native death listener, including optional Killcam,
         // publish its pending playback before inspecting camera ownership.
         if (Time.unscaledTime - _soloDefeatedAt < 0.25f) return;
         if (ArenaSession.ReplaySeconds > 0f && !_resultExitRequested)
         {
-            var owner = Spectator.KillcamReplayCompat.ReadState(out float remaining, out string problem);
+            var owner = Spectator.KillcamCompat.ReadState(out float remaining, out string problem);
             var decision = _resultReplay.Observe(owner, remaining, Time.time);
             _soloResultPanelReady = decision == ArenaReplayWaitDecision.Ready;
             if (decision == ArenaReplayWaitDecision.Wait) return;

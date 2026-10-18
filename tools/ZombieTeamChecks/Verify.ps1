@@ -45,7 +45,7 @@ $mutants = @(
     @{ Name='pending-final-infected-ignored'; File='ZombieWavePolicy.cs'; Old='remainingToSpawn == 0 && alive <= 0 && pending == 0'; New='remainingToSpawn == 0 && alive <= 0' },
     @{ Name='lifecycle-epoch-ignored'; File='ZombieTeamRuntime.Identity.cs'; Old='|| status.Epoch != _expectedPitLifecycleEpoch'; New='|| false' },
     @{ Name='local-body-registry-ignored'; File='ZombieTeamRuntime.Identity.cs'; Old='|| !ReferenceEquals(everExisted, _boundLocalPlayer)'; New='|| false' },
-    @{ Name='camera-race'; File='ZombieTeamRuntime.cs'; Old='if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased) return;'; New='if (false) return;' },
+    @{ Name='camera-race'; File='ZombieTeamRuntime.cs'; Old='if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamCompat.CameraReleased) return;'; New='if (false) return;' },
     @{ Name='wave-spawns-before-team-ready'; File='ZombieMode.cs'; Old='if (_team != null && !_team.Tick())'; New='if (false && _team != null && !_team.Tick())' },
     @{ Name='teardown-skips-final-survivor'; File='ZombieTeamRuntime.Identity.cs'; Old='if (_boundLocalPlayer?.HealthController?.IsAlive == false'; New='if (false && _boundLocalPlayer?.HealthController?.IsAlive == false' },
     @{ Name='reusable-respawn-lease'; File='ZombieTeamRuntime.Identity.cs'; Old='|| !_teamRespawnAuthorizationAvailable'; New='|| false'; Old2='|| _teamRespawnAuthorizationConsumed'; New2='|| false' },

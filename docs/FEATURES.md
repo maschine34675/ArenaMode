@@ -500,12 +500,12 @@ Sources: [cue catalog](../ArenaMode.Client/Audio/AnnouncerCueCatalog.cs),
 
 ## 9. Death, replay, spectating and exit
 
-- Killcam selection for every mode when a compatible **KillcamReplay** is
+- Killcam selection for every mode when a compatible **Killcam** is
   installed and DeathReplay is enabled. Respawn/end-of-life handling waits for
   the selected replay instead of replacing the player underneath it.
 - Mode-specific replay preferences; Tactical defaults to 3 seconds,
   other modes default off. The subsequent live tail is shortened by about half
-  with the supported KillcamReplay integration.
+  with the supported Killcam integration.
   If no playable recording exists, there is no mandatory extra replay delay.
 - Built-in third-person team spectating after death in protected Tactical and
   PFT Zombies, independent of the optional replay plugin.
@@ -672,7 +672,7 @@ Sources: [protection services](../ArenaMode.Server/Services),
 - Separate required client/server halves and the shared Redeploy.Core library;
   the complete standalone Redeploy mod is not required.
 - Version-scoped optional integrations for SAIN, BigBrain, PitFireTeam, APBS,
-  DynamicMaps and KillcamReplay; optional ArenaMapPort locations. UIFixes reload,
+  DynamicMaps and Killcam; optional ArenaMapPort locations. UIFixes reload,
   BrightLasers, EnableLabyrinth and overlapping search/notification features have
   specific coexistence handling, not unlimited compatibility guarantees.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
@@ -709,7 +709,7 @@ share one position and are shown in their respective modes.
 | Infinite Stamina | Fast Movement must be on. |
 | No Fall Damage | Fast Movement must be on. |
 | Backpack Items | Carried item use and backpack magazines. |
-| Killcam | Compatible KillcamReplay and DeathReplay enabled. |
+| Killcam | Compatible Killcam and DeathReplay enabled. |
 | Pickups | Deathmatch/independent Team DM and a configured layout. |
 | Colored Tracers | Team DM or a protected PFT squad. |
 | Team Laser Colors | Team DM or a protected PFT squad. |

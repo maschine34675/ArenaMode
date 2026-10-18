@@ -491,7 +491,7 @@ public static class Settings
 
     private static ConfigEntry<float> BindReplay(ConfigFile config, string section)
         => config.Bind(section, "ReplaySeconds", 0f, new ConfigDescription(
-            "Recorded seconds shown after death; 0 keeps instant respawn. Requires enabled KillcamReplay. " +
+            "Recorded seconds shown after death; 0 keeps instant respawn. Requires enabled Killcam. " +
             "Respawn waits for actual playback, slow motion and live tail. Frozen when the raid is armed.",
             new AcceptableValueRange<float>(0f, 10f)));
 
@@ -1460,7 +1460,7 @@ public static class Settings
             3f,
             new ConfigDescription(
                 "Recorded seconds shown after you go down; 0 disables killcam. " +
-                "Requires enabled KillcamReplay. Respawn waits for playback, slow motion and live tail. " +
+                "Requires enabled Killcam. Respawn waits for playback, slow motion and live tail. " +
                 "Frozen when the raid is armed; Tactical still waits for the next round.",
                 new AcceptableValueRange<float>(0f, 10f)));
 

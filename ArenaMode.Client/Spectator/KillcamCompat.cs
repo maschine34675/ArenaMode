@@ -5,14 +5,14 @@ using System.Reflection;
 namespace ArenaMode.Spectator;
 
 /// <summary>
-/// Reflection-only ownership probe for the locally installed KillcamReplay. The
+/// Reflection-only ownership probe for the locally installed Killcam. The
 /// three state signals cover its lead-in, playback and final cleanup intervals.
 /// </summary>
-internal static class KillcamReplayCompat
+internal static class KillcamCompat
 {
-    private const string PluginGuid = "com.maschine.KillcamReplay";
-    private const string PluginTypeName = "KillcamReplay.Plugin";
-    private const string ControllerTypeName = "KillcamReplay.Replay.ReplayController";
+    private const string PluginGuid = "com.maschine.Killcam";
+    private const string PluginTypeName = "Killcam.Plugin";
+    private const string ControllerTypeName = "Killcam.Replay.ReplayController";
 
     private static bool _resolved;
     private static bool _present;
@@ -28,20 +28,20 @@ internal static class KillcamReplayCompat
     {
         Resolve();
         reason = null;
-        if (!_present) { reason = "Requires the KillcamReplay mod."; return false; }
-        if (_problem != null) { reason = "KillcamReplay compatibility could not be verified."; return false; }
+        if (!_present) { reason = "Requires the Killcam mod."; return false; }
+        if (_problem != null) { reason = "Killcam compatibility could not be verified."; return false; }
         try
         {
             if (_deathReplayActiveProperty?.PropertyType != typeof(bool))
-            { reason = "Update KillcamReplay: its enabled-state API is unavailable."; return false; }
+            { reason = "Update Killcam: its enabled-state API is unavailable."; return false; }
             if (!(bool)_deathReplayActiveProperty.GetValue(null))
-            { reason = "Enable DeathReplay in KillcamReplay; KillAndDamageInfo also disables it."; return false; }
+            { reason = "Enable DeathReplay in Killcam; KillAndDamageInfo also disables it."; return false; }
             if (_replayControllerField.GetValue(null) == null)
-            { reason = "KillcamReplay is not ready."; return false; }
+            { reason = "Killcam is not ready."; return false; }
             return true;
         }
         catch (Exception)
-        { reason = "KillcamReplay availability could not be read."; return false; }
+        { reason = "Killcam availability could not be read."; return false; }
     }
 
     internal static bool ReplayMayRun
@@ -86,7 +86,7 @@ internal static class KillcamReplayCompat
             object controller = _replayControllerField.GetValue(null);
             if (controller == null)
             {
-                problem = "KillcamReplay.ReplayCtrl was null";
+                problem = "Killcam.ReplayCtrl was null";
                 return OptionalCameraOwnerState.Incompatible;
             }
 
@@ -99,7 +99,7 @@ internal static class KillcamReplayCompat
             object delay = _extraDelayMethod.Invoke(null, null);
             if (delay is not float seconds || float.IsNaN(seconds) || float.IsInfinity(seconds) || seconds < 0f)
             {
-                problem = "KillcamReplay returned an invalid replay bound";
+                problem = "Killcam returned an invalid replay bound";
                 return OptionalCameraOwnerState.Incompatible;
             }
             maximumRemainingSeconds = seconds;
@@ -107,7 +107,7 @@ internal static class KillcamReplayCompat
         }
         catch (Exception ex)
         {
-            problem = "KillcamReplay state read failed: " + ex.GetBaseException().Message;
+            problem = "Killcam state read failed: " + ex.GetBaseException().Message;
             return OptionalCameraOwnerState.Incompatible;
         }
     }
@@ -118,6 +118,15 @@ internal static class KillcamReplayCompat
             return;
 
         _resolved = true;
+        // A leftover Replay plugin can still own the camera even when the renamed
+        // plugin refused to load. Never mistake that installation for no killcam.
+        if (Chainloader.PluginInfos.TryGetValue("com.maschine.KillcamReplay", out var legacy)
+            && legacy?.Instance != null)
+        {
+            _present = true;
+            _problem = "Remove the old KillcamReplay DLL and install Killcam.";
+            return;
+        }
         if (!Chainloader.PluginInfos.TryGetValue(PluginGuid, out var pluginInfo)
             || pluginInfo?.Instance == null)
         {
@@ -131,7 +140,7 @@ internal static class KillcamReplayCompat
             Type pluginType = assembly.GetType(PluginTypeName, throwOnError: false);
             Type controllerType = assembly.GetType(ControllerTypeName, throwOnError: false);
             if (pluginType == null || controllerType == null)
-                throw new TypeLoadException("expected public KillcamReplay types were not found");
+                throw new TypeLoadException("expected public Killcam types were not found");
 
             _replayControllerField = pluginType.GetField(
                 "ReplayCtrl",
@@ -161,7 +170,7 @@ internal static class KillcamReplayCompat
                 || _readyForStopProperty?.PropertyType != typeof(bool)
                 || _extraDelayMethod?.ReturnType != typeof(float))
             {
-                throw new MissingMemberException("KillcamReplay camera-ownership contract changed");
+                throw new MissingMemberException("Killcam camera-ownership contract changed");
             }
         }
         catch (Exception ex)

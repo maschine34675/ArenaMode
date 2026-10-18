@@ -96,7 +96,7 @@ foreach ($case in $cases) {
 $scopeCases = @(
     @{ Name='ordinary-replay-visuals'; Find='!ArenaSession.IsActive || '; Replace=''; Failure='replay visuals reject ordinary raid' },
     @{ Name='replaced-world-visuals'; Find='&& ReferenceEquals(world.MainPlayer, expectedDeadPlayer)'; Replace=''; Failure='replay visuals reject replaced world body' },
-    @{ Name='idle-camera-visuals'; Find='&& KillcamReplayCompat.ReadState(out _, out _) == OptionalCameraOwnerState.Busy'; Replace=''; Failure='replay visuals reject idle camera' }
+    @{ Name='idle-camera-visuals'; Find='&& KillcamCompat.ReadState(out _, out _) == OptionalCameraOwnerState.Busy'; Replace=''; Failure='replay visuals reject idle camera' }
 )
 foreach ($case in $scopeCases) {
     if (($context.Split(@($case.Find), [StringSplitOptions]::None).Length - 1) -ne 1) {

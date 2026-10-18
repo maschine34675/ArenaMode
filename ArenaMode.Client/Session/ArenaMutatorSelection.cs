@@ -140,7 +140,7 @@ internal sealed class ArenaMutatorSelection
     internal string UnavailableReason(ArenaMutator id)
     {
         if (id == ArenaMutator.Killcam)
-            return Spectator.KillcamReplayCompat.CanPlay(out string reason) ? null : reason;
+            return Spectator.KillcamCompat.CanPlay(out string reason) ? null : reason;
         // Team-only like the lasers: TracerEntry has no entry outside Team DM and
         // protected Tactical 5v5, which is a mode restriction, not a missing setting.
         if ((id == ArenaMutator.Tracers || id == ArenaMutator.FriendlyFire)

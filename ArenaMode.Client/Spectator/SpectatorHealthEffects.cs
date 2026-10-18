@@ -78,7 +78,7 @@ internal static class SpectatorHealthEffects
         var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
         return world != null && ArenaSession.IsExactActiveRaid(game, world)
             && ReferenceEquals(world.MainPlayer, expectedDeadPlayer)
-            && KillcamReplayCompat.ReadState(out _, out _) == OptionalCameraOwnerState.Busy;
+            && KillcamCompat.ReadState(out _, out _) == OptionalCameraOwnerState.Busy;
     }
 
     private static void ClearForDeadLocal(Player expectedDeadPlayer, bool force, LocalGame replayGame)

@@ -49,7 +49,7 @@ internal sealed class ArenaDeathReplayHold
             string problem = null;
             if (_enabled)
             {
-                var state = KillcamReplayCompat.ReadState(out float remaining, out problem);
+                var state = KillcamCompat.ReadState(out float remaining, out problem);
                 decision = _policy.Observe(state, remaining, Time.time);
             }
 

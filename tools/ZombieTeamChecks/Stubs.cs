@@ -258,7 +258,7 @@ namespace ArenaMode.Effects
 namespace ArenaMode.Spectator
 {
     internal enum OptionalCameraOwnerState { Absent, Idle, Busy, Incompatible }
-    internal static class KillcamReplayCompat
+    internal static class KillcamCompat
     {
         public static bool CameraReleased=true;
         internal static OptionalCameraOwnerState State=OptionalCameraOwnerState.Absent;
@@ -276,7 +276,7 @@ namespace ArenaMode.Spectator
     }
     public static class ArenaSpectatorService
     {
-        public static bool OptionalKillcamReplayMayRun=true; public static ArenaSpectatorRequest Request;
+        public static bool OptionalKillcamMayRun=true; public static ArenaSpectatorRequest Request;
         public static bool RequestStart(ArenaSpectatorRequest r,out string p) { Request=r;p=null;return true; }
         public static void Stop(string r) => Request=null;
     }

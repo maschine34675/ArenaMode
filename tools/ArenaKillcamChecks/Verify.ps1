@@ -6,7 +6,7 @@ $run = Join-Path $repo ('artifacts/arena-killcam-checks/' + [guid]::NewGuid().To
 $sources = @{
  Wait = Join-Path $repo 'ArenaMode.Client/Respawn/ArenaReplayWaitPolicy.cs'
  Hold = Join-Path $repo 'ArenaMode.Client/Respawn/ArenaDeathReplayHold.cs'
- Compat = Join-Path $repo 'ArenaMode.Client/Spectator/KillcamReplayCompat.cs'
+ Compat = Join-Path $repo 'ArenaMode.Client/Spectator/KillcamCompat.cs'
  Selection = Join-Path $repo 'ArenaMode.Client/Session/ArenaReplaySelection.cs'
  Policy = Join-Path $repo 'ArenaMode.Client/Spectator/SpectatorPolicy.cs'
  Driver = Join-Path $repo 'ArenaMode.Client/Respawn/ArenaRespawnDriver.cs'
@@ -60,7 +60,7 @@ $tactical = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client/Modes/Tact
 $start = $tactical.IndexOf('private void TickTeamRetirement()', [StringComparison]::Ordinal)
 $end = $tactical.IndexOf('private TeamRetirementDecision ObserveTeamEnemyRetirement(', $start, [StringComparison]::Ordinal)
 $retirement = $tactical.Substring($start, $end - $start)
-$cameraGuard = $retirement.IndexOf('if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased)', [StringComparison]::Ordinal)
+$cameraGuard = $retirement.IndexOf('if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamCompat.CameraReleased)', [StringComparison]::Ordinal)
 if ($cameraGuard -lt 0 -or $cameraGuard -ge $retirement.IndexOf('_teamLoadoutSnapshot.TryArm(', [StringComparison]::Ordinal) -or
  $retirement.IndexOf('_teamRebindDeadlineAt = Time.time + TeamTransitionSeconds;', [StringComparison]::Ordinal) -lt $cameraGuard) {
  throw 'Protected replacement authorization and its deadline must start after camera release.'

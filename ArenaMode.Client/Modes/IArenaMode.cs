@@ -30,7 +30,7 @@ public interface IArenaMode
     /// Selected separately for each mode in the map menu and frozen at arming.
     /// The death driver waits for actual optional replay ownership to end before
     /// replacing the body. Read through ArenaSession.ReplaySeconds, the stable
-    /// surface reflected by KillcamReplay; zero retains the previous timing.
+    /// surface reflected by Killcam; zero retains the previous timing.
     /// </summary>
     float DeathReplaySeconds { get; }
 

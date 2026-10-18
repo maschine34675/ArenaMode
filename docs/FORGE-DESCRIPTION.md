@@ -63,7 +63,7 @@ Population and starting equipment can be changed in the menu.
 - Team tracer/laser colors and friendly fire. Friendly fire defaults off for
   PFT Zombies, on for Team DM and PFT Tactical.
 - Akimbo pistols (WIP), additional Molotov (WIP), bot movement options.
-- Killcam replays with KillcamReplay installed and DeathReplay enabled.
+- Killcam replays with Killcam installed and DeathReplay enabled.
   PFT team spectating has a target-HP display and works without the replay mod.
 - Pickups on every supported Arena map in Deathmatch and Team DM: health,
   shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
@@ -116,7 +116,7 @@ Optional integration targets:
 - **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1:** equipment/progression adapter.
 - **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
-- **KillcamReplay:** compatible API required; 0.9.13 adds the shorter Arena live
+- **Killcam:** compatible API required; 0.9.13 adds the shorter Arena live
   tail. Team spectating itself does not require it.
 - **DynamicMaps 1.2.1:** corpse-marker cleanup integration.
 

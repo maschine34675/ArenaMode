@@ -37,7 +37,7 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 | PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
 | APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
 | ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
-| KillcamReplay | Schnittstellenprüfung statt fester Versionsfreigabe; Arena-Live-Nachlauf ab 0.9.13 halbiert | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
+| Killcam | Schnittstellenprüfung statt fester Versionsfreigabe; Arena-Live-Nachlauf ab 0.9.13 halbiert | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
 | DynamicMaps | Leichenmarker-Adapter für 1.2.1 | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
 | Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
 
@@ -82,7 +82,7 @@ Bestätigung vollständiger Kompatibilität.
 | DefaultAutoFireMode | Arena besitzt nun die entsprechende lokale Zieh-Regel: echte Vollautomatik, wenn unterstützt. Keine Übernahme der Standalone-Burst-/Double-Action-Fallbacks. | Kein zusätzlicher Arena-Download nötig. Standalone bleibt für normale Raids eigenständig und wirkt bei gemeinsamer Installation weiterhin nach seinen eigenen Regeln. |
 | Redeploy.Core | Gemeinsame Bibliothek mit eigenem Versionsstand. | Passende, getestete Core-DLL direkt mit Arena ausliefern. |
 | Redeploy.Client/Server | Eigenständige Respawn-Mod für normale Raids; nicht absorbiert. | Separates Produkt, keine Arena-Pflichtinstallation. |
-| KillcamReplay | Eigenständiges optionales Plugin; Anbindung per Reflection. | Separates optionales Paket für Replays. |
+| Killcam | Eigenständiges optionales Plugin; Anbindung per Reflection. | Separates optionales Paket für Replays. |
 | ArenaMapPort | Eigenständiges optionales Kartenprojekt. | Separates Kartenpaket. |
 | UiBridge / Diagnosehilfen | Entwicklung und Tests, keine Arena-Laufzeitvoraussetzung. | Nicht in das normale Spielerpaket aufnehmen. |
 

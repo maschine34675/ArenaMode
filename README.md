@@ -126,7 +126,7 @@ current defaults, mode restrictions, all mutators and the supporting source.
   Not every environmental hazard is removed.
 - Round-state lighting on every supported Arena map, including the ports,
   without editing the maps.
-- KillcamReplay support in every mode, with respawn delayed until camera cleanup;
+- Killcam support in every mode, with respawn delayed until camera cleanup;
   separate PFT third-person spectating with the observed bot's HP.
 - Death-related concussion effects are cleared from spectator/replay views;
   Escape remains available to leave the match.
@@ -232,7 +232,7 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **BigBrain** | **1.5.0+** (tested on 1.5.0; newer versions warn), with the bundled ArenaMode companion: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
 | **APBS** | **2.4.1** equipment/progression adapter. Not required for kit or bot generation. |
 | **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
-| **KillcamReplay** | Compatible API and enabled DeathReplay required for replays; shortened Arena live tail supported from **0.9.13**. |
+| **Killcam** | Compatible API and enabled DeathReplay required for replays; shortened Arena live tail supported from **0.9.13**. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1**; not required for Arena's static Customs preview. |
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant

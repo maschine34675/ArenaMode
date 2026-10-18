@@ -161,7 +161,7 @@ public static class ArenaSession
     /// <summary>
     /// How long a death replay may run right now, in seconds. Zero means none.
     ///
-    /// This is API. KillcamReplay reflects on the type and property NAMES, so
+    /// This is API. Killcam reflects on the type and property NAMES, so
     /// they cannot be renamed without changing that mod in the same commit — the
     /// same contract IsActive already carries. Answered live from the running
     /// mode rather than latched: modes are per-raid objects, and a stale answer
@@ -206,7 +206,7 @@ public static class ArenaSession
         Participants = participants;
         ParticipantBosses = participantBosses;
         DeathmatchSelection = deathmatch;
-        ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamReplayCompat.CanPlay(out _));
+        ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamCompat.CanPlay(out _));
         unchecked { ArmEpoch++; }
         ArmedForNextRaid = true;
         ArmedMap = map;

@@ -1278,7 +1278,7 @@ internal static class Program
         string healthEffects = Read(root, "ArenaMode.Client", "Spectator", "SpectatorHealthEffects.cs");
         string cameraPatch = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorCameraPatches.cs");
         string inputPatch = Read(root, "ArenaMode.Client", "Spectator", "ArenaSpectatorInputPatch.cs");
-        string killcam = Read(root, "ArenaMode.Client", "Spectator", "KillcamReplayCompat.cs");
+        string killcam = Read(root, "ArenaMode.Client", "Spectator", "KillcamCompat.cs");
         string freecam = Read(root, "ArenaMode.Client", "Spectator", "TerkoizFreecamProbe.cs");
         string plugin = Read(root, "ArenaMode.Client", "Plugin.cs");
         string controller = Read(root, "ArenaMode.Client", "ArenaController.cs");
@@ -1456,7 +1456,7 @@ internal static class Program
             "ArenaSpectatorService.Shutdown()");
         RequireAll(controller, "ArenaSpectatorService.Tick()");
 
-        Assert(!project.Contains("KillcamReplay", StringComparison.Ordinal)
+        Assert(!project.Contains("Killcam", StringComparison.Ordinal)
                && !project.Contains("Terkoiz", StringComparison.Ordinal)
                && !project.Contains("Fika", StringComparison.Ordinal),
             "the client project has no hard camera-mod dependency");

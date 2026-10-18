@@ -5,7 +5,7 @@ namespace ArenaMode.Respawn;
 
 internal enum ArenaReplayWaitDecision { Ready, Wait, Unsafe }
 
-/// <summary>Per-death bound, in simulation seconds like KillcamReplay's lead-in.</summary>
+/// <summary>Per-death bound, in simulation seconds like Killcam's lead-in.</summary>
 internal sealed class ArenaReplayWaitPolicy
 {
     private float? _deadline;

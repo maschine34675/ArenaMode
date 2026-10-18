@@ -27,9 +27,9 @@ internal static class ReplayEffectsScopeChecks
             ("missing world", (_, _, _) => Singleton<GameWorld>.Instance = null),
             ("stale native game", (_, _, _) => ArenaSession.Game = new LocalGame()),
             ("stale native world", (_, _, _) => ArenaSession.World = new GameWorld()),
-            ("idle camera", (_, _, _) => KillcamReplayCompat.State = OptionalCameraOwnerState.Idle),
-            ("absent camera", (_, _, _) => KillcamReplayCompat.State = OptionalCameraOwnerState.Absent),
-            ("unreadable camera", (_, _, _) => KillcamReplayCompat.State = OptionalCameraOwnerState.Incompatible),
+            ("idle camera", (_, _, _) => KillcamCompat.State = OptionalCameraOwnerState.Idle),
+            ("absent camera", (_, _, _) => KillcamCompat.State = OptionalCameraOwnerState.Absent),
+            ("unreadable camera", (_, _, _) => KillcamCompat.State = OptionalCameraOwnerState.Incompatible),
         };
         foreach (var item in cases)
         {
@@ -40,7 +40,7 @@ internal static class ReplayEffectsScopeChecks
             ArenaSession.IsActive = true;
             ArenaSession.Game = game; ArenaSession.World = world;
             ArenaReplaySelection.Seconds = 3f;
-            KillcamReplayCompat.State = OptionalCameraOwnerState.Busy;
+            KillcamCompat.State = OptionalCameraOwnerState.Busy;
             Check(SpectatorHealthEffects.HasExactReplayContext(game, body), "exact replay context permits visual cleanup");
             item.Change(game, world, body);
             Check(!SpectatorHealthEffects.HasExactReplayContext(game, body), "replay visuals reject " + item.Label);
@@ -86,7 +86,7 @@ namespace ArenaMode.Session
 namespace ArenaMode.Spectator
 {
     internal enum OptionalCameraOwnerState { Absent, Idle, Busy, Incompatible }
-    internal static class KillcamReplayCompat
+    internal static class KillcamCompat
     {
         internal static OptionalCameraOwnerState State;
         internal static OptionalCameraOwnerState ReadState(out float seconds, out string problem)

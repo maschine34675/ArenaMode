@@ -255,7 +255,7 @@ internal sealed partial class ZombieTeamRuntime
         bool localDead = _playerDown || _boundLocalPlayer?.HealthController?.IsAlive == false;
         // The death hold owns the replay timeout. Do not spend the replacement
         // budget while that camera still owns the corpse.
-        if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased) return;
+        if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamCompat.CameraReleased) return;
         if (!localDead)
         {
             if (!TryValidateCurrentTeamLeaderBody(_boundLocalPlayer, out string livingProblem))

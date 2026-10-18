@@ -306,7 +306,7 @@ public sealed partial class TacticalMode : IArenaMode
     }
 
     public float DeathReplaySeconds
-        => _teamArena && !ArenaSpectatorService.OptionalKillcamReplayMayRun
+        => _teamArena && !ArenaSpectatorService.OptionalKillcamMayRun
             ? 0f
             : Session.ArenaReplaySelection.Seconds;
 
@@ -2118,7 +2118,7 @@ public sealed partial class TacticalMode : IArenaMode
         // Native slow motion + tail can outlast the 45-second replacement
         // budget. Keep this earlier step until camera cleanup; the death hold
         // owns the bounded replay wait and protected abort for unsafe states.
-        if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamReplayCompat.CameraReleased)
+        if (localDead && ArenaSession.ReplaySeconds > 0f && !KillcamCompat.CameraReleased)
             return;
 
         Plugin.ModLogger.LogDebug(

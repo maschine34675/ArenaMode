@@ -40,7 +40,7 @@ internal static class Program
             TeamArenaLoadoutSnapshot.CaptureOkay=TeamArenaLoadoutSnapshot.ArmOkay=TeamArenaLoadoutSnapshot.PrepareOkay=TeamArenaLoadoutSnapshot.CommitOkay=true;
             TeamArenaLoadoutSnapshot.Captures=TeamArenaLoadoutSnapshot.Arms=TeamArenaLoadoutSnapshot.Prepares=TeamArenaLoadoutSnapshot.Commits=0;
             LiveKitRespawn.Reset();AutoQuickSlots.Settles=AutoQuickSlots.Remaps=0;
-            KillcamReplayCompat.CameraReleased=true; ArenaSpectatorService.Request=null;
+            KillcamCompat.CameraReleased=true; ArenaSpectatorService.Request=null;
             ArenaMode.Effects.ArenaTracerTeams.BindOkay=true; ArenaMode.Effects.ArenaTracerTeams.Binds=0;
             ZombieLoadoutRefill.Calls=0; ZombieSpawnService.Reset();
             Settings.ZombieIntermissionSeconds.Value=2; Settings.ZombieWaveStartSize.Value=2;
@@ -267,9 +267,9 @@ internal static class Program
         Check(PitFireTeamRoundLifecycle.Rebuilt==0,"failed loadout cannot bind a leader");
 
         f=new Fixture();runtime=f.Runtime();Step(runtime);f.Die();runtime.OnLocalDeath();runtime.WaveCleared();
-        ArenaSession.ReplaySeconds=5;KillcamReplayCompat.CameraReleased=false;Step(runtime);Step(runtime);
+        ArenaSession.ReplaySeconds=5;KillcamCompat.CameraReleased=false;Step(runtime);Step(runtime);
         Check(runtime.HoldRespawn && TeamArenaLoadoutSnapshot.Prepares==0,"killcam ownership holds prior to prepare");
-        KillcamReplayCompat.CameraReleased=true;Step(runtime);
+        KillcamCompat.CameraReleased=true;Step(runtime);
         Check(!runtime.HoldRespawn && TeamArenaLoadoutSnapshot.Prepares==1,"released camera permits exact prepared transition");
 
         f=new Fixture();runtime=f.Runtime();Step(runtime);f.ReplaceLocal();

@@ -64,7 +64,7 @@ internal static class ArenaSpectatorService
     /// Team-mode replay advertisement must use this. A present but unobservable
     /// Killcam is suppressed rather than allowed to race the spectator camera.
     /// </summary>
-    internal static bool OptionalKillcamReplayMayRun => KillcamReplayCompat.ReplayMayRun;
+    internal static bool OptionalKillcamMayRun => KillcamCompat.ReplayMayRun;
 
     /// <summary>
     /// The native owner rejects every command once its player is dead, including
@@ -337,7 +337,7 @@ internal static class ArenaSpectatorService
             return;
         }
 
-        OptionalCameraOwnerState killcam = KillcamReplayCompat.ReadState(
+        OptionalCameraOwnerState killcam = KillcamCompat.ReadState(
             out float killcamRemaining,
             out string killcamProblem);
         OptionalCameraOwnerState freecam = TerkoizFreecamProbe.ReadState(out string freecamProblem);
@@ -499,7 +499,7 @@ internal static class ArenaSpectatorService
 
     private static bool OptionalOwnersPermitNativeRestore()
     {
-        OptionalCameraOwnerState killcam = KillcamReplayCompat.ReadState(out _, out _);
+        OptionalCameraOwnerState killcam = KillcamCompat.ReadState(out _, out _);
         OptionalCameraOwnerState freecam = TerkoizFreecamProbe.ReadState(out _);
         return (killcam == OptionalCameraOwnerState.Absent || killcam == OptionalCameraOwnerState.Idle)
                && (freecam == OptionalCameraOwnerState.Absent || freecam == OptionalCameraOwnerState.Idle);
@@ -953,11 +953,11 @@ internal static class ArenaSpectatorService
     {
         string problem;
         if (killcam == OptionalCameraOwnerState.Incompatible)
-            problem = killcamProblem ?? "KillcamReplay ownership could not be verified";
+            problem = killcamProblem ?? "Killcam ownership could not be verified";
         else if (freecam == OptionalCameraOwnerState.Incompatible)
             problem = freecamProblem ?? "Terkoiz.Freecam ownership could not be verified";
         else if (killcam == OptionalCameraOwnerState.Busy)
-            problem = "KillcamReplay took camera ownership after the spectator hand-off";
+            problem = "Killcam took camera ownership after the spectator hand-off";
         else if (freecam == OptionalCameraOwnerState.Busy)
             problem = "Terkoiz.Freecam owns the camera";
         else
@@ -976,7 +976,7 @@ internal static class ArenaSpectatorService
     {
         Stop("new raid boundary");
         SpectatorHealthEffects.ResetForLease();
-        KillcamReplayCompat.Reset();
+        KillcamCompat.Reset();
         TerkoizFreecamProbe.Reset();
     }
 
@@ -984,7 +984,7 @@ internal static class ArenaSpectatorService
     {
         Stop("raid ended");
         SpectatorHealthEffects.ResetForLease();
-        KillcamReplayCompat.Reset();
+        KillcamCompat.Reset();
         TerkoizFreecamProbe.Reset();
     }
 

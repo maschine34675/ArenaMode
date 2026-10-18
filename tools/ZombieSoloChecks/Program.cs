@@ -24,7 +24,7 @@ void Check(bool condition, string reason) { checks++; if (!condition) throw new 
     PitFireTeamCompat.TeamArenaActive = false;
     ArenaRespawnDriver.IsRespawnInProgress = false; ArenaRespawnDriver.StandDown = false;
     RespawnEngineState.IsPipelineRunning = false;
-    KillcamReplayCompat.State = OptionalCameraOwnerState.Absent; KillcamReplayCompat.Remaining = 0;
+    KillcamCompat.State = OptionalCameraOwnerState.Absent; KillcamCompat.Remaining = 0;
     ArenaMode.Kits.ZombieLoadoutRefill.Calls = 0;
     Settings.ZombieWaveStartSize.Value = 2; Settings.ZombieIntermissionSeconds.Value = 2;
     var mode = new ZombieMode(); var match = new ArenaMatch(mode, "local", "You", "PMC");
@@ -99,12 +99,12 @@ foreach (bool timeout in new[] { false, true })
     Die(game); match.ReportLocalDeath(); Tick(mode, .1f);
     Check(ArenaMatchResult.OwnsRaid(mode) && mode.HoldRespawn && !ArenaMatchResult.MayAutoOpenPanel(mode),
         "selected replay holds automatic result panel during native death-listener grace without delaying terminal state");
-    KillcamReplayCompat.State = OptionalCameraOwnerState.Busy; KillcamReplayCompat.Remaining = 3;
+    KillcamCompat.State = OptionalCameraOwnerState.Busy; KillcamCompat.Remaining = 3;
     Tick(mode, .3f); Check(game.Stops == 0 && mode.HoldRespawn, "pending replay keeps dead body and terminal hold");
     Check(!ArenaMatchResult.MayAutoOpenPanel(mode), "pending playback cannot auto-open a scoreboard over killcam");
     Tick(mode, 2); Check(game.Stops == 0, "selected replay can finish before native exit");
     Check(!ArenaMatchResult.MayAutoOpenPanel(mode), "playing replay remains unobstructed by automatic results");
-    if (!timeout) KillcamReplayCompat.State = OptionalCameraOwnerState.Idle;
+    if (!timeout) KillcamCompat.State = OptionalCameraOwnerState.Idle;
     game.Owner = null;
     Tick(mode, timeout ? 7 : .3f);
     Check(ArenaMatchResult.MayAutoOpenPanel(mode) == !timeout,
@@ -136,7 +136,7 @@ foreach (bool own in new[] { false, true })
 {
     var (mode, match, game, _) = Start(replay: 3);
     Die(game); match.ReportLocalDeath(); game.Owner = null;
-    KillcamReplayCompat.State = OptionalCameraOwnerState.Incompatible;
+    KillcamCompat.State = OptionalCameraOwnerState.Incompatible;
     var heldReplay = new ArenaDeathReplayHold(game, game.LocalPlayer, 1);
     Check(!heldReplay.Wait().MoveNext() && !heldReplay.CanRespawn, "unsafe replay releases coroutine without permitting replacement");
     Check(ArenaMatchService.GenericAborts == 0 && !ArenaRespawnDriver.StandDown,

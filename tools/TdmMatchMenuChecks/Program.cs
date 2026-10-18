@@ -644,12 +644,12 @@ foreach (bool armed in new[] { true, false })
         && !Settings.TrySelectKillcam("gungame", false), "armed and active killcam writes are rejected");
 }
 ArenaSession.ArmedForNextRaid = ArenaSession.IsActive = false;
-ArenaMode.Spectator.KillcamReplayCompat.Available = false;
+ArenaMode.Spectator.KillcamCompat.Available = false;
 view.Synchronize("gungame", false);
 KillcamButton().onClick.Invoke();
 Need(KillcamText() == "KILLCAM: N/A" && !KillcamButton().interactable && Settings.GunGameReplaySeconds.Value == 7f,
     "unavailable mod is explicit and cannot change preference");
-ArenaMode.Spectator.KillcamReplayCompat.Available = true;
+ArenaMode.Spectator.KillcamCompat.Available = true;
 view.Synchronize("gungame", false);
 Need(KillcamText() == "KILLCAM: ON" && Label("RESPAWN value").text == "After killcam",
     "available replay refreshes actual respawn description");
@@ -659,10 +659,10 @@ foreach (string instantMode in new[] { "deathmatch", "teamdeathmatch" })
     KillcamButton().onClick.Invoke();
     Need(Label("RESPAWN value").gameObject.activeInHierarchy && Label("RESPAWN value").text == "After killcam",
         "Deathmatch and TDM actually show replay-delayed respawn: " + instantMode);
-    ArenaMode.Spectator.KillcamReplayCompat.Available = false;
+    ArenaMode.Spectator.KillcamCompat.Available = false;
     view.Synchronize(instantMode, false);
     Need(Label("RESPAWN value").text == "Instant", "unavailable replay never delays the advertised respawn: " + instantMode);
-    ArenaMode.Spectator.KillcamReplayCompat.Available = true;
+    ArenaMode.Spectator.KillcamCompat.Available = true;
     view.Synchronize(instantMode, false);
     KillcamButton().onClick.Invoke();
     Need(Label("RESPAWN value").text == "Instant", "disabled replay restores the advertised instant respawn: " + instantMode);

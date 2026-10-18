@@ -73,10 +73,10 @@ namespace BepInEx.Configuration
 
 namespace ArenaMode.Spectator
 {
-    internal static class KillcamReplayCompat
+    internal static class KillcamCompat
     {
         internal static bool Available = true;
         internal static bool CanPlay(out string reason)
-        { reason = Available ? null : "Requires the KillcamReplay mod."; return Available; }
+        { reason = Available ? null : "Requires the Killcam mod."; return Available; }
     }
 }
