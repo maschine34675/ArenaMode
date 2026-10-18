@@ -76,3 +76,23 @@ installed BepInEx/BigBrain lifecycle code directly.
 
 These checks do not certify Unity/Mono startup or live AI. Native acceptance of
 the new library lifecycle is still pending; prior gameplay tests used the plugin.
+
+## Frozen package result
+
+Implementation: `5bed649a3356a5e69a50fe9c9899c63ea1a5dbe6`.
+All five gates met; three command gates rerun successfully, none unmet or abandoned.
+The package build passed **1,159 unit tests**, with two optional installed-mod
+checks skipped. Package layout/hash verification passed, as did the compiled
+no-plugin/optional-reference check. Installed Arena/Core files stayed unchanged.
+
+Local artifact:
+`artifacts/test-releases/8624315b548548d0bba50bb1e99500b3/ArenaMode-0.1.0-test-5bed649.zip`.
+It contains 77 files / 3,264,556 ZIP bytes, no root files and no reserve audio.
+Exactly four DLLs: Arena.Client, Arena.Server, plain BigBrainCompat and Core.
+SHA256: `2274917f63ea38be53ca8267cd93a63ebd9a188bac783f62929811c8adf92b1f`.
+Gitleaks scanned the complete payload with the default rules and an empty ignore
+file: zero findings (`package-gitleaks.redacted.json` in that run directory).
+
+Build, test and scan logs are local artifacts, not shipped. No deployment, push
+or publication was performed. Parallel thumbnail commits are independent of this
+frozen runtime/package revision.

@@ -13,7 +13,10 @@ current. User-facing communication is normally German.
   Update both Arena client DLLs together. Core needs no standalone Redeploy.Server;
   Arena.Server owns Arena's protected profile restoration. Read
   [the implementation and test boundaries](BIGBRAIN-LIBRARY-20261018.md) and
-  [verification gates](BIGBRAIN-LIBRARY-GATES.md). No live deployment was made;
+  [verification gates](BIGBRAIN-LIBRARY-GATES.md). Implementation `5bed649`;
+  all five gates passed, unit suite 1,159 passed / two optional skips.
+  Refreshed test ZIP is recorded in the implementation document; payload Gitleaks
+  had no findings. No live deployment was made;
   native Unity/Mono startup and bot behavior for the new lifecycle remain pending.
 
 - **All-map effects, pickups and TDM bot shields (2026-10-17):** Implementation
