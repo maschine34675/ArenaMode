@@ -149,7 +149,10 @@ def main():
                     if not row['file'].startswith('announcements/reserve/')}
         deployed_ogg = {p.relative_to(installed).as_posix()
                         for p in (installed / 'announcements').rglob('*.ogg')}
-        require(deployed_ogg == set(expected), f'{installed}: stale/missing announcer clips')
+        # Installed folders may retain user clips or old reserve recordings.
+        # They are not owned payload; exact fresh-ZIP contents are enforced by
+        # Verify-TestRelease.py. Every shipped clip/record still has to match.
+        require(set(expected) <= deployed_ogg, f'{installed}: missing managed announcer clips')
         for relative, row in expected.items():
             require(sha(installed / relative) == row['sha256'], f'Deployment audio mismatch: {relative}')
         recorded = set()
