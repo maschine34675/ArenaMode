@@ -19,10 +19,10 @@ internal static class ArenaParticipantSettings
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch" })
         {
             var key = Key(map, mode);
-            Entries.Add(key, file.Bind("Map participants", key, ArenaParticipantPolicy.DefaultTotal(map, mode),
+            Entries.Add(key, file.BindArena("Map participants", key, ArenaParticipantPolicy.DefaultTotal(map, mode),
                 new ConfigDescription("Total participants including your PMC. Select on the Arena map screen. "
                     + "Deathmatch and Gun Game share a count; independent Team Deathmatch has its own even count.",
-                    null, new { Browsable = false })));
+                    null)));
         }
     }
 

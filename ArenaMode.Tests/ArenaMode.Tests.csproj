@@ -54,6 +54,7 @@
     <Compile Include="..\ArenaMode.Client\Modes\ZombieOwnGearGate.cs" Link="ClientRules\ZombieOwnGearGate.cs" />
     <Compile Include="..\ArenaMode.Client\Bots\ZombieMeleeGate.cs" Link="ClientRules\ZombieMeleeGate.cs" />
     <Compile Include="..\ArenaMode.Client\Bots\ZombieCrowdPolicy.cs" Link="ClientRules\ZombieCrowdPolicy.cs" />
+    <Compile Include="..\ArenaMode.Client\Config\ArenaConfigMenuLayout.cs" Link="ClientRules\ArenaConfigMenuLayout.cs" />
     <Compile Include="..\ArenaMode.Client\Bots\ZombieBodyCullingPolicy.cs" Link="ClientRules\ZombieBodyCullingPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Performance\BotHotPathPolicy.cs" Link="ClientRules\BotHotPathPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Performance\ProfileBuildBudgetPolicy.cs" Link="ClientRules\ProfileBuildBudgetPolicy.cs" />

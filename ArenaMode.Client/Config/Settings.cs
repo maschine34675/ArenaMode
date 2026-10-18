@@ -490,7 +490,7 @@ public static class Settings
     }
 
     private static ConfigEntry<float> BindReplay(ConfigFile config, string section)
-        => config.Bind(section, "ReplaySeconds", 0f, new ConfigDescription(
+        => config.BindArena(section, "ReplaySeconds", 0f, new ConfigDescription(
             "Recorded seconds shown after death; 0 keeps instant respawn. Requires enabled Killcam. " +
             "Respawn waits for actual playback, slow motion and live tail. Frozen when the raid is armed.",
             new AcceptableValueRange<float>(0f, 10f)));
@@ -507,7 +507,7 @@ public static class Settings
     /// default can never drift from the table ArenaMode.Tests exercises.
     /// </summary>
     private static ConfigEntry<bool> BindAnnouncer(ConfigFile config, string section, bool defaultValue)
-        => config.Bind(section, "Announcer", defaultValue,
+        => config.BindArena(section, "Announcer", defaultValue,
             "Per-mode gate for the Arena announcer (stingers, round/match cues and the on-screen " +
             "kill callouts such as DOUBLE KILL). The global Audio/Announcer switch above stays a " +
             "master gate: both it and this must be on for this mode's announcer to speak and show " +
@@ -518,34 +518,34 @@ public static class Settings
     public static void Init(ConfigFile config)
     {
         File = config;
-        DeveloperMode = config.Bind("Diagnostics", "DeveloperMode", false,
+        DeveloperMode = config.BindArena("Diagnostics", "DeveloperMode", false,
             "Enable detailed Arena diagnostic probes (per-body, audio, movement and native model faults) and Core respawn timing. " +
             "These appear as [dev] Info messages without enabling global BepInEx Debug logging. " +
             "Ordinary technical details use Debug. Warnings, errors and LogDamageExceptions remain independent.");
-        AreaCaptureEnabled = config.Bind("Development - Area outline", "Enabled", false,
+        AreaCaptureEnabled = config.BindArena("Development - Area outline", "Enabled", false,
             "Opt-in point capture. Normal PMC raids additionally require AllowInNormalPmc. Exports drafts; NEVER changes live boundaries or spawns. " +
             "Use Waypoints for spawn visualization. Draft points survive respawns but clear when disabled or the raid ends; export first.");
-        AreaCaptureAllowInNormalPmc = config.Bind("Development - Area outline", "AllowInNormalPmc", false,
+        AreaCaptureAllowInNormalPmc = config.BindArena("Development - Area outline", "AllowInNormalPmc", false,
             "Allow the enabled capture tool in normal local PMC raids so you can walk an entire new outline. " +
             "Survey only: NO Arena kit, respawn, invulnerability or profile protection. Normal raid consequences still apply. No Scav or Hideout capture.");
-        AreaCaptureAim = config.Bind("Development - Area outline", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
+        AreaCaptureAim = config.BindArena("Development - Area outline", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
             "Capture the map surface under the crosshair, up to 250m away. Ignores Arena's own boundary colliders for this read-only ray.");
-        AreaCaptureFeet = config.Bind("Development - Area outline", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftControl),
+        AreaCaptureFeet = config.BindArena("Development - Area outline", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftControl),
             "Capture the current local player's foot position. Walk the contour in order; the closing edge is automatic.");
-        AreaCaptureUndo = config.Bind("Development - Area outline", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
+        AreaCaptureUndo = config.BindArena("Development - Area outline", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
             "Remove the last draft point.");
-        AreaCaptureExport = config.Bind("Development - Area outline", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
+        AreaCaptureExport = config.BindArena("Development - Area outline", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
             "Validate and export a new draft JSON to BepInEx/plugins/maschine-ArenaMode/AreaDrafts. Not automatically loaded or applied.");
-        AreaCaptureMinY = config.Bind("Development - Area outline", "FloorY", 0f,
+        AreaCaptureMinY = config.BindArena("Development - Area outline", "FloorY", 0f,
             "Draft enclosing floor in absolute map Y coordinates. Defaults match the existing Customs candidate.");
-        AreaCaptureMaxY = config.Bind("Development - Area outline", "CeilingY", 12f,
+        AreaCaptureMaxY = config.BindArena("Development - Area outline", "CeilingY", 12f,
             "Draft enclosing ceiling in absolute map Y coordinates; leave headroom for jumping and vaulting.");
-        AreaCaptureSpawnMinY = config.Bind("Development - Area outline", "SpawnMinY", .5f,
+        AreaCaptureSpawnMinY = config.BindArena("Development - Area outline", "SpawnMinY", .5f,
             "Draft minimum spawn foot height in absolute map Y coordinates. Separate from the enclosing floor.");
-        AreaCaptureSpawnMaxY = config.Bind("Development - Area outline", "SpawnMaxY", 3f,
+        AreaCaptureSpawnMaxY = config.BindArena("Development - Area outline", "SpawnMaxY", 3f,
             "Draft maximum spawn foot height in absolute map Y coordinates; must remain inside floor/ceiling.");
 
-        Maps = config.Bind(
+        Maps = config.BindArena(
             "General",
             "Maps",
             ArenaMapCatalog.DefaultClientAllowlist,
@@ -553,9 +553,9 @@ public static class Settings
             "Only maps also enabled on the server are offered. The Lab is " +
             "keycard-locked in the menu; arena raids waive that, ordinary ones do not.");
 
-        var optionalMapsMigrated = config.Bind("General", "OptionalMapsMigrated", false,
+        var optionalMapsMigrated = config.BindArena("General", "OptionalMapsMigrated", false,
             "Internal one-time map-default migration marker. Leave enabled after migration.");
-        var optionalMapsRevision = config.Bind("General", "OptionalMapsRevision", 0,
+        var optionalMapsRevision = config.BindArena("General", "OptionalMapsRevision", 0,
             "Internal map-default migration revision. Preserve the recorded value.");
         if (optionalMapsRevision.Value < ArenaMapCatalog.OptionalMapsRevision)
         {
@@ -572,77 +572,77 @@ public static class Settings
             optionalMapsRevision.Value = ArenaMapCatalog.OptionalMapsRevision;
         }
 
-        RandomKit = config.Bind(
+        RandomKit = config.BindArena(
             "Kits",
             "RandomKit",
             true,
             "Draw a random kit for every life instead of a fixed one, avoiding the " +
             "same loadout twice in a row. Overrides SelectedKit while on.");
 
-        SelectedKit = config.Bind(
+        SelectedKit = config.BindArena(
             "Kits",
             "SelectedKit",
             "",
             "Kit id from the server catalog (user/mods/ArenaMode/config/kits.json). " +
             "Empty = first kit in the catalog. Ignored while RandomKit is on.");
 
-        SpawnProtectionSeconds = config.Bind(
+        SpawnProtectionSeconds = config.BindArena(
             "Respawn",
             "SpawnProtectionSeconds",
             4f,
             "Invulnerability after an arena respawn (0 = disabled). Team DM bots also receive a visible damage shield " +
             "for this duration (maximum 30s, frozen per match), ending on their first attack.");
 
-        DisableLabyrinthSpawnTraps = config.Bind(
+        DisableLabyrinthSpawnTraps = config.BindArena(
             "Arena", "DisableLabyrinthSpawnTraps", true,
             "Disable Labyrinth's entrance gun, flame, liquid and steam traps and drain the toxic pool during Arena only, " +
             "including their active damage, animations and continuous sounds. " +
             "Read once per raid; changes apply to the next Arena raid. Other puzzles/traps and ordinary raids are unchanged.");
 
-        MovementEnabled = config.Bind(
+        MovementEnabled = config.BindArena(
             "Movement",
             "Enabled",
             true,
             "Arena movement overhaul (all knobs below only apply during arena sessions).");
 
-        LandingRecoveryMultiplier = config.Bind("Movement", "LandingRecoveryMultiplier", 0.5f,
+        LandingRecoveryMultiplier = config.BindArena("Movement", "LandingRecoveryMultiplier", 0.5f,
             new ConfigDescription("Duration of the local Arena player's hard-landing slowdown (0.5 = half, 1 = vanilla).",
                 new AcceptableValueRange<float>(0.1f, 1f)));
-        WeaponDrawSpeedMultiplier = config.Bind("Movement", "WeaponDrawSpeedMultiplier", 1.5f,
+        WeaponDrawSpeedMultiplier = config.BindArena("Movement", "WeaponDrawSpeedMultiplier", 1.5f,
             new ConfigDescription("Local Arena firearm draw speed. Does not change reload or firing speed.",
                 new AcceptableValueRange<float>(1f, 3f)));
-        WeaponHolsterSpeedMultiplier = config.Bind("Movement", "WeaponHolsterSpeedMultiplier", 1.5f,
+        WeaponHolsterSpeedMultiplier = config.BindArena("Movement", "WeaponHolsterSpeedMultiplier", 1.5f,
             new ConfigDescription("Local Arena firearm holster speed. Does not change reload or firing speed.",
                 new AcceptableValueRange<float>(1f, 3f)));
-        WeaponReloadSpeedMultiplier = config.Bind("Movement", "WeaponReloadSpeedMultiplier", 1.5f,
+        WeaponReloadSpeedMultiplier = config.BindArena("Movement", "WeaponReloadSpeedMultiplier", 1.5f,
             new ConfigDescription("Local Arena firearm reload animation speed, including quick reloads, internal magazines and revolvers. " +
                 "1 keeps native timing. Underbarrel launchers, firing, malfunction repair and inventory magazine loading stay unchanged.",
                 new AcceptableValueRange<float>(1f, 3f)));
-        AirVaultEnabled = config.Bind("Movement", "AirVaultEnabled", true,
+        AirVaultEnabled = config.BindArena("Movement", "AirVaultEnabled", true,
             "Allow a deliberate native vault/climb input during an Arena jump when the obstacle and hands checks permit it.");
-        AirControlEnabled = config.Bind("Movement", "AirControlEnabled", true,
+        AirControlEnabled = config.BindArena("Movement", "AirControlEnabled", true,
             "Allow gentle WASD steering during local Arena jumps and falls. Preserves native horizontal speed, gravity and collision; no extra impulse from a stationary jump.");
-        AirControlDegreesPerSecond = config.Bind("Movement", "AirControlDegreesPerSecond", 80f,
+        AirControlDegreesPerSecond = config.BindArena("Movement", "AirControlDegreesPerSecond", 80f,
             new ConfigDescription("Maximum horizontal turn rate in degrees per second while airborne; 0 keeps native direction. Changes apply live. Long frame steps are capped for safety.",
                 new AcceptableValueRange<float>(0f, 180f)));
-        AirHipFireEnabled = config.Bind("Movement", "AirHipFireEnabled", true,
+        AirHipFireEnabled = config.BindArena("Movement", "AirHipFireEnabled", true,
             "Allow firearm hip fire during an Arena jump. Native aiming, ammo, reload, malfunction and vault restrictions remain.");
 
-        BotMovementEnabled = config.Bind("Bot movement", "BotMovementEnabled", true,
+        BotMovementEnabled = config.BindArena("Bot movement", "BotMovementEnabled", true,
             "Boost grounded Arena bots on both teams, including PitFireTeam followers. " +
             "Also enables supported SAIN search sprint, shorter completed-reload wait and faster combat strafe. " +
             "Includes faster starts/direction blending and reduced weight-related locomotion inertia. " +
             "Does not change the local player, ordinary raids, presets or weapon animations.");
-        BotWalkSpeedMult = config.Bind("Bot movement", "BotWalkSpeedMult", 1.5f,
+        BotWalkSpeedMult = config.BindArena("Bot movement", "BotWalkSpeedMult", 1.5f,
             new ConfigDescription("Arena bot walk/strafe displacement multiplier. " +
                 "Preserves native slowdowns; the bonus fades near native path corners and is suppressed during door handling or large low-FPS steps. 1 = no boost.",
                 new AcceptableValueRange<float>(1f, 1.5f)));
-        BotSprintSpeedMult = config.Bind("Bot movement", "BotSprintSpeedMult", 1.5f,
+        BotSprintSpeedMult = config.BindArena("Bot movement", "BotSprintSpeedMult", 1.5f,
             new ConfigDescription("Arena bot sprint displacement multiplier. " +
                 "Only affects a sprint the AI already chose; does not force sprint or add stamina. Safety limits can reduce the bonus. 1 = no boost.",
                 new AcceptableValueRange<float>(1f, 1.5f)));
 
-        WalkSpeedMult = config.Bind(
+        WalkSpeedMult = config.BindArena(
             "Movement",
             "WalkSpeedMult",
             1.25f,
@@ -651,7 +651,7 @@ public static class Settings
                 "legs animate at vanilla pace, so high values show light foot-slide).",
                 new AcceptableValueRange<float>(1f, 1.5f)));
 
-        SprintSpeedMult = config.Bind(
+        SprintSpeedMult = config.BindArena(
             "Movement",
             "SprintSpeedMult",
             1.3f,
@@ -660,7 +660,7 @@ public static class Settings
                 "animate at vanilla pace, so high values show light foot-slide).",
                 new AcceptableValueRange<float>(1f, 2f)));
 
-        ExtraMotionScale = config.Bind(
+        ExtraMotionScale = config.BindArena(
             "Movement",
             "ExtraMotionScale",
             1.1f,
@@ -668,7 +668,7 @@ public static class Settings
                 "Horizontal displacement scale beyond the animator (slight foot-slide above ~1.3).",
                 new AcceptableValueRange<float>(1f, 1.6f)));
 
-        AdsMoveFactor = config.Bind(
+        AdsMoveFactor = config.BindArena(
             "Movement",
             "AdsMoveFactor",
             0.7f,
@@ -676,19 +676,19 @@ public static class Settings
                 "How much of the aim-down-sights movement penalty is removed (1 = no ADS slowdown).",
                 new AcceptableValueRange<float>(0f, 1f)));
 
-        AdsTransitionMult = config.Bind(
+        AdsTransitionMult = config.BindArena(
             "Movement",
             "AdsTransitionMult",
             1.5f,
             new ConfigDescription("Aim-down-sights transition speed multiplier.", new AcceptableValueRange<float>(1f, 3f)));
 
-        InfiniteStamina = config.Bind(
+        InfiniteStamina = config.BindArena(
             "Movement",
             "InfiniteStamina",
             true,
             "Keep legs/arms stamina and breath topped off.");
 
-        CarryWeightLimitMultiplier = config.Bind(
+        CarryWeightLimitMultiplier = config.BindArena(
             "Movement",
             "CarryWeightLimitMultiplier",
             2f,
@@ -697,13 +697,13 @@ public static class Settings
                 "encumbrance and inertia (1 = vanilla, 2 = twice the normal thresholds).",
                 new AcceptableValueRange<float>(1f, 4f)));
 
-        NoInertia = config.Bind(
+        NoInertia = config.BindArena(
             "Movement",
             "NoInertia",
             true,
             "Remove movement inertia (direction changes, pose changes, sprint braking).");
 
-        StrafeSmoothing = config.Bind(
+        StrafeSmoothing = config.BindArena(
             "Movement",
             "StrafeSmoothing",
             0.25f,
@@ -712,62 +712,62 @@ public static class Settings
                 "(0 = instant strafe flips, 1 = full vanilla blend). Applies immediately.",
                 new AcceptableValueRange<float>(0f, 1f)));
 
-        InstantLean = config.Bind(
+        InstantLean = config.BindArena(
             "Movement",
             "InstantLean",
             true,
             "Use the game's legacy (pre-inertia) fast lean.");
 
-        SlideEnabled = config.Bind(
+        SlideEnabled = config.BindArena(
             "Movement",
             "SlideEnabled",
             true,
             "Sprint-into-crouch combat slide (absorbed from CombatSlide, arena-only).");
 
-        NoBushSlowdown = config.Bind(
+        NoBushSlowdown = config.BindArena(
             "Movement",
             "NoBushSlowdown",
             true,
             "Foliage no longer slows movement.");
 
-        JumpHeightMult = config.Bind(
+        JumpHeightMult = config.BindArena(
             "Movement",
             "JumpHeightMult",
             1.3f,
             new ConfigDescription("Jump height multiplier.", new AcceptableValueRange<float>(1f, 2f)));
 
-        BunnyhopEnabled = config.Bind("Movement", "BunnyhopEnabled", true,
+        BunnyhopEnabled = config.BindArena("Movement", "BunnyhopEnabled", true,
             "Time a jump just before landing to chain hops and retain momentum. " +
             "6% speed gain per hop, capped at 25% above chain entry speed and 12 m/s. " +
             "Near-ground landing input takes priority over Double Jump; hard falls break the chain.");
 
-        AkimboEnabled = config.Bind("Combat", "AkimboEnabled", false,
+        AkimboEnabled = config.BindArena("Combat", "AkimboEnabled", false,
             "Automatically clone the held pistol in Arena, including automatic pistols and handgun revolvers. " +
             "One shot per trigger, alternating right and left; two shots per loaded cartridge, shared magazine/reload. " +
             "Hipfire only. Replica hides during reload/sprint/interactions. Flares and launchers are excluded. " +
             "Applies to the local player only; resumes on pistol draw and respawn. Experimental hand pose.");
 
-        DoubleJumpEnabled = config.Bind(
+        DoubleJumpEnabled = config.BindArena(
             "Movement",
             "DoubleJumpEnabled",
             true,
             "Press the normal jump binding in the air for one extra jump, including after falling from a ledge. " +
             "Local Arena player only; landing restores the extra jump.");
 
-        DoubleJumpHeightMult = config.Bind(
+        DoubleJumpHeightMult = config.BindArena(
             "Movement",
             "DoubleJumpHeightMult",
             1f,
             new ConfigDescription("Extra jump height relative to the initial Arena jump (1 = same upward impulse).",
                 new AcceptableValueRange<float>(0.25f, 1.5f)));
 
-        NoFallDamage = config.Bind(
+        NoFallDamage = config.BindArena(
             "Movement",
             "NoFallDamage",
             true,
             "Disable fall damage (pairs with the jump boost).");
 
-        VaultSpeedMult = config.Bind(
+        VaultSpeedMult = config.BindArena(
             "Movement",
             "VaultSpeedMult",
             1.6f,
@@ -777,7 +777,7 @@ public static class Settings
                 "healthy one - it is just faster than it was.",
                 new AcceptableValueRange<float>(1f, 2.5f)));
 
-        VaultReachMult = config.Bind(
+        VaultReachMult = config.BindArena(
             "Movement",
             "VaultReachMult",
             1.3f,
@@ -788,19 +788,19 @@ public static class Settings
                 "hard ceiling on this - see VaultingTuning.",
                 new AcceptableValueRange<float>(1f, 1.6f)));
 
-        SprintToAds = config.Bind(
+        SprintToAds = config.BindArena(
             "Movement",
             "SprintToAds",
             true,
             "Aim input during a sprint cancels the sprint and enters ADS in one motion.");
 
-        FastDeploy = config.Bind(
+        FastDeploy = config.BindArena(
             "General",
             "FastDeploy",
             true,
             "Shorten the pre-raid deploy countdown to 1s for arena raids.");
 
-        SkipPreRaidScreens = config.Bind(
+        SkipPreRaidScreens = config.BindArena(
             "General",
             "SkipPreRaidScreens",
             true,
@@ -810,13 +810,13 @@ public static class Settings
             "server-side, insurance is void when the profile is restored afterwards, " +
             "and the loadout being confirmed is replaced by a kit on the first second.");
 
-        InstantSearch = config.Bind(
+        InstantSearch = config.BindArena(
             "Loot",
             "InstantSearch",
             true,
             "Corpse/container searches complete instantly during arena sessions.");
 
-        BotLoadBoost = config.Bind(
+        BotLoadBoost = config.BindArena(
             "Performance",
             "BotLoadBoost",
             true,
@@ -827,7 +827,7 @@ public static class Settings
             "bot load into a minute. This re-enables the scheduler's own force mode for the " +
             "duration of a load, at the cost of a longer frame while it runs. Arena only.");
 
-        BotLoadBoostBudget = config.Bind(
+        BotLoadBoostBudget = config.BindArena(
             "Performance",
             "BotLoadBoostBudget",
             1f,
@@ -839,7 +839,7 @@ public static class Settings
                 "longer by the extra budget. 3 is the game's own loading-screen value.",
                 new AcceptableValueRange<float>(0.25f, 3f)));
 
-        BotLoadBoostDelaySeconds = config.Bind(
+        BotLoadBoostDelaySeconds = config.BindArena(
             "Performance",
             "BotLoadBoostDelaySeconds",
             1f,
@@ -853,7 +853,7 @@ public static class Settings
                 "under half a second between loads do not restart the clock.",
                 new AcceptableValueRange<float>(0f, 10f)));
 
-        BotLoadBoostAsyncPriority = config.Bind(
+        BotLoadBoostAsyncPriority = config.BindArena(
             "Performance",
             "BotLoadBoostAsyncPriority",
             AsyncLoadPriority.Game,
@@ -867,7 +867,7 @@ public static class Settings
             "combat. Low = 2 ms, BelowNormal = 4, Normal = 10, High = 50 (about 15 fps on a 60 fps " +
             "machine while loading - diagnostic only). Game = leave it alone. Handed back on release.");
 
-        KitPreloadInLoadingScreen = config.Bind(
+        KitPreloadInLoadingScreen = config.BindArena(
             "Performance",
             "KitPreloadInLoadingScreen",
             KitPreloadScope.InitialKit,
@@ -885,7 +885,7 @@ public static class Settings
             "kit. Untested on a slow machine - try it and read the log lines. Off = the " +
             "previous behaviour. Arena only.");
 
-        AutoQuickSlots = config.Bind(
+        AutoQuickSlots = config.BindArena(
             "Kits",
             "AutoQuickSlots",
             true,
@@ -894,7 +894,7 @@ public static class Settings
             "built on dying. The layout is fixed by what an item DOES, so the same key " +
             "always holds the same kind of thing.");
 
-        UseItemsAnywhere = config.Bind(
+        UseItemsAnywhere = config.BindArena(
             "Kits",
             "UseItemsAnywhere",
             true,
@@ -902,7 +902,7 @@ public static class Settings
             "The bulky medical items go where they FIT — a Grizzly is 2x2 and a Surv12 3x1 — " +
             "so without this the best medicine in the catalogue sits unreachable in the backpack.");
 
-        EmptySecureContainer = config.Bind(
+        EmptySecureContainer = config.BindArena(
             "Kits",
             "EmptySecureContainer",
             true,
@@ -914,20 +914,20 @@ public static class Settings
             "so there is nothing there to empty either way. A protected 5v5 raid keeps " +
             "your own loadout and is exempt: the container stays as it is, shown and usable.");
 
-        AutoSearchCorpses = config.Bind(
+        AutoSearchCorpses = config.BindArena(
             "Loot",
             "AutoSearchCorpses",
             true,
             "Auto-search rig/pockets/backpack when opening a corpse (absorbed AutoCorpseSearch; " +
             "defers to the standalone mod when that is installed).");
 
-        ShowVictimNames = config.Bind(
+        ShowVictimNames = config.BindArena(
             "Loot",
             "ShowVictimNames",
             true,
             "End-of-raid kill list shows PMC names without requiring their dogtags.");
 
-        MaxCorpses = config.Bind(
+        MaxCorpses = config.BindArena(
             "Performance",
             "MaxCorpses",
             10,
@@ -936,7 +936,7 @@ public static class Settings
                 "in the world but become invisible and can no longer be looted (0 = keep all).",
                 new AcceptableValueRange<int>(0, 50)));
 
-        StripCorpseGear = config.Bind(
+        StripCorpseGear = config.BindArena(
             "Performance",
             "StripCorpseGear",
             true,
@@ -944,7 +944,7 @@ public static class Settings
             "an instantiated model, and late-raid bodies wear far more of them " +
             "than early ones — removing it hands each model back to its pool.");
 
-        ReleaseTrimmedCorpses = config.Bind(
+        ReleaseTrimmedCorpses = config.BindArena(
             "Performance",
             "ReleaseTrimmedCorpses",
             true,
@@ -955,7 +955,7 @@ public static class Settings
             "teammates and your own NEWEST body are never taken away; an older body of " +
             "your own is released like anybody else's, once nothing still needs it.");
 
-        GcHeapThresholdGB = config.Bind(
+        GcHeapThresholdGB = config.BindArena(
             "Performance",
             "GcHeapThresholdGB",
             4f,
@@ -974,7 +974,7 @@ public static class Settings
                 "GC-THRESHOLD-REVIEW.md for the measured cost.",
                 new AcceptableValueRange<float>(0f, 32f)));
 
-        PoolPrewarmKeepIdle = config.Bind(
+        PoolPrewarmKeepIdle = config.BindArena(
             "Performance",
             "PoolPrewarmKeepIdle",
             4,
@@ -995,7 +995,7 @@ public static class Settings
                 "surplus is bounded. See POOL-PREWARM-REVIEW.md for the measured cost.",
                 new AcceptableValueRange<int>(0, 64)));
 
-        TrimDeadBrainList = config.Bind(
+        TrimDeadBrainList = config.BindArena(
             "Performance",
             "TrimDeadBrainList",
             true,
@@ -1007,7 +1007,7 @@ public static class Settings
             "native pass leaves it; only the repeated no-op work and the retention go. Off = " +
             "vanilla. Applies immediately.");
 
-        SkipBotFovCoroutine = config.Bind(
+        SkipBotFovCoroutine = config.BindArena(
             "Performance",
             "SkipBotFovCoroutine",
             true,
@@ -1018,7 +1018,7 @@ public static class Settings
             "value in between for a bot. Your own body keeps its coroutine. Off = vanilla. " +
             "Applies immediately.");
 
-        ProfileBuildBudgetMs = config.Bind(
+        ProfileBuildBudgetMs = config.BindArena(
             "Performance",
             "ProfileBuildBudgetMs",
             3f,
@@ -1037,7 +1037,7 @@ public static class Settings
         // Reports only when a damage event actually throws, which a healthy raid
         // never does — so it is on by default while the grenade finding in
         // CORPSE-CLEANUP-REVIEW.md is open, and costs a null check until then.
-        LogDamageExceptions = config.Bind(
+        LogDamageExceptions = config.BindArena(
             "Diagnostics",
             "LogDamageExceptions",
             true,
@@ -1046,14 +1046,14 @@ public static class Settings
             "came from. For the open grenade finding in CORPSE-CLEANUP-REVIEW.md. " +
             "It records and rethrows; it never changes a damage outcome.");
 
-        NoCorpseLooting = config.Bind(
+        NoCorpseLooting = config.BindArena(
             "Performance",
             "NoCorpseLooting",
             true,
             "Stop bots working over corpses. They swap gear on the spot and drop " +
             "what they were wearing, and nothing ever cleans a dropped item up.");
 
-        PmcFloor = config.Bind(
+        PmcFloor = config.BindArena(
             "Bots",
             "PmcFloor",
             8,
@@ -1062,7 +1062,7 @@ public static class Settings
                 "until this many are around, and only fill up with scavs after that.",
                 new AcceptableValueRange<int>(0, 20)));
 
-        HuntPlayer = config.Bind(
+        HuntPlayer = config.BindArena(
             "Bots",
             "HuntPlayer",
             true,
@@ -1070,7 +1070,7 @@ public static class Settings
             "actively close in instead of patrolling until they happen to see you. " +
             "Team Deathmatch instead keeps both factions aware of live opponents.");
 
-        ExcludePassiveSainPersonalities = config.Bind(
+        ExcludePassiveSainPersonalities = config.BindArena(
             "Bots",
             "ExcludePassiveSainPersonalities",
             true,
@@ -1078,7 +1078,7 @@ public static class Settings
             "Other personalities and SAIN preset files stay unchanged. Start a new raid when comparing this setting; " +
             "existing bots are not reassigned. PFT keeps its own follower combat behavior.");
 
-        NoBotGestures = config.Bind(
+        NoBotGestures = config.BindArena(
             "Bots",
             "NoBotGestures",
             true,
@@ -1087,7 +1087,7 @@ public static class Settings
             "gesture throws a random item out of the bot's secure container — with " +
             "SPT's bot loot that is a PMC's Surv12 or AFAK, left on the ground.");
 
-        CorpseLightsOff = config.Bind(
+        CorpseLightsOff = config.BindArena(
             "Performance",
             "CorpseLightsOff",
             true,
@@ -1095,7 +1095,7 @@ public static class Settings
             "are expensive and dead bodies keep theirs on forever; a looted " +
             "flashlight still works normally.");
 
-        MaxSkills = config.Bind(
+        MaxSkills = config.BindArena(
             "Character",
             "MaxSkills",
             true,
@@ -1103,7 +1103,7 @@ public static class Settings
             "weapons count as mastered too). Reverted when the raid ends; the " +
             "saved profile is never touched.");
 
-        LegInjurySlowdownReductionPercent = config.Bind(
+        LegInjurySlowdownReductionPercent = config.BindArena(
             "Character",
             "LegInjurySlowdownReductionPercent",
             50,
@@ -1114,14 +1114,14 @@ public static class Settings
                 "restriction remain active; 0 keeps vanilla movement.",
                 new AcceptableValueRange<int>(0, 100)));
 
-        BleedingDamageMultiplier = config.Bind(
+        BleedingDamageMultiplier = config.BindArena(
             "Character", "BleedingDamageMultiplier", 3f,
             new ConfigDescription(
                 "HP loss from light and heavy bleeding for living Arena players and bots. " +
                 "1 keeps vanilla damage; treatment, bleed duration and other damage stay unchanged.",
                 new AcceptableValueRange<float>(1f, 10f)));
 
-        MedicalUseSpeed = config.Bind(
+        MedicalUseSpeed = config.BindArena(
             "Character",
             "MedicalUseSpeed",
             2f,
@@ -1131,7 +1131,7 @@ public static class Settings
                 "health effect and hands animation use this factor; 1 keeps vanilla timing.",
                 new AcceptableValueRange<float>(1f, 4f)));
 
-        MagazineHandlingSpeed = config.Bind(
+        MagazineHandlingSpeed = config.BindArena(
             "Character",
             "MagazineHandlingSpeed",
             2f,
@@ -1142,7 +1142,7 @@ public static class Settings
                 "weapon or hands reload animations.",
                 new AcceptableValueRange<float>(1f, 4f)));
 
-        GameMode = config.Bind(
+        GameMode = config.BindArena(
             "Match",
             "GameMode",
             ArenaModeCatalog.DeathmatchId,
@@ -1162,7 +1162,7 @@ public static class Settings
                     ArenaModeCatalog.TeamDeathmatchId,
                     ArenaModeCatalog.ZombieId)));
 
-        TeamDeathmatchArea = config.Bind(
+        TeamDeathmatchArea = config.BindArena(
             "Team Deathmatch",
             "ExperimentalArea",
             ArenaAreaCatalog.FullMapId,
@@ -1176,12 +1176,12 @@ public static class Settings
                 "The area must pass its live navigation checks before any match starts.",
                 new AreaSelectionValues()));
 
-        AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
+        AreaTeamSize = config.BindArena("Team Deathmatch", "AreaPlayersPerTeam", 2,
             new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts. " +
                 "Separate from whole-map team size. Selected before loading; changes apply next match.",
                 new AcceptableValueRange<int>(2, 5)));
 
-        TeamDeathmatchSize = config.Bind(
+        TeamDeathmatchSize = config.BindArena(
             "Team Deathmatch",
             "PlayersPerTeam",
             5,
@@ -1191,17 +1191,17 @@ public static class Settings
                 "Read at match start. PitFireTeam companions are not used in this mode.",
                 new AcceptableValueRange<int>(2, 12)));
 
-        TeamDeathmatchKillLimit = config.Bind("Team Deathmatch", "KillLimit", 50,
+        TeamDeathmatchKillLimit = config.BindArena("Team Deathmatch", "KillLimit", 50,
             new ConfigDescription("Team kills needed to win independent Team Deathmatch (0 = unlimited). " +
                 "The first kill or time limit reached ends the match. Selected before loading; changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 1000)));
 
-        TeamDeathmatchTimeLimitSeconds = config.Bind("Team Deathmatch", "TimeLimitSeconds", 600,
+        TeamDeathmatchTimeLimitSeconds = config.BindArena("Team Deathmatch", "TimeLimitSeconds", 600,
             new ConfigDescription("Independent Team Deathmatch duration after both teams are ready and the countdown ends (0 = unlimited). " +
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 7200)));
 
-        ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 32,
+        ZombieMaxAlive = config.BindArena("Zombie", "MaxAlive", 32,
             new ConfigDescription(
                 "Infected allowed alive at once, across the whole raid. Also raises the native bot " +
                 "cap with reserve for activation and any authenticated PitFireTeam companions. " +
@@ -1209,7 +1209,7 @@ public static class Settings
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(4, 96)));
 
-        ZombieStuckWaveTimeoutSeconds = config.Bind("Zombie", "StuckWaveTimeoutSeconds", 100f,
+        ZombieStuckWaveTimeoutSeconds = config.BindArena("Zombie", "StuckWaveTimeoutSeconds", 100f,
             new ConfigDescription(
                 "Safety net for a wave's last infected getting wedged in geometry or stranded on an " +
                 "unreachable NavMesh island: once the wave is SATURATED — every infected in it has already " +
@@ -1228,26 +1228,26 @@ public static class Settings
                 "naturally, with no recovery if one cannot reach the player). Frozen at match start.",
                 new AcceptableValueRange<float>(0f, 600f)));
 
-        ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 50,
+        ZombieWaveStartSize = config.BindArena("Zombie", "WaveStartSize", 50,
             new ConfigDescription(
                 "Total infected in wave 1. Spawns and replacements are bounded by MaxAlive, " +
                 "so a wave may contain more infected than can be alive simultaneously. Frozen " +
                 "at match start.",
                 new AcceptableValueRange<int>(1, 200)));
 
-        ZombieWaveGrowth = config.Bind("Zombie", "WaveGrowth", 20,
+        ZombieWaveGrowth = config.BindArena("Zombie", "WaveGrowth", 20,
             new ConfigDescription(
                 "Extra infected each wave adds over the last: wave n = WaveStartSize + WaveGrowth * (n - 1). " +
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
 
-        ZombieIntermissionSeconds = config.Bind("Zombie", "IntermissionSeconds", 10,
+        ZombieIntermissionSeconds = config.BindArena("Zombie", "IntermissionSeconds", 10,
             new ConfigDescription(
                 "Countdown before the first wave and between cleared waves (everything spawned, " +
                 "nothing from the previous wave still alive). Starts after the player/team is ready. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 60)));
 
-        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 0.75f,
+        ZombieSpawnIntervalSeconds = config.BindArena("Zombie", "SpawnIntervalSeconds", 0.75f,
             new ConfigDescription(
                 "Seconds between individual infected spawn requests while a wave is filling up to MaxAlive " +
                 "or refilling a gap a kill just opened. Lowered from the v0 default of 1.0s (2026-10-06) so " +
@@ -1255,7 +1255,7 @@ public static class Settings
                 "gap. Frozen at match start.",
                 new AcceptableValueRange<float>(0.2f, 10f)));
 
-        ZombieShooterPercent = config.Bind("Zombie", "ShooterPercent", 0,
+        ZombieShooterPercent = config.BindArena("Zombie", "ShooterPercent", 0,
             new ConfigDescription(
                 "Percent chance each spawned infected is the hard/Shooting variant (PM pistol) instead of " +
                 "normal/Fast melee. 0 keeps every infected melee; 100 makes every infected a shooter. " +
@@ -1263,17 +1263,17 @@ public static class Settings
                 "Frozen at match start.",
                 new AcceptableValueRange<int>(0, 100)));
 
-        ZombiePftFastPathEnabled = config.Bind("Zombie", "PftFastPathEnabled", true,
+        ZombiePftFastPathEnabled = config.BindArena("Zombie", "PftFastPathEnabled", true,
             "Avoid redundant PitFireTeam layer inspection for verified native Arena infected. " +
             "Standby wake-up, companions and custom brains retain the original path. " +
             "Turn off for comparison or compatibility troubleshooting; applies immediately.");
 
-        ZombieVoiceBudgetEnabled = config.Bind("Zombie", "VoiceBudgetEnabled", true,
+        ZombieVoiceBudgetEnabled = config.BindArena("Zombie", "VoiceBudgetEnabled", true,
             "Limit overlapping repetitive infected voices in Arena Zombies. " +
             "Nearby attack calls, critical sounds, AI hearing and companions keep native behavior. " +
             "Turn off for comparison; applies immediately.");
 
-        ZombieCrowdEnabled = config.Bind("Zombie", "CrowdEnabled", false,
+        ZombieCrowdEnabled = config.BindArena("Zombie", "CrowdEnabled", false,
             "Optional, harder Zombie horde behavior. Generic infected farther than 26 m may teleport " +
             "to clear, connected 12/16/22 m rings around the player. Melee infected within 80 m " +
             "skip sight casts; infected skip local avoidance and clear residual offsets. Shooters " +
@@ -1281,7 +1281,7 @@ public static class Settings
             "without crowd teleports, sight or avoidance overrides; applies immediately. " +
             "Previously moved bots stay at their current position. Existing saved choices are preserved.");
 
-        ZombieCullOffscreenAnimators = config.Bind("Zombie", "CullOffscreenAnimators", false,
+        ZombieCullOffscreenAnimators = config.BindArena("Zombie", "CullOffscreenAnimators", false,
             "Let Unity skip the body animation of a generic infected that no camera renders " +
             "(shadows included), even inside the game's own 10 m always-animate radius, the way " +
             "the game already does beyond it. The infected keeps moving and deciding; only " +
@@ -1292,7 +1292,7 @@ public static class Settings
             "starts its fall from that pose. Pays off together with HideOffscreenShadows. " +
             "Performance switch for measurement; off = native. Applies immediately.");
 
-        ZombieHideOffscreenShadows = config.Bind("Zombie", "HideOffscreenShadows", false,
+        ZombieHideOffscreenShadows = config.BindArena("Zombie", "HideOffscreenShadows", false,
             "Switch off the shadows of a generic infected while it is outside the camera's view, " +
             "so it is no longer drawn into every shadow cascade behind the player. Only Arena's " +
             "own changes are tracked and put back the moment the body is in view again, when it " +
@@ -1302,14 +1302,14 @@ public static class Settings
             "shadows from lamps behind you are not predicted and can vanish with their caster. " +
             "Performance switch for measurement; off = native. Applies immediately.");
 
-        ZombieOwnGear = config.Bind("Zombie", "OwnGear", true,
+        ZombieOwnGear = config.BindArena("Zombie", "OwnGear", true,
             "Bring your own protected equipment instead of a random Arena kit. Solo play restores " +
             "your entry loadout, including ammunition, after each cleared wave; your first death ends " +
             "the match. With PitFireTeam, own gear is required: the PMC and companions restore their " +
             "entry equipment and ammunition each wave, including a surviving PMC. Fallen squad members return " +
             "after a cleared wave; a team wipe ends the match. Frozen at match start.");
 
-        RoundKillTarget = config.Bind(
+        RoundKillTarget = config.BindArena(
             "Match",
             "RoundKillTarget",
             20,
@@ -1317,7 +1317,7 @@ public static class Settings
                 "Legacy migration only. Current rules use Deathmatch / KillLimit.",
                 new AcceptableValueRange<int>(0, 200)));
 
-        RoundTimeLimitSeconds = config.Bind(
+        RoundTimeLimitSeconds = config.BindArena(
             "Match",
             "RoundTimeLimitSeconds",
             300,
@@ -1325,7 +1325,7 @@ public static class Settings
                 "Legacy migration only. Current rules use Deathmatch / TimeLimitSeconds.",
                 new AcceptableValueRange<int>(0, 1800)));
 
-        RoundIntermissionSeconds = config.Bind(
+        RoundIntermissionSeconds = config.BindArena(
             "Match",
             "RoundIntermissionSeconds",
             15,
@@ -1333,25 +1333,25 @@ public static class Settings
                 "Deathmatch: scoreboard time between rounds (frozen before loading).",
                 new AcceptableValueRange<int>(3, 60)));
 
-        RoundRespawn = config.Bind(
+        RoundRespawn = config.BindArena(
             "Rounds",
             "RoundRespawn",
             true,
             "Respawn with a fresh kit when a round ends, at a spawn point away " +
             "from the fight. Off: keep standing where the round ended, healed up.");
 
-        DeathmatchRounds = config.Bind("Deathmatch", "Rounds", 0,
+        DeathmatchRounds = config.BindArena("Deathmatch", "Rounds", 0,
             new ConfigDescription("Rounds per match (0 = endless). Finite rounds require a kill or time limit. Frozen before loading.",
                 new AcceptableValueRange<int>(0, 100)));
-        DeathmatchKills = config.Bind("Deathmatch", "KillLimit", 0,
+        DeathmatchKills = config.BindArena("Deathmatch", "KillLimit", 0,
             new ConfigDescription("Kills per round (0 = off). FFA: first individual at the limit. All vs player: your kills. Frozen before loading.",
                 new AcceptableValueRange<int>(0, 1000)));
-        DeathmatchSeconds = config.Bind("Deathmatch", "TimeLimitSeconds", 0,
+        DeathmatchSeconds = config.BindArena("Deathmatch", "TimeLimitSeconds", 0,
             new ConfigDescription("Seconds per round (0 = off). Both limits off means continuous play. Frozen before loading.",
                 new AcceptableValueRange<int>(0, 7200)));
-        DeathmatchFreeForAll = config.Bind("Deathmatch", "FreeForAll", true,
+        DeathmatchFreeForAll = config.BindArena("Deathmatch", "FreeForAll", true,
             "True: every individual fights everyone. False: all bots fight only the player. Frozen with server acknowledgement before loading.");
-        var migrated = config.Bind("Deathmatch", "LegacyRulesMigrated", false,
+        var migrated = config.BindArena("Deathmatch", "LegacyRulesMigrated", false,
             "Internal one-time migration from Endless/Rounds; leave enabled.");
         if (!migrated.Value)
         {
@@ -1364,7 +1364,7 @@ public static class Settings
             migrated.Value = true;
         }
 
-        GunGameLadder = config.Bind(
+        GunGameLadder = config.BindArena(
             "Gun Game",
             "GunGameLadder",
             "",
@@ -1373,7 +1373,7 @@ public static class Settings
             "Read when the arena raid is armed and kept for that raid; an edit made " +
             "while a raid loads or runs applies to the next one.");
 
-        GunGameSpareMagazines = config.Bind(
+        GunGameSpareMagazines = config.BindArena(
             "Gun Game",
             "GunGameSpareMagazines",
             2,
@@ -1381,14 +1381,14 @@ public static class Settings
                 "Loaded magazines handed out with each new gun.",
                 new AcceptableValueRange<int>(0, 6)));
 
-        GunGameLoseTierOnDeath = config.Bind(
+        GunGameLoseTierOnDeath = config.BindArena(
             "Gun Game",
             "GunGameLoseTierOnDeath",
             false,
             "Drop back one tier when you die. Off by default — losing progress " +
             "to a grenade you never saw is not what makes gun game fun.");
 
-        TacticalSquadSize = config.Bind(
+        TacticalSquadSize = config.BindArena(
             "Tactical",
             "SquadSize",
             5,
@@ -1397,26 +1397,26 @@ public static class Settings
                 "all dead — or when you are.",
                 new AcceptableValueRange<int>(1, 15)));
 
-        TacticalTeamOwnGear = config.Bind("Tactical", "TeamOwnGear", true,
+        TacticalTeamOwnGear = config.BindArena("Tactical", "TeamOwnGear", true,
             "With PitFireTeam, bring your own protected PMC equipment (default) or receive an Arena kit. " +
             "Only your PMC changes; companions keep their own gear. The issued kit is restored after " +
             "your death at the next round, using the same protected round lifecycle. Survivors retain " +
             "their current equipment. No buy phase is added. Frozen at match start; solo Tactical is unchanged.");
 
-        TacticalSquadIsPmc = config.Bind(
+        TacticalSquadIsPmc = config.BindArena(
             "Tactical",
             "SquadIsPmc",
             true,
             "Send PMCs rather than scavs. PMCs are the fight this mode is built " +
             "around; scavs make a round short and cheap.");
 
-        TacticalBuySeconds = config.Bind(
+        TacticalBuySeconds = config.BindArena(
             "Tactical",
             "BuySeconds",
             20f,
             new ConfigDescription("How long the buy phase lasts.", new AcceptableValueRange<float>(5f, 90f)));
 
-        TacticalRoundSeconds = config.Bind(
+        TacticalRoundSeconds = config.BindArena(
             "Tactical",
             "RoundSeconds",
             240f,
@@ -1425,7 +1425,7 @@ public static class Settings
                 "somewhere unreachable would otherwise hold the match open forever.",
                 new AcceptableValueRange<float>(60f, 900f)));
 
-        TacticalStartMoney = config.Bind(
+        TacticalStartMoney = config.BindArena(
             "Tactical",
             "StartMoney",
             250000,
@@ -1434,19 +1434,19 @@ public static class Settings
             "have a feel for. The catalogue runs from about 180k to 590k, so this " +
             "buys the bottom third — round one is a choice, not a handout.");
 
-        TacticalKillReward = config.Bind(
+        TacticalKillReward = config.BindArena(
             "Tactical",
             "KillReward",
             35000,
             "Roubles per kill.");
 
-        TacticalWinBonus = config.Bind(
+        TacticalWinBonus = config.BindArena(
             "Tactical",
             "WinBonus",
             150000,
             "Roubles for taking a round.");
 
-        TacticalLossBonus = config.Bind(
+        TacticalLossBonus = config.BindArena(
             "Tactical",
             "LossBonus",
             80000,
@@ -1454,7 +1454,7 @@ public static class Settings
             "an unrecoverable one, which is the failure mode every game with an " +
             "economy has to design against.");
 
-        TacticalReplaySeconds = config.Bind(
+        TacticalReplaySeconds = config.BindArena(
             "Tactical",
             "ReplaySeconds",
             3f,
@@ -1469,7 +1469,7 @@ public static class Settings
         TeamDeathmatchReplaySeconds = BindReplay(config, "Team Deathmatch");
         ZombieReplaySeconds = BindReplay(config, "Zombie");
 
-        TacticalTeamRoundsToWin = config.Bind(
+        TacticalTeamRoundsToWin = config.BindArena(
             "Tactical Team",
             "RoundsToWin",
             3,
@@ -1478,14 +1478,14 @@ public static class Settings
                 "Three produces a best-of-five match; one keeps the old single-round result.",
                 new AcceptableValueRange<int>(1, 9)));
 
-        TacticalTeamSpectator = config.Bind(
+        TacticalTeamSpectator = config.BindArena(
             "Tactical Team",
             "SpectatorAfterDeath",
             true,
             "Protected PitFireTeam 5v5: follow living teammates or opponents in third person " +
             "after your PMC dies, until the round ends. The observer banner shows the selected bot's current and maximum HP.");
 
-        GunGameRedrawLadder = config.Bind(
+        GunGameRedrawLadder = config.BindArena(
             "Gun Game",
             "GunGameRedrawLadder",
             true,
@@ -1493,14 +1493,14 @@ public static class Settings
             "weapons a second time in the same raid. The new rungs are warmed in " +
             "the background, so the promotions that follow do not wait for them.");
 
-        ScaleDifficulty = config.Bind(
+        ScaleDifficulty = config.BindArena(
             "Difficulty",
             "ScaleDifficulty",
             true,
             "Let the arena push back harder as the raid goes on and as you go on " +
             "a run. Off: the fixed difficulties this mod used before.");
 
-        RespawnMinDistance = config.Bind(
+        RespawnMinDistance = config.BindArena(
             "General",
             "RespawnMinDistance",
             40,
@@ -1509,7 +1509,7 @@ public static class Settings
                 "closer than this are only used when nothing else is left.",
                 new AcceptableValueRange<int>(0, 150)));
 
-        PressureRampMinutes = config.Bind(
+        PressureRampMinutes = config.BindArena(
             "Difficulty",
             "PressureRampMinutes",
             12,
@@ -1520,7 +1520,7 @@ public static class Settings
                 "getting easier as you settle in.",
                 new AcceptableValueRange<int>(1, 60)));
 
-        PressureStreakPercent = config.Bind(
+        PressureStreakPercent = config.BindArena(
             "Difficulty",
             "PressureStreakPercent",
             35,
@@ -1529,7 +1529,7 @@ public static class Settings
                 "without dying. Dying clears this part, never the clock.",
                 new AcceptableValueRange<int>(0, 100)));
 
-        PressurePmcBonus = config.Bind(
+        PressurePmcBonus = config.BindArena(
             "Difficulty",
             "PressurePmcBonus",
             4,
@@ -1538,7 +1538,7 @@ public static class Settings
                 "A heavier mix is the gentlest way to make a raid harder.",
                 new AcceptableValueRange<int>(0, 12)));
 
-        MaxBotDifficulty = config.Bind(
+        MaxBotDifficulty = config.BindArena(
             "Difficulty",
             "MaxBotDifficulty",
             BotDifficulty.impossible,
@@ -1547,104 +1547,104 @@ public static class Settings
             "anything: this bounds the CLIMB, and anything lower is ignored rather " +
             "than quietly making the arena easier than it has ever been.");
 
-        PanelHotkey = config.Bind(
+        PanelHotkey = config.BindArena(
             "General",
             "PanelHotkey",
             new KeyboardShortcut(KeyCode.F9),
             "Opens the in-raid arena panel (scoreboard and live settings).");
 
-        GiveUpHotkey = config.Bind(
+        GiveUpHotkey = config.BindArena(
             "General",
             "GiveUpHotkey",
             new KeyboardShortcut(KeyCode.Backspace),
             "Ends the current life and respawns immediately — for when you are " +
             "bleeding out with nothing left to do. Counts as a death.");
 
-        HudEnabled = config.Bind(
+        HudEnabled = config.BindArena(
             "HUD",
             "Enabled",
             true,
             "Arena HUD (score panel, killfeed, callouts) during arena sessions.");
 
-        CombatHudEnabled = config.Bind(
+        CombatHudEnabled = config.BindArena(
             "HUD", "CombatElements", true,
             "Arena-HUD mutator: killfeed, hitmarkers (including kill skull/damage numbers), HP and weapon panels. " +
             "Preserves individual preferences; score, round notices, team markers and audio stay independent. " +
             "Requires the overall HUD/Enabled master.");
 
-        ScorePanelOffsetX = config.Bind(
+        ScorePanelOffsetX = config.BindArena(
             "HUD", "ScorePanelOffsetX", 0f,
             new ConfigDescription("Horizontal offset from the score panel's default top-center position. " +
                 "Positive moves right, negative moves left; 0 restores the default. " +
                 "Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
                 new AcceptableValueRange<float>(-500f, 500f)));
 
-        ScorePanelOffsetY = config.Bind(
+        ScorePanelOffsetY = config.BindArena(
             "HUD", "ScorePanelOffsetY", 0f,
             new ConfigDescription("Vertical offset from the score panel's default position below the quickslots. " +
                 "Positive moves down, negative moves up; 0 restores the default. " +
                 "Uses scaled 1920x1080 HUD units. Applies immediately, including the start/wait notice below it.",
                 new AcceptableValueRange<float>(-100f, 700f)));
 
-        ShowFriendlyMarkers = config.Bind(
+        ShowFriendlyMarkers = config.BindArena(
             "HUD", "ShowFriendlyMarkers", true,
             "Show a small diamond above visible friendly bots in Team Deathmatch and protected PitFireTeam squads. " +
             "Uses FriendlyTracerColor; markers are hidden behind obstacles and in ordinary raids.");
 
-        ShowKillfeed = config.Bind(
+        ShowKillfeed = config.BindArena(
             "HUD",
             "Killfeed",
             true,
             "Killfeed lines (attacker, victim, weapon, distance) in the top-left corner; leaves the top-right free for a minimap.");
 
-        KillfeedOtherKills = config.Bind(
+        KillfeedOtherKills = config.BindArena(
             "HUD",
             "KillfeedOtherKills",
             true,
             "Also show bot-vs-bot kills in the killfeed.");
 
-        KillfeedOffsetX = config.Bind(
+        KillfeedOffsetX = config.BindArena(
             "HUD", "KillfeedOffsetX", 0f,
             new ConfigDescription("Horizontal offset from the killfeed's default top-left position. " +
                 "Positive moves right, negative moves left; 0 restores the default. " +
                 "Uses scaled 1920x1080 HUD units. Applies immediately to existing and new entries.",
                 new AcceptableValueRange<float>(-500f, 1500f)));
 
-        KillfeedOffsetY = config.Bind(
+        KillfeedOffsetY = config.BindArena(
             "HUD", "KillfeedOffsetY", 0f,
             new ConfigDescription("Vertical offset from the killfeed's default position. " +
                 "Positive moves down, negative moves up; 0 restores the default. " +
                 "Uses scaled 1920x1080 HUD units. Applies immediately to existing and new entries.",
                 new AcceptableValueRange<float>(-100f, 700f)));
 
-        ShowHitmarker = config.Bind(
+        ShowHitmarker = config.BindArena(
             "HUD",
             "Hitmarker",
             true,
             "Crosshair hitmarker on dealt damage (kill and headshot variants).");
 
-        ShowDamageNumbers = config.Bind(
+        ShowDamageNumbers = config.BindArena(
             "HUD",
             "DamageNumbers",
             true,
             "Floating damage numbers at the hit position.");
 
-        CombineDamageNumbers = config.Bind("HUD", "CombineDamageNumbers", false,
+        CombineDamageNumbers = config.BindArena("HUD", "CombineDamageNumbers", false,
             "Add hits on the same target within 0.25 seconds to one floating number. " +
             "Body and armor damage stay separate. Presentation only; applies immediately.");
 
-        HitmarkerSounds = config.Bind(
+        HitmarkerSounds = config.BindArena(
             "Audio", "HitmarkerSounds", true,
             "Short Arena hit, headshot and kill sounds, independent of the visual HUD and announcer. " +
             "Replaceable PCM16 mono WAVs in BepInEx/plugins/maschine-ArenaMode/sounds/; see docs/licenses/audio/AUDIO-LICENSES.md.");
 
-        HitmarkerVolume = config.Bind(
+        HitmarkerVolume = config.BindArena(
             "Audio", "HitmarkerVolume", 0.7f,
             new ConfigDescription("Hitmarker sound volume, independent of Interface and announcer volume. " +
                 "Still respects overall game volume and mute; changes apply immediately.",
                 new AcceptableValueRange<float>(0f, 1f)));
 
-        AnnouncerEnabled = config.Bind(
+        AnnouncerEnabled = config.BindArena(
             "Audio",
             "Announcer",
             true,
@@ -1652,14 +1652,14 @@ public static class Settings
             "BepInEx/plugins/maschine-ArenaMode/announcements/. Missing sounds are skipped and logged. " +
             "Master switch: when off, the on-screen kill callouts (DOUBLE KILL, ...) are hidden too.");
 
-        AnnouncerVolume = config.Bind(
+        AnnouncerVolume = config.BindArena(
             "Audio",
             "AnnouncerVolume",
             0.7f,
             new ConfigDescription("Announcer volume, independent of Interface volume by default. " +
                 "Still respects the game's overall volume and mute.", new AcceptableValueRange<float>(0f, 1f)));
 
-        AnnouncerUseUiVolume = config.Bind(
+        AnnouncerUseUiVolume = config.BindArena(
             "Audio", "AnnouncerUseUiVolume", false,
             "Off: use the dedicated Arena output controlled by AnnouncerVolume and overall game volume. " +
             "On: restore the legacy Interface-volume output for compatibility.");
@@ -1679,20 +1679,20 @@ public static class Settings
         ZombieAnnouncerEnabled = BindAnnouncer(config, "Zombie",
             Modes.ArenaAnnouncerGate.DefaultEnabled(ArenaModeCatalog.ZombieId));
 
-        MuteLabyrinthAlarm = config.Bind(
+        MuteLabyrinthAlarm = config.BindArena(
             "Audio", "MuteLabyrinthAlarm", true,
             "Silence the repeating center siren on Labyrinth during Arena only. " +
             "Other sounds and map triggers are unchanged. Takes effect immediately; " +
             "turning this off lets an active alarm resume at its next sound cycle (about 4 seconds).");
 
-        ArenaLightingEnabled = config.Bind(
+        ArenaLightingEnabled = config.BindArena(
             "Effects",
             "ArenaLighting",
             true,
             "All Arena maps, including ported maps: add restrained runtime lighting for round starts, the final seconds, " +
             "and Tactical victory/defeat. No map bundles or shared map materials are changed.");
 
-        ArenaLightingStrength = config.Bind(
+        ArenaLightingStrength = config.BindArena(
             "Effects",
             "ArenaLightingStrength",
             1f,
@@ -1700,7 +1700,7 @@ public static class Settings
                 "Brightness multiplier for Arena's additive phase light on all supported maps (0 = invisible).",
                 new AcceptableValueRange<float>(0f, 2f)));
 
-        ArenaLightingPressureSeconds = config.Bind(
+        ArenaLightingPressureSeconds = config.BindArena(
             "Effects",
             "ArenaLightingPressureSeconds",
             30,
@@ -1708,7 +1708,7 @@ public static class Settings
                 "Turn the Arena lighting red for this many final seconds in timed Rounds and Tactical combat (0 = disabled).",
                 new AcceptableValueRange<int>(0, 120)));
 
-        ArenaLightingOutcomeSeconds = config.Bind(
+        ArenaLightingOutcomeSeconds = config.BindArena(
             "Effects",
             "ArenaLightingOutcomeSeconds",
             3f,
@@ -1716,22 +1716,22 @@ public static class Settings
                 "How long Tactical victory/defeat colors fade over the map.",
                 new AcceptableValueRange<float>(0.25f, 8f)));
 
-        ArenaLightingRespectExternalMods = config.Bind(
+        ArenaLightingRespectExternalMods = config.BindArena(
             "Effects",
             "RespectExternalLightingMods",
             true,
             "Leave Arena phase lighting off while Blackout or Going Dark is installed. " +
             "Disable this only if you deliberately want both additive effects together.");
 
-        TeamDeathmatchFriendlyFire = config.Bind("Team Deathmatch", "FriendlyFire", true,
+        TeamDeathmatchFriendlyFire = config.BindArena("Team Deathmatch", "FriendlyFire", true,
             "Allow damage between teammates. Frozen when the next Arena raid is armed; self-damage is unchanged.");
-        TacticalFriendlyFire = config.Bind("Tactical", "FriendlyFire", true,
+        TacticalFriendlyFire = config.BindArena("Tactical", "FriendlyFire", true,
             "Allow damage between teammates in PitFireTeam 5v5. Frozen at arming; solo Tactical is unchanged.");
-        ZombieFriendlyFire = config.Bind("Zombie", "FriendlyFire", false,
+        ZombieFriendlyFire = config.BindArena("Zombie", "FriendlyFire", false,
             "Allow damage between the PMC and PitFireTeam companions, including companion-to-companion damage. " +
             "Frozen at arming; solo Zombies, enemy damage and self-damage are unchanged.");
 
-        TeamTracers = config.Bind(
+        TeamTracers = config.BindArena(
             "Effects",
             "TeamTracers",
             true,
@@ -1740,14 +1740,14 @@ public static class Settings
             "Deathmatch and Tactical/Zombie squads (PitFireTeam). Deathmatch, Gun Game, solo Zombie and solo " +
             "Tactical always keep the native ammunition tracers.");
 
-        TeamLasers = config.Bind(
+        TeamLasers = config.BindArena(
             "Effects",
             "TeamLasers",
             true,
             "Team Deathmatch and protected PitFireTeam squads: color active visible weapon lasers using FriendlyTracerColor and OpponentTracerColor. " +
             "Does not switch lasers on or change infrared visibility or flashlights. Ordinary raids stay unchanged.");
 
-        VisibleLaserBrightness = config.Bind(
+        VisibleLaserBrightness = config.BindArena(
             "Effects",
             "VisibleLaserBrightness",
             3f,
@@ -1757,7 +1757,7 @@ public static class Settings
                 "Independent of team colors; does not change laser activation, IR, flashlights, width or ordinary raids.",
                 new AcceptableValueRange<float>(1f, 5f)));
 
-        VisibleLaserBeamBrightness = config.Bind(
+        VisibleLaserBeamBrightness = config.BindArena(
             "Effects",
             "VisibleLaserBeamBrightness",
             3f,
@@ -1768,19 +1768,19 @@ public static class Settings
                 "Independent of VisibleLaserBrightness; leaves IR/night-vision factors, width and ordinary raids unchanged.",
                 new AcceptableValueRange<float>(1f, 5f)));
 
-        FriendlyTracerColor = config.Bind(
+        FriendlyTracerColor = config.BindArena(
             "Effects",
             "FriendlyTracerColor",
             ArenaTracerColor.Cyan,
             "Color for friendly tracers, killfeed names and friendly markers. Team-mode lasers also use it when TeamLasers is enabled; killfeed colors do not depend on effects being enabled.");
 
-        OpponentTracerColor = config.Bind(
+        OpponentTracerColor = config.BindArena(
             "Effects",
             "OpponentTracerColor",
             ArenaTracerColor.Red,
             "Color for opposing tracers and killfeed names. Team-mode lasers also use it when TeamLasers is enabled; killfeed colors do not depend on effects being enabled.");
 
-        RagdollImpulseScale = config.Bind(
+        RagdollImpulseScale = config.BindArena(
             "Effects",
             "RagdollImpulseScale",
             5f,
