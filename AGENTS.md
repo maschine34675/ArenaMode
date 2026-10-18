@@ -532,7 +532,7 @@ Tactical mode are in and lightly tested.
 
 Open:
 
-- **M8 polish** — optional per-mode KillcamReplay is implemented; see
+- **M8 polish** — optional per-mode Killcam is implemented; see
   `docs/KILLCAM-MODES-REVIEW.md` for frozen menu selection, camera ownership and
   pending native acceptance. README and release packaging remain separate.
   Never bundle ABPS/APBS/SAIN DLLs.

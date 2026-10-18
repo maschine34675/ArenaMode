@@ -7,6 +7,13 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Killcam renamed and GPU2 checked (2026-10-18):** Arena `5d53458` now binds
+  the optional `com.maschine.Killcam` identity and rejects leftover Replay DLLs
+  as incompatible camera owners. Killcam 0.9.15 preserves old settings and
+  replaces the former DLL. A real Factory-DM death completed replay, respawn,
+  two shots and normal exit; settings/profile comparisons passed. Server/Core
+  binaries were untouched. See [rename and native evidence](KILLCAM-RENAME-20261018.md).
+
 - **Log-audit recommendations implemented and GPU2 checked (2026-10-18):**
   Arena `9769c00` quiets only successful exact settings GETs; `f64d74f` stops
   progression/new PFT roster discovery after the exact native raid begins

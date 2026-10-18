@@ -26,7 +26,7 @@ The runner additionally extracts the unchanged method text of production
 `SpectatorHealthEffects.HasExactReplayContext` into its narrow executable fixture.
 It admits cleanup only during an active Arena raid with a frozen enabled replay,
 the exact started LocalGame/GameWorld pair and its exact dead local body in both
-registries, and confirmed pending/playing/cleanup ownership by KillcamReplay.
+registries, and confirmed pending/playing/cleanup ownership by Killcam.
 Thirty-one assertions reject ordinary/disabled/stopped contexts, living or
 destroyed bodies, missing health, body replacement in either registry, stale
 native identities, and absent/idle/unreadable replay state. Three compiled
@@ -38,7 +38,7 @@ reuses the same bounded two-pass visual cleanup, including the exact
 EffectsController-bound-body check, without acquiring a spectator camera or
 mutating actual health. Native `EffectsController.cs:1230` binds `player` to the
 camera controller's body, `:48` is the visual accumulator removal path, and
-`:1488` only starts death fade/blur. KillcamReplay suppresses that death handler;
+`:1488` only starts death fade/blur. Killcam suppresses that death handler;
 it does not clear concussion/blood accumulators itself.
 
 Verification: 80 assertions and nine mutation controls passed on 2026-09-30.

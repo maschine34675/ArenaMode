@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Killcam rename, config migration and native replay/respawn acceptance](KILLCAM-RENAME-20261018.md)
 - [Implemented log-audit recommendations](LOG-FOLLOWUP-20261018.md)
 - [GPU2 log-follow-up regression and restoration](GPU-LOG-FOLLOWUP-20261018.md)
 - [Bounded native-model fault diagnostics](NATIVE-MODEL-DIAGNOSTICS-20261018.md)

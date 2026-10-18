@@ -7,7 +7,7 @@ pwsh -NoProfile -File tools/ArenaKillcamChecks/Verify.ps1
 ```
 
 The executable links the production `ArenaDeathReplayHold`,
-`ArenaReplayWaitPolicy`, `ArenaReplaySelection`, `KillcamReplayCompat`, and
+`ArenaReplayWaitPolicy`, `ArenaReplaySelection`, `KillcamCompat`, and
 `SpectatorPolicy` sources. It advances the real hold coroutine against narrow
 scene/session/time doubles. The installed-mod boundary is represented by public
 plugin/controller fixtures with the exact names and member types read by the
@@ -19,6 +19,8 @@ Coverage:
 - Bounded selection capture and clear, missing dependency and nonfinite input.
 - Missing/no recording immediate release; disabled snapshot does not probe the
   plugin; changing a setting after death cannot bypass a captured enabled hold.
+- The former KillcamReplay GUID is incompatible, whether alone or beside the
+  renamed Killcam; an obsolete camera owner must never count as absent.
 - Pending lead-in, playback, and final cleanup; safe skip without a fixed tail.
 - Camera and mode holds run concurrently; release requires both owners ready.
 - One finite, non-sliding deadline per death, retained across the second wait.
@@ -44,7 +46,7 @@ only to unique ignored artifact directories. Production passes again afterward;
 source hashes and per-case logs are retained there.
 
 This does **not** certify Unity coroutine scheduling, Mono reflection against
-the installed KillcamReplay DLL, actual replay pixels/audio, camera restoration,
+the installed Killcam DLL, actual replay pixels/audio, camera restoration,
 map-menu layout, Redeploy's native body replacement, profile persistence, or
 Tactical/PitFireTeam round transitions. Those need native build/review and game
 tests. The harness never starts the game, deploys DLLs, or writes profiles.
