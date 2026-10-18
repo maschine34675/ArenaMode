@@ -1,4 +1,0 @@
-# Preserve source license bytes and conversion manifests across Windows clones.
-*.txt -text
-*.wav -text
-SOURCES.json -text

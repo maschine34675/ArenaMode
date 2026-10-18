@@ -15,7 +15,7 @@ internal static partial class Program
         // Reserve titles are never new award keys or an accidental root override.
         // Registered like every other fixture file, or the owned-directory
         // cleanup in Main cannot remove the folder it created.
-        string reserve = Path.Combine(pluginDir, "ArenaMode", "sounds", "reserve");
+        string reserve = Path.Combine(pluginDir, "ArenaMode", "announcements", "reserve");
         Directory.CreateDirectory(reserve);
         foreach (string unused in new[] { "trickshot", "air_superiority" })
         {

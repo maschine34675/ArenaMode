@@ -1,5 +1,5 @@
 # Generates the two armor-row glyphs for the status panel: Skoll's Kevlar vest
-# and Stahlhelm (CC BY 3.0; see Assets/ArenaMode/HUD-ICON-LICENSES.md).
+# and Stahlhelm (CC BY 3.0; see Assets/Ui/NOTICE.md).
 # Deliberately a separate script, in the style of gen_grenades.ps1: rerunning
 # the four imported generators would re-encode all of the source-identical
 # icons and break their recorded hashes (tools/RaidInfoPanelChecks/SOURCE-IMPORT.json).

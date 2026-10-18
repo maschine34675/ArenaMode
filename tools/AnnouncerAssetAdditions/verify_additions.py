@@ -17,8 +17,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / 'ArenaMode.Client/Assets/ArenaMode'
 MANIFEST = 'ANNOUNCER-ADDITIONS-20260917.json'
-# 2026-10-16: reviewed path-only promotion; all 46 audio hashes/cuts retained.
-ORIGINAL_MANIFEST_SHA = 'E6B872B92A86D04D62B46698A1A75CC4254727334856F9B61D2266DD0AB76186'
+MANIFEST_DIR = Path('docs/licenses/audio')
+# 2026-10-18: reviewed audio/docs relocation; all 46 audio hashes/cuts retained.
+ORIGINAL_MANIFEST_SHA = 'DA242448F54D5CB6678CB4E87E3EDC4F3D0D39EBC890EF9E78AF22A2F4FB6AAC'
 SOURCE_SHA = '4CB17E7BAC2B3B81EA55828F2E0DB9C4337591F8670B7AAAA0BBBB7104DA1414'
 RATE, CHANNELS, FRAMES = 44100, 2, 357446
 ACTIVE = {'no_scope', 'airborne', 'no_contest', 'embarrassing'}
@@ -55,7 +56,7 @@ def verify_metadata(manifest):
         require(row['file'] not in paths and path.suffix == '.ogg', 'Repeated/non-OGG destination')
         paths.add(row['file'])
         active = path.stem in ACTIVE
-        require(path.parent.as_posix() == ('sounds' if active else 'sounds/reserve'), 'Wrong asset directory')
+        require(path.parent.as_posix() == ('announcements' if active else 'announcements/reserve'), 'Wrong asset directory')
         require(row['usage'] == ('active' if active else 'reserve'), 'Usage changed')
         require(row['eventKey'] == (path.stem if active else None), 'Event mapping changed')
         require(abs(row['durationSeconds'] - (row['endFrameExclusive']-row['startFrame'])/RATE) < 1e-8,
@@ -64,7 +65,7 @@ def verify_metadata(manifest):
 
 
 def verify_originals(assets):
-    original = assets / 'ANNOUNCER-SOURCES.json'
+    original = assets / MANIFEST_DIR / 'ANNOUNCER-SOURCES.json'
     # Git may check this reviewed text manifest out as CRLF on Windows. Pin its
     # LF content; keep every recording's checksum byte-exact below.
     manifest_sha = hashlib.sha256(original.read_bytes().replace(b'\r\n', b'\n')).hexdigest().upper()
@@ -127,8 +128,9 @@ def negative_controls(manifest, assets, original_assets):
             rejected += 1
         else:
             raise ValueError('Output corruption was accepted')
-        original_manifest = original_assets/'ANNOUNCER-SOURCES.json'
-        shutil.copy2(original_manifest, scratch/'ANNOUNCER-SOURCES.json')
+        original_manifest = original_assets/MANIFEST_DIR/'ANNOUNCER-SOURCES.json'
+        (scratch/MANIFEST_DIR).mkdir(parents=True, exist_ok=True)
+        shutil.copy2(original_manifest, scratch/MANIFEST_DIR/'ANNOUNCER-SOURCES.json')
         originals = json.loads(original_manifest.read_text(encoding='utf-8'))['files']
         for original in originals:
             dst = scratch/original['file']
@@ -153,7 +155,7 @@ def main():
     parser.add_argument('--original-assets', type=Path, default=ASSETS)
     parser.add_argument('--negative-controls', action='store_true')
     args = parser.parse_args()
-    manifest = json.loads((args.assets/MANIFEST).read_text(encoding='utf-8'))
+    manifest = json.loads((args.assets/MANIFEST_DIR/MANIFEST).read_text(encoding='utf-8'))
     verify_metadata(manifest)
     originals = verify_originals(args.original_assets)
     measured = [verify_clip(args.assets,row) for row in manifest['files']]

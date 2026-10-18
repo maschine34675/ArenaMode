@@ -52,10 +52,10 @@ internal static class AnnouncerAssetContract
         "trickshot air_superiority".Split(' '), StringComparer.Ordinal);
 
     internal static JsonObject Read(string assets)
-        => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, "ANNOUNCER-SOURCES.json")))!.AsObject();
+        => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, "docs", "licenses", "audio", "ANNOUNCER-SOURCES.json")))!.AsObject();
 
     internal static JsonObject ReadAdditions(string assets)
-        => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, AdditionsManifest)))!.AsObject();
+        => JsonNode.Parse(File.ReadAllText(Path.Combine(assets, "docs", "licenses", "audio", AdditionsManifest)))!.AsObject();
 
     /// <summary>
     /// The supplement's own record: provenance, exactly the six reviewed
@@ -80,10 +80,10 @@ internal static class AnnouncerAssetContract
         {
             var row = node!.AsObject();
             string path = row["file"]!.GetValue<string>();
-            Require(Regex.IsMatch(path, @"\Asounds/(?:reserve/)?[a-z0-9_]+\.ogg\z"), "unsafe addition path");
+            Require(Regex.IsMatch(path, @"\Aannouncements/(?:reserve/)?[a-z0-9_]+\.ogg\z"), "unsafe addition path");
             string basename = Path.GetFileNameWithoutExtension(path);
             bool isActive = row["usage"]!.GetValue<string>() == "active";
-            Require(isActive == !path.StartsWith("sounds/reserve/", StringComparison.Ordinal),
+            Require(isActive == !path.StartsWith("announcements/reserve/", StringComparison.Ordinal),
                 "wrong addition loading scope");
             Require(!string.IsNullOrWhiteSpace(row["spoken"]?.GetValue<string>()), "missing addition spoken label");
             if (isActive)
@@ -112,8 +112,8 @@ internal static class AnnouncerAssetContract
     }
 
     private static IEnumerable<string> AdditionPaths()
-        => AdditionActiveKeys.Select(key => "sounds/" + key + ".ogg")
-            .Concat(AdditionReserveKeys.Select(key => "sounds/reserve/" + key + ".ogg"));
+        => AdditionActiveKeys.Select(key => "announcements/" + key + ".ogg")
+            .Concat(AdditionReserveKeys.Select(key => "announcements/reserve/" + key + ".ogg"));
 
     internal static void Validate(string assets, JsonObject manifest)
     {
@@ -135,7 +135,7 @@ internal static class AnnouncerAssetContract
         {
             var row = node!.AsObject();
             string path = row["file"]!.GetValue<string>();
-            Require(Regex.IsMatch(path, @"\Asounds/(?:reserve/)?[a-z0-9_]+\.ogg\z"), "unsafe asset path");
+            Require(Regex.IsMatch(path, @"\Aannouncements/(?:reserve/)?[a-z0-9_]+\.ogg\z"), "unsafe asset path");
             Require(paths.Add(path), "duplicate asset path");
             string usage = row["usage"]!.GetValue<string>();
             bool active = usage == "active";
@@ -143,7 +143,7 @@ internal static class AnnouncerAssetContract
             // Keep the historical intake classification while the 19 subsequently
             // enabled cues now ship at the root alongside the original active set.
             bool promoted = ReserveRuntimeBindings.ContainsKey(Path.GetFileNameWithoutExtension(path));
-            Require((active || promoted) == !path.StartsWith("sounds/reserve/", StringComparison.Ordinal), "wrong loading scope");
+            Require((active || promoted) == !path.StartsWith("announcements/reserve/", StringComparison.Ordinal), "wrong loading scope");
             string? key = row["eventKey"]?.GetValue<string>();
             string? runtimeKey = row["runtimeEventKey"]?.GetValue<string>();
             Require(!string.IsNullOrWhiteSpace(row["spoken"]?.GetValue<string>()), "missing spoken label");
@@ -182,7 +182,7 @@ internal static class AnnouncerAssetContract
         }
         Require(keys.SetEquals(ActiveKeys) && reserved == 28 && rows.Count == 46, "active/reserve cue set differs");
         Require(runtimeKeys.SetEquals(ReserveRuntimeBindings.Keys) && unbound == 9, "runtime/unbound reserve cue set differs");
-        var actual = Directory.GetFiles(Path.Combine(assets, "sounds"), "*.ogg", SearchOption.AllDirectories)
+        var actual = Directory.GetFiles(Path.Combine(assets, "announcements"), "*.ogg", SearchOption.AllDirectories)
             .Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/'));
         // Coverage spans both records: an installed file recorded in neither is
         // still an unrecorded cue, which is the property this protects.
@@ -195,9 +195,9 @@ internal static class AnnouncerAssetContract
     {
         var paths = files.Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/')).ToArray();
         Require(paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() == paths.Length, "duplicate runtime load path");
-        var expected = new HashSet<string>(ActiveKeys.Select(key => "sounds/" + key + ".ogg"), StringComparer.Ordinal);
-        expected.UnionWith(AdditionActiveKeys.Select(key => "sounds/" + key + ".ogg"));
-        expected.UnionWith(ReserveRuntimeBindings.Keys.Select(key => "sounds/" + key + ".ogg"));
+        var expected = new HashSet<string>(ActiveKeys.Select(key => "announcements/" + key + ".ogg"), StringComparer.Ordinal);
+        expected.UnionWith(AdditionActiveKeys.Select(key => "announcements/" + key + ".ogg"));
+        expected.UnionWith(ReserveRuntimeBindings.Keys.Select(key => "announcements/" + key + ".ogg"));
         // 18 original active + 4 reviewed additions + 19 bound reserve. The two
         // reserve additions are absent from the allowlist and must stay unloaded.
         Require(expected.SetEquals(paths) && paths.Length == 41, "runtime loaded cue set differs");

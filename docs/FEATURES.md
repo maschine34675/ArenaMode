@@ -496,7 +496,7 @@ Sources: [cue catalog](../ArenaMode.Client/Audio/AnnouncerCueCatalog.cs),
 [award conditions](../ArenaMode.Client/Combat/ArenaCombatAwards.cs),
 [shot awards](../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs),
 [announcement policy](../ArenaMode.Client/Audio/ArenaAnnouncementPolicy.cs),
-[audio provenance/playback notes](../ArenaMode.Client/Assets/ArenaMode/AUDIO-LICENSES.md).
+[audio provenance/playback notes](../ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/AUDIO-LICENSES.md).
 
 ## 9. Death, replay, spectating and exit
 

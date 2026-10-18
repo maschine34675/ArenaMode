@@ -60,6 +60,7 @@ for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent su
                      ("cc-credit", "readable named attribution")):
     folder = output / name
     shutil.copytree(source, folder)
+    shutil.copyfile(repo / "ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC-BY-3.0.txt", folder / "CC-BY-3.0.txt")
     manifest_file = folder / "SOURCES.json"
     manifest = json.loads(manifest_file.read_text(encoding="utf-8-sig"))
     if name in ("color", "opaque"):
@@ -101,5 +102,5 @@ for name, reason in (("color", "tint-neutral white"), ("opaque", "transparent su
         (folder / "assault-rifle.png").write_bytes(png)
         next(entry for entry in manifest["assets"] if entry["file"] == "assault-rifle.png")["sha256"] = hashlib.sha256(png).hexdigest()
     manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
-    expect_failure(lambda: validate(repo, folder), reason)
+    expect_failure(lambda: validate(repo, folder, folder / "CC-BY-3.0.txt"), reason)
 print("ARTWORK VALIDATOR CONTROLS PASSED (14 invalid inputs)")

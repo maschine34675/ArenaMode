@@ -27,7 +27,7 @@
       "sourceUrl": "https://game-icons.net/1x1/skoll/kevlar-vest.html",
       "license": "CC BY 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
-      "attribution": "ArenaMode.Client/Assets/ArenaMode/HUD-ICON-LICENSES.md",
+      "attribution": "ArenaMode.Client/Assets/Ui/NOTICE.md",
       "changes": "Unchanged SVG shape rasterized to transparent 64x64 PNG; white silhouette alpha reduced to 232/255."
     },
     {
@@ -41,7 +41,7 @@
       "sourceUrl": "https://game-icons.net/1x1/skoll/stahlhelm.html",
       "license": "CC BY 3.0",
       "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
-      "attribution": "ArenaMode.Client/Assets/ArenaMode/HUD-ICON-LICENSES.md",
+      "attribution": "ArenaMode.Client/Assets/Ui/NOTICE.md",
       "changes": "Unchanged SVG shape rasterized to transparent 64x64 PNG; white silhouette alpha reduced to 232/255."
     }
   ]

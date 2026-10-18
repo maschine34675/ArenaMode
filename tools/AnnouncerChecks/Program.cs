@@ -27,7 +27,7 @@ internal static partial class Program
         var context = new QueuedContext();
         // Spaces, a fragment delimiter and percent are deliberate file-URI cases.
         var pluginDir = Path.Combine(Path.GetTempPath(), "Arena announcer #50% " + Guid.NewGuid().ToString("N"));
-        var soundDir = Path.Combine(pluginDir, "ArenaMode", "sounds");
+        var soundDir = Path.Combine(pluginDir, "ArenaMode", "announcements");
         var paths = new[] { "double_kill.ogg", "triple_kill.ogg", "godlike.ogg" }
             .Select(file => Path.Combine(soundDir, file)).ToArray();
         try
@@ -320,7 +320,7 @@ internal static partial class Program
         Assert(sounds.PlayRequests.Count == plays,
             "A failed managed capture cannot leak the decoder-owned clip into playback.");
         AnnouncerService.Detach();
-        File.Delete(Path.Combine(pluginDir, "ArenaMode", "sounds", "pcm_capture_failure.ogg"));
+        File.Delete(Path.Combine(pluginDir, "ArenaMode", "announcements", "pcm_capture_failure.ogg"));
 
         AddClip(pluginDir, "runtime_readback_failure");
         AnnouncerService.EnsureLoaded();
@@ -998,7 +998,7 @@ internal static partial class Program
 
     private static void AddClip(string pluginDirectory, string key)
     {
-        var path = Path.Combine(pluginDirectory, "ArenaMode", "sounds", key + ".ogg");
+        var path = Path.Combine(pluginDirectory, "ArenaMode", "announcements", key + ".ogg");
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllText(path, "controlled fake audio request");
         CreatedFiles.Add(path);

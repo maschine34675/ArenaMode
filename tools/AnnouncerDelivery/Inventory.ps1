@@ -29,18 +29,16 @@ function ConvertTo-AnnouncerCanonicalInventory([hashtable]$Inventory, [string]$S
     $canonical = [IO.Path]::GetFullPath((Join-Path $SptRoot 'BepInEx/plugins/maschine-ArenaMode'))
     $legacy = [IO.Path]::GetFullPath((Join-Path $SptRoot 'BepInEx/plugins/ArenaMode')) + [IO.Path]::DirectorySeparatorChar
     $flat = [IO.Path]::GetFullPath((Join-Path $SptRoot 'BepInEx/plugins'))
-    $notices = @('ANNOUNCER-ADDITIONS-20260917.json', 'ANNOUNCER-PACK.md', 'ANNOUNCER-SOURCES.json',
-        'AUDIO-LICENSES.md', 'CC-BY-3.0.txt', 'HUD-ICON-LICENSES.md')
     $result = @{}
     $priorities = @{}
     $moves = Get-ArenaNoticeMoves
     $retired = Get-ArenaRetiredNotices
     foreach ($path in $Inventory.Keys) {
         $target = $path
-        $priority = 4
+        $priority = 8
         if ($path.StartsWith($legacy, [StringComparison]::OrdinalIgnoreCase)) {
             $target = Join-Path $canonical $path.Substring($legacy.Length)
-            $priority = 2
+            $priority = 7
         } elseif ([IO.Path]::GetDirectoryName($path) -eq $flat -and
             [IO.Path]::GetFileName($path) -match '^maschine-ArenaMode\.(Client|BigBrainCompat)\.(dll|pdb)$') {
             $target = Join-Path $canonical ([IO.Path]::GetFileName($path))
@@ -51,9 +49,10 @@ function ConvertTo-AnnouncerCanonicalInventory([hashtable]$Inventory, [string]$S
             if ($relative -in $retired) { continue }
             if ($moves.Contains($relative)) {
                 $target = Join-Path $canonical $moves[$relative]
-                $priority = if ($priority -eq 4) { 2 } else { 1 }
-            } elseif ($relative -in $moves.Values) {
-                $priority = if ($priority -eq 4) { 4 } else { 3 }
+                # Most recent canonical docs beat the earlier root alias. All
+                # final paths still beat every alias, independent of hash order.
+                $priority = if ($priority -eq 8) { 4 } else { 2 }
+                if ($relative.StartsWith('docs/', [StringComparison]::OrdinalIgnoreCase)) { $priority++ }
             }
         }
         # A canonical copy wins during migration; the shared deployer performs

@@ -41,7 +41,7 @@ internal static partial class Program
         Assert(sounds.PlayRequests.Count == before + 1 && sounds.PlayRequests[^1].Clip.Name == "round_won",
             "A missing optional Clutch preserves the established win recording.");
 
-        string soundsDir = Path.Combine(pluginDir, "ArenaMode", "sounds");
+        string soundsDir = Path.Combine(pluginDir, "ArenaMode", "announcements");
         foreach (var cue in OptionalCues) AddExpansionFile(Path.Combine(soundsDir, "reserve", cue.Key + ".ogg"));
         string[] excluded = { "round_won", "round_lost", "victory", "defeat", "your_flag_has_been_taken",
             "enemy_flag_taken", "flag_dropped", "flag_returned", "flag_captured", "unknown_bonus" };

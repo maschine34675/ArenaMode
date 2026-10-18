@@ -43,11 +43,21 @@ internal static class AssetContracts
                 if(ui)candidate.Add(name,embedded);
             }
             Validate(candidate,"client");
-            foreach(string name in new[]{"NOTICE.md","SOURCES.json","MIT-LICENSE.txt","CC-BY-3.0.txt"})
+            string licenseRoot=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(clientAssembly))!,"maschine-ArenaMode","docs","licenses");
+            foreach(string name in new[]{"MIT-LICENSE.txt","CC-BY-3.0.txt"})
             {
-                string path=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(clientAssembly))!,"ArenaMode","Ui",name);
+                string path=name=="CC-BY-3.0.txt"?Path.Combine(licenseRoot,name):Path.Combine(licenseRoot,"ui",name);
                 Need(File.Exists(path)&&File.ReadAllBytes(path).SequenceEqual(resources["ArenaMode.Ui."+name]),"readable output notice matches embedded "+name);
             }
+            // Packaged notices have rewritten links and scope; embedded source
+            // notices still match byte-for-byte in Validate(candidate) above.
+            string notice=File.ReadAllText(Path.Combine(licenseRoot,"ui","NOTICE.md"));
+            foreach(string credit in new[]{"Lorc","Skoll","SOURCES.json","CC-BY-3.0.txt"})
+                Need(notice.Contains(credit,StringComparison.Ordinal),"readable output retains credit "+credit);
+            using var outputSources=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(licenseRoot,"ui","SOURCES.json")));
+            using var sourceSources=JsonDocument.Parse(resources["ArenaMode.Ui.SOURCES.json"]);
+            Need(JsonElement.DeepEquals(outputSources.RootElement.GetProperty("assets"),sourceSources.RootElement.GetProperty("assets")),"readable provenance retains all embedded asset records");
+            Need(outputSources.RootElement.GetProperty("packageScope").GetString().Contains("embedded",StringComparison.OrdinalIgnoreCase),"readable provenance identifies embedded resources");
             Console.WriteLine("STAGED CLIENT UI RESOURCES VERIFIED");
         }
         return checks;

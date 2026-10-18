@@ -16,8 +16,9 @@ namespace ArenaMode.Audio
     {
         internal static int Loads;
         internal static bool Fail;
+        internal static string LastPath;
         internal static HitmarkerPcmClip Load(string path)
-        { Loads++; if(Fail) throw new IOException("missing cue"); return new(); }
+        { LastPath=path; Loads++; if(Fail) throw new IOException("missing cue"); return new(); }
         internal object GetRuntime()=>this;
         internal void ResetRuntime() { }
     }
@@ -31,6 +32,8 @@ internal static partial class Program
         ArenaMode.Pickups.ArenaPickupSettings.SoundVolume.Value=.7f;
         Ready(); int before=ArenaMode.Audio.ArenaMasterAudioOutput.Requests;
         Move(_local,0); Check(ArenaMode.Audio.ArenaMasterAudioOutput.Requests==before+1,"successful local collection plays once");
+        Check(ArenaMode.Audio.HitmarkerPcmClip.LastPath==Path.Combine(Scratch,"ArenaMode","sounds","collect.wav"),
+            "pickup cue uses the shared effects folder");
         Step(); Check(ArenaMode.Audio.ArenaMasterAudioOutput.Requests==before+1,"standing in cooldown cannot replay sound");
         Ready(); var bot=Bot("audio-bot",-3); Step(); before=ArenaMode.Audio.ArenaMasterAudioOutput.Requests;
         Move(bot,0); Check(ArenaMode.Audio.ArenaMasterAudioOutput.Requests==before,"bot collection is silent");

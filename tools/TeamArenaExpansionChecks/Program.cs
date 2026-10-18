@@ -1152,10 +1152,10 @@ internal static class Program
             ("wrong cue hash", pack => Cue(pack, "round_start")["sha256"] = new string('0', 64), "cue checksum differs"),
             ("unsafe cue path", pack => Cue(pack, "round_start")["file"] = "../round_start.ogg", "unsafe asset path"),
             ("duplicate cue path", pack => pack["files"]!.AsArray().Add(Cue(pack, "round_start").DeepClone()), "duplicate asset path"),
-            ("missing cue", pack => { var cue = Cue(pack, "round_start"); cue["file"] = "sounds/nonexistent_test_cue.ogg"; cue["eventKey"] = "nonexistent_test_cue"; }, "missing or empty cue"),
+            ("missing cue", pack => { var cue = Cue(pack, "round_start"); cue["file"] = "announcements/nonexistent_test_cue.ogg"; cue["eventKey"] = "nonexistent_test_cue"; }, "missing or empty cue"),
             ("wrong event mapping", pack => Cue(pack, "round_start")["eventKey"] = "round_lost", "event/file mapping differs"),
             ("unreviewed round-won alternative", pack => Cue(pack, "round_won")["spoken"] = "ROUND WON", "reviewed lifecycle mapping differs"),
-            ("reserve file loaded as active", pack => Cue(pack, "round_start")["file"] = "sounds/reserve/round_start.ogg", "wrong loading scope"),
+            ("reserve file loaded as active", pack => Cue(pack, "round_start")["file"] = "announcements/reserve/round_start.ogg", "wrong loading scope"),
             ("reserve event", pack => pack["files"]!.AsArray().Select(row => row!.AsObject()).First(row => row["usage"]!.GetValue<string>() == "reserve")["eventKey"] = "reserved", "reserve cue has an event"),
             ("missing lifecycle cue", pack => pack["files"]!.AsArray().Remove(Cue(pack, "round_won")), "active/reserve cue set differs"),
             ("missing optional runtime binding", pack => Reserve(pack, "prepare_to_fight").Remove("runtimeEventKey"), "missing reserve runtime binding"),
@@ -1176,7 +1176,7 @@ internal static class Program
             ("optional cue hash", pack => Reserve(pack, "clutch")["sha256"] = new string('0', 64), "cue checksum differs"),
             ("optional reviewed speech", pack => Reserve(pack, "clutch")["spoken"] = "VICTORY", "reviewed reserve label differs"),
             ("promoted reserve intake", pack => Reserve(pack, "clutch")["usage"] = "active", "active cue has a reserve runtime binding"),
-            ("used cue left in reserve", pack => Reserve(pack, "clutch")["file"] = "sounds/reserve/clutch.ogg", "wrong loading scope")
+            ("used cue left in reserve", pack => Reserve(pack, "clutch")["file"] = "announcements/reserve/clutch.ogg", "wrong loading scope")
         };
         foreach (var fault in faults)
         {
@@ -1199,15 +1199,15 @@ internal static class Program
             .Select(row => row!.AsObject()).Single(row => row["file"]?.GetValue<string>() == path);
         var additionFaults = new (string Name, Action<JsonObject> Change, string Failure)[]
         {
-            ("addition hash", pack => Addition(pack, "sounds/no_contest.ogg")["sha256"] = new string('0', 64),
+            ("addition hash", pack => Addition(pack, "announcements/no_contest.ogg")["sha256"] = new string('0', 64),
                 "addition checksum differs"),
-            ("addition promoted out of reserve", pack => Addition(pack, "sounds/reserve/trickshot.ogg")["usage"] = "active",
+            ("addition promoted out of reserve", pack => Addition(pack, "announcements/reserve/trickshot.ogg")["usage"] = "active",
                 "wrong addition loading scope"),
-            ("addition renamed to an original", pack => Addition(pack, "sounds/no_contest.ogg")["file"] = "sounds/godlike.ogg",
+            ("addition renamed to an original", pack => Addition(pack, "announcements/no_contest.ogg")["file"] = "announcements/godlike.ogg",
                 "addition event/file mapping differs"),
-            ("addition event drift", pack => Addition(pack, "sounds/airborne.ogg")["eventKey"] = "trickshot",
+            ("addition event drift", pack => Addition(pack, "announcements/airborne.ogg")["eventKey"] = "trickshot",
                 "addition event/file mapping differs"),
-            ("reserve addition given an event", pack => Addition(pack, "sounds/reserve/air_superiority.ogg")["eventKey"] = "air_superiority",
+            ("reserve addition given an event", pack => Addition(pack, "announcements/reserve/air_superiority.ogg")["eventKey"] = "air_superiority",
                 "reserve addition has an event"),
             ("addition dropped", pack => pack["files"]!.AsArray().RemoveAt(0), "addition cue set differs"),
             ("addition provenance", pack => pack["rights"] = " ", "missing addition provenance: rights"),
@@ -1224,9 +1224,9 @@ internal static class Program
         AnnouncerAssetContract.ValidateAdditions(assets, additions);
         Assert(true, "unmodified addition manifest still passes after negative controls");
 
-        string[] loaded = AnnouncerCueCatalog.LoadPaths(Path.Combine(assets, "sounds"));
+        string[] loaded = AnnouncerCueCatalog.LoadPaths(Path.Combine(assets, "announcements"));
         AnnouncerAssetContract.ValidateLoadedPaths(assets, loaded);
-        Assert(true, "production loader selects all 41 reviewed used files from sounds without reserve alternatives");
+        Assert(true, "production loader selects all 41 reviewed used files from announcements without reserve alternatives");
         Assert(AnnouncerCueCatalog.LegacyReserveKeys.Length == 19
                && AnnouncerCueCatalog.LegacyReserveKeys.ToHashSet(StringComparer.Ordinal).SetEquals(AnnouncerAssetContract.ReserveRuntimeBindings.Keys),
             "production catalog allowlist matches the independent reviewed 19-cue contract");
@@ -1254,9 +1254,9 @@ internal static class Program
         var loadedFaults = new (string Name, string[] Paths, string Failure)[]
         {
             ("duplicate loaded key", loaded.Append(loaded[0]).ToArray(), "duplicate runtime load path"),
-            ("alternate result collision", loaded.Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/') == "sounds/round_won.ogg"
-                ? Path.Combine(assets, "sounds/reserve/round_won.ogg") : file).ToArray(), "runtime loaded cue set differs"),
-            ("CTF recursively loaded", loaded.Append(Path.Combine(assets, "sounds/reserve/flag_captured.ogg")).ToArray(), "runtime loaded cue set differs"),
+            ("alternate result collision", loaded.Select(file => Path.GetRelativePath(assets, file).Replace('\\', '/') == "announcements/round_won.ogg"
+                ? Path.Combine(assets, "announcements/reserve/round_won.ogg") : file).ToArray(), "runtime loaded cue set differs"),
+            ("CTF recursively loaded", loaded.Append(Path.Combine(assets, "announcements/reserve/flag_captured.ogg")).ToArray(), "runtime loaded cue set differs"),
             ("missing optional loaded file", loaded.Where(file => Path.GetFileName(file) != "clutch.ogg").ToArray(), "runtime loaded cue set differs")
         };
         foreach (var fault in loadedFaults)
@@ -1302,7 +1302,7 @@ internal static class Program
         string match = Read(root, "ArenaMode.Client", "Modes", "ArenaMatch.cs");
         string announcer = Read(root, "ArenaMode.Client", "Audio", "AnnouncerService.cs");
         string announcerCatalog = Read(root, "ArenaMode.Client", "Audio", "AnnouncerCueCatalog.cs");
-        string audioLicenses = Read(root, "ArenaMode.Client", "Assets", "ArenaMode", "AUDIO-LICENSES.md");
+        string audioLicenses = Read(root, "ArenaMode.Client", "Assets", "ArenaMode", "docs", "licenses", "audio", "AUDIO-LICENSES.md");
         string combat = Read(root, "ArenaMode.Client", "Combat", "CombatPatches.cs");
         string respawn = Read(root, "ArenaMode.Client", "Respawn", "ArenaRespawnDriver.cs");
         string matchService = Read(root, "ArenaMode.Client", "Modes", "ArenaMatchService.cs");
@@ -1608,7 +1608,7 @@ internal static class Program
         Assert(menuSelection.IndexOf("IsSelected = true", StringComparison.Ordinal)
                < menuSelection.IndexOf("Audio.AnnouncerService.EnsureLoaded()", StringComparison.Ordinal),
             "selecting Arena starts announcer preload before map and raid loading");
-        RequireAll(audioLicenses, "ANNOUNCER-SOURCES.json", "ANNOUNCER-PACK.md");
+        RequireAll(audioLicenses, "ANNOUNCER-SOURCES.json", "ANNOUNCER-ADDITIONS-20260917.json");
         CheckAnnouncerAssets(Path.Combine(root, "ArenaMode.Client", "Assets", "ArenaMode"));
 
         RequireAll(pursuit,

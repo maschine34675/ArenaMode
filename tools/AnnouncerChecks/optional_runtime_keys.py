@@ -7,7 +7,7 @@ OPTIONAL = frozenset('prepare_to_fight three two one taken_the_lead lost_the_lea
 
 
 def runtime_key(relative):
-    prefix, suffix = 'sounds/', '.ogg'
+    prefix, suffix = 'announcements/', '.ogg'
     if relative.startswith(prefix) and relative.endswith(suffix):
         key = relative[len(prefix):-len(suffix)]
         if key in OPTIONAL:

@@ -45,7 +45,7 @@ def main():
         if start != previous or end <= start or end > FRAMES:
             raise ValueError('Cuts must cover the source exactly once and in order')
         path = OUTPUT / relative
-        if not path.resolve().is_relative_to(OUTPUT.resolve()) or not relative.startswith('sounds/') or relative in paths:
+        if not path.resolve().is_relative_to(OUTPUT.resolve()) or not relative.startswith('announcements/') or relative in paths:
             raise ValueError('Unsafe or repeated output path')
         paths.add(relative)
         previous = end
@@ -74,6 +74,7 @@ def main():
             'word timestamps. The complete source is covered without gaps or overlaps. No GPU listening test.',
         'originalPackManifest': 'ANNOUNCER-SOURCES.json (46 recordings remain byte-identical)',
         'encoder': subprocess.check_output(['ffmpeg', '-version'], text=True).splitlines()[0],
+        'filePathBase': 'ArenaMode asset root (three directories above this source manifest); packaged manifests use document-relative paths.',
         'files': []}
     for number, (label, relative, start, end) in enumerate(CUTS, 1):
         out = OUTPUT / relative
@@ -93,7 +94,8 @@ def main():
             'startFrame': start, 'endFrameExclusive': end, 'durationSeconds': duration,
             'sha256': sha(out.read_bytes())})
         print(f'{number} {label} -> {relative}: {duration:.6f}s')
-    (OUTPUT / MANIFEST).write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
+    (OUTPUT / 'docs/licenses/audio').mkdir(parents=True, exist_ok=True)
+    (OUTPUT / 'docs/licenses/audio' / MANIFEST).write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     print('ANNOUNCER_ADDITIONS_SPLIT: review before copying to tracked assets')
 
 

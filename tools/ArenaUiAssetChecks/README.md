@@ -26,8 +26,10 @@ logs and illustrative SVGs under `artifacts/ui-asset-checks/<id>`.
 
 With `-ClientAssembly`, PE metadata is read without executing the assembly. Its
 exact 22 UI resources (18 images and four attribution/license files) must match the
-validated current sources; the four readable `ArenaMode/Ui` notices beside the
-DLL must match the embedded copies. The normal product build retains the
+validated current sources. Readable notices are under `maschine-ArenaMode/docs/licenses`:
+the shared CC-BY text and UI MIT text must match their embedded copies;
+rewritten UI notice links and provenance scope must retain attribution and every
+embedded asset record. The normal product build retains the
 existing suppressible asset-deploy boundary for these notices.
 
 The integration runner executes the existing server and UI regression checks,

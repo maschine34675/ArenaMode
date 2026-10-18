@@ -21,7 +21,6 @@ $plugins = [IO.Path]::GetFullPath((Join-Path $SptPath 'BepInEx/plugins'))
 $legacy = Join-Path $plugins 'ArenaMode'
 $canonical = Join-Path $plugins 'maschine-ArenaMode'
 $backup = Join-Path $SptPath ('BepInEx/backups/maschine-ArenaMode-layout/' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N'))
-$notices = @('ANNOUNCER-ADDITIONS-20260917.json', 'ANNOUNCER-PACK.md', 'ANNOUNCER-SOURCES.json', 'AUDIO-LICENSES.md', 'CC-BY-3.0.txt', 'HUD-ICON-LICENSES.md')
 
 function Assert-SafePath([string]$Path) {
     $full = [IO.Path]::GetFullPath($Path)
@@ -102,6 +101,7 @@ foreach ($entry in $noticeMoves.GetEnumerator()) {
 }
 foreach ($root in @($canonical, $legacy)) {
     foreach ($relative in Get-ArenaRetiredNotices) {
+        [void]$ownedAssets.Add($relative)
         $source = Join-Path $root $relative
         if (Test-Path -LiteralPath $source -PathType Container) { throw "Retired notice is a directory: $source" }
     }
@@ -178,7 +178,8 @@ foreach ($entry in $noticeMoves.GetEnumerator()) {
     } else { Archive-File $old ('notices/' + $entry.Key) }
 }
 foreach ($relative in Get-ArenaRetiredNotices) { Archive-File (Join-Path $canonical $relative) ('retired/' + $relative) }
-foreach ($relative in @('MapPreviews/Source', 'MapPreviews', 'Ui')) {
+foreach ($relative in @('MapPreviews/Source', 'MapPreviews', 'Ui', 'hitmarkers', 'pickups',
+    'docs/licenses/hitmarkers', 'docs/licenses/pickups', 'sounds/reserve')) {
     $directory = Join-Path $canonical $relative
     Assert-SafePath $directory
     if ((Test-Path -LiteralPath $directory -PathType Container) -and @(Get-ChildItem -LiteralPath $directory -Force).Count -eq 0) {

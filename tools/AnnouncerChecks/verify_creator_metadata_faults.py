@@ -18,15 +18,16 @@ def reject(name, action, expected):
 
 
 def verify_inventory_faults(manifest):
-    supplement = json.loads((ASSETS / ADDITIONS.MANIFEST).read_text(encoding='utf-8'))
+    supplement = json.loads((ASSETS / ADDITIONS.MANIFEST_DIR / ADDITIONS.MANIFEST).read_text(encoding='utf-8'))
     paths = verify_inventory(ASSETS, manifest, supplement)
     if len(paths) != 52:
         raise AssertionError('Reviewed 46+6 positive control failed')
     rejected = 0
     with tempfile.TemporaryDirectory(prefix='arena-creator-inventory-') as temporary:
         assets = Path(temporary)
-        shutil.copy2(ASSETS / 'ANNOUNCER-SOURCES.json', assets / 'ANNOUNCER-SOURCES.json')
-        shutil.copy2(ASSETS / ADDITIONS.MANIFEST, assets / ADDITIONS.MANIFEST)
+        (assets / ADDITIONS.MANIFEST_DIR).mkdir(parents=True)
+        shutil.copy2(ASSETS / ADDITIONS.MANIFEST_DIR / 'ANNOUNCER-SOURCES.json', assets / ADDITIONS.MANIFEST_DIR / 'ANNOUNCER-SOURCES.json')
+        shutil.copy2(ASSETS / ADDITIONS.MANIFEST_DIR / ADDITIONS.MANIFEST, assets / ADDITIONS.MANIFEST_DIR / ADDITIONS.MANIFEST)
         for name in paths:
             target = assets / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -36,7 +37,7 @@ def verify_inventory_faults(manifest):
         # Git may check out this TEXT manifest as LF or CRLF. Both must retain
         # the reviewed canonical pin; audio bytes and semantic mutations remain
         # exact. Exercise temporary copies only, never rewrite the source pack.
-        manifest_path = assets / 'ANNOUNCER-SOURCES.json'
+        manifest_path = assets / ADDITIONS.MANIFEST_DIR / 'ANNOUNCER-SOURCES.json'
         original_bytes = manifest_path.read_bytes()
         lf_bytes = original_bytes.replace(b'\r\n', b'\n')
         for endings in (lf_bytes, lf_bytes.replace(b'\n', b'\r\n')):
@@ -45,25 +46,25 @@ def verify_inventory_faults(manifest):
         manifest_path.write_bytes(original_bytes)
 
         # Unknown root, reserve and nested files must not pass a subset test.
-        for name, expected in [('sounds/unknown.ogg', 'Active cue set changed'),
-                               ('sounds/reserve/unknown.ogg', 'Missing/unrecorded OGGs'),
-                               ('sounds/reserve/nested/unknown.ogg', 'Missing/unrecorded OGGs')]:
+        for name, expected in [('announcements/unknown.ogg', 'Active cue set changed'),
+                               ('announcements/reserve/unknown.ogg', 'Missing/unrecorded OGGs'),
+                               ('announcements/reserve/nested/unknown.ogg', 'Missing/unrecorded OGGs')]:
             target = assets / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(ASSETS / 'sounds/airborne.ogg', target)
+            shutil.copy2(ASSETS / 'announcements/airborne.ogg', target)
             reject(name, lambda: verify_inventory(assets, manifest, supplement), expected)
             target.unlink()
             rejected += 1
 
-        for name, expected in [('sounds/airborne.ogg', 'Active cue set changed'),
-                               ('sounds/reserve/trickshot.ogg', 'Missing/unrecorded OGGs')]:
+        for name, expected in [('announcements/airborne.ogg', 'Active cue set changed'),
+                               ('announcements/reserve/trickshot.ogg', 'Missing/unrecorded OGGs')]:
             (assets / name).unlink()
             reject('missing ' + name, lambda: verify_inventory(assets, manifest, supplement), expected)
             shutil.copy2(ASSETS / name, assets / name)
             rejected += 1
 
-        for name, expected in [('sounds/double_kill.ogg', 'Original clip changed'),
-                               ('sounds/airborne.ogg', 'Addition clip changed')]:
+        for name, expected in [('announcements/double_kill.ogg', 'Original clip changed'),
+                               ('announcements/airborne.ogg', 'Addition clip changed')]:
             (assets / name).write_bytes(b'changed recording')
             reject(name, lambda: verify_inventory(assets, manifest, supplement), expected)
             shutil.copy2(ASSETS / name, assets / name)
@@ -74,13 +75,13 @@ def verify_inventory_faults(manifest):
         original_path = assets / original['files'][0]['file']
         original_path.write_bytes(b'replaced original')
         original['files'][0]['sha256'] = sha(original_path)
-        (assets / 'ANNOUNCER-SOURCES.json').write_text(json.dumps(original), encoding='utf-8')
+        (assets / ADDITIONS.MANIFEST_DIR / 'ANNOUNCER-SOURCES.json').write_text(json.dumps(original), encoding='utf-8')
         reject('rewritten original and checksum', lambda: verify_inventory(assets, original, supplement),
             'Original manifest changed')
         rejected += 1
 
     for field, value, expected in [('eventKey', 'trickshot', 'Active cue mapping changed'),
-                                  ('file', 'sounds/reserve/no_scope.ogg', 'cuts changed'),
+                                  ('file', 'announcements/reserve/no_scope.ogg', 'cuts changed'),
                                   ('startFrame', 1, 'cuts changed')]:
         changed = copy.deepcopy(supplement)
         changed['files'][1][field] = value
@@ -91,7 +92,7 @@ def verify_inventory_faults(manifest):
 
 
 def main():
-    manifest = json.loads((ASSETS / 'ANNOUNCER-SOURCES.json').read_text(encoding='utf-8'))
+    manifest = json.loads((ASSETS / ADDITIONS.MANIFEST_DIR / 'ANNOUNCER-SOURCES.json').read_text(encoding='utf-8'))
     verify_metadata(manifest)
     verify_runtime_catalog()
     cases = [
@@ -102,7 +103,7 @@ def main():
         ('intake overwritten', 18, 'usage', 'active', 'Original intake classification changed'),
         ('intake event overwritten', 18, 'eventKey', 'prepare_to_fight', 'Original event mapping changed'),
         ('source cuts changed', 18, 'startFrame', 1, 'Reviewed phrase order, destinations or cuts changed'),
-        ('active cue left in reserve', 18, 'file', 'sounds/reserve/prepare_to_fight.ogg',
+        ('active cue left in reserve', 18, 'file', 'announcements/reserve/prepare_to_fight.ogg',
             'Reviewed phrase order, destinations or cuts changed'),
     ]
     for name, index, field, value, expected in cases:

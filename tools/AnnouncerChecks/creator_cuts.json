@@ -1,277 +1,277 @@
 [
   [
     "DOUBLE KILL",
-    "sounds/double_kill.ogg",
+    "announcements/double_kill.ogg",
     0,
     53630
   ],
   [
     "TRIPLE KILL",
-    "sounds/triple_kill.ogg",
+    "announcements/triple_kill.ogg",
     53630,
     112482
   ],
   [
     "ULTRA KILL",
-    "sounds/multi_kill.ogg",
+    "announcements/multi_kill.ogg",
     112482,
     177396
   ],
   [
     "MONSTER KILL",
-    "sounds/monster_kill.ogg",
+    "announcements/monster_kill.ogg",
     177396,
     247328
   ],
   [
     "KILLING SPREE",
-    "sounds/killing_spree.ogg",
+    "announcements/killing_spree.ogg",
     247328,
     313271
   ],
   [
     "RAMPAGE",
-    "sounds/rampage.ogg",
+    "announcements/rampage.ogg",
     313271,
     368142
   ],
   [
     "DOMINATING",
-    "sounds/dominating.ogg",
+    "announcements/dominating.ogg",
     368142,
     423056
   ],
   [
     "UNSTOPPABLE",
-    "sounds/unstoppable.ogg",
+    "announcements/unstoppable.ogg",
     423056,
     483511
   ],
   [
     "GODLIKE",
-    "sounds/godlike.ogg",
+    "announcements/godlike.ogg",
     483511,
     535721
   ],
   [
     "FIRST BLOOD",
-    "sounds/first_blood.ogg",
+    "announcements/first_blood.ogg",
     535721,
     596299
   ],
   [
     "HEADSHOT",
-    "sounds/headshot.ogg",
+    "announcements/headshot.ogg",
     596299,
     643741
   ],
   [
     "PAYBACK",
-    "sounds/payback.ogg",
+    "announcements/payback.ogg",
     643741,
     688332
   ],
   [
     "LAST MAN STANDING",
-    "sounds/last_man_standing.ogg",
+    "announcements/last_man_standing.ogg",
     688332,
     769085
   ],
   [
     "ROUND START",
-    "sounds/round_start.ogg",
+    "announcements/round_start.ogg",
     769085,
     831324
   ],
   [
     "ROUND WINNER",
-    "sounds/round_won.ogg",
+    "announcements/round_won.ogg",
     831324,
     891459
   ],
   [
     "MISSION FAILED",
-    "sounds/round_lost.ogg",
+    "announcements/round_lost.ogg",
     891459,
     948215
   ],
   [
     "MISSION ACCOMPLISHED",
-    "sounds/match_won.ogg",
+    "announcements/match_won.ogg",
     948215,
     1009806
   ],
   [
     "GAME OVER",
-    "sounds/match_lost.ogg",
+    "announcements/match_lost.ogg",
     1009806,
     1064798
   ],
   [
     "PREPARE TO FIGHT",
-    "sounds/prepare_to_fight.ogg",
+    "announcements/prepare_to_fight.ogg",
     1064798,
     1129540
   ],
   [
     "THREE",
-    "sounds/three.ogg",
+    "announcements/three.ogg",
     1129540,
     1171323
   ],
   [
     "TWO",
-    "sounds/two.ogg",
+    "announcements/two.ogg",
     1171323,
     1207768
   ],
   [
     "ONE",
-    "sounds/one.ogg",
+    "announcements/one.ogg",
     1207768,
     1245535
   ],
   [
     "TAKEN THE LEAD",
-    "sounds/taken_the_lead.ogg",
+    "announcements/taken_the_lead.ogg",
     1245535,
     1303083
   ],
   [
     "LOST THE LEAD",
-    "sounds/lost_the_lead.ogg",
+    "announcements/lost_the_lead.ogg",
     1303083,
     1365135
   ],
   [
     "TIED FOR THE LEAD",
-    "sounds/tied_for_the_lead.ogg",
+    "announcements/tied_for_the_lead.ogg",
     1365135,
     1432214
   ],
   [
     "ONE MINUTE REMAINING",
-    "sounds/one_minute_remaining.ogg",
+    "announcements/one_minute_remaining.ogg",
     1432214,
     1506639
   ],
   [
     "THIRTY SECONDS REMAINING",
-    "sounds/thirty_seconds_remaining.ogg",
+    "announcements/thirty_seconds_remaining.ogg",
     1506639,
     1586559
   ],
   [
     "TEN SECONDS REMAINING",
-    "sounds/ten_seconds_remaining.ogg",
+    "announcements/ten_seconds_remaining.ogg",
     1586559,
     1666247
   ],
   [
     "FIVE KILLS REMAINING",
-    "sounds/five_kills_remaining.ogg",
+    "announcements/five_kills_remaining.ogg",
     1666247,
     1744630
   ],
   [
     "ONE KILL REMAINING",
-    "sounds/one_kill_remaining.ogg",
+    "announcements/one_kill_remaining.ogg",
     1744630,
     1822506
   ],
   [
     "MATCH POINT",
-    "sounds/match_point.ogg",
+    "announcements/match_point.ogg",
     1822506,
     1878498
   ],
   [
     "FINAL ROUND",
-    "sounds/final_round.ogg",
+    "announcements/final_round.ogg",
     1878498,
     1937681
   ],
   [
     "FINAL WEAPON",
-    "sounds/final_weapon.ogg",
+    "announcements/final_weapon.ogg",
     1937681,
     1990274
   ],
   [
     "LADDER COMPLETE",
-    "sounds/ladder_complete.ogg",
+    "announcements/ladder_complete.ogg",
     1990274,
     2052417
   ],
   [
     "DRAW",
-    "sounds/draw.ogg",
+    "announcements/draw.ogg",
     2052417,
     2087628
   ],
   [
     "SHUTDOWN",
-    "sounds/shutdown.ogg",
+    "announcements/shutdown.ogg",
     2087628,
     2137994
   ],
   [
     "CLUTCH",
-    "sounds/clutch.ogg",
+    "announcements/clutch.ogg",
     2137994,
     2183194
   ],
   [
     "ROUND WON",
-    "sounds/reserve/round_won.ogg",
+    "announcements/reserve/round_won.ogg",
     2183194,
     2254505
   ],
   [
     "ROUND LOST",
-    "sounds/reserve/round_lost.ogg",
+    "announcements/reserve/round_lost.ogg",
     2254505,
     2311866
   ],
   [
     "VICTORY",
-    "sounds/reserve/victory.ogg",
+    "announcements/reserve/victory.ogg",
     2311866,
     2357728
   ],
   [
     "DEFEAT",
-    "sounds/reserve/defeat.ogg",
+    "announcements/reserve/defeat.ogg",
     2357728,
     2398513
   ],
   [
     "YOUR FLAG HAS BEEN TAKEN",
-    "sounds/reserve/your_flag_has_been_taken.ogg",
+    "announcements/reserve/your_flag_has_been_taken.ogg",
     2398513,
     2485756
   ],
   [
     "ENEMY FLAG TAKEN",
-    "sounds/reserve/enemy_flag_taken.ogg",
+    "announcements/reserve/enemy_flag_taken.ogg",
     2485756,
     2562333
   ],
   [
     "FLAG DROPPED",
-    "sounds/reserve/flag_dropped.ogg",
+    "announcements/reserve/flag_dropped.ogg",
     2562333,
     2618292
   ],
   [
     "FLAG RETURNED",
-    "sounds/reserve/flag_returned.ogg",
+    "announcements/reserve/flag_returned.ogg",
     2618292,
     2684108
   ],
   [
     "FLAG CAPTURED",
-    "sounds/reserve/flag_captured.ogg",
+    "announcements/reserve/flag_captured.ogg",
     2684108,
     2758982
   ]

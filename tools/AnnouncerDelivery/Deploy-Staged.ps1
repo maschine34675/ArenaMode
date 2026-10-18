@@ -44,7 +44,7 @@ $deliveryPayload = Join-Path $deliveryStage 'payload'
 & (Join-Path $deliveryRepo 'tools/Write-ArenaAssets.ps1') -SourceRoot $deliveryRepo -Destination $deliveryPayload -SourceRevision $deliveryCommit | Out-Host
 if ($AdditionalAudioManifest) {
     if ($AdditionalAudioManifest -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*\.json$' -or
-        !(Test-Path -LiteralPath (Join-Path $deliveryPayload ('docs/'+$AdditionalAudioManifest)) -PathType Leaf)) {
+        !(Test-Path -LiteralPath (Join-Path $deliveryPayload ('docs/licenses/audio/'+$AdditionalAudioManifest)) -PathType Leaf)) {
         throw 'AdditionalAudioManifest must name an announcer manifest included in the tracked shared payload.'
     }
 }

@@ -11,6 +11,8 @@ import zipfile
 ASSETS = 'BepInEx/plugins/maschine-ArenaMode/'
 DOCS = ASSETS + 'docs/'
 MANIFEST = DOCS + 'PACKAGE-MANIFEST.json'
+AUDIO_DOCS = DOCS + 'licenses/audio/'
+WAVS = {ASSETS + 'sounds/' + name + '.wav' for name in ('collect', 'headshot', 'hit', 'kill')}
 DLLS = {
     ASSETS + 'maschine-ArenaMode.Client.dll',
     ASSETS + 'maschine-ArenaMode.BigBrainCompat.dll',
@@ -19,18 +21,16 @@ DLLS = {
 }
 REQUIRED = DLLS | {
     DOCS + 'INSTALL.txt', DOCS + 'README.md', DOCS + 'LICENSE',
-    DOCS + 'REDEPLOY-CORE-LICENSE.txt', DOCS + 'THIRD-PARTY-NOTICES.md', MANIFEST,
-    DOCS + 'ANNOUNCER-ADDITIONS-20260917.json', DOCS + 'ANNOUNCER-SOURCES.json',
-    DOCS + 'ANNOUNCER-PACK.md', DOCS + 'CC-BY-3.0.txt',
-    DOCS + 'AUDIO-LICENSES.md', DOCS + 'HUD-ICON-LICENSES.md',
+    DOCS + 'THIRD-PARTY-NOTICES.md', MANIFEST,
+    AUDIO_DOCS + 'ANNOUNCER-ADDITIONS-20260917.json', AUDIO_DOCS + 'ANNOUNCER-SOURCES.json',
+    AUDIO_DOCS + 'AUDIO-LICENSES.md', AUDIO_DOCS + 'HITMARKER-SOURCES.json', AUDIO_DOCS + 'PICKUP-SOURCES.json',
+    DOCS + 'licenses/CC-BY-3.0.txt', DOCS + 'licenses/CC0-1.0.txt',
     'SPT_Runtime/user/mods/ArenaMode/config/kits.json',
     'SPT_Runtime/user/mods/ArenaMode/config/ladder.json',
     DOCS + 'licenses/ui/NOTICE.md', DOCS + 'licenses/ui/SOURCES.json',
-    DOCS + 'licenses/ui/MIT-LICENSE.txt', DOCS + 'licenses/ui/CC-BY-3.0.txt',
+    DOCS + 'licenses/ui/MIT-LICENSE.txt',
     DOCS + 'licenses/map-previews/ATTRIBUTION.md',
-    DOCS + 'licenses/hitmarkers/CC0-1.0.txt', DOCS + 'licenses/hitmarkers/SOURCES.json',
-    DOCS + 'licenses/pickups/CC0-1.0.txt', DOCS + 'licenses/pickups/SOURCES.json', DOCS + 'licenses/pickups/README.md',
-}
+} | WAVS
 
 
 def resolve_reference(document, relative):
@@ -54,11 +54,11 @@ def verify(path):
             assert '\\' not in name and ':' not in name and not name.startswith('/'), f'Unsafe entry: {name}'
             assert all(part not in {'', '..', '.'} for part in parts), f'Unsafe entry: {name}'
             assert len(parts) > 1 and parts[0] in {'BepInEx', 'SPT_Runtime'}, f'Unexpected ZIP root payload: {name}'
-            assert not name.casefold().startswith((ASSETS + 'sounds/reserve/').casefold()), f'Unused reserve audio in package: {name}'
+            assert not name.casefold().startswith((ASSETS + 'announcements/reserve/').casefold()), f'Unused reserve audio in package: {name}'
             assert name in REQUIRED or any(name.startswith(ASSETS + folder + '/') for folder in
-                ('sounds', 'hitmarkers', 'pickups', 'docs/licenses/map-previews')), f'Unexpected payload: {name}'
-            if name.startswith((ASSETS + 'hitmarkers/', ASSETS + 'pickups/')):
-                assert name.endswith('.wav'), f'Non-runtime file outside docs: {name}'
+                ('announcements', 'docs/licenses/map-previews')), f'Unexpected payload: {name}'
+            if name.startswith(ASSETS + 'announcements/'):
+                assert re.fullmatch(re.escape(ASSETS) + r'announcements/[a-z0-9_]+\.ogg', name), f'Non-runtime or nested announcement: {name}'
             assert PurePosixPath(name).suffix.lower() not in {'.exe', '.pdb', '.cfg', '.log', '.zip'}, f'Forbidden payload: {name}'
         assert REQUIRED <= set(names), f'Missing files: {REQUIRED - set(names)}'
         assert {name for name in names if name.lower().endswith('.dll')} == DLLS, 'Unexpected DLL set'
@@ -67,7 +67,7 @@ def verify(path):
         label = 'RELEASE PACKAGE' if manifest['kind'] == 'release' else 'LOCAL TEST PACKAGE'
         install = archive.read(DOCS + 'INSTALL.txt').decode('utf-8-sig')
         assert install.splitlines()[0] == f"ArenaMode {manifest['arenaVersion']} - {label}", 'Package label/manifest mismatch'
-        assert manifest['layout'] == 'spt-root-folders-v4', 'Unexpected package layout version'
+        assert manifest['layout'] == 'spt-root-folders-v5', 'Unexpected package layout version'
         assert not manifest['deployed'] and not manifest['uploaded']
         for key in ('arenaCommit', 'redeployCoreCommit'):
             assert len(manifest[key]) == 40 and all(c in '0123456789abcdef' for c in manifest[key]), key
@@ -99,22 +99,29 @@ def verify(path):
                 links += 1
         audio_files = set()
         for name in ('ANNOUNCER-SOURCES.json', 'ANNOUNCER-ADDITIONS-20260917.json'):
-            document = DOCS + name
+            document = AUDIO_DOCS + name
             for clip in json.loads(archive.read(document))['files']:
-                assert clip['file'].startswith('../sounds/'), f'Unrelocated audio path: {clip["file"]}'
+                assert clip['file'].startswith('../../../announcements/'), f'Unrelocated audio path: {clip["file"]}'
                 resolved = resolve_reference(document, clip['file'])
                 assert resolved in names and resolved not in audio_files, f'Missing/duplicate audio reference: {resolved}'
                 audio_files.add(resolved)
                 assert hashlib.sha256(archive.read(resolved)).hexdigest() == clip['sha256'].lower(), f'Audio provenance hash mismatch: {resolved}'
         assert audio_files == {name for name in names if name.endswith('.ogg')}, 'Unrecorded/missing announcer file'
-        for category in ('hitmarkers', 'pickups'):
-            document = DOCS + 'licenses/' + category + '/SOURCES.json'
+        assert len(audio_files) == 41, 'Expected all 41 active announcements and no reserve clips'
+        wav_files = set()
+        for category in ('HITMARKER', 'PICKUP'):
+            document = AUDIO_DOCS + category + '-SOURCES.json'
             record = json.loads(archive.read(document))
-            for clip in record['files'] if category == 'hitmarkers' else [record]:
+            for clip in record['files'] if category == 'HITMARKER' else [record]:
+                assert clip['file'].startswith('../../../sounds/'), f'Unrelocated effect path: {clip["file"]}'
                 resolved = resolve_reference(document, clip['file'])
+                assert resolved in WAVS and resolved not in wav_files, f'Unexpected/duplicate effect: {resolved}'
+                wav_files.add(resolved)
                 assert hashlib.sha256(archive.read(resolved)).hexdigest() == clip['sha256'].lower(), resolved
+            assert record['licenseFile'] == '../CC0-1.0.txt', 'Effects share the complete CC0 license'
             license_path = resolve_reference(document, record['licenseFile'])
             assert hashlib.sha256(archive.read(license_path)).hexdigest() == record['licenseSha256'].lower(), license_path
+        assert wav_files == WAVS, 'Unrecorded/missing effect file'
         assert archive.testzip() is None, 'ZIP CRC failure'
         print(f'TEST_RELEASE_VERIFIED: {len(names)} files; folder-only root, exact DLL set, paths, hashes, defaults, {links} local notice links and {len(audio_files)} audio provenance records')
 

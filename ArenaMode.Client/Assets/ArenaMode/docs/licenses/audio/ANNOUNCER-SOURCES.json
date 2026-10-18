@@ -20,7 +20,7 @@
     {
       "number": 1,
       "spoken": "DOUBLE KILL",
-      "file": "sounds/double_kill.ogg",
+      "file": "announcements/double_kill.ogg",
       "usage": "active",
       "eventKey": "double_kill",
       "startFrame": 0,
@@ -31,7 +31,7 @@
     {
       "number": 2,
       "spoken": "TRIPLE KILL",
-      "file": "sounds/triple_kill.ogg",
+      "file": "announcements/triple_kill.ogg",
       "usage": "active",
       "eventKey": "triple_kill",
       "startFrame": 53630,
@@ -42,7 +42,7 @@
     {
       "number": 3,
       "spoken": "ULTRA KILL",
-      "file": "sounds/multi_kill.ogg",
+      "file": "announcements/multi_kill.ogg",
       "usage": "active",
       "eventKey": "multi_kill",
       "startFrame": 112482,
@@ -53,7 +53,7 @@
     {
       "number": 4,
       "spoken": "MONSTER KILL",
-      "file": "sounds/monster_kill.ogg",
+      "file": "announcements/monster_kill.ogg",
       "usage": "active",
       "eventKey": "monster_kill",
       "startFrame": 177396,
@@ -64,7 +64,7 @@
     {
       "number": 5,
       "spoken": "KILLING SPREE",
-      "file": "sounds/killing_spree.ogg",
+      "file": "announcements/killing_spree.ogg",
       "usage": "active",
       "eventKey": "killing_spree",
       "startFrame": 247328,
@@ -75,7 +75,7 @@
     {
       "number": 6,
       "spoken": "RAMPAGE",
-      "file": "sounds/rampage.ogg",
+      "file": "announcements/rampage.ogg",
       "usage": "active",
       "eventKey": "rampage",
       "startFrame": 313271,
@@ -86,7 +86,7 @@
     {
       "number": 7,
       "spoken": "DOMINATING",
-      "file": "sounds/dominating.ogg",
+      "file": "announcements/dominating.ogg",
       "usage": "active",
       "eventKey": "dominating",
       "startFrame": 368142,
@@ -97,7 +97,7 @@
     {
       "number": 8,
       "spoken": "UNSTOPPABLE",
-      "file": "sounds/unstoppable.ogg",
+      "file": "announcements/unstoppable.ogg",
       "usage": "active",
       "eventKey": "unstoppable",
       "startFrame": 423056,
@@ -108,7 +108,7 @@
     {
       "number": 9,
       "spoken": "GODLIKE",
-      "file": "sounds/godlike.ogg",
+      "file": "announcements/godlike.ogg",
       "usage": "active",
       "eventKey": "godlike",
       "startFrame": 483511,
@@ -119,7 +119,7 @@
     {
       "number": 10,
       "spoken": "FIRST BLOOD",
-      "file": "sounds/first_blood.ogg",
+      "file": "announcements/first_blood.ogg",
       "usage": "active",
       "eventKey": "first_blood",
       "startFrame": 535721,
@@ -130,7 +130,7 @@
     {
       "number": 11,
       "spoken": "HEADSHOT",
-      "file": "sounds/headshot.ogg",
+      "file": "announcements/headshot.ogg",
       "usage": "active",
       "eventKey": "headshot",
       "startFrame": 596299,
@@ -141,7 +141,7 @@
     {
       "number": 12,
       "spoken": "PAYBACK",
-      "file": "sounds/payback.ogg",
+      "file": "announcements/payback.ogg",
       "usage": "active",
       "eventKey": "payback",
       "startFrame": 643741,
@@ -152,7 +152,7 @@
     {
       "number": 13,
       "spoken": "LAST MAN STANDING",
-      "file": "sounds/last_man_standing.ogg",
+      "file": "announcements/last_man_standing.ogg",
       "usage": "active",
       "eventKey": "last_man_standing",
       "startFrame": 688332,
@@ -163,7 +163,7 @@
     {
       "number": 14,
       "spoken": "ROUND START",
-      "file": "sounds/round_start.ogg",
+      "file": "announcements/round_start.ogg",
       "usage": "active",
       "eventKey": "round_start",
       "startFrame": 769085,
@@ -174,7 +174,7 @@
     {
       "number": 15,
       "spoken": "ROUND WINNER",
-      "file": "sounds/round_won.ogg",
+      "file": "announcements/round_won.ogg",
       "usage": "active",
       "eventKey": "round_won",
       "startFrame": 831324,
@@ -185,7 +185,7 @@
     {
       "number": 16,
       "spoken": "MISSION FAILED",
-      "file": "sounds/round_lost.ogg",
+      "file": "announcements/round_lost.ogg",
       "usage": "active",
       "eventKey": "round_lost",
       "startFrame": 891459,
@@ -196,7 +196,7 @@
     {
       "number": 17,
       "spoken": "MISSION ACCOMPLISHED",
-      "file": "sounds/match_won.ogg",
+      "file": "announcements/match_won.ogg",
       "usage": "active",
       "eventKey": "match_won",
       "startFrame": 948215,
@@ -207,7 +207,7 @@
     {
       "number": 18,
       "spoken": "GAME OVER",
-      "file": "sounds/match_lost.ogg",
+      "file": "announcements/match_lost.ogg",
       "usage": "active",
       "eventKey": "match_lost",
       "startFrame": 1009806,
@@ -218,7 +218,7 @@
     {
       "number": 19,
       "spoken": "PREPARE TO FIGHT",
-      "file": "sounds/prepare_to_fight.ogg",
+      "file": "announcements/prepare_to_fight.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1064798,
@@ -230,7 +230,7 @@
     {
       "number": 20,
       "spoken": "THREE",
-      "file": "sounds/three.ogg",
+      "file": "announcements/three.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1129540,
@@ -242,7 +242,7 @@
     {
       "number": 21,
       "spoken": "TWO",
-      "file": "sounds/two.ogg",
+      "file": "announcements/two.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1171323,
@@ -254,7 +254,7 @@
     {
       "number": 22,
       "spoken": "ONE",
-      "file": "sounds/one.ogg",
+      "file": "announcements/one.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1207768,
@@ -266,7 +266,7 @@
     {
       "number": 23,
       "spoken": "TAKEN THE LEAD",
-      "file": "sounds/taken_the_lead.ogg",
+      "file": "announcements/taken_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1245535,
@@ -278,7 +278,7 @@
     {
       "number": 24,
       "spoken": "LOST THE LEAD",
-      "file": "sounds/lost_the_lead.ogg",
+      "file": "announcements/lost_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1303083,
@@ -290,7 +290,7 @@
     {
       "number": 25,
       "spoken": "TIED FOR THE LEAD",
-      "file": "sounds/tied_for_the_lead.ogg",
+      "file": "announcements/tied_for_the_lead.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1365135,
@@ -302,7 +302,7 @@
     {
       "number": 26,
       "spoken": "ONE MINUTE REMAINING",
-      "file": "sounds/one_minute_remaining.ogg",
+      "file": "announcements/one_minute_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1432214,
@@ -314,7 +314,7 @@
     {
       "number": 27,
       "spoken": "THIRTY SECONDS REMAINING",
-      "file": "sounds/thirty_seconds_remaining.ogg",
+      "file": "announcements/thirty_seconds_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1506639,
@@ -326,7 +326,7 @@
     {
       "number": 28,
       "spoken": "TEN SECONDS REMAINING",
-      "file": "sounds/ten_seconds_remaining.ogg",
+      "file": "announcements/ten_seconds_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1586559,
@@ -338,7 +338,7 @@
     {
       "number": 29,
       "spoken": "FIVE KILLS REMAINING",
-      "file": "sounds/five_kills_remaining.ogg",
+      "file": "announcements/five_kills_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1666247,
@@ -350,7 +350,7 @@
     {
       "number": 30,
       "spoken": "ONE KILL REMAINING",
-      "file": "sounds/one_kill_remaining.ogg",
+      "file": "announcements/one_kill_remaining.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1744630,
@@ -362,7 +362,7 @@
     {
       "number": 31,
       "spoken": "MATCH POINT",
-      "file": "sounds/match_point.ogg",
+      "file": "announcements/match_point.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1822506,
@@ -374,7 +374,7 @@
     {
       "number": 32,
       "spoken": "FINAL ROUND",
-      "file": "sounds/final_round.ogg",
+      "file": "announcements/final_round.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1878498,
@@ -386,7 +386,7 @@
     {
       "number": 33,
       "spoken": "FINAL WEAPON",
-      "file": "sounds/final_weapon.ogg",
+      "file": "announcements/final_weapon.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1937681,
@@ -398,7 +398,7 @@
     {
       "number": 34,
       "spoken": "LADDER COMPLETE",
-      "file": "sounds/ladder_complete.ogg",
+      "file": "announcements/ladder_complete.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 1990274,
@@ -410,7 +410,7 @@
     {
       "number": 35,
       "spoken": "DRAW",
-      "file": "sounds/draw.ogg",
+      "file": "announcements/draw.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2052417,
@@ -422,7 +422,7 @@
     {
       "number": 36,
       "spoken": "SHUTDOWN",
-      "file": "sounds/shutdown.ogg",
+      "file": "announcements/shutdown.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2087628,
@@ -434,7 +434,7 @@
     {
       "number": 37,
       "spoken": "CLUTCH",
-      "file": "sounds/clutch.ogg",
+      "file": "announcements/clutch.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2137994,
@@ -446,7 +446,7 @@
     {
       "number": 38,
       "spoken": "ROUND WON",
-      "file": "sounds/reserve/round_won.ogg",
+      "file": "announcements/reserve/round_won.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2183194,
@@ -457,7 +457,7 @@
     {
       "number": 39,
       "spoken": "ROUND LOST",
-      "file": "sounds/reserve/round_lost.ogg",
+      "file": "announcements/reserve/round_lost.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2254505,
@@ -468,7 +468,7 @@
     {
       "number": 40,
       "spoken": "VICTORY",
-      "file": "sounds/reserve/victory.ogg",
+      "file": "announcements/reserve/victory.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2311866,
@@ -479,7 +479,7 @@
     {
       "number": 41,
       "spoken": "DEFEAT",
-      "file": "sounds/reserve/defeat.ogg",
+      "file": "announcements/reserve/defeat.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2357728,
@@ -490,7 +490,7 @@
     {
       "number": 42,
       "spoken": "YOUR FLAG HAS BEEN TAKEN",
-      "file": "sounds/reserve/your_flag_has_been_taken.ogg",
+      "file": "announcements/reserve/your_flag_has_been_taken.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2398513,
@@ -501,7 +501,7 @@
     {
       "number": 43,
       "spoken": "ENEMY FLAG TAKEN",
-      "file": "sounds/reserve/enemy_flag_taken.ogg",
+      "file": "announcements/reserve/enemy_flag_taken.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2485756,
@@ -512,7 +512,7 @@
     {
       "number": 44,
       "spoken": "FLAG DROPPED",
-      "file": "sounds/reserve/flag_dropped.ogg",
+      "file": "announcements/reserve/flag_dropped.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2562333,
@@ -523,7 +523,7 @@
     {
       "number": 45,
       "spoken": "FLAG RETURNED",
-      "file": "sounds/reserve/flag_returned.ogg",
+      "file": "announcements/reserve/flag_returned.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2618292,
@@ -534,7 +534,7 @@
     {
       "number": 46,
       "spoken": "FLAG CAPTURED",
-      "file": "sounds/reserve/flag_captured.ogg",
+      "file": "announcements/reserve/flag_captured.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 2684108,
@@ -543,5 +543,6 @@
       "sha256": "6A9C8017891E3C9001AD9A82A916ED089F56F006630D17385E610564418FE358"
     }
   ],
-  "termsSourceEeaUkSwiss": "https://elevenlabs.io/terms-of-use-eu"
+  "termsSourceEeaUkSwiss": "https://elevenlabs.io/terms-of-use-eu",
+  "filePathBase": "ArenaMode asset root (three directories above this source manifest); packaged manifests use document-relative paths."
 }

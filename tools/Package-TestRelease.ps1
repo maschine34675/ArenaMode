@@ -90,7 +90,7 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
         'ArenaMode.Client/ArenaAssetPaths.cs' = @(
             'static string FromPluginDirectory\(', 'const string DirectoryName = "maschine-ArenaMode"'
         )
-        'tools/Write-ArenaAssets.ps1' = @('function Convert-AssetLinks', 'REDEPLOY-CORE-LICENSE')
+        'tools/Write-ArenaAssets.ps1' = @('function Convert-AssetLinks', 'Core license differs from the shared project notice')
         'ArenaMode.Client/Audio/AnnouncerService.cs' = @('ArenaAssetPaths\.FromPluginDirectory\(')
         'ArenaMode.Client/Audio/HitmarkerAudioService.cs' = @('ArenaAssetPaths\.FromPluginDirectory\(')
         'ArenaMode.Client/Pickups/ArenaPickupAudio.cs' = @('ArenaAssetPaths\.FromPluginFile\(')
@@ -246,7 +246,7 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.
 Retain this documentation with the package. Audio/artwork have separate terms; the entire package
-is not MIT. Relative paths in the audio prose such as sounds/ and pickups/
+is not MIT. Relative paths in the audio prose such as announcements/ and sounds/
 refer to the parent maschine-ArenaMode folder; packaged announcer JSON paths are relative
 to their JSON file and their recorded audio hashes are unchanged.
 This package has build/offline checks only; packaging is not a new in-game test.
@@ -256,7 +256,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 "@ | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/INSTALL.txt") -Encoding utf8
 
 $manifest = [ordered]@{
-    schemaVersion=2; layout='spt-root-folders-v4'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
+    schemaVersion=2; layout='spt-root-folders-v5'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
     redeployCoreBinary= $(if ($CoreAssemblyPath) { 'verified-input' } else { 'source-build' })
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false

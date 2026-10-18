@@ -55,8 +55,9 @@ $inventory = @{
 }
 $expected = ConvertTo-AnnouncerCanonicalInventory $inventory $stage
 Require ($expected[(Join-Path $canonical 'maschine-ArenaMode.Client.dll')] -eq 'client') 'flat DLL normalizes to canonical folder'
-Require ($expected[(Join-Path $canonical 'docs/ANNOUNCER-SOURCES.json')] -eq 'provenance') 'legacy root provenance normalizes to docs'
-foreach ($relative in @('sounds/first_blood.ogg', 'AreaDrafts/user.json', 'PickupDrafts/user.json', 'Pickups.json')) {
+Require ($expected[(Join-Path $canonical 'docs/licenses/audio/ANNOUNCER-SOURCES.json')] -eq 'provenance') 'legacy root provenance normalizes to consolidated audio docs'
+Require ($expected[(Join-Path $canonical 'announcements/first_blood.ogg')] -eq 'sound') 'known legacy announcement normalizes to announcements'
+foreach ($relative in @('AreaDrafts/user.json', 'PickupDrafts/user.json', 'Pickups.json')) {
     Require ($expected[(Join-Path $canonical $relative)] -eq $inventory[(Join-Path $legacy $relative)]) "migration preserves $relative"
 }
 Require ($expected[$unrelated] -eq 'foreign') 'foreign plugin location and bytes preserved'
@@ -74,11 +75,12 @@ $duplicates = @{
     (Join-Path $canonical 'maschine-ArenaMode.Client.dll') = 'canonical';
     (Join-Path $legacy 'ANNOUNCER-SOURCES.json') = 'legacy-notice';
     (Join-Path $canonical 'ANNOUNCER-SOURCES.json') = 'canonical-root-notice';
-    (Join-Path $canonical 'docs/ANNOUNCER-SOURCES.json') = 'canonical-docs-notice'
+    (Join-Path $canonical 'docs/ANNOUNCER-SOURCES.json') = 'canonical-old-docs-notice';
+    (Join-Path $canonical 'docs/licenses/audio/ANNOUNCER-SOURCES.json') = 'canonical-docs-notice'
 }
 $normalized = ConvertTo-AnnouncerCanonicalInventory $duplicates $stage
 Require ($normalized[(Join-Path $canonical 'maschine-ArenaMode.Client.dll')] -eq 'canonical') 'canonical DLL wins over retired duplicates regardless of enumeration order'
-Require ($normalized[(Join-Path $canonical 'docs/ANNOUNCER-SOURCES.json')] -eq 'canonical-docs-notice') 'canonical docs win over retired root notices'
+Require ($normalized[(Join-Path $canonical 'docs/licenses/audio/ANNOUNCER-SOURCES.json')] -eq 'canonical-docs-notice') 'consolidated canonical docs win over both prior notice locations'
 $duplicates.Remove((Join-Path $canonical 'maschine-ArenaMode.Client.dll'))
 $normalized = ConvertTo-AnnouncerCanonicalInventory $duplicates $stage
 Require ($normalized[(Join-Path $canonical 'maschine-ArenaMode.Client.dll')] -eq 'grouped-old') 'migrated grouped DLL wins over retired flat DLL'
@@ -93,8 +95,10 @@ foreach ($move in (Get-ArenaNoticeMoves).GetEnumerator()) {
         $copies.Remove($candidates[$i])
     }
 }
-$copies = @{ (Join-Path $legacy 'Ui/custom.txt') = 'keep' }
+$copies = @{ (Join-Path $legacy 'Ui/custom.txt') = 'keep'; (Join-Path $legacy 'sounds/user-custom.ogg') = 'custom audio'; (Join-Path $canonical 'pickups/user-notes.md') = 'custom notes' }
 foreach ($relative in Get-ArenaRetiredNotices) { $copies[(Join-Path $canonical $relative)] = 'retired' }
 $normalized = ConvertTo-AnnouncerCanonicalInventory $copies $stage
-Require ($normalized.Count -eq 1 -and $normalized[(Join-Path $canonical 'Ui/custom.txt')] -eq 'keep') 'only exact retired notices excluded'
+Require ($normalized.Count -eq 3 -and $normalized[(Join-Path $canonical 'Ui/custom.txt')] -eq 'keep') 'only exact retired notices excluded'
+Require ($normalized[(Join-Path $canonical 'sounds/user-custom.ogg')] -eq 'custom audio') 'unknown audio keeps its original location and bytes'
+Require ($normalized[(Join-Path $canonical 'pickups/user-notes.md')] -eq 'custom notes') 'unknown notes in retired folders remain untouched'
 Write-Output "DEPLOYMENT_HELPER_CHECKS_PASSED checks=$script:checks evidence=$stage; no build or deployment"

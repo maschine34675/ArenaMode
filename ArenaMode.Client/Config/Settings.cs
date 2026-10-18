@@ -1636,7 +1636,7 @@ public static class Settings
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,
             "Short Arena hit, headshot and kill sounds, independent of the visual HUD and announcer. " +
-            "Replaceable PCM16 mono WAVs in BepInEx/plugins/maschine-ArenaMode/hitmarkers/; see docs/AUDIO-LICENSES.md.");
+            "Replaceable PCM16 mono WAVs in BepInEx/plugins/maschine-ArenaMode/sounds/; see docs/licenses/audio/AUDIO-LICENSES.md.");
 
         HitmarkerVolume = config.Bind(
             "Audio", "HitmarkerVolume", 0.7f,
@@ -1649,7 +1649,7 @@ public static class Settings
             "Announcer",
             true,
             "Announcer stingers (combat awards, streaks, Tactical round/match cues) — plays .ogg files from " +
-            "BepInEx/plugins/maschine-ArenaMode/sounds/. Missing sounds are skipped and logged. " +
+            "BepInEx/plugins/maschine-ArenaMode/announcements/. Missing sounds are skipped and logged. " +
             "Master switch: when off, the on-screen kill callouts (DOUBLE KILL, ...) are hidden too.");
 
         AnnouncerVolume = config.Bind(

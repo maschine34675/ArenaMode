@@ -15,14 +15,14 @@
   "checked": "2026-09-11",
   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
   "licenseTextUrl": "https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt",
-  "licenseFile": "CC0-1.0.txt",
+  "licenseFile": "../CC0-1.0.txt",
   "licenseSha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
   "encoder": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
   "conversion": "Average stereo channels (0.5 L + 0.5 R); resample 48000 to 44100 Hz; encode signed PCM16 WAV. No trimming, normalization, fades, pitch changes or added effects. Identical bytes for hit, headshot and kill.",
   "files": [
     {
       "cue": "hit",
-      "file": "hit.wav",
+      "file": "../../../sounds/hit.wav",
       "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
       "frames": 8269,
       "sampleRate": 44100,
@@ -31,7 +31,7 @@
     },
     {
       "cue": "headshot",
-      "file": "headshot.wav",
+      "file": "../../../sounds/headshot.wav",
       "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
       "frames": 8269,
       "sampleRate": 44100,
@@ -40,7 +40,7 @@
     },
     {
       "cue": "kill",
-      "file": "kill.wav",
+      "file": "../../../sounds/kill.wav",
       "sha256": "DF59AAA66C8727F33EA6E5C6C3C80A5E0BD43418C4ABB3C24A931D9282F0FE54",
       "frames": 8269,
       "sampleRate": 44100,

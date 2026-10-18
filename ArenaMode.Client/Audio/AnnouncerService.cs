@@ -15,7 +15,7 @@ using UnityEngine.Networking;
 namespace ArenaMode.Audio;
 
 /// <summary>
-/// Announcer stingers: .ogg files from the resolved maschine-ArenaMode/sounds folder keyed by
+/// Announcer stingers: .ogg files from the resolved maschine-ArenaMode/announcements folder keyed by
 /// filename. Kill labels are normalized to keys ("DOUBLE KILL" becomes
 /// "double_kill"); typed round cues map to fixed keys. Clips load asynchronously
 /// and are revalidated at each match. Missing optional sounds never block a raid;
@@ -104,11 +104,11 @@ internal static class AnnouncerService
     {
         try
         {
-            var soundsDir = Path.Combine(ArenaAssetPaths.FromPluginDirectory(pluginDirectory), "sounds");
+            var soundsDir = Path.Combine(ArenaAssetPaths.FromPluginDirectory(pluginDirectory), "announcements");
             if (!Directory.Exists(soundsDir))
             {
                 _directoryScanned = false;
-                Plugin.ModLogger.LogWarning($"Arena announcer: sounds folder missing: {soundsDir}");
+                Plugin.ModLogger.LogWarning($"Arena announcer: announcements folder missing: {soundsDir}");
                 return;
             }
 

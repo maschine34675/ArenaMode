@@ -90,9 +90,9 @@ Keep the exact attribution, change records and full terms:
 
 - [Combat-icon notice](ArenaMode.Client/Assets/Ui/NOTICE.md),
   [manifest](ArenaMode.Client/Assets/Ui/SOURCES.json) and
-  [CC BY 3.0 text](ArenaMode.Client/Assets/Ui/CC-BY-3.0.txt).
-- [Equipment-icon notice](ArenaMode.Client/Assets/ArenaMode/HUD-ICON-LICENSES.md)
-  and [CC BY 3.0 text](ArenaMode.Client/Assets/ArenaMode/CC-BY-3.0.txt).
+  [CC BY 3.0 text](ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC-BY-3.0.txt).
+- [Equipment-icon notice](ArenaMode.Client/Assets/Ui/NOTICE.md)
+  and [CC BY 3.0 text](ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC-BY-3.0.txt).
 
 ### Customs preview — CC BY-NC-SA 4.0
 
@@ -153,10 +153,10 @@ Both sources are **CC0 1.0 Universal**. The attribution is retained for provenan
 it does not imply endorsement or a warranty. These are not attributed to Call
 of Duty or another commercial game.
 
-- Pickup [manifest](ArenaMode.Client/Assets/ArenaMode/pickups/SOURCES.json) and
-  [CC0 text](ArenaMode.Client/Assets/ArenaMode/pickups/CC0-1.0.txt).
-- Hitmarker [manifest](ArenaMode.Client/Assets/ArenaMode/hitmarkers/SOURCES.json)
-  and [CC0 text](ArenaMode.Client/Assets/ArenaMode/hitmarkers/CC0-1.0.txt).
+- Pickup [manifest](ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/PICKUP-SOURCES.json) and
+  [CC0 text](ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC0-1.0.txt).
+- Hitmarker [manifest](ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/HITMARKER-SOURCES.json)
+  and [CC0 text](ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC0-1.0.txt).
 
 ### Announcer — separate generated-audio terms
 
@@ -181,10 +181,9 @@ That guidance is not a separate open-content license for these files.
 
 Processing includes reviewed cuts, short fades, a uniform -1 dB gain and Ogg
 Vorbis encoding; the detailed manifests record exact source and output hashes.
-Preserve [AUDIO-LICENSES.md](ArenaMode.Client/Assets/ArenaMode/AUDIO-LICENSES.md),
-[ANNOUNCER-PACK.md](ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md),
-[the initial manifest](ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-SOURCES.json)
-and [the additions manifest](ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-ADDITIONS-20260917.json).
+Preserve [AUDIO-LICENSES.md](ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/AUDIO-LICENSES.md),
+[the initial manifest](ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/ANNOUNCER-SOURCES.json)
+and [the additions manifest](ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio/ANNOUNCER-ADDITIONS-20260917.json).
 
 Older announcer packs and extracted game UI images were replaced in the current
 tree. Their presence in older Git objects is not cleared by these replacements.
@@ -203,9 +202,10 @@ tree. Their presence in older Git objects is not cleared by these replacements.
 - Recheck provenance, package contents and Git history before publication. New
   documentation does not itself resolve those release checks or publish anything.
 
-The current build already copies the asset notices. Packaging the new root
-LICENSE and this central overview is still a release-assembly step; no build or
-deployment behavior is changed by adding these documents.
+Build, deployment and release packaging use the same asset writer. All notices
+are collected under `docs/`, with consolidated asset records under `docs/licenses/`.
+The identical ArenaMode and Redeploy.Core MIT notice is shipped once as `docs/LICENSE`;
+the writer rejects a changed Core license until its separate notice is included.
 
 ## Full DragonDen MIT notice
 

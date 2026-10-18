@@ -12,7 +12,8 @@ import subprocess
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
-DEST = ROOT / 'ArenaMode.Client/Assets/ArenaMode/hitmarkers'
+DEST = ROOT / 'ArenaMode.Client/Assets/ArenaMode/sounds'
+NOTICES = ROOT / 'ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio'
 SOURCE_SHA = 'B85C21E42BA30FF161BC4E3F877DAF77057B7B64A33272459E853557B9EC305C'
 
 
@@ -27,7 +28,7 @@ def main():
     original = args.source.read_bytes()
     if sha(original) != SOURCE_SHA:
         raise ValueError('Not the reviewed Freesound 570335 original WAV')
-    license_bytes = (DEST / 'CC0-1.0.txt').read_bytes()
+    license_bytes = (NOTICES / '../CC0-1.0.txt').read_bytes()
     if b'CC0 1.0 Universal' not in license_bytes:
         raise ValueError('Bundled CC0 legal text missing')
     # Explicit channel average keeps source gain; no normalization, trimming,
@@ -55,7 +56,7 @@ def main():
         'license': 'CC0-1.0', 'checked': '2026-09-11',
         'licenseUrl': 'https://creativecommons.org/publicdomain/zero/1.0/',
         'licenseTextUrl': 'https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt',
-        'licenseFile': 'CC0-1.0.txt', 'licenseSha256': sha(license_bytes),
+        'licenseFile': '../CC0-1.0.txt', 'licenseSha256': sha(license_bytes),
         'encoder': subprocess.check_output(['ffmpeg', '-version'], text=True).splitlines()[0],
         'conversion': 'Average stereo channels (0.5 L + 0.5 R); resample 48000 to 44100 Hz; '
             'encode signed PCM16 WAV. No trimming, normalization, fades, pitch changes '
@@ -64,10 +65,10 @@ def main():
     for cue in ('hit', 'headshot', 'kill'):
         path = DEST / f'{cue}.wav'
         path.write_bytes(encoded)
-        manifest['files'].append({'cue': cue, 'file': path.name, 'sha256': sha(encoded),
+        manifest['files'].append({'cue': cue, 'file': '../../../sounds/' + path.name, 'sha256': sha(encoded),
             'frames': len(pcm) // 2, 'sampleRate': 44100, 'channels': 1,
             'durationMs': round(len(pcm) / 2 / 44.1, 3)})
-    (DEST / 'SOURCES.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
+    (NOTICES / 'HITMARKER-SOURCES.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(json.dumps(manifest['files'], indent=2))
 
 

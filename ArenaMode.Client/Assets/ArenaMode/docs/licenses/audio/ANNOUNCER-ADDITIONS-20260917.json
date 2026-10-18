@@ -22,7 +22,7 @@
     {
       "number": 1,
       "spoken": "TRICKSHOT",
-      "file": "sounds/reserve/trickshot.ogg",
+      "file": "announcements/reserve/trickshot.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 0,
@@ -33,7 +33,7 @@
     {
       "number": 2,
       "spoken": "NO SCOPE",
-      "file": "sounds/no_scope.ogg",
+      "file": "announcements/no_scope.ogg",
       "usage": "active",
       "eventKey": "no_scope",
       "startFrame": 42625,
@@ -44,7 +44,7 @@
     {
       "number": 3,
       "spoken": "AIRBORNE",
-      "file": "sounds/airborne.ogg",
+      "file": "announcements/airborne.ogg",
       "usage": "active",
       "eventKey": "airborne",
       "startFrame": 89881,
@@ -55,7 +55,7 @@
     {
       "number": 4,
       "spoken": "AIR SUPERIORITY",
-      "file": "sounds/reserve/air_superiority.ogg",
+      "file": "announcements/reserve/air_superiority.ogg",
       "usage": "reserve",
       "eventKey": null,
       "startFrame": 143661,
@@ -66,7 +66,7 @@
     {
       "number": 5,
       "spoken": "NO CONTEST",
-      "file": "sounds/no_contest.ogg",
+      "file": "announcements/no_contest.ogg",
       "usage": "active",
       "eventKey": "no_contest",
       "startFrame": 221008,
@@ -77,7 +77,7 @@
     {
       "number": 6,
       "spoken": "EMBARRASSING",
-      "file": "sounds/embarrassing.ogg",
+      "file": "announcements/embarrassing.ogg",
       "usage": "active",
       "eventKey": "embarrassing",
       "startFrame": 287522,
@@ -85,5 +85,6 @@
       "durationSeconds": 1.585578231292517,
       "sha256": "76D3A7A67CB52AC9405EC157B044F549EB5BE7015D1E64D4BDC9E205AF4E67FD"
     }
-  ]
+  ],
+  "filePathBase": "ArenaMode asset root (three directories above this source manifest); packaged manifests use document-relative paths."
 }

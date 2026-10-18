@@ -33,10 +33,10 @@ if ($ownCheckout) {
     if ($LASTEXITCODE -ne 0) { throw 'Cannot enumerate tracked Arena assets.' }
     foreach ($name in $trackedFiles) { [void]$tracked.Add($name) }
 }
-$relocatedNotices = @(
-    'ANNOUNCER-ADDITIONS-20260917.json', 'ANNOUNCER-PACK.md', 'ANNOUNCER-SOURCES.json',
-    'AUDIO-LICENSES.md', 'CC-BY-3.0.txt', 'HUD-ICON-LICENSES.md'
-)
+$requiredNotices = @('docs/licenses/audio/ANNOUNCER-ADDITIONS-20260917.json',
+    'docs/licenses/audio/ANNOUNCER-SOURCES.json', 'docs/licenses/audio/AUDIO-LICENSES.md',
+    'docs/licenses/audio/HITMARKER-SOURCES.json', 'docs/licenses/audio/PICKUP-SOURCES.json',
+    'docs/licenses/CC-BY-3.0.txt', 'docs/licenses/CC0-1.0.txt')
 $documents = [ordered]@{
     'LICENSE' = 'docs/LICENSE'
     'README.md' = 'docs/README.md'
@@ -51,25 +51,24 @@ foreach ($mapping in @(
         if ($file.Name -eq '.gitattributes') { continue }
         $relative = [IO.Path]::GetRelativePath($base, $file.FullName).Replace('\', '/')
         # Unused recordings remain in source/local installs, never in new payloads.
-        if ($mapping.Dest -eq '' -and $relative.StartsWith('sounds/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
+        if ($mapping.Dest -eq '' -and $relative.StartsWith('announcements/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
         $sourceRelative = "$($mapping.Source)/$relative"
         if ($null -ne $tracked -and -not $tracked.Contains($sourceRelative)) { continue }
         $target = "$($mapping.Dest)$relative"
         if ($mapping.Dest -eq '' -and -not $relative.Contains('/')) {
-            if ($relative -notin $relocatedNotices) { throw "Unclassified root asset: $relative" }
-            $target = "docs/$relative"
+            throw "Unclassified root asset: $relative"
         }
         $documents[$sourceRelative] = $target
     }
 }
-foreach ($name in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt', 'CC-BY-3.0.txt')) {
+foreach ($name in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt')) {
     $documents["ArenaMode.Client/Assets/Ui/$name"] = "Ui/$name"
 }
 foreach ($key in @($documents.Keys)) {
     $current = $documents[$key]
     if ($noticeMoves.Contains($current)) { $documents[$key] = $noticeMoves[$current] }
 }
-foreach ($name in $relocatedNotices) {
+foreach ($name in $requiredNotices) {
     if (-not $documents.Contains("ArenaMode.Client/Assets/ArenaMode/$name")) {
         throw "Missing owned asset notice: $name"
     }
@@ -135,25 +134,27 @@ foreach ($entry in $documents.GetEnumerator()) {
     if ([IO.Path]::GetExtension($entry.Key) -eq '.md') {
         $originalBody = Get-Content -LiteralPath $inputFile -Raw
         $body = Convert-AssetLinks $originalBody $entry.Key $entry.Value
-        if ($entry.Key -eq 'ArenaMode.Client/Assets/ArenaMode/ANNOUNCER-PACK.md') {
-            $body = $body.Replace('File (relative to this folder)', 'File (relative to the parent maschine-ArenaMode folder)')
-        }
         if ($entry.Key -eq 'ArenaMode.Client/Assets/Ui/NOTICE.md') {
             $body = $body.Replace('This directory contains eighteen PNGs with two distinct licenses.',
                 'The client assembly maschine-ArenaMode.Client.dll embeds eighteen PNGs with two distinct licenses. This folder contains their notices and license texts.')
         }
         if ($body -cne $originalBody) { $bytes = $utf8.GetBytes($body) }
-    } elseif ($entry.Key -match '/(hitmarkers|pickups)/SOURCES\.json$') {
+    } elseif ($entry.Key -match '/(HITMARKER|PICKUP)-SOURCES\.json$') {
         $category = $Matches[1]
         $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
-        $clips = if ($category -eq 'hitmarkers') { @($record.files) } else { @($record) }
+        $clips = if ($category -eq 'HITMARKER') { @($record.files) } else { @($record) }
         foreach ($clip in $clips) {
-            $sourceClip = "ArenaMode.Client/Assets/ArenaMode/$category/$($clip.file)"
+            if ($clip.file -cnotmatch '^\.\./\.\./\.\./sounds/[a-z]+\.wav$') { throw "Unsafe effect path: $($clip.file)" }
+            $sourceClip = [IO.Path]::GetRelativePath($SourceRoot,
+                [IO.Path]::GetFullPath((Join-Path (Split-Path $inputFile) $clip.file))).Replace('\', '/')
             if (-not $documents.Contains($sourceClip) -or
                 (Get-FileHash -LiteralPath (Join-Path $SourceRoot $sourceClip)).Hash -ine $clip.sha256) {
                 throw "Missing audio or provenance hash mismatch: $sourceClip"
             }
-            $clip.file = "../../../$category/$($clip.file)"
+        }
+        if ($record.licenseFile -cne '../CC0-1.0.txt' -or
+            (Get-FileHash -LiteralPath (Join-Path (Split-Path $inputFile) $record.licenseFile)).Hash -ine $record.licenseSha256) {
+            throw 'Effect license path or hash mismatch.'
         }
         $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
     } elseif ($entry.Key -eq 'ArenaMode.Client/Assets/Ui/SOURCES.json') {
@@ -164,12 +165,12 @@ foreach ($entry in $documents.GetEnumerator()) {
         $record = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
         $shippedClips = @()
         foreach ($clip in $record.files) {
-            if ($clip.file -notmatch '^sounds/[A-Za-z0-9_/-]+\.ogg$' -or $clip.file.Contains('..')) {
+            if ($clip.file -notmatch '^announcements/[A-Za-z0-9_/-]+\.ogg$' -or $clip.file.Contains('..')) {
                 throw "Unsafe source audio reference: $($clip.file)"
             }
             # Intake 'usage' predates promotion of several cues. Filter by their
             # current path, not usage, so those active root recordings stay shipped.
-            if ($clip.file.StartsWith('sounds/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
+            if ($clip.file.StartsWith('announcements/reserve/', [StringComparison]::OrdinalIgnoreCase)) { continue }
             $clipSource = "ArenaMode.Client/Assets/ArenaMode/$($clip.file)"
             if (-not $documents.Contains($clipSource) -or -not $audio.Add($clip.file)) {
                 throw "Missing or duplicate owned audio reference: $($clip.file)"
@@ -177,11 +178,12 @@ foreach ($entry in $documents.GetEnumerator()) {
             if ((Get-FileHash -LiteralPath (Join-Path $SourceRoot $clipSource) -Algorithm SHA256).Hash -ine $clip.sha256) {
                 throw "Audio provenance hash mismatch: $($clip.file)"
             }
-            $clip.file = '../' + $clip.file
+            $clip.file = '../../../' + $clip.file
             $shippedClips += $clip
         }
         $record.files = $shippedClips
-        $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Only shipped recordings are listed. Unused sounds/reserve recordings remain in the source repository and are excluded from build/deploy/release payloads.' -Force
+        $record | Add-Member -NotePropertyName filePathBase -NotePropertyValue 'Paths are relative to this manifest.' -Force
+        $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Only shipped recordings are listed. Unused announcements/reserve recordings remain in the source repository and are excluded from build/deploy/release payloads.' -Force
         $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
     }
     $pending[$entry.Value] = $bytes
@@ -190,11 +192,9 @@ $ownedOgg = @($documents.Values | Where-Object { $_.EndsWith('.ogg', [StringComp
 if ($ownedOgg.Count -ne $audio.Count) { throw 'Unrecorded or missing announcer audio file.' }
 $coreLicense = Join-Path $CoreSourceRoot 'LICENSE'
 Assert-NoReparsePath $coreLicense
-Assert-NoReparsePath (Join-Path $Destination 'docs/REDEPLOY-CORE-LICENSE.txt')
-if (Test-Path -LiteralPath (Join-Path $Destination 'docs/REDEPLOY-CORE-LICENSE.txt') -PathType Container) {
-    throw 'Core license destination is a directory.'
+if ((Get-FileHash -LiteralPath $coreLicense).Hash -cne (Get-FileHash -LiteralPath (Join-Path $SourceRoot 'LICENSE')).Hash) {
+    throw 'Core license differs from the shared project notice; include its separate notice before packaging.'
 }
-$pending['docs/REDEPLOY-CORE-LICENSE.txt'] = [IO.File]::ReadAllBytes($coreLicense)
 foreach ($entry in $pending.GetEnumerator()) {
     $outputFile = Join-Path $Destination $entry.Key
     New-Item -ItemType Directory -Path (Split-Path $outputFile) -Force | Out-Null

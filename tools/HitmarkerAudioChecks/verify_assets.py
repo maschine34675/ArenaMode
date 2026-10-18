@@ -7,11 +7,11 @@ import sys
 import wave
 
 ROOT = Path(__file__).resolve().parents[2]
-DEST = ROOT / 'ArenaMode.Client/Assets/ArenaMode/hitmarkers'
+DEST = ROOT / 'ArenaMode.Client/Assets/ArenaMode/docs/licenses/audio'
 
 
 def verify():
-    manifest = json.loads((DEST / 'SOURCES.json').read_text(encoding='utf-8'))
+    manifest = json.loads((DEST / 'HITMARKER-SOURCES.json').read_text(encoding='utf-8'))
     assert manifest['author'] == 'User391915396' and manifest['license'] == 'CC0-1.0'
     assert manifest['source'] == 'https://freesound.org/people/User391915396/sounds/570335/'
     assert manifest['sourceSha256'] == 'B85C21E42BA30FF161BC4E3F877DAF77057B7B64A33272459E853557B9EC305C'

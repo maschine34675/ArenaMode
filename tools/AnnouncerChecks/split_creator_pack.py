@@ -44,7 +44,7 @@ def main():
     for label, relative, start, end in CUTS:
         if start != previous or end <= start or end > FRAMES:
             raise ValueError('Cuts must cover the input exactly once, in order')
-        if not relative.startswith('sounds/') or '..' in Path(relative).parts:
+        if not relative.startswith('announcements/') or '..' in Path(relative).parts:
             raise ValueError('Unsafe output path')
         previous = end
     manifest = {
@@ -69,6 +69,7 @@ def main():
             'transcription and waveform/silencedetect (-23 dB, 70 ms). ASR timestamps were not used '
             'as cut points; ROUND WON was recognized phonetically as round one. Not an in-game listening test.',
         'encoder': subprocess.check_output(['ffmpeg', '-version'], text=True).splitlines()[0],
+        'filePathBase': 'ArenaMode asset root (three directories above this source manifest); packaged manifests use document-relative paths.',
         'files': []}
     for number, (label, relative, start, end) in enumerate(CUTS, 1):
         out = OUTPUT / relative
@@ -91,7 +92,8 @@ def main():
         if key is not None:
             manifest['files'][-1]['runtimeEventKey'] = key
         print(f'{number:02d} {label} -> {relative}: {duration:.3f} s')
-    (OUTPUT / 'ANNOUNCER-SOURCES.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
+    (OUTPUT / 'docs/licenses/audio').mkdir(parents=True, exist_ok=True)
+    (OUTPUT / 'docs/licenses/audio' / 'ANNOUNCER-SOURCES.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
     print('CREATOR_PACK_SPLIT: review files before copying to the repository')
 
 

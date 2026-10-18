@@ -6,3 +6,5 @@ build/
 artifacts/
 .unlazy/
 .unlazy-hook-state.json
+__pycache__/
+*.pyc

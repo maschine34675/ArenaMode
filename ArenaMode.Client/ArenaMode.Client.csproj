@@ -47,7 +47,7 @@
   <ItemGroup>
     <!-- Categorical artwork. Keep provenance and the complete license texts
          available in the assembly and as readable files in the mod package. -->
-    <ArenaUiNotice Include="Assets\Ui\NOTICE.md;Assets\Ui\SOURCES.json;Assets\Ui\MIT-LICENSE.txt;Assets\Ui\CC-BY-3.0.txt" />
+    <ArenaUiNotice Include="Assets\Ui\NOTICE.md;Assets\Ui\SOURCES.json;Assets\Ui\MIT-LICENSE.txt;Assets\ArenaMode\docs\licenses\CC-BY-3.0.txt" />
     <EmbeddedResource Include="Assets\Ui\*.png;@(ArenaUiNotice)">
       <LogicalName>ArenaMode.Ui.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>

@@ -1,0 +1,5 @@
+# Preserve licensed texts, audio and provenance bytes in Windows clones/archives.
+*.txt -text
+*.wav -text
+*.ogg -text
+docs/licenses/audio/*.json -text

@@ -19,7 +19,7 @@ internal static class Program
     {
         string root = Path.GetFullPath(args[0]);
         string pluginDirectory = Path.Combine(root, "ArenaMode.Client", "Assets");
-        string audioDirectory = Path.Combine(pluginDirectory, "ArenaMode", "hitmarkers");
+        string audioDirectory = Path.Combine(pluginDirectory, "ArenaMode", "sounds");
         string scratch = Path.Combine(Path.GetTempPath(), "ArenaHitmarker-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(scratch);
         try

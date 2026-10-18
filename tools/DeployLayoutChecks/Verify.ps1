@@ -52,8 +52,15 @@ Check (Test-Path -LiteralPath (Join-Path $target $dll)) 'fresh target is canonic
 Check (Test-Path -LiteralPath (Join-Path $target 'docs/README.md')) 'normal target writes shared documents'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'Ui'))) 'fresh payload has no notice-only Ui folder'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'MapPreviews'))) 'preview provenance is grouped with licenses'
-foreach ($relative in @('ui/NOTICE.md', 'hitmarkers/SOURCES.json', 'pickups/SOURCES.json', 'map-previews/ATTRIBUTION.md')) {
+foreach ($relative in @('ui/NOTICE.md', 'audio/AUDIO-LICENSES.md', 'audio/HITMARKER-SOURCES.json', 'audio/PICKUP-SOURCES.json',
+    'audio/ANNOUNCER-SOURCES.json', 'audio/ANNOUNCER-ADDITIONS-20260917.json', 'CC0-1.0.txt', 'CC-BY-3.0.txt', 'map-previews/ATTRIBUTION.md')) {
     Check (Test-Path -LiteralPath (Join-Path $target ('docs/licenses/' + $relative))) ('retained notice ' + $relative)
+}
+Check (@(Get-ChildItem -LiteralPath (Join-Path $target 'announcements') -File).Count -eq 41) 'fresh deployment contains 41 active announcements'
+Check (-not (Test-Path -LiteralPath (Join-Path $target 'announcements/reserve'))) 'reserve announcements remain source-only'
+Check ((@(Get-ChildItem -LiteralPath (Join-Path $target 'sounds') -File).Name | Sort-Object) -join ',' -ceq 'collect.wav,headshot.wav,hit.wav,kill.wav') 'four effects share the sounds folder'
+foreach ($relative in @('hitmarkers', 'pickups', 'docs/ANNOUNCER-PACK.md', 'docs/HUD-ICON-LICENSES.md', 'docs/REDEPLOY-CORE-LICENSE.txt', 'docs/licenses/ui/CC-BY-3.0.txt')) {
+    Check (-not (Test-Path -LiteralPath (Join-Path $target $relative))) ('fresh payload excludes retired path ' + $relative)
 }
 Check (-not (Test-Path -LiteralPath (Join-Path $fresh ('BepInEx/plugins/' + $dll)))) 'fresh deploy never writes flat DLL'
 
@@ -62,7 +69,16 @@ Put $old 'BepInEx/plugins/ArenaMode/AreaDrafts/custom.json' 'area-user-data'
 Put $old 'BepInEx/plugins/ArenaMode/PickupDrafts/custom.json' 'pickup-user-data'
 Put $old 'BepInEx/plugins/ArenaMode/Pickups.json' 'custom-layout'
 Put $old 'BepInEx/plugins/ArenaMode/sounds/custom.ogg' 'custom-audio'
+Put $old 'BepInEx/plugins/ArenaMode/sounds/first_blood.ogg' 'old owned announcement'
+Put $old 'BepInEx/plugins/ArenaMode/hitmarkers/hit.wav' 'old owned hitmarker'
+Put $old 'BepInEx/plugins/ArenaMode/pickups/collect.wav' 'old owned pickup'
 Put $old 'BepInEx/plugins/ArenaMode/AUDIO-LICENSES.md' 'old notice'
+Put $old 'BepInEx/plugins/ArenaMode/docs/ANNOUNCER-SOURCES.json' 'old documented provenance'
+Put $old 'BepInEx/plugins/ArenaMode/docs/ANNOUNCER-PACK.md' 'merged pack notes'
+Put $old 'BepInEx/plugins/ArenaMode/docs/HUD-ICON-LICENSES.md' 'merged equipment credits'
+Put $old 'BepInEx/plugins/ArenaMode/docs/REDEPLOY-CORE-LICENSE.txt' 'duplicate original license'
+Put $old 'BepInEx/plugins/ArenaMode/docs/licenses/pickups/README.md' 'merged pickup notes'
+Put $old 'BepInEx/plugins/ArenaMode/docs/licenses/pickups/CC0-1.0.txt' 'old duplicate CC0'
 Put $old 'BepInEx/plugins/ArenaMode/Ui/NOTICE.md' 'old UI notice'
 Put $old 'BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg' 'old map provenance'
 Put $old 'BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-IMPACT-LICENSE.txt' 'obsolete notice'
@@ -87,6 +103,14 @@ foreach ($name in @($dll, $compat)) {
 }
 Check (Test-Path -LiteralPath (Join-Path $target ([IO.Path]::ChangeExtension($dll, '.pdb')))) 'debug symbols grouped'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'AUDIO-LICENSES.md'))) 'old notice leaves asset root'
+foreach ($relative in @('sounds/first_blood.ogg', 'hitmarkers/hit.wav', 'pickups/collect.wav',
+    'docs/ANNOUNCER-SOURCES.json', 'docs/ANNOUNCER-PACK.md', 'docs/HUD-ICON-LICENSES.md', 'docs/REDEPLOY-CORE-LICENSE.txt',
+    'docs/licenses/pickups/README.md', 'docs/licenses/pickups/CC0-1.0.txt')) {
+    Check (-not (Test-Path -LiteralPath (Join-Path $target $relative))) ('known old asset path retired ' + $relative)
+}
+foreach ($relative in @('announcements/first_blood.ogg', 'sounds/collect.wav', 'sounds/hit.wav')) {
+    Check ((Get-FileHash -LiteralPath (Join-Path $target $relative)).Hash -ceq (Get-FileHash -LiteralPath (Join-Path $repo ('ArenaMode.Client/Assets/ArenaMode/' + $relative))).Hash) ('migrated runtime audio refreshed at ' + $relative)
+}
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'Ui'))) 'empty retired UI folder removed'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'MapPreviews'))) 'empty retired preview tree removed'
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'hitmarkers/KENNEY-IMPACT-LICENSE.txt'))) 'unused owned license archived'
@@ -95,8 +119,8 @@ Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/config/com.maschine.Arena
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/maschine-Redeploy.Core.dll')) -ceq 'untouched-shared-core') 'shared Core unchanged by client deploy'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/Foreign.dll')) -ceq 'untouched-foreign-mod') 'other mod unchanged'
 Check (@(Get-ChildItem -LiteralPath (Join-Path $old 'BepInEx/backups/maschine-ArenaMode-layout') -File -Recurse).Count -ge 4) 'old flat files remain recoverable outside plugin scan'
-$manifest = Get-Content -LiteralPath (Join-Path $target 'docs/ANNOUNCER-SOURCES.json') -Raw | ConvertFrom-Json
-Check ($manifest.files[0].file.StartsWith('../sounds/')) 'deployed provenance uses same relative paths as ZIP'
+$manifest = Get-Content -LiteralPath (Join-Path $target 'docs/licenses/audio/ANNOUNCER-SOURCES.json') -Raw | ConvertFrom-Json
+Check ($manifest.files[0].file.StartsWith('../../../announcements/')) 'deployed provenance uses same relative paths as ZIP'
 Deploy $old
 Check (-not (Test-Path -LiteralPath (Join-Path $target ([IO.Path]::ChangeExtension($dll, '.pdb'))))) 'Release retires stale client debug symbols'
 $before = Snapshot $old
@@ -139,7 +163,13 @@ $before = Snapshot $blocked
 Deploy $blocked 'Release' $false $true
 Check ((Snapshot $blocked) -ceq $before) 'notice destination collision aborts before DLL or asset writes'
 foreach ($case in @(@('legacy-parent', 'docs/licenses'), @('legacy-notice-directory', 'Ui/NOTICE.md/keep.txt'),
-    @('legacy-retired-directory', 'hitmarkers/KENNEY-IMPACT-LICENSE.txt/keep.txt'))) {
+    @('legacy-retired-directory', 'hitmarkers/KENNEY-IMPACT-LICENSE.txt/keep.txt'),
+    @('legacy-announcement-target', 'announcements/first_blood.ogg/keep.txt'),
+    @('legacy-effect-target', 'sounds/collect.wav/keep.txt'),
+    @('legacy-effect-source', 'hitmarkers/hit.wav/keep.txt'),
+    @('legacy-audio-notice-target', 'docs/licenses/audio/ANNOUNCER-SOURCES.json/keep.txt'),
+    @('legacy-shared-license-target', 'docs/licenses/CC0-1.0.txt/keep.txt'),
+    @('legacy-merged-notice-directory', 'docs/ANNOUNCER-PACK.md/keep.txt'))) {
     $root = Join-Path $run $case[0]
     Put $root ('BepInEx/plugins/ArenaMode/' + $case[1]) 'user file must survive'
     $before = Snapshot $root

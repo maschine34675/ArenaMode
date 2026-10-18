@@ -161,7 +161,8 @@ SPT installation/
     maschine-ArenaMode/
       maschine-ArenaMode.Client.dll
       maschine-ArenaMode.BigBrainCompat.dll
-      sounds/, hitmarkers/, pickups/   audio
+      announcements/                  announcer OGGs
+      sounds/                         hitmarker and pickup WAVs
       docs/                           documentation and manifest
         licenses/                     UI, audio and map-source notices
   SPT_Runtime/user/mods/ArenaMode/

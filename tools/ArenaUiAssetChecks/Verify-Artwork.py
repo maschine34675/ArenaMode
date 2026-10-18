@@ -79,7 +79,7 @@ def decode_rgba(data):
     return (width, height), pixels
 
 
-def validate(repo, asset_dir):
+def validate(repo, asset_dir, cc_license=None):
     manifest = json.loads((asset_dir / "SOURCES.json").read_text(encoding="utf-8-sig"))
     need(manifest["schemaVersion"] == 2, "manifest schema 2")
     entries = manifest["assets"]
@@ -93,7 +93,7 @@ def validate(repo, asset_dir):
     need("MIT" in notice and "SOURCES.json" in notice, "readable attribution/provenance notice")
     for fragment in ("Permission is hereby granted, free of charge", "The above copyright notice and this permission notice", 'THE SOFTWARE IS PROVIDED "AS IS"', "Copyright"):
         need(fragment in license_text, "complete MIT license")
-    cc_text = (asset_dir / "CC-BY-3.0.txt").read_text(encoding="utf-8")
+    cc_text = (cc_license or repo / "ArenaMode.Client/Assets/ArenaMode/docs/licenses/CC-BY-3.0.txt").read_text(encoding="utf-8")
     for fragment in ("Attribution 3.0 Unported", "3. License Grant", "4. Restrictions", "8. Miscellaneous"):
         need(fragment in cc_text, "complete CC BY 3.0 license")
     need("https://creativecommons.org/licenses/by/3.0/" in notice and "CC-BY-3.0.txt" in notice,

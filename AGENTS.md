@@ -660,3 +660,6 @@ Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (curren
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
 provenance go under docs/licenses; preserve unknown user files during migration.
+Active announcer OGGs live in announcements/, the four effect WAVs in sounds/.
+Audio records are consolidated under docs/licenses/audio; see
+docs/AUDIO-LAYOUT-20261018.md. Keep source-only reserve audio out of payloads.

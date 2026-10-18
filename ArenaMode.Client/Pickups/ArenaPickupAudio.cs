@@ -29,7 +29,7 @@ internal static class ArenaPickupAudio
             {
                 _loadAttempted = true;
                 _clip = HitmarkerPcmClip.Load(Path.Combine(ArenaAssetPaths.FromPluginFile(Plugin.Instance.Info.Location),
-                    "pickups", "collect.wav"));
+                    "sounds", "collect.wav"));
             }
             if (_clip == null) return;
             if (!Output.TryPlay(_clip.GetRuntime(), Volume, out string problem)) { Report(problem); return; }

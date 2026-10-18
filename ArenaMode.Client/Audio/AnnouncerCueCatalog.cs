@@ -10,7 +10,7 @@ internal enum AnnouncerCueKind { None, Start, Result, Award, Status, Countdown, 
 /// <summary>Explicit runtime mapping, independent of the pack's original intake classification.</summary>
 internal static class AnnouncerCueCatalog
 {
-    // Current packs place all used cues in sounds/. Retain this explicit fallback
+    // Current packs place all used cues in announcements/. Retain this explicit fallback
     // for older installations; a root file always wins, so copy-only upgrades
     // cannot load the leftover reserve copy twice. Never recursively scan reserve:
     // alternate round_won/round_lost collide with results, and CTF is unsupported.
