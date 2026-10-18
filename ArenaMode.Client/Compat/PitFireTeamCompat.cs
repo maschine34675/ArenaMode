@@ -941,6 +941,13 @@ internal static partial class PitFireTeamCompat
         if (!string.IsNullOrEmpty(problem))
             return false;
 
+        // HUD/status callers also reach this method outside Tick. Once the
+        // exact raid has committed native Stop, missing wrappers are disposal,
+        // not a live-roster violation. Keep any earlier latched fault above;
+        // do not clear identities, persistence guards or pending creations.
+        if (ArenaRaidExit.NativeStopOwnsCurrentRaid)
+            return true;
+
         if (!LiveTeamArena || _contractState != PitFireTeamContractState.Compatible)
             return true;
 

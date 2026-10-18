@@ -44,7 +44,10 @@ internal static partial class ArenaMatchService
         }
 
         var match = Current;
-        if (match == null)
+        // Stop disposes native bodies before GameEnd clears Current. Do not
+        // advance a round or validate its scoreboard against that teardown.
+        // A pending/failed leave remains Started and must keep normal checks.
+        if (match == null || ArenaRaidExit.NativeStopOwnsCurrentRaid)
             return;
 
         match.Tick(Time.deltaTime);
@@ -276,7 +279,8 @@ internal static partial class ArenaMatchService
     /// </summary>
     private static void SynchronizeScoreboard(ArenaMatch match)
     {
-        if (ArenaMatchResult.HasResult(match?.Mode)) return;
+        // A mode's Tick/OnMatchStart can itself commit Stop in the same frame.
+        if (ArenaRaidExit.NativeStopOwnsCurrentRaid || ArenaMatchResult.HasResult(match?.Mode)) return;
         try
         {
             if (match?.Mode is TeamDeathmatchMode teams)

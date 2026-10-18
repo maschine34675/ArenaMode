@@ -1,0 +1,266 @@
+// Only boundaries/state setup are doubles. Complete production getter/latch, match
+// tick/scoreboard, PFT tick/drain and ArenaRaidExit are compiled by Program.cs.
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
+using ArenaMode.Compat;
+using ArenaMode.Modes;
+using ArenaMode.Respawn;
+using ArenaMode.Session;
+using Comfort.Common;
+using EFT;
+
+public static class NativeStopProbe
+{
+    static int checks;
+    public static void Check(bool ok, string why) { checks++; if (!ok) throw new Exception(why); }
+    static LocalGame Fresh()
+    {
+        ArenaSession.IsActive = false; ArenaRaidExit.Tick();
+        ArenaSession.IsActive = ArenaSession.Exact = true;
+        ArenaRespawnDriver.StandDown = false;
+        Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning = false;
+        var game = new LocalGame();
+        var world = new GameWorld { MainPlayer = game.LocalPlayer };
+        game.GameWorld = world; game.Owner = new EftGamePlayerOwner { Player = game.LocalPlayer };
+        Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
+        ArenaSession.StartedGame = game; ArenaSession.StartedWorld = world;
+        MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance = new EFT.UI.PreloaderUI();
+        PitFireTeamCompat.Reset(game.LocalPlayer, world);
+        PitFireTeamRoundLifecycle.ResetProbe();
+        ArenaMatchService.ResetProbe();
+        ArenaMode.Plugin.ModLogger.Errors.Clear(); ArenaMode.Plugin.ModLogger.Warnings.Clear();
+        return game;
+    }
+    public static int Run()
+    {
+        var game = Fresh();
+        Check(PitFireTeamCompat.TryGetLiveFollowers(out var followers, out var problem) && followers.Count == 1, "valid live roster accepted");
+        PitFireTeamCompat.Wrappers.Clear();
+        Check(!PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem) && problem.Contains("living bound"), "live missing follower still fails closed");
+        Check(ArenaMode.Plugin.ModLogger.Errors.Count == 1, "live violation still logs once");
+        var latched = problem;
+        game.Status = GameStatus.Stopping;
+        Check(!PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem) && problem == latched, "native Stop must preserve an already latched fault");
+        Check(ArenaMode.Plugin.ModLogger.Errors.Count == 1, "latched fault not repeated");
+
+        foreach (var status in new[] { GameStatus.Stopping, GameStatus.Stopped })
+        {
+            game = Fresh(); game.Status = status; PitFireTeamCompat.Wrappers.Clear();
+            Check(PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem) && followers.Count == 0 && problem == null,
+                "stopped disposal must not create a roster fault");
+            Check(PitFireTeamCompat.CurrentBodiesByAccountId.Count == 1 && PitFireTeamCompat.DiscoveryReads == 0
+                && ArenaMode.Plugin.ModLogger.Errors.Count == 0, "stop retains identities and avoids discovery");
+            ArenaMatchService.Tick();
+            Check(ArenaMatchService.Current.Ticks == 0 && ArenaMatchService.ScoreboardReads == 0, "stopped match must not advance or sync");
+            PitFireTeamRoundLifecycle.Enqueue(Thread.CurrentThread.ManagedThreadId);
+            PitFireTeamCompat.Tick();
+            Check(PitFireTeamRoundLifecycle.Completions == 1 && PitFireTeamRoundLifecycle.PendingCount == 0,
+                "pending completion must drain during committed Stop");
+            Check(PitFireTeamCompat.DiscoveryReads == 0 && PitFireTeamCompat.CurrentBodiesByAccountId.Count == 1, "drain does not clear roster or resume discovery");
+        }
+
+        game = Fresh(); game.Before = () => throw new Exception("native precommit failure");
+        ArenaRespawnDriver.StandDown = true; ArenaRaidExit.Request(game);
+        Check(game.Status == GameStatus.Started && !ArenaRaidExit.NativeStopOwnsCurrentRaid, "failed Stop remains a live raid");
+        PitFireTeamCompat.Wrappers.Clear();
+        Check(!PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem), "failed Stop does not hide a live roster fault");
+        ArenaMatchService.Tick();
+        Check(ArenaMatchService.Current.Ticks == 1 && ArenaMatchService.ScoreboardReads == 1, "failed Stop keeps match and scoreboard checks");
+
+        game = Fresh(); Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning = true; ArenaRaidExit.Request(game);
+        Check(!ArenaRaidExit.NativeStopOwnsCurrentRaid, "queued exit is not native commit");
+        PitFireTeamCompat.Wrappers.Clear();
+        Check(!PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem), "precommit queue does not hide live faults");
+
+        foreach (var invalidate in new Action<LocalGame>[] {
+            g => ArenaSession.Exact = false,
+            g => g.GameWorld = new GameWorld(),
+            g => Singleton<AbstractGame>.Instance = new LocalGame { Status = GameStatus.Stopping },
+            g => Singleton<GameWorld>.Instance = new GameWorld() })
+        {
+            game = Fresh(); game.Status = GameStatus.Stopping; invalidate(game); PitFireTeamCompat.Wrappers.Clear();
+            Check(!PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem), "foreign stop cannot mask the bound roster fault");
+            ArenaMatchService.Tick();
+            Check(ArenaMatchService.Current.Ticks == 1, "foreign stop does not own current match progression");
+        }
+        game = Fresh();
+        ArenaMatchService.Current.DuringTick = () => { game.Status = GameStatus.Stopping; PitFireTeamCompat.Wrappers.Clear(); };
+        ArenaMatchService.Tick();
+        Check(ArenaMatchService.Current.Ticks == 1 && ArenaMatchService.ScoreboardReads == 0, "same-frame committed Stop must skip scoreboard");
+
+        game = Fresh(); game.Status = GameStatus.Stopping; ArenaMatchService.TeamStartAbortPending = true;
+        ArenaMatchService.Tick(); Check(ArenaMatchService.AbortTicks == 1, "failed-start owner still receives its tick");
+
+        game = Fresh(); ArenaSession.IsActive = false; PitFireTeamCompat.LiveTeamArena = false;
+        PitFireTeamCompat.Wrappers.Clear();
+        Check(PitFireTeamCompat.TryGetLiveFollowers(out followers, out problem) && problem == null && PitFireTeamCompat.DiscoveryReads == 0, "ordinary raid does not inspect PFT roster");
+        PitFireTeamRoundLifecycle.Enqueue(Thread.CurrentThread.ManagedThreadId);
+        PitFireTeamCompat.Tick(); Check(PitFireTeamRoundLifecycle.Completions == 1, "old pending creator still drains outside Arena");
+        PitFireTeamRoundLifecycle.Enqueue(Thread.CurrentThread.ManagedThreadId + 100);
+        PitFireTeamCompat.Tick(); Check(PitFireTeamRoundLifecycle.PendingCount == 1, "foreign-thread completion remains queued");
+        return checks;
+    }
+}
+namespace UnityEngine { public static class Time { public static float timeScale = 1, deltaTime = .02f, unscaledTime = 10; } }
+namespace EFT
+{
+    public enum GameStatus { Starting, Started, Stopping, Stopped }
+    public enum EBotState { PreActive, Active, NonActive }
+    public interface IPlayer { string ProfileId { get; } bool IsYourPlayer { get; } Health HealthController { get; } }
+    public class Health { public bool IsAlive = true; }
+    public class Profile { public string AccountId; }
+    public class AbstractGame { public GameStatus Status = GameStatus.Started; }
+    public class BaseLocalGame<T> : AbstractGame { public void vmethod_4() { } }
+    public class Player : IPlayer { public string ProfileId { get; set; } = "local"; public bool IsYourPlayer { get; set; } public Health HealthController { get; set; } = new Health(); }
+    public class BotOwner : Player
+    {
+        public Profile Profile = new Profile { AccountId = "ally-account" };
+        public EBotState BotState = EBotState.Active;
+        public bool IsDead;
+        public Player GetPlayer => this;
+    }
+    public class EftGamePlayerOwner { public Player Player; }
+    public class GameWorld
+    {
+        public Player MainPlayer;
+        public List<IPlayer> RegisteredPlayers = new List<IPlayer>();
+        public Dictionary<string, Player> Registry = new Dictionary<string, Player>();
+        public Player GetEverExistedPlayerByID(string id) => Registry.TryGetValue(id, out var value) ? value : null;
+    }
+    public class LocalGame : BaseLocalGame<EftGamePlayerOwner>
+    {
+        public GameWorld GameWorld;
+        public string ProfileId = "local";
+        public Player LocalPlayer = new Player { IsYourPlayer = true };
+        public EftGamePlayerOwner Owner;
+        public Action Before;
+        public void CG_method_18() { Before?.Invoke(); Status = GameStatus.Stopping; }
+    }
+}
+namespace Comfort.Common
+{
+    public static class Singleton<T> { public static T Instance; public static bool Instantiated => Instance != null; }
+    public static class MonoBehaviourSingleton<T> { public static T Instance; }
+}
+namespace EFT.UI { public class PreloaderUI { public void SetMenuTaskBarVisibility(bool value) { } } }
+namespace EFT.Communications { public static class NotificationManager { public static void DisplayMessageNotification(string message) { } } }
+namespace Redeploy.Core.Engine { public static class RespawnEngineState { public static bool IsPipelineRunning; } }
+namespace Redeploy.Core.GameAccess { public static class LocalGameAccessor { public static EftGamePlayerOwner GetPlayerOwner(LocalGame game) => game.Owner; } }
+namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool StandDown; } }
+namespace ArenaMode.Session
+{
+    public static class ArenaSession
+    {
+        public static bool IsActive, Exact;
+        public static AbstractGame StartedGame;
+        public static GameWorld StartedWorld;
+        public static bool IsExactActiveRaid(AbstractGame game, GameWorld world) => Exact && ReferenceEquals(game, StartedGame) && ReferenceEquals(world, StartedWorld);
+    }
+}
+namespace ArenaMode
+{
+    public static class Plugin
+    {
+        public static Log ModLogger = new Log();
+        public class Log
+        {
+            public List<string> Errors = new List<string>(), Warnings = new List<string>();
+            public void LogDebug(string m) { }
+            public void LogWarning(string m) => Warnings.Add(m);
+            public void LogError(string m) => Errors.Add(m);
+        }
+    }
+}
+namespace ArenaMode.Compat
+{
+    public enum PitFireTeamContractState { Compatible, Unavailable }
+    public class Boss { public Player realPlayer; }
+    public class Follower { public BotOwner Bot; public Boss Boss; public BotOwner GetBot() => Bot; public Boss GetBoss() => Boss; }
+    internal static partial class PitFireTeamCompat
+    {
+        static readonly object StateLock = new object();
+        static string _runtimeRosterProblem, _currentLocalProfileId;
+        static bool _roundTransitionActive, _followerDiscoveryFailureLogged;
+        static PitFireTeamContractState _contractState;
+        static Player _currentLocalPlayer;
+        static object _currentLeaderWrapper;
+        static int _frozenCompanionCount;
+        static MethodInfo _getFollowersMethod = typeof(PitFireTeamCompat).GetMethod(nameof(GetWrappers));
+        static MethodInfo _getFollowerBotMethod = typeof(Follower).GetMethod(nameof(Follower.GetBot));
+        static MethodInfo _getFollowerBossMethod = typeof(Follower).GetMethod(nameof(Follower.GetBoss));
+        static FieldInfo _bossRealPlayerField = typeof(Boss).GetField(nameof(Boss.realPlayer));
+        public static readonly Dictionary<string, BotOwner> CurrentBodiesByAccountId = new Dictionary<string, BotOwner>();
+        public static readonly List<Follower> Wrappers = new List<Follower>();
+        public static bool LiveTeamArena;
+        public static bool RoundTransitionActive => _roundTransitionActive;
+        public static int DiscoveryReads;
+        public static IEnumerable GetWrappers() { DiscoveryReads++; return Wrappers; }
+        static bool ShouldDeferInitialRosterDiscovery() => false;
+        static bool TryGetCurrentProfileId(string account, out string id) { id = account == "ally-account" ? "ally-profile" : null; return id != null; }
+        public static void Reset(Player leader, GameWorld world)
+        {
+            _runtimeRosterProblem = null; _roundTransitionActive = _followerDiscoveryFailureLogged = false;
+            _currentLocalPlayer = leader; _currentLocalProfileId = leader.ProfileId;
+            var boss = new Boss { realPlayer = leader }; _currentLeaderWrapper = boss;
+            var bot = new BotOwner { ProfileId = "ally-profile" };
+            CurrentBodiesByAccountId.Clear(); CurrentBodiesByAccountId["ally-account"] = bot;
+            world.Registry[bot.ProfileId] = bot;
+            Wrappers.Clear(); Wrappers.Add(new Follower { Bot = bot, Boss = boss });
+            _frozenCompanionCount = 1; LiveTeamArena = true; DiscoveryReads = 0;
+            _contractState = PitFireTeamContractState.Compatible;
+        }
+    }
+    internal static partial class PitFireTeamRoundLifecycle
+    {
+        static readonly object StateLock = new object();
+        class PendingRawPlayerCompletion { public int OwnerThreadId; public object State, Player; public Exception Failure; }
+        static readonly Queue<PendingRawPlayerCompletion> PendingRawPlayerCompletions = new Queue<PendingRawPlayerCompletion>();
+        public static int Completions;
+        public static int PendingCount => PendingRawPlayerCompletions.Count;
+        public static void Enqueue(int thread) => PendingRawPlayerCompletions.Enqueue(new PendingRawPlayerCompletion { OwnerThreadId = thread });
+        public static void ResetProbe() { PendingRawPlayerCompletions.Clear(); Completions = 0; }
+        static void CompleteLeasedRawLocalPlayerTaskSafely(object state, object player, Exception failure) => Completions++;
+    }
+}
+namespace ArenaMode.Combat { public static class RoleClassifier { public static string DisplayName(IPlayer p) => "test"; public static string Label(IPlayer p) => "test"; } }
+namespace ArenaMode.Modes
+{
+    internal class ArenaMatch
+    {
+        public object Mode = new TacticalMode();
+        public ArenaScoreboard Scoreboard = new ArenaScoreboard();
+        public int Ticks;
+        public Action DuringTick;
+        public void Tick(float delta) { Ticks++; DuringTick?.Invoke(); }
+    }
+    internal static partial class ArenaMatchService
+    {
+        public static ArenaMatch Current;
+        public static bool TeamStartAbortPending;
+        static float _nextScoreboardSyncAt;
+        static string _lastScoreboardProblem;
+        public static int ScoreboardReads, AbortTicks;
+        static void TickFailedStartAbort() => AbortTicks++;
+        public static void ResetProbe() { Current = new ArenaMatch(); TeamStartAbortPending = false; _nextScoreboardSyncAt = 0; _lastScoreboardProblem = null; ScoreboardReads = AbortTicks = 0; }
+    }
+    internal static class ArenaMatchResult { public static bool HasResult(object mode) => false; }
+    internal class TeamDeathmatchMode { public bool TrySynchronizeScoreboardRoster(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
+    internal class TacticalMode { public bool TrySynchronizeScoreboardRoster(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
+    internal class ZombieMode { public bool IsTeamArena, TeamResultOwnsCurrentRaid; public bool TrySynchronizeTeamScoreboard(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
+    internal class RoundsMode { public Round Round = new Round(); }
+    internal class Round { public int Number = 1; }
+    internal class ArenaScoreboardActor { public ArenaScoreboardActor(string profile, string name, string role, bool alive, string stable) { } }
+    internal class ArenaScoreboard { public bool TrySynchronizeRoster(int epoch, ArenaScoreboardActor local, IEnumerable<ArenaScoreboardActor> allies, IEnumerable<ArenaScoreboardActor> enemies, out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
+}
+namespace SPT.Reflection.Patching
+{
+    public abstract class ModulePatch { protected abstract MethodBase GetTargetMethod(); public void Enable() { } }
+    public class PatchPrefixAttribute : Attribute { }
+}
+namespace HarmonyLib
+{
+    public static class AccessTools { public static MethodInfo DeclaredMethod(Type t, string name, Type[] args) => t.GetMethod(name, args); }
+}
