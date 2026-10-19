@@ -56,10 +56,59 @@ kein Blocker offen. Diese Aussage ersetzt keinen echten Mono-/Harmony-Spieltest.
 
 ## Deployment und native Grenzen
 
-Die native Prüfung und das anschließende Entfernen der temporären LTTP-Installation
-stehen bei Anlage dieses Dokuments noch aus. Continuous Healing war auf dem
-Testhost bereits installiert und muss erhalten bleiben. Server/Core und
-Karten-Assets von Arena bleiben bei diesem reinen Client-Paket unverändert.
+Implementierungscommit: `f8f4a48949870005c3beb3084f6d4fc259dd29af`.
+Der daraus isoliert gebaute Client/Begleiter trägt
+`0.1.1+f8f4a48949870005c3beb3084f6d4fc259dd29af`.
+
+| Datei | SHA-256 |
+| --- | --- |
+| `maschine-ArenaMode.Client.dll` | `df2c5583ce3bc908e30d698ed7ab6e4ee0fc1e2e0242f7d1b7cb1424b837e9fd` |
+| `maschine-ArenaMode.BigBrainCompat.dll` | `f6c971318fa4488a651a559c9f9ee6c07d258c0177e4cb7893475f7de6569a7a` |
+
+Beide Dateien wurden mit dem vorhandenen Deployment-Helfer nach Entwicklung
+und GPU2 eingespielt und dort bytegleich geprüft. Der automatische Abgleich
+hatte auf GPU2 noch den älteren `2624bef`-Client vorgefunden; nach Ablauf seines
+Wartefensters erfolgte das direkte, auf entsperrte Arena-Dateien begrenzte
+Deployment. Der anschließende GPU2-Prozess bestätigt den geladenen Build und
+unveränderte installierte Bibliotheken; die einzelnen nativen Beobachtungen und
+ihre Grenzen stehen im [GPU-Prüfbericht](GPU-HEALTH-LOOT-COMPAT-20261019.md).
+
+Die gezielte native Prüfung auf GPU2 ist abgeschlossen: gewöhnlicher Factory-PMC
+→ Arena Deathmatch mit vier Teilnehmern → gewöhnlicher Factory-PMC, im selben
+Prozess. Beide normalen Raids belegten echte mehrgliedrige Heilung, Abbruch und
+LTTP-Lootentfernung. In Arena liefen die lokale Heilung sowie natürliche
+Bot-Start-/Effekt-End-Ereignisse durch die vorgesehenen Grenzen. LTTPs echter Scan
+ließ die M60-Quelle mitsamt 14 ursprünglichen Teilen aus. Arenas eigene Rotation,
+anschließende Aufnahme in den freien Waffenplatz und normales Fallenlassen
+funktionierten; der erledigte Quell-Handle behielt keine Ausnahme.
+
+Zwei Todesrespawns mit Killcam und anschließender Heilung funktionierten. Der
+erste Tod entstand durch Gegnerfeuer; der zweite wurde nach Botbeschuss über
+den Testhook ausgelöst, statt weiter auf einen tödlichen Treffer zu warten.
+Ein verspäteter Heilungsrückruf eines alten lokalen Körpers wurde nicht
+beobachtet. Ebenso bleiben direkte/queued LTTP-Löschung, ausstehende Transfers
+und Rollback-Timings native Testgrenzen, trotz bestandener Offline-Fehlerkontrollen.
+Die Bot-Heilung fiel nicht nachweislich mit einem lokalen Heilungsabbruch zusammen.
+
+Beim Verlassen des ersten gewöhnlichen PMC-Raids traten zweimal NREs in
+`BotWeaponSelector.OnWeaponTaken` auf, noch vor dem Arena-Raid. Die Quelle ist
+nicht geklärt; diese Prüfung behauptet weder eine Behebung noch eine sichere
+Ursachenzuweisung. LTTPs Accessibility-Warnungen stammten aus dessen temporär
+aktivierter Debug-Ausgabe. Einzelheiten und weitere Loggrenzen stehen im GPU-Bericht.
+
+Nach dem Test wurden Spiel und Server beendet, alle 232 gespeicherten Arena-,
+drei CH- und 19 Killcam-Werte zurückgesetzt und verglichen. Ein unabhängiger
+Vergleich bestätigt die 232 Arena-Werte auch auf beiden Installationen.
+Acht temporäre LTTP-Dateien einschließlich erzeugter Loot-Rankings wurden
+hashgeprüft archiviert und aus Entwicklung/GPU2 entfernt; es bleiben lediglich
+vier leere Testordner. Der erste Bereinigungslauf scheiterte erst an diesen
+leeren Ordnern, nachdem sämtliche Dateien entfernt waren; die anschließende
+Ordnerbereinigung wurde vom Werkzeug abgewiesen und nicht umgangen.
+Der abschließende DLL-Scan findet keine LTTP-DLL oder Arena-Duplikate.
+Das bereits installierte Continuous Healing bleibt erhalten. Server/Core,
+UiBridge und CH sind auf beiden Rechnern bytegleich zum Ausgangsstand.
+Karten-Assets wurden nicht geändert. Die beiden getesteten Arena-DLLs bleiben
+eingespielt; kein neuer Release und kein Push gehören zu diesem Paket.
 
 Rohbelege liegen ignoriert unter `artifacts/health-loot-compat-20261019/`.
 Die beobachteten medizinischen NREs aus älteren Raids gelten damit nicht

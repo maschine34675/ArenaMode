@@ -16,6 +16,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Continuous Healing: native bot healing and retired-body isolation](CONTINUOUS-HEALING-COMPAT-20261019.md)
 - [Late To The Party: exact weapon-pickup source protection](LATE-TO-THE-PARTY-COMPAT-20261019.md)
 - [Health and loot compatibility: combined implementation and verification](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md)
+- [GPU2 healing, pickup protection and ordinary-raid controls](GPU-HEALTH-LOOT-COMPAT-20261019.md)
 - [Combined optional-mod integration and verification](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
 - [Native optional-mod startup and pending gameplay matrix](GPU-OPTIONAL-COMPAT-20261019.md)
 - [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)

@@ -17,10 +17,18 @@ current. User-facing communication is normally German.
   No foreign payload/settings ship with Arena. Independent adversarial review
   found no blocker; source/build checks are recorded in
   [the integration report](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md).
-  Native validation is being prepared on GPU2; LTTP is temporarily installed
-  there and on development solely for this test (manifest under the report's
-  ignored artifact folder). Existing CH must be preserved during cleanup.
-  Do not treat this pending test as a complete compatibility certification.
+  Implementation `f8f4a48` is deployed locally and on GPU2. The same-process
+  ordinary PMC -> Arena DM -> ordinary PMC probe passes local healing/cancel,
+  natural Arena bot medical callbacks, LTTP source exclusion, real M60 rotation/
+  collection/drop, and two death respawns followed by healing. The second death
+  used the test hook after real bot damage. See the
+  [native results and limits](GPU-HEALTH-LOOT-COMPAT-20261019.md); no retired-local
+  callback or simultaneous local cancel/bot heal was observed. Two weapon-selector
+  NREs occurred on the first ordinary PMC exit; their cause remains unproven.
+  All test settings are restored. Game/server are stopped and GPU2 is free.
+  Eight temporary LTTP files were removed from development/GPU2; four empty
+  directories remain after the directory-only cleanup was refused. Existing
+  CH/Core/server/UiBridge are unchanged. No push or release in this batch.
 
 - **Looting / corpse cleanup / Smoothie (2026-10-19):** `144a763` activates
   exact-Arena adapters for Looting Bots 1.8.0+, Remove The Dead 4.1.3+ and
