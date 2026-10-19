@@ -32,6 +32,10 @@ docs/MOREBOTS-COMPATIBILITY-20261019.md. Its revenge files are outside SPT's
 profile snapshot. Preserve both the producer and delayed end-sender guards,
 the PFT null-marker/body check and Arena relationship ownership; never clear
 the global queue or blanket-block its identity-free server route.
+AI Limit 1.9.2+ is paused only at its component-creation seam, including the
+exact server-confirmed loading world before Arena becomes active. Read
+docs/AI-LIMIT-COMPAT-20261019.md before changing this timing, contract validation
+or admission-on-failure; ordinary PMC/Scav raids retain the original entry point.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

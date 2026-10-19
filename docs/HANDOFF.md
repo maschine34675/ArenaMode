@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **AI Limit / completed compatibility checks (2026-10-19):** 1.9.2+ gets an
+  exact-world component-creation guard before Arena's started event, with a
+  server-returned end marker and fresh identity checks for later calls. No
+  limiter setting or foreign patch is changed. See [adapter details and native
+  boundaries](AI-LIMIT-COMPAT-20261019.md). Offline checks: 72 AI-Limit assertions
+  plus seven compiled faults and released-DLL metadata; 43 admission assertions
+  plus five faults; 752 native-menu assertions; 1,233 server tests passed with
+  one existing APBS integration skip. Solo population, burst preparation, TDM
+  and TeamArena expansion regressions also pass. Client/companion build succeeds
+  with only four pre-existing nullable-context warnings. Independent adversarial
+  review found no blocker; its cleanup-error hardening was included. Native
+  ordinary -> Arena -> ordinary tests with the actual optional mods remain open.
+
 - **MoreBotsAPI (2026-10-19):** the 2.1.1+ optional adapter protects both own
   spawn paths and PFT's missing Hunt marker, keeps Arena team rules intact,
   and excludes Arena from the separate persistent revenge producer/end sender.

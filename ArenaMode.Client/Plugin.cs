@@ -22,6 +22,7 @@ namespace ArenaMode;
 [BepInDependency(ArenaOptionalMods.QuestingBotsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaOptionalMods.OrbitGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.dvize.ailimit", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -63,6 +64,7 @@ public class Plugin : BaseUnityPlugin
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
         PitFireTeamCompat.Initialize();
         ArenaMoreBotsCompatibility.Initialize();
+        ArenaAiLimitCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -211,6 +213,7 @@ public class Plugin : BaseUnityPlugin
     private void ShutdownRuntime()
     {
         ArenaMoreBotsCompatibility.Shutdown();
+        ArenaAiLimitCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();

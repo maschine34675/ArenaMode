@@ -14,7 +14,8 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 | ArenaMode Client und Server | Beide Hälften sowie die eigenen benötigten Daten/Assets gehören zum Paket. |
 | `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
-Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain und DynamicMaps als weiche
+Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
+AI Limit, Questing Bots und ORBIT als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
@@ -58,6 +59,12 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **AI Limit 1.9.2+:** die Erzeugung seiner Limiter-Komponente wird nur im exakt
+  serverbestätigten Arena-Spiel unterdrückt, bereits vor dem Arena-Started-Event.
+  Kein Wechsel globaler Einstellungen und kein Entfernen fremder Patches.
+  Normale PMC-/Scav-Raids laufen original; ein Folge-Raid auf derselben Map erbt
+  keine Sperre. Fehlende API-/Hook-Verträge sperren ausschließlich Arena.
+  Siehe [AI-Limit-Adapter und native Testgrenzen](AI-LIMIT-COMPAT-20261019.md).
 - **MoreBotsAPI 2.1.1+:** eigene Spawn-Kennungen sowie ein enger Schutz für
   PFT-Begleiter ohne Kennung; die externe Revenge-Persistenz und deren
   Feindschafts-Override werden für genau den gebundenen Arena-Raid ausgenommen.

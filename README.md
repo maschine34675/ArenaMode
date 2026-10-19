@@ -245,8 +245,9 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Killcam** | **1.0.0** is the current integration target; compatible API and enabled DeathReplay required. The former KillcamReplay plugin is not accepted. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1+**; not required for Arena's static Customs preview. |
 | **MoreBotsAPI** | **2.1.1+** scoped spawn, team-relationship and persistent revenge-state protection. Other mods using the API keep their own requirements. |
+| **AI Limit** | **1.9.2+**: Arena pauses its bot-limiter component for the exact match, preserving all participants. Normal PMC/Scav raids keep their limiter settings and behavior. |
 
-Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps and BigBrain are attempted
+Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI and AI Limit are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 

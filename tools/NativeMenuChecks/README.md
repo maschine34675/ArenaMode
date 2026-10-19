@@ -16,6 +16,13 @@ checks that the periodic client-settings read uses SPT's authenticated low-level
 HTTP client without passing through the noisy `RequestHandler` wrapper. Empty
 success responses and real transport failures remain visible in Arena diagnostics.
 
+Optional-mod admission is checked at display/freeze, before server arming and
+again after settings refresh. Ordinary PMC/Scav starts must not even invoke the
+new provider. Closing setup preserves its process lifetime. Failed MoreBots
+binding rejects the exact returned Arena start before kit issue and cancels only
+that arm. Separate optional-mod harnesses cover the actual adapters/discovery;
+these tests use adapter responses as controlled boundary inputs.
+
 The area cases run the production arming hook and transport with controlled
 readiness inputs: exact area acknowledgement/token capture, wrong/missing area
 echo, unsupported map, PFT exclusion, missing hooks and full-map compatibility.

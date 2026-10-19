@@ -46,7 +46,7 @@ Sources: [Questing Bots](https://sp-mod.com/mod/1109/questing-bots),
   failed probes, visible reasons, persistent admission after EndFlow, and
   ordinary PMC/Scav starts that never even invoke the optional admission probe.
   Also covers failed MoreBots binding before kit issue and exact-arm cancellation.
-- `OptionalModAdmissionChecks`: 41 production-source assertions with controlled
+- `OptionalModAdmissionChecks`: 43 production-source assertions with controlled
   discovery/configuration/Harmony boundaries, plus five compiled fault controls.
   Covers disabled/active/partial/unknown Questing Bots, every Harmony patch kind,
   sticky activation, delayed ORBIT presence and adapter rejection propagation.
