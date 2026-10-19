@@ -23,7 +23,11 @@ public sealed class ArenaEndLocalRaidPatch : AbstractPatch
     }
 
     [PatchPrefix]
+    // The optional SVM adapter orders this prefix before SVM only after its
+    // complete callback contract passed. Otherwise baseline ordering is kept.
     public static bool Prefix(
+        MatchCallbacks __instance,
+        string url,
         EndLocalRaidRequestData info,
         MongoId sessionID,
         CancellationToken cancellationToken,
@@ -33,9 +37,17 @@ public sealed class ArenaEndLocalRaidPatch : AbstractPatch
         if (ordinary == null || info == null)
             return true;
 
-        if (!ordinary.TryGetOrStartEnd(sessionID, info, out Task<string>? transaction))
+        if (ordinary.TryEnterExactEndCallback(__instance, url, sessionID, info))
             return true;
 
+        if (!ordinary.TryGetOrStartEnd(sessionID, info, __instance, url, out Task<string>? transaction, out bool callbackBridge))
+            return true;
+
+        // HarmonyX can still invoke later foreign prefixes after this one
+        // returns false. Defer only this exact outer SVM invocation; the inner
+        // callback gets a fresh scope and executes SVM once inside the gate.
+        if (callbackBridge)
+            Compat.ArenaSvmCompat.MarkOrdinaryWrapperOwned(__instance, url, sessionID, info);
         __result = new ValueTask<string>(
             transaction!.WaitAsync(cancellationToken));
         return false;

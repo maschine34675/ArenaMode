@@ -1,4 +1,5 @@
 using ArenaMode.Server.Patches;
+using ArenaMode.Server.Compat;
 using ArenaMode.Server.Services;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
@@ -39,6 +40,7 @@ public sealed class PatchManager(
 
         new ArenaStartLocalRaidPatch().Enable();
         new ArenaEndLocalRaidPatch().Enable();
+        ArenaSvmCompat.TryEnable(loadedMods);
         new ArenaPostRaidPmcSkipPatch().Enable();
         new ArenaPreRaidWipeSkipPatch().Enable();
         new ArenaGenerateLocationAndLootPatch().Enable();

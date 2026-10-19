@@ -474,6 +474,11 @@ public sealed class ArenaModeRouter : StaticRouter
             });
         }
 
+        // Verify optional outer end-callback protection before snapshot recovery
+        // or arming; an unknown SVM contract must not strand a protected raid.
+        if (Compat.ArenaSvmCompat.TryGetAdmissionFailure(out string? svmFailure))
+            return Json(new { armed = false, reason = svmFailure });
+
         // Missing imported data must not trigger stale-snapshot recovery or arm
         // preparation. Config alone cannot make an optional location playable.
         if (!ArenaOptionalMapPolicy.IsAvailable(request.Map))

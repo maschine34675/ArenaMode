@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="../AirPitChecks/NoDeploy.targets" />
+  <Target Name="SvmProductionOverrides" BeforeTargets="BeforeCompile">
+    <ItemGroup Condition="'$(SvmProductionRoot)' != ''">
+      <Compile Remove="@(Compile)" Condition="'%(Compile.Filename)' == 'ArenaSvmCompat' Or '%(Compile.Filename)' == 'ArenaSvmContract'" />
+      <Compile Include="$(SvmProductionRoot)/ArenaSvmCompat.cs;$(SvmProductionRoot)/ArenaSvmContract.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

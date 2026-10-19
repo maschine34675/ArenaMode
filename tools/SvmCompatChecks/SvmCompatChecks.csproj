@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <AssemblyName>ArenaMode.Tests</AssemblyName>
+    <ServerAssemblyPath Condition="'$(ServerAssemblyPath)' == ''">../../build/server/Release/maschine-ArenaMode.Server/maschine-ArenaMode.Server.dll</ServerAssemblyPath>
+    <NativeRoot Condition="'$(NativeRoot)' == ''">../../../../SPT_Runtime</NativeRoot>
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="$(NativeRoot)/*.dll" Exclude="$(NativeRoot)/SPT.Server*.dll;$(NativeRoot)/argon2_sharp_core.dll" />
+    <Reference Include="maschine-ArenaMode.Server"><HintPath>$(ServerAssemblyPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>
