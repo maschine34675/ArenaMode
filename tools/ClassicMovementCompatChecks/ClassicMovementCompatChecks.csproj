@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <ProductionRoot Condition="'$(ProductionRoot)' == ''">../../ArenaMode.Client/Compat</ProductionRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionRoot)/ArenaClassicMovementCompat.cs" Link="Production/Compat.cs" />
+    <Compile Include="$(ProductionRoot)/ArenaClassicMovementContract.cs" Link="Production/Contract.cs" />
+    <Compile Include="$(ProductionRoot)/ArenaClassicMovementScope.cs" Link="Production/Scope.cs" />
+    <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
+    <Reference Include="Mono.Cecil"><HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
