@@ -55,6 +55,28 @@ At most 80 requests per exact raid, input at most 4096 bytes, request age at mos
 20 seconds, and every duration at most 15 seconds. Old request files are moved
 aside at plugin startup and malformed requests are consumed without retries.
 
+`-Action sequence -BotId BOT [-Effect both]` is the bounded four-framebuffer
+test used for the final native acceptance. It waits at most 30 seconds in total
+for the exact body's complete projected bounds to fit the camera with margin and
+three unobstructed terrain/opaque collision rays (triggers ignored). These rays
+only schedule capture; the actual images remain the visual evidence. The optional
+explicit `both` grants the real 15-second effects once, only if no effect already
+exists. It neither renews nor clears an existing pickup. A naturally active
+spawn shield is also sufficient; the tool cannot grant spawn protection.
+
+The sequence captures `open-before`, `lower-half`, `full`, `open-after`, allowing
+12 actual rendered frames per stage. After `WaitForEndOfFrame`, it temporarily
+sets `RenderTexture.active = null`, reads the display backbuffer, and restores the
+previous target in a `finally`. It never re-renders the scene into a substitute
+texture. Every stage checks exact game/world/local/bot/health/camera identities,
+the deadline, active effect and cover ownership. `clear` cancels its epoch.
+The first response has `Pending=true`; read the same ID again after completion.
+The final response labels `InjectedEffect`, preserves individual snapshots and
+names the PNG files under the fixture output folder. Copy those files to evidence
+before cleanup. An `Ok=true` means four captures completed, not that their pixels
+passed. Targets behind real cover, stale effects or off-screen targets invalidate
+the proposed visual case; do not relabel a failed attempt as acceptance.
+
 **Injected buffs are real short-lived production buffs, not a fake contour.**
 They use `ArenaPowerups.GrantShield/GrantDamage`; the target must pass the existing
 `ArenaPickupRuntime.IsLiveActor` and exact active body/health registration gates.
@@ -109,4 +131,3 @@ delete a computed/shared folder. Keep evidence under the task artifact root.
 Restore only settings changed by this test from the parent's ledger; do not
 overwrite all synchronized config files or another session's profile changes.
 Remove no other plugin and do not weaken normal-raid gates to get test admission.
-

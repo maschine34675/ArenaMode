@@ -17,5 +17,6 @@
     <Reference Include="UnityEngine" Private="false" />
     <Reference Include="UnityEngine.CoreModule" Private="false" />
     <Reference Include="UnityEngine.PhysicsModule" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" Private="false" />
   </ItemGroup>
 </Project>

@@ -42,6 +42,8 @@ public sealed class Plugin : BaseUnityPlugin
     private float _poll, _until;
     private int _commands;
     private bool _available;
+    private bool _sequenceRunning;
+    private int _sequenceEpoch;
 
     private sealed class Request
     {
@@ -121,7 +123,9 @@ public sealed class Plugin : BaseUnityPlugin
         if (!Chainloader.PluginInfos.TryGetValue("com.maschine.UiBridge", out var bridge)
             || !ReadSwitch(bridge.Instance, "AllowActions") || !ReadSwitch(bridge.Instance, "AllowTestHooks"))
             throw new InvalidOperationException("UiBridge actions/test hooks must be explicitly enabled");
-        if (r.Action == "clear") { ClearCover(); return; }
+        if (r.Action == "clear") { _sequenceEpoch++; ClearCover(); return; }
+        if (_sequenceRunning && r.Action != "status" && r.Action != "observe")
+            throw new InvalidOperationException("capture sequence owns the fixture; wait or clear it first");
         if (!Admit(r.ProfileId, out var game, out var world, out var local))
             throw new InvalidOperationException("requires GPU2 test-profile, exact started solo-human Arena DM/TDM raid");
         if (!ReferenceEquals(world, _world) || !ReferenceEquals(game, _game))
@@ -184,6 +188,14 @@ public sealed class Plugin : BaseUnityPlugin
         if (!TargetValid(target, target?.ActiveHealthController))
             throw new InvalidOperationException("target must be the explicitly named, active, exact live pickup-eligible bot");
         if (r.Action == "observe") return Snapshot(target);
+        if (r.Action == "sequence")
+        {
+            if (_sequenceRunning) throw new InvalidOperationException("a capture sequence is already running");
+            if (!string.IsNullOrEmpty(r.Effect) && r.Effect != "both")
+                throw new InvalidOperationException("sequence optional effect is both (one explicit production grant, never refresh)");
+            StartCoroutine(CaptureSequence(r, target));
+            return new { Pending = true, Capture = "actual screen framebuffer after WaitForEndOfFrame", Target = target.ProfileId };
+        }
         if (r.Action == "buff")
         {
             if (r.Effect != "shield" && r.Effect != "damage" && r.Effect != "both")
@@ -227,7 +239,112 @@ public sealed class Plugin : BaseUnityPlugin
             catch { ClearCover(); throw; }
             return new { SyntheticCover = true, Kind = r.Cover, Seconds = r.Seconds, State = Snapshot(target) };
         }
-        throw new InvalidOperationException("unknown action (status, observe, buff, cover, clear)");
+        throw new InvalidOperationException("unknown action (status, observe, buff, cover, clear, sequence)");
+    }
+
+    private IEnumerator CaptureSequence(Request request, Player body)
+    {
+        _sequenceRunning = true;
+        var captured = new List<object>();
+        var game = _game; var world = _world; var local = _local; var health = body.ActiveHealthController;
+        var camera = CameraManager.Exist ? CameraManager.Instance.Camera : null;
+        float deadline = Time.realtimeSinceStartup + 30f;
+        int epoch = ++_sequenceEpoch;
+        string error = null;
+        bool injected = false;
+        yield return null; // Let the command's Pending response be written before any completion/failure.
+        try
+        {
+            // Explicit target only; wait for a representative actual visible-body
+            // frame instead of moving/freezing AI or certifying visibility from
+            // renderer.isVisible. Rays schedule capture, never prove pixel occlusion.
+            bool ready = false;
+            while (!ready)
+            {
+                try
+                {
+                    if (!Admit(request.ProfileId, out var g, out var w, out var p)
+                        || !ReferenceEquals(g, game) || !ReferenceEquals(w, world) || !ReferenceEquals(p, local)
+                        || !TargetValid(body, health) || !CameraManager.Exist
+                        || !ReferenceEquals(CameraManager.Instance.Camera, camera)
+                        || epoch != _sequenceEpoch || Time.realtimeSinceStartup >= deadline)
+                        throw new InvalidOperationException("bounded clear-view wait ended or exact body/camera/raid changed");
+                    var bounds = BodyBounds(body);
+                    bool inside = Corners(bounds).All(c => { var v = camera.WorldToViewportPoint(c);
+                        return v.z > camera.nearClipPlane + .5f && v.x > .06f && v.x < .94f && v.y > .06f && v.y < .94f; });
+                    bool clear = inside && new[] { .7f, 0f, -.6f }.All(height => !Physics.Linecast(
+                        camera.transform.position, bounds.center + Vector3.up * bounds.extents.y * height,
+                        LayersMaskController.HighPolyWithTerrainMask, QueryTriggerInteraction.Ignore));
+                    if (clear)
+                    {
+                        object state = Read(body);
+                        bool any = Float(state, "DamageSeconds") > 0 || Float(state, "ShieldSeconds") > 0
+                            || Float(state, "JumpSeconds") > 0 || Float(state, "AmmoSeconds") > 0;
+                        if (!any && request.Effect == "both")
+                        {
+                            Execute(new Request { Action = "buff", BotId = body.ProfileId, Effect = "both", Seconds = 15f });
+                            injected = true;
+                            state = Read(body);
+                        }
+                        ready = Float(state, "DamageSeconds") >= 3f || Float(state, "ShieldSeconds") >= 3f || SpawnProtected(body) == true;
+                    }
+                }
+                catch (Exception ex) { error = ex.GetBaseException().Message; break; }
+                if (!ready) yield return null;
+            }
+            if (error != null) yield break;
+            foreach (string stage in new[] { "open-before", "lower-half", "full", "open-after" })
+            {
+                try
+                {
+                    if (!Admit(request.ProfileId, out var currentGame, out var currentWorld, out var currentLocal)
+                        || !ReferenceEquals(game, currentGame) || !ReferenceEquals(world, currentWorld)
+                        || !ReferenceEquals(local, currentLocal) || !TargetValid(body, health)
+                        || camera == null || !ReferenceEquals(CameraManager.Instance.Camera, camera)
+                        || epoch != _sequenceEpoch || Time.realtimeSinceStartup >= deadline)
+                        throw new InvalidOperationException("capture sequence exact body/camera/raid/deadline changed");
+                    ClearCover();
+                    if (!stage.StartsWith("open", StringComparison.Ordinal))
+                        Execute(new Request { Action = "cover", BotId = body.ProfileId, Cover = stage, Seconds = 12f });
+                }
+                catch (Exception ex) { error = ex.GetBaseException().Message; break; }
+                // Twelve real rendered frames per stage retain TAA/DLSS settling
+                // rather than producing a duplicate or a privately rendered scene.
+                for (int frame = 0; frame < 12; frame++) yield return new WaitForEndOfFrame();
+                Texture2D pixels = null;
+                RenderTexture previousTarget = RenderTexture.active;
+                try
+                {
+                    if (!Admit(request.ProfileId, out var currentGame, out var currentWorld, out var currentLocal)
+                        || !ReferenceEquals(game, currentGame) || !ReferenceEquals(world, currentWorld)
+                        || !ReferenceEquals(local, currentLocal) || !TargetValid(body, health)
+                        || !ReferenceEquals(CameraManager.Instance.Camera, camera)
+                        || epoch != _sequenceEpoch || Time.realtimeSinceStartup >= deadline)
+                        throw new InvalidOperationException("capture target/camera invalidated while rendering");
+                    if (!stage.StartsWith("open", StringComparison.Ordinal) && _cover == null)
+                        throw new InvalidOperationException("test cover invalidated before framebuffer capture");
+                    object state = Read(body);
+                    if (Float(state, "DamageSeconds") <= 0 && Float(state, "ShieldSeconds") <= 0 && SpawnProtected(body) != true)
+                        throw new InvalidOperationException("buff expired before captured frame; no occlusion claim possible");
+                    string filename = request.Id + "-" + stage + ".png";
+                    pixels = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+                    RenderTexture.active = null; // Actual display backbuffer, not a post-FX intermediate.
+                    pixels.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
+                    pixels.Apply(false, false);
+                    File.WriteAllBytes(Path.Combine(Root, filename), pixels.EncodeToPNG());
+                    captured.Add(new { Stage = stage, File = filename, Frame = Time.frameCount,
+                        Snapshot = Snapshot(body), Source = "actual backbuffer ReadPixels after WaitForEndOfFrame" });
+                }
+                catch (Exception ex) { error = ex.GetBaseException().Message; break; }
+                finally { RenderTexture.active = previousTarget; if (pixels != null) Destroy(pixels); }
+            }
+        }
+        finally
+        {
+            ClearCover(); _sequenceRunning = false;
+            Write(request.Id, error == null && captured.Count == 4,
+                new { Pending = false, SyntheticCover = true, InjectedEffect = injected, Captures = captured }, error);
+        }
     }
 
     private void BeforeCamera(Camera camera)

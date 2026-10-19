@@ -1,7 +1,7 @@
 [CmdletBinding(DefaultParameterSetName='Send')]
 param(
     [Parameter(Mandatory, ParameterSetName='Send')]
-    [ValidateSet('status','observe','buff','cover','clear')][string]$Action,
+    [ValidateSet('status','observe','buff','cover','clear','sequence')][string]$Action,
     [Parameter(Mandatory, ParameterSetName='Send')]
     [ValidatePattern('^[0-9a-f]{24}$')][string]$ProfileId,
     [Parameter(ParameterSetName='Send')][string]$BotId,
@@ -29,7 +29,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Read') {
     if (-not ($resultText | ConvertFrom-Json).Ok) { exit 1 }
     exit 0
 }
-if ($Action -in @('observe','buff','cover') -and [string]::IsNullOrWhiteSpace($BotId)) { throw 'BotId is required.' }
+if ($Action -in @('observe','buff','cover','sequence') -and [string]::IsNullOrWhiteSpace($BotId)) { throw 'BotId is required.' }
 if ($Action -eq 'buff' -and -not $Effect) { throw 'Effect is required for buff.' }
 if ($Action -eq 'cover' -and -not $Cover) { throw 'Cover is required for cover.' }
 $requestPath = Join-Path $fixtureRoot 'request.json'
@@ -43,4 +43,3 @@ $temporary = Join-Path $fixtureRoot "$requestId.pending"
 [IO.File]::WriteAllText($temporary, ($request | ConvertTo-Json -Compress))
 Move-Item -LiteralPath $temporary -Destination $requestPath
 Write-Output $requestId
-
