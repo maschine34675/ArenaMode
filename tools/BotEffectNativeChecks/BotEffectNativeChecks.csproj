@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>maschine-BotEffectNativeChecks</AssemblyName>
+    <Version>0.1.0</Version>
+    <SptRoot Condition="'$(SptRoot)' == ''">D:\SPT41</SptRoot>
+    <AssemblySearchPaths>$(SptRoot)\EscapeFromTarkov_Data\Managed;$(SptRoot)\BepInEx\core;$(AssemblySearchPaths)</AssemblySearchPaths>
+  </PropertyGroup>
+  <!-- Standalone diagnostic only: no project references, deploy targets or payload membership. -->
+  <ItemGroup>
+    <Reference Include="BepInEx" Private="false" />
+    <Reference Include="Assembly-CSharp" Private="false" />
+    <Reference Include="Comfort" Private="false" />
+    <Reference Include="Comfort.Unity" Private="false" />
+    <Reference Include="Newtonsoft.Json" Private="false" />
+    <Reference Include="UnityEngine" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" Private="false" />
+  </ItemGroup>
+</Project>
