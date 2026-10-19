@@ -28,8 +28,10 @@ internal static partial class Program
         internal Raid(bool usec = true, int size = 5, bool active = true,
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
             bool bounded = false, bool areaPending = false, int? areaSize = null,
-            int killLimit = 0, int timeLimit = 0, int? participants = null, float protection = 0f)
+            int killLimit = 0, int timeLimit = 0, int? participants = null, float protection = 0f,
+            string location = "factory4_day")
         {
+            World.LocationId = location;
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaTeamBoxRuntime.Reset();
             ArenaMode.Areas.ArenaAreaRuntime.CurrentArea = bounded ? ArenaMode.Shared.ArenaAreaCatalog.FactorySouth : null;

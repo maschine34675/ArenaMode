@@ -78,7 +78,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _spawnGateEpoch = ArenaSession.ArmEpoch;
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
-        _spawnShieldSeconds = Settings.SpawnProtectionSeconds?.Value ?? 4f;
+        _spawnShieldSeconds = 0f;
         _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
             Settings.TeamDeathmatchTimeLimitSeconds.Value);
         EPlayerSide? faction = TeamDeathmatchRelations.Faction(_local);
@@ -88,6 +88,12 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             Fail("local PMC identity or independent roster unavailable");
             return;
         }
+        // Only the catalog's fixed team-box starts need spawn-camping protection.
+        // Use the captured active raid, not menu/armed state or box readiness:
+        // loading may still be assembling it, but box maps never fall back to
+        // general starts. Freeze this alongside the rules for every replacement.
+        if (Shared.ArenaTeamBoxCatalog.Applies(_world.LocationId, ArenaSession.ActiveMode))
+            _spawnShieldSeconds = Settings.SpawnProtectionSeconds?.Value ?? 4f;
         _population = new TeamDeathmatchPopulation(
             Areas.ArenaAreaRuntime.CurrentTeamSize ?? (ArenaSession.Participants.HasValue
                 ? ArenaSession.Participants.Value / 2 : Settings.TeamDeathmatchSize.Value),

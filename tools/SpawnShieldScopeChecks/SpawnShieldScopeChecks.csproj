@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+    <ModeSource Condition="'$(ModeSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.cs</ModeSource>
+    <ShieldSource Condition="'$(ShieldSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.SpawnProtection.cs</ShieldSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="Model/Stubs.cs" />
+    <Compile Include="../TeamDeathmatchRuntimeChecks/AreaStandIns.cs" Link="Model/AreaStandIns.cs" />
+    <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />
+    <Compile Include="$(ShieldSource)" Link="Production/TeamDeathmatchMode.SpawnProtection.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamSpawnProtectionLease.cs" Link="Production/TeamSpawnProtectionLease.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchFlow.cs" Link="Production/TeamDeathmatchMatchFlow.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs" Link="Production/TeamDeathmatchPopulation.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaScoreboard.cs" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TeamDeathmatchRelations.cs" Link="Production/TeamDeathmatchRelations.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/TdmSearchAwareness.cs" Link="Production/TdmSearchAwareness.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaCombatAwards.cs" Link="Production/ArenaCombatAwards.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaShotAwardHistory.cs" Link="Production/ArenaShotAwardHistory.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Production/ArenaTracerTeams.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+  </ItemGroup>
+</Project>

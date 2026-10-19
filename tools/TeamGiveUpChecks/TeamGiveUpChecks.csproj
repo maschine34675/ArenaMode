@@ -23,6 +23,8 @@
     <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="EngineModel.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/AreaStandIns.cs" Link="AreaModel.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />

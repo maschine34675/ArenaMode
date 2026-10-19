@@ -53,6 +53,7 @@ namespace EFT
     public sealed class BotStorage { public List<BotOwner> BotOwners = new(); }
     public sealed class GameWorld
     {
+        public string LocationId = "factory4_day";
         public UnityEngine.Transform transform = new();
         public Player MainPlayer;
         public readonly Dictionary<string, Player> Players = new(StringComparer.Ordinal);

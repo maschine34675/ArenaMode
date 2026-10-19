@@ -7,6 +7,12 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot spawn-shield scope (2026-10-19):** only independent Team DM using
+  catalog-backed boxes on Equator, Bay5 or Air Pit receives bot spawn protection.
+  Factory/day/night and other ordinary starts do not. The player's protection,
+  preparation/result damage guards and pickup Shield buffs remain unchanged.
+  See [scope and regression checks](BOT-SPAWN-SHIELD-SCOPE-20261019.md).
+
 - **Optional mod versions (2026-10-19):** SAIN 4.5.1+, PFT 0.10.0 or 0.10.3+,
   APBS 2.4.1+ and DynamicMaps 1.2.1+ now attempt newer versions with one advisory
   while preserving API/identity/protection checks. PFT's proficiency save-route

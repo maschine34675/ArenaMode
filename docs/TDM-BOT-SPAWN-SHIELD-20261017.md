@@ -1,5 +1,10 @@
 # Team Deathmatch bot spawn shields
 
+Scope update 2026-10-19: bot protection now applies only to independent Team DM
+using the catalog's fixed team boxes (Equator, Bay5 and Air Pit), not ordinary
+map starts. Player respawn protection is unchanged. See
+[current admission rules and checks](BOT-SPAWN-SHIELD-SCOPE-20261019.md).
+
 Independent Team DM bots now receive damage protection on each admitted physical
 spawn. Both factions use `Respawn/SpawnProtectionSeconds`, frozen at match start
 (default 4 seconds, disabled at zero, safety maximum 30 seconds). The full timer

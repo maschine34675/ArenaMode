@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
+
 - [Optional mod minimum versions and forward admission](OPTIONAL-MOD-VERSIONS-20261019.md)
 
 - [Native model repair: integration, ownership and verification](MODEL-REPAIR-INTEGRATION-20261019.md)

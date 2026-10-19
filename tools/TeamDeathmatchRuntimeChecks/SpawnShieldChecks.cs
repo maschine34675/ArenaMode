@@ -24,7 +24,7 @@ internal static partial class Program
             "invalid clock terminates rather than granting permanent protection");
 
         ArenaSpawnShieldView.Active = 0;
-        var raid = new Raid(size: 2, protection: 4);
+        var raid = new Raid(size: 2, protection: 4, location: "arena_equator");
         raid.Fill();
         float live = Time.time;
         Settings.SpawnProtectionSeconds.Value = 30;
@@ -65,7 +65,7 @@ internal static partial class Program
 
         foreach (int invalidation in new[] { 0, 1, 2, 3, 4, 5 })
         {
-            raid = new Raid(size: 2, protection: 4);
+            raid = new Raid(size: 2, protection: 4, location: "arena_equator");
             raid.Fill(); raid.Step(Time.time + .01f);
             var body = raid.Bots[0].GetPlayer;
             Check(raid.Mode.ShouldBlockMatchDamage(body), "positive-control exact owned bot before invalidation");
