@@ -1,6 +1,6 @@
 # Abhängigkeiten, Integrationen und Veröffentlichung
 
-Stand: 2026-10-19. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
+Stand: 2026-10-20. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
 nicht die jeweils neueste Veröffentlichung anderer Mods. Neuere Versionen werden
 mit Warnung und unveränderten Schnittstellenprüfungen versucht. Das ist keine
 pauschale Kompatibilitätszusage. Gemeinsames Laden
@@ -16,7 +16,8 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead, Smoothie,
-Continuous Healing, Late To The Party, Classic Movement und StatTrack als weiche
+Continuous Healing, Late To The Party, Classic Movement, StatTrack,
+Continuous Load Ammo und Deminvincibility als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
@@ -60,6 +61,22 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **Continuous Load Ammo 1.2.0+:** Ladecontroller werden beim Arena-Körperwechsel
+  neu gebunden. Cleanup und verzögerte Endmeldungen des alten Körpers dürfen
+  weder den Nachfolger noch einen neueren Ladevorgang entsperren/beenden.
+  Normales Laden, Abbruch und gespeicherte Einstellungen bleiben bestehen.
+  Siehe [Ladecontroller und Prüfgrenzen](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md).
+- **SVM 2.2.3+:** SaveLoot/Ignore-Abkürzungen können Arenas geschützten
+  Raidabschluss nicht überspringen. Normale Raids behalten die SVM-Regeln;
+  andere Balance-Einstellungen werden nicht zurückgesetzt. Der Adapter prüft
+  auch die tatsächliche Patch-Reihenfolge des äußeren Abschluss-Callbacks.
+  Siehe [Abschlussvertrag und Prüfgrenzen](SVM-COMPAT-20261019.md).
+- **Deminvincibility 2.2.0+:** Unsterblichkeit, Second Chance und die Begrenzung
+  auf mindestens einen HP weichen nur beim Arena-eigenen lokalen Körper den
+  nativen Todes-/Respawnregeln. Schadensmultiplikator, Medizin- und
+  Fraktureinstellungen bleiben wirksam; keine gespeicherten Werte ändern sich.
+  Siehe [Schadens- und Todesvertrag](DEMINVINCIBILITY-COMPAT-20261019.md).
+  **Für diese drei neuen Adapter sind Ingame-Prüfungen noch offen.**
 - **Classic Movement 1.1.3+:** Arena behält für seine Körper native Bewegungszustände
   und die eigene Bewegungssteuerung, einschließlich der Erstellung beim Laden.
   Normale Raids behalten Classic Movement. Das alte, vom aktuellen Fremdserver

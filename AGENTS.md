@@ -44,6 +44,13 @@ destructive seam must stay suppressed while exact Arena corpse ownership lasts.
 Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
 changing camera-checked marker layers or its optional GC-pause guard. Never
 move pooled weapon objects into marker ownership or change foreign saved settings.
+Continuous Load Ammo 1.2.0+, SVM 2.2.3+ and Deminvincibility 2.2.0+ have separate
+scoped adapters. Read docs/AMMO-RAID-HEALTH-COMPAT-20261020.md and its leaf reviews
+before changing them. Preserve CLA's physical controller/inventory/task epochs,
+SVM's actual Harmony order and one-use ordinary callback bridge, and Demi's
+native death result plus exact health-controller leases. Never replay unknown
+outer raid-end hooks, make a stale Arena end look successful, or globally disable
+foreign settings/SecondChance state. Native gameplay acceptance is still pending.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

@@ -253,15 +253,20 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Late To The Party** | **3.1.1+**: Arena-owned weapon-pickup sources are excluded from discovery and destruction. Ordinary loot and collected weapons keep the mod's normal rules. |
 | **Classic Movement** | **1.1.3+**: Arena keeps native movement states and its own movement controls; ordinary raids retain Classic Movement. The unsupported legacy NostalgiaMode must be off. |
 | **StatTrack** | **2.1.1+**: Arena shots, hits and kills are excluded from permanent weapon statistics; respawns do not merge/save a raid. Existing statistics and ordinary raids remain untouched. |
+| **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
+| **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
+| **Deminvincibility** | **2.2.0+**: immortality, Second Chance and the one-HP clamp yield to Arena death/respawn rules. Damage scaling and medicine/fracture settings remain effective. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
 Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,
-Classic Movement and StatTrack are attempted
+Classic Movement, StatTrack, Continuous Load Ammo, SVM and Deminvincibility are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 These adapters do not change the optional mods' saved settings or ordinary raid
 behavior. An unavailable Smoothie adapter warns without blocking Arena; keep its
 optional memory-cleanup pause disabled in that case.
+The Continuous Load Ammo, SVM and Deminvincibility adapters have offline contract
+and regression coverage; native gameplay acceptance is still pending.
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant
 RaidInfoPanels and CombatSlide functionality; neither is a required separate

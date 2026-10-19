@@ -41,7 +41,8 @@ internal static class Program
             && ArenaLootingBotsCompat.Calls == 1 && ArenaRemoveTheDeadCompat.Calls == 1
             && ArenaSmoothieCompat.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
             && ArenaLateToThePartyCompat.Calls == 1 && ArenaClassicMovementCompat.Calls == 1
-            && ArenaStatTrackCompat.Calls == 1,
+            && ArenaStatTrackCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
+            && ArenaDeminvincibilityCompat.Calls == 1,
             "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
@@ -87,7 +88,19 @@ internal static class Program
         ArenaStatTrackCompat.Reason = "StatTrack persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaStatTrackCompat.Reason,
             "StatTrack rejection reaches admission unchanged");
+        Require(ArenaContinuousLoadAmmoCompat.Calls == 1,
+            "StatTrack rejection short-circuits Continuous Load Ammo");
         ArenaStatTrackCompat.Reason = null;
+        ArenaContinuousLoadAmmoCompat.Reason = "Continuous Load Ammo lifecycle unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousLoadAmmoCompat.Reason,
+            "Continuous Load Ammo rejection reaches admission unchanged");
+        Require(ArenaDeminvincibilityCompat.Calls == 1,
+            "Continuous Load Ammo rejection short-circuits Deminvincibility");
+        ArenaContinuousLoadAmmoCompat.Reason = null;
+        ArenaDeminvincibilityCompat.Reason = "Deminvincibility death protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaDeminvincibilityCompat.Reason,
+            "Deminvincibility rejection reaches admission unchanged");
+        ArenaDeminvincibilityCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -256,6 +269,10 @@ internal static class Program
         ArenaClassicMovementCompat.Calls = 0;
         ArenaStatTrackCompat.Reason = null;
         ArenaStatTrackCompat.Calls = 0;
+        ArenaContinuousLoadAmmoCompat.Reason = null;
+        ArenaContinuousLoadAmmoCompat.Calls = 0;
+        ArenaDeminvincibilityCompat.Reason = null;
+        ArenaDeminvincibilityCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }

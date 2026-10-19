@@ -1,13 +1,29 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-19. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-20. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Classic Movement / StatTrack (2026-10-19, current handoff):** implementations
+- **Continuous Load Ammo / SVM / Deminvincibility (2026-10-20):** third scoped
+  compatibility batch, targets 1.2.0+, 2.2.3+ and 2.2.0+ respectively. CLA guards
+  replacement controllers and delayed completion; SVM retains protected Arena
+  end authority and ordinary callback transactions; Demi yields its immortality
+  veto/clamp only for exact Arena local health controllers. Foreign saved settings
+  and unrelated balance preferences remain unchanged. See
+  [integration, verification and native followup](AMMO-RAID-HEALTH-COMPAT-20261020.md).
+  Implementations: `0005532` (Demi), `8cd9881` (CLA), `e4f37d6` (SVM); shared
+  startup/admission and updated public docs follow in a separate commit. The
+  independent adapter reruns and integrated unit/menu/PFT checks pass.
+  **No deployment or GPU action in this batch; native acceptance remains open.**
+  Builds use NoDeploy targets. The installed client is still the movement/stats
+  build below, not the newest repository build. No push or release performed.
+  Finish the pending host coordination, previous lifecycle retest and temporary
+  mod/settings cleanup below before installing further test combinations.
+
+- **Classic Movement / StatTrack (2026-10-19, pending native followup):** implementations
   `72204e8` and `ebb1039` retain native movement caches for exact Arena bodies and
   exclude their shots/hits/kills/unregisters from foreign statistics. Ordinary
   PMC/Scav paths and foreign settings remain untouched. Current targets are CM

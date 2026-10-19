@@ -40,6 +40,8 @@ Das erste anschließende Umsetzungspaket behandelt Continuous Healing und
 Late To The Party. Dessen konkrete Schutzmaßnahmen und gesonderte Prüfbelege
 stehen im [Integrationsbericht](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md).
 Das zweite Paket behandelt [Classic Movement und StatTrack](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md).
+Das dritte Paket behandelt [Continuous Load Ammo, SVM und Deminvincibility](AMMO-RAID-HEALTH-COMPAT-20261020.md);
+dessen Ingame-Prüfungen stehen noch aus.
 Die obige Rangliste bleibt der ursprüngliche Audit-Snapshot; daraus werden
 keine rückwirkenden Ingame-Testergebnisse abgeleitet.
 

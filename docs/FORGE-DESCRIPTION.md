@@ -148,6 +148,13 @@ Optional integration targets:
   features; normal raids retain Classic Movement. Legacy NostalgiaMode is unsupported.
 - **StatTrack 2.1.1+:** Arena combat does not add permanent weapon statistics,
   and respawns do not trigger a statistics merge. Normal raids keep tracking.
+- **Continuous Load Ammo 1.2.0+:** loading follows Arena body changes without old
+  cleanup or delayed completion affecting the replacement player.
+- **SVM 2.2.3+:** SaveLoot/Ignore settings do not bypass Arena's protected raid end;
+  ordinary raids retain those rules. Other SVM settings remain effective.
+- **Deminvincibility 2.2.0+:** immortality, Second Chance and the one-HP clamp are
+  bypassed for Arena's local player. Damage scaling and medicine/fracture settings
+  remain effective. These last three adapters still await native gameplay checks.
 
 Newer versions of integrations marked with `+` are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

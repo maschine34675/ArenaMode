@@ -30,6 +30,8 @@ namespace ArenaMode;
 [BepInDependency("com.danw.latetotheparty", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.boogle.classicmovement", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.acidphantasm.stattrack", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.ozen.continuousloadammo", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.hazelify.deminvincibility", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -79,6 +81,8 @@ public class Plugin : BaseUnityPlugin
         ArenaLateToThePartyCompat.Initialize();
         ArenaClassicMovementCompat.Initialize();
         ArenaStatTrackCompat.Initialize();
+        ArenaContinuousLoadAmmoCompat.Initialize();
+        ArenaDeminvincibilityCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -235,6 +239,8 @@ public class Plugin : BaseUnityPlugin
         ArenaLateToThePartyCompat.Shutdown();
         ArenaClassicMovementCompat.Shutdown();
         ArenaStatTrackCompat.Shutdown();
+        ArenaContinuousLoadAmmoCompat.Shutdown();
+        ArenaDeminvincibilityCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
