@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **MoreBotsAPI (2026-10-19):** the 2.1.1+ optional adapter protects both own
+  spawn paths and PFT's missing Hunt marker, keeps Arena team rules intact,
+  and excludes Arena from the separate persistent revenge producer/end sender.
+  Exact native request references and server end identities survive body
+  respawns and delayed/repeated ends without consuming an ordinary raid's queue.
+  Server routes and foreign configuration/files remain untouched. See
+  [source contracts, checks and native limits](MOREBOTS-COMPATIBILITY-20261019.md).
+
 - **Optional AI-mod admission (2026-10-19):** active Questing Bots and loaded
   ORBIT now block Arena only, in the character/map selection and final native
   start. Ordinary PMC/Scav starts bypass this new check. Questing Bots 1.1.0's

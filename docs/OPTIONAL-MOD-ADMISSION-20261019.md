@@ -41,14 +41,15 @@ Sources: [Questing Bots](https://sp-mod.com/mod/1109/questing-bots),
 
 ## Checks and limits
 
-- `NativeMenuChecks`: 750 assertions, including real production menu/start
+- `NativeMenuChecks`: 752 assertions, including real production menu/start
   hooks, changes between selection and start, changes during settings refresh,
   failed probes, visible reasons, persistent admission after EndFlow, and
   ordinary PMC/Scav starts that never even invoke the optional admission probe.
-- `OptionalModAdmissionChecks`: 38 production-source assertions with controlled
+  Also covers failed MoreBots binding before kit issue and exact-arm cancellation.
+- `OptionalModAdmissionChecks`: 41 production-source assertions with controlled
   discovery/configuration/Harmony boundaries, plus five compiled fault controls.
   Covers disabled/active/partial/unknown Questing Bots, every Harmony patch kind,
-  sticky activation and delayed ORBIT presence.
+  sticky activation, delayed ORBIT presence and adapter rejection propagation.
 
 These are offline behavioral tests, not native combined-mod acceptance. Before
 claiming native compatibility, restart with the actual third-party plugins and

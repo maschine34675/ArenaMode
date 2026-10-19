@@ -128,6 +128,8 @@ Optional integration targets:
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
+- **MoreBotsAPI 2.1.1+:** Arena spawn/team compatibility and exclusion of Arena
+  kills and raid-end updates from persistent revenge state.
 
 Newer versions of these four mods are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

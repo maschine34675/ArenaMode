@@ -239,7 +239,9 @@ internal static class BurstSpawnService
                 role,
                 difficulty,
                 -1f,
-                new BotSpawnParams());
+                // MoreBotsAPI observes every native creation and reads this
+                // marker without a null guard. Ours must not opt into hunts.
+                new BotSpawnParams { Id_spawn = "arenamode-owned" });
 
             // Profile generation is best-effort: the request can come back with
             // fewer profiles than asked for, or with none at all.
@@ -766,7 +768,8 @@ internal static class BurstSpawnService
                 && ReferenceEquals(Singleton<IBotGame>.Instance?.BotsController?.BotSpawner, spawner)
                 && IsRequestStillCurrent(requestStillCurrent, role);
 
-            var profileParams = new GetProfileDataParams(EPlayerSide.Savage, role, difficulty, -1f, new BotSpawnParams());
+            var profileParams = new GetProfileDataParams(EPlayerSide.Savage, role, difficulty, -1f,
+                new BotSpawnParams { Id_spawn = "arenamode-owned" });
             data = await BotCreationData.Create(profileParams, spawner._botCreator, 1, spawner);
             if (!Current() || data == null || data.Count != 1 || data.Profiles[0]?.Info?.Settings?.Role != role)
                 return;

@@ -74,6 +74,17 @@ namespace SPT.Common.Http
     }
 }
 namespace Redeploy.Core.Compat { public static class FikaCompatCheck { public static bool IsFikaLoaded; } }
+namespace ArenaMode.Compat
+{
+    internal static class ArenaMoreBotsCompatibility
+    {
+        internal static bool BindAllowed = true;
+        internal static int BindCalls;
+        internal static bool BindProtectedStart(EFT.EftClientBackendSession session,
+            EFT.LocalRaidSettings settings, JsonType.LocalSettings response, string token)
+        { BindCalls++; return BindAllowed; }
+    }
+}
 namespace ArenaMode.Bots
 {
     internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; }

@@ -58,6 +58,13 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **MoreBotsAPI 2.1.1+:** eigene Spawn-Kennungen sowie ein enger Schutz für
+  PFT-Begleiter ohne Kennung; die externe Revenge-Persistenz und deren
+  Feindschafts-Override werden für genau den gebundenen Arena-Raid ausgenommen.
+  Kein pauschales Blockieren der Serverroute und kein Löschen fremder Queues.
+  Ältere/unpassende API-Verträge sperren nur Arena, neuere warnen bei weiterhin
+  gültigem Vertrag. Keine vollständige Freigabe aller abhängigen Content-Mods.
+  Siehe [MoreBots-Adapter und Grenzen](MOREBOTS-COMPATIBILITY-20261019.md).
 - **UIFixes:** alternativer R-Nachladeweg berücksichtigt; installiert 6.0.3.
 - **ABPS/BotPlacementSystem:** Pump-/Botlimit-Verhalten berücksichtigt;
   Arena-eigene Besetzung verhindert zusätzliche fremde Ambient-Spawns.

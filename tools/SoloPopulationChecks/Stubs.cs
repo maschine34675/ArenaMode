@@ -23,7 +23,7 @@ namespace EFT
     internal enum BotDifficulty { hard }
     internal enum EDamageType { Undefined }
     internal enum GameStatus { Started, Stopping }
-    internal sealed class BotSpawnParams { }
+    internal sealed class BotSpawnParams { public string Id_spawn; }
     internal sealed class GetProfileDataParams
     {
         internal readonly WildSpawnType Role;

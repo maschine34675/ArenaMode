@@ -37,8 +37,13 @@ internal static class Program
     {
         Reset();
         Allowed("No optional mods leaves Arena available");
+        Require(ArenaMoreBotsCompatibility.Calls == 1, "MoreBots protection is inspected before admission");
+        ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
+            "MoreBots adapter rejection reaches admission unchanged");
+        ArenaMoreBotsCompatibility.Reason = null;
+        Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
-
     private static void CheckDisabledAtStartup()
     {
         foreach (var version in new[] { new Version(1, 1, 0), new Version(1, 1, 0, 0) })
@@ -145,7 +150,7 @@ internal static class Program
         Allowed("No ORBIT before its plugin registration");
         Chainloader.PluginInfos[ArenaOptionalMods.OrbitGuid] = new PluginInfo();
         Blocked("ORBIT", "ORBIT registered later is caught even before its delayed Awake work finishes");
-        Require(ArenaMoreBotsCompatibility.Calls == 0 && ArenaAiLimitCompat.Calls == 0,
+        Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 0,
             "ORBIT presence does not consult unrelated readiness or config switches");
         Chainloader.PluginInfos.Remove(ArenaOptionalMods.OrbitGuid);
         Allowed("Plugin discovery is live rather than a cached initial absence");

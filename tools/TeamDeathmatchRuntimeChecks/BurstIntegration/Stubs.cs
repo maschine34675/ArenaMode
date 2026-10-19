@@ -29,7 +29,7 @@ namespace EFT
                 or WildSpawnType.infectedCivil or WildSpawnType.infectedLaborant;
     }
     internal enum BotDifficulty { normal, hard }
-    internal sealed class BotSpawnParams { }
+    internal sealed class BotSpawnParams { public string Id_spawn; }
     internal sealed class GetProfileDataParams
     {
         internal GetProfileDataParams(EPlayerSide side, WildSpawnType role, BotDifficulty difficulty, float time, BotSpawnParams parameters) { }

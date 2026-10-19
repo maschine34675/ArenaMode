@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)
+- [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md)
 - [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)
 - [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
 - [Depth-occluded bot effect contours](BOT-EFFECT-OUTLINES-20261019.md)

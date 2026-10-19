@@ -27,6 +27,11 @@ docs/OPTIONAL-MOD-ADMISSION-20261019.md. Active Questing Bots and loaded ORBIT
 block Arena at selection and final start, never ordinary PMC/Scav raids. Preserve
 the process-lifetime admission provider across menu cleanup; do not replace it
 with global BepInEx incompatibility declarations or user-config edits.
+MoreBotsAPI 2.1.1+ requires the separate exact-request protections documented in
+docs/MOREBOTS-COMPATIBILITY-20261019.md. Its revenge files are outside SPT's
+profile snapshot. Preserve both the producer and delayed end-sender guards,
+the PFT null-marker/body check and Arena relationship ownership; never clear
+the global queue or blanket-block its identity-free server route.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

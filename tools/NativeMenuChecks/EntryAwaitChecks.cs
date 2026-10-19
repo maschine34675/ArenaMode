@@ -18,6 +18,7 @@ internal static partial class Program
         var saved = fields.Select(field => field.GetValue(null)).ToArray();
         var issue = TacticalTeamKitEntry.Issue;
         bool failCapture = TacticalTeamKitEntry.FailCapture;
+        bool bindAllowed = ArenaMode.Compat.ArenaMoreBotsCompatibility.BindAllowed;
         var post = RequestHandler.Post;
         bool armed = ArenaSession.ArmedForNextRaid, inRaid = InGameStatus.InRaid;
         int epoch = ArenaSession.ArmEpoch;
@@ -48,6 +49,17 @@ internal static partial class Program
             Assert(!task.IsCompleted, "LocalGame continuation awaits required kit assets and commit");
             entry.SetResult(true); task.GetAwaiter().GetResult();
             Assert(cancelPosts == 0 && ArenaSession.ArmedForNextRaid, "successful entry preserves protected arm");
+
+            token = Begin();
+            int kitIssues = 0;
+            TacticalTeamKitEntry.Issue = () => { kitIssues++; return Task.CompletedTask; };
+            ArenaMode.Compat.ArenaMoreBotsCompatibility.BindAllowed = false;
+            int priorCancel = cancelPosts;
+            task = Run(Task.FromResult(new LocalSettings { serverId = Protocol.BuildNativeEndIdentity("native", token) }));
+            Reject(task, "failed MoreBots protection binding rejects the already returned native response");
+            Assert(kitIssues == 0 && cancelPosts > priorCancel && !ArenaSession.ArmedForNextRaid,
+                "failed MoreBots binding cancels only its own arm before issuing a kit");
+            ArenaMode.Compat.ArenaMoreBotsCompatibility.BindAllowed = true;
 
             foreach (bool newArena in new[] { false, true })
             {
@@ -90,6 +102,7 @@ internal static partial class Program
             for (int i = 0; i < fields.Length; i++) fields[i].SetValue(null, saved[i]);
             TacticalTeamKitEntry.Issue = issue; RequestHandler.Post = post;
             TacticalTeamKitEntry.FailCapture = failCapture;
+            ArenaMode.Compat.ArenaMoreBotsCompatibility.BindAllowed = bindAllowed;
             ArenaSession.ArmedForNextRaid = armed; ArenaSession.ArmEpoch = epoch; InGameStatus.InRaid = inRaid;
         }
     }
