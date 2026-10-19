@@ -53,6 +53,7 @@ $faults = @(
     @{ Name='shutdown-inert'; Source='Compat'; Find='if (_cleanup == null || _failed) return true;'; Replace='if (_failed) return true;'; Failure='failed unpatch leaves surviving prefix inert' },
     @{ Name='metadata-mismatch'; Source='Contract'; Find='Normalize(name.Version) != version'; Replace='false'; Failure='invalid optional contract installs nothing' }
     @{ Name='pending-plugin'; Source='Compat'; Find='if (info?.Instance == null) return;'; Replace='if (info?.Instance == null) throw new InvalidOperationException("pending metadata");'; Failure='pending plugin can finish loading before admission' }
+    @{ Name='inactive-tmp-awake'; Source='View'; Find='_root = new GameObject("Arena pickup marker " + point.Id);'; Replace='_root = new GameObject("Arena pickup marker " + point.Id); _root.SetActive(false);'; Failure='native TMP awakens before font configuration' }
 )
 try {
     foreach ($fault in $faults) {

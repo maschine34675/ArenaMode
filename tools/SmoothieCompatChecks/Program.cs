@@ -62,7 +62,7 @@ public static class Program
         Chainloader.PluginInfos.Clear();
         ArenaSession.IsActive = false; ArenaSession.ActiveGame = null; ArenaSession.ActiveWorld = null;
         Singleton<AbstractGame>.Instance = null; Singleton<GameWorld>.Instance = null; Singleton<IBotGame>.Instance = null;
-        CameraManager.Instance = null; GameObject.All.Clear();
+        CameraManager.Instance = null; GameObject.All.Clear(); Material.All.Clear(); LayerMask.FailRead = false;
         LayerMask.Layers = new() { ["Loot"] = 11, ["Interactive"] = 13 };
         _originalCalls = _gcWrites = 0; _foreignOption = _foreignRaidStarted = _simInRaid = false;
     }
@@ -90,6 +90,12 @@ public static class Program
     private static Camera Camera(int mask)
         => new GameObject("camera").AddComponent<Camera>() is var camera ? SetMask(camera, mask) : null;
     private static Camera SetMask(Camera camera, int mask) { camera.cullingMask = mask; return camera; }
+    private static ArenaPickupView View(ArenaPickupPoint point)
+    {
+        try { return new ArenaPickupView(point, new(0, 0, 0)); }
+        catch (NullReferenceException ex)
+        { throw new InvalidOperationException("ASSERT: native TMP awakens before font configuration", ex); }
+    }
 
     private static void ContractCases()
     {
@@ -168,8 +174,9 @@ public static class Program
         var weapon = new GameObject("native pooled weapon") { layer = 6 };
         var weaponChild = new GameObject("native pooled optic") { layer = 8 }; weaponChild.transform.SetParent(weapon.transform, false);
         var wall = new GameObject("Arena area wall") { layer = 0 };
-        var view = new ArenaPickupView(new() { Id = "health", Kind = ArenaPickupKind.Health }, new(0,0,0));
+        var view = View(new() { Id = "health", Kind = ArenaPickupKind.Health });
         var root = GameObject.All.Single(g => g.name == "Arena pickup marker health");
+        Need(root.GetComponentsInChildren<TMPro.TextMeshPro>(true).Single().Awakened, "native TMP cache initialized at marker construction");
         Need(root.GetComponentsInChildren<Transform>(true).All(t => t.gameObject.layer == 13), "all private marker descendants excluded at construction");
         view.Tick(new() { Phase = ArenaPickupPhase.Available }, false, weapon);
         Need(weapon.layer == 6 && weaponChild.layer == 8 && wall.layer == 0 && weapon.transform.parent == null, "pool and wall layers and parent untouched");
@@ -191,7 +198,7 @@ public static class Program
         Need(ArenaSmoothieCompat.PickupMarkerLayer(null) == -1, "unknown camera does not guess mask");
         view.Dispose(); Need(root.Destroyed && !weapon.Destroyed && !weaponChild.Destroyed && !wall.Destroyed, "dispose destroys private tree only");
         Reset(); f = Make(); Install(f); ArenaSmoothieCompat.Initialize();
-        var late = new ArenaPickupView(new() { Id = "late", Kind = ArenaPickupKind.DoubleDamage }, new());
+        var late = View(new() { Id = "late", Kind = ArenaPickupKind.DoubleDamage });
         root = GameObject.All.Single(g => g.name == "Arena pickup marker late");
         Need(root.layer == 0 && !root.activeSelf, "unknown camera creates inactive Default marker");
         late.Tick(new() { Phase = ArenaPickupPhase.Available }, false, null);
@@ -200,6 +207,22 @@ public static class Program
         late.Tick(new() { Phase = ArenaPickupPhase.Available }, false, null);
         Need(root.layer == 11, "late camera safely updates only existing marker");
         late.Dispose();
+
+        // A later constructor failure must not leave the temporarily active TMP
+        // tree or its private materials alive, even though no view was returned.
+        var foreignModel = new GameObject("unrelated pooled model") { layer = 7 };
+        int materialsBefore = Material.All.Count;
+        LayerMask.FailRead = true;
+        bool failedLate = false;
+        try { View(new() { Id = "late-fault", Kind = ArenaPickupKind.Shield }); }
+        catch (InvalidOperationException ex) when (ex.Message == "injected late marker layer failure") { failedLate = true; }
+        finally { LayerMask.FailRead = false; }
+        Need(failedLate, "late marker error reaches constructor cleanup");
+        var failedRoot = GameObject.All.Single(g => g.name == "Arena pickup marker late-fault");
+        Need(failedRoot.Destroyed && !failedRoot.activeSelf
+            && failedRoot.GetComponentsInChildren<Transform>(true).All(t => t.gameObject.Destroyed), "failed constructor hides and destroys its complete private tree");
+        Need(Material.All.Skip(materialsBefore).All(m => m.Destroyed), "failed constructor releases private materials");
+        Need(!foreignModel.Destroyed && foreignModel.layer == 7, "failed constructor leaves unrelated pooled model intact");
     }
 
     private static void FailureCases()

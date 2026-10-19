@@ -34,10 +34,6 @@ internal sealed class ArenaPickupView : IDisposable
             _ => new Color(1f, .75f, .2f)
         };
         _root = new GameObject("Arena pickup marker " + point.Id);
-        // First visibility is decided by Tick after applying a camera-safe
-        // layer. An unknown camera must not expose Default meshes to a static
-        // scene scan between construction and the first live update.
-        _root.SetActive(false);
         try
         {
             _root.transform.position = floor;
@@ -121,6 +117,13 @@ internal sealed class ArenaPickupView : IDisposable
             _label.rectTransform.sizeDelta = new Vector2(4f, .7f);
             _label.text = _name;
             UpdateMarkerLayer(CameraManager.Exist ? CameraManager.Instance.Camera : null);
+            // Construct active: native TMP.Awake must populate its renderer
+            // cache before the font setter calls LoadFontAsset. This constructor
+            // never yields; Smoothie's main-thread scan cannot interleave here.
+            // Hide before returning, after the safe layer is applied, so an
+            // unknown camera never exposes Default meshes between construction
+            // and the first visibility update in Tick.
+            _root.SetActive(false);
         }
         catch
         {

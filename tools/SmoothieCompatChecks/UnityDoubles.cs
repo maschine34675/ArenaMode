@@ -29,19 +29,30 @@ namespace UnityEngine
         public Transform transform;
         public int layer;
         public bool activeSelf = true;
+        public bool activeInHierarchy => activeSelf && (transform.parent == null || transform.parent.gameObject.activeInHierarchy);
         public GameObject(string name = "")
         {
             this.name = name; transform = new() { gameObject = this };
             Components.Add(transform); All.Add(this);
         }
         public T AddComponent<T>() where T : Component, new()
-        { var c = new T { gameObject = this }; Components.Add(c); return c; }
+        {
+            var c = new T { gameObject = this }; Components.Add(c);
+            // Unity delays Awake on components added below inactive parents.
+            if (activeInHierarchy && c is TMPro.TextMeshPro text) text.NativeAwake();
+            return c;
+        }
         public T GetComponent<T>() where T : Component => Components.OfType<T>().FirstOrDefault();
         public T[] GetComponentsInChildren<T>(bool includeInactive) where T : Component
             => Components.OfType<T>().Concat(transform.Children.SelectMany(t => t.gameObject.GetComponentsInChildren<T>(includeInactive))).ToArray();
         public static GameObject CreatePrimitive(PrimitiveType type)
         { var go = new GameObject("Cube"); go.AddComponent<Renderer>(); go.AddComponent<Collider>(); return go; }
-        public void SetActive(bool active) => activeSelf = active;
+        public void SetActive(bool active)
+        {
+            activeSelf = active;
+            foreach (var text in GetComponentsInChildren<TMPro.TextMeshPro>(true))
+                if (text.gameObject.activeInHierarchy) text.NativeAwake();
+        }
     }
     public class Transform : Component
     {
@@ -65,7 +76,13 @@ namespace UnityEngine
         public void SetPosition(int index, Vector3 position) { }
     }
     public class Shader : Object { public static Shader Find(string name) => new() { name = name }; }
-    public class Material(Shader shader) : Object { public Color color; public Shader Shader = shader; }
+    public class Material : Object
+    {
+        public static readonly List<Material> All = new();
+        public Color color;
+        public Shader Shader;
+        public Material(Shader shader) { Shader = shader; All.Add(this); }
+    }
     public enum PrimitiveType { Cube }
     public struct Color(float r, float g, float b, float a = 1)
     {
@@ -96,7 +113,9 @@ namespace UnityEngine
     public static class LayerMask
     {
         public static Dictionary<string, int> Layers = new() { ["Loot"] = 11, ["Interactive"] = 13 };
-        public static int NameToLayer(string name) => Layers.GetValueOrDefault(name, -1);
+        public static bool FailRead;
+        public static int NameToLayer(string name) => FailRead
+            ? throw new InvalidOperationException("injected late marker layer failure") : Layers.GetValueOrDefault(name, -1);
     }
 }
 namespace UnityEngine.Rendering { public enum ShadowCastingMode { Off } }
@@ -105,7 +124,28 @@ namespace TMPro
     public enum TextAlignmentOptions { Center }
     public class TextMeshPro : UnityEngine.Component
     {
-        public object font;
+        private UnityEngine.Renderer _renderer;
+        private object _font;
+        public bool Awakened { get; private set; }
+        public void NativeAwake()
+        {
+            if (Awakened) return;
+            Awakened = true;
+            _renderer = gameObject.GetComponent<UnityEngine.Renderer>() ?? gameObject.AddComponent<UnityEngine.Renderer>();
+        }
+        // Installed TMP_Text.font calls LoadFontAsset; TextMeshPro.LoadFontAsset
+        // writes its cached m_renderer, which only Awake populates. This boundary
+        // intentionally throws if production configures a not-yet-awakened label.
+        public object font
+        {
+            get => _font;
+            set
+            {
+                if (ReferenceEquals(_font, value)) return;
+                _font = value;
+                _renderer.receiveShadows = false;
+            }
+        }
         public float fontSize;
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color;

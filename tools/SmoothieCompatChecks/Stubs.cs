@@ -120,7 +120,7 @@ namespace EFT.CameraControl
         public OpticCameraManager OpticCameraManager;
     }
 }
-namespace ArenaMode.Hud { public static class HudStyle { public static object Font; } }
+namespace ArenaMode.Hud { public static class HudStyle { public static object Font = new(); } }
 namespace ArenaMode.Pickups
 {
     public enum ArenaPickupKind { Weapon, DoubleDamage, Shield, JumpBoots, InfiniteAmmo, Health }

@@ -39,8 +39,10 @@ candidate-selection finding, not proof of an observed visual disappearance.
 See [DepthCulling scan and skip list](https://github.com/TominoCZ/Smoothie/blob/87f7a315b6ce0ce2b984ed69af3d84e159050e5e/src/Smoothie/DepthCulling.cs#L350-L420)
 and [candidate/movement tests](https://github.com/TominoCZ/Smoothie/blob/87f7a315b6ce0ce2b984ed69af3d84e159050e5e/src/Smoothie/DepthCulling.cs#L867-L910).
 
-`ArenaPickupView` now keeps a newly constructed private marker inactive until
-its first visibility update. It chooses `Loot`, then `Interactive`, only if
+`ArenaPickupView` returns a fully initialized, inactive private marker until
+its first visibility update. Its synchronous construction remains active long
+enough for native TextMeshPro.Awake to initialize the text renderer; it is hidden
+before returning. It chooses `Loot`, then `Interactive`, only if
 that actual layer exists and is visible in both the main camera mask and the
 available optic camera mask. The layer is applied to the private marker tree
 before activation and rechecked on subsequent ticks. It never changes camera
@@ -140,3 +142,51 @@ Smoothie's GC option both off and on, normal raid before/after Arena, initial
 and relocated pickups, optics, replay/spectator transitions, replacement bodies
 and zombie culling. No speculative movement, ragdoll, AI or global renderer
 disable was added.
+
+## Native-discovered TMP construction regression and correction
+
+The first resumed GPU2 Factory Deathmatch on client `144a763` failed pickup
+construction at 20:30:27.372: `Arena pickups stopped for this match: Object
+reference not set to an instance of an object`. No marker survived; the earlier
+offline passing checks did not establish native acceptance. That warning only
+contained the exception message, not a native stack trace.
+
+The source-backed cause is our early `_root.SetActive(false)` before adding the
+TextMeshPro label beneath it. Unity defers Awake for components below an inactive
+parent. Reading the installed `EscapeFromTarkov_Data/Managed/Unity.TextMeshPro.dll`
+without executing it confirms the relevant chain: `TMP_Text.font` calls
+`TextMeshPro.LoadFontAsset`, which writes the cached `m_renderer`; that cache is
+populated by `TextMeshPro.Awake`. The initial harness used an eagerly initialized
+text-field double and therefore missed this lifecycle requirement.
+The locally inspected and GPU2-installed TMP DLL hashes agree:
+`cc50fc4bf5c0b7e75b6fde7ddbdc4deffca4630d8404e3ce98168d1413d26710`.
+
+The focused fix moves root deactivation to the end of the existing constructor,
+after native TMP initialization and the camera-safe layer assignment. The
+constructor does not yield. Smoothie's scans execute from its main-thread Update,
+so they cannot interleave with that synchronous construction. Before returning,
+the marker is still inactive, including when no camera exists. Nothing writes
+Smoothie's state, camera masks or pooled weapon layers. No blanket null check or
+private TMP initialization call was added.
+
+The corrected boundary models `activeInHierarchy`, deferred Awake and the font
+setter's cached-renderer access. It first reproduced the unchanged old production
+code's null reference in `ArenaPickupView`'s font assignment, then passed with the
+minimal fix. A compiled negative control reintroduces early deactivation and must
+fail that assertion. Additional checks inject an error after text initialization
+and verify complete private-tree hiding/destruction, material cleanup and intact
+unrelated pool objects. A new native retest remains a separate parent gate.
+
+Corrected final offline run: **143 assertions** including eight published
+Smoothie metadata checks, **19 compiled fault controls rejected**, and final
+unchanged baseline green (`SMOOTHIE_COMPAT_VERIFIED`). Evidence:
+`artifacts/smoothie-checks/61ac8abf923c4133ac601a6e0e066a7a/`.
+The `inactive-tmp-awake` control contains the intentionally restored failing
+construction order and its font-setter failure trace.
+
+Independent review found no remaining construction, scan-order or private-resource
+cleanup issue. The parent rerun passes 135 behavior assertions and 19 compiled
+fault controls; the joined client/companion build and pickup regressions also
+pass. The existing once-per-match pickup warning now additionally records the
+complete exception at Debug level, so a later native fault retains its stack
+without adding repeated player-facing messages.

@@ -186,7 +186,11 @@ internal static partial class ArenaPickupRuntime
         }
         catch (Exception ex)
         {
-            if (!_faulted) Plugin.ModLogger.LogWarning("Arena pickups stopped for this match: " + ex.GetBaseException().Message);
+            if (!_faulted)
+            {
+                Plugin.ModLogger.LogWarning("Arena pickups stopped for this match: " + ex.GetBaseException().Message);
+                Plugin.ModLogger.LogDebug(ex);
+            }
             ClearRound(); _faulted = true;
         }
     }
