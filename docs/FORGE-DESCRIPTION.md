@@ -132,6 +132,13 @@ Optional integration targets:
   kills and raid-end updates from persistent revenge state.
 - **AI Limit 1.9.2+:** the bot-limiter component stays inactive during Arena;
   ordinary PMC/Scav raids retain its configured behavior.
+- **Looting Bots 1.8.0+:** autonomous looting is paused for Arena combatants;
+  authenticated PFT companions keep their commanded looting.
+- **Remove The Dead 4.1.3+:** automatic/manual cleanup is paused during Arena,
+  which manages its own corpses and weapon pickups.
+- **Smoothie 1.0.8+:** optimizations remain enabled, with scoped pickup-marker
+  and optional GC-pause compatibility. If the adapter is unavailable, a warning
+  asks you to leave Smoothie's memory-cleanup pause disabled.
 
 Newer versions of integrations marked with `+` are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

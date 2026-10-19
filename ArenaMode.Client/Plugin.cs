@@ -23,6 +23,9 @@ namespace ArenaMode;
 [BepInDependency(ArenaOptionalMods.OrbitGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.dvize.ailimit", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("me.skwizzy.lootingbots", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.jbs4bmx.RemoveTheDead", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.tominocz.smoothie", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -65,6 +68,9 @@ public class Plugin : BaseUnityPlugin
         PitFireTeamCompat.Initialize();
         ArenaMoreBotsCompatibility.Initialize();
         ArenaAiLimitCompat.Initialize();
+        ArenaLootingBotsCompat.Initialize();
+        ArenaRemoveTheDeadCompat.Initialize();
+        ArenaSmoothieCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -214,6 +220,9 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaMoreBotsCompatibility.Shutdown();
         ArenaAiLimitCompat.Shutdown();
+        ArenaLootingBotsCompat.Shutdown();
+        ArenaRemoveTheDeadCompat.Shutdown();
+        ArenaSmoothieCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();

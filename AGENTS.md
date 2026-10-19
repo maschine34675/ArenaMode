@@ -36,6 +36,14 @@ AI Limit 1.9.2+ is paused only at its component-creation seam, including the
 exact server-confirmed loading world before Arena becomes active. Read
 docs/AI-LIMIT-COMPAT-20261019.md before changing this timing, contract validation
 or admission-on-failure; ordinary PMC/Scav raids retain the original entry point.
+Looting Bots 1.8.0+ and Remove The Dead 4.1.3+ have separate exact-world guards;
+read docs/LOOTING-BOTS-COMPAT-20261019.md and docs/REMOVE-THE-DEAD-COMPAT-20261019.md.
+Preserve the real PFT companion exception, scan-ticket return and queue guards;
+faction friendship alone never exempts a TDM bot. RTD's shared automatic/manual
+destructive seam must stay suppressed while exact Arena corpse ownership lasts.
+Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
+changing camera-checked marker layers or its optional GC-pause guard. Never
+move pooled weapon objects into marker ownership or change foreign saved settings.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

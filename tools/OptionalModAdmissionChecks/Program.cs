@@ -37,8 +37,10 @@ internal static class Program
     {
         Reset();
         Allowed("No optional mods leaves Arena available");
-        Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1,
-            "Both optional adapters are inspected when no earlier rejection exists");
+        Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1
+            && ArenaLootingBotsCompat.Calls == 1 && ArenaRemoveTheDeadCompat.Calls == 1
+            && ArenaSmoothieCompat.Calls == 1,
+            "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
             "MoreBots adapter rejection reaches admission unchanged");
@@ -48,6 +50,22 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaAiLimitCompat.Reason,
             "AI Limit adapter rejection reaches admission unchanged");
         ArenaAiLimitCompat.Reason = null;
+        ArenaLootingBotsCompat.Reason = "Looting Bots contract unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaLootingBotsCompat.Reason,
+            "Looting Bots adapter rejection reaches admission unchanged");
+        Require(ArenaRemoveTheDeadCompat.Calls == 1 && ArenaSmoothieCompat.Calls == 1,
+            "Looting Bots rejection short-circuits later providers");
+        ArenaLootingBotsCompat.Reason = null;
+        ArenaRemoveTheDeadCompat.Reason = "Remove The Dead contract unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaRemoveTheDeadCompat.Reason,
+            "Remove The Dead adapter rejection reaches admission unchanged");
+        Require(ArenaSmoothieCompat.Calls == 1,
+            "Remove The Dead rejection short-circuits later providers");
+        ArenaRemoveTheDeadCompat.Reason = null;
+        ArenaSmoothieCompat.Reason = "Smoothie GC protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaSmoothieCompat.Reason,
+            "Smoothie adapter rejection reaches admission unchanged");
+        ArenaSmoothieCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -202,6 +220,12 @@ internal static class Program
         ArenaMoreBotsCompatibility.Calls = 0;
         ArenaAiLimitCompat.Reason = null;
         ArenaAiLimitCompat.Calls = 0;
+        ArenaLootingBotsCompat.Reason = null;
+        ArenaLootingBotsCompat.Calls = 0;
+        ArenaRemoveTheDeadCompat.Reason = null;
+        ArenaRemoveTheDeadCompat.Calls = 0;
+        ArenaSmoothieCompat.Reason = null;
+        ArenaSmoothieCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }

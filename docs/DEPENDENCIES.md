@@ -15,7 +15,7 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 | `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
-AI Limit, Questing Bots und ORBIT als weiche
+AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead und Smoothie als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
@@ -59,6 +59,24 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **Looting Bots 1.8.0+:** autonome Such-/Loot-Aktionen werden nur für exakt
+  gebundene Arena-Bots unterdrückt, einschließlich beider Team-DM-Seiten und
+  neuer Ersatzbots. Echte PFT-Begleiter behalten ihre kommandierten Aktionen.
+  Die zusätzliche Inventarbereinigung des geprüften 1.8.1-RC-Pfads ist ebenfalls
+  berücksichtigt. Keine Änderungen gespeicherter Looting-Einstellungen.
+  Siehe [Verträge, Prüfungen und Grenzen](LOOTING-BOTS-COMPAT-20261019.md).
+- **Remove The Dead 4.1.3+:** die gemeinsame automatische/manuelle
+  Löschfunktion pausiert ausschließlich im bestätigten Arena-Spiel. Arena
+  behält damit seine geschützten Leichen und Waffen-Pickups unter eigener
+  Kontrolle. Timer, Warteschlangen und normale Raids bleiben unverändert.
+  Siehe [Cleanup-Schutz](REMOVE-THE-DEAD-COMPAT-20261019.md).
+- **Smoothie 1.0.8+:** eigene Pickup-Marker nutzen eine von Smoothies statischer
+  Verdeckung ausgenommene Ebene, sofern Haupt- und Optikkamera sie darstellen.
+  Nur die optionale GC-Pause tritt im aktiven Arena-Raid zurück; Physik,
+  Animationen, Ragdolls und übrige Optimierungen werden nicht verändert.
+  Ein unpassender optionaler Vertrag warnt, sperrt Arena aber nicht. Dann
+  Smoothies Speicherbereinigungs-Pause ausgeschaltet lassen.
+  Siehe [Darstellung und GC-Abgrenzung](SMOOTHIE-COMPAT-20261019.md).
 - **AI Limit 1.9.2+:** die Erzeugung seiner Limiter-Komponente wird nur im exakt
   serverbestätigten Arena-Spiel unterdrückt, bereits vor dem Arena-Started-Event.
   Kein Wechsel globaler Einstellungen und kein Entfernen fremder Patches.

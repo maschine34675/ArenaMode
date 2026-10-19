@@ -29,7 +29,10 @@ internal static class ArenaOptionalMods
             return "Arena is currently unavailable with active Questing Bots. Disable it in its server configuration and restart; ordinary PMC/Scav raids remain available.";
 
         return ArenaMoreBotsCompatibility.GetRejectionReason()
-            ?? ArenaAiLimitCompat.GetRejectionReason();
+            ?? ArenaAiLimitCompat.GetRejectionReason()
+            ?? ArenaLootingBotsCompat.GetRejectionReason()
+            ?? ArenaRemoveTheDeadCompat.GetRejectionReason()
+            ?? ArenaSmoothieCompat.GetRejectionReason();
     }
 
     // Only the reviewed whole-mod startup switch is an exemption. F12 questing,

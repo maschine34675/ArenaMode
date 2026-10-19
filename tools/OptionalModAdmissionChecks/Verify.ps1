@@ -9,6 +9,21 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-looting-bots-contract'
+        Before = '?? ArenaLootingBotsCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
+        Name = 'skip-remove-the-dead-contract'
+        Before = '?? ArenaRemoveTheDeadCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
+        Name = 'skip-smoothie-contract'
+        Before = '?? ArenaSmoothieCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
         Name = 'allow-orbit'
         Before = 'if (Chainloader.PluginInfos.ContainsKey(OrbitGuid))'
         After = 'if (false)'
