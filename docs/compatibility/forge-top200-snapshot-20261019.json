@@ -1,0 +1,1822 @@
+{
+  "fetched_at_utc": "2026-10-19T19:19:55.401983+00:00",
+  "count": 200,
+  "sort": "-downloads,name",
+  "include_legacy": true,
+  "catalog_total": 2553,
+  "urls": [
+    "https://sp-mod.com/api/v0/mods?sort=-downloads,name&filter%5Binclude_legacy%5D=true&include=versions,category,source_code_links&per_page=50&page=1",
+    "https://sp-mod.com/api/v0/mods?sort=-downloads,name&filter%5Binclude_legacy%5D=true&include=versions,category,source_code_links&per_page=50&page=2",
+    "https://sp-mod.com/api/v0/mods?sort=-downloads,name&filter%5Binclude_legacy%5D=true&include=versions,category,source_code_links&per_page=50&page=3",
+    "https://sp-mod.com/api/v0/mods?sort=-downloads,name&filter%5Binclude_legacy%5D=true&include=versions,category,source_code_links&per_page=50&page=4"
+  ],
+  "sha256": {
+    "page-1.json": "2b68108c0435c8e68bff2b36c00b07f16aa60ea70047aa0f201212674dd34605",
+    "page-2.json": "13493eac23e48316c3855b8e5c676c64d0c30474a2bdff69cdb5d27730c1ddd6",
+    "page-3.json": "9e96edcc8920d7ddeffd9b7073909ac9e9e740615164d7f6c2948c5a896ad6fb",
+    "page-4.json": "f672f91ec0f7a31b68da02cf1b57205563b6abb64539934359f0e2d5ac16a8f7"
+  },
+  "arena_baseline": "11d0488b1b64855367e96fa5d54680475167da27",
+  "entries": [
+    {
+      "rank": 1,
+      "id": 902,
+      "name": "BigBrain",
+      "downloads": 1372854,
+      "forge_url": "https://sp-mod.com/mod/902/bigbrain",
+      "latest_version": "1.5.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 2,
+      "id": 827,
+      "name": "Waypoints - Expanded Navmesh",
+      "downloads": 1344892,
+      "forge_url": "https://sp-mod.com/mod/827/waypoints-expanded-navmesh",
+      "latest_version": "1.9.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 3,
+      "id": 236,
+      "name": "Server Value Modifier [SVM]",
+      "downloads": 1339637,
+      "forge_url": "https://sp-mod.com/mod/236/server-value-modifier-svm",
+      "latest_version": "2.2.3",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 4,
+      "id": 791,
+      "name": "SAIN - Solarint's AI Modifications - Full AI Combat System Replacement",
+      "downloads": 1329707,
+      "forge_url": "https://sp-mod.com/mod/791/sain-solarints-ai-modifications-full-ai-combat-system-replacement",
+      "latest_version": "4.5.1",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 5,
+      "id": 592,
+      "name": "Amands's Graphics",
+      "downloads": 874168,
+      "forge_url": "https://sp-mod.com/mod/592/amandss-graphics",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 6,
+      "id": 1431,
+      "name": "Dynamic Maps",
+      "downloads": 818302,
+      "forge_url": "https://sp-mod.com/mod/1431/dynamic-maps",
+      "latest_version": "1.2.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 7,
+      "id": 812,
+      "name": "Looting Bots",
+      "downloads": 752541,
+      "forge_url": "https://sp-mod.com/mod/812/looting-bots",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 8,
+      "id": 106,
+      "name": "SPT-AKI Profile Editor",
+      "downloads": 743059,
+      "forge_url": "https://sp-mod.com/mod/106/spt-aki-profile-editor",
+      "latest_version": "4.0.1",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 9,
+      "id": 2512,
+      "name": "WTT - Content Backport",
+      "downloads": 570583,
+      "forge_url": "https://sp-mod.com/mod/2512/wtt-content-backport",
+      "latest_version": "2.0.5",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 10,
+      "id": 456,
+      "name": "Game Panel HUD",
+      "downloads": 530758,
+      "forge_url": "https://sp-mod.com/mod/456/game-panel-hud",
+      "latest_version": "3.4.0",
+      "spt_constraint": "4.0.x"
+    },
+    {
+      "rank": 11,
+      "id": 861,
+      "name": "MoreCheckmarks",
+      "downloads": 492122,
+      "forge_url": "https://sp-mod.com/mod/861/morecheckmarks",
+      "latest_version": "2.2.0",
+      "spt_constraint": "~4.0 <4.1.0"
+    },
+    {
+      "rank": 12,
+      "id": 1342,
+      "name": "UI Fixes",
+      "downloads": 463274,
+      "forge_url": "https://sp-mod.com/mod/1342/ui-fixes",
+      "latest_version": "6.0.4",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 13,
+      "id": 644,
+      "name": "SWAG + Donuts - Dynamic Spawn Waves and Custom Spawn Points",
+      "downloads": 456672,
+      "forge_url": "https://sp-mod.com/mod/644/swag-donuts-dynamic-spawn-waves-and-custom-spawn-points",
+      "latest_version": "4.0.0",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 14,
+      "id": 416,
+      "name": "SPT Realism Mod",
+      "downloads": 452357,
+      "forge_url": "https://sp-mod.com/mod/416/spt-realism-mod",
+      "latest_version": "1.6.4",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 15,
+      "id": 2310,
+      "name": "WTT - CommonLib",
+      "downloads": 449134,
+      "forge_url": "https://sp-mod.com/mod/2310/wtt-commonlib",
+      "latest_version": "3.0.6",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 16,
+      "id": 1109,
+      "name": "Questing Bots",
+      "downloads": 439996,
+      "forge_url": "https://sp-mod.com/mod/1109/questing-bots",
+      "latest_version": "1.1.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 17,
+      "id": 898,
+      "name": "Kmy T***** Api",
+      "downloads": 399997,
+      "forge_url": "https://sp-mod.com/mod/898/kmy-tarkov-api",
+      "latest_version": "1.5.0",
+      "spt_constraint": "4.0.x"
+    },
+    {
+      "rank": 18,
+      "id": 649,
+      "name": "Virtual's Custom Quest Loader",
+      "downloads": 388885,
+      "forge_url": "https://sp-mod.com/mod/649/virtuals-custom-quest-loader",
+      "latest_version": "2.0.4",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 19,
+      "id": 701,
+      "name": "Fontaine's FOV Fix",
+      "downloads": 355540,
+      "forge_url": "https://sp-mod.com/mod/701/fontaines-fov-fix",
+      "latest_version": "4.1.0",
+      "spt_constraint": "4.1.x"
+    },
+    {
+      "rank": 20,
+      "id": 1343,
+      "name": "Skipper",
+      "downloads": 347149,
+      "forge_url": "https://sp-mod.com/mod/1343/skipper",
+      "latest_version": "1.1.5",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 21,
+      "id": 1089,
+      "name": "Kaeno-TraderScrolling",
+      "downloads": 324290,
+      "forge_url": "https://sp-mod.com/mod/1089/kaeno-traderscrolling",
+      "latest_version": "4.1.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 22,
+      "id": 1023,
+      "name": "WTT- Artem",
+      "downloads": 320794,
+      "forge_url": "https://sp-mod.com/mod/1023/wtt-artem",
+      "latest_version": "3.0.2",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 23,
+      "id": 1025,
+      "name": "Painter",
+      "downloads": 317575,
+      "forge_url": "https://sp-mod.com/mod/1025/painter",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 24,
+      "id": 1538,
+      "name": "Ref - SPT Friendly Quests",
+      "downloads": 313065,
+      "forge_url": "https://sp-mod.com/mod/1538/ref-spt-friendly-quests",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 25,
+      "id": 1100,
+      "name": "ACCURATE CIRCULAR RADAR",
+      "downloads": 312039,
+      "forge_url": "https://sp-mod.com/mod/1100/accurate-circular-radar",
+      "latest_version": "1.3.4",
+      "spt_constraint": "4.1.3"
+    },
+    {
+      "rank": 26,
+      "id": 1125,
+      "name": "Tactical Gear Component",
+      "downloads": 307247,
+      "forge_url": "https://sp-mod.com/mod/1125/tactical-gear-component",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 27,
+      "id": 1131,
+      "name": "Live Flea Prices",
+      "downloads": 296990,
+      "forge_url": "https://sp-mod.com/mod/1131/live-flea-prices",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1.1"
+    },
+    {
+      "rank": 28,
+      "id": 2246,
+      "name": "WTT- Armory",
+      "downloads": 295967,
+      "forge_url": "https://sp-mod.com/mod/2246/wtt-armory",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 29,
+      "id": 1426,
+      "name": "UnityToolkit",
+      "downloads": 282909,
+      "forge_url": "https://sp-mod.com/mod/1426/unitytoolkit",
+      "latest_version": "2.0.2",
+      "spt_constraint": "4.1.5"
+    },
+    {
+      "rank": 30,
+      "id": 1263,
+      "name": "Epic's All in One",
+      "downloads": 281369,
+      "forge_url": "https://sp-mod.com/mod/1263/epics-all-in-one",
+      "latest_version": "5.0.2",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 31,
+      "id": 954,
+      "name": "Borkel's Realistic Night Vision Goggles (NVGs and T-7)",
+      "downloads": 268512,
+      "forge_url": "https://sp-mod.com/mod/954/borkels-realistic-night-vision-goggles-nvgs-and-t-7",
+      "latest_version": "3.0.4",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 32,
+      "id": 1594,
+      "name": "APBS - Acid's Progressive Bot System",
+      "downloads": 259612,
+      "forge_url": "https://sp-mod.com/mod/1594/apbs-acids-progressive-bot-system",
+      "latest_version": "2.4.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 33,
+      "id": 1619,
+      "name": "Lots of Loot Redux",
+      "downloads": 255409,
+      "forge_url": "https://sp-mod.com/mod/1619/lots-of-loot-redux",
+      "latest_version": "4.2.2",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 34,
+      "id": 365,
+      "name": "Priscilu: the trader",
+      "downloads": 238552,
+      "forge_url": "https://sp-mod.com/mod/365/priscilu-the-trader",
+      "latest_version": "5.1.1",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 35,
+      "id": 1278,
+      "name": "WTT - Pack 'n' Strap",
+      "downloads": 237524,
+      "forge_url": "https://sp-mod.com/mod/1278/wtt-pack-n-strap",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 36,
+      "id": 1015,
+      "name": "ALP - Algorithmic Level Progression",
+      "downloads": 234812,
+      "forge_url": "https://sp-mod.com/mod/1015/alp-algorithmic-level-progression",
+      "latest_version": "5.5.0+beta",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 37,
+      "id": 665,
+      "name": "No Bush ESP",
+      "downloads": 229080,
+      "forge_url": "https://sp-mod.com/mod/665/no-bush-esp",
+      "latest_version": "1.9.0",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 38,
+      "id": 1247,
+      "name": "Boss Notifier",
+      "downloads": 225873,
+      "forge_url": "https://sp-mod.com/mod/1247/boss-notifier",
+      "latest_version": "1.6.0",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 39,
+      "id": 2003,
+      "name": "HollywoodFX",
+      "downloads": 224437,
+      "forge_url": "https://sp-mod.com/mod/2003/hollywoodfx",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4"
+    },
+    {
+      "rank": 40,
+      "id": 1539,
+      "name": "Bosses Have Lega Medals",
+      "downloads": 218042,
+      "forge_url": "https://sp-mod.com/mod/1539/bosses-have-lega-medals",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 41,
+      "id": 167,
+      "name": "Ammo Stats",
+      "downloads": 213775,
+      "forge_url": "https://sp-mod.com/mod/167/ammo-stats",
+      "latest_version": "4.1.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 42,
+      "id": 841,
+      "name": "Display Official Version",
+      "downloads": 212742,
+      "forge_url": "https://sp-mod.com/mod/841/display-official-version",
+      "latest_version": "1.1.1",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 43,
+      "id": 1055,
+      "name": "That's Lit - Logical AI Vision",
+      "downloads": 210618,
+      "forge_url": "https://sp-mod.com/mod/1055/thats-lit-logical-ai-vision",
+      "latest_version": "1.3100.3",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 44,
+      "id": 1155,
+      "name": "LootValue",
+      "downloads": 209677,
+      "forge_url": "https://sp-mod.com/mod/1155/lootvalue",
+      "latest_version": "5.0.2",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 45,
+      "id": 789,
+      "name": "MOAR + Bagels - Ultra lite spawn mod",
+      "downloads": 196972,
+      "forge_url": "https://sp-mod.com/mod/789/moar-bagels-ultra-lite-spawn-mod",
+      "latest_version": "3.1.6",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 46,
+      "id": 526,
+      "name": "All The Clothes",
+      "downloads": 195733,
+      "forge_url": "https://sp-mod.com/mod/526/all-the-clothes",
+      "latest_version": "3.2.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 47,
+      "id": 2097,
+      "name": "ABPS - Acid's Bot Placement System",
+      "downloads": 194059,
+      "forge_url": "https://sp-mod.com/mod/2097/abps-acids-bot-placement-system",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 48,
+      "id": 1232,
+      "name": "Lotus",
+      "downloads": 191148,
+      "forge_url": "https://sp-mod.com/mod/1232/lotus",
+      "latest_version": "1.8.1",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 49,
+      "id": 934,
+      "name": "Search Open Containers",
+      "downloads": 189156,
+      "forge_url": "https://sp-mod.com/mod/934/search-open-containers",
+      "latest_version": "1.5.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 50,
+      "id": 985,
+      "name": "BlackCore",
+      "downloads": 185726,
+      "forge_url": "https://sp-mod.com/mod/985/blackcore",
+      "latest_version": "1.1.8",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 51,
+      "id": 865,
+      "name": "Gilded Key Storage",
+      "downloads": 176148,
+      "forge_url": "https://sp-mod.com/mod/865/gilded-key-storage",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 52,
+      "id": 577,
+      "name": "Amands's Hitmarker",
+      "downloads": 173350,
+      "forge_url": "https://sp-mod.com/mod/577/amandss-hitmarker",
+      "latest_version": "2.6.1",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 53,
+      "id": 755,
+      "name": "The Blacklist - flea market enhancements",
+      "downloads": 170566,
+      "forge_url": "https://sp-mod.com/mod/755/the-blacklist-flea-market-enhancements",
+      "latest_version": "3.1.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 54,
+      "id": 1298,
+      "name": "HandsAreNotBusy",
+      "downloads": 166818,
+      "forge_url": "https://sp-mod.com/mod/1298/handsarenotbusy",
+      "latest_version": "1.7.1",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 55,
+      "id": 1140,
+      "name": "Quest Tracker",
+      "downloads": 163846,
+      "forge_url": "https://sp-mod.com/mod/1140/quest-tracker",
+      "latest_version": "1.7.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 56,
+      "id": 39,
+      "name": "Fin's AI Tweaks (FAIT)",
+      "downloads": 156121,
+      "forge_url": "https://sp-mod.com/mod/39/fins-ai-tweaks-fait",
+      "latest_version": "1.25.2",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 57,
+      "id": 374,
+      "name": "bluehead's AIO Trader",
+      "downloads": 154500,
+      "forge_url": "https://sp-mod.com/mod/374/blueheads-aio-trader",
+      "latest_version": "5.3.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 58,
+      "id": 858,
+      "name": "Backdoor Bandit (BB)",
+      "downloads": 149270,
+      "forge_url": "https://sp-mod.com/mod/858/backdoor-bandit-bb",
+      "latest_version": "1.9.0",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 59,
+      "id": 874,
+      "name": "AES",
+      "downloads": 147413,
+      "forge_url": "https://sp-mod.com/mod/874/aes",
+      "latest_version": "0.7.9",
+      "spt_constraint": "~4.0.2"
+    },
+    {
+      "rank": 60,
+      "id": 1884,
+      "name": "Continuous Healing",
+      "downloads": 144311,
+      "forge_url": "https://sp-mod.com/mod/1884/continuous-healing",
+      "latest_version": "1.6.3",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 61,
+      "id": 1860,
+      "name": "Classic Movement",
+      "downloads": 142149,
+      "forge_url": "https://sp-mod.com/mod/1860/classic-movement",
+      "latest_version": "1.1.3",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 62,
+      "id": 1348,
+      "name": "Scorpion",
+      "downloads": 142057,
+      "forge_url": "https://sp-mod.com/mod/1348/scorpion",
+      "latest_version": "1.1.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 63,
+      "id": 1341,
+      "name": "Quick Move To Containers",
+      "downloads": 141642,
+      "forge_url": "https://sp-mod.com/mod/1341/quick-move-to-containers",
+      "latest_version": "1.5.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 64,
+      "id": 922,
+      "name": "Less Restricting Headwear",
+      "downloads": 136130,
+      "forge_url": "https://sp-mod.com/mod/922/less-restricting-headwear",
+      "latest_version": "4.0.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 65,
+      "id": 1950,
+      "name": "Weapon Customizer",
+      "downloads": 134237,
+      "forge_url": "https://sp-mod.com/mod/1950/weapon-customizer",
+      "latest_version": "4.0.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 66,
+      "id": 2426,
+      "name": "MoreBotsAPI",
+      "downloads": 133059,
+      "forge_url": "https://sp-mod.com/mod/2426/morebotsapi",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 67,
+      "id": 1358,
+      "name": "BrightLasers",
+      "downloads": 130092,
+      "forge_url": "https://sp-mod.com/mod/1358/brightlasers",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 68,
+      "id": 2299,
+      "name": "Show Me The Money (Item Pricing)",
+      "downloads": 129572,
+      "forge_url": "https://sp-mod.com/mod/2299/show-me-the-money-item-pricing",
+      "latest_version": "2.7.0",
+      "spt_constraint": "~4.0.11"
+    },
+    {
+      "rank": 69,
+      "id": 1775,
+      "name": "WTT - Menu Overhaul",
+      "downloads": 128772,
+      "forge_url": "https://sp-mod.com/mod/1775/wtt-menu-overhaul",
+      "latest_version": "1.3.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 70,
+      "id": 733,
+      "name": "Item Info",
+      "downloads": 128399,
+      "forge_url": "https://sp-mod.com/mod/733/item-info",
+      "latest_version": "4.4.0",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 71,
+      "id": 1575,
+      "name": "Increase Climb Height",
+      "downloads": 126206,
+      "forge_url": "https://sp-mod.com/mod/1575/increase-climb-height",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 72,
+      "id": 1219,
+      "name": "SP-EFT Manager",
+      "downloads": 125498,
+      "forge_url": "https://sp-mod.com/mod/1219/sp-eft-manager",
+      "latest_version": "0.4.5",
+      "spt_constraint": "~4 <4.1.0"
+    },
+    {
+      "rank": 73,
+      "id": 2386,
+      "name": "Use Items Anywhere",
+      "downloads": 123546,
+      "forge_url": "https://sp-mod.com/mod/2386/use-items-anywhere",
+      "latest_version": "2.1.6",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 74,
+      "id": 761,
+      "name": "Gunsmith",
+      "downloads": 122883,
+      "forge_url": "https://sp-mod.com/mod/761/gunsmith",
+      "latest_version": "2.2.0",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 75,
+      "id": 2511,
+      "name": "WTT - Black Division [REDACTED] Home",
+      "downloads": 122814,
+      "forge_url": "https://sp-mod.com/mod/2511/wtt-black-division-redacted-home",
+      "latest_version": "1.3.1",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 76,
+      "id": 152,
+      "name": "Never Lose Equipments",
+      "downloads": 119753,
+      "forge_url": "https://sp-mod.com/mod/152/never-lose-equipments",
+      "latest_version": "6.3.0",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 77,
+      "id": 1018,
+      "name": "Mag Tape",
+      "downloads": 119014,
+      "forge_url": "https://sp-mod.com/mod/1018/mag-tape",
+      "latest_version": "1.0.8",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 78,
+      "id": 1349,
+      "name": "Loot Radius",
+      "downloads": 117822,
+      "forge_url": "https://sp-mod.com/mod/1349/loot-radius",
+      "latest_version": "1.4.1",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 79,
+      "id": 552,
+      "name": "Josh Mate's Better Backpacks",
+      "downloads": 114226,
+      "forge_url": "https://sp-mod.com/mod/552/josh-mates-better-backpacks",
+      "latest_version": "27.0.0",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 80,
+      "id": 1283,
+      "name": "Trader Modding And Improved Weapon Building",
+      "downloads": 113171,
+      "forge_url": "https://sp-mod.com/mod/1283/trader-modding-and-improved-weapon-building",
+      "latest_version": "2.1.2",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 81,
+      "id": 1090,
+      "name": "Color Converter API",
+      "downloads": 112843,
+      "forge_url": "https://sp-mod.com/mod/1090/color-converter-api",
+      "latest_version": "1.2.0",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 82,
+      "id": 933,
+      "name": "Use Loose Loot",
+      "downloads": 112330,
+      "forge_url": "https://sp-mod.com/mod/933/use-loose-loot",
+      "latest_version": "1.6.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 83,
+      "id": 1265,
+      "name": "Rai's Hidden Caches",
+      "downloads": 109755,
+      "forge_url": "https://sp-mod.com/mod/1265/rais-hidden-caches",
+      "latest_version": "1.4.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 84,
+      "id": 1469,
+      "name": "AutoDeposit",
+      "downloads": 105760,
+      "forge_url": "https://sp-mod.com/mod/1469/autodeposit",
+      "latest_version": "6.0.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 85,
+      "id": 1085,
+      "name": "Saria Shop",
+      "downloads": 105359,
+      "forge_url": "https://sp-mod.com/mod/1085/saria-shop",
+      "latest_version": "1.8.0",
+      "spt_constraint": "4.0.11"
+    },
+    {
+      "rank": 86,
+      "id": 2326,
+      "name": "Project Fika",
+      "downloads": 101216,
+      "forge_url": "https://sp-mod.com/mod/2326/project-fika",
+      "latest_version": "2.4.6",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 87,
+      "id": 1374,
+      "name": "Player Encumbrance Bar",
+      "downloads": 101172,
+      "forge_url": "https://sp-mod.com/mod/1374/player-encumbrance-bar",
+      "latest_version": "1.3.0",
+      "spt_constraint": ">=4.1.0"
+    },
+    {
+      "rank": 88,
+      "id": 2112,
+      "name": "Continuous Load Ammo",
+      "downloads": 99288,
+      "forge_url": "https://sp-mod.com/mod/2112/continuous-load-ammo",
+      "latest_version": "1.2.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 89,
+      "id": 650,
+      "name": "Hephaestus",
+      "downloads": 97591,
+      "forge_url": "https://sp-mod.com/mod/650/hephaestus",
+      "latest_version": "2.0.2",
+      "spt_constraint": "~4.0.3"
+    },
+    {
+      "rank": 90,
+      "id": 1258,
+      "name": "Pity Loot",
+      "downloads": 97441,
+      "forge_url": "https://sp-mod.com/mod/1258/pity-loot",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 91,
+      "id": 2173,
+      "name": "VRAM Cleaner",
+      "downloads": 95123,
+      "forge_url": "https://sp-mod.com/mod/2173/vram-cleaner",
+      "latest_version": "1.1.0",
+      "spt_constraint": "4.1.6"
+    },
+    {
+      "rank": 92,
+      "id": 686,
+      "name": "Dad Gamer Mode",
+      "downloads": 95055,
+      "forge_url": "https://sp-mod.com/mod/686/dad-gamer-mode",
+      "latest_version": "1.9.3",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 93,
+      "id": 1277,
+      "name": "WTT - Head and Voice Selector",
+      "downloads": 94093,
+      "forge_url": "https://sp-mod.com/mod/1277/wtt-head-and-voice-selector",
+      "latest_version": "1.0.8",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 94,
+      "id": 697,
+      "name": "Fontaine's Always Level Endurance (ALE)",
+      "downloads": 93986,
+      "forge_url": "https://sp-mod.com/mod/697/fontaines-always-level-endurance-ale",
+      "latest_version": "1.7.0",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 95,
+      "id": 974,
+      "name": "EFT SCOPE AND RED DOT SIGHT OVERHAUL BY GEFF HANNIGAN - Reupload",
+      "downloads": 93703,
+      "forge_url": "https://sp-mod.com/mod/974/eft-scope-and-red-dot-sight-overhaul-by-geff-hannigan-reupload",
+      "latest_version": "1.0.4",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 96,
+      "id": 803,
+      "name": "LOE (Load Order Editor)",
+      "downloads": 91816,
+      "forge_url": "https://sp-mod.com/mod/803/loe-load-order-editor",
+      "latest_version": "2.5.0",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 97,
+      "id": 1274,
+      "name": "Healing Autocancel",
+      "downloads": 91272,
+      "forge_url": "https://sp-mod.com/mod/1274/healing-autocancel",
+      "latest_version": "5.0.1",
+      "spt_constraint": "4.1.6"
+    },
+    {
+      "rank": 98,
+      "id": 909,
+      "name": "Item Sell Price",
+      "downloads": 89837,
+      "forge_url": "https://sp-mod.com/mod/909/item-sell-price",
+      "latest_version": "1.7.0",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 99,
+      "id": 824,
+      "name": "Task List Fixes",
+      "downloads": 89594,
+      "forge_url": "https://sp-mod.com/mod/824/task-list-fixes",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 100,
+      "id": 1250,
+      "name": "Borkel's Bloody Bullet Wounds + Particles + Splatters",
+      "downloads": 89467,
+      "forge_url": "https://sp-mod.com/mod/1250/borkels-bloody-bullet-wounds-particles-splatters",
+      "latest_version": "1.2.4",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 101,
+      "id": 1657,
+      "name": "MergeConsumables",
+      "downloads": 89002,
+      "forge_url": "https://sp-mod.com/mod/1657/mergeconsumables",
+      "latest_version": "1.6.3",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 102,
+      "id": 2521,
+      "name": "Amands' Sense - Updated",
+      "downloads": 88547,
+      "forge_url": "https://sp-mod.com/mod/2521/amands-sense-updated",
+      "latest_version": "3.1.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 103,
+      "id": 2649,
+      "name": "Climbable Ladders",
+      "downloads": 84688,
+      "forge_url": "https://sp-mod.com/mod/2649/climbable-ladders",
+      "latest_version": "1.0.4",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 104,
+      "id": 492,
+      "name": "Lots of Loot",
+      "downloads": 80427,
+      "forge_url": "https://sp-mod.com/mod/492/lots-of-loot",
+      "latest_version": "2.2.2",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 105,
+      "id": 2207,
+      "name": "Fast Sell In Flea",
+      "downloads": 79489,
+      "forge_url": "https://sp-mod.com/mod/2207/fast-sell-in-flea",
+      "latest_version": "1.3.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 106,
+      "id": 1621,
+      "name": "Shadow Flicker Fix",
+      "downloads": 78139,
+      "forge_url": "https://sp-mod.com/mod/1621/shadow-flicker-fix",
+      "latest_version": "1.5.3",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 107,
+      "id": 1454,
+      "name": "CWX-MegaMod",
+      "downloads": 76956,
+      "forge_url": "https://sp-mod.com/mod/1454/cwx-megamod",
+      "latest_version": "4.0.1",
+      "spt_constraint": "4.0.*"
+    },
+    {
+      "rank": 108,
+      "id": 1248,
+      "name": "Keys In Loot (KIL)",
+      "downloads": 76438,
+      "forge_url": "https://sp-mod.com/mod/1248/keys-in-loot-kil",
+      "latest_version": "1.7.0",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 109,
+      "id": 144,
+      "name": "AR Shoppe Unlimited",
+      "downloads": 76122,
+      "forge_url": "https://sp-mod.com/mod/144/ar-shoppe-unlimited",
+      "latest_version": "3.7.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 110,
+      "id": 572,
+      "name": "AI Limit",
+      "downloads": 75786,
+      "forge_url": "https://sp-mod.com/mod/572/ai-limit",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 111,
+      "id": 1688,
+      "name": "More Energy Drinks",
+      "downloads": 75331,
+      "forge_url": "https://sp-mod.com/mod/1688/more-energy-drinks",
+      "latest_version": "1.3.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 112,
+      "id": 2866,
+      "name": "MANIMAL'S ICEBREAKER BACKPORT",
+      "downloads": 74577,
+      "forge_url": "https://sp-mod.com/mod/2866/manimals-icebreaker-backport",
+      "latest_version": "1.1.3",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 113,
+      "id": 1617,
+      "name": "give-ui",
+      "downloads": 72546,
+      "forge_url": "https://sp-mod.com/mod/1617/give-ui",
+      "latest_version": "5.0.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 114,
+      "id": 1437,
+      "name": "Simple Workout QTE",
+      "downloads": 70055,
+      "forge_url": "https://sp-mod.com/mod/1437/simple-workout-qte",
+      "latest_version": "2.2.2",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 115,
+      "id": 1873,
+      "name": "Bot Callsigns - Reloaded",
+      "downloads": 70045,
+      "forge_url": "https://sp-mod.com/mod/1873/bot-callsigns-reloaded",
+      "latest_version": "2.0.5",
+      "spt_constraint": "~4.1.1"
+    },
+    {
+      "rank": 116,
+      "id": 1184,
+      "name": "Open Sesame",
+      "downloads": 69944,
+      "forge_url": "https://sp-mod.com/mod/1184/open-sesame",
+      "latest_version": "3.0.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 117,
+      "id": 2613,
+      "name": "Brighter Interiors",
+      "downloads": 69881,
+      "forge_url": "https://sp-mod.com/mod/2613/brighter-interiors",
+      "latest_version": "1.1.1",
+      "spt_constraint": "4.1.*"
+    },
+    {
+      "rank": 118,
+      "id": 1303,
+      "name": "HarryHideout",
+      "downloads": 69090,
+      "forge_url": "https://sp-mod.com/mod/1303/harryhideout",
+      "latest_version": "3.1.2",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 119,
+      "id": 202,
+      "name": "TM151-BossEvents",
+      "downloads": 68503,
+      "forge_url": "https://sp-mod.com/mod/202/tm151-bossevents",
+      "latest_version": "3.0.0",
+      "spt_constraint": ""
+    },
+    {
+      "rank": 120,
+      "id": 1300,
+      "name": "Modding Stats Helper - by wara",
+      "downloads": 67461,
+      "forge_url": "https://sp-mod.com/mod/1300/modding-stats-helper-by-wara",
+      "latest_version": "1.2.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 121,
+      "id": 2046,
+      "name": "PAUSE",
+      "downloads": 67097,
+      "forge_url": "https://sp-mod.com/mod/2046/pause",
+      "latest_version": "1.4.0",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 122,
+      "id": 318,
+      "name": "Time & Weather Changer",
+      "downloads": 67047,
+      "forge_url": "https://sp-mod.com/mod/318/time-weather-changer",
+      "latest_version": "2.3.1",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 123,
+      "id": 1945,
+      "name": "Ai Limit",
+      "downloads": 66002,
+      "forge_url": "https://sp-mod.com/mod/1945/ai-limit",
+      "latest_version": "1.9.2",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 124,
+      "id": 171,
+      "name": "Lua's Spawn Rework",
+      "downloads": 65369,
+      "forge_url": "https://sp-mod.com/mod/171/luas-spawn-rework",
+      "latest_version": "2.1.8",
+      "spt_constraint": "~3.3.0"
+    },
+    {
+      "rank": 125,
+      "id": 764,
+      "name": "ATLAS Custom Weapons & Equipment",
+      "downloads": 64742,
+      "forge_url": "https://sp-mod.com/mod/764/atlas-custom-weapons-equipment",
+      "latest_version": "1.3.0",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 126,
+      "id": 2025,
+      "name": "All Quests Checkmarks",
+      "downloads": 64141,
+      "forge_url": "https://sp-mod.com/mod/2025/all-quests-checkmarks",
+      "latest_version": "1.4.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 127,
+      "id": 2540,
+      "name": "Content Backport - Prestiges",
+      "downloads": 62784,
+      "forge_url": "https://sp-mod.com/mod/2540/content-backport-prestiges",
+      "latest_version": "1.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 128,
+      "id": 1091,
+      "name": "Borkel's Big Realistic Thermal Package - Bring real life realism to your thermal scopes",
+      "downloads": 62750,
+      "forge_url": "https://sp-mod.com/mod/1091/borkels-big-realistic-thermal-package-bring-real-life-realism-to-your-thermal-scopes",
+      "latest_version": "1.0.4",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 129,
+      "id": 2416,
+      "name": "Enable Labyrinth",
+      "downloads": 62444,
+      "forge_url": "https://sp-mod.com/mod/2416/enable-labyrinth",
+      "latest_version": "1.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 130,
+      "id": 1888,
+      "name": "Better Keys NG",
+      "downloads": 62391,
+      "forge_url": "https://sp-mod.com/mod/1888/better-keys-ng",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 131,
+      "id": 1117,
+      "name": "Deminvincibility",
+      "downloads": 61656,
+      "forge_url": "https://sp-mod.com/mod/1117/deminvincibility",
+      "latest_version": "2.2.0",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 132,
+      "id": 2056,
+      "name": "Realistic Thermal Scopes",
+      "downloads": 61147,
+      "forge_url": "https://sp-mod.com/mod/2056/realistic-thermal-scopes",
+      "latest_version": "2.0.0",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 133,
+      "id": 746,
+      "name": "Better Spawns Plus",
+      "downloads": 60627,
+      "forge_url": "https://sp-mod.com/mod/746/better-spawns-plus",
+      "latest_version": "2.0.5",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 134,
+      "id": 1387,
+      "name": "Simple Crosshair",
+      "downloads": 59986,
+      "forge_url": "https://sp-mod.com/mod/1387/simple-crosshair",
+      "latest_version": "1.4.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 135,
+      "id": 2383,
+      "name": "Skills Extended",
+      "downloads": 59863,
+      "forge_url": "https://sp-mod.com/mod/2383/skills-extended",
+      "latest_version": "3.1.4",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 136,
+      "id": 178,
+      "name": "Kiki-AllTheBoss",
+      "downloads": 59820,
+      "forge_url": "https://sp-mod.com/mod/178/kiki-alltheboss",
+      "latest_version": "2.10.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 137,
+      "id": 613,
+      "name": "FU Inertia",
+      "downloads": 59576,
+      "forge_url": "https://sp-mod.com/mod/613/fu-inertia",
+      "latest_version": "2.2.1",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 138,
+      "id": 367,
+      "name": "FAUPI - HIDEOUT ARCHITECT",
+      "downloads": 59412,
+      "forge_url": "https://sp-mod.com/mod/367/faupi-hideout-architect",
+      "latest_version": "1.7.1",
+      "spt_constraint": ""
+    },
+    {
+      "rank": 139,
+      "id": 1760,
+      "name": "Audio Accessibility Indicators",
+      "downloads": 59361,
+      "forge_url": "https://sp-mod.com/mod/1760/audio-accessibility-indicators",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 140,
+      "id": 445,
+      "name": "MaidTraiders",
+      "downloads": 58083,
+      "forge_url": "https://sp-mod.com/mod/445/maidtraiders",
+      "latest_version": "1.3.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 141,
+      "id": 2706,
+      "name": "ORBIT 2.0",
+      "downloads": 57986,
+      "forge_url": "https://sp-mod.com/mod/2706/orbit-20",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 142,
+      "id": 2076,
+      "name": "Hideout In Progress",
+      "downloads": 57828,
+      "forge_url": "https://sp-mod.com/mod/2076/hideout-in-progress",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 143,
+      "id": 1479,
+      "name": "Raid Review",
+      "downloads": 57508,
+      "forge_url": "https://sp-mod.com/mod/1479/raid-review",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 144,
+      "id": 2543,
+      "name": "BossNotifier ",
+      "downloads": 57244,
+      "forge_url": "https://sp-mod.com/mod/2543/bossnotifier",
+      "latest_version": "1.2.1",
+      "spt_constraint": "4.1.3"
+    },
+    {
+      "rank": 145,
+      "id": 1180,
+      "name": "SamSWAT's Fire Support - Arys Reloaded",
+      "downloads": 56846,
+      "forge_url": "https://sp-mod.com/mod/1180/samswats-fire-support-arys-reloaded",
+      "latest_version": "2.3.4",
+      "spt_constraint": "~4.0.3"
+    },
+    {
+      "rank": 146,
+      "id": 1591,
+      "name": "Better Rear Sights",
+      "downloads": 56748,
+      "forge_url": "https://sp-mod.com/mod/1591/better-rear-sights",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 147,
+      "id": 2480,
+      "name": "BarterItemsStacks",
+      "downloads": 56539,
+      "forge_url": "https://sp-mod.com/mod/2480/barteritemsstacks",
+      "latest_version": "1.4.3",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 148,
+      "id": 158,
+      "name": "Medical SICC case (MICC)",
+      "downloads": 55769,
+      "forge_url": "https://sp-mod.com/mod/158/medical-sicc-case-micc",
+      "latest_version": "3.9.3",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 149,
+      "id": 1554,
+      "name": "ALL AMMO TRADER - UPDATED BY TILTUSHKIN",
+      "downloads": 55565,
+      "forge_url": "https://sp-mod.com/mod/1554/all-ammo-trader-updated-by-tiltushkin",
+      "latest_version": "1.5.0",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 150,
+      "id": 216,
+      "name": "Lua's Flea Market Price Updater",
+      "downloads": 55163,
+      "forge_url": "https://sp-mod.com/mod/216/luas-flea-market-price-updater",
+      "latest_version": "3.1.2",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 151,
+      "id": 1519,
+      "name": "WTT - W.A.A.C. (Women's Advanced Assault Corps)",
+      "downloads": 54851,
+      "forge_url": "https://sp-mod.com/mod/1519/wtt-waac-womens-advanced-assault-corps",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 152,
+      "id": 999,
+      "name": "SandCore",
+      "downloads": 54058,
+      "forge_url": "https://sp-mod.com/mod/999/sandcore",
+      "latest_version": "1.0.5",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 153,
+      "id": 1582,
+      "name": "Headshot Darkness",
+      "downloads": 53728,
+      "forge_url": "https://sp-mod.com/mod/1582/headshot-darkness",
+      "latest_version": "1.2.5",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 154,
+      "id": 1292,
+      "name": "SamSWAT's Helicopter Crash Sites - Arys Reloaded",
+      "downloads": 53654,
+      "forge_url": "https://sp-mod.com/mod/1292/samswats-helicopter-crash-sites-arys-reloaded",
+      "latest_version": "2.5.2",
+      "spt_constraint": "~4.0.3"
+    },
+    {
+      "rank": 155,
+      "id": 164,
+      "name": "Freecam",
+      "downloads": 53424,
+      "forge_url": "https://sp-mod.com/mod/164/freecam",
+      "latest_version": "1.4.8",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 156,
+      "id": 160,
+      "name": "Lock Picking Attorney Redux",
+      "downloads": 53258,
+      "forge_url": "https://sp-mod.com/mod/160/lock-picking-attorney-redux",
+      "latest_version": "5.0.0",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 157,
+      "id": 1064,
+      "name": "Andern",
+      "downloads": 53129,
+      "forge_url": "https://sp-mod.com/mod/1064/andern",
+      "latest_version": "3.2.0",
+      "spt_constraint": "~4.0.13"
+    },
+    {
+      "rank": 158,
+      "id": 252,
+      "name": "AKGuy Super Shop",
+      "downloads": 53020,
+      "forge_url": "https://sp-mod.com/mod/252/akguy-super-shop",
+      "latest_version": "3.7.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 159,
+      "id": 632,
+      "name": "Props Obviously Original Program (POOP)",
+      "downloads": 53019,
+      "forge_url": "https://sp-mod.com/mod/632/props-obviously-original-program-poop",
+      "latest_version": "1.5.3",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 160,
+      "id": 1246,
+      "name": "GTFO",
+      "downloads": 52825,
+      "forge_url": "https://sp-mod.com/mod/1246/gtfo",
+      "latest_version": "1.2.1",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 161,
+      "id": 742,
+      "name": "Softcore (Proper Singleplayer Experience for SPT)",
+      "downloads": 52409,
+      "forge_url": "https://sp-mod.com/mod/742/softcore-proper-singleplayer-experience-for-spt",
+      "latest_version": "3.2.1",
+      "spt_constraint": "~3.10.0"
+    },
+    {
+      "rank": 162,
+      "id": 917,
+      "name": "Two Slot Extended Mags",
+      "downloads": 52315,
+      "forge_url": "https://sp-mod.com/mod/917/two-slot-extended-mags",
+      "latest_version": "1.0.5+b",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 163,
+      "id": 150,
+      "name": "Bigger Keytool",
+      "downloads": 52268,
+      "forge_url": "https://sp-mod.com/mod/150/bigger-keytool",
+      "latest_version": "2.6.4",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 164,
+      "id": 471,
+      "name": "Take A Break",
+      "downloads": 51743,
+      "forge_url": "https://sp-mod.com/mod/471/take-a-break",
+      "latest_version": "2.0.1",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 165,
+      "id": 2658,
+      "name": "Camo And Stickers",
+      "downloads": 51710,
+      "forge_url": "https://sp-mod.com/mod/2658/camo-and-stickers",
+      "latest_version": "1.19.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 166,
+      "id": 1453,
+      "name": "Make Shotguns Great Again!",
+      "downloads": 51541,
+      "forge_url": "https://sp-mod.com/mod/1453/make-shotguns-great-again",
+      "latest_version": "1.18.1",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 167,
+      "id": 2430,
+      "name": "ODT's Item Info - SPT 4.0",
+      "downloads": 51413,
+      "forge_url": "https://sp-mod.com/mod/2430/odts-item-info-spt-40",
+      "latest_version": "3.0.0",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 168,
+      "id": 2239,
+      "name": "Couturier - gear and clothing pack",
+      "downloads": 50530,
+      "forge_url": "https://sp-mod.com/mod/2239/couturier-gear-and-clothing-pack",
+      "latest_version": "2.0.4",
+      "spt_constraint": "~4.1.2"
+    },
+    {
+      "rank": 169,
+      "id": 820,
+      "name": "Door Randomizer",
+      "downloads": 49918,
+      "forge_url": "https://sp-mod.com/mod/820/door-randomizer",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 170,
+      "id": 993,
+      "name": "Amands' Sense",
+      "downloads": 49872,
+      "forge_url": "https://sp-mod.com/mod/993/amands-sense",
+      "latest_version": "1.1.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 171,
+      "id": 1456,
+      "name": "Gambler - Trader",
+      "downloads": 49335,
+      "forge_url": "https://sp-mod.com/mod/1456/gambler-trader",
+      "latest_version": "1.0.1",
+      "spt_constraint": "4.0.13"
+    },
+    {
+      "rank": 172,
+      "id": 2422,
+      "name": "Foldables",
+      "downloads": 49013,
+      "forge_url": "https://sp-mod.com/mod/2422/foldables",
+      "latest_version": "1.1.1",
+      "spt_constraint": "~4.1.2"
+    },
+    {
+      "rank": 173,
+      "id": 1029,
+      "name": "TechHappy's Web Minimap",
+      "downloads": 48664,
+      "forge_url": "https://sp-mod.com/mod/1029/techhappys-web-minimap",
+      "latest_version": "1.0.9",
+      "spt_constraint": "~3.8.0"
+    },
+    {
+      "rank": 174,
+      "id": 64,
+      "name": "KMC-CORE",
+      "downloads": 48345,
+      "forge_url": "https://sp-mod.com/mod/64/kmc-core",
+      "latest_version": "3.0.2",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 175,
+      "id": 938,
+      "name": "Custom Interactions",
+      "downloads": 48196,
+      "forge_url": "https://sp-mod.com/mod/938/custom-interactions",
+      "latest_version": "1.8.0",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 176,
+      "id": 235,
+      "name": "JustNU Core",
+      "downloads": 48118,
+      "forge_url": "https://sp-mod.com/mod/235/justnu-core",
+      "latest_version": "1.1.0+aki-35x",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 177,
+      "id": 372,
+      "name": "FAUPI - MUNITIONS EXPERT",
+      "downloads": 47900,
+      "forge_url": "https://sp-mod.com/mod/372/faupi-munitions-expert",
+      "latest_version": "1.7.1",
+      "spt_constraint": ""
+    },
+    {
+      "rank": 178,
+      "id": 1835,
+      "name": "SOCOM Armory + New Quests & Story Line",
+      "downloads": 47874,
+      "forge_url": "https://sp-mod.com/mod/1835/socom-armory-new-quests-story-line",
+      "latest_version": "3.0.4",
+      "spt_constraint": "4.0.13"
+    },
+    {
+      "rank": 179,
+      "id": 814,
+      "name": "Late to the Party",
+      "downloads": 47661,
+      "forge_url": "https://sp-mod.com/mod/814/late-to-the-party",
+      "latest_version": "3.1.1",
+      "spt_constraint": "~4.1.0"
+    },
+    {
+      "rank": 180,
+      "id": 1706,
+      "name": "Health Per Level",
+      "downloads": 47607,
+      "forge_url": "https://sp-mod.com/mod/1706/health-per-level",
+      "latest_version": "2.2.0",
+      "spt_constraint": "4.1.*"
+    },
+    {
+      "rank": 181,
+      "id": 1853,
+      "name": "StatTrack",
+      "downloads": 47010,
+      "forge_url": "https://sp-mod.com/mod/1853/stattrack",
+      "latest_version": "2.1.1",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 182,
+      "id": 1569,
+      "name": "Wolfik's Heavy Trooper Masks",
+      "downloads": 46588,
+      "forge_url": "https://sp-mod.com/mod/1569/wolfiks-heavy-trooper-masks",
+      "latest_version": "1.2.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 183,
+      "id": 2523,
+      "name": "Bosses Have Gp Coins",
+      "downloads": 46448,
+      "forge_url": "https://sp-mod.com/mod/2523/bosses-have-gp-coins",
+      "latest_version": "1.1.0",
+      "spt_constraint": "~4.1"
+    },
+    {
+      "rank": 184,
+      "id": 2357,
+      "name": "Project Fika - Server",
+      "downloads": 46413,
+      "forge_url": "https://sp-mod.com/mod/2357/project-fika-server",
+      "latest_version": "2.4.2",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 185,
+      "id": 2423,
+      "name": "C11 - True North",
+      "downloads": 46191,
+      "forge_url": "https://sp-mod.com/mod/2423/c11-true-north",
+      "latest_version": "4.0.29",
+      "spt_constraint": "~4.1.6"
+    },
+    {
+      "rank": 186,
+      "id": 609,
+      "name": "Priscilu Special Weapons",
+      "downloads": 46101,
+      "forge_url": "https://sp-mod.com/mod/609/priscilu-special-weapons",
+      "latest_version": "3.1.0",
+      "spt_constraint": "~3.11.0"
+    },
+    {
+      "rank": 187,
+      "id": 122,
+      "name": "Fershte's Balance Patch",
+      "downloads": 45832,
+      "forge_url": "https://sp-mod.com/mod/122/fershtes-balance-patch",
+      "latest_version": "3.7.0",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 188,
+      "id": 1118,
+      "name": "De-Clutterer",
+      "downloads": 45777,
+      "forge_url": "https://sp-mod.com/mod/1118/de-clutterer",
+      "latest_version": "1.1.5",
+      "spt_constraint": "~3.7.0"
+    },
+    {
+      "rank": 189,
+      "id": 1404,
+      "name": "Legs the Trader",
+      "downloads": 45737,
+      "forge_url": "https://sp-mod.com/mod/1404/legs-the-trader",
+      "latest_version": "2.1.2",
+      "spt_constraint": "~4 <4.1.0"
+    },
+    {
+      "rank": 190,
+      "id": 740,
+      "name": "Welcome Gifts",
+      "downloads": 45319,
+      "forge_url": "https://sp-mod.com/mod/740/welcome-gifts",
+      "latest_version": "4.0.0",
+      "spt_constraint": "4.0.12"
+    },
+    {
+      "rank": 191,
+      "id": 266,
+      "name": "Kawaii Weapon Mods",
+      "downloads": 44666,
+      "forge_url": "https://sp-mod.com/mod/266/kawaii-weapon-mods",
+      "latest_version": "3.6.1",
+      "spt_constraint": "~3.9.0"
+    },
+    {
+      "rank": 192,
+      "id": 1252,
+      "name": "SPT Mods Installer",
+      "downloads": 43965,
+      "forge_url": "https://sp-mod.com/mod/1252/spt-mods-installer",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~4.1.3"
+    },
+    {
+      "rank": 193,
+      "id": 1925,
+      "name": "NerfBotGrenades",
+      "downloads": 43791,
+      "forge_url": "https://sp-mod.com/mod/1925/nerfbotgrenades",
+      "latest_version": "1.3.1",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 194,
+      "id": 2010,
+      "name": "Definitive Weapon Variants",
+      "downloads": 43762,
+      "forge_url": "https://sp-mod.com/mod/2010/definitive-weapon-variants",
+      "latest_version": "4.3.2",
+      "spt_constraint": "~4.1.2"
+    },
+    {
+      "rank": 195,
+      "id": 2407,
+      "name": "QuickSellFlea",
+      "downloads": 43606,
+      "forge_url": "https://sp-mod.com/mod/2407/quicksellflea",
+      "latest_version": "1.4.5",
+      "spt_constraint": ">=4.1.3"
+    },
+    {
+      "rank": 196,
+      "id": 463,
+      "name": "Helicopter Crash Sites",
+      "downloads": 43341,
+      "forge_url": "https://sp-mod.com/mod/463/helicopter-crash-sites",
+      "latest_version": "2.1.0",
+      "spt_constraint": "~3.6.0"
+    },
+    {
+      "rank": 197,
+      "id": 972,
+      "name": "Munitions Expert (Reboot)",
+      "downloads": 43160,
+      "forge_url": "https://sp-mod.com/mod/972/munitions-expert-reboot",
+      "latest_version": "1.7.0",
+      "spt_constraint": "~4.0.0"
+    },
+    {
+      "rank": 198,
+      "id": 2342,
+      "name": "UNTAR Go Home!",
+      "downloads": 43131,
+      "forge_url": "https://sp-mod.com/mod/2342/untar-go-home",
+      "latest_version": "3.2.1",
+      "spt_constraint": "~4.1.5"
+    },
+    {
+      "rank": 199,
+      "id": 100,
+      "name": "ZeroTimes",
+      "downloads": 43035,
+      "forge_url": "https://sp-mod.com/mod/100/zerotimes",
+      "latest_version": "2.0.0",
+      "spt_constraint": "~3.3.0"
+    },
+    {
+      "rank": 200,
+      "id": 1432,
+      "name": "WTT - Armory - HK417",
+      "downloads": 42998,
+      "forge_url": "https://sp-mod.com/mod/1432/wtt-armory-hk417",
+      "latest_version": "1.1.7",
+      "spt_constraint": "~3.10.0"
+    }
+  ]
+}
