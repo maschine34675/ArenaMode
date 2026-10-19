@@ -12,7 +12,7 @@ $powerEvidence = Join-Path $powerRepo ('artifacts/powerup-checks/' + [guid]::New
 $powerInputs = @{}
 $powerInputPaths = @('ArenaMode.Client/Pickups/ArenaPowerups.cs','ArenaMode.Client/Pickups/ArenaPowerupState.cs',
     'ArenaMode.Client/Pickups/ArenaPickupColors.cs','ArenaMode.Client/Pickups/ArenaPickupView.cs','ArenaMode.Client/Pickups/ArenaPickupRuntime.cs',
-    'ArenaMode.Client/Effects/ArenaSpawnShieldView.cs','ArenaMode.Client/Effects/ArenaPowerupIndicator.cs',
+    'ArenaMode.Client/Effects/ArenaSpawnShieldView.cs','ArenaMode.Client/Effects/ArenaPowerupIndicator.cs','ArenaMode.Client/Effects/ArenaBotEffectLeases.cs','ArenaMode.Client/Effects/ArenaBotEffectRenderer.cs',
     'ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs','ArenaMode.Client/Combat/CombatPatches.cs','ArenaMode.Client/Combat/ArenaAssistCapture.cs')
 $powerInputPaths += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPowerupChecks/' + $_.Name })
 foreach ($path in $powerInputPaths) { $powerInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $powerRepo $path)).Hash }
@@ -51,19 +51,18 @@ try {
         @{ Name='old-grenade-new-bonus'; File='ArenaPowerups.cs'; Find='info.DamageType == EDamageType.Bullet && info.Weapon is Weapon weapon && !weapon.IsGrenadeLauncher'; Replace='true'; Failure='only direct bullet damage doubled Explosion' },
         @{ Name='physical-grenade-fragment-bonus'; File='ArenaPowerups.cs'; Find='&& info.Weapon is Weapon weapon && !weapon.IsGrenadeLauncher'; Replace=''; Failure='physical grenade fragment cannot inherit outgoing bonus' },
         @{ Name='life-death-retains-buff'; File='ArenaPowerups.cs'; Find='        _lives.Remove(player);'; Replace='        // Fault: retain dead life'; Failure='native death clears physical life immediately' },
-        @{ Name='indicator-local-leak'; File='ArenaPowerups.cs'; Find='!player.IsAI || (state.DamageSeconds <= 0f && state.ShieldPoints <= 0f)'; Replace='(state.DamageSeconds <= 0f && state.ShieldPoints <= 0f)'; Failure='local powerups never add a third-person cage' },
-        @{ Name='indicator-frozen-position'; File='ArenaPowerups.cs'; Find='player.gameObject.activeInHierarchy ? player.Position : default'; Replace='default'; Failure='indicator follows exact body each tick' },
-        @{ Name='indicator-disabled-body-visible'; File='ArenaPowerups.cs'; Find='player.gameObject.activeInHierarchy ? state : default'; Replace='state'; Failure='disabled native body cannot leave cages visible' },
+        @{ Name='indicator-local-leak'; File='ArenaPowerups.cs'; Find='!player.IsAI || (state.DamageSeconds <= 0f && state.ShieldPoints <= 0f)'; Replace='(state.DamageSeconds <= 0f && state.ShieldPoints <= 0f)'; Failure='local powerups never add a third-person effect lease' },
+        @{ Name='indicator-wrong-body'; File='ArenaPowerups.cs'; Find='new ArenaPowerupIndicator(world, player)'; Replace='new ArenaPowerupIndicator(world, world.MainPlayer)'; Failure='shield indicator requests shield color channel' },
+        @{ Name='indicator-disabled-body-visible'; File='ArenaPowerups.cs'; Find='player.gameObject.activeInHierarchy ? state : default'; Replace='state'; Failure='disabled native body cannot leave contours visible' },
         @{ Name='indicator-no-immediate-depletion'; File='ArenaPowerups.cs'; Find='if (victimLife != null) RefreshIndicator(victim, victimLife);'; Replace=''; Failure='depletion immediately clears shield without touching spawn protection' },
-        @{ Name='indicator-reset-leak'; File='ArenaPowerups.cs'; Find='if (_lives.TryGetValue(player, out var life)) life.Indicator?.Dispose();'; Replace='if (_lives.TryGetValue(player, out var life)) { }'; Failure='local powerups never add a third-person cage' },
+        @{ Name='indicator-reset-leak'; File='ArenaPowerups.cs'; Find='if (_lives.TryGetValue(player, out var life)) life.Indicator?.Dispose();'; Replace='if (_lives.TryGetValue(player, out var life)) { }'; Failure='local powerups never add a third-person effect lease' },
         @{ Name='indicator-wrong-color'; File='ArenaPickupColors.cs'; Find='internal static Color DoubleDamage => new(1f, .25f, .7f);'; Replace='internal static Color DoubleDamage => new(.25f, .8f, 1f);'; Failure='damage indicator uses pickup pink' },
-        @{ Name='indicator-no-damage-cage'; File='ArenaPowerupIndicator.cs'; Find='state.DamageSeconds > 0f,'; Replace='false,'; Failure='double damage has its own simultaneous cage'; Indicator=$true },
-        @{ Name='indicator-render-retry'; File='ArenaPowerupIndicator.cs'; Find='if (!attempted)'; Replace='if (view == null)'; Failure='failed renderer attempted once per effect not every frame'; Indicator=$true }
+        @{ Name='indicator-no-damage-channel'; File='ArenaPowerupIndicator.cs'; Find='state.DamageSeconds > 0f'; Replace='false'; Failure='double damage has its own simultaneous color channel'; Indicator=$true }
     )
     foreach ($fault in $faults) {
         $faultRoot = Join-Path $powerEvidence ($fault.Name + '/source'); [void][IO.Directory]::CreateDirectory($faultRoot)
-        foreach ($name in @('ArenaPowerups.cs','ArenaPowerupState.cs','ArenaPickupColors.cs','ArenaSpawnShieldView.cs','ArenaPowerupIndicator.cs')) {
-            $sourceDir = if ($name -in @('ArenaSpawnShieldView.cs','ArenaPowerupIndicator.cs')) { $indicatorSource } else { $powerSource }
+        foreach ($name in @('ArenaPowerups.cs','ArenaPowerupState.cs','ArenaPickupColors.cs','ArenaSpawnShieldView.cs','ArenaPowerupIndicator.cs','ArenaBotEffectLeases.cs')) {
+            $sourceDir = if ($name -in @('ArenaSpawnShieldView.cs','ArenaPowerupIndicator.cs','ArenaBotEffectLeases.cs')) { $indicatorSource } else { $powerSource }
             $text = [IO.File]::ReadAllText((Join-Path $sourceDir $name))
             if ($name -eq $fault.File) {
                 if ($text.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne 2) { throw "Ambiguous fault anchor: $($fault.Name)" }

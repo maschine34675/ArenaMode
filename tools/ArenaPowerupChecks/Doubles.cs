@@ -5,7 +5,7 @@ using System.Reflection;
 public enum EBodyPart { Head, Chest, Stomach, LeftArm, RightArm, LeftLeg, RightLeg, Common }
 namespace UnityEngine
 {
-    public static class Time { public static float time; }
+    public static class Time { public static float time; public static int frameCount = 10; }
     public class Object
     {
         public bool Destroyed;
@@ -176,3 +176,14 @@ namespace HarmonyLib
     }
 }
 namespace ArenaMode.Pickups { internal static class ArenaInfiniteAmmo { internal static bool Enabled = true; } }
+// Rendering is an explicit boundary here. Real renderer lifetime/command-buffer
+// checks live in BotEffectOutlineChecks and GPU pixel/occlusion acceptance is separate.
+namespace ArenaMode.Effects
+{
+    internal static class ArenaBotEffectRenderer
+    {
+        internal static readonly ArenaBotEffectLeases<EFT.Player> Book = new();
+        internal static bool RenderAvailable = true;
+        internal static ArenaBotEffectLeases<EFT.Player>.Lease Acquire(EFT.GameWorld world, EFT.Player body) => Book.Add(body);
+    }
+}

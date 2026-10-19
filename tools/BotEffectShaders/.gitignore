@@ -1,0 +1,8 @@
+Library/
+Temp/
+Logs/
+obj/
+UserSettings/
+Packages/
+ProjectSettings/*
+!ProjectSettings/ProjectVersion.txt

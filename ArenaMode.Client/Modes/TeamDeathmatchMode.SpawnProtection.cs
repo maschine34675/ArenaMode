@@ -80,10 +80,17 @@ public sealed partial class TeamDeathmatchMode
                 continue;
             }
             if (!live) continue;
+            // The damage lease may protect a bounded PreActive replacement;
+            // presentation must wait for its actual active, registered body.
+            if (shield.Owner.BotState != EBotState.Active)
+            {
+                shield.View?.Dispose(); shield.View = null;
+                continue;
+            }
             try
             {
-                shield.View ??= new ArenaSpawnShieldView(_world.transform);
-                shield.View.Update(shield.Body.Transform.position);
+                shield.View ??= new ArenaSpawnShieldView(_world, shield.Body);
+                shield.View.Update();
             }
             catch (Exception ex)
             {

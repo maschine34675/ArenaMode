@@ -41,49 +41,34 @@ static class Checks
     }
 
     private static void Check(bool value, string name) { _count++; if (!value) throw new Exception("ASSERT: " + name); }
-    private static GameObject[] Cages() => GameObject.Created.Where(x => !x.Destroyed && x.Active &&
-        (x.name == "ArenaBotPickupShield" || x.name == "ArenaBotDoubleDamage" || x.name == "ArenaBotSpawnShield")).ToArray();
-    private static LineRenderer Ring(GameObject root, int index = 0)
-        => root.transform.Children[index].GameObject.Components.OfType<LineRenderer>().Single();
-
+    private static ArenaBotEffectKind Flags(Player player) => ArenaBotEffectRenderer.Book.Entries
+        .Where(e => ReferenceEquals(e.Body, player)).Select(e => e.Read(Time.frameCount)).FirstOrDefault();
     private static void Indicators()
     {
         Fresh();
         ArenaPowerups.GrantShield(_local, 220, 30); ArenaPowerups.GrantDamage(_local, 20);
-        Check(Cages().Length == 0, "local powerups never add a third-person cage");
+        Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "local powerups never add a third-person effect lease");
         _victim.AIData.IsAI = true;
         Check(ArenaPowerups.GrantShield(_victim, 220, 30), "bot shield grant with indicator");
-        var shield = Cages().Single();
-        Check(shield.name == "ArenaBotPickupShield", "shield uses own named root");
-        Check(ReferenceEquals(shield.transform.Parent, Singleton<GameWorld>.Instance.transform), "indicator owned by world not pooled bot");
-        var blue = Ring(shield).startColor;
-        Check(blue.r == .25f && blue.g == .8f && blue.b == 1f, "shield indicator uses pickup blue");
-        Check(shield.transform.Children.Count == 3 && shield.transform.Children.All(x => x.GameObject.Components.Single() is LineRenderer),
-            "only three renderer rings no added gameplay component");
-        _victim.Position = new(3, 4, 5); ArenaPowerups.TickIndicators();
-        Check(shield.transform.position.x == 3 && shield.transform.position.y == 4 && shield.transform.position.z == 5, "indicator follows exact body each tick");
+        Check(Flags(_victim) == ArenaBotEffectKind.Shield, "shield indicator requests shield color channel");
+        var initial = ArenaBotEffectRenderer.Book.Entries.Single();
+        Check(ReferenceEquals(initial.Body, _victim), "indicator binds exact physical body");
         Check(ArenaPowerups.GrantDamage(_victim, 20), "simultaneous bot double damage admitted");
-        Check(Cages().Count(x => x.name == "ArenaBotDoubleDamage") == 1, "double damage has its own simultaneous cage");
-        var damage = Cages().Single(x => x.name == "ArenaBotDoubleDamage");
-        var pink = Ring(damage).startColor;
+        Check(Flags(_victim) == (ArenaBotEffectKind.Shield | ArenaBotEffectKind.DoubleDamage), "double damage has its own simultaneous color channel");
+        var blue = ArenaPickupColors.Shield; var pink = ArenaPickupColors.DoubleDamage;
+        Check(blue.r == .25f && blue.g == .8f && blue.b == 1f, "shield indicator uses pickup blue");
         Check(pink.r == 1f && pink.g == .25f && pink.b == .7f, "damage indicator uses pickup pink");
-        using (var spawn = new ArenaSpawnShieldView(Singleton<GameWorld>.Instance.transform))
+        using (var spawn = new ArenaSpawnShieldView(Singleton<GameWorld>.Instance, _victim))
         {
-            var spawnRoot = Cages().Single(x => x.name == "ArenaBotSpawnShield");
-            Check(Cages().Length == 3, "both effects coexist with independently owned spawn shield");
-            Check(Ring(spawnRoot).Positions[0].x < Ring(shield).Positions[0].x && Ring(shield).Positions[0].x < Ring(damage).Positions[0].x,
-                "three independent cages have separated radii");
-            var spawnColor = Ring(spawnRoot).startColor;
-            Check(spawnColor.r == .65f && spawnColor.g == 1f && spawnColor.b == 1f, "spawn shield keeps its original pale color");
-            Near(.52f, Ring(spawnRoot).Positions[0].x, "spawn shield keeps original radius");
-            Near(1.02f, Ring(spawnRoot, 1).Positions[0].y, "spawn shield keeps original vertical center");
+            spawn.Update();
+            Check(ArenaBotEffectRenderer.Book.Entries.Count == 1 && Flags(_victim) == (ArenaBotEffectKind)7,
+                "three effects coalesce on one body without losing independent owners");
             Time.time += 20; ArenaPowerups.TickIndicators();
-            Check(damage.Destroyed && !shield.Destroyed && !spawnRoot.Destroyed, "damage expiry clears only its own cage at deadline");
-            // The local damage effect has expired too; full 220-point impact depletes blue.
+            Check(Flags(_victim) == (ArenaBotEffectKind.Spawn | ArenaBotEffectKind.Shield), "damage expiry clears only its own channel at deadline");
             Hit(220);
-            Check(shield.Destroyed && !spawnRoot.Destroyed, "depletion immediately clears shield without touching spawn protection");
+            Check(Flags(_victim) == ArenaBotEffectKind.Spawn, "depletion immediately clears shield without touching spawn protection");
         }
-        Check(Cages().Length == 0, "independent owner cleanup clears all three cages");
+        Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "independent owner cleanup clears all effect leases");
         foreach (Action invalidate in new Action[] {
             () => Time.time += 30,
             () => _victim.ActiveHealthController.IsAlive = false,
@@ -99,32 +84,31 @@ static class Checks
         {
             Fresh(); _victim.AIData.IsAI = true;
             ArenaPowerups.GrantShield(_victim, 220, 30); ArenaPowerups.GrantDamage(_victim, 20);
-            Check(Cages().Length == 2, "lifecycle invalidation has visible positive control");
+            Check(Flags(_victim) == (ArenaBotEffectKind.Shield | ArenaBotEffectKind.DoubleDamage), "lifecycle invalidation has visible positive control");
             invalidate(); ArenaPowerups.TickIndicators();
-            Check(Cages().Length == 0, "invalid body life generation phase or session clears both indicators");
+            Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "invalid body life generation phase or session clears both indicators");
         }
         Fresh(); _victim.AIData.IsAI = true;
-        ArenaPowerups.GrantShield(_victim, 220, 30); var initial = Cages().Single();
+        ArenaPowerups.GrantShield(_victim, 220, 30); initial = ArenaBotEffectRenderer.Book.Entries.Single();
         Time.time += 10; ArenaPowerups.GrantShield(_victim, 220, 30);
         Time.time += 20; ArenaPowerups.TickIndicators();
-        Check(ReferenceEquals(Cages().Single(), initial), "shield refresh keeps one cage past old deadline");
-        Time.time += 10; ArenaPowerups.TickIndicators(); Check(Cages().Length == 0, "refreshed shield expires exactly once");
+        Check(ReferenceEquals(ArenaBotEffectRenderer.Book.Entries.Single(), initial), "shield refresh keeps one lease past old deadline");
+        Time.time += 10; ArenaPowerups.TickIndicators(); Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "refreshed shield expires exactly once");
         Fresh(); _victim.AIData.IsAI = true;
         ArenaPowerups.GrantShield(_victim, 220, 30); ArenaPowerups.GrantDamage(_victim, 20);
         _victim.gameObject.SetActive(false); ArenaPowerups.TickIndicators();
-        Check(Cages().Length == 0, "disabled native body cannot leave cages visible");
+        Check(Flags(_victim) == ArenaBotEffectKind.None, "disabled native body cannot leave contours visible");
         Time.time += 20; _victim.gameObject.SetActive(true); ArenaPowerups.TickIndicators();
-        Check(Cages().Length == 1 && Cages()[0].name == "ArenaBotPickupShield", "reenabling exact body shows only unexpired effect");
+        Check(Flags(_victim) == ArenaBotEffectKind.Shield, "reenabling exact body shows only unexpired effect");
         ArenaPickupRuntime.Registered.Remove(_victim); ArenaPowerups.TickIndicators();
-        Check(Cages().Length == 0, "recycled deregistered body loses indicator ownership");
-        Fresh(); _victim.AIData.IsAI = true; Shader.Missing = true; int probes = Shader.Lookups;
+        Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "recycled deregistered body loses indicator ownership");
+        Fresh(); _victim.AIData.IsAI = true; ArenaBotEffectRenderer.RenderAvailable = false;
         Check(ArenaPowerups.GrantShield(_victim, 220, 30), "missing indicator shader never refuses gameplay grant");
         Near(220, ArenaPowerups.Read(_victim).ShieldPoints, "render failure preserves actual shield pool");
         for (int i = 0; i < 30; i++) ArenaPowerups.TickIndicators();
-        Check(Shader.Lookups == probes + 1, "failed renderer attempted once per effect not every frame");
-        Shader.Missing = false; ArenaPowerups.Reset();
-        Check(Material.Created.All(x => x.Destroyed), "all owned indicator materials disposed after effects reset");
-        Check(Cages().Length == 0, "final indicator reset leaves no active object");
+        Check(ArenaBotEffectRenderer.Book.Entries.Count == 1, "render failure keeps one bounded presentation lease");
+        ArenaBotEffectRenderer.RenderAvailable = true; ArenaPowerups.Reset();
+        Check(ArenaBotEffectRenderer.Book.Entries.Count == 0, "final indicator reset leaves no active lease");
     }
     private static void InfiniteAmmo()
     {

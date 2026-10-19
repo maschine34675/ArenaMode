@@ -1,3 +1,8 @@
 # LICENSE is compared with Redeploy's LICENSE by tools/Write-ArenaAssets.ps1 and shipped
 # as docs/LICENSE. Pin it to LF so core.autocrlf=true cannot check it out with CRLF.
 LICENSE text eol=lf
+# Shader provenance hashes must survive Windows checkouts unchanged.
+tools/BotEffectShaders/Assets/*.shader text eol=lf
+tools/BotEffectShaders/Assets/Editor/*.cs text eol=lf
+tools/BotEffectShaders/Build.ps1 text eol=lf
+tools/BotEffectShaders/ProjectSettings/ProjectVersion.txt text eol=lf

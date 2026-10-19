@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "provenance": "Independently authored ArenaMode shader and editor build script; no third-party source or binary assets copied.",
+  "unityVersion": "2022.3.43f1",
+  "target": "StandaloneWindows64",
+  "sourceFiles": [
+    {
+      "path": "tools/BotEffectShaders/Assets/ArenaBotEffects.shader",
+      "sha256": "810C826E1F153D8CA6ED6E99D8F131B5336AC5BE4641EDC6A40143D1F042ABEB"
+    },
+    {
+      "path": "tools/BotEffectShaders/Assets/Editor/BuildBotEffects.cs",
+      "sha256": "F86358304BDA4F4D72C44E1430C6809D33DECCEAC8F68F494DCD5709F9B6FBA6"
+    },
+    {
+      "path": "tools/BotEffectShaders/ProjectSettings/ProjectVersion.txt",
+      "sha256": "7CE7EF9812826D26EB056D4F2A2D5B3D95FCAF5B8A37EC6F3F909307AC3BF837"
+    },
+    {
+      "path": "tools/BotEffectShaders/Build.ps1",
+      "sha256": "BC42BCB739B7EB3369A2F4A93C1DFDC697156405750EB14524AC615FA7CF7B01"
+    }
+  ],
+  "bundle": {
+    "path": "ArenaMode.Client/Assets/BotEffects/bot-effect-outlines.bundle",
+    "sha256": "E8495E5C29FF40ABA6B9D8C180DEF3604E53031F6CA9E13CB0B19F5644C830E8",
+    "bytes": 19127
+  },
+  "buildEvidence": "artifacts/bot-effects-20261019/shader-build/unity.log",
+  "nativeAcceptance": "Not claimed by shader compilation; see GPU test report."
+}

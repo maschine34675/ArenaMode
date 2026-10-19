@@ -1,5 +1,11 @@
 # Bot powerup indicators
 
+Historical implementation note: the three-ring cages described below are
+replaced by a shared, visible-body-only inner contour as of 2026-10-19. See
+[current rendering, ownership and verification](BOT-EFFECT-OUTLINES-20261019.md).
+Shield/Double Damage gameplay and colors remain; no native bot material or
+animator is replaced. The old cage dimensions are not current configuration.
+
 Implemented 2026-10-18. Deathmatch and independent Team DM bots with active
 Shield or Double Damage use the same three-ring world-space cage as the existing
 TDM spawn protection. Colors come from the same palette as their pickup markers:

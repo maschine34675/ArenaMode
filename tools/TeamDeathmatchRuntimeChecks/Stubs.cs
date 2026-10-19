@@ -325,8 +325,8 @@ namespace ArenaMode.Effects
     {
         internal static int Active;
         private bool _disposed;
-        internal ArenaSpawnShieldView(UnityEngine.Transform world) { Active++; }
-        internal void Update(UnityEngine.Vector3 position) { }
+        internal ArenaSpawnShieldView(EFT.GameWorld world, EFT.Player body) { Active++; }
+        internal void Update() { }
         public void Dispose() { if (!_disposed) Active--; _disposed = true; }
     }
     internal static class ArenaTracerPatches { internal static void ResetDiagnostics() { } }

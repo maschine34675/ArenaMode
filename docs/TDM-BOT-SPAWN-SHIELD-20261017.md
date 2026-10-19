@@ -4,6 +4,9 @@ Scope update 2026-10-19: bot protection now applies only to independent Team DM
 using the catalog's fixed team boxes (Equator, Bay5 and Air Pit), not ordinary
 map starts. Player respawn protection is unchanged. See
 [current admission rules and checks](BOT-SPAWN-SHIELD-SCOPE-20261019.md).
+The ring-cage presentation described below is historical; it is replaced by
+the [visible-body inner contour](BOT-EFFECT-OUTLINES-20261019.md). Damage authority,
+first-attack release and timer semantics remain as documented here.
 
 Independent Team DM bots now receive damage protection on each admitted physical
 spawn. Both factions use `Respawn/SpawnProtectionSeconds`, frozen at match start

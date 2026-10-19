@@ -32,6 +32,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\BotEffects\bot-effect-outlines.bundle" LogicalName="ArenaMode.BotEffects.bot-effect-outlines.bundle" />
+    <Reference Include="UnityEngine.AssetBundleModule" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The shared payload writer supplies build, publish and installed assets. -->
     <ArenaAudioAsset Include="Assets\ArenaMode\**\*" />
   </ItemGroup>

@@ -178,14 +178,13 @@ internal static class ArenaPowerups
             {
                 var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
                 if (world == null) return;
-                life.Indicator = new ArenaPowerupIndicator(world.transform);
+                life.Indicator = new ArenaPowerupIndicator(world, player);
                 IndicatorBodies.Add(player);
             }
-            // A temporarily disabled native body must not leave its cage visible.
+            // A temporarily disabled native body must not leave its contour visible.
             // Keep the timer/life while hidden; re-enabling this exact registered
             // body can show only whatever effect time remains, never a fresh grant.
-            life.Indicator.Update(player.gameObject.activeInHierarchy ? player.Position : default,
-                player.gameObject.activeInHierarchy ? state : default);
+            life.Indicator.Update(player.gameObject.activeInHierarchy ? state : default);
         }
         catch (Exception ex) { ReleaseIndicator(player, life); Warn(ex); }
     }

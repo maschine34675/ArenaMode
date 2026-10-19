@@ -12,6 +12,7 @@
     <Compile Include="$(PowerupSourceRoot)/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs"/>
     <Compile Include="$(PowerupSourceRoot)/ArenaPickupColors.cs" Link="Production/ArenaPickupColors.cs"/>
     <Compile Include="$(IndicatorSourceRoot)/ArenaSpawnShieldView.cs" Link="Production/ArenaSpawnShieldView.cs"/>
+    <Compile Include="$(IndicatorSourceRoot)/ArenaBotEffectLeases.cs" Link="Production/ArenaBotEffectLeases.cs"/>
     <Compile Include="$(IndicatorSourceRoot)/ArenaPowerupIndicator.cs" Link="Production/ArenaPowerupIndicator.cs"/>
     <Compile Include="../../ArenaMode.Client/Combat/ArenaAdministrativeDeathGate.cs" Link="Production/ArenaAdministrativeDeathGate.cs"/>
   </ItemGroup>

@@ -54,8 +54,13 @@ internal static partial class Program
         var replacement = Deliver(Request(EPlayerSide.Bear), EBotState.PreActive);
         Check(raid.Mode.ShouldBlockMatchDamage(replacement.GetPlayer), "live preactive arrival is safe before its first mode tick");
         raid.Step(live + 10);
+        Check(ArenaSpawnShieldView.Active == 0,
+            "preactive replacement keeps protection without creating a retireable visual lease");
         replacement.BotState = EBotState.Active;
         Check(raid.Mode.ShouldBlockMatchDamage(replacement.GetPlayer), "full spawn timer starts on physical activation");
+        raid.Step(live + 10.01f);
+        Check(ArenaSpawnShieldView.Active == 1,
+            "activated replacement creates its first visual for the real protection window");
         raid.Step(live + 13.99f);
         Check(raid.Mode.ShouldBlockMatchDamage(replacement.GetPlayer), "replacement survives until its own deadline");
         raid.Step(live + 14);

@@ -40,6 +40,10 @@ receive no bot spawn shield; local-player protection is unchanged. Read
 docs/BOT-SPAWN-SHIELD-SCOPE-20261019.md and docs/TDM-BOT-SPAWN-SHIELD-20261017.md
 before changing damage admission, attack hooks or shield lifetime. Never reuse
 historical team IDs as shield authority or modify their DamageCoeff.
+Spawn and pickup buff indicators share a private, depth-occluded inner body
+contour. See docs/BOT-EFFECT-OUTLINES-20261019.md before changing rendering or
+camera/lease cleanup. Never clone native player components, mutate pooled meshes
+or materials, add a positive depth bias, or draw an unchecked through-wall halo.
 Team Friendly Fire is a raid-frozen mutator: Team DM and PFT Tactical default on,
 PFT Zombies off; solo is unavailable. Read docs/FRIENDLY-FIRE-REVIEW.md before changing
 damage admission, physical team identities or attributed grenade effects. Do not
