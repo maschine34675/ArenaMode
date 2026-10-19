@@ -101,8 +101,10 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Independent **USEC vs BEAR**, without requiring PitFireTeam. Teammates are
   friendly to each other; the player's faction determines the team.
 - Continuous replacement of dead participants into fixed faction slots.
-- Visible protection for newly spawned bots on both teams, using the configured
-  spawn-protection duration (default **4 seconds**). The timer starts in live
+- Visible protection for newly spawned bots on both teams **only in Equator,
+  Bay5 and Air Pit Team DM**, where initial and replacement bots use fixed team
+  boxes. Other maps do not grant bot spawn protection; player protection is
+  unchanged. The configured duration defaults to **4 seconds** and starts in live
   combat when the bot is active. Firing, throwing a grenade or dealing outgoing
   damage ends the shield immediately.
 - Team kill and time limits; defaults are **50 kills / 10 minutes**. The result
@@ -344,10 +346,11 @@ area, Equator, Bay5 and AirPit. Gun Game, Tactical/PFT and Zombies do not use th
 - Bots may collect health, shield and damage powerups; deliberate pursuit of
   these objectives requires the BigBrain companion. Boots, unlimited ammo and
   the weapon are player pickups.
-- Bots carrying Shield or Double Damage show blue or pink world-space rings,
-  respectively, matching their pickup colors. Both may appear together, alongside
-  the separate pale spawn shield. Each follows its own effect lifetime, remains
-  independent of the HUD switch and disappears when its effect or body ends.
+- Bots carrying Shield or Double Damage show a narrow blue or pink body contour,
+  respectively, matching their pickup colors; spawn protection uses pale cyan.
+  Opaque cover hides the occluded body contour. Simultaneous effects share one
+  segmented contour, each with its own lifetime. The view remains independent of
+  the HUD switch and disappears when its effect or body ends.
 
 Sources: [pickup system](PICKUPS-REVIEW.md),
 [all-map layouts](ALL-MAP-PICKUPS-20261017.md),

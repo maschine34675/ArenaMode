@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot effect contours (2026-10-19):** `f23b25b` replaces the spawn/Shield/Double
+  Damage cages with one narrow, depth-occluded body contour. Colors remain pale
+  cyan / blue / pink; simultaneous effects share color segments. Existing body
+  renderers are referenced without cloning native scripts, meshes or animators.
+  Shader source and reproducible embedded bundle are owned here. The paired
+  client/BigBrainCompat candidate built from `612e494` was deployed to VM/GPU2;
+  server, Redeploy.Core and Killcam remain unchanged. Native moving-body captures
+  confirm partial/full opaque cover, natural pickups and centered/off-center
+  DLSS Quality at 1080p, alongside ordinary TAA. No all-camera/material/LOD
+  certification is implied. See [implementation](BOT-EFFECT-OUTLINES-20261019.md)
+  and [exact native results and restoration](GPU-BOT-EFFECTS-20261019.md).
+
 - **Bot spawn-shield scope (2026-10-19):** only independent Team DM using
   catalog-backed boxes on Equator, Bay5 or Air Pit receives bot spawn protection.
   Factory/day/night and other ordinary starts do not. The player's protection,

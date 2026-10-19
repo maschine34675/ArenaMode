@@ -69,8 +69,11 @@ Population and starting equipment can be changed in the menu.
 - Pickups on every supported Arena map in Deathmatch and Team DM: health,
   shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
   rotate during play, within the selected Customs area where applicable.
-- Visible Team DM bot spawn protection, default four seconds; firing, throwing
-  a grenade or dealing damage ends it.
+- Visible Team DM bot spawn protection in the fixed team boxes on Equator,
+  Bay5 and Air Pit, default four seconds; firing, throwing a grenade or dealing
+  damage ends it. Other maps retain player protection without bot spawn shields.
+- Narrow colored body contours identify bot spawn protection, Shield and Double
+  Damage. Opaque cover hides the contour; simultaneous effects share its colors.
 
 Molotov and deliberate bot pickup steering require BigBrain 1.5.0 or newer plus
 ArenaMode's companion DLL. Molotov is unavailable in Zombies.

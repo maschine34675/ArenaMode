@@ -8,6 +8,7 @@ build/deployment JSON records live here. The automatically discovered
 
 - [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
 - [Depth-occluded bot effect contours](BOT-EFFECT-OUTLINES-20261019.md)
+- [GPU2 bot contours, cover, DLSS and spawn-shield controls](GPU-BOT-EFFECTS-20261019.md)
 
 - [Optional mod minimum versions and forward admission](OPTIONAL-MOD-VERSIONS-20261019.md)
 

@@ -95,8 +95,12 @@ current defaults, mode restrictions, all mutators and the supporting source.
 - Fixed participant/faction slots, including a retained Labyrinth boss slot.
   Difficulty pressure and bot gear progression are separate; timed Team DM
   scales both time curves to match duration.
-- Team DM bots receive visible spawn protection, default four seconds from
-  activation in live combat. Firing or throwing a grenade ends their shield.
+- Team DM bots starting in the fixed team boxes on Equator, Bay5 and Air Pit
+  receive visible spawn protection, default four seconds from activation in
+  live combat. Firing or throwing a grenade ends their shield. Other maps do
+  not grant bot spawn protection; player protection is unchanged.
+- Protected/buffed bots have a narrow body contour in the effect's color,
+  hidden behind opaque cover. Simultaneous effects share a segmented contour.
 - Zombie voice budgeting and optional Zombie Crowd behavior. Old-corpse and
   resource-pool cleanup reduce accumulation during long matches.
 

@@ -40,9 +40,10 @@ temporary target dimensions resolve at execution, not from `Screen.width`.
 Missing shaders, unsupported mask formats and command failures disable only
 presentation. The failure path clears/detaches commands and releases owned
 materials/bundle immediately, while retaining the failed owner to avoid retrying
-every frame. Buffs and immunity are not refused or granted by rendering. Native
-GPU evidence is still needed for actual depth production, DLSS viewport mapping,
-skinning/LOD rendering, thin cover and full lifecycle behavior.
+every frame. Buffs and immunity are not refused or granted by rendering. Actual
+depth production, DLSS viewport mapping, animated bodies, cover and lifecycle
+behavior are checked separately in the [native report](GPU-BOT-EFFECTS-20261019.md).
+Its bounded results do not certify every LOD, transparent material or camera mode.
 
 ## Reference and provenance
 
