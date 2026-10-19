@@ -18,7 +18,9 @@ public static class Library
     public const int PickupLayerPriority = 35;
 
     private static readonly Version MinimumBigBrainVersion = new(1, 5, 0);
-    private static readonly Version RequiredArenaVersion = new(0, 1, 0);
+    // PluginVersion is a compile-time constant: the companion still rejects a
+    // different installed client, without a second release-version literal.
+    private static readonly Version RequiredArenaVersion = new(ArenaMode.Plugin.PluginVersion);
 
     internal static bool RuntimeEnabled { get; private set; }
     internal static ManualLogSource ModLogger { get; private set; }

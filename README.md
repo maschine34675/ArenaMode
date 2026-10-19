@@ -4,7 +4,7 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Current version: **0.1.0**. Download the installable ZIP from
+Current version: **0.1.1**. Download the installable ZIP from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
@@ -52,8 +52,8 @@ current defaults, mode restrictions, all mutators and the supporting source.
   control, sliding, airborne hip fire and vaulting within reach.
 - Higher jumps, faster vaulting, optional unlimited stamina, no bush slowdown
   and no fall damage; hard-landing slowdown lasts half as long by default.
-- **Walk while using CMS or Surv12**, at up to **1 m/s**. Requires Fast Movement;
-  surgery still blocks sprint, jump, prone and vaulting.
+- **Walk while using CMS/Surv12 or splinting a leg**, at up to **1 m/s**.
+  Requires Fast Movement; sprint, jump, prone and vaulting remain blocked.
 - Reduced broken/blacked-leg walking penalties, with a separate control from
   Fast Movement. Injuries still need treatment.
 - Faster drawing, holstering and reloading, plus separate medical-use and

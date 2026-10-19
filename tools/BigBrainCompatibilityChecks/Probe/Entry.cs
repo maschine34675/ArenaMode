@@ -11,7 +11,7 @@ public static class Entry
     {
         Chainloader.PluginInfos[ArenaMode.Plugin.PluginGuid] = new PluginInfo
         {
-            Metadata = new BepInPlugin("arena", "arena", scenario == "arena-mismatch" ? "0.2.0" : "0.1.0"),
+            Metadata = new BepInPlugin("arena", "arena", scenario == "arena-mismatch" ? "0.2.0" : ArenaMode.Plugin.PluginVersion),
             Instance = new object()
         };
         if (version != "absent")

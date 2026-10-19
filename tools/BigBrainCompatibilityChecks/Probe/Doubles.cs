@@ -28,7 +28,9 @@ namespace BepInEx.Bootstrap
 { public static class Chainloader { public static readonly Dictionary<string, BepInEx.PluginInfo> PluginInfos = new(); } }
 namespace UnityEngine { public static class Time { public static float time; } }
 namespace ArenaMode
-{ public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public const string PluginVersion = "0.1.0"; } }
+// Deliberately unlike the release version: proves the companion uses the
+// owning client's compiled constant rather than a stale hard-coded version.
+{ public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public const string PluginVersion = "9.8.7"; } }
 namespace ArenaMode.Bots
 {
     public static class TeamArenaPursuitLeaseBridge

@@ -53,8 +53,8 @@ Population and starting equipment can be changed in the menu.
 - Faster movement, double jump, bunnyhop, air control, sliding, airborne hip
   fire and vaulting. Less inertia/weight slowdown and shorter landing recovery.
   A master switch disables the movement group.
-- **Slow walking with CMS/Surv12**, up to 1 m/s with Fast Movement enabled;
-  sprint/jump/prone/vault remain blocked during surgery.
+- **Slow walking with CMS/Surv12 or while splinting a leg**, up to 1 m/s with
+  Fast Movement enabled; sprint/jump/prone/vault remain blocked.
 - Faster drawing, holstering, reloading, magazine packing and medical use.
   Supported weapons select full-auto when drawn; manual changes remain possible.
 - Backpack items and magazines, automatic medical quickslots, instant search.
