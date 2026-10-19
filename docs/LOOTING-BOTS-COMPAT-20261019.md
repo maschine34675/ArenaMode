@@ -142,3 +142,9 @@ foreign transactions cannot be safely rolled back by a later config toggle or
 timer; protection is installed before the confirmed Arena world starts them.
 Unexpected future direct transaction producers remain a source/native review
 obligation.
+
+Subsequent [GPU2 native testing](GPU-OPTIONAL-COMPAT-20261019.md) confirmed actual
+suppression and intact scan tickets in Factory Deathmatch, followed by real scans,
+looting and equipment replacement in ordinary PMC in the same process. PFT commands
+and the RC-specific startup cleanup still have offline coverage only. The temporary
+test installation was removed after settings restoration and clean shutdown.

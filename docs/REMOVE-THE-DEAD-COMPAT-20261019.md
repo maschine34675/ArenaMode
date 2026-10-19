@@ -126,3 +126,9 @@ installation or GPU raid test was performed by this implementation leaf. A nativ
 follow-up should attempt F5/F12 and automatic cleanup around a retained Tactical/PFT
 corpse and an Arena weapon pickup, then verify ordinary cleanup in a subsequent
 PMC raid in the same process.
+
+Subsequent [GPU2 native testing](GPU-OPTIONAL-COMPAT-20261019.md) preserved the same
+physical Factory Deathmatch corpse through real F5 and automatic cleanup attempts.
+The ordinary follow-up PMC timer ran, but had no dead candidate; physical ordinary
+cleanup and the Tactical/PFT-specific cases are not claimed tested. Temporary RTD
+files and settings were removed/restored after clean shutdown.

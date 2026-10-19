@@ -16,14 +16,22 @@ current. User-facing communication is normally German.
   calls and private pickup-marker layers are adapted. No foreign settings or
   binaries are shipped. Cross-reviews and final production-linked regressions
   pass; client/companion Release build succeeds with four existing warnings.
-  The pair from `144a763` is deployed locally and on GPU2; server/Core hashes
-  are unchanged. See [combined contracts, checks and hashes](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
-  and the individual adapter documents. [Native startup](GPU-OPTIONAL-COMPAT-20261019.md)
-  bound all three hooks without contract warnings. Raid tests were paused before
-  any settings changes because the user confirmed GPU2 is occupied. The three
-  temporary testmods remain locally/on GPU2; restore the exact manifest after
-  safe game/server shutdown, never interrupt the other session. Gameplay and
-  restoration remain open; the report contains the resumption matrix.
+  GPU2 testing resumed after explicit host release. Factory DM and the following
+  ordinary PMC raid prove Arena-only LB/RTD/GC behavior, but exposed a pickup TMP
+  initialization regression. `2624bef` corrects that ordering and adds the missing
+  lifecycle check; independent review and affected regressions pass. This corrected
+  client/companion pair is deployed locally and on GPU2; server/Core are unchanged.
+  See [combined contracts, checks and hashes](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
+  and [the native matrix](GPU-OPTIONAL-COMPAT-20261019.md). Corrected pickup retest
+  passes after Smoothie's completed scan and marker rotation, including actual
+  collections. Both probe sets restored all 306 settings exactly. Game/server
+  are stopped; all 12 temporary payloads and six foreign configurations were
+  removed on development/GPU2, with duplicate-DLL and protected-hash checks clean.
+  GPU2 is handed back. PFT/RC/optics/long-run cases and actual ordinary RTD corpse
+  destruction were not covered by this targeted Factory probe.
+  One previously documented `BotFirstAid.CG_ApplyToSelf.method_1` NRE recurred
+  during final native exit medical cleanup; its cause is unproven and it was not
+  suppressed or reported as fixed by this compatibility work.
 
 - **AI Limit / completed compatibility checks (2026-10-19):** 1.9.2+ gets an
   exact-world component-creation guard before Arena's started event, with a

@@ -190,3 +190,11 @@ fault controls; the joined client/companion build and pickup regressions also
 pass. The existing once-per-match pickup warning now additionally records the
 complete exception at Debug level, so a later native fault retains its stack
 without adding repeated player-facing messages.
+
+The corrected `2624bef` [GPU2 retest](GPU-OPTIONAL-COMPAT-20261019.md) subsequently
+confirmed six pickup markers after the completed static scan, excluded visible
+layers through rotation and actual collections without the exception. The earlier
+same-process Arena/ordinary-PMC probe separately confirmed suppression/resumption
+of the enabled optional GC writer. Optics and long-session variants remain outside
+this targeted native coverage; test settings were restored and temporary mod files
+removed.

@@ -89,16 +89,57 @@ Candidate product version: `0.1.0+144a7631340bf2ee2605d10a68bdfc76d49b87c1`.
 
 The pair was deployed to the development installation and GPU2. Native startup
 successfully bound all three adapters without their contract warnings. The
-subsequent raid probe was stopped before any settings changes when another
-session restarted the host; the user then confirmed that the host was occupied.
-See [the native report and explicitly open matrix](GPU-OPTIONAL-COMPAT-20261019.md).
+first probe was paused when another session occupied the host; testing resumed
+only after the user explicitly released GPU2.
 
-**Pending host availability:** the three third-party test mods remain temporarily
-installed on development/GPU2. No test settings were changed. Resume the native
-matrix only on a free host, then stop the test game/server safely and restore the
-original state from `artifacts/gpu-optional-compat-20261019/temporary-mod-manifest.json`.
-The inspected local helper is
-`.unlazy/optional-compat-20261019/Restore-NativeMods.ps1`; it verifies unchanged
-test-file hashes and removes exact files only. Do not remove files while another
-session owns the game/server. Neither the pending gameplay matrix nor this
-restoration is claimed complete.
+On `144a763`, a four-participant Factory Deathmatch demonstrated actual Looting
+Bots suppression, intact scan tickets, RTD manual and automatic cleanup attempts
+against a retained physical corpse, and suppression of Smoothie's enabled optional
+GC writer. A subsequent ordinary PMC raid in the same process demonstrated real
+Looting Bots scans, looting/equipment replacement and resumed Smoothie GC ticks.
+The ordinary RTD timer ran without a dead candidate; actual ordinary corpse
+destruction is not claimed. See [the native matrix](GPU-OPTIONAL-COMPAT-20261019.md).
+
+That raid also exposed a pickup construction failure introduced by hiding the
+marker root before native TMP initialization. `2624bef` moves deactivation after
+the synchronous text/layer setup, preserves the final inactive marker and adds
+a native-lifecycle regression plus complete Debug exception stacks. Independent
+review, a parent rerun of 135 behavior assertions/19 compiled faults, the joined
+Release build and the full pickup regressions pass. The metadata-inclusive
+Smoothie check has 143 assertions. Adapter policy is unchanged.
+
+The corrected client/companion pair is deployed locally and on GPU2, with Core
+and server unchanged:
+
+| Assembly | SHA256 on `2624bef` |
+|---|---|
+| Client | `42de40f1d04670fba861e302360e122b3133ca053ab6d194530bf394675b1e4e` |
+| BigBrainCompat | `f732d5856545c9cb1cec8daa69cba347323a9e517567edca42324a81890e10f3` |
+
+The corrected native retest passes: six markers, a completed Smoothie static
+scan, all 31 private marker renderers on a camera-visible excluded layer after
+rotation, a visible shield label/beacon, and actual local-player damage-pickup
+and bot health-pickup collections. The native weapon root retained its original
+layer and no parent; the pickup exception did not recur. These are targeted
+Factory checks, not exhaustive PFT, RC, optics or long-session acceptance.
+
+One separate `BotFirstAid.CG_ApplyToSelf.method_1` null reference occurred during
+native medical cleanup 0.77 seconds after leaving the final raid. This callback
+family predates these adapters (see the October 5 Akimbo and bleeding reviews).
+No pickup/adapter frame appears in its stack, but the null member and cause are
+unproven; it remains an unresolved teardown observation, not a claimed clean log.
+
+Both probe sets restored all 306 captured settings exactly. After regular raid
+exit and clean game/server shutdown, the 12 staged payload files and six newly
+created foreign configurations were removed across both installations. Recursive
+DLL-name checks found no duplicate test DLLs; all eight expected deployed or
+protected Client/Companion/Core/Server hashes still match. The original staging
+manifest is unchanged. Looting Bots had rewritten its server JSON formatting;
+both copies were separately backed up and compared as parsed JSON before removal
+(same two original true values). Only empty test directories remain.
+
+Final evidence: `pickup-fix-deployment.json`, `final-config-comparison.json`,
+`server-config-normalization-review.json` and `restoration-verification.json`
+under `artifacts/gpu-optional-compat-20261019/`. The final joined verification
+run is `artifacts/optional-compat-integration/bddedc9511c8466a9d1f7990f0567e50/`;
+the earlier corrected-source run is `0e5ce848b511438589ad937626815aea`.
