@@ -17,7 +17,7 @@ Server-Settings-Abgleich gesteuert: die Auswahl gehört diesem Client.
 | Bay5 | 8 |
 | Factory Tag/Nacht | 10 |
 | Labs | 16 |
-| Labyrinth | 12 |
+| Labyrinth | 8 (aktualisiert am 2026-10-19) |
 
 Vorgaben sind Empfehlungen, keine Kartenobergrenzen. Deathmatch/Gun Game erlauben
 2–24, ganze Karten im Team-DM gerade 4–24. Team-DM zeigt zusätzlich das Format,

@@ -1247,15 +1247,14 @@ public static class Settings
                 "nothing from the previous wave still alive). Starts after the player/team is ready. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 60)));
 
-        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 0.75f,
+        ZombieSpawnIntervalSeconds = config.Bind("Zombie", "SpawnIntervalSeconds", 0.2f,
             new ConfigDescription(
                 "Seconds between individual infected spawn requests while a wave is filling up to MaxAlive " +
-                "or refilling a gap a kill just opened. Lowered from the v0 default of 1.0s (2026-10-06) so " +
-                "a bigger wave (see WaveStartSize) reaches MaxAlive faster and refills kills with less of a " +
-                "gap. Frozen at match start.",
+                "or refilling a gap a kill just opened. Lower values reach MaxAlive faster and refill " +
+                "kills with less of a gap. Frozen at match start.",
                 new AcceptableValueRange<float>(0.2f, 10f)));
 
-        ZombieShooterPercent = config.Bind("Zombie", "ShooterPercent", 0,
+        ZombieShooterPercent = config.Bind("Zombie", "ShooterPercent", 20,
             new ConfigDescription(
                 "Percent chance each spawned infected is the hard/Shooting variant (PM pistol) instead of " +
                 "normal/Fast melee. 0 keeps every infected melee; 100 makes every infected a shooter. " +

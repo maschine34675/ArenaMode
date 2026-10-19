@@ -25,7 +25,7 @@ internal static class Program
             var config = new ConfigFile(path, false) { SaveOnConfigSet = autoSave };
             ArenaParticipantSettings.Init(config);
             foreach (var pair in new[] { (ArenaMapCatalog.EquatorId, 4), (ArenaMapCatalog.Bay5Id, 8), (ArenaMapCatalog.AirPitId, 8),
-                (Day, 10), (ArenaMapCatalog.FactoryNightId, 10), (ArenaMapCatalog.LaboratoryId, 16), (ArenaMapCatalog.LabyrinthId, 12) })
+                (Day, 10), (ArenaMapCatalog.FactoryNightId, 10), (ArenaMapCatalog.LaboratoryId, 16), (ArenaMapCatalog.LabyrinthId, 8) })
             {
                 Need(ArenaParticipantSettings.Get(pair.Item1, "deathmatch") == pair.Item2, "map-specific default");
                 Need(ArenaParticipantSettings.Get(pair.Item1.ToUpperInvariant(), "gungame") == pair.Item2, "case-insensitive map and shared solo default");

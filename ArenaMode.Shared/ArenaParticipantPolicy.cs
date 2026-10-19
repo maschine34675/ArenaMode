@@ -21,7 +21,7 @@ public static class ArenaParticipantPolicy
     public static int DefaultTotal(string map, string mode)
         => ArenaMapCatalog.IsEquator(map) ? 4 : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
-            : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 12 : 10;
+            : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;
 
     // Null retains the legacy protocol except for original-box capacity-bound TDM.
     // Explicit values must never be coerced:

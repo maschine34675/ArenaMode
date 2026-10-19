@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Defaults (2026-10-19):** score-panel base top offset is now 100 HUD units
+  instead of 110, incorporating the user's former Y offset -10 into the layout;
+  ScorePanelOffsetY still defaults to 0. Labyrinth recommends eight total
+  participants for DM/Gun Game and independent TDM. Zombie spawn interval now
+  defaults to 0.2 seconds and shooter chance to 20%. Existing saved gameplay
+  preferences are preserved; only the explicitly requested local score offset
+  is reset to 0. These are default/layout changes, not population-policy changes.
+  Release client/companion builds and ParticipantMenuChecks (4,245 assertions)
+  pass. The score offset was reset on the development installation and GPU-2;
+  no new native raid acceptance was performed for these defaults.
+
 - **Bot effect contours (2026-10-19):** `f23b25b` replaces the spawn/Shield/Double
   Damage cages with one narrow, depth-occluded body contour. Colors remain pale
   cyan / blue / pink; simultaneous effects share color segments. Existing body

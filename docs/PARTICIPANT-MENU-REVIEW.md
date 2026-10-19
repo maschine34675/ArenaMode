@@ -9,7 +9,7 @@ by the shared policy/session integration.
 The map screen shows a compact minus / total / plus row for whole-map Deathmatch,
 Gun Game and independent Team Deathmatch. The heading says **you included**;
 TDM also displays the symmetric format (`12 (6v6)`). A recommendation stays below
-the row: Equator 4, Bay5 8, Factory 10, Labs 16, Labyrinth 12. Recommendations are
+the row: Equator 4, Bay5 8, Factory 10, Labs 16, Labyrinth 8 (updated 2026-10-19). Recommendations are
 defaults, not caps. Solo formats offer 2–24 total; TDM offers even totals 4–24.
 
 The existing bounded-area team buttons and fixed Tactical/PitFireTeam presentation

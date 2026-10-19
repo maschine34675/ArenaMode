@@ -10,7 +10,7 @@ internal sealed class ScorePanel
 {
     private const float RefreshInterval = 0.25f;
     // Reserve the top strip for the quick-access bar (1920x1080 HUD units).
-    internal const float TopOffset = 110f;
+    internal const float TopOffset = 100f;
     internal const float PanelHeight = 84f;
 
     // Shared with the assembly notice so live F12 adjustments keep their gap.

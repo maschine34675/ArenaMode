@@ -147,6 +147,8 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   wave / own gear**. The menu exposes these population settings.
 - A readiness-dependent countdown before the first wave and between waves;
   default intermission **10 seconds**.
+- Individual spawn requests default to **0.2 seconds** apart; **20%** of infected
+  are pistol-armed shooters by default.
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.
 - Optional PFT squad with **1–4 companions**. Surviving members can finish a
@@ -175,7 +177,7 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** in even steps, or **4–20 on Equator Team DM**. Defaults are Equator 4,
-Bay5 8, Labs 16, Labyrinth 12 and otherwise 10; Customs Team DM separately
+Bay5 8, Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
 defaults to 2v2. These are menu defaults, not hardware performance guarantees.
 
 ## 3. Player movement and handling
