@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <SkillsSource Condition="'$(SkillsSource)' == ''">../../ArenaMode.Client/Combat/ArenaSkills.cs</SkillsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(SkillsSource)" Link="Production/ArenaSkills.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaRestoreCommit.cs" Link="Production/ArenaRestoreCommit.cs" />
+  </ItemGroup>
+</Project>

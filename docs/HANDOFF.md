@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Callouts, leg splints and isolation follow-up (2026-10-19):** `178a586`
+  aligns the fourth rapid kill with the spoken ULTRA KILL; the existing
+  `multi_kill.ogg` key and queue priority are preserved. `be08467` extends
+  the exact local Arena surgery-walking exception to leg-fracture treatment
+  with the same 1 m/s cap and FAST MOVEMENT gate. Skill restoration now stops
+  new boosts on failure, restores serializable mastery first, retires successful
+  writes and retries only outstanding values without overwriting original
+  baselines or ordinary XP. See `ISOLATION-REVIEW-20261019.md` for the verified
+  remaining limitations and corrected native-autosave description. Client and
+  companion build; audio/combat, medical-walk and failure-path checks pass.
+  No fresh native fracture-treatment test or audio audition is claimed.
+
 - **Defaults (2026-10-19):** score-panel base top offset is now 100 HUD units
   instead of 110, incorporating the user's former Y offset -10 into the layout;
   ScorePanelOffsetY still defaults to 0. Labyrinth recommends eight total

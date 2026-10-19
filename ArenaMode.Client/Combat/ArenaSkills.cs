@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Session;
+using Comfort.Common;
 using EFT;
 using System;
 using System.Collections.Generic;
@@ -27,9 +28,9 @@ namespace ArenaMode.Combat;
 /// the absolute 60 ceiling — that would raise the base movement speed, which
 /// the arena movement patches already multiply.
 ///
-/// The saved profile is never at risk (the server snapshots it when the arena
-/// is armed and skips the post-raid processing), but the CLIENT shares one
-/// profile object with the menu, so everything is put back at raid end.
+/// The server snapshots the profile when Arena arms and replaces native end
+/// processing. The CLIENT also shares one profile object with the menu, so its
+/// boosts must be restored at raid end, retaining failed writes for retry.
 /// </summary>
 internal static class ArenaSkills
 {
@@ -50,21 +51,34 @@ internal static class ArenaSkills
         new List<Tuple<SkillManager.FloatBuff, float>>();
 
     private static float _nextMasteryTickAt;
+    private static SkillManager _boostedSkills;
+    private static bool _boostActive, _restoreWarned;
+
+    private static bool HasSnapshot => BuffSnapshot.Count != 0 || MasterySnapshot.Count != 0 || StickyEliteBuffs.Count != 0;
+
+    private static bool IsActiveWorld(GameWorld world)
+        => ArenaSession.IsActive && world != null && Singleton<GameWorld>.Instantiated
+            && ReferenceEquals(Singleton<GameWorld>.Instance, world)
+            && Singleton<AbstractGame>.Instantiated
+            && ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, world);
 
     public static void Apply(GameWorld world)
     {
-        if (!Settings.MaxSkills.Value)
+        if (!Settings.MaxSkills.Value || !IsActiveWorld(world))
             return;
 
         try
         {
             var player = world?.MainPlayer;
             var skills = player?.Skills;
-            if (skills == null)
+            if (skills == null || !player.IsYourPlayer || player.IsAI)
                 return;
 
             // A raid that ended abnormally must not stack on top of its own boost.
             Restore();
+            if (HasSnapshot) return; // Never replace an unrecovered baseline with a boosted value.
+            _boostedSkills = skills;
+            _boostActive = true;
             SnapshotStickyEliteBuffs(skills);
 
             var applied = 0;
@@ -96,39 +110,55 @@ internal static class ArenaSkills
 
     public static void Restore()
     {
-        if (BuffSnapshot.Count == 0 && MasterySnapshot.Count == 0 && StickyEliteBuffs.Count == 0)
+        _boostActive = false;
+        _nextMasteryTickAt = Time.realtimeSinceStartup + MasteryTickSeconds;
+        if (!HasSnapshot)
+        {
+            _boostedSkills = null;
             return;
-
-        var succeeded = false;
-        try
-        {
-            // The setter recomputes every rule, so this also walks the ordinary
-            // buffs back down on its own.
-            foreach (var pair in BuffSnapshot)
-            {
-                if (pair.Key != null)
-                    pair.Key.Buff = pair.Value;
-            }
-
-            // AFTER the recompute: these are the ones it cannot undo.
-            foreach (var sticky in StickyEliteBuffs)
-            {
-                if (sticky.Item1 != null)
-                    sticky.Item1.Value = sticky.Item2;
-            }
-
-            foreach (var pair in MasterySnapshot)
-            {
-                if (pair.Key != null)
-                    pair.Key.Current = pair.Value;
-            }
-
-            succeeded = true;
-            Plugin.ModLogger.LogDebug("Arena: skills restored to their profile values.");
         }
-        catch (Exception ex)
+
+        Exception failure = null;
+        // Serializable progression comes first. A throwing skill event must not
+        // prevent its restoration, nor let later retries erase ordinary raid XP.
+        foreach (var mastery in new List<Mastering>(MasterySnapshot.Keys))
         {
-            Plugin.ModLogger.LogWarning($"Arena skill restore failed: {ex.Message}");
+            try
+            {
+                mastery.Current = MasterySnapshot[mastery];
+                MasterySnapshot.Remove(mastery);
+            }
+            catch (Exception ex) { failure ??= ex; }
+        }
+
+        foreach (var skill in new List<Skill>(BuffSnapshot.Keys))
+        {
+            try
+            {
+                skill.Buff = BuffSnapshot[skill];
+                BuffSnapshot.Remove(skill);
+            }
+            catch (Exception ex) { failure ??= ex; }
+        }
+
+        // Run AFTER every remaining skill recompute. Keep sticky baselines while
+        // a failed skill setter could recompute them again during the next retry.
+        for (int i = StickyEliteBuffs.Count - 1; i >= 0; i--)
+        {
+            var sticky = StickyEliteBuffs[i];
+            try
+            {
+                if (sticky.Item1 != null) sticky.Item1.Value = sticky.Item2;
+                if (BuffSnapshot.Count == 0) StickyEliteBuffs.RemoveAt(i);
+            }
+            catch (Exception ex) { failure ??= ex; }
+        }
+
+        var succeeded = failure == null && !HasSnapshot;
+        if (!succeeded && !_restoreWarned)
+        {
+            _restoreWarned = true;
+            Plugin.ModLogger.LogWarning($"Arena skill restore incomplete; boost stopped and remaining values retained for retry: {failure?.Message}");
         }
 
         if (!ArenaRestoreCommit.ShouldDropRetryState(succeeded))
@@ -138,6 +168,9 @@ internal static class ArenaSkills
         MasterySnapshot.Clear();
         StickyEliteBuffs.Clear();
         _nextMasteryTickAt = 0f;
+        _boostedSkills = null;
+        _restoreWarned = false;
+        Plugin.ModLogger.LogDebug("Arena: skills restored to their profile values.");
     }
 
     /// <summary>
@@ -204,19 +237,25 @@ internal static class ArenaSkills
     /// </summary>
     public static void Tick()
     {
-        if (BuffSnapshot.Count == 0 || !Settings.MaxSkills.Value || Time.time < _nextMasteryTickAt)
+        if (!HasSnapshot || Time.realtimeSinceStartup < _nextMasteryTickAt)
             return;
 
-        _nextMasteryTickAt = Time.time + MasteryTickSeconds;
+        _nextMasteryTickAt = Time.realtimeSinceStartup + MasteryTickSeconds;
 
         try
         {
-            var skills = Comfort.Common.Singleton<GameWorld>.Instantiated
-                ? Comfort.Common.Singleton<GameWorld>.Instance.MainPlayer?.Skills
-                : null;
-
-            if (skills != null)
-                ApplyMastering(skills);
+            var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance : null;
+            if (!_boostActive || !Settings.MaxSkills.Value || !IsActiveWorld(world))
+            {
+                Restore();
+                return;
+            }
+            // A respawn may temporarily have no local body. Do not end the boost
+            // for that gap, but never touch a different profile's skill manager.
+            var player = world.MainPlayer;
+            if (player == null || !player.IsYourPlayer || player.IsAI) return;
+            if (!ReferenceEquals(player.Skills, _boostedSkills)) { Restore(); return; }
+            ApplyMastering(_boostedSkills);
         }
         catch (Exception)
         {

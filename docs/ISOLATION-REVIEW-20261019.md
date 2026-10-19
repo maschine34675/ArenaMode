@@ -5,6 +5,10 @@ Quelle gelesen, nicht nur Kommentare. Client-Harmony lässt sich außerhalb des 
 nicht vollständig zertifizieren. GPU-2 war erreichbar, EFT lief dort nicht; ein
 Kaltstart wurde nicht gemacht, Begründung unten.
 
+Nachprüfung desselben Tages: Der unten beschriebene Skill-Fehlerpfad wurde
+behoben; Fast Deploy und die Aussage zu nativen Autosaves wurden korrigiert.
+Die ursprüngliche Quellprüfung bleibt von einer nativen Fehlerfall-Abnahme getrennt.
+
 ## Ergebnis
 
 Ein bestätigter gewöhnlicher Raid bleibt für den Spieler vanilla. Die Patches
@@ -52,7 +56,7 @@ taucht er dadurch nicht auf.
 | Bewegung, Luft, Bunnyhop, Handling | `ArenaMovementScope` und die Ticks verlangen `IsActive` | Raid-lokal |
 | Schaden, Friendly Fire, Pickups, Feuer, Akimbo | `IsActive`, exakte Raid oder bestätigter Wurf | Raid-lokal |
 | GC-Schwelle, Bot-Ladeboost, Licht, Laser, Tracer, Alarm, HUD | Tick kehrt ohne `IsActive` zurück | Raid-lokal |
-| Fast Deploy | Jeder Countdown stellt zuerst den alten Wert her; Schreiben nur bei Arm und eingeschaltetem Schalter | 2 s nur in der Arena-Vorbereitung |
+| Fast Deploy | Jeder Countdown stellt zuerst den alten Wert her; Schreiben nur bei Arm und eingeschaltetem Schalter | 1 s nur in der Arena-Vorbereitung |
 | Vaulting-Globals | `MovementRuntime` stellt zurück, sobald weder aktiv noch armed | Nur solange die Arena die Reichweite will |
 | Post-Raid-Seiten | Gewöhnliches Ergebnis bleibt nativ | Nur Darstellung der exakt beendeten Arena-Raid |
 
@@ -107,20 +111,37 @@ Keines davon ist ein bestätigter Leak im normalen Raid. Jedes braucht einen
 Fehler oder einen zweiten gleichzeitigen Kontext.
 
 **Snapshot nur im Prozess.** `ProfileSnapshotService` hält den Klon in einem
-Dictionary. Ein Server-Neustart mitten in der Raid verliert ihn. Arena speichert
-während der Raid nicht, die Platte sollte also noch der Stand vor dem Arm sein.
-Danach gibt es nichts mehr, woraus ein verschmutztes Speicherprofil repariert
-werden könnte. Das ist die größte strukturelle Lücke, kein Schreibfehler im
-End-Patch.
+Dictionary. Ein Server-Neustart mitten in der Raid verliert ihn. Arena selbst
+speichert während der Raid nicht; SPT hat aber einen periodischen Autosave des
+Serverprofils. Native Start-Metadaten (etwa Skill-Sitzungswerte) und gewöhnliche
+Hintergrundänderungen können deshalb auf Platte gelangen. Arena-Kits,
+Elite-Mastery und Raid-HP werden zunächst nur am Clientprofil verändert; der
+native End-Upload ist geschützt. Ein Autosave-Leak dieser Arena-Werte ist nicht
+nachgewiesen. Nach einem Serverneustart gibt es dennoch keinen dauerhaften
+Arena-Snapshot für eine exakte Rücksetzung. Ein persistentes Journal wäre eine
+eigene Architekturänderung, kein notwendiger enger Fix dieses Befunds.
 
-**Mastery, wenn Restore scheitert.** `ArenaSkills.Tick` hebt neue
-Mastery-Einträge an, solange der Snapshot noch da ist, auch ohne `IsActive`.
-Im Normalfall ist der Snapshot leer. Scheitert das Zurückschreiben, bleiben
-Elite-Mastery und die Sticky-Buffs im Client-Objekt, bis der nächste
-Raid-Start oder der Unload es erneut versucht. Buffs wandern nicht in die
-Speicherdatei. Mastery schon, falls danach ein gewöhnliches Local-End den
-Client-Stand verbucht, bevor ein Restore gelungen ist. Der glückliche Pfad
-stellt am Raid-Ende und noch einmal vor dem nächsten Raid zurück.
+**Mastery, wenn Restore scheitert — behoben am 2026-10-19.** Der ursprüngliche
+Tick konnte mit behaltenem Snapshot neue Mastery außerhalb von Arena anheben.
+Außerdem konnte Apply nach einem fehlgeschlagenen Restore neue Baselines über
+die ursprünglichen Werte schreiben. Jetzt verlangen neue Boosts die exakte
+aktive Arena-Welt und denselben SkillManager. Ein vorübergehend fehlender Körper
+beim Respawn beendet den Boost nicht; ein fremder SkillManager wird nie erhöht.
+Unvollständige Rücksetzung deaktiviert den Boost und verhindert erneutes Apply.
+Tick versucht die offenen Werte im Abstand von drei Echtzeitsekunden erneut.
+
+Serializable Mastery wird zuerst restauriert. Ein werfender nativer
+Skill-Buff-Listener verhindert keine anderen Rücksetzungen. Erfolgreiche
+Mastery-/Skill-Einträge verlassen die Retry-Liste sofort, damit spätere reguläre
+XP oder Buffs nicht bei jedem Retry zurückgerollt werden. Sticky-Baselines bleiben
+bis nach dem letzten noch offenen Skill-Recompute erhalten. Ein anhaltender
+Fehler bleibt als einmalige Warnung sichtbar; die Wiederholung läuft unabhängig
+von Logging. `tools/SkillIsolationChecks/Verify.ps1` prüft diese Fehlerpfade mit
+der echten ArenaSkills-Quelle und externen, absichtlich werfenden Spielgrenzen.
+Ergebnis: 27 Assertions und drei kompilierte negative Kontrollen bestanden;
+die zehn vorhandenen `IsolationProtectionTests` bleiben grün. Unabhängiges
+Quellreview ohne P0–P2. Das ist Fehlerpfad-Abdeckung außerhalb von Unity,
+keine künstlich ausgelöste native Skill-Listener-Störung im Spiel.
 
 **Arm, den der Server danach ablehnt.** Bot-Cap und Bot-Profil-Preload greifen
 im Ladebildschirm über `ArmedForNextRaid` und die passende Karte, weil
@@ -163,7 +184,7 @@ und beim Server-Kill. Dafür ist eine heile Kontroll-Raid kein Nachweis. Deshalb
 wurde EFT nicht gestartet.
 
 Eine native Kontrolle bleibt sinnvoll, sobald ein gewöhnlicher Raid ohnehin
-läuft: Countdown nicht auf 2 s, keine Elite-Skills, keine Arena-Kampfzeile im
+läuft: Countdown nicht auf 1 s, keine Elite-Skills, keine Arena-Kampfzeile im
 BepInEx-Log, Inventar nach geschütztem Ausgang unverändert.
 
 ## Grenze dieses Reviews
