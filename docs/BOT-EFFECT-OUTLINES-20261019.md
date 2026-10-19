@@ -71,3 +71,16 @@ The Arena shader, editor source and exact bundle/source hashes are tracked in
 No deployment/GPU operation was performed by the implementation leaf. Native
 visual, cover and cleanup evidence belongs to the separate GPU report and is
 not implied by these compile/ownership checks.
+
+## Independent integration verification
+
+Parent repeated the shader build and all tracked source/bundle hashes matched.
+The exact candidate built from revision 612e494 (implementation f23b25b, scope 62cbc2d)
+passed the paired client/BigBrainCompat Release builds without deployment targets.
+Client has four existing nullable-context warnings; companion has none.
+Parent also reran 73 contour assertions/nine fault controls, 225 scope/five fault controls,
+410 powerup assertions/45 native contracts/17 fault controls, 382 TDM runtime assertions
+and the complete TDM regression, 626 GiveUp checks, and 1232 unit tests (two existing skips).
+Evidence logs are under artifacts/bot-effects-20261019/parent.
+The paired DLLs were deliberately deployed for the separate [GPU acceptance run](GPU-BOT-EFFECTS-20261019.md);
+server, Redeploy.Core and Killcam binaries were unchanged.
