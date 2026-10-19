@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)
 - [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
 - [Depth-occluded bot effect contours](BOT-EFFECT-OUTLINES-20261019.md)
 - [GPU2 bot contours, cover, DLSS and spawn-shield controls](GPU-BOT-EFFECTS-20261019.md)
