@@ -19,13 +19,18 @@ static class Program {
         public Player Player=new(); public LocalGame Game; public GameWorld World;
         public MovementContext Context=>Player.MovementContext;
         public Player.MedsController Controller=new();
-        public Fixture() {
+        public Fixture(bool splint=false) {
             ArenaSession.IsActive=Settings.MovementEnabled.Value=true;
             ArenaRespawnDriver.StandDown=ArenaRespawnDriver.IsRespawnInProgress=ArenaSpectatorService.IsActive=ArenaInputBlocker.Blocked=false;
             Game=new(){LocalPlayer=Player}; World=new(){MainPlayer=Player};
             ArenaSession.Game=Singleton<AbstractGame>.Instance=Game; ArenaSession.World=Singleton<GameWorld>.Instance=World;
             Player.HandsController=Controller;
             Player.HealthController.Effect=new(){MedItem=Controller.Item,HealthController=Player.HealthController};
+            if (splint) {
+                Controller.Item.HealthEffectsComponent.Surgical=false;
+                Controller.Item.HealthEffectsComponent.Fracture=true;
+                Player.HealthController.Effect.BodyPart=EBodyPart.LeftLeg;
+            }
         }
         public bool Allows()=>ArenaSurgicalWalk.CanWalk(Context);
         public Vector3 Motion() { var v=new Vector3(3,7,4); ArenaSurgicalWalk.LimitMotion(Context,ref v,0.1f); return v; }
@@ -38,6 +43,20 @@ static class Program {
         positive.Context.CurrentState=new MovePlayerState(); Check(positive.Allows(),"surgical move remains allowed");
         positive.Player.HealthController.Effect.State=EEffectState.Added; Check(positive.Allows(),"initial surgery delay allows walking");
         Check(positive.Context.Flags==(EPhysicalCondition.HealingLegs|EPhysicalCondition.UsingMeds),"native flags preserved");
+        foreach (var leg in new[]{EBodyPart.LeftLeg,EBodyPart.RightLeg}) {
+            var splint=new Fixture(true); splint.Player.HealthController.Effect.BodyPart=leg;
+            Check(splint.Allows(),"leg splint idle allows walking");
+            splint.Context.CurrentState=new MovePlayerState(); Check(splint.Allows(),"leg splint move allows walking");
+            var v=splint.Motion(); Check(Math.Abs(v.x-0.06f)<1e-6 && Math.Abs(v.z-0.08f)<1e-6 && v.y==7,"leg splint capped at 1 m/s with gravity intact");
+        }
+        foreach(var part in new[]{EBodyPart.Common,EBodyPart.Head,EBodyPart.Chest,EBodyPart.Stomach,EBodyPart.LeftArm,EBodyPart.RightArm}) {
+            var splint=new Fixture(true); splint.Player.HealthController.Effect.BodyPart=part;
+            Check(!splint.Allows(),"reject non-leg splint exception");
+            splint.Context.Flags=EPhysicalCondition.UsingMeds;
+            Check(splint.Allows(),"native non-leg medical walking preserved");
+            var v=splint.Motion(); Check(v.x==3 && v.z==4,"native non-leg treatment has no added cap");
+        }
+        foreach(bool splint in new[]{false,true}) {
         foreach(var test in new (string,Action<Fixture>)[] {
             ("ordinary raid",f=>ArenaSession.IsActive=false), ("master off",f=>Settings.MovementEnabled.Value=false),
             ("bot",f=>f.Player.IsAI=true), ("remote",f=>f.Player.IsYourPlayer=false), ("dead",f=>f.Player.HealthController.IsAlive=false),
@@ -46,7 +65,7 @@ static class Program {
             ("stopping",f=>f.Game.Status=GameStatus.Stopping), ("respawning",f=>ArenaRespawnDriver.IsRespawnInProgress=true),
             ("stand down",f=>ArenaRespawnDriver.StandDown=true), ("spectating",f=>ArenaSpectatorService.IsActive=true),
             ("hands changed",f=>f.Player.HandsController=new Player.MedsController()),
-            ("not surgical",f=>f.Controller.Item.HealthEffectsComponent.Surgical=false),
+            ("not surgical or splint",f=>{f.Controller.Item.HealthEffectsComponent.Surgical=false;f.Controller.Item.HealthEffectsComponent.Fracture=false;}),
             ("wrong effect owner",f=>f.Player.HealthController.Effect.HealthController=new()),
             ("wrong effect item",f=>f.Player.HealthController.Effect.MedItem=new()),
             ("no effect",f=>f.Player.HealthController.Effect=null),
@@ -54,7 +73,7 @@ static class Program {
             ("cancelled",f=>f.Player.HealthController.Effect.State=EEffectState.Removed),
             ("using flag gone",f=>f.Context.Flags=EPhysicalCondition.HealingLegs)
         }) {
-            var f=new Fixture(); test.Item2(f); Check(!f.Allows(),"reject "+test.Item1);
+            var f=new Fixture(splint); test.Item2(f); Check(!f.Allows(),"reject "+test.Item1);
             var v=f.Motion(); Check(v.x==3 && v.y==7 && v.z==4,"no retained cap: "+test.Item1);
             f.Context.Flags=0; Check(f.Allows(),"native true preserved: "+test.Item1);
         }
@@ -64,7 +83,8 @@ static class Program {
             ("mounted",f=>f.Context.IsInMountedState=true), ("vaulting",f=>f.Context.Vaulting=true),
             ("state override",f=>f.Context.OverridenState=new()), ("controls override",f=>f.Context.OverridenControlsState=new()),
             ("other state",f=>f.Context.CurrentState=new MovementState()), ("derived move",f=>f.Context.CurrentState=new DerivedMove())
-        }) { var f=new Fixture(); test.Item2(f); Check(!f.Allows(),"reject "+test.Item1); }
+        }) { var f=new Fixture(splint); test.Item2(f); Check(!f.Allows(),"reject "+test.Item1); }
+        }
         var cap=new Fixture(); var limited=cap.Motion();
         Check(Math.Abs(limited.x-0.06f)<1e-6 && Math.Abs(limited.z-0.08f)<1e-6 && limited.y==7,"cap actual planar motion and preserve gravity");
         foreach(float dt in new[]{0f,-1f,float.NaN,float.PositiveInfinity}) {

@@ -1,8 +1,13 @@
-# Langsames Gehen während chirurgischer Behandlung
+# Langsames Gehen während chirurgischer Behandlung und Beinschienen
 
 2026-10-03: CMS und Surv12 erlauben dem lokalen Arena-Spieler langsames Gehen
 mit höchstens 1 m/s. Der Movement-Master gilt weiterhin. Keine neue Einstellung,
 kein verändertes Item-Template, keine Botänderung und keine gewöhnlichen Raids.
+
+2026-10-19: Dieselbe Ausnahme gilt auch für die Behandlung eines gebrochenen
+linken oder rechten Beins (normale/Alu-Schiene oder ein anderes Medikament mit
+Frakturwirkung). Der exakte laufende MedEffect muss das Bein und das gehaltene
+Medikament benennen. Armbehandlung und sonstige Medikamente bleiben nativ.
 
 ## Native Grundlage und Umfang
 
@@ -21,11 +26,13 @@ gegebenenfalls inlineten kleinen Getter.
 
 Die Ausnahme prüft den bestehenden exakten ArenaMovementScope samt Input-Sperren,
 aktuellen lebenden Körper/Spielwelt/Raid, aktuelle Meds-Handoperation und deren
-chirurgisches Item. Ein existierender Added-/Started-MedEffect muss dasselbe Item
+chirurgisches Item oder eine Frakturbehandlung am Bein. Ein existierender Added-/Started-MedEffect muss dasselbe Item
 und denselben HealthController referenzieren. Nur echte Idle-/Move-Zustände ohne
 Prone/Mount/Vaulting oder Control-Overrides sind zugelassen. Die native
-ObstacleCollisionFacade entscheidet weiterhin über Hindernisse. Normale
-Frakturbehandlung wird nicht erweitert.
+ObstacleCollisionFacade entscheidet weiterhin über Hindernisse. EFT setzt
+HealingLegs auch für Frakturmittel am gebrochenen Bein (`MedEffect.IsNoMove`).
+Dieses Flag bleibt bis zum Operationsende maßgeblich, auch wenn der eigentliche
+Bruch schon vor Ende der Animation geheilt ist.
 
 Die physische XZ-Bewegung wird nach Arena-Multiplikatoren und Slide-Zugabe begrenzt,
 auch bei Faktoren 1. Y bleibt für Schwerkraft und Bodenprojektion unangetastet.
@@ -44,7 +51,7 @@ Flags selbst; bestehende Arena-MedicalUseSpeed bleibt unverändert.
 MovementScope-Quellen gegen externe Spielgrenzen. Geprüft werden Identitäten,
 MedEffect-Zustände, normale Medikamente, Kollision, Input/State-Ausschlüsse,
 Cap/Schwerkraft, ausführbares IL-Rewrite und seine Integration nach der
-Slide-Zugabe. Sechs kompilierte Fehlerkontrollen sichern die wesentlichen
+Slide-Zugabe. Sieben kompilierte Fehlerkontrollen sichern die wesentlichen
 Abgrenzungen. Der bestehende Medical-Harness prüft separat die Zeitbeschleunigung.
 
 Unabhängiges Quellreview durch `surgical_movement_research`: keine offenen P0–P2.
@@ -56,3 +63,8 @@ Native Factory-Abnahme am 2026-10-03: langsames Surv12-Gehen mit gemessenen
 1 m/s, Master-Off-Vergleich, erfolgreiche Surv12-/CMS-Behandlung und nativer
 manueller Abbruch bestätigt. Nach Abschluss keine Begrenzung mehr. Siehe
 `GPU-SURGICAL-WALK-RESULTS-20261003.md` für Belege und explizite Testgrenzen.
+
+Nachprüfung am 2026-10-19: 185 Assertions und sieben kompilierte negative
+Kontrollen bestanden, unabhängiges Quellreview ohne P0–P2. Release-Client und
+Companion bauen erfolgreich. Die frühere native Abnahme betrifft weiterhin
+CMS/Surv12; die neue Frakturbehandlung wurde noch nicht nativ nachgetestet.

@@ -15,7 +15,8 @@ namespace ArenaMode.Movement;
 
 /// <summary>
 /// Extend only the native walking predicates. HealingLegs/UsingMeds still belong
-/// to EFT and continue to block sprint, jump, prone and vaulting during surgery.
+/// to EFT and continue to block sprint, jump, prone and vaulting during surgery
+/// or leg fracture treatment.
 /// No speed-limit slot, medical effect or persistent player state is rewritten.
 /// </summary>
 internal static class ArenaSurgicalWalk
@@ -31,7 +32,7 @@ internal static class ArenaSurgicalWalk
             new ArenaSurgicalWalkIdleWalkPatch().Enable();
             new ArenaSurgicalWalkMovingWalkPatch().Enable();
             _enabled = _idleBound && _moveBound;
-            if (_enabled) Plugin.ModLogger.LogDebug("Arena surgical walking hooks ready (maximum 1 m/s).");
+            if (_enabled) Plugin.ModLogger.LogDebug("Arena surgery/splint walking hooks ready (maximum 1 m/s).");
         }
         catch (Exception exception) { Warn(exception.GetBaseException().Message); }
     }
@@ -43,21 +44,26 @@ internal static class ArenaSurgicalWalk
         Plugin.ModLogger.LogWarning("Arena surgical walking kept native restrictions: " + reason);
     }
 
-    private static bool IsSurgery(MovementContext context, bool requireInput)
+    private static bool IsStationaryTreatment(MovementContext context, bool requireInput)
     {
         if (!ArenaSession.IsActive || !_enabled
             || !ArenaMovementScope.TryGetPlayer(context, out var player, requireInput)) return false;
         if (!context.PhysicalConditionIs(EPhysicalCondition.HealingLegs)
             || !context.PhysicalConditionIs(EPhysicalCondition.UsingMeds)
             || player.HandsController is not Player.MedsController controller
-            || controller.GetItem() is not Meds item
-            || item.HealthEffectsComponent?.AffectsAny(EDamageEffectType.DestroyedPart) != true) return false;
+            || controller.GetItem() is not Meds item) return false;
 
         var health = player.ActiveHealthController;
         var effect = health?.FindExistingEffect<ActiveHealthController.MedEffect>();
-        return effect != null && effect.Existing
-            && ReferenceEquals(effect.HealthController, health)
-            && ReferenceEquals(effect.MedItem, item);
+        if (effect == null || !effect.Existing
+            || !ReferenceEquals(effect.HealthController, health)
+            || !ReferenceEquals(effect.MedItem, item)) return false;
+
+        // HealingLegs is set by EFT when this operation starts. Keep permitting
+        // its slow walk until the animation ends, even after the fracture heals.
+        return item.HealthEffectsComponent?.AffectsAny(EDamageEffectType.DestroyedPart) == true
+            || ((effect.BodyPart == EBodyPart.LeftLeg || effect.BodyPart == EBodyPart.RightLeg)
+                && item.HealthEffectsComponent?.AffectsAny(EDamageEffectType.Fracture) == true);
     }
 
     internal static bool CanWalk(MovementContext context)
@@ -66,7 +72,7 @@ internal static class ArenaSurgicalWalk
         if (original || !ArenaSession.IsActive) return original;
         try
         {
-            if (!IsSurgery(context, requireInput: true)
+            if (!IsStationaryTreatment(context, requireInput: true)
                 || context.OverridenState != null || context.OverridenControlsState != null
                 || context.IsInPronePose || context.IsInMountedState || context.PlayerAnimatorGetIsVaulting()) return original;
             var state = context.CurrentState;
@@ -85,7 +91,7 @@ internal static class ArenaSurgicalWalk
         if (!ArenaSession.IsActive) return;
         try
         {
-            if (IsSurgery(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);
+            if (IsStationaryTreatment(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);
         }
         catch (Exception exception) { Warn(exception.GetBaseException().Message); }
     }

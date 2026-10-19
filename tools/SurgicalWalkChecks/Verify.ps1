@@ -14,12 +14,13 @@ $baseline=Run-Case 'Release'
 if($baseline.Code -ne 0 -or !$baseline.Output.Contains('SURGICAL_WALK_CHECKS_PASSED')){throw $baseline.Output}
 Write-Output $baseline.Output.Trim()
 $faults=@(
-    @{Name='NativeTrue';From='bool original = context.CanWalk;';To='bool original = false;';Failure='native true preserved: ordinary raid'},
-    @{Name='ForeignEffect';From='&& ReferenceEquals(effect.MedItem, item)';To='';Failure='reject hands changed'},
-    @{Name='OrdinaryMedicine';From='|| item.HealthEffectsComponent?.AffectsAny(EDamageEffectType.DestroyedPart) != true';To='';Failure='reject not surgical'},
+    @{Name='NativeTrue';From='bool original = context.CanWalk;';To='bool original = false;';Failure='native non-leg medical walking preserved'},
+    @{Name='ForeignEffect';From='|| !ReferenceEquals(effect.MedItem, item)';To='';Failure='reject hands changed'},
+    @{Name='OrdinaryMedicine';From='return item.HealthEffectsComponent?.AffectsAny(EDamageEffectType.DestroyedPart) == true';To='return true';Failure='reject non-leg splint exception'},
+    @{Name='NonLegSplint';From='(effect.BodyPart == EBodyPart.LeftLeg || effect.BodyPart == EBodyPart.RightLeg)';To='true';Failure='reject non-leg splint exception'},
     @{Name='Collision';From='return context.ObstacleCollisionFacade?.CanMove() == true;';To='return true;';Failure='reject obstacle'},
-    @{Name='NoCap';From='if (IsSurgery(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);';To='';Failure='cap actual planar motion and preserve gravity'},
-    @{Name='LeakedCap';From='if (IsSurgery(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);';To='ClampHorizontal(ref motion, deltaTime);';Failure='no retained cap: master off'}
+    @{Name='NoCap';From='if (IsStationaryTreatment(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);';To='';Failure='leg splint capped at 1 m/s with gravity intact'},
+    @{Name='LeakedCap';From='if (IsStationaryTreatment(context, requireInput: false)) ClampHorizontal(ref motion, deltaTime);';To='ClampHorizontal(ref motion, deltaTime);';Failure='native non-leg treatment has no added cap'}
 )
 foreach($fault in $faults) {
     if(!$source.Contains($fault.From)){throw "Missing mutation anchor $($fault.Name)"}
@@ -32,4 +33,4 @@ foreach($fault in $faults) {
     Write-Output "Rejected surgical fault: $($fault.Name)"
 }
 if([IO.File]::ReadAllText($sourcePath) -cne $source){throw 'Production source changed during checks'}
-Write-Output "SURGICAL_WALK_REGRESSION_VERIFIED (6 negative controls; evidence $evidence)"
+Write-Output "SURGICAL_WALK_REGRESSION_VERIFIED ($($faults.Count) negative controls; evidence $evidence)"

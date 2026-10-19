@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
+public enum EBodyPart { Common, Head, Chest, Stomach, LeftArm, RightArm, LeftLeg, RightLeg }
+
 namespace ArenaMode.Config {
     public sealed class Setting<T>(T value) { public T Value = value; }
     public static class Settings { public static Setting<bool> MovementEnabled = new(true); }
@@ -59,8 +61,11 @@ namespace EFT {
     }
 }
 namespace EFT.InventoryLogic {
-    public enum EDamageEffectType { DestroyedPart }
-    public class HealthEffectsComponent { public bool Surgical=true; public bool AffectsAny(EDamageEffectType kind)=>Surgical; }
+    public enum EDamageEffectType { DestroyedPart, Fracture }
+    public class HealthEffectsComponent {
+        public bool Surgical=true, Fracture;
+        public bool AffectsAny(EDamageEffectType kind)=>kind==EDamageEffectType.DestroyedPart ? Surgical : Fracture;
+    }
     public class Meds { public HealthEffectsComponent HealthEffectsComponent=new(); }
 }
 namespace EFT.HealthSystem {
@@ -70,6 +75,7 @@ namespace EFT.HealthSystem {
         public MedEffect Effect;
         public T FindExistingEffect<T>() where T:class => Effect?.Existing == true ? Effect as T : null;
         public class MedEffect {
+            public EBodyPart BodyPart;
             public EEffectState State=EEffectState.Started;
             public bool Existing=>State==EEffectState.Added || State==EEffectState.Started;
             public object MedItem;

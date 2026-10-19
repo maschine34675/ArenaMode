@@ -205,7 +205,7 @@ speed have separate controls.
 | Slide | Crouch during a sprint to slide, with native collision retained. |
 | Falling/landing | Optional no fall damage; landing slowdown duration defaults to half its native duration. |
 | Draw/holster/reload | Separate animation-speed controls, each defaulting to 1.5×; alternate UIFixes reload handling is accounted for. Underbarrel-launcher reloads and malfunction repair retain native timing. |
-| **Walking during surgery** | **CMS and Surv12 can be used while walking at up to 1 m/s.** Follows FAST MOVEMENT; sprinting, jumping, going prone and vaulting remain blocked during surgery. |
+| **Walking during surgery/splinting** | **CMS, Surv12 and leg-fracture treatment allow walking at up to 1 m/s.** Follows FAST MOVEMENT; sprinting, jumping, going prone and vaulting remain blocked during treatment. |
 
 Movement changes follow the current local player across respawns. Disabling the
 master gates its bonuses without overwriting saved individual multipliers;
@@ -714,7 +714,7 @@ share one position and are shown in their respective modes.
 
 | Mutator | Scope / prerequisite |
 |---|---|
-| Fast Movement | Master for player movement bonuses and abilities, including surgical walking. |
+| Fast Movement | Master for player movement bonuses and abilities, including surgery/splint walking. |
 | Double Jump | Fast Movement must be on. |
 | Bunnyhop | Fast Movement must be on. |
 | Air Control | Fast Movement must be on. |
