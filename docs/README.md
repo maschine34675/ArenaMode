@@ -6,6 +6,10 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Native model repair: integration, ownership and verification](MODEL-REPAIR-INTEGRATION-20261019.md)
+- [Cold PMC/PFT model-fault controls and exact restoration](GPU-MODEL-CONTROLS-20261019.md)
+- [GPU2 model repair: actual replays, PFT rebind and preserved data](GPU-MODEL-FIXES-20261019.md)
+
 - [Model preview ownership and PitFireTeam lifecycle investigation](MODEL-PREVIEW-INVESTIGATION-20261019.md)
 - [Native animation fault attribution and diagnostic limits](MODEL-ANIMATION-INVESTIGATION-20261019.md)
 - [Model asset, pooled equipment and Killcam clone investigation](MODEL-POOL-INVESTIGATION-20261019.md)

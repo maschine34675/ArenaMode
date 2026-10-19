@@ -235,3 +235,70 @@ Priority native comparisons for the integrating agent:
 
 Parent must independently verify leaf gates and decide the scoped diagnostic
 repair/native comparison. This report does not claim any animation failure fixed.
+
+## Candidate follow-up: genuine utility timeouts, 2026-10-19
+
+Read-only inspection of GPU2's mirrored `BepInEx/LogOutput.log` after diagnostic
+repair `61a8c9a` found six admitted Deathmatch CheckMagazine contexts: AUG
+10:37:02.106 / 10:40:06.084, MP155 10:37:03.739 / 10:37:44.407, and MP5K
+10:37:39.213 / 10:39:31.447. All three exact AI bodies have empty raw body IDs
+but valid matching owner IDs, `lookupSource=owner`, current/alive body `same`,
+and registered membership true. All have current hands/operation/item/animator
+ownership, a non-disposed controller, two consumers including that controller,
+EmitOnDemand, zero queued events, 39 or 44 bound behaviours, and an initialized,
+enabled Unity animator at speed 1, Auto/Update, CullUpdateTransforms. This
+confirms real native timeouts on live registered bots, not the old identity error.
+
+Five layer-1 snapshots have hash `-438486252` with normalized times 58.81836,
+94.35585, 248.9193, 10.05587 and 65.39334. The same MP155 animator instead has
+`1120526655/0.175001` at 10:37:44.407. These hashes have not been resolved to
+asset state names. Their difference rules out treating every snapshot as the
+same frozen state; it does not establish progress during an individual timeout.
+Four contexts occur inside recorded replay intervals, two outside. Wall-clock
+overlap alone does not attribute the fault to replay, culling or movement.
+
+The exact native completion route is `StartUtilityOperation` (hash 1134400241)
+through `AnimationControllerEventsTable.FireStartUtilityOperation` (line 404),
+`FirearmController.IEventsConsumerOnStartUtilityOperation` (`Player.cs:13213`)
+and `UtilityOperation.OnUtilityOperationStartEvent` (`Player.cs:11397`), which
+changes Executing to Ready. The timeout proves that change was not reached for
+the current operation before its threshold. An empty emitter queue cannot
+distinguish an absent event from a drained/condition-rejected event:
+`AnimationEventsEmitter.EmitEvents` dequeues before checking conditions (line
+205), while `AnimationEventsContainer.CheckEvents` also has its own consumer
+cache and time-window checks (line 164). Emitter/animator association and consumer
+count do not prove that the relevant asset behaviour delivered that event.
+
+No new direct own-code suppression was found. Draw/reload multipliers require
+`ArenaMovementScope.IsLocal`, which rejects AI; bot movement/agility alter
+locomotion inputs, not arms event dispatch. Core's local replacement does not
+change these bots' native Auto update mode. Killcam hides live renderers, not
+their animator or operation; its visibility interaction remains unproven.
+
+One specific indirect hypothesis remains: `ArenaBotTempo.SearchPrefix`
+(`ArenaMode.Client/Bots/ArenaBotTempo.cs:188`) may promote a SAIN search sprint.
+Its `CanAct` (line 147) excludes reload/medicine and several other actions but
+does not explicitly exclude UtilityOperation; it still requires SAIN
+`CurrentSelfDecision=None`, so admission during a particular check is unproven.
+Native `Idling.CheckAmmo`
+(`Player.cs:5731`) likewise has no sprint exclusion, and native
+`SprintStateChangedEvent` (`Player.cs:12960`) writes the weapon Sprint parameter
+through `FirearmsAnimator.SetSprint`. This is a possible route to a different
+animator transition/condition, **not evidence that it occurred or suppressed an
+event**. The candidate loaded this adapter and later logged 62 promoted search
+sprint inputs, without linking any one input to a timeout's bot or operation.
+
+The missing causal evidence is one continuous record for the **same exact bot,
+controller and UtilityOperation instance**: Utility Start, an Arena-promoted
+search sprint, the ensuing native Sprint-parameter change, and the corresponding
+state/event outcome inside that operation's timeout interval. Native sprint
+alone, a later aggregate counter or an animator snapshot cannot supply that
+link. If that temporal link exists, the matching behaviour's event data and
+conditions must still show why StartUtilityOperation did not arrive. The native
+bounded `AnimationEventsSequenceData.AnimationEventsDebugQueue` can distinguish
+recent passed/rejected events, but has no timestamps and by itself cannot link
+an entry to this operation.
+
+No additional mutator A/B series is required for the current Puppet-fix native
+acceptance without such a causal indication. This follow-up changed only this
+report: no production change, build, deployment, GPU action or forced workaround.

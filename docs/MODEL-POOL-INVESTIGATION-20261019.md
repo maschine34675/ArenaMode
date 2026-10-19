@@ -257,3 +257,43 @@ Manual source gates ready for parent verification:
 
 Only this report is owned by the leaf. The parent records its independent gate
 decision in the shared orchestration ledger.
+
+## Candidate follow-up: native creation and price lookup
+
+The final candidate's merged stream contains ten native **Error** records at
+10:47:27.716: an AnimationEventsEmitter consumer is already set. Their timing
+is inside Core replacement pipeline #6, after replay end at .678 and equipment
+swap at .712, before native creation completed by .718. The fifth puppet itself
+was constructed at 10:46:33.588. Its inspected component list contained no
+Animator, emitter or native script; the replacement visual builder cannot itself
+subscribe native animation behaviours.
+
+`AnimationEventsContainer.SetEventsConsumer` (native source line 124) logs for
+any non-null previous consumer, including the **same instance**, then replaces
+it. `AnimationEventsEmitter.SubscribeToAnimatorEvent` sets the consumer before
+its HashSet insertion. Thus these type-only texts neither prove competing live
+emitters nor identify a missed cleanup. WeaponPrefab creates an emitter during
+Parent and disposes it in ReturnToPool (lines 371, 443–452); native streaming
+weapon components can also subscribe (`EFT/Firearms.cs:234`).
+
+One additional native candidate is `EFT/PlayerAnimatorEventsDispatcher.Dispose`
+(lines 29–32): it removes the callback but does not dispose/unbind its emitter.
+MovementContext.Dispose reaches it through PlayerAnimator.Dispose. Persisting
+containers on a reused native body could therefore matter, but this observation
+has no stack, body/animator/container identity or old/new reference equality.
+Core calls the ordinary native `game.vmethod_3` creation path. No violation of
+Core's own cleanup contract is demonstrated; the warning remains unresolved,
+not suppressed or dismissed merely because creation/respawn succeeded.
+
+Separately, 72 native Error records concern a missing handbook price node:
+seven private Arena Molotov templates, 21 Default Inventory, 21 Boss container,
+21 Pockets 1x4 and two native Dogtag. `EFT.HandBook/Handbook.GetBasePrice`
+(lines 718–725) emits that message and returns zero; the caller is not captured.
+Molotov registration deliberately uses `AddToHandbook=false` to preserve its
+private item contract. Those seven exposures track supply timing, but this is
+price lookup rather than model/animation failure. No handbook registration,
+global null suppression or speculative pool modification was added.
+
+These follow-ups were read-only source/log reviews. The complete candidate
+acceptance and preserved original streams are described in
+[GPU-MODEL-FIXES-20261019.md](GPU-MODEL-FIXES-20261019.md).

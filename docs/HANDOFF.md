@@ -1,11 +1,30 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-18. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-19. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Native model investigation and repair (2026-10-19):** Arena `61a8c9a`
+  corrects misleading diagnostic body ownership and adds bounded fault-only
+  utility/animator context. Killcam `78e3fa3` constructs replay bodies from visual
+  components only, with owned bones/LODs; no native script cloning or global
+  Unity logger muting. Core/standalone Redeploy/server were unchanged. The
+  reviewed client/companion and Killcam were deliberately deployed, then verified
+  in fresh GPU2 process `b734328f`: five actual DM deaths/replays/respawns,
+  inspected script-free components, visible dressed puppet/weapon, cleanup and
+  post-respawn shots; two PFT 5v5 rounds with follower rebind and an actual
+  second-round death replay. This is bounded coverage, not all equipment/LOD
+  combinations. Genuine CheckMagazine faults now identify live registered bots;
+  no own gameplay cause is established and no timeout/event workaround was added.
+  Separate cold ordinary-PMC/PFT controls reproduce the preview NRE/undisposed
+  bodies without our three clients; native/PFT preview ownership is documented,
+  not globally patched. See [integration and remaining limits](MODEL-REPAIR-INTEGRATION-20261019.md),
+  [candidate and restoration evidence](GPU-MODEL-FIXES-20261019.md), and
+  [cold controls](GPU-MODEL-CONTROLS-20261019.md). Later documentation commits do
+  not change the recorded native-tested binaries.
 
 - **Factory pickup anchor (2026-10-18, `321644a`, GPU2 checked):** full built-in Factory day/night now
   derive placement/rotation authority from a freshly validated connected majority
