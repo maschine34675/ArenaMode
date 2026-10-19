@@ -58,7 +58,7 @@ public static class ScoreRules
         {
             case 2: return "DOUBLE KILL";
             case 3: return "TRIPLE KILL";
-            case 4: return "MULTI KILL";
+            case 4: return "ULTRA KILL";
             default: return chain >= 5 ? "MONSTER KILL" : null;
         }
     }

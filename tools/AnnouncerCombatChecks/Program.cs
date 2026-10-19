@@ -41,6 +41,13 @@ internal static partial class Program
     { for (int i = 0; i < count; i++) match.ReportKill(Kill(actor, body, time: 10 + 10 * i)); }
     private static void Multi()
     {
+        var four = New();
+        for (int i = 1; i <= 4; i++) four.Match.ReportKill(Kill(time: i));
+        Check(four.Labels.SequenceEqual(new[] { "FIRST BLOOD", "DOUBLE KILL", "TRIPLE KILL", "ULTRA KILL" }),
+            "four-kill HUD progression agrees with the spoken Ultra Kill recording");
+        var awards = new ArenaCombatAwards(); awards.ReportKill(Kill("other", 30), null);
+        var airborne = Kill(); airborne.AirborneHipFire = airborne.BoltActionHipFire = true;
+        Check(awards.ReportKill(airborne, "ULTRA KILL") == "ULTRA KILL", "Ultra Kill retains precedence over posture awards");
         foreach (var boundary in new[] { 5, 10, 15, 20, 25, 35 })
         foreach (var chain in new[] { 2, 3, 4, 5 })
         {

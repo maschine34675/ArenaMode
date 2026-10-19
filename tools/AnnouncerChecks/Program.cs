@@ -54,6 +54,7 @@ internal static partial class Program
             ArenaMatch.SpaceEvents = false;
             VerifyResultCueSerialization(pluginDir, context);
             VerifyAwardQueue(pluginDir, context);
+            VerifyUltraKill(pluginDir, context);
             VerifyIndependentVolume();
             ArenaMatch.SpaceEvents = true;
             VerifyExpansion(pluginDir, context);
@@ -798,6 +799,33 @@ internal static partial class Program
         Time.realtimeSinceStartup += 2.11f;
         AnnouncerService.Tick();
         Assert(sounds.PlayRequests[^1].Clip.Name == "match_lost", "A genuine match defeat maps to Game Over.");
+        AnnouncerService.Detach();
+    }
+
+    private static void VerifyUltraKill(string pluginDir, QueuedContext context)
+    {
+        AddClip(pluginDir, "multi_kill");
+        AnnouncerService.EnsureLoaded();
+        FinishLoads(context);
+        var sounds = Singleton<GUISounds>.Instance;
+        var match = new ArenaMatch();
+        AnnouncerService.Attach(match);
+        Time.realtimeSinceStartup += 10f;
+        int before = sounds.PlayRequests.Count;
+        match.Callout("ULTRA KILL");
+        Assert(sounds.PlayRequests.Count == before + 1 && sounds.PlayRequests[^1].Clip.Name == "multi_kill",
+            "Ultra Kill HUD label plays its existing spoken recording.");
+        AnnouncerService.Detach();
+        AnnouncerService.Attach(match);
+        before = sounds.PlayRequests.Count;
+        match.Callout("FIRST BLOOD");
+        match.Callout("ULTRA KILL");
+        match.Callout("KILLING SPREE");
+        Time.realtimeSinceStartup += 2.11f;
+        AnnouncerService.Tick();
+        Assert(sounds.PlayRequests.Skip(before).Select(play => play.Clip.Name)
+                .SequenceEqual(new[] { "first_blood", "multi_kill" }),
+            "Ultra Kill alias keeps multi-kill queue priority over a later spree.");
         AnnouncerService.Detach();
     }
 

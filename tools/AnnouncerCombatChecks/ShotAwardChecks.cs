@@ -20,7 +20,7 @@ internal static partial class Program
 
     private static void ShotAwards()
     {
-        foreach (string competing in new[] { "DOUBLE KILL", "TRIPLE KILL", "MULTI KILL", "MONSTER KILL",
+        foreach (string competing in new[] { "DOUBLE KILL", "TRIPLE KILL", "ULTRA KILL", "MONSTER KILL",
             "SHUTDOWN", "KILLING SPREE", "HEADSHOT" })
         {
             var awards = new ArenaCombatAwards();

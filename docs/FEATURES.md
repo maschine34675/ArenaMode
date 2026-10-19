@@ -457,7 +457,7 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
 
 ## 8. Announcer and sound
 
-- Multikills: **Double Kill, Triple Kill, Multi Kill, Monster Kill**.
+- Multikills: **Double Kill, Triple Kill, Ultra Kill, Monster Kill**.
 - Streaks: **Killing Spree, Rampage, Dominating, Unstoppable, Godlike**.
 - Special events include **First Blood, Headshot, Payback, Shutdown, Last Man
   Standing, Clutch, Airborne and No Scope**; cues depend on the mode/event rules.

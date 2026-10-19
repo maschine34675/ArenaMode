@@ -273,6 +273,8 @@ internal static class AnnouncerService
 
         _calloutsReceived++;
         var key = label.ToLowerInvariant().Replace(' ', '_');
+        // The existing pack/custom-file key predates its spoken ULTRA KILL name.
+        if (key == "ultra_kill") key = "multi_kill";
         // Deliberately text-only until a recording is supplied. Do not enqueue,
         // report a missing clip, or disturb the current/pending audio phrase.
         if (key == "collateral") return;
