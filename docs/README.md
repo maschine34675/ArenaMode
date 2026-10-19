@@ -12,6 +12,8 @@ build/deployment JSON records live here. The automatically discovered
 - [Looting Bots: scoped autonomous-looting pause](LOOTING-BOTS-COMPAT-20261019.md)
 - [Remove The Dead: retained corpses and pickup protection](REMOVE-THE-DEAD-COMPAT-20261019.md)
 - [Smoothie: moving pickup markers and optional GC policy](SMOOTHIE-COMPAT-20261019.md)
+- [Combined optional-mod integration and verification](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
+- [Native optional-mod startup and pending gameplay matrix](GPU-OPTIONAL-COMPAT-20261019.md)
 - [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)
 - [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
 - [Depth-occluded bot effect contours](BOT-EFFECT-OUTLINES-20261019.md)

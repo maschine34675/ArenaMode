@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Looting / corpse cleanup / Smoothie (2026-10-19):** `144a763` activates
+  exact-Arena adapters for Looting Bots 1.8.0+, Remove The Dead 4.1.3+ and
+  Smoothie 1.0.8+. Autonomous combatant looting and both RTD deletion paths
+  pause in Arena, while PFT commanded looting and ordinary raids remain
+  unchanged. The known Looting Bots RC spawn cleanup also protects follower
+  entry gear. Smoothie keeps its other optimizations; only optional GC-pause
+  calls and private pickup-marker layers are adapted. No foreign settings or
+  binaries are shipped. Cross-reviews and final production-linked regressions
+  pass; client/companion Release build succeeds with four existing warnings.
+  The pair from `144a763` is deployed locally and on GPU2; server/Core hashes
+  are unchanged. See [combined contracts, checks and hashes](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
+  and the individual adapter documents. [Native startup](GPU-OPTIONAL-COMPAT-20261019.md)
+  bound all three hooks without contract warnings. Raid tests were paused before
+  any settings changes because the user confirmed GPU2 is occupied. The three
+  temporary testmods remain locally/on GPU2; restore the exact manifest after
+  safe game/server shutdown, never interrupt the other session. Gameplay and
+  restoration remain open; the report contains the resumption matrix.
+
 - **AI Limit / completed compatibility checks (2026-10-19):** 1.9.2+ gets an
   exact-world component-creation guard before Arena's started event, with a
   server-returned end marker and fresh identity checks for later calls. No
