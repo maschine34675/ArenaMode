@@ -36,6 +36,12 @@ Die Einstufung „Hohe Priorität“ bedeutet einen besonders relevanten, konkre
 
 ## Bereits vorhandene Grenzen
 
+Das erste anschließende Umsetzungspaket behandelt Continuous Healing und
+Late To The Party. Dessen konkrete Schutzmaßnahmen und gesonderte Prüfbelege
+stehen im [Integrationsbericht](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md).
+Die obige Rangliste bleibt der ursprüngliche Audit-Snapshot; daraus werden
+keine rückwirkenden Ingame-Testergebnisse abgeleitet.
+
 Die [Abhängigkeitsübersicht](DEPENDENCIES.md) und die [letzte kombinierte Prüfung](OPTIONAL-COMPAT-INTEGRATION-20261019.md) bleiben die Quelle für vorhandene Integrationen. SAIN, BigBrain, APBS, PitFireTeam und DynamicMaps besitzen ausdrückliche Adapter/Versions- und API-Verträge; das zertifiziert nicht jede beliebige Einstellung oder künftige Version. Für MoreBotsAPI und AI Limit sind die vorhandenen Absicherungen von noch offenen nativen Testfällen zu unterscheiden. Looting Bots, Remove The Dead und Smoothie wurden zuvor in der dokumentierten Kombination geprüft, nicht in sämtlichen denkbaren Modi und Optionen.
 
 **Aktive Questing Bots und geladenes ORBIT sperren Arena bereits; Fika bleibt ebenfalls ausgeschlossen.** Normale PMC-/Scav-Raids sind von diesen Arena-Startprüfungen nicht betroffen. Questing Bots hat die gesondert geprüfte Ausnahme einer bereits beim Prozessstart vollständig serverseitig deaktivierten Mod. Dieses Audit erweitert die Liste nicht. Fika wird als bestehende Randbedingung genannt, nicht als zusätzlicher Eintrag in die Top-200-Zählung eingeschoben.

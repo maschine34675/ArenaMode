@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Continuous Healing / Late To The Party (2026-10-19):** first implementation
+  batch after the top-200 survey. Exact Arena body/world guards keep CH's local
+  cancellation/continuation away from bots and retired player bodies; the live
+  local player retains CH. LTTP's discovery, eligibility and both destruction
+  entries exclude only original Arena-owned weapon sources, including a pending
+  native transfer. Taken/dropped weapons and ordinary loot have no exemption.
+  Current targets are CH 1.6.3+ and LTTP 3.1.1+ with forward API checks and warnings.
+  No foreign payload/settings ship with Arena. Independent adversarial review
+  found no blocker; source/build checks are recorded in
+  [the integration report](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md).
+  Native validation is being prepared on GPU2; LTTP is temporarily installed
+  there and on development solely for this test (manifest under the report's
+  ignored artifact folder). Existing CH must be preserved during cleanup.
+  Do not treat this pending test as a complete compatibility certification.
+
 - **Looting / corpse cleanup / Smoothie (2026-10-19):** `144a763` activates
   exact-Arena adapters for Looting Bots 1.8.0+, Remove The Dead 4.1.3+ and
   Smoothie 1.0.8+. Autonomous combatant looting and both RTD deletion paths

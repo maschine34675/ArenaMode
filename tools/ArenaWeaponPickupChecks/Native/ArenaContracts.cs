@@ -8,7 +8,7 @@ using EFT.InventoryLogic;
 namespace ArenaMode
 {
     internal static class Plugin { public static Logger ModLogger = new Logger(); }
-    internal class Logger { public void LogWarning(string message) { } public void LogInfo(string message) { } }
+    internal class Logger { public void LogWarning(string message) { } public void LogInfo(string message) { } public void LogDebug(string message) { } }
 }
 namespace ArenaMode.Session { internal static class ArenaSession { public static bool IsActive => false; } }
 namespace ArenaMode.Kits

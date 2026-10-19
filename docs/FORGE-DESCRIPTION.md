@@ -139,6 +139,11 @@ Optional integration targets:
 - **Smoothie 1.0.8+:** optimizations remain enabled, with scoped pickup-marker
   and optional GC-pause compatibility. If the adapter is unavailable, a warning
   asks you to leave Smoothie's memory-cleanup pause disabled.
+- **Continuous Healing 1.6.3+:** player-only healing continuation/cancellation
+  does not affect Arena bots or retired player bodies. It remains enabled for
+  the current living player.
+- **Late To The Party 3.1.1+:** Arena's uncollected weapon pickups are protected
+  from loot cleanup. Ordinary loot keeps its normal behavior.
 
 Newer versions of integrations marked with `+` are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

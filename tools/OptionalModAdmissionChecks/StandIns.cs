@@ -132,4 +132,16 @@ namespace ArenaMode.Compat
         public static int Calls { get; set; }
         public static string GetRejectionReason() { Calls++; return Reason; }
     }
+    internal static class ArenaContinuousHealingCompat
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string GetRejectionReason() { Calls++; return Reason; }
+    }
+    internal static class ArenaLateToThePartyCompat
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string GetRejectionReason() { Calls++; return Reason; }
+    }
 }

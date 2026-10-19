@@ -26,6 +26,8 @@ namespace ArenaMode;
 [BepInDependency("me.skwizzy.lootingbots", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.jbs4bmx.RemoveTheDead", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.tominocz.smoothie", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.lacyway.ch", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.danw.latetotheparty", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -71,6 +73,8 @@ public class Plugin : BaseUnityPlugin
         ArenaLootingBotsCompat.Initialize();
         ArenaRemoveTheDeadCompat.Initialize();
         ArenaSmoothieCompat.Initialize();
+        ArenaContinuousHealingCompat.Initialize();
+        ArenaLateToThePartyCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -223,6 +227,8 @@ public class Plugin : BaseUnityPlugin
         ArenaLootingBotsCompat.Shutdown();
         ArenaRemoveTheDeadCompat.Shutdown();
         ArenaSmoothieCompat.Shutdown();
+        ArenaContinuousHealingCompat.Shutdown();
+        ArenaLateToThePartyCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();

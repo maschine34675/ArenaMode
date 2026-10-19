@@ -46,6 +46,7 @@ namespace EFT.InventoryLogic
         public string ShortName = "Weapon";
         public bool ExaminedByDefault = true;
         public ItemAddress Parent;
+        public ItemAddress CurrentAddress { get => Parent; set => Parent = value; }
     }
     public class Ammo : Item { public int StackObjectsCount = 1; }
     public class Weapon : Item

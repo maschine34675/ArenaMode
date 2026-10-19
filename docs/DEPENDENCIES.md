@@ -15,7 +15,8 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 | `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
-AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead und Smoothie als weiche
+AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead, Smoothie,
+Continuous Healing und Late To The Party als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
@@ -59,6 +60,14 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **Continuous Healing 1.6.3+:** spielerbezogene Heilungsfortsetzung und Abbruch
+  werden von Arena-Bots und abgelegten Spielerkörpern abgegrenzt. Der aktuelle
+  lebende Spieler behält Continuous Healing; normale Raids bleiben unverändert.
+  Siehe [Heilungsoperationen und Prüfgrenzen](CONTINUOUS-HEALING-COMPAT-20261019.md).
+- **Late To The Party 3.1.1+:** nur originale, noch Arena-eigene Waffen-Pickup-
+  Quellen und ihre Teile sind von fremder Loot-Erfassung/Bereinigung ausgenommen.
+  Aufgenommene Waffen und gewöhnlicher Loot behalten die fremden Regeln.
+  Siehe [Pickup-Besitz und Prüfgrenzen](LATE-TO-THE-PARTY-COMPAT-20261019.md).
 - **Looting Bots 1.8.0+:** autonome Such-/Loot-Aktionen werden nur für exakt
   gebundene Arena-Bots unterdrückt, einschließlich beider Team-DM-Seiten und
   neuer Ersatzbots. Echte PFT-Begleiter behalten ihre kommandierten Aktionen.

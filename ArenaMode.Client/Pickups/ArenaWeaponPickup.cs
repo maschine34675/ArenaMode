@@ -17,6 +17,8 @@ namespace ArenaMode.Pickups;
 /// <summary>One Arena-owned, loaded weapon. Native inventory rules decide whether it fits.</summary>
 internal static class ArenaWeaponPickup
 {
+    internal static bool ProtectsFromForeignCleanup(GameWorld world, Item item, LootItem source = null)
+        => Handle.ProtectsFromForeignCleanup(world, item, source);
     public static IEnumerator Prepare(GameWorld world, KitDefinition kit, Vector3 position,
         Quaternion rotation, Func<bool> isCurrent, Action<Handle> completed)
     {
@@ -89,7 +91,25 @@ internal static class ArenaWeaponPickup
 
     internal sealed class Handle : IDisposable
     {
-        private static readonly EquipmentSlot[] WeaponSlots =
+        // Only handles created by this factory confer cleanup authority. Weak entries
+        // cannot keep an ended world's native objects alive after runtime teardown.
+        private static readonly List<WeakReference<Handle>> Sources = new();
+
+        internal static bool ProtectsFromForeignCleanup(GameWorld world, Item item, LootItem source = null)
+        {
+            if (world == null || item == null || !ReferenceEquals(Singleton<GameWorld>.Instance, world)) return false;
+            bool protects = false;
+            for (int i = Sources.Count - 1; i >= 0; i--)
+            {
+                if (!Sources[i].TryGetTarget(out var handle) || !ReferenceEquals(handle._world, world)
+                    || handle._consumed || handle._loot == null)
+                { Sources.RemoveAt(i); continue; }
+                if (source == null || ReferenceEquals(source, handle._loot)) protects |= handle.ProtectsSource(item);
+            }
+            return protects;
+        }
+
+            private static readonly EquipmentSlot[] WeaponSlots =
         {
             EquipmentSlot.FirstPrimaryWeapon, EquipmentSlot.SecondPrimaryWeapon, EquipmentSlot.Holster
         };
@@ -105,6 +125,7 @@ internal static class ArenaWeaponPickup
         private bool _disposed;
         private bool _consumed;
         private bool _uncertain;
+        private ItemController _transferOwner;
 
         internal Handle(GameWorld world, int generation, Func<bool> isCurrent, Weapon weapon,
             PickupOwner owner, LootItem loot, BoxCollider collider)
@@ -120,6 +141,26 @@ internal static class ArenaWeaponPickup
             // LootItem subscribes first and returns its model to the pool on success.
             // Forget that reference immediately; it may already represent another item.
             _owner.RemoveItemEvent += Removed;
+            Sources.RemoveAll(entry => !entry.TryGetTarget(out var previous));
+            Sources.Add(new WeakReference<Handle>(this));
+        }
+
+        private bool ProtectsSource(Item item)
+        {
+            // Native Move changes Item.Parent before RemoveItemEvent succeeds.
+            // Keep exactly that in-flight source protected, including disposal
+            // while queued/inside InProcess. Success retires the source immediately.
+            if (_consumed || _loot == null || !ReferenceEquals(_loot.Item, _weapon)
+                || !ReferenceEquals(_loot.ItemOwner, _owner)
+                || !((_generation == ArenaPickupRuntime.Generation && !_disposed) || IsPending)) return false;
+            bool sourceOwner = ReferenceEquals(_weapon.CurrentAddress?.GetOwner(), _owner);
+            bool transferring = IsPending && _transferOwner != null
+                && ReferenceEquals(_weapon.CurrentAddress?.GetOwner(), _transferOwner);
+            if (!sourceOwner && !transferring) return false;
+            // Membership is physical, not an id/template/name. A detached generated
+            // attachment or a later attached ordinary item never inherits protection.
+            return _generatedItems.Any(generated => ReferenceEquals(generated, item))
+                && _weapon.GetAllItems().Any(attached => ReferenceEquals(attached, item));
         }
 
         // Keep identifying the source model during native InProcess, when the
@@ -179,6 +220,7 @@ internal static class ArenaWeaponPickup
 
                 var hands = player.HandsController;
                 IsPending = true;
+                _transferOwner = inventory;
                 LastRefusal = "native transfer did not complete";
                 bool settled = false;
                 // SinglePlayerInventoryController.ExecuteAsync first yields a frame.
@@ -206,6 +248,8 @@ internal static class ArenaWeaponPickup
                         // A final refusal without ownership is retryable. Any ambiguous
                         // result that already owns the weapon must never produce a clone.
                         _consumed |= carried;
+                        _transferOwner = null;
+                        if (_consumed) UnregisterSource();
                         bool success = result != null && result.Succeed && carried
                             && Eligible(player, isCurrent) && ReferenceEquals(player.InventoryController, inventory);
                         if (!success)
@@ -269,6 +313,8 @@ internal static class ArenaWeaponPickup
             if (args.Status != CommandStatus.Succeed || !ReferenceEquals(args.Item, _weapon)
                 || !(args.From is OwnerItself)) return;
             _consumed = true;
+            _transferOwner = null;
+            UnregisterSource();
             _loot = null;
             _owner.RemoveItemEvent -= Removed;
         }
@@ -289,6 +335,7 @@ internal static class ArenaWeaponPickup
 
         private void ReleaseSourceVisual()
         {
+            UnregisterSource();
             _owner.RemoveItemEvent -= Removed;
             var loot = _loot;
             _loot = null;
@@ -299,6 +346,9 @@ internal static class ArenaWeaponPickup
                 && ReferenceEquals(loot.ItemOwner, _owner) && _world != null)
                 _world.DestroyLoot(loot);
         }
+
+        private void UnregisterSource()
+            => Sources.RemoveAll(entry => !entry.TryGetTarget(out var handle) || ReferenceEquals(handle, this));
     }
 
     /// <summary>Only this arena item can cross this hook; ordinary loot is untouched.</summary>

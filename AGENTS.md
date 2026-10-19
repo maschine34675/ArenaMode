@@ -187,6 +187,11 @@ acceptance evidence; use the dated handoff and the relevant review document.
 Read `docs/DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
 contracts, absorbed own mods and release package boundaries. An installed mod
 is not automatically required or exhaustively certified compatible.
+For Continuous Healing and Late To The Party, read
+`docs/HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md` and its adapter contracts.
+Preserve the live local player's healing, exact retired-body leases, and native
+weapon-source ownership through pending transfers. Never turn either adapter
+into a global config switch, a profile-ID exemption, or an ordinary-loot filter.
 Arena's local default full-auto rule is documented in `docs/DEFAULT-FIRE-MODE-REVIEW.md`.
 Preserve manual selection while held, native available modes and exact confirmed
 raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled

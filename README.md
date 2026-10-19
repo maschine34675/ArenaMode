@@ -249,9 +249,11 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Looting Bots** | **1.8.0+**: autonomous looting is paused for Arena combatants, including both Team DM teams. Authenticated PFT companions retain their commanded looting. |
 | **Remove The Dead** | **4.1.3+**: automatic and manual cleanup are paused during Arena; Arena retains ownership of corpses and weapon pickups. |
 | **Smoothie** | **1.0.8+**: its optimizations remain enabled. Arena excludes its own pickup markers from static culling when a camera-visible excluded layer is available, and guards Smoothie's optional GC-pause routine during the match. |
+| **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |
+| **Late To The Party** | **3.1.1+**: Arena-owned weapon-pickup sources are excluded from discovery and destruction. Ordinary loot and collected weapons keep the mod's normal rules. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
-Looting Bots, Remove The Dead and Smoothie are attempted
+Looting Bots, Remove The Dead, Smoothie, Continuous Healing and Late To The Party are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 These adapters do not change the optional mods' saved settings or ordinary raid

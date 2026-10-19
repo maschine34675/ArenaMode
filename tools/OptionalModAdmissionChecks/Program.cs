@@ -39,7 +39,8 @@ internal static class Program
         Allowed("No optional mods leaves Arena available");
         Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1
             && ArenaLootingBotsCompat.Calls == 1 && ArenaRemoveTheDeadCompat.Calls == 1
-            && ArenaSmoothieCompat.Calls == 1,
+            && ArenaSmoothieCompat.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
+            && ArenaLateToThePartyCompat.Calls == 1,
             "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
@@ -66,6 +67,16 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaSmoothieCompat.Reason,
             "Smoothie adapter rejection reaches admission unchanged");
         ArenaSmoothieCompat.Reason = null;
+        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousHealingCompat.Reason,
+            "Continuous Healing adapter rejection reaches admission unchanged");
+        Require(ArenaLateToThePartyCompat.Calls == 1,
+            "Continuous Healing rejection short-circuits Late To The Party");
+        ArenaContinuousHealingCompat.Reason = null;
+        ArenaLateToThePartyCompat.Reason = "Late To The Party pickup protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaLateToThePartyCompat.Reason,
+            "Late To The Party adapter rejection reaches admission unchanged");
+        ArenaLateToThePartyCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -226,6 +237,10 @@ internal static class Program
         ArenaRemoveTheDeadCompat.Calls = 0;
         ArenaSmoothieCompat.Reason = null;
         ArenaSmoothieCompat.Calls = 0;
+        ArenaContinuousHealingCompat.Reason = null;
+        ArenaContinuousHealingCompat.Calls = 0;
+        ArenaLateToThePartyCompat.Reason = null;
+        ArenaLateToThePartyCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }
