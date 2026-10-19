@@ -49,8 +49,27 @@ finalen Stand keinen Blocker. Dabei wurden zwei frühe StatTrack-Ladeabbruchpfad
 die tatsächliche CLR-Konstruktorsignatur und zu großzügige Versions-/Schreibpfad-
 Annahmen korrigiert. Die sechs geprüften Produktionsdateien sind per Hash fixiert.
 
-Die native Abnahme und das Einspielen des abschließenden Commits folgen separat.
-Dieser Stand behauptet keine bereits bestandene Ingame-Kompatibilität. Ignorierte
+Beide Adapterprüfungen wurden durch den Hauptagenten unabhängig erneut ausgeführt.
+Implementierung: Classic Movement `72204e8`, StatTrack und gemeinsamer Anschluss
+`ebb1039`. Der daraus neu gebaute Client-/Companion-Stand ist lokal und auf GPU2
+eingespielt; vorhandene Server-, Core-, CH- und UiBridge-Dateien sind unverändert.
+
+| DLL | SHA256 |
+|---|---|
+| Client | `2759FE74B2538C884A960C9F28E7D0C7B9E3449C7A00AEA6AD250876B91ECA70` |
+| BigBrainCompat | `6594B34E952D3010F62E9ED6D534A85ABDF4B82F3945B7108B5A03D0637C4E66` |
+
+Beide melden `0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`.
+Die [native Prüfung](GPU-MOVEMENT-STATS-COMPAT-20261019.md) bestätigt normale
+Classic-Movement-Zustände und StatTrack-Speicherung im vorherigen PMC-Raid sowie
+native Arena-Zustände, Doppelsprung, Bunnyhop, zwei Respawns und unveränderte
+StatTrack-Daten trotz Arena-Schüssen und Kill. Ein nicht vom Tester veranlasster
+SPT-Server-Neustart während Arena verlor jedoch die laufende geschützte
+Raid-Zuordnung. Der Endschutz wies den veralteten Abschluss korrekt ab. Ein
+sauberer Arena-Abschluss mit anschließendem normalen PMC-Raid bleibt deshalb
+offen; die vorhandenen Gameplay-Belege ersetzen diesen Lebenszyklustest nicht.
+Host-Nutzung, Wiederherstellung der Testeinstellungen und Entfernung der
+temporären Fremdmods sind im [Handoff](HANDOFF.md) festgehalten. Ignorierte
 Quellen, Payloads, Prüfläufe und Belege liegen unter
 `artifacts/movement-stats-compat-20261019/`, `artifacts/classic-movement-checks/`
 und `artifacts/stattrack-compat-checks/`.

@@ -7,6 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Classic Movement / StatTrack (2026-10-19, current handoff):** implementations
+  `72204e8` and `ebb1039` retain native movement caches for exact Arena bodies and
+  exclude their shots/hits/kills/unregisters from foreign statistics. Ordinary
+  PMC/Scav paths and foreign settings remain untouched. Current targets are CM
+  1.1.3+ and StatTrack 2.1.1+, with contract-checked forward admission; CM's old
+  NostalgiaMode remains an Arena-only blocker. See the
+  [integration and offline checks](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md).
+  The client/BigBrainCompat pair `0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`
+  is installed locally and on GPU2; server/Core/CH/UiBridge hashes are unchanged.
+  Native ordinary PMC statistics persistence passes, followed by native Arena
+  movement, double jump/bunnyhop, two physical respawns and unchanged StatTrack
+  data. See [native evidence and limits](GPU-MOVEMENT-STATS-COMPAT-20261019.md).
+  **Do not claim full lifecycle acceptance:** an unplanned server restart during
+  Arena lost the process-local protected arm; the stale end was correctly
+  rejected. The tester did not initiate this restart. Later read-only status is
+  ExitStatus/no raid, while another session remains recently active. User was
+  asked about host availability; no more host mutations until coordination is
+  resolved. A clean ordinary -> Arena -> ordinary retest remains required.
+  **Cleanup pending:** restore DeveloperMode, remembered mode, Deathmatch replay,
+  Factory solo participants (4 -> 8) and the test MP5's original stash placement;
+  FAST MOVEMENT is already restored and test cheats/movement are off. Temporary
+  `ClassicMovement`, `acidphantasm-stattrack`, `ClassicMovementServer` and the
+  StatTrack server folder remain on BOTH development and GPU2. Their originally
+  absent folders, 22 installed files, settings snapshots and cleanup/archive
+  script are recorded under ignored
+  `artifacts/movement-stats-compat-20261019/`. Stop only an available test host,
+  archive generated StatTrack data, remove only these exact owned test folders,
+  then verify protected hashes/settings. Preserve the pre-existing empty LTTP/
+  LootingBots directories. No protected-end bypass, profile edit, push or release.
+
 - **Continuous Healing / Late To The Party (2026-10-19):** first implementation
   batch after the top-200 survey. Exact Arena body/world guards keep CH's local
   cancellation/continuation away from bots and retired player bodies; the live

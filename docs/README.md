@@ -20,6 +20,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Classic Movement: exact Arena movement-state ownership](CLASSIC-MOVEMENT-COMPAT-20261019.md)
 - [StatTrack: Arena statistics and body-lifecycle isolation](STATTRACK-COMPAT-20261019.md)
 - [Movement and statistics compatibility: integration and verification](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md)
+- [GPU2 movement/statistics checks and interrupted lifecycle retest](GPU-MOVEMENT-STATS-COMPAT-20261019.md)
 - [Combined optional-mod integration and verification](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
 - [Native optional-mod startup and pending gameplay matrix](GPU-OPTIONAL-COMPAT-20261019.md)
 - [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)
