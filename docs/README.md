@@ -6,6 +6,10 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Model preview ownership and PitFireTeam lifecycle investigation](MODEL-PREVIEW-INVESTIGATION-20261019.md)
+- [Native animation fault attribution and diagnostic limits](MODEL-ANIMATION-INVESTIGATION-20261019.md)
+- [Model asset, pooled equipment and Killcam clone investigation](MODEL-POOL-INVESTIGATION-20261019.md)
+
 - [F12 settings menu: names, order, advanced developer tools](CONFIG-MENU-20261018.md)
 - [Audio folders and consolidated package notices](AUDIO-LAYOUT-20261018.md)
 - [Killcam rename, config migration and native replay/respawn acceptance](KILLCAM-RENAME-20261018.md)
