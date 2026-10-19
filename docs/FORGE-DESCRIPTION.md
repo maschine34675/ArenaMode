@@ -144,6 +144,10 @@ Optional integration targets:
   the current living player.
 - **Late To The Party 3.1.1+:** Arena's uncollected weapon pickups are protected
   from loot cleanup. Ordinary loot keeps its normal behavior.
+- **Classic Movement 1.1.3+:** Arena uses native movement states for its movement
+  features; normal raids retain Classic Movement. Legacy NostalgiaMode is unsupported.
+- **StatTrack 2.1.1+:** Arena combat does not add permanent weapon statistics,
+  and respawns do not trigger a statistics merge. Normal raids keep tracking.
 
 Newer versions of integrations marked with `+` are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

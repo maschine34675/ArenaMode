@@ -192,6 +192,13 @@ For Continuous Healing and Late To The Party, read
 Preserve the live local player's healing, exact retired-body leases, and native
 weapon-source ownership through pending transfers. Never turn either adapter
 into a global config switch, a profile-ID exemption, or an ordinary-loot filter.
+For Classic Movement and StatTrack, read
+`docs/MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md` and the linked contracts.
+Movement caches are constructed before the local player and bot game are fully
+registered; preserve the narrow server-confirmed construction proof rather than
+weakening native movement-state predicates. StatTrack isolation belongs at exact
+body-bearing producers and unregister callbacks, never global dictionary clears
+or a blanket save-route block. Preserve pending ordinary saves and insurance.
 Arena's local default full-auto rule is documented in `docs/DEFAULT-FIRE-MODE-REVIEW.md`.
 Preserve manual selection while held, native available modes and exact confirmed
 raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled

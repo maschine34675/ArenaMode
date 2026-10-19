@@ -39,6 +39,7 @@ Die Einstufung „Hohe Priorität“ bedeutet einen besonders relevanten, konkre
 Das erste anschließende Umsetzungspaket behandelt Continuous Healing und
 Late To The Party. Dessen konkrete Schutzmaßnahmen und gesonderte Prüfbelege
 stehen im [Integrationsbericht](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md).
+Das zweite Paket behandelt [Classic Movement und StatTrack](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md).
 Die obige Rangliste bleibt der ursprüngliche Audit-Snapshot; daraus werden
 keine rückwirkenden Ingame-Testergebnisse abgeleitet.
 

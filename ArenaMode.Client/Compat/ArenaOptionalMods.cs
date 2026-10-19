@@ -34,7 +34,9 @@ internal static class ArenaOptionalMods
             ?? ArenaRemoveTheDeadCompat.GetRejectionReason()
             ?? ArenaSmoothieCompat.GetRejectionReason()
             ?? ArenaContinuousHealingCompat.GetRejectionReason()
-            ?? ArenaLateToThePartyCompat.GetRejectionReason();
+            ?? ArenaLateToThePartyCompat.GetRejectionReason()
+            ?? ArenaClassicMovementCompat.GetRejectionReason()
+            ?? ArenaStatTrackCompat.GetRejectionReason();
     }
 
     // Only the reviewed whole-mod startup switch is an exemption. F12 questing,

@@ -16,7 +16,7 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead, Smoothie,
-Continuous Healing und Late To The Party als weiche
+Continuous Healing, Late To The Party, Classic Movement und StatTrack als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
 Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
 zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
@@ -60,6 +60,16 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+- **Classic Movement 1.1.3+:** Arena behält für seine Körper native Bewegungszustände
+  und die eigene Bewegungssteuerung, einschließlich der Erstellung beim Laden.
+  Normale Raids behalten Classic Movement. Das alte, vom aktuellen Fremdserver
+  nicht mehr unterstützte `NostalgiaMode=true` verhindert nur den Arena-Start.
+  Siehe [Bewegungszustände und Prüfgrenzen](CLASSIC-MOVEMENT-COMPAT-20261019.md).
+- **StatTrack 2.1.1+:** Arena-Schüsse, -Treffer und -Kills fließen nicht in die
+  dauerhaften Waffenstatistiken; Körperwechsel lösen keinen Statistikabschluss aus.
+  Vorhandene Daten und ausstehende normale Speicheraufträge werden nicht gelöscht
+  oder pauschal gesperrt. Normale Versicherungs-/ID-Wechsel bleiben unverändert.
+  Siehe [Statistikbesitz und Prüfgrenzen](STATTRACK-COMPAT-20261019.md).
 - **Continuous Healing 1.6.3+:** spielerbezogene Heilungsfortsetzung und Abbruch
   werden von Arena-Bots und abgelegten Spielerkörpern abgegrenzt. Der aktuelle
   lebende Spieler behält Continuous Healing; normale Raids bleiben unverändert.

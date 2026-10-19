@@ -9,6 +9,16 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-classic-movement-contract'
+        Before = '?? ArenaClassicMovementCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
+        Name = 'skip-stattrack-contract'
+        Before = '?? ArenaStatTrackCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
         Name = 'skip-continuous-healing-contract'
         Before = '?? ArenaContinuousHealingCompat.GetRejectionReason()'
         After = ''

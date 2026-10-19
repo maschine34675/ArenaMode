@@ -251,9 +251,12 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Smoothie** | **1.0.8+**: its optimizations remain enabled. Arena excludes its own pickup markers from static culling when a camera-visible excluded layer is available, and guards Smoothie's optional GC-pause routine during the match. |
 | **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |
 | **Late To The Party** | **3.1.1+**: Arena-owned weapon-pickup sources are excluded from discovery and destruction. Ordinary loot and collected weapons keep the mod's normal rules. |
+| **Classic Movement** | **1.1.3+**: Arena keeps native movement states and its own movement controls; ordinary raids retain Classic Movement. The unsupported legacy NostalgiaMode must be off. |
+| **StatTrack** | **2.1.1+**: Arena shots, hits and kills are excluded from permanent weapon statistics; respawns do not merge/save a raid. Existing statistics and ordinary raids remain untouched. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
-Looting Bots, Remove The Dead, Smoothie, Continuous Healing and Late To The Party are attempted
+Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,
+Classic Movement and StatTrack are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 These adapters do not change the optional mods' saved settings or ordinary raid

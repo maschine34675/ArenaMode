@@ -40,7 +40,8 @@ internal static class Program
         Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1
             && ArenaLootingBotsCompat.Calls == 1 && ArenaRemoveTheDeadCompat.Calls == 1
             && ArenaSmoothieCompat.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
-            && ArenaLateToThePartyCompat.Calls == 1,
+            && ArenaLateToThePartyCompat.Calls == 1 && ArenaClassicMovementCompat.Calls == 1
+            && ArenaStatTrackCompat.Calls == 1,
             "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
@@ -77,6 +78,16 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaLateToThePartyCompat.Reason,
             "Late To The Party adapter rejection reaches admission unchanged");
         ArenaLateToThePartyCompat.Reason = null;
+        ArenaClassicMovementCompat.Reason = "Classic Movement state protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaClassicMovementCompat.Reason,
+            "Classic Movement rejection reaches admission unchanged");
+        Require(ArenaStatTrackCompat.Calls == 1,
+            "Classic Movement rejection short-circuits StatTrack");
+        ArenaClassicMovementCompat.Reason = null;
+        ArenaStatTrackCompat.Reason = "StatTrack persistence protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaStatTrackCompat.Reason,
+            "StatTrack rejection reaches admission unchanged");
+        ArenaStatTrackCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -241,6 +252,10 @@ internal static class Program
         ArenaContinuousHealingCompat.Calls = 0;
         ArenaLateToThePartyCompat.Reason = null;
         ArenaLateToThePartyCompat.Calls = 0;
+        ArenaClassicMovementCompat.Reason = null;
+        ArenaClassicMovementCompat.Calls = 0;
+        ArenaStatTrackCompat.Reason = null;
+        ArenaStatTrackCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }
