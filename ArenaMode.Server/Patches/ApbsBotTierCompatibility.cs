@@ -12,7 +12,7 @@ using SPTarkov.Server.Core.Models.Spt.Mod;
 namespace ArenaMode.Server.Patches;
 
 /// <summary>
-/// Optional APBS 2.4.1 adapter. Replace only the final level range for explicitly
+/// Optional APBS 2.4.1+ adapter. Replace only the final level range for explicitly
 /// owned Arena bots, leaving APBS's level roll, experience, tier and inventory
 /// pipeline intact. No copied APBS implementation or global config mutation.
 /// </summary>
@@ -20,9 +20,11 @@ internal static class ApbsBotTierCompatibility
 {
     internal const string ModGuid = "com.acidphantasm.progressivebotsystem";
     internal const string HarmonyId = "com.maschine.ArenaMode.apbs-tier";
+    private static readonly SemanticVersioning.Version ReviewedVersion = new("2.4.1");
     internal static bool Enabled { get; private set; }
     internal static string? FailureReason { get; private set; }
     private static int _reportedFailure;
+    private static int _reportedNewerVersion;
     private static int _lastAppliedLevel = -1;
 
     internal static void TryEnable(IReadOnlyList<SptMod> loadedMods)
@@ -34,8 +36,9 @@ internal static class ApbsBotTierCompatibility
         {
             var candidates = loadedMods.Where(m => m.ModMetadata.ModGuid == ModGuid).ToArray();
             if (candidates.Length == 0) return;
-            if (candidates.Length != 1 || candidates[0].ModMetadata.Version.ToString() != "2.4.1")
-                throw new NotSupportedException("expected one APBS mod with metadata version 2.4.1");
+            if (candidates.Length != 1 || !SupportsVersion(candidates[0].ModMetadata.Version))
+                throw new NotSupportedException("expected one APBS mod with metadata version 2.4.1 or newer");
+            var version = candidates[0].ModMetadata.Version;
 
             var types = candidates[0].Assemblies.Select(a => a.GetType("ProgressiveBotSystem.Patches.GenerateBotLevel"))
                 .Where(t => t != null).ToArray();
@@ -58,7 +61,9 @@ internal static class ApbsBotTierCompatibility
             harmony.Patch(prepare, prefix: Hook(nameof(PreparePrefix)), finalizer: Hook(nameof(PrepareFinalizer)));
             harmony.Patch(single, prefix: Hook(nameof(SinglePrefix)), finalizer: Hook(nameof(SingleFinalizer)));
             Enabled = true;
-            ArenaContext.Logger?.Debug("[ArenaMode] APBS 2.4.1 Arena level-range adapter enabled; normal raids and protected PFT unchanged.");
+            if (version > ReviewedVersion && Interlocked.Exchange(ref _reportedNewerVersion, 1) == 0)
+                ArenaContext.Logger?.Warning($"[ArenaMode] APBS {version} is newer than the reviewed 2.4.1 adapter. Required APIs passed validation; full compatibility is unverified.");
+            ArenaContext.Logger?.Debug($"[ArenaMode] APBS {version} Arena level-range adapter enabled; normal raids and protected PFT unchanged.");
         }
         catch (Exception ex)
         {
@@ -74,6 +79,11 @@ internal static class ApbsBotTierCompatibility
             Warn($"adapter unavailable ({FailureReason}); APBS retains its own level selection");
         }
     }
+
+    // Use APBS's semantic metadata version, not its unrelated assembly version.
+    // Preserve SemVer prerelease ordering and ignore build metadata precedence.
+    internal static bool SupportsVersion(SemanticVersioning.Version? version)
+        => version != null && version >= ReviewedVersion;
 
     private static MethodInfo Exact(Type type, string name, BindingFlags flags, Type result, params Type[] parameters)
     {

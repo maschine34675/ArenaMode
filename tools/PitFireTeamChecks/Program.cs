@@ -129,31 +129,41 @@ internal static class Program
             native: Native(Four), selected: Four);
         AssertRejected(incompatibleTeam,
             "unsupported version or layout cannot authenticate team Arena");
-        Assert(PitFireTeamVersions.SupportedPluginVersions.All(
+        Assert(PitFireTeamVersions.VerifiedPluginVersions.All(
                    version => incompatibleTeam.Reason.Contains(version, StringComparison.Ordinal))
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
             "unsupported contract rejection names every pinned version and the runtime layout");
-        Assert(PitFireTeamVersions.SupportedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3" })
-               && PitFireTeamVersions.SupportedAssemblyVersions.SequenceEqual(
+        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3" })
+               && PitFireTeamVersions.VerifiedAssemblyVersions.SequenceEqual(
                    new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0) })
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.0")
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.3")
                && PitFireTeamVersions.IsSupportedAssemblyVersion(new Version(0, 10, 3, 0)),
-            "the accepted set is exactly the two diffed builds");
-        // A set, not a range: the builds between them were never compared, and a
-        // newer one cannot be assumed to keep a private reflected signature.
-        foreach (var unsupported in new[] { "0.10.1", "0.10.2", "0.10.4", "0.11.0", "0.10", "0.10.0.0", " ", "", null })
+            "the verified baselines stay distinct from forward admission");
+        foreach (var supported in new[] { "0.10.0", "0.10.0.0", "0.10.3", "0.10.3.0", "0.10.3.1", "0.10.4", "0.11.0", "1.0.0", "12.0.0.4" })
+        {
+            var version = new Version(supported);
+            Assert(PitFireTeamVersions.IsSupportedPluginVersion(supported), "admitted plugin " + supported);
+            Assert(PitFireTeamVersions.IsSupportedAssemblyVersion(version), "admitted assembly " + supported);
+            Assert(PitFireTeamVersions.IsSupportedIdentity(supported, version), "matching admitted pair " + supported);
+        }
+        Assert(PitFireTeamVersions.IsSupportedIdentity("0.10.3", new Version(0, 10, 3, 0))
+               && PitFireTeamVersions.IsSupportedIdentity("0.10.3.0", new Version(0, 10, 3)),
+            "three and four component zero revisions normalize identically");
+        Assert(!PitFireTeamVersions.IsSupportedIdentity("0.10.4", new Version(0, 10, 3, 0))
+               && !PitFireTeamVersions.IsSupportedIdentity("0.10.4.1", new Version(0, 10, 4, 2)),
+            "metadata and assembly cannot silently name different admitted builds");
+        foreach (var unsupported in new[] { "0.9.9", "0.10.0.1", "0.10.1", "0.10.2", "0.10", "0.10.4-beta", "beta-0.10.4", "0.10.4.0.1", " ", "", null })
             Assert(!PitFireTeamVersions.IsSupportedPluginVersion(unsupported),
-                "an undiffed or malformed plugin version is rejected: " + (unsupported ?? "null"));
-        foreach (var unsupported in new[]
-                 {
-                     new Version(0, 10, 1, 0), new Version(0, 10, 2, 0), new Version(0, 10, 4, 0),
-                     new Version(0, 10, 3, 1), new Version(0, 10, 3), new Version(0, 11, 0, 0)
-                 })
-            Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(unsupported),
-                "an undiffed assembly version is rejected: " + unsupported);
-        Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(null),
-            "a missing assembly version is rejected");
+                "older gap or malformed plugin version is rejected: " + (unsupported ?? "null"));
+        foreach (var unsupported in new[] { new Version(0, 10, 1, 0), new Version(0, 10, 2, 0), new Version(0, 10), new Version(0, 10, 0, 1) })
+            Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(unsupported), "older or incomplete assembly rejected: " + unsupported);
+        Assert(!PitFireTeamVersions.IsSupportedAssemblyVersion(null), "a missing assembly version is rejected");
+        Assert(!PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 0))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 3))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 3, 1))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0)),
+            "warnings distinguish known baselines from untested newer versions");
 
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical", "zombie" })
         {
@@ -608,32 +618,36 @@ internal static class Program
             "ArenaMode.Server/Patches/PitFireTeamDynamicPersistencePatches.cs");
         Assert(compat.Contains("PluginGuid = \"xyz.pit.fireteam\"", StringComparison.Ordinal)
                && compat.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
-               && compat.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)", StringComparison.Ordinal),
+               && compat.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)", StringComparison.Ordinal)
+               && compat.Contains("PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assembly.GetName().Version)", StringComparison.Ordinal),
             "runtime adapter pins the supported PitFireTeam identity and checks both version identities");
-        // Every gate reads the one list, and none of them keeps a private copy:
+        // Every gate reads the shared admission policy and matching build identity:
         // six places accepting "a version" independently is how a build slips in
         // through the half of the contract nobody remembered to widen.
-        Assert(versions.Contains("SupportedPluginVersions = { \"0.10.0\", \"0.10.3\" }", StringComparison.Ordinal)
+        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\" }", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)", StringComparison.Ordinal)
-               && goalContext.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(", StringComparison.Ordinal)
+               && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyName.Version)", StringComparison.Ordinal)
+               && goalContext.Contains("PitFireTeamVersions.IsSupportedIdentity(", StringComparison.Ordinal)
                && serverPersistence.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(version)", StringComparison.Ordinal)
                // 0.10.3's new teammate-settings transaction is gated like its
-               // aggression/tactic siblings, and mandatorily so on that build.
+               // aggression/tactic siblings, and mandatorily so on that and future builds.
                && serverPersistence.Contains(
                    "\"SetTeammateProficiency\", \"System.Void\",", StringComparison.Ordinal)
                && serverPersistence.Contains(
-                   "RequiredForAssemblyVersions: [new Version(0, 10, 3, 0)]", StringComparison.Ordinal)
+                   "RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.MinimumForwardVersion", StringComparison.Ordinal)
                && serverPersistence.Contains(
-                   "contract.RequiredForAssemblyVersions.Contains(installed)", StringComparison.Ordinal)
-               && serverPersistence.Contains("AppliesToInstalledBuild(contract, version)", StringComparison.Ordinal)
-               && serverPersistence.IndexOf("AppliesToInstalledBuild(contract, version)", StringComparison.Ordinal)
-                  < serverPersistence.IndexOf("ResolveContract(pitFireTeam, contract)", StringComparison.Ordinal)
+                   "new Version(installed.Major, installed.Minor, installed.Build, Math.Max(0, installed.Revision))", StringComparison.Ordinal)
+               && serverPersistence.Contains(
+                   ".CompareTo(contract.RequiredFromAssemblyVersion) >= 0", StringComparison.Ordinal)
+               && serverPersistence.Contains("TryResolveApplicableContracts(pitFireTeam, version, contracts, resolved)", StringComparison.Ordinal)
+               && serverPersistence.IndexOf("TryResolveApplicableContracts(pitFireTeam, version, contracts, resolved)", StringComparison.Ordinal)
+                  < serverPersistence.IndexOf("ResolveContract(assembly, contract)", StringComparison.Ordinal)
                && !compat.Contains("new System.Version(0, 10", StringComparison.Ordinal)
                && !roundLifecycle.Contains("new System.Version(0, 10", StringComparison.Ordinal)
                && !goalContext.Contains("new Version(0, 10", StringComparison.Ordinal)
                && !serverPersistence.Contains("new(0, 10", StringComparison.Ordinal),
-            "all six version gates read the shared accepted set instead of their own literal");
+            "all version gates read the shared policy and newer builds retain proficiency protection");
         // Arena reflects private members and patches a private activation seam;
         // the lifecycle must re-check the build it was handed, not the list.
         Assert(compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, pluginVersion)", StringComparison.Ordinal)
@@ -1552,9 +1566,7 @@ internal static class Program
             "installed BepInEx PitFireTeam GUID and metadata version match the adapter");
         // The two identities are forgeable separately, so the installed build must
         // agree with itself before Arena trusts either against its accepted set.
-        Assert($"{pit.Name.Version.Major}.{pit.Name.Version.Minor}.{pit.Name.Version.Build}"
-               == (string)bepin.ConstructorArguments[2].Value
-               && pit.Name.Version.Revision == 0,
+        Assert(PitFireTeamVersions.IsSupportedIdentity((string)bepin.ConstructorArguments[2].Value, pit.Name.Version),
             "installed PitFireTeam metadata and assembly versions describe one build");
 
         var selectedType = pit.MainModule.GetType("pitTeam.Patches.MainMenuControllerPatch")

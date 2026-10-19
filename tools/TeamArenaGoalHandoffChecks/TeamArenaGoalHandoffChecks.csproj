@@ -13,6 +13,7 @@
     <DiagnosticsSource Condition="'$(DiagnosticsSource)' == ''">../../ArenaMode.Client/Bots/TeamArenaAwarenessDiagnostics.cs</DiagnosticsSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/PitFireTeamVersions.cs" Link="Production/PitFireTeamVersions.cs" />
     <Compile Include="$(HandoffSource)" Link="Production/TeamArenaGoalHandoff.cs" />
     <Compile Include="$(ContextSource)" Link="Production/PitFireTeamGoalContext.cs" />
     <Compile Include="$(RoundSource)" Link="Production/TacticalMode.Pursuit.cs" />

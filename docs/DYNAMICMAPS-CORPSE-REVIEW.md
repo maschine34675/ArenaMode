@@ -1,5 +1,11 @@
 # Arena corpse markers in optional DynamicMaps
 
+Update 2026-10-19: the version gate now admits DynamicMaps 1.2.1 or newer,
+normalizing a missing revision to zero. Newer versions warn once per process;
+all reflected API and exact-body/lifetime checks remain required. The historical
+installed-contract evidence below still refers to 1.2.1. See
+[forward-version admission](OPTIONAL-MOD-VERSIONS-20261019.md).
+
 Snapshot: 2026-09-12. Source implementation on `feature/arena-visibility-movement`.
 Native GPU acceptance remains pending; no DLL deployment belongs to this change.
 
@@ -88,10 +94,11 @@ world-identity check also rejects evidence from a different GameWorld. Both
 creation and removal hooks return without suppression outside Arena. Shutdown
 removes only this adapter's Harmony patches and clears its state.
 
-Compatibility is optional and currently reviewed for DynamicMaps **1.2.1 only**.
-Missing plugin leaves native behavior alone without a warning. Other versions,
+Compatibility is optional, with **1.2.1** as the reviewed baseline and minimum.
+Missing plugin leaves native behavior alone without a warning. Newer versions
+attempt the unchanged API checks with one advisory. Missing/older versions,
 changed contracts or patch failure leave the adapter disabled and produce a
-bounded warning. No DynamicMaps assembly/project reference or bundled file is
+bounded failure warning. No DynamicMaps assembly/project reference or bundled file is
 added. Parent-owned Plugin wiring uses a soft BepInEx dependency, `Enable()` in
 Awake and `Shutdown()` in OnDestroy; it does not make DynamicMaps mandatory.
 

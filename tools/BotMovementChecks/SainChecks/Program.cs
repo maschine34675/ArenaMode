@@ -1,4 +1,5 @@
 using ArenaMode;
+using ArenaMode.Bots;
 using ArenaMode.Movement;
 using EFT;
 using System.Reflection;
@@ -14,6 +15,12 @@ internal static class Program
         try
         {
             var scenario = args.Length == 0 ? "valid" : args[0];
+            if (scenario == "versions")
+            {
+                RunVersions();
+                Console.WriteLine($"BOT_MOVEMENT_SAIN_BEHAVIOR_PASSED: {scenario}, {_assertions} assertions");
+                return 0;
+            }
             var player = new Player();
             var owner = new BotOwner { GetPlayer = player };
             ArenaBotMovementSain.Enable();
@@ -25,18 +32,21 @@ internal static class Program
 
             // This event occurs after the adapter cached absence. No reflective
             // reset of production state: exercise its real AssemblyLoad hook.
-            var fake = FakeSain.Create(scenario == "bad-version" ? new Version(4, 6, 0, 0) : new Version(4, 5, 1, 0),
-                changedGetter: scenario == "bad-shape");
-            if (scenario is "bad-version" or "bad-shape")
+            bool future = scenario is "future" or "future-bad-shape";
+            int advisoryCount = future ? 1 : 0;
+            var fake = FakeSain.Create(scenario == "bad-version" ? new Version(4, 5, 0, 0)
+                    : future ? new Version(4, 6, 0, 0) : new Version(4, 5, 1, 0),
+                changedGetter: scenario is "bad-shape" or "future-bad-shape");
+            if (scenario is "bad-version" or "bad-shape" or "future-bad-shape")
             {
                 Check(!ArenaBotMovementSain.AllowsBoost(owner, player), "unsupported late assembly closes native bonus");
-                Check(Plugin.ModLogger.Warnings.Count == 1, "contract failure diagnosed once");
+                Check(Plugin.ModLogger.Warnings.Count == 1 + advisoryCount, "contract failure diagnosed once");
                 Check(!ArenaBotMovementSain.AllowsBoost(owner, player), "unsupported contract remains closed");
-                Check(Plugin.ModLogger.Warnings.Count == 1, "unsupported contract does not spam");
+                Check(Plugin.ModLogger.Warnings.Count == 1 + advisoryCount, "unsupported contract does not spam");
             }
-            else if (scenario == "valid")
+            else if (scenario is "valid" or "future")
             {
-                RunValid(fake, owner, player);
+                RunValid(fake, owner, player, advisoryCount);
             }
             else throw new InvalidOperationException("Unknown scenario " + scenario);
 
@@ -50,7 +60,33 @@ internal static class Program
         }
     }
 
-    private static void RunValid(FakeSain fake, BotOwner owner, Player player)
+    private sealed class IdentityAssembly(AssemblyName identity) : Assembly
+    {
+        public override AssemblyName GetName() => identity;
+    }
+
+    private static void RunVersions()
+    {
+        Assembly Named(string name, Version version) => new IdentityAssembly(new AssemblyName(name) { Version = version });
+        foreach (var assembly in new[] { null, Named("SAIN", null), Named("Foreign", new Version(9, 0, 0, 0)),
+            Named("SAIN", new Version(4, 5)), Named("SAIN", new Version(4, 5, 0, 99)) })
+        {
+            bool rejected = false;
+            try { ArenaSainVersion.Require(assembly); }
+            catch (InvalidOperationException) { rejected = true; }
+            Check(rejected, "missing, malformed, foreign or older identity rejected");
+        }
+        foreach (var version in new[] { new Version(4, 5, 1), new Version(4, 5, 1, 0) })
+            ArenaSainVersion.Require(Named("SAIN", version));
+        Check(Plugin.ModLogger.Warnings.Count == 0, "equivalent baseline identities do not warn");
+        foreach (var version in new[] { new Version(4, 5, 1, 1), new Version(4, 5, 2), new Version(4, 6, 0), new Version(5, 0, 0) })
+            for (int adapter = 0; adapter < 6; adapter++) ArenaSainVersion.Require(Named("SAIN", version));
+        Check(Plugin.ModLogger.Warnings.Count == 1, "future warning is shared across six adapters and repeated binds");
+        Check(Plugin.ModLogger.Warnings[0].Contains("tested with 4.5.1")
+            && Plugin.ModLogger.Warnings[0].Contains("runtime safety checks"), "future version does not claim compatibility certification");
+    }
+
+    private static void RunValid(FakeSain fake, BotOwner owner, Player player, int advisoryCount)
     {
         Check(ArenaBotMovementSain.AllowsBoost(owner, player), "known SAIN without component leaves native bot alone");
         var component = fake.NewComponent();
@@ -97,7 +133,7 @@ internal static class Program
         Check(ReferenceEquals(fake.Get(component, "Player"), player), "component player was never rewritten");
         Check(ReferenceEquals(fake.Get(component, "DoorOpener"), door), "component door was never rewritten");
         Check(ReferenceEquals(fake.Get(door, "Bot"), component), "door ownership was never rewritten");
-        Check(Plugin.ModLogger.Warnings.Count == 1, "uncertain ownership warns at most once across bots/frames");
+        Check(Plugin.ModLogger.Warnings.Count == 1 + advisoryCount, "uncertain ownership warns at most once across bots/frames");
     }
 
     private static void Check(bool condition, string message)

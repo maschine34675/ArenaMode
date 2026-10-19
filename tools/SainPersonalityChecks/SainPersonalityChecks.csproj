@@ -10,6 +10,7 @@
     <ProductionSource Condition="'$(ProductionSource)' == ''">../../ArenaMode.Client/Bots/ArenaSainPersonalities.cs</ProductionSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Bots/ArenaSainVersion.cs" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(ProductionSource)" Link="Production/ArenaSainPersonalities.cs" />
   </ItemGroup>
 </Project>

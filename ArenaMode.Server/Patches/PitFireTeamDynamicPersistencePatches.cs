@@ -30,12 +30,10 @@ public static class PitFireTeamDynamicPersistencePatches
         "PitFireTeam persistence protection has not been initialized.";
 
     /// <summary>
-    /// <paramref name="RequiredForAssemblyVersions"/> null means every accepted
-    /// PitFireTeam build must expose this method. A non-empty set narrows the
-    /// requirement to the builds that introduced it, and it is still MANDATORY
-    /// there: a listed build that cannot resolve it rejects the whole guard.
-    /// This is not an "optional" flag — nothing is ever merely skipped when the
-    /// installed build is one that ships the transaction.
+    /// <paramref name="RequiredFromAssemblyVersion"/> null means every admitted
+    /// PitFireTeam build must expose this method. Otherwise that build and all
+    /// later builds MUST expose it: opening version admission must never drop a
+    /// previously protected transaction from a newer build.
     /// </summary>
     private sealed record MethodContract(
         string TypeName,
@@ -43,7 +41,7 @@ public static class PitFireTeamDynamicPersistencePatches
         string ReturnTypeName,
         int SessionParameterIndex = 0,
         bool IsPublic = true,
-        Version[]? RequiredForAssemblyVersions = null);
+        Version? RequiredFromAssemblyVersion = null);
 
     /// <summary>Automatic raid-result work affecting profile, mail, queues, or PFT caches.</summary>
     private static readonly MethodContract[] RaidPersistenceContracts =
@@ -88,7 +86,7 @@ public static class PitFireTeamDynamicPersistencePatches
         // tactic: same session-scoped settings write, same store. Leaving it out
         // would let one teammate-settings edit skip the scope the other two get.
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateProficiency", "System.Void",
-            RequiredForAssemblyVersions: [new Version(0, 10, 3, 0)]),
+            RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.MinimumForwardVersion),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateTactic", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAutoJoin", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean"),
@@ -262,20 +260,8 @@ public static class PitFireTeamDynamicPersistencePatches
                      (RecoveryContracts, recoveryTargets),
                  })
         {
-            foreach (MethodContract contract in contracts)
-            {
-                if (!AppliesToInstalledBuild(contract, version))
-                    continue;
-
-                MethodInfo? target = ResolveContract(pitFireTeam, contract);
-                if (target == null)
-                {
-                    RejectContract(contract.TypeName, contract.MethodName);
-                    return;
-                }
-
-                resolved.Add(target);
-            }
+            if (!TryResolveApplicableContracts(pitFireTeam, version, contracts, resolved))
+                return;
         }
 
         foreach (MethodContract contract in OperationBoundaryContracts)
@@ -506,6 +492,9 @@ public static class PitFireTeamDynamicPersistencePatches
 
             IsCompatible = true;
             IncompatibilityReason = string.Empty;
+            if (ArenaMode.Shared.PitFireTeamVersions.IsNewerThanVerified(version))
+                ArenaContext.Logger?.Warning(
+                    $"[ArenaMode] Attempting PitFireTeam server {version}, newer than the verified 0.10.3 baseline; persistence contracts passed, but this version has not been tested.");
             // Report the RESOLVED management count, not the table length: a build
             // that predates a narrowed contract legitimately guards one fewer
             // transaction, and the log has to say which it actually patched.
@@ -529,13 +518,31 @@ public static class PitFireTeamDynamicPersistencePatches
     }
 
     /// <summary>
-    /// Whether the installed build must expose this contract. A build outside a
-    /// narrowed set never reaches ResolveContract, so its absence there is not a
-    /// rejection; a build inside it is held to the ordinary exact requirement.
+    /// Whether the installed build must expose this contract. A method added
+    /// after the legacy baseline remains mandatory for every admitted newer build.
     /// </summary>
     private static bool AppliesToInstalledBuild(MethodContract contract, Version? installed)
-        => contract.RequiredForAssemblyVersions == null
-           || (installed != null && contract.RequiredForAssemblyVersions.Contains(installed));
+        => contract.RequiredFromAssemblyVersion == null
+           || (installed != null && installed.Build >= 0
+               && new Version(installed.Major, installed.Minor, installed.Build, Math.Max(0, installed.Revision))
+                   .CompareTo(contract.RequiredFromAssemblyVersion) >= 0);
+
+    private static bool TryResolveApplicableContracts(
+        Assembly assembly, Version? version, MethodContract[] contracts, List<MethodInfo> resolved)
+    {
+        foreach (MethodContract contract in contracts)
+        {
+            if (!AppliesToInstalledBuild(contract, version)) continue;
+            MethodInfo? target = ResolveContract(assembly, contract);
+            if (target == null)
+            {
+                RejectContract(contract.TypeName, contract.MethodName);
+                return false;
+            }
+            resolved.Add(target);
+        }
+        return true;
+    }
 
     private static MethodInfo? ResolveContract(Assembly assembly, MethodContract contract)
     {

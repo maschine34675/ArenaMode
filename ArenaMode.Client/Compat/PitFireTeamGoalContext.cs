@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace ArenaMode.Compat;
 
-/// <summary>Optional exact-version API reference only; no PFT implementation or dependency is bundled.</summary>
+/// <summary>Optional version-admitted API reference only; no PFT implementation or dependency is bundled.</summary>
 internal static class PitFireTeamGoalContext
 {
     internal const string Source = "ArenaMode.TeamArenaPursuit";
@@ -12,13 +12,13 @@ internal static class PitFireTeamGoalContext
     private static MethodInfo _begin;
     private static MethodInfo _currentReason;
 
-    internal static bool Configure(Assembly assembly, out string problem)
+    internal static bool Configure(Assembly assembly, string pluginVersion, out string problem)
     {
         _begin = null;
         _currentReason = null;
         problem = "pft-goal-context-contract-unavailable";
         if (assembly?.GetName().Name != "pitFireTeam"
-            || !PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)) return false;
+            || !PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assembly.GetName().Version)) return false;
         const string trackerName = "pitTeam.Modules.FollowerGoalEnemyTracker";
         var tracker = assembly.GetType(trackerName, false);
         var scope = assembly.GetType(trackerName + "+GoalEnemySetScope", false);

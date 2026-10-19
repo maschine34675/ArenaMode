@@ -9,11 +9,12 @@ using EFT;
 using EFT.Interactive;
 using HarmonyLib;
 using UnityEngine;
+using Version = System.Version;
 
 namespace ArenaMode.Compat;
 
 /// <summary>
-/// Optional DynamicMaps 1.2.1 UI integration. Arena keeps native corpses alive;
+/// Optional DynamicMaps 1.2.1+ UI integration. Arena keeps native corpses alive;
 /// the map otherwise keeps their skulls alive too. Remove only its own marker,
 /// through its own removal method, after the exact corpse completed trimming.
 /// See DYNAMICMAPS-CORPSE-REVIEW.md for the installed contract and native owners.
@@ -21,11 +22,14 @@ namespace ArenaMode.Compat;
 internal static class DynamicMapsCorpseMarkers
 {
     internal const string PluginGuid = "com.mpstark.dynamicmaps";
+    private static readonly Version ReviewedVersion = new Version(1, 2, 1, 0);
     private static readonly Harmony Patches = new Harmony(Plugin.PluginGuid + ".DynamicMapsCorpseMarkers");
     private static readonly List<WeakReference<object>> Providers = new List<WeakReference<object>>();
     private static FieldInfo _playerCorpse, _markers;
     private static MethodInfo _remove;
     private static bool _enabled, _reportedFailure;
+    // A version notice belongs to the process, unlike a per-raid runtime failure.
+    private static bool _reportedNewerVersion;
 
     internal static void Enable()
     {
@@ -33,8 +37,9 @@ internal static class DynamicMapsCorpseMarkers
         if (!Chainloader.PluginInfos.TryGetValue(PluginGuid, out var info)) return;
         try
         {
-            if (info.Metadata.Version != new System.Version(1, 2, 1))
-                throw new NotSupportedException("reviewed DynamicMaps version is 1.2.1");
+            var version = NormalizeVersion(info.Metadata?.Version);
+            if (version == null || version < ReviewedVersion)
+                throw new NotSupportedException("DynamicMaps 1.2.1 or newer is required");
             var assembly = info.Instance.GetType().Assembly;
             var provider = assembly.GetType("DynamicMaps.DynamicMarkers.CorpseMarkerProvider", true);
             var marker = assembly.GetType("DynamicMaps.UI.Components.MapMarker", true);
@@ -55,7 +60,8 @@ internal static class DynamicMapsCorpseMarkers
             Patches.Patch(add, prefix: new HarmonyMethod(typeof(DynamicMapsCorpseMarkers), nameof(BeforeAddMarker))
                 { priority = Priority.Last });
             _enabled = true;
-            Plugin.ModLogger.LogDebug("Arena DynamicMaps: trimmed-corpse marker cleanup ready (1.2.1).");
+            Plugin.ModLogger.LogDebug("Arena DynamicMaps: trimmed-corpse marker cleanup ready (" + info.Metadata.Version + ").");
+            if (version > ReviewedVersion) WarnNewerVersionOnce(info.Metadata.Version);
         }
         catch (Exception ex)
         {
@@ -63,6 +69,18 @@ internal static class DynamicMapsCorpseMarkers
             Shutdown();
             WarnOnce(ex);
         }
+    }
+
+    private static Version NormalizeVersion(Version version)
+        => version == null || version.Build < 0 ? null
+            : new Version(version.Major, version.Minor, version.Build, Math.Max(0, version.Revision));
+
+    private static void WarnNewerVersionOnce(Version version)
+    {
+        if (_reportedNewerVersion) return;
+        _reportedNewerVersion = true;
+        Plugin.ModLogger.LogWarning("Arena DynamicMaps " + version
+            + " is newer than the tested 1.2.1; corpse marker cleanup is enabled with its API checks, but compatibility is unverified.");
     }
 
     private static MethodInfo ExactMethod(Type type, string name)

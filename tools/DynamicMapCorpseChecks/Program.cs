@@ -63,14 +63,20 @@ void Check(bool condition, string name)
     return (world, corpse, dead, retained);
 }
 
-foreach (var fault in new[] { "absent", "version", "instance", "patch" })
+foreach (var fault in new[] { "absent", "version", "unknown-version", "incomplete-version", "instance", "future-instance", "patch" })
 {
     var (_, corpse, dead, _) = Setup(false);
     switch (fault)
     {
         case "absent": Chainloader.PluginInfos.Clear(); break;
-        case "version": Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(1, 3, 0); break;
+        case "version": Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(1, 2, 0); break;
+        case "unknown-version": Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = null; break;
+        case "incomplete-version": Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(2, 0); break;
         case "instance": Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Instance = new object(); break;
+        case "future-instance":
+            Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(2, 0, 0);
+            Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Instance = new object();
+            break;
         case "patch": Harmony.ThrowOnPatch = true; break;
     }
     DynamicMapsCorpseMarkers.Enable();
@@ -216,6 +222,63 @@ foreach (var boundary in new[] { "ordinary", "reset", "world" })
         "once the marker is gone the body is released");
     Check(!DynamicMapsCorpseMarkers.BeforeAddMarker(stubborn, dead),
         "a released body is refused a new marker, which its own creation path could not survive");
+}
+
+// These are synthetic future metadata values using the known API fixture,
+// not evidence that an actual unreleased DynamicMaps build is compatible.
+foreach (var version in new[] { new Version(1, 2, 1), new Version(1, 2, 1, 0) })
+{
+    Setup(false);
+    Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = version;
+    DynamicMapsCorpseMarkers.Enable();
+    Check(Harmony.Hooks.Count == 1 && Plugin.ModLogger.Warnings.Count == 0,
+        "reviewed zero-revision versions bind without a newer-version warning " + version);
+}
+
+{
+    var (_, corpse, dead, retained) = Setup(false);
+    Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = new Version(1, 3, 0);
+    DynamicMapsCorpseMarkers.Enable();
+    Check(Harmony.Hooks.Count == 1, "future version enables exact marker hook");
+    Check(Plugin.ModLogger.Warnings.Count == 1 && Plugin.ModLogger.Warnings[0].Contains("newer than the tested"),
+        "future version reports unverified compatibility once");
+    var map = new CorpseMarkerProvider();
+    map.Reopen(new[] { dead, retained });
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(corpse) && !map.Contains(dead) && map.Contains(retained),
+        "future API-compatible version removes only the trimmed physical body's marker");
+    map.Add(dead);
+    Check(!map.Contains(dead), "future API-compatible version suppresses later trimmed markers");
+
+    DynamicMapsCorpseMarkers.Reset();
+    DynamicMapsCorpseMarkers.Shutdown();
+    DynamicMapsCorpseMarkers.Enable();
+    DynamicMapsCorpseMarkers.Enable();
+    Check(Harmony.Hooks.Count == 1 && Plugin.ModLogger.Warnings.Count == 1,
+        "newer-version warning survives reset shutdown and repeated enable");
+
+    // The compatibility notice must not swallow a genuine subsequent failure.
+    var broken = new CorpseMarkerProvider { ThrowOnRemove = true };
+    broken.Inject(dead);
+    broken.Add(retained);
+    DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
+    DynamicMapsCorpseMarkers.RemoveTrimmedMarkers();
+    Check(Plugin.ModLogger.Warnings.Count == 2 && Plugin.ModLogger.Warnings[1].Contains("map removal fault"),
+        "future-version notice and runtime failure have independent warning budgets");
+}
+
+foreach (var version in new[] { new Version(1, 2, 2), new Version(2, 0, 0), new Version(1, 2, 1, 1) })
+{
+    var (_, corpse, dead, retained) = Setup(false);
+    Chainloader.PluginInfos[DynamicMapsCorpseMarkers.PluginGuid].Metadata.Version = version;
+    DynamicMapsCorpseMarkers.Enable();
+    Check(Harmony.Hooks.Count == 1 && Plugin.ModLogger.Warnings.Count == 0,
+        "future patch major and revision versions bind without repeated process warning " + version);
+    var map = new CorpseMarkerProvider();
+    map.Reopen(new[] { dead, retained });
+    CorpseCleanupService.Tick();
+    Check(CorpseCleanupService.IsSuccessfullyTrimmed(corpse) && !map.Contains(dead) && map.Contains(retained),
+        "future patch major and revision versions retain physical cleanup contract " + version);
 }
 
 DynamicMapsCorpseMarkers.Shutdown();

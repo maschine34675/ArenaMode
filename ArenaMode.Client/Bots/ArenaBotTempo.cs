@@ -16,7 +16,7 @@ using UnityEngine.AI;
 
 namespace ArenaMode.Bots;
 
-/// <summary>Optional, exact-version SAIN adapter. Changes call inputs, never shared presets.</summary>
+/// <summary>Optional SAIN 4.5.1+ adapter with checked runtime contracts. Changes call inputs, never shared presets.</summary>
 internal static class ArenaBotTempo
 {
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".BotTempo");
@@ -69,7 +69,7 @@ internal static class ArenaBotTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogDebug("Arena bot tempo ready (SAIN 4.5.1): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.7; native actions and collision retained.");
+            Plugin.ModLogger.LogDebug($"Arena bot tempo ready (SAIN {assembly.GetName().Version}): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.7; native actions and collision retained.");
         }
         catch (Exception ex) { Patches.UnpatchSelf(); Warn(ex); }
     }
@@ -83,7 +83,7 @@ internal static class ArenaBotTempo
 
     private static void Bind(Assembly assembly)
     {
-        if (assembly.GetName().Version != new System.Version(4, 5, 1, 0)) throw new InvalidOperationException("expected SAIN 4.5.1.0");
+        ArenaSainVersion.Require(assembly);
         Type Type(string name) => assembly.GetType(name, true);
         _botType = Type("SAIN.Components.BotComponent");
         var search = Type("SAIN.Classes.Bot.Search.SearchClass");

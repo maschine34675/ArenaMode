@@ -1,5 +1,6 @@
 param([string]$SptPath = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
+if (-not ('ArenaMode.Shared.PitFireTeamVersions' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot '../../ArenaMode.Shared/PitFireTeamVersions.cs') }
 Add-Type -Path (Join-Path $SptPath 'BepInEx/core/Mono.Cecil.dll')
 $nativePath = Join-Path $SptPath 'EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll'
 $pftPath = Join-Path $SptPath 'BepInEx/plugins/pitFireTeam/pitFireTeam.dll'
@@ -14,7 +15,7 @@ function Calls($method) {
     return @($method.Body.Instructions | Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] } | ForEach-Object { $_.Operand.DeclaringType.FullName + '::' + $_.Operand.Name })
 }
 try {
-    if ($pft.Name.Version.ToString() -notin @('0.10.0.0', '0.10.3.0')) { throw 'Unsupported installed PFT identity' }
+    if ($pft.Name.Name -ne 'pitFireTeam' -or ![ArenaMode.Shared.PitFireTeamVersions]::IsSupportedAssemblyVersion($pft.Name.Version)) { throw 'Unsupported installed PFT identity' }
     $prefix = Method $pft 'pitTeam.Patches.HostileNonCombatActiveLayerFilterPatch' 'PatchPrefix'
     if (!$prefix.IsPrivate -or !$prefix.IsStatic -or $prefix.ReturnType.FullName -ne 'System.Void' -or
         ($prefix.Parameters.Name -join ',') -ne '__instance,prevResult,__state' -or

@@ -26,8 +26,7 @@ internal static class ArenaSainDisableSafety
     {
         try
         {
-            if (assembly?.GetName().Name != "SAIN" || assembly.GetName().Version != new System.Version(4, 5, 1, 0))
-                throw new InvalidOperationException("expected SAIN 4.5.1");
+            ArenaSainVersion.Require(assembly);
             var type = assembly.GetType("SAIN.Components.BotComponent", true);
             _activation = type.GetProperty("BotActivation");
             _owner = type.GetProperty("BotOwner");
@@ -41,7 +40,7 @@ internal static class ArenaSainDisableSafety
             Patches.Patch(disable, prefix: new HarmonyMethod(typeof(ArenaSainDisableSafety)
                 .GetMethod(nameof(BeforeDisable), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.First });
             _ready = true;
-            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 uninitialized-component teardown safeguard ready.");
+            Plugin.ModLogger.LogDebug($"Arena: optional SAIN {assembly.GetName().Version} uninitialized-component teardown safeguard ready.");
             return true;
         }
         catch (Exception ex) { Shutdown(); Warn(ex); return false; }

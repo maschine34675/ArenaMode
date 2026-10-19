@@ -36,7 +36,7 @@ internal static class TdmSearchTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogDebug("Arena TDM: SAIN 4.5.1 search delay argument capped at 5s for live adopted opponents; native decisions retained.");
+            Plugin.ModLogger.LogDebug($"Arena TDM: SAIN {assembly.GetName().Version} search delay argument capped at 5s for live adopted opponents; native decisions retained.");
         }
         catch (Exception ex)
         {
@@ -56,8 +56,7 @@ internal static class TdmSearchTempo
 
     private static void Bind(Assembly assembly)
     {
-        if (assembly.GetName().Name != "SAIN" || assembly.GetName().Version != new System.Version(4, 5, 1, 0))
-            throw new InvalidOperationException("expected SAIN assembly 4.5.1.0");
+        ArenaSainVersion.Require(assembly);
         var bot = assembly.GetType("SAIN.Components.BotComponent", true);
         var search = assembly.GetType("SAIN.Classes.Bot.Search.SearchClass", true);
         var decider = assembly.GetType("SAIN.Classes.Bot.Search.SearchDecider", true);

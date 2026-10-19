@@ -233,13 +233,17 @@ or future version has been tested. Optional mods retain their own prerequisites.
 
 | Mod | Integration target / purpose |
 |---|---|
-| **PitFireTeam** client and server | Exactly **0.10.0 or 0.10.3**; 1–4 companions for Tactical and Zombies. Not required for independent Team DM. |
-| **SAIN** | **4.5.1** adapters for personalities, pursuit and movement. Native AI remains available without it. |
+| **PitFireTeam** client and server | **0.10.0 or 0.10.3+**; 1–4 companions for Tactical and Zombies. Not required for independent Team DM. |
+| **SAIN** | **4.5.1+** adapters for personalities, pursuit and movement. Native AI remains available without it. |
 | **BigBrain** | **1.5.0+** (tested on 1.5.0; newer versions warn), with the bundled ArenaMode companion: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
-| **APBS** | **2.4.1** equipment/progression adapter. Not required for kit or bot generation. |
+| **APBS** | **2.4.1+** equipment/progression adapter. Not required for kit or bot generation. |
 | **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
 | **Killcam** | **1.0.0** is the current integration target; compatible API and enabled DeathReplay required. The former KillcamReplay plugin is not accepted. |
-| **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1**; not required for Arena's static Customs preview. |
+| **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1+**; not required for Arena's static Customs preview. |
+
+Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps and BigBrain are attempted
+with a warning; required API and protection checks still apply. PFT 0.10.1 and
+0.10.2 remain excluded. Passing these checks does not certify a future release.
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant
 RaidInfoPanels and CombatSlide functionality; neither is a required separate

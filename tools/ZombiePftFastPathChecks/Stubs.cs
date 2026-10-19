@@ -127,7 +127,7 @@ namespace ArenaMode
 }
 namespace BepInEx.Bootstrap
 {
-    public class Metadata { public Version Version = new(0, 10, 3); }
+    public class Metadata { public Version Version = typeof(pitTeam.Fixture).Assembly.GetName().Version; }
     public class Info { public object Instance = new pitTeam.Fixture(); public Metadata Metadata = new(); }
     public static class Chainloader { public static Dictionary<string, Info> PluginInfos = new(); }
 }

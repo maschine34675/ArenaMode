@@ -42,7 +42,10 @@ try {
     Reject-Mutant 'destroy-behind-a-held-skull' 'AdapterSource' 'if (!_enabled || player == null) return false;' 'if (true) return false;' 'a body whose map marker is still held is never destroyed'
     Reject-Mutant 'leak-world-evidence' 'CleanupSource' '&& ReferenceEquals(state.World, Singleton<GameWorld>.Instance)' '&& true' 'lifetime boundary stops both suppression paths world'
     Reject-Mutant 'retain-reset-evidence' 'CleanupSource' 'Trimmed.Clear();' '// regression: retain previous trim evidence' 'lifetime boundary stops both suppression paths reset'
-    Reject-Mutant 'unreviewed-version' 'AdapterSource' 'info.Metadata.Version != new System.Version(1, 2, 1)' 'false' 'optional bind failure leaves no hook version'
+    Reject-Mutant 'ignore-version-floor' 'AdapterSource' 'version == null || version < ReviewedVersion' 'false' 'optional bind failure leaves no hook version'
+    Reject-Mutant 'restore-version-ceiling' 'AdapterSource' 'version == null || version < ReviewedVersion' 'version == null || version != ReviewedVersion' 'future version enables exact marker hook'
+    Reject-Mutant 'repeat-newer-version-warning' 'AdapterSource' 'if (_reportedNewerVersion) return;' '// regression: repeat process warning' 'newer-version warning survives reset shutdown and repeated enable'
+    Reject-Mutant 'omit-newer-version-warning' 'AdapterSource' 'Plugin.ModLogger.LogWarning("Arena DynamicMaps "' 'Plugin.ModLogger.LogDebug("Arena DynamicMaps "' 'future version reports unverified compatibility once'
     Reject-Mutant 'suppress-all-bodies' 'AdapterSource' 'return !IsTrimmed(__0);' 'return false;' 'untrimmed bodies retain markers'
 }
 finally {

@@ -1,11 +1,12 @@
 param([string]$SptPath = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
+if (-not ('ArenaMode.Shared.PitFireTeamVersions' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot '../../ArenaMode.Shared/PitFireTeamVersions.cs') }
 Add-Type -Path (Join-Path $SptPath 'BepInEx/core/Mono.Cecil.dll')
 $pft = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'BepInEx/plugins/pitFireTeam/pitFireTeam.dll'))
 $game = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((Join-Path $SptPath 'EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll'))
 function MethodText($method) { return ($method.Body.Instructions | ForEach-Object { $_.ToString() }) -join "`n" }
 try {
-    if ($pft.Name.Name -ne 'pitFireTeam' -or $pft.Name.Version.ToString() -ne '0.10.0.0') { throw 'PFT version not reviewed' }
+    if ($pft.Name.Name -ne 'pitFireTeam' -or ![ArenaMode.Shared.PitFireTeamVersions]::IsSupportedAssemblyVersion($pft.Name.Version)) { throw 'Unsupported installed PFT identity' }
     $tracker = $pft.MainModule.GetType('pitTeam.Modules.FollowerGoalEnemyTracker')
     $scope = @($tracker.NestedTypes | Where-Object Name -eq 'GoalEnemySetScope')
     $begin = @($tracker.Methods | Where-Object Name -eq 'Begin')

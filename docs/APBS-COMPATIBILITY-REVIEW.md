@@ -58,7 +58,10 @@ are honored, despite its map-specific name. With the default enabled, our range
 can collapse to an edge; disabling it can bypass Arena's equipment progression.
 Switching between Weighted and Delta does not repair that ownership mismatch.
 
-The optional server adapter supports **APBS metadata version 2.4.1** only. Its
+Update 2026-10-19: the optional server adapter admits **APBS metadata version
+2.4.1 or newer**, warning once when newer than the reviewed baseline. SemVer
+precedence applies, including prereleases and build metadata. See
+[forward-version admission](OPTIONAL-MOD-VERSIONS-20261019.md). Its
 assembly version is still 2.0.0 and is unsuitable for this check. It resolves the
 exact loaded mod GUID and assemblies from SPT's mod list, checks that APBS's
 native level prefix is active, and validates all three synchronous signatures

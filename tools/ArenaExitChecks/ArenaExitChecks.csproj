@@ -9,6 +9,7 @@
     <WeaponSource Condition="'$(WeaponSource)' == ''">../../ArenaMode.Client/Bots/ArenaWeaponCallbackSafety.cs</WeaponSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Bots/ArenaSainVersion.cs" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(PickupSource)" Link="Production/Pickup.cs" />
     <Compile Include="$(DisableSource)" Link="Production/Disable.cs" />
     <Compile Include="$(WeaponSource)" Link="Production/Weapon.cs" />

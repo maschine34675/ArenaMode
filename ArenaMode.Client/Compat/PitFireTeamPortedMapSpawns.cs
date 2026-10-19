@@ -23,7 +23,7 @@ internal static class PitFireTeamPortedMapSpawns
     {
         if (assembly == null || !PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)
             || !PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)
-            || !string.Equals(pluginVersion, assembly.GetName().Version.ToString(3), StringComparison.Ordinal))
+            || !PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assembly.GetName().Version))
             throw new InvalidOperationException("PFT ported-map spawn adapter has an unsupported version.");
         var target = assembly.GetType(BotsPatch, true).GetMethod("GetClosestCorePoint",
             BindingFlags.NonPublic | BindingFlags.Instance, null,

@@ -10,7 +10,7 @@ namespace ArenaMode.Compat;
 /// <summary>
 /// Coverless imported maps still have real NavMesh paths. Do not enter native
 /// cover-graph fallbacks whose first node cannot exist, or fabricate cover data.
-/// Configured only after the existing exact-version PFT contract is accepted.
+/// Configured only after PFT version admission and reflected contracts succeed.
 /// </summary>
 internal static class PitFireTeamPortedMapCombat
 {

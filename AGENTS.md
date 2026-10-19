@@ -12,11 +12,16 @@ protection warnings or the independent LogDamageExceptions safety alarm.
 
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
-No Fika dependency. Arena is solo by default; the optional exact-version
+No Fika dependency. Arena is solo by default; the optional API-validated
 PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
 Zombie squad survival; read docs/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
-accepted builds are the exact set in `ArenaMode.Shared/PitFireTeamVersions.cs`
-(0.10.0 and 0.10.3), never a range — 0.10.1/0.10.2 were never diffed.
+accepted versions in `ArenaMode.Shared/PitFireTeamVersions.cs` are 0.10.0 and
+0.10.3 or newer; 0.10.1/0.10.2 remain excluded. Forward admission was explicitly
+requested on 2026-10-19. Keep metadata/assembly identity and every reflected
+profile-protection contract; the proficiency contract is mandatory from 0.10.3
+onward. SAIN 4.5.1+, APBS 2.4.1+ and DynamicMaps 1.2.1+ likewise attempt their
+existing APIs and warn once for newer unreviewed versions. This is not a promise
+of future compatibility. See docs/OPTIONAL-MOD-VERSIONS-20261019.md.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and
@@ -645,7 +650,7 @@ Open:
   See `docs/POOL-PREWARM-REVIEW.md`.
 - **Bounding the play area** on large maps (filter `SpawnPointParams` on the per-raid
   clone).
-- **PitFireTeam 5v5** — the optional 0.10.0/0.10.3 compatibility path now has a guarded
+- **PitFireTeam 5v5** — the optional 0.10.0/0.10.3+ compatibility path now has a guarded
   best-of-N round lifecycle and still needs a GPU playtest. It preserves the PMC entry
   loadout after a death, rebuilds fresh follower/opponent bodies between rounds, offers
   post-death third-person spectating, refreshes both teams' pursuit knowledge, and uses

@@ -37,8 +37,8 @@ $mutants = @(
     @{Name='list-replacement';Old='!ReferenceEquals(proof.List, layers) || proof.Version != version';New='proof.List == null'},
     @{Name='foreign-layer-owner';Old='|| !ReferenceEquals(first._owner, owner)';New=''},
     @{Name='cross-raid-counters';Old='_calls = _skipped = _standbyFallbacks = _layerChecks = _shapeFallbacks = _errors = 0;';New=';'},
-    @{Name='metadata-mismatch';Old='&& string.Equals(pluginVersion, assemblyVersion.ToString(3), StringComparison.Ordinal)';New='&& true'},
-    @{Name='unknown-pft-version';Old="=> PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)`n            && PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyVersion)";New='=> assemblyVersion != null'}
+    @{Name='metadata-mismatch';Old='&& PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyVersion)';New='&& true'},
+    @{Name='unknown-pft-version';Old="=> PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)`n            && PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyVersion)`n            && PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyVersion)";New='=> assemblyVersion != null'}
 )
 $source = [IO.File]::ReadAllText($sourcePath).Replace("`r`n", "`n")
 foreach ($mutant in $mutants) {

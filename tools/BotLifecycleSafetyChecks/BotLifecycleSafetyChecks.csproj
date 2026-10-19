@@ -13,6 +13,7 @@
     <SainSource Condition="'$(SainSource)' == ''">../../ArenaMode.Client/Bots/ArenaSainActionSafety.cs</SainSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Bots/ArenaSainVersion.cs" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(SafetySource)" Link="Production/ArenaBotLifecycleSafety.cs" />
     <Compile Include="$(ScopeSource)" Link="Production/ArenaBotLifecycleScope.cs" />
     <Compile Include="$(SainSource)" Link="Production/ArenaSainActionSafety.cs" />

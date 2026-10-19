@@ -22,10 +22,10 @@ using System.Threading;
 namespace ArenaMode.Compat;
 
 /// <summary>
-/// Optional, version-locked adapter for the PitFireTeam builds listed in
+/// Optional, version-admitted adapter for the PitFireTeam policy in
 /// PitFireTeamVersions. No PitFireTeam type appears in a signature or build
-/// reference: the external assembly is inspected only after BepInEx reports one
-/// of those exact plugins as loaded.
+/// reference: the external assembly is inspected only after BepInEx reports
+/// the installed plugin as loaded; reflected contracts remain mandatory.
 /// </summary>
 internal static partial class PitFireTeamCompat
 {
@@ -1538,7 +1538,8 @@ internal static partial class PitFireTeamCompat
                 throw new InvalidOperationException(
                     $"version {pluginInfo.Metadata.Version ?? new System.Version(0, 0)} is unsupported (expected {PitFireTeamVersions.Describe})");
 
-            if (!PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version))
+            if (!PitFireTeamVersions.IsSupportedAssemblyVersion(assembly.GetName().Version)
+                || !PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assembly.GetName().Version))
                 throw new InvalidOperationException($"assembly identity '{assembly.FullName}' is unsupported");
 
             var selectedGroupType = RequireType(assembly, SelectedGroupTypeName);
@@ -1653,13 +1654,15 @@ internal static partial class PitFireTeamCompat
                     + roundCapability.Reason);
             }
 
-            if (!PitFireTeamGoalContext.Configure(assembly, out string goalContextProblem))
+            if (!PitFireTeamGoalContext.Configure(assembly, pluginVersion, out string goalContextProblem))
                 Plugin.ModLogger.LogWarning("Arena PFT pursuit goal handoff unavailable: " + goalContextProblem);
             PitFireTeamPortedMapSpawns.Configure(assembly, pluginVersion, Harmony);
             PitFireTeamPortedMapCombat.Configure(Harmony);
             PitFireTeamAreaSpawns.Configure(assembly, Harmony);
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
+            if (PitFireTeamVersions.IsNewerThanVerified(assembly.GetName().Version))
+                Plugin.ModLogger.LogWarning($"Arena is attempting PitFireTeam {pluginVersion}, newer than the verified 0.10.3 baseline; reflected contracts passed, but this version has not been tested.");
             Plugin.ModLogger.LogInfo(
                 $"Arena found compatible PitFireTeam {pluginVersion}; optional Tactical/Zombie squad integration is available.");
         }

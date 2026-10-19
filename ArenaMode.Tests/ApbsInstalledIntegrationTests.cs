@@ -8,6 +8,7 @@ using ArenaMode.Server;
 using ArenaMode.Server.Patches;
 using ArenaMode.Server.Services;
 using HarmonyLib;
+using SPTarkov.Common.Models.Logging;
 using SPTarkov.Reflection.Patching;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.Generators.Bot;
@@ -21,11 +22,26 @@ using SPTarkov.Server.Core.Services.Bot;
 using SPTarkov.Server.Core.Utils;
 using NativeCloner = SPTarkov.Server.Core.Utils.Cloners.FastCloner;
 using Path = System.IO.Path;
+using PatchManager = ArenaMode.Server.PatchManager;
 
 namespace ArenaMode.Tests;
 
 public sealed partial class BotTierScalePatchTests
 {
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("2.4.0", false)]
+    [InlineData("2.4.1-beta.1", false)]
+    [InlineData("2.4.1", true)]
+    [InlineData("2.4.1+rebuild", true)]
+    [InlineData("2.4.2-beta.1", true)]
+    [InlineData("2.4.2", true)]
+    [InlineData("2.5.0", true)]
+    [InlineData("3.0.0", true)]
+    public void ApbsVersionAdmissionHasOnlyASemanticMinimum(string? version, bool expected)
+        => Assert.Equal(expected, ApbsBotTierCompatibility.SupportsVersion(
+            version == null ? null : new SemanticVersioning.Version(version)));
+
     /// <summary>
     /// Loads the user's installed APBS in this isolated test process only.
     /// Runs native deferred/parallel wave generation, native FastCloner, all
@@ -39,18 +55,49 @@ public sealed partial class BotTierScalePatchTests
         string? root = Environment.GetEnvironmentVariable("ARENA_APBS_TEST_ROOT");
         Skip.If(string.IsNullOrEmpty(root), "Set ARENA_APBS_TEST_ROOT via tools/ApbsCompatibilityChecks/Verify.ps1");
         using var host = new InstalledApbsHost(root!);
+        using var logs = new ApbsLogScope();
         ApbsBotTierCompatibility.TryEnable([]);
         Assert.False(ApbsBotTierCompatibility.Enabled);
-        var wrongVersion = host.UnsupportedVersion();
+        var wrongVersion = host.WithVersion("2.4.0");
         ApbsBotTierCompatibility.TryEnable([wrongVersion]);
+        Assert.False(ApbsBotTierCompatibility.Enabled);
+        ApbsBotTierCompatibility.TryEnable([host.WithVersion(null)]);
         Assert.False(ApbsBotTierCompatibility.Enabled);
         ApbsBotTierCompatibility.TryEnable([host.Mod, host.Mod]);
         Assert.False(ApbsBotTierCompatibility.Enabled);
         ApbsBotTierCompatibility.TryEnable([host.Mod]); // Installed but not yet active: fail open.
         Assert.False(ApbsBotTierCompatibility.Enabled);
+        ApbsBotTierCompatibility.TryEnable([host.WithVersion("3.0.0")]);
+        Assert.False(ApbsBotTierCompatibility.Enabled); // A future version cannot bypass the active-prefix check.
         host.EnableApbs();
         ApbsBotTierCompatibility.TryEnable([host.Mod]);
         Assert.True(ApbsBotTierCompatibility.Enabled, ApbsBotTierCompatibility.FailureReason);
+        Assert.DoesNotContain(logs.Warnings, line => line.Contains("newer than the reviewed"));
+
+        // Synthetic metadata around the reviewed installed API proves admission,
+        // not compatibility with an actual unreleased APBS implementation.
+        foreach (string version in new[] { "2.4.1+rebuild", "2.4.2", "2.5.0", "3.0.0", "2.4.2-beta.1" })
+        {
+            ApbsBotTierCompatibility.Disable();
+            ApbsBotTierCompatibility.TryEnable([host.WithVersion(version)]);
+            Assert.True(ApbsBotTierCompatibility.Enabled, ApbsBotTierCompatibility.FailureReason);
+            host.Configure(0, false, 1);
+            var versionToken = StartTimedArena();
+            Assert.Single(host.Generate(new(ArenaSession), host.Wave(), Condition(versionToken, 300, 240)));
+            Assert.Equal((60, 70), (host.Samples.Single().Min, host.Samples.Single().Max));
+            if (version == "2.4.1+rebuild")
+                Assert.DoesNotContain(logs.Warnings, line => line.Contains("newer than the reviewed"));
+        }
+        Assert.Single(logs.Warnings, line => line.Contains("newer than the reviewed"));
+        ApbsBotTierCompatibility.Disable();
+        int beforeFailure = logs.Warnings.Count;
+        var brokenFuture = host.WithVersion("3.0.0", brokenContract: true);
+        ApbsBotTierCompatibility.TryEnable([brokenFuture]);
+        Assert.False(ApbsBotTierCompatibility.Enabled);
+        Assert.Contains("absent", ApbsBotTierCompatibility.FailureReason);
+        Assert.Equal(beforeFailure + 1, logs.Warnings.Count); // New-version warning cannot swallow a real failure.
+        ApbsBotTierCompatibility.TryEnable([host.Mod]);
+        Assert.True(ApbsBotTierCompatibility.Enabled);
 
         foreach (int mode in new[] { 0, 1 }) // Delta and Weighted.
         foreach (bool split in new[] { false, true })
@@ -210,8 +257,10 @@ public sealed partial class BotTierScalePatchTests
         internal void EnableApbs() => _harmony.Patch(
             AccessTools.Method(typeof(BotLevelGenerator), nameof(BotLevelGenerator.GenerateBotLevel)),
             prefix: new HarmonyMethod(_apbsPatch.GetType(), "Prefix"));
-        internal SptMod UnsupportedVersion() => new() { Directory = Mod.Directory, Assemblies = Mod.Assemblies,
-            ModMetadata = new ArenaMode.Server.ModMetadata { ModGuid = ApbsBotTierCompatibility.ModGuid, Version = new("2.4.2") } };
+        internal SptMod WithVersion(string? version, bool brokenContract = false) => new() { Directory = Mod.Directory,
+            Assemblies = brokenContract ? [typeof(ApbsBotTierCompatibility).Assembly] : Mod.Assemblies,
+            ModMetadata = new ArenaMode.Server.ModMetadata { ModGuid = ApbsBotTierCompatibility.ModGuid,
+                Version = version == null ? null! : new(version) } };
         internal void Configure(int mode, bool split, int level)
         {
             var modeProperty = _config.GetType().GetProperty("LevelPickingMode")!;
@@ -268,6 +317,26 @@ public sealed partial class BotTierScalePatchTests
             ApbsBotTierCompatibility.Disable();
             _harmony.UnpatchSelf();
             _current = null;
+        }
+    }
+
+    private sealed class ApbsLogScope : IDisposable
+    {
+        private readonly ISptLogger<PatchManager>? _previous = ArenaContext.Logger;
+        private readonly ISptLogger<PatchManager> _logger = DispatchProxy.Create<ISptLogger<PatchManager>, ApbsRecordingLogger>();
+        internal List<string> Warnings => ((ApbsRecordingLogger)_logger).Warnings;
+        internal ApbsLogScope() => ArenaContext.Logger = _logger;
+        public void Dispose() => ArenaContext.Logger = _previous;
+    }
+
+    public class ApbsRecordingLogger : DispatchProxy
+    {
+        internal readonly List<string> Warnings = [];
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            if (targetMethod?.Name == "Warning") Warnings.Add(args?[0]?.ToString() ?? "");
+            return targetMethod?.ReturnType == typeof(void) ? null
+                : targetMethod?.ReturnType.IsValueType == true ? Activator.CreateInstance(targetMethod.ReturnType) : null;
         }
     }
 }

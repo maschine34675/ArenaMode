@@ -80,17 +80,25 @@ static class Program
         Fresh();near.Destroyed=true;Check(PitFireTeamPortedMapSpawns.TryResolve(controller,new(),out var picked)&&ReferenceEquals(picked,far),"destroyed Unity core skipped");
         Fresh();near.Id=-1;Check(PitFireTeamPortedMapSpawns.TryResolve(controller,new(),out picked)&&ReferenceEquals(picked,far),"invalid core ID skipped");
         Fresh();near.Id=far.Id;Check(PitFireTeamPortedMapSpawns.TryResolve(controller,new(),out picked)&&ReferenceEquals(picked,far),"duplicate ID cannot reference wrong core");
-        Fresh();var harmony=new Harmony();PitFireTeamPortedMapSpawns.Configure(typeof(Program).Assembly,"0.10.3",harmony);
+        Fresh();var harmony=new Harmony();PitFireTeamPortedMapSpawns.Configure(typeof(Program).Assembly,typeof(Program).Assembly.GetName().Version.ToString(),harmony);
         Check(harmony.Target?.Name=="GetClosestCorePoint"&&harmony.Prefix!=null,"actual binding shape");
         object[] args={controller,new Vector3(),null};
         Check((bool)harmony.Prefix.Invoke(null,args)==false&&ReferenceEquals(args[2],near),"replacement result at native seam");
         controller.CoversData.Points.Add(new());args=[controller,new Vector3(),far];
         Check((bool)harmony.Prefix.Invoke(null,args)==true&&ReferenceEquals(args[2],far),"native sentinel untouched outside zero covers");
-        foreach(var version in new[]{"0.10.0","0.10.1","0.10.2","0.10.4",null})
+        foreach(var version in new[]{"0.9.9","0.10.0.1","0.10.1","0.10.2","99.99.99.9",null})
         {
             var rejected=false;try{PitFireTeamPortedMapSpawns.Configure(typeof(Program).Assembly,version,new Harmony());}catch(InvalidOperationException){rejected=true;}
             Check(rejected,"unsupported or mismatched plugin/assembly "+version);
         }
+        // Forward admission cannot turn a missing private spawn API into support.
+        var future = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("PftMissingApiFixture") { Version = new Version(0,10,4,7) },
+            System.Reflection.Emit.AssemblyBuilderAccess.RunAndCollect);
+        var missingApiRejected=false;
+        try { PitFireTeamPortedMapSpawns.Configure(future,"0.10.4.7",new Harmony()); }
+        catch(TypeLoadException) { missingApiRejected=true; }
+        Check(missingApiRejected,"admitted future build still requires native private spawn API");
         assertions+=AreaHarness.Run();
         assertions+=DiscoveryHarness.Run();
         Console.WriteLine($"PFT_PORTED_MAP_CHECKS_PASSED: {assertions} assertions; production resolver and native-hook binding, no game acceptance claimed.");

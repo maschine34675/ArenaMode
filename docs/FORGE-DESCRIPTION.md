@@ -116,17 +116,18 @@ custom settings when updating; restart the game/server after replacing DLLs.
 
 Optional integration targets:
 
-- **PitFireTeam 0.10.0 or 0.10.3**, client and server: 1–4 companions in Tactical
-  or Zombies. Other PFT versions are not accepted.
-- **SAIN 4.5.1:** personality, pursuit and movement adapters.
+- **PitFireTeam 0.10.0 or 0.10.3+**, client and server: 1–4 companions in Tactical
+  or Zombies. PFT 0.10.1 and 0.10.2 remain excluded.
+- **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
-- **APBS 2.4.1:** equipment/progression adapter.
+- **APBS 2.4.1+:** equipment/progression adapter.
 - **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
-- **DynamicMaps 1.2.1:** corpse-marker cleanup integration.
+- **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
 
-These targets are not a blanket guarantee for future versions or every mod
+Newer versions of these four mods are attempted with a warning while keeping
+the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod
 combination. Optional mods keep their own dependencies. RaidInfoPanels and
 CombatSlide functionality is already included for Arena. Fika activation is
 explicitly blocked.

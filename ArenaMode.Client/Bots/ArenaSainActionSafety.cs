@@ -32,8 +32,7 @@ internal static class ArenaSainActionSafety
     {
         try
         {
-            if (assembly?.GetName().Name != "SAIN" || assembly.GetName().Version != new System.Version(4, 5, 1, 0))
-                throw new InvalidOperationException("expected SAIN 4.5.1");
+            ArenaSainVersion.Require(assembly);
             var action = assembly.GetType("SAIN.Layers.BotAction", true);
             _component = assembly.GetType("SAIN.Components.BotComponent", true);
             _owner = action.GetProperty("BotOwner");
@@ -57,7 +56,7 @@ internal static class ArenaSainActionSafety
                     .GetMethod(nameof(BeforeStop), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.First });
             }
             _ready = true;
-            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 retired-action safeguard ready.");
+            Plugin.ModLogger.LogDebug($"Arena: optional SAIN {assembly.GetName().Version} retired-action safeguard ready.");
             return true;
         }
         catch (Exception exception)

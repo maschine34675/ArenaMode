@@ -1185,7 +1185,7 @@ public class PitFireTeamPersistenceGuardTests
         Skip.IfNot(File.Exists(assemblyPath), "PitFireTeam is optional and is not installed on this test host.");
 
         Assembly pitFireTeam = Assembly.LoadFrom(assemblyPath);
-        Assert.Contains(pitFireTeam.GetName().Version, ArenaMode.Shared.PitFireTeamVersions.SupportedAssemblyVersions);
+        Assert.True(ArenaMode.Shared.PitFireTeamVersions.IsSupportedAssemblyVersion(pitFireTeam.GetName().Version));
 
         InstalledMethodContract[] raidContracts =
         [
@@ -1219,7 +1219,7 @@ public class PitFireTeamPersistenceGuardTests
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateTactic", "System.Void"),
             // Mirrors production's version-narrowed contract, so this test
             // resolves against whichever accepted build is actually installed.
-            .. pitFireTeam.GetName().Version == new Version(0, 10, 3, 0)
+            .. pitFireTeam.GetName().Version >= PitFireTeamVersions.MinimumForwardVersion
                 ? new InstalledMethodContract[]
                 {
                     new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateProficiency", "System.Void"),
@@ -1344,7 +1344,7 @@ public class PitFireTeamPersistenceGuardTests
         ];
         allTargets = allTargets.Distinct().ToArray();
         // 0.10.3 adds exactly one management transaction (teammate proficiency).
-        int expectedManagement = pitFireTeam.GetName().Version == new Version(0, 10, 3, 0) ? 20 : 19;
+        int expectedManagement = pitFireTeam.GetName().Version >= PitFireTeamVersions.MinimumForwardVersion ? 20 : 19;
         Assert.Equal(11, raidTargets.Length);
         Assert.Equal(expectedManagement, managementTargets.Length);
         Assert.Equal(3, recoveryTargets.Length);

@@ -58,11 +58,11 @@ internal static class ArenaBotMovementSain
                 _state = BindingState.Absent;
                 return;
             }
-            if (assemblies.Length != 1
-                || assemblies[0].GetName().Version != new System.Version(4, 5, 1, 0))
-                throw new InvalidOperationException("expected one SAIN 4.5.1 assembly");
+            if (assemblies.Length != 1)
+                throw new InvalidOperationException("expected one SAIN assembly");
 
             var assembly = assemblies[0];
+            Bots.ArenaSainVersion.Require(assembly);
             var component = assembly.GetType("SAIN.Components.BotComponent", true);
             var componentBase = assembly.GetType("SAIN.Components.BotComponentBase", true);
             var door = assembly.GetType("SAIN.SAINComponent.Classes.Mover.DoorOpener", true);

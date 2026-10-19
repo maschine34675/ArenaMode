@@ -67,11 +67,14 @@ static class Program
     }
     static void Main()
     {
-        foreach (var version in new[] { "0.10.0", "0.10.3" })
+        foreach (var version in new[] { "0.10.0", "0.10.3", "0.10.4", "0.11.0", "1.0.0" })
             Check(ZombiePftFastPath.SupportedIdentity(version, new Version(version + ".0")), "supported identity " + version);
-        foreach (var version in new[] { "0.10.1", "0.10.2", "0.10.4", "1.0.0" })
+        foreach (var version in new[] { "0.9.9", "0.10.1", "0.10.2" })
             Check(!ZombiePftFastPath.SupportedIdentity(version, new Version(version + ".0")), "unknown identity " + version);
         Check(!ZombiePftFastPath.SupportedIdentity("0.10.0", new Version(0, 10, 3, 0)), "metadata/assembly mismatch");
+        Check(ZombiePftFastPath.SupportedIdentity("0.10.4.7", new Version(0, 10, 4, 7)), "future revision identity");
+        Check(ZombiePftFastPath.SupportedIdentity("0.10.3.0", new Version(0, 10, 3)), "normalized zero revision");
+        Check(!ZombiePftFastPath.SupportedIdentity("0.10.4.7", new Version(0, 10, 4, 8)), "future revision mismatch");
         Check(!ZombiePftFastPath.SupportedIdentity(null, null), "null identity");
         Chainloader.PluginInfos["xyz.pit.fireteam"] = new();
         ZombiePftFastPath.EnablePatch();

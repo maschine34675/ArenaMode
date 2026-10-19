@@ -93,7 +93,7 @@ internal static class ZombiePftFastPath
     internal static bool SupportedIdentity(string pluginVersion, System.Version assemblyVersion)
         => PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)
             && PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyVersion)
-            && string.Equals(pluginVersion, assemblyVersion.ToString(3), StringComparison.Ordinal);
+            && PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyVersion);
 
     internal static Func<List<AICoreLayer<BotLogicDecision>>, int> CreateListVersionReader()
     {

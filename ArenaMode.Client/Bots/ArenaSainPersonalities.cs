@@ -11,7 +11,7 @@ using System.Reflection;
 namespace ArenaMode.Bots;
 
 /// <summary>
-/// Optional SAIN 4.5.1 assignment adapter. Replace only passive assignments,
+/// Optional SAIN 4.5.1+ assignment adapter. Replace only passive assignments,
 /// before SAIN derives difficulty/search settings. Never edit shared presets or
 /// recalculate an existing follower's timers: PFT owns its forget-time override.
 /// </summary>
@@ -39,9 +39,7 @@ internal static class ArenaSainPersonalities
     {
         try
         {
-            if (assembly?.GetName().Name != "SAIN"
-                || assembly.GetName().Version != new System.Version(4, 5, 1, 0))
-                throw new InvalidOperationException("expected SAIN 4.5.1");
+            ArenaSainVersion.Require(assembly);
             var info = assembly.GetType("SAIN.SAINComponent.Classes.Info.SAINBotInfoClass", true);
             var plugin = assembly.GetType("SAIN.SAINPlugin", true);
             var select = info.GetMethod("GetPersonality", BindingFlags.Instance | BindingFlags.Public);
@@ -78,7 +76,7 @@ internal static class ArenaSainPersonalities
             Patches.Patch(select, postfix: new HarmonyMethod(selectionPatch) { priority = Priority.Last });
             Patches.Patch(setter, prefix: new HarmonyMethod(setterPatch) { priority = Priority.Last });
             _ready = true;
-            Plugin.ModLogger.LogDebug("Arena: optional SAIN 4.5.1 personality filter ready (Rat, Timmy, Coward -> Normal).");
+            Plugin.ModLogger.LogDebug($"Arena: optional SAIN {assembly.GetName().Version} personality filter ready (Rat, Timmy, Coward -> Normal).");
             return true;
         }
         catch (Exception exception)

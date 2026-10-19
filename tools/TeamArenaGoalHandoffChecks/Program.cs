@@ -25,7 +25,7 @@ internal static class Program
         {
             FollowerGoalEnemyTracker.Token = null;
             FollowerGoalEnemyTracker.Entered = FollowerGoalEnemyTracker.Exited = 0;
-            Check(PitFireTeamGoalContext.Configure(typeof(FollowerGoalEnemyTracker).Assembly, out _), "fixture contract accepted");
+            Check(PitFireTeamGoalContext.Configure(typeof(FollowerGoalEnemyTracker).Assembly, typeof(FollowerGoalEnemyTracker).Assembly.GetName().Version.ToString(), out _), "fixture contract accepted");
             ArenaSession.IsActive = PitFireTeamCompat.TeamArenaActive = true;
             ArenaSession.Game = Singleton<AbstractGame>.Instance = Game;
             ArenaSession.World = Singleton<GameWorld>.Instance = World;
@@ -219,7 +219,9 @@ internal static class Program
                 "consumer independently rejects stale epoch generation or target");
         }
         var absent = new Raid();
-        Check(!PitFireTeamGoalContext.Configure(typeof(string).Assembly, out _), "foreign assembly cannot configure PFT context");
+        Check(!PitFireTeamGoalContext.Configure(typeof(string).Assembly, "0.10.0", out _), "foreign assembly cannot configure PFT context");
+        Check(!PitFireTeamGoalContext.Configure(typeof(FollowerGoalEnemyTracker).Assembly, "99.99.99.9", out _),
+            "mismatched admitted plugin cannot configure PFT context");
         Check(!absent.Set(out var unavailable) && unavailable == "pft-goal-context-unavailable"
             && absent.Ally.Memory.SetCalls == 0, "missing contract fails closed without unscoped fallback");
     }

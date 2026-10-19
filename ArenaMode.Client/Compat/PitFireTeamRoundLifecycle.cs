@@ -40,7 +40,7 @@ internal sealed class PitFireTeamRoundLifecycleSnapshot
 internal static class PitFireTeamRoundLifecycle
 {
     // Only for the "same build after re-configuration" comparison below; the
-    // accepted set lives in PitFireTeamVersions and is applied on first configure.
+    // admission policy lives in PitFireTeamVersions and is applied on first configure.
     private static string _configuredVersion;
 
     private const string BossTypeName = "pitTeam.Components.pitAIBossPlayer";
@@ -324,16 +324,17 @@ internal static class PitFireTeamRoundLifecycle
             if (!PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion))
             {
                 SetUnavailableUnsafe(
-                    $"PitFireTeam {pluginVersion ?? "unknown"} is unsupported; exact {PitFireTeamVersions.Describe} is required.");
+                    $"PitFireTeam {pluginVersion ?? "unknown"} is unsupported; {PitFireTeamVersions.Describe} is required.");
                 return _capability;
             }
 
             AssemblyName assemblyName = pitFireTeamAssembly.GetName();
             if (!string.Equals(assemblyName.Name, "pitFireTeam", StringComparison.Ordinal)
-                || !PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version))
+                || !PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)
+                || !PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyName.Version))
             {
                 SetUnavailableUnsafe(
-                    $"PitFireTeam assembly identity '{assemblyName.FullName}' is unsupported; exact pitFireTeam {PitFireTeamVersions.Describe} is required.");
+                    $"PitFireTeam assembly identity '{assemblyName.FullName}' is unsupported; matching pitFireTeam {PitFireTeamVersions.Describe} is required.");
                 return _capability;
             }
 

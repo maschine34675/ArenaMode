@@ -6,8 +6,10 @@
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
     <SainSource Condition="'$(SainSource)' == ''">../../../ArenaMode.Client/Movement/ArenaBotMovementSain.cs</SainSource>
+    <SainVersionSource Condition="'$(SainVersionSource)' == ''">../../../ArenaMode.Client/Bots/ArenaSainVersion.cs</SainVersionSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(SainVersionSource)" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(SainSource)" Link="Production/ArenaBotMovementSain.cs" />
   </ItemGroup>
 </Project>

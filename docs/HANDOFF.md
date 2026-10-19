@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional mod versions (2026-10-19):** SAIN 4.5.1+, PFT 0.10.0 or 0.10.3+,
+  APBS 2.4.1+ and DynamicMaps 1.2.1+ now attempt newer versions with one advisory
+  while preserving API/identity/protection checks. PFT's proficiency save-route
+  protection is mandatory for every version from 0.10.3. No other external upper
+  gate was found; own package agreement, platform/map contracts and Fika exclusion
+  remain strict. See [policy and verification](OPTIONAL-MOD-VERSIONS-20261019.md)
+  for tests and deployment/native boundaries; future fixtures are not actual
+  future-mod acceptance.
+
 - **Native model investigation and repair (2026-10-19):** Arena `61a8c9a`
   corrects misleading diagnostic body ownership and adds bounded fault-only
   utility/animator context. Killcam `78e3fa3` constructs replay bodies from visual

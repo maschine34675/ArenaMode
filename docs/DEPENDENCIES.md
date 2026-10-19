@@ -1,8 +1,9 @@
 # Abhängigkeiten, Integrationen und Veröffentlichung
 
-Stand: 2026-10-18. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
-nicht die jeweils neueste Veröffentlichung anderer Mods. Versionsgebundene
-Adapter sind keine pauschale Freigabe späterer Versionen. Gemeinsames Laden
+Stand: 2026-10-19. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
+nicht die jeweils neueste Veröffentlichung anderer Mods. Neuere Versionen werden
+mit Warnung und unveränderten Schnittstellenprüfungen versucht. Das ist keine
+pauschale Kompatibilitätszusage. Gemeinsames Laden
 beweist nicht die vollständige Kompatibilität jeder Funktion.
 
 ## Harte Voraussetzungen
@@ -32,17 +33,19 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 
 | Mod/Komponente | Geprüfter Vertrag | Zweck / Verhalten ohne sie |
 |---|---|---|
-| SAIN | 4.5.1 für die versionsgebundenen Arena-Adapter | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |
+| SAIN | Ab 4.5.1; damit geprüft, neuere Versionen mit Warnung | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |
 | BigBrain + ArenaMode.BigBrainCompat | Ab 1.5.0, damit getestet; neuere Versionen mit Warnung und Laufzeitprüfung | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und kein Molotov-Feuer; das private Molotov-Item bleibt dann harmlos, normale Granaten bleiben unverändert. Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
-| PitFireTeam, Client und Server | Exakt 0.10.0 oder 0.10.3; keine Freigabe von 0.10.1/0.10.2 | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
-| APBS | Adapter für 2.4.1 | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei unbekanntem APBS bleibt dessen eigene Levelwahl und Arena warnt statt ungeprüft einzugreifen. |
+| PitFireTeam, Client und Server | 0.10.0 oder ab 0.10.3; neuere Versionen mit Warnung, 0.10.1/0.10.2 weiterhin ausgeschlossen | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
+| APBS | Ab Metadatenversion 2.4.1; damit geprüft, neuere Versionen mit Warnung | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei fehlender/zu alter Version oder fehlerhaften Schnittstellen bleibt APBS' eigene Levelwahl mit Warnung. |
 | ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein; Air Pit Team DM benötigt die Teamstarts aus 0.2.2 oder neuer | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
 | Killcam | Aktuelles Integrationsziel 1.0.0; Schnittstellenprüfung statt fester Versionsfreigabe | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Das frühere KillcamReplay-Plugin wird nicht akzeptiert. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
-| DynamicMaps | Leichenmarker-Adapter für 1.2.1 | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
+| DynamicMaps | Ab 1.2.1; damit geprüft, neuere Versionen mit Warnung | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
 | Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
 
 Die optionalen Mods behalten ihre eigenen Voraussetzungen. Fremde
 SAIN/APBS/PFT/BigBrain-DLLs werden gemäß `AGENTS.md` nicht in Arena mitgeliefert.
+Die [Versionsrichtlinie und Prüfungen](OPTIONAL-MOD-VERSIONS-20261019.md) erklären
+die Mindestversionen, Warnungen und weiterhin verpflichtenden Schutzverträge.
 `ArenaMode.BigBrainCompat` ist eigener Arena-Code und wird immer mitgeliefert.
 Seit dem Bibliotheksumbau registriert diese DLL kein BepInEx-Plugin und keine
 eigene Plugin-GUID mehr. Arena lädt sie gezielt neben seiner Client-DLL und

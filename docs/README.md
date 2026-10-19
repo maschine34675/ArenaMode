@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Optional mod minimum versions and forward admission](OPTIONAL-MOD-VERSIONS-20261019.md)
+
 - [Native model repair: integration, ownership and verification](MODEL-REPAIR-INTEGRATION-20261019.md)
 - [Cold PMC/PFT model-fault controls and exact restoration](GPU-MODEL-CONTROLS-20261019.md)
 - [GPU2 model repair: actual replays, PFT rebind and preserved data](GPU-MODEL-FIXES-20261019.md)
