@@ -1,4 +1,5 @@
 using ArenaMode.Session;
+using AnimationSystem;
 using Comfort.Common;
 using Diz.Skinning;
 using EFT;
@@ -7,6 +8,7 @@ using EFT.InventoryLogic;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -145,13 +147,86 @@ internal static class ArenaNativeModelDiagnostics
         {
             if (operation is Player.FirearmController.UtilityOperation regular)
                 Report("utility-event-timeout", operation.Player, null, operation.Player, operation.Weapon,
-                    () => "operation=UtilityOperation/" + regular._utilityOperationType + "; elapsed=" + regular._utilityTime);
+                    () => UtilityDetail(operation, "UtilityOperation/" + regular._utilityOperationType, regular._utilityTime));
             else if (operation is Player.FirearmController.LauncherUtilityOperation launcher)
                 Report("launcher-utility-event-timeout", operation.Player, null, operation.Player, operation.Weapon,
-                    () => "operation=LauncherUtilityOperation/" + launcher._utilityOperationType + "; elapsed=" + launcher._utilityTime);
+                    () => UtilityDetail(operation, "LauncherUtilityOperation/" + launcher._utilityOperationType, launcher._utilityTime));
         }
         catch (Exception ex) { ProbeFailure(ex); }
     }
+
+    // Called only through Report's lazy detail after its admission and budget.
+    // A timeout snapshot explains ownership and state, not how the state evolved.
+    private static string UtilityDetail(Player.FirearmController.FirearmOperation operation, string kind, float elapsed)
+    {
+        var text = new StringBuilder("operation=").Append(kind).Append("; elapsed=").Append(Number(elapsed))
+            .Append("; operationState=").Append(operation.State);
+        try
+        {
+            var player = operation.Player;
+            var controller = operation.Controller;
+            text.Append("; controller=").Append(ObjectInfo(controller));
+            if (player != null)
+                text.Append("; armsMode=").Append(player.ArmsUpdateMode).Append("; armsQueue=").Append(player.ArmsUpdateQueue)
+                    .Append("; handsCurrent=").Append(controller != null && ReferenceEquals(player.HandsController, controller));
+            else text.Append("; armsMode=not-checked; handsCurrent=not-checked");
+            if (controller == null) return text.Append("; controllerState=unavailable").ToString();
+            text.Append("; controllerDestroyed=").Append(controller.Destroyed);
+            if (controller.Destroyed) return text.Append("; controllerState=destroyed").ToString();
+            text.Append("; operationCurrent=").Append(ReferenceEquals(controller.CurrentOperation, operation))
+                .Append("; currentOperation=").Append(Clean(controller.CurrentOperation?.GetType().Name))
+                .Append("; itemCurrent=").Append(operation.Weapon != null && ReferenceEquals(controller.Item, operation.Weapon))
+                .Append("; animatorOwnerCurrent=").Append(operation.FirearmsAnimator != null
+                    && ReferenceEquals(controller.FirearmsAnimator, operation.FirearmsAnimator));
+            var firearms = operation.FirearmsAnimator;
+            var emitter = controller.AnimationEventsEmitter;
+            text.Append("; eventConsumers=").Append(firearms?._eventsConsumers?.Count.ToString() ?? "unavailable")
+                .Append("; controllerConsumer=").Append(firearms?._eventsConsumers?.Any(x => ReferenceEquals(x, controller)) == true)
+                .Append("; emitter=").Append(emitter == null ? "none" : emitter._emitType.ToString())
+                .Append("; queuedEvents=").Append(emitter?._delayedEvents?.Count.ToString() ?? "unavailable")
+                .Append("; boundBehaviours=").Append(emitter?._animationEventsStateBehaviours?.Count.ToString() ?? "unavailable");
+            var animator = firearms?.Animator;
+            if (animator == null) return text.Append("; animator=none").ToString();
+            text.Append("; animator=").Append(Clean(animator.GetType().Name)).Append('/').Append(Clean(animator.name, 96))
+                .Append("; emitterAnimatorCurrent=").Append(emitter != null && ReferenceEquals(emitter._animator, animator));
+            if (animator is UnityAnimatorWrapper unity)
+            {
+                var native = unity.Animator;
+                text.Append("; unityAnimator=").Append(ObjectInfo(native));
+                if (native == null) return text.Append("; animatorState=unavailable").ToString();
+                bool initialized = native.isInitialized;
+                text.Append("; initialized=").Append(initialized);
+                if (!initialized) return text.Append("; animatorState=not-initialized").ToString();
+            }
+            text.Append("; animatorEnabled=").Append(animator.enabled).Append("; animatorUpdate=").Append(animator.updateMode)
+                .Append("; culling=").Append(animator.cullingMode).Append("; animatorSpeed=").Append(Number(animator.speed));
+            int layers = animator.layerCount;
+            text.Append("; layers=").Append(layers).Append("; sampledLayers=").Append(Math.Min(2, Math.Max(0, layers)));
+            // The native weapon state is normally layer 1. Include base layer 0,
+            // but never walk an unbounded layer/behaviour/event collection.
+            for (int layer = 0; layer < Math.Min(2, layers); ++layer)
+            {
+                var current = animator.GetCurrentAnimatorStateInfo(layer);
+                bool transition = animator.IsInTransition(layer);
+                text.Append("; layer").Append(layer).Append('=').Append(current.fullPathHash)
+                    .Append('/').Append(Number(current.normalizedTime)).Append("/transition=").Append(transition);
+                if (transition)
+                {
+                    var next = animator.GetNextAnimatorStateInfo(layer);
+                    text.Append("/next=").Append(next.fullPathHash).Append('/').Append(Number(next.normalizedTime));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // A destroyed/unavailable animator must not erase the useful fault
+            // identity already collected or affect the original native error.
+            text.Append("; utilityReadFailure=").Append(Clean(ex.GetBaseException().Message, 160));
+        }
+        return text.ToString();
+    }
+
+    private static string Number(float value) => value.ToString("0.######", CultureInfo.InvariantCulture);
 
     private static void CustomItemPrefix(CustomItem __instance, PlayerBody playerBody)
     {
@@ -200,19 +275,35 @@ internal static class ArenaNativeModelDiagnostics
         if (!TryContext(out var game, out var world, out var phase)) return;
         int id = !ReferenceEquals(subject, null) ? subject.GetInstanceID() : 0;
         if (!Budget.TryTake(game, world, ArenaSession.ArmEpoch, family + "/" + id, out bool reachedCap)) return;
-        var owner = explicitPlayer != null ? explicitPlayer : subject != null ? subject.GetComponentInParent<Player>() : null;
+        // Preserve an explicitly supplied destroyed owner as evidence; never
+        // silently substitute a hierarchy owner for that stale reference.
+        var owner = !ReferenceEquals(explicitPlayer, null) ? explicitPlayer : subject != null ? subject.GetComponentInParent<Player>() : null;
         var body = !ReferenceEquals(explicitBody, null) ? explicitBody : owner != null ? owner.PlayerBody : subject != null ? subject.GetComponentInParent<PlayerBody>() : null;
         var prefab = subject != null ? subject.GetComponentInParent<WeaponPrefab>() : null;
         if (weapon == null && prefab != null) weapon = _weaponData.GetValue(prefab) as Weapon;
         string bodyProfile = !ReferenceEquals(body, null) ? _bodyProfile.GetValue(body) as string : null;
-        var registered = !string.IsNullOrEmpty(bodyProfile) ? world.GetEverExistedPlayerByID(bodyProfile) : null;
+        bool ownerBodyMatch = owner != null && body != null && ReferenceEquals(owner.PlayerBody, body);
+        string ownerProfile = owner != null ? owner.ProfileId : null;
+        string lookupProfile = ownerBodyMatch && !string.IsNullOrEmpty(ownerProfile) ? ownerProfile : bodyProfile;
+        string lookupSource = ownerBodyMatch && !string.IsNullOrEmpty(ownerProfile) ? "owner" : !string.IsNullOrEmpty(bodyProfile) ? "body" : "none";
+        // Local Player.Init deliberately passes an empty body ID. An unavailable
+        // identity or destroyed body is not evidence of failed registration.
+        bool canCheckBody = body != null && !string.IsNullOrEmpty(lookupProfile);
+        var registered = canCheckBody ? world.GetEverExistedPlayerByID(lookupProfile) : null;
+        var alive = canCheckBody ? world.GetAlivePlayerByProfileID(lookupProfile) : null;
         var line = new StringBuilder("Arena native model fault: family=").Append(family)
             .Append("; map=").Append(Clean(world.LocationId)).Append("; phase=").Append(phase)
             .Append("; mode=").Append(Clean(ArenaSession.IsActive ? ArenaSession.ActiveMode : ArenaSession.ArmedMode))
             .Append("; object=").Append(ObjectInfo(subject)).Append("; hierarchy=").Append(Path(subject != null ? subject.transform : null))
             .Append("; body=").Append(ObjectInfo(body))
             .Append("; bodyProfile=").Append(Clean(bodyProfile))
-            .Append("; currentWorldBody=").Append(registered == null ? "unregistered" : ReferenceEquals(registered.PlayerBody, body) ? "same" : "different")
+            .Append("; ownerProfile=").Append(Clean(ownerProfile)).Append("; ownerBodyMatch=").Append(ownerBodyMatch)
+            .Append("; lookupProfile=").Append(Clean(lookupProfile)).Append("; lookupSource=").Append(lookupSource)
+            .Append("; currentWorldBody=").Append(BodyRelation(canCheckBody, registered, body))
+            .Append("; aliveWorldBody=").Append(BodyRelation(canCheckBody, alive, body))
+            .Append("; registeredBody=").Append(canCheckBody
+                ? world.RegisteredPlayers.Any(x => x is Player player && ReferenceEquals(player.PlayerBody, body)).ToString()
+                : "not-checked")
             .Append("; bodyCustomization=").Append(!ReferenceEquals(body, null) ? Clean(body.BodyCustomizationId?.Value) : "none")
             .Append("; owner=").Append(ObjectInfo(owner))
             .Append("; role=").Append(owner == null ? "unowned-preview-or-clone-possible" : ReferenceEquals(owner, world.MainPlayer) ? "main-player" : owner.IsAI ? "ai" : "other-player")
@@ -222,6 +313,11 @@ internal static class ArenaNativeModelDiagnostics
         ArenaLog.Developer(line.ToString());
         if (reachedCap) ArenaLog.Developer("Arena native model fault context capped at 24 reports for this raid; native warnings/errors remain unchanged.");
     }
+
+    private static string BodyRelation(bool checkedIdentity, Player registered, PlayerBody body)
+        => !checkedIdentity ? "not-checked" : ReferenceEquals(registered, null) ? "unregistered"
+            : registered == null ? "destroyed-player"
+            : ReferenceEquals(registered.PlayerBody, body) ? "same" : "different";
 
     private static string ObjectInfo(Component component)
     {

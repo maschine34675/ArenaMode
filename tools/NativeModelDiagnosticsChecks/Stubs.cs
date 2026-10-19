@@ -30,6 +30,9 @@ namespace UnityEngine
             => this as T ?? ParentComponent?.GetComponentInParent<T>();
     }
     public sealed class Transform : Component { public Transform parent; }
+    public sealed class Animator : Component { public bool isInitialized = true; }
+    public enum AnimatorUpdateMode { Normal, AnimatePhysics }
+    public enum AnimatorCullingMode { AlwaysAnimate, CullUpdateTransforms }
     public sealed class GameObject
     {
         public bool activeSelf = true, activeInHierarchy = true;
@@ -54,7 +57,11 @@ namespace EFT
         public string LocationId = "factory4_day";
         public Player MainPlayer;
         public Player RegisteredPlayer;
-        public Player GetEverExistedPlayerByID(string id) => RegisteredPlayer;
+        public Player AlivePlayer;
+        public readonly List<IPlayer> RegisteredPlayers = new();
+        public int IdentityReads;
+        public Player GetEverExistedPlayerByID(string id) { IdentityReads++; return RegisteredPlayer?.ProfileId == id ? RegisteredPlayer : null; }
+        public Player GetAlivePlayerByProfileID(string id) { IdentityReads++; return AlivePlayer?.ProfileId == id ? AlivePlayer : null; }
     }
     public sealed class PlayerBody : UnityEngine.Component
     {
@@ -64,6 +71,7 @@ namespace EFT
         #pragma warning restore CS0414
         public StringState BodyCustomizationId = new() { Value = "fixture-body-template" };
         public int OriginalErrors;
+        public void SetProfileId(string value) => _playerProfileID = value;
         public void Dispose() => _active = false;
         public void OnDestroy() { if (_active) OriginalErrors++; }
     }
@@ -72,9 +80,20 @@ namespace EFT
     {
         public PlayerBody PlayerBody;
         public bool IsAI;
+        public string ProfileId = "body-fixture-profile";
+        public FirearmController HandsController;
+        public EUpdateMode ArmsUpdateMode;
+        public EUpdateQueue ArmsUpdateQueue;
+        public enum EUpdateMode { Auto, Manual }
         public enum EOperationState { Ready, Executing, Finished }
-        public class FirearmController
+        public class FirearmController : UnityEngine.Component
         {
+            // Native managed disposal flag is distinct from Unity fake-null.
+            public new bool Destroyed;
+            public FirearmOperation CurrentOperation;
+            public InventoryLogic.Weapon Item;
+            public FirearmsAnimator FirearmsAnimator;
+            public AnimationEventSystem.AnimationEventsEmitter AnimationEventsEmitter;
             public class FirearmOperation
             {
                 public EOperationState State;
@@ -83,6 +102,8 @@ namespace EFT
                 public string _utilityOperationType = "CheckFireMode";
                 public Player Player;
                 public InventoryLogic.Weapon Weapon;
+                public FirearmController Controller;
+                public FirearmsAnimator FirearmsAnimator;
             }
             public class UtilityOperation : FirearmOperation
             {
@@ -90,6 +111,63 @@ namespace EFT
             }
             public class LauncherUtilityOperation : FirearmOperation { public void Update(float deltaTime) { } }
         }
+    }
+    public enum EUpdateQueue { Update, FixedUpdate }
+}
+public struct AnimatorStateInfoWrapper
+{
+    public int fullPathHash;
+    public float normalizedTime;
+}
+public interface IAnimator
+{
+    string name { get; }
+    bool enabled { get; }
+    UnityEngine.AnimatorUpdateMode updateMode { get; }
+    UnityEngine.AnimatorCullingMode cullingMode { get; }
+    float speed { get; }
+    int layerCount { get; }
+    AnimatorStateInfoWrapper GetCurrentAnimatorStateInfo(int layer);
+    AnimatorStateInfoWrapper GetNextAnimatorStateInfo(int layer);
+    bool IsInTransition(int layer);
+}
+namespace AnimationSystem
+{
+    public sealed class UnityAnimatorWrapper : IAnimator
+    {
+        public UnityEngine.Animator Animator = new();
+        public bool FailReads;
+        public int Reads, MaxLayerRead = -1;
+        public string name => "fixture-weapon";
+        public bool enabled => false;
+        public UnityEngine.AnimatorUpdateMode updateMode => UnityEngine.AnimatorUpdateMode.Normal;
+        public UnityEngine.AnimatorCullingMode cullingMode => UnityEngine.AnimatorCullingMode.CullUpdateTransforms;
+        public float speed => 0.75f;
+        public int layerCount => 8;
+        public AnimatorStateInfoWrapper GetCurrentAnimatorStateInfo(int layer)
+        {
+            Reads++; MaxLayerRead = Math.Max(MaxLayerRead, layer);
+            if (FailReads) throw new InvalidOperationException("fixture animator unavailable");
+            return new() { fullPathHash = 123 + layer, normalizedTime = 0.42f };
+        }
+        public AnimatorStateInfoWrapper GetNextAnimatorStateInfo(int layer) { Reads++; return new() { fullPathHash = 456, normalizedTime = 0.09f }; }
+        public bool IsInTransition(int layer) => layer == 1;
+    }
+}
+public sealed class FirearmsAnimator
+{
+    public IAnimator Animator;
+    public List<object> _eventsConsumers = new();
+}
+namespace AnimationEventSystem
+{
+    public sealed class AnimationEventsEmitter
+    {
+        public enum EEmitType { EmitOnAnimatorUpdate, EmitOnDemand }
+        public IAnimator _animator;
+        public EEmitType _emitType = EEmitType.EmitOnDemand;
+        public Queue<object> _delayedEvents = new();
+        public HashSet<object> _animationEventsStateBehaviours = new();
     }
 }
 public sealed class MuzzleManager : UnityEngine.Component { public object JetMaterial; }

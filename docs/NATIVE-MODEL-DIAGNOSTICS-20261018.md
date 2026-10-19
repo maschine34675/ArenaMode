@@ -53,11 +53,39 @@ unless it recurs in admitted loading/active code.
 Each report includes map, mode, native phase, exact component ID/name, up to
 seven ancestors with activity, scene, body/profile/customization, parent Player
 and local/AI hint, weapon template where available, and asset-pool state when
-present. `currentWorldBody=same/different/unregistered` compares the actual body
-reference with the world's recorded PlayerBody for that profile. A shared
-profile ID or AI flag alone never labels a clone as the live body. Destroyed
-Unity wrappers retain their managed ID/profile context, without dereferencing
-their unavailable Transform.
+present. Since the 2026-10-19 correction, `bodyProfile` retains the raw optional
+body ID; `ownerProfile`, `ownerBodyMatch`, `lookupProfile` and `lookupSource`
+explain the chosen identity. A valid owner supplies its profile only when its
+actual `PlayerBody` is the exact reported body. Otherwise the raw body ID is
+used, if available. Native `Player.Init` deliberately supplies an empty body ID;
+an empty ID alone is not evidence that a bot is absent from the world.
+
+`currentWorldBody=same/different/unregistered/destroyed-player/not-checked` compares the actual
+body reference with the world's ever-existed Player for the selected profile.
+`aliveWorldBody` separately uses the live-player lookup; `registeredBody` tests
+the exact body reference in `RegisteredPlayers`, including retained managed Player
+wrappers. A lookup returning a destroyed wrapper is `destroyed-player`, not
+`unregistered`. Missing identity and destroyed bodies report `not-checked`
+without a registry query. These are observations of
+three different registries, not a claim that ever-existed means currently alive.
+A stale or destroyed owner cannot lend its identity to a different body. A
+shared profile ID or AI flag alone never labels a clone as the live body.
+Destroyed Unity wrappers retain their managed ID/profile context, without
+dereferencing their unavailable Transform.
+
+Utility faults also capture the operation type/state/elapsed time, the actual
+arms update mode/queue, exact current hands/operation/item/animator references,
+controller disposal flag, emitter mode and counts, consumer ownership, animator
+backend/name/settings, and current state hash/normalized time for at most layers
+0 and 1. Next-state information is read only during a transition. A disposed or
+Unity-destroyed controller stops further detail; a missing, destroyed or
+uninitialized Unity animator stops before setting/layer-state getters. A
+partially unavailable utility read appends `utilityReadFailure` without dropping
+the collected identity or disabling later reports. No Update, Play, reset,
+parameter setter or event dequeue is called. In particular the FastAnimator
+`runtimeAnimatorController` getter is deliberately not used: native code resets
+state and logs from that getter. The observed speed setting and one fault-time
+snapshot do not prove animation progression or its cause.
 
 There are at most **two reports per family/object signature**, **24 contexts per
 raid**, and one cap notice. IDs and short signatures, not body references, fill
@@ -76,7 +104,7 @@ Run:
 pwsh -NoLogo -NoProfile -File tools/NativeModelDiagnosticsChecks/Verify.ps1 -Mutants
 ```
 
-The production file is linked into an executable fixture: **72 assertions**
+The production file is linked into an executable fixture: **138 assertions**
 cover disabled/ordinary/stale/loading contexts, healthy paths, all fault
 families, unchanged native alarms/exception identity and operation state,
 per-object/raid budgets, respawn identity, destroyed wrappers, current-world vs
@@ -85,12 +113,18 @@ utility transpiler is executed on a branch-equivalent dynamic method, including
 both alarm branches and an ordinary no-alarm path. Actual DLL metadata/IL is
 checked separately; the fixture is not a claim to execute Unity player models.
 
-Eight behavioral mutants must fail: missing opt-in, stale-world admission,
+Seventeen behavioral mutants must fail: missing opt-in, stale-world admission,
 loading-map bypass, swallowed original exception, removed per-signature and
-per-raid caps, lost branch labels, and replacement of original instructions.
-Production is rerun afterwards. The parent owns the final full client build and
-native gameplay validation; do not deliberately construct invalid live models
-to trigger these diagnostics.
+per-raid caps, lost branch labels, replacement of original instructions, lost
+owner fallback, stale-owner borrowing, unknown identity mislabeled unregistered,
+destroyed-body lookup, destroyed registry result mislabeled unregistered,
+uninitialized/destroyed Unity animator state reads,
+unbounded layer sampling, and detail evaluated after budget exhaustion.
+Production is rerun afterwards. The real client also compiles against installed
+game DLLs using the explicit NoDeploy target override; see
+[the repair evidence](MODEL-DIAGNOSTIC-REPAIR-20261019.md). Native gameplay
+validation remains the parent's separate gate; do not deliberately construct
+invalid live models to trigger these diagnostics.
 
 Known limits remain visible: no global Animator.GotoState or hash-zero event
 capture, no claim about warnings hidden by Killcam's existing synchronous clone
