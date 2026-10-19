@@ -254,6 +254,11 @@ RaidInfoPanels and CombatSlide functionality; neither is a required separate
 download. **Fika is blocked**, rather than merely untested. See
 [the dependency inventory](docs/DEPENDENCIES.md) for more specific boundaries.
 
+**Active Questing Bots and loaded ORBIT currently block Arena only.** Ordinary
+PMC/Scav raids remain available and keep those mods' behavior. Questing Bots
+1.1.0 can remain installed if its whole-mod server setting is disabled before
+starting the game; switching off only questing in F12 is not sufficient.
+
 ## Known limitations and reporting problems
 
 - Tactical, Zombies, Akimbo and Molotov are unfinished features. Large populations

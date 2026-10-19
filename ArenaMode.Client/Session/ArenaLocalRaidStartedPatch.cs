@@ -85,6 +85,10 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             if (FikaCompatCheck.IsFikaLoaded)
                 throw new InvalidOperationException("Arena is unavailable with Fika.");
 
+            var compatibilityRejection = ArenaMenuSelection.CompatibilityRejection;
+            if (!string.IsNullOrEmpty(compatibilityRejection))
+                throw new InvalidOperationException(compatibilityRejection);
+
             if (!ArenaServerClient.RefreshAvailability())
                 throw new InvalidOperationException("Arena server mod is unavailable.");
 

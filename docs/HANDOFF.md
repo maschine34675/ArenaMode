@@ -7,6 +7,13 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional AI-mod admission (2026-10-19):** active Questing Bots and loaded
+  ORBIT now block Arena only, in the character/map selection and final native
+  start. Ordinary PMC/Scav starts bypass this new check. Questing Bots 1.1.0's
+  verified whole-mod-disabled startup path remains allowed; partial F12
+  switches or a later false flag do not prove teardown. See
+  [admission and offline checks](OPTIONAL-MOD-ADMISSION-20261019.md).
+
 - **Callouts, leg splints and isolation follow-up (2026-10-19):** `178a586`
   aligns the fourth rapid kill with the spoken ULTRA KILL; the existing
   `multi_kill.ogg` key and queue priority are preserved. `be08467` extends

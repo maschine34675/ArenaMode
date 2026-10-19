@@ -24,6 +24,7 @@ internal static class ArenaMenuSelection
     private static Func<Eligibility, string> _freezeRoster;
     private static Action<string> _compatibilityCleanup;
     private static Func<bool> _teamArenaActive;
+    private static Func<string> _compatibilityAdmission;
 
     /// <summary>
     /// Adapter-neutral result used by every point in the native flow. State is
@@ -89,6 +90,23 @@ internal static class ArenaMenuSelection
     public static void RegisterTeamArenaQuery(Func<bool> teamArenaActive)
         => _teamArenaActive = teamArenaActive;
 
+    // Process lifetime, not screen lifetime: stale selections must be checked
+    // again at claim/start, and EndFlow must not drop optional-mod protection.
+    public static void RegisterCompatibilityAdmission(Func<string> admission)
+        => _compatibilityAdmission = admission;
+
+    public static string CompatibilityRejection
+    {
+        get
+        {
+            try { return _compatibilityAdmission?.Invoke(); }
+            catch (Exception)
+            {
+                return "Arena could not verify optional-mod compatibility. Restart the game and check the log.";
+            }
+        }
+    }
+
     public static bool CompatibilityTeamArenaActive => _teamArenaActive?.Invoke() == true;
 
     public static void ClearCompatibilityState(string reason)
@@ -119,6 +137,8 @@ internal static class ArenaMenuSelection
         {
             try
             {
+                var rejection = CompatibilityRejection;
+                if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
                 if (_eligibility != null)
                     return _eligibility() ?? new Eligibility(false, false,
                         "Arena could not inspect the current raid group.");
@@ -148,6 +168,8 @@ internal static class ArenaMenuSelection
             if (_modeEligibility == null) return CurrentEligibility;
             try
             {
+                var rejection = CompatibilityRejection;
+                if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
                 return _modeEligibility() ?? new Eligibility(false, false,
                     "Arena could not inspect the current raid group.");
             }

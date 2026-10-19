@@ -22,6 +22,11 @@ profile-protection contract; the proficiency contract is mandatory from 0.10.3
 onward. SAIN 4.5.1+, APBS 2.4.1+ and DynamicMaps 1.2.1+ likewise attempt their
 existing APIs and warn once for newer unreviewed versions. This is not a promise
 of future compatibility. See docs/OPTIONAL-MOD-VERSIONS-20261019.md.
+Arena-only optional AI-mod admission lives in
+docs/OPTIONAL-MOD-ADMISSION-20261019.md. Active Questing Bots and loaded ORBIT
+block Arena at selection and final start, never ordinary PMC/Scav raids. Preserve
+the process-lifetime admission provider across menu cleanup; do not replace it
+with global BepInEx incompatibility declarations or user-config edits.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

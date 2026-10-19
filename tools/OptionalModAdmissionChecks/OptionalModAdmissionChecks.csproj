@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionAdmissionSource Condition="'$(ProductionAdmissionSource)' == ''">../../ArenaMode.Client/Compat/ArenaOptionalMods.cs</ProductionAdmissionSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionAdmissionSource)" Link="Production/ArenaOptionalMods.cs" />
+  </ItemGroup>
+</Project>

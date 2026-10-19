@@ -235,6 +235,9 @@ internal static class ArenaSideSelectionPatch
         MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller,
         bool allowPendingModeSelection = false)
     {
+        var rejection = ArenaMenuSelection.CompatibilityRejection;
+        if (!string.IsNullOrEmpty(rejection))
+            return new ArenaMenuSelection.Eligibility(false, false, rejection);
         var decision = PitFireTeamCompat.EvaluateSelection(
             controller?.MatchmakerPlayersController, controller?.RaidSettings,
             allowPendingModeSelection);

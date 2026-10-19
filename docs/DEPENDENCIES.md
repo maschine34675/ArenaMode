@@ -73,6 +73,11 @@ Bestätigung vollständiger Kompatibilität.
   zu vermeiden; keine allgemeine Freigabe sämtlicher Kamerafunktionen.
 - **Fika:** ausdrücklich nicht unterstützt. Arena verweigert die Aktivierung;
   das ist mehr als eine fehlende Testfreigabe.
+- **Questing Bots / ORBIT:** vorläufige Arena-Startsperre bei aktivem Questing
+  Bots bzw. geladenem ORBIT. Normale PMC-/Scav-Raids bleiben unverändert.
+  Die geprüfte Questing-Bots-Version 1.1.0 darf vollständig in ihrer
+  Serverkonfiguration deaktiviert installiert bleiben; Teilabschaltungen in F12
+  reichen nicht. Details: [Arena-Zulassung](OPTIONAL-MOD-ADMISSION-20261019.md).
 
 ## Eigene Mods: übernommen oder weiterhin eigenständig?
 

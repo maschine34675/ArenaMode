@@ -353,6 +353,7 @@ internal static partial class Program
         CheckSessionModeCaption();
         CheckMolotovAvailability();
         CheckProtectedEntryAwait();
+        CheckOptionalCompatibility();
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }
