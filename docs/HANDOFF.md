@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Visible Arena admission (2026-10-20):** `1621213` adds a persistent reason
+  on the native character screen, including a Core-free diagnostic bootstrap
+  when Redeploy.Core is missing/old. `a6919d3` corrects native deferred layout;
+  the warning sits above Arena without covering PMC/Scav descriptions.
+  Loaded Adaptive Bot Culling is now an Arena-only blocker after published
+  1.2.0 DLL/source review; its F12 toggles do not remove all animation hooks.
+  [Review, exact builds and native acceptance](ARENA-AVAILABILITY-20261020.md).
+  GPU2 passed actual ABC refusal, missing-Core cold start, unchanged PFT My
+  Squad, restored normal Arena selection and Factory Gun Game protected end.
+  Core restored and temporary ABC DLL/config removed from both roots. Both
+  client DLLs deployed; server unchanged. Game/server are stopped. This does
+  not certify ABC gameplay compatibility, other UI scales or every rejected mod.
+
 - **Continuous Load Ammo / SVM / Deminvincibility (2026-10-20):** third scoped
   compatibility batch, targets 1.2.0+, 2.2.3+ and 2.2.0+ respectively. CLA guards
   replacement controllers and delayed completion; SVM retains protected Arena

@@ -3,7 +3,7 @@
 ## Player-facing behavior
 
 The character screen keeps the Arena choice visible when admission rejects it.
-A passive, amber `ARENA UNAVAILABLE` panel below that choice explains the reason
+A passive, amber `ARENA UNAVAILABLE` panel above that choice explains the reason
 without requiring a hover, click or log inspection. The native PMC/Scav
 description, health panel and input remain unchanged. Successful selection and
 screen closure remove the owned notice; reopening does not duplicate it.
@@ -62,5 +62,61 @@ late discovery, known/future/missing version metadata, removal and actionable
 rejection; a compiled fault control must fail if its block is removed.
 Existing tests preserve final admission and the ordinary PMC/Scav bypass.
 
-Native UI evidence and deployment identities are recorded after the GPU test;
-offline tests alone do not establish Unity layout or missing-assembly behavior.
+Offline: 752 native menu/lifecycle assertions, 68 optional admission assertions
+and 15 compiled behavioral fault controls pass. Staged client build succeeds
+without changing installed files; its four nullable-context warnings predate
+this change. BigBrainCompat builds without warnings.
+
+## Native acceptance on SPT-GPU-2
+
+SPT 4.1.6, EFT 0.16.9.5, 1920x1080. Temporary tests used the host's SPT-GPU-2
+profile. No personal profile or foreign saved settings were edited.
+
+Implementation `1621213`; layout correction `a6919d3`. The first screenshot
+revealed overlap with the shared native description and deferred text-position
+drift. The corrected panel follows the toggle's center in LateUpdate and sits
+above the choice. The following passes used the corrected build:
+
+| Case | Observed result |
+|---|---|
+| ABC 1.2.0 loaded, 10:40 client | Reason visible immediately, no hover/click required; Arena disabled. PMC/Scav remained selectable, original description/Next unobscured. Back/reopen retained one notice. |
+| Core DLL absent at cold start, 10:42 client | Arena and standalone Redeploy rejected initialization. Arena's three diagnostic menu hooks still loaded; the installation advice was visible. PMC/Scav selectable; reopening clean. |
+| Missing Core, PFT My Squad | Squad roster/add-teammate UI retained, no Arena toggle or notice. No companion was added/removed/invited. |
+| Core restored, ABC removed, 10:44 client | No warning; Arena selection produced ARENA ZONE. All 41 plugins and six libraries matched between development, host disk and loaded process. |
+| Positive Factory Gun Game | Eight participants selected, raid started 10:46:32; population at 10:47:03 showed seven living PMCs plus the human slot. Native Stop(Left) at 10:47:11, snapshot restored and protected completion persisted at 08:47:12–13 UTC. Returned to MainMenu. |
+
+The final positive client log `LogOutput-SPT-GPU-2-2026-10-20_10-44-53.log`
+contains no Error lines. Missing-Core testing intentionally produced the gate
+errors and foreign assembly-scanner/Unity JSON converter type-load diagnostics;
+the menu remained usable. This diagnostic UI is not a promise that a broken
+installation can run an ordinary raid safely. Reinstall Core before playing.
+
+Deployment (both roots):
+
+- Client SHA256: `F25CE88281107E946032194D46980389F6617CEA864667D3806B7624C37A6210`.
+- BigBrainCompat SHA256: `39C3AB6204A2E5A4819ADF621B2E950AC7059180DB8C2A960C9173A43EF06261`.
+- Original Core restored, SHA256:
+  `218967C32C58F83C9BA2044888F12F595655D752172049DE57FA9C51FD4B231C`.
+- Arena server unchanged. No release or push in this task.
+
+Raw local evidence: ignored `artifacts/availability-native-20261020/`, including
+`abc-ui-r2`, `core-missing-ui`, `core-pft`, `restored-ui` reports/screenshots and
+the original installed-file inventory. Temporary ABC DLL/config removed from
+both roots. Game and server stopped after the positive test.
+
+Independent final comparison (`cleanup-checksum-final-20261020-085228.json`):
+all 1,151 recorded DLL/CFG/JSON files remain present; 1,145 are byte-identical
+and four are the intended client/companion updates across both roots. No new
+files of those types remain within the recorded plugin/config/Arena-server
+trees; ABC's empty directories are gone too. Both Arena config files are
+byte-identical, with all 232 settings unchanged. The two remaining changed
+files are server `client-settings.json` exports: all 224 exported values match
+the original settings. Their previous full JSON bytes were not captured, so an
+exact metadata-only difference cannot be proven. This is not an inventory of
+unrelated server mods or large map bundles, which were never changed.
+
+Limits: no separate native test of outdated Core, missing Arena server, every
+other blocked mod, other UI scales/resolutions or ordinary raids with ABC.
+Existing admission/server failure regressions cover their decision paths, not
+their individual visual/combined-mod acceptance. No ABC compatibility adapter
+or performance comparison is claimed.
