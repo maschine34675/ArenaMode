@@ -28,9 +28,8 @@ public static class RuntimeHost
                 throw new InvalidOperationException($"Loader override {key} is set. Clear it before using this isolated starter.");
         }
         foreach (var name in ProcessNames)
-            foreach (var process in Process.GetProcessesByName(name))
-                using (process)
-                    throw new InvalidOperationException($"Close {name} before changing start environments.");
+            if (HasRunningProcess(name))
+                throw new InvalidOperationException($"Close {name} before changing start environments.");
         var listener = new TcpListener(IPAddress.Loopback, 6969) { ExclusiveAddressUse = true };
         try { listener.Start(); }
         catch (SocketException) { throw new InvalidOperationException("Port 6969 is occupied; no existing server will be reused."); }
@@ -40,18 +39,34 @@ public static class RuntimeHost
     public static async Task Run(string root, bool smoke, Action<string>? report = null, bool waitForClients = false,
         bool directGame = false)
     {
+        RequireIdle();
+        root = EnvironmentCopy.Root(root);
+        using var control = BaseRebuild.Acquire(root);
+        BaseRebuild.RequireNoPending(root);
+        var manifest = BaseRebuild.Read<Manifest>(root, EnvironmentCopy.ManifestPath);
+        var active = manifest.Schema == 2 ? BaseRebuild.Resolve(root, manifest.Source, manifest.Diagnostics) : root;
+        await RunCore(active, smoke, report, waitForClients, directGame,
+            anchorLease: active == root ? control.SafeFileHandle : null);
+    }
+
+    internal static async Task RunCore(string root, bool smoke, Action<string>? report = null, bool waitForClients = false,
+        bool directGame = false, Microsoft.Win32.SafeHandles.SafeFileHandle? anchorLease = null,
+        AssetLease? retainedAssets = null)
+    {
         var messages = new RuntimeReporter(report ?? Console.WriteLine);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("This prototype supports Windows only.");
         RequireIdle();
         root = EnvironmentCopy.Root(root);
         // Exclusive lease survives as a file after a crash; the OS releases its lock.
-        using var lease = new FileStream(EnvironmentCopy.Inside(root, ".arena-start/running"), FileMode.OpenOrCreate,
-            FileAccess.ReadWrite, FileShare.None);
-        EnvironmentCopy.RequireSingleLink(lease.SafeFileHandle);
+        using var lease = anchorLease == null ? new FileStream(EnvironmentCopy.Inside(root, ".arena-start/running"), FileMode.OpenOrCreate,
+            FileAccess.ReadWrite, FileShare.None) : null;
+        var runningHandle = anchorLease ?? lease!.SafeFileHandle;
+        EnvironmentCopy.RequireSingleLink(runningHandle);
         ModUpdates.Recover(root, messages.Write);
-        using var assets = new AssetLease();
+        using var ownAssets = retainedAssets == null ? new AssetLease() : null;
+        var assets = retainedAssets ?? ownAssets!;
         messages.Write("Verifying the private runtime and shared assets. This can take several minutes.");
-        var manifest = EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
+        var manifest = EnvironmentCopy.Verify(root, messages.Write, runningHandle, assets);
         RequireIdle();
         manifest = ModUpdates.Apply(manifest, messages.Write);
         RequireIdle();
@@ -209,8 +224,21 @@ public static class RuntimeHost
             throw new IOException($"Private server exited unexpectedly ({exit}); see .arena-start/server-start.log. No automatic repair was performed.");
     }
 
+    internal static bool HasRunningProcess(string name) => AnyRunning(Process.GetProcessesByName(name));
+
+    internal static bool AnyRunning(Process[] processes)
+    {
+        // Windows can still enumerate a terminated process while a handle is
+        // retained. Its presence alone is not a live client/server. Query errors
+        // still propagate; an inaccessible process must not be treated as idle.
+        try { return processes.Any(process => !process.HasExited); }
+        finally { foreach (var process in processes) process.Dispose(); }
+    }
+
     private static bool AnyClients()
     {
+        // During a session retain the original conservative enumeration check:
+        // no per-process access query may release a live client's asset leases.
         foreach (var name in new[] { "EscapeFromTarkov", "SPT.Launcher" })
         {
             var processes = Process.GetProcessesByName(name);

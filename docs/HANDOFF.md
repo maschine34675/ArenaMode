@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Controlled Arena base rebuild (2026-10-20):** the starter detects changed
+  native source bindings and offers an explicit **Rebuild Arena environment**
+  action; ordinary launch remains blocked. `<source>-Arena` is the permanent
+  control anchor, with an exclusive session/rebuild lease and an atomic pointer
+  to an owned `<source>-Arena.generations/<id>` runtime. Never rename generations
+  or remove the anchor. Rebuild preserves only the existing internal account,
+  its one profile and selected private settings, validates the new native patch,
+  server/login and complete resulting tree, then activates. No normal profile
+  import, download, SPT installer or automatic game launch. Native settings still
+  refresh one-way from the source. A valid pending mod rollback is recovered
+  before rebuilding even when the native source changed. Rebuild interruptions
+  before activation retain the old active runtime and incomplete candidate;
+  after activation retry only finalizes, without copying an old profile back.
+  Unknown/corrupt ownership fails closed. Previous generations are retained,
+  not guaranteed playable snapshots because assets remain shared hardlinks.
+  Final checks: 611 core (130 mod-update, 85 rebuild, 7 process-state) + 43 actual-window assertions;
+  independent review and corrected visible Rebuild-state render passed.
+  Standalone EXE staged hash-identically on GPU2 at
+  `C:\Temp\ArenaLauncher-Rebuild-20261020-r2\maschine-ArenaLauncher.exe`.
+  Native supplied 4.1.1 -> 4.1.6 transition passed: old-base start rejected, real
+  private server/login succeeded, new generation activated. Same receipt and
+  byte-identical initialized profile (205 inventory items); 212 protected source,
+  2,029 old private and 2,064 failed-candidate files unchanged. First native attempt
+  exposed an idle check treating an exited process snapshot as live; RequireIdle
+  now checks HasExited, while live-session monitoring stays conservative. The
+  final retry also verified interrupted-journal recovery; no native processes remain.
+  No ordinary Arena DLL deployment or new GPU game run. See
+  [rebuild contract, native migration evidence and artifact](ARENA-BASE-REBUILD-20261020.md).
+
 - **Controlled starter mod updates (2026-10-20):** before every private start,
   refresh only the finite ArenaMode/Core/audio/docs/kit catalog from normal SPT.
   Keep source bindings, private profile/account, BepInEx/mod settings and
@@ -100,7 +129,8 @@ current. User-facing communication is normally German.
   creates/reuses the sibling `<source>-Arena` automatically. Mutable/executable
   files stay private; both shared names are locked against writes/deletion until
   native clients close. No ACL/attribute changes, no global mod switching, no
-  game/SPT update or copy fallback; approved mod updates are described above.
+  game/SPT installer or copy fallback; approved mod updates and controlled
+  rebuilding after an external SPT update are described above.
   The locks do not survive a forced starter
   termination; never start the private executable directly. No ordinary profile,
   launcher configuration, BepInEx config or optional mod is imported; the private

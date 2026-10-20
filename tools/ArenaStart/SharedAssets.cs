@@ -115,7 +115,7 @@ public static class SharedAssets
 // Forced process termination releases them; this is not an OS sandbox.
 public sealed class AssetLease : IDisposable
 {
-    private readonly Dictionary<string, (FileStream Source, FileStream Target)> files = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (FileStream Source, FileStream Target, string Path, OwnedFile Entry)> files = new(StringComparer.OrdinalIgnoreCase);
     public int Count => files.Count;
 
     internal void Add(string relative, FileStream source, string destination, OwnedFile expected, bool hashAlreadyChecked = false)
@@ -124,10 +124,21 @@ public sealed class AssetLease : IDisposable
         try
         {
             target = SharedAssets.OpenReadLease(destination);
+            if (files.TryGetValue(relative, out var retained))
+            {
+                // Reverification during rebuild can reuse a continuously held
+                // read lease, but only for exactly the same paths/identity/hash.
+                if (retained.Entry != expected || !string.Equals(retained.Path, destination, StringComparison.OrdinalIgnoreCase) ||
+                    !SharedAssets.SameFile(source.SafeFileHandle, retained.Source.SafeFileHandle) ||
+                    !SharedAssets.SameFile(target.SafeFileHandle, retained.Target.SafeFileHandle))
+                    throw new InvalidDataException("Retained shared asset does not match this runtime/catalog: " + relative);
+                source.Dispose();
+                return;
+            }
             if (!SharedAssets.SameFile(source.SafeFileHandle, target.SafeFileHandle) ||
                 source.Length != expected.Length || (!hashAlreadyChecked && SharedAssets.Hash(source) != expected.Sha256))
                 throw new InvalidDataException($"Shared asset identity/content changed: {relative}. Prepare a fresh environment.");
-            files.Add(relative, (source, target));
+            files.Add(relative, (source, target, destination, expected));
             target = null;
         }
         catch { source.Dispose(); throw; }

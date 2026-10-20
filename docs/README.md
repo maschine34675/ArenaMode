@@ -12,6 +12,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Direct EFT start from the private Arena GUI](ARENA-DIRECT-START-20261020.md)
 - [Native game settings import and mod-update behavior](ARENA-START-SETTINGS-20261020.md)
 - [Controlled local mod updates, rollback and launcher evidence](ARENA-START-UPDATES-20261020.md)
+- [Controlled SPT/game base rebuild with preserved internal account and generations](ARENA-BASE-REBUILD-20261020.md)
 - [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
 - [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)
 - [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md)

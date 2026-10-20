@@ -41,6 +41,9 @@ public partial class MainWindow : Window
     {
         preview = null;
         StartButton.IsEnabled = false;
+        StartButton.Visibility = Visibility.Visible;
+        RebuildButton.IsEnabled = false;
+        RebuildButton.Visibility = RebuildHint.Visibility = Visibility.Collapsed;
         PrivateSizeText.Text = SharedSizeText.Text = "—";
         DestinationText.Text = "Check an installation to see its private Arena folder.";
         EnvironmentHint.Text = "Catalog sizes, not total disk usage. Caches and logs need additional space.";
@@ -57,6 +60,7 @@ public partial class MainWindow : Window
 
     private async void Inspect_Click(object sender, RoutedEventArgs e) => await InspectSource();
     private async void Start_Click(object sender, RoutedEventArgs e) => await StartSession();
+    private async void Rebuild_Click(object sender, RoutedEventArgs e) => await RebuildEnvironment();
 
     internal async Task InspectSource()
     {
@@ -78,15 +82,24 @@ public partial class MainWindow : Window
             EnvironmentHint.Text = preview.Exists
                 ? "Existing environment · catalog sizes only, plus caches and logs. Unchanged files are verified and reused."
                 : "Created on first launch on the same NTFS drive. Catalog sizes above; caches and logs need additional space.";
-            UpdateHint.Text = preview.RecoveryPending
+            UpdateHint.Text = preview.RebuildReason ?? (preview.RecoveryPending
                 ? "Interrupted mod update detected. The previous package will be restored before verification."
                 : preview.Updates is { Total: > 0 } updates
                     ? $"Mod update on launch: {updates.Added} new · {updates.Changed} changed · {updates.Removed} removed files."
                     : preview.Exists ? "The recorded mod package matches the source. Private files are verified before launch."
-                    : "The first setup includes approved mods from this installation.";
+                    : "The first setup includes approved mods from this installation.");
+            RebuildButton.Visibility = RebuildHint.Visibility = preview.Exists ? Visibility.Visible : Visibility.Collapsed;
+            StartButton.Visibility = preview.RebuildReason == null ? Visibility.Visible : Visibility.Collapsed;
             StartButton.Content = preview.Exists ? "Launch _Arena" : "Prepare & _launch";
-            SetStatus(preview.Exists ? "Ready to verify & launch" : "Ready to prepare",
-                "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
+            SetStatus(preview.RebuildReason != null ? "Arena rebuild required" : preview.Exists ? "Ready to verify & launch" : "Ready to prepare",
+                preview.RebuildReason != null
+                    ? "Close normal EFT, SPT Server and SPT Launcher first. Rebuild checks the private server; launch the game afterwards."
+                    : "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
+            if (preview.RebuildReason != null)
+            {
+                UpdateLayout();
+                StatusCard.BringIntoView();
+            }
             AppendLog($"Selected {preview.Source}; private runtime {preview.Destination}.");
         }
         catch (Exception error)
@@ -100,7 +113,7 @@ public partial class MainWindow : Window
 
     internal async Task StartSession()
     {
-        if (busy || preview == null) return;
+        if (busy || preview == null || preview.RebuildReason != null) return;
         var selected = preview;
         Begin("Preparing ArenaMode", "Preparing or updating private mod files; game assets stay shared through NTFS hardlinks. Verification can take several minutes.");
         var operation = epoch;
@@ -126,6 +139,28 @@ public partial class MainWindow : Window
         finally { End(); }
     }
 
+    internal async Task RebuildEnvironment()
+    {
+        if (busy || preview is not { Exists: true } selected || selected.RecoveryPending && selected.RebuildReason == null) return;
+        Begin("Rebuilding Arena environment", "Preparing a separate runtime and testing its private server. Previous account/settings are retained.");
+        var operation = epoch;
+        try
+        {
+            await operations.Rebuild(selected.Source, diagnostics, message => Report(operation, message));
+            preview = null;
+            SetStatus("Arena rebuild complete", "Check the installation, then launch the new Arena environment. Previous runtimes remain on disk.", false);
+            AppendLog("Rebuild completed; no game was started.");
+        }
+        catch (Exception error)
+        {
+            preview = null;
+            SetStatus("Arena rebuild stopped", error.Message, true);
+            AddNotice("Check the installation before retrying. Incomplete candidates are retained; previous profiles are not reset.");
+            AppendLog("Rebuild stopped: " + error.Message);
+        }
+        finally { End(); }
+    }
+
     private void Report(int operation, string message)
     {
         if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
@@ -140,6 +175,7 @@ public partial class MainWindow : Window
             else if (message.StartsWith("Private Arena server PID", StringComparison.Ordinal)) StatusHeading.Text = "Starting private server";
             else if (message.StartsWith("Starting the private game directly.", StringComparison.Ordinal)) StatusHeading.Text = "Starting the game";
             else if (message.StartsWith("Copying game settings:", StringComparison.Ordinal)) StatusHeading.Text = "Applying game settings";
+            else if (message.StartsWith("Rebuilding Arena:", StringComparison.Ordinal)) StatusHeading.Text = "Rebuilding Arena environment";
             else if (message.StartsWith("Recovering interrupted mod update.", StringComparison.Ordinal)) StatusHeading.Text = "Recovering mod update";
             else if (message.StartsWith("Updating Arena mods:", StringComparison.Ordinal) ||
                 message.StartsWith("Preparing mod update:", StringComparison.Ordinal)) StatusHeading.Text = "Updating Arena mods";
@@ -153,6 +189,7 @@ public partial class MainWindow : Window
         busy = true; // Before any await: repeated clicks cannot start another task.
         epoch++;
         SourceBox.IsEnabled = BrowseButton.IsEnabled = InspectButton.IsEnabled = StartButton.IsEnabled = false;
+        RebuildButton.IsEnabled = false;
         NoticeText.Visibility = Visibility.Collapsed;
         Activity.IsIndeterminate = true;
         SetStatus(title, detail, false);
@@ -163,7 +200,8 @@ public partial class MainWindow : Window
         busy = false; // Only after full RuntimeHost cleanup, never on a window event.
         Activity.IsIndeterminate = false;
         SourceBox.IsEnabled = BrowseButton.IsEnabled = InspectButton.IsEnabled = true;
-        StartButton.IsEnabled = preview != null;
+        StartButton.IsEnabled = preview != null && preview.RebuildReason == null;
+        RebuildButton.IsEnabled = preview is { Exists: true } && (!preview.RecoveryPending || preview.RebuildReason != null);
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

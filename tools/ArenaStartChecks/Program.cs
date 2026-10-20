@@ -426,6 +426,8 @@ try
     Check(true, "healthy session end completed");
     count += NativeGameSettingsChecks.Run(scratch);
     count += ModUpdateChecks.Run(scratch);
+    count += await BaseRebuildChecks.Run(scratch);
+    count += ProcessStateChecks.Run(scratch);
     count += await DirectGameChecks.Run(scratch, destination, args.Contains("--native-mod-update") ? [] : args);
     count += NativeModUpdateChecks.Run(args);
     Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + direct game + actual failure controls)");

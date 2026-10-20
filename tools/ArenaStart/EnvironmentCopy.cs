@@ -146,7 +146,9 @@ public static class EnvironmentCopy
         foreach (var file in CorePlugins) Add("BepInEx/plugins/spt/" + file);
         AddTree("BepInEx/plugins/spt/ConfigurationManager");
         Add("BepInEx/patchers/spt-prepatch.dll");
-        Add("BepInEx/patchers/FixPluginTypesSerialization.dll");
+        // Optional BepInEx compatibility patch, absent from clean SPT packages.
+        if (File.Exists(Inside(source, "BepInEx/patchers/FixPluginTypesSerialization.dll")))
+            Add("BepInEx/patchers/FixPluginTypesSerialization.dll");
         foreach (var file in RuntimeFiles) Add("SPT_Runtime/" + file);
         foreach (var file in ModPackage.Enumerate(source, diagnostics)) Add(file);
 

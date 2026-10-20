@@ -12,8 +12,10 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
    beispielsweise `C:\SPT41`. **Browse** öffnet den nativen Windows-Ordnerdialog.
 3. **Check installation** liest die Auswahl. Bei einer neuen Umgebung wird nur
    der Kopier-/Hardlink-Plan berechnet; noch keine Umgebung angelegt.
-   Bei einer vorhandenen Umgebung werden Besitznachweis und Dateikatalog gelesen
-   und ausstehende Änderungen des zugelassenen Modpakets gezählt.
+   Bei einer vorhandenen Umgebung werden Besitznachweis und Dateikatalog gelesen,
+   gebundene native Quellen auf Änderungen geprüft und ausstehende Änderungen des
+   zugelassenen Modpakets gezählt. Nach einem Neuaufbau folgt die Vorschau der
+   aktiven Generation.
    Die angezeigten Größen sind Katalogsummen, kein vollständiger Integritätscheck
    und keine Messung tatsächlich belegter NTFS-Cluster.
 4. **Prepare & launch** legt beim ersten Start `<SPT-Ordner>-Arena` automatisch an;
@@ -25,7 +27,17 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
    und Nachweis der nativen SPT-Patchausgabe bleiben vorgeschaltet; Details im
    [Direktstart-Bericht](ARENA-DIRECT-START-20261020.md).
    Der erste Spielstart benötigt weiterhin die native Charaktererstellung.
-5. Zum Beenden EFT normal schließen. Der Arena-Starter
+5. Nach einem fertig installierten SPT-/Spielupdate **Check installation** und
+   anschließend **Rebuild Arena environment** wählen. Bei erkannter Basisänderung
+   ersetzt diese Aktion den gesperrten Spielstart; die Statuskarte wird in den
+   sichtbaren Bereich gescrollt. Sie bereitet eine neue private
+   Generation vor, erhält das interne Konto und die zugelassenen privaten
+   Einstellungen und prüft den privaten Server samt Login. **Dabei startet kein
+   Spiel.** Danach erneut prüfen und **Launch Arena** wählen. Der Rebuild-Hinweis
+   unter dem Button erklärt den zusätzlichen Speicherbedarf; bei kleinerem Fenster
+   gegebenenfalls nach unten scrollen. Der Starter lädt keine Updates herunter und
+   ersetzt keinen SPT-Installer. Details: [Basis-Neuaufbau](ARENA-BASE-REBUILD-20261020.md).
+6. Zum Beenden EFT normal schließen. Der Arena-Starter
    wartet auf das Spiel und beendet dann seinen privaten Server. Erst danach lässt
    sich sein Fenster schließen oder erneut starten.
 
@@ -36,7 +48,10 @@ Automation-IDs bleiben mit dem geprüften UiBridge-Direktstart kompatibel.
 
 ## Dateien, Speicher und Fortschritt
 
-`SPT41-Arena` ist keine vollständige Kopie der normalen Installation:
+`SPT41-Arena` ist der feste Steuerungsanker. Die erste Runtime liegt dort;
+nach einem Neuaufbau wird die dauerhaft separat angelegte Generation unter
+`SPT41-Arena.generations/<ID>` verwendet. Keine dieser Runtimes ist eine
+vollständige Kopie der normalen Installation:
 
 - **Private copies:** Programme, DLLs und benötigte Serverdaten werden kopiert;
   Einstellungen und das interne Profil werden separat angelegt. Das vorhandene
@@ -49,6 +64,10 @@ Automation-IDs bleiben mit dem geprüften UiBridge-Direktstart kompatibel.
   Cluster. Private Caches, Logs, Profiländerungen und Dateisystem-Metadaten kommen
   hinzu. Bei späteren Starts werden unveränderte Dateien geprüft und wiederverwendet;
   nur geänderte zugelassene Mod-Dateien werden neu kopiert.
+- Der Neuaufbau behält bisherige und unvollständige Generationen bei. Ihre privaten
+  Dateien brauchen zusätzlich Platz; die Vorschau zeigt nicht die Summe aller
+  Generationen. Gemeinsam verknüpfte Assets sind keine unveränderlichen Backups
+  einer alten Spielversion.
 
 Vor jedem Start werden vorhandene native Spieleinstellungen aus der normalen
 Installation als private Kopien aufgefrischt: Steuerung, Grafik, Spiel, Sound und
@@ -56,9 +75,10 @@ PostFX. Arena schreibt nichts zurück; vorhandene Quellen ersetzen beim nächste
 Start wieder die entsprechenden privaten Einstellungen. ArenaMode, Redeploy.Core,
 Audio und Kitdaten werden inzwischen ebenfalls vor dem Start aus der normalen
 Installation aktualisiert, ohne das interne Konto zurückzusetzen.
-Details, aktuelle EXE und Prüfungen:
+Details und die jeweiligen Prüfnachweise:
 [Einstellungsübernahme](ARENA-START-SETTINGS-20261020.md) und
-[Mod-Updatepfad](ARENA-START-UPDATES-20261020.md).
+[Mod-Updatepfad](ARENA-START-UPDATES-20261020.md). Den neueren Rebuild-Stand
+einschließlich seiner eigenen Nachweise führt der [Rebuild-Bericht](ARENA-BASE-REBUILD-20261020.md).
 
 Dieser Hinweis bleibt auch beim Prüfen und Starten im Fenster sichtbar. Ein
 Hardlink allein ist kein dauerhafter Schreibschutz; die bisherigen gehaltenen
@@ -92,7 +112,8 @@ nicht absichern; die bisherigen Grenzen des Thin-Runtime-Prototyps gelten weiter
 
 Ein eingeklappter **Activity log** enthält bis zu 200 Statuszeilen.
 **Third-party licenses** öffnet die mitgelieferten Lizenztexte des Starters.
-Serverdetails stehen weiterhin in `<Arena-Ordner>\.arena-start\server-start.log`.
+Serverdetails stehen in `.arena-start/server-start.log` der jeweils aktiven
+Runtime; deren Pfad zeigt **Private Arena environment** nach der Prüfung an.
 Ein unerwarteter Serverexit wird angezeigt; solange Spiel oder Launcher noch
 laufen, bleiben die gemeinsamen Assets gesperrt. Nach dem Schließen erscheint
 ein Fehler mit Exitcode, kein erfolgreicher Sitzungsabschluss.
@@ -115,7 +136,7 @@ stillschweigend als normale Umgebung übernommen oder umgekehrt.
 ## Aufbau und Build
 
 Die Oberfläche verwendet WPF auf .NET 10 für Windows, ohne zusätzliche
-UI-Bibliothek oder Grafiken. Sie ruft `ManagedEnvironment` und `RuntimeHost`
+UI-Bibliothek oder Grafiken. Sie ruft `ManagedEnvironment`, `BaseRebuild` und `RuntimeHost`
 direkt auf; kein duplizierter Kopierer, Profilimport oder Shell-Kommandoaufbau.
 Die gesamte Vorbereitung und Serversteuerung läuft außerhalb des UI-Threads.
 Ausnahmen eines Status-Empfängers dürfen die Prozessbereinigung nicht verhindern.
@@ -147,7 +168,11 @@ SPT oder Mod-DLLs; diese werden erst aus der vom Benutzer gewählten Installatio
 für die private Umgebung bereitgestellt. Eine zusätzliche .NET-Installation
 ist für diesen Publish-Build nicht nötig.
 
-## Prüfung der Speicher-/Fortschrittsanzeige am 2026-10-20
+## Historische Prüfung der Speicher-/Fortschrittsanzeige am 2026-10-20
+
+Diese Ergebnisse und Artefakte stammen vor Mod-Updater und Basis-Neuaufbau.
+Sie bleiben als Nachweis des damaligen UI-Schritts erhalten und sind keine
+Abnahme des später ergänzten Rebuild-Ablaufs.
 
 - `ArenaStartChecks`: **308 Assertions bestanden**, einschließlich Kopien,
   echten NTFS-Hardlinks, voneinander abweichenden Phasensummen, periodischen
@@ -168,7 +193,7 @@ ist für diesen Publish-Build nicht nötig.
   beendet. **Kein neuer nativer EFT-Start oder Raid-Test** für diese UI-Änderung;
   der vorher geprüfte Direktstart bleibt separat dokumentiert.
 
-Aktuelles Artefakt:
+Damals geprüftes Artefakt:
 
 - Lokal: `artifacts/arena-launcher-clarity/portable/maschine-ArenaLauncher.exe`
 - GPU2: `C:\Temp\ArenaLauncher-Clarity-20261020\maschine-ArenaLauncher.exe`
@@ -179,7 +204,7 @@ Aktuelles Artefakt:
 ## Historische GUI-Prüfung vor dem Direktstart am 2026-10-20
 
 Die folgenden Ergebnisse gelten für `27e990c` mit dem nativen Launcher-Fenster.
-Aktuelle Direktstart-Prüfungen und der neue EXE-Hash stehen im
+Die anschließenden Direktstart-Prüfungen und deren EXE-Hash stehen im
 [Direktstart-Bericht](ARENA-DIRECT-START-20261020.md).
 
 | Prüfung | Ergebnis |
@@ -215,9 +240,12 @@ importiert und kein temporäres Drittanbieter-Testmod hinzugefügt.
 
 ## Weiterhin bestehende Grenzen
 
-Die GUI bietet keinen allgemeinen Spiel-/SPT-Updater, keine Reparatur, keinen
-Profilimport und keine Umschaltung der normalen Mods. Der zugelassene Modkatalog
-kann kontrolliert aktualisiert werden. Die native Spieloberfläche ist noch nicht auf
+Die GUI bietet keinen SPT-Download oder -Installer, keine allgemeine Reparatur,
+keinen Import normaler Spielerprofile und keine Umschaltung der normalen Mods.
+Der zugelassene Modkatalog kann kontrolliert aktualisiert werden; der ausdrückliche
+Neuaufbau übernimmt eine bereits aktualisierte lokale Spiel-/SPT-Basis und erhält
+dabei das bisherige interne Arena-Konto. Das ist keine pauschale Zusage beliebiger
+Versionsmigrationen. Die native Spieloberfläche ist noch nicht auf
 Arena beschränkt. Optionale Mods wie PFT, SAIN, APBS, ArenaMapPort und Killcam
 werden in dieser ersten isolierten Umgebung noch nicht übernommen.
 

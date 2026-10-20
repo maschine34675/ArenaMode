@@ -74,7 +74,7 @@
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Available game settings are copied from normal SPT each launch, replacing Arena's copies. No changes write back."/>
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
-                               Text="ArenaMode, Redeploy.Core, audio and kit data update from normal SPT before launch. Other mods stay excluded. Game/SPT updates need a new environment."/>
+                               Text="ArenaMode, Redeploy.Core, audio and kit data update from normal SPT before launch. Other mods stay excluded. After an SPT/game update, use Rebuild below."/>
                     <TextBlock x:Name="UpdateHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource AccentBrush}"
                                Text="Check an installation to see pending mod updates."/>
                     <TextBlock x:Name="EnvironmentHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
@@ -82,7 +82,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}" Margin="0,14,0,0" BorderBrush="#4E4B3E">
+            <Border x:Name="StatusCard" Style="{StaticResource Card}" Margin="0,14,0,0" BorderBrush="#4E4B3E">
                 <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -93,14 +93,22 @@
                             <TextBlock x:Name="StatusDetail" Text="Nothing starts until you click Launch Arena."
                                        Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,5,0,0"/>
                         </StackPanel>
-                        <Button x:Name="StartButton" Grid.Column="1" Content="Launch _Arena" Click="Start_Click" IsEnabled="False"
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <Button x:Name="StartButton" Content="Launch _Arena" Click="Start_Click" IsEnabled="False"
                                 AutomationProperties.AutomationId="ArenaLaunch"
                                 Background="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}"
                                 Foreground="#151B21" FontWeight="Bold" MinWidth="180"/>
+                        <Button x:Name="RebuildButton" Content="Rebuild Arena environment" Click="Rebuild_Click"
+                                Margin="0,7,0,0" Visibility="Collapsed" IsEnabled="False"
+                                AutomationProperties.AutomationId="ArenaRebuild"/>
+                        </StackPanel>
                     </Grid>
                     <ProgressBar x:Name="Activity" Height="3" Margin="0,15,0,0" IsIndeterminate="False"
                                  Foreground="{StaticResource AccentBrush}" Background="#2C3740" BorderThickness="0"/>
                     <TextBlock x:Name="NoticeText" Visibility="Collapsed" Foreground="#E8C487" FontSize="12" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="RebuildHint" Visibility="Collapsed" Margin="0,7,0,0" FontSize="12"
+                               Foreground="{StaticResource MutedBrush}"
+                               Text="Creates and tests a new private runtime, preserving the internal account and Arena settings. Previous runtimes remain on disk and need extra space; shared game assets are not rollback backups. No game starts during rebuild."/>
                 </StackPanel>
             </Border>
 

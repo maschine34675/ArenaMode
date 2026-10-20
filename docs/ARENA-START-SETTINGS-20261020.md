@@ -35,7 +35,7 @@ keine Verzeichnisverknüpfung und keine rekursive Übernahme.
 
 ## Schutz und Fehlerverhalten
 
-Der Aufruf liegt in `RuntimeHost.Run` nach Besitz-/Integritätsprüfung und
+Der Aufruf liegt in `RuntimeHost.RunCore` nach Besitz-/Integritätsprüfung und
 gegebenenfalls nativer Patchprüfung, unter der exklusiven Start-Sperre und den
 gehaltenen Asset-Sperren. Erst anschließend darf der private Server starten.
 Die Idle-Prüfung bleibt vor und nach der Übernahme erhalten. Reine Vorschau,
@@ -73,15 +73,29 @@ Die Einstellungsübernahme bleibt vom inzwischen ergänzten
 |---|---|
 | ArenaMode-DLLs, Audio, `kits.json`, `ladder.json`, Redeploy.Core | Geänderte zugelassene Dateien werden vor dem Start aus normalem SPT übernommen; vorhandenes internes Konto bleibt bestehen. Die Vorschau nennt neue/geänderte/entfernte Dateien. |
 | Optionale/fremde Mods | Nicht im festen Katalog, daher weiterhin nicht übernommen. |
-| Gebundene Spiel-/SPT-Dateien, etwa EFT.exe, UnityPlayer, SPT.Server, Launcher, spt-core, Managed, native Patches | Geänderter Quellenhash verweigert den nächsten Start. |
-| Bereits katalogisierte gemeinsame Assets | Geänderte Daten oder eine ausgetauschte Dateiidentität verweigern den Start. Neue Quellassets werden nicht automatisch ergänzt. |
-| Andere private SPT-/Serverdaten ohne Quellenbindung | Bleiben ebenfalls alte Kopien; eine allgemeine Updateerkennung existiert nicht. |
+| Gebundene Spiel-/SPT-Dateien, etwa EFT.exe, UnityPlayer, SPT.Server, Launcher, spt-core, Managed, native Patches | Geänderter Quellenhash verweigert den nächsten Start; die Vorschau bietet den ausdrücklichen Basis-Neuaufbau an. |
+| Bereits katalogisierte gemeinsame Assets | Geänderte Daten oder eine ausgetauschte Dateiidentität verweigern den Start. Neue Quellassets werden erst beim ausdrücklichen Neuaufbau katalogisiert. |
+| Andere private SPT-/Serverdaten ohne Quellenbindung | Bleiben zwischen Starts alte Kopien; der ausdrückliche Neuaufbau erstellt auch diese Kopien neu. Eine allgemeine automatische Updateerkennung existiert nicht. |
 
-Für Spiel-/SPT-Updates ist weiterhin eine **neue private Umgebung** nötig. Nach
-normalem Beenden aller Clients/Server kann der bisherige `<SPT>-Arena`-Ordner
-bewusst archiviert werden; **Prepare & launch** erstellt danach den festen
-Nachbarordner erneut. Dabei entsteht ein neues internes Konto. Eine automatische
-Migration des bisherigen Arena-Kontos ist nicht implementiert.
+Für Spiel-/SPT-Updates erstellt **Rebuild Arena environment** ausdrücklich eine
+neue private Generation. Zuvor muss die normale SPT-Installation vollständig
+aktualisiert und funktionsfähig sein; Spiel, Launcher und Server müssen beendet
+sein. Der Starter installiert oder lädt keine SPT-Updates herunter.
+
+`<SPT>-Arena` bleibt als Steuerungsanker erhalten. Die neue Runtime liegt dauerhaft
+unter `<SPT>-Arena.generations/<ID>` und wird erst nach Prüfung und privatem
+Server-Smoke aktiviert. Das vorhandene interne Konto samt Profil sowie die
+zugelassenen privaten Arena-Einstellungen werden kopiert, nicht zurückgesetzt.
+Native Profilmigrationen dürfen nur die neue Kopie ändern. Beim Server-Smoke gilt
+bereits die oben beschriebene Spieleinstellungsübernahme aus normalem SPT:
+vorhandene Quellen ersetzen die kopierten privaten Werte; fehlende Quellen lassen
+sie bestehen. Es wird kein normales Spielerprofil importiert.
+
+Alte und unvollständige Generationen bleiben erhalten. Sie brauchen zusätzlichen
+privaten Speicher; ihre Hardlinks sind keine unveränderlichen Asset-Snapshots.
+Keine manuelle Verschiebung des Ankers oder Anpassung der Manifestpfade ist nötig.
+Details und gesonderte Nachweise stehen im
+[Rebuild-Bericht](ARENA-BASE-REBUILD-20261020.md).
 
 Keine einzelnen DLLs von Hand überschreiben und keine Manifesthashes nachziehen:
 das umgeht die vorgesehene Zusammenstellung bzw. verletzt deren Integritätsprüfung.

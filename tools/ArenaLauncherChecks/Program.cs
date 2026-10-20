@@ -190,8 +190,49 @@ internal static class Program
         backend.Preview.SetResult(Preview(true) with { RecoveryPending = true });
         await inspection;
         Check(window.UpdateHint.Text.Contains("previous package will be restored"), "pending recovery hidden");
+        Check(!window.RebuildButton.IsEnabled, "base rebuild bypasses pending mod transaction");
+        backend.Preview = NewSignal<ManagedPreview>();
+        inspection = window.InspectSource();
+        backend.Preview.SetResult(Preview(true) with { RebuildReason = "The SPT/game base changed.", RecoveryPending = true });
+        await inspection;
+        Check(!window.StartButton.IsEnabled && window.RebuildButton.IsEnabled &&
+            window.StatusHeading.Text == "Arena rebuild required" && window.UpdateHint.Text.Contains("base changed") &&
+            window.StatusDetail.Text.Contains("launch the game afterwards"),
+            "changed base still offers ordinary start or hides rebuild");
+        await window.StartSession();
+        Check(backend.Starts == 2, "base-change guard only disabled the visual button");
+        SaveImage(window, "base-rebuild-required");
+        var rebuild = window.RebuildEnvironment();
+        Check(window.IsBusy && !window.CanClose && !window.RebuildButton.IsEnabled, "rebuild not guarded before await");
+        await window.RebuildEnvironment();
+        await window.StartSession();
+        Check(backend.Rebuilds == 1 && backend.Starts == 2, "duplicate/rebuild start reached backend");
+        backend.Report!("Rebuilding Arena: checking the candidate and private server login before activation.");
+        await Drain();
+        Check(window.StatusHeading.Text == "Rebuilding Arena environment", "rebuild progress missing");
+        backend.Rebuilding.SetException(new IOException("Fixture: interrupted candidate retained."));
+        await rebuild;
+        Check(!window.IsBusy && window.StatusHeading.Text == "Arena rebuild stopped" && !window.StartButton.IsEnabled &&
+            window.NoticeText.Text.Contains("previous profiles"), "rebuild failure lost safe retry state");
+        backend.Preview = NewSignal<ManagedPreview>();
+        inspection = window.InspectSource();
+        backend.Preview.SetResult(Preview(true) with { RebuildReason = "Interrupted rebuild needs attention.", RebuildPending = true });
+        await inspection;
+        backend.Rebuilding = NewSignal();
+        rebuild = window.RebuildEnvironment();
+        backend.Rebuilding.SetResult();
+        await rebuild;
+        Check(backend.Rebuilds == 2 && backend.Starts == 2 && window.StatusHeading.Text == "Arena rebuild complete" &&
+            !window.StartButton.IsEnabled, "successful rebuild started game or left stale preview");
+        backend.Preview = NewSignal<ManagedPreview>();
+        inspection = window.InspectSource();
+        backend.Preview.SetResult(Preview(true));
+        await inspection;
+        Check(window.StartButton.IsEnabled && window.RebuildButton.IsEnabled, "post-rebuild recheck not launchable");
         window.SourceBox.Text = @"C:\changed";
-        Check(!window.StartButton.IsEnabled && !window.UpdateHint.Text.Contains("previous package"), "stale update preview after source change");
+        Check(!window.StartButton.IsEnabled && !window.RebuildButton.IsEnabled &&
+            window.RebuildButton.Visibility == Visibility.Collapsed && !window.UpdateHint.Text.Contains("previous package"),
+            "stale update preview after source change");
         window.Close();
         Check(closed, "idle window cannot close");
 
@@ -220,7 +261,7 @@ internal static class Program
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath("artifacts/arena-launcher-updates");
+        var directory = Path.GetFullPath("artifacts/arena-base-rebuild");
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, "fixture-" + state + ".png"));
         encoder.Save(output);
@@ -228,12 +269,15 @@ internal static class Program
 
     private sealed class ControlledOperations : ILauncherOperations
     {
-        public int Inspections, Starts;
+        public int Inspections, Starts, Rebuilds;
         public TaskCompletionSource<ManagedPreview> Preview = NewSignal<ManagedPreview>();
         public TaskCompletionSource Session = NewSignal();
+        public TaskCompletionSource Rebuilding = NewSignal();
         public Action<string>? Report;
         public Task<ManagedPreview> Inspect(string source, bool diagnostics) { Inspections++; return Preview.Task; }
         public Task Start(string source, bool diagnostics, Action<string> report)
         { Starts++; Report = report; return Session.Task; }
+        public Task Rebuild(string source, bool diagnostics, Action<string> report)
+        { Rebuilds++; Report = report; return Rebuilding.Task; }
     }
 }

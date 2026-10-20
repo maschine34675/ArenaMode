@@ -13,9 +13,11 @@ Paketdateien. Vor dem Start werden die privaten Dateien vollständig verifiziert
 und die zugelassenen Änderungen übernommen. Auch bei gleicher Versionsnummer
 werden neue Builds anhand ihrer SHA-256-Hashes erkannt.
 
-`<SPT>-Arena` bleibt bestehen: Das interne Konto, sein Profil, private BepInEx-
-und Mod-Konfigurationen werden nicht zurückgesetzt. Es gibt keine Rückübertragung
-in normalem SPT. Unveränderte Mod-Dateien werden nicht neu geschrieben.
+`<SPT>-Arena` bleibt als verwalteter Anker bestehen. Modupdates betreffen die
+jeweils aktive Runtime: zunächst den Anker, nach einem Basis-Neuaufbau eine
+Generation unter `<SPT>-Arena.generations/<ID>`. Das interne Konto, sein Profil,
+private BepInEx- und Mod-Konfigurationen werden nicht zurückgesetzt. Es gibt keine
+Rückübertragung in normales SPT. Unveränderte Mod-Dateien werden nicht neu geschrieben.
 Die Größenanzeige zeigt den letzten geprüften Katalogstand; nach einem Update
 kann **Check installation** sie auffrischen.
 
@@ -57,8 +59,10 @@ Kompatibilität; native Serverprüfungen und Arena-Coreschutz bleiben aktiv.
 
 ## Austausch, Fehler und Wiederaufnahme
 
-1. Unter der exklusiven `.arena-start/running`-Sperre wird zuerst ein eventuell
-   offenes Update anhand seiner privaten Backups zurückgerollt.
+1. Unter der exklusiven Start-Sperre des Ankers und gegebenenfalls der aktiven
+   Generation wird zuerst ein eventuell offenes Modupdate anhand seiner privaten
+   Backups zurückgerollt. Die folgenden relativen Transaktionspfade liegen in der
+   aktiven Runtime, nicht zwingend im Anker.
 2. Die bisherige Umgebung muss danach die vollständige Integritäts-, Quellen-,
    Asset- und Profilprüfung bestehen. Geänderte private Dateien werden nicht
    stillschweigend als neuer Sollzustand übernommen oder automatisch repariert.
@@ -102,7 +106,25 @@ kein atomarer Gesamtverzeichniswechsel, keine zugesicherte Stromausfallsicherhei
 Die Quellinstallation muss fertig aktualisiert sein; ein während der Aufnahme
 pausierter externer Installer kann nicht allgemein als solcher erkannt werden.
 Spiel-/SPT-Änderungen und getauschte gemeinsame Assets bleiben durch die bisherigen
-Versions-/Identitätsbindungen gesperrt und benötigen eine neue Umgebung.
+Versions-/Identitätsbindungen gesperrt. Sie werden nicht vom Mod-Updater ersetzt.
+
+## Separater Neuaufbau nach einem Basisupdate
+
+Nach einem vollständig abgeschlossenen Update der normalen SPT-Installation kann
+**Rebuild Arena environment** ausdrücklich eine neue private Runtime vorbereiten.
+Dabei bleiben das vorhandene interne Arena-Konto und die zugelassenen privaten
+Einstellungen erhalten; ein normales Spielerprofil wird weiterhin nie importiert.
+Der Anker bleibt an seinem bisherigen Pfad. Die neue Generation wird separat
+angelegt und erst nach Integritätsprüfung, privatem Server-Smoke und Loginprüfung
+über einen atomar geschriebenen Verweis aktiviert. Der Rebuild startet kein Spiel.
+
+Ein offener Mod-Rollback wird vor dem Neuaufbau unter den Start-Sperren erledigt;
+beschädigte Recovery-Daten bleiben ein Fehler. Alte und unvollständige Generationen
+werden nicht automatisch gelöscht. Ihre Hardlinks sind **keine unveränderlichen
+Asset-Backups** und garantieren keine Rückkehr zur alten Spielbasis. Der Starter
+lädt weder SPT noch Updates herunter und führt keinen SPT-Installer aus.
+Vertrag, Wiederaufnahme und gesonderte Prüfnachweise:
+[Kontrollierter Basis-Neuaufbau](ARENA-BASE-REBUILD-20261020.md).
 
 ## Prüfung
 
@@ -129,7 +151,11 @@ geschützte Dateien; Abbruch an jeder Austauschphase; beschädigte Backups/Journ
 unerlaubte native Manifeständerungen und wiederholt unterbrochener Rollback.
 Datenträger-Vollzustand und physischer Stromausfall wurden nicht erzwungen.
 
-### Aktueller Offline- und Buildstand
+### Historischer Offline- und Buildstand des Mod-Updaters
+
+Die folgenden Zahlen, Artefakte und nativen Ergebnisse stammen aus dem Modupdate-
+Schritt vor dem Basis-Neuaufbau. Sie belegen keinen Rebuild einer SPT-Version.
+Den späteren Starterstand dokumentiert der verlinkte Rebuild-Bericht.
 
 - **519 Core-Assertions bestanden**, davon **130 Updateprüfungen**.
 - **34 WPF-Assertions bestanden**; echte Fenster-Renderings bei 920 × 760 und

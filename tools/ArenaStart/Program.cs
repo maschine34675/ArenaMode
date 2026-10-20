@@ -9,6 +9,11 @@ try
         var root = ManagedEnvironment.Ensure(args[1], diagnostics, Console.WriteLine);
         await RuntimeHost.Run(root, smoke: false);
     }
+    else if (args.Length == 2 && args[0] == "rebuild")
+    {
+        await BaseRebuild.Rebuild(args[1], diagnostics, Console.WriteLine);
+        Console.WriteLine("ARENA_BASE_REBUILD_PASS");
+    }
     else if (args.Length == 3 && args[0] is "plan" or "prepare" or "plan-copy" or "prepare-copy")
     {
         var plan = EnvironmentCopy.Plan(args[1], args[2], shareAssets: !args[0].EndsWith("-copy"), diagnostics);
@@ -25,7 +30,13 @@ try
     }
     else if (!diagnostics && args.Length == 2 && args[0] == "verify")
     {
-        var manifest = EnvironmentCopy.Verify(args[1], Console.WriteLine);
+        var anchor = EnvironmentCopy.Root(args[1]);
+        using var control = BaseRebuild.Acquire(anchor);
+        BaseRebuild.RequireNoPending(anchor);
+        var owner = BaseRebuild.Read<Manifest>(anchor, EnvironmentCopy.ManifestPath);
+        var active = owner.Schema == 2 ? BaseRebuild.Resolve(anchor, owner.Source, owner.Diagnostics) : anchor;
+        var manifest = EnvironmentCopy.Verify(active, Console.WriteLine,
+            runningLease: active == anchor ? control.SafeFileHandle : null);
         Console.WriteLine($"ARENA_ENVIRONMENT_VERIFIED ({manifest.Files.Count} files; internal account only)");
     }
     else if (!diagnostics && args.Length == 2 && args[0] is "start" or "smoke")
@@ -38,6 +49,9 @@ try
             ArenaStart prototype (Windows / SPT 4.1)
               play    <installed-SPT-root> [--diagnostics]
                       Prepare/reuse <installed-SPT-root>-Arena and open its native launcher.
+              rebuild <installed-SPT-root> [--diagnostics]
+                      Prepare/check a new base, preserve internal account/settings, activate.
+                      Previous runtimes remain on disk; shared assets are not a backup.
               plan    <installed-SPT-root> <new-separate-Arena-root>
               prepare <installed-SPT-root> <new-separate-Arena-root>
                       Uses shared assets on the SAME NTFS volume. No full-copy fallback.
@@ -50,7 +64,7 @@ try
             Normal SPT/server/launcher must be closed. This tool never imports player
             profiles, moves original mods or downloads files. Before each start it refreshes
             approved ArenaMode/Core/audio/kit files from normal SPT with rollback protection.
-            Game and SPT updates still require a new environment; unrelated mods stay excluded.
+            After updating normal SPT, use rebuild for the Arena base; unrelated mods stay excluded.
             --diagnostics at the end of play/plan/prepare additionally admits the installed
             UiBridge DLL for native testing. No original bridge configuration is imported.
             Shared content is write/delete-locked while the starter runs. Do not force-close it.

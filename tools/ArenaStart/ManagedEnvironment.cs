@@ -3,7 +3,8 @@ using System.Text.Json;
 namespace ArenaStart;
 
 public sealed record ManagedPreview(string Source, string Destination, bool Exists, long PrivateBytes, long SharedBytes,
-    ModUpdateSummary? Updates = null, bool RecoveryPending = false);
+    ModUpdateSummary? Updates = null, bool RecoveryPending = false, string? RebuildReason = null,
+    bool RebuildPending = false);
 
 public static class ManagedEnvironment
 {
@@ -22,14 +23,18 @@ public static class ManagedEnvironment
             var plan = EnvironmentCopy.Plan(source, destination, shareAssets: true, diagnostics);
             return new(source, destination, false, plan.PrivateBytes, plan.SharedBytes);
         }
-        var manifest = ReadOwnedManifest(source, destination, diagnostics);
+        var active = BaseRebuild.Resolve(destination, source, diagnostics);
+        var manifest = ReadOwnedManifest(source, active, diagnostics);
         if (manifest.Files.Count == 0 || manifest.Files.Any(f => f.Length < 0))
             throw new InvalidDataException("Invalid managed Arena file catalog.");
-        var pending = ModUpdates.Pending(destination);
-        return new(source, destination, true,
+        EnvironmentCopy.ValidateProfileFiles(active);
+        var rebuilding = BaseRebuild.Pending(destination);
+        var reason = rebuilding ? "An interrupted rebuild needs attention. Previous private files are retained." : BaseRebuild.SourceChange(manifest);
+        var pending = ModUpdates.Pending(active);
+        return new(source, active, true,
             checked(manifest.Files.Where(f => !f.Shared).Sum(f => f.Length)),
             checked(manifest.Files.Where(f => f.Shared).Sum(f => f.Length)),
-            pending ? null : ModUpdates.Inspect(manifest), pending);
+            pending || reason != null ? null : ModUpdates.Inspect(manifest), pending, reason, rebuilding);
     }
 
     public static string Ensure(string source, bool diagnostics = false, Action<string>? report = null)
@@ -48,7 +53,8 @@ public static class ManagedEnvironment
         {
             // Never adopt/reset an arbitrary directory. RuntimeHost owns the
             // verified mod update under the exclusive running lease.
-            _ = ReadOwnedManifest(source, destination, diagnostics);
+            _ = BaseRebuild.Resolve(destination, source, diagnostics);
+            BaseRebuild.RequireNoPending(destination);
             report?.Invoke($"Reusing {destination}. All files will be verified before start.");
         }
         return destination;

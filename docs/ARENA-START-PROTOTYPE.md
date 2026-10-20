@@ -11,10 +11,12 @@ Charaktererstellung bleibt erhalten.
 
 Der normale Spielercharakter wird **nicht importiert und nicht angeboten**.
 EFT benötigt technisch weiterhin einen Profildatensatz. Dafür legt der private
-Server über seine originale Registrierungsroute genau ein neues Konto
-`Arena-Internal` an. Die erste Charaktererstellung erfolgt im Spiel über den
-nativen Ablauf. Es gibt keinen Profilimport, keinen Rückimport und keine
-Übernahme von Stash, Begleitern oder Ausrüstung.
+Server beim ersten Start über seine originale Registrierungsroute genau ein
+neues Konto `Arena-Internal` an. Die erste Charaktererstellung erfolgt im Spiel über den
+nativen Ablauf. Es gibt keinen Import normaler Spielerprofile, keinen Rückimport
+und keine Übernahme ihres Stashs, ihrer Begleiter oder Ausrüstung. Ein späterer
+ausdrücklicher Basis-Neuaufbau erhält dagegen das bereits vorhandene interne
+Arena-Konto samt dessen Zustand; siehe [Rebuild-Vertrag](ARENA-BASE-REBUILD-20261020.md).
 
 Die neue Umgebung erhält eigene Kopien der ausführbaren Spielbestandteile, SPT,
 ArenaMode und Redeploy.Core. Große freigegebene native Assets werden auf demselben
@@ -27,7 +29,8 @@ SAIN/PFT/APBS noch ArenaMapPort/Killcam; verfügbar sind die eingebauten SPT-Kar
 Kit- und Waffenleiterdateien stammen aus der vorhandenen Arena-Installation.
 Die fünf nativen Dateien unter `SPT_Runtime/user/sptSettings` werden vor jedem
 Start als private Kopien übernommen, ohne Rückschreiben. Fehlende Quellen
-lassen private Einstellungen bestehen. Mod-Konfigurationen bleiben ausgeschlossen;
+lassen private Einstellungen bestehen. Mod-Konfigurationen aus normalem SPT
+bleiben ausgeschlossen;
 siehe [Einstellungsübernahme und Updateverhalten](ARENA-START-SETTINGS-20261020.md).
 Die übrigen SPT-Basiskonfigurationen werden ebenfalls übernommen; HTTP, Logging
 und Backup erhalten dagegen neu erzeugte private Einstellungen. Vom Benutzer
@@ -66,7 +69,7 @@ Reparatur oder vollständige Verifikation des offiziellen Patchformats.
 ## Verwendung
 
 Voraussetzungen: Windows, .NET 10 für den Starter; zum Bauen das .NET-10-SDK.
-Spiel, SPT-Server und SPT-Launcher müssen für `prepare`, `smoke` und `start`
+Spiel, SPT-Server und SPT-Launcher müssen für `prepare`, `rebuild`, `smoke` und `start`
 geschlossen sein. Der reine `plan` verändert nichts.
 
 Für die automatische Anlage und spätere Wiederverwendung:
@@ -77,7 +80,10 @@ $starter = ".\tools\ArenaStart\bin\Release\net10.0\maschine-ArenaStart.exe"
 & $starter play D:\SPT41
 ```
 
-`play` verwaltet den Nachbarordner `D:\SPT41-Arena` automatisch. Bereits vorhandene
+`play` verwaltet den Nachbarordner `D:\SPT41-Arena` als festen Anker automatisch.
+Die erste Runtime liegt dort, spätere neu aufgebaute Runtimes dauerhaft unter
+`D:\SPT41-Arena.generations/<ID>`. Der Start über den Anker folgt seinem aktiven
+Generationsverweis; Generationsordner nicht direkt starten. Bereits vorhandene
 fremde, unvollständige oder anders zugeordnete Ordner werden nicht übernommen,
 geleert oder repariert. Bei Folgestarts wird die vorhandene Umgebung geprüft.
 ArenaMode, Redeploy.Core, Audio, Dokumentation und Kitdaten werden vor dem Start
@@ -97,16 +103,30 @@ Einzelne Schritte, insbesondere für Tests:
 & $starter verify  D:\SPT41-Arena
 & $starter smoke   D:\SPT41-Arena
 & $starter start   D:\SPT41-Arena
+# Nach einem vollständig abgeschlossenen Update der normalen SPT-Basis:
+& $starter rebuild D:\SPT41
 ```
 
-Das Ziel darf noch nicht existieren und darf weder innerhalb noch oberhalb der
-Quelle liegen. Die Vorbereitung kopiert nur den festen Katalog. Bei einem
+Bei `plan` und `prepare` darf das Ziel noch nicht existieren und weder innerhalb
+noch oberhalb der Quelle liegen. Die Vorbereitung kopiert nur den festen Katalog. Bei einem
 Abbruch wird nichts automatisch gelöscht oder zusammengeführt; die unvollständige
 Umgebung startet ohne gültiges Manifest nicht. Quell- und Zielordner müssen auf
-demselben NTFS-Laufwerk liegen. Für Spiel-/SPT-Updates
-ist weiterhin eine neue Zielumgebung nötig. Die Versionsbindung an Spielassemblies,
-Launcher, Server und native Patchdateien verweigert das Mischen verschiedener
-Stände. Fremde Mod-Updates werden nicht automatisch in Arena übernommen.
+demselben NTFS-Laufwerk liegen. Die Versionsbindung an Spielassemblies, Launcher,
+Server und native Patchdateien verweigert das Mischen verschiedener Stände.
+Nach einem Basisupdate erstellt `rebuild` beziehungsweise **Rebuild Arena environment**
+in der GUI ausdrücklich eine neue Generation aus der fertig aktualisierten Quelle.
+Das vorhandene interne Konto und zugelassene private Einstellungen werden erhalten.
+Erst nach Integritäts-, Patch-, privater Server- und Loginprüfung wird der aktive
+Verweis gewechselt. Der Rebuild startet kein Spiel und installiert keine SPT-Updates.
+
+Alte und unvollständige Generationen werden nicht automatisch gelöscht. Sie brauchen
+zusätzlichen privaten Speicher; die gemeinsamen Hardlinks sind keine garantierten
+Backups einer alten Spielbasis. Eine Unterbrechung vor Aktivierung führt beim
+ausdrücklichen Wiederholen zu einem neuen Kandidaten, eine Unterbrechung danach
+nur zum Abschluss der schon erfolgten Aktivierung. Vorhandener Profilfortschritt
+wird dabei nicht zurückgerollt. Vertrag und gesonderte Nachweise:
+[Basis-Neuaufbau](ARENA-BASE-REBUILD-20261020.md). Fremde Mod-Updates werden weiterhin
+nicht automatisch in Arena übernommen.
 
 `smoke` startet den echten privaten Server, erstellt oder prüft das interne Konto
 und beendet ausschließlich diesen gestarteten Server. Es startet kein Spiel.
@@ -162,7 +182,7 @@ schreibgeschützt. Die private Umgebung daher ausschließlich über den Starter
   gesamten Spielbaum rekursiv wiederherstellt. Nur der geprüfte private
   Assembly-CSharp-Backup-/Patchpfad wird akzeptiert. Nach einem Start werden
   veränderte Manifesthashes niemals automatisch als neuer Sollzustand übernommen.
-- Kein Download, kein allgemeiner Mod-Importer, kein Profil-/Fremdmod-Import und kein automatisches
+- Kein Download, kein allgemeiner Mod-Importer, kein Import normaler Profile/Fremdmods und kein automatisches
   Löschen alter Installationen. Kein Deployment in die normale Installation.
 
 Das ist eine Trennung gegen versehentliche Vermischung, **keine Betriebssystem-
@@ -183,19 +203,22 @@ und wurde im privaten Serverlog beobachtet.
 - Vollständig auf Arena reduzierte Spielmenüs. Eine eigene
   [grafische Startoberfläche](ARENA-LAUNCHER-UI-20261020.md) ist vorhanden.
   Native PMC-/Scav-/Stash-Seiten sind in der privaten Kopie noch
-  vorhanden; sie enthalten ausschließlich den neuen internen Charakter.
+  vorhanden; sie enthalten ausschließlich den internen Arena-Charakter.
 - Ein serverseitiger Arena-only-Raidvertrag und das Ausblenden von „eigenes Gear“.
 - Optionale Modpakete einschließlich Abhängigkeitsauflösung, PFT-Begleiter und
   zusätzliche Karten. Keine fremden DLLs werden im Starter veröffentlicht.
-- Automatisierte vollständige Charaktererstellung, allgemeine Spiel-/SPT-Migration
-  einer bestehenden Arena-Umgebung und ein Installer.
+- Automatisierte vollständige Charaktererstellung, ein SPT-Download/-Installer
+  oder beliebige Versionsmigrationen ohne Prüfung. Der kontrollierte Neuaufbau
+  aus einer funktionsfähigen lokalen Basis ist inzwischen vorhanden.
 
 ## Diagnose auf dem GPU-Host
 
-`--diagnostics` am Ende von `play`, `plan` oder `prepare` nimmt ausschließlich
+`--diagnostics` am Ende von `play`, `plan`, `prepare` oder `rebuild` nimmt ausschließlich
 die installierte `BepInEx/plugins/maschine-UiBridge.dll` zusätzlich in den
 festen Katalog auf. Keine Diagnose-Konfiguration oder Zugangsdaten werden
 automatisch importiert. Das Flag ist kein allgemeiner Fremdmod-Import.
+Ein Rebuild erhält den bestehenden Diagnosemodus und dessen private Bridge-
+Konfiguration; er übernimmt keine normale Quellkonfiguration.
 Für den eigenen GPU-Test wird eine frische private Bridge-Konfiguration mit
 gezieltem Host-Bind/Client-Allowlist, vorhandener Proxy-Authentifizierung und
 privaten State-/Capture-Pfaden eingerichtet. Geheimnisse bleiben außerhalb Git.
@@ -216,12 +239,15 @@ Symlinks, Hardlinks einschließlich veränderlicher Logdateien, externe Logger-/
 Backuppfade und Loader-Umgebungsvariablen. Sie prüfen außerdem die unveränderten
 Quelldateien und dass legitime native Backups einen Folgestart nicht verhindern.
 
-Die platzsparende Variante ergänzt echte Hardlink-/Handle-Negativkontrollen,
+Historischer Stand der platzsparenden Variante vor GUI, Mod-Updater und Rebuild:
+Sie ergänzte echte Hardlink-/Handle-Negativkontrollen,
 Quellversionsbindung, verwaltete Wiederverwendung und native
 Bootstrap-Konfigurationen: **187 Assertions**. Den getrennten Nachweis der
 tatsächlich angelegten Umgebungen, der gefundenen Startfehler und des
 Factory-GPU-Tests enthält
 [ARENA-START-THIN-20261020.md](ARENA-START-THIN-20261020.md).
+Die späteren Schritte besitzen eigene Berichte; insbesondere sind diese älteren
+Resultate keine Abnahme eines Basis-Neuaufbaus.
 
 Historische Prüfung der Vollkopie am 20.10.2026 (`f428c57`):
 
