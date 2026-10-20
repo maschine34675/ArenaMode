@@ -79,7 +79,7 @@ death events or substitutes a success return for a skipped native death.
   for setup, opt-in developer diagnostics for the first guarded path, and Warning
   for real contract failures/newer versions.
 
-## Offline evidence and remaining native test
+## Offline evidence
 
 Run `pwsh -NoProfile -File tools/DeminvincibilityCompatChecks/Verify.ps1`.
 The harness links all three production source files. It executes transformed
@@ -107,7 +107,8 @@ Four closing checks covered (1) published/native method and IL contracts,
 (3) executed transformed IL, ordinary controls and negative variants, and
 (4) native-reference compilation and final source review. A separate read-only
 review of the frozen production files, harness and upstream damage/death code
-found no remaining blocker. No GPU deployment or host modification was performed.
+found no remaining blocker. That offline phase performed no GPU deployment or
+host modification; the later native followup is separate.
 
 Frozen production SHA256:
 
@@ -117,11 +118,64 @@ Frozen production SHA256:
 | `ArenaDeminvincibilityContract.cs` | `CCE9E4374850EFAE8B8D3009BF246358F298020F94C94A1B7D7137AFFDA57430` |
 | `ArenaDeminvincibilityScope.cs` | `C1FE5533F1FB74083F0777E759781E29B08A2FEEC955F790E2C9405A3FC03F3B` |
 
-Native gameplay acceptance is **pending**, not implied by these checks. On an
-exclusive GPU host, use published 2.2.0 with 1 HP/Second Chance enabled; prove an
-ordinary control still survives, then real lethal Arena damage and Give Up lead
-to their normal death/respawn or solo-Zombie result, repeat after a respawn, and
-finish with another ordinary control. Keep unrelated damage/effect preferences
-observable, verify saved foreign config unchanged, then remove only temporary
-test files. Do not interrupt another host session or weaken protected raid-end
-identity to complete this test.
+## Native followup — 2026-10-20
+
+The [Factory results](GPU-OPTIONAL-COMPAT-20261020.md), Phase 3, cover published
+2.2.0 on ArenaMode `235cc69`, with CLA and SVM also installed. With 1 HP Mode
+enabled, ordinary head-damage and native kill controls preserved the player
+before and after Arena in the same process. Arena's native kill and actual
+Give Up input instead reached death and successful physical respawn. Two living
+Deathmatch round transitions also completed.
+
+This is **partial** acceptance. The head-damage probe retained Demi's 99% damage
+setting and cannot establish an exactly zero-health head from a rounded display.
+Guard diagnostics are not a full destroyed-limb/medical test, and explicit native
+kill hooks are not proof of every lethal combat damage type.
+
+A later fresh-process Factory PFT-Zombies probe enabled Second Chance with
+1 HP Mode off, still alongside CLA and SVM. One companion joined. Wave 1 ended
+after four actual MP5 shots and a zombie kill; the living PMC was replaced for
+the wave 2 entry-gear refill. A native test-hook death at 09:39:21 then entered
+live ally spectating. The companion cleared wave 2 at 09:39:24, and the restored
+PMC and companion were ready for wave 3 at 09:39:26. The local body changed
+from ID 1 to 4 to 7, with entry gear and 440/440 HP restored. Demi's
+`HasSecondChance` remained true and `IsDebouncing` false before/after the Arena
+death: the native Arena transition did not consume the foreign global chance.
+The protected raid end completed afterwards.
+
+The direct observations and native log are retained as
+`pft-demi-direct-observations.json` and
+`demi-secondchance-pft-before-recovery.log` under the combined report's ignored
+artifact directory. This covers a one-companion PFT-Zombies living/dead wave
+transition and live spectating, not Tactical, every squad size or an actual
+killer replay. The separate solo-Zombie and ordinary Second Chance controls
+follow below.
+
+### Solo-Zombie terminal death and ordinary Second Chance
+
+After the separate early-terminal-exit fix, client `5780942` was retested with
+server/BigBrainCompat still on `235cc69`. In the first solo Factory Zombie raid,
+an immediate native kill reached death without respawn; the intro guard ran at
+09:59:07.610 and the protected server end completed at 09:59:08.650. A second
+raid waited 15 seconds after raid start before the native kill; it also ended
+without respawn, with protected completion at 10:00:11.861. Both returned through
+the native result pages to the menu.
+
+The following ordinary Factory PMC raid still had `HasSecondChance=true`.
+Its native kill control reported **still alive**. One second later,
+`HasSecondChance=false` and `IsDebouncing=false`; the player remained alive
+with all seven body parts full, totaling 440 HP. The ordinary disconnect/result
+flow then reached the main menu. Thus these Arena deaths did not consume the
+foreign chance, and its ordinary survival/consumption behavior remained active.
+
+The ignored `terminal-zombie-retest-5780942/report.json` records 21 completed
+driver steps with **no automated expectations**. Acceptance comes from its
+actual returned death/alive, field and health values, paired with the scenario's
+named inspector reads and the client/server log observations in the
+[combined report](GPU-OPTIONAL-COMPAT-20261020.md), not merely its `ok` flag.
+This does not test a world/end transition within Demi's 350 ms debounce window,
+an actual killer replay, or every lethal combat damage type.
+
+Keep unrelated damage/effect preferences observable, record final configuration
+restoration and temporary-file cleanup separately, and never weaken protected
+raid-end identity to complete a test.

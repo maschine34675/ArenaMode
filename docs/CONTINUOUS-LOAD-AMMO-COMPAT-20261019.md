@@ -70,9 +70,10 @@ No other mod's source or DLL is bundled.
 
 Published DLL SHA256:
 `241B4F8FB5D5B99305854309B8C7E3E8486392354258971CBB0879C104430B7E`.
-Published plugin and assembly versions are both 1.2.0. The release was downloaded
-to ignored artifacts only, never installed. Its metadata/IL were inspected with
-Mono.Cecil; foreign code was not executed for discovery.
+Published plugin and assembly versions are both 1.2.0. During the initial offline
+review, the release was downloaded to ignored artifacts without installation.
+Its metadata/IL were inspected with Mono.Cecil; foreign code was not executed
+for discovery. The later temporary native installation is recorded below.
 
 Native source checked: `../_decompiled/EFT/GameWorld.cs` RegisterPlayer sets
 MainPlayer before its postfix; `../_decompiled/EFT/Player.cs` native load/unload
@@ -98,12 +99,10 @@ are not copies of the foreign inventory implementation. No source-string-only
 checks establish runtime behavior; string replacements are used only to create
 compiled negative controls.
 
-No-deploy client build passes with four existing CS8632 warnings. Native Unity/
-Harmony acceptance remains separate and pending host coordination: verify real
-quick load/unload, inventory-close continuation, cancel, a live kit swap and two
-respawns with a pending load, plus ordinary controls before/after. In particular,
-actual Harmony postfix ordering, native asynchronous continuation order and
-foreign UI destruction cannot be certified by desktop fixtures alone.
+The initial no-deploy client build passed with four existing CS8632 warnings.
+Native Unity/Harmony acceptance remained separate at that point. Actual Harmony
+postfix ordering, native asynchronous continuation order and foreign UI
+destruction cannot be certified by desktop fixtures alone.
 
 Four-pass review: (1) published/native signatures and initial registration timing;
 (2) controller rebind, duplicate disposal, pending tasks and following ordinary
@@ -112,3 +111,33 @@ scope, weak ownership, failure admission and no-deploy/file ownership. Independe
 reviews of the frozen source found no remaining blocker. The root rerun passed
 the same 81 assertions and all 25 compiled controls:
 `artifacts/continuous-load-ammo-checks/a9d7f9c8416346b8b66575b868de2ceb/`.
+
+## Native followup — 2026-10-20
+
+The [Factory results](GPU-OPTIONAL-COMPAT-20261020.md), Phase 2 and its followup,
+cover published CLA 1.2.0 on ArenaMode `235cc69`: ordinary load/unload/cancel,
+continuation with inventory closed, two confirmed pending-unload deaths with
+physical replacement, and an ordinary unloading control after Arena. Actual
+shots after replacement confirmed usable hands. Two later living round changes
+also completed, with the new CLA owner directly checked after the first.
+
+Neither living replacement was proven to overlap pending magazine work. The
+800 ms newer-operation race, pending-work living kit swap, preset/MultiSelect
+cancellation, quick-load hotkey and measured movement-limit reset are not covered
+by these observations. No CLA exception was observed;
+this is bounded native evidence, not certification of every timing or UI path.
+Test settings and temporary-file cleanup are tracked in the combined report.
+
+The later Factory PFT-Zombies probe kept CLA, Deminvincibility and SVM installed
+with one companion. Four actual MP5 shots and a zombie kill cleared wave 1.
+The living wave 1→2 refill changed the local body from ID 1 to 4, and CLA's
+owner was inspected as ID 4. During wave 2, a native test-hook death entered
+live ally spectating; after the companion cleared the wave, the restored local
+body and CLA owner both had ID 7. The team was ready at 09:39:26, with entry
+gear and 440/440 HP restored. The raid subsequently completed its protected end.
+
+Evidence is retained as `pft-demi-direct-observations.json` and
+`demi-secondchance-pft-before-recovery.log` under the combined report's ignored
+artifact directory. No pending CLA process was established across either PFT
+swap. This extends body-binding coverage to one-companion PFT Zombies, not
+Tactical, all squad sizes, pending-load transitions or a killer replay.

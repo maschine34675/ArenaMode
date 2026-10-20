@@ -14,44 +14,63 @@ current. User-facing communication is normally German.
   veto/clamp only for exact Arena local health controllers. Foreign saved settings
   and unrelated balance preferences remain unchanged. See
   [integration, verification and native followup](AMMO-RAID-HEALTH-COMPAT-20261020.md).
-  Implementations: `0005532` (Demi), `8cd9881` (CLA), `e4f37d6` (SVM); shared
-  startup/admission and updated public docs follow in a separate commit. The
-  independent adapter reruns and integrated unit/menu/PFT checks pass.
-  **No deployment or GPU action in this batch; native acceptance remains open.**
-  Builds use NoDeploy targets. The installed client is still the movement/stats
-  build below, not the newest repository build. No push or release performed.
-  Finish the pending host coordination, previous lifecycle retest and temporary
-  mod/settings cleanup below before installing further test combinations.
+  Implementations: `0005532` (Demi), `8cd9881` (CLA), `e4f37d6` (SVM), with shared
+  startup/admission in `235cc69`. Independent adapter and integrated regressions
+  pass. The [native Factory report](GPU-OPTIONAL-COMPAT-20261020.md) records SVM
+  SaveLoot/Ignore/disabled/Scav controls; CLA load/unload/cancel, two pending-unload
+  death replacements and ordinary controls; Demi 1 HP and Second Chance controls,
+  Give Up and death/respawn. One-companion PFT Zombies completed living and
+  dead-player wave transitions with correct CLA owner binding and live spectating.
+  A separate early solo-Zombie terminal-exit race was found and fixed in
+  `5780942`; immediate and delayed deaths then completed protected ends, followed
+  by an ordinary PMC whose Second Chance still worked and was consumed normally.
+  The corrected client is deployed to development and GPU2, SHA256
+  `8A5C9A9852E2496095E838C70201E900ACB49FB0BEC91BA3BB90E4DF867455BD`.
+  Server and BigBrainCompat remain on the tested `235cc69` build.
+  **Limits:** no confirmed pending-load living swap, CLA 800 ms newer-load race,
+  preset/MultiSelect, quick-load hotkey or measured movement-limit reset; no
+  separate Tactical PFT, killer replay or Demi 350 ms world/end-transition race.
+  The bounded results do not certify every map, setting or damage type.
+  **Cleanup completed at 10:10:43–10:10:53:** six bounded helpers removed CLA
+  (6 files), Demi (4), SVM (43) and reviewed test sync duplicates across both
+  roots, after the earlier CM/StatTrack cleanup. The old SVM 2.2.1 was deliberately
+  not restored, as requested; original backups remain outside mod discovery.
+  Eleven Arena test settings were restored, the MP5 was returned through native
+  inventory UI to its original stash position (x=6, y=19) and checked in persisted
+  data, and the PFT group is empty. Existing Core/CH/UiBridge and unrelated mods
+  were preserved. Independent final verification and root rerun passed 100 file/
+  settings checks. The clean restart reached MainMenu with 41 plugins and six
+  libraries matching the installed files; ARENA reached the map screen. Client
+  startup had no errors. The server still reports the preexisting file-empty
+  LTTP/LootingBots directories; they were deliberately preserved. Game and
+  server are stopped again. No push or release was performed.
 
-- **Classic Movement / StatTrack (2026-10-19, pending native followup):** implementations
+- **Classic Movement / StatTrack (2026-10-19, lifecycle retest completed 2026-10-20):** implementations
   `72204e8` and `ebb1039` retain native movement caches for exact Arena bodies and
   exclude their shots/hits/kills/unregisters from foreign statistics. Ordinary
   PMC/Scav paths and foreign settings remain untouched. Current targets are CM
   1.1.3+ and StatTrack 2.1.1+, with contract-checked forward admission; CM's old
   NostalgiaMode remains an Arena-only blocker. See the
   [integration and offline checks](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md).
-  The client/BigBrainCompat pair `0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`
-  is installed locally and on GPU2; server/Core/CH/UiBridge hashes are unchanged.
-  Native ordinary PMC statistics persistence passes, followed by native Arena
-  movement, double jump/bunnyhop, two physical respawns and unchanged StatTrack
-  data. See [native evidence and limits](GPU-MOVEMENT-STATS-COMPAT-20261019.md).
-  **Do not claim full lifecycle acceptance:** an unplanned server restart during
-  Arena lost the process-local protected arm; the stale end was correctly
-  rejected. The tester did not initiate this restart. Later read-only status is
-  ExitStatus/no raid, while another session remains recently active. User was
-  asked about host availability; no more host mutations until coordination is
-  resolved. A clean ordinary -> Arena -> ordinary retest remains required.
-  **Cleanup pending:** restore DeveloperMode, remembered mode, Deathmatch replay,
-  Factory solo participants (4 -> 8) and the test MP5's original stash placement;
-  FAST MOVEMENT is already restored and test cheats/movement are off. Temporary
-  `ClassicMovement`, `acidphantasm-stattrack`, `ClassicMovementServer` and the
-  StatTrack server folder remain on BOTH development and GPU2. Their originally
-  absent folders, 22 installed files, settings snapshots and cleanup/archive
-  script are recorded under ignored
-  `artifacts/movement-stats-compat-20261019/`. Stop only an available test host,
-  archive generated StatTrack data, remove only these exact owned test folders,
-  then verify protected hashes/settings. Preserve the pre-existing empty LTTP/
-  LootingBots directories. No protected-end bypass, profile edit, push or release.
+  The [first native probe](GPU-MOVEMENT-STATS-COMPAT-20261019.md) established
+  movement/double-jump/bunnyhop and shot/hit/kill isolation, but its unplanned
+  server restart invalidated the protected arm. That historical interrupted end
+  remains rejected evidence, not a successful exit. The
+  [clean followup on `235cc69`](GPU-OPTIONAL-COMPAT-20261020.md), Phase 1, completed
+  ordinary PMC → Arena → ordinary PMC without a server restart, twice. Both
+  Arena ends restored their protected snapshots; four physical respawns retained
+  native movement states. Five actual Arena shots left StatTrack byte-identical,
+  while ordinary counters advanced 14 → 19 → 22. The five compared protected
+  profile fields were identical; Hideout differed only in its routine timestamp.
+  The original lifecycle gap is closed within this Factory scope, not for every
+  map, tooltip, insurance path or asynchronous ordinary-save race.
+  Temporary CM/StatTrack client/server files and generated test statistics were
+  archived and removed from both roots. The earlier settings/MP5 restoration
+  obligations are completed by the cleanup above; preexisting empty LTTP/
+  LootingBots directories were preserved. Raw private evidence remains under
+  ignored `artifacts/movement-stats-compat-20261019/` and
+  `artifacts/native-optional-compat-20261020/`. No protected-end bypass or profile
+  edit was used.
 
 - **Continuous Healing / Late To The Party (2026-10-19):** first implementation
   batch after the top-200 survey. Exact Arena body/world guards keep CH's local

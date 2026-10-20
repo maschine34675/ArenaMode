@@ -265,8 +265,12 @@ with a warning; required API and protection checks still apply. PFT 0.10.1 and
 These adapters do not change the optional mods' saved settings or ordinary raid
 behavior. An unavailable Smoothie adapter warns without blocking Arena; keep its
 optional memory-cleanup pause disabled in that case.
-The Continuous Load Ammo, SVM and Deminvincibility adapters have offline contract
-and regression coverage; native gameplay acceptance is still pending.
+Targeted Factory tests cover Classic Movement/StatTrack across ordinary–Arena–
+ordinary raids, SVM's SaveLoot/Ignore raid ends, and Continuous Load Ammo's basic
+operations and respawns with pending unloads. Deminvincibility's 1 HP and Second
+Chance controls also passed, including protected solo-Zombie exits and a
+one-companion PFT wave sequence. Specific timing/UI and replay cases remain open.
+See the [dated native results and limits](docs/GPU-OPTIONAL-COMPAT-20261020.md).
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant
 RaidInfoPanels and CombatSlide functionality; neither is a required separate

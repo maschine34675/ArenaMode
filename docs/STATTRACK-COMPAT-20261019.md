@@ -147,11 +147,18 @@ review found no remaining blocker after the four-argument constructor and
 future-helper/accessor checks were corrected. Parent re-verification and native
 acceptance are separate steps.
 
-Native acceptance is recorded separately by the parent integration report. The
-offline harness does not prove actual Mono patch-of-postfix dispatch, successful
-network traffic, UI tooltip refresh or an actual ordinary save race on the GPU.
-The bounded native test should demonstrate ordinary save -> unchanged Arena
-statistics across respawn/end -> a new ordinary save; an earlier ordinary request
+Native evidence is recorded in the [first Factory probe](GPU-MOVEMENT-STATS-COMPAT-20261019.md)
+and the [2026-10-20 lifecycle followup](GPU-OPTIONAL-COMPAT-20261020.md), Phase 1.
+The latter ran ordinary → Arena → ordinary without a server restart, twice:
+four physical respawns retained native movement states, both protected Arena
+ends completed, and five actual Arena shots left permanent StatTrack files
+byte-identical. Ordinary shot counts increased before/between/after the Arena
+intervals. The earlier probe additionally observed real hits and a kill, but
+its interrupted server lifecycle is not reused as a successful protected end.
+
+These bounded tests do not establish UI tooltip refresh, insurance delivery or
+an actual asynchronous ordinary-save race. The offline harness remains separate
+evidence for those tested ownership boundaries; an earlier ordinary request
 completing during Arena is legitimate traffic, not an Arena leak.
 
 DeveloperMode logs the first excluded shot, kill, hit and body-end/merge per

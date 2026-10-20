@@ -59,15 +59,27 @@ eingespielt; vorhandene Server-, Core-, CH- und UiBridge-Dateien sind unverände
 | Client | `2759FE74B2538C884A960C9F28E7D0C7B9E3449C7A00AEA6AD250876B91ECA70` |
 | BigBrainCompat | `6594B34E952D3010F62E9ED6D534A85ABDF4B82F3945B7108B5A03D0637C4E66` |
 
-Beide melden `0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`.
-Die [native Prüfung](GPU-MOVEMENT-STATS-COMPAT-20261019.md) bestätigt normale
+Beide meldeten in dieser ersten Phase
+`0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`.
+Die [native Prüfung vom 19.10.](GPU-MOVEMENT-STATS-COMPAT-20261019.md) bestätigt normale
 Classic-Movement-Zustände und StatTrack-Speicherung im vorherigen PMC-Raid sowie
 native Arena-Zustände, Doppelsprung, Bunnyhop, zwei Respawns und unveränderte
 StatTrack-Daten trotz Arena-Schüssen und Kill. Ein nicht vom Tester veranlasster
 SPT-Server-Neustart während Arena verlor jedoch die laufende geschützte
-Raid-Zuordnung. Der Endschutz wies den veralteten Abschluss korrekt ab. Ein
-sauberer Arena-Abschluss mit anschließendem normalen PMC-Raid bleibt deshalb
-offen; die vorhandenen Gameplay-Belege ersetzen diesen Lebenszyklustest nicht.
+Raid-Zuordnung. Der Endschutz wies den veralteten Abschluss korrekt ab; ein
+sauberer Abschluss mit anschließendem normalen PMC-Raid blieb damals offen.
+
+Der [Nachtest vom 20.10.](GPU-OPTIONAL-COMPAT-20261020.md), Phase 1, schließt
+diesen begrenzten Lebenszyklustest auf `235cc69`: gewöhnlicher PMC → Arena →
+gewöhnlicher PMC ohne Serverneustart, zweimal erfolgreicher geschützter
+Arena-Abschluss, insgesamt vier physische Respawns mit nativen Bewegungszuständen.
+Fünf beobachtete Arena-Schüsse änderten die gespeicherten StatTrack-Daten nicht;
+die normalen Raids sammelten und speicherten anschließend wieder. Die geschützten
+Inventar-, Gesundheits-, Skills-, Quest- und Encyclopedia-Felder blieben in
+beiden Arena-Vergleichen identisch. Dies erweitert die Factory-Belege, ersetzt
+aber keine Prüfungen aller Einstellungen, Karten, Versicherungswege oder
+asynchronen Speicher-Rennen.
+
 Host-Nutzung, Wiederherstellung der Testeinstellungen und Entfernung der
 temporären Fremdmods sind im [Handoff](HANDOFF.md) festgehalten. Ignorierte
 Quellen, Payloads, Prüfläufe und Belege liegen unter

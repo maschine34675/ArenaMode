@@ -152,12 +152,19 @@ ZombieSoloChecks passes 85 assertions and 13 compiled negative controls.
 The client build succeeds with zero errors and the same four existing nullable
 annotation warnings. Installed client, companion, Core and server DLL hashes
 are unchanged before/after this NoDeploy build.
-Build and native acceptance are separate: the client is built with explicit
-NoDeploy targets into that directory; this change does not itself deploy or
-restart either process. Fresh acceptance still requires an early solo-Zombie
-death reaching the result screen **and** protected raid-end/profile restore,
-followed by an ordinary raid/control. A later death alone cannot exercise the
-startup race.
+Build and native acceptance are separate: that first client build used explicit
+NoDeploy targets and did not restart either process. The subsequent deployment
+had to prove an early solo-Zombie death reaching the result screen **and**
+protected raid-end/profile restore, followed by an ordinary raid/control.
+A later death alone cannot exercise the startup race.
+
+The subsequent [GPU2 retest](GPU-OPTIONAL-COMPAT-20261020.md) on commit `5780942`
+exercised this exact race: immediate solo-Zombie death logged the skipped obsolete
+intro and then completed the native protected end. A death after fifteen seconds
+also completed, followed in the same process by an ordinary PMC whose Second
+Chance protection still worked. The report records the separate short native
+culling error burst during the first scene teardown; this is not a claim that
+the entire log was error-free.
 
 ## Other original team boxes
 

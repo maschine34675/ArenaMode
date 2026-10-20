@@ -61,6 +61,15 @@ Bestätigung vollständiger Kompatibilität.
 
 ## Weitere ausdrücklich berücksichtigte Kombinationen
 
+Die [Factory-Prüfung vom 20.10.2026](GPU-OPTIONAL-COMPAT-20261020.md) ergänzt
+die Offline-Nachweise: Classic Movement/StatTrack durchliefen normale Raids vor
+und nach geschützten Arena-Abschlüssen; SVMs SaveLoot/Ignore und die grundlegenden
+CLA-Lade-/Respawnabläufe wurden im Spiel geprüft. Deminvincibilitys 1-HP- und
+Second-Chance-Kontrollen sowie geschützte Solo-Zombie-Abschlüsse und PFT-Wellen
+mit einem Begleiter bestanden ebenfalls. Einzelne Timing-/UI- und Replay-
+Grenzfälle sind noch offen. Dies ist keine Freigabe jeder Karte, Version oder
+Modkombination; die folgenden Texte beschreiben jeweils den Adaptervertrag.
+
 - **Continuous Load Ammo 1.2.0+:** Ladecontroller werden beim Arena-Körperwechsel
   neu gebunden. Cleanup und verzögerte Endmeldungen des alten Körpers dürfen
   weder den Nachfolger noch einen neueren Ladevorgang entsperren/beenden.
@@ -76,7 +85,6 @@ Bestätigung vollständiger Kompatibilität.
   nativen Todes-/Respawnregeln. Schadensmultiplikator, Medizin- und
   Fraktureinstellungen bleiben wirksam; keine gespeicherten Werte ändern sich.
   Siehe [Schadens- und Todesvertrag](DEMINVINCIBILITY-COMPAT-20261019.md).
-  **Für diese drei neuen Adapter sind Ingame-Prüfungen noch offen.**
 - **Classic Movement 1.1.3+:** Arena behält für seine Körper native Bewegungszustände
   und die eigene Bewegungssteuerung, einschließlich der Erstellung beim Laden.
   Normale Raids behalten Classic Movement. Das alte, vom aktuellen Fremdserver

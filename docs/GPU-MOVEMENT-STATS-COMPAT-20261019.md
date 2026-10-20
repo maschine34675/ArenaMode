@@ -1,5 +1,11 @@
 # Classic Movement and StatTrack: native probe, 2026-10-19
 
+**Followup, 2026-10-20:** the interrupted lifecycle described below was retested
+on `235cc69`. The [new report](GPU-OPTIONAL-COMPAT-20261020.md), Phase 1, records
+two successful protected Arena ends, four physical respawns and ordinary
+tracking before/after without a server restart. This document preserves the
+first run's evidence and its historical cleanup/coordination state.
+
 Candidate: `ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`, ProductVersion
 `0.1.1+ebb1039ae545ff33705cbdcf34dd83ed3dddd21b`. SPT-GPU-2, dedicated test
 profile, EFT 0.16.9.5 / SPT 4.1.6. Author releases Classic Movement 1.1.3 and
@@ -56,7 +62,8 @@ weakened and no synthetic end request/profile edit was used to bypass it.
 
 This interruption prevents acceptance of a clean Arena end and the required
 following ordinary raid from this first run. It is not evidence that either
-new adapter caused the server to restart. A clean lifecycle retest is required.
+new adapter caused the server to restart. A clean lifecycle retest was therefore
+required; the dated followup above records that later test separately.
 
 ## Other messages
 
@@ -82,20 +89,21 @@ late callback, insurance delivery, asynchronous ordinary-save race or tooltip.
 The two intentional Arena deaths came from the test hook, not enemy fire.
 The non-native fault-injection suite is separate evidence.
 
-After the interruption, no more host mutations were performed while exclusive
-host availability is being clarified. Restoration and final lifecycle retest are
-pending. Temporary differences still to restore are DeveloperMode, the remembered
-Deathmatch mode, its killcam setting, Factory solo participants (4 instead of 8),
-and the test MP5's equipment slot. FAST MOVEMENT is already restored to enabled;
-godmode/infinite ammo/walking/tracking are no longer active. The pending native
+At the end of this 2026-10-19 run, no more host mutations were performed while
+exclusive host availability was being clarified. Restoration and the lifecycle
+retest were pending. Temporary differences still to restore were DeveloperMode,
+the remembered Deathmatch mode, its killcam setting, Factory solo participants
+(4 instead of 8), and the test MP5's equipment slot. FAST MOVEMENT had already
+been restored to enabled; godmode/infinite ammo/walking/tracking were no longer
+active. The pending native
 end retries must not be bypassed by weakening profile protection.
 
-A subsequent read-only status reached `ExitStatus` with no active raid. Another
-session was still recently active; this observation is not evidence of a clean
+A subsequent read-only status that evening reached `ExitStatus` with no active
+raid. Another session was still recently active; this observation is not evidence of a clean
 protected end, restored equipment/settings, or an available test host. The
-temporary Classic Movement and StatTrack client/server folders remain installed
-on development and GPU2 until coordinated cleanup. Existing server/Core/CH/
-UiBridge hashes were rechecked after the interruption and remain unchanged.
+temporary Classic Movement and StatTrack client/server folders remained installed
+on development and GPU2 for coordinated cleanup. Existing server/Core/CH/
+UiBridge hashes were rechecked after the interruption and were unchanged.
 
 Raw results, exact temporary
 payload manifest, file snapshots and test-profile identifiers are kept only under

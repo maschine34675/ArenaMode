@@ -154,7 +154,13 @@ Optional integration targets:
   ordinary raids retain those rules. Other SVM settings remain effective.
 - **Deminvincibility 2.2.0+:** immortality, Second Chance and the one-HP clamp are
   bypassed for Arena's local player. Damage scaling and medicine/fracture settings
-  remain effective. These last three adapters still await native gameplay checks.
+  remain effective.
+
+Targeted Factory tests cover Classic Movement/StatTrack across ordinary and
+Arena raids, SVM's SaveLoot/Ignore raid ends, CLA loading and respawns, and Demi's
+1 HP/Second Chance controls. Solo-Zombie exits and one-companion PFT wave
+transitions were also tested. Specific timing/UI and replay cases remain open;
+these checks are not exhaustive compatibility certification.
 
 Newer versions of integrations marked with `+` are attempted with a warning while keeping
 the required API and protection checks. These targets are not a blanket guarantee for future versions or every mod

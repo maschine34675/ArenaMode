@@ -37,12 +37,13 @@ Detailed contracts, source pins and harness boundaries:
 - [SVM](SVM-COMPAT-20261019.md)
 - [Deminvincibility](DEMINVINCIBILITY-COMPAT-20261019.md)
 
-## Verification boundaries
+## Initial offline verification
 
-Builds in this batch use `tools/AirPitChecks/NoDeploy.targets`. No current batch
-DLL has been deployed, no GPU process has been controlled, and no new optional
-test mod has been installed. Read-only installation hashes are recorded in
+The initial implementation phase used `tools/AirPitChecks/NoDeploy.targets`.
+It deployed no DLL, controlled no GPU process and installed no optional test mod.
+Its read-only installation hashes are recorded in
 `artifacts/ammo-raid-health-compat-20261019/installation-baseline.json`.
+This describes that offline phase, not the later native tests below.
 
 The client harnesses compile the production adapter against controlled native
 boundaries and inspect the published foreign DLL's metadata. They do not prove
@@ -50,7 +51,7 @@ Mono detours, animation, or UI behavior in EFT. The SVM harness additionally
 executes the actual published SVM DLL with installed SPT/Harmony assemblies,
 in-memory fixtures and stubbed persistence. It is still an offline process.
 
-Integrated regression results:
+Integrated regression results from that phase:
 
 | Check | Result |
 |---|---|
@@ -73,7 +74,7 @@ claimed as passed. Final logs and the before/after installation manifests live
 under `artifacts/ammo-raid-health-compat-20261019/`.
 The separate implementations are committed as `0005532` (Demi), `8cd9881` (CLA)
 and `e4f37d6` (SVM). Shared client startup/admission and this integration record
-follow in their own commit. No push or release is part of this batch.
+were committed in `235cc69`. No push or release is part of this batch.
 
 Independent reviews covered the other implementer's production files and test
 boundaries, followed by root source review and reruns. Concrete findings fixed:
@@ -95,37 +96,72 @@ boundaries, followed by root source review and reruns. Concrete findings fixed:
 
 No remaining blocker was found in the reviewed offline scope. Native Unity
 timing, Mono patch behavior, actual SVM presets and complete raid transitions
-still require the following separate acceptance work.
+were then examined separately rather than inferred from these fixtures.
 
-## Native followup, after host coordination
+## Native followup — 2026-10-20
 
-First finish the interrupted Classic Movement/StatTrack clean lifecycle probe
-and its temporary-mod/settings cleanup, following
-[the existing handoff](GPU-MOVEMENT-STATS-COMPAT-20261019.md). The prior server
-restart invalidated the process-local arm; never bypass that rejection or reuse
-it as a successful protected end. Do not overwrite an occupied GPU host.
+The user released SPT-GPU-2 for deployment and testing. The
+[dated native report](GPU-OPTIONAL-COMPAT-20261020.md) records exact versions,
+builds, native observations, test-driver failures and attribution limits. Its
+Factory scope does not certify other maps, every option or future versions.
 
-For this batch, capture exact build IDs, foreign versions, original settings,
-profile/snapshot hashes and mod-owned files. Test each combination separately,
-then together, through ordinary PMC -> Arena -> ordinary PMC in one process:
+The initial deployed client, companion and server were `235cc69`. The interrupted
+Classic Movement/StatTrack lifecycle from the prior night was repeated without
+a server restart: two protected Arena ends, four physical respawns, unchanged
+StatTrack data across actual Arena shots, and ordinary tracking afterwards.
+The stale end from the first probe was not reclassified or bypassed.
 
-1. **CLA:** start/stop load and unload; close inventory while loading; replace
-   the live kit/body and die twice while work is pending. Start a new load before
-   an old 800-ms continuation resumes. Confirm weapon return, movement limit,
-   preset/MultiSelect cancellation and no stale controller/event errors.
-2. **SVM:** enable SaveLoot, then Ignore result conversion, separately. Ordinary
-   ends must retain their configured outcome and permit the next start. Arena
-   must restore its entry profile and release its arm. Repeat end requests only
-   through the legitimate test path; a stale protected marker must still reject.
-   Include an unmodified SVM-disabled baseline and a normal Scav end.
-3. **Demi:** enable Keep1Health and SecondChance separately. Arena damage,
-   destroyed limbs, Give-up, respawn and solo-Zombie terminal death must reach
-   the normal Arena rules. Normal PMC must retain the configured protection.
-   Exercise a normal-raid debounce that completes near a world change; keep
-   custom damage/medicine/fracture values and their saved files unchanged.
-4. Where applicable, include a living and dead-player PFT round/wave transition,
-   replay, real protected exit and a subsequent ordinary raid. Record unsupported
-   future-hook rejection separately from native feature acceptance.
+| Adapter / case | Bounded native result |
+|---|---|
+| CLA 1.2.0 | Ordinary load/unload/cancel and inventory-close continuation worked before/after Arena. Two confirmed pending-unload deaths completed replacement, followed by actual firing. Two living Deathmatch round swaps also completed, without proven pending work at those swaps. |
+| SVM 2.2.3 | SaveLoot/Ignore ordinary ends, a disabled-override control and an ordinary Scav end completed. Both protected Arena intervals restored their entry snapshots and subsequent ordinary starts remained usable. |
+| Demi 2.2.0, 1 HP Mode | Ordinary head-damage/native-kill controls preserved the player before/after Arena; Arena's native death and actual Give Up input reached normal death/respawn. |
+| Combined one-companion PFT Zombies | Actual combat cleared the first wave; a living refill and a later dead-player wave restoration rebound CLA to the current body. Live ally spectating worked; entry gear/440 HP returned and the protected end completed. Demi's Second Chance remained unconsumed. |
+| Solo Zombies and ordinary Second Chance | After the terminal-exit fix below, immediate and delayed solo deaths both completed protected exits. The following ordinary PMC still survived its first native kill, then consumed Second Chance and completed its debounce while remaining alive at 440 HP. |
 
-Restore settings and archive/remove only owned temporary test files afterwards.
-Do not publish/release these changes solely on the offline results.
+The early solo-Zombie death exposed an Arena terminal-exit race: the delayed
+native intro fade could replace the coroutine carrying GameEnd. It was not a
+demonstrated optional-adapter failure. Commit `5780942` extends the existing
+exact intro guard to a committed terminal exit. After its production-linked
+checks and independent review, the new client was deployed to both roots:
+
+- Client: `5780942`, SHA256
+  `8A5C9A9852E2496095E838C70201E900ACB49FB0BEC91BA3BB90E4DF867455BD`.
+- BigBrainCompat and server: unchanged `235cc69` builds.
+
+The native retest exercised the intro guard, both protected exits and ordinary
+Second Chance consumption. Its 21 driver steps had no automatic expectations:
+actual returned values and separate log observations provide the evidence.
+See [the intro-guard review](FAILED-START-INTRO-REVIEW.md) for implementation
+and offline fault controls.
+
+### Remaining native boundaries
+
+CLA's pending-work **living** swap, 800 ms newer-operation race, preset/MultiSelect
+cancellation, quick-load hotkey and measured movement-limit reset were not
+established. The PFT observation covers one-companion Zombies and live spectating,
+not a Tactical match or an actual killer replay. Demi's ordinary debounce was
+observed after one second, not across a world/end transition within its 350 ms
+window. Native kill hooks and guard diagnostics do not certify every lethal
+damage type or destroyed-limb/medical interaction. Retry/late-callback cases
+covered only by the offline harness remain offline evidence.
+
+### Restoration and cleanup
+
+At 10:10:43–10:10:53, six bounded helpers completed cleanup on development and
+GPU2: CLA (6 files), Demi (4), SVM (43) and reviewed test sync duplicates were
+removed after the earlier CM/StatTrack cleanup. Original files/data were
+archived before removal. At the user's request, old SVM 2.2.1 was **not restored**;
+its original backup remains outside mod discovery and no legacy adapter ships.
+Eleven Arena test settings were restored. The test MP5 was returned through
+native inventory UI to its original stash position (x=6, y=19), verified in
+persisted data; the PFT group is empty. Unrelated mods and the permanent
+Core/CH/UiBridge installation were preserved.
+
+The independent final verification and root rerun passed 100 file/settings
+checks. A clean restart reached MainMenu: 41 plugins and six libraries matched
+both installations and the loaded modules. ARENA selection reached the map
+screen; no additional raid was started in this clean smoke check. Client startup
+had no errors. The server still reports two preserved, preexisting file-empty
+LTTP/LootingBots directories. EFT and SPT are stopped again. No push or release
+was performed.

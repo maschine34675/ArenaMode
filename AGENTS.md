@@ -50,7 +50,11 @@ before changing them. Preserve CLA's physical controller/inventory/task epochs,
 SVM's actual Harmony order and one-use ordinary callback bridge, and Demi's
 native death result plus exact health-controller leases. Never replay unknown
 outer raid-end hooks, make a stale Arena end look successful, or globally disable
-foreign settings/SecondChance state. Native gameplay acceptance is still pending.
+foreign settings/SecondChance state. Bounded Factory gameplay evidence, including
+one-companion PFT-Zombie wave transitions, is recorded in
+docs/GPU-OPTIONAL-COMPAT-20261020.md. Preserve its untested CLA timing/UI,
+Tactical PFT, killer-replay and world-change debounce boundaries; it is not
+blanket compatibility certification.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

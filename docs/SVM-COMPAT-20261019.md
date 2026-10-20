@@ -112,8 +112,9 @@ response replay, faults, overlapping retries, caller cancellation and inherited
 async lease revocation. Separate fresh-process controls verify absent and
 unsupported SVM do not enable the bridge or change wrapper ordering.
 
-Native GPU end-to-end testing with an actual SVM preset remains separate; offline
-callback execution does not prove the complete client/server raid experience.
+Native GPU end-to-end testing with an actual SVM preset remains separate
+evidence; offline callback execution alone does not prove the complete
+client/server raid experience.
 
 Baseline native-harness result: **124 assertions**, plus **8 absent-SVM** and
 **8 unsupported-topology** fresh-process assertions. On 2026-10-20 all **14
@@ -129,3 +130,22 @@ The reproducible script prints its final evidence directory only after every
 named control and the repeated clean baseline pass. Test data and published DLL
 remain ignored under `artifacts/`; neither is a release asset. No deployment or
 native GPU acceptance was performed by this verification.
+
+## Native followup — 2026-10-20
+
+The [Factory results](GPU-OPTIONAL-COMPAT-20261020.md), Phase 1, exercise the
+published SVM 2.2.3 with ArenaMode `235cc69`. Ordinary SaveLoot and Ignore ends,
+a disabled-override control and an ordinary Scav end completed. Two Arena
+intervals, including SaveLoot/Ignore cases, restored the protected entry snapshot;
+the following ordinary raids worked without restarting the server. Native
+movement and StatTrack observations provide additional lifecycle controls.
+
+The preexisting 2.2.1 installation was an admission-negative control, not a
+supported legacy version. The user chose to remove that installation rather
+than add legacy support; no legacy adapter was retained and the minimum remains
+2.2.3. Final removal belongs to the combined cleanup record and is not inferred
+from these tests. No preset is bundled or installed by Arena.
+
+These checks do not certify every SVM database option, future release, retry
+race or foreign callback combination. The report retains test-path failures and
+unattributed log messages rather than treating them as a clean-log guarantee.
