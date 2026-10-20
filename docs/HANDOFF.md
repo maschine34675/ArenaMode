@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Separate Arena start prototype (2026-10-20):** `tools/ArenaStart` prepares
+  an independent copy of SPT 4.1 + ArenaMode + Core. No ordinary profile,
+  launcher configuration, BepInEx config or optional mod is imported; the private
+  server creates one fresh native `Arena-Internal` account. This is additive
+  tooling in `feature/arena-start-prototype`, not a deployment or a change to
+  the ordinary Arena DLLs. Native menus still exist; no Arena-only UI/raid
+  contract or PFT setup has been added. See
+  [setup, safety boundaries and verification](ARENA-START-PROTOTYPE.md).
+  The local test copy is outside the synchronized installation:
+  `D:\ArenaMode-Prototype`. Do not copy ordinary profiles into it or replace
+  normal installation paths with it; use the starter's documented commands.
+
 - **Continuous Load Ammo / SVM / Deminvincibility (2026-10-20):** third scoped
   compatibility batch, targets 1.2.0+, 2.2.3+ and 2.2.0+ respectively. CLA guards
   replacement controllers and delayed completion; SVM retains protected Arena
