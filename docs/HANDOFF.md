@@ -7,7 +7,7 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Effects Manager / Broken Limbs (2026-10-20, native tests pending):** the
+- **Effects Manager / Broken Limbs (2026-10-20, `0caab4e`):** the
   optional library now follows committed Arena bodies without replaying global
   raid startup or clearing other controllers' effect/skill ledgers.
   ArenaSkills preserves the library's separate live contribution rather than
@@ -18,21 +18,26 @@ current. User-facing communication is normally German.
   admission 115 assertions plus 21 negative controls; skill isolation 27 plus
   three negative controls. The source-linked Effects harness passed 118
   assertions and 21 compiled negative controls, including throwing skill
-  listeners and both cleanup orders. Client/companion and server builds passed without
-  deployment, with four/two existing warnings respectively. The next native
-  test batch includes both new adapters and the first candidate batch below.
+  listeners and both cleanup orders. Client/companion and server builds passed,
+  with four/two existing warnings respectively, and were deployed to D:\SPT41
+  and SPT-GPU-2. Native body/controller ownership passed initial kit replacement,
+  two Deathmatch respawns, two living PFT-Zombie refills, a dead-player refill
+  and ordinary raids before/after Arena. Actual fracture treatment/re-fracture
+  remains untested. See [the combined GPU report](GPU-COMPAT-SECOND-20261020.md).
 
-- **Pause Continued adapter (2026-10-20, native tests pending):** version 1.5.0+
+- **Pause Continued adapter (2026-10-20, `216b781`):** version 1.5.0+
   now rejects new pause activations only in an exactly confirmed Arena world,
   before the foreign paused flag changes. The first attempt shows a visible
   explanation. Ordinary pause and every unpause path remain available; no saved
   setting is changed. [Contract and tests](PAUSE-COMPAT-20261020.md):
   71 assertions, twelve compiled negative controls and independent review passed.
-  Integration admission: 114 assertions plus twenty negative controls; menu:
-  759 assertions. Client/companion build passed without deployment. GPU tests
-  will cover this and the previous candidate batch together.
+  The combined integration admission harness passed 115 assertions plus 21
+  negative controls; menu: 759 assertions. Native ordinary pause/resume passed
+  before and after Arena; Arena kept timeScale 1 and IsPaused false. The visible
+  cyan notice was captured in a fresh world using closely timed screenshots.
+  Earlier screenshots missed the queued notification; no runtime fix was needed.
 
-- **First candidate batch (2026-10-20, not deployed):** `2bf2d58` blocks Arena
+- **First candidate batch (2026-10-20, deployed with `0caab4e`):** `2bf2d58` blocks Arena
   with loaded ISB Special Forces/Aishi on either client or server, with rejection
   before snapshot preparation. Recovery/end and ordinary raids remain available.
   Skills Extended 3.1.4+ now suspends Signals receipt delivery and its three initial
@@ -40,9 +45,17 @@ current. User-facing communication is normally German.
   Other features and foreign saved settings/journals are retained. The second
   Signals Boot after native loot loading captures the confirmed Arena world.
   See [ISB](ISB-ADMISSION-20261020.md) and
-  [Skills Extended](SKILLS-EXTENDED-COMPAT-20261020.md). Native Signals rewards,
-  replacements and perk interactions still require testing; do not infer
-  acceptance from the offline harnesses. Skills implementation: `489f833`.
+  [Skills Extended](SKILLS-EXTENDED-COMPAT-20261020.md). Native invocation arrays
+  confirmed XP callback removal in Arena and their return in the next ordinary
+  raid. Actual Signals rewards remain untested: Labs returned no configured
+  signal placements. Perk combinations and actual XP amounts also remain
+  outside this run. Skills implementation: `489f833`.
+  Removing the temporary Skills package exposed its persisted foreign enum
+  entries in three profiles. Independently reviewed cleanup removed only the
+  two zero-progress foreign rows from each profile, preserving every other
+  byte and archiving all originals. This is not a whole-profile rollback or a
+  general uninstaller. See the GPU report for the recovery and final startup
+  verification, and AGENTS for the expanded pre-install backup requirement.
   Recoil Rework Legacy 2.0.0+ also receives a physical-body component/cache
   handoff: the published foreign Awake destroys the new player's whole object
   when an old singleton still exists. Both singleton guards must be transferred
@@ -50,11 +63,20 @@ current. User-facing communication is normally German.
   authoritative rewire/recovery. See [adapter](RECOIL-REWORK-COMPAT-20261020.md)
   and [published-package audit](RECOIL-REWORK-REVIEW-20261020.md); the latter also
   records an independent server JSON-shape concern, not fixed by this adapter.
-  No native Recoil acceptance yet. Builds use explicit deployment overrides.
-  [Combined results and pending tests](COMPAT-FIRST-INTEGRATION-20261020.md):
+  Native Recoil ownership/firing passed initial kits, two death respawns, living
+  and dead PFT refills and ordinary controls. Failed replacements, full camera/
+  ADS coverage and Akimbo firing remain untested. The dead-player PFT transition
+  followed the existing stuck-wave watchdog, not a companion combat victory.
+  [Original offline results and native follow-up](COMPAT-FIRST-INTEGRATION-20261020.md):
   1,236 unit tests passed, one existing skip; 759 menu assertions; admission
   113 + 19 negative controls, Skills 93 + 16, Recoil 114 + 4. Installed DLL
-  hashes remain unchanged. No push/release or version bump in this batch.
+  hashes were unchanged during that original offline batch; the later frozen
+  `0caab4e` build is now installed. No push/release or version bump was requested.
+  Native ISB client-only admission also passed with the complete published client:
+  the reason was visible, Arena disabled and ordinary PMC map selection usable.
+  The real ISB server was not installed because its published profile-load and
+  quest-list hooks can mutate existing profiles outside raids. Server-only
+  admission retains offline evidence; Aishi remains source-only.
 
 - **Visible Arena admission (2026-10-20):** `1621213` adds a persistent reason
   on the native character screen, including a Core-free diagnostic bootstrap

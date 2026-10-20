@@ -257,10 +257,10 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
 | **Deminvincibility** | **2.2.0+**: immortality, Second Chance and the one-HP clamp yield to Arena death/respawn rules. Damage scaling and medicine/fracture settings remain effective. |
-| **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Existing skills, other features and ordinary raids remain enabled. Offline verified; native checks are pending. |
-| **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Ordinary raids retain the original behavior. Offline verified; native checks are pending. |
+| **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Native checks confirmed Arena callback removal and their return in a subsequent ordinary raid. Actual Signals rewards and perk combinations remain untested. |
+| **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena. |
 | **Pause Continued** | **1.5.0+**: pause activation is suppressed during Arena to protect match timers and replacement bodies. A notice explains the restriction; ordinary raids can still be paused. |
-| **EFT Effects Manager / Broken Limbs Don't Heal** | Reviewed with **1.1.0 / 1.1.0**: custom-effect callbacks and temporary penalties follow the current Arena body. Ordinary raids retain the library's lifecycle; native checks are tracked separately. |
+| **EFT Effects Manager / Broken Limbs Don't Heal** | Reviewed with **1.1.0 / 1.1.0**: custom-effect callbacks and temporary penalties follow the current Arena body. Native tests confirmed body/controller ownership through respawns and PFT refills; actual fracture treatment and re-fracture remain untested. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
 Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,

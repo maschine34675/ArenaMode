@@ -42,7 +42,12 @@ They do not reproduce Mono detours, Unity destruction or real gameplay.
 
 ## Deployment and remaining acceptance
 
-**No deployment, GPU test, push, release or version bump was performed.**
+The following records the original batch boundary. Deployment and bounded native
+tests were subsequently performed with the Pause/Effects batch; see
+[the GPU follow-up](GPU-COMPAT-SECOND-20261020.md) for actual coverage and remaining
+limits. Do not read the original checklist below as the current test status.
+
+**The original batch performed no deployment, GPU test, push, release or version bump.**
 Installed client, companion, server and Redeploy.Core DLL hashes were compared
 with their pre-build values and remain unchanged. Ordinary raids are preserved
 by the scoped implementation and offline controls; that is not a new native

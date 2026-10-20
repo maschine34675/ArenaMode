@@ -157,10 +157,12 @@ Optional integration targets:
   remain effective.
 - **Skills Extended 3.1.4+:** Signals rewards and the initial player's medical/
   weapon mastery XP callbacks are paused in Arena. Existing skills, other features
-  and ordinary raids remain enabled. Offline verified; native testing is pending.
+  and ordinary raids remain enabled. Native callback checks passed; actual
+  Signals rewards and perk combinations remain untested.
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
-  are preserved. Offline verified; native testing is pending.
+  are preserved. Supplied kits, repeated respawns, PFT refills and firing
+  afterward passed native tests; the full camera/Akimbo matrix remains untested.
 - **Pause Continued 1.5.0+:** pausing is unavailable during Arena, with an
   explanation when the key is pressed. Ordinary raids can still be paused.
 - **EFT Effects Manager / Broken Limbs Don't Heal:** effect callbacks and

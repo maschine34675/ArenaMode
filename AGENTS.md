@@ -69,7 +69,17 @@ subscription guards; read docs/SKILLS-EXTENDED-COMPAT-20261020.md. Preserve the
 second Signals Boot during native loot loading, retired-world leases and exact
 delegate removal. Never clear the foreign journal, replay world initialization
 or replace ordinary XP delivery with a global Arena flag. Native perk and
-Signals-reward checks remain pending.
+Signals-reward checks remain pending; the native Labs test had no configured
+signal placements. Native callback removal and ordinary-raid restoration,
+initial kits, repeated death replacements and PFT refills are recorded in
+docs/GPU-COMPAT-SECOND-20261020.md. Do not treat an unchanged empty journal as
+proof of a blocked real reward.
+Before temporary testing of any server profile/enum extension, archive every
+canonical profile on both synchronized installations, not only the selected test
+profile. Skills Extended adds persisted Hacking/SignalsIntelligence entries
+outside Arena; removing its prepatcher can make those profiles unloadable.
+Keep automatic-backup rotation in mind. Never restore whole profiles merely to
+remove a test mod; review the exact residue and preserve unrelated progress.
 Recoil Rework Legacy 2.0.0+ has a physical-body singleton handoff; read
 docs/RECOIL-REWORK-COMPAT-20261020.md before touching it. Its original Awake can
 destroy an entire newly created player if the old component still exists.

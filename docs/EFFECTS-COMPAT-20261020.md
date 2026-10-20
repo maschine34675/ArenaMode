@@ -145,6 +145,22 @@ Four passes:
 
 Offline checks do not certify Unity destroyed-object behavior, actual injury
 icons, movement penalties, native re-fracture chances or the full PFT refill.
-The GPU test must cover supplied-kit start, genuine death, a living PFT refill,
-fracture treatment and a normal PMC control. Compare profile restoration and
-clean teardown; remove temporary test mods afterward.
+The original GPU checklist covered supplied-kit start, genuine death, a living
+PFT refill, fracture treatment and a normal PMC control, plus profile restoration
+and clean teardown. The follow-up below records which cases were subsequently
+completed; fracture treatment remains outside that evidence.
+
+## Native follow-up
+
+The [2026-10-20 GPU2 run](GPU-COMPAT-SECOND-20261020.md) tested the actual
+published library and Broken Limbs plugin. The library's player, lifecycle
+health controller and movement context matched the current physical body after
+the initial supplied kit, two Deathmatch respawns, two living PFT-Zombie refills
+and one dead-player refill. The registered Broken Limbs effect remained present.
+Ordinary Factory raids before and after Arena also bound the correct body.
+
+This confirms native ownership and successful transitions, not the full injury
+mechanic. No real fracture followed by splint/Surv12 treatment and re-fracture
+was exercised; inspecting a registration or a blacked limb does not establish
+that behavior. Foreign-controller bonus separation and throwing native skill
+listener recovery retain their production-linked offline evidence.

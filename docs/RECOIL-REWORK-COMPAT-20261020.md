@@ -107,13 +107,29 @@ The harness emits one harmless unused fixture-name compiler warning; no
 production-build success is inferred from this boundary build.
 
 This does not simulate Unity's deferred destruction, Mono/Harmony detours,
-the real weapon animator or native game callbacks. Native acceptance still
-requires initial kit replacement; repeated deaths and live swaps; failure
+the real weapon animator or native game callbacks. The original native checklist
+covered initial kit replacement; repeated deaths and live swaps; failure
 recovery; PFT wave refill; replay/spectator transitions; ADS/left shoulder;
 alternating Akimbo fire; weapon changes; and a subsequent ordinary raid in
-the same process. Production build results and any later native run should be
-recorded by integration rather than inferred from this harness.
+the same process. The native follow-up below records the completed subset and
+remaining limits; those results are separate from this harness.
 
 The separate upstream server-package JSON/List mismatch documented in the
 investigation is not modified. No server-wide weapon template/configuration
 changes or general recoil rebalance are part of this adapter.
+
+## Native follow-up
+
+The [2026-10-20 GPU2 run](GPU-COMPAT-SECOND-20261020.md) subsequently tested the
+published 2.0.0 client with the reviewed Arena build. Recoil's player, hands
+controller and camera object matched the current physical body after the first
+supplied kit, two Deathmatch respawns, two living PFT-Zombie wave refills and
+one dead-player wave refill. Real shots were observed after replacements.
+Ordinary Factory raids before and after Arena in the same process also fired
+successfully and retained native component ownership.
+
+This is not acceptance of the separate server package or every recoil feature.
+Forced replacement failure, Akimbo, left shoulder, the full ADS matrix and
+killer-replay camera behavior remain outside this run. The PFT dead-player
+transition followed a stuck-wave watchdog retirement, not a companion combat
+victory; it proves the subsequent replacement path only.

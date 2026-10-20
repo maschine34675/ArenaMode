@@ -58,7 +58,30 @@ Three server tests exercise both loaded identities before snapshot recovery,
 preservation of an existing snapshot and ordinary state, and unrelated content.
 An independent adversarial review found no material correctness issues.
 
-These are offline checks. No ISB-enabled native raid, GPU menu test, or Aishi
-release-DLL equivalence is claimed. The exact underlying source and published
-Special Forces DLL evidence is in the candidate review. No foreign code,
-download, configuration or executable is included in the Arena package.
+These are offline checks; the subsequent native follow-up is recorded below.
+No ISB-enabled native raid or Aishi release-DLL equivalence is claimed. The exact
+underlying source and published Special Forces DLL evidence is in the candidate
+review. No foreign code, download, configuration or executable is included in
+the Arena package.
+
+## Native client follow-up and server-test boundary
+
+The [2026-10-20 GPU2 run](GPU-COMPAT-SECOND-20261020.md) temporarily installed the
+complete published Special Forces 2.0.1 client and its MoreBotsAPI dependency.
+The native character screen displayed the specific restriction, disabled Arena
+and retained PMC selection when the Arena model was clicked. The ordinary PMC
+map screen remained reachable. Expected missing-ISB-server route errors in this
+deliberately client-only setup are not evidence of an Arena adapter failure.
+No full raid with ISB was performed.
+
+The complete ISB server was deliberately not installed against the shared
+profile collection. Its published DLL has a profile-load router that can migrate
+legacy `ISBBerserker` statistics, and a quest-list hook that can change existing
+amnesty quest progress outside a raid. Removing the temporary mod would not
+reverse saved profile changes. Server-only admission therefore retains its
+offline tests; native acceptance needs a separate disposable environment.
+This is not a claim that every profile changes or that such a change occurred
+during this run.
+
+The broader `EventQuestProfileMigration` found in the release-tag source is
+absent from the published DLL and is explicitly **not** used as release evidence.

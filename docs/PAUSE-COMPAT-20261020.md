@@ -113,11 +113,21 @@ menu checks passed 759 assertions. The reviewed runtime files match the
 71-assertion/twelve-negative-control verification snapshots. Native acceptance
 is tracked in [the GPU report](GPU-COMPAT-SECOND-20261020.md).
 
-## Native checks still required
+## Native follow-up
 
-With the published continued client installed temporarily, start an Arena,
-press its configured pause key and verify one visible reason, unchanged
-time-scale, movement, combat and continued respawn. Repeat after a local
-replacement and verify no notice spam. Then run an ordinary PMC raid in the
-same process and verify actual pause and unpause still freeze/restore the
-native game. Preserve the pre-test config and remove only temporary test files.
+The [2026-10-20 GPU2 run](GPU-COMPAT-SECOND-20261020.md) tested the actual
+published 1.5.0 client. Ordinary Factory raids before and after Arena in the same
+process switched `IsPaused/timeScale` from `false/1` to `true/0` and back. Arena
+kept `false/1`; Deathmatch respawns, PFT wave replacements and actual shooting
+continued.
+
+A fresh Arena world was used for the visible-notice check. The actual configured
+pause key was followed by eight closely timed screenshot/UI observations;
+`pause-notice-native/pause-notice-4.png` shows the exact explanation. All 30
+scenario steps passed. Earlier isolated screenshots had missed it and are not
+used as visibility evidence. The native notification is queued, and the
+one-per-world guard intentionally does not emit it again on every key press.
+
+The test temporarily used F10 because F9 was already used by Arena's scoreboard.
+The adapter itself does not alter the user's keybinding. No runtime correction
+was required after native testing.

@@ -151,8 +151,9 @@ pending ordinary rewards while Arena runs; late Arena rewards after the next
 ordinary world; forward versions, metadata drift, additional external writers,
 partial install, removed hooks and shutdown ownership.
 
-No GPU installation, deploy or in-game acceptance is included in this change.
-Required native cases remain:
+The original offline batch included no GPU installation, deployment or native
+acceptance. Its checklist was the following; the native follow-up below records
+the cases subsequently completed and the remaining limits:
 
 - Labs/Customs with a real Signals event and before/after journal/profile checks.
   Factory is not a sufficient reward test because Skills Extended excludes it.
@@ -166,3 +167,44 @@ Required native cases remain:
 
 Acquisition/decompilation and check logs stay ignored under
 `artifacts/compat-first-20261020/skills/`. No foreign source or DLL is packaged.
+
+## Native follow-up
+
+The [2026-10-20 GPU2 run](GPU-COMPAT-SECOND-20261020.md) covered supplied-kit
+replacement, two death respawns, living/dead PFT-Zombie wave refills and an
+ordinary Factory raid afterward. Read-only inspection of the actual event
+invocation arrays found no Skills Extended medical/mastery handlers on the
+current Arena body, while Effects Manager's lifecycle callbacks remained.
+The subsequent ordinary raid again contained `ApplyMedicalXp`,
+`ApplyNatoRifleXp` and `ApplyEasternRifleXp`.
+
+Signals was loaded and enabled and queried its real raid route. Labs returned
+`No signal placements configured for this map`, however, so no actual Signals
+reward could be reached. No journal was edited to manufacture a receipt test.
+An unchanged empty journal does not prove the reward guard. Actual medical/
+mastery XP amounts, Signals rewards, elite perk combinations and cancelled
+loading remain separate untested cases.
+
+## Removing a temporary test installation
+
+Skills Extended also extends the server's `SkillTypes` enum and appends
+`Hacking` / `SignalsIntelligence` to saved profiles outside Arena. Removing its
+prepatcher without addressing those entries makes the native server reject the
+profiles. This is independent of the Arena XP and Signals guards; deleting a
+client cache does not solve it.
+
+During this test cleanup, all three canonical profiles contained these two
+entries with zero progress. After independent review and exact before-copies
+from both installations, only those two rows were removed: one contiguous
+162-byte deletion per profile, with every other byte preserved. The six extra
+native skill rows in the test profile were retained. The test profile had a
+direct pre-install baseline; one other profile had historical snapshots, while
+the remaining profile's provenance relied on the successful native load before
+installation and the exact released extension contract, not a full old snapshot.
+This was a specific backed cleanup, not a general-purpose profile migration.
+
+Future temporary server/enum-mod tests must archive every canonical profile
+before installation, not just the selected account, and account for automatic
+backup rotation. Do not restore entire old profiles or automatically remove
+nonzero-progress skills. See the [GPU report](GPU-COMPAT-SECOND-20261020.md) for
+the startup incident, recovery and final verification.

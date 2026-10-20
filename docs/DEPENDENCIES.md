@@ -87,16 +87,22 @@ below state each adapter's contract.
   either player object. Weapon-controller caches follow the physically equipped
   weapon; retired bodies cannot update recoil. Failed replacements retain the
   old components for Arena's recovery. Ordinary raids and saved recoil settings
-  are unchanged. Offline verified; Mono/Unity lifecycle and recoil gameplay still
-  need native tests. See [adapter and remaining checks](RECOIL-REWORK-COMPAT-20261020.md).
+  are unchanged. Native tests covered supplied kits, two death respawns, living
+  and dead PFT wave refills, actual firing afterward and ordinary raids before
+  and after Arena. Recovery failures, Akimbo and the full camera/perk matrix
+  remain untested. See [adapter and remaining checks](RECOIL-REWORK-COMPAT-20261020.md).
 - **Skills Extended 3.1.4+:** Signals reward delivery is suspended before its
   external XP journal reserves a receipt. The initial Arena player's medical
   and weapon mastery XP callbacks are detached without disturbing other event
   subscribers or the foreign world-start door fix. Existing skill levels,
   other features and ordinary raids remain enabled. Loading and retired worlds
   retain exact ownership; no foreign journal or saved setting is modified.
-  Offline checks passed; real Signals rewards, respawns and perk interactions
-  still require native testing. See [scope and remaining checks](SKILLS-EXTENDED-COMPAT-20261020.md).
+  Native checks confirmed callback removal in Arena and their presence again in
+  the subsequent ordinary raid. Actual Signals rewards and perk interactions
+  remain untested: the tested Labs server returned no configured signal
+  placements. Its server enum extension also persists two custom skill entries;
+  removing Skills Extended can leave profiles unloadable without appropriate
+  cleanup. See [scope, uninstall caveat and remaining checks](SKILLS-EXTENDED-COMPAT-20261020.md).
 - **Continuous Load Ammo 1.2.0+:** loading controllers are rebound when Arena
   replaces the player body. Cleanup and delayed completion from the old body
   must not unlock or finish work on the replacement body or a newer loading
