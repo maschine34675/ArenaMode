@@ -22,6 +22,8 @@ namespace ArenaMode;
 [BepInDependency(ArenaOptionalMods.QuestingBotsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaOptionalMods.OrbitGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaOptionalMods.AdaptiveBotCullingGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(Shared.ArenaIsbAdmission.SpecialForcesGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(Shared.ArenaIsbAdmission.AishiGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.dvize.ailimit", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("me.skwizzy.lootingbots", BepInDependency.DependencyFlags.SoftDependency)]

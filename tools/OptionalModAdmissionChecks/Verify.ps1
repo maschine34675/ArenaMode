@@ -9,6 +9,16 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'allow-isb-client'
+        Before = 'if (isbFailure != null) return isbFailure;'
+        After = ''
+    },
+    @{
+        Name = 'ignore-server-only-rejection'
+        Before = 'if (ArenaServerClient.ServerAdmissionFailure != null)'
+        After = 'if (false)'
+    },
+    @{
         Name = 'allow-adaptive-bot-culling'
         Before = 'if (Chainloader.PluginInfos.ContainsKey(AdaptiveBotCullingGuid))'
         After = 'if (false)'
@@ -94,6 +104,12 @@ foreach ($mutant in $mutants) {
     foreach ($name in @('OptionalModAdmissionChecks.csproj', 'Program.cs', 'StandIns.cs')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination (Join-Path $folder $name)
     }
+    # The shared production policy stays linked when the harness lives in a
+    # scratch directory several levels away from the source repository.
+    $projectText = [IO.File]::ReadAllText((Join-Path $folder 'OptionalModAdmissionChecks.csproj'))
+    $projectText = $projectText.Replace('../../ArenaMode.Shared/ArenaIsbAdmission.cs',
+        (Join-Path $repo 'ArenaMode.Shared\ArenaIsbAdmission.cs'))
+    [IO.File]::WriteAllText((Join-Path $folder 'OptionalModAdmissionChecks.csproj'), $projectText)
     # Keep the mutant outside the project glob; only the linked production include owns it.
     $mutatedSource = Join-Path $evidence ($mutant.Name + '.cs')
     [IO.File]::WriteAllText($mutatedSource, $source.Replace($mutant.Before, $mutant.After), [Text.UTF8Encoding]::new($false))

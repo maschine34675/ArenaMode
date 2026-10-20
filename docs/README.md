@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md)
+- [Recoil Rework Legacy: published lifecycle conflict review](RECOIL-REWORK-REVIEW-20261020.md)
 - [Additional compatibility candidates: skills, health, ISB, pause, doors and stances](COMPATIBILITY-CANDIDATES-20261020.md)
 - [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
 - [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)

@@ -278,10 +278,13 @@ RaidInfoPanels and CombatSlide functionality; neither is a required separate
 download. **Fika is blocked**, rather than merely untested. See
 [the dependency inventory](docs/DEPENDENCIES.md) for more specific boundaries.
 
-**Active Questing Bots, loaded ORBIT and Adaptive Bot Culling currently block Arena only.** Ordinary
+**Active Questing Bots, loaded ORBIT, Adaptive Bot Culling, ISB Special Forces and ISB Aishi currently block Arena only.** Ordinary
 PMC/Scav raids remain available and keep those mods' behavior. Questing Bots
 1.1.0 can remain installed if its whole-mod server setting is disabled before
 starting the game; switching off only questing in F12 is not sufficient.
+ISB's separate progression stores are not protected by Arena's profile snapshot.
+The ISB check covers client and server components; remove the conflicting mod
+and restart both server and game. See [the exact admission scope](docs/ISB-ADMISSION-20261020.md).
 Adaptive Bot Culling pauses offscreen combat and changes death animations, so
 its F12 toggles do not provide a safe Arena exception.
 An **ARENA UNAVAILABLE** notice explains blocked selection or a failed server

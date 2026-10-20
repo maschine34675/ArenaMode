@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\ArenaMode.Shared\ArenaIsbAdmission.cs" Link="Shared\ArenaIsbAdmission.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaMolotovItem.cs" Link="Shared\ArenaMolotovItem.cs" />
     <Compile Include="..\ArenaMode.Shared\DeathmatchSelection.cs" Link="Shared\DeathmatchSelection.cs" />
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />

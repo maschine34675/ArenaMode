@@ -34,6 +34,7 @@ public sealed class PatchManager(
         ArenaContext.OrdinaryRaids = ordinaryRaids;
         ArenaContext.MatchBotCache = matchBotCache;
         ArenaContext.Logger = logger;
+        ArenaIsbServerAdmission.Initialize(loadedMods.Select(m => m.ModMetadata.ModGuid));
         ArenaSettingsRequestLogPatch.TryEnable();
         ArenaOptionalMapPolicy.FindLocation = id => locationTable.GetDictionary()
             .TryGetValue(id, out var location) ? location.Base : null;

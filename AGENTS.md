@@ -31,6 +31,11 @@ Loaded Adaptive Bot Culling also blocks Arena. Read
 docs/ARENA-AVAILABILITY-20261020.md for the published-DLL evidence and visible
 menu diagnostics. Keep the rejected-Core notice path free of Core-dependent
 types, exclude PFT's My Squad screen, and never replace final admission with UI.
+Loaded ISB Special Forces/Aishi client OR server components also block Arena;
+read docs/ISB-ADMISSION-20261020.md. Preserve server rejection before snapshot
+recovery/preparation and the optional ping reason. Never confuse MoreBotsAPI
+support with protection of ISB's own progression stores or block recovery/end
+routes and ordinary PMC/Scav starts.
 MoreBotsAPI 2.1.1+ requires the separate exact-request protections documented in
 docs/MOREBOTS-COMPATIBILITY-20261019.md. Its revenge files are outside SPT's
 profile snapshot. Preserve both the producer and delayed end-sender guards,

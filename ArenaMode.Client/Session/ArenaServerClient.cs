@@ -20,6 +20,8 @@ public static class ArenaServerClient
     private static bool? _available;
     private static bool _initialStateReconciled;
     private static bool _probeFailed;
+    private static string _serverAdmissionFailure;
+    internal static string ServerAdmissionFailure => _available == true ? _serverAdmissionFailure : null;
     private static readonly string ClientProcessId = Guid.NewGuid().ToString("N");
     private static string _pendingArmToken;
     private static string _activeArmToken;
@@ -64,7 +66,10 @@ public static class ArenaServerClient
                 {
                     _probeFailed = false;
                     var response = RequestHandler.GetJson(Protocol.PingRoute);
-                    var version = JObject.Parse(response)["version"];
+                    var ping = JObject.Parse(response);
+                    var version = ping["version"];
+                    var failure = ping["admissionFailure"];
+                    _serverAdmissionFailure = failure?.Type == JTokenType.String ? failure.Value<string>() : null;
                     _available = version?.Type == JTokenType.String && !string.IsNullOrEmpty(version.Value<string>());
                     _probeFailed = !_available.Value;
                 }

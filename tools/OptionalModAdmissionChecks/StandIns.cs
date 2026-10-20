@@ -1,5 +1,13 @@
 using System.Reflection;
 
+namespace ArenaMode.Session
+{
+    internal static class ArenaServerClient
+    {
+        internal static string ServerAdmissionFailure { get; set; }
+    }
+}
+
 namespace BepInEx.Bootstrap
 {
     internal static class Chainloader

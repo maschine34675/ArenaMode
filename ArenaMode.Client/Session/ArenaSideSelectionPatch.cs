@@ -177,6 +177,10 @@ internal static class ArenaSideSelectionPatch
                 if (!ArenaServerClient.RefreshAvailability() || !ArenaClientConfig.Refresh())
                     throw new InvalidOperationException("Arena server mod is unavailable. No arena raid was selected.");
 
+                // The server may have an ISB component without its client half.
+                if (!string.IsNullOrEmpty(ArenaServerClient.ServerAdmissionFailure))
+                    throw new InvalidOperationException(ArenaServerClient.ServerAdmissionFailure);
+
                 if (!ArenaMenuSelection.HasConfiguredMap(eligibility.IsTeam))
                     throw new InvalidOperationException("No arena maps are enabled on the server.");
 

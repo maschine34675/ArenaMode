@@ -17,7 +17,7 @@ for every feature.
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
 Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
-Continuous Load Ammo and Deminvincibility as soft load-order dependencies.
+Continuous Load Ammo, Deminvincibility, ISB Special Forces and ISB Aishi as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -156,6 +156,13 @@ below state each adapter's contract.
   mod pauses culled bots and their combat and changes death animations. F12
   switches do not remove every intervention. Ordinary PMC/Scav raids remain
   unchanged. [Source review and visible menu notice](ARENA-AVAILABILITY-20261020.md).
+- **ISB Special Forces / ISB Aishi:** loaded client or server components
+  provisionally block Arena. Their separate progression stores are not covered
+  by the ordinary SPT profile snapshot; Aishi also has item-dependent death
+  prevention. MoreBotsAPI support does not isolate these systems. Ordinary
+  PMC/Scav raids remain available. Remove the conflicting mod and restart both
+  server and game to use Arena. Reviewed SF 2.0.1 and Aishi 2.0.4 source;
+  [admission, checks and limits](ISB-ADMISSION-20261020.md).
 
 ## Own mods: absorbed or still standalone?
 

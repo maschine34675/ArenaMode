@@ -23,6 +23,7 @@ internal static class Program
             CheckUnknownContracts();
             CheckLateOrbit();
             CheckAdaptiveBotCulling();
+            CheckIsbAndServerOnly();
             Require(ConfigUtil.CurrentConfigReads == 0, "No scenario invokes the foreign network-capable CurrentConfig getter");
             Console.WriteLine($"OPTIONAL_MOD_ADMISSION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
@@ -120,6 +121,40 @@ internal static class Program
             Chainloader.PluginInfos.Remove(ArenaOptionalMods.AdaptiveBotCullingGuid);
             Allowed("ABC removal leaves no sticky admission state");
         }
+    }
+
+    private static void CheckIsbAndServerOnly()
+    {
+        foreach (var candidate in new[]
+        {
+            (Guid: "com.samc137.isbspecialforces", Name: "ISB Special Forces"),
+            (Guid: "com.samc137.aishi", Name: "ISB Aishi"),
+        })
+        {
+            foreach (var version in new Version[] { new(2, 0, 1), new(2, 0, 4), new(9, 0, 0), null })
+            {
+                Reset();
+                Allowed("ISB absent initially");
+                Chainloader.PluginInfos[candidate.Guid] =
+                    new PluginInfo { Metadata = new PluginMetadata { Version = version } };
+                Blocked(candidate.Name, "Exact late ISB identity blocks without touching any instance or settings");
+                var reason = ArenaOptionalMods.GetRejectionReason();
+                Require(reason.Contains("restart") && reason.Contains("Ordinary PMC/Scav"),
+                    "ISB reason explains recovery and unchanged ordinary availability");
+                Require(ArenaMoreBotsCompatibility.Calls == 1,
+                    "Ready MoreBots does not imply ISB persistence support");
+                Chainloader.PluginInfos.Remove(candidate.Guid);
+                Allowed("No stale client blocker after the exact ISB entry disappears");
+            }
+        }
+        Reset();
+        Chainloader.PluginInfos["com.samc137.unrelated"] = new PluginInfo();
+        Allowed("Other content from the same author is not blanket-blocked");
+        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = "ISB Aishi server-only rejection";
+        Require(ArenaOptionalMods.GetRejectionReason() == "ISB Aishi server-only rejection",
+            "Server-only discovery reason reaches the existing menu and final-start provider");
+        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = null;
+        Allowed("A successful refreshed server response clears its previous restriction");
     }
 
     private static void CheckDisabledAtStartup()
@@ -266,6 +301,7 @@ internal static class Program
 
     private static void Reset()
     {
+        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = null;
         Chainloader.PluginInfos.Clear();
         Harmony.Reset();
         Singleton<ConfigUtil>.Instance = null;

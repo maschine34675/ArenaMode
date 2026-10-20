@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using ArenaMode.Session;
+using ArenaMode.Shared;
 using BepInEx.Bootstrap;
 using Comfort.Common;
 using HarmonyLib;
@@ -27,6 +29,12 @@ internal static class ArenaOptionalMods
 
         if (Chainloader.PluginInfos.ContainsKey(AdaptiveBotCullingGuid))
             return "Adaptive Bot Culling can pause Arena bots and interfere with body cleanup. Remove it and restart to play Arena. Ordinary PMC/Scav raids remain available.";
+
+        var isbFailure = ArenaIsbAdmission.GetRejectionReason(Chainloader.PluginInfos.ContainsKey);
+        if (isbFailure != null) return isbFailure;
+        // Cached by explicit server discovery, never perform HTTP from UI polling.
+        if (ArenaServerClient.ServerAdmissionFailure != null)
+            return ArenaServerClient.ServerAdmissionFailure;
 
         if (Chainloader.PluginInfos.TryGetValue(QuestingBotsGuid, out var info)
             && !QuestingBotsDisabledAtStartup(info.Instance, info.Metadata?.Version))

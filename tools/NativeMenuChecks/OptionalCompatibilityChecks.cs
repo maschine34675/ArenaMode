@@ -64,6 +64,8 @@ internal static partial class Program
             ArenaMenuSelection.EndFlow();
             Assert(Start(Request(), out task) && task == null,
                 "ordinary raid still starts when optional compatibility probing would throw");
+
+            CheckServerOnlyAdmission();
         }
         finally
         {
@@ -71,6 +73,46 @@ internal static partial class Program
             ArenaMenuSelection.RegisterCompatibilityAdmission(null);
             SettingsSync.OnSync = oldSync;
             Settings.GameMode.Value = oldMode;
+        }
+    }
+
+    private static void CheckServerOnlyAdmission()
+    {
+        var oldGet = RequestHandler.Get;
+        try
+        {
+            ArenaMenuSelection.RegisterCompatibilityAdmission(() => ArenaServerClient.ServerAdmissionFailure);
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.2\",\"admissionFailure\":\"ISB Aishi server component is not isolated\"}"
+                : oldGet(route);
+            Select();
+            int starts = RequestHandler.StartCount;
+            Assert(ArenaServerClient.RefreshAvailability()
+                && ArenaServerClient.ServerAdmissionFailure.Contains("ISB Aishi"),
+                "server-only blocker preserves server reachability and exposes its reason");
+            Assert(!ArenaMenuSelection.CurrentEligibility.Allowed
+                && ArenaMenuSelection.CurrentEligibility.Reason.Contains("ISB Aishi"),
+                "server-only restriction participates in the same visible menu admission");
+            Assert(!Start(Request(), out var task) && task.IsFaulted && RequestHandler.StartCount == starts,
+                "server-only restriction cannot reach snapshot arming from a stale selection");
+            ArenaMenuSelection.EndFlow();
+            foreach (var side in new[] { ESideType.Pmc, ESideType.Savage })
+                Assert(Start(Request(side), out task) && task == null,
+                    "server-only restriction leaves ordinary " + side + " start unchanged");
+
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.2\"}" : oldGet(route);
+            Assert(ArenaServerClient.RefreshAvailability() && ArenaServerClient.ServerAdmissionFailure == null,
+                "fresh server discovery clears a removed restriction; legacy ping remains readable");
+
+            RequestHandler.Get = route => throw new InvalidOperationException("transport unavailable");
+            Assert(!ArenaServerClient.RefreshAvailability() && ArenaServerClient.ServerAdmissionFailure == null,
+                "failed transport does not advertise a stale server-only mod reason");
+        }
+        finally
+        {
+            RequestHandler.Get = oldGet;
+            ArenaServerClient.RefreshAvailability();
         }
     }
 }
