@@ -195,7 +195,7 @@ Spielertexte liegen in [README](../README.md) und der
 [Lizenzübersicht](../THIRD-PARTY-NOTICES.md) grenzt eigenen MIT-Code von den
 separaten Bild-/Audiorechten ab. Sie und die [LICENSE](../LICENSE) werden
 zusammen mit den Asset-Notices ausgeliefert. Die lesbaren Dokumente liegen unter
-`BepInEx/plugins/maschine-ArenaMode/docs/`, UI-Nachweise daneben unter `Ui/`.
+`BepInEx/plugins/maschine-ArenaMode/docs/`, UI-Nachweise unter `docs/licenses/ui/`.
 Der Source-Build benötigt das benachbarte öffentliche
 [Redeploy-Repository](https://github.com/maschine34675/Redeploy); dessen exakter
 Quellstand steht im Paketmanifest. Core bleibt bei Version 1.0.8.
@@ -204,9 +204,11 @@ Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
 durch acht generierte realistische Waffen-Kategoriebilder, sechs eigene Symbole
 bzw. Banner (MIT) sowie vier game-icons.net-Symbole (CC BY 3.0) ersetzt.
 Letztere: Skull crack, Grenade und Barbed wire von Lorc; Bowie knife von Skoll.
-Quellen, Generator und Herkunftsnachweis liegen im Repo; NOTICE, SOURCES und
-vollständige MIT-/CC-BY-3.0-Lizenztexte reisen im Client und lesbar unter
-`maschine-ArenaMode/Ui` mit. Siehe auch `UI-GAME-ICONS-20261016.md`.
+Quellen, Generator und Herkunftsnachweis liegen im Repo. NOTICE, SOURCES und
+MIT-Lizenztext reisen im Client und lesbar unter
+`maschine-ArenaMode/docs/licenses/ui` mit; der gemeinsame CC-BY-3.0-Lizenztext
+liegt unter `maschine-ArenaMode/docs/licenses/CC-BY-3.0.txt`.
+Siehe auch `UI-GAME-ICONS-20261016.md`.
 Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der
 Git-Historie und in früheren Paketen: Der Austausch bereinigt diese nicht und
 ist keine Freigabe zur Veröffentlichung der Historie oder anderer Assets.
