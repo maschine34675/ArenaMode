@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Effects Manager / Broken Limbs (2026-10-20, native tests pending):** the
+  optional library now follows committed Arena bodies without replaying global
+  raid startup or clearing other controllers' effect/skill ledgers.
+  ArenaSkills preserves the library's separate live contribution rather than
+  absorbing it into the Arena baseline. Library discovery has no fabricated
+  plugin GUID; Broken Limbs is a soft load-order dependency. See
+  [contract and limits](EFFECTS-COMPAT-20261020.md).
+  Integration checks: 1,236 unit tests passed, one existing APBS skip;
+  admission 115 assertions plus 21 negative controls; skill isolation 27 plus
+  three negative controls. The source-linked Effects harness passed 118
+  assertions and 21 compiled negative controls, including throwing skill
+  listeners and both cleanup orders. Client/companion and server builds passed without
+  deployment, with four/two existing warnings respectively. The next native
+  test batch includes both new adapters and the first candidate batch below.
+
 - **Pause Continued adapter (2026-10-20, native tests pending):** version 1.5.0+
   now rejects new pause activations only in an exactly confirmed Arena world,
   before the foreign paused flag changes. The first attempt shows a visible

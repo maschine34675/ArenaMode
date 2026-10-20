@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>EFTEffectManager</AssemblyName>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionRoot Condition="'$(ProductionRoot)' == ''">../../ArenaMode.Client/Compat</ProductionRoot>
+    <SkillsSource Condition="'$(SkillsSource)' == ''">../../ArenaMode.Client/Combat/ArenaSkills.cs</SkillsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionRoot)/ArenaEffectsCompat.cs" Link="Production/Compat.cs" />
+    <Compile Include="$(ProductionRoot)/ArenaEffectsContract.cs" Link="Production/Contract.cs" />
+    <Compile Include="$(ProductionRoot)/ArenaEffectsScope.cs" Link="Production/Scope.cs" />
+    <Compile Include="../../ArenaMode.Shared/Protocol.cs" Link="Production/Protocol.cs" />
+    <Compile Include="$(SkillsSource)" Link="Production/ArenaSkills.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaRestoreCommit.cs" Link="Production/ArenaRestoreCommit.cs" />
+    <Reference Include="Mono.Cecil"><HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

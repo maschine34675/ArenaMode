@@ -80,6 +80,12 @@ Pause Continued 1.5.0+ is suppressed only at a new pause activation in a confirm
 Arena world; read docs/PAUSE-COMPAT-20261020.md. Preserve ordinary pause and all
 unpause/release paths. Do not toggle foreign saved settings or merely guard the
 private Pause method after its Update has already set the global paused flag.
+EFT Effects Manager / Broken Limbs body handoff is described in
+docs/EFFECTS-COMPAT-20261020.md. The library has no plugin GUID: preserve late
+assembly discovery and checked callback/ledger contracts. Remove only owned
+old-controller bonuses and penalties; never replay NotifyRaidStarted or invoke
+global bonus clearing on Arena replacement. ArenaSkills snapshots exclude the
+current library-owned contribution and retain its live contribution on restore.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

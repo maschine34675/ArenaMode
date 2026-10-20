@@ -260,6 +260,7 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Existing skills, other features and ordinary raids remain enabled. Offline verified; native checks are pending. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Ordinary raids retain the original behavior. Offline verified; native checks are pending. |
 | **Pause Continued** | **1.5.0+**: pause activation is suppressed during Arena to protect match timers and replacement bodies. A notice explains the restriction; ordinary raids can still be paused. |
+| **EFT Effects Manager / Broken Limbs Don't Heal** | Reviewed with **1.1.0 / 1.1.0**: custom-effect callbacks and temporary penalties follow the current Arena body. Ordinary raids retain the library's lifecycle; native checks are tracked separately. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
 Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,

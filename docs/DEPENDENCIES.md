@@ -18,7 +18,7 @@ The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI
 AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
 Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
 Continuous Load Ammo, Deminvincibility, Skills Extended, Recoil Rework Legacy, Pause Continued,
-ISB Special Forces and ISB Aishi as soft load-order dependencies.
+Broken Limbs Don't Heal, ISB Special Forces and ISB Aishi as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -69,6 +69,14 @@ companion also passed. Some timing/UI and replay edge cases remain untested.
 This does not certify every map, version or mod combination; the descriptions
 below state each adapter's contract.
 
+- **EFT Effects Manager / Broken Limbs Don't Heal (reviewed 1.1.0 / 1.1.0):**
+  effect callbacks, old-body speed penalties and controller-owned temporary skill
+  contributions follow Arena replacements without restarting the whole foreign
+  raid lifecycle. Registrations and ordinary raid behavior are retained. The
+  library has no plugin GUID; Arena discovers its loaded assembly and validates
+  the lifecycle/ledger contract. A failed contract blocks Arena only; a different
+  build is attempted with a warning if that contract still holds. Native coverage
+  and limits are recorded in [the adapter review](EFFECTS-COMPAT-20261020.md).
 - **Pause Continued 1.5.0+:** Arena prevents a new pause request before the mod
   toggles its global flag, timers or cached player. A one-time message explains
   the Arena-only restriction. Ordinary pause/resume and already active unpause

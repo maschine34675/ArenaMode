@@ -45,7 +45,8 @@ internal static class Program
             && ArenaLateToThePartyCompat.Calls == 1 && ArenaClassicMovementCompat.Calls == 1
             && ArenaStatTrackCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
             && ArenaDeminvincibilityCompat.Calls == 1 && ArenaSkillsExtendedCompat.Calls == 1
-            && ArenaRecoilLegacyCompat.Calls == 1 && ArenaPauseCompat.Calls == 1,
+            && ArenaRecoilLegacyCompat.Calls == 1 && ArenaPauseCompat.Calls == 1
+            && ArenaEffectsCompat.Calls == 1,
             "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
@@ -116,6 +117,10 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaPauseCompat.Reason,
             "Pause Continued rejection reaches admission unchanged");
         ArenaPauseCompat.Reason = null;
+        ArenaEffectsCompat.Reason = "Effects Manager body binding unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaEffectsCompat.Reason,
+            "Effects Manager rejection reaches admission unchanged");
+        ArenaEffectsCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -346,6 +351,8 @@ internal static class Program
         ArenaRecoilLegacyCompat.Calls = 0;
         ArenaPauseCompat.Reason = null;
         ArenaPauseCompat.Calls = 0;
+        ArenaEffectsCompat.Reason = null;
+        ArenaEffectsCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }

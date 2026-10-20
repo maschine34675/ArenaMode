@@ -38,6 +38,7 @@ namespace ArenaMode;
 [BepInDependency(ArenaSkillsExtendedContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaRecoilLegacyContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaPauseContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(ArenaEffectsContract.BrokenLimbsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -95,6 +96,7 @@ public class Plugin : BaseUnityPlugin
         ArenaSkillsExtendedCompat.Initialize();
         ArenaRecoilLegacyCompat.Initialize();
         ArenaPauseCompat.Initialize();
+        ArenaEffectsCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -234,6 +236,7 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaBigBrainLibrary.Tick();
         ArenaRecoilLegacyCompat.Tick();
+        ArenaEffectsCompat.Tick();
     }
 
     private void OnDestroy()
@@ -264,6 +267,7 @@ public class Plugin : BaseUnityPlugin
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();
+        ArenaEffectsCompat.Shutdown();
         Movement.VaultingTuning.Restore();
         Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();
