@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Separate Arena starter: usage, private profile and safety boundaries](ARENA-START-PROTOTYPE.md)
+- [Shared native assets: implementation and test evidence](ARENA-START-THIN-20261020.md)
 - [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
 - [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)
 - [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md)

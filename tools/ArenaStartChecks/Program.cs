@@ -42,6 +42,19 @@ try
         "SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll",
         "SPT_Runtime/user/mods/ArenaMode/config/kits.json", "SPT_Runtime/user/mods/ArenaMode/config/ladder.json"
     }) Put(file);
+    var sharedContent = new[] {
+        "EscapeFromTarkov_Data/sharedassets0.assets", "EscapeFromTarkov_Data/sharedassets0.assets.resS",
+        "EscapeFromTarkov_Data/resources.resource", "EscapeFromTarkov_Data/Resources/unity default resources",
+        "EscapeFromTarkov_Data/StreamingAssets/Windows/map.bundle",
+        "EscapeFromTarkov_Data/StreamingAssets/Windows/assets/texture",
+        "EscapeFromTarkov_Data/StreamingAssets/Acoustics/map.xrageo",
+        "EscapeFromTarkov_Data/StreamingAssets/Culling_Data/map.bytes"
+    };
+    foreach (var file in sharedContent) Put(file, new string('x', 8192));
+    Put("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll", "patched");
+    Put("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak", "native backup");
+    Put("SPT_Runtime/SPT_Data/Launcher/Patches/SPT-core/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.delta", "delta");
+    Put("BepInEx/plugins/maschine-UiBridge.dll", "diagnostic bridge");
     var forbidden = new[] {
         "SPT_Runtime/user/profiles/private.json", "SPT_Runtime/user/Launcher/LauncherSettings.json",
         "SPT_Runtime/user/mods/PFT/companion.json", "SPT_Runtime/user/mods/Other/Other.dll",
@@ -68,6 +81,36 @@ try
     EnvironmentCopy.Verify(destination);
     Check(!File.ReadAllText(Path.Combine(destination, "SPT_Runtime/sptLogger.json")).Contains("original-to-delete"), "inherited logger path");
     Check(File.ReadAllText(Path.Combine(destination, "SPT_Runtime/sptLogger.json")).Contains("\"Information\""), "native logging enum name");
+    // EFT's LogConfigurator.Reconfig indexes these variables unconditionally.
+    // Missing either prevents ClientApplication.Awake and leaves the splash hung.
+    void CheckNativeLog(string xml)
+    {
+        var log = System.Xml.Linq.XDocument.Parse(xml);
+        var variables = log.Root!.Elements().Where(e => e.Name.LocalName == "variable")
+            .ToDictionary(e => e.Attribute("name")!.Value, e => e.Attribute("value")?.Value);
+        if (!variables.ContainsKey("clientId") || !variables.ContainsKey("gameVersion"))
+            throw new InvalidDataException("Native log startup contract missing.");
+        Check(log.Descendants().Where(e => e.Name.LocalName == "target")
+            .All(e => e.Attribute("fileName")!.Value.StartsWith("Logs/", StringComparison.Ordinal)),
+            "native log target escaped private working directory");
+    }
+    CheckNativeLog(File.ReadAllText(Path.Combine(destination, "NLog/NLog.config")));
+    Reject(() => CheckNativeLog(EnvironmentCopy.NativeLogConfig.Replace("<variable name=\"clientId\" value=\"undefined\" />", "")),
+        "missing native clientId regression control");
+    Reject(() => CheckNativeLog(EnvironmentCopy.NativeLogConfig.Replace("<variable name=\"gameVersion\" value=\"undefined\" />", "")),
+        "missing native gameVersion regression control");
+    var loaderPath = Path.Combine(destination, "BepInEx/config/BepInEx.cfg");
+    var loaderConfig = File.ReadAllText(loaderPath);
+    Check(loaderConfig == EnvironmentCopy.NativeLoaderConfig, "native scene lifetime setting not generated");
+    File.WriteAllText(loaderPath, loaderConfig + "\n[Logging]\nUnityLogListening = true\n");
+    EnvironmentCopy.Verify(destination); // Native BepInEx normalization is legitimate.
+    foreach (var invalid in new[] { "", "[Other]\nHideManagerGameObject = true",
+        loaderConfig.Replace("true", "false"), loaderConfig + "\nHideManagerGameObject = false" })
+    {
+        File.WriteAllText(loaderPath, invalid);
+        Reject(() => EnvironmentCopy.Verify(destination), "native plugin scene lifetime setting absent/ambiguous");
+    }
+    File.WriteAllText(loaderPath, loaderConfig);
     var backupConfig = File.ReadAllText(Path.Combine(destination, "SPT_Runtime/SPT_Data/configs/backup.json"));
     Check(!backupConfig.Contains("original-to-delete") && backupConfig.Contains("arena-profile-backups"), "unsafe backup destination");
     Reject(() => EnvironmentCopy.Prepare(plan), "overwriting existing destination");
@@ -139,7 +182,90 @@ try
     File.AppendAllText(binary, "changed");
     Reject(() => EnvironmentCopy.Verify(destination), "changed owned binary");
     Check(original.All(x => EnvironmentCopy.Hash(x.Key) == x.Value), "original modified during rejection tests");
-    Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; positive copy/bootstrap fixture and negative controls)");
+
+    var thin = ManagedEnvironment.Destination(source);
+    var nativeAssembly = Path.Combine(source, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+    File.WriteAllText(nativeAssembly, "native backup");
+    Reject(() => EnvironmentCopy.Plan(source, thin, shareAssets: true), "unpatched installation");
+    File.WriteAllText(nativeAssembly, "patched");
+    var thinPlan = EnvironmentCopy.Plan(source, thin, shareAssets: true);
+    Check(thinPlan.SharedBytes == sharedContent.Length * 8192L, "content selection/size estimate");
+    Check(thinPlan.PrivateBytes + thinPlan.SharedBytes == thinPlan.Bytes, "physical-size accounting");
+    foreach (var path in new[] { "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll",
+        "EscapeFromTarkov_Data/sharedassets0.assets.spt-bak", "EscapeFromTarkov_Data/StreamingAssets/Windows/evil.dll",
+        "EscapeFromTarkov_Data/StreamingAssets/Windows/../evil", "SPT_Runtime/user/profiles/x.json" })
+        Check(!SharedAssets.IsContent(path), "unsafe content classification: " + path);
+    var badBackup = "EscapeFromTarkov_Data/StreamingAssets/Windows/map.bundle.spt-bak";
+    Put(badBackup);
+    Reject(() => EnvironmentCopy.Plan(source, thin, shareAssets: true), "shared content patch backup");
+    File.Delete(Path.Combine(source, badBackup));
+    var badDelta = "SPT_Runtime/SPT_Data/Launcher/Patches/SPT-core/EscapeFromTarkov_Data/sharedassets0.assets.delta";
+    Put(badDelta);
+    Reject(() => EnvironmentCopy.Plan(source, thin, shareAssets: true), "new launcher patch targeting shared data");
+    File.Delete(Path.Combine(source, badDelta));
+    Reject(() => EnvironmentCopy.Prepare(thinPlan with { SharedBytes = thinPlan.Bytes }), "tampered physical size plan");
+    Check(ManagedEnvironment.Ensure(source) == thin, "automatic preparation destination");
+    var thinManifest = EnvironmentCopy.Verify(thin);
+    Check(thinManifest.Schema == 2 && thinManifest.Files.Count(f => f.Shared) == sharedContent.Length, "thin manifest");
+    Check(!File.Exists(Path.Combine(thin, "BepInEx/plugins/maschine-UiBridge.dll")), "diagnostics imported by default");
+    Check(ManagedEnvironment.Ensure(source) == thin, "automatic reuse");
+    Reject(() => ManagedEnvironment.Ensure(source, diagnostics: true), "silent diagnostics enable on existing runtime");
+    var rootManifest = Path.Combine(thin, EnvironmentCopy.ManifestPath);
+    var originalManifest = File.ReadAllText(rootManifest);
+    File.WriteAllText(rootManifest, originalManifest.Replace("\"Shared\": false", "\"Shared\": true"));
+    Reject(() => EnvironmentCopy.Verify(thin), "manifest attempts to share executable/config files");
+    File.WriteAllText(rootManifest, originalManifest);
+    var asset = Path.Combine(thin, sharedContent[0]);
+    var originalAsset = Path.Combine(source, sharedContent[0]);
+    var content = File.ReadAllBytes(asset);
+    var attributes = File.GetAttributes(originalAsset);
+    using (var held = new AssetLease())
+    {
+        EnvironmentCopy.Verify(thin, assetLease: held);
+        Check(held.Count == sharedContent.Length, "asset leases missing");
+        foreach (var path in new[] { asset, originalAsset })
+        {
+            Check(File.ReadAllBytes(path).SequenceEqual(content), "normal reads under lease");
+            Reject(() => File.WriteAllText(path, "wrong"), "write through linked/source path");
+            Reject(() => File.Delete(path), "delete through linked/source path: " + path);
+            Reject(() => File.Move(path, path + ".moved"), "rename through linked/source path: " + path);
+        }
+    }
+    Check(File.GetAttributes(originalAsset) == attributes, "source attributes changed");
+    using (var writer = new FileStream(originalAsset, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
+        Reject(() => EnvironmentCopy.Verify(thin), "writer already present before lock acquisition");
+    File.Delete(asset);
+    File.WriteAllBytes(asset, content);
+    Reject(() => EnvironmentCopy.Verify(thin), "identical independent copy is not the declared hardlink");
+    File.Delete(asset);
+    Check(NativeLinks.CreateHardLink(asset, originalAsset, IntPtr.Zero), "restore controlled asset link");
+    File.AppendAllText(originalAsset, "source update");
+    Reject(() => EnvironmentCopy.Verify(thin), "shared source in-place drift");
+    File.WriteAllBytes(originalAsset, content);
+    File.Delete(originalAsset);
+    File.WriteAllBytes(originalAsset, content);
+    Reject(() => EnvironmentCopy.Verify(thin), "identical source replacement has different identity");
+    File.Delete(asset);
+    Check(NativeLinks.CreateHardLink(asset, originalAsset, IntPtr.Zero), "restore source-replacement fixture");
+    File.WriteAllText(Path.Combine(thin, badBackup), "private injected backup");
+    Reject(() => EnvironmentCopy.Verify(thin), "injected restore backup after preparation");
+    File.Delete(Path.Combine(thin, badBackup));
+    var versionFile = Path.Combine(source, "UnityPlayer.dll");
+    var versionBytes = File.ReadAllBytes(versionFile);
+    File.AppendAllText(versionFile, "updated");
+    Reject(() => EnvironmentCopy.Verify(thin), "game source version changed");
+    File.WriteAllBytes(versionFile, versionBytes);
+    var mutableLink = Path.Combine(thin, "BepInEx/config/shared.cfg");
+    Directory.CreateDirectory(Path.GetDirectoryName(mutableLink)!);
+    Check(NativeLinks.CreateHardLink(mutableLink, originalAsset, IntPtr.Zero), "create mutable link control");
+    Reject(() => EnvironmentCopy.Verify(thin), "shared content alias injected into writable configuration");
+    File.Delete(mutableLink);
+    EnvironmentCopy.Verify(thin);
+    Check(original.All(x => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(x.Key))) == x.Value),
+        "source bytes differ after thin-runtime checks");
+    var diagPlan = EnvironmentCopy.Plan(source, Path.Combine(scratch, "diagnostic"), shareAssets: true, diagnostics: true);
+    Check(diagPlan.Files.Contains("BepInEx/plugins/maschine-UiBridge.dll"), "explicit diagnostic catalog missing");
+    Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + actual filesystem failure controls)");
 }
 
 finally

@@ -7,16 +7,36 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Separate Arena start prototype (2026-10-20):** `tools/ArenaStart` prepares
-  an independent copy of SPT 4.1 + ArenaMode + Core. No ordinary profile,
+- **Separate Arena start prototype (2026-10-20):** `tools/ArenaStart` now prepares
+  a managed private runtime of SPT 4.1 + ArenaMode + Core, sharing only explicitly
+  selected native content files through same-volume NTFS hardlinks. `play <source>`
+  creates/reuses the sibling `<source>-Arena` automatically. Mutable/executable
+  files stay private; both shared names are locked against writes/deletion until
+  native clients close. No ACL/attribute changes, no global mod switching, no
+  automatic update or copy fallback. The locks do not survive a forced starter
+  termination; never start the private executable directly. No ordinary profile,
   launcher configuration, BepInEx config or optional mod is imported; the private
   server creates one fresh native `Arena-Internal` account. This is additive
   tooling in `feature/arena-start-prototype`, not a deployment or a change to
   the ordinary Arena DLLs. Native menus still exist; no Arena-only UI/raid
   contract or PFT setup has been added. See
   [setup, safety boundaries and verification](ARENA-START-PROTOTYPE.md).
-  The local test copy is outside the synchronized installation:
-  `D:\ArenaMode-Prototype`. Do not copy ordinary profiles into it or replace
+  The old full-copy reference remains outside the synchronized installation:
+  `D:\ArenaMode-Prototype`. Thin test roots are `D:\SPT41-Arena` locally and
+  `C:\SPT41-Arena` on GPU2, also outside synchronization. Only the GPU diagnostic
+  variant additionally admits UiBridge with its own config/state/captures.
+  Thin-runtime checks: 187 assertions, two local server smokes, native GPU2
+  character creation/Factory DM/death/respawn/kill/normal exit and second start
+  with the same internal account passed. Both native bootstrap prerequisites
+  (NLog variables and BepInEx HideManagerGameObject) are now generated/checked.
+  Final GPU integrity verification passed; all test processes are stopped.
+  **Original-file preservation is NOT fully accepted:** source comparisons
+  failed during external profile/config/backup synchronization. No original
+  file was reset. Repeat that comparison with a quiet shared source before
+  claiming complete live isolation acceptance. Three PlayerBody disposal
+  errors at client exit and Factory pickup-anchor skips remain followups.
+  See [actual evidence and limits](ARENA-START-THIN-20261020.md).
+  Do not copy ordinary profiles into these roots or replace
   normal installation paths with it; use the starter's documented commands.
 
 - **Continuous Load Ammo / SVM / Deminvincibility (2026-10-20):** third scoped

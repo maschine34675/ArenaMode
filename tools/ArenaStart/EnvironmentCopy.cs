@@ -9,14 +9,39 @@ using Microsoft.Win32.SafeHandles;
 
 namespace ArenaStart;
 
-public sealed record CopyPlan(string Source, string Destination, List<string> Files, long Bytes);
-public sealed record OwnedFile(string Path, long Length, string Sha256);
-public sealed record Manifest(int Schema, string Root, string Source, List<OwnedFile> Files);
+public sealed record CopyPlan(string Source, string Destination, List<string> Files, long Bytes,
+    bool ShareAssets = false, long SharedBytes = 0, bool Diagnostics = false)
+{
+    public long PrivateBytes => Bytes - SharedBytes;
+}
+public sealed record OwnedFile(string Path, long Length, string Sha256, bool Shared = false);
+public sealed record Manifest(int Schema, string Root, string Source, List<OwnedFile> Files,
+    List<OwnedFile>? SourceBindings = null, bool Diagnostics = false);
 
 public static class EnvironmentCopy
 {
     public const string ManifestPath = ".arena-start/manifest.json";
     public const string AccountPath = ".arena-start/account.json";
+    public const string NativeLoaderConfig = """
+        [Chainloader]
+        HideManagerGameObject = true
+        """;
+    public const string NativeLogConfig = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <variable name="clientId" value="undefined" />
+          <variable name="gameVersion" value="undefined" />
+          <targets>
+            <target name="file" xsi:type="File" fileName="Logs/log_${var:clientId}/${var:clientId} traces.log"
+                    layout="${longdate}|${var:gameVersion}|${level}|${logger}|${message} ${exception:format=tostring}" />
+          </targets>
+          <rules>
+            <logger name="application" minlevel="Debug" writeTo="file" />
+            <logger name="backend" minlevel="Info" writeTo="file" />
+            <logger name="*" minlevel="Error" writeTo="file" />
+          </rules>
+        </nlog>
+        """;
     public static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNameCaseInsensitive = true };
     internal static readonly string[] CorePlugins =
         ["spt-common.dll", "spt-core.dll", "spt-custom.dll", "spt-debugging.dll", "spt-reflection.dll", "spt-singleplayer.dll"];
@@ -90,14 +115,22 @@ public static class EnvironmentCopy
         }
     }
 
-    public static CopyPlan Plan(string source, string destination)
+    public static CopyPlan Plan(string source, string destination, bool shareAssets = false, bool diagnostics = false)
     {
         source = Root(source);
         destination = Root(destination);
         Disjoint(source, destination);
+        if (shareAssets) SharedAssets.RequireVolume(source, destination);
         var version = FileVersionInfo.GetVersionInfo(Inside(source, "SPT_Runtime/SPT.Server.exe")).ProductVersion;
         if (version is null || !version.StartsWith("4.1.", StringComparison.Ordinal))
             throw new InvalidOperationException("This prototype requires an installed SPT 4.1 server.");
+        if (shareAssets)
+        {
+            var assembly = Inside(source, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+            var backup = Inside(source, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak");
+            if (!File.Exists(assembly) || !File.Exists(backup) || Hash(assembly) == Hash(backup))
+                throw new InvalidOperationException("Start normal SPT successfully once before preparing Arena; a patched assembly and native backup are required.");
+        }
         if (Directory.Exists(destination) || File.Exists(destination))
             throw new InvalidOperationException("Destination already exists. Updates/merges are deliberately unsupported.");
         var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -121,6 +154,7 @@ public static class EnvironmentCopy
         foreach (var tree in new[] { "announcements", "sounds", "docs" }) AddTree("BepInEx/plugins/maschine-ArenaMode/" + tree);
         Add("SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll");
         foreach (var file in new[] { "kits.json", "ladder.json" }) Add("SPT_Runtime/user/mods/ArenaMode/config/" + file);
+        if (diagnostics) Add("BepInEx/plugins/maschine-UiBridge.dll");
 
         // Never inherit endpoint credentials/config, native runtime caches or crash/profile material.
         files.Remove("SPT_Runtime/SPT_Data/configs/http.json");
@@ -128,23 +162,28 @@ public static class EnvironmentCopy
         files.Remove("SPT_Runtime/sptLogger.json");
         files.RemoveWhere(p => p.Contains(".sync-conflict-", StringComparison.OrdinalIgnoreCase));
         var ordered = files.Order(StringComparer.Ordinal).ToList();
-        return new CopyPlan(source, destination, ordered, ordered.Sum(p => new FileInfo(Inside(source, p)).Length));
+        SharedAssets.ValidateCatalog(ordered);
+        var sharedBytes = shareAssets
+            ? ordered.Where(SharedAssets.IsContent).Sum(p => new FileInfo(Inside(source, p)).Length) : 0;
+        return new CopyPlan(source, destination, ordered, ordered.Sum(p => new FileInfo(Inside(source, p)).Length),
+            shareAssets, sharedBytes, diagnostics);
     }
 
     public static void Prepare(CopyPlan plan, Action<string>? report = null)
     {
         RuntimeHost.RequireIdle();
         // Rebuild the approved selection; callers cannot inject arbitrary copy paths.
-        var current = Plan(plan.Source, plan.Destination);
-        if (!current.Files.SequenceEqual(plan.Files) || current.Bytes != plan.Bytes)
+        var current = Plan(plan.Source, plan.Destination, plan.ShareAssets, plan.Diagnostics);
+        if (!current.Files.SequenceEqual(plan.Files) || current.Bytes != plan.Bytes || current.SharedBytes != plan.SharedBytes)
             throw new InvalidOperationException("Source changed after planning; create a new plan.");
         var drive = new DriveInfo(Path.GetPathRoot(plan.Destination)!);
-        if (drive.AvailableFreeSpace < plan.Bytes + 2L * 1024 * 1024 * 1024)
-            throw new IOException("Not enough space for a full independent copy plus 2 GiB reserve.");
+        if (drive.AvailableFreeSpace < plan.PrivateBytes + 2L * 1024 * 1024 * 1024)
+            throw new IOException("Not enough space for private Arena files plus 2 GiB reserve.");
         Directory.CreateDirectory(plan.Destination);
         Directory.CreateDirectory(Inside(plan.Destination, ".arena-start"));
         using var lease = new FileStream(Inside(plan.Destination, ".arena-start/preparing"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
         var owned = new List<OwnedFile>();
+        using var sharedLeases = new AssetLease();
         long bytes = 0;
         long nextProgress = 0;
         foreach (var relative in plan.Files)
@@ -152,6 +191,20 @@ public static class EnvironmentCopy
             var source = Inside(plan.Source, relative);
             var target = Inside(plan.Destination, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (plan.ShareAssets && SharedAssets.IsContent(relative))
+            {
+                var contentStream = SharedAssets.OpenReadLease(source);
+                try
+                {
+                    SharedAssets.CreateLink(target, source);
+                    var entry = new OwnedFile(relative, contentStream.Length, SharedAssets.Hash(contentStream), Shared: true);
+                    sharedLeases.Add(relative, contentStream, target, entry, hashAlreadyChecked: true);
+                    owned.Add(entry);
+                    if (sharedLeases.Count % 1000 == 0) report?.Invoke($"Linked and verified {sharedLeases.Count} content files.");
+                }
+                catch { contentStream.Dispose(); throw; }
+                continue;
+            }
             using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -168,7 +221,7 @@ public static class EnvironmentCopy
             bytes += length;
             if (bytes >= nextProgress)
             {
-                report?.Invoke($"Copied {bytes / 1073741824d:F1} / {plan.Bytes / 1073741824d:F1} GiB");
+                report?.Invoke($"Copied private files: {bytes / 1073741824d:F1} / {plan.PrivateBytes / 1073741824d:F1} GiB");
                 nextProgress = bytes + 4L * 1024 * 1024 * 1024;
             }
         }
@@ -209,19 +262,23 @@ public static class EnvironmentCopy
                     filePath = "./user/logs/spt/", filePattern = "arena-%DATE%.log", maxFileSizeMB = 10, maxRollingFiles = 5 }
             }
         }, Json));
-        WriteOwned("NLog/NLog.config", """
-            <?xml version="1.0" encoding="utf-8"?>
-            <nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-              <targets><target name="file" xsi:type="File" fileName="Logs/arena-native.log" layout="${longdate} ${level} ${message} ${exception:format=tostring}" /></targets>
-              <rules><logger name="*" minlevel="Info" writeTo="file" /></rules>
-            </nlog>
-            """);
+        WriteOwned("NLog/NLog.config", NativeLogConfig);
+        // BepInEx adds its other default settings/comments during startup. Keep
+        // this file mutable, but require the SPT scene-lifetime setting below.
+        WriteNew(Inside(plan.Destination, "BepInEx/config/BepInEx.cfg"), NativeLoaderConfig);
         Directory.CreateDirectory(Inside(plan.Destination, "SPT_Runtime/user/profiles"));
         RuntimeHost.RequireIdle();
-        var manifest = new Manifest(1, plan.Destination, plan.Source, owned);
+        // Bind the shared asset snapshot to the game/server/patch version it was
+        // prepared with. A normal installation update must not silently mix versions.
+        var bindings = plan.ShareAssets
+            ? owned.Where(f => IsSourceBinding(f.Path)).Select(f => f with { Shared = false }).ToList()
+            : null;
+        var manifest = new Manifest(plan.ShareAssets ? 2 : 1, plan.Destination, plan.Source, owned, bindings, plan.Diagnostics);
         WriteNew(Inside(plan.Destination, ManifestPath), JsonSerializer.Serialize(manifest, Json));
         // A failed copy has no valid final manifest and is never automatically resumed/deleted.
-        report?.Invoke("Independent copy complete. No source player profiles, launcher settings or BepInEx configs imported.");
+        report?.Invoke($"Environment complete: {owned.Count(f => f.Shared)} shared assets; " +
+            $"{plan.PrivateBytes / 1073741824d:F2} GiB private, {plan.SharedBytes / 1073741824d:F2} GiB reused. " +
+            "No source player profiles, launcher settings or BepInEx configs imported.");
 
         void WriteOwned(string relative, string content)
         {
@@ -230,6 +287,13 @@ public static class EnvironmentCopy
             owned.Add(new(relative, new FileInfo(path).Length, Hash(path)));
         }
     }
+
+    private static bool IsSourceBinding(string path) =>
+        path is "EscapeFromTarkov.exe" or "UnityPlayer.dll" or "SPT_Runtime/SPT.Server.exe" or
+            "SPT_Runtime/SPT.Server.dll" or "SPT_Runtime/SPT.Launcher.exe" or
+            "BepInEx/plugins/spt/spt-core.dll" ||
+        path.StartsWith("EscapeFromTarkov_Data/Managed/", StringComparison.Ordinal) ||
+        path.StartsWith("SPT_Runtime/SPT_Data/Launcher/Patches/", StringComparison.Ordinal);
 
     public static string Hash(string path)
     {
@@ -282,14 +346,59 @@ public static class EnvironmentCopy
         writer.Write(content);
     }
 
-    public static Manifest Verify(string root, Action<string>? report = null, SafeFileHandle? runningLease = null)
+    internal static void ValidateNativeLoaderConfig(string config)
     {
+        var section = "";
+        var values = new List<string>();
+        foreach (var raw in config.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith('#') || line.StartsWith(';')) continue;
+            if (line.StartsWith('[') && line.EndsWith(']')) { section = line[1..^1].Trim(); continue; }
+            var equals = line.IndexOf('=');
+            if (section == "Chainloader" && equals >= 0 && line[..equals].Trim() == "HideManagerGameObject")
+                values.Add(line[(equals + 1)..].Trim());
+        }
+        if (values.Count != 1 || !bool.TryParse(values[0], out var hidden) || !hidden)
+            throw new InvalidDataException("Private BepInEx.cfg must enable [Chainloader] HideManagerGameObject for SPT scene transitions.");
+    }
+
+    public static Manifest Verify(string root, Action<string>? report = null, SafeFileHandle? runningLease = null,
+        AssetLease? assetLease = null)
+    {
+        using var temporaryLease = assetLease == null ? new AssetLease() : null;
+        assetLease ??= temporaryLease!;
         root = Root(root);
         var manifest = JsonSerializer.Deserialize<Manifest>(ReadPrivate(Inside(root, ManifestPath)), Json)
             ?? throw new InvalidDataException("Missing copy manifest.");
-        if (manifest.Schema != 1 || !root.Equals(manifest.Root, StringComparison.OrdinalIgnoreCase) || manifest.Files.Count == 0)
+        if (manifest.Schema is not (1 or 2) || !root.Equals(manifest.Root, StringComparison.OrdinalIgnoreCase) || manifest.Files.Count == 0)
             throw new InvalidDataException("Wrong manifest version/root or empty file list.");
         Disjoint(root, Root(manifest.Source));
+        SharedAssets.ValidateCatalog(manifest.Files.Select(f => f.Path));
+        if (manifest.Schema == 1 && manifest.Files.Any(f => f.Shared))
+            throw new InvalidDataException("Shared content in a copy-only manifest.");
+        if (manifest.Schema == 2)
+        {
+            SharedAssets.RequireVolume(manifest.Source, root);
+            if (manifest.SourceBindings == null || manifest.SourceBindings.Count == 0 ||
+                !manifest.SourceBindings.Select(f => f.Path).Order().SequenceEqual(
+                    manifest.Files.Where(f => IsSourceBinding(f.Path)).Select(f => f.Path).Order()))
+                throw new InvalidDataException("Missing source version binding.");
+            foreach (var binding in manifest.SourceBindings)
+            {
+                var path = Inside(manifest.Source, binding.Path);
+                if (!File.Exists(path) || Hash(path) != binding.Sha256)
+                    throw new InvalidDataException($"Source installation updated: {binding.Path}. Prepare a new Arena environment.");
+            }
+        }
+        foreach (var file in manifest.Files.Where(f => f.Shared))
+        {
+            if (!SharedAssets.IsContent(file.Path))
+                throw new InvalidDataException($"Non-content file marked shared: {file.Path}");
+            var path = Inside(root, file.Path);
+            var source = Inside(manifest.Source, file.Path);
+            assetLease.Add(file.Path, SharedAssets.OpenReadLease(source), path, file);
+        }
         // Inspect the whole environment, not just executable discovery folders.
         var allFiles = new List<string>();
         foreach (var entry in Directory.EnumerateFileSystemEntries(root))
@@ -307,8 +416,10 @@ public static class EnvironmentCopy
                 RequireSingleLink(runningLease); // Held exclusively by RuntimeHost.
                 continue;
             }
-            InspectPrivate(Inside(root, relative));
+            if (!assetLease.Contains(relative)) InspectPrivate(Inside(root, relative));
         }
+        ValidateNativeLoaderConfig(ReadPrivate(Inside(root, "BepInEx/config/BepInEx.cfg")));
+        SharedAssets.ValidateCatalog(allFiles);
         var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in manifest.Files)
         {
@@ -316,6 +427,7 @@ public static class EnvironmentCopy
             if (expected.Count % 1000 == 0)
                 report?.Invoke($"Checking file integrity: {expected.Count} / {manifest.Files.Count}");
             var path = Inside(root, file.Path);
+            if (file.Shared) continue; // Already hashed with its write/delete lease held.
             // Native launcher removes this known unused original EFT library.
             if (file.Path == "EscapeFromTarkov_Data/Plugins/x86_64/hwecho.dll" && !File.Exists(path)) continue;
             if (!File.Exists(path) || new FileInfo(path).Length != file.Length || Hash(path) != file.Sha256)
@@ -332,7 +444,7 @@ public static class EnvironmentCopy
                 throw new InvalidDataException($"Unexpected mod/executable: {file}");
         }
         ValidateProfileFiles(root);
-        report?.Invoke($"Verified {expected.Count} independent files and private profile boundary.");
+        report?.Invoke($"Verified {expected.Count} files ({assetLease.Count} shared content leases) and private profile boundary.");
         return manifest;
     }
 

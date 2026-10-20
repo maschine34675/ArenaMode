@@ -1,7 +1,7 @@
 # Separater Arena-Start – Prototyp
 
 Stand: 2026-10-20. Quellcode: `tools/ArenaStart/`; Prüfprogramm:
-`tools/ArenaStartChecks/`. Dieser erste Prototyp ist ein Windows-Kommandozeilenprogramm,
+`tools/ArenaStartChecks/`. Dieser Prototyp ist ein Windows-Kommandozeilenprogramm,
 kein neuer vollständiger Launcher und noch kein Bestandteil des Mod-Releases.
 
 ## Entscheidung und Umfang
@@ -13,8 +13,10 @@ Server über seine originale Registrierungsroute genau ein neues Konto
 nativen Ablauf. Es gibt keinen Profilimport, keinen Rückimport und keine
 Übernahme von Stash, Begleitern oder Ausrüstung.
 
-Die neue Umgebung erhält eigene Kopien von Spiel, SPT, ArenaMode und
-Redeploy.Core. Fremde Plugins, zusätzliche Servermods, Prepatcher, normale
+Die neue Umgebung erhält eigene Kopien der ausführbaren Spielbestandteile, SPT,
+ArenaMode und Redeploy.Core. Große freigegebene native Assets werden auf demselben
+NTFS-Laufwerk über dateiweise Hardlinks gemeinsam genutzt. Fremde Plugins,
+zusätzliche Servermods, Prepatcher, normale
 Profile, Launcher-Einstellungen, BepInEx-Konfigurationen und PFT-Daten werden
 nicht übernommen. Die optionale Arena-BigBrain-Bibliothek gehört zu Arena,
 bleibt ohne BigBrain aber inaktiv. Die erste Fassung enthält bewusst weder
@@ -24,18 +26,35 @@ Die übrigen SPT-Basiskonfigurationen werden ebenfalls übernommen; HTTP, Loggin
 und Backup erhalten dagegen neu erzeugte private Einstellungen. Vom Benutzer
 direkt veränderte Balancewerte in den SPT-Basiskonfigurationen werden nicht auf
 Werkseinstellungen zurückgesetzt.
+Eine minimale neue `BepInEx.cfg` setzt SPTs notwendiges
+`[Chainloader] HideManagerGameObject = true`. BepInEx darf seine eigenen Defaults
+und Kommentare ergänzen; der Starter prüft diesen Pflichtwert vor jedem Start
+erneut, statt die normalisierte Datei gegen einen unveränderlichen Hash zu prüfen.
+Das private NLog enthält die von EFT beim Start erwarteten Variablen `clientId`
+und `gameVersion`; seine Dateiziele bleiben innerhalb der privaten Umgebung.
 
 **Die Quelle wird nicht umgeschaltet.** Keine Mod wird dort verschoben,
-deaktiviert oder gelöscht. Es gibt keine Junctions oder Hardlinks zum Original.
-Der native Launcher darf seine private Kopie normal prüfen und patchen.
-Das kostet zunächst ungefähr die Größe der Spielinstallation zusätzlich.
-Ein späteres Teilen großer unveränderlicher Assets ist noch nicht umgesetzt.
+deaktiviert oder gelöscht. Keine Quellinhalte, ACLs oder Read-only-Attribute
+werden geändert. Hardlinks erhöhen jedoch die Verknüpfungszahl der betroffenen
+Quelldateien; dies ist keine Behauptung unveränderter Dateisystem-Metadaten.
+Der native Launcher darf seine privaten Programmdateien normal prüfen und patchen.
+Die ausdrücklichen Befehle `plan-copy`/`prepare-copy` behalten die bisherige große
+Referenzkopie ohne gemeinsame Dateien bei. Es gibt keinen stillen Rückfall darauf.
+
+Für die untersuchte Installation benötigt die neue Auswahl rund **4,00 GiB**
+private Dateien und nutzt **53,43 GiB** bereits vorhandene Assets. Weitere
+Profile, Caches und Logs brauchen später zusätzlichen Platz. Explorer kann
+bei Hardlinks die logische Größe doppelt zählen; die Summen stammen aus dem
+Dateikatalog und sind keine Messung tatsächlich belegter NTFS-Cluster.
 
 Die Grundlage muss eine funktionierende SPT-4.1-Installation sein. Dies ist kein
 Reparaturprogramm für bereits auf Platte veränderte Spiel-/SPT-Dateien und kein
 Nachweis, dass deren Inhalt dem offiziellen Original entspricht. Der feste
 Dateikatalog ist auf den lokal geprüften SPT-4.1.6-Aufbau zugeschnitten; fehlende
-benötigte Dateien führen zu einer Ablehnung.
+benötigte Dateien führen zu einer Ablehnung. Normales SPT muss zuvor erfolgreich
+gestartet worden sein. Der Starter verlangt die gepatchte `Assembly-CSharp.dll`
+und eine davon abweichende native `.spt-bak`; das ist eine Voraussetzung, keine
+Reparatur oder vollständige Verifikation des offiziellen Patchformats.
 
 ## Verwendung
 
@@ -43,24 +62,41 @@ Voraussetzungen: Windows, .NET 10 für den Starter; zum Bauen das .NET-10-SDK.
 Spiel, SPT-Server und SPT-Launcher müssen für `prepare`, `smoke` und `start`
 geschlossen sein. Der reine `plan` verändert nichts.
 
-Im Repository:
+Für die automatische Anlage und spätere Wiederverwendung:
 
 ```powershell
 dotnet build tools/ArenaStart -c Release
 $starter = ".\tools\ArenaStart\bin\Release\net10.0\maschine-ArenaStart.exe"
-& $starter plan    D:\SPT41 D:\ArenaMode-Prototype
-& $starter prepare D:\SPT41 D:\ArenaMode-Prototype
-& $starter verify  D:\ArenaMode-Prototype
-& $starter smoke   D:\ArenaMode-Prototype
-& $starter start   D:\ArenaMode-Prototype
+& $starter play D:\SPT41
+```
+
+`play` verwaltet den Nachbarordner `D:\SPT41-Arena` automatisch. Bereits vorhandene
+fremde, unvollständige oder anders zugeordnete Ordner werden nicht übernommen,
+geleert oder repariert. Bei Folgestarts wird die vorhandene Umgebung geprüft.
+Ein Installer, eine grafische Oberfläche und eine automatische Aktualisierung
+sind weiterhin nicht Teil dieses Schritts.
+Diese Prüfung liest weiterhin den gesamten geschützten Dateikatalog. Auch ein
+Folgestart kann deshalb auf einem langsamen Laufwerk mehrere Minuten benötigen;
+die gemeinsame Ablage spart Platz, ist noch keine Startzeitoptimierung.
+
+Einzelne Schritte, insbesondere für Tests:
+
+```powershell
+& $starter plan    D:\SPT41 D:\SPT41-Arena
+& $starter prepare D:\SPT41 D:\SPT41-Arena
+& $starter verify  D:\SPT41-Arena
+& $starter smoke   D:\SPT41-Arena
+& $starter start   D:\SPT41-Arena
 ```
 
 Das Ziel darf noch nicht existieren und darf weder innerhalb noch oberhalb der
 Quelle liegen. Die Vorbereitung kopiert nur den festen Katalog. Bei einem
 Abbruch wird nichts automatisch gelöscht oder zusammengeführt; die unvollständige
-Kopie startet ohne gültiges Manifest nicht. Für Änderungen an den installierten
-Mod-DLLs oder SPT ist zunächst eine neue Zielumgebung nötig; ein Updateverfahren
-ist absichtlich noch nicht enthalten.
+Umgebung startet ohne gültiges Manifest nicht. Quell- und Zielordner müssen auf
+demselben NTFS-Laufwerk liegen. Für Änderungen an übernommenen Mod-DLLs oder SPT
+ist zunächst eine neue Zielumgebung nötig. Die Versionsbindung an Spielassemblies,
+Launcher, Server und native Patchdateien verweigert das Mischen verschiedener
+Stände. Fremde Mod-Updates werden nicht automatisch in Arena übernommen.
 
 `smoke` startet den echten privaten Server, erstellt oder prüft das interne Konto
 und beendet ausschließlich diesen gestarteten Server. Es startet kein Spiel.
@@ -77,7 +113,10 @@ Standardeingang wartet er weiter auf beide Anwendungen und hält seine Logpipes
 offen. Das Starterfenster während des Spielens nicht zwangsweise schließen.
 Nach einem Prozess-/Hostabsturz wird kein fremder/laufender Server automatisch
 übernommen oder beendet; vor dem nächsten Start müssen die Anwendungen beendet
-werden.
+werden. Ein erzwungenes Beenden des Starters gibt auch seine Dateisperren frei.
+Die Hardlinks bleiben bestehen und sind außerhalb dieser Laufzeitsperren nicht
+schreibgeschützt. Die private Umgebung daher ausschließlich über den Starter
+öffnen und nicht manuell modifizieren oder mit einer Synchronisation spiegeln.
 
 ## Grenzen und Schutzmaßnahmen
 
@@ -95,9 +134,24 @@ werden.
 - Die Bootstrap-Anfragen akzeptieren nur das Zertifikat aus dem privaten
   Serververzeichnis, nur auf diesem Loopback-Endpunkt; keine Weiterleitungen,
   kein Proxy und keine globale Abschaltung der Zertifikatsprüfung.
-- Manifest, SHA-256-Prüfung, vollständige Prüfung auf Verknüpfungen und Ablehnung
-  zusätzlicher Moddateien/ausführbarer Dateien vor dem Start. Auch beschreibbare
-  Log-/Konfigurationsdateien dürfen keine Hardlinks zum Original sein.
+- Manifest, SHA-256-Prüfung, Prüfung aller Pfade und Ablehnung zusätzlicher
+  Moddateien/ausführbarer Dateien vor dem Start. Schema 1 ist die Referenzkopie,
+  Schema 2 die neue gemeinsame Assetauswahl. Junctions/Symlinks bleiben verboten.
+- Nur `SharedAssets.IsContent` darf Hardlinks freigeben: ausgewählte native
+  Assetdateien, Windows-Bundles und Acoustic-/AudioBake-/Culling-Daten. DLLs,
+  EXEs, `Managed`, native Plugins, Patches, Backups, Einstellungen, Serverdaten
+  und Profile bleiben private Kopien. Auch veränderliche Logs/Configs werden
+  auf unerlaubte Hardlinks geprüft.
+- Vor jedem Start werden Quell- und Zielpfad jedes gemeinsamen Assets gleichzeitig
+  geöffnet, Dateiidentität und Hash verglichen und **beide Handles** bis zum Ende
+  aller nativen Clients gehalten. So werden normale Schreib-, Lösch- und
+  Umbenennungsversuche über beide Namen blockiert. Ein bloßer Hardlink bietet
+  diesen Schutz nicht. Der Starter hält die Sperren auch bei einem Serverfehler,
+  solange EFT oder Launcher noch laufen.
+- Unerwartete `.spt-bak` werden abgewiesen, weil der native Launcher diese im
+  gesamten Spielbaum rekursiv wiederherstellt. Nur der geprüfte private
+  Assembly-CSharp-Backup-/Patchpfad wird akzeptiert. Nach einem Start werden
+  veränderte Manifesthashes niemals automatisch als neuer Sollzustand übernommen.
 - Kein Download, kein Mod-Update, kein automatischer Import und kein automatisches
   Löschen alter Installationen. Kein Deployment in die normale Installation.
 
@@ -122,8 +176,19 @@ und wurde im privaten Serverlog beobachtet.
 - Ein serverseitiger Arena-only-Raidvertrag und das Ausblenden von „eigenes Gear“.
 - Optionale Modpakete einschließlich Abhängigkeitsauflösung, PFT-Begleiter und
   zusätzliche Karten. Keine fremden DLLs werden im Starter veröffentlicht.
-- Automatisierte vollständige Charaktererstellung, verlinkte Spieldaten,
-  Update/Migration einer bestehenden Arena-Kopie und ein Installer.
+- Automatisierte vollständige Charaktererstellung, Update/Migration einer
+  bestehenden Arena-Umgebung und ein Installer.
+
+## Diagnose auf dem GPU-Host
+
+`--diagnostics` am Ende von `play`, `plan` oder `prepare` nimmt ausschließlich
+die installierte `BepInEx/plugins/maschine-UiBridge.dll` zusätzlich in den
+festen Katalog auf. Keine Diagnose-Konfiguration oder Zugangsdaten werden
+automatisch importiert. Das Flag ist kein allgemeiner Fremdmod-Import.
+Für den eigenen GPU-Test wird eine frische private Bridge-Konfiguration mit
+gezieltem Host-Bind/Client-Allowlist, vorhandener Proxy-Authentifizierung und
+privaten State-/Capture-Pfaden eingerichtet. Geheimnisse bleiben außerhalb Git.
+Diese Testkomponente gehört nicht in eine öffentliche Starterauslieferung.
 
 ## Prüfung
 
@@ -140,7 +205,14 @@ Symlinks, Hardlinks einschließlich veränderlicher Logdateien, externe Logger-/
 Backuppfade und Loader-Umgebungsvariablen. Sie prüfen außerdem die unveränderten
 Quelldateien und dass legitime native Backups einen Folgestart nicht verhindern.
 
-Abgeschlossene Prüfung am 20.10.2026:
+Die platzsparende Variante ergänzt echte Hardlink-/Handle-Negativkontrollen,
+Quellversionsbindung, verwaltete Wiederverwendung und native
+Bootstrap-Konfigurationen: **187 Assertions**. Den getrennten Nachweis der
+tatsächlich angelegten Umgebungen, der gefundenen Startfehler und des
+Factory-GPU-Tests enthält
+[ARENA-START-THIN-20261020.md](ARENA-START-THIN-20261020.md).
+
+Historische Prüfung der Vollkopie am 20.10.2026 (`f428c57`):
 
 - Release-Build ohne Warnungen/Fehler; **128 Offline-Assertions** einschließlich
   erfolgreicher Kontrollen und tatsächlicher negativer Dateisystemfälle.
@@ -175,12 +247,13 @@ Abgeschlossene Prüfung am 20.10.2026:
 Rohbelege bleiben lokal unter `artifacts/arena-start-prototype/` sowie im privaten
 `.arena-start`-/Serverlogverzeichnis. Sie werden nicht veröffentlicht.
 
-**Noch nicht geprüft:** Start des nativen Launchers, vollständige
+**Zum Stand der Vollkopie noch nicht geprüft:** Start des nativen Launchers, vollständige
 Charaktererstellung, EFT-Menü oder Raid in dieser privaten Kopie. Insbesondere
 die erneute Manifestprüfung nach den nativen Launcher-Patches bleibt Teil des
 GPU-Nachtests. Ein Server-Smoke ist kein Spielstart-/Raidnachweis. Es wurden
 keine normalen Arena-DLLs aktualisiert und keine Dateien auf einen GPU-Host
-ausgerollt.
+ausgerollt. Die Nachweise der anschließenden platzsparenden Variante werden
+gesondert protokolliert.
 
 ## Lokale Vertragsquellen
 
@@ -193,3 +266,8 @@ ausgerollt.
 - `ProfileValidatorHelper`, `ProfileMigrationService`, `ProfileFixerService`:
   fehlende Modinhalte können vor Arenas Raid-Snapshot bereinigt werden.
 - Aktuelle Arena-Abhängigkeiten: [DEPENDENCIES.md](DEPENDENCIES.md).
+- [Microsoft: Hard Links and Junctions](https://learn.microsoft.com/en-us/windows/win32/fileio/hard-links-and-junctions):
+  gemeinsame Datei auf demselben Volume, keine private Kopie oder ACL.
+- [Microsoft: CreateFile](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea):
+  Share-Modi und Lebensdauer der geöffneten Handles. Die beiden Namen wurden
+  zusätzlich mit realen Schreib-/Lösch-/Umbenennungsversuchen geprüft.

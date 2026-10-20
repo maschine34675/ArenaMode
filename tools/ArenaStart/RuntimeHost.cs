@@ -46,7 +46,8 @@ public static class RuntimeHost
         using var lease = new FileStream(EnvironmentCopy.Inside(root, ".arena-start/running"), FileMode.OpenOrCreate,
             FileAccess.ReadWrite, FileShare.None);
         EnvironmentCopy.RequireSingleLink(lease.SafeFileHandle);
-        EnvironmentCopy.Verify(root, Console.WriteLine, lease.SafeFileHandle);
+        using var assets = new AssetLease();
+        EnvironmentCopy.Verify(root, Console.WriteLine, lease.SafeFileHandle, assets);
         RequireIdle();
         var runtime = EnvironmentCopy.Inside(root, "SPT_Runtime");
         using var log = new StreamWriter(EnvironmentCopy.Inside(root, ".arena-start/server-start.log"), append: true) { AutoFlush = true };
@@ -110,10 +111,10 @@ public static class RuntimeHost
         {
             // Do not orphan redirected pipes on an error while native clients run.
             // Continue serving until the user has closed them; never kill the game.
-            if (!server.HasExited && AnyClients())
+            if (AnyClients())
             {
                 Console.Error.WriteLine("Waiting for game and launcher to close before stopping the private server.");
-                while (!server.HasExited && AnyClients()) await Task.Delay(1000);
+                while (AnyClients()) await Task.Delay(1000);
             }
             if (!server.HasExited)
             {
