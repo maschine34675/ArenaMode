@@ -9,6 +9,11 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-skills-extended-contract'
+        Before = '?? ArenaSkillsExtendedCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
         Name = 'allow-isb-client'
         Before = 'if (isbFailure != null) return isbFailure;'
         After = ''

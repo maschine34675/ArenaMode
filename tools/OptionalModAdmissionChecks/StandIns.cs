@@ -176,4 +176,10 @@ namespace ArenaMode.Compat
         public static int Calls { get; set; }
         public static string GetRejectionReason() { Calls++; return Reason; }
     }
+    internal static class ArenaSkillsExtendedCompat
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string GetRejectionReason() { Calls++; return Reason; }
+    }
 }

@@ -257,10 +257,11 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
 | **Deminvincibility** | **2.2.0+**: immortality, Second Chance and the one-HP clamp yield to Arena death/respawn rules. Damage scaling and medicine/fracture settings remain effective. |
+| **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Existing skills, other features and ordinary raids remain enabled. Offline verified; native checks are pending. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
 Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,
-Classic Movement, StatTrack, Continuous Load Ammo, SVM and Deminvincibility are attempted
+Classic Movement, StatTrack, Continuous Load Ammo, SVM, Deminvincibility and Skills Extended are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 These adapters do not change the optional mods' saved settings or ordinary raid

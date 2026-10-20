@@ -64,6 +64,12 @@ one-companion PFT-Zombie wave transitions, is recorded in
 docs/GPU-OPTIONAL-COMPAT-20261020.md. Preserve its untested CLA timing/UI,
 Tactical PFT, killer-replay and world-change debounce boundaries; it is not
 blanket compatibility certification.
+Skills Extended 3.1.4+ has exact-world Signals receipt and initial-player XP
+subscription guards; read docs/SKILLS-EXTENDED-COMPAT-20261020.md. Preserve the
+second Signals Boot during native loot loading, retired-world leases and exact
+delegate removal. Never clear the foreign journal, replay world initialization
+or replace ordinary XP delivery with a global Arena flag. Native perk and
+Signals-reward checks remain pending.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

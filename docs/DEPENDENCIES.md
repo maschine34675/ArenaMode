@@ -17,7 +17,7 @@ for every feature.
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
 Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
-Continuous Load Ammo, Deminvincibility, ISB Special Forces and ISB Aishi as soft load-order dependencies.
+Continuous Load Ammo, Deminvincibility, Skills Extended, ISB Special Forces and ISB Aishi as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -68,6 +68,14 @@ companion also passed. Some timing/UI and replay edge cases remain untested.
 This does not certify every map, version or mod combination; the descriptions
 below state each adapter's contract.
 
+- **Skills Extended 3.1.4+:** Signals reward delivery is suspended before its
+  external XP journal reserves a receipt. The initial Arena player's medical
+  and weapon mastery XP callbacks are detached without disturbing other event
+  subscribers or the foreign world-start door fix. Existing skill levels,
+  other features and ordinary raids remain enabled. Loading and retired worlds
+  retain exact ownership; no foreign journal or saved setting is modified.
+  Offline checks passed; real Signals rewards, respawns and perk interactions
+  still require native testing. See [scope and remaining checks](SKILLS-EXTENDED-COMPAT-20261020.md).
 - **Continuous Load Ammo 1.2.0+:** loading controllers are rebound when Arena
   replaces the player body. Cleanup and delayed completion from the old body
   must not unlock or finish work on the replacement body or a newer loading

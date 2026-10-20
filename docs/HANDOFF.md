@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **First candidate batch (2026-10-20, not deployed):** `2bf2d58` blocks Arena
+  with loaded ISB Special Forces/Aishi on either client or server, with rejection
+  before snapshot preparation. Recovery/end and ordinary raids remain available.
+  Skills Extended 3.1.4+ now suspends Signals receipt delivery and its three initial
+  medical/weapon mastery XP handlers for exactly owned Arena worlds/bodies.
+  Other features and foreign saved settings/journals are retained. The second
+  Signals Boot after native loot loading captures the confirmed Arena world.
+  See [ISB](ISB-ADMISSION-20261020.md) and
+  [Skills Extended](SKILLS-EXTENDED-COMPAT-20261020.md). Native Signals rewards,
+  replacements and perk interactions still require testing; do not infer
+  acceptance from the offline harnesses. Builds use explicit deployment overrides.
+
 - **Visible Arena admission (2026-10-20):** `1621213` adds a persistent reason
   on the native character screen, including a Core-free diagnostic bootstrap
   when Redeploy.Core is missing/old. `a6919d3` corrects native deferred layout;
