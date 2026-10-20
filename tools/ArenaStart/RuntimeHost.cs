@@ -37,8 +37,9 @@ public static class RuntimeHost
         finally { listener.Stop(); }
     }
 
-    public static async Task Run(string root, bool smoke)
+    public static async Task Run(string root, bool smoke, Action<string>? report = null, bool waitForClients = false)
     {
+        var messages = new RuntimeReporter(report ?? Console.WriteLine);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("This prototype supports Windows only.");
         RequireIdle();
         root = EnvironmentCopy.Root(root);
@@ -47,7 +48,8 @@ public static class RuntimeHost
             FileAccess.ReadWrite, FileShare.None);
         EnvironmentCopy.RequireSingleLink(lease.SafeFileHandle);
         using var assets = new AssetLease();
-        EnvironmentCopy.Verify(root, Console.WriteLine, lease.SafeFileHandle, assets);
+        messages.Write("Verifying the private runtime and shared assets. This can take several minutes.");
+        EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
         RequireIdle();
         var runtime = EnvironmentCopy.Inside(root, "SPT_Runtime");
         using var log = new StreamWriter(EnvironmentCopy.Inside(root, ".arena-start/server-start.log"), append: true) { AutoFlush = true };
@@ -63,18 +65,19 @@ public static class RuntimeHost
                 key.StartsWith("COMPLUS_", StringComparison.OrdinalIgnoreCase))
                 info.Environment.Remove(key);
         using var server = Process.Start(info) ?? throw new IOException("SPT server did not start.");
-        var stdout = Pump(server.StandardOutput);
-        var stderr = Pump(server.StandardError);
-        Console.WriteLine($"Private Arena server PID {server.Id}. No existing server/profile is used.");
+        Task stdout = Task.CompletedTask, stderr = Task.CompletedTask;
         try
         {
+            stdout = Pump(server.StandardOutput);
+            stderr = Pump(server.StandardError);
+            messages.Write($"Private Arena server PID {server.Id}. No existing server/profile is used.");
             using var http = await WaitForServer(root, server);
-            await EnsureAccount(root, http);
+            await EnsureAccount(root, http, messages);
             EnvironmentCopy.ValidateProfileFiles(root);
             WriteLauncherSettings(root);
             if (smoke)
             {
-                Console.WriteLine("ARENA_SERVER_SMOKE_PASS");
+                messages.Write("ARENA_SERVER_SMOKE_PASS");
                 return;
             }
             var launcherInfo = new ProcessStartInfo(EnvironmentCopy.Inside(root, "SPT_Runtime/SPT.Launcher.exe"))
@@ -82,13 +85,19 @@ public static class RuntimeHost
                 WorkingDirectory = runtime, UseShellExecute = true, WindowStyle = ProcessWindowStyle.Normal
             };
             using var launcher = Process.Start(launcherInfo) ?? throw new IOException("SPT Launcher did not start.");
-            Console.WriteLine("Native SPT Launcher opened with the internal Arena account.");
-            Console.WriteLine("First launch: complete native character creation. The ordinary profile is not imported.");
-            Console.WriteLine("After playing, CLOSE GAME AND LAUNCHER, then press Enter here.");
+            messages.Write("Native SPT Launcher opened with the internal Arena account.");
+            messages.Write("First launch: complete native character creation. The ordinary profile is not imported.");
+            if (waitForClients)
+            {
+                messages.Write("Session running. Close the game AND SPT Launcher when finished; this window will then return to ready.");
+                await WaitForSessionEnd(AnyClients, () => server.HasExited ? server.ExitCode : null, messages);
+                return;
+            }
+            messages.Write("After playing, CLOSE GAME AND LAUNCHER, then press Enter here.");
             ConsoleCancelEventHandler cancel = (_, e) =>
             {
                 e.Cancel = true;
-                Console.WriteLine("Close game and launcher first, then press Enter. Do not close this starter window while playing.");
+                messages.Write("Close game and launcher first, then press Enter. Do not close this starter window while playing.");
             };
             Console.CancelKeyPress += cancel;
             try
@@ -97,12 +106,12 @@ public static class RuntimeHost
                 {
                     if (Console.ReadLine() is null)
                     {
-                        Console.Error.WriteLine("Input closed. Waiting for game and launcher before stopping the private server.");
-                        while (AnyClients()) await Task.Delay(1000);
+                        messages.Write("Input closed. Waiting for game and launcher before stopping the private server.");
+                        await WaitUntilClientsClose(AnyClients);
                         break;
                     }
                     if (!AnyClients()) break;
-                    Console.WriteLine("Game or launcher is still running. Close both before stopping the private server.");
+                    messages.Write("Game or launcher is still running. Close both before stopping the private server.");
                 }
             }
             finally { Console.CancelKeyPress -= cancel; }
@@ -113,8 +122,8 @@ public static class RuntimeHost
             // Continue serving until the user has closed them; never kill the game.
             if (AnyClients())
             {
-                Console.Error.WriteLine("Waiting for game and launcher to close before stopping the private server.");
-                while (AnyClients()) await Task.Delay(1000);
+                messages.Write("Waiting for game and launcher to close before stopping the private server.");
+                await WaitUntilClientsClose(AnyClients);
             }
             if (!server.HasExited)
             {
@@ -122,7 +131,7 @@ public static class RuntimeHost
                 server.Kill(entireProcessTree: false);
                 await server.WaitForExitAsync();
                 await Task.WhenAll(stdout, stderr);
-                Console.WriteLine("Private Arena server stopped.");
+                messages.Write("Private Arena server stopped.");
             }
             else await Task.WhenAll(stdout, stderr);
         }
@@ -132,6 +141,29 @@ public static class RuntimeHost
             while (await reader.ReadLineAsync() is { } line)
                 lock (log) log.WriteLine(line);
         }
+    }
+
+    internal static async Task WaitUntilClientsClose(Func<bool> anyClients, Func<Task>? delay = null)
+    {
+        // No server-state condition: a failed server does not release live EFT's assets.
+        while (anyClients()) await (delay?.Invoke() ?? Task.Delay(1000));
+    }
+
+    internal static async Task WaitForSessionEnd(Func<bool> anyClients, Func<int?> serverExit,
+        RuntimeReporter messages, Func<Task>? delay = null)
+    {
+        var reported = false;
+        while (anyClients())
+        {
+            if (!reported && serverExit() is { } code)
+            {
+                messages.Write($"Private server exited unexpectedly ({code}). Close EFT and SPT Launcher; shared assets remain locked until then.");
+                reported = true;
+            }
+            await (delay?.Invoke() ?? Task.Delay(1000));
+        }
+        if (serverExit() is { } exit)
+            throw new IOException($"Private server exited unexpectedly ({exit}); see .arena-start/server-start.log. No automatic repair was performed.");
     }
 
     private static bool AnyClients()
@@ -216,7 +248,7 @@ public static class RuntimeHost
         return await JsonNode.ParseAsync(decompressor) ?? throw new InvalidDataException("Invalid SPT response.");
     }
 
-    private static async Task EnsureAccount(string root, HttpClient http)
+    private static async Task EnsureAccount(string root, HttpClient http, RuntimeReporter messages)
     {
         var profilesResponse = await Request(http, "/launcher/v2/profiles");
         var profiles = Value(profilesResponse, "response")?.AsArray() ?? throw new InvalidDataException("No profile list.");
@@ -235,7 +267,7 @@ public static class RuntimeHost
             var id = profiles[0]!["profileId"]?.GetValue<string>() ?? "";
             if (id.Length != 24 || id.Any(c => !Uri.IsHexDigit(c))) throw new InvalidDataException("Invalid generated identity.");
             EnvironmentCopy.WriteNew(receipt, JsonSerializer.Serialize(new { username = Username, profileId = id }, EnvironmentCopy.Json));
-            Console.WriteLine("Fresh internal account created using SPT's native register route.");
+            messages.Write("Fresh internal account created using SPT's native register route.");
         }
         else
         {

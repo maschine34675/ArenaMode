@@ -189,6 +189,10 @@ try
     Reject(() => EnvironmentCopy.Plan(source, thin, shareAssets: true), "unpatched installation");
     File.WriteAllText(nativeAssembly, "patched");
     var thinPlan = EnvironmentCopy.Plan(source, thin, shareAssets: true);
+    var preview = ManagedEnvironment.Inspect(source);
+    Check(!preview.Exists && preview.Destination == thin && preview.SharedBytes == thinPlan.SharedBytes &&
+        preview.PrivateBytes == thinPlan.PrivateBytes, "new environment preview differs from actual plan");
+    Check(!Directory.Exists(thin), "preview created a runtime");
     Check(thinPlan.SharedBytes == sharedContent.Length * 8192L, "content selection/size estimate");
     Check(thinPlan.PrivateBytes + thinPlan.SharedBytes == thinPlan.Bytes, "physical-size accounting");
     foreach (var path in new[] { "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll",
@@ -209,9 +213,17 @@ try
     Check(thinManifest.Schema == 2 && thinManifest.Files.Count(f => f.Shared) == sharedContent.Length, "thin manifest");
     Check(!File.Exists(Path.Combine(thin, "BepInEx/plugins/maschine-UiBridge.dll")), "diagnostics imported by default");
     Check(ManagedEnvironment.Ensure(source) == thin, "automatic reuse");
+    preview = ManagedEnvironment.Inspect(source);
+    Check(preview.Exists && preview.SharedBytes == thinManifest.Files.Where(f => f.Shared).Sum(f => f.Length) &&
+        preview.PrivateBytes == thinManifest.Files.Where(f => !f.Shared).Sum(f => f.Length), "owned preview catalog sizes");
+    Reject(() => ManagedEnvironment.Inspect(source, diagnostics: true), "preview silently adopts another mode");
     Reject(() => ManagedEnvironment.Ensure(source, diagnostics: true), "silent diagnostics enable on existing runtime");
     var rootManifest = Path.Combine(thin, EnvironmentCopy.ManifestPath);
     var originalManifest = File.ReadAllText(rootManifest);
+    File.WriteAllText(rootManifest, originalManifest.Replace("\"Schema\": 2", "\"Schema\": 1"));
+    Reject(() => ManagedEnvironment.Inspect(source), "preview adopts an unknown runtime format");
+    Check(File.ReadAllText(rootManifest).Contains("\"Schema\": 1"), "preview repaired a rejected manifest");
+    File.WriteAllText(rootManifest, originalManifest);
     File.WriteAllText(rootManifest, originalManifest.Replace("\"Shared\": false", "\"Shared\": true"));
     Reject(() => EnvironmentCopy.Verify(thin), "manifest attempts to share executable/config files");
     File.WriteAllText(rootManifest, originalManifest);
@@ -265,6 +277,44 @@ try
         "source bytes differ after thin-runtime checks");
     var diagPlan = EnvironmentCopy.Plan(source, Path.Combine(scratch, "diagnostic"), shareAssets: true, diagnostics: true);
     Check(diagPlan.Files.Contains("BepInEx/plugins/maschine-UiBridge.dll"), "explicit diagnostic catalog missing");
+    var reports = 0;
+    var observer = new RuntimeReporter(_ => { reports++; throw new IOException("closed UI"); });
+    observer.Write("server started");
+    observer.Write("server cleanup");
+    Check(reports == 2, "failed observer prevented subsequent runtime/cleanup reports");
+    var clients = true;
+    var delays = new System.Collections.Concurrent.ConcurrentQueue<TaskCompletionSource>();
+    Task Delay()
+    {
+        var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        delays.Enqueue(signal);
+        return signal.Task;
+    }
+    var waiting = RuntimeHost.WaitUntilClientsClose(() => clients, Delay);
+    Check(!waiting.IsCompleted && delays.Count == 1, "live clients did not retain session");
+    // Model launcher close/server failure with EFT still alive: anyClients remains true.
+    Check(delays.TryDequeue(out var next), "initial polling delay absent");
+    next!.SetResult();
+    for (var i = 0; i < 100 && delays.Count == 0; i++) await Task.Delay(10);
+    Check(!waiting.IsCompleted && delays.Count == 1, "remaining EFT client released session");
+    clients = false;
+    Check(delays.TryDequeue(out next), "subsequent polling delay absent");
+    next!.SetResult();
+    await waiting.WaitAsync(TimeSpan.FromSeconds(2));
+    Check(waiting.IsCompletedSuccessfully, "session did not release after final client closed");
+    clients = true;
+    int? serverExit = 73;
+    var exitMessages = new List<string>();
+    waiting = RuntimeHost.WaitForSessionEnd(() => clients, () => serverExit, new RuntimeReporter(exitMessages.Add), Delay);
+    Check(!waiting.IsCompleted && exitMessages.Single().Contains("(73)"), "server failure did not retain live client/report reason");
+    clients = false;
+    Check(delays.TryDequeue(out next), "server failure polling delay absent");
+    next!.SetResult();
+    try { await waiting.WaitAsync(TimeSpan.FromSeconds(2)); throw new Exception("server failure reported success"); }
+    catch (IOException error) { Check(error.Message.Contains("(73)"), "unexpected server exit code lost"); }
+    serverExit = null;
+    await RuntimeHost.WaitForSessionEnd(() => false, () => serverExit, observer);
+    Check(true, "healthy session end completed");
     Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + actual filesystem failure controls)");
 }
 

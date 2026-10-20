@@ -379,6 +379,7 @@ public static class EnvironmentCopy
             throw new InvalidDataException("Shared content in a copy-only manifest.");
         if (manifest.Schema == 2)
         {
+            report?.Invoke("Checking source version bindings.");
             SharedAssets.RequireVolume(manifest.Source, root);
             if (manifest.SourceBindings == null || manifest.SourceBindings.Count == 0 ||
                 !manifest.SourceBindings.Select(f => f.Path).Order().SequenceEqual(
@@ -398,6 +399,8 @@ public static class EnvironmentCopy
             var path = Inside(root, file.Path);
             var source = Inside(manifest.Source, file.Path);
             assetLease.Add(file.Path, SharedAssets.OpenReadLease(source), path, file);
+            if (assetLease.Count % 500 == 0)
+                report?.Invoke($"Verified shared assets: {assetLease.Count}. Read leases remain held.");
         }
         // Inspect the whole environment, not just executable discovery folders.
         var allFiles = new List<string>();

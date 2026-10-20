@@ -1,8 +1,10 @@
 # Separater Arena-Start – Prototyp
 
 Stand: 2026-10-20. Quellcode: `tools/ArenaStart/`; Prüfprogramm:
-`tools/ArenaStartChecks/`. Dieser Prototyp ist ein Windows-Kommandozeilenprogramm,
-kein neuer vollständiger Launcher und noch kein Bestandteil des Mod-Releases.
+`tools/ArenaStartChecks/`. Zusätzlich bietet `tools/ArenaLauncher/` eine kleine
+Windows-Oberfläche für denselben Ablauf: [Bedienung und GUI-Prüfung](ARENA-LAUNCHER-UI-20261020.md).
+Der Prototyp ist noch kein Bestandteil des Mod-Releases. Der originale
+SPT-Launcher und die native Charaktererstellung bleiben erhalten.
 
 ## Entscheidung und Umfang
 

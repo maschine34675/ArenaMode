@@ -7,6 +7,23 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Graphical Arena starter (2026-10-20):** `tools/ArenaLauncher` adds a WPF
+  window around the existing thin runtime: folder picker, read-only preview,
+  explicit prepare/start, bounded activity log and automatic session cleanup.
+  Closing is blocked until preparation or the private client/server lifecycle
+  finishes; minimizing remains possible. Unexpected server exits retain the
+  client wait and then report an error, including the exit code. Only the
+  chosen source folder is remembered in a separate LocalAppData setting.
+  No ordinary mod DLL was built/deployed. Existing CLI commands remain.
+  Core checks now cover 203 assertions; actual-window checks cover 23,
+  using a controlled backend for state/lifecycle failure cases. Two native
+  GPU2 GUI/launcher lifecycles passed, including the final standalone Windows-x64
+  EXE with its embedded runtime; no new raid test. Final processes are stopped.
+  See [GUI usage, evidence and limits](ARENA-LAUNCHER-UI-20261020.md).
+  This remains additive prototype tooling on `feature/arena-start-prototype`,
+  with the native SPT Launcher still present and the earlier source-comparison
+  acceptance limit unchanged.
+
 - **Separate Arena start prototype (2026-10-20):** `tools/ArenaStart` now prepares
   a managed private runtime of SPT 4.1 + ArenaMode + Core, sharing only explicitly
   selected native content files through same-volume NTFS hardlinks. `play <source>`
