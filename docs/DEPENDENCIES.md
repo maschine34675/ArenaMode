@@ -34,6 +34,14 @@ Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 
 ## Optionale Funktionen und gezielte Adapter
 
+Der experimentelle separate Arena-Starter kopiert aus der normalen Installation
+vollständige Pakete von SAIN, APBS, ABPS, BigBrain und Waypoints, sofern vorhanden.
+Das macht sie nicht zu neuen harten Arena-Abhängigkeiten. SAIN benötigt in dieser
+Auswahl BigBrain und Waypoints sowie seinen Serverteil. Alle anderen Mods bleiben
+außerhalb des Starter-Katalogs; sie werden in der normalen Installation weder
+verschoben noch abgeschaltet. Fremde Moddateien werden nicht im Arena-Release
+gebündelt oder heruntergeladen. Siehe [Starter-Pakete und Prüfung](ARENA-START-RECOMMENDED-MODS-20261020.md).
+
 | Mod/Komponente | Geprüfter Vertrag | Zweck / Verhalten ohne sie |
 |---|---|---|
 | SAIN | Ab 4.5.1; damit geprüft, neuere Versionen mit Warnung | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |

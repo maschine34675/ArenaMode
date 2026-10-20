@@ -6,12 +6,20 @@ Spiel-/SPT-Updater; normale Arena-Client-/Server-DLLs werden nicht neu gebaut.
 
 ## Bedienung
 
-ArenaMode wie bisher in der **normalen SPT-Installation** aktualisieren, während
+ArenaMode und die gewünschten unterstützten Mods wie bisher in der **normalen
+SPT-Installation** aktualisieren, während
 Spiel und Server geschlossen sind. Anschließend im Arena-Starter diese Installation
 prüfen und **Launch Arena** wählen. Die Vorschau nennt neue, geänderte und entfernte
 Paketdateien. Vor dem Start werden die privaten Dateien vollständig verifiziert
 und die zugelassenen Änderungen übernommen. Auch bei gleicher Versionsnummer
 werden neue Builds anhand ihrer SHA-256-Hashes erkannt.
+
+Zusätzlich zeigt die Vorschau, welche optionalen Pakete in der Quelle vorhanden
+sind und welche fehlen: **SAIN, APBS, ABPS, BigBrain und Waypoints**. Es werden nur
+vollständige lokal installierte Pakete übernommen. Fehlende Mods sind optional;
+unvollständige oder widersprüchliche Pakete werden nicht teilweise übernommen.
+Kein Download, kein allgemeiner Modmanager und keine Auslieferung dieser fremden
+Mod-Releases im Starterpaket.
 
 `<SPT>-Arena` bleibt als verwalteter Anker bestehen. Modupdates betreffen die
 jeweils aktive Runtime: zunächst den Anker, nach einem Basis-Neuaufbau eine
@@ -36,13 +44,22 @@ Einzeldatei-Austausch ist nicht Teil des Modpaket-Rollbacks.
 | Effekte | Direkte `.wav`-Dateien in `maschine-ArenaMode/sounds` |
 | Dokumentation | Unter `maschine-ArenaMode/docs`: `.md`, `.txt`, `.json`, `.png`, `.svg` und exakt `docs/LICENSE` |
 | Kitdaten | Exakt `ArenaMode/config/kits.json` und `ladder.json` aus normalem SPT |
+| Optionale lokale Pakete | SAIN, APBS, ABPS, BigBrain und Waypoints, jeweils nur der ausdrücklich freigegebene DLL-/Datenkatalog eines vollständigen Pakets |
 | Diagnose | UiBridge nur bei einer bereits ausdrücklich als Diagnoseumgebung angelegten Installation |
 
-Keine `sounds/reserve`, AreaDrafts, fremden DLLs, zusätzlichen Mods, Profile,
+Keine `sounds/reserve`, AreaDrafts, DLLs außerhalb des Katalogs, weiteren Mods, Profile,
 Launcher-Zugangsdaten, BepInEx-Konfigurationen, `config.json`,
 `client-settings.json` oder Sync-Konfliktdateien. Der gleiche enge Dateikatalog
 gilt jetzt für die Erstvorbereitung. Unbekannte ausführbare Dateien in den
 Audio-/Dokumentationsbäumen verweigern die Zusammenstellung.
+
+Die optionalen Mods beginnen mit **frischen privaten Einstellungen**, nicht mit
+den Mod-Konfigurationen oder Presets des normalen Spielprofils. Spätere private
+Änderungen bleiben bei Modupdates und beim kontrollierten Basis-Rebuild erhalten.
+Der Starter übernimmt keine normalen Mod-Caches, generierten Backups, Logs oder
+Profil-/Session-Freigabelisten. Mutable Dateien gehören nicht ins unveränderliche
+DLL-/Paketmanifest; ihre privaten Pfade bleiben dennoch gegen Links und unerlaubte
+Dateitypen geprüft. Insbesondere darf SAIN eigene Editor-/Presetdateien schreiben.
 
 Kitdaten sind die möglicherweise angepasste Auswahl aus der normalen Installation,
 nicht zwingend unveränderte Release-Defaults. Beide müssen nichtleere JSON-Arrays
@@ -56,6 +73,9 @@ verwaltete Assembly, genauer Name, gleiche Arena-Paketversionen und gültige
 Commit-/InformationalVersion-Suffixe sind zulässig, ebenso neue Inhalte bei
 gleicher Versionsnummer. Das beweist keine vollständige zukünftige API-/SPT-
 Kompatibilität; native Serverprüfungen und Arena-Coreschutz bleiben aktiv.
+Dasselbe gilt für die Abhängigkeiten der optionalen Mods. Beispielsweise verlangt
+der lokal geprüfte SAIN-Server 4.5.1 SPT `~4.1.3`; BigBrain 1.5.0 und Waypoints
+1.9.0 prüfen zusätzlich EFT-Build 40743. Diese fremden Gates werden nicht umgangen.
 
 ## Austausch, Fehler und Wiederaufnahme
 
@@ -154,8 +174,10 @@ Datenträger-Vollzustand und physischer Stromausfall wurden nicht erzwungen.
 ### Historischer Offline- und Buildstand des Mod-Updaters
 
 Die folgenden Zahlen, Artefakte und nativen Ergebnisse stammen aus dem Modupdate-
-Schritt vor dem Basis-Neuaufbau. Sie belegen keinen Rebuild einer SPT-Version.
+Schritt vor dem Basis-Neuaufbau und vor der Erweiterung um die fünf optionalen
+Pakete. Sie belegen weder deren neue Integration noch einen Rebuild einer SPT-Version.
 Den späteren Starterstand dokumentiert der verlinkte Rebuild-Bericht.
+Ein nativer Start-/Raidnachweis für die optionale Paketerweiterung steht noch aus.
 
 - **519 Core-Assertions bestanden**, davon **130 Updateprüfungen**.
 - **34 WPF-Assertions bestanden**; echte Fenster-Renderings bei 920 × 760 und
@@ -197,7 +219,7 @@ Tests ergänzt wurden; auch der abschließende native Quellen-Leseschutz betriff
 nur einen tatsächlichen Austausch. Diese Änderungen beeinflussen den nativen
 No-op-Fall nicht.
 Sein damaliger Gesamtlauf meldete 584 Assertions einschließlich der nativen
-Vergleiche; maßgeblicher finaler Offline-Stand ist die oben genannte Suite mit 519.
+Vergleiche; damals maßgeblicher Offline-Stand war die oben genannte Suite mit 519.
 
 Beleg: `artifacts/arena-launcher-updates/native-update.log`.
 

@@ -72,7 +72,9 @@ Die Einstellungsübernahme bleibt vom inzwischen ergänzten
 | Änderung in normalem SPT | Verhalten der bestehenden Arena-Umgebung |
 |---|---|
 | ArenaMode-DLLs, Audio, `kits.json`, `ladder.json`, Redeploy.Core | Geänderte zugelassene Dateien werden vor dem Start aus normalem SPT übernommen; vorhandenes internes Konto bleibt bestehen. Die Vorschau nennt neue/geänderte/entfernte Dateien. |
-| Optionale/fremde Mods | Nicht im festen Katalog, daher weiterhin nicht übernommen. |
+| SAIN, APBS, ABPS, BigBrain, Waypoints | Vollständig lokal installierte Pakete werden anhand ihres festen Katalogs mitkopiert und aktualisiert. Fehlende Pakete bleiben optional; kein Download. |
+| Andere Mods | Weiterhin nicht im Katalog und nicht übernommen. |
+| Normale BepInEx-/Mod-Konfigurationen, SAIN-Presets und Mod-Caches | Kein Import. Die optionalen Mods beginnen mit frischen privaten Defaults; späterer privater Zustand bleibt bei Updates und Rebuilds erhalten. |
 | Gebundene Spiel-/SPT-Dateien, etwa EFT.exe, UnityPlayer, SPT.Server, Launcher, spt-core, Managed, native Patches | Geänderter Quellenhash verweigert den nächsten Start; die Vorschau bietet den ausdrücklichen Basis-Neuaufbau an. |
 | Bereits katalogisierte gemeinsame Assets | Geänderte Daten oder eine ausgetauschte Dateiidentität verweigern den Start. Neue Quellassets werden erst beim ausdrücklichen Neuaufbau katalogisiert. |
 | Andere private SPT-/Serverdaten ohne Quellenbindung | Bleiben zwischen Starts alte Kopien; der ausdrückliche Neuaufbau erstellt auch diese Kopien neu. Eine allgemeine automatische Updateerkennung existiert nicht. |
@@ -85,7 +87,8 @@ sein. Der Starter installiert oder lädt keine SPT-Updates herunter.
 `<SPT>-Arena` bleibt als Steuerungsanker erhalten. Die neue Runtime liegt dauerhaft
 unter `<SPT>-Arena.generations/<ID>` und wird erst nach Prüfung und privatem
 Server-Smoke aktiviert. Das vorhandene interne Konto samt Profil sowie die
-zugelassenen privaten Arena-Einstellungen werden kopiert, nicht zurückgesetzt.
+zugelassenen privaten Arena- und optionalen Mod-Einstellungen werden kopiert,
+nicht zurückgesetzt. Mod-Caches werden nicht aus normalem SPT übernommen.
 Native Profilmigrationen dürfen nur die neue Kopie ändern. Beim Server-Smoke gilt
 bereits die oben beschriebene Spieleinstellungsübernahme aus normalem SPT:
 vorhandene Quellen ersetzen die kopierten privaten Werte; fehlende Quellen lassen
@@ -103,6 +106,10 @@ Der Mod-Updater ersetzt nur vorher verifizierte, eigene Paketdateien und aktuali
 deren Manifesteinträge nach erfolgreichem Austausch.
 
 ## Historische Prüfung und Artefakt vor dem Mod-Updater
+
+Diese Ergebnisse belegen die fünf nativen Spieleinstellungsdateien. Sie sind kein
+nativer Nachweis für die später ergänzte Übernahme der optionalen Modpakete;
+deren neuer Start-/Raidtest steht noch aus.
 
 - `ArenaStartChecks`: **389 Assertions bestanden**, darunter 77 neue Import-
   Prüfungen sowie vier Prüfungen mit echtem vorbereitetem Manifest und

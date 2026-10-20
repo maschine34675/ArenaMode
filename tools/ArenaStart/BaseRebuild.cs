@@ -310,6 +310,8 @@ public static class BaseRebuild
             paths.AddRange(new[] { "Control.ini", "Game.ini", "Graphics.ini", "PostFx.ini", "Sound.ini" }
                 .Select(n => NativeGameSettings.RelativeDirectory + "/" + n));
             paths.AddRange(EnvironmentCopy.Walk(root, "SPT_Runtime/user/profiles"));
+            RecommendedModState.Validate(root);
+            paths.AddRange(RecommendedModState.PreservedFiles(root));
             allowed = paths.ToArray();
             try
             {
@@ -352,6 +354,8 @@ public static class BaseRebuild
         internal void CheckUnchanged()
         {
             EnvironmentCopy.ValidateProfileFiles(root);
+            if (RecommendedModState.PreservedFiles(root).Any(path => !allowed.Contains(path, StringComparer.Ordinal)))
+                throw new InvalidDataException("Previous private mod settings appeared during rebuild.");
             foreach (var path in allowed)
             {
                 if (files.TryGetValue(path, out var item))

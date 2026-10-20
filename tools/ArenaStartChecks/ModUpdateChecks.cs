@@ -367,6 +367,7 @@ internal static class ModUpdateChecks
         Put(managedRoot, EnvironmentCopy.ManifestPath, JsonSerializer.Serialize(recoveryPreview, EnvironmentCopy.Json));
         Put(managedRoot, ModUpdates.JournalPath, "pending fixture; inspect must not read or mutate it");
         File.Delete(EnvironmentCopy.Inside(recoveryPreview.Source, ModPackage.Client));
+        Put(recoveryPreview.Source, RecommendedModPackage.SainClientDirectory + "SAIN.dll", "partial optional install");
         var beforePreview = Snapshot(managedRoot);
         var managedPreview = ManagedEnvironment.Inspect(recoveryPreview.Source);
         Check(managedPreview.RecoveryPending && managedPreview.Updates == null && Same(beforePreview, managedRoot),

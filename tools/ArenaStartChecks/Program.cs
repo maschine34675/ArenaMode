@@ -426,6 +426,8 @@ try
     Check(true, "healthy session end completed");
     count += NativeGameSettingsChecks.Run(scratch);
     count += ModUpdateChecks.Run(scratch);
+    count += RecommendedModChecks.Run(scratch);
+    count += RecommendedModStateChecks.Run(scratch);
     count += await BaseRebuildChecks.Run(scratch);
     count += ProcessStateChecks.Run(scratch);
     count += await DirectGameChecks.Run(scratch, destination, args.Contains("--native-mod-update") ? [] : args);

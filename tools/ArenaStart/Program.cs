@@ -21,7 +21,8 @@ try
             $"{plan.SharedBytes / 1073741824d:F2} GiB shared content");
         Console.WriteLine($"Source (contents unchanged; shared files gain a hardlink): {plan.Source}");
         Console.WriteLine($"Destination (must not exist): {plan.Destination}");
-        Console.WriteLine("Only SPT + ArenaMode + Redeploy.Core. No player profiles, launcher settings, BepInEx configs or optional mods imported.");
+        Console.WriteLine("SPT + ArenaMode + Redeploy.Core and approved installed AI packages. No player profiles, launcher settings or mod configurations imported.");
+        Console.WriteLine(RecommendedModPackage.Summary(plan.Source));
         if (args[0] is "prepare" or "prepare-copy")
         {
             EnvironmentCopy.Prepare(plan, Console.WriteLine);
@@ -63,7 +64,8 @@ try
                                     and launcher, then press Enter here to stop server.
             Normal SPT/server/launcher must be closed. This tool never imports player
             profiles, moves original mods or downloads files. Before each start it refreshes
-            approved ArenaMode/Core/audio/kit files from normal SPT with rollback protection.
+            approved ArenaMode/Core/audio/kit files and installed SAIN/APBS/ABPS/BigBrain/Waypoints
+            packages from normal SPT with rollback protection. Mod settings start separately.
             After updating normal SPT, use rebuild for the Arena base; unrelated mods stay excluded.
             --diagnostics at the end of play/plan/prepare additionally admits the installed
             UiBridge DLL for native testing. No original bridge configuration is imported.

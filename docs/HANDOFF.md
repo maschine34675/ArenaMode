@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional local packages in the starter (2026-10-20):** the finite private
+  runtime catalog now admits complete installed SAIN, APBS, ABPS, BigBrain and
+  Waypoints packages. Inspection shows which are present/missing; absent mods
+  remain optional. Copy/update locally, never download or bundle their releases.
+  Do not import ordinary mod configs, SAIN presets, caches or profiles. Start
+  with separate defaults and retain existing private mod settings across package
+  updates and base rebuilds. Native dependency/version gates still apply; this
+  does not promise arbitrary future mod compatibility. Final checks: 799 core
+  and 45 WPF lifecycle assertions. Native 4.1.6 package update/server/login passed
+  with all three server mods and six SAIN defaults. Initial APBS logger-folder
+  failure was fixed and independently reviewed; a repeat with fresh mapping cache
+  had no Error/Exception output. 557 normal-source, 76 test-source and six private
+  profile/config files plus receipt unchanged. No new GPU/raid or useful local
+  visual-render acceptance. Standalone EXE built locally; GPU2's previous SMB
+  path was unreachable, so its earlier starter has not been replaced.
+  See [package inventory, native evidence and final artifact](ARENA-START-RECOMMENDED-MODS-20261020.md).
+  See [package scope and update rules](ARENA-START-UPDATES-20261020.md) and
+  [visible installation summary](ARENA-LAUNCHER-UI-20261020.md).
+
 - **Controlled Arena base rebuild (2026-10-20):** the starter detects changed
   native source bindings and offers an explicit **Rebuild Arena environment**
   action; ordinary launch remains blocked. `<source>-Arena` is the permanent
@@ -37,7 +56,9 @@ current. User-facing communication is normally German.
   [rebuild contract, native migration evidence and artifact](ARENA-BASE-REBUILD-20261020.md).
 
 - **Controlled starter mod updates (2026-10-20):** before every private start,
-  refresh only the finite ArenaMode/Core/audio/docs/kit catalog from normal SPT.
+  refresh the finite approved catalog from normal SPT. The initial
+  ArenaMode/Core/audio/docs/kit scope was subsequently extended by the optional
+  packages listed above; the following evidence covers the earlier scope.
   Keep source bindings, private profile/account, BepInEx/mod settings and
   diagnostics mode. Validate PE identity, Arena package versions, Core minimum
   and kit arrays; accept same-version new builds by SHA-256. Stage before writes,
@@ -133,11 +154,12 @@ current. User-facing communication is normally German.
   rebuilding after an external SPT update are described above.
   The locks do not survive a forced starter
   termination; never start the private executable directly. No ordinary profile,
-  launcher configuration, BepInEx config or optional mod is imported; the private
+  launcher configuration or BepInEx config is imported; the private
   server creates one fresh native `Arena-Internal` account. This is additive
   tooling in `feature/arena-start-prototype`, not a deployment or a change to
   the ordinary Arena DLLs. Native menus still exist; no Arena-only UI/raid
-  contract or PFT setup has been added. See
+  contract or PFT setup has been added. The initial exclusion of every optional
+  mod is superseded only by the five finite packages listed above. See
   [setup, safety boundaries and verification](ARENA-START-PROTOTYPE.md).
   The old full-copy reference remains outside the synchronized installation:
   `D:\ArenaMode-Prototype`. Thin test roots are `D:\SPT41-Arena` locally and

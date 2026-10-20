@@ -3,6 +3,16 @@
 Stand: 2026-10-20. Ergänzt [Verwendung und Schutzgrenzen](ARENA-START-PROTOTYPE.md).
 Dies ist ein Entwicklungsprototyp, kein veröffentlichtes Launcherpaket.
 
+**Historischer Nachweis:** Die folgenden Builds, Dateizahlen und nativen Tests
+beschreiben die erste Thin-Runtime ohne die später ergänzten optionalen
+SAIN-/APBS-/ABPS-/BigBrain-/Waypoints-Pakete. Diese werden inzwischen bei
+vollständiger lokaler Installation aus einem festen Katalog kopiert und
+aktualisiert, ohne Quell-Modkonfigurationen, Presets, Caches oder Profile.
+Vorhandener privater Modzustand bleibt bei Updates/Rebuilds erhalten; fehlende
+Pakete werden nicht heruntergeladen oder mit dem Starter ausgeliefert.
+Bedienung und Umfang stehen im [Mod-Updatebericht](ARENA-START-UPDATES-20261020.md).
+Ein neuer nativer Nachweis für diese Erweiterung steht noch aus.
+
 ## Implementierung und Offlineprüfung
 
 `play <SPT-Verzeichnis>` erstellt oder verwendet automatisch den danebenliegenden

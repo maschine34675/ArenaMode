@@ -104,6 +104,9 @@ internal static class Program
         await inspection;
         Check(window.StartButton.IsEnabled && backend.Starts == 0, "inspection started native processes");
         Check(window.PrivateSizeText.Text.Contains("4") && window.SharedSizeText.Text.Contains("53"), "catalog sizes missing");
+        Check(window.RecommendedModsText.Text == Preview(false).RecommendedMods &&
+            AutomationProperties.GetAutomationId(window.RecommendedModsText) == "ArenaRecommendedMods",
+            "selected optional package scope missing from preview");
         SaveImage(window, "ready");
 
         var start = window.StartSession();
@@ -230,6 +233,7 @@ internal static class Program
         await inspection;
         Check(window.StartButton.IsEnabled && window.RebuildButton.IsEnabled, "post-rebuild recheck not launchable");
         window.SourceBox.Text = @"C:\changed";
+        Check(!window.RecommendedModsText.Text.Contains("Installed:"), "stale optional package availability after source change");
         Check(!window.StartButton.IsEnabled && !window.RebuildButton.IsEnabled &&
             window.RebuildButton.Visibility == Visibility.Collapsed && !window.UpdateHint.Text.Contains("previous package"),
             "stale update preview after source change");
@@ -247,7 +251,8 @@ internal static class Program
     }
 
     private static ManagedPreview Preview(bool exists) => new(@"C:\SPT41", @"C:\SPT41-Arena", exists,
-        4L * 1073741824, (long)(53.43 * 1073741824));
+        4L * 1073741824, (long)(53.43 * 1073741824),
+        RecommendedMods: "Installed: SAIN, BigBrain, Waypoints · Not installed: APBS, ABPS");
 
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static TaskCompletionSource<T> NewSignal<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -261,7 +266,7 @@ internal static class Program
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath("artifacts/arena-base-rebuild");
+        var directory = Path.GetFullPath("artifacts/arena-recommended-mods");
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, "fixture-" + state + ".png"));
         encoder.Save(output);

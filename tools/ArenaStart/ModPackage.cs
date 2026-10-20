@@ -23,7 +23,7 @@ internal static class ModPackage
         if (path.Contains('\\') || path.Contains(':') ||
             path.Split('/').Any(p => p is "" or "." or "..") ||
             path.Contains(".sync-conflict-", StringComparison.OrdinalIgnoreCase)) return false;
-        if (Required.Contains(path, StringComparer.Ordinal) || diagnostics && path == Bridge) return true;
+        if (Required.Contains(path, StringComparer.Ordinal) || diagnostics && path == Bridge || RecommendedModPackage.Allows(path)) return true;
         if (!path.StartsWith(ClientDirectory, StringComparison.Ordinal)) return false;
         var suffix = path[ClientDirectory.Length..];
         var extension = Path.GetExtension(suffix).ToLowerInvariant();
@@ -55,6 +55,7 @@ internal static class ModPackage
                 if (Allows(path, diagnostics)) result.Add(path);
             }
         }
+        result.AddRange(RecommendedModPackage.Enumerate(source));
         if (result.Distinct(StringComparer.OrdinalIgnoreCase).Count() != result.Count)
             throw new InvalidDataException("Duplicate mod package path.");
         return result.Order(StringComparer.Ordinal).ToList();
@@ -79,10 +80,11 @@ internal static class ModPackage
         if (client.MinimumCore == null || core.Version < client.MinimumCore)
             throw new InvalidDataException("The installed Redeploy.Core is older than ArenaMode requires, or its minimum-version metadata is missing.");
         if (files.TryGetValue(Bridge, out var bridge)) ReadAssembly(bridge, "maschine-UiBridge");
+        RecommendedModPackage.Validate(files);
     }
 
     // Inspect PE metadata only. Never load/execute a source mod inside the launcher.
-    private static (Version Version, Version? MinimumCore) ReadAssembly(Stream input, string expectedName)
+    internal static (Version Version, Version? MinimumCore) ReadAssembly(Stream input, string expectedName)
     {
         input.Position = 0;
         using var pe = new PEReader(input, PEStreamOptions.LeaveOpen);

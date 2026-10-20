@@ -74,7 +74,12 @@
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Available game settings are copied from normal SPT each launch, replacing Arena's copies. No changes write back."/>
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
-                               Text="ArenaMode, Redeploy.Core, audio and kit data update from normal SPT before launch. Other mods stay excluded. After an SPT/game update, use Rebuild below."/>
+                               Text="ArenaMode/Core and complete local SAIN, APBS, ABPS, BigBrain and Waypoints packages update before launch. Missing optional mods stay absent. No downloads or bundled third-party mods."/>
+                    <TextBlock x:Name="RecommendedModsText" Margin="0,7,0,0" FontSize="12"
+                               Foreground="{StaticResource AccentBrush}" AutomationProperties.AutomationId="ArenaRecommendedMods"
+                               Text="Check the installation to see which optional mod packages are present."/>
+                    <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Text="Mod settings start separately with defaults. Updates and rebuilds keep private mod settings; no source mod presets, caches or profiles are imported. After an SPT/game update, use Rebuild below."/>
                     <TextBlock x:Name="UpdateHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource AccentBrush}"
                                Text="Check an installation to see pending mod updates."/>
                     <TextBlock x:Name="EnvironmentHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"

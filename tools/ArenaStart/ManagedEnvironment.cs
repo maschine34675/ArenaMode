@@ -4,7 +4,7 @@ namespace ArenaStart;
 
 public sealed record ManagedPreview(string Source, string Destination, bool Exists, long PrivateBytes, long SharedBytes,
     ModUpdateSummary? Updates = null, bool RecoveryPending = false, string? RebuildReason = null,
-    bool RebuildPending = false);
+    bool RebuildPending = false, string RecommendedMods = "");
 
 public static class ManagedEnvironment
 {
@@ -21,7 +21,8 @@ public static class ManagedEnvironment
         if (!Directory.Exists(destination) && !File.Exists(destination))
         {
             var plan = EnvironmentCopy.Plan(source, destination, shareAssets: true, diagnostics);
-            return new(source, destination, false, plan.PrivateBytes, plan.SharedBytes);
+            return new(source, destination, false, plan.PrivateBytes, plan.SharedBytes,
+                RecommendedMods: RecommendedModPackage.Summary(source));
         }
         var active = BaseRebuild.Resolve(destination, source, diagnostics);
         var manifest = ReadOwnedManifest(source, active, diagnostics);
@@ -34,7 +35,9 @@ public static class ManagedEnvironment
         return new(source, active, true,
             checked(manifest.Files.Where(f => !f.Shared).Sum(f => f.Length)),
             checked(manifest.Files.Where(f => f.Shared).Sum(f => f.Length)),
-            pending || reason != null ? null : ModUpdates.Inspect(manifest), pending, reason, rebuilding);
+            pending || reason != null ? null : ModUpdates.Inspect(manifest), pending, reason, rebuilding,
+            pending || reason != null ? "Recommended packages will be checked after recovery / before rebuilding." :
+                RecommendedModPackage.Summary(source));
     }
 
     public static string Ensure(string source, bool diagnostics = false, Action<string>? report = null)

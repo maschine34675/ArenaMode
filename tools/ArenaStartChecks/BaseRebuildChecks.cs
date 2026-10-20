@@ -82,6 +82,24 @@ internal static class BaseRebuildChecks
             BaseRebuild.Execute(source, false, null, EnvironmentCopy.Prepare, probe ?? Probe, checkpoint);
 
         var first = Fixture();
+        var privateModFiles = new[] {
+            "BepInEx/config/me.sol.sain.cfg", "BepInEx/plugins/SAIN/EditorDefaults.json",
+            RecommendedModState.Sain + "Presets/My Arena.json", RecommendedModState.Sain + "ServerConfig.json",
+            RecommendedModState.Apbs + "config.json", RecommendedModState.Apbs + "blacklists.json",
+            RecommendedModState.Apbs + "Presets/Arena/manifest.json",
+            RecommendedModState.Apbs + "Presets/Arena/Ammo/Tier1_ammo.json",
+            RecommendedModState.Abps + "config.json",
+            RecommendedModState.Abps + "Data/012345678901234567890123.json" };
+        foreach (var path in privateModFiles) Put(first.Anchor, path, "{\"fixturePrivateSetting\":17}");
+        var disposableModFiles = new[] { RecommendedModState.Sain + "cache/releases.json",
+            RecommendedModState.Sain + "Presets/My Arena.json.bak",
+            RecommendedModState.Apbs + "config.json.bak", RecommendedModState.Apbs + "blacklists.json.bak",
+            RecommendedModState.Abps + "config.json.bak",
+            RecommendedModState.Apbs + "GeneratedVanillaMappings-DO_NOT_TOUCH/manifest.json",
+            RecommendedModState.Apbs + "wwwroot/files/RELEASE_NOTES.txt",
+            RecommendedModState.Apbs + "logs/pmc_generation.json.tmp" };
+        foreach (var path in disposableModFiles) Put(first.Anchor, path, "{}");
+        EnvironmentCopy.Verify(first.Anchor);
         var beforeProfile = Hash(first.Anchor, profile);
         var beforeManifest = Hash(first.Anchor, EnvironmentCopy.ManifestPath);
         var beforeAccount = Hash(first.Anchor, EnvironmentCopy.AccountPath);
@@ -98,6 +116,10 @@ internal static class BaseRebuildChecks
         Check(Hash(active, EnvironmentCopy.AccountPath) == beforeAccount && Hash(active, config) == Hash(first.Anchor, config),
             "internal identity/settings not preserved");
         Check(Hash(active, native) == Hash(first.Source, native) && !BaseRebuild.Pending(first.Anchor), "new native package not active");
+        foreach (var path in privateModFiles)
+            Check(Hash(active, path) == Hash(first.Anchor, path), "private mod state lost during rebuild: " + path);
+        foreach (var path in disposableModFiles)
+            Check(!File.Exists(EnvironmentCopy.Inside(active, path)), "cache/log/crash residue imported during rebuild: " + path);
         Check(ManagedEnvironment.Inspect(first.Source).Destination == active &&
             ManagedEnvironment.Inspect(first.Source).RebuildReason == null, "preview not following active generation");
         Check(JsonNode.Parse(File.ReadAllText(EnvironmentCopy.Inside(active, profile)))!["fixtureProgress"]!.GetValue<int>() == 17 &&

@@ -465,9 +465,12 @@ public static class EnvironmentCopy
             if (checkedFiles % 500 == 0 || checkedFiles == manifest.Files.Count)
                 report?.Invoke($"Checking file integrity: {checkedFiles} / {manifest.Files.Count}");
         }
+        ValidateProfileFiles(root);
+        var privateAccountId = RecommendedModState.AccountId(root);
         foreach (var file in allFiles)
         {
             if (expected.Contains(file)) continue;
+            if (RecommendedModState.Allows(file, privateAccountId)) continue;
             if (file.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
                 file.StartsWith("BepInEx/patchers/", StringComparison.OrdinalIgnoreCase) ||
                 file.StartsWith("BepInEx/plugins/", StringComparison.OrdinalIgnoreCase) ||
@@ -475,7 +478,7 @@ public static class EnvironmentCopy
                  !file.StartsWith("SPT_Runtime/user/mods/ArenaMode/config/", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidDataException($"Unexpected mod/executable: {file}");
         }
-        ValidateProfileFiles(root);
+        RecommendedModState.Validate(root);
         report?.Invoke($"Verified {checkedFiles} / {manifest.Files.Count} catalogued files " +
             $"({checkedShared} / {sharedTotal} shared assets), {checkedPaths} / {allFiles.Count} runtime file paths " +
             "and private profile boundary.");

@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         DestinationText.Text = "Check an installation to see its private Arena folder.";
         EnvironmentHint.Text = "Catalog sizes, not total disk usage. Caches and logs need additional space.";
         UpdateHint.Text = "Check an installation to see pending mod updates.";
+        RecommendedModsText.Text = "Check the installation to see which optional mod packages are present.";
         if (!busy) SetStatus("Check your installation", "The selected folder has changed.", false);
     }
 
@@ -79,6 +80,9 @@ public partial class MainWindow : Window
             DestinationText.Text = preview.Destination;
             PrivateSizeText.Text = $"{preview.PrivateBytes / 1073741824d:F2} GiB";
             SharedSizeText.Text = $"{preview.SharedBytes / 1073741824d:F2} GiB";
+            RecommendedModsText.Text = string.IsNullOrWhiteSpace(preview.RecommendedMods)
+                ? "Optional mod availability was not reported by this check."
+                : preview.RecommendedMods;
             EnvironmentHint.Text = preview.Exists
                 ? "Existing environment · catalog sizes only, plus caches and logs. Unchanged files are verified and reused."
                 : "Created on first launch on the same NTFS drive. Catalog sizes above; caches and logs need additional space.";
@@ -95,11 +99,8 @@ public partial class MainWindow : Window
                 preview.RebuildReason != null
                     ? "Close normal EFT, SPT Server and SPT Launcher first. Rebuild checks the private server; launch the game afterwards."
                     : "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
-            if (preview.RebuildReason != null)
-            {
-                UpdateLayout();
-                StatusCard.BringIntoView();
-            }
+            UpdateLayout();
+            StatusCard.BringIntoView();
             AppendLog($"Selected {preview.Source}; private runtime {preview.Destination}.");
         }
         catch (Exception error)

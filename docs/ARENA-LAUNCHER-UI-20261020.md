@@ -15,7 +15,9 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
    Bei einer vorhandenen Umgebung werden Besitznachweis und Dateikatalog gelesen,
    gebundene native Quellen auf Änderungen geprüft und ausstehende Änderungen des
    zugelassenen Modpakets gezählt. Nach einem Neuaufbau folgt die Vorschau der
-   aktiven Generation.
+   aktiven Generation. Die Zeile für optionale Mods nennt die in dieser Quelle
+   vorhandenen und fehlenden Pakete: **SAIN, APBS, ABPS, BigBrain und Waypoints**.
+   Die Prüfung startet keine Installation und lädt fehlende Mods nicht herunter.
    Die angezeigten Größen sind Katalogsummen, kein vollständiger Integritätscheck
    und keine Messung tatsächlich belegter NTFS-Cluster.
 4. **Prepare & launch** legt beim ersten Start `<SPT-Ordner>-Arena` automatisch an;
@@ -29,8 +31,9 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
    Der erste Spielstart benötigt weiterhin die native Charaktererstellung.
 5. Nach einem fertig installierten SPT-/Spielupdate **Check installation** und
    anschließend **Rebuild Arena environment** wählen. Bei erkannter Basisänderung
-   ersetzt diese Aktion den gesperrten Spielstart; die Statuskarte wird in den
-   sichtbaren Bereich gescrollt. Sie bereitet eine neue private
+   ersetzt diese Aktion den gesperrten Spielstart. Nach einer erfolgreichen
+   Installationsprüfung wird die Statuskarte mit der verfügbaren Start-/Rebuild-
+   Aktion in den sichtbaren Bereich gescrollt. Sie bereitet eine neue private
    Generation vor, erhält das interne Konto und die zugelassenen privaten
    Einstellungen und prüft den privaten Server samt Login. **Dabei startet kein
    Spiel.** Danach erneut prüfen und **Launch Arena** wählen. Der Rebuild-Hinweis
@@ -75,6 +78,18 @@ PostFX. Arena schreibt nichts zurück; vorhandene Quellen ersetzen beim nächste
 Start wieder die entsprechenden privaten Einstellungen. ArenaMode, Redeploy.Core,
 Audio und Kitdaten werden inzwischen ebenfalls vor dem Start aus der normalen
 Installation aktualisiert, ohne das interne Konto zurückzusetzen.
+Vollständig installierte **SAIN-, APBS-, ABPS-, BigBrain- und Waypoints-Pakete**
+werden ebenfalls aus derselben lokalen Quelle kopiert und aktualisiert. Fehlt
+ein optionales Paket, bleibt es aus; ein unvollständiges oder widersprüchliches
+Paket muss zuerst in normalem SPT repariert werden. Andere Mods bleiben außerhalb
+des festen Katalogs. Der Starter enthält keine fremden Mod-Releases und lädt
+keine herunter.
+
+Die Mod-Einstellungen beginnen in der privaten Umgebung mit getrennten Defaults.
+Bestehende private Mod-Einstellungen bleiben bei Paketupdates und Rebuilds erhalten.
+Normale Mod-Konfigurationen, SAIN-Presets, Caches und Spielerprofile werden nicht
+importiert. Das unterscheidet sich ausdrücklich von den fünf Spieleinstellungen,
+deren vorhandene Quellen bei jedem Start erneut kopiert werden.
 Details und die jeweiligen Prüfnachweise:
 [Einstellungsübernahme](ARENA-START-SETTINGS-20261020.md) und
 [Mod-Updatepfad](ARENA-START-UPDATES-20261020.md). Den neueren Rebuild-Stand
@@ -85,6 +100,11 @@ Hardlink allein ist kein dauerhafter Schreibschutz; die bisherigen gehaltenen
 Datei-Handles schützen die gemeinsamen Assets während der verwalteten Sitzung.
 Die Isolations- und Fehlergrenzen wurden durch diese UI-Änderung nicht erweitert.
 
+**Nachweisgrenze der optionalen Mod-Erweiterung:** Die folgenden historischen
+GUI-/Spieltests stammen aus früheren Starterständen. Sie belegen noch keinen
+Start oder Raid mit den jetzt zugelassenen fünf optionalen Paketen; der neue
+native Nachweis steht noch aus.
+
 Fortschrittszeilen nennen jetzt **erledigt / gesamt pro Arbeitsschritt**:
 kopierte Quelldateien, verknüpfte Quelldateien, Quellversionsdateien, gemeinsame
 Assets, gefundene Laufzeit-Dateipfade und Katalog-Integrität. Jede Phase meldet
@@ -94,7 +114,7 @@ Die Nenner unterscheiden sich absichtlich: Generierte Konfigurationen und späte
 Laufzeitdateien sind nicht Teil der zu kopierenden Quelldateien. Der Balken bleibt
 eine Aktivitätsanzeige; Dateizahlen sind keine Schätzung der verbleibenden Zeit.
 
-Lokale Stichprobe am 2026-10-20: `D:\SPT41-Arena` enthält im Katalog 10.290
+Lokale Stichprobe am 2026-10-20 vor der Erweiterung um optionale KI-Pakete: `D:\SPT41-Arena` enthielt im Katalog 10.290
 Dateien, davon 8.240 gemeinsame Assets (53,43 GiB) und 2.050 private Dateien
 (4,00 GiB). `fsutil hardlink list` zeigt beim nativen Asset
 `EscapeFromTarkov_Data/Resources/unity default resources` beide SPT-Pfade, bei der
@@ -246,13 +266,13 @@ Der zugelassene Modkatalog kann kontrolliert aktualisiert werden; der ausdrückl
 Neuaufbau übernimmt eine bereits aktualisierte lokale Spiel-/SPT-Basis und erhält
 dabei das bisherige interne Arena-Konto. Das ist keine pauschale Zusage beliebiger
 Versionsmigrationen. Die native Spieloberfläche ist noch nicht auf
-Arena beschränkt. Optionale Mods wie PFT, SAIN, APBS, ArenaMapPort und Killcam
-werden in dieser ersten isolierten Umgebung noch nicht übernommen.
+Arena beschränkt. PFT, ArenaMapPort, Killcam und alle weiteren Pakete außerhalb
+der fünf ausdrücklich unterstützten optionalen Mods werden nicht übernommen.
 
 Der ältere Vergleich der erfassten normalen Quelldateien bleibt ausdrücklich
 nicht akzeptiert: während jener Messungen wurden Profile, Einstellungen und
 Backups extern synchronisiert. Das damalige Messskript erfasst ausgewählte
-Bereiche und Dateitypen, keinen vollständigen Baum. Dieser GUI-Test ersetzt
+Bereiche und Dateitypen, keinen vollständigen Baum. Der historische GUI-Test ersetzt
 keine erneute Messung mit ruhender Quelle. Ebenso bleiben die vorher beobachteten PlayerBody-Fehler
 beim Spielende und Factory-Pickup-Anker als separate Punkte offen.
 Siehe [Thin-Runtime-Bericht](ARENA-START-THIN-20261020.md) und

@@ -69,6 +69,8 @@ public static class RuntimeHost
         var manifest = EnvironmentCopy.Verify(root, messages.Write, runningHandle, assets);
         RequireIdle();
         manifest = ModUpdates.Apply(manifest, messages.Write);
+        RecommendedModState.Validate(root);
+        RecommendedModState.EnsureDirectories(manifest);
         RequireIdle();
         if (directGame)
         {

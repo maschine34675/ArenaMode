@@ -19,13 +19,20 @@ ausdrücklicher Basis-Neuaufbau erhält dagegen das bereits vorhandene interne
 Arena-Konto samt dessen Zustand; siehe [Rebuild-Vertrag](ARENA-BASE-REBUILD-20261020.md).
 
 Die neue Umgebung erhält eigene Kopien der ausführbaren Spielbestandteile, SPT,
-ArenaMode und Redeploy.Core. Große freigegebene native Assets werden auf demselben
-NTFS-Laufwerk über dateiweise Hardlinks gemeinsam genutzt. Fremde Plugins,
-zusätzliche Servermods, Prepatcher, normale
-Profile, Launcher-Einstellungen, BepInEx-Konfigurationen und PFT-Daten werden
-nicht übernommen. Die optionale Arena-BigBrain-Bibliothek gehört zu Arena,
-bleibt ohne BigBrain aber inaktiv. Die erste Fassung enthält bewusst weder
-SAIN/PFT/APBS noch ArenaMapPort/Killcam; verfügbar sind die eingebauten SPT-Karten.
+ArenaMode und Redeploy.Core. Sind **SAIN, APBS, ABPS, BigBrain oder Waypoints**
+vollständig in der normalen Installation vorhanden, werden ihre freigegebenen
+DLL-/Datenpakete ebenfalls lokal kopiert und vor späteren Starts aktualisiert.
+Fehlende Pakete bleiben optional. Die Vorschau nennt vorhandene und fehlende Mods;
+unvollständige Pakete müssen in der Quelle vervollständigt werden. Der Starter
+lädt keine Mods herunter und enthält keine fremden Releasepakete.
+Große freigegebene native Assets werden auf demselben NTFS-Laufwerk über
+dateiweise Hardlinks gemeinsam genutzt. Weitere Plugins, Servermods und
+Prepatcher, normale Profile, Launcher-Einstellungen, BepInEx-/Mod-Konfigurationen,
+SAIN-Presets, Mod-Caches und PFT-Daten werden nicht übernommen. Die optionalen
+Mods beginnen mit frischen privaten Defaults; spätere private Änderungen bleiben
+bei Updates und Rebuilds erhalten. Die Arena-BigBrain-Bibliothek gehört zu Arena,
+bleibt ohne BigBrain aber inaktiv. PFT, ArenaMapPort und Killcam bleiben außerhalb
+dieses Starterkatalogs; verfügbar sind die eingebauten SPT-Karten.
 Kit- und Waffenleiterdateien stammen aus der vorhandenen Arena-Installation.
 Die fünf nativen Dateien unter `SPT_Runtime/user/sptSettings` werden vor jedem
 Start als private Kopien übernommen, ohne Rückschreiben. Fehlende Quellen
@@ -51,7 +58,7 @@ Der native Launcher darf seine privaten Programmdateien normal prüfen und patch
 Die ausdrücklichen Befehle `plan-copy`/`prepare-copy` behalten die bisherige große
 Referenzkopie ohne gemeinsame Dateien bei. Es gibt keinen stillen Rückfall darauf.
 
-Für die untersuchte Installation benötigt die neue Auswahl rund **4,00 GiB**
+Die Stichprobe vor der Erweiterung um optionale KI-Pakete benötigte rund **4,00 GiB**
 private Dateien und nutzt **53,43 GiB** bereits vorhandene Assets. Weitere
 Profile, Caches und Logs brauchen später zusätzlichen Platz. Explorer kann
 bei Hardlinks die logische Größe doppelt zählen; die Summen stammen aus dem
@@ -86,7 +93,8 @@ Die erste Runtime liegt dort, spätere neu aufgebaute Runtimes dauerhaft unter
 Generationsverweis; Generationsordner nicht direkt starten. Bereits vorhandene
 fremde, unvollständige oder anders zugeordnete Ordner werden nicht übernommen,
 geleert oder repariert. Bei Folgestarts wird die vorhandene Umgebung geprüft.
-ArenaMode, Redeploy.Core, Audio, Dokumentation und Kitdaten werden vor dem Start
+ArenaMode, Redeploy.Core, Audio, Dokumentation, Kitdaten und die vollständig
+installierten fünf optionalen Modpakete werden vor dem Start
 kontrolliert aus der normalen Installation aufgefrischt; siehe
 [Updatepfad und Rollback](ARENA-START-UPDATES-20261020.md). Ein Installer und ein
 allgemeiner Spiel-/SPT-Updater sind nicht vorhanden. Die inzwischen ergänzte GUI
@@ -205,8 +213,9 @@ und wurde im privaten Serverlog beobachtet.
   Native PMC-/Scav-/Stash-Seiten sind in der privaten Kopie noch
   vorhanden; sie enthalten ausschließlich den internen Arena-Charakter.
 - Ein serverseitiger Arena-only-Raidvertrag und das Ausblenden von „eigenes Gear“.
-- Optionale Modpakete einschließlich Abhängigkeitsauflösung, PFT-Begleiter und
-  zusätzliche Karten. Keine fremden DLLs werden im Starter veröffentlicht.
+- Weitere Modpakete außerhalb von SAIN, APBS, ABPS, BigBrain und Waypoints,
+  allgemeine Abhängigkeitsbeschaffung, PFT-Begleiter und zusätzliche Karten.
+  Keine fremden DLLs werden im Starter veröffentlicht.
 - Automatisierte vollständige Charaktererstellung, ein SPT-Download/-Installer
   oder beliebige Versionsmigrationen ohne Prüfung. Der kontrollierte Neuaufbau
   aus einer funktionsfähigen lokalen Basis ist inzwischen vorhanden.
