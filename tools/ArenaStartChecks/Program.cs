@@ -360,6 +360,28 @@ try
     CheckIncomplete(progress, "Checking runtime file paths: ", Directory.GetFiles(thin, "*", SearchOption.AllDirectories).Length);
     File.Delete(mutableLink);
     EnvironmentCopy.Verify(thin);
+    // Exercise import with the same verified manifest/running/shared-asset leases
+    // as RuntimeHost. Native settings must stay mutable, outside the immutable catalog.
+    var sourceSettings = Path.Combine(source, NativeGameSettings.RelativeDirectory);
+    Directory.CreateDirectory(sourceSettings);
+    var sourceControl = Path.Combine(sourceSettings, "Control.ini");
+    File.WriteAllText(sourceControl, """{"Version":4,"MouseSensitivity":0.2}""");
+    var manifestBeforeSettings = File.ReadAllBytes(rootManifest);
+    using (var running = new FileStream(Path.Combine(thin, ".arena-start/running"),
+        FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+    using (var shared = new AssetLease())
+    {
+        var verified = EnvironmentCopy.Verify(thin, runningLease: running.SafeFileHandle, assetLease: shared);
+        NativeGameSettings.CopyFromSource(verified);
+    }
+    var privateControl = Path.Combine(thin, NativeGameSettings.RelativeDirectory, "Control.ini");
+    Check(File.ReadAllBytes(sourceControl).SequenceEqual(File.ReadAllBytes(privateControl)), "verified import differs");
+    File.WriteAllText(privateControl, """{"Version":4,"MouseSensitivity":0.7}"""); // Native settings save.
+    var afterSettings = EnvironmentCopy.Verify(thin);
+    Check(afterSettings.Files.All(f => !f.Path.StartsWith(NativeGameSettings.RelativeDirectory + "/", StringComparison.Ordinal)) &&
+        File.ReadAllBytes(rootManifest).SequenceEqual(manifestBeforeSettings), "mutable settings entered/changed immutable manifest");
+    Check(File.ReadAllText(sourceControl).Contains("0.2"), "private settings save affected normal SPT");
+    Check(Directory.GetFiles(Path.Combine(thin, "SPT_Runtime/user/profiles")).Length == 0, "settings import included original profiles");
     Check(original.All(x => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(x.Key))) == x.Value),
         "source bytes differ after thin-runtime checks");
     var diagPlan = EnvironmentCopy.Plan(source, Path.Combine(scratch, "diagnostic"), shareAssets: true, diagnostics: true);
@@ -402,6 +424,7 @@ try
     serverExit = null;
     await RuntimeHost.WaitForSessionEnd(() => false, () => serverExit, observer);
     Check(true, "healthy session end completed");
+    count += NativeGameSettingsChecks.Run(scratch);
     count += await DirectGameChecks.Run(scratch, destination, args);
     Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + direct game + actual failure controls)");
 }

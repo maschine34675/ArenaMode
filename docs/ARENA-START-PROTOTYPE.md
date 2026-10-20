@@ -3,8 +3,9 @@
 Stand: 2026-10-20. Quellcode: `tools/ArenaStart/`; Prüfprogramm:
 `tools/ArenaStartChecks/`. Zusätzlich bietet `tools/ArenaLauncher/` eine kleine
 Windows-Oberfläche für denselben Ablauf: [Bedienung und GUI-Prüfung](ARENA-LAUNCHER-UI-20261020.md).
-Der Prototyp ist noch kein Bestandteil des Mod-Releases. Der originale
-SPT-Launcher und die native Charaktererstellung bleiben erhalten.
+Der Prototyp ist noch kein Bestandteil des Mod-Releases. Die CLI behält den
+originalen SPT-Launcher, die GUI startet EFT direkt. Die native
+Charaktererstellung bleibt erhalten.
 
 ## Entscheidung und Umfang
 
@@ -24,6 +25,10 @@ nicht übernommen. Die optionale Arena-BigBrain-Bibliothek gehört zu Arena,
 bleibt ohne BigBrain aber inaktiv. Die erste Fassung enthält bewusst weder
 SAIN/PFT/APBS noch ArenaMapPort/Killcam; verfügbar sind die eingebauten SPT-Karten.
 Kit- und Waffenleiterdateien stammen aus der vorhandenen Arena-Installation.
+Die fünf nativen Dateien unter `SPT_Runtime/user/sptSettings` werden vor jedem
+Start als private Kopien übernommen, ohne Rückschreiben. Fehlende Quellen
+lassen private Einstellungen bestehen. Mod-Konfigurationen bleiben ausgeschlossen;
+siehe [Einstellungsübernahme und Updateverhalten](ARENA-START-SETTINGS-20261020.md).
 Die übrigen SPT-Basiskonfigurationen werden ebenfalls übernommen; HTTP, Logging
 und Backup erhalten dagegen neu erzeugte private Einstellungen. Vom Benutzer
 direkt veränderte Balancewerte in den SPT-Basiskonfigurationen werden nicht auf
@@ -75,8 +80,8 @@ $starter = ".\tools\ArenaStart\bin\Release\net10.0\maschine-ArenaStart.exe"
 `play` verwaltet den Nachbarordner `D:\SPT41-Arena` automatisch. Bereits vorhandene
 fremde, unvollständige oder anders zugeordnete Ordner werden nicht übernommen,
 geleert oder repariert. Bei Folgestarts wird die vorhandene Umgebung geprüft.
-Ein Installer, eine grafische Oberfläche und eine automatische Aktualisierung
-sind weiterhin nicht Teil dieses Schritts.
+Ein Installer und eine automatische Mod-Aktualisierung sind weiterhin nicht
+vorhanden. Die inzwischen ergänzte GUI verwendet dieselben Schutzprüfungen.
 Diese Prüfung liest weiterhin den gesamten geschützten Dateikatalog. Auch ein
 Folgestart kann deshalb auf einem langsamen Laufwerk mehrere Minuten benötigen;
 die gemeinsame Ablage spart Platz, ist noch keine Startzeitoptimierung.
@@ -154,7 +159,7 @@ schreibgeschützt. Die private Umgebung daher ausschließlich über den Starter
   gesamten Spielbaum rekursiv wiederherstellt. Nur der geprüfte private
   Assembly-CSharp-Backup-/Patchpfad wird akzeptiert. Nach einem Start werden
   veränderte Manifesthashes niemals automatisch als neuer Sollzustand übernommen.
-- Kein Download, kein Mod-Update, kein automatischer Import und kein automatisches
+- Kein Download, kein Mod-Update, kein Profil-/Fremdmod-Import und kein automatisches
   Löschen alter Installationen. Kein Deployment in die normale Installation.
 
 Das ist eine Trennung gegen versehentliche Vermischung, **keine Betriebssystem-

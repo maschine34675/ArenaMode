@@ -131,6 +131,7 @@ public partial class MainWindow : Window
                 SetStatus("Private server stopped unexpectedly", message, true);
             else if (message.StartsWith("Private Arena server PID", StringComparison.Ordinal)) StatusHeading.Text = "Starting private server";
             else if (message.StartsWith("Starting the private game directly.", StringComparison.Ordinal)) StatusHeading.Text = "Starting the game";
+            else if (message.StartsWith("Copying game settings:", StringComparison.Ordinal)) StatusHeading.Text = "Applying game settings";
             else if (message.StartsWith("Verif", StringComparison.Ordinal) || message.StartsWith("Checking", StringComparison.Ordinal))
                 StatusHeading.Text = "Verifying files";
         }));

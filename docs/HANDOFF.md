@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Native game settings in the starter (2026-10-20):** after runtime/patch
+  verification and before server start, import the five native `sptSettings`
+  JSON files from the verified source on every launch, including existing
+  environments. Copy only, no writeback or profile/mod-config import; absent
+  sources preserve private settings. Files remain mutable, outside the immutable
+  manifest. All sources/targets are validated before staged atomic per-file
+  replacement; failure blocks launch, without a batch rollback guarantee.
+  The UI explains this and the unchanged lack of automatic mod updates.
+  Current checks: 389 core and 29 actual-window assertions; independent review
+  and 920×760 / 700×600 render checks passed. New standalone EXE staged on GPU2:
+  `C:\Temp\ArenaLauncher-Settings-20261020\maschine-ArenaLauncher.exe`,
+  matching local/remote hash. No native game/server run or ordinary DLL deployment;
+  actual settings will be imported at the next managed start. See
+  [settings contract, update limits and evidence](ARENA-START-SETTINGS-20261020.md).
+
 - **Starter storage/progress clarity (2026-10-20):** the WPF header now names
   ArenaMode as an independent SPT mod, explicitly separate from EFT: Arena and
   Battlestate Games. Persistent text explains private copies versus same-data

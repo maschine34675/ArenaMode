@@ -48,6 +48,14 @@ Automation-IDs bleiben mit dem geprüften UiBridge-Direktstart kompatibel.
   hinzu. Bei späteren Starts wird die bestehende Umgebung geprüft, nicht erneut
   kopiert.
 
+Vor jedem Start werden vorhandene native Spieleinstellungen aus der normalen
+Installation als private Kopien aufgefrischt: Steuerung, Grafik, Spiel, Sound und
+PostFX. Arena schreibt nichts zurück; vorhandene Quellen ersetzen beim nächsten
+Start wieder die entsprechenden privaten Einstellungen. Mod-Dateien bleiben
+dagegen unveränderte Kopien und werden nicht automatisch aktualisiert.
+Details, aktuelle EXE und Prüfungen:
+[Einstellungsübernahme und Updateverhalten](ARENA-START-SETTINGS-20261020.md).
+
 Dieser Hinweis bleibt auch beim Prüfen und Starten im Fenster sichtbar. Ein
 Hardlink allein ist kein dauerhafter Schreibschutz; die bisherigen gehaltenen
 Datei-Handles schützen die gemeinsamen Assets während der verwalteten Sitzung.

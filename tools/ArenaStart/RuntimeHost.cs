@@ -50,7 +50,7 @@ public static class RuntimeHost
         EnvironmentCopy.RequireSingleLink(lease.SafeFileHandle);
         using var assets = new AssetLease();
         messages.Write("Verifying the private runtime and shared assets. This can take several minutes.");
-        EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
+        var manifest = EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
         RequireIdle();
         if (directGame)
         {
@@ -58,6 +58,8 @@ public static class RuntimeHost
             DirectGame.ValidatePatch(root);
             RequireIdle();
         }
+        NativeGameSettings.CopyFromSource(manifest, messages.Write);
+        RequireIdle();
         var runtime = EnvironmentCopy.Inside(root, "SPT_Runtime");
         using var log = new StreamWriter(EnvironmentCopy.Inside(root, ".arena-start/server-start.log"), append: true) { AutoFlush = true };
         var info = new ProcessStartInfo(EnvironmentCopy.Inside(root, "SPT_Runtime/SPT.Server.exe"))

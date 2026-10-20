@@ -131,6 +131,10 @@ internal static class Program
         window.Height = 760;
         ((ScrollViewer)window.Content).ScrollToTop();
         await Drain();
+        await Task.Run(() => backend.Report!("Copying game settings: 5 / 5 files."));
+        await Drain();
+        Check(window.StatusHeading.Text == "Applying game settings" &&
+            window.StatusDetail.Text == "Copying game settings: 5 / 5 files.", "settings import not visible in launcher");
         await Task.Run(() => backend.Report!("Starting the private game directly. No SPT Launcher window is needed."));
         await Drain();
         Check(window.StatusHeading.Text == "Starting the game", "direct game startup not visible");
@@ -194,7 +198,7 @@ internal static class Program
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/arena-launcher-clarity"));
+        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/arena-launcher-settings"));
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, "fixture-" + state + ".png"));
         encoder.Save(output);

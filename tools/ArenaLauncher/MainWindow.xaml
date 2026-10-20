@@ -54,7 +54,7 @@
                         <StackPanel Margin="0,0,16,0">
                             <TextBlock Text="PRIVATE COPIES" Style="{StaticResource Caption}"/>
                             <TextBlock x:Name="PrivateSizeText" Text="—" FontSize="25" FontWeight="SemiBold"/>
-                            <TextBlock Text="Programs and DLLs copied. Settings and profile stay separate."
+                            <TextBlock Text="Separate programs, DLLs and server data."
                                        Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,4,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="0,0,16,0">
@@ -71,6 +71,10 @@
                     </Grid>
                     <TextBlock Margin="0,14,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Shared assets use the same data on disk through two file paths. Explorer may still count their full size in both folders."/>
+                    <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Text="Available game settings are copied from normal SPT each launch, replacing Arena's copies. No changes write back."/>
+                    <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Text="Mod updates are not automatic. Rebuild the Arena environment to use newer mods."/>
                     <TextBlock x:Name="EnvironmentHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Catalog sizes, not total disk usage. Caches and logs need additional space."/>
                 </StackPanel>

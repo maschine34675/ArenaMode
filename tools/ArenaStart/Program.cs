@@ -53,6 +53,8 @@ try
             UiBridge DLL for native testing. No original bridge configuration is imported.
             Shared content is write/delete-locked while the starter runs. Do not force-close it.
             First game start uses native character creation for the private Arena account.
+            Each start copies available native game settings from the original SPT folder;
+            no settings write back. Missing source files leave Arena settings unchanged.
             """);
         return 2;
     }
