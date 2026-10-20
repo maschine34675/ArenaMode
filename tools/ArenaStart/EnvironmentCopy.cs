@@ -319,7 +319,7 @@ public static class EnvironmentCopy
         return reader.ReadToEnd();
     }
 
-    private static void InspectPrivate(string path)
+    internal static void InspectPrivate(string path)
     {
         using var stream = File.OpenRead(path);
         RequireSingleLink(stream.SafeFileHandle);

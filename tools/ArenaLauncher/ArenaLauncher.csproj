@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -11,5 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../ArenaStart/ArenaStart.csproj" />
+    <EmbeddedResource Include="Notices/*.txt" LogicalName="ArenaLauncher.Notices.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="ArenaLauncher.Notices.ARENA-LICENSE.txt" />
   </ItemGroup>
 </Project>

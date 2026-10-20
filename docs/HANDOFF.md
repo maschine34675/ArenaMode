@@ -7,6 +7,25 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Direct Arena GUI start (2026-10-20):** the graphical prototype now starts
+  private EFT without opening SPT Launcher. Native login/profile identity and
+  server/Core version checks precede launch. The installed native patch is
+  reconstructed into private scratch output and compared, never repaired in
+  place. Native prepatch/Core checks remain. The owned EFT process and shared
+  asset leases survive until clients close, even after server failure.
+  The CLI reference commands still use SPT Launcher. No ordinary mod DLL
+  was deployed; no ordinary profile is imported. See
+  [direct-start contract and current test evidence](ARENA-DIRECT-START-20261020.md).
+  Final checks: 254 core and 27 actual-window assertions; two native GPU2
+  direct starts to MainMenu with the same private account, then normal exits,
+  automatic server cleanup and GUI reusability. Final processes are stopped.
+  The initial native trial exposed an omitted nullable profile-error flag;
+  the corrected native contract and negative cases are now covered.
+  A limited before/after comparison over the two successful starts found
+  1,369 selected original files unchanged; this is not a full-tree comparison.
+  Final standalone EXE: `artifacts/arena-direct-start/portable-r2/maschine-ArenaLauncher.exe`.
+  The earlier quiet-source acceptance limit remains unchanged.
+
 - **Graphical Arena starter (2026-10-20):** `tools/ArenaLauncher` adds a WPF
   window around the existing thin runtime: folder picker, read-only preview,
   explicit prepare/start, bounded activity log and automatic session cleanup.
@@ -20,9 +39,10 @@ current. User-facing communication is normally German.
   GPU2 GUI/launcher lifecycles passed, including the final standalone Windows-x64
   EXE with its embedded runtime; no new raid test. Final processes are stopped.
   See [GUI usage, evidence and limits](ARENA-LAUNCHER-UI-20261020.md).
-  This remains additive prototype tooling on `feature/arena-start-prototype`,
-  with the native SPT Launcher still present and the earlier source-comparison
-  acceptance limit unchanged.
+  This remains additive prototype tooling on `feature/arena-start-prototype`.
+  The native-launcher behavior above describes the earlier GUI build; the new
+  direct-start entry supersedes that path. The earlier source-comparison
+  acceptance limit is unchanged.
 
 - **Separate Arena start prototype (2026-10-20):** `tools/ArenaStart` now prepares
   a managed private runtime of SPT 4.1 + ArenaMode + Core, sharing only explicitly

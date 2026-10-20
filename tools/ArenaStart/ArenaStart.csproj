@@ -8,4 +8,7 @@
     <Version>0.1.0</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpHDiffPatch.Core" Version="2.3.0" />
+  </ItemGroup>
 </Project>

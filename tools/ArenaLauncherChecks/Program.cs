@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -53,6 +54,31 @@ internal static class Program
         window.Show();
         await Drain();
         Check(window.IsVisible && window.CanClose && !window.StartButton.IsEnabled, "initial window state");
+        Check(AutomationProperties.GetName(window.BuildBadge) == "ArenaLauncher direct-v1" &&
+            AutomationProperties.GetAutomationId(window.StartButton) == "ArenaLaunch" &&
+            AutomationProperties.GetAutomationId(window.SourceBox) == "ArenaSource",
+            "native automation cannot identify direct-start build/source/action");
+        var noticeCheck = NewSignal();
+        _ = window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            var dialog = window.OwnedWindows.Cast<Window>().Single();
+            try
+            {
+                var contents = ((DockPanel)dialog.Content).Children.OfType<TextBox>().Single();
+                Check(contents.IsReadOnly && contents.Text.Contains("Copyright (c) 2026 maschine") &&
+                    contents.Text.Contains("SharpHDiffPatch.Core 2.3.0") &&
+                    contents.Text.Contains("Microsoft.NETCore.App.Runtime.win-x64 10.0.12") &&
+                    contents.Text.Contains("Microsoft.WindowsDesktop.App.Runtime.win-x64 10.0.12"),
+                    "accessible license view lacks bundled notices");
+                contents.SelectAll();
+                Check(contents.SelectedText == contents.Text, "license text cannot be selected for copying");
+                noticeCheck.SetResult();
+            }
+            catch (Exception error) { noticeCheck.SetException(error); }
+            finally { dialog.Close(); }
+        });
+        LicensesWindow.Show(window);
+        await noticeCheck.Task;
         await window.StartSession();
         Check(backend.Starts == 0, "start without preview reached backend");
         await window.InspectSource();
@@ -89,7 +115,10 @@ internal static class Program
             "repeat start/check bypassed session guard");
         window.Close();
         Check(!closed, "active session window closed");
-        await Task.Run(() => backend.Report!("Session running. Fixture private server and launcher."));
+        await Task.Run(() => backend.Report!("Starting the private game directly. No SPT Launcher window is needed."));
+        await Drain();
+        Check(window.StatusHeading.Text == "Starting the game", "direct game startup not visible");
+        await Task.Run(() => backend.Report!("Session running. Fixture private server and game."));
         await Drain();
         Check(window.StatusHeading.Text == "Arena session running" && window.ActivityLog.Text.Contains("Fixture"),
             "background progress not rendered on UI thread");

@@ -18,6 +18,21 @@ the entire repository history is ready for publication.
 
 ## Code
 
+### Separate Arena starter prototype
+
+The optional `tools/ArenaLauncher` / `tools/ArenaStart` prototype is separate
+from the ordinary mod release. Direct start verifies the installed native SPT
+patch using **SharpHDiffPatch.Core 2.3.0** (MIT). Its managed/native dependencies
+and embedded source include additional MIT, BSD and Apache notices.
+The self-contained Windows build also bundles the .NET runtime.
+
+Full notices and pinned source/package provenance are kept with
+`tools/ArenaLauncher` and embedded in its **Third-party licenses** dialog.
+This is a source/package notice inventory, not an exhaustive binary/legal audit.
+The starter does not distribute game files, SPT or third-party mods; it uses
+the user's existing installation. Native SPT Launcher sources are a behavioral
+reference for login, arguments, version and patch contracts.
+
 ### DragonDen.Hitmarker and DragonDen.Killfeed
 
 **MIT — Copyright (c) 2025 Drexira.**

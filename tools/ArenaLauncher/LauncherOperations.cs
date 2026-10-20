@@ -17,6 +17,6 @@ public sealed class LauncherOperations : ILauncherOperations
     {
         var messages = new RuntimeReporter(report);
         var root = ManagedEnvironment.Ensure(source, diagnostics, messages.Write);
-        await RuntimeHost.Run(root, smoke: false, messages.Write, waitForClients: true);
+        await RuntimeHost.Run(root, smoke: false, messages.Write, waitForClients: true, directGame: true);
     });
 }

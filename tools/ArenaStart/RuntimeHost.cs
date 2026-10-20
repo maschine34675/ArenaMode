@@ -37,7 +37,8 @@ public static class RuntimeHost
         finally { listener.Stop(); }
     }
 
-    public static async Task Run(string root, bool smoke, Action<string>? report = null, bool waitForClients = false)
+    public static async Task Run(string root, bool smoke, Action<string>? report = null, bool waitForClients = false,
+        bool directGame = false)
     {
         var messages = new RuntimeReporter(report ?? Console.WriteLine);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("This prototype supports Windows only.");
@@ -51,6 +52,12 @@ public static class RuntimeHost
         messages.Write("Verifying the private runtime and shared assets. This can take several minutes.");
         EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
         RequireIdle();
+        if (directGame)
+        {
+            messages.Write("Checking the native SPT patch output. Game files stay unchanged.");
+            DirectGame.ValidatePatch(root);
+            RequireIdle();
+        }
         var runtime = EnvironmentCopy.Inside(root, "SPT_Runtime");
         using var log = new StreamWriter(EnvironmentCopy.Inside(root, ".arena-start/server-start.log"), append: true) { AutoFlush = true };
         var info = new ProcessStartInfo(EnvironmentCopy.Inside(root, "SPT_Runtime/SPT.Server.exe"))
@@ -66,6 +73,7 @@ public static class RuntimeHost
                 info.Environment.Remove(key);
         using var server = Process.Start(info) ?? throw new IOException("SPT server did not start.");
         Task stdout = Task.CompletedTask, stderr = Task.CompletedTask;
+        Process? game = null;
         try
         {
             stdout = Pump(server.StandardOutput);
@@ -74,10 +82,31 @@ public static class RuntimeHost
             using var http = await WaitForServer(root, server);
             await EnsureAccount(root, http, messages);
             EnvironmentCopy.ValidateProfileFiles(root);
-            WriteLauncherSettings(root);
+            if (!directGame) WriteLauncherSettings(root);
+            string? profileId = null;
+            if (directGame)
+            {
+                messages.Write("Checking SPT versions and signing in to the private Arena account.");
+                await DirectGame.ValidateVersion(root, http);
+                profileId = await DirectGame.Login(root, http);
+            }
             if (smoke)
             {
                 messages.Write("ARENA_SERVER_SMOKE_PASS");
+                return;
+            }
+            if (directGame)
+            {
+                DirectGame.RemovePrivateHwecho(root);
+                if (AnyClients()) throw new InvalidOperationException("Another game or launcher was opened while Arena was preparing. Close it before retrying.");
+                messages.Write("Starting the private game directly. No SPT Launcher window is needed.");
+                game = Process.Start(DirectGame.StartInfo(root, profileId!))
+                    ?? throw new IOException("The private game process could not be started.");
+                messages.Write("Session running. Close EFT normally when finished; the private server will then stop.");
+                var elapsed = Stopwatch.StartNew();
+                await WaitForSessionEnd(() => !game.HasExited || AnyClients(),
+                    () => server.HasExited ? server.ExitCode : null, messages);
+                ValidateGameExit(game.ExitCode, elapsed.Elapsed);
                 return;
             }
             var launcherInfo = new ProcessStartInfo(EnvironmentCopy.Inside(root, "SPT_Runtime/SPT.Launcher.exe"))
@@ -120,10 +149,10 @@ public static class RuntimeHost
         {
             // Do not orphan redirected pipes on an error while native clients run.
             // Continue serving until the user has closed them; never kill the game.
-            if (AnyClients())
+            if (game is { HasExited: false } || AnyClients())
             {
                 messages.Write("Waiting for game and launcher to close before stopping the private server.");
-                await WaitUntilClientsClose(AnyClients);
+                await WaitUntilClientsClose(() => game is { HasExited: false } || AnyClients());
             }
             if (!server.HasExited)
             {
@@ -134,6 +163,7 @@ public static class RuntimeHost
                 messages.Write("Private Arena server stopped.");
             }
             else await Task.WhenAll(stdout, stderr);
+            game?.Dispose();
         }
 
         async Task Pump(StreamReader reader)
@@ -147,6 +177,14 @@ public static class RuntimeHost
     {
         // No server-state condition: a failed server does not release live EFT's assets.
         while (anyClients()) await (delay?.Invoke() ?? Task.Delay(1000));
+    }
+
+    internal static void ValidateGameExit(int code, TimeSpan elapsed)
+    {
+        // Early native prevalidation failures can exit with 0. This is an early-exit
+        // alarm, NOT proof of a loaded main menu for longer-lived processes.
+        if (code != 0 || elapsed < TimeSpan.FromSeconds(20))
+            throw new IOException($"The private game exited early or with an error ({code}). See the private BepInEx and game logs; no automatic repair was performed.");
     }
 
     internal static async Task WaitForSessionEnd(Func<bool> anyClients, Func<int?> serverExit,
@@ -227,7 +265,7 @@ public static class RuntimeHost
     internal static JsonNode? Value(JsonNode node, string name) =>
         node.AsObject().FirstOrDefault(x => x.Key.Equals(name, StringComparison.OrdinalIgnoreCase)).Value;
 
-    private static async Task<JsonNode> Request(HttpClient client, string path, object? payload = null)
+    internal static async Task<JsonNode> Request(HttpClient client, string path, object? payload = null)
     {
         using var request = new HttpRequestMessage(payload == null ? HttpMethod.Get : HttpMethod.Put, path);
         if (payload != null)

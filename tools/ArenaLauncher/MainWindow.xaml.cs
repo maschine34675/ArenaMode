@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     internal bool IsBusy => busy;
     internal bool CanClose => !busy;
 
+    private void Licenses_Click(object sender, RoutedEventArgs e) => LicensesWindow.Show(this);
+
     public MainWindow(string source = "", bool diagnostics = false,
         ILauncherOperations? operations = null, Action<string>? rememberSource = null)
     {
@@ -28,7 +30,7 @@ public partial class MainWindow : Window
         this.operations = operations ?? new LauncherOperations();
         this.rememberSource = rememberSource;
         this.diagnostics = diagnostics;
-        BuildBadge.Text = diagnostics ? "PROTOTYPE · DIAGNOSTICS" : "PROTOTYPE";
+        BuildBadge.Text = diagnostics ? "PROTOTYPE · DIRECT START · DIAGNOSTICS" : "PROTOTYPE · DIRECT START";
         SourceBox.Text = source;
         SourceBox.TextChanged += (_, _) => InvalidatePreview();
         Closing += OnClosing;
@@ -77,7 +79,7 @@ public partial class MainWindow : Window
                 : "Created automatically on first launch · same NTFS drive. Additional space is needed for caches and logs.";
             StartButton.Content = preview.Exists ? "Launch _Arena" : "Prepare & _launch";
             SetStatus(preview.Exists ? "Ready to verify & launch" : "Ready to prepare",
-                "Close normal EFT, SPT Server and SPT Launcher first. The native launcher opens after verification.", false);
+                "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
             AppendLog($"Selected {preview.Source}; private runtime {preview.Destination}.");
         }
         catch (Exception error)
@@ -128,6 +130,7 @@ public partial class MainWindow : Window
             else if (message.StartsWith("Private server exited unexpectedly", StringComparison.Ordinal))
                 SetStatus("Private server stopped unexpectedly", message, true);
             else if (message.StartsWith("Private Arena server PID", StringComparison.Ordinal)) StatusHeading.Text = "Starting private server";
+            else if (message.StartsWith("Starting the private game directly.", StringComparison.Ordinal)) StatusHeading.Text = "Starting the game";
             else if (message.StartsWith("Verif", StringComparison.Ordinal) || message.StartsWith("Checking", StringComparison.Ordinal))
                 StatusHeading.Text = "Verifying files";
         }));
@@ -155,7 +158,7 @@ public partial class MainWindow : Window
     {
         if (CanClose) return;
         e.Cancel = true;
-        AddNotice("Work is still running. Keep this window open; you can minimize it. When playing, close EFT and SPT Launcher first.");
+        AddNotice("Work is still running. Keep this window open; you can minimize it. Close EFT normally to finish the private session.");
     }
 
     private void SetStatus(string title, string detail, bool error)

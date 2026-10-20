@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Arena Launcher" Width="920" Height="760" MinWidth="700" MinHeight="600"
+        AutomationProperties.AutomationId="ArenaLauncher"
         WindowStartupLocation="CenterScreen" Background="{StaticResource CanvasBrush}"
         Foreground="{StaticResource TextBrush}" FontFamily="Segoe UI"
         UseLayoutRounding="True">
@@ -11,7 +12,8 @@
             <DockPanel Margin="0,0,0,22">
                 <Border DockPanel.Dock="Right" VerticalAlignment="Top" Background="#28313A"
                         CornerRadius="4" Padding="10,5">
-                    <TextBlock x:Name="BuildBadge" Text="PROTOTYPE" FontSize="10"
+                    <TextBlock x:Name="BuildBadge" Text="PROTOTYPE" FontSize="10" AutomationProperties.AutomationId="ArenaBuildBadge"
+                               AutomationProperties.Name="ArenaLauncher direct-v1"
                                Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
                 </Border>
                 <StackPanel>
@@ -27,6 +29,7 @@
                     <Grid Margin="0,3,0,12">
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <TextBox x:Name="SourceBox" AutomationProperties.Name="SPT installation folder"
+                                 AutomationProperties.AutomationId="ArenaSource"
                                  ToolTip="The folder containing EscapeFromTarkov.exe and SPT_Runtime."/>
                         <Button x:Name="BrowseButton" Grid.Column="1" Content="_Browse…" Click="Browse_Click" Margin="10,0,0,0"/>
                     </Grid>
@@ -42,6 +45,7 @@
                 <StackPanel>
                     <TextBlock Text="02   PRIVATE ARENA ENVIRONMENT" Style="{StaticResource Caption}"/>
                     <TextBlock x:Name="DestinationText" Text="Check an installation to see its private Arena folder."
+                               AutomationProperties.AutomationId="ArenaDestination"
                                FontSize="15" FontWeight="SemiBold" Margin="0,0,0,14"/>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -70,11 +74,13 @@
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel Margin="0,0,18,0" VerticalAlignment="Center">
                             <TextBlock x:Name="StatusHeading" Text="Choose your installation" FontSize="18" FontWeight="SemiBold"
+                                       AutomationProperties.AutomationId="ArenaStatus"
                                        Foreground="{StaticResource AccentBrush}"/>
                             <TextBlock x:Name="StatusDetail" Text="Nothing starts until you click Launch Arena."
                                        Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,5,0,0"/>
                         </StackPanel>
                         <Button x:Name="StartButton" Grid.Column="1" Content="Launch _Arena" Click="Start_Click" IsEnabled="False"
+                                AutomationProperties.AutomationId="ArenaLaunch"
                                 Background="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}"
                                 Foreground="#151B21" FontWeight="Bold" MinWidth="180"/>
                     </Grid>
@@ -90,8 +96,10 @@
                          FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Activity log"/>
             </Expander>
-            <TextBlock Text="Keep this window open while playing. Close EFT and SPT Launcher to end the private session. You can minimize this window."
+            <TextBlock Text="Keep this window open while playing. Close EFT to end the private session. You can minimize this window."
                        Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,14,0,0"/>
+            <Button Content="Third-party licenses" HorizontalAlignment="Left" Margin="0,12,0,0"
+                    AutomationProperties.AutomationId="ArenaLicenses" Click="Licenses_Click"/>
         </StackPanel>
     </ScrollViewer>
 </Window>

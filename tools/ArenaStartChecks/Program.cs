@@ -315,7 +315,8 @@ try
     serverExit = null;
     await RuntimeHost.WaitForSessionEnd(() => false, () => serverExit, observer);
     Check(true, "healthy session end completed");
-    Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + actual filesystem failure controls)");
+    count += await DirectGameChecks.Run(scratch, destination, args);
+    Console.WriteLine($"ARENA_START_CHECKS_PASS ({count} assertions; copy + thin + managed reuse + direct game + actual failure controls)");
 }
 
 finally

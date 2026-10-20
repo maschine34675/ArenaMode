@@ -18,10 +18,13 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
 4. **Prepare & launch** legt beim ersten Start `<SPT-Ordner>-Arena` automatisch an;
    danach heißt der Knopf **Launch Arena**. Der Starter prüft alle privaten Dateien,
    Quellbindungen und freigegebenen Assets, startet den privaten Server und öffnet
-   den nativen SPT-Launcher mit dem Konto `Arena-Internal`. Dort das Spiel starten.
+   meldet das Konto `Arena-Internal` nativ an und startet EFT direkt.
+   Ein zusätzliches SPT-Launcher-Fenster ist nicht mehr nötig. Versionsvergleich
+   und Nachweis der nativen SPT-Patchausgabe bleiben vorgeschaltet; Details im
+   [Direktstart-Bericht](ARENA-DIRECT-START-20261020.md).
    Der erste Spielstart benötigt weiterhin die native Charaktererstellung.
-5. Zum Beenden zuerst EFT **und** den SPT-Launcher schließen. Der Arena-Starter
-   wartet auf beide und beendet dann seinen privaten Server. Erst danach lässt
+5. Zum Beenden EFT normal schließen. Der Arena-Starter
+   wartet auf das Spiel und beendet dann seinen privaten Server. Erst danach lässt
    sich sein Fenster schließen oder erneut starten.
 
 Das Fenster kann währenddessen minimiert werden. Während Prüfung, Vorbereitung
@@ -32,6 +35,7 @@ Ein Betriebssystem-Shutdown, Prozessabbruch oder Rechnerausfall lässt sich dadu
 nicht absichern; die bisherigen Grenzen des Thin-Runtime-Prototyps gelten weiter.
 
 Ein eingeklappter **Activity log** enthält bis zu 200 Statuszeilen.
+**Third-party licenses** öffnet die mitgelieferten Lizenztexte des Starters.
 Serverdetails stehen weiterhin in `<Arena-Ordner>\.arena-start\server-start.log`.
 Ein unerwarteter Serverexit wird angezeigt; solange Spiel oder Launcher noch
 laufen, bleiben die gemeinsamen Assets gesperrt. Nach dem Schließen erscheint
@@ -76,7 +80,7 @@ Ein eigenständiges Windows-x64-Programm einschließlich Runtime entsteht so:
 dotnet publish tools/ArenaLauncher -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:DebugType=None -p:DebugSymbols=false `
-  -o artifacts/arena-launcher-ui/portable
+  -o artifacts/arena-direct-start/portable
 ```
 
 Die `maschine-ArenaLauncher.exe` aus diesem Ordner kann allein weitergegeben
@@ -87,7 +91,11 @@ SPT oder Mod-DLLs; diese werden erst aus der vom Benutzer gewählten Installatio
 für die private Umgebung bereitgestellt. Eine zusätzliche .NET-Installation
 ist für diesen Publish-Build nicht nötig.
 
-## Prüfung am 2026-10-20
+## Historische GUI-Prüfung vor dem Direktstart am 2026-10-20
+
+Die folgenden Ergebnisse gelten für `27e990c` mit dem nativen Launcher-Fenster.
+Aktuelle Direktstart-Prüfungen und der neue EXE-Hash stehen im
+[Direktstart-Bericht](ARENA-DIRECT-START-20261020.md).
 
 | Prüfung | Ergebnis |
 |---|---|
