@@ -1,218 +1,215 @@
-# Abhängigkeiten, Integrationen und Veröffentlichung
+# Dependencies, integrations and distribution
 
-Stand: 2026-10-20. Diese Übersicht beschreibt den geprüften ArenaMode-Quellstand,
-nicht die jeweils neueste Veröffentlichung anderer Mods. Neuere Versionen werden
-mit Warnung und unveränderten Schnittstellenprüfungen versucht. Das ist keine
-pauschale Kompatibilitätszusage. Gemeinsames Laden
-beweist nicht die vollständige Kompatibilität jeder Funktion.
+As of 2026-10-20. This overview describes the reviewed ArenaMode source revision,
+not the latest release of each third-party mod. Newer versions are attempted
+with a warning and the same mandatory API checks. This is not a blanket
+compatibility guarantee. Loading together does not establish compatibility
+for every feature.
 
-## Harte Voraussetzungen
+## Hard requirements
 
-| Bestandteil | Voraussetzung |
+| Component | Requirement |
 |---|---|
-| SPT 4.1.x | Einschließlich der mit SPT gelieferten BepInEx-/Client-Komponenten. Aktuelle GPU-Prüfung mit SPT 4.1.6. |
-| ArenaMode Client und Server | Beide Hälften sowie die eigenen benötigten Daten/Assets gehören zum Paket. |
-| `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
+| SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
+| ArenaMode client and server | Both components and their required data/assets belong in the package. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The current source requires at least 1.0.8 for optional respawn timing diagnostics; older test/build reports may still mention 1.0.6/1.0.7. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
 
-Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
-AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead, Smoothie,
-Continuous Healing, Late To The Party, Classic Movement, StatTrack,
-Continuous Load Ammo und Deminvincibility als weiche
-Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
-Assemblyverweis und `RedeployCore.Init`. Die Servermetadaten deklarieren keine
-zusätzlichen fremden Pflichtmods. Die mit SPT gelieferten Plattform-DLLs sind
-keine zusätzlichen Mod-Downloads.
+The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
+AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
+Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
+Continuous Load Ammo and Deminvincibility as soft load-order dependencies.
+The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
+The server metadata declares no additional mandatory third-party mods.
+Platform DLLs supplied with SPT do not require separate mod downloads.
 
-`Redeploy.Server` wird von Core nicht benötigt. Der eigenständige Redeploy-Client
-fragt dessen `/redeploy/ping` ab; Core selbst führt keine solchen Serveranfragen
-aus. Arenas Server übernimmt seinen eigenen geschützten Raid-Abschluss und die
-Profilwiederherstellung. Deshalb gehören weder Redeploy.Client noch Redeploy.Server
-ins Arena-Paket. Siehe [Quellprüfung und Bibliotheksumbau](BIGBRAIN-LIBRARY-20261018.md).
+Core does not require `Redeploy.Server`. The standalone Redeploy client queries
+its `/redeploy/ping` route; Core makes no such server requests. Arena's server
+handles its own protected raid ending and profile restoration. Neither
+Redeploy.Client nor Redeploy.Server therefore belongs in the Arena package.
+See [source review and library conversion](BIGBRAIN-LIBRARY-20261018.md).
 
-Quellen: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
+Sources: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
 `ArenaMode.Server/ModMetadata.cs`, `../Redeploy/Redeploy.Core/CoreVersion.props`.
 
-## Optionale Funktionen und gezielte Adapter
+## Optional features and targeted adapters
 
-| Mod/Komponente | Geprüfter Vertrag | Zweck / Verhalten ohne sie |
+| Mod/component | Reviewed contract | Purpose / behavior without it |
 |---|---|---|
-| SAIN | Ab 4.5.1; damit geprüft, neuere Versionen mit Warnung | Persönlichkeiten, Suchtempo, Bewegung und Lebenszyklusabsicherung. Ohne SAIN native KI. |
-| BigBrain + ArenaMode.BigBrainCompat | Ab 1.5.0, damit getestet; neuere Versionen mit Warnung und Laufzeitprüfung | Gezielte Pickup-Suche, Verfolgung nach Spielertod und Feuerflucht. Ohne den Arena-Begleiter keine gezielte Pickup-Steuerung und kein Molotov-Feuer; das private Molotov-Item bleibt dann harmlos, normale Granaten bleiben unverändert. Pickups selbst bleiben nutzbar. BigBrain ist außerdem eigene Voraussetzung von SAIN/PFT. |
-| PitFireTeam, Client und Server | 0.10.0 oder ab 0.10.3; neuere Versionen mit Warnung, 0.10.1/0.10.2 weiterhin ausgeschlossen | 1–4 eingeladene Begleiter für Tactical (weiterhin fünf Gegner) und PFT-Zombies. Solo und unabhängiges Team DM benötigen PFT nicht. Equator bleibt für beide PFT-Varianten gesperrt. |
-| APBS | Ab Metadatenversion 2.4.1; damit geprüft, neuere Versionen mit Warnung | Bot-Ausrüstung/Progression. Ohne APBS native SPT-Erzeugung; bei fehlender/zu alter Version oder fehlerhaften Schnittstellen bleibt APBS' eigene Levelwahl mit Warnung. |
-| ArenaMapPort, Client/Server/Kartenassets | Optionale Karte muss client- und serverseitig vorhanden/aktiv sein; Air Pit Team DM benötigt die Teamstarts aus 0.2.2 oder neuer | Bay5, Equator und Air Pit. Keine Pflicht für die gewöhnlichen SPT-Karten. |
-| Killcam | Aktuelles Integrationsziel 1.0.0; Schnittstellenprüfung statt fester Versionsfreigabe | Echte Killcam-Replays; DeathReplay muss aktiviert sein. Das frühere KillcamReplay-Plugin wird nicht akzeptiert. Arenas anschließender Team-Zuschauermodus ist eigener Code. |
-| DynamicMaps | Ab 1.2.1; damit geprüft, neuere Versionen mit Warnung | Minimaps und bereinigte Leichenmarker. Arenas statische Kartenvorschauen funktionieren ohne DynamicMaps. |
-| Waypoints | Keine direkte Arena-Abhängigkeit; Koexistenz mit 1.9.0 beobachtet | Eigenständige Navigations-/Spawnanzeigefunktionen; nicht allein wegen der üblichen KI-Modkombination als Arena-Pflicht aufführen. |
+| SAIN | 4.5.1 or newer; reviewed at that version, newer versions warn | Personalities, search speed, movement and lifecycle safeguards. Native AI is used without SAIN. |
+| BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
+| PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; newer versions warn, 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator remains excluded from both PFT variants. |
+| APBS | Metadata version 2.4.1 or newer; reviewed at that version, newer versions warn | Bot equipment/progression. Without APBS, native SPT generation is used; a missing/old version or invalid API contract leaves APBS's own level selection in place with a warning. |
+| ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer | Bay5, Equator and Air Pit. Not required for ordinary SPT maps. |
+| Killcam | Current integration target: 1.0.0; API checks rather than a fixed version allowlist | Actual killcam replays; DeathReplay must be enabled. The former KillcamReplay plugin is not accepted. Arena's subsequent team-spectating mode is separate Arena code. |
+| DynamicMaps | 1.2.1 or newer; reviewed at that version, newer versions warn | Minimaps and corpse-marker cleanup. Arena's static map previews work without DynamicMaps. |
+| Waypoints | No direct Arena dependency; coexistence observed with 1.9.0 | Independent navigation/spawn-display features; do not list it as mandatory for Arena merely because it is part of a common AI-mod setup. |
 
-Die optionalen Mods behalten ihre eigenen Voraussetzungen. Fremde
-SAIN/APBS/PFT/BigBrain-DLLs werden gemäß `AGENTS.md` nicht in Arena mitgeliefert.
-Die [Versionsrichtlinie und Prüfungen](OPTIONAL-MOD-VERSIONS-20261019.md) erklären
-die Mindestversionen, Warnungen und weiterhin verpflichtenden Schutzverträge.
-`ArenaMode.BigBrainCompat` ist eigener Arena-Code und wird immer mitgeliefert.
-Seit dem Bibliotheksumbau registriert diese DLL kein BepInEx-Plugin und keine
-eigene Plugin-GUID mehr. Arena lädt sie gezielt neben seiner Client-DLL und
-übernimmt Start, Pflege und Abschaltung. Beide DLLs gemeinsam aktualisieren;
-alte Plugin-Kopien entfernen und das Spiel neu starten.
-Ohne geladenes BigBrain bleibt die Bibliothek still inaktiv. Ältere Versionen
-als 1.5.0 oder fehlerhafte API-Verträge deaktivieren die Integration sicher.
-Neuere Versionen werden mit einer einmaligen Warnung versucht; das ist keine
-Bestätigung vollständiger Kompatibilität.
+Optional mods retain their own prerequisites. Third-party SAIN/APBS/PFT/BigBrain
+DLLs are not bundled with Arena, as required by `AGENTS.md`.
+The [version policy and checks](OPTIONAL-MOD-VERSIONS-20261019.md) explain
+minimum versions, warnings and the protection contracts that remain mandatory.
+`ArenaMode.BigBrainCompat` is Arena's own code and is always included.
+Since its conversion to a library, this DLL registers neither a BepInEx plugin
+nor its own plugin GUID. Arena explicitly loads it beside the client DLL and
+owns initialization, updates and shutdown. Update both DLLs together, remove
+old plugin copies and restart the game.
+Without loaded BigBrain, the library remains quietly inactive. Versions older
+than 1.5.0 or invalid API contracts safely disable the integration. Newer versions
+are attempted with a one-time warning; this is not confirmation of full compatibility.
 
-## Weitere ausdrücklich berücksichtigte Kombinationen
+## Other explicitly considered combinations
 
-Die [Factory-Prüfung vom 20.10.2026](GPU-OPTIONAL-COMPAT-20261020.md) ergänzt
-die Offline-Nachweise: Classic Movement/StatTrack durchliefen normale Raids vor
-und nach geschützten Arena-Abschlüssen; SVMs SaveLoot/Ignore und die grundlegenden
-CLA-Lade-/Respawnabläufe wurden im Spiel geprüft. Deminvincibilitys 1-HP- und
-Second-Chance-Kontrollen sowie geschützte Solo-Zombie-Abschlüsse und PFT-Wellen
-mit einem Begleiter bestanden ebenfalls. Einzelne Timing-/UI- und Replay-
-Grenzfälle sind noch offen. Dies ist keine Freigabe jeder Karte, Version oder
-Modkombination; die folgenden Texte beschreiben jeweils den Adaptervertrag.
+The [Factory checks from 2026-10-20](GPU-OPTIONAL-COMPAT-20261020.md) supplement
+the offline evidence: Classic Movement/StatTrack were exercised in ordinary raids
+before and after protected Arena endings; SVM's SaveLoot/Ignore behavior and basic
+CLA loading/respawn paths were checked in-game. Deminvincibility's 1-HP and
+Second Chance controls, protected solo-Zombie endings and PFT waves with one
+companion also passed. Some timing/UI and replay edge cases remain untested.
+This does not certify every map, version or mod combination; the descriptions
+below state each adapter's contract.
 
-- **Continuous Load Ammo 1.2.0+:** Ladecontroller werden beim Arena-Körperwechsel
-  neu gebunden. Cleanup und verzögerte Endmeldungen des alten Körpers dürfen
-  weder den Nachfolger noch einen neueren Ladevorgang entsperren/beenden.
-  Normales Laden, Abbruch und gespeicherte Einstellungen bleiben bestehen.
-  Siehe [Ladecontroller und Prüfgrenzen](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md).
-- **SVM 2.2.3+:** SaveLoot/Ignore-Abkürzungen können Arenas geschützten
-  Raidabschluss nicht überspringen. Normale Raids behalten die SVM-Regeln;
-  andere Balance-Einstellungen werden nicht zurückgesetzt. Der Adapter prüft
-  auch die tatsächliche Patch-Reihenfolge des äußeren Abschluss-Callbacks.
-  Siehe [Abschlussvertrag und Prüfgrenzen](SVM-COMPAT-20261019.md).
-- **Deminvincibility 2.2.0+:** Unsterblichkeit, Second Chance und die Begrenzung
-  auf mindestens einen HP weichen nur beim Arena-eigenen lokalen Körper den
-  nativen Todes-/Respawnregeln. Schadensmultiplikator, Medizin- und
-  Fraktureinstellungen bleiben wirksam; keine gespeicherten Werte ändern sich.
-  Siehe [Schadens- und Todesvertrag](DEMINVINCIBILITY-COMPAT-20261019.md).
-- **Classic Movement 1.1.3+:** Arena behält für seine Körper native Bewegungszustände
-  und die eigene Bewegungssteuerung, einschließlich der Erstellung beim Laden.
-  Normale Raids behalten Classic Movement. Das alte, vom aktuellen Fremdserver
-  nicht mehr unterstützte `NostalgiaMode=true` verhindert nur den Arena-Start.
-  Siehe [Bewegungszustände und Prüfgrenzen](CLASSIC-MOVEMENT-COMPAT-20261019.md).
-- **StatTrack 2.1.1+:** Arena-Schüsse, -Treffer und -Kills fließen nicht in die
-  dauerhaften Waffenstatistiken; Körperwechsel lösen keinen Statistikabschluss aus.
-  Vorhandene Daten und ausstehende normale Speicheraufträge werden nicht gelöscht
-  oder pauschal gesperrt. Normale Versicherungs-/ID-Wechsel bleiben unverändert.
-  Siehe [Statistikbesitz und Prüfgrenzen](STATTRACK-COMPAT-20261019.md).
-- **Continuous Healing 1.6.3+:** spielerbezogene Heilungsfortsetzung und Abbruch
-  werden von Arena-Bots und abgelegten Spielerkörpern abgegrenzt. Der aktuelle
-  lebende Spieler behält Continuous Healing; normale Raids bleiben unverändert.
-  Siehe [Heilungsoperationen und Prüfgrenzen](CONTINUOUS-HEALING-COMPAT-20261019.md).
-- **Late To The Party 3.1.1+:** nur originale, noch Arena-eigene Waffen-Pickup-
-  Quellen und ihre Teile sind von fremder Loot-Erfassung/Bereinigung ausgenommen.
-  Aufgenommene Waffen und gewöhnlicher Loot behalten die fremden Regeln.
-  Siehe [Pickup-Besitz und Prüfgrenzen](LATE-TO-THE-PARTY-COMPAT-20261019.md).
-- **Looting Bots 1.8.0+:** autonome Such-/Loot-Aktionen werden nur für exakt
-  gebundene Arena-Bots unterdrückt, einschließlich beider Team-DM-Seiten und
-  neuer Ersatzbots. Echte PFT-Begleiter behalten ihre kommandierten Aktionen.
-  Die zusätzliche Inventarbereinigung des geprüften 1.8.1-RC-Pfads ist ebenfalls
-  berücksichtigt. Keine Änderungen gespeicherter Looting-Einstellungen.
-  Siehe [Verträge, Prüfungen und Grenzen](LOOTING-BOTS-COMPAT-20261019.md).
-- **Remove The Dead 4.1.3+:** die gemeinsame automatische/manuelle
-  Löschfunktion pausiert ausschließlich im bestätigten Arena-Spiel. Arena
-  behält damit seine geschützten Leichen und Waffen-Pickups unter eigener
-  Kontrolle. Timer, Warteschlangen und normale Raids bleiben unverändert.
-  Siehe [Cleanup-Schutz](REMOVE-THE-DEAD-COMPAT-20261019.md).
-- **Smoothie 1.0.8+:** eigene Pickup-Marker nutzen eine von Smoothies statischer
-  Verdeckung ausgenommene Ebene, sofern Haupt- und Optikkamera sie darstellen.
-  Nur die optionale GC-Pause tritt im aktiven Arena-Raid zurück; Physik,
-  Animationen, Ragdolls und übrige Optimierungen werden nicht verändert.
-  Ein unpassender optionaler Vertrag warnt, sperrt Arena aber nicht. Dann
-  Smoothies Speicherbereinigungs-Pause ausgeschaltet lassen.
-  Siehe [Darstellung und GC-Abgrenzung](SMOOTHIE-COMPAT-20261019.md).
-- **AI Limit 1.9.2+:** die Erzeugung seiner Limiter-Komponente wird nur im exakt
-  serverbestätigten Arena-Spiel unterdrückt, bereits vor dem Arena-Started-Event.
-  Kein Wechsel globaler Einstellungen und kein Entfernen fremder Patches.
-  Normale PMC-/Scav-Raids laufen original; ein Folge-Raid auf derselben Map erbt
-  keine Sperre. Fehlende API-/Hook-Verträge sperren ausschließlich Arena.
-  Siehe [AI-Limit-Adapter und native Testgrenzen](AI-LIMIT-COMPAT-20261019.md).
-- **MoreBotsAPI 2.1.1+:** eigene Spawn-Kennungen sowie ein enger Schutz für
-  PFT-Begleiter ohne Kennung; die externe Revenge-Persistenz und deren
-  Feindschafts-Override werden für genau den gebundenen Arena-Raid ausgenommen.
-  Kein pauschales Blockieren der Serverroute und kein Löschen fremder Queues.
-  Ältere/unpassende API-Verträge sperren nur Arena, neuere warnen bei weiterhin
-  gültigem Vertrag. Keine vollständige Freigabe aller abhängigen Content-Mods.
-  Siehe [MoreBots-Adapter und Grenzen](MOREBOTS-COMPATIBILITY-20261019.md).
-- **UIFixes:** alternativer R-Nachladeweg berücksichtigt; installiert 6.0.3.
-- **ABPS/BotPlacementSystem:** Pump-/Botlimit-Verhalten berücksichtigt;
-  Arena-eigene Besetzung verhindert zusätzliche fremde Ambient-Spawns.
-- **AutoCorpseSearch:** die Arena-Suche tritt bei geladener Standalone-Mod zurück.
-- **NotificationFilter:** Arena unterdrückt auch ersetzte Quest-Popups, ohne
-  dessen globale Konfiguration zu ändern.
-- **BrightLasers:** eigener Helligkeits-/Teamfarben-Code berücksichtigt den
-  geprüften 3.0.0-Vertrag und vermeidet doppelte Verstärkung. Keine umfassende
-  native Freigabe gemeinsamer Installation daraus ableiten.
-- **EnableLabyrinth:** Arena-Zugriff und Countdown sind unabhängig; zusätzliche
-  Scav-/Schlüssel-/Exit-Änderungen der anderen Mod werden nicht überschrieben.
-- **Terkoiz Freecam:** Kamerabesitz wird erkannt, um konkurrierende Steuerung
-  zu vermeiden; keine allgemeine Freigabe sämtlicher Kamerafunktionen.
-- **Fika:** ausdrücklich nicht unterstützt. Arena verweigert die Aktivierung;
-  das ist mehr als eine fehlende Testfreigabe.
-- **Questing Bots / ORBIT:** vorläufige Arena-Startsperre bei aktivem Questing
-  Bots bzw. geladenem ORBIT. Normale PMC-/Scav-Raids bleiben unverändert.
-  Die geprüfte Questing-Bots-Version 1.1.0 darf vollständig in ihrer
-  Serverkonfiguration deaktiviert installiert bleiben; Teilabschaltungen in F12
-  reichen nicht. Details: [Arena-Zulassung](OPTIONAL-MOD-ADMISSION-20261019.md).
-- **Adaptive Bot Culling 1.2.0:** vorläufige Arena-Startsperre, weil die Mod
-  ausgeblendete Bots samt Kampf pausiert und Todesanimationen verändert.
-  F12-Schalter entfernen nicht alle Eingriffe. Normale PMC-/Scav-Raids bleiben
-  unverändert. [Quellprüfung und sichtbarer Menühinweis](ARENA-AVAILABILITY-20261020.md).
+- **Continuous Load Ammo 1.2.0+:** loading controllers are rebound when Arena
+  replaces the player body. Cleanup and delayed completion from the old body
+  must not unlock or finish work on the replacement body or a newer loading
+  operation. Normal loading, cancellation and saved settings remain intact.
+  See [loading controllers and verification limits](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md).
+- **SVM 2.2.3+:** SaveLoot/Ignore shortcuts cannot bypass Arena's protected
+  raid ending. Ordinary raids retain SVM's rules; other balance settings are
+  not reset. The adapter also checks the actual patch order of the outer
+  raid-end callback.
+  See [raid-end contract and verification limits](SVM-COMPAT-20261019.md).
+- **Deminvincibility 2.2.0+:** immortality, Second Chance and the minimum-one-HP
+  clamp yield to native death/respawn rules only for Arena's own local body.
+  Damage multipliers, medical and fracture settings remain effective; no
+  saved settings are changed.
+  See [damage and death contract](DEMINVINCIBILITY-COMPAT-20261019.md).
+- **Classic Movement 1.1.3+:** Arena retains native movement states and its own
+  movement controls for its bodies, including creation during loading. Ordinary
+  raids retain Classic Movement. Legacy `NostalgiaMode=true`, no longer supported
+  by that mod's current server component, prevents Arena entry only.
+  See [movement states and verification limits](CLASSIC-MOVEMENT-COMPAT-20261019.md).
+- **StatTrack 2.1.1+:** Arena shots, hits and kills do not contribute to permanent
+  weapon statistics; replacing a body does not finalize the statistics for a raid.
+  Existing data and pending ordinary save requests are neither deleted nor
+  indiscriminately blocked. Normal insurance/ID changes remain unchanged.
+  See [statistics ownership and verification limits](STATTRACK-COMPAT-20261019.md).
+- **Continuous Healing 1.6.3+:** player-specific healing continuation and
+  cancellation are isolated from Arena bots and retired player bodies. The
+  current living player retains Continuous Healing; ordinary raids are unchanged.
+  See [healing operations and verification limits](CONTINUOUS-HEALING-COMPAT-20261019.md).
+- **Late To The Party 3.1.1+:** only original weapon-pickup sources still owned
+  by Arena, and their parts, are excluded from third-party loot discovery/cleanup.
+  Collected weapons and ordinary loot retain the other mod's rules.
+  See [pickup ownership and verification limits](LATE-TO-THE-PARTY-COMPAT-20261019.md).
+- **Looting Bots 1.8.0+:** autonomous search/loot actions are suppressed only for
+  exactly bound Arena bots, including both Team DM sides and replacement bots.
+  Genuine PFT companions retain their commanded actions. The additional inventory
+  cleanup in the reviewed 1.8.1-RC path is also covered. Saved looting settings
+  are not changed.
+  See [contracts, checks and limits](LOOTING-BOTS-COMPAT-20261019.md).
+- **Remove The Dead 4.1.3+:** the shared automatic/manual deletion function is
+  paused only in the confirmed Arena game. Arena thus retains control over its
+  protected corpses and weapon pickups. Timers, queues and ordinary raids
+  remain unchanged.
+  See [cleanup protection](REMOVE-THE-DEAD-COMPAT-20261019.md).
+- **Smoothie 1.0.8+:** Arena pickup markers use a layer excluded from Smoothie's
+  static culling, provided both the main and optic cameras can render it. Only
+  the optional GC pause is suppressed during an active Arena raid; physics,
+  animations, ragdolls and other optimizations are unchanged. An incompatible
+  optional contract produces a warning but does not block Arena. In that case,
+  leave Smoothie's memory-cleanup pause disabled.
+  See [rendering and GC boundaries](SMOOTHIE-COMPAT-20261019.md).
+- **AI Limit 1.9.2+:** creation of its limiter component is suppressed only in the
+  exact server-confirmed Arena game, even before Arena's Started event. No global
+  settings are toggled and no third-party patches are removed. Ordinary PMC/Scav
+  raids retain their original behavior; a subsequent raid on the same map does
+  not inherit the restriction. Missing API/hook contracts block Arena only.
+  See [AI Limit adapter and native-test limits](AI-LIMIT-COMPAT-20261019.md).
+- **MoreBotsAPI 2.1.1+:** Arena uses its own spawn identifiers and a narrow guard
+  for PFT companions without an identifier; external revenge persistence and its
+  hostility override are excluded for the exact bound Arena raid. The server
+  route is not indiscriminately blocked and foreign queues are not cleared.
+  Older/incompatible API contracts block Arena only; newer versions warn while
+  still requiring a valid contract. This does not certify every dependent
+  content mod. See [MoreBots adapter and limits](MOREBOTS-COMPATIBILITY-20261019.md).
+- **UIFixes:** the alternative R-key reload path is covered; installed version 6.0.3.
+- **ABPS/BotPlacementSystem:** spawn-pump/bot-limit behavior is covered; Arena's
+  population ownership prevents additional third-party ambient spawns.
+- **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.
+- **NotificationFilter:** Arena also suppresses replacement quest popups without
+  changing the mod's global configuration.
+- **BrightLasers:** Arena's brightness/team-color code accounts for the reviewed
+  3.0.0 contract and avoids double amplification. This does not establish complete
+  native acceptance of the combined installation.
+- **EnableLabyrinth:** Arena access and countdown are independent; the other
+  mod's additional Scav/key/exit changes are not overwritten.
+- **Terkoiz Freecam:** camera ownership is detected to avoid competing controls;
+  this is not blanket approval of every camera feature.
+- **Fika:** explicitly unsupported. Arena refuses activation; this is more than
+  an absence of test coverage.
+- **Questing Bots / ORBIT:** Arena entry is provisionally blocked when Questing
+  Bots is active or ORBIT is loaded. Ordinary PMC/Scav raids remain unchanged.
+  The reviewed Questing Bots version 1.1.0 may remain installed if fully disabled
+  in its server configuration; partial F12 switches are insufficient.
+  Details: [Arena admission](OPTIONAL-MOD-ADMISSION-20261019.md).
+- **Adaptive Bot Culling 1.2.0:** Arena entry is provisionally blocked because the
+  mod pauses culled bots and their combat and changes death animations. F12
+  switches do not remove every intervention. Ordinary PMC/Scav raids remain
+  unchanged. [Source review and visible menu notice](ARENA-AVAILABILITY-20261020.md).
 
-## Eigene Mods: übernommen oder weiterhin eigenständig?
+## Own mods: absorbed or still standalone?
 
-| Eigene Mod | Stand | Konsequenz |
+| Own mod | Status | Consequence |
 |---|---|---|
-| RaidInfoPanels | Vollständig übernommen; eigenständiges lokales Projekt/alte DLL archiviert. | Kein separates Paket für Arena. |
-| CombatSlide | Übernommen und Arena-begrenzt; Standalone archiviert. | Kein separates Paket für Arena. |
-| AutoCorpseSearch | Arena-relevante corpse-open-Suche übernommen; Standalone mit größerem Umfang weiter vorhanden. | Für Arena nicht nötig, für normale Raids/weitere Suchfunktionen eigenständig sinnvoll. |
-| NotificationFilter | Nur Verhaltensreferenz; eigene engere Arena-Implementierung, kein fremder Code/DLL übernommen. | Eigenständige Mod behalten; keine Arena-Voraussetzung. |
-| DefaultAutoFireMode | Arena besitzt nun die entsprechende lokale Zieh-Regel: echte Vollautomatik, wenn unterstützt. Keine Übernahme der Standalone-Burst-/Double-Action-Fallbacks. | Kein zusätzlicher Arena-Download nötig. Standalone bleibt für normale Raids eigenständig und wirkt bei gemeinsamer Installation weiterhin nach seinen eigenen Regeln. |
-| Redeploy.Core | Gemeinsame Bibliothek mit eigenem Versionsstand. | Passende, getestete Core-DLL direkt mit Arena ausliefern. |
-| Redeploy.Client/Server | Eigenständige Respawn-Mod für normale Raids; nicht absorbiert. | Separates Produkt, keine Arena-Pflichtinstallation. |
-| Killcam | Eigenständiges optionales Plugin; Anbindung per Reflection. | Separates optionales Paket für Replays. |
-| ArenaMapPort | Eigenständiges optionales Kartenprojekt. | Separates Kartenpaket. |
-| UiBridge / Diagnosehilfen | Entwicklung und Tests, keine Arena-Laufzeitvoraussetzung. | Nicht in das normale Spielerpaket aufnehmen. |
+| RaidInfoPanels | Fully absorbed; standalone local project/old DLL archived. | No separate package for Arena. |
+| CombatSlide | Absorbed and restricted to Arena; standalone archived. | No separate package for Arena. |
+| AutoCorpseSearch | Arena-relevant searching when opening a corpse is integrated; the broader standalone mod remains available. | Not needed for Arena; still useful independently for ordinary raids/additional search features. |
+| NotificationFilter | Behavioral reference only; Arena has its own narrower implementation, with no external code/DLL absorbed. | Keep the standalone mod; not an Arena prerequisite. |
+| DefaultAutoFireMode | Arena now has the corresponding local weapon-draw rule: actual full auto when supported. The standalone burst/double-action fallbacks were not adopted. | No additional Arena download needed. The standalone mod remains separate for ordinary raids and continues applying its own rules when both are installed. |
+| Redeploy.Core | Shared library with its own version. | Bundle the appropriate tested Core DLL directly with Arena. |
+| Redeploy.Client/Server | Standalone respawn mod for ordinary raids; not absorbed. | Separate product, not a mandatory Arena installation. |
+| Killcam | Standalone optional plugin; connected through reflection. | Separate optional package for replays. |
+| ArenaMapPort | Standalone optional map project. | Separate map package. |
+| UiBridge / diagnostic tools | Development and testing, not an Arena runtime prerequisite. | Exclude from the normal player package. |
 
-UseItemsAnywhere, BrightLasers, ColoredTracers, EnableLabyrinth, SpeedLoader und
-EnemyMarkers sind keine zusätzlichen Voraussetzungen der entsprechenden
-Arena-Funktionen. Verhaltensreferenzen/eigene Umsetzungen nicht als vollständige
-Übernahme dieser fremden Mods bezeichnen. Angepasste MIT-Teile von DragonDen
-behalten ihre vorhandene Attribution; auch dessen Mod-DLL wird nicht benötigt.
+UseItemsAnywhere, BrightLasers, ColoredTracers, EnableLabyrinth, SpeedLoader and
+EnemyMarkers are not additional prerequisites for the corresponding Arena
+features. Do not describe behavioral references or independent implementations
+as complete absorption of those third-party mods. Adapted MIT portions from
+DragonDen retain their existing attribution; its mod DLL is not required either.
 
-## Release-Grenzen
+## Release boundaries
 
-Das Release enthält Arena-Client, Server, eigene Daten/Assets und genau eine passende
-flache Redeploy.Core-DLL, bytegleich zur Bibliothek in einem gleichzeitigen
-Redeploy-Paket. Ein eigenes Pflicht-Downloadpaket für Core ist nicht nötig.
-`tools/Package-TestRelease.ps1 -Release` baut aus isolierten, committeten
-Quellständen ohne Deployment und prüft Tests, Archivinhalt und Prüfsummen.
-Ohne diesen Schalter entsteht ein ausdrücklich als lokaler Test gekennzeichnetes
-Paket. Beide Varianten verwenden dieselben Laufzeitassets und Lizenznachweise.
+The release contains Arena's client, server, own data/assets and exactly one
+appropriate Redeploy.Core DLL directly under the plugins directory, byte-identical
+to the library in a corresponding Redeploy package. No separate mandatory Core
+download is needed. `tools/Package-TestRelease.ps1 -Release` builds from isolated,
+committed sources without deploying and verifies tests, archive contents and
+checksums. Without that switch it creates a package explicitly labelled as a
+local test. Both variants use the same runtime assets and license notices.
 
-Spielertexte liegen in [README](../README.md) und der
-[Forge-Beschreibung mit sechs Tabs](FORGE-DESCRIPTION.md). Die zentrale
-[Lizenzübersicht](../THIRD-PARTY-NOTICES.md) grenzt eigenen MIT-Code von den
-separaten Bild-/Audiorechten ab. Sie und die [LICENSE](../LICENSE) werden
-zusammen mit den Asset-Notices ausgeliefert. Die lesbaren Dokumente liegen unter
-`BepInEx/plugins/maschine-ArenaMode/docs/`, UI-Nachweise unter `docs/licenses/ui/`.
-Der Source-Build benötigt das benachbarte öffentliche
-[Redeploy-Repository](https://github.com/maschine34675/Redeploy); dessen exakter
-Quellstand steht im Paketmanifest. Core bleibt bei Version 1.0.8.
+Player documentation is in the [README](../README.md) and the
+[Forge description with six tabs](FORGE-DESCRIPTION.md). The central
+[license overview](../THIRD-PARTY-NOTICES.md) distinguishes Arena's MIT code from
+separate image/audio rights. It and the [LICENSE](../LICENSE) are shipped with
+the asset notices. Readable documents are under
+`BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
+Building from source requires the adjacent public
+[Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
+revision is recorded in the package manifest. Core remains at version 1.0.8.
 
-Die 18 früher extrahierten EFT-Arena-UI-Grafiken sind im aktuellen Quellstand
-durch acht generierte realistische Waffen-Kategoriebilder, sechs eigene Symbole
-bzw. Banner (MIT) sowie vier game-icons.net-Symbole (CC BY 3.0) ersetzt.
-Letztere: Skull crack, Grenade und Barbed wire von Lorc; Bowie knife von Skoll.
-Quellen, Generator und Herkunftsnachweis liegen im Repo. NOTICE, SOURCES und
-MIT-Lizenztext reisen im Client und lesbar unter
-`maschine-ArenaMode/docs/licenses/ui` mit; der gemeinsame CC-BY-3.0-Lizenztext
-liegt unter `maschine-ArenaMode/docs/licenses/CC-BY-3.0.txt`.
-Siehe auch `UI-GAME-ICONS-20261016.md`.
-Siehe `UI-ARTWORK-REPLACEMENT-20261016.md`. Alte Grafiken bleiben in der
-Git-Historie und in früheren Paketen: Der Austausch bereinigt diese nicht und
-ist keine Freigabe zur Veröffentlichung der Historie oder anderer Assets.
+The 18 previously extracted EFT Arena UI graphics have been replaced in the
+current source by eight generated realistic weapon-category images, six original
+icons or banners (MIT), and four game-icons.net icons (CC BY 3.0).
+The latter are Skull crack, Grenade and Barbed wire by Lorc, and Bowie knife by Skoll.
+Sources, generator and provenance records are in the repository. NOTICE, SOURCES
+and the MIT license text are embedded in the client and shipped as readable files
+under `maschine-ArenaMode/docs/licenses/ui`; the shared CC-BY-3.0 license text is
+under `maschine-ArenaMode/docs/licenses/CC-BY-3.0.txt`.
+See also `UI-GAME-ICONS-20261016.md` and `UI-ARTWORK-REPLACEMENT-20261016.md`.
+Old graphics remain in Git history and earlier packages: replacing them does not
+clean that history or grant permission to publish it or other assets.
 
-Vertiefung: `RAID-INFO-PANELS-REVIEW.md`, `APBS-COMPATIBILITY-REVIEW.md`,
+Further reading: `RAID-INFO-PANELS-REVIEW.md`, `APBS-COMPATIBILITY-REVIEW.md`,
 `FRIENDLY-FIRE-REVIEW.md`, `KILLCAM-MODES-REVIEW.md`,
 `tools/ArenaNotificationChecks/README.md`, `../Redeploy/docs/RESPAWN-API.md`.
