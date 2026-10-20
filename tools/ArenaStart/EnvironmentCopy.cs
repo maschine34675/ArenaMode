@@ -184,8 +184,13 @@ public static class EnvironmentCopy
         using var lease = new FileStream(Inside(plan.Destination, ".arena-start/preparing"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
         var owned = new List<OwnedFile>();
         using var sharedLeases = new AssetLease();
+        var sharedTotal = plan.ShareAssets ? plan.Files.Count(SharedAssets.IsContent) : 0;
+        var privateTotal = plan.Files.Count - sharedTotal;
+        var copied = 0;
         long bytes = 0;
-        long nextProgress = 0;
+        long nextProgress = 4L * 1024 * 1024 * 1024;
+        report?.Invoke($"Hard-linked and verified source files: 0 / {sharedTotal}");
+        ReportCopies();
         foreach (var relative in plan.Files)
         {
             var source = Inside(plan.Source, relative);
@@ -200,28 +205,34 @@ public static class EnvironmentCopy
                     var entry = new OwnedFile(relative, contentStream.Length, SharedAssets.Hash(contentStream), Shared: true);
                     sharedLeases.Add(relative, contentStream, target, entry, hashAlreadyChecked: true);
                     owned.Add(entry);
-                    if (sharedLeases.Count % 1000 == 0) report?.Invoke($"Linked and verified {sharedLeases.Count} content files.");
+                    if (sharedLeases.Count % 500 == 0 || sharedLeases.Count == sharedTotal)
+                        report?.Invoke($"Hard-linked and verified source files: {sharedLeases.Count} / {sharedTotal}");
                 }
                 catch { contentStream.Dispose(); throw; }
                 continue;
             }
-            using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var buffer = new byte[1024 * 1024];
-            int read;
             long length = 0;
-            while ((read = input.Read(buffer)) > 0)
+            string digest;
+            using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            using (var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
             {
-                output.Write(buffer, 0, read);
-                hash.AppendData(buffer, 0, read);
-                length += read;
+                var buffer = new byte[1024 * 1024];
+                int read;
+                while ((read = input.Read(buffer)) > 0)
+                {
+                    output.Write(buffer, 0, read);
+                    hash.AppendData(buffer, 0, read);
+                    length += read;
+                }
+                digest = Convert.ToHexString(hash.GetHashAndReset());
             }
-            owned.Add(new(relative, length, Convert.ToHexString(hash.GetHashAndReset())));
+            owned.Add(new(relative, length, digest));
             bytes += length;
-            if (bytes >= nextProgress)
+            copied++;
+            if (copied % 500 == 0 || copied == privateTotal || bytes >= nextProgress)
             {
-                report?.Invoke($"Copied private files: {bytes / 1073741824d:F1} / {plan.PrivateBytes / 1073741824d:F1} GiB");
+                ReportCopies();
                 nextProgress = bytes + 4L * 1024 * 1024 * 1024;
             }
         }
@@ -276,9 +287,14 @@ public static class EnvironmentCopy
         var manifest = new Manifest(plan.ShareAssets ? 2 : 1, plan.Destination, plan.Source, owned, bindings, plan.Diagnostics);
         WriteNew(Inside(plan.Destination, ManifestPath), JsonSerializer.Serialize(manifest, Json));
         // A failed copy has no valid final manifest and is never automatically resumed/deleted.
-        report?.Invoke($"Environment complete: {owned.Count(f => f.Shared)} shared assets; " +
-            $"{plan.PrivateBytes / 1073741824d:F2} GiB private, {plan.SharedBytes / 1073741824d:F2} GiB reused. " +
+        report?.Invoke($"Environment complete: {copied} / {privateTotal} source files copied privately; " +
+            $"{sharedLeases.Count} / {sharedTotal} source files shared through NTFS hardlinks. " +
+            $"{plan.PrivateBytes / 1073741824d:F2} GiB copied, {plan.SharedBytes / 1073741824d:F2} GiB shared. " +
+            $"Generated {owned.Count - plan.Files.Count} catalogued configuration files plus the private loader configuration and manifest. " +
             "No source player profiles, launcher settings or BepInEx configs imported.");
+
+        void ReportCopies() => report?.Invoke($"Copied private source files: {copied} / {privateTotal}; " +
+            $"{bytes / 1073741824d:F1} / {plan.PrivateBytes / 1073741824d:F1} GiB");
 
         void WriteOwned(string relative, string content)
         {
@@ -307,7 +323,7 @@ public static class EnvironmentCopy
         if (!OperatingSystem.IsWindows()) return;
         if (!GetFileInformationByHandle(handle, out var info))
             throw new IOException("Cannot verify file ownership.", Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error()));
-        if (info.NumberOfLinks != 1) throw new InvalidDataException("Hard-linked files are not allowed in an Arena environment.");
+        if (info.NumberOfLinks != 1) throw new InvalidDataException("Unexpected hardlink outside the approved shared-asset catalog.");
     }
 
     public static string ReadPrivate(string path)
@@ -379,19 +395,26 @@ public static class EnvironmentCopy
             throw new InvalidDataException("Shared content in a copy-only manifest.");
         if (manifest.Schema == 2)
         {
-            report?.Invoke("Checking source version bindings.");
             SharedAssets.RequireVolume(manifest.Source, root);
             if (manifest.SourceBindings == null || manifest.SourceBindings.Count == 0 ||
                 !manifest.SourceBindings.Select(f => f.Path).Order().SequenceEqual(
                     manifest.Files.Where(f => IsSourceBinding(f.Path)).Select(f => f.Path).Order()))
                 throw new InvalidDataException("Missing source version binding.");
+            var checkedBindings = 0;
+            report?.Invoke($"Checking source version files: 0 / {manifest.SourceBindings.Count}");
             foreach (var binding in manifest.SourceBindings)
             {
                 var path = Inside(manifest.Source, binding.Path);
                 if (!File.Exists(path) || Hash(path) != binding.Sha256)
                     throw new InvalidDataException($"Source installation updated: {binding.Path}. Prepare a new Arena environment.");
+                checkedBindings++;
+                if (checkedBindings % 500 == 0 || checkedBindings == manifest.SourceBindings.Count)
+                    report?.Invoke($"Checking source version files: {checkedBindings} / {manifest.SourceBindings.Count}");
             }
         }
+        var sharedTotal = manifest.Files.Count(f => f.Shared);
+        var checkedShared = 0;
+        report?.Invoke($"Verified shared assets: 0 / {sharedTotal} files (no copying).");
         foreach (var file in manifest.Files.Where(f => f.Shared))
         {
             if (!SharedAssets.IsContent(file.Path))
@@ -399,8 +422,9 @@ public static class EnvironmentCopy
             var path = Inside(root, file.Path);
             var source = Inside(manifest.Source, file.Path);
             assetLease.Add(file.Path, SharedAssets.OpenReadLease(source), path, file);
-            if (assetLease.Count % 500 == 0)
-                report?.Invoke($"Verified shared assets: {assetLease.Count}. Read leases remain held.");
+            checkedShared++;
+            if (checkedShared % 500 == 0 || checkedShared == sharedTotal)
+                report?.Invoke($"Verified shared assets: {checkedShared} / {sharedTotal} files (no copying).");
         }
         // Inspect the whole environment, not just executable discovery folders.
         var allFiles = new List<string>();
@@ -412,29 +436,38 @@ public static class EnvironmentCopy
         }
         // Runtime-generated configs/logs/backups are mutable too: a hardlink in
         // one of those must not turn the next native save into a source write.
+        var checkedPaths = 0;
+        report?.Invoke($"Checking runtime file paths: 0 / {allFiles.Count}");
         foreach (var relative in allFiles)
         {
             if (relative == ".arena-start/running" && runningLease != null)
             {
                 RequireSingleLink(runningLease); // Held exclusively by RuntimeHost.
-                continue;
             }
-            if (!assetLease.Contains(relative)) InspectPrivate(Inside(root, relative));
+            else if (!assetLease.Contains(relative)) InspectPrivate(Inside(root, relative));
+            checkedPaths++;
+            if (checkedPaths % 500 == 0 || checkedPaths == allFiles.Count)
+                report?.Invoke($"Checking runtime file paths: {checkedPaths} / {allFiles.Count}");
         }
         ValidateNativeLoaderConfig(ReadPrivate(Inside(root, "BepInEx/config/BepInEx.cfg")));
         SharedAssets.ValidateCatalog(allFiles);
         var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var checkedFiles = 0;
+        report?.Invoke($"Checking file integrity: 0 / {manifest.Files.Count}");
         foreach (var file in manifest.Files)
         {
             if (!expected.Add(file.Path)) throw new InvalidDataException("Duplicate manifest path.");
-            if (expected.Count % 1000 == 0)
-                report?.Invoke($"Checking file integrity: {expected.Count} / {manifest.Files.Count}");
             var path = Inside(root, file.Path);
-            if (file.Shared) continue; // Already hashed with its write/delete lease held.
+            // Shared files were already hashed with their write/delete leases held.
             // Native launcher removes this known unused original EFT library.
-            if (file.Path == "EscapeFromTarkov_Data/Plugins/x86_64/hwecho.dll" && !File.Exists(path)) continue;
-            if (!File.Exists(path) || new FileInfo(path).Length != file.Length || Hash(path) != file.Sha256)
-                throw new InvalidDataException($"Missing/changed file: {file.Path}. Prepare a fresh environment to update.");
+            if (!file.Shared && !(file.Path == "EscapeFromTarkov_Data/Plugins/x86_64/hwecho.dll" && !File.Exists(path)))
+            {
+                if (!File.Exists(path) || new FileInfo(path).Length != file.Length || Hash(path) != file.Sha256)
+                    throw new InvalidDataException($"Missing/changed file: {file.Path}. Prepare a fresh environment to update.");
+            }
+            checkedFiles++;
+            if (checkedFiles % 500 == 0 || checkedFiles == manifest.Files.Count)
+                report?.Invoke($"Checking file integrity: {checkedFiles} / {manifest.Files.Count}");
         }
         foreach (var file in allFiles)
         {
@@ -447,7 +480,9 @@ public static class EnvironmentCopy
                 throw new InvalidDataException($"Unexpected mod/executable: {file}");
         }
         ValidateProfileFiles(root);
-        report?.Invoke($"Verified {expected.Count} files ({assetLease.Count} shared content leases) and private profile boundary.");
+        report?.Invoke($"Verified {checkedFiles} / {manifest.Files.Count} catalogued files " +
+            $"({checkedShared} / {sharedTotal} shared assets), {checkedPaths} / {allFiles.Count} runtime file paths " +
+            "and private profile boundary.");
         return manifest;
     }
 

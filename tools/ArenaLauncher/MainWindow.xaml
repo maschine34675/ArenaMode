@@ -9,19 +9,21 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   Background="{StaticResource CanvasBrush}">
         <StackPanel x:Name="Page" Margin="32,24,32,24">
-            <DockPanel Margin="0,0,0,22">
-                <Border DockPanel.Dock="Right" VerticalAlignment="Top" Background="#28313A"
-                        CornerRadius="4" Padding="10,5">
-                    <TextBlock x:Name="BuildBadge" Text="PROTOTYPE" FontSize="10" AutomationProperties.AutomationId="ArenaBuildBadge"
-                               AutomationProperties.Name="ArenaLauncher direct-v1"
-                               Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
-                </Border>
-                <StackPanel>
-                    <TextBlock Text="ARENA" FontSize="37" FontWeight="Bold"/>
-                    <TextBlock Text="A separate start. Your own SPT stays separate."
-                               Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
-                </StackPanel>
-            </DockPanel>
+            <StackPanel Margin="0,0,0,22">
+                <DockPanel>
+                    <Border DockPanel.Dock="Right" VerticalAlignment="Top" Background="#28313A"
+                            CornerRadius="4" Padding="10,5">
+                        <TextBlock x:Name="BuildBadge" Text="PROTOTYPE" FontSize="10" AutomationProperties.AutomationId="ArenaBuildBadge"
+                                   AutomationProperties.Name="ArenaLauncher direct-v1"
+                                   Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                    </Border>
+                    <TextBlock Text="ArenaMode" FontSize="37" FontWeight="Bold"/>
+                </DockPanel>
+                <TextBlock Text="Independent mod for SPT. Your regular installation and profile stay separate."
+                           Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/>
+                <TextBlock Text="Not Escape from Tarkov: Arena. Not affiliated with Battlestate Games."
+                           Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,5,0,0"/>
+            </StackPanel>
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
@@ -49,13 +51,17 @@
                                FontSize="15" FontWeight="SemiBold" Margin="0,0,0,14"/>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="PRIVATE FILES" Style="{StaticResource Caption}"/>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="PRIVATE COPIES" Style="{StaticResource Caption}"/>
                             <TextBlock x:Name="PrivateSizeText" Text="—" FontSize="25" FontWeight="SemiBold"/>
+                            <TextBlock Text="Programs and DLLs copied. Settings and profile stay separate."
+                                       Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="REUSED ASSETS" Style="{StaticResource Caption}"/>
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="SHARED GAME ASSETS" Style="{StaticResource Caption}"/>
                             <TextBlock x:Name="SharedSizeText" Text="—" FontSize="25" FontWeight="SemiBold"/>
+                            <TextBlock Text="NTFS hardlinks. Asset data stored only once."
+                                       Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,4,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="PROFILE" Style="{StaticResource Caption}"/>
@@ -63,8 +69,10 @@
                             <TextBlock Text="No profile imports" Foreground="{StaticResource MutedBrush}" FontSize="12"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock x:Name="EnvironmentHint" Margin="0,14,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
-                               Text="Shared assets save space. Programs, settings and profiles stay private."/>
+                    <TextBlock Margin="0,14,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Text="Shared assets use the same data on disk through two file paths. Explorer may still count their full size in both folders."/>
+                    <TextBlock x:Name="EnvironmentHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
+                               Text="Catalog sizes, not total disk usage. Caches and logs need additional space."/>
                 </StackPanel>
             </Border>
 

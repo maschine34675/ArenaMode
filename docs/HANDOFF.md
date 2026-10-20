@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Starter storage/progress clarity (2026-10-20):** the WPF header now names
+  ArenaMode as an independent SPT mod, explicitly separate from EFT: Arena and
+  Battlestate Games. Persistent text explains private copies versus same-data
+  NTFS hardlinks and Explorer's apparent duplicate sizes. Every known-count
+  file phase reports completed/total, including initial/final values, after
+  successful work; no change to hashes, isolation gates or client lifecycle.
+  Current checks: 308 core and 28 actual-window assertions; independent code
+  and 920×760 / 700×600 render review passed. Standalone EXE is staged at
+  `C:\Temp\ArenaLauncher-Clarity-20261020\maschine-ArenaLauncher.exe` on GPU2,
+  with matching local/remote hash. No ordinary DLL deployment or new native
+  game test; prior direct-start evidence below remains separate. See
+  [storage semantics, current UI evidence and artifact hash](ARENA-LAUNCHER-UI-20261020.md).
+
 - **Direct Arena GUI start (2026-10-20):** the graphical prototype now starts
   private EFT without opening SPT Launcher. Native login/profile identity and
   server/Core version checks precede launch. The installed native patch is

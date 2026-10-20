@@ -115,6 +115,22 @@ internal static class Program
             "repeat start/check bypassed session guard");
         window.Close();
         Check(!closed, "active session window closed");
+        const string fileProgress = "Verified shared assets: 7500 / 8240 files (no copying).";
+        await Task.Run(() => backend.Report!(fileProgress));
+        await Drain();
+        Check(window.StatusHeading.Text == "Verifying files" && window.StatusDetail.Text == fileProgress &&
+            window.ActivityLog.Text.Contains(fileProgress), "file totals lost between backend and visible progress");
+        SaveImage(window, "file-progress");
+        window.Width = 700;
+        window.Height = 600;
+        await Drain();
+        ((ScrollViewer)window.Content).ScrollToBottom();
+        await Drain();
+        SaveImage(window, "file-progress-small");
+        window.Width = 920;
+        window.Height = 760;
+        ((ScrollViewer)window.Content).ScrollToTop();
+        await Drain();
         await Task.Run(() => backend.Report!("Starting the private game directly. No SPT Launcher window is needed."));
         await Drain();
         Check(window.StatusHeading.Text == "Starting the game", "direct game startup not visible");
@@ -178,7 +194,7 @@ internal static class Program
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/arena-launcher-ui"));
+        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/arena-launcher-clarity"));
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, "fixture-" + state + ".png"));
         encoder.Save(output);

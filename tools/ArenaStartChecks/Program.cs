@@ -23,6 +23,27 @@ void Put(string relative, string text = "fixture")
     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
     File.WriteAllText(path, text);
 }
+void CheckPhase(IReadOnlyList<string> messages, string prefix, int total)
+{
+    var steps = messages.Where(m => m.StartsWith(prefix, StringComparison.Ordinal))
+        .Select(m => System.Text.RegularExpressions.Regex.Match(m,
+            "^" + System.Text.RegularExpressions.Regex.Escape(prefix) + @"(\d+) / (\d+)")).ToArray();
+    Check(steps.Length > 0 && steps.All(m => m.Success), "missing/malformed progress: " + prefix);
+    var current = steps.Select(m => int.Parse(m.Groups[1].Value)).ToArray();
+    Check(current[0] == 0 && current[^1] == total, "progress must start at zero and finish even for small catalogs: " + prefix);
+    Check(steps.All(m => int.Parse(m.Groups[2].Value) == total) &&
+        current.All(n => n >= 0 && n <= total) && current.SequenceEqual(current.Order().Distinct()),
+        "progress counts differ from the actual catalog or repeat/regress: " + prefix);
+}
+void CheckIncomplete(IReadOnlyList<string> messages, string prefix, int total)
+{
+    Check(messages.Any(m => m.StartsWith(prefix + "0 / " + total, StringComparison.Ordinal)) &&
+        !messages.Any(m => m.StartsWith(prefix + total + " / " + total, StringComparison.Ordinal)),
+        "failed phase claimed completion: " + prefix);
+    Check(!messages.Any(m => m.StartsWith("Environment complete:", StringComparison.Ordinal) ||
+        m.StartsWith("Verified ", StringComparison.Ordinal) && m.Contains("catalogued files", StringComparison.Ordinal)),
+        "failed operation claimed overall success");
+}
 
 try
 {
@@ -76,9 +97,49 @@ try
     var plan = EnvironmentCopy.Plan(source, destination);
     foreach (var path in forbidden) Check(!plan.Files.Contains(path), "private file entered plan: " + path);
     Reject(() => EnvironmentCopy.Prepare(plan with { Files = [.. plan.Files, forbidden[0]] }), "caller-injected profile");
-    EnvironmentCopy.Prepare(plan);
+    var progress = new List<string>();
+    EnvironmentCopy.Prepare(plan, progress.Add);
     Check(File.Exists(Path.Combine(destination, EnvironmentCopy.ManifestPath)), "final manifest absent");
-    EnvironmentCopy.Verify(destination);
+    CheckPhase(progress, "Copied private source files: ", plan.Files.Count);
+    CheckPhase(progress, "Hard-linked and verified source files: ", 0);
+    Check(progress.Where(m => m.StartsWith("Copied private source files:", StringComparison.Ordinal))
+        .All(m => m.EndsWith(" GiB", StringComparison.Ordinal)), "copy byte progress lost");
+    progress.Clear();
+    var copyManifest = EnvironmentCopy.Verify(destination, progress.Add);
+    var copyPaths = Directory.GetFiles(destination, "*", SearchOption.AllDirectories).Length;
+    CheckPhase(progress, "Verified shared assets: ", 0);
+    CheckPhase(progress, "Checking runtime file paths: ", copyPaths);
+    CheckPhase(progress, "Checking file integrity: ", copyManifest.Files.Count);
+    Check(!progress.Any(m => m.StartsWith("Checking source version files:", StringComparison.Ordinal)),
+        "copy-only verification invented source bindings");
+    Check(copyPaths > copyManifest.Files.Count && copyManifest.Files.Count > plan.Files.Count,
+        "mutable runtime files/generated configs were not accounted separately");
+    var finalCatalogFile = Path.Combine(destination, copyManifest.Files[^1].Path);
+    var finalCatalogBytes = File.ReadAllBytes(finalCatalogFile);
+    File.AppendAllText(finalCatalogFile, "last-entry integrity failure");
+    progress.Clear();
+    Reject(() => EnvironmentCopy.Verify(destination, progress.Add), "last catalog entry changed");
+    CheckIncomplete(progress, "Checking file integrity: ", copyManifest.Files.Count);
+    File.WriteAllBytes(finalCatalogFile, finalCatalogBytes);
+    var failedPlan = EnvironmentCopy.Plan(source, Path.Combine(scratch, "failed-copy-progress"));
+    progress.Clear();
+    using (var blocked = new FileStream(Path.Combine(source, failedPlan.Files[^1]), FileMode.Open, FileAccess.Read, FileShare.None))
+        Reject(() => EnvironmentCopy.Prepare(failedPlan, progress.Add), "blocked source copy");
+    CheckIncomplete(progress, "Copied private source files: ", failedPlan.Files.Count);
+    Check(!File.Exists(Path.Combine(failedPlan.Destination, EnvironmentCopy.ManifestPath)), "failed copy wrote a final manifest");
+    // Exercise periodic path reports with real mutable files, without adding
+    // hundreds of extra game binaries to every subsequent negative fixture.
+    var progressDirectory = Path.Combine(destination, ".arena-start/progress-fixtures");
+    Directory.CreateDirectory(progressDirectory);
+    for (var i = 0; i < 501; i++) File.WriteAllText(Path.Combine(progressDirectory, i + ".log"), "");
+    progress.Clear();
+    EnvironmentCopy.Verify(destination, progress.Add);
+    var expandedPaths = Directory.GetFiles(destination, "*", SearchOption.AllDirectories).Length;
+    CheckPhase(progress, "Checking runtime file paths: ", expandedPaths);
+    Check(progress.Contains($"Checking runtime file paths: 500 / {expandedPaths}"), "periodic path progress absent");
+    if (!Path.GetFullPath(progressDirectory).StartsWith(Path.GetFullPath(scratch) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Progress fixture escaped scratch directory.");
+    Directory.Delete(progressDirectory, true);
     Check(!File.ReadAllText(Path.Combine(destination, "SPT_Runtime/sptLogger.json")).Contains("original-to-delete"), "inherited logger path");
     Check(File.ReadAllText(Path.Combine(destination, "SPT_Runtime/sptLogger.json")).Contains("\"Information\""), "native logging enum name");
     // EFT's LogConfigurator.Reconfig indexes these variables unconditionally.
@@ -180,7 +241,9 @@ try
     finally { if (Directory.Exists(linked)) Directory.Delete(linked); }
     var binary = Path.Combine(destination, "BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll");
     File.AppendAllText(binary, "changed");
-    Reject(() => EnvironmentCopy.Verify(destination), "changed owned binary");
+    progress.Clear();
+    Reject(() => EnvironmentCopy.Verify(destination, progress.Add), "changed owned binary");
+    CheckIncomplete(progress, "Checking file integrity: ", copyManifest.Files.Count);
     Check(original.All(x => EnvironmentCopy.Hash(x.Key) == x.Value), "original modified during rejection tests");
 
     var thin = ManagedEnvironment.Destination(source);
@@ -208,8 +271,26 @@ try
     Reject(() => EnvironmentCopy.Plan(source, thin, shareAssets: true), "new launcher patch targeting shared data");
     File.Delete(Path.Combine(source, badDelta));
     Reject(() => EnvironmentCopy.Prepare(thinPlan with { SharedBytes = thinPlan.Bytes }), "tampered physical size plan");
-    Check(ManagedEnvironment.Ensure(source) == thin, "automatic preparation destination");
-    var thinManifest = EnvironmentCopy.Verify(thin);
+    progress.Clear();
+    Check(ManagedEnvironment.Ensure(source, report: progress.Add) == thin, "automatic preparation destination");
+    CheckPhase(progress, "Hard-linked and verified source files: ", sharedContent.Length);
+    CheckPhase(progress, "Copied private source files: ", thinPlan.Files.Count - sharedContent.Length);
+    Check(progress.Any(m => m.StartsWith("Preparing managed ArenaMode environment:", StringComparison.Ordinal) &&
+        m.Contains("NTFS hardlinks", StringComparison.Ordinal) && m.Contains("private copies", StringComparison.Ordinal)),
+        "managed preparation does not explain hardlinks versus copies");
+    var completion = progress.Single(m => m.StartsWith("Environment complete:", StringComparison.Ordinal));
+    progress.Clear();
+    var thinManifest = EnvironmentCopy.Verify(thin, progress.Add);
+    var thinPaths = Directory.GetFiles(thin, "*", SearchOption.AllDirectories).Length;
+    CheckPhase(progress, "Checking source version files: ", thinManifest.SourceBindings!.Count);
+    CheckPhase(progress, "Verified shared assets: ", sharedContent.Length);
+    CheckPhase(progress, "Checking runtime file paths: ", thinPaths);
+    CheckPhase(progress, "Checking file integrity: ", thinManifest.Files.Count);
+    Check(completion.Contains($"Generated {thinManifest.Files.Count - thinPlan.Files.Count} catalogued configuration files", StringComparison.Ordinal),
+        "generated configuration files included in source transfer totals");
+    Check(progress.Last().Contains($"{thinPaths} / {thinPaths} runtime file paths", StringComparison.Ordinal) &&
+        progress.Last().Contains($"{thinManifest.Files.Count} / {thinManifest.Files.Count} catalogued files", StringComparison.Ordinal),
+        "final report confuses manifest entries with mutable runtime files");
     Check(thinManifest.Schema == 2 && thinManifest.Files.Count(f => f.Shared) == sharedContent.Length, "thin manifest");
     Check(!File.Exists(Path.Combine(thin, "BepInEx/plugins/maschine-UiBridge.dll")), "diagnostics imported by default");
     Check(ManagedEnvironment.Ensure(source) == thin, "automatic reuse");
@@ -252,7 +333,9 @@ try
     File.Delete(asset);
     Check(NativeLinks.CreateHardLink(asset, originalAsset, IntPtr.Zero), "restore controlled asset link");
     File.AppendAllText(originalAsset, "source update");
-    Reject(() => EnvironmentCopy.Verify(thin), "shared source in-place drift");
+    progress.Clear();
+    Reject(() => EnvironmentCopy.Verify(thin, progress.Add), "shared source in-place drift");
+    CheckIncomplete(progress, "Verified shared assets: ", sharedContent.Length);
     File.WriteAllBytes(originalAsset, content);
     File.Delete(originalAsset);
     File.WriteAllBytes(originalAsset, content);
@@ -265,12 +348,16 @@ try
     var versionFile = Path.Combine(source, "UnityPlayer.dll");
     var versionBytes = File.ReadAllBytes(versionFile);
     File.AppendAllText(versionFile, "updated");
-    Reject(() => EnvironmentCopy.Verify(thin), "game source version changed");
+    progress.Clear();
+    Reject(() => EnvironmentCopy.Verify(thin, progress.Add), "game source version changed");
+    CheckIncomplete(progress, "Checking source version files: ", thinManifest.SourceBindings.Count);
     File.WriteAllBytes(versionFile, versionBytes);
     var mutableLink = Path.Combine(thin, "BepInEx/config/shared.cfg");
     Directory.CreateDirectory(Path.GetDirectoryName(mutableLink)!);
     Check(NativeLinks.CreateHardLink(mutableLink, originalAsset, IntPtr.Zero), "create mutable link control");
-    Reject(() => EnvironmentCopy.Verify(thin), "shared content alias injected into writable configuration");
+    progress.Clear();
+    Reject(() => EnvironmentCopy.Verify(thin, progress.Add), "shared content alias injected into writable configuration");
+    CheckIncomplete(progress, "Checking runtime file paths: ", Directory.GetFiles(thin, "*", SearchOption.AllDirectories).Length);
     File.Delete(mutableLink);
     EnvironmentCopy.Verify(thin);
     Check(original.All(x => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(x.Key))) == x.Value),

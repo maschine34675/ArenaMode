@@ -43,7 +43,7 @@ public partial class MainWindow : Window
         StartButton.IsEnabled = false;
         PrivateSizeText.Text = SharedSizeText.Text = "—";
         DestinationText.Text = "Check an installation to see its private Arena folder.";
-        EnvironmentHint.Text = "Shared assets save space. Programs, settings and profiles stay private.";
+        EnvironmentHint.Text = "Catalog sizes, not total disk usage. Caches and logs need additional space.";
         if (!busy) SetStatus("Check your installation", "The selected folder has changed.", false);
     }
 
@@ -75,8 +75,8 @@ public partial class MainWindow : Window
             PrivateSizeText.Text = $"{preview.PrivateBytes / 1073741824d:F2} GiB";
             SharedSizeText.Text = $"{preview.SharedBytes / 1073741824d:F2} GiB";
             EnvironmentHint.Text = preview.Exists
-                ? "Existing environment · catalog sizes only. Full integrity verification runs when you launch."
-                : "Created automatically on first launch · same NTFS drive. Additional space is needed for caches and logs.";
+                ? "Existing environment · catalog sizes only, plus caches and logs. Files are verified again on launch, not recopied."
+                : "Created on first launch on the same NTFS drive. Catalog sizes above; caches and logs need additional space.";
             StartButton.Content = preview.Exists ? "Launch _Arena" : "Prepare & _launch";
             SetStatus(preview.Exists ? "Ready to verify & launch" : "Ready to prepare",
                 "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
@@ -95,7 +95,7 @@ public partial class MainWindow : Window
     {
         if (busy || preview == null) return;
         var selected = preview;
-        Begin("Preparing Arena", "Keeping private files separate and verifying shared content. This can take several minutes.");
+        Begin("Preparing ArenaMode", "Copying private files only on first setup; sharing game assets through NTFS hardlinks. Verification can take several minutes.");
         var operation = epoch;
         try
         {
@@ -104,7 +104,7 @@ public partial class MainWindow : Window
             await operations.Start(selected.Source, diagnostics, message => Report(operation, message));
             preview = selected with { Exists = true };
             StartButton.Content = "Launch _Arena";
-            EnvironmentHint.Text = "Existing environment · full integrity verification runs again on the next launch.";
+            EnvironmentHint.Text = "Existing environment · catalog sizes only, plus caches and logs. Files are verified again on launch, not recopied.";
             SetStatus("Session finished", "The private server has stopped. You can launch again or close this window.", false);
             AppendLog("Private session finished; runtime cleanup completed.");
         }
