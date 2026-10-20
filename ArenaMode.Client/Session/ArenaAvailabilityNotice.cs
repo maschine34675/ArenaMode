@@ -57,7 +57,9 @@ internal static class ArenaAvailabilityNotice
             var rect = (RectTransform)Root.transform;
             rect.SetParent(screen.transform, false);
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
-            rect.pivot = new Vector2(.5f, 1f);
+            rect.pivot = new Vector2(.5f, 0f);
+            var anchor = Root.AddComponent<ArenaAvailabilityNoticeAnchor>();
+            anchor.Source = screen._randomButton.transform as RectTransform;
             var background = Root.GetComponent<Image>();
             background.color = new Color(.06f, .07f, .08f, .94f);
             background.raycastTarget = false;
@@ -86,11 +88,23 @@ internal static class ArenaAvailabilityNotice
             var rect = (RectTransform)Root.transform;
             const float width = 440f;
             rect.sizeDelta = new Vector2(width, _text.GetPreferredValues(_text.text, width - 28f, 0f).y + 24f);
-            var label = screen._randomButton.SpawnableToggle._headerLabel.rectTransform;
-            var center = screen.transform.InverseTransformPoint(label.TransformPoint(label.rect.center));
-            rect.localPosition = new Vector3(center.x, center.y - 46f, 0f);
+            Root.GetComponent<ArenaAvailabilityNoticeAnchor>().Place();
             Root.transform.SetAsLastSibling();
             Root.SetActive(true);
         }
+    }
+}
+
+/// <summary>Native toggle sizing finishes after Show; follow its stable center.</summary>
+internal sealed class ArenaAvailabilityNoticeAnchor : MonoBehaviour
+{
+    internal RectTransform Source;
+    private void LateUpdate() => Place();
+    internal void Place()
+    {
+        if (Source == null || transform.parent == null) return;
+        var center = transform.parent.InverseTransformPoint(Source.TransformPoint(Source.rect.center));
+        // Above the choice, away from the shared PMC/Scav description and Next.
+        transform.localPosition = new Vector3(center.x, center.y + 42f, 0f);
     }
 }
