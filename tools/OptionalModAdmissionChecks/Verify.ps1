@@ -9,6 +9,11 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'allow-adaptive-bot-culling'
+        Before = 'if (Chainloader.PluginInfos.ContainsKey(AdaptiveBotCullingGuid))'
+        After = 'if (false)'
+    },
+    @{
         Name = 'skip-continuous-load-ammo-contract'
         Before = '?? ArenaContinuousLoadAmmoCompat.GetRejectionReason()'
         After = ''

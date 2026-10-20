@@ -21,6 +21,7 @@ namespace ArenaMode;
 [BepInDependency(DynamicMapsCorpseMarkers.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaOptionalMods.QuestingBotsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaOptionalMods.OrbitGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(ArenaOptionalMods.AdaptiveBotCullingGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.dvize.ailimit", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("me.skwizzy.lootingbots", BepInDependency.DependencyFlags.SoftDependency)]
@@ -52,6 +53,9 @@ public class Plugin : BaseUnityPlugin
         {
             ModLogger.LogError(error);
             Chainloader.DependencyErrors.Add(error);
+            // This UI island must not load Core or initialize any raid hooks.
+            try { ArenaCoreUnavailableMenu.Enable(); }
+            catch (System.Exception ex) { ModLogger.LogError("Arena dependency notice could not initialize: " + ex); }
             enabled = false;
             return;
         }

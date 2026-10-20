@@ -17,6 +17,11 @@ Failures reject Arena with a visible explanation; they do not disable the Arena
 plugin, change another mod's configuration or reject ordinary PMC/Scav starts.
 There are no BepInEx incompatibility declarations, only soft load-order entries.
 
+Update 2026-10-20: loaded Adaptive Bot Culling also blocks Arena; see
+[published-DLL review and persistent menu explanations](ARENA-AVAILABILITY-20261020.md).
+Earlier references to a visible reason described the rejection/toast path;
+disabled controls now display that reason without needing a click.
+
 - **Questing Bots 1.1.0**, source `313d0275e07e84566c3676cc6f194612306026cd`,
   GUID `com.danw.questingbots`: block its active systems. Only the reviewed
   whole-mod server configuration `enabled: false` at startup is exempt. Read

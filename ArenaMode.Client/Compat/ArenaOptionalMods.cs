@@ -15,6 +15,7 @@ internal static class ArenaOptionalMods
 {
     internal const string QuestingBotsGuid = "com.danw.questingbots";
     internal const string OrbitGuid = "com.chazut.orbit";
+    internal const string AdaptiveBotCullingGuid = "com.hysocs.adaptivebotculling";
     private static object _questingInstance, _questingConfig;
     private static PropertyInfo _questingEnabled;
     private static bool _questingBlocked;
@@ -23,6 +24,9 @@ internal static class ArenaOptionalMods
     {
         if (Chainloader.PluginInfos.ContainsKey(OrbitGuid))
             return "Arena is currently unavailable with ORBIT. Ordinary PMC/Scav raids remain available.";
+
+        if (Chainloader.PluginInfos.ContainsKey(AdaptiveBotCullingGuid))
+            return "Adaptive Bot Culling can pause Arena bots and interfere with body cleanup. Remove it and restart to play Arena. Ordinary PMC/Scav raids remain available.";
 
         if (Chainloader.PluginInfos.TryGetValue(QuestingBotsGuid, out var info)
             && !QuestingBotsDisabledAtStartup(info.Instance, info.Metadata?.Version))

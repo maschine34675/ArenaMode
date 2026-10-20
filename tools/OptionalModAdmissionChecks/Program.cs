@@ -22,6 +22,7 @@ internal static class Program
             CheckExistingPatches();
             CheckUnknownContracts();
             CheckLateOrbit();
+            CheckAdaptiveBotCulling();
             Require(ConfigUtil.CurrentConfigReads == 0, "No scenario invokes the foreign network-capable CurrentConfig getter");
             Console.WriteLine($"OPTIONAL_MOD_ADMISSION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
@@ -102,6 +103,23 @@ internal static class Program
             "Deminvincibility rejection reaches admission unchanged");
         ArenaDeminvincibilityCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
+    }
+
+    private static void CheckAdaptiveBotCulling()
+    {
+        Reset();
+        Allowed("ABC absent at startup");
+        foreach (var version in new Version[] { new(1, 2, 0), new(9, 0, 0), null })
+        {
+            Chainloader.PluginInfos[ArenaOptionalMods.AdaptiveBotCullingGuid] =
+                new PluginInfo { Metadata = new PluginMetadata { Version = version } };
+            Blocked("Adaptive Bot Culling", "Late loaded ABC is blocked regardless of version or missing instance");
+            Require(ArenaOptionalMods.GetRejectionReason().Contains("restart")
+                && ArenaOptionalMods.GetRejectionReason().Contains("PMC/Scav"),
+                "ABC rejection offers recovery and preserves ordinary raid availability");
+            Chainloader.PluginInfos.Remove(ArenaOptionalMods.AdaptiveBotCullingGuid);
+            Allowed("ABC removal leaves no sticky admission state");
+        }
     }
 
     private static void CheckDisabledAtStartup()

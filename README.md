@@ -179,8 +179,9 @@ SPT installation/
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
 plugin tree. This build requires Core **1.0.8 or newer**. If Core is missing,
-unreadable or too old, Arena disables itself before settings, hooks or components
-start and reports an error in the client log and SPT dependency list. Install the
+unreadable or too old, Arena disables its gameplay runtime and shows a reason on
+the character-selection screen; loader details also appear in the client log
+and SPT dependency list. Install the
 supplied Core and restart the game. This minimum check permits newer versions;
 it does not certify future API changes.
 Redeploy's standalone client and server are not required: Core owns local
@@ -277,10 +278,14 @@ RaidInfoPanels and CombatSlide functionality; neither is a required separate
 download. **Fika is blocked**, rather than merely untested. See
 [the dependency inventory](docs/DEPENDENCIES.md) for more specific boundaries.
 
-**Active Questing Bots and loaded ORBIT currently block Arena only.** Ordinary
+**Active Questing Bots, loaded ORBIT and Adaptive Bot Culling currently block Arena only.** Ordinary
 PMC/Scav raids remain available and keep those mods' behavior. Questing Bots
 1.1.0 can remain installed if its whole-mod server setting is disabled before
 starting the game; switching off only questing in F12 is not sufficient.
+Adaptive Bot Culling pauses offscreen combat and changes death animations, so
+its F12 toggles do not provide a safe Arena exception.
+An **ARENA UNAVAILABLE** notice explains blocked selection or a failed server
+connection directly in the character menu.
 
 ## Known limitations and reporting problems
 

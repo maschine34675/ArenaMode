@@ -27,6 +27,10 @@ docs/OPTIONAL-MOD-ADMISSION-20261019.md. Active Questing Bots and loaded ORBIT
 block Arena at selection and final start, never ordinary PMC/Scav raids. Preserve
 the process-lifetime admission provider across menu cleanup; do not replace it
 with global BepInEx incompatibility declarations or user-config edits.
+Loaded Adaptive Bot Culling also blocks Arena. Read
+docs/ARENA-AVAILABILITY-20261020.md for the published-DLL evidence and visible
+menu diagnostics. Keep the rejected-Core notice path free of Core-dependent
+types, exclude PFT's My Squad screen, and never replace final admission with UI.
 MoreBotsAPI 2.1.1+ requires the separate exact-request protections documented in
 docs/MOREBOTS-COMPATIBILITY-20261019.md. Its revenge files are outside SPT's
 profile snapshot. Preserve both the producer and delayed end-sender guards,

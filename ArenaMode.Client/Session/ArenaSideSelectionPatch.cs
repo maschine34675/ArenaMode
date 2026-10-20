@@ -40,6 +40,7 @@ internal static class ArenaSideSelectionPatch
             MatchMakerSideSelectionScreen.RaidSideSelectionScreenController controller)
         {
             Preview.ArenaPreviewFlow.Reset();
+            ArenaAvailabilityNotice.Hide(__instance);
             ArenaSideSelectionLayout.Restore(__instance);
             if (PitFireTeamCompat.IsSquadManagementScreen)
             {
@@ -78,6 +79,7 @@ internal static class ArenaSideSelectionPatch
                     Controller(__instance), allowPendingModeSelection: true);
                 ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
                 ArenaSideSelectionLayout.Apply(__instance, Controller(__instance)?.Session.Profile);
+                ArenaAvailabilityNotice.Show(__instance, eligibility.Allowed ? null : eligibility.Reason);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     EnsureCompatibleMode(eligibility);
@@ -97,6 +99,7 @@ internal static class ArenaSideSelectionPatch
                 ArenaMenuSelection.Clear();
                 ArenaSideSelectionLayout.Restore(__instance);
                 ArenaSideSelectionView.Hide(__instance.transform, __instance._randomButton);
+                ArenaAvailabilityNotice.Show(__instance, "The Arena menu could not initialize. Restart the game; if this persists, check the ArenaMode installation and client log.");
                 Plugin.ModLogger.LogError($"Arena side selection unavailable: {ex}");
             }
             finally
@@ -126,6 +129,7 @@ internal static class ArenaSideSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSideSelectionScreen __instance)
         {
+            ArenaAvailabilityNotice.Hide(__instance);
             try { Preview.ArenaPreviewFlow.KeepFromSide(__instance, Controller(__instance)?.RaidSettings); }
             catch (Exception ex)
             {
@@ -182,6 +186,7 @@ internal static class ArenaSideSelectionPatch
                 EnsureCompatibleMode(eligibility);
 
                 ArenaMenuSelection.Select();
+                ArenaAvailabilityNotice.Hide(__instance);
                 Controller(__instance).RaidSettings.Side = ESideType.Pmc;
             }
             catch (Exception ex)
@@ -189,6 +194,7 @@ internal static class ArenaSideSelectionPatch
                 ArenaMenuSelection.Clear();
                 __instance._pmcButton.IsToggled = true;
                 Plugin.ModLogger.LogWarning($"Arena selection rejected: {ex.Message}");
+                ArenaAvailabilityNotice.Show(__instance, ex.Message);
                 NotificationManager.DisplayWarningNotification(ex.Message);
             }
         }

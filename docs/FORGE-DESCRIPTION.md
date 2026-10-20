@@ -168,7 +168,7 @@ combination. Optional mods keep their own dependencies. RaidInfoPanels and
 CombatSlide functionality is already included for Arena. Fika activation is
 explicitly blocked.
 
-Active Questing Bots and loaded ORBIT currently block Arena selection/start;
+Active Questing Bots, loaded ORBIT and Adaptive Bot Culling currently block Arena selection/start;
 ordinary PMC/Scav raids remain available. Questing Bots 1.1.0 may remain installed
 when fully disabled in its server configuration before starting the game. Its
 individual F12 switches do not provide that exemption.

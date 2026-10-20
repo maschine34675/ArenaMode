@@ -15,7 +15,7 @@ beweist nicht die vollständige Kompatibilität jeder Funktion.
 | `maschine-Redeploy.Core.dll` | Direkte Laufzeitabhängigkeit. Der aktuelle Quellstand benötigt mindestens 1.0.8 für die optionalen Respawn-Zeitmessungen; ältere Test-/Buildberichte können noch 1.0.6/1.0.7 nennen. Passend zum konkreten Arena-Build ausliefern. Nicht mit der vollständigen Redeploy-Mod verwechseln. |
 
 Der Hauptclient deklariert SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
-AI Limit, Questing Bots, ORBIT, Looting Bots, Remove The Dead, Smoothie,
+AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead, Smoothie,
 Continuous Healing, Late To The Party, Classic Movement, StatTrack,
 Continuous Load Ammo und Deminvincibility als weiche
 Ladereihenfolge-Abhängigkeiten. Die harte Core-Abhängigkeit besteht über den
@@ -154,6 +154,10 @@ Modkombination; die folgenden Texte beschreiben jeweils den Adaptervertrag.
   Die geprüfte Questing-Bots-Version 1.1.0 darf vollständig in ihrer
   Serverkonfiguration deaktiviert installiert bleiben; Teilabschaltungen in F12
   reichen nicht. Details: [Arena-Zulassung](OPTIONAL-MOD-ADMISSION-20261019.md).
+- **Adaptive Bot Culling 1.2.0:** vorläufige Arena-Startsperre, weil die Mod
+  ausgeblendete Bots samt Kampf pausiert und Todesanimationen verändert.
+  F12-Schalter entfernen nicht alle Eingriffe. Normale PMC-/Scav-Raids bleiben
+  unverändert. [Quellprüfung und sichtbarer Menühinweis](ARENA-AVAILABILITY-20261020.md).
 
 ## Eigene Mods: übernommen oder weiterhin eigenständig?
 
