@@ -44,7 +44,8 @@ internal static class Program
             && ArenaSmoothieCompat.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
             && ArenaLateToThePartyCompat.Calls == 1 && ArenaClassicMovementCompat.Calls == 1
             && ArenaStatTrackCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
-            && ArenaDeminvincibilityCompat.Calls == 1 && ArenaSkillsExtendedCompat.Calls == 1,
+            && ArenaDeminvincibilityCompat.Calls == 1 && ArenaSkillsExtendedCompat.Calls == 1
+            && ArenaRecoilLegacyCompat.Calls == 1,
             "All optional adapters are inspected when no earlier rejection exists");
         ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
@@ -107,6 +108,10 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaSkillsExtendedCompat.Reason,
             "Skills Extended protection failure reaches admission unchanged");
         ArenaSkillsExtendedCompat.Reason = null;
+        ArenaRecoilLegacyCompat.Reason = "Recoil Rework Legacy body handoff unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaRecoilLegacyCompat.Reason,
+            "Recoil Rework Legacy rejection reaches admission unchanged");
+        ArenaRecoilLegacyCompat.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
@@ -333,6 +338,8 @@ internal static class Program
         ArenaDeminvincibilityCompat.Calls = 0;
         ArenaSkillsExtendedCompat.Reason = null;
         ArenaSkillsExtendedCompat.Calls = 0;
+        ArenaRecoilLegacyCompat.Reason = null;
+        ArenaRecoilLegacyCompat.Calls = 0;
         // Each installed fake plugin is a distinct process identity; no production
         // statics are reset by reflection, preserving the real sticky-state logic.
     }

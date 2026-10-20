@@ -17,7 +17,19 @@ current. User-facing communication is normally German.
   See [ISB](ISB-ADMISSION-20261020.md) and
   [Skills Extended](SKILLS-EXTENDED-COMPAT-20261020.md). Native Signals rewards,
   replacements and perk interactions still require testing; do not infer
-  acceptance from the offline harnesses. Builds use explicit deployment overrides.
+  acceptance from the offline harnesses. Skills implementation: `489f833`.
+  Recoil Rework Legacy 2.0.0+ also receives a physical-body component/cache
+  handoff: the published foreign Awake destroys the new player's whole object
+  when an old singleton still exists. Both singleton guards must be transferred
+  before the original initialization, and old components are retained until
+  authoritative rewire/recovery. See [adapter](RECOIL-REWORK-COMPAT-20261020.md)
+  and [published-package audit](RECOIL-REWORK-REVIEW-20261020.md); the latter also
+  records an independent server JSON-shape concern, not fixed by this adapter.
+  No native Recoil acceptance yet. Builds use explicit deployment overrides.
+  [Combined results and pending tests](COMPAT-FIRST-INTEGRATION-20261020.md):
+  1,236 unit tests passed, one existing skip; 759 menu assertions; admission
+  113 + 19 negative controls, Skills 93 + 16, Recoil 114 + 4. Installed DLL
+  hashes remain unchanged. No push/release or version bump in this batch.
 
 - **Visible Arena admission (2026-10-20):** `1621213` adds a persistent reason
   on the native character screen, including a Core-free diagnostic bootstrap

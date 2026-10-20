@@ -158,6 +158,9 @@ Optional integration targets:
 - **Skills Extended 3.1.4+:** Signals rewards and the initial player's medical/
   weapon mastery XP callbacks are paused in Arena. Existing skills, other features
   and ordinary raids remain enabled. Offline verified; native testing is pending.
+- **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
+  Arena's replacement player bodies. Original recoil settings and ordinary raids
+  are preserved. Offline verified; native testing is pending.
 
 Targeted Factory tests cover Classic Movement/StatTrack across ordinary and
 Arena raids, SVM's SaveLoot/Ignore raid ends, CLA loading and respawns, and Demi's

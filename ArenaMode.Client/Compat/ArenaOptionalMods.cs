@@ -51,7 +51,8 @@ internal static class ArenaOptionalMods
             ?? ArenaStatTrackCompat.GetRejectionReason()
             ?? ArenaContinuousLoadAmmoCompat.GetRejectionReason()
             ?? ArenaDeminvincibilityCompat.GetRejectionReason()
-            ?? ArenaSkillsExtendedCompat.GetRejectionReason();
+            ?? ArenaSkillsExtendedCompat.GetRejectionReason()
+            ?? ArenaRecoilLegacyCompat.GetRejectionReason();
     }
 
     // Only the reviewed whole-mod startup switch is an exemption. F12 questing,

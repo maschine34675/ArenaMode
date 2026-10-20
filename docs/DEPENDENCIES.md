@@ -17,7 +17,8 @@ for every feature.
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
 Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
-Continuous Load Ammo, Deminvincibility, Skills Extended, ISB Special Forces and ISB Aishi as soft load-order dependencies.
+Continuous Load Ammo, Deminvincibility, Skills Extended, Recoil Rework Legacy,
+ISB Special Forces and ISB Aishi as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -68,6 +69,13 @@ companion also passed. Some timing/UI and replay edge cases remain untested.
 This does not certify every map, version or mod combination; the descriptions
 below state each adapter's contract.
 
+- **Recoil Rework Legacy 2.0.0+:** the two foreign recoil/camera singleton
+  components are transferred across Arena player replacements without destroying
+  either player object. Weapon-controller caches follow the physically equipped
+  weapon; retired bodies cannot update recoil. Failed replacements retain the
+  old components for Arena's recovery. Ordinary raids and saved recoil settings
+  are unchanged. Offline verified; Mono/Unity lifecycle and recoil gameplay still
+  need native tests. See [adapter and remaining checks](RECOIL-REWORK-COMPAT-20261020.md).
 - **Skills Extended 3.1.4+:** Signals reward delivery is suspended before its
   external XP journal reserves a receipt. The initial Arena player's medical
   and weapon mastery XP callbacks are detached without disturbing other event

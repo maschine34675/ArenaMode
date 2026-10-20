@@ -70,6 +70,12 @@ second Signals Boot during native loot loading, retired-world leases and exact
 delegate removal. Never clear the foreign journal, replay world initialization
 or replace ordinary XP delivery with a global Arena flag. Native perk and
 Signals-reward checks remain pending.
+Recoil Rework Legacy 2.0.0+ has a physical-body singleton handoff; read
+docs/RECOIL-REWORK-COMPAT-20261020.md before touching it. Its original Awake can
+destroy an entire newly created player if the old component still exists.
+Preserve both singleton transfers before foreign initialization, deferred
+authoritative-body commit/recovery, retired controller guards and ordinary-raid
+pass-through. Never destroy a player object or replay foreign world startup.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

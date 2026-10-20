@@ -2,8 +2,9 @@
 
 Reviewed on 2026-10-20 against ArenaMode's current SPT 4.1.6 client, local
 decompiled game code and Redeploy.Core replacement pipeline. This document is
-an investigation, not a claim of native gameplay acceptance or an implemented
-compatibility adapter.
+an investigation, not a claim of native gameplay acceptance. The subsequent
+[scoped adapter and verification](RECOIL-REWORK-COMPAT-20261020.md) address the
+client replacement conflict described here.
 
 ## Result
 

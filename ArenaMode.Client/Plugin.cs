@@ -36,6 +36,7 @@ namespace ArenaMode;
 [BepInDependency("com.ozen.continuousloadammo", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.hazelify.deminvincibility", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaSkillsExtendedContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(ArenaRecoilLegacyContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -91,6 +92,7 @@ public class Plugin : BaseUnityPlugin
         ArenaContinuousLoadAmmoCompat.Initialize();
         ArenaDeminvincibilityCompat.Initialize();
         ArenaSkillsExtendedCompat.Initialize();
+        ArenaRecoilLegacyCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -226,7 +228,11 @@ public class Plugin : BaseUnityPlugin
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void UpdateRuntime() => ArenaBigBrainLibrary.Tick();
+    private void UpdateRuntime()
+    {
+        ArenaBigBrainLibrary.Tick();
+        ArenaRecoilLegacyCompat.Tick();
+    }
 
     private void OnDestroy()
     {
@@ -250,6 +256,7 @@ public class Plugin : BaseUnityPlugin
         ArenaContinuousLoadAmmoCompat.Shutdown();
         ArenaDeminvincibilityCompat.Shutdown();
         ArenaSkillsExtendedCompat.Shutdown();
+        ArenaRecoilLegacyCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
