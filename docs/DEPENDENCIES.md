@@ -17,7 +17,7 @@ for every feature.
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, MoreBotsAPI,
 AI Limit, Questing Bots, ORBIT, Adaptive Bot Culling, Looting Bots, Remove The Dead,
 Smoothie, Continuous Healing, Late To The Party, Classic Movement, StatTrack,
-Continuous Load Ammo, Deminvincibility, Skills Extended, Recoil Rework Legacy,
+Continuous Load Ammo, Deminvincibility, Skills Extended, Recoil Rework Legacy, Pause Continued,
 ISB Special Forces and ISB Aishi as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
 The server metadata declares no additional mandatory third-party mods.
@@ -69,6 +69,11 @@ companion also passed. Some timing/UI and replay edge cases remain untested.
 This does not certify every map, version or mod combination; the descriptions
 below state each adapter's contract.
 
+- **Pause Continued 1.5.0+:** Arena prevents a new pause request before the mod
+  toggles its global flag, timers or cached player. A one-time message explains
+  the Arena-only restriction. Ordinary pause/resume and already active unpause
+  remain unchanged; saved keybindings are preserved.
+  See [pause scope and checks](PAUSE-COMPAT-20261020.md).
 - **Recoil Rework Legacy 2.0.0+:** the two foreign recoil/camera singleton
   components are transferred across Arena player replacements without destroying
   either player object. Weapon-controller caches follow the physically equipped

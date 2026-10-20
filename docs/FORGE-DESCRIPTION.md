@@ -161,6 +161,8 @@ Optional integration targets:
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Offline verified; native testing is pending.
+- **Pause Continued 1.5.0+:** pausing is unavailable during Arena, with an
+  explanation when the key is pressed. Ordinary raids can still be paused.
 
 Targeted Factory tests cover Classic Movement/StatTrack across ordinary and
 Arena raids, SVM's SaveLoot/Ignore raid ends, CLA loading and respawns, and Demi's

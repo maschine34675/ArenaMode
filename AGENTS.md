@@ -76,6 +76,10 @@ destroy an entire newly created player if the old component still exists.
 Preserve both singleton transfers before foreign initialization, deferred
 authoritative-body commit/recovery, retired controller guards and ordinary-raid
 pass-through. Never destroy a player object or replay foreign world startup.
+Pause Continued 1.5.0+ is suppressed only at a new pause activation in a confirmed
+Arena world; read docs/PAUSE-COMPAT-20261020.md. Preserve ordinary pause and all
+unpause/release paths. Do not toggle foreign saved settings or merely guard the
+private Pause method after its Update has already set the global paused flag.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and

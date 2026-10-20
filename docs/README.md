@@ -8,6 +8,7 @@ build/deployment JSON records live here. The automatically discovered
 
 - [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md)
 - [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md)
+- [Pause Continued: Arena-only activation suppression](PAUSE-COMPAT-20261020.md)
 - [Skills Extended: scoped XP and external receipt protection](SKILLS-EXTENDED-COMPAT-20261020.md)
 - [Recoil Rework Legacy: published lifecycle conflict review](RECOIL-REWORK-REVIEW-20261020.md)
 - [Recoil Rework Legacy: scoped body/component handoff](RECOIL-REWORK-COMPAT-20261020.md)

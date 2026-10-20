@@ -259,11 +259,12 @@ or future version has been tested. Optional mods retain their own prerequisites.
 | **Deminvincibility** | **2.2.0+**: immortality, Second Chance and the one-HP clamp yield to Arena death/respawn rules. Damage scaling and medicine/fracture settings remain effective. |
 | **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Existing skills, other features and ordinary raids remain enabled. Offline verified; native checks are pending. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Ordinary raids retain the original behavior. Offline verified; native checks are pending. |
+| **Pause Continued** | **1.5.0+**: pause activation is suppressed during Arena to protect match timers and replacement bodies. A notice explains the restriction; ordinary raids can still be paused. |
 
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
 Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,
 Classic Movement, StatTrack, Continuous Load Ammo, SVM, Deminvincibility,
-Skills Extended and Recoil Rework Legacy are attempted
+Skills Extended, Recoil Rework Legacy and Pause Continued are attempted
 with a warning; required API and protection checks still apply. PFT 0.10.1 and
 0.10.2 remain excluded. Passing these checks does not certify a future release.
 These adapters do not change the optional mods' saved settings or ordinary raid

@@ -9,6 +9,11 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-pause-contract'
+        Before = '?? ArenaPauseCompat.GetRejectionReason()'
+        After = ''
+    },
+    @{
         Name = 'skip-recoil-legacy-contract'
         Before = '?? ArenaRecoilLegacyCompat.GetRejectionReason()'
         After = ''

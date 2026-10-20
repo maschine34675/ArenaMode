@@ -7,6 +7,16 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Pause Continued adapter (2026-10-20, native tests pending):** version 1.5.0+
+  now rejects new pause activations only in an exactly confirmed Arena world,
+  before the foreign paused flag changes. The first attempt shows a visible
+  explanation. Ordinary pause and every unpause path remain available; no saved
+  setting is changed. [Contract and tests](PAUSE-COMPAT-20261020.md):
+  71 assertions, twelve compiled negative controls and independent review passed.
+  Integration admission: 114 assertions plus twenty negative controls; menu:
+  759 assertions. Client/companion build passed without deployment. GPU tests
+  will cover this and the previous candidate batch together.
+
 - **First candidate batch (2026-10-20, not deployed):** `2bf2d58` blocks Arena
   with loaded ISB Special Forces/Aishi on either client or server, with rejection
   before snapshot preparation. Recovery/end and ordinary raids remain available.
