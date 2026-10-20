@@ -11,7 +11,7 @@ namespace Comfort.Common
 }
 namespace EFT
 {
-    public enum GameStatus { Started, Stopping }
+    public enum GameStatus { Started, Stopping, Stopped }
     public enum ExitStatus { Killed, MissingInAction, Survived }
     public enum EBotState { PreActive, Active }
     public enum WildSpawnType { Pmc, Infected }
@@ -39,6 +39,7 @@ namespace EFT
     public class PlayerOwner { public Player Player; }
     public class LocalGame : AbstractGame
     {
+        public GameWorld GameWorld;
         public PlayerOwner Owner;
         public LocalPlayer LocalPlayer; public Profile Profile => LocalPlayer.Profile;
         public string ProfileId => Profile.Id; public GameStatus Status = GameStatus.Started;
@@ -88,6 +89,7 @@ namespace ArenaMode.Session
     public static class ArenaSession
     {
         public static bool Active = true, ZombieOwnGearActive = true; public static float ReplaySeconds;
+        public static int ArmEpoch;
         public static bool IsExactActiveRaid(LocalGame g, GameWorld w) => Active
             && ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance,g) && ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance,w);
     }

@@ -16,7 +16,7 @@ static class Program
     static void Check(bool result,string label) { checks++;if(!result)throw new Exception(label); }
     static void Fresh()
     {
-        ArenaMatchService.ResetFailedStartAbort(); Plugin.ModLogger=new();
+        ArenaMatchService.ResetFailedStartAbort(); TdmMatchExit.Reset(); ArenaMatchService.Current=null; Plugin.ModLogger=new();
         world=new();game=new(){GameWorld=world};
         world.MainPlayer=game.LocalPlayer;
         Redeploy.Core.GameAccess.LocalGameAccessor.Owner=new(){Player=game.LocalPlayer};
@@ -129,7 +129,12 @@ static class Program
         var match=File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Modes/ArenaMatchService.cs"));
         Check(match.Contains("TickFailedStartAbort();")&&match.Contains("ResetFailedStartAbort();"),"MATCH-TICK-END-WIRED");
         Check(File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Plugin.cs")).Contains("ArenaFailedStartIntro.Enable();"),"INTRO-PATCH-WIRED");
-        Console.WriteLine($"FAILED_START_ABORT_CHECKS_PASSED: {checks} assertions; linked production schedule/tick, native boundaries doubled, not GPU proof.");
+        Check(match.Contains("private static void OnRaidEnded()\r\n    {\r\n        TdmMatchExit.Reset();")
+            || match.Contains("private static void OnRaidEnded()\n    {\n        TdmMatchExit.Reset();"),"TERMINAL-END-RESET");
+        var recover=match[match.IndexOf("internal static void RecoverAtNewRaidStart()")..];
+        Check(recover.IndexOf("TdmMatchExit.Reset();")<recover.IndexOf("if (Current == null"),"TERMINAL-RECOVERY-RESET");
+        TerminalIntroChecks();
+        Console.WriteLine($"FAILED_START_ABORT_CHECKS_PASSED: {checks} assertions; linked production schedule/tick/terminal exit, native boundaries doubled, not GPU proof.");
     }
 
     static void IntroChecks()
@@ -232,6 +237,81 @@ static class Program
             try { transpile.Invoke(null,new object[]{Enumerable.Range(0,count).Select(_=>new HarmonyLib.CodeInstruction(System.Reflection.Emit.OpCodes.Call,native))}); }
             catch(System.Reflection.TargetInvocationException e) { refused=e.InnerException is InvalidOperationException; }
             Check(refused,"TRANSPILER-DRIFT-REFUSED "+count);
+        }
+    }
+
+    static void TerminalIntroChecks()
+    {
+        // Same native black-screen boundary, now reached by a legitimate result,
+        // not ScheduleFailedStartAbort. Both ordering variants are supported.
+        foreach(bool guarded in new[]{false,true})
+        foreach(bool introBeforeStop in new[]{false,true})
+        {
+            Fresh();game.LocalPlayer.ProfileId=game.ProfileId;
+            var mode=new ResultMode{Owns=true};ArenaMatchService.Current=new(){Mode=mode};
+            var ui=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=ui;
+            Action black=null;int ended=0,cosmetic=0;Coroutine delayed=null;
+            game.OnStop=()=>{
+                game.Status=GameStatus.Stopping;mode.Owns=false;
+                black=()=>{ended++;game.Status=GameStatus.Stopped;TdmMatchExit.Reset();};
+            };
+            void Queue()
+            {
+                ArenaFailedStartIntro.EnterIntro(ui,out var previous);
+                try { delayed=guarded?ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>black=()=>cosmetic++)
+                    :Utils.WaitSeconds(ui,.5f,()=>black=()=>cosmetic++); }
+                finally { ArenaFailedStartIntro.LeaveIntro(previous); }
+            }
+            if(introBeforeStop)Queue();
+            TdmMatchExit.TryStop(game,world,game.ProfileId);
+            if(!introBeforeStop)Queue();
+            Check(game.StopCalls==1&&!ArenaMatchService.TeamStartAbortPending,"TERMINAL-NO-FAILED-START-LEASE");
+            delayed.Run();black();
+            Check(guarded?ended==1&&cosmetic==0&&game.Status==GameStatus.Stopped
+                :ended==0&&cosmetic==1&&game.Status==GameStatus.Stopping,"TERMINAL-INTRO-CANCELLATION "+guarded+"/"+introBeforeStop);
+            Check(!TdmMatchExit.OwnsTerminalTeardown(game,world,game.ProfileId)||!guarded,"TERMINAL-NATIVE-END-RESET");
+        }
+        foreach(string bypass in new[]{"none","ordinary","no-result","no-op","precommit-throw","postcommit-throw",
+            "synchronous-end","synchronous-end-throw","soft-stopping","foreign-game","foreign-world","foreign-owned-world",
+            "foreign-started","epoch","profile","reset","preloader","non-intro","standdown-only"})
+        {
+            Fresh();game.LocalPlayer.ProfileId=game.ProfileId;
+            var mode=new ResultMode{Owns=true};ArenaMatchService.Current=new(){Mode=mode};
+            var ui=new EFT.UI.PreloaderUI();MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=ui;
+            int ran=0;Coroutine delayed;
+            if(bypass=="non-intro")delayed=ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>ran++);
+            else
+            {
+                ArenaFailedStartIntro.EnterIntro(ui,out var previous);
+                delayed=ArenaFailedStartIntro.WaitForFade(ui,.5f,()=>ran++);
+                ArenaFailedStartIntro.LeaveIntro(previous);
+            }
+            if(bypass=="ordinary")ArenaSession.IsActive=false;
+            if(bypass=="no-result")mode.Owns=false;
+            if(bypass=="no-op")game.OnStop=()=>{};
+            if(bypass=="precommit-throw")game.OnStop=()=>throw new Exception("before commit");
+            if(bypass=="postcommit-throw")game.OnStop=()=>{game.Status=GameStatus.Stopping;throw new Exception("after commit");};
+            if(bypass.StartsWith("synchronous-end"))game.OnStop=()=>{
+                game.Status=GameStatus.Stopped;TdmMatchExit.Reset();
+                if(bypass=="synchronous-end-throw")throw new Exception("after end");
+            };
+            if(bypass=="soft-stopping")game.OnStop=()=>game.Status=GameStatus.SoftStopping;
+            if(bypass=="standdown-only"){ArenaRespawnDriver.StandDown=true;game.Status=GameStatus.Stopping;}
+            TdmMatchExit.TryStop(game,world,game.ProfileId);
+            mode.Owns=false;
+            switch(bypass)
+            {
+                case "foreign-game":Singleton<AbstractGame>.Instance=new LocalGame();break;
+                case "foreign-world":Singleton<GameWorld>.Instance=new GameWorld();break;
+                case "foreign-owned-world":game.GameWorld=new();break;
+                case "foreign-started":ArenaSession.StartedGame=new LocalGame();break;
+                case "epoch":ArenaSession.ArmEpoch++;break;
+                case "profile":game.ProfileId="successor";break;
+                case "reset":TdmMatchExit.Reset();break;
+                case "preloader":MonoBehaviourSingleton<EFT.UI.PreloaderUI>.Instance=new();break;
+            }
+            delayed.Run();
+            Check(ran==((bypass=="none"||bypass=="postcommit-throw")?0:1),"TERMINAL-FADE-SCOPE "+bypass);
         }
     }
 }

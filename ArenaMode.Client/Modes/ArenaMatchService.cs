@@ -172,6 +172,7 @@ internal static partial class ArenaMatchService
 
     private static void OnRaidEnded()
     {
+        TdmMatchExit.Reset();
         Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
@@ -203,6 +204,7 @@ internal static partial class ArenaMatchService
     /// </summary>
     internal static void RecoverAtNewRaidStart()
     {
+        TdmMatchExit.Reset();
         // This boundary also runs for an ordinary raid after a missed GameEnd.
         // Clear cosmetic state even when no match latch survived.
         Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio recovery");

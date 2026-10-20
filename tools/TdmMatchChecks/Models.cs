@@ -3,7 +3,7 @@
 namespace UnityEngine { public static class Time { public static float timeScale = 1f; } }
 namespace EFT
 {
-    public enum GameStatus { Started, Stopping, Stopped }
+    public enum GameStatus { Started, Stopping, Stopped, Starting, SoftStopping }
     public enum ExitStatus { Survived, Killed }
     public class AbstractGame { public GameStatus Status = GameStatus.Started; }
     public class Player { public string ProfileId = "local"; public bool IsYourPlayer = true; public Health HealthController = new(); }
@@ -53,7 +53,8 @@ namespace ArenaMode.Session
     public static class ArenaSession
     {
         public static bool Exact, IsActive = true;
-        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact;
+        public static int ArmEpoch;
+        public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact && IsActive;
     }
 }
 namespace ArenaMode

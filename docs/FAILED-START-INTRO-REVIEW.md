@@ -99,6 +99,66 @@ Detailed ignored evidence: `artifacts/early-start-abort-20261017/` (fresh baseli
 delivered manifest, lifecycle/errors exports, per-raid profile comparisons and
 final DLL/follower/config audit). No publication, push or trial-ZIP refresh.
 
+## Terminal result exit extension (2026-10-20)
+
+A separate native test exposed the same timing hazard without a failed start.
+Solo Zombies with own gear started at 09:41:36.031; a deliberate UiBridge lethal
+test at .133 produced the expected terminal death and no respawn. Native Stop
+was observed at .385 and the result exit committed at .388. The client remained
+in BattleUI with the dead body for more than a minute, without a matching
+raid-end request. Evidence: GPU2 client
+`LogOutput-SPT-GPU-2-2026-10-20_09-36-54.log`.
+
+The previous guard required `OwnsFailedStartTeardown`, which this legitimate
+terminal result does not own. Native `ShowRaidStartInfo` schedules its cosmetic
+fade after 0.5 seconds, whereas solo death may enter the protected result exit
+after 0.25 seconds. The same deferred fade can therefore replace the black-screen
+coroutine carrying `GameEnd`. This is a source-supported explanation of the
+observed stall, not proof from a logged execution of that internal callback.
+It is unrelated to Demi preventing the death: native death and terminal hold
+both occurred.
+
+`TdmMatchExit` now records one exact authorization immediately before calling
+native Stop, after its existing result, body, owner and profile checks. The
+lease binds LocalGame, GameWorld, immutable profile ID and arm epoch. It can
+suppress the old intro only while that same active Arena raid has actually
+entered `Stopping` or `Stopped`, with the current singletons and game's world
+still matching. Mere result availability, StandDown, an ordinary raid, or a
+pending/no-op Stop gives no exemption. Native statuses other than those two
+do not count as a committed result exit.
+
+The lease is installed before Stop because GameEnd can finish synchronously;
+neither the return nor exception path can publish it again afterward. An
+uncommitted call clears only its own lease. Match end and the next exact raid
+start both reset it, including the recovery path where no match remains.
+The existing failed-start lease retains its separate authority. Native
+Stop/GameEnd, the 0.25-second result grace and profile restoration are unchanged;
+general/non-intro fades remain native.
+
+The offline suites link the production terminal coordinator and intro wrapper.
+An unprotected native-boundary positive control reproduces the lost GameEnd
+callback; guarded variants retain it with either intro-scheduling order.
+Controls cover ordinary raids, no result, pending/no-op/throwing Stop, native
+statuses, changed game/world/profile/epoch/preloader, non-intro fades, and
+synchronous GameEnd/reset with and without a following exception. The exact
+result dispatch remains independently linked by TdmMatchChecks. Test assertions
+are evaluated outside the production exception handler so a swallowed fixture
+exception cannot masquerade as a passing assertion.
+
+Verification evidence is staged under `artifacts/terminal-intro-20261020/`:
+TdmMatchChecks passes 287 assertions and 27 compiled negative controls;
+FailedStartAbortChecks passes 145 assertions and 25 compiled negative controls;
+ZombieSoloChecks passes 85 assertions and 13 compiled negative controls.
+The client build succeeds with zero errors and the same four existing nullable
+annotation warnings. Installed client, companion, Core and server DLL hashes
+are unchanged before/after this NoDeploy build.
+Build and native acceptance are separate: the client is built with explicit
+NoDeploy targets into that directory; this change does not itself deploy or
+restart either process. Fresh acceptance still requires an early solo-Zombie
+death reaching the result screen **and** protected raid-end/profile restore,
+followed by an ordinary raid/control. A later death alone cannot exercise the
+startup race.
+
 ## Other original team boxes
 
 Bay5 is the next straightforward candidate. Its three original gate paths are

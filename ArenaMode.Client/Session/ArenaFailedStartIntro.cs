@@ -15,7 +15,7 @@ namespace ArenaMode.Session;
 // Vanilla's delayed raid-intro fade stops the same coroutine that owns Stop's
 // GameEnd callback. One-frame deferral is insufficient: WaitSeconds runs later.
 // Keep all native scheduling, except that exact obsolete cosmetic callback once
-// this Arena raid has committed a protected failed-start exit.
+// this Arena raid has committed a protected failed-start or terminal result exit.
 internal static class ArenaFailedStartIntro
 {
     [ThreadStatic] private static PreloaderUI _intro;
@@ -41,7 +41,7 @@ internal static class ArenaFailedStartIntro
             return Utils.WaitSeconds(component, seconds, action);
 
         // Capture even before OnGameStarted: intro scheduling and confirmation
-        // can occur in either order. Only the exact confirmed abort may suppress
+        // can occur in either order. Only the exact confirmed exit may suppress
         // it later; merely selecting Arena or LastRaidWasArena is insufficient.
         var game = Singleton<AbstractGame>.Instance as LocalGame;
         var world = Singleton<GameWorld>.Instance;
@@ -51,9 +51,10 @@ internal static class ArenaFailedStartIntro
         {
             if (ReferenceEquals(MonoBehaviourSingleton<PreloaderUI>.Instance, preloader)
                 && epoch == ArenaSession.ArmEpoch
-                && ArenaMatchService.OwnsFailedStartTeardown(game, world, profileId))
+                && (ArenaMatchService.OwnsFailedStartTeardown(game, world, profileId)
+                    || TdmMatchExit.OwnsTerminalTeardown(game, world, profileId)))
             {
-                Plugin.ModLogger.LogDebug("Arena failed-start exit retained its native end callback; obsolete raid-intro fade skipped.");
+                Plugin.ModLogger.LogDebug("Arena protected exit retained its native end callback; obsolete raid-intro fade skipped.");
                 return;
             }
             action();

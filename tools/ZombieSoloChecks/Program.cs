@@ -19,6 +19,8 @@ void Check(bool condition, string reason) { checks++; if (!condition) throw new 
     var player = new LocalPlayer { IsYourPlayer = true, Profile = new() { Id = "local", Nickname = "You" } };
     var game = new LocalGame { LocalPlayer = player, Owner = new() { Player = player } };
     var world = new GameWorld { MainPlayer = player };
+    game.GameWorld = world;
+    TdmMatchExit.Reset();
     Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
     ArenaSession.Active = true; ArenaSession.ZombieOwnGearActive = ownGear; ArenaSession.ReplaySeconds = replay;
     PitFireTeamCompat.TeamArenaActive = false;

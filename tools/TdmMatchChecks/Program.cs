@@ -75,10 +75,12 @@ Check(malformedTime.Phase == TdmMatchPhase.Live, "invalid clock cannot manufactu
 {
     var game = new LocalGame(); game.Owner = new Owner { Player = game.LocalPlayer };
     var world = new GameWorld { MainPlayer = game.LocalPlayer };
+    game.GameWorld = world;
+    TdmMatchExit.Reset();
     var mode = new TeamDeathmatchMode { ResultOwnsCurrentRaid = true };
     Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
     ArenaMatchService.Current = new ArenaMatch { Mode = mode };
-    ArenaSession.Exact = true; ArenaRespawnDriver.StandDown = false;
+    ArenaSession.Exact = ArenaSession.IsActive = true; ArenaRespawnDriver.StandDown = false;
     RespawnEngineState.IsPipelineRunning = false; LocalGameAccessor.Throw = false;
     UnityEngine.Time.timeScale = 1f;
     return (game, world, mode);
@@ -98,7 +100,9 @@ Action<LocalGame, GameWorld, TeamDeathmatchMode>[] exclusions = [
     (g,w,m) => w.MainPlayer = new Player(),
     (g,w,m) => g.LocalPlayer.ProfileId = "other",
     (g,w,m) => LocalGameAccessor.Throw = true,
-    (g,w,m) => UnityEngine.Time.timeScale = 0f
+    (g,w,m) => UnityEngine.Time.timeScale = 0f,
+    (g,w,m) => g.GameWorld = new GameWorld(),
+    (g,w,m) => ArenaSession.IsActive = false
 ];
 for (int i = 0; i < exclusions.Length; i++)
 {
@@ -118,6 +122,9 @@ foreach (bool alive in new[] { true, false })
     var (g,w,_) = NewExit(); g.BeforeStop = () => throw new Exception("precommit");
     TdmMatchExit.TryStop(g,w,"local");
     Check(g.Status == GameStatus.Started && !ArenaRespawnDriver.StandDown, "precommit error restores death interception");
+    g.Status = GameStatus.Stopping;
+    Check(!TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "precommit error clears terminal lease");
+    g.Status = GameStatus.Started;
     g.BeforeStop = null; TdmMatchExit.TryStop(g,w,"local");
     Check(g.StopCalls == 2 && g.Status == GameStatus.Stopping, "precommit failure can safely retry");
 }
@@ -125,10 +132,79 @@ foreach (bool alive in new[] { true, false })
     var (g,w,_) = NewExit(); g.AfterCommit = () => throw new Exception("postcommit");
     TdmMatchExit.TryStop(g,w,"local"); TdmMatchExit.TryStop(g,w,"local");
     Check(g.StopCalls == 1 && ArenaRespawnDriver.StandDown, "postcommit failure never repeats native stop");
+    Check(TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "postcommit error retains terminal lease");
 }
 {
     var (g,w,_) = NewExit(); g.IgnoreStop = true; TdmMatchExit.TryStop(g,w,"local");
     Check(g.Status == GameStatus.Started && !ArenaRespawnDriver.StandDown, "ignored native stop retains terminal death interception");
+    g.Status = GameStatus.Stopping;
+    Check(!TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "no-op stop clears terminal lease");
+}
+foreach (bool throwAfterEnd in new[] { false, true })
+{
+    var (g,w,m) = NewExit();
+    bool ownedInsideStop = false;
+    g.AfterCommit = () =>
+    {
+        m.ResultOwnsCurrentRaid = false;
+        ownedInsideStop = TdmMatchExit.OwnsTerminalTeardown(g,w,"local");
+        TdmMatchExit.Reset();
+        if (throwAfterEnd) throw new Exception("after synchronous GameEnd");
+    };
+    TdmMatchExit.TryStop(g,w,"local");
+    Check(ownedInsideStop, "lease exists inside committed Stop without current result");
+    Check(!TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "synchronous GameEnd cannot resurrect terminal lease");
+}
+foreach (var status in new[] { GameStatus.Started, GameStatus.Starting, GameStatus.SoftStopping, GameStatus.Stopping, GameStatus.Stopped })
+{
+    var (g,w,_) = NewExit();
+    bool ownedBeforeCommit = false;
+    g.BeforeStop = () =>
+    {
+        ownedBeforeCommit = TdmMatchExit.OwnsTerminalTeardown(g,w,"local");
+        g.Status = status;
+        throw new Exception("native status probe");
+    };
+    TdmMatchExit.TryStop(g,w,"local");
+    Check(!ownedBeforeCommit, "pending terminal lease never suppresses intro");
+    bool committed = status == GameStatus.Stopping || status == GameStatus.Stopped;
+    Check(ArenaRespawnDriver.StandDown == committed, "only native teardown releases terminal death hold " + status);
+    Check(TdmMatchExit.OwnsTerminalTeardown(g,w,"local") == committed, "only native stopping statuses authorize intro guard " + status);
+    if (!committed)
+    {
+        g.Status = GameStatus.Stopping;
+        Check(!TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "non-teardown status discards lease " + status);
+    }
+}
+foreach (string mismatch in new[] { "none", "game", "world", "owned-world", "exact", "ordinary",
+    "epoch", "profile", "captured-profile", "captured-game", "captured-world", "reset" })
+{
+    var (g,w,m) = NewExit(); TdmMatchExit.TryStop(g,w,"local");
+    m.ResultOwnsCurrentRaid = false;
+    var capturedGame = g; var capturedWorld = w; string capturedProfile = "local";
+    switch (mismatch)
+    {
+        case "game": Singleton<AbstractGame>.Instance = new LocalGame(); break;
+        case "world": Singleton<GameWorld>.Instance = new GameWorld(); break;
+        case "owned-world": g.GameWorld = new GameWorld(); break;
+        case "exact": ArenaSession.Exact = false; break;
+        case "ordinary": ArenaSession.IsActive = false; break;
+        case "epoch": ArenaSession.ArmEpoch++; break;
+        case "profile": g.ProfileId = "successor"; break;
+        case "captured-profile": capturedProfile = "successor"; break;
+        case "captured-game": capturedGame = new LocalGame(); break;
+        case "captured-world":
+            capturedWorld = new GameWorld();
+            Singleton<GameWorld>.Instance = capturedWorld; g.GameWorld = capturedWorld;
+            break;
+        case "reset": TdmMatchExit.Reset(); break;
+    }
+    Check(TdmMatchExit.OwnsTerminalTeardown(capturedGame,capturedWorld,capturedProfile) == (mismatch == "none"),
+        "terminal lease exact scope " + mismatch);
+}
+{
+    var (g,w,_) = NewExit(); ArenaRespawnDriver.StandDown = true; g.Status = GameStatus.Stopping;
+    Check(!TdmMatchExit.OwnsTerminalTeardown(g,w,"local"), "StandDown alone never authorizes intro guard");
 }
 {
     var (g,w,m) = NewExit();

@@ -57,7 +57,7 @@ namespace Comfort.Common { static class Singleton<T> { public static T Instance;
 namespace EFT
 {
     enum GameStatus { Created, Running, Starting, Started, SoftStopping, Stopping, Stopped }
-    enum ExitStatus { Killed, MissingInAction }
+    enum ExitStatus { Killed, MissingInAction, Survived }
     class AbstractGame { }
     class Health { public bool IsAlive=true; }
     class Player { public string ProfileId="not-authoritative"; public Health HealthController=new(); }
@@ -89,6 +89,8 @@ namespace ArenaMode.Session
         public static bool IsActive,LastRaidWasArena;
         public static int ArmEpoch;
         public static EFT.AbstractGame StartedGame; public static EFT.GameWorld StartedWorld;
+        public static bool IsExactActiveRaid(EFT.AbstractGame game,EFT.GameWorld world)
+            => IsActive && IsExactStartedRaid(game,world);
         public static bool IsExactStartedRaid(EFT.AbstractGame game,EFT.GameWorld world)
             => game!=null&&world!=null&&ReferenceEquals(StartedGame,game)&&ReferenceEquals(StartedWorld,world);
     }
@@ -96,3 +98,12 @@ namespace ArenaMode.Session
 namespace ArenaMode.Respawn { static class ArenaRespawnDriver { public static bool StandDown; } }
 namespace ArenaMode.Compat { static class PitFireTeamCompat { public static int FinalizeCalls; public static void BeginFinalizing()=>FinalizeCalls++; } }
 namespace ArenaMode.Bots { static class BurstSpawnService { public static int Resets; public static void Reset()=>Resets++; } }
+namespace ArenaMode.Modes
+{
+    // Mode-policy boundary only. The lease, Stop coordinator and intro callback
+    // are production sources; the real result dispatch has TdmMatchChecks coverage.
+    class ResultMode { public bool Owns; }
+    class ArenaMatch { public ResultMode Mode; }
+    internal static partial class ArenaMatchService { internal static ArenaMatch Current; }
+    static class ArenaMatchResult { internal static bool OwnsRaid(ResultMode mode) => mode?.Owns == true; }
+}

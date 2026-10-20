@@ -41,7 +41,9 @@ foreach ($fault in $faults) {
     Write-Host "rejected: $name"
 }
 $introFaults = @(
-    @('intro-unprotected','&& ArenaMatchService.OwnsFailedStartTeardown(game, world, profileId)','&& false'),
+    @('intro-unprotected','ArenaMatchService.OwnsFailedStartTeardown(game, world, profileId)','false'),
+    @('terminal-intro-unprotected','TdmMatchExit.OwnsTerminalTeardown(game, world, profileId)','false'),
+    @('terminal-intro-standdown','TdmMatchExit.OwnsTerminalTeardown(game, world, profileId)','ArenaMode.Respawn.ArenaRespawnDriver.StandDown'),
     @('intro-all-fades','!ReferenceEquals(_intro, preloader)','false'),
     @('intro-stale-epoch','epoch == ArenaSession.ArmEpoch','true'),
     @('intro-foreign-preloader','ReferenceEquals(MonoBehaviourSingleton<PreloaderUI>.Instance, preloader)','true'),

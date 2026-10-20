@@ -4,9 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <AbortSource Condition="'$(AbortSource)' == ''">../../ArenaMode.Client/Modes/ArenaMatchService.Abort.cs</AbortSource>
     <IntroSource Condition="'$(IntroSource)' == ''">../../ArenaMode.Client/Session/ArenaFailedStartIntro.cs</IntroSource>
+    <ExitSource Condition="'$(ExitSource)' == ''">../../ArenaMode.Client/Modes/TdmMatchExit.cs</ExitSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AbortSource)" Link="Production/ArenaMatchService.Abort.cs" />
     <Compile Include="$(IntroSource)" Link="Production/ArenaFailedStartIntro.cs" />
+    <Compile Include="$(ExitSource)" Link="Production/TdmMatchExit.cs" />
   </ItemGroup>
 </Project>
