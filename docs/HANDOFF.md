@@ -7,6 +7,13 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Release 0.1.3 (2026-10-20):** version identities and the player README now
+  target 0.1.3. [Release notes](RELEASE-0.1.3.md) cover the changes since 0.1.2
+  and distinguish the existing native acceptance from the isolated release build.
+  The packaging pipeline does not deploy; installed gameplay binaries remain the
+  previously tested build unless a separate deployment is performed. The GitHub
+  release records the exact source, package hash and per-DLL VirusTotal reports.
+
 - **Effects Manager / Broken Limbs (2026-10-20, `0caab4e`):** the
   optional library now follows committed Arena bodies without replaying global
   raid startup or clearing other controllers' effect/skill ledgers.

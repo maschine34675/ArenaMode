@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md)
 - [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md)
 - [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md)
 - [Pause Continued: Arena-only activation suppression](PAUSE-COMPAT-20261020.md)
