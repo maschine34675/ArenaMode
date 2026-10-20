@@ -135,6 +135,13 @@ internal static class Program
         await Drain();
         Check(window.StatusHeading.Text == "Applying game settings" &&
             window.StatusDetail.Text == "Copying game settings: 5 / 5 files.", "settings import not visible in launcher");
+        await Task.Run(() => backend.Report!("Updating Arena mods: 3 / 7 files."));
+        await Drain();
+        Check(window.StatusHeading.Text == "Updating Arena mods" &&
+            window.StatusDetail.Text == "Updating Arena mods: 3 / 7 files.", "mod update totals not visible");
+        await Task.Run(() => backend.Report!("Recovering interrupted mod update. Restoring previous files."));
+        await Drain();
+        Check(window.StatusHeading.Text == "Recovering mod update", "rollback state not visible");
         await Task.Run(() => backend.Report!("Starting the private game directly. No SPT Launcher window is needed."));
         await Drain();
         Check(window.StatusHeading.Text == "Starting the game", "direct game startup not visible");
@@ -170,6 +177,21 @@ internal static class Program
         await window.StartSession();
         Check(backend.Starts == 2, "failed start can retry without inspection");
         SaveImage(window, "error");
+        backend.Preview = NewSignal<ManagedPreview>();
+        inspection = window.InspectSource();
+        backend.Preview.SetResult(Preview(true) with { Updates = new(1, 3, 2) });
+        await inspection;
+        Check(window.UpdateHint.Text.Contains("1 new · 3 changed · 2 removed") &&
+            window.StatusHeading.Text == "Ready to verify & launch" && (string)window.StartButton.Content == "Launch _Arena",
+            "pending updates lost or native UI automation contract changed");
+        SaveImage(window, "mod-update-ready");
+        backend.Preview = NewSignal<ManagedPreview>();
+        inspection = window.InspectSource();
+        backend.Preview.SetResult(Preview(true) with { RecoveryPending = true });
+        await inspection;
+        Check(window.UpdateHint.Text.Contains("previous package will be restored"), "pending recovery hidden");
+        window.SourceBox.Text = @"C:\changed";
+        Check(!window.StartButton.IsEnabled && !window.UpdateHint.Text.Contains("previous package"), "stale update preview after source change");
         window.Close();
         Check(closed, "idle window cannot close");
 
@@ -198,7 +220,7 @@ internal static class Program
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/arena-launcher-settings"));
+        var directory = Path.GetFullPath("artifacts/arena-launcher-updates");
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, "fixture-" + state + ".png"));
         encoder.Save(output);

@@ -44,6 +44,7 @@ public partial class MainWindow : Window
         PrivateSizeText.Text = SharedSizeText.Text = "—";
         DestinationText.Text = "Check an installation to see its private Arena folder.";
         EnvironmentHint.Text = "Catalog sizes, not total disk usage. Caches and logs need additional space.";
+        UpdateHint.Text = "Check an installation to see pending mod updates.";
         if (!busy) SetStatus("Check your installation", "The selected folder has changed.", false);
     }
 
@@ -75,8 +76,14 @@ public partial class MainWindow : Window
             PrivateSizeText.Text = $"{preview.PrivateBytes / 1073741824d:F2} GiB";
             SharedSizeText.Text = $"{preview.SharedBytes / 1073741824d:F2} GiB";
             EnvironmentHint.Text = preview.Exists
-                ? "Existing environment · catalog sizes only, plus caches and logs. Files are verified again on launch, not recopied."
+                ? "Existing environment · catalog sizes only, plus caches and logs. Unchanged files are verified and reused."
                 : "Created on first launch on the same NTFS drive. Catalog sizes above; caches and logs need additional space.";
+            UpdateHint.Text = preview.RecoveryPending
+                ? "Interrupted mod update detected. The previous package will be restored before verification."
+                : preview.Updates is { Total: > 0 } updates
+                    ? $"Mod update on launch: {updates.Added} new · {updates.Changed} changed · {updates.Removed} removed files."
+                    : preview.Exists ? "The recorded mod package matches the source. Private files are verified before launch."
+                    : "The first setup includes approved mods from this installation.";
             StartButton.Content = preview.Exists ? "Launch _Arena" : "Prepare & _launch";
             SetStatus(preview.Exists ? "Ready to verify & launch" : "Ready to prepare",
                 "Close normal EFT, SPT Server and SPT Launcher first. Arena opens the game directly after verification.", false);
@@ -95,7 +102,7 @@ public partial class MainWindow : Window
     {
         if (busy || preview == null) return;
         var selected = preview;
-        Begin("Preparing ArenaMode", "Copying private files only on first setup; sharing game assets through NTFS hardlinks. Verification can take several minutes.");
+        Begin("Preparing ArenaMode", "Preparing or updating private mod files; game assets stay shared through NTFS hardlinks. Verification can take several minutes.");
         var operation = epoch;
         try
         {
@@ -104,7 +111,8 @@ public partial class MainWindow : Window
             await operations.Start(selected.Source, diagnostics, message => Report(operation, message));
             preview = selected with { Exists = true };
             StartButton.Content = "Launch _Arena";
-            EnvironmentHint.Text = "Existing environment · catalog sizes only, plus caches and logs. Files are verified again on launch, not recopied.";
+            EnvironmentHint.Text = "Sizes above are from the last installation check. Recheck to refresh them after an update; caches and logs need additional space.";
+            UpdateHint.Text = "Approved mods will be checked again before the next launch.";
             SetStatus("Session finished", "The private server has stopped. You can launch again or close this window.", false);
             AppendLog("Private session finished; runtime cleanup completed.");
         }
@@ -113,7 +121,7 @@ public partial class MainWindow : Window
             preview = null;
             SetStatus("Arena start stopped", error.Message, true);
             AppendLog("Start refused: " + error.Message);
-            AddNotice("Check the installation again before retrying. No automatic reset or repair was performed.");
+            AddNotice("Check the installation again before retrying. Interrupted mod updates are rolled back before launch; profiles are never reset.");
         }
         finally { End(); }
     }
@@ -132,6 +140,9 @@ public partial class MainWindow : Window
             else if (message.StartsWith("Private Arena server PID", StringComparison.Ordinal)) StatusHeading.Text = "Starting private server";
             else if (message.StartsWith("Starting the private game directly.", StringComparison.Ordinal)) StatusHeading.Text = "Starting the game";
             else if (message.StartsWith("Copying game settings:", StringComparison.Ordinal)) StatusHeading.Text = "Applying game settings";
+            else if (message.StartsWith("Recovering interrupted mod update.", StringComparison.Ordinal)) StatusHeading.Text = "Recovering mod update";
+            else if (message.StartsWith("Updating Arena mods:", StringComparison.Ordinal) ||
+                message.StartsWith("Preparing mod update:", StringComparison.Ordinal)) StatusHeading.Text = "Updating Arena mods";
             else if (message.StartsWith("Verif", StringComparison.Ordinal) || message.StartsWith("Checking", StringComparison.Ordinal))
                 StatusHeading.Text = "Verifying files";
         }));

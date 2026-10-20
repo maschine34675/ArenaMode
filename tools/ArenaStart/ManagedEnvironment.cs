@@ -2,7 +2,8 @@ using System.Text.Json;
 
 namespace ArenaStart;
 
-public sealed record ManagedPreview(string Source, string Destination, bool Exists, long PrivateBytes, long SharedBytes);
+public sealed record ManagedPreview(string Source, string Destination, bool Exists, long PrivateBytes, long SharedBytes,
+    ModUpdateSummary? Updates = null, bool RecoveryPending = false);
 
 public static class ManagedEnvironment
 {
@@ -24,9 +25,11 @@ public static class ManagedEnvironment
         var manifest = ReadOwnedManifest(source, destination, diagnostics);
         if (manifest.Files.Count == 0 || manifest.Files.Any(f => f.Length < 0))
             throw new InvalidDataException("Invalid managed Arena file catalog.");
+        var pending = ModUpdates.Pending(destination);
         return new(source, destination, true,
             checked(manifest.Files.Where(f => !f.Shared).Sum(f => f.Length)),
-            checked(manifest.Files.Where(f => f.Shared).Sum(f => f.Length)));
+            checked(manifest.Files.Where(f => f.Shared).Sum(f => f.Length)),
+            pending ? null : ModUpdates.Inspect(manifest), pending);
     }
 
     public static string Ensure(string source, bool diagnostics = false, Action<string>? report = null)
@@ -43,7 +46,8 @@ public static class ManagedEnvironment
         }
         else
         {
-            // Never adopt, reset, silently update or merge an arbitrary directory.
+            // Never adopt/reset an arbitrary directory. RuntimeHost owns the
+            // verified mod update under the exclusive running lease.
             _ = ReadOwnedManifest(source, destination, diagnostics);
             report?.Invoke($"Reusing {destination}. All files will be verified before start.");
         }

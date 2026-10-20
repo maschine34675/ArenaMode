@@ -12,12 +12,14 @@ der normalen Arena-Client-/Server-DLLs und noch kein Bestandteil des Releases.
    beispielsweise `C:\SPT41`. **Browse** öffnet den nativen Windows-Ordnerdialog.
 3. **Check installation** liest die Auswahl. Bei einer neuen Umgebung wird nur
    der Kopier-/Hardlink-Plan berechnet; noch keine Umgebung angelegt.
-   Bei einer vorhandenen Umgebung werden Besitznachweis und Dateikatalog gelesen.
+   Bei einer vorhandenen Umgebung werden Besitznachweis und Dateikatalog gelesen
+   und ausstehende Änderungen des zugelassenen Modpakets gezählt.
    Die angezeigten Größen sind Katalogsummen, kein vollständiger Integritätscheck
    und keine Messung tatsächlich belegter NTFS-Cluster.
 4. **Prepare & launch** legt beim ersten Start `<SPT-Ordner>-Arena` automatisch an;
    danach heißt der Knopf **Launch Arena**. Der Starter prüft alle privaten Dateien,
-   Quellbindungen und freigegebenen Assets, startet den privaten Server,
+   Quellbindungen und freigegebenen Assets, übernimmt geprüfte Mod-Updates aus
+   normalem SPT, startet den privaten Server,
    meldet das Konto `Arena-Internal` nativ an und startet EFT direkt.
    Ein zusätzliches SPT-Launcher-Fenster ist nicht mehr nötig. Versionsvergleich
    und Nachweis der nativen SPT-Patchausgabe bleiben vorgeschaltet; Details im
@@ -45,16 +47,18 @@ Automation-IDs bleiben mit dem geprüften UiBridge-Direktstart kompatibel.
   obwohl die Assets nicht noch einmal gespeichert wurden.
 - Die angezeigten GiB sind Kataloggrößen, keine Messung zusätzlicher belegter
   Cluster. Private Caches, Logs, Profiländerungen und Dateisystem-Metadaten kommen
-  hinzu. Bei späteren Starts wird die bestehende Umgebung geprüft, nicht erneut
-  kopiert.
+  hinzu. Bei späteren Starts werden unveränderte Dateien geprüft und wiederverwendet;
+  nur geänderte zugelassene Mod-Dateien werden neu kopiert.
 
 Vor jedem Start werden vorhandene native Spieleinstellungen aus der normalen
 Installation als private Kopien aufgefrischt: Steuerung, Grafik, Spiel, Sound und
 PostFX. Arena schreibt nichts zurück; vorhandene Quellen ersetzen beim nächsten
-Start wieder die entsprechenden privaten Einstellungen. Mod-Dateien bleiben
-dagegen unveränderte Kopien und werden nicht automatisch aktualisiert.
+Start wieder die entsprechenden privaten Einstellungen. ArenaMode, Redeploy.Core,
+Audio und Kitdaten werden inzwischen ebenfalls vor dem Start aus der normalen
+Installation aktualisiert, ohne das interne Konto zurückzusetzen.
 Details, aktuelle EXE und Prüfungen:
-[Einstellungsübernahme und Updateverhalten](ARENA-START-SETTINGS-20261020.md).
+[Einstellungsübernahme](ARENA-START-SETTINGS-20261020.md) und
+[Mod-Updatepfad](ARENA-START-UPDATES-20261020.md).
 
 Dieser Hinweis bleibt auch beim Prüfen und Starten im Fenster sichtbar. Ein
 Hardlink allein ist kein dauerhafter Schreibschutz; die bisherigen gehaltenen
@@ -211,8 +215,9 @@ importiert und kein temporäres Drittanbieter-Testmod hinzugefügt.
 
 ## Weiterhin bestehende Grenzen
 
-Die GUI führt keinen Updater, keine Reparatur, keinen Profilimport und keine
-Umschaltung der normalen Mods ein. Die native Spieloberfläche ist noch nicht auf
+Die GUI bietet keinen allgemeinen Spiel-/SPT-Updater, keine Reparatur, keinen
+Profilimport und keine Umschaltung der normalen Mods. Der zugelassene Modkatalog
+kann kontrolliert aktualisiert werden. Die native Spieloberfläche ist noch nicht auf
 Arena beschränkt. Optionale Mods wie PFT, SAIN, APBS, ArenaMapPort und Killcam
 werden in dieser ersten isolierten Umgebung noch nicht übernommen.
 

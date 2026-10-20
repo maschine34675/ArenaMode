@@ -48,7 +48,9 @@ try
               start   <Arena-root>   Boot server and native SPT Launcher; close both game
                                     and launcher, then press Enter here to stop server.
             Normal SPT/server/launcher must be closed. This tool never imports player
-            profiles, moves original mods, downloads files or updates an existing copy.
+            profiles, moves original mods or downloads files. Before each start it refreshes
+            approved ArenaMode/Core/audio/kit files from normal SPT with rollback protection.
+            Game and SPT updates still require a new environment; unrelated mods stay excluded.
             --diagnostics at the end of play/plan/prepare additionally admits the installed
             UiBridge DLL for native testing. No original bridge configuration is imported.
             Shared content is write/delete-locked while the starter runs. Do not force-close it.

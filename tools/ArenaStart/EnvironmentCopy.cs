@@ -132,7 +132,7 @@ public static class EnvironmentCopy
                 throw new InvalidOperationException("Start normal SPT successfully once before preparing Arena; a patched assembly and native backup are required.");
         }
         if (Directory.Exists(destination) || File.Exists(destination))
-            throw new InvalidOperationException("Destination already exists. Updates/merges are deliberately unsupported.");
+            throw new InvalidOperationException("Destination already exists. Use the managed starter to verify it and refresh approved mods.");
         var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         void Add(string path)
         {
@@ -148,13 +148,7 @@ public static class EnvironmentCopy
         Add("BepInEx/patchers/spt-prepatch.dll");
         Add("BepInEx/patchers/FixPluginTypesSerialization.dll");
         foreach (var file in RuntimeFiles) Add("SPT_Runtime/" + file);
-        Add("BepInEx/plugins/maschine-Redeploy.Core.dll");
-        foreach (var file in new[] { "maschine-ArenaMode.Client.dll", "maschine-ArenaMode.BigBrainCompat.dll" })
-            Add("BepInEx/plugins/maschine-ArenaMode/" + file);
-        foreach (var tree in new[] { "announcements", "sounds", "docs" }) AddTree("BepInEx/plugins/maschine-ArenaMode/" + tree);
-        Add("SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll");
-        foreach (var file in new[] { "kits.json", "ladder.json" }) Add("SPT_Runtime/user/mods/ArenaMode/config/" + file);
-        if (diagnostics) Add("BepInEx/plugins/maschine-UiBridge.dll");
+        foreach (var file in ModPackage.Enumerate(source, diagnostics)) Add(file);
 
         // Never inherit endpoint credentials/config, native runtime caches or crash/profile material.
         files.Remove("SPT_Runtime/SPT_Data/configs/http.json");
@@ -304,7 +298,7 @@ public static class EnvironmentCopy
         }
     }
 
-    private static bool IsSourceBinding(string path) =>
+    internal static bool IsSourceBinding(string path) =>
         path is "EscapeFromTarkov.exe" or "UnityPlayer.dll" or "SPT_Runtime/SPT.Server.exe" or
             "SPT_Runtime/SPT.Server.dll" or "SPT_Runtime/SPT.Launcher.exe" or
             "BepInEx/plugins/spt/spt-core.dll" ||

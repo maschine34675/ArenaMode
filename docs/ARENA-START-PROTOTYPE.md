@@ -80,8 +80,11 @@ $starter = ".\tools\ArenaStart\bin\Release\net10.0\maschine-ArenaStart.exe"
 `play` verwaltet den Nachbarordner `D:\SPT41-Arena` automatisch. Bereits vorhandene
 fremde, unvollständige oder anders zugeordnete Ordner werden nicht übernommen,
 geleert oder repariert. Bei Folgestarts wird die vorhandene Umgebung geprüft.
-Ein Installer und eine automatische Mod-Aktualisierung sind weiterhin nicht
-vorhanden. Die inzwischen ergänzte GUI verwendet dieselben Schutzprüfungen.
+ArenaMode, Redeploy.Core, Audio, Dokumentation und Kitdaten werden vor dem Start
+kontrolliert aus der normalen Installation aufgefrischt; siehe
+[Updatepfad und Rollback](ARENA-START-UPDATES-20261020.md). Ein Installer und ein
+allgemeiner Spiel-/SPT-Updater sind nicht vorhanden. Die inzwischen ergänzte GUI
+verwendet dieselben Schutzprüfungen.
 Diese Prüfung liest weiterhin den gesamten geschützten Dateikatalog. Auch ein
 Folgestart kann deshalb auf einem langsamen Laufwerk mehrere Minuten benötigen;
 die gemeinsame Ablage spart Platz, ist noch keine Startzeitoptimierung.
@@ -100,8 +103,8 @@ Das Ziel darf noch nicht existieren und darf weder innerhalb noch oberhalb der
 Quelle liegen. Die Vorbereitung kopiert nur den festen Katalog. Bei einem
 Abbruch wird nichts automatisch gelöscht oder zusammengeführt; die unvollständige
 Umgebung startet ohne gültiges Manifest nicht. Quell- und Zielordner müssen auf
-demselben NTFS-Laufwerk liegen. Für Änderungen an übernommenen Mod-DLLs oder SPT
-ist zunächst eine neue Zielumgebung nötig. Die Versionsbindung an Spielassemblies,
+demselben NTFS-Laufwerk liegen. Für Spiel-/SPT-Updates
+ist weiterhin eine neue Zielumgebung nötig. Die Versionsbindung an Spielassemblies,
 Launcher, Server und native Patchdateien verweigert das Mischen verschiedener
 Stände. Fremde Mod-Updates werden nicht automatisch in Arena übernommen.
 
@@ -159,7 +162,7 @@ schreibgeschützt. Die private Umgebung daher ausschließlich über den Starter
   gesamten Spielbaum rekursiv wiederherstellt. Nur der geprüfte private
   Assembly-CSharp-Backup-/Patchpfad wird akzeptiert. Nach einem Start werden
   veränderte Manifesthashes niemals automatisch als neuer Sollzustand übernommen.
-- Kein Download, kein Mod-Update, kein Profil-/Fremdmod-Import und kein automatisches
+- Kein Download, kein allgemeiner Mod-Importer, kein Profil-/Fremdmod-Import und kein automatisches
   Löschen alter Installationen. Kein Deployment in die normale Installation.
 
 Das ist eine Trennung gegen versehentliche Vermischung, **keine Betriebssystem-
@@ -177,14 +180,15 @@ und wurde im privaten Serverlog beobachtet.
 
 ## Noch nicht Bestandteil dieses Prototyps
 
-- Eine eigene grafische Startoberfläche und vollständig auf Arena reduzierte
-  Spielmenüs. Native PMC-/Scav-/Stash-Seiten sind in der privaten Kopie noch
+- Vollständig auf Arena reduzierte Spielmenüs. Eine eigene
+  [grafische Startoberfläche](ARENA-LAUNCHER-UI-20261020.md) ist vorhanden.
+  Native PMC-/Scav-/Stash-Seiten sind in der privaten Kopie noch
   vorhanden; sie enthalten ausschließlich den neuen internen Charakter.
 - Ein serverseitiger Arena-only-Raidvertrag und das Ausblenden von „eigenes Gear“.
 - Optionale Modpakete einschließlich Abhängigkeitsauflösung, PFT-Begleiter und
   zusätzliche Karten. Keine fremden DLLs werden im Starter veröffentlicht.
-- Automatisierte vollständige Charaktererstellung, Update/Migration einer
-  bestehenden Arena-Umgebung und ein Installer.
+- Automatisierte vollständige Charaktererstellung, allgemeine Spiel-/SPT-Migration
+  einer bestehenden Arena-Umgebung und ein Installer.
 
 ## Diagnose auf dem GPU-Host
 

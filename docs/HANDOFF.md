@@ -7,6 +7,27 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Controlled starter mod updates (2026-10-20):** before every private start,
+  refresh only the finite ArenaMode/Core/audio/docs/kit catalog from normal SPT.
+  Keep source bindings, private profile/account, BepInEx/mod settings and
+  diagnostics mode. Validate PE identity, Arena package versions, Core minimum
+  and kit arrays; accept same-version new builds by SHA-256. Stage before writes,
+  publish a rollback journal, replace only owned files and publish manifest last.
+  Interrupted transactions restore the old package before full verification;
+  damaged or externally changed recovery state blocks launch without guessing.
+  Actual updates recheck and retain native source bindings while changing mods,
+  including Schema-1 full-copy environments.
+  Current final offline evidence: 519 core (130 update) + 34 actual-window
+  assertions, independent adversarial and render review. Native existing-folder
+  check was a no-op with 69 source and four protected private files unchanged.
+  Subsequent private CLI server smoke passed, imported five native settings,
+  preserved the account receipt/profile-file set and stopped its owned server.
+  These native no-op runs predate the final exchange-only source lease guard;
+  that guard is covered by the final regression suite, not native exchange.
+  New EXE staged at `C:\Temp\ArenaLauncher-Updates-20261020-r2\maschine-ArenaLauncher.exe`
+  on GPU2; no ordinary mod deployment or GPU game run.
+  See [update scope, rollback, artifacts and native evidence](ARENA-START-UPDATES-20261020.md).
+
 - **Native game settings in the starter (2026-10-20):** after runtime/patch
   verification and before server start, import the five native `sptSettings`
   JSON files from the verified source on every launch, including existing
@@ -14,7 +35,8 @@ current. User-facing communication is normally German.
   sources preserve private settings. Files remain mutable, outside the immutable
   manifest. All sources/targets are validated before staged atomic per-file
   replacement; failure blocks launch, without a batch rollback guarantee.
-  The UI explains this and the unchanged lack of automatic mod updates.
+  The UI explains this; the separate mod-updater entry above supersedes the
+  original lack of automatic mod updates.
   Current checks: 389 core and 29 actual-window assertions; independent review
   and 920×760 / 700×600 render checks passed. New standalone EXE staged on GPU2:
   `C:\Temp\ArenaLauncher-Settings-20261020\maschine-ArenaLauncher.exe`,
@@ -78,7 +100,8 @@ current. User-facing communication is normally German.
   creates/reuses the sibling `<source>-Arena` automatically. Mutable/executable
   files stay private; both shared names are locked against writes/deletion until
   native clients close. No ACL/attribute changes, no global mod switching, no
-  automatic update or copy fallback. The locks do not survive a forced starter
+  game/SPT update or copy fallback; approved mod updates are described above.
+  The locks do not survive a forced starter
   termination; never start the private executable directly. No ordinary profile,
   launcher configuration, BepInEx config or optional mod is imported; the private
   server creates one fresh native `Arena-Internal` account. This is additive

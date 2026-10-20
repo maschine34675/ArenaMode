@@ -74,7 +74,9 @@
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Available game settings are copied from normal SPT each launch, replacing Arena's copies. No changes write back."/>
                     <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
-                               Text="Mod updates are not automatic. Rebuild the Arena environment to use newer mods."/>
+                               Text="ArenaMode, Redeploy.Core, audio and kit data update from normal SPT before launch. Other mods stay excluded. Game/SPT updates need a new environment."/>
+                    <TextBlock x:Name="UpdateHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource AccentBrush}"
+                               Text="Check an installation to see pending mod updates."/>
                     <TextBlock x:Name="EnvironmentHint" Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}"
                                Text="Catalog sizes, not total disk usage. Caches and logs need additional space."/>
                 </StackPanel>

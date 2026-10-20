@@ -48,9 +48,12 @@ public static class RuntimeHost
         using var lease = new FileStream(EnvironmentCopy.Inside(root, ".arena-start/running"), FileMode.OpenOrCreate,
             FileAccess.ReadWrite, FileShare.None);
         EnvironmentCopy.RequireSingleLink(lease.SafeFileHandle);
+        ModUpdates.Recover(root, messages.Write);
         using var assets = new AssetLease();
         messages.Write("Verifying the private runtime and shared assets. This can take several minutes.");
         var manifest = EnvironmentCopy.Verify(root, messages.Write, lease.SafeFileHandle, assets);
+        RequireIdle();
+        manifest = ModUpdates.Apply(manifest, messages.Write);
         RequireIdle();
         if (directGame)
         {

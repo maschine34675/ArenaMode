@@ -66,17 +66,18 @@ setzt beide `SettingsManager`-Pfade relativ zum Arbeitsverzeichnis;
 
 ## Mod- und SPT-Updates
 
-Die Einstellungsübernahme ist **kein Mod-Updater**:
+Die Einstellungsübernahme bleibt vom inzwischen ergänzten
+[kontrollierten Mod-Updatepfad](ARENA-START-UPDATES-20261020.md) getrennt:
 
 | Änderung in normalem SPT | Verhalten der bestehenden Arena-Umgebung |
 |---|---|
-| ArenaMode-DLLs, Audio, `kits.json`, `ladder.json`, Redeploy.Core | Private Kopien bleiben auf ihrem alten Stand. Keine automatische Übernahme oder Updatewarnung. |
+| ArenaMode-DLLs, Audio, `kits.json`, `ladder.json`, Redeploy.Core | Geänderte zugelassene Dateien werden vor dem Start aus normalem SPT übernommen; vorhandenes internes Konto bleibt bestehen. Die Vorschau nennt neue/geänderte/entfernte Dateien. |
 | Optionale/fremde Mods | Nicht im festen Katalog, daher weiterhin nicht übernommen. |
 | Gebundene Spiel-/SPT-Dateien, etwa EFT.exe, UnityPlayer, SPT.Server, Launcher, spt-core, Managed, native Patches | Geänderter Quellenhash verweigert den nächsten Start. |
 | Bereits katalogisierte gemeinsame Assets | Geänderte Daten oder eine ausgetauschte Dateiidentität verweigern den Start. Neue Quellassets werden nicht automatisch ergänzt. |
 | Andere private SPT-/Serverdaten ohne Quellenbindung | Bleiben ebenfalls alte Kopien; eine allgemeine Updateerkennung existiert nicht. |
 
-Für aktualisierte Mods ist derzeit eine **neue private Umgebung** nötig. Nach
+Für Spiel-/SPT-Updates ist weiterhin eine **neue private Umgebung** nötig. Nach
 normalem Beenden aller Clients/Server kann der bisherige `<SPT>-Arena`-Ordner
 bewusst archiviert werden; **Prepare & launch** erstellt danach den festen
 Nachbarordner erneut. Dabei entsteht ein neues internes Konto. Eine automatische
@@ -84,9 +85,10 @@ Migration des bisherigen Arena-Kontos ist nicht implementiert.
 
 Keine einzelnen DLLs von Hand überschreiben und keine Manifesthashes nachziehen:
 das umgeht die vorgesehene Zusammenstellung bzw. verletzt deren Integritätsprüfung.
-Ein kontrolliertes Aktualisieren zugelassener Mod-Dateien bleibt separate Arbeit.
+Der Mod-Updater ersetzt nur vorher verifizierte, eigene Paketdateien und aktualisiert
+deren Manifesteinträge nach erfolgreichem Austausch.
 
-## Prüfung und Artefakt
+## Historische Prüfung und Artefakt vor dem Mod-Updater
 
 - `ArenaStartChecks`: **389 Assertions bestanden**, darunter 77 neue Import-
   Prüfungen sowie vier Prüfungen mit echtem vorbereitetem Manifest und
