@@ -39,6 +39,10 @@
     <Compile Include="..\ArenaMode.Shared\ArenaEquatorTeamSpawns.cs" Link="Shared\ArenaEquatorTeamSpawns.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaTeamBoxCatalog.cs" Link="Shared\ArenaTeamBoxCatalog.cs" />
     <Compile Include="..\ArenaMode.Shared\PitFireTeamVersions.cs" Link="Shared\PitFireTeamVersions.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaSessionContract.cs" Link="Shared\Session\ArenaSessionContract.cs" />
   </ItemGroup>
 
   <ItemGroup>

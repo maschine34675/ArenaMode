@@ -9,6 +9,16 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-whitelist-admission'
+        Before = 'if (whitelistFailure != null) return whitelistFailure;'
+        After = ''
+    },
+    @{
+        Name = 'whitelist-behind-orbit'
+        Before = 'var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();'
+        After = 'var whitelistFailure = Chainloader.PluginInfos.ContainsKey(OrbitGuid) ? null : ArenaWhitelistAdmission.GetRejectionReason();'
+    },
+    @{
         Name = 'skip-effects-contract'
         Before = '?? ArenaEffectsCompat.GetRejectionReason()'
         After = ''

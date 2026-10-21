@@ -13,13 +13,24 @@ DOCS = ASSETS + 'docs/'
 MANIFEST = DOCS + 'PACKAGE-MANIFEST.json'
 AUDIO_DOCS = DOCS + 'licenses/audio/'
 WAVS = {ASSETS + 'sounds/' + name + '.wav' for name in ('collect', 'headshot', 'hit', 'kill')}
+# Arena session (docs/ARENA-SESSION-20261021.md): the gate is a preloader patcher in its own folder; the
+# helper is the only executable of the package and sits beside the client DLL with the shipped default list.
+GATE = 'BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll'
 DLLS = {
     ASSETS + 'maschine-ArenaMode.Client.dll',
     ASSETS + 'maschine-ArenaMode.BigBrainCompat.dll',
     'BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll',
+    GATE,
 }
-REQUIRED = DLLS | {
+EXES = {ASSETS + 'maschine-ArenaMode.Session.exe'}
+WHITELIST = ASSETS + 'arena-whitelist.json'
+# The user's decision (2026-10-21): these mods are always on the shipped default list.
+DEFAULT_WHITELIST_GUIDS = {
+    'me.sol.sain', 'com.acidphantasm.progressivebotsystem', 'com.acidphantasm.botplacementsystem',
+    'xyz.drakia.bigbrain', 'xyz.drakia.waypoints',
+}
+REQUIRED = DLLS | EXES | {WHITELIST,
     DOCS + 'INSTALL.txt', DOCS + 'README.md', DOCS + 'LICENSE',
     DOCS + 'THIRD-PARTY-NOTICES.md', MANIFEST,
     AUDIO_DOCS + 'ANNOUNCER-ADDITIONS-20260917.json', AUDIO_DOCS + 'ANNOUNCER-SOURCES.json',
@@ -59,15 +70,16 @@ def verify(path):
                 ('announcements', 'docs/licenses/map-previews')), f'Unexpected payload: {name}'
             if name.startswith(ASSETS + 'announcements/'):
                 assert re.fullmatch(re.escape(ASSETS) + r'announcements/[a-z0-9_]+\.ogg', name), f'Non-runtime or nested announcement: {name}'
-            assert PurePosixPath(name).suffix.lower() not in {'.exe', '.pdb', '.cfg', '.log', '.zip'}, f'Forbidden payload: {name}'
+            assert PurePosixPath(name).suffix.lower() not in {'.exe', '.pdb', '.cfg', '.log', '.zip'} or name in EXES, f'Forbidden payload: {name}'
         assert REQUIRED <= set(names), f'Missing files: {REQUIRED - set(names)}'
         assert {name for name in names if name.lower().endswith('.dll')} == DLLS, 'Unexpected DLL set'
+        assert {name for name in names if name.lower().endswith('.exe')} == EXES, 'Unexpected executable set'
         manifest = json.loads(archive.read(MANIFEST))
         assert manifest['schemaVersion'] == 2 and manifest['kind'] in {'local-test', 'release'}
         label = 'RELEASE PACKAGE' if manifest['kind'] == 'release' else 'LOCAL TEST PACKAGE'
         install = archive.read(DOCS + 'INSTALL.txt').decode('utf-8-sig')
         assert install.splitlines()[0] == f"ArenaMode {manifest['arenaVersion']} - {label}", 'Package label/manifest mismatch'
-        assert manifest['layout'] == 'spt-root-folders-v5', 'Unexpected package layout version'
+        assert manifest['layout'] == 'spt-root-folders-v6', 'Unexpected package layout version'
         assert not manifest['deployed'] and not manifest['uploaded']
         for key in ('arenaCommit', 'redeployCoreCommit'):
             assert len(manifest[key]) == 40 and all(c in '0123456789abcdef' for c in manifest[key]), key
@@ -78,11 +90,19 @@ def verify(path):
             data = archive.read(item['path'])
             assert len(data) == item['bytes'], f"Size mismatch: {item['path']}"
             assert hashlib.sha256(data).hexdigest() == item['sha256'], f"Hash mismatch: {item['path']}"
-            if item['path'] in DLLS:
-                assert data[:2] == b'MZ', f"Not a DLL: {item['path']}"
+            if item['path'] in DLLS | EXES:
+                assert data[:2] == b'MZ', f"Not a DLL or executable: {item['path']}"
         for name in ('kits.json', 'ladder.json'):
             data = json.loads(archive.read('SPT_Runtime/user/mods/ArenaMode/config/' + name))
             assert data, f'Empty defaults: {name}'
+        # The shipped Arena session whitelist: a schema 1 policy whose entries name exactly one unit each and
+        # which keeps the agreed default mods. (A broken file would make every Arena session unavailable.)
+        policy = json.loads(archive.read(WHITELIST))
+        assert policy.get('schema') == 1 and isinstance(policy.get('mods'), list) and policy['mods'], 'Bad default whitelist'
+        for entry in policy['mods']:
+            assert isinstance(entry, dict) and ('guid' in entry) != ('patcher' in entry), f'Whitelist entry needs one of guid and patcher: {entry}'
+        listed = {entry['guid'].lower() for entry in policy['mods'] if 'guid' in entry}
+        assert DEFAULT_WHITELIST_GUIDS <= listed, f'Default whitelist lost: {DEFAULT_WHITELIST_GUIDS - listed}'
         links = 0
         for name in names:
             if not name.endswith('.md'):
@@ -123,7 +143,7 @@ def verify(path):
             assert hashlib.sha256(archive.read(license_path)).hexdigest() == record['licenseSha256'].lower(), license_path
         assert wav_files == WAVS, 'Unrecorded/missing effect file'
         assert archive.testzip() is None, 'ZIP CRC failure'
-        print(f'TEST_RELEASE_VERIFIED: {len(names)} files; folder-only root, exact DLL set, paths, hashes, defaults, {links} local notice links and {len(audio_files)} audio provenance records')
+        print(f'TEST_RELEASE_VERIFIED: {len(names)} files; folder-only root, exact DLL and helper set, whitelist, paths, hashes, defaults, {links} local notice links and {len(audio_files)} audio provenance records')
 
 
 if __name__ == '__main__':

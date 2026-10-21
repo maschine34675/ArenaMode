@@ -2,4 +2,7 @@
   <Target Name="DeployToSpt" />
   <Target Name="SPTClientDeploy" />
   <Target Name="DeployArenaAudioAssets" />
+  <!-- Arena session files (docs/ARENA-SESSION-20261021.md section 9): the gate patcher and the helper exe. -->
+  <Target Name="DeployArenaGate" />
+  <Target Name="DeployArenaSessionHelper" />
 </Project>

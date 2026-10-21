@@ -63,6 +63,13 @@ foreach ($relative in @('hitmarkers', 'pickups', 'docs/ANNOUNCER-PACK.md', 'docs
     Check (-not (Test-Path -LiteralPath (Join-Path $target $relative))) ('fresh payload excludes retired path ' + $relative)
 }
 Check (-not (Test-Path -LiteralPath (Join-Path $fresh ('BepInEx/plugins/' + $dll)))) 'fresh deploy never writes flat DLL'
+# Arena session (docs/ARENA-SESSION-20261021.md section 9): the shipped default whitelist is a shared-writer asset.
+$sourceWhitelist = Join-Path $repo 'assets/arena-whitelist.json'
+Check ((Get-FileHash -LiteralPath (Join-Path $target 'arena-whitelist.json')).Hash -ceq (Get-FileHash -LiteralPath $sourceWhitelist).Hash) 'fresh deployment installs the shipped default whitelist unchanged'
+Check (-not (Test-Path -LiteralPath (Join-Path $fresh 'BepInEx/config'))) 'client deployment never writes BepInEx/config (the user whitelist is not shipped)'
+Put $fresh 'BepInEx/plugins/maschine-ArenaMode/arena-whitelist.json' 'edited by hand'
+Deploy $fresh
+Check ((Get-FileHash -LiteralPath (Join-Path $target 'arena-whitelist.json')).Hash -ceq (Get-FileHash -LiteralPath $sourceWhitelist).Hash) 'the shipped default whitelist is overwritten by an update'
 
 $old = Join-Path $run 'legacy'
 Put $old 'BepInEx/plugins/ArenaMode/AreaDrafts/custom.json' 'area-user-data'
@@ -84,6 +91,7 @@ Put $old 'BepInEx/plugins/ArenaMode/MapPreviews/Source/Customs-Ground_Level.svg'
 Put $old 'BepInEx/plugins/ArenaMode/hitmarkers/KENNEY-IMPACT-LICENSE.txt' 'obsolete notice'
 Put $old 'BepInEx/plugins/ArenaMode/pickups/custom.txt' 'user pickup notes'
 Put $old 'BepInEx/config/com.maschine.ArenaMode.cfg' 'user-settings'
+Put $old 'BepInEx/config/com.maschine.ArenaMode.whitelist.json' 'user-whitelist'
 Put $old 'BepInEx/plugins/maschine-Redeploy.Core.dll' 'untouched-shared-core'
 Put $old 'BepInEx/plugins/Foreign.dll' 'untouched-foreign-mod'
 foreach ($name in @($dll, $compat)) {
@@ -116,6 +124,8 @@ Check (-not (Test-Path -LiteralPath (Join-Path $target 'MapPreviews'))) 'empty r
 Check (-not (Test-Path -LiteralPath (Join-Path $target 'hitmarkers/KENNEY-IMPACT-LICENSE.txt'))) 'unused owned license archived'
 Check ([IO.File]::ReadAllText((Join-Path $target 'pickups/custom.txt')) -ceq 'user pickup notes') 'unknown pickup files preserved'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/config/com.maschine.ArenaMode.cfg')) -ceq 'user-settings') 'user config unchanged'
+Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/config/com.maschine.ArenaMode.whitelist.json')) -ceq 'user-whitelist') 'user whitelist unchanged'
+Check ((Get-FileHash -LiteralPath (Join-Path $target 'arena-whitelist.json')).Hash -ceq (Get-FileHash -LiteralPath $sourceWhitelist).Hash) 'migrated installation receives the shipped default whitelist'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/maschine-Redeploy.Core.dll')) -ceq 'untouched-shared-core') 'shared Core unchanged by client deploy'
 Check ([IO.File]::ReadAllText((Join-Path $old 'BepInEx/plugins/Foreign.dll')) -ceq 'untouched-foreign-mod') 'other mod unchanged'
 Check (@(Get-ChildItem -LiteralPath (Join-Path $old 'BepInEx/backups/maschine-ArenaMode-layout') -File -Recurse).Count -ge 4) 'old flat files remain recoverable outside plugin scan'
@@ -187,4 +197,134 @@ Deploy $linked 'Release' $false $true
 Check ([IO.File]::ReadAllText((Join-Path $external 'keep.txt')) -ceq 'untouched link destination') 'junction destination untouched'
 Check (@(Get-ChildItem -LiteralPath $external -File).Count -eq 1) 'junction never receives DLL or payload'
 Check (Test-Path -LiteralPath (Join-Path $linked 'BepInEx/plugins/ArenaMode/keep.txt')) 'junction rejection leaves legacy folder unmoved'
+# ---- Arena session files: gate patcher and helper exe (tools/Deploy-ArenaSession.ps1) -------------------
+# Built here without deployment (the no-deploy override and an absent server mods folder, like every offline
+# build of this repository), then installed into scratch roots by the real MSBuild targets.
+$noDeployTargets = Join-Path $repo 'tools/AirPitChecks/NoDeploy.targets'
+$sessionDeployScript = Join-Path $repo 'tools/Deploy-ArenaSession.ps1'
+function Build-Session([string]$Project, [string]$Configuration) {
+    $log = Join-Path $run (([guid]::NewGuid().ToString('N')) + '.log')
+    & dotnet build (Join-Path $repo $Project) -c $Configuration -nologo "-p:CustomAfterMicrosoftCommonTargets=$noDeployTargets" `
+        "-p:SPTUserMods=$(Join-Path $run 'must-not-exist')" *> $log
+    if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $log -Tail 25 | Out-Host; throw "Session project build failed: $Project; see $log" }
+}
+$builds = [ordered]@{}
+foreach ($configuration in @('Release', 'Debug')) {
+    Build-Session 'ArenaMode.Gate/ArenaMode.Gate.csproj' $configuration
+    Build-Session 'ArenaMode.Session/ArenaMode.Session.csproj' $configuration
+    $builds[$configuration] = [ordered]@{
+        Gate = Join-Path $repo "ArenaMode.Gate/bin/$configuration/maschine-ArenaMode.Gate.dll"
+        Helper = Join-Path $repo "ArenaMode.Session/bin/$configuration/maschine-ArenaMode.Session.exe"
+    }
+    foreach ($built in $builds[$configuration].Values) { Check (Test-Path -LiteralPath $built) "built $built" }
+}
+$sessionParts = @{
+    Gate = @{ Project = 'ArenaMode.Gate/ArenaMode.Gate.csproj'; Target = 'DeployArenaGate'; Folder = 'BepInEx/patchers/maschine-ArenaMode'; Name = 'maschine-ArenaMode.Gate.dll' }
+    Helper = @{ Project = 'ArenaMode.Session/ArenaMode.Session.csproj'; Target = 'DeployArenaSessionHelper'; Folder = 'BepInEx/plugins/maschine-ArenaMode'; Name = 'maschine-ArenaMode.Session.exe' }
+}
+function Deploy-Session([string]$Part, [string]$Root, [string]$Configuration = 'Release', [string[]]$Extra = @(), [bool]$MustFail = $false) {
+    $spec = $sessionParts[$Part]
+    $arguments = @('msbuild', (Join-Path $repo $spec.Project), "-t:$($spec.Target)", '-nologo',
+        "-p:SPTPath=$Root", "-p:TargetPath=$($builds[$Configuration][$Part])", "-p:Configuration=$Configuration") + $Extra
+    $log = Join-Path $run (([guid]::NewGuid().ToString('N')) + '.log')
+    & dotnet @arguments *> $log
+    $exit = $LASTEXITCODE
+    if (($exit -ne 0) -ne $MustFail) { Get-Content -LiteralPath $log -Tail 25 | Out-Host; throw "Unexpected session deploy result $exit ($Part); see $log" }
+}
+function Installed([string]$Root, [string]$Part) { Join-Path $Root ($sessionParts[$Part].Folder + '/' + $sessionParts[$Part].Name) }
+function Same([string]$Left, [string]$Right) { (Test-Path -LiteralPath $Left) -and ((Get-FileHash -LiteralPath $Left).Hash -ceq (Get-FileHash -LiteralPath $Right).Hash) }
+
+$session = Join-Path $run 'session'
+Put $session 'BepInEx/plugins/Foreign.dll' 'untouched-foreign-mod'
+Put $session 'BepInEx/patchers/FixPluginTypesSerialization.dll' 'untouched-foreign-patcher'
+Put $session 'BepInEx/config/com.maschine.ArenaMode.whitelist.json' 'user-whitelist'
+$untouched = Snapshot $session | ConvertFrom-Json -AsHashtable
+Deploy-Session 'Gate' $session
+Deploy-Session 'Helper' $session
+Check (Same (Installed $session 'Gate') $builds['Release'].Gate) 'gate lands in BepInEx/patchers/maschine-ArenaMode'
+Check (Same (Installed $session 'Helper') $builds['Release'].Helper) 'helper lands beside the client DLL in BepInEx/plugins/maschine-ArenaMode'
+$state = Snapshot $session
+$installedSet = $state | ConvertFrom-Json -AsHashtable
+Check ($installedSet.Count -eq $untouched.Count + 2) 'session deployment writes exactly two new files (no pdb, no pending file, nothing else)'
+foreach ($key in $untouched.Keys) { Check ($installedSet[$key] -ceq $untouched[$key]) "session deploy leaves $key alone" }
+Check ($installedSet['BepInEx\patchers\maschine-ArenaMode\maschine-ArenaMode.Gate.dll'] -ceq (Get-FileHash -LiteralPath $builds['Release'].Gate).Hash) 'gate snapshot entry matches the build'
+Check ($installedSet['BepInEx\plugins\maschine-ArenaMode\maschine-ArenaMode.Session.exe'] -ceq (Get-FileHash -LiteralPath $builds['Release'].Helper).Hash) 'helper snapshot entry matches the build'
+# Copy-Item keeps the source's write time, so a rewrite shows in the creation time of the new file.
+$stamp = (Get-Item -LiteralPath (Installed $session 'Gate')).CreationTimeUtc
+Start-Sleep -Milliseconds 1200
+Deploy-Session 'Gate' $session
+Deploy-Session 'Helper' $session
+Check ((Snapshot $session) -ceq $state) 'repeated session deployment changes nothing'
+Check ((Get-Item -LiteralPath (Installed $session 'Gate')).CreationTimeUtc -eq $stamp) 'identical gate is not rewritten (no file churn in synchronised installations)'
+
+foreach ($part in @('Gate', 'Helper')) {
+    [IO.File]::WriteAllText((Installed $session $part), 'stale build')
+    $stale = Snapshot $session
+    Deploy-Session $part $session 'Release' @("-p:CustomAfterMicrosoftCommonTargets=$noDeployTargets")
+    Check ((Snapshot $session) -ceq $stale) "NoDeploy override suppresses the $part deployment"
+    Deploy-Session $part $session 'Release' @('-p:SPTModType=NoDeploy')
+    Check ((Snapshot $session) -ceq $stale) "-p:SPTModType=NoDeploy suppresses the $part deployment"
+    Deploy-Session $part $session
+    Check (Same (Installed $session $part) $builds['Release'][$part]) "$part replaces a different installed file"
+}
+Check ((Snapshot $session) -ceq $state) 'replacement restores the exact installed set'
+
+# Debug symbols travel with a Debug build only; a Release build archives a stale pair outside plugin discovery.
+Deploy-Session 'Gate' $session 'Debug'
+Deploy-Session 'Helper' $session 'Debug'
+foreach ($part in @('Gate', 'Helper')) {
+    Check (Same (Installed $session $part) $builds['Debug'][$part]) "Debug $part deployed"
+    Check (Test-Path -LiteralPath ([IO.Path]::ChangeExtension((Installed $session $part), '.pdb'))) "Debug $part has its symbols"
+}
+Deploy-Session 'Gate' $session
+Deploy-Session 'Helper' $session
+foreach ($part in @('Gate', 'Helper')) {
+    Check (Same (Installed $session $part) $builds['Release'][$part]) "Release $part replaces the Debug build"
+    Check (-not (Test-Path -LiteralPath ([IO.Path]::ChangeExtension((Installed $session $part), '.pdb')))) "Release retires stale $part symbols"
+}
+Check (@(Get-ChildItem -LiteralPath (Join-Path $session 'BepInEx/backups/maschine-ArenaMode-layout') -File -Recurse -Filter '*.pdb').Count -eq 2) 'retired symbols remain recoverable outside plugin and patcher discovery'
+Check (@(Get-ChildItem -LiteralPath (Join-Path $session 'BepInEx') -File -Recurse -Filter '*.pending').Count -eq 0) 'no staged copy is left behind'
+
+# Safety rules shared with the client deployer.
+$renamedGate = Join-Path $run 'renamed.dll'
+Copy-Item -LiteralPath $builds['Release'].Gate -Destination $renamedGate
+foreach ($case in @(@('a client assembly', (Join-Path $source $dll)), @('a renamed gate', $renamedGate))) {
+    $guardRoot = Join-Path $run ('session-guard-' + [guid]::NewGuid().ToString('N'))
+    Put $guardRoot 'BepInEx/keep.txt' 'keep'
+    $before = Snapshot $guardRoot
+    & pwsh -NoLogo -NoProfile -File $sessionDeployScript -AssemblyPath $case[1] -SptPath $guardRoot *> $null
+    Check ($LASTEXITCODE -ne 0) "session deployer refuses $($case[0])"
+    Check ((Snapshot $guardRoot) -ceq $before) "refusing $($case[0]) writes nothing"
+}
+$lockedSession = Join-Path $run 'session-locked'
+Put $lockedSession 'BepInEx/keep.txt' 'keep'
+Deploy-Session 'Helper' $lockedSession
+$before = Snapshot $lockedSession
+$hold = [IO.File]::Open((Installed $lockedSession 'Helper'), [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+try { Deploy-Session 'Helper' $lockedSession 'Release' @() $true } finally { $hold.Dispose() }
+Check ((Snapshot $lockedSession) -ceq $before) 'a running (locked) helper blocks the deployment before any write'
+$before = Snapshot $session
+$holdGate = [IO.File]::Open((Installed $session 'Gate'), [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+try { Deploy-Session 'Gate' $session 'Release' @() $true } finally { $holdGate.Dispose() }
+Check ((Snapshot $session) -ceq $before) 'a loaded (locked) gate blocks the deployment before any write'
+
+# A link at the target folder itself (the write would land in the destination) and a link further up.
+$linkIndex = 0
+foreach ($case in @(@('Gate', 'BepInEx/patchers'), @('Gate', 'BepInEx/patchers/maschine-ArenaMode'), @('Helper', 'BepInEx/plugins/maschine-ArenaMode'))) {
+    $linkIndex++
+    $linkedRoot = Join-Path $run ("session-linked-$linkIndex")
+    $linkTarget = Join-Path $run ("session-link-destination-$linkIndex")
+    Put $linkTarget 'keep.txt' 'untouched link destination'
+    Put $linkedRoot 'BepInEx/plugins/keep.txt' 'keep'
+    New-Item -ItemType Directory -Path (Split-Path (Join-Path $linkedRoot $case[1])) -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $linkedRoot $case[1]) -Target $linkTarget | Out-Null
+    Deploy-Session $case[0] $linkedRoot 'Release' @() $true
+    Check (@(Get-ChildItem -LiteralPath $linkTarget -Recurse -File).Count -eq 1) "junction at $($case[1]) never receives the $($case[0])"
+}
+$blockedSession = Join-Path $run 'session-blocked'
+Put $blockedSession 'BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll/keep.txt' 'do not touch'
+$before = Snapshot $blockedSession
+Deploy-Session 'Gate' $blockedSession 'Release' @() $true
+Check ((Snapshot $blockedSession) -ceq $before) 'a directory in place of the gate aborts before any write'
+
 Write-Output "DEPLOY_LAYOUT_PASSED ($checks checks; scratch $run; no real installation writes)"

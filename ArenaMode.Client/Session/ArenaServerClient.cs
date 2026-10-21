@@ -5,10 +5,31 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ArenaMode.Session;
+
+/// <summary>
+/// One server mod as the ping reports it (Arena session spec, section 8): GUID, display name,
+/// version and the absolute folder on the server's machine.
+/// </summary>
+internal sealed class ArenaServerModInfo
+{
+    internal ArenaServerModInfo(string guid, string name, string version, string folder)
+    {
+        Guid = guid;
+        Name = name;
+        Version = version;
+        Folder = folder;
+    }
+
+    internal string Guid { get; }
+    internal string Name { get; }
+    internal string Version { get; }
+    internal string Folder { get; }
+}
 
 /// <summary>
 /// Client side of the ArenaMode server routes. All calls are synchronous and
@@ -22,6 +43,32 @@ public static class ArenaServerClient
     private static bool _probeFailed;
     private static string _serverAdmissionFailure;
     internal static string ServerAdmissionFailure => _available == true ? _serverAdmissionFailure : null;
+
+    // Optional Arena-session fields of the ping. An older server sends neither: that reads as "no
+    // session support" (SessionFieldsPresent false, ServerMods null) and never as an error.
+    private const int MaxServerMods = 512;
+    private static bool _sessionFieldsPresent;
+    private static bool _arenaInstance;
+    private static List<ArenaServerModInfo> _serverMods;
+    private static int _pingGeneration;
+
+    /// <summary>
+    /// Counts completed ping attempts (successful or not). Cached answers derived from the ping, such
+    /// as the whitelist admission, are valid for exactly one generation.
+    /// </summary>
+    internal static int PingGeneration => _pingGeneration;
+
+    /// <summary>True when the last successful ping carried the Arena-session fields (a current server).</summary>
+    internal static bool SessionFieldsPresent => _available == true && _sessionFieldsPresent;
+
+    /// <summary>True only when the last ping said <c>arenaInstance: true</c> (an Arena session server).</summary>
+    internal static bool IsArenaInstance => _available == true && _arenaInstance;
+
+    /// <summary>
+    /// Every mod the server has loaded, from the last ping; null when the server did not report them
+    /// (older server, or no successful ping).
+    /// </summary>
+    internal static IReadOnlyList<ArenaServerModInfo> ServerMods => _available == true ? _serverMods : null;
     private static readonly string ClientProcessId = Guid.NewGuid().ToString("N");
     private static string _pendingArmToken;
     private static string _activeArmToken;
@@ -65,16 +112,12 @@ public static class ArenaServerClient
                 try
                 {
                     _probeFailed = false;
-                    var response = RequestHandler.GetJson(Protocol.PingRoute);
-                    var ping = JObject.Parse(response);
-                    var version = ping["version"];
-                    var failure = ping["admissionFailure"];
-                    _serverAdmissionFailure = failure?.Type == JTokenType.String ? failure.Value<string>() : null;
-                    _available = version?.Type == JTokenType.String && !string.IsNullOrEmpty(version.Value<string>());
-                    _probeFailed = !_available.Value;
+                    ApplyPingResponse(RequestHandler.GetJson(Protocol.PingRoute));
                 }
                 catch (Exception ex)
                 {
+                    ClearSessionFields();
+                    _pingGeneration++;
                     // SPT 4.1's installed Client.SendAsync throws this generic
                     // exception for a 404; GetJson wraps it in AggregateException.
                     // There is no status-code property on that exception. Only
@@ -89,6 +132,87 @@ public static class ArenaServerClient
             return _available.Value;
         }
     }
+
+    /// <summary>Stores one ping answer. Parses first, so a malformed answer changes nothing.</summary>
+    private static void ApplyPingResponse(string response)
+    {
+        var ping = JObject.Parse(response);
+        var version = ping["version"];
+        var failure = ping["admissionFailure"];
+        _serverAdmissionFailure = failure?.Type == JTokenType.String ? failure.Value<string>() : null;
+        ReadSessionFields(ping);
+        _available = version?.Type == JTokenType.String && !string.IsNullOrEmpty(version.Value<string>());
+        _probeFailed = !_available.Value;
+        _pingGeneration++;
+    }
+
+    /// <summary>
+    /// Asks the server for its ping without ever holding the caller longer than the budget: the request
+    /// runs on a worker thread and an answer that arrives later is dropped. Only a successful answer
+    /// changes anything (the same effect as a successful <see cref="RefreshAvailability"/>); a timeout or
+    /// an unreachable server leaves every cached answer alone, so merely opening a menu can neither
+    /// freeze it nor latch an outage. Used where the Arena-session fields of the ping are wanted at
+    /// screen open; the explicit Arena click keeps using <see cref="RefreshAvailability"/>.
+    /// </summary>
+    internal static bool TryRefreshWithin(int milliseconds)
+    {
+        try
+        {
+            var request = Task.Run(() => RequestHandler.GetJson(Protocol.PingRoute));
+            if (!request.Wait(milliseconds))
+            {
+                // Observe a late failure so it cannot surface as an unobserved task exception.
+                request.ContinueWith(late => late.Exception, TaskContinuationOptions.OnlyOnFaulted);
+                return false;
+            }
+
+            ApplyPingResponse(request.Result);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogDebug($"Arena server ping not available at screen open ({ex.GetBaseException().Message}).");
+            return false;
+        }
+    }
+
+    private static void ClearSessionFields()
+    {
+        _sessionFieldsPresent = false;
+        _arenaInstance = false;
+        _serverMods = null;
+    }
+
+    /// <summary>
+    /// Reads the optional <c>arenaInstance</c> (bool) and <c>serverMods</c> ([{guid,name,version,folder}])
+    /// fields. Anything malformed is treated as absent, entry by entry: a bad entry is skipped, a field
+    /// of the wrong type is ignored.
+    /// </summary>
+    private static void ReadSessionFields(JObject ping)
+    {
+        ClearSessionFields();
+        var instance = ping["arenaInstance"];
+        bool hasInstance = instance?.Type == JTokenType.Boolean;
+        var mods = ping["serverMods"] as JArray;
+        _sessionFieldsPresent = hasInstance || mods != null;
+        _arenaInstance = hasInstance && instance.Value<bool>();
+        if (mods == null) return;
+
+        var list = new List<ArenaServerModInfo>(Math.Min(mods.Count, MaxServerMods));
+        foreach (var entry in mods)
+        {
+            if (list.Count >= MaxServerMods) break;
+            if (entry is not JObject mod) continue;
+            string guid = ReadText(mod["guid"]);
+            if (string.IsNullOrWhiteSpace(guid)) continue;
+            list.Add(new ArenaServerModInfo(guid, ReadText(mod["name"]), ReadText(mod["version"]), ReadText(mod["folder"])));
+        }
+
+        _serverMods = list;
+    }
+
+    private static string ReadText(JToken token)
+        => token?.Type == JTokenType.String ? token.Value<string>() : null;
 
     /// <summary>
     /// Whether the server mod is ALREADY known to be there — never probes.

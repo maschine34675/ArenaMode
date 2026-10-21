@@ -54,7 +54,9 @@ function Get-InstalledSnapshot {
         'BepInEx/plugins/maschine-Redeploy.Core.dll',
         'BepInEx/config/com.maschine.ArenaMode.cfg'
     )
-    foreach ($folder in @('BepInEx/plugins/ArenaMode', 'BepInEx/plugins/maschine-ArenaMode', 'SPT_Runtime/user/mods/ArenaMode')) {
+    # The Arena session gate lives in its own preloader patcher folder; the helper exe and the shipped default
+    # whitelist are inside the plugin folder that is already enumerated.
+    foreach ($folder in @('BepInEx/plugins/ArenaMode', 'BepInEx/plugins/maschine-ArenaMode', 'BepInEx/patchers/maschine-ArenaMode', 'SPT_Runtime/user/mods/ArenaMode')) {
         $path = Join-Path $SptPath $folder
         if (Test-Path -LiteralPath $path) {
             $files += Get-ChildItem -LiteralPath $path -File -Recurse | ForEach-Object {
@@ -111,6 +113,11 @@ function Assert-SourceLayoutCompatibility([string]$SourceRoot) {
             '\[MethodImpl\(MethodImplOptions\.NoInlining\)\]\s*internal static void Register\('
         )
     }
+    foreach ($sessionFile in @('ArenaMode.Gate/ArenaMode.Gate.csproj', 'ArenaMode.Session/ArenaMode.Session.csproj', 'assets/arena-whitelist.json')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot $sessionFile) -PathType Leaf)) {
+            throw "Selected Arena revision predates package layout v6 (Arena session): missing $sessionFile. Select the whitelist-session revision or later."
+        }
+    }
     foreach ($entry in $seams.GetEnumerator()) {
         $path = Join-Path $SourceRoot $entry.Key
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -150,6 +157,8 @@ $noDeploy = Join-Path $run 'NoDeploy.targets'
   <Target Name="SPTClientDeploy" />
   <Target Name="DeployArenaAudioAssets" />
   <Target Name="DeployToSpt" />
+  <Target Name="DeployArenaGate" />
+  <Target Name="DeployArenaSessionHelper" />
 </Project>
 '@.Replace('__CORE_COMMIT__', $coreCommit).Replace('__ARENA_COMMIT__', $arenaCommit) | Set-Content -LiteralPath $noDeploy -Encoding utf8
 $neverDeploy = Join-Path $run 'never-deploy'
@@ -166,6 +175,8 @@ try {
     # Build project graphs directly: the solution omits Core and can otherwise
     # assign that external reference Debug even when the solution is Release.
     Invoke-Logged 'build-client.log' (@('build', (Join-Path $source 'ArenaMode.BigBrainCompat/ArenaMode.BigBrainCompat.csproj'), '-c', 'Release', '--nologo') + $props)
+    Invoke-Logged 'build-gate.log' (@('build', (Join-Path $source 'ArenaMode.Gate/ArenaMode.Gate.csproj'), '-c', 'Release', '--nologo') + $props)
+    Invoke-Logged 'build-session-helper.log' (@('build', (Join-Path $source 'ArenaMode.Session/ArenaMode.Session.csproj'), '-c', 'Release', '--nologo') + $props)
     Invoke-Logged 'build-server-tests.log' (@('build', (Join-Path $source 'ArenaMode.Tests/ArenaMode.Tests.csproj'), '-c', 'Release', '--nologo') + $props)
     Invoke-Logged 'tests.log' (@('test', (Join-Path $source 'ArenaMode.Tests/ArenaMode.Tests.csproj'), '-c', 'Release', '--no-build', '--no-restore', '--nologo', '--logger', 'trx', '--results-directory', (Join-Path $run 'test-results')) + $props)
 } finally {
@@ -178,7 +189,10 @@ $dlls = @(
     @{Source=(Join-Path $source 'ArenaMode.Client/bin/Release/maschine-ArenaMode.Client.dll'); Dest="$assetRoot/maschine-ArenaMode.Client.dll"; Version=$version},
     @{Source=(Join-Path $source 'build/server/Release/maschine-ArenaMode.Server/maschine-ArenaMode.Server.dll'); Dest='SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll'; Version=$version},
     @{Source=(Join-Path $coreSource 'Redeploy.Core/bin/Release/maschine-Redeploy.Core.dll'); Dest='BepInEx/plugins/maschine-Redeploy.Core.dll'; Version=$coreVersion},
-    @{Source=(Join-Path $source 'ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll'); Dest="$assetRoot/maschine-ArenaMode.BigBrainCompat.dll"; Version=$version}
+    @{Source=(Join-Path $source 'ArenaMode.BigBrainCompat/bin/Release/maschine-ArenaMode.BigBrainCompat.dll'); Dest="$assetRoot/maschine-ArenaMode.BigBrainCompat.dll"; Version=$version},
+    # Arena session (docs/ARENA-SESSION-20261021.md section 9). Keep these last: the entries above are used by index.
+    @{Source=(Join-Path $source 'ArenaMode.Gate/bin/Release/maschine-ArenaMode.Gate.dll'); Dest='BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll'; Version=$version},
+    @{Source=(Join-Path $source 'ArenaMode.Session/bin/Release/maschine-ArenaMode.Session.exe'); Dest="$assetRoot/maschine-ArenaMode.Session.exe"; Version=$version}
 )
 # Keep the shared library byte-identical across independently built mod packages.
 # A supplied published binary must match the frozen Core source revision/version,
@@ -242,6 +256,16 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    prerequisites are NOT included.
 5. Start server and game, select ARENA. Optional maps/PFT/SAIN/APBS/replays
    must be installed separately. Fika is unsupported.
+6. Arena session (whitelist): the ZIP also carries the preloader gate
+   BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll, the helper
+   BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Session.exe and the shipped
+   default list BepInEx/plugins/maschine-ArenaMode/arena-whitelist.json (overwritten by
+   updates). Arena runs only with whitelisted mods; with other mods installed the
+   ARENA screen offers START ARENA SESSION, which restarts the game with only the
+   whitelisted plugins and a private copy of the server. Your own additions and
+   exclusions belong in BepInEx/config/com.maschine.ArenaMode.whitelist.json, which is
+   never shipped or overwritten. The session needs the SPT_Runtime folder next to the
+   game. All three files are built from the same source revision as the Arena DLLs.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.
@@ -256,7 +280,7 @@ Full source and documentation: https://github.com/maschine34675/ArenaMode
 "@ | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/INSTALL.txt") -Encoding utf8
 
 $manifest = [ordered]@{
-    schemaVersion=2; layout='spt-root-folders-v5'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
+    schemaVersion=2; layout='spt-root-folders-v6'; kind=$packageKind; arenaVersion=$version; arenaCommit=$arenaCommit
     redeployCoreVersion=$coreVersion; redeployCoreCommit=$coreCommit
     redeployCoreBinary= $(if ($CoreAssemblyPath) { 'verified-input' } else { 'source-build' })
     builtAtUtc=[DateTime]::UtcNow.ToString('o'); deployed=$false; uploaded=$false

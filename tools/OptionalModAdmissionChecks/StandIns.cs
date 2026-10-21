@@ -6,6 +6,15 @@ namespace ArenaMode.Session
     {
         internal static string ServerAdmissionFailure { get; set; }
     }
+
+    // The real whitelist admission is covered by ArenaSessionClientChecks; here only its position at
+    // the head of the admission chain matters.
+    internal static class ArenaWhitelistAdmission
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string GetRejectionReason() { Calls++; return Reason; }
+    }
 }
 
 namespace BepInEx.Bootstrap

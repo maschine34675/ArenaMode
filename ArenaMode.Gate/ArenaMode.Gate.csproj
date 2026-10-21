@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>maschine-ArenaMode.Gate</AssemblyName>
+    <RootNamespace>ArenaMode.Gate</RootNamespace>
+    <Description>ArenaMode preloader patcher: loads only whitelisted plugins in an Arena session</Description>
+    <Company>https://github.com/maschine34675/ArenaMode</Company>
+    <Authors>maschine</Authors>
+    <!-- Not "Client": the shared SPTClientDeploy target must not pick this project up. The
+         DeployArenaGate target below is conditioned on this value, so the repository's other
+         no-deploy switch (-p:SPTModType=NoDeploy) suppresses it as well. -->
+    <SPTModType>Patcher</SPTModType>
+    <LangVersion>latest</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Configurations>Debug;Release</Configurations>
+    <!-- The linked shared sources are written for C# 7.3 and carry their own nullable pragma. -->
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Preloader-time only: the references come from BepInEx\core and nothing else. Shared.props
+         adds the game's Managed folder (Unity's System.dll and friends) in front, which would
+         shadow the framework facades of the dependencies of BepInEx.dll; the trailing tokens are
+         the SDK defaults that the framework reference assemblies need. -->
+    <AssemblySearchPaths>$(SPTPath)\BepInEx\core;{CandidateAssemblyFiles};{HintPathFromItem};{TargetFrameworkDirectory};{RawFileName}</AssemblySearchPaths>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Linked source, see docs/ARENA-SESSION-20261021.md section 4. -->
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaSessionContract.cs" Link="Shared\Session\ArenaSessionContract.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BepInEx.dll: Paths, Logger. BepInEx.Preloader.dll: AssemblyPatcher, PatcherPlugin.
+         0Harmony.dll: the plugin list filter. Mono.Cecil.dll: the patcher contract and the
+         no-op patch delegate. Nothing here may reach UnityEngine: the gate runs before the
+         preloader has patched and loaded UnityEngine.CoreModule. -->
+    <Reference Include="BepInEx" Private="false" />
+    <Reference Include="BepInEx.Preloader" Private="false" />
+    <Reference Include="0Harmony" Private="false" />
+    <Reference Include="Mono.Cecil" Private="false" />
+  </ItemGroup>
+
+  <!-- Installs the gate where BepInEx discovers preloader patchers:
+       <SPT>\BepInEx\patchers\maschine-ArenaMode\. tools\Deploy-ArenaSession.ps1 applies the same
+       safety rules as Deploy-ArenaClient.ps1 (no links, no locked files, checked copy). The target
+       name is part of the no-deploy contract: tools\AirPitChecks\NoDeploy.targets and the packager
+       override it with an empty target of the same name. -->
+  <Target Name="DeployArenaGate" AfterTargets="PostBuildEvent" Condition="'$(SPTModType)'=='Patcher'">
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Deploy-ArenaSession.ps1" -AssemblyPath "$(TargetPath)" -SptPath "$(SPTPath)" -Configuration "$(Configuration)"' />
+  </Target>
+
+</Project>

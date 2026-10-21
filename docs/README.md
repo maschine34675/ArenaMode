@@ -6,6 +6,9 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
+- [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
+- [Arena session: solution, deployment and packaging](ARENA-SESSION-DEPLOY-20261021.md)
 - [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md)
 - [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md)
 - [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md)

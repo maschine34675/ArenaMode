@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using ArenaMode.Compat;
+using ArenaMode.Session;
 using BepInEx.Bootstrap;
 using Comfort.Common;
 using HarmonyLib;
@@ -24,6 +25,7 @@ internal static class Program
             CheckLateOrbit();
             CheckAdaptiveBotCulling();
             CheckIsbAndServerOnly();
+            CheckWhitelistFirst();
             Require(ConfigUtil.CurrentConfigReads == 0, "No scenario invokes the foreign network-capable CurrentConfig getter");
             Console.WriteLine($"OPTIONAL_MOD_ADMISSION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
@@ -287,6 +289,29 @@ internal static class Program
         Allowed("Plugin discovery is live rather than a cached initial absence");
     }
 
+    private static void CheckWhitelistFirst()
+    {
+        // Arena session whitelist admission (docs/ARENA-SESSION-20261021.md, section 7) is the first
+        // provider: its refusal reaches the caller unchanged and no other provider runs.
+        Reset();
+        Allowed("A whitelist verdict of null leaves the existing chain in charge");
+        Require(ArenaWhitelistAdmission.Calls == 1, "Admission consults the whitelist exactly once per query");
+        Reset();
+        ArenaWhitelistAdmission.Reason = "Arena runs only with whitelisted mods.";
+        Chainloader.PluginInfos[ArenaOptionalMods.OrbitGuid] = new PluginInfo();
+        ArenaServerClient.ServerAdmissionFailure = "Server-only blocker";
+        ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == "Arena runs only with whitelisted mods.",
+            "The whitelist refusal reaches admission unchanged and ahead of ORBIT, server and adapter reasons");
+        Require(ArenaMoreBotsCompatibility.Calls == 0 && ArenaAiLimitCompat.Calls == 0 && ArenaEffectsCompat.Calls == 0,
+            "A whitelist refusal short-circuits every adapter provider");
+        ArenaWhitelistAdmission.Reason = null;
+        Blocked("ORBIT", "Without a whitelist refusal the ORBIT rejection still applies");
+        Chainloader.PluginInfos.Remove(ArenaOptionalMods.OrbitGuid);
+        ArenaServerClient.ServerAdmissionFailure = null;
+        Blocked("MoreBots", "Without a whitelist refusal the adapters still apply");
+    }
+
     private static QuestingBotsPlugin InstallQuesting(object config, Version version = null, bool explicitVersion = false)
     {
         var plugin = new QuestingBotsPlugin();
@@ -320,6 +345,8 @@ internal static class Program
     private static void Reset()
     {
         ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = null;
+        ArenaWhitelistAdmission.Reason = null;
+        ArenaWhitelistAdmission.Calls = 0;
         Chainloader.PluginInfos.Clear();
         Harmony.Reset();
         Singleton<ConfigUtil>.Instance = null;

@@ -24,6 +24,11 @@ internal static class ArenaOptionalMods
 
     internal static string GetRejectionReason()
     {
+        // The whitelist comes first: Arena runs only with whitelisted mods (docs/ARENA-SESSION-20261021.md).
+        // It never throws and yields to Fika's own refusal; every adapter below stays as it was.
+        var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();
+        if (whitelistFailure != null) return whitelistFailure;
+
         if (Chainloader.PluginInfos.ContainsKey(OrbitGuid))
             return "Arena is currently unavailable with ORBIT. Ordinary PMC/Scav raids remain available.";
 

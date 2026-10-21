@@ -63,6 +63,23 @@
     <Compile Include="..\ArenaMode.Client\Modes\ArenaAnnouncerGate.cs" Link="ClientRules\ArenaAnnouncerGate.cs" />
   </ItemGroup>
 
+  <!-- The Arena session helper (net472 exe, docs/ARENA-SESSION-20261021.md section 6) keeps its
+       pure logic and its file system side in two linked-source files, so the argument rewrite,
+       the policy patching, the path safety and the junction handling run against the real file
+       system here. The process and socket side is linked too (see below); only Program.cs, the
+       entry point, is not. All of these are written for C# 7.3 without nullable annotations and
+       need the ArenaMode.Shared.Session types, which this project sees through the
+       ArenaMode.Server reference. -->
+  <ItemGroup>
+    <Compile Include="..\ArenaMode.Session\SessionLogic.cs" Link="SessionHelper\SessionLogic.cs" />
+    <Compile Include="..\ArenaMode.Session\SessionFileSystem.cs" Link="SessionHelper\SessionFileSystem.cs" />
+    <!-- The process side as well (runner, process and socket helpers, log): the stop-server identity checks,
+         the listener owner lookup and the leave/recovery path run against real stand-in processes. -->
+    <Compile Include="..\ArenaMode.Session\HelperRunner.cs" Link="SessionHelper\HelperRunner.cs" />
+    <Compile Include="..\ArenaMode.Session\HelperProcesses.cs" Link="SessionHelper\HelperProcesses.cs" />
+    <Compile Include="..\ArenaMode.Session\HelperLog.cs" Link="SessionHelper\HelperLog.cs" />
+  </ItemGroup>
+
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets
        because the live server already provides these at runtime. A test host does
        not, so without this every test that touches an SPT model type fails to

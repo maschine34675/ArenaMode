@@ -30,6 +30,14 @@
     <Compile Include="..\ArenaMode.Shared\ArenaEquatorTeamSpawns.cs" Link="Shared\ArenaEquatorTeamSpawns.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaTeamBoxCatalog.cs" Link="Shared\ArenaTeamBoxCatalog.cs" />
     <Compile Include="..\ArenaMode.Shared\PitFireTeamVersions.cs" Link="Shared\PitFireTeamVersions.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaSessionContract.cs" Link="Shared\Session\ArenaSessionContract.cs" />
+    <!-- The session helper's own request parser (HelperRequest): ArenaSessionSwitch runs it on the request file
+         before the game quits, because the helper refuses what it cannot parse and nothing restarts the game
+         after that. Linked source, so the client and the helper cannot disagree about the rules. -->
+    <Compile Include="..\ArenaMode.Session\SessionLogic.cs" Link="Shared\Session\SessionLogic.cs" />
   </ItemGroup>
 
   <ItemGroup>

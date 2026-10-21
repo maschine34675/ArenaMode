@@ -32,6 +32,17 @@ See [source review and library conversion](BIGBRAIN-LIBRARY-20261018.md).
 Sources: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
 `ArenaMode.Server/ModMetadata.cs`, `../Redeploy/Redeploy.Core/CoreVersion.props`.
 
+## Arena session and the mod whitelist
+
+Arena runs only with whitelisted mods: the default list is SAIN, APBS, ABPS, BigBrain and
+Waypoints plus UiBridge, ModProfiler and LogTools; the platform plugins and ArenaMode are always
+allowed, and Fika is never filtered. Everything else is not loaded in an Arena session (a separate game
+process with a preloader gate, against a second SPT server with a private tree of the allowed server
+mods). The shipped list is `arena-whitelist.json`; a user's own additions and exclusions are
+`BepInEx/config/com.maschine.ArenaMode.whitelist.json` and are never shipped. The optional adapters below
+therefore apply to mods that are allowed to load; in the default Arena session they are dormant. See
+[the session specification](ARENA-SESSION-20261021.md) and the [README](../README.md).
+
 ## Optional features and targeted adapters
 
 | Mod/component | Reviewed contract | Purpose / behavior without it |
@@ -224,7 +235,11 @@ DragonDen retain their existing attribution; its mod DLL is not required either.
 
 The release contains Arena's client, server, own data/assets and exactly one
 appropriate Redeploy.Core DLL directly under the plugins directory, byte-identical
-to the library in a corresponding Redeploy package. No separate mandatory Core
+to the library in a corresponding Redeploy package. The Arena session adds three
+own files, built from the same revision: the preloader gate
+`BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll`, the helper
+`BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Session.exe` and the default
+list `BepInEx/plugins/maschine-ArenaMode/arena-whitelist.json`. No separate mandatory Core
 download is needed. `tools/Package-TestRelease.ps1 -Release` builds from isolated,
 committed sources without deploying and verifies tests, archive contents and
 checksums. Without that switch it creates a package explicitly labelled as a

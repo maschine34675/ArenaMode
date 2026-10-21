@@ -13,7 +13,8 @@ namespace ArenaMode.Server.Patches;
 /// The service calls the same SPT controller and serializer while holding
 /// Arena's per-session gate across every await. Token-tagged starts additionally
 /// share one protected task; ordinary starts keep the caller's cancellation and
-/// otherwise preserve SPT's native behavior.
+/// otherwise preserve SPT's native behavior. On the Arena session server every
+/// start that is not Arena-tagged is refused instead (see <see cref="ArenaServerInstance"/>).
 /// </summary>
 public sealed class ArenaStartLocalRaidPatch : AbstractPatch
 {
@@ -38,6 +39,22 @@ public sealed class ArenaStartLocalRaidPatch : AbstractPatch
             nativeStartIdentity ?? string.Empty);
         bool arenaTagged = !ordinaryMarked && Protocol.HasNativeStartMarker(
             nativeStartIdentity ?? string.Empty);
+
+        // The Arena session server (the disposable tree the session helper starts,
+        // docs/ARENA-SESSION-20261021.md) serves Arena raids only. Everything that
+        // is not Arena-tagged is refused before any lifecycle or SPT work starts:
+        // the client's ordinary-tagged starts, untagged vanilla ones and malformed
+        // identities alike. Arena-tagged starts continue below untouched, and on a
+        // normal server RefusesStart is always false. The refusal is a normal SPT
+        // error body so the client aborts at once instead of retrying for minutes.
+        if (ArenaServerInstance.RefusesStart(arenaTagged))
+        {
+            ArenaContext.Logger?.Warning(
+                $"[ArenaMode] Refused a non-Arena local raid start for session {sessionID}: "
+                + "this is the Arena session server, which only starts Arena raids.");
+            __result = new ValueTask<string>(ArenaServerInstance.BuildOrdinaryStartRefusalBody());
+            return false;
+        }
 
         ArenaSessionService? sessions = ArenaContext.Sessions;
         ProfileSnapshotService? snapshots = ArenaContext.Snapshots;

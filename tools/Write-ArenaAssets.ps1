@@ -64,6 +64,11 @@ foreach ($mapping in @(
 foreach ($name in @('NOTICE.md', 'SOURCES.json', 'MIT-LICENSE.txt')) {
     $documents["ArenaMode.Client/Assets/Ui/$name"] = "Ui/$name"
 }
+# The Arena session's shipped default whitelist (docs/ARENA-SESSION-20261021.md, section 3) lives in the
+# repository's assets folder, not in the client asset tree. It is named explicitly like the root documents
+# above (no tracked-file filter, never optional) and installed beside the client DLL, where the client and
+# the preloader gate read it. A user's own list is a different file in BepInEx/config and is never written.
+$documents['assets/arena-whitelist.json'] = 'arena-whitelist.json'
 foreach ($key in @($documents.Keys)) {
     $current = $documents[$key]
     if ($noticeMoves.Contains($current)) { $documents[$key] = $noticeMoves[$current] }
@@ -185,6 +190,20 @@ foreach ($entry in $documents.GetEnumerator()) {
         $record | Add-Member -NotePropertyName filePathBase -NotePropertyValue 'Paths are relative to this manifest.' -Force
         $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Only shipped recordings are listed. Unused announcements/reserve recordings remain in the source repository and are excluded from build/deploy/release payloads.' -Force
         $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
+    } elseif ($entry.Key -eq 'assets/arena-whitelist.json') {
+        # Stop the build, deployment or package instead of shipping a default list that the gate and the
+        # client would refuse (that makes every Arena session unavailable). The bytes are copied unchanged.
+        $policy = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
+        $policyProperties = @($policy.PSObject.Properties.Name)
+        if ($policyProperties -cnotcontains 'schema' -or $policy.schema -ne 1 -or $policyProperties -cnotcontains 'mods' -or @($policy.mods).Count -eq 0) {
+            throw 'The Arena default whitelist is not a schema 1 policy with entries.'
+        }
+        foreach ($mod in @($policy.mods)) {
+            $names = @($mod.PSObject.Properties.Name)
+            if (($names -ccontains 'guid') -eq ($names -ccontains 'patcher')) {
+                throw 'Every Arena default whitelist entry needs exactly one of guid and patcher.'
+            }
+        }
     }
     $pending[$entry.Value] = $bytes
 }

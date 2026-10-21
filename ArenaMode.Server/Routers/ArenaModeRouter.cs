@@ -113,6 +113,11 @@ public sealed class ArenaModeRouter : StaticRouter
                 {
                     version = typeof(ArenaModeRouter).Assembly.GetName().Version?.ToString(),
                     admissionFailure = Compat.ArenaIsbServerAdmission.RejectionReason,
+                    // Arena session feature (docs/ARENA-SESSION-20261021.md, section 8).
+                    // An older server omits both fields; the client reads absence as
+                    // "no session offer" rather than as false/empty.
+                    arenaInstance = ArenaServerInstance.IsArenaInstance,
+                    serverMods = ArenaServerInstance.Mods,
                 }))),
 
         new RouteAction<EmptyRequestData>(

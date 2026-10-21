@@ -35,6 +35,19 @@ public sealed class PatchManager(
         ArenaContext.MatchBotCache = matchBotCache;
         ArenaContext.Logger = logger;
         ArenaIsbServerAdmission.Initialize(loadedMods.Select(m => m.ModMetadata.ModGuid));
+        // Before ArenaStartLocalRaidPatch is enabled below: its refusal of
+        // non-Arena starts on the Arena session server reads this. A failed probe
+        // must never keep a normal server from starting; it stays inert instead.
+        try
+        {
+            ArenaServerInstance.Initialize(loadedMods);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(
+                $"[ArenaMode] Arena session probe failed; this server is treated as a normal one: {ex.Message}");
+        }
+
         ArenaSettingsRequestLogPatch.TryEnable();
         ArenaOptionalMapPolicy.FindLocation = id => locationTable.GetDictionary()
             .TryGetValue(id, out var location) ? location.Base : null;
@@ -96,6 +109,7 @@ public sealed class PatchManager(
             pitFireTeamFileFailure);
 
         logger.Info("[ArenaMode] Server patches enabled.");
+        ArenaServerInstance.LogStartup(logger);
         return Task.CompletedTask;
     }
 }

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!-- Each production source can be swapped for a mutated copy (Verify.ps1). -->
+    <ProductionModeSource Condition="'$(ProductionModeSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionMode.cs</ProductionModeSource>
+    <ProductionAdmissionSource Condition="'$(ProductionAdmissionSource)' == ''">../../ArenaMode.Client/Session/ArenaWhitelistAdmission.cs</ProductionAdmissionSource>
+    <ProductionSwitchSource Condition="'$(ProductionSwitchSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionSwitch.cs</ProductionSwitchSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaMiniJson.cs" Link="Production/Shared/ArenaMiniJson.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistPolicy.cs" Link="Production/Shared/ArenaWhitelistPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistDecision.cs" Link="Production/Shared/ArenaWhitelistDecision.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaSessionContract.cs" Link="Production/Shared/ArenaSessionContract.cs" />
+    <!-- The helper's request parser, which ArenaSessionSwitch runs before the game quits. -->
+    <Compile Include="../../ArenaMode.Session/SessionLogic.cs" Link="Production/Shared/SessionLogic.cs" />
+    <Compile Include="$(ProductionModeSource)" Link="Production/ArenaSessionMode.cs" />
+    <Compile Include="$(ProductionAdmissionSource)" Link="Production/ArenaWhitelistAdmission.cs" />
+    <Compile Include="$(ProductionSwitchSource)" Link="Production/ArenaSessionSwitch.cs" />
+  </ItemGroup>
+</Project>

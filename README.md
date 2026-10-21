@@ -160,11 +160,15 @@ has used SPT 4.1.6; other SPT major/minor versions are not supported by this bui
 
 ```text
 SPT installation/
+  BepInEx/patchers/maschine-ArenaMode/
+    maschine-ArenaMode.Gate.dll       Arena session gate (preloader patcher)
   BepInEx/plugins/
     maschine-Redeploy.Core.dll
     maschine-ArenaMode/
       maschine-ArenaMode.Client.dll
       maschine-ArenaMode.BigBrainCompat.dll
+      maschine-ArenaMode.Session.exe  Arena session helper
+      arena-whitelist.json            default whitelist (overwritten by updates)
       announcements/                  announcer OGGs
       sounds/                         hitmarker and pickup WAVs
       docs/                           documentation and manifest
@@ -205,6 +209,9 @@ such as `Pickups.json`, `AreaDrafts` and `PickupDrafts` before merging them.
    area and mutators, then start the raid. For a PFT squad, invite **1–4
    companions** before starting Tactical or Zombies.
 
+Arena runs only with whitelisted mods; see **Arena runs only with whitelisted
+mods** below before installing other mods next to it.
+
 Arena uses profile snapshots and a protected exit path to restore entry gear
 and discard Arena loot, XP and quest changes. This is not a guarantee against
 crashes or conflicting mods; keep a profile backup, especially while testing
@@ -231,10 +238,65 @@ WIP features. Leaving through the game's raid menu is supported.
   its DLL or the kit/ladder catalogs. Preserve customized configuration when
   updating.
 
+## Arena runs only with whitelisted mods
+
+Many third-party mods break Arena raids, and Arena no longer adapts to each of
+them one by one. Arena therefore runs only with a **whitelist**. The default list
+(`arena-whitelist.json`, next to the client DLL) is SAIN, APBS, ABPS, BigBrain
+and Waypoints plus Arena's diagnostic tools (UiBridge, ModProfiler, LogTools);
+SPT's own plugins and ArenaMode itself are always allowed. A whitelisted mod
+whose installed version differs from the reviewed one only produces a warning.
+Fika is never filtered: with Fika, Arena stays unavailable as before.
+
+- **A normal session with other mods installed:** ARENA is disabled with the
+  reason `Arena runs only with whitelisted mods. Not on the whitelist: ...` and
+  the action **START ARENA SESSION** (two clicks, because it restarts the game).
+- **The Arena session:** the game restarts (about two minutes) with only the
+  whitelisted plugins, against a second SPT server, started by the helper
+  `maschine-ArenaMode.Session.exe`, that loads only the whitelisted server mods
+  from a private copy of the server tree (port 6970, or 6971 to 6979 if it is
+  taken). It works on a disposable copy of your profile, so profile changes made
+  in the session are discarded, and it offers only Arena raids: PMC and Scav are
+  not selectable. **RETURN TO NORMAL SESSION** restarts the game with your normal
+  server and the full mod set. The helper writes
+  `%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log`.
+- **A normal session whose mods are all whitelisted** plays Arena directly, as
+  before, without a restart.
+- The switch needs a local SPT server in the `SPT_Runtime` folder beside the game
+  and this release's ArenaMode server mod, which must run from that folder. If it
+  cannot be offered (older server, server elsewhere, remote backend), the refusal
+  asks you to remove the other mods instead.
+
+Your own additions and exclusions belong in
+`BepInEx/config/com.maschine.ArenaMode.whitelist.json`, which is never shipped or
+overwritten by an update:
+
+```json
+{
+  "schema": 1,
+  "allow": [ { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod" } ],
+  "deny":  [ "com.maschine.UiBridge" ]
+}
+```
+
+An entry names a `guid` (the plugin GUID, and the server mod GUID where the mod has
+a server part) or a preloader `patcher` file name; `name`, `kind` (`mod` or `tool`)
+and the reviewed `clientVersion`/`serverVersion` are optional. `deny` cannot remove
+SPT's platform plugins or ArenaMode. A file that does not parse is ignored with a
+warning. A mod you allow loads in the Arena session and is your responsibility; a
+server mod that resolves its paths from `AppContext.BaseDirectory` reads and writes
+the real server folder, not the session's private copy. This session feature has
+offline checks only so far; its native acceptance is still open
+(`docs/ARENA-SESSION-20261021.md`, section 10).
+
 ## Optional mods and compatibility
 
 These are implemented integration targets, not a claim that every combination
 or future version has been tested. Optional mods retain their own prerequisites.
+They apply to a setup in which the mod is allowed to load: in the default Arena
+session (see above) only the whitelisted mods are loaded at all, so the adapters
+of mods outside the default list are dormant there unless you allow them in your
+own whitelist file.
 
 | Mod | Integration target / purpose |
 |---|---|

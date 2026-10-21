@@ -50,6 +50,13 @@ read docs/LOOTING-BOTS-COMPAT-20261019.md and docs/REMOVE-THE-DEAD-COMPAT-202610
 Preserve the real PFT companion exception, scan-ticket return and queue guards;
 faction friendship alone never exempts a TDM bot. RTD's shared automatic/manual
 destructive seam must stay suppressed while exact Arena corpse ownership lasts.
+Arena runs only with whitelisted mods: a normal session with other mods offers
+START ARENA SESSION, which restarts the game with only the allowed plugins
+(preloader gate `ArenaMode.Gate`) against a second server with a private tree
+(helper `ArenaMode.Session`). Read docs/ARENA-SESSION-20261021.md before changing the
+policy, the gate's install timing (`Finish`, never `Initialize`), the helper's
+process-identity rules or the request contract the client checks before it quits
+the game. Never add code that is specific to one foreign mod.
 Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
 changing camera-checked marker layers or its optional GC-pause guard. Never
 move pooled weapon objects into marker ownership or change foreign saved settings.
@@ -320,8 +327,10 @@ Build/deploy and release packaging share `tools/Write-ArenaAssets.ps1`; do not
 reintroduce direct copies of source notice JSON after its relocation to `docs/`.
 `tools/Deploy-ArenaClient.ps1` migrates the old `plugins/ArenaMode` folder and
 flat owned DLL/PDBs into `plugins/maschine-ArenaMode`, preserving user data and
-archiving replaced files outside plugin discovery. Keep both existing deployment
-target names overridable: `SPTClientDeploy` and `DeployArenaAudioAssets`.
+archiving replaced files outside plugin discovery. Keep the existing deployment
+target names overridable: `SPTClientDeploy`, `DeployArenaAudioAssets` and, for the
+Arena session files, `DeployArenaGate` and `DeployArenaSessionHelper`
+(`tools/AirPitChecks/NoDeploy.targets` empties all five).
 `StageArenaAssets`/`StageArenaPublishAssets` write only build/publish output.
 Read [docs/UNIFIED-DEPLOY-20261017.md](docs/UNIFIED-DEPLOY-20261017.md) for migration
 limits, no-deploy checks and current evidence. Core's separate sibling target

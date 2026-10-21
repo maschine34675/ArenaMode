@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    maschine-ArenaMode.Session.exe: the Arena session helper (docs/ARENA-SESSION-20261021.md, section 6).
+    A short-lived .NET Framework 4.7.2 process that survives the game it was started by, switches
+    between the normal session and the Arena session (private server tree, second SPT server, game
+    restart) and never shows UI.
+
+    Deliberately does NOT import ..\Shared.props: that file puts the SPT game folders in front of
+    AssemblySearchPaths (so a framework reference could resolve to the game's Unity facades) and wires
+    the client deploy target, both meaningless for a plain net472 exe with no game reference. This is
+    the same decision UiBridge.HostHelper took. The version line is repeated here for that reason.
+
+    Deployment: the DeployArenaSessionHelper target at the end of this file installs the single exe into
+    <SPT>\BepInEx\plugins\maschine-ArenaMode\ (beside the client DLL, where ArenaSessionContract.
+    PluginFolderName and HelperFileName say the client looks). Because Shared.props is not imported, the
+    two paths it would supply (ArenaRepoRoot, SPTPath) are derived here in the same way; a command-line
+    -p:SPTPath= still wins. The target name is part of the no-deploy contract (tools\AirPitChecks\
+    NoDeploy.targets and the packager override it), and the SPTModType condition keeps the repository's
+    other switch (-p:SPTModType=NoDeploy) working.
+
+    Language level stays at the net472 default (C# 7.3) on purpose: SessionLogic.cs and
+    SessionFileSystem.cs are also linked into ArenaMode.Tests (net10.0), and the linked Shared\Session
+    sources are written for C# 7.3 as well.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>maschine-ArenaMode.Session</AssemblyName>
+    <RootNamespace>ArenaMode.SessionHelper</RootNamespace>
+    <Description>Arena session helper: switches between the normal and the Arena session</Description>
+    <Company>https://github.com/maschine34675/ArenaMode</Company>
+    <Authors>maschine</Authors>
+    <SPTModType>Helper</SPTModType>
+    <ArenaRepoRoot>$(MSBuildThisFileDirectory)..\</ArenaRepoRoot>
+    <SPTPath>$(MSBuildThisFileDirectory)..\..\..</SPTPath>
+    <Version>0.1.3</Version>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <Configurations>Debug;Release</Configurations>
+    <!-- No app.config, binding redirects or supportedRuntime file: a BCL-only exe is a single file to deploy. -->
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <!-- Linked source shared with the gate, client, server and tests (no dependencies of its own). -->
+  <ItemGroup>
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />
+    <Compile Include="..\ArenaMode.Shared\Session\ArenaSessionContract.cs" Link="Shared\Session\ArenaSessionContract.cs" />
+  </ItemGroup>
+
+  <Target Name="DeployArenaSessionHelper" AfterTargets="PostBuildEvent" Condition="'$(SPTModType)'=='Helper'">
+    <Exec Command='pwsh -NoLogo -NoProfile -File "$(ArenaRepoRoot)tools\Deploy-ArenaSession.ps1" -AssemblyPath "$(TargetPath)" -SptPath "$(SPTPath)" -Configuration "$(Configuration)"' />
+  </Target>
+
+</Project>
