@@ -114,6 +114,13 @@ Finale native CLI-DLL SHA256:
 Ein neuer GPU-Raidtest ist nicht Bestandteil dieser Änderung; dadurch ist
 insbesondere kein neuer Kampf-/KI-Nachweis gegeben.
 
+**Nachtrag 2026-10-21:** Der unveränderte finale Starter wurde inzwischen auf
+SPT-GPU-2 geprüft: sichtbare Paketanzeige, zwei direkte private Starts, Factory-DM
+mit echtem Kill/Ersatzbot und Spielertod/Respawn sowie geschütztes Raidende und
+sauberes EXIT. 1.369 ausgewählte Quelldateien blieben unverändert. Einzelne
+native Loghinweise und die Reichweite des Nachweises stehen im
+[GPU-Nachtest](GPU-ARENA-RECOMMENDED-MODS-20261021.md).
+
 ## Artefakt
 
 Eigenständiger Windows-Starter, Release / win-x64 / self-contained / SingleFile:
@@ -122,3 +129,5 @@ Eigenständiger Windows-Starter, Release / win-x64 / self-contained / SingleFile
 Keine fremden Mod-DLLs darin gebündelt. Kein neues Arena-Gameplay-DLL-Deployment.
 SPT-GPU-2 war über den bisherigen SMB-Pfad in dieser Sitzung nicht erreichbar;
 das Artefakt liegt lokal bereit und ersetzt dort noch nicht den vorherigen Starter.
+Der Nachtest vom 2026-10-21 verwendete dieses Artefakt hashidentisch unter
+`C:\Temp\ArenaLauncher-Recommended-20261021\maschine-ArenaLauncher.exe`.

@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-20. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-21. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
@@ -19,9 +19,17 @@ current. User-facing communication is normally German.
   with all three server mods and six SAIN defaults. Initial APBS logger-folder
   failure was fixed and independently reviewed; a repeat with fresh mapping cache
   had no Error/Exception output. 557 normal-source, 76 test-source and six private
-  profile/config files plus receipt unchanged. No new GPU/raid or useful local
-  visual-render acceptance. Standalone EXE built locally; GPU2's previous SMB
-  path was unreachable, so its earlier starter has not been replaced.
+  profile/config files plus receipt unchanged. GPU followup on 2026-10-21 passed:
+  exact standalone EXE staged at `C:\Temp\ArenaLauncher-Recommended-20261021`,
+  five-package GUI, two private direct starts, Factory DM combat/replacement bot,
+  real player death/respawn and protected raid end. Second startup with private
+  Unity logging: 11 plugins initialized, 11 plugins/five libraries matched loaded
+  code; no startup errors. 1,369 selected source files unchanged; private receipt
+  and 59 selected private files retained across restart. Temporary diagnostic
+  config restored, all tested processes closed. Known Factory/brain messages and
+  one unassigned AKS74 animation-event timeout at raid exit remain documented;
+  not a blanket clean-log or all-mode compatibility claim.
+  See [native GPU results and limits](GPU-ARENA-RECOMMENDED-MODS-20261021.md).
   See [package inventory, native evidence and final artifact](ARENA-START-RECOMMENDED-MODS-20261020.md).
   See [package scope and update rules](ARENA-START-UPDATES-20261020.md) and
   [visible installation summary](ARENA-LAUNCHER-UI-20261020.md).
