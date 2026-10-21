@@ -19,6 +19,13 @@ current. User-facing communication is normally German.
   `BepInEx/config/com.maschine.ArenaMode.whitelist.json` (allow/deny). Existing adapters
   stay, dormant in a session. Not on the list (user may add): ArenaMapPort, Killcam,
   PitFireTeam, DynamicMaps, so ported maps and squad modes are unavailable in a session.
+  Second pass (`451039b`, GPU1 checked with every installed mod allowed): the user file takes
+  `"unlisted": "deny"|"allow"` (whitelist or blacklist, `deny` always wins); the ping reports
+  server-mod dependencies for the closure; the arena server runs from its own copy of the
+  server binaries in the tree, so mods that resolve paths from `AppContext.BaseDirectory`
+  (PitFireTeam's settings.json) write into the tree, not the real runtime (measured: zero
+  arena-server writes in the real SPT_Runtime); bundle-only mod folders are junctions and the
+  bundle hash cache is carried over (WTT's 8 GB are no longer copied; server ready in 11 s).
   Spec and acceptance: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md).
 
 - **Release 0.1.3 (2026-10-20):** version identities and the player README now
