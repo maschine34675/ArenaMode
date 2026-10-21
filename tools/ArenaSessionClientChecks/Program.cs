@@ -345,6 +345,15 @@ internal static partial class Program
         Ping(false, mods);
         Require(Reason().Contains("Not on the whitelist: alpha, Zed."), "Names are sorted and a mod on both sides is listed once");
 
+        // The same GUID under two different names (client "DynamicMaps", server "Dynamic Maps").
+        ResetWorld();
+        AddPlugin("com.example.maps", "DynamicMaps", "1.0");
+        var mapMods = NormalServerMods();
+        mapMods.Add(Mod("com.example.maps", "Dynamic Maps", "1"));
+        Ping(false, mapMods);
+        Require(Reason().Contains("Not on the whitelist: DynamicMaps.") && !Reason().Contains("Dynamic Maps"),
+            "A mod with differently named client and server parts is listed once");
+
         ResetWorld();
         for (int i = 0; i < 15; i++) AddPlugin("com.example.m" + i.ToString("D2"), "Mod" + i.ToString("D2"), "1.0");
         Ping(false, NormalServerMods());

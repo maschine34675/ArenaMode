@@ -242,9 +242,13 @@ internal static class ArenaWhitelistAdmission
             ? null
             : ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, ServerUnits(serverMods));
 
+        // A mod with a client and a server part has the same GUID on both sides but often two
+        // different names ("DynamicMaps" / "Dynamic Maps"): list it once, by GUID, under its
+        // client name.
         var excluded = new List<string>();
-        foreach (var unit in client.Excluded) excluded.Add(unit.DisplayName);
-        if (server != null) foreach (var unit in server.Excluded) excluded.Add(unit.DisplayName);
+        var listedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var unit in client.Excluded) AddExcluded(excluded, listedGuids, unit);
+        if (server != null) foreach (var unit in server.Excluded) AddExcluded(excluded, listedGuids, unit);
 
         var notes = new List<string>(client.Warnings);
         if (server != null)
@@ -441,6 +445,11 @@ internal static class ArenaWhitelistAdmission
     }
 
     /// <summary>Sorted, case-insensitively de-duplicated, capped; the rest is counted.</summary>
+    private static void AddExcluded(List<string> names, HashSet<string> listedGuids, ArenaSessionUnit unit)
+    {
+        if (string.IsNullOrEmpty(unit.Guid) || listedGuids.Add(unit.Guid)) names.Add(unit.DisplayName);
+    }
+
     private static string JoinLimited(List<string> items, int limit, string separator = ", ")
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

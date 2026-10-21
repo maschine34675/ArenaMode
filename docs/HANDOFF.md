@@ -1,11 +1,25 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-20. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-21. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Arena session: whitelist by not loading (2026-10-21, branch
+  `feature/arena-whitelist-session`, GPU2 accepted):** user decision: no more per-mod
+  fixes; Arena runs only with whitelisted mods. A normal session with other mods offers
+  START ARENA SESSION: the helper `maschine-ArenaMode.Session.exe` restarts the game with
+  `-arena-session`, the preloader patcher `maschine-ArenaMode.Gate.dll` loads only
+  whitelisted plugins, and a private SPT server tree under
+  `%LOCALAPPDATA%\maschine-ArenaMode\session` (port 6970, disposable profile copy) loads only
+  whitelisted server mods. Default list: SAIN, APBS, ABPS, BigBrain, Waypoints plus the
+  test tools; a differing version only warns; user file
+  `BepInEx/config/com.maschine.ArenaMode.whitelist.json` (allow/deny). Existing adapters
+  stay, dormant in a session. Not on the list (user may add): ArenaMapPort, Killcam,
+  PitFireTeam, DynamicMaps, so ported maps and squad modes are unavailable in a session.
+  Spec and acceptance: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md).
 
 - **Release 0.1.3 (2026-10-20):** version identities and the player README now
   target 0.1.3. [Release notes](RELEASE-0.1.3.md) cover the changes since 0.1.2

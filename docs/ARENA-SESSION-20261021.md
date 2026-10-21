@@ -329,6 +329,19 @@ patching, path safety, request parsing) live in their own file and are covered b
 4. Leave: the normal server and the full plugin set are back.
 5. Killing the game inside a session leaves the normal launch path unaffected.
 
+Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all five passed:
+
+| Step | Observed |
+|---|---|
+| 1 | Normal start: 41 plugins loaded, 1198 patched methods; the gate is listed as a loaded patcher and writes no line of its own. Patcher order in the player: BepInEx.Preloader, FixPluginTypesSerialization, LogTools, spt-prepatch, gate, WTT-ContentBackportPatcher. |
+| 2 | ARENA disabled with the whitelist reason and START ARENA SESSION; the two-click action works. |
+| 3 | Restart to the main menu in 38 s. Gate: WTT patcher switched off, 13 plugins allowed, 28 excluded, 0 warnings; 545 patched methods. Arena server on 6970 ready 4 s after start with exactly ArenaMode, SAIN, APBS and ABPS; the profile copy only lost the PitFireTeam trader. ARENA preselected, PMC/Scav locked. Deathmatch on Factory: 7 bots active on SAIN and Arena layers, no ArenaMode warning; left and returned normally. |
+| 4 | RETURN TO NORMAL SESSION: restart in 39 s, arena server stopped, normal server kept running, 41 plugins and 1198 patched methods again. |
+| 5 | Second enter, then `taskkill /F` on the game and a normal `gpu-run start`: normal session with 1198 patched methods; `stop-server` then ended the left-over arena server. |
+
+Follow-up fixed after the run: the refusal named a mod with differently named client and server parts
+twice ("DynamicMaps, Dynamic Maps"); the list is now de-duplicated by GUID.
+
 ## 11. Changes since the first draft
 
 Sections 5 to 8 above describe the implementation, not the first draft. What changed, and why:

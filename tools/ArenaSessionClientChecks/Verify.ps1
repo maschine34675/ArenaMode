@@ -113,8 +113,11 @@ Invoke-Mutant 'admission-soft-dependency-pulls-in' 'admission' `
     '(dependency.Flags & BepInDependency.DependencyFlags.HardDependency) != 0' 'true' `
     'A soft dependency target stays excluded'
 Invoke-Mutant 'admission-server-exclusions-dropped' 'admission' `
-    'if (server != null) foreach (var unit in server.Excluded) excluded.Add(unit.DisplayName);' '' `
+    'if (server != null) foreach (var unit in server.Excluded) AddExcluded(excluded, listedGuids, unit);' '' `
     'A server mod that is not whitelisted refuses Arena and offers the session'
+Invoke-Mutant 'admission-names-by-name-only' 'admission' `
+    'if (string.IsNullOrEmpty(unit.Guid) || listedGuids.Add(unit.Guid)) names.Add(unit.DisplayName);' 'names.Add(unit.DisplayName);' `
+    'A mod with differently named client and server parts is listed once'
 Invoke-Mutant 'admission-offer-without-helper' 'admission' 'if (!File.Exists(helper))' 'if (false)' `
     'helper missing: the whitelist still refuses, without the session action'
 Invoke-Mutant 'admission-offer-without-spt-server' 'admission' 'if (!File.Exists(server))' 'if (false)' `
