@@ -15,6 +15,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Controlled SPT/game base rebuild with preserved internal account and generations](ARENA-BASE-REBUILD-20261020.md)
 - [Locally installed SAIN/APBS/ABPS/BigBrain/Waypoints packages in the private starter](ARENA-START-RECOMMENDED-MODS-20261020.md)
 - [GPU acceptance: AI package loading, Factory combat, respawn and private restart](GPU-ARENA-RECOMMENDED-MODS-20261021.md)
+- [Starter startup timings and measured hash-reader optimization candidates](ARENA-START-TIMING-20261021.md)
 - [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
 - [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)
 - [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md)

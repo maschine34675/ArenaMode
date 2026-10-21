@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Starter timing investigation (2026-10-21, no production change):** an isolated
+  native helper on GPU2 measured the unchanged `d30b6db` checks. Full verification
+  took 80.955 s; the one shared-asset pass took 75.445 s (93.2%). Sequential 1 MiB
+  hashing reduced a repeated large-file sample from 5.910 to 3.465 s; this is not
+  a measured whole-start improvement or cold-cache result. First recommendation:
+  bounded reusable hash buffer, then full native startup regression. Preserve
+  all identity/content/readonly lease protections. Reusing the lease after first
+  creation separately avoids a real duplicate asset pass. 580 selected files
+  unchanged, all sample digests matched, no EFT/server started or left running.
+  See [timings, scope and next changes](ARENA-START-TIMING-20261021.md).
+
 - **Optional local packages in the starter (2026-10-20):** the finite private
   runtime catalog now admits complete installed SAIN, APBS, ABPS, BigBrain and
   Waypoints packages. Inspection shows which are present/missing; absent mods
