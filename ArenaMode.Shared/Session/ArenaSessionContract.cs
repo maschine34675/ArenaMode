@@ -158,7 +158,11 @@ namespace ArenaMode.Shared.Session
     /// removed, the warnings and the patchers it neutralised. JSON shape:
     /// <c>{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
     /// "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
-    /// "patchersNeutralised":[file] }</c>. Unknown members are ignored when reading.
+    /// "patchersNeutralised":[file] }</c>. Unknown members are ignored when reading. A unit's
+    /// <c>reason</c> is one of the <c>ArenaWhitelistDecision.Reason*</c> values: <c>platform</c>,
+    /// <c>arena</c>, <c>whitelist</c>, <c>tool</c>, <c>unlisted-allowed</c> (blacklist mode),
+    /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c> or
+    /// <c>denied-by-user</c> for excluded ones.
     /// </summary>
     public sealed class ArenaGateReport
     {

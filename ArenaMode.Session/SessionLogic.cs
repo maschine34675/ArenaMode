@@ -36,9 +36,20 @@ namespace ArenaMode.SessionHelper
         public const string ProfileDataFolder = "profileData";
         public const string CertsFolder = "certs";
         public const string CredentialsFolder = "credentials";
+        public const string CacheFolder = "cache";
+        public const string BundleHashCacheFileName = "bundleHashCache.json";
 
         /// <summary>Prefix of every log file name the arena server writes.</summary>
         public const string LogFilePatternPrefix = "arena-";
+
+        /// <summary>A top-level file of the runtime whose name starts like this belongs to the launcher, not to the server.</summary>
+        public const string LauncherFilePrefix = "SPT.Launcher";
+
+        /// <summary>A top-level file with this in its name (any case) is the Linux build of something the Windows server never loads.</summary>
+        public const string LinuxFileMarker = "Linux";
+
+        /// <summary>A file with this extension is a Linux shared library.</summary>
+        public const string LinuxLibraryExtension = ".so";
 
         /// <summary>SPT's documented default port, used only when http.json names none.</summary>
         public const int DefaultBackendPort = 6969;
@@ -1590,6 +1601,103 @@ namespace ArenaMode.SessionHelper
         }
     }
 
+    /// <summary>
+    /// The server binaries that are copied next to the arena server's own <c>SPT.Server.exe</c>
+    /// (docs/ARENA-SESSION-20261021.md, section 6). Several server mods resolve paths from
+    /// <c>AppContext.BaseDirectory</c>, the folder of the exe, so an exe started from the real runtime
+    /// would let them write into the real installation. The server is a framework-dependent .NET
+    /// application: the apphost exe, its dll and the json files beside it (<c>runtimeconfig</c>,
+    /// <c>deps</c>) plus the libraries of <c>deps.json</c> are everything it loads from its own
+    /// folder; its data and mods come from the working directory.
+    /// </summary>
+    public static class HelperServerBinaries
+    {
+        /// <summary>
+        /// True for a top-level file of the SPT runtime that goes into the arena tree: every plain file name
+        /// except <c>sptLogger.json</c> (the helper writes its own, with prefixed log file names), the
+        /// <c>SPT.Launcher*</c> files, anything with <c>Linux</c> in its name (any case), <c>*.so</c> and
+        /// the marker's file name (only the helper writes that one, last). Names that are not a plain
+        /// single file name are not binaries either.
+        /// </summary>
+        public static bool IsServerBinary(string fileName)
+        {
+            if (!HelperPathSafety.IsSafeSingleName(fileName)) return false;
+            if (string.Equals(fileName, HelperLayout.LoggerFileName, StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Equals(fileName, ArenaSessionContract.MarkerFileName, StringComparison.OrdinalIgnoreCase)) return false;
+            if (fileName.StartsWith(HelperLayout.LauncherFilePrefix, StringComparison.OrdinalIgnoreCase)) return false;
+            if (fileName.IndexOf(HelperLayout.LinuxFileMarker, StringComparison.OrdinalIgnoreCase) >= 0) return false;
+            if (fileName.EndsWith(HelperLayout.LinuxLibraryExtension, StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        /// <summary>The file names of <paramref name="topLevelFileNames"/> that are server binaries, sorted by name.</summary>
+        public static List<string> Select(IEnumerable<string> topLevelFileNames)
+        {
+            var result = new List<string>();
+            if (topLevelFileNames == null) return result;
+            foreach (string name in topLevelFileNames)
+            {
+                if (IsServerBinary(name)) result.Add(name);
+            }
+
+            result.Sort(StringComparer.OrdinalIgnoreCase);
+            return result;
+        }
+
+        /// <summary>
+        /// Whether an entry of the arena tree root survives the cleaning that precedes a build: only a
+        /// plain file (not a folder, not a link) whose name is one of the current server binaries does.
+        /// It stays so that the incremental copy has something to compare with; everything else, a
+        /// stale binary of an older runtime included, goes.
+        /// </summary>
+        public static bool KeepsTreeEntry(string name, bool isPlainFile, IEnumerable<string> serverBinaries)
+        {
+            if (!isPlainFile || name == null || serverBinaries == null) return false;
+            foreach (string binary in serverBinaries)
+            {
+                if (string.Equals(binary, name, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The incremental copy skips a file whose length and last-write time (compared in UTC, to the
+        /// tick) already match the source: the copy keeps the source's timestamp, so an unchanged
+        /// file is recognised and a replaced one (any size, any newer or older time) is not.
+        /// </summary>
+        public static bool IsUnchanged(long sourceLength, DateTime sourceWriteUtc, long copyLength, DateTime copyWriteUtc)
+        {
+            return sourceLength == copyLength && sourceWriteUtc.ToUniversalTime().Ticks == copyWriteUtc.ToUniversalTime().Ticks;
+        }
+    }
+
+    /// <summary>
+    /// Which executable the arena server of a marker was started from. A server of this helper runs
+    /// from its own copy in the tree; a server started by an older helper ran the installation's own
+    /// <c>SPT.Server.exe</c>, and a session that outlives a helper update must still be stopped once.
+    /// </summary>
+    public static class HelperServerIdentity
+    {
+        /// <summary>
+        /// The image the process of <paramref name="marker"/>'s server must have. A marker that names a
+        /// <c>serverExe</c> was written by a helper that starts the server from the tree: the answer is
+        /// <paramref name="treeServerExe"/>, computed by the caller from its own session root, never the
+        /// text in the marker (a kill decision does not rest on a file's content). A marker without the
+        /// member is from an older helper and its server ran from <c>&lt;sourceRuntime&gt;\SPT.Server.exe</c>.
+        /// The two are never both accepted: once a marker names the tree copy, a program that merely has
+        /// the installation's exe as its image (the normal server) is not the arena server.
+        /// Null when the marker lacks what the answer needs.
+        /// </summary>
+        public static string ExpectedImage(HelperMarker marker, string treeServerExe)
+        {
+            if (marker == null) return null;
+            if (marker.RunsFromTree) return string.IsNullOrEmpty(treeServerExe) ? null : treeServerExe;
+            if (string.IsNullOrEmpty(marker.SourceRuntime)) return null;
+            return Path.Combine(marker.SourceRuntime, HelperLayout.ServerExeName);
+        }
+    }
+
     public static class HelperPorts
     {
         /// <summary>
@@ -1648,12 +1756,24 @@ namespace ArenaMode.SessionHelper
 
         public string SourceRuntime { get; set; }
 
+        /// <summary>
+        /// The <c>SPT.Server.exe</c> in the tree that the helper starts the arena server from. Absent in a
+        /// marker written by an older helper, whose server ran from <see cref="SourceRuntime"/> itself.
+        /// </summary>
+        public string ServerExe { get; set; }
+
         public string PolicyHash { get; set; }
 
         public string HelperVersion { get; set; }
 
+        /// <summary>True when the marker's server was started from its copy in the tree (see <see cref="HelperServerIdentity"/>).</summary>
+        public bool RunsFromTree
+        {
+            get { return !string.IsNullOrEmpty(ServerExe); }
+        }
+
         public static HelperMarker Create(DateTime createdUtc, string profileId, int port, string sourceRuntime,
-            string policyHash, string helperVersion)
+            string policyHash, string helperVersion, string serverExe = null)
         {
             return new HelperMarker
             {
@@ -1662,6 +1782,7 @@ namespace ArenaMode.SessionHelper
                 ProfileId = profileId,
                 Port = port,
                 SourceRuntime = sourceRuntime,
+                ServerExe = serverExe,
                 PolicyHash = policyHash,
                 HelperVersion = helperVersion,
             };
@@ -1675,6 +1796,7 @@ namespace ArenaMode.SessionHelper
             root["profileId"] = ProfileId;
             root["port"] = Port;
             root["sourceRuntime"] = SourceRuntime;
+            if (RunsFromTree) root["serverExe"] = ServerExe;
             root["policyHash"] = PolicyHash;
             root["helperVersion"] = HelperVersion;
             return ArenaMiniJson.Write(root, true);
@@ -1705,6 +1827,7 @@ namespace ArenaMode.SessionHelper
                 ProfileId = ArenaMiniJson.GetString(root, "profileId"),
                 Port = ArenaMiniJson.GetInt(root, "port", 0),
                 SourceRuntime = ArenaMiniJson.GetString(root, "sourceRuntime"),
+                ServerExe = ArenaMiniJson.GetString(root, "serverExe"),
                 PolicyHash = ArenaMiniJson.GetString(root, "policyHash"),
                 HelperVersion = ArenaMiniJson.GetString(root, "helperVersion"),
             };

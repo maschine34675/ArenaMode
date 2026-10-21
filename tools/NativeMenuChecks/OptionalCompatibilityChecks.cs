@@ -102,9 +102,10 @@ internal static partial class Program
 
             RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
                 ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"serverMods\":["
-                    + "{\"guid\":\"me.sol.sain\",\"name\":\"SAIN\",\"version\":\"4.5.1\",\"folder\":\"C:\\\\SPT\\\\user\\\\mods\\\\SAIN\"},"
+                    + "{\"guid\":\"me.sol.sain\",\"name\":\"SAIN\",\"version\":\"4.5.1\",\"folder\":\"C:\\\\SPT\\\\user\\\\mods\\\\SAIN\","
+                    + "\"dependencies\":[\"xyz.drakia.bigbrain\",7,\"\",null,\"  \",\"com.example.second\"]},"
                     + "{\"guid\":\"\",\"name\":\"no guid\"},42,null,\"text\","
-                    + "{\"guid\":\"com.example.partial\",\"name\":7,\"version\":null}]}"
+                    + "{\"guid\":\"com.example.partial\",\"name\":7,\"version\":null,\"dependencies\":\"com.example.lib\"}]}"
                 : oldGet(route);
             Assert(ArenaServerClient.RefreshAvailability()
                 && ArenaServerClient.SessionFieldsPresent && ArenaServerClient.IsArenaInstance
@@ -118,6 +119,19 @@ internal static partial class Program
             Assert(partial.Guid == "com.example.partial" && partial.Name == null
                 && partial.Version == null && partial.Folder == null,
                 "wrongly typed or missing members of an entry read as absent, not as text");
+            Assert(sain.Dependencies.Count == 2 && sain.Dependencies[0] == "xyz.drakia.bigbrain"
+                && sain.Dependencies[1] == "com.example.second",
+                "the dependencies of a server mod keep their string entries and drop anything else");
+            Assert(partial.Dependencies != null && partial.Dependencies.Count == 0,
+                "a dependencies member that is not an array reads as none, never as text");
+
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.3\",\"arenaInstance\":false,\"serverMods\":[{\"guid\":\"older.server.mod\",\"name\":\"Old\"}]}"
+                : oldGet(route);
+            Assert(ArenaServerClient.RefreshAvailability()
+                && ArenaServerClient.ServerMods.Count == 1 && ArenaServerClient.ServerMods[0].Dependencies != null
+                && ArenaServerClient.ServerMods[0].Dependencies.Count == 0,
+                "a server mod entry without dependencies (an older server) reads as no dependencies");
 
             RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
                 ? "{\"version\":\"0.1.3\",\"arenaInstance\":\"yes\",\"serverMods\":{\"guid\":\"x\"}}" : oldGet(route);

@@ -99,7 +99,12 @@ namespace ArenaMode.SessionHelper
 
                 HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, DateTime.UtcNow, Info);
                 _log.Info("server tree ready at " + tree.TreePath + ": " + tree.Junctions.Count + " junctions, " + tree.Mods.Count + " server mods, "
-                    + tree.FilesCopied + " files copied");
+                    + tree.FilesCopied + " files copied, server binaries " + tree.ServerFilesCopied + " copied and " + tree.ServerFilesUnchanged + " unchanged");
+                if (tree.UnsharedFolders.Count > 0)
+                {
+                    _log.Warn("the runtime has folders the arena tree does not contain (" + string.Join(", ", tree.UnsharedFolders.ToArray())
+                        + "); the server, which runs from the copy of its exe, will not find files in them");
+                }
 
                 StartArenaServer(request, tree);
 
@@ -215,10 +220,15 @@ namespace ArenaMode.SessionHelper
 
         /// <summary>
         /// Kills the arena server the helper recorded in <c>server.pid</c>, but only after the process
-        /// image is shown to be <c>SPT.Server.exe</c> of the runtime named in the marker and the process
-        /// start time agrees with the pid file. Anything else is left alone. The image is compared as a
-        /// file, not as text: the process reports the resolved path, the marker keeps the spelling the
-        /// game was started from, and a junction or SUBST drive makes the two differ.
+        /// image is shown to be the exe the marker says the server was started from and the process
+        /// start time agrees with the pid file. Anything else is left alone. That exe is the copy
+        /// <c>&lt;tree&gt;\SPT.Server.exe</c> for a marker of this helper, and <c>SPT.Server.exe</c> of the
+        /// marker's <c>sourceRuntime</c> for a marker without <c>serverExe</c> (a server started by an
+        /// older helper, which ran the installation's own exe): such a session is still stopped once.
+        /// A marker of this helper does not accept the installation's exe, which is also the image of the
+        /// normal server. The image is compared as a file, not as text: the process reports the
+        /// resolved path, the tree and the marker keep the spelling they were made from, and a junction
+        /// or SUBST drive makes the two differ.
         /// </summary>
         /// <param name="callerRuntime">The runtime of the installation that asks. The session folder, its
         /// mutex and its pid file are shared by every installation of the Windows user, so a server that
@@ -254,7 +264,15 @@ namespace ArenaMode.SessionHelper
                     return StopResult.Unverified;
                 }
 
-                string expected = Path.Combine(marker.SourceRuntime, HelperLayout.ServerExeName);
+                // The tree copy is recomputed from this helper's own session root; the marker only says that the
+                // server was started from it. A kill decision does not rest on a path read from a file.
+                string expected = HelperServerIdentity.ExpectedImage(marker, Path.Combine(HelperServerTree.GetTreePath(_runtimeRoot), HelperLayout.ServerExeName));
+                if (!marker.RunsFromTree)
+                {
+                    _log.Info("the marker is from an older helper (" + (marker.HelperVersion ?? "unknown") + "): its server ran the installation's own "
+                        + HelperLayout.ServerExeName);
+                }
+
                 string image = HelperProcesses.GetImagePath(process);
                 if (image == null)
                 {
@@ -357,6 +375,7 @@ namespace ArenaMode.SessionHelper
                 markerInfo["profileId"] = marker.ProfileId;
                 markerInfo["port"] = marker.Port;
                 markerInfo["sourceRuntime"] = marker.SourceRuntime;
+                markerInfo["serverExe"] = marker.ServerExe;
                 markerInfo["policyHash"] = marker.PolicyHash;
                 markerInfo["helperVersion"] = marker.HelperVersion;
                 report["marker"] = markerInfo;
@@ -481,10 +500,12 @@ namespace ArenaMode.SessionHelper
             return true;
         }
 
+        // The arena server runs from its own copy of the exe in the tree: AppContext.BaseDirectory, which some
+        // server mods resolve their paths from, is then the disposable tree and not the installation.
         private void StartArenaServer(HelperRequest request, HelperTreeResult tree)
         {
-            string serverExe = Path.Combine(request.SptRuntimeDir, HelperLayout.ServerExeName);
-            if (!File.Exists(serverExe)) throw new HelperException("the SPT server is missing: " + serverExe);
+            string serverExe = tree.ServerExe;
+            if (!File.Exists(serverExe)) throw new HelperException("the SPT server is missing from the arena tree: " + serverExe);
 
             _log.Info("starting the arena server " + serverExe + " in " + tree.TreePath + " (port " + tree.Port + ")");
             using (Process server = HelperProcesses.Start(serverExe, string.Empty, tree.TreePath))

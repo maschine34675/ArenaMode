@@ -83,7 +83,8 @@ public sealed class ArenaServerInstanceTests : IDisposable
         return tree;
     }
 
-    private static SptMod Mod(string guid, string name, string version, string directory) => new()
+    private static SptMod Mod(string guid, string name, string version, string directory,
+        Dictionary<string, SemanticVersioning.Range>? dependencies = null) => new()
     {
         Directory = directory,
         Assemblies = [],
@@ -92,6 +93,7 @@ public sealed class ArenaServerInstanceTests : IDisposable
             ModGuid = guid,
             Name = name,
             Version = new SemanticVersioning.Version(version),
+            ModDependencies = dependencies,
         },
     };
 
@@ -244,6 +246,27 @@ public sealed class ArenaServerInstanceTests : IDisposable
     }
 
     [Fact]
+    public void ModsCarryTheGuidsOfTheirModDependenciesSortedAndNeverNull()
+    {
+        ArenaServerInstance.Initialize(
+        [
+            Mod("x.none", "None", "1.0.0", "./user/mods/None"),
+            Mod("x.empty", "Empty", "1.0.0", "./user/mods/Empty", []),
+            Mod("x.user", "User", "1.0.0", "./user/mods/User", new Dictionary<string, SemanticVersioning.Range>
+            {
+                ["com.wtt.commonlib"] = new("~3.0.6"),
+                ["a.first"] = new("*"),
+                [" "] = new("*"),
+            }),
+        ], _noMarkerDirectory);
+
+        var mods = ArenaServerInstance.Mods;
+        Assert.Empty(mods[0].Dependencies);
+        Assert.Empty(mods[1].Dependencies);
+        Assert.Equal(["a.first", "com.wtt.commonlib"], mods[2].Dependencies);
+    }
+
+    [Fact]
     public void ModOrderIsTheServersLoadOrder()
     {
         SptMod[] mods =
@@ -322,12 +345,29 @@ public sealed class ArenaServerInstanceTests : IDisposable
         Assert.Equal(2, mods.GetArrayLength());
         var sain = mods[1];
         Assert.Equal(
-            ["folder", "guid", "name", "version"],
+            ["dependencies", "folder", "guid", "name", "version"],
             sain.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
         Assert.Equal("me.sol.sain", sain.GetProperty("guid").GetString());
         Assert.Equal("SAIN", sain.GetProperty("name").GetString());
         Assert.Equal("4.5.1", sain.GetProperty("version").GetString());
         Assert.True(Path.IsPathRooted(sain.GetProperty("folder").GetString()!));
+        Assert.Equal(JsonValueKind.Array, sain.GetProperty("dependencies").ValueKind);
+        Assert.Equal(0, sain.GetProperty("dependencies").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task PingCarriesTheModDependenciesAsAnArrayOfGuids()
+    {
+        ArenaServerInstance.Initialize(
+        [
+            Mod("com.wtt.contentbackport", "WTT-ContentBackport", "1.0.0", "./user/mods/WTT-ContentBackport",
+                new Dictionary<string, SemanticVersioning.Range> { ["com.wtt.commonlib"] = new("~3.0.6") }),
+        ], _noMarkerDirectory);
+
+        using var ping = await Ping(Router());
+        var dependencies = ping.RootElement.GetProperty("serverMods")[0].GetProperty("dependencies");
+
+        Assert.Equal(["com.wtt.commonlib"], dependencies.EnumerateArray().Select(d => d.GetString()));
     }
 
     [Fact]

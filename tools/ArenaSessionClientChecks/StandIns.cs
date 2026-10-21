@@ -85,14 +85,16 @@ namespace ArenaMode.Session
     /// <summary>Same shape as the production type in ArenaServerClient.cs.</summary>
     internal sealed class ArenaServerModInfo
     {
-        internal ArenaServerModInfo(string guid, string name, string version, string folder)
+        internal ArenaServerModInfo(string guid, string name, string version, string folder, IReadOnlyList<string> dependencies = null)
         {
             Guid = guid; Name = name; Version = version; Folder = folder;
+            Dependencies = dependencies ?? Array.Empty<string>();
         }
         internal string Guid { get; }
         internal string Name { get; }
         internal string Version { get; }
         internal string Folder { get; }
+        internal IReadOnlyList<string> Dependencies { get; }
     }
 
     /// <summary>

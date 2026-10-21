@@ -56,7 +56,11 @@ START ARENA SESSION, which restarts the game with only the allowed plugins
 (helper `ArenaMode.Session`). Read docs/ARENA-SESSION-20261021.md before changing the
 policy, the gate's install timing (`Finish`, never `Initialize`), the helper's
 process-identity rules or the request contract the client checks before it quits
-the game. Never add code that is specific to one foreign mod.
+the game. Never add code that is specific to one foreign mod. The user policy file is a combined
+allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. Keep the per-unit order
+(platform/Arena, user deny, named entries, `unlisted`), an unknown `unlisted` value (or, in blacklist
+mode, an unreadable `deny` list) invalidating the whole file, the server mods' `ModDependencies` in the
+closure, and the mode out of the shipped default file (spec sections 3 and 4).
 Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
 changing camera-checked marker layers or its optional GC-pause guard. Never
 move pooled weapon objects into marker ownership or change foreign saved settings.

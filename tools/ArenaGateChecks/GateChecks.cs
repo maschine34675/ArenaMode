@@ -81,6 +81,7 @@ public static class GateChecks
                 case "full": ScenarioWorld("full", new WorldOptions { Kind = WorldKind.Full }); break;
                 case "user-file": ScenarioWorld("user-file", new WorldOptions { Kind = WorldKind.UserFile }); break;
                 case "user-garbage": ScenarioWorld("user-garbage", new WorldOptions { Kind = WorldKind.UserGarbage }); break;
+                case "user-blacklist": ScenarioWorld("user-blacklist", new WorldOptions { Kind = WorldKind.UserBlacklist }); break;
                 case "bad-default": ScenarioWorld("bad-default", new WorldOptions { Kind = WorldKind.BadDefault }); break;
                 case "missing-default": ScenarioWorld("missing-default", new WorldOptions { Kind = WorldKind.MissingDefault }); break;
                 case "no-core-module": ScenarioWorld("no-core-module", new WorldOptions { Kind = WorldKind.NoCoreModule }); break;
@@ -158,6 +159,7 @@ public static class GateChecks
         Inert,
         Full,
         UserFile,
+        UserBlacklist,
         UserGarbage,
         BadDefault,
         MissingDefault,
@@ -263,6 +265,18 @@ public static class GateChecks
             d["old/SAIN.dll"] = "excluded:denied-by-user";
             d["helper/helperlib.dll"] = "excluded:not-on-whitelist";
             d["helper/deeper.dll"] = "excluded:not-on-whitelist";
+        }
+        else if (kind == WorldKind.UserBlacklist)
+        {
+            // "unlisted": "allow"; deny: SAIN, Freecam, Deeper Library, the WTT patcher, the LogTools patcher, SPT core.
+            // Everything nobody names is allowed. Deeper Library is denied but Helper Library (unlisted, allowed)
+            // needs it, so it is pulled in.
+            d["SAIN/SAIN.dll"] = "excluded:denied-by-user";
+            d["old/SAIN.dll"] = "excluded:denied-by-user";
+            d["Freecam.dll"] = "excluded:denied-by-user";
+            d["helper/helperlib.dll"] = "allowed:unlisted-allowed";
+            d["helper/deeper.dll"] = "allowed:dependency-of:x.helperlib";
+            d["soft/softonly.dll"] = "allowed:unlisted-allowed";
         }
 
         return d;
@@ -718,6 +732,13 @@ public static class GateChecks
                 + "              { \"patcher\": \"ZZZ-nested-denied.dll\", \"name\": \"Nested\", \"kind\": \"tool\" } ],\n"
                 + "  \"deny\": [ \"me.sol.sain\", \"WTT-ContentBackportPatcher.dll\", \"maschine-LogTools.dll\", \"com.SPT.core\" ] }");
         }
+        else if (kind == WorldKind.UserBlacklist)
+        {
+            File.WriteAllText(g.UserFile,
+                "{ \"schema\": 1,\n"
+                + "  \"unlisted\": \"allow\",\n"
+                + "  \"deny\": [ \"me.sol.sain\", \"com.terkoiz.freecam\", \"x.deeper\", \"WTT-ContentBackportPatcher.dll\", \"maschine-LogTools.dll\", \"com.SPT.core\" ] }");
+        }
         else if (kind == WorldKind.UserGarbage)
         {
             File.WriteAllText(g.UserFile, "{ \"schema\": 1, \"allow\": [ nope");
@@ -925,6 +946,7 @@ public static class GateChecks
 
         // Which patchers are denied for this policy, and where do they sort relative to the gate?
         var deniedFiles = new List<string>();
+        var deniedBeforeGate = new List<string>();
         foreach (PatcherSpec p in patchers)
         {
             bool allowed = p.AllowedByDefault;
@@ -933,6 +955,11 @@ public static class GateChecks
             {
                 if (leaf == "maschine-LogTools.dll") allowed = false;
                 if (leaf == "ZZZ-nested-denied.dll") allowed = true;
+            }
+            else if (kind == WorldKind.UserBlacklist)
+            {
+                // Blacklist: every patcher runs except the two the user denied.
+                allowed = leaf != "maschine-LogTools.dll" && leaf != "WTT-ContentBackportPatcher.dll";
             }
 
             int index = sortedAssemblies.IndexOf(p.AssemblyName);
@@ -951,6 +978,7 @@ public static class GateChecks
             deniedFiles.Add(leaf);
             if (before)
             {
+                deniedBeforeGate.Add(p.AssemblyName);
                 Check(init && !targets && !patch && !finish, "denied patcher " + p.AssemblyName + " (sorts before the gate) only ran its initializer",
                     "init=" + init + " targets=" + targets + " patch=" + patch + " finish=" + finish);
                 bool warned = report != null && report.Warnings.Any(w => w.Contains(leaf) && w.Contains("initializer ran before the gate"));
@@ -977,7 +1005,7 @@ public static class GateChecks
 
         Check(Count("init:") >= 1, "dummy patchers were initialised at all");
         Console.WriteLine("  info: gate position " + gateIndex + " of " + sortedAssemblies.Count + "; denied before the gate: "
-            + string.Join(",", patchers.Where(p => !p.AllowedByDefault && sortedAssemblies.IndexOf(p.AssemblyName) < gateIndex).Select(p => p.AssemblyName).ToArray()));
+            + string.Join(",", deniedBeforeGate.ToArray()));
     }
 
     private static void CheckPatchersNamedAtInfo(List<string> neutralised, List<LogEntry> patcherInfo)
@@ -1030,7 +1058,7 @@ public static class GateChecks
 
         // Dependencies were read the way BepInEx defines them
         Found sain = cold.Items.FirstOrDefault(i => i.Guid == "me.sol.sain" && i.Version == "4.5.2");
-        if (kind != WorldKind.UserFile)
+        if (kind != WorldKind.UserFile && kind != WorldKind.UserBlacklist)
         {
             Check(sain != null && sain.HardDeps.Contains("xyz.drakia.bigbrain") && sain.HardDeps.Contains("x.helperlib") && sain.SoftDeps.Contains("x.softonly"),
                 "the generated plugins carry the intended hard and soft dependencies");
@@ -1054,6 +1082,18 @@ public static class GateChecks
                 "a user file that does not parse is ignored with a warning");
             Check(Log.From(GateSource).Any(e => e.Level == LogLevel.Warning && e.Message.Contains("user whitelist: cannot parse")),
                 "the ignored user file is also logged as a warning");
+        }
+
+        if (kind == WorldKind.UserBlacklist)
+        {
+            Check(report.Warnings.Any(w => w == "Deeper Library: pulled in as hard dependency of Helper Library (overrides the user's deny)"),
+                "a denied hard dependency of an unlisted-allowed plugin is pulled in, and the warning says the deny was overridden");
+            Check(!report.Warnings.Any(w => w.StartsWith("Helper Library:", StringComparison.Ordinal) || w.StartsWith("Soft Only:", StringComparison.Ordinal)),
+                "a plugin that nothing names gets no warning of its own");
+            Check(report.Warnings.Any(w => w.Contains("deny of 'com.SPT.core' is ignored")), "a deny of a platform unit is reported and ignored");
+            Check(report.Excluded.All(u => u.Guid != "com.SPT.core"), "a platform plugin cannot be denied");
+            Check(report.Excluded.All(u => u.Reason == "denied-by-user"), "in blacklist mode only denied plugins are excluded");
+            Check(report.Allowed.Any(u => u.Reason == "unlisted-allowed"), "the report carries the unlisted-allowed reason");
         }
 
         if (kind == WorldKind.UserFile)

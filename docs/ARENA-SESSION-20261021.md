@@ -19,6 +19,9 @@ runs only with **whitelisted** mods:
 - Default whitelist besides ArenaMode: **SAIN, APBS, ABPS, BigBrain, Waypoints**.
 - A whitelisted mod whose installed version differs from the reviewed version only produces a
   **warning**, never a block.
+- The user may turn the whitelist into a blacklist (`"unlisted": "allow"` in the user file, decision
+  2026-10-21, section 3): everything the user did not deny is then allowed. The shipped default is
+  always a whitelist.
 - A normal session whose loaded mods are already all whitelisted may play Arena directly, without
   a restart (it is equivalent to an Arena session except for the disposable profile).
 - No code specific to one foreign mod. Existing adapters under `ArenaMode.Client/Compat` stay as
@@ -78,12 +81,41 @@ Default file:
 Entry fields: `guid` or `patcher` (exactly one), `name`, `kind` (`mod` or `tool`), optional
 `clientVersion` / `serverVersion` (reviewed versions; absent = any version without warning).
 
-User file: `{ "schema": 1, "allow": [ <entries as above> ], "deny": [ "<guid or patcher file>" ] }`.
+User file: `{ "schema": 1, "unlisted": "deny" | "allow", "allow": [ <entries as above> ], "deny": [ "<guid or patcher file>" ] }`.
+`unlisted`, `allow` and `deny` are each optional; schema stays 1.
 
-Effective policy = platform + arena + default entries + user `allow` - user `deny`. `deny` cannot
-remove platform or arena units. A user file with an unknown schema or a parse error is ignored with
-a warning. A missing or unreadable default file makes the Arena session unavailable (the gate stays
-inactive and reports the error).
+The policy is a combined allow/deny list (user decision 2026-10-21). For one unit, in this order:
+
+1. **Platform and arena units** are always allowed. `deny` cannot remove them.
+2. A unit in the user `deny` list is **excluded** (`denied-by-user`), except as a hard dependency of
+   an allowed unit: the closure of section 4 still pulls it in, with a warning.
+3. A unit that a default entry or a user `allow` entry names is **allowed** (`whitelist` or `tool`). A
+   reviewed version that differs from the installed one is a warning; this is the only source of
+   version warnings, so it exists only for entries that carry a reviewed version.
+4. Every other unit follows `unlisted`. `"deny"` (the default) **excludes** it (`not-on-whitelist`):
+   the whitelist behaviour. `"allow"` **allows** it (`unlisted-allowed`, no warning of its own): the
+   blacklist behaviour, everything the user did not deny is allowed.
+
+The same rules apply to client plugins and server mods (by GUID) and to preloader patchers (by file
+name). Because `deny` is checked before `unlisted`, a blacklist is just `"unlisted": "allow"` plus a
+`deny` list; `allow` entries are then only needed to attach reviewed versions.
+
+A user file with an unknown schema, an unknown `unlisted` value (anything but the strings `deny` and
+`allow`, compared ignoring case and surrounding white space; the empty string, numbers, booleans,
+arrays and objects included; JSON `null` counts as absent) or a parse error is ignored with a
+warning, as a whole: guessing a mode would silently invert what the user wrote. In blacklist mode
+(`"unlisted": "allow"`) the same goes for a `deny` member that cannot be read in full, that is, one that is
+not an array or has an entry that is not a non-blank string: there the deny list is the whole filter, and
+applying part of it would load a mod the user excluded, so the file is ignored as a whole and the shipped
+whitelist stays in force. A mistyped `allow` member or entry, and under a whitelist a mistyped `deny` member
+or entry, are skipped individually with a warning (a lost `allow` entry only leaves a mod unlisted, and under
+a whitelist nothing unlisted loads). A `unlisted` member in
+the shipped default file is not read: the default list is always a whitelist. A missing or unreadable
+default file makes the Arena session unavailable (the gate stays inactive and reports the error).
+
+The policy hash covers the entries after `deny`. In blacklist mode it also covers the mode and the
+denied names, because there they are the whole filter; a whitelist policy hashes exactly as before
+the mode existed.
 
 GUID comparison is ordinal and case-insensitive. Versions compare as `System.Version` after
 dropping a leading `v` and any suffix after `-` or `+`; an unparsable version counts as different.
@@ -101,14 +133,22 @@ targets.
   `TryParse`.
 - `ArenaWhitelistPolicy`: `TryLoad(string defaultJson, string userJsonOrNull, out policy, out
   List<string> diagnostics)`; queries `IsAllowedPlugin(guid)`, `IsAllowedPatcher(fileName)`,
-  `IsAllowedServerMod(guid)`, `ReviewedVersion(guid, side)`, `Hash` (stable hash of the effective
-  policy for logs and the marker).
+  `IsAllowedServerMod(guid)` (a named entry, or blacklist mode and not denied), `ReviewedVersion(guid,
+  side)`, `UnlistedMode` / `AllowsUnlisted`, `IsUnlistedAllowed(id)`, `Hash` (stable hash of the
+  effective policy for logs and the marker).
 - `ArenaWhitelistDecision`: input = installed units `(guid, name, version, file, hardDependencies)`
   for one side; output = `Allowed` (reason: `platform`, `arena`, `whitelist`, `tool`,
-  `dependency-of:<guid>`), `Excluded` (reason: `not-on-whitelist`, `denied-by-user`) and `Warnings`
-  (`version <installed> differs from reviewed <reviewed>`, `pulled in as hard dependency of
-  <name>`). Closure: a hard dependency of an allowed unit that is installed but not allowed is
-  allowed with a warning, transitively. Same function for the server side (no dependencies there).
+  `unlisted-allowed`, `dependency-of:<guid>`), `Excluded` (reason: `not-on-whitelist`,
+  `denied-by-user`) and `Warnings` (`version <installed> differs from reviewed <reviewed>`, `pulled in
+  as hard dependency of <name>`, with ` (overrides the user's deny)` appended for a denied unit).
+  `unlisted-allowed` occurs only in blacklist mode and carries no warning. Closure: a hard dependency
+  of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but not allowed (a
+  denied unit; in whitelist mode any unlisted one) is allowed with a warning, transitively. Same
+  function for the server side, whose hard dependencies are the mod's `ModDependencies`, sent in the ping
+  (section 8): SPT's mod validator refuses to load EVERY server mod when one listed dependency is missing,
+  so a denied or unlisted library of an allowed server mod has to stay in the tree. The closure is per
+  side: a client plugin pulled in as a dependency does not pull in a server mod that merely shares its GUID,
+  nor the other way round. A ping without `dependencies` (an older server) means none.
 - `ArenaSessionContract`: constants and the report format.
   - command-line flag `-arena-session`
   - AppDomain data key `com.maschine.ArenaMode.Gate.Report`
@@ -179,7 +219,14 @@ manifest declares `longPathAware`: the server tree sits deeper than the install.
 
 The runtime root, the mutex, `server.pid` and the tree are shared by every SPT installation of one
 Windows user. A helper therefore never stops, replaces or deletes the arena server of another
-installation (see `stop-server`).
+installation (see `stop-server`). That protects only between helpers that know the rule. An older helper
+(the 0.1.3 builds from before the server binaries moved into the tree) does not understand a marker with
+`serverExe`: it takes the tree's server for "not ours", deletes `server.pid` and leaves the server running,
+and the new helper can no longer find it through the pid file. The helper's version is the repository's
+(the packager requires the built exe to match `Shared.props`, and the next release bump is the release's
+decision), so until then only the marker's `serverExe` member and `status` tell the two builds apart. Every
+installation of one Windows user therefore has to receive the new helper together; a server an older helper
+left behind (`SPT.Server.exe` running from `<root>\server`) is ended by hand.
 
 Commands: `enter --request <file>`, `leave --request <file>`, `stop-server`, `status`.
 
@@ -208,23 +255,49 @@ when given) and a non-empty `serverMods` whose folders are each a direct child o
    installation the enter fails (step 6 applies).
 3. Materialise `<root>\server` (always under the runtime root; refuse any other path; never
    recurse into a reparse point when deleting; delete junctions as links):
+   - Server binaries, so that the arena server runs from the tree and `AppContext.BaseDirectory`
+     (the folder of the exe, which several server mods resolve their paths from) is the tree: every
+     top-level **file** of `<sptRuntimeDir>` except `sptLogger.json` (generated below), `SPT.Launcher*`,
+     anything with `Linux` in its name (any case) and `*.so`, copied to the tree root. For SPT 4.1.6 that
+     is 44 files, 23 MB: `SPT.Server.exe`, `.dll`, `.runtimeconfig.json`, `.deps.json` and the flat
+     libraries of the `deps.json`. Nothing else is needed beside the exe (checked against the server
+     host: the working directory decides `IsRunFromInstallationFolder`, `sptLogger.json`, `SPT_Data` and
+     `user\mods`; the base directory is used for the satellite assemblies in `SPT_Data\dotnet`, which is a
+     junction below; the executing assembly's folder is used for `SPTarkov.Server.Core.dll`, which is
+     copied). The copy is incremental: the binaries of the previous tree stay in place and a file is
+     copied again only when its length or last-write time (UTC, to the tick) differs from the runtime's
+     file, because a copy keeps the source's timestamp; a binary the runtime no longer has is removed.
+     Locked files are retried like every other copy. Top-level **folders** of the runtime other than
+     `SPT_Data` and `user` are not part of the tree; the helper logs a warning naming them (none exist in
+     4.1.6), because a `deps.json` that pointed into one would not find it beside the copied exe. A
+     runtime without `SPT.Server.exe` fails the build.
    - `sptLogger.json`: copy of `<sptRuntimeDir>\sptLogger.json` with every `filePattern` value
      prefixed by `arena-`.
    - `SPT_Data\`: a directory junction for every subdirectory of `<sptRuntimeDir>\SPT_Data`
      except `configs`; files directly in `SPT_Data` copied; `configs\` copied, then `http.json`
      patched: `port` and `backendPort` set to the arena port, everything else unchanged.
    - `user\mods\`: emptied, then a copy of every folder in `serverMods` (copies, not junctions,
-     so what those mods write beside their own files stays in the disposable tree). Only the
-     helper's own operations are confined this way: the server is started from the real
-     runtime's exe, so a user-allowed server mod that resolves its paths from
-     `AppContext.BaseDirectory` still reads and writes the real runtime.
+     so what those mods write beside their own files stays in the disposable tree). A user-allowed
+     server mod that resolves its paths from `AppContext.BaseDirectory`, the working directory or its
+     assembly location therefore reads and writes the tree, not the real runtime. The exception is
+     the `SPT_Data` folders that are junctions: they are the installation's own. Inside a mod, a
+     folder that holds only `*.bundle` files (at any depth, at least one) is a junction too: SPT
+     serves asset bundles read-only and nothing writes them, while a copy would duplicate
+     gigabytes at every enter (WTT-ContentBackport ships about 8 GB of bundles).
+   - `user\cache\bundleHashCache.json`: copied if it exists (its keys are relative paths and the
+     linked bundles are the installation's files), so the server does not hash every bundle again.
    - `user\profiles\<profileId>.json`: fresh copy; `user\profileData\<profileId>\` copied if it
      exists; `user\certs\` and `user\credentials\` copied if they exist.
-   - `arena-session.json` marker: `{schema, createdUtc, profileId, port, sourceRuntime,
-     policyHash, helperVersion}`.
-4. Start `<sptRuntimeDir>\SPT.Server.exe` with `WorkingDirectory = <root>\server` (the server
-   resolves data and mods relative to the working directory and its DLLs relative to the exe),
-   its own console window, an environment without `DOORSTOP_*` variables; write `server.pid`.
+   - `arena-session.json` marker: `{schema, createdUtc, profileId, port, sourceRuntime, serverExe,
+     policyHash, helperVersion}`. `serverExe` is the tree's `SPT.Server.exe`; a marker of an older
+     helper has no such member (its server ran the installation's exe).
+   Before anything is built, the tree root is cleaned: the marker first (a half-cleaned tree must not
+   look finished), then everything except the plain files that are server binaries of the runtime being
+   copied (folders and links, a stale binary, last session's leftovers).
+4. Start `<root>\server\SPT.Server.exe` (the tree's own copy, never the installation's) with
+   `WorkingDirectory = <root>\server` (the server resolves data and mods relative to the working
+   directory and its DLLs relative to the exe), its own console window, an environment without
+   `DOORSTOP_*` variables; write `server.pid`.
    Wait until `127.0.0.1:<port>` accepts TCP and the listener is the process that was started
    (max 180 s). A server that has exited ends the wait at once; a listener owned by another
    process is not taken for the server.
@@ -243,12 +316,18 @@ does not keep the game from starting); read the normal port from
 start the game with `-arena-session` removed and the `BackendUrl` port set back to the normal port.
 The arena tree is kept; the next `enter` replaces it.
 
-`stop-server`: if `server.pid` names a running process whose image is the same file as
-`SPT.Server.exe` of the recorded `sourceRuntime` (compared as files, not as text: a junction or a
-SUBST drive gives one file several spellings) and whose start time agrees with `server.pid`,
-kill it (the tree is disposable) and delete `server.pid`. A pid that fails these checks is not
-the server and is left alone (a reused pid also loses its `server.pid`). `enter` and `leave`
-additionally leave a server alone whose `sourceRuntime` is not their own `sptRuntimeDir`.
+`stop-server`: if `server.pid` names a running process whose image is the same file as the exe the
+marker says the server was started from and whose start time agrees with `server.pid`, kill it (the
+tree is disposable) and delete `server.pid`. That exe is `<root>\server\SPT.Server.exe`, recomputed
+from the helper's own session root (the marker's `serverExe` only says that the server was started
+from the tree; a kill decision does not rest on a path read from a file), for a marker that has
+`serverExe`; and `SPT.Server.exe` of the recorded `sourceRuntime` for a marker without it, a server
+started by an older helper, so that a session which outlives a helper update is still stopped once.
+The two are never both accepted: a marker with `serverExe` does not accept the installation's exe,
+which is also the image of the normal server. Images are compared as files, not as text (a junction or
+a SUBST drive gives one file several spellings). A pid that fails these checks is not the server and
+is left alone (a reused pid also loses its `server.pid`). `enter` and `leave` additionally leave a
+server alone whose `sourceRuntime` is not their own `sptRuntimeDir`.
 
 `status`: print a JSON line with tree, marker, pid and port state.
 
@@ -267,7 +346,9 @@ patching, path safety, request parsing) live in their own file and are covered b
   - Normal session: evaluate `Chainloader.PluginInfos` and the server's `serverMods` with the same
     policy. If anything is excluded, refuse: `Arena runs only with whitelisted mods. Not on the
     whitelist: <names>. Start an Arena session to play Arena without them; the game restarts.`
-    and show the action **START ARENA SESSION**. When no session can be offered (older server, no
+    and show the action **START ARENA SESSION**. In blacklist mode only mods the user denied are
+    excluded, so the first two sentences read `Arena does not run with mods denied in your Arena
+    policy file: <names>.` and the rest is unchanged. When no session can be offered (older server, no
     helper, no local SPT server, a remote backend, the server already is an Arena instance, or a
     server the helper cannot switch: no allowed server mod, or one whose folder is not a direct
     child of `<game>\SPT_Runtime\user\mods`) the refusal ends instead with `Remove them and
@@ -292,7 +373,8 @@ patching, path safety, request parsing) live in their own file and are covered b
   request the helper would refuse leaves the game running and shows the reason. One Info line per
   request.
 - Ping parsing: new optional fields `arenaInstance` (bool) and `serverMods`
-  (`[{guid,name,version,folder}]`); absent fields mean an older server: no session offer, normal
+  (`[{guid,name,version,folder,dependencies}]`, `dependencies` an optional array of GUID strings, absent
+  or malformed = none); absent fields mean an older server: no session offer, normal
   admission continues with the client-side check only. When a screen opens, the ping is
   refreshed with a bounded wait (250 ms) if the answer depends on it; a ping that does not
   arrive in time leaves the fields unknown and the explicit Arena click asks again.
@@ -300,7 +382,8 @@ patching, path safety, request parsing) live in their own file and are covered b
 ## 8. Server (`ArenaMode.Server`)
 
 - Ping adds `arenaInstance` (`arena-session.json` exists in the working directory) and
-  `serverMods` (every loaded mod: GUID, name, version, absolute folder).
+  `serverMods` (every loaded mod: GUID, name, version, absolute folder, and the GUIDs of its
+  `ModDependencies`, sorted).
 - Arena instance: refuse ordinary (non-Arena) local raid starts with a clear error; log one Info
   line at startup: `Arena session server: N mods loaded (<names>)`. The refusal is a normal SPT
   response body `{err: 1000, errmsg, data: null}` (`UnknownScriptExecutionError`), not an
@@ -358,8 +441,40 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   checks that the process it started holds the port. The request rules are stricter than the first draft
   (24-hex profile id, `serverMods` folders directly below `<sptRuntimeDir>\user\mods`) and the client runs
   the same parser before it quits the game. The tree is kept after `leave`. The server mod copies confine
-  only what the helper does itself, not mods that use `AppContext.BaseDirectory`.
+  what the helper itself and the mods write beside their own files; mods that resolve paths from
+  `AppContext.BaseDirectory` were not confined until the exe moved into the tree (last entry below).
 - Section 7: the profile id is the `-token=` argument first; the ping is refreshed with a 250 ms bound when a
   screen opens; the refusal text differs when no session can be offered; the whitelist fails open in a normal
   session and closed in an Arena session.
 - Section 8: the refusal of an ordinary start is an SPT error body (`err` 1000), not an exception.
+- Sections 3, 4 and 7 (2026-10-21, user decision): the user file may carry `"unlisted": "allow"`. Per unit the
+  order is platform/arena, then the user `deny`, then the named entries, then `unlisted`. New reason
+  `unlisted-allowed`; an unknown `unlisted` value invalidates the whole user file; the policy hash
+  covers the mode and the denied names in blacklist mode only (whitelist hashes are unchanged); the
+  client refusal and the gate's patcher warning name the denied mods instead of a whitelist.
+- Section 6 (2026-10-21, after the GPU run): the arena server runs from its own copy of the server binaries
+  in the tree, not from the installation's `SPT.Server.exe`. Why: several server mods resolve paths from
+  `AppContext.BaseDirectory`, the folder of the exe, so a server started from the real runtime let them
+  write into the real installation although the helper had copied their folders. What changed: `enter`
+  copies the top-level files of the runtime (minus `sptLogger.json`, `SPT.Launcher*`, `*Linux*`, `*.so`)
+  incrementally into the tree root and starts `<root>\server\SPT.Server.exe`; the marker names it as
+  `serverExe`; the identity check of `stop-server`/`enter`/`leave` expects the tree's exe for such a marker
+  and the installation's exe only for a marker without `serverExe` (an older helper's session is stopped
+  once, a marker of this helper never takes the installation's exe for the arena server); the tree root
+  is cleaned except for the binaries that are still current. Evidence (offline, scratch folders only, the
+  installation was only read): the helper's own `Enter`, `Leave` and `stop-server` against a stand-in
+  server with the same layout (apphost exe, dll, `runtimeconfig.json`, `deps.json`) showed the stand-in's
+  `AppContext.BaseDirectory` and image path in the tree, nothing written to the runtime, a second `enter`
+  copying no binary and an older helper's session (marker without `serverExe`, server running the
+  runtime's exe, which wrote into the runtime as the control) being stopped by `stop-server` and by `enter`;
+  the real `SPT.Server.exe` of 4.1.6 booted from a tree built from a scratch copy of the installed
+  runtime (44 files, 23 MB copied, four server mods loaded, `/health` healthy, the server log shows the
+  Arena instance, the copied runtime unchanged afterwards). Not covered: a GPU-host run of the whole switch
+  with this change (section 10 records the run before it).
+- Sections 3, 4, 6, 7 and 8 (2026-10-21, review pass): the closure covers server mods. The ping's `serverMods`
+  entries carry `dependencies` (the mod's `ModDependencies`) and the client passes them as hard dependencies;
+  before, a `deny` (or an omission under a whitelist) of a library that an allowed server mod needs made SPT's
+  mod validator drop every mod in the tree, ArenaMode's server mod included. In blacklist mode a `deny` list
+  that is not an array of non-blank strings invalidates the user file like an unknown `unlisted` value (a lost
+  deny entry would load a mod the user excluded); everything else in the user file stays lenient. Section 6
+  states the mixed-helper limit of installations that share one Windows user.

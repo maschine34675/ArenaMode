@@ -169,6 +169,18 @@ Invoke-Mutant 'admission-policy-hash-dropped' 'admission' 'policyHash = outcome.
 Invoke-Mutant 'admission-all-server-mods-allowed' 'admission' `
     'outcome.AllowedServerMods.AddRange(server.Allowed);' 'outcome.AllowedServerMods.AddRange(ServerUnits(serverMods));' `
     'Only the allowed server mods go into the session, in ping order'
+Invoke-Mutant 'admission-server-dependencies-dropped' 'admission' `
+    'units.Add(new ArenaSessionUnit(mod.Guid, mod.Name, mod.Version, mod.Folder, mod.Dependencies));' `
+    'units.Add(new ArenaSessionUnit(mod.Guid, mod.Name, mod.Version, mod.Folder, null));' `
+    'A denied server library that an allowed server mod depends on is no refusal'
+Invoke-Mutant 'admission-blacklist-text-ignored' 'admission' `
+    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);' `
+    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, false);' `
+    'In blacklist mode the refusal names the denied mods only and does not claim a whitelist'
+Invoke-Mutant 'admission-blacklist-text-always' 'admission' `
+    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);' `
+    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, true);' `
+    'Without a session-capable server the refusal asks to remove the mods'
 
 # ---- session switch
 Invoke-Mutant 'switch-quit-before-launch' 'switch' `

@@ -137,8 +137,8 @@ internal static partial class Program
     private static void WritePolicy(string text) => WriteFile(_policyPath, text);
     private static void WriteUserPolicy(string text) => WriteFile(_userPolicyPath, text);
 
-    private static ArenaServerModInfo Mod(string guid, string name, string version)
-        => new ArenaServerModInfo(guid, name, version, Path.Combine(_gameDir, "SPT_Runtime", "user", "mods", name));
+    private static ArenaServerModInfo Mod(string guid, string name, string version, params string[] dependencies)
+        => new ArenaServerModInfo(guid, name, version, Path.Combine(_gameDir, "SPT_Runtime", "user", "mods", name), dependencies);
 
     private static List<ArenaServerModInfo> NormalServerMods() => new()
     {
@@ -451,6 +451,102 @@ internal static partial class Program
         Ping(false, NormalServerMods());
         Require(Reason() != null && Reason().Contains("Zombie Pack"), "A user file with an unknown schema is ignored");
         Require(ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("user whitelist")), "The ignored user file is reported");
+
+        // Blacklist mode ("unlisted": "allow"): only a mod the user denied refuses Arena, and the text names it
+        // without claiming a whitelist.
+        ResetWorld();
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.looting\"]}");
+        Ping(false, NormalServerMods());
+        Require(Reason() == null, "In blacklist mode a mod the user did not deny is no refusal");
+        AddPlugin("com.example.looting", "Looting Pack", "2.0.0");
+        ArenaServerClient.PingGeneration++;
+        Equal(Reason(),
+            "Arena does not run with mods denied in your Arena policy file: Looting Pack. Start an Arena session to play Arena without them; the game restarts.",
+            "In blacklist mode the refusal names the denied mods only and does not claim a whitelist");
+        Require(ArenaWhitelistAdmission.CanOfferSessionStart(Reason()), "In blacklist mode the session is offered for a denied mod");
+        OldServerPing();
+        Equal(Reason(),
+            "Arena does not run with mods denied in your Arena policy file: Looting Pack. Remove them and restart the game to play Arena.",
+            "In blacklist mode without a session-capable server the refusal asks to remove the denied mods");
+
+        // The server side follows the same rule: an unlisted server mod goes into the session, a denied one does not.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.deniedserver\"]}");
+        var blacklistMods = NormalServerMods();
+        blacklistMods.Add(Mod("com.example.servermod", "Server Thing", "3.0"));
+        blacklistMods.Add(Mod("com.example.deniedserver", "Denied Thing", "1.0"));
+        Ping(false, blacklistMods);
+        Require(Reason() != null && Reason().Contains("Denied Thing.") && !Reason().Contains("Server Thing"),
+            "In blacklist mode a denied server mod refuses Arena and an unlisted one does not");
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out string blacklistHash, out var blacklistAllowed, out _),
+            "The session start prepares under a blacklist");
+        Equal(string.Join(",", blacklistAllowed.Select(m => m.Guid)),
+            "com.maschine.ArenaMode,me.sol.sain,com.acidphantasm.progressivebotsystem,com.acidphantasm.botplacementsystem,com.example.servermod",
+            "In blacklist mode the unlisted server mod goes into the session and the denied one does not");
+        Require(ArenaWhitelistPolicy.TryLoad(_repoPolicyText,
+                "{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.deniedserver\"]}", out var blacklistPolicy, out _)
+            && blacklistHash == blacklistPolicy.Hash && blacklistHash != LoadRepoPolicy().Hash,
+            "The request carries the blacklist policy's hash, not the whitelist's");
+
+        // The server's ModDependencies close over the same way as BepInEx hard dependencies: its mod validator
+        // drops EVERY mod when one listed dependency is missing, so a denied library that an allowed server mod
+        // lists goes into the session tree, with a note.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.commonlib\",\"com.example.unneeded\"]}");
+        var libraryMods = NormalServerMods();
+        libraryMods.Add(Mod("com.example.content", "Content Pack", "1.0", "com.example.commonlib"));
+        libraryMods.Add(Mod("com.example.commonlib", "Common Lib", "3.0.6"));
+        libraryMods.Add(Mod("com.example.unneeded", "Unneeded Lib", "1.0"));
+        Ping(false, libraryMods);
+        Require(Reason() != null && Reason().Contains("Unneeded Lib.") && !Reason().Contains("Common Lib"),
+            "A denied server library that an allowed server mod depends on is no refusal; an unneeded denied one still is");
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out var libraryAllowed, out _)
+                && libraryAllowed.Any(m => m.Guid == "com.example.commonlib")
+                && libraryAllowed.All(m => m.Guid != "com.example.unneeded"),
+            "The session tree gets the library its dependant needs, and not the unneeded denied one");
+        Require(ArenaWhitelistAdmission.WarningLine.Contains("Common Lib: pulled in as hard dependency of Content Pack (overrides the user's deny)"),
+            "The pulled-in server library is noted");
+
+        // A whitelist closes the same way: an unlisted library of an allowed server mod is not left out.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"allow\":[{\"guid\":\"com.example.content\"}]}");
+        Ping(false, libraryMods);
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out var whitelistLibrary, out _)
+                && whitelistLibrary.Any(m => m.Guid == "com.example.commonlib")
+                && whitelistLibrary.All(m => m.Guid != "com.example.unneeded"),
+            "Under a whitelist the unlisted library of an allowed server mod goes into the session too");
+
+        // Control: a ping without dependency data (the member is optional) cannot close anything, so the denied library is out.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.commonlib\"]}");
+        var withoutData = NormalServerMods();
+        withoutData.Add(Mod("com.example.content", "Content Pack", "1.0"));
+        withoutData.Add(Mod("com.example.commonlib", "Common Lib", "3.0.6"));
+        Ping(false, withoutData);
+        Require(Reason() != null && Reason().Contains("Common Lib."), "Without dependency data the denied library is excluded");
+
+        // An unknown mode invalidates the user file: the refusal stands as for a whitelist and the file is reported.
+        ResetWorld();
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"yes please\",\"allow\":[{\"guid\":\"com.example.zombies\"}]}");
+        Ping(false, NormalServerMods());
+        Require(Reason() != null && Reason().StartsWith("Arena runs only with whitelisted mods.", StringComparison.Ordinal),
+            "An unknown unlisted value ignores the user file, so the whitelist refusal stands");
+        Require(ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("unlisted") && w.Contains("ignored")),
+            "The ignored user file with the unknown unlisted value is reported");
+
+        // A blacklist whose deny list cannot be read in full is ignored as a whole: the mod the user meant to
+        // exclude must not load because its entry was lost.
+        ResetWorld();
+        AddPlugin("com.example.looting", "Looting Pack", "2.0.0");
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":\"com.example.looting\"}");
+        Ping(false, NormalServerMods());
+        Require(Reason() != null && Reason().StartsWith("Arena runs only with whitelisted mods.", StringComparison.Ordinal)
+                && Reason().Contains("Looting Pack"),
+            "A blacklist with a mistyped deny list falls back to the whitelist, which excludes the mod");
+        Require(ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("\"deny\" must be an array") && w.Contains("ignored")),
+            "The ignored blacklist file is reported");
 
         // The answer is cached per ping generation: a file change needs a new ping.
         ResetWorld();

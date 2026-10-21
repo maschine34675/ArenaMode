@@ -39,8 +39,13 @@ Waypoints plus UiBridge, ModProfiler and LogTools; the platform plugins and Aren
 allowed, and Fika is never filtered. Everything else is not loaded in an Arena session (a separate game
 process with a preloader gate, against a second SPT server with a private tree of the allowed server
 mods). The shipped list is `arena-whitelist.json`; a user's own additions and exclusions are
-`BepInEx/config/com.maschine.ArenaMode.whitelist.json` and are never shipped. The optional adapters below
-therefore apply to mods that are allowed to load; in the default Arena session they are dormant. See
+`BepInEx/config/com.maschine.ArenaMode.whitelist.json` and are never shipped. That file is a combined
+allow/deny list: with `"unlisted": "allow"` it turns the whitelist into a blacklist (every mod the user
+did not deny loads; a denied mod that an allowed mod hard-depends on is still pulled in, with a warning;
+for server mods the hard dependencies are their `ModDependencies`, which the server's ping reports, because
+the server refuses to load any mod when one is missing).
+The optional adapters below therefore apply to mods that are allowed to load; in the default Arena
+session they are dormant. See
 [the session specification](ARENA-SESSION-20261021.md) and the [README](../README.md).
 
 ## Optional features and targeted adapters

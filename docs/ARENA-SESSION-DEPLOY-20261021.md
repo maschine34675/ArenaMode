@@ -111,3 +111,43 @@ Limits that remain: a server that fails at startup stays alive behind "Press any
 `Program.WaitForExit`), so such an `enter` still takes the 180 s wait before the normal session returns; a request
 that the helper rejects for a reason the client's copy of the parser does not know (a client and a helper from
 different builds) still ends without a restart; the end-to-end run used stand-ins, not the real `SPT.Server.exe`.
+
+## Server binaries in the tree (2026-10-21)
+
+The helper no longer starts the installation's `SPT.Server.exe` for the arena server. `enter` copies the
+server binaries (every top-level file of `SPT_Runtime` except `sptLogger.json`, `SPT.Launcher*`, anything with
+`Linux` in its name and `*.so`; 44 files, 23 MB for 4.1.6) into the tree root and starts `<root>\server\SPT.Server.exe`,
+so a server mod that resolves its paths from `AppContext.BaseDirectory` writes into the disposable tree and
+not into the installation. Nothing else is installed or deployed differently: the helper exe is the same file
+in the same place. Specification: section 6 and the last entry of section 11 of
+[ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md).
+
+| Check | Result |
+|---|---|
+| `dotnet test ArenaMode.Tests --filter ArenaSessionHelper` | 384 passed, 0 skipped (symbolic-link tests included); 14 mutants of the new code checked, each rejected by at least one test (incremental skip, length/time rule, exclusion rules, stale binaries, link replacement, marker order, tree-versus-installation identity, older-marker acceptance, folder warning, missing exe, marker member) |
+| Helper `Enter`/`Leave`/`stop-server` against a stand-in server with the real layout (scratch, not in the repository) | 49 checks: the server's image and `AppContext.BaseDirectory` are the tree, the runtime is unchanged, a second `enter` copies 0 of 6 binaries, an older helper's session (marker without `serverExe`) is stopped by `stop-server` and by `enter`, `leave` starts the normal server from the runtime as before |
+| Real `SPT.Server.exe` 4.1.6 from a tree built out of a scratch copy of the installed runtime (scratch, not in the repository) | `enter` 18 s including the server start; 44 files copied; four server mods loaded; `/health` answers; the Arena instance is recognised; the copied runtime was not written to; `stop-server` ends it |
+
+Limits: no GPU-host run of the whole switch with this change yet (the acceptance in section 10 predates
+it), and a runtime with top-level folders besides `SPT_Data` and `user` gets a warning in `helper.log`
+because the tree does not contain them.
+
+## Review fixes (third pass, 2026-10-21)
+
+Three findings of a policy and tree review, each checked against the code and the decompiled server first. Offline
+evidence only, nothing was deployed or run in the game.
+
+| Finding | Change | Evidence |
+|---|---|---|
+| Server mods were evaluated without dependency data, so a `deny` (or, under a whitelist, an omission) of a library that an allowed server mod lists in `ModDependencies` was honoured; SPT's `ModValidator` then logs `modloader-no_mods_loaded` and loads no mod at all, ArenaMode's server mod included, and the helper only waits for the port | The ping's `serverMods` entries carry `dependencies` (the GUIDs of `ModDependencies`, sorted, always an array); the client reads them (absent, malformed or non-string entries = none) and passes them as hard dependencies, so the existing closure keeps the library in the tree with the usual warning. The closure stays per side: a client plugin pulled in as a dependency does not pull in a server mod that merely shares its GUID | `ArenaServerInstanceTests` (ping member set, sorted GUIDs, empty array), `ArenaWhitelistTests` (server-side closure under blacklist and whitelist), `ArenaSessionClientChecks` (scenarios plus the mutant `admission-server-dependencies-dropped`), `Verify-SessionPing.ps1` (two new mutants on the ping parser) |
+| A blacklist applied a `deny` list in part: a `deny` that is not an array, or an entry that is not a non-blank string, was skipped with a warning while the mode stayed `allow`, so the mod the user meant to exclude loaded | In blacklist mode only, such a `deny` invalidates the whole user file like an unknown `unlisted` value (diagnostic `"deny" must be an array when "unlisted" is "allow", the file is ignored`, shipped whitelist in force). A mistyped `allow`, and under a whitelist a mistyped `deny`, stay per-entry: nothing unlisted loads there | `ArenaWhitelistTests` (eleven malformed shapes, readable lists, whitelist control; mutation-checked: with the check off 11 of them fail) and one `ArenaSessionClientChecks` scenario |
+| An older helper (the 0.1.3 build before the server binaries moved into the tree) treats the new marker's tree server as "not ours", deletes `server.pid` and leaves the server running | Not fixable from the new helper, and the proposed helper-only version bump is not applied: `Package-TestRelease.ps1` requires the helper's assembly version to equal `Shared.props`, and the next release bump is the release's decision. Documented instead (specification, section 6): every installation of one Windows user must receive the new helper together; the marker's `serverExe` member and `status` tell the builds apart; an orphan left by an older helper has lost its pid file, so `stop-server` cannot find it and it is ended by hand | text only |
+
+Limits: the closure for server mods depends on the ping carrying `dependencies`; a server mod build without them (a
+client newer than its server mod, which a release never ships) behaves as before this pass.
+
+Offline results after this pass (no-deploy properties throughout; nothing under `D:\SPT41` outside the worktree was
+written, checked by modification time): `dotnet build ArenaMode.sln -c Release` 0 errors; `dotnet test ArenaMode.Tests`
+1894 passed, 2 skipped (both need the installed game), 0 failed; `Verify-SessionPing.ps1` 777 assertions and 9 mutants
+rejected (two new); `ArenaSessionClientChecks/Verify.ps1` 194 assertions and 66 mutants rejected (one new);
+`ArenaGateChecks/Verify.ps1` 12 scenarios, 321 checks, 11 mutants rejected; `DeployLayoutChecks/Verify.ps1` 126 checks.

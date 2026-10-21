@@ -26,6 +26,10 @@ namespace ArenaMode.Session;
 /// session. Version warnings never refuse.</item>
 /// </list>
 ///
+/// The policy may be a blacklist (the user file says <c>"unlisted": "allow"</c>): then everything the
+/// user did not deny is allowed, only denied mods are excluded, and nothing else in this class changes.
+/// Only the refusal text differs, because "not on the whitelist" would be wrong there.
+///
 /// Fika is never filtered and keeps its own refusal: with Fika present this class admits (returns no
 /// reason) and offers no session, so the existing "unavailable with Fika" rule decides.
 ///
@@ -264,7 +268,7 @@ internal static class ArenaWhitelistAdmission
         if (excluded.Count == 0) return;
 
         outcome.CanStartSession = outcome.SessionPossible;
-        outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession);
+        outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);
         if (!outcome.CanStartSession)
             Plugin.ModLogger?.LogDebug("Arena session not offered: " + outcome.SessionImpossibleReason);
     }
@@ -362,8 +366,10 @@ internal static class ArenaWhitelistAdmission
     private static List<ArenaSessionUnit> ServerUnits(IReadOnlyList<ArenaServerModInfo> mods)
     {
         var units = new List<ArenaSessionUnit>(mods.Count);
+        // The server's ModDependencies are hard by nature: its mod validator refuses to load any mod at
+        // all when one listed dependency is missing, so the same closure as for client plugins applies.
         foreach (var mod in mods)
-            units.Add(new ArenaSessionUnit(mod.Guid, mod.Name, mod.Version, mod.Folder, null));
+            units.Add(new ArenaSessionUnit(mod.Guid, mod.Name, mod.Version, mod.Folder, mod.Dependencies));
         return units;
     }
 
@@ -428,14 +434,20 @@ internal static class ArenaWhitelistAdmission
 
     // ------------------------------------------------------------------ text
 
-    private static string FormatRefusal(List<string> excluded, bool sessionOffered)
+    /// <summary>
+    /// The refusal. In whitelist mode every mod that is not on the list is named. In blacklist mode
+    /// (the user file says <c>"unlisted": "allow"</c>) a mod can only be excluded by the user's own
+    /// deny list, so the text names those and does not claim a whitelist exists.
+    /// </summary>
+    private static string FormatRefusal(List<string> excluded, bool sessionOffered, bool blacklist)
     {
         string names = JoinLimited(excluded, MaxNamesListed);
+        string cause = blacklist
+            ? "Arena does not run with mods denied in your Arena policy file: " + names
+            : "Arena runs only with whitelisted mods. Not on the whitelist: " + names;
         return sessionOffered
-            ? "Arena runs only with whitelisted mods. Not on the whitelist: " + names
-                + ". Start an Arena session to play Arena without them; the game restarts."
-            : "Arena runs only with whitelisted mods. Not on the whitelist: " + names
-                + ". Remove them and restart the game to play Arena.";
+            ? cause + ". Start an Arena session to play Arena without them; the game restarts."
+            : cause + ". Remove them and restart the game to play Arena.";
     }
 
     private static string FormatNotes(List<string> notes)

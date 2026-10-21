@@ -44,8 +44,9 @@ namespace ArenaMode.Shared.Session
         public string File { get; set; }
 
         /// <summary>
-        /// GUIDs of this unit's hard dependencies (<c>BepInDependency</c> without the soft flag).
-        /// Never null. Empty on the server side.
+        /// GUIDs of this unit's hard dependencies: <c>BepInDependency</c> without the soft flag on the
+        /// client, <c>ModDependencies</c> on the server (the server's mod validator refuses to load any
+        /// mod when one of them is missing). Never null; empty when the side reports none.
         /// </summary>
         public List<string> HardDependencies { get; set; }
 
@@ -72,13 +73,16 @@ namespace ArenaMode.Shared.Session
     /// side. Pure function: the same code decides in the gate (client plugins), in the client (the
     /// normal-session check, with the server's mods from the ping) and in tests.
     ///
-    /// Rules (docs/ARENA-SESSION-20261021.md, section 4):
+    /// Rules (docs/ARENA-SESSION-20261021.md, sections 3 and 4):
     /// a unit the policy names is allowed (reason <c>platform</c>, <c>arena</c>, <c>whitelist</c> or
-    /// <c>tool</c>); a hard dependency of an allowed unit that is installed but not allowed is
-    /// allowed as well, transitively, with reason <c>dependency-of:&lt;guid&gt;</c> and a warning;
-    /// everything else is excluded (<c>denied-by-user</c> when the user file's deny list names it,
-    /// otherwise <c>not-on-whitelist</c>). A reviewed version that differs from the installed one is
-    /// a warning, never an exclusion.
+    /// <c>tool</c>); in blacklist mode (<see cref="ArenaWhitelistPolicy.AllowsUnlisted"/>) a unit that
+    /// nothing names and the user did not deny is allowed too, with reason <c>unlisted-allowed</c> and
+    /// no warning of its own; a hard dependency of an allowed unit that is installed but not allowed
+    /// (a denied unit, or in whitelist mode any unlisted one) is allowed as well, transitively, with
+    /// reason <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
+    /// (<c>denied-by-user</c> when the user file's deny list names it, otherwise
+    /// <c>not-on-whitelist</c>). A reviewed version that differs from the installed one is a
+    /// warning, never an exclusion.
     /// </summary>
     public sealed class ArenaWhitelistDecision
     {
@@ -86,6 +90,12 @@ namespace ArenaMode.Shared.Session
         public const string ReasonArena = "arena";
         public const string ReasonWhitelist = "whitelist";
         public const string ReasonTool = "tool";
+
+        /// <summary>
+        /// Blacklist mode: no entry names the unit and the user did not deny it. The unit has no
+        /// reviewed version, so it never produces a version warning.
+        /// </summary>
+        public const string ReasonUnlistedAllowed = "unlisted-allowed";
 
         /// <summary>Prefix of the dependency reason; the dependant's GUID follows.</summary>
         public const string ReasonDependencyPrefix = "dependency-of:";
@@ -168,10 +178,19 @@ namespace ArenaMode.Shared.Session
                 }
 
                 ArenaWhitelistEntry entry = policy.FindPlugin(units[i].Guid, side);
-                if (entry == null) continue;
-                direct[i] = entry;
-                reasons[i] = entry.Reason;
-                queue.Enqueue(i);
+                if (entry != null)
+                {
+                    direct[i] = entry;
+                    reasons[i] = entry.Reason;
+                    queue.Enqueue(i);
+                }
+                else if (policy.IsUnlistedAllowed(units[i].Guid))
+                {
+                    // Blacklist mode. No entry, so no reviewed version and no warning. It joins the
+                    // closure like any allowed unit: a denied hard dependency of it must still load.
+                    reasons[i] = ReasonUnlistedAllowed;
+                    queue.Enqueue(i);
+                }
             }
 
             // Closure over hard dependencies. Breadth first from the directly allowed units in
@@ -221,7 +240,7 @@ namespace ArenaMode.Shared.Session
                             + " differs from reviewed " + reviewed);
                     }
                 }
-                else
+                else if (pulledInBy[i] != null)
                 {
                     string warning = unit.DisplayName + ": pulled in as hard dependency of " + pulledInBy[i].DisplayName;
                     if (policy.IsDeniedByUser(unit.Guid)) warning += " (overrides the user's deny)";

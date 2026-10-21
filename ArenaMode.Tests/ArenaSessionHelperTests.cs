@@ -1129,30 +1129,146 @@ public sealed class ArenaSessionHelperTests
     public void TheMarkerHasTheDocumentedMembers()
     {
         var marker = HelperMarker.Create(new DateTime(2026, 10, 21, 12, 30, 45, DateTimeKind.Utc), ProfileId, 6970,
-            @"C:\SPT41\SPT_Runtime", "3755e0db97983440", "0.1.3");
+            @"C:\SPT41\SPT_Runtime", "3755e0db97983440", "0.1.3", @"C:\Users\x\AppData\Local\maschine-ArenaMode\session\server\SPT.Server.exe");
         Assert.True(ArenaMiniJson.TryParse(marker.ToJson(), out var parsed, out _));
         var obj = ArenaMiniJson.AsObject(parsed)!;
-        Assert.Equal(new[] { "schema", "createdUtc", "profileId", "port", "sourceRuntime", "policyHash", "helperVersion" }, obj.Keys);
+        Assert.Equal(new[] { "schema", "createdUtc", "profileId", "port", "sourceRuntime", "serverExe", "policyHash", "helperVersion" }, obj.Keys);
         Assert.Equal(1, ArenaMiniJson.GetInt(obj, "schema", 0));
         Assert.Equal("2026-10-21T12:30:45Z", ArenaMiniJson.GetString(obj, "createdUtc"));
         Assert.Equal(ProfileId, ArenaMiniJson.GetString(obj, "profileId"));
         Assert.Equal(6970, ArenaMiniJson.GetInt(obj, "port", 0));
         Assert.Equal(@"C:\SPT41\SPT_Runtime", ArenaMiniJson.GetString(obj, "sourceRuntime"));
+        Assert.Equal(@"C:\Users\x\AppData\Local\maschine-ArenaMode\session\server\SPT.Server.exe", ArenaMiniJson.GetString(obj, "serverExe"));
         Assert.Equal("3755e0db97983440", ArenaMiniJson.GetString(obj, "policyHash"));
         Assert.Equal("0.1.3", ArenaMiniJson.GetString(obj, "helperVersion"));
     }
 
     [Fact]
+    public void TheMarkerOfAnOlderHelperHasNoServerExe()
+    {
+        // Written by a helper that started the server from the installation's own runtime: no serverExe member.
+        const string older = """
+            { "schema": 1, "createdUtc": "2026-10-21T12:30:45Z", "profileId": "6ab7db1164f04b565cf78be7", "port": 6970,
+              "sourceRuntime": "C:\\SPT41\\SPT_Runtime", "policyHash": "h", "helperVersion": "0.1.3" }
+            """;
+        Assert.True(HelperMarker.TryParse(older, out var marker, out var error), error);
+        Assert.False(marker.RunsFromTree);
+        Assert.Null(marker.ServerExe);
+
+        // A marker created without it is written without it (and reads back the same).
+        var created = HelperMarker.Create(DateTime.UtcNow, ProfileId, 6970, @"C:\SPT41\SPT_Runtime", "h", "0.1.3");
+        Assert.DoesNotContain("serverExe", created.ToJson());
+        Assert.True(HelperMarker.TryParse(created.ToJson(), out var back, out error), error);
+        Assert.False(back.RunsFromTree);
+    }
+
+    [Fact]
     public void TheMarkerRoundTrips()
     {
-        var marker = HelperMarker.Create(DateTime.UtcNow, ProfileId, 6971, @"C:\SPT41\SPT_Runtime", null!, "0.1.3");
+        var marker = HelperMarker.Create(DateTime.UtcNow, ProfileId, 6971, @"C:\SPT41\SPT_Runtime", null!, "0.1.3", @"C:\t\server\SPT.Server.exe");
         Assert.True(HelperMarker.TryParse(marker.ToJson(), out var back, out var error), error);
         Assert.Equal(6971, back.Port);
         Assert.Equal(@"C:\SPT41\SPT_Runtime", back.SourceRuntime);
+        Assert.Equal(@"C:\t\server\SPT.Server.exe", back.ServerExe);
+        Assert.True(back.RunsFromTree);
         Assert.Null(back.PolicyHash);
         Assert.False(HelperMarker.TryParse("{\"schema\":2}", out _, out error));
         Assert.False(HelperMarker.TryParse("[1]", out _, out error));
         Assert.False(HelperMarker.TryParse("nope", out _, out error));
+    }
+
+    // ------------------------------------------------------------------ the server binaries and the server's identity
+
+    [Theory]
+    [InlineData("SPT.Server.exe", true)]
+    [InlineData("SPT.Server.dll", true)]
+    [InlineData("SPT.Server.deps.json", true)]
+    [InlineData("SPT.Server.runtimeconfig.json", true)]
+    [InlineData("SPTarkov.Server.Core.dll", true)]
+    [InlineData("SPTarkov.Server.Core.pdb", true)]
+    [InlineData("SPTarkov.Server.Core.xml", true)]
+    [InlineData("0Harmony.dll", true)]
+    [InlineData("argon2_sharp_core.dll", true)]
+    [InlineData("sptLogger.json", false)]
+    [InlineData("SPTLOGGER.JSON", false)]
+    [InlineData("SPT.Launcher.exe", false)]
+    [InlineData("SPT.Launcher.Linux", false)]
+    [InlineData("spt.launcher.pdb", false)]
+    [InlineData("SPT.Server.Linux", false)]
+    [InlineData("SPT.Server.Linux.dll", false)]
+    [InlineData("SPT.Server.Linux.deps.json", false)]
+    [InlineData("SPT.Server.Linux.runtimeconfig.json", false)]
+    [InlineData("Some.linux.Helper.dll", false)]
+    [InlineData("libargon2_sharp_core.so", false)]
+    [InlineData("LIBARGON2.SO", false)]
+    [InlineData("arena-session.json", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    [InlineData("sub\\file.dll", false)]
+    [InlineData("..", false)]
+    [InlineData("name.dll ", false)]
+    public void OnlyTheFilesTheWindowsServerLoadsAreServerBinaries(string? fileName, bool expected)
+    {
+        Assert.Equal(expected, HelperServerBinaries.IsServerBinary(fileName!));
+    }
+
+    [Fact]
+    public void TheBinariesOfAListingAreSelectedAndSorted()
+    {
+        var listing = new[] { "SPT.Server.exe", "sptLogger.json", "SPT.Launcher.exe", "0Harmony.dll", "SPT.Server.Linux", "x.so", "SPT.Server.dll" };
+
+        Assert.Equal(new[] { "0Harmony.dll", "SPT.Server.dll", "SPT.Server.exe" }, HelperServerBinaries.Select(listing));
+        Assert.Empty(HelperServerBinaries.Select(null!));
+        Assert.Empty(HelperServerBinaries.Select(Array.Empty<string>()));
+    }
+
+    [Theory]
+    [InlineData("SPT.Server.dll", true, true)]
+    [InlineData("spt.server.DLL", true, true)]
+    [InlineData("SPT.Server.dll", false, false)]
+    [InlineData("stale.dll", true, false)]
+    [InlineData("arena-session.json", true, false)]
+    [InlineData("user", false, false)]
+    public void OnlyAPlainFileThatIsStillABinarySurvivesTheCleaningOfATree(string name, bool isPlainFile, bool expected)
+    {
+        var binaries = new[] { "0Harmony.dll", "SPT.Server.dll", "SPT.Server.exe" };
+        Assert.Equal(expected, HelperServerBinaries.KeepsTreeEntry(name, isPlainFile, binaries));
+        Assert.False(HelperServerBinaries.KeepsTreeEntry(name, isPlainFile, null!));
+        Assert.False(HelperServerBinaries.KeepsTreeEntry(null!, isPlainFile, binaries));
+    }
+
+    [Fact]
+    public void ACopyIsUnchangedOnlyWhenLengthAndWriteTimeBothMatch()
+    {
+        var time = new DateTime(2026, 9, 18, 17, 38, 0, DateTimeKind.Utc);
+
+        Assert.True(HelperServerBinaries.IsUnchanged(229376, time, 229376, time));
+        Assert.True(HelperServerBinaries.IsUnchanged(229376, time, 229376, time.ToLocalTime()), "the same instant in another kind");
+        Assert.False(HelperServerBinaries.IsUnchanged(229376, time, 229377, time), "length");
+        Assert.False(HelperServerBinaries.IsUnchanged(229376, time, 229376, time.AddTicks(1)), "one tick newer");
+        Assert.False(HelperServerBinaries.IsUnchanged(229376, time, 229376, time.AddTicks(-1)), "one tick older");
+        Assert.False(HelperServerBinaries.IsUnchanged(229376, time, 229376, time.AddDays(-1)), "an older copy");
+    }
+
+    [Fact]
+    public void AMarkerOfThisHelperNamesTheTreeCopyAndNeverTheInstallationsExe()
+    {
+        var marker = HelperMarker.Create(DateTime.UtcNow, ProfileId, 6970, @"C:\SPT41\SPT_Runtime", "h", "0.1.4", @"C:\x\server\SPT.Server.exe");
+
+        Assert.Equal(@"C:\L\session\server\SPT.Server.exe", HelperServerIdentity.ExpectedImage(marker, @"C:\L\session\server\SPT.Server.exe"));
+        Assert.Null(HelperServerIdentity.ExpectedImage(marker, null!));
+        Assert.Null(HelperServerIdentity.ExpectedImage(marker, string.Empty));
+    }
+
+    [Fact]
+    public void AMarkerOfAnOlderHelperNamesTheInstallationsExe()
+    {
+        var older = HelperMarker.Create(DateTime.UtcNow, ProfileId, 6970, @"C:\SPT41\SPT_Runtime", "h", "0.1.3");
+
+        Assert.Equal(Path.Combine(@"C:\SPT41\SPT_Runtime", "SPT.Server.exe"), HelperServerIdentity.ExpectedImage(older, @"C:\L\session\server\SPT.Server.exe"));
+        older.SourceRuntime = null!;
+        Assert.Null(HelperServerIdentity.ExpectedImage(older, @"C:\L\session\server\SPT.Server.exe"));
+        Assert.Null(HelperServerIdentity.ExpectedImage(null!, @"C:\L\session\server\SPT.Server.exe"));
     }
 
     [Fact]
@@ -1443,6 +1559,62 @@ public sealed class ArenaSessionHelperTests
     }
 
     [SkippableFact]
+    public void ModCopyLinksBundleOnlyFoldersAndCopiesEverythingElse()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        area.Write(area.At("src", "mod", "a.dll"), "dll");
+        area.Write(area.At("src", "mod", "bundles", "x.bundle"), "bx");
+        area.Write(area.At("src", "mod", "bundles", "deep", "y.BUNDLE"), "by");
+        area.Write(area.At("src", "mod", "mixed", "z.bundle"), "bz");
+        area.Write(area.At("src", "mod", "mixed", "config.json"), "cfg");
+        area.Write(area.At("src", "mod", "mixed", "inner", "w.bundle"), "bw");
+        Directory.CreateDirectory(area.At("src", "mod", "empty"));
+        var box = area.Sandbox(area.At("root"));
+
+        box.CopyModDirectory(area.At("src", "mod"), area.At("root", "user", "mods", "mod"));
+
+        string copy = area.At("root", "user", "mods", "mod");
+        Assert.True(HelperFileSystem.IsReparsePoint(Path.Combine(copy, "bundles")), "a bundle-only folder is linked");
+        Assert.Equal("by", File.ReadAllText(Path.Combine(copy, "bundles", "deep", "y.BUNDLE")));
+        Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(copy, "mixed")), "a folder with another file is copied");
+        Assert.True(HelperFileSystem.IsReparsePoint(Path.Combine(copy, "mixed", "inner")), "a bundle-only folder below a copied one is linked");
+        Assert.Equal("cfg", File.ReadAllText(Path.Combine(copy, "mixed", "config.json")));
+        Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(copy, "empty")), "an empty folder is copied, not linked");
+        Assert.True(Directory.Exists(Path.Combine(copy, "empty")));
+        Assert.Equal(2, box.BundleFoldersLinked);
+        Assert.Equal(3, box.FilesCopied);
+
+        box.DeleteTree(area.At("root", "user"));
+
+        Assert.Equal("bx", File.ReadAllText(area.At("src", "mod", "bundles", "x.bundle")));
+        Assert.Equal("bw", File.ReadAllText(area.At("src", "mod", "mixed", "inner", "w.bundle")));
+    }
+
+    [SkippableFact]
+    public void BundleOnlyFolderRequiresBundlesOnlyAndAtLeastOne()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        area.Write(area.At("only", "a.bundle"), "a");
+        area.Write(area.At("only", "sub", "b.bundle"), "b");
+        area.Write(area.At("manifest", "a.bundle"), "a");
+        area.Write(area.At("manifest", "a.bundle.manifest"), "m");
+        Directory.CreateDirectory(area.At("emptysub", "nothing"));
+        area.Write(area.At("emptysub", "a.bundle"), "a");
+        Directory.CreateDirectory(area.At("empty"));
+        area.Write(area.At("elsewhere", "c.bundle"), "c");
+        area.Write(area.At("linked", "a.bundle"), "a");
+        area.Sandbox(area.At("linked")).CreateJunction(area.At("linked", "link"), area.At("elsewhere"));
+
+        Assert.True(HelperSandbox.IsBundleOnlyFolder(area.At("only"), 0));
+        Assert.False(HelperSandbox.IsBundleOnlyFolder(area.At("manifest"), 0));
+        Assert.False(HelperSandbox.IsBundleOnlyFolder(area.At("emptysub"), 0));
+        Assert.False(HelperSandbox.IsBundleOnlyFolder(area.At("empty"), 0));
+        Assert.False(HelperSandbox.IsBundleOnlyFolder(area.At("linked"), 0));
+    }
+
+    [SkippableFact]
     public void PathsLongerThanMaxPathAreCopiedAndDeleted()
     {
         SkipUnlessWindows();
@@ -1479,6 +1651,134 @@ public sealed class ArenaSessionHelperTests
 
         Assert.Equal("{\"a\":1}", File.ReadAllText(area.At("root", "deep", "er", "p.json")));
         Assert.Equal(stamp, File.GetLastWriteTimeUtc(area.At("root", "deep", "er", "p.json")));
+    }
+
+    [SkippableFact]
+    public void AnUnchangedFileIsNotCopiedAgain()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string source = area.Write(area.At("src", "a.dll"), "12345");
+        File.SetLastWriteTimeUtc(source, new DateTime(2026, 9, 18, 17, 38, 0, DateTimeKind.Utc));
+        var box = area.Sandbox(area.At("root"));
+        string copy = area.At("root", "tree", "a.dll");
+
+        Assert.True(box.CopyFileIfChanged(source, copy));
+        Assert.Equal("12345", File.ReadAllText(copy));
+        Assert.Equal(File.GetLastWriteTimeUtc(source), File.GetLastWriteTimeUtc(copy));
+        Assert.Equal(1, box.FilesCopied);
+
+        // Edited in place with the same length and time: only a copy that does not write would leave it as it is.
+        DateTime stamp = File.GetLastWriteTimeUtc(copy);
+        File.WriteAllText(copy, "abcde");
+        File.SetLastWriteTimeUtc(copy, stamp);
+
+        Assert.False(box.CopyFileIfChanged(source, copy));
+        Assert.Equal("abcde", File.ReadAllText(copy));
+        Assert.Equal(1, box.FilesCopied);
+        Assert.Equal(1, box.FilesUnchanged);
+    }
+
+    [SkippableTheory]
+    [InlineData("length")]
+    [InlineData("older")]
+    [InlineData("newer")]
+    [InlineData("missing")]
+    public void AFileThatDiffersFromItsCopyIsCopiedAgain(string difference)
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string source = area.Write(area.At("src", "a.dll"), "12345");
+        var stamp = new DateTime(2026, 9, 18, 17, 38, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(source, stamp);
+        var box = area.Sandbox(area.At("root"));
+        string copy = area.At("root", "tree", "a.dll");
+        Assert.True(box.CopyFileIfChanged(source, copy));
+
+        switch (difference)
+        {
+            case "length":
+                File.WriteAllText(copy, "123456");
+                File.SetLastWriteTimeUtc(copy, stamp);
+                break;
+            case "older":
+                File.SetLastWriteTimeUtc(copy, stamp.AddSeconds(-1));
+                break;
+            case "newer":
+                File.SetLastWriteTimeUtc(copy, stamp.AddSeconds(1));
+                break;
+            default:
+                File.Delete(copy);
+                break;
+        }
+
+        Assert.True(box.CopyFileIfChanged(source, copy));
+        Assert.Equal("12345", File.ReadAllText(copy));
+        Assert.Equal(stamp, File.GetLastWriteTimeUtc(copy));
+        Assert.Equal(2, box.FilesCopied);
+        Assert.Equal(0, box.FilesUnchanged);
+    }
+
+    [SkippableFact]
+    public void AnIncrementalCopyStaysInsideTheRootAndWaitsForALockedCopy()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string source = area.Write(area.At("src", "a.dll"), "payload");
+        var box = area.Sandbox(area.At("root"), attempts: 40, delay: 25);
+
+        var ex = Assert.Throws<HelperException>(() => box.CopyFileIfChanged(source, area.At("outside", "a.dll")));
+        Assert.Contains("outside", ex.Message);
+        Assert.False(File.Exists(area.At("outside", "a.dll")));
+
+        // A copy that exists but is held open by someone (a scanner) is retried like any other write.
+        string copy = area.At("root", "a.dll");
+        area.Write(copy, "older and longer content");
+        using var gate = new ManualResetEventSlim();
+        var holder = new Thread(() =>
+        {
+            using var stream = new FileStream(copy, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            gate.Set();
+            Thread.Sleep(300);
+        });
+        holder.Start();
+        gate.Wait();
+
+        Assert.True(box.CopyFileIfChanged(source, copy));
+        holder.Join();
+
+        Assert.Equal("payload", File.ReadAllText(copy));
+        Assert.Contains(area.Log, line => line.StartsWith("retry "));
+    }
+
+    [SkippableFact]
+    public void ACopyOntoALinkReplacesTheLinkAndLeavesItsTargetAlone()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string source = area.Write(area.At("src", "a.dll"), "payload");
+        string target = area.Write(area.At("outside", "target.dll"), "the target stays");
+        Directory.CreateDirectory(area.At("root"));
+        try
+        {
+            File.CreateSymbolicLink(area.At("root", "a.dll"), target);
+            File.CreateSymbolicLink(area.At("root", "b.dll"), target);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            Skip.If(true, "creating a symbolic link needs a privilege this account does not have");
+        }
+
+        var box = area.Sandbox(area.At("root"));
+        Assert.True(box.CopyFileIfChanged(source, area.At("root", "a.dll")));
+        box.CopyFile(source, area.At("root", "b.dll"));
+
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        foreach (string name in new[] { "a.dll", "b.dll" })
+        {
+            Assert.False(HelperFileSystem.IsReparsePoint(area.At("root", name)), name);
+            Assert.Equal("payload", File.ReadAllText(area.At("root", name)));
+        }
     }
 
     [SkippableFact]
@@ -1571,11 +1871,29 @@ public sealed class ArenaSessionHelperTests
     /// <summary>A stand-in for the installed SPT runtime, with the folders the helper reads.</summary>
     private sealed class FakeRuntime
     {
+        /// <summary>The top-level files the arena server needs beside its exe (a framework-dependent server: flat).</summary>
+        public static readonly string[] ServerBinaries =
+        {
+            "0Harmony.dll", "SPT.Server.deps.json", "SPT.Server.dll", "SPT.Server.exe", "SPT.Server.runtimeconfig.json", "SPTarkov.Server.Core.dll",
+        };
+
+        /// <summary>Top-level files the tree must not get: the launcher, everything Linux, shared libraries (and sptLogger.json, which is generated).</summary>
+        public static readonly string[] NotServerBinaries =
+        {
+            "SPT.Launcher.exe", "SPT.Launcher.Linux", "SPT.Server.Linux", "SPT.Server.Linux.dll", "SPT.Server.Linux.deps.json", "libargon2_sharp_core.so",
+        };
+
         public FakeRuntime(TempArea area)
         {
             Dir = area.At("SPT_Runtime");
             area.Write(Path.Combine(Dir, "sptLogger.json"), SptLoggerJson);
             area.Write(Path.Combine(Dir, "SPT.Server.exe"), "MZ");
+            area.Write(Path.Combine(Dir, "SPT.Server.dll"), "server-dll");
+            area.Write(Path.Combine(Dir, "SPT.Server.deps.json"), "{\"deps\":1}");
+            area.Write(Path.Combine(Dir, "SPT.Server.runtimeconfig.json"), "{\"runtimeOptions\":{}}");
+            area.Write(Path.Combine(Dir, "SPTarkov.Server.Core.dll"), "core-dll");
+            area.Write(Path.Combine(Dir, "0Harmony.dll"), "harmony");
+            foreach (string name in NotServerBinaries) area.Write(Path.Combine(Dir, name), "not for the arena tree: " + name);
             area.Write(Path.Combine(Dir, "SPT_Data", "checks.dat"), "checks");
             area.Write(Path.Combine(Dir, "SPT_Data", "configs", "http.json"), SptHttpJson);
             area.Write(Path.Combine(Dir, "SPT_Data", "configs", "core.json"), "{\"core\":true}");
@@ -1644,6 +1962,21 @@ public sealed class ArenaSessionHelperTests
         Assert.Contains("\"filePattern\": \"arena-requests-SPT-VM-%DATE%.log\"", logger);
         Assert.Contains("\"filePattern\": \"spt-SPT-VM-%DATE%.log\"", SptLoggerJson);
 
+        // The server binaries sit beside the tree's own exe, so AppContext.BaseDirectory is the tree.
+        Assert.Equal(Path.Combine(tree, "SPT.Server.exe"), result.ServerExe);
+        foreach (string name in FakeRuntime.ServerBinaries)
+        {
+            Assert.Equal(File.ReadAllText(Path.Combine(runtime.Dir, name)), File.ReadAllText(Path.Combine(tree, name)));
+            Assert.Equal(File.GetLastWriteTimeUtc(Path.Combine(runtime.Dir, name)), File.GetLastWriteTimeUtc(Path.Combine(tree, name)));
+        }
+
+        foreach (string name in FakeRuntime.NotServerBinaries) Assert.False(File.Exists(Path.Combine(tree, name)), name);
+        Assert.Equal(FakeRuntime.ServerBinaries.Length, result.ServerFilesCopied);
+        Assert.Equal(0, result.ServerFilesUnchanged);
+        Assert.Equal(FakeRuntime.ServerBinaries.Concat(new[] { "arena-session.json", "sptLogger.json" }).OrderBy(n => n, StringComparer.OrdinalIgnoreCase),
+            Directory.GetFiles(tree).Select(path => Path.GetFileName(path)).OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+        Assert.Empty(result.UnsharedFolders);
+
         // SPT_Data: junctions for every folder except configs, copies for the rest.
         string data = Path.Combine(tree, "SPT_Data");
         Assert.Equal(new[] { "Launcher", "database", "dotnet", "images", "wwwroot" }.OrderBy(n => n, StringComparer.Ordinal),
@@ -1681,9 +2014,187 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal(ProfileId, marker.ProfileId);
         Assert.Equal(6970, marker.Port);
         Assert.Equal(runtime.Dir, marker.SourceRuntime);
+        Assert.Equal(Path.Combine(tree, "SPT.Server.exe"), marker.ServerExe);
+        Assert.True(marker.RunsFromTree);
         Assert.Equal("3755e0db97983440", marker.PolicyHash);
         Assert.Equal("0.1.3", marker.HelperVersion);
         Assert.Equal("2026-10-21T12:00:00Z", marker.CreatedUtc);
+    }
+
+    [SkippableFact]
+    public void TheTreeLinksModBundlesAndCarriesTheBundleHashCacheOver()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        area.Write(Path.Combine(runtime.Dir, "user", "mods", "Solarint-SAIN-ServerMod", "bundles", "a.bundle"), "bundle-a");
+        area.Write(Path.Combine(runtime.Dir, "user", "cache", "bundleHashCache.json"), "{\"user/mods/x/bundles/a.bundle\":1}");
+        area.Write(Path.Combine(runtime.Dir, "user", "cache", "other.json"), "{}");
+        var before = runtime.Snapshot();
+        string root = area.At("session");
+
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        string user = Path.Combine(HelperServerTree.GetTreePath(root), "user");
+        string bundles = Path.Combine(user, "mods", "Solarint-SAIN-ServerMod", "bundles");
+        Assert.True(HelperFileSystem.IsReparsePoint(bundles), "the bundle folder is a link, not a copy");
+        Assert.Equal("bundle-a", File.ReadAllText(Path.Combine(bundles, "a.bundle")));
+        Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(user, "mods", "Solarint-SAIN-ServerMod")));
+        Assert.Equal("{\"user/mods/x/bundles/a.bundle\":1}", File.ReadAllText(Path.Combine(user, "cache", "bundleHashCache.json")));
+        Assert.False(File.Exists(Path.Combine(user, "cache", "other.json")), "only the bundle hash cache is carried over");
+
+        // A second build removes the link as a link: the installation's bundle stays.
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+        Assert.Equal(before, runtime.Snapshot());
+    }
+
+    [SkippableFact]
+    public void ASecondBuildCopiesOnlyWhatChangedAndDropsWhatTheRuntimeNoLongerHas()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string root = area.At("session");
+        string tree = HelperServerTree.GetTreePath(root);
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        // The runtime moves on: one binary gets another size, one only another time (same size), one is new
+        // and one is gone. A third is left alone in the runtime but edited in the tree with the same length
+        // and time: an incremental copy must not notice it, which proves that it did not write the file.
+        string longer = Path.Combine(runtime.Dir, "SPT.Server.dll");
+        File.WriteAllText(longer, "server-dll, a newer and longer build");
+        string touched = Path.Combine(runtime.Dir, "0Harmony.dll");
+        File.SetLastWriteTimeUtc(touched, File.GetLastWriteTimeUtc(touched).AddMinutes(-7));
+        File.WriteAllText(Path.Combine(runtime.Dir, "Brand.New.dll"), "new");
+        File.Delete(Path.Combine(runtime.Dir, "SPTarkov.Server.Core.dll"));
+        string untouchedInRuntime = Path.Combine(runtime.Dir, "SPT.Server.deps.json");
+        string untouchedInTree = Path.Combine(tree, "SPT.Server.deps.json");
+        DateTime stamp = File.GetLastWriteTimeUtc(untouchedInTree);
+        File.WriteAllText(untouchedInTree, "{\"deps\":2}");
+        File.SetLastWriteTimeUtc(untouchedInTree, stamp);
+        Assert.Equal(new FileInfo(untouchedInRuntime).Length, new FileInfo(untouchedInTree).Length);
+        File.WriteAllText(Path.Combine(tree, "leftover.txt"), "from the first session");
+
+        var second = HelperServerTree.Build(runtime.Request(), 6971, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(3, second.ServerFilesCopied); // SPT.Server.dll, 0Harmony.dll, Brand.New.dll
+        Assert.Equal(3, second.ServerFilesUnchanged); // the exe, deps.json and runtimeconfig.json
+        Assert.Equal("server-dll, a newer and longer build", File.ReadAllText(Path.Combine(tree, "SPT.Server.dll")));
+        Assert.Equal(File.GetLastWriteTimeUtc(touched), File.GetLastWriteTimeUtc(Path.Combine(tree, "0Harmony.dll")));
+        Assert.Equal("new", File.ReadAllText(Path.Combine(tree, "Brand.New.dll")));
+        Assert.False(File.Exists(Path.Combine(tree, "SPTarkov.Server.Core.dll")), "a binary the runtime no longer has");
+        Assert.False(File.Exists(Path.Combine(tree, "leftover.txt")));
+        Assert.Equal("{\"deps\":2}", File.ReadAllText(untouchedInTree));
+        Assert.Equal(6971, HelperMarker.TryParse(File.ReadAllText(HelperServerTree.GetMarkerPath(root)), out var marker, out _) ? marker.Port : 0);
+        Assert.Contains("\"port\": 6971", File.ReadAllText(Path.Combine(tree, "SPT_Data", "configs", "http.json")));
+    }
+
+    [SkippableFact]
+    public void ABuildClearsEverythingThatIsNotAServerBinaryEvenWhereABinaryBelongs()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string root = area.At("session");
+        string tree = HelperServerTree.GetTreePath(root);
+        area.Write(area.At("outside", "keep.txt"), "keep");
+
+        // A folder where a binary goes, a stray folder, a junction to something valuable, and a marker.
+        area.Write(Path.Combine(tree, "SPT.Server.dll", "inside.txt"));
+        area.Write(Path.Combine(tree, "stray", "deep", "x.txt"));
+        area.Write(Path.Combine(tree, "arena-session.json"), "{}");
+        area.Write(Path.Combine(tree, "user", "profiles", "old.json"));
+        new HelperSandbox(root, _ => { }).CreateJunction(Path.Combine(tree, "linked"), area.At("outside"));
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.True(File.Exists(Path.Combine(tree, "SPT.Server.dll")), "a plain file now");
+        Assert.False(Directory.Exists(Path.Combine(tree, "stray")));
+        Assert.False(HelperFileSystem.PathExists(Path.Combine(tree, "linked")));
+        Assert.False(File.Exists(Path.Combine(tree, "user", "profiles", "old.json")));
+        Assert.Equal("keep", File.ReadAllText(area.At("outside", "keep.txt")));
+        Assert.Equal(FakeRuntime.ServerBinaries.Length, result.ServerFilesCopied);
+        Assert.True(HelperMarker.TryParse(File.ReadAllText(HelperServerTree.GetMarkerPath(root)), out var marker, out var error), error);
+        Assert.Equal(6970, marker.Port);
+    }
+
+    [SkippableFact]
+    public void ALinkInPlaceOfABinaryIsRemovedWithoutWritingItsTarget()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string root = area.At("session");
+        string tree = HelperServerTree.GetTreePath(root);
+        area.Write(area.At("outside", "target.dll"), "the target stays");
+        Directory.CreateDirectory(tree);
+        try
+        {
+            File.CreateSymbolicLink(Path.Combine(tree, "SPT.Server.dll"), area.At("outside", "target.dll"));
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            Skip.If(true, "creating a symbolic link needs a privilege this account does not have");
+        }
+
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal("the target stays", File.ReadAllText(area.At("outside", "target.dll")));
+        Assert.Equal("server-dll", File.ReadAllText(Path.Combine(tree, "SPT.Server.dll")));
+        Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(tree, "SPT.Server.dll")));
+    }
+
+    [SkippableFact]
+    public void ATreeThatCannotBeCleanedHasLostItsMarkerBeforeAnythingElse()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string root = area.At("session");
+        string tree = HelperServerTree.GetTreePath(root);
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+        Assert.True(File.Exists(HelperServerTree.GetMarkerPath(root)));
+
+        // Something keeps a file of the old tree open: the cleaning fails, but a half-cleaned tree must not look finished.
+        // The folder sorts before the marker's name, so a cleaning that only deleted in listing order would stop first.
+        string held = area.Write(Path.Combine(tree, "+held", "open.txt"));
+        using (new FileStream(held, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            Exception? failure = Record.Exception(() => HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add));
+            Assert.True(failure is IOException || failure is UnauthorizedAccessException, "the locked file stops the build: " + failure);
+        }
+
+        Assert.False(File.Exists(HelperServerTree.GetMarkerPath(root)));
+    }
+
+    [SkippableFact]
+    public void ARuntimeWithoutItsServerExeCannotBuildATree()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        File.Delete(Path.Combine(runtime.Dir, "SPT.Server.exe"));
+        string root = area.At("session");
+
+        var ex = Assert.Throws<HelperException>(() => HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add));
+
+        Assert.Contains("SPT.Server.exe", ex.Message);
+        Assert.False(File.Exists(HelperServerTree.GetMarkerPath(root)));
+    }
+
+    [SkippableFact]
+    public void RuntimeFoldersTheTreeDoesNotContainAreReported()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        Directory.CreateDirectory(Path.Combine(runtime.Dir, "runtimes"));
+        Directory.CreateDirectory(Path.Combine(runtime.Dir, "Plugins"));
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(new[] { "Plugins", "runtimes" }, result.UnsharedFolders.OrderBy(n => n, StringComparer.Ordinal));
+        Assert.False(Directory.Exists(Path.Combine(result.TreePath, "runtimes")));
     }
 
     [SkippableFact]

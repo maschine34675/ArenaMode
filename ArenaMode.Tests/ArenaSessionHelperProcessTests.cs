@@ -49,9 +49,11 @@ public sealed class ArenaSessionHelperProcessTests
             return runtime;
         }
 
-        public Process StartServer(string runtime)
+        public Process StartServer(string runtime) => StartExe(Path.Combine(runtime, HelperLayout.ServerExeName));
+
+        public Process StartExe(string exe)
         {
-            var info = new ProcessStartInfo(Path.Combine(runtime, HelperLayout.ServerExeName), "-n 120 127.0.0.1")
+            var info = new ProcessStartInfo(exe, "-n 120 127.0.0.1")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -61,13 +63,30 @@ public sealed class ArenaSessionHelperProcessTests
             return process;
         }
 
-        /// <summary>The session root with the marker and the pid file of a server the helper "started".</summary>
-        public string Record(Process server, string sourceRuntime, string name = "session")
+        /// <summary>
+        /// The arena server's own copy of the exe, as the helper's build makes it: a copy of ping.exe as
+        /// <c>SPT.Server.exe</c> in the tree of the session root <paramref name="root"/>. Returns its path.
+        /// </summary>
+        public string TreeServerExe(string root)
+        {
+            string tree = HelperServerTree.GetTreePath(root);
+            Directory.CreateDirectory(tree);
+            string exe = Path.Combine(tree, HelperLayout.ServerExeName);
+            File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), exe);
+            return exe;
+        }
+
+        /// <summary>
+        /// The session root with the marker and the pid file of a server the helper "started". The marker is
+        /// the one of an older helper (no <c>serverExe</c>: its server ran the installation's own exe) unless
+        /// <paramref name="serverExe"/> names the tree copy that this helper starts the server from.
+        /// </summary>
+        public string Record(Process server, string sourceRuntime, string name = "session", string? serverExe = null)
         {
             string root = At(name);
             Directory.CreateDirectory(HelperServerTree.GetTreePath(root));
             File.WriteAllText(HelperServerTree.GetMarkerPath(root),
-                HelperMarker.Create(DateTime.UtcNow, ProfileId, 6970, sourceRuntime, "hash", "test").ToJson());
+                HelperMarker.Create(DateTime.UtcNow, ProfileId, 6970, sourceRuntime, "hash", "test", serverExe!).ToJson());
             File.WriteAllText(HelperServerTree.GetPidFilePath(root), server.Id.ToString());
             return root;
         }
@@ -309,6 +328,141 @@ public sealed class ArenaSessionHelperProcessTests
 
         Assert.False(impostor.HasExited);
         Assert.False(File.Exists(HelperServerTree.GetPidFilePath(root)));
+    }
+
+    // ------------------------------------------------------------------ stop-server: the server runs from the tree
+
+    [SkippableFact]
+    public void AServerRunningFromTheTreeCopyIsStoppedAsTheRecordedServer()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, runtime, serverExe: treeExe);
+
+        StopResult result = area.Runner(root).StopArenaServer(runtime);
+
+        Assert.Equal(StopResult.Stopped, result);
+        Assert.True(Exited(server));
+        Assert.False(File.Exists(HelperServerTree.GetPidFilePath(root)));
+        Assert.Contains("stopping the arena server", File.ReadAllText(Path.Combine(root, "helper.log")));
+    }
+
+    [SkippableFact]
+    public void AMarkerOfThisHelperDoesNotAcceptTheInstallationsOwnExe()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+
+        // The recorded pid now belongs to the installation's own server (the normal one, say): same exe as the
+        // image an older helper would have started, but not the tree copy this marker names.
+        Process normalServer = area.StartServer(runtime);
+        area.Record(normalServer, runtime, serverExe: treeExe);
+
+        Assert.Equal(StopResult.NotOurs, area.Runner(root).StopArenaServer(runtime));
+
+        Assert.False(normalServer.HasExited);
+        Assert.False(File.Exists(HelperServerTree.GetPidFilePath(root)));
+    }
+
+    [SkippableFact]
+    public void AServerStartedByAnOlderHelperFromTheInstallationIsStillStoppedOnce()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string root = area.At("session");
+
+        // An existing session: the marker has no serverExe, the server ran <runtime>\SPT.Server.exe.
+        Process server = area.StartServer(runtime);
+        area.Record(server, runtime);
+
+        Assert.Equal(StopResult.Stopped, area.Runner(root).StopArenaServer(runtime));
+
+        Assert.True(Exited(server));
+        Assert.False(File.Exists(HelperServerTree.GetPidFilePath(root)));
+        Assert.Contains("older helper", File.ReadAllText(Path.Combine(root, "helper.log")));
+    }
+
+    [SkippableFact]
+    public void AMarkerOfAnOlderHelperDoesNotAcceptACopyInTheTree()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string root = area.At("session");
+        Process server = area.StartExe(area.TreeServerExe(root));
+        area.Record(server, runtime);
+
+        Assert.Equal(StopResult.NotOurs, area.Runner(root).StopArenaServer(runtime));
+
+        Assert.False(server.HasExited);
+    }
+
+    [SkippableFact]
+    public void ATreeServerIsRecognisedWhateverSpellingTheSessionRootHas()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string realRoot = area.At("real", "session");
+        string treeExe = area.TreeServerExe(realRoot);
+        area.Junction(area.At("holder", "jx"), area.At("real"));
+
+        // The process reports its resolved image path; the helper's session root is spelled through a junction.
+        Process server = area.StartExe(treeExe);
+        area.Record(server, runtime, "real\\session", serverExe: treeExe);
+        string linkedRoot = area.At("holder", "jx", "session");
+
+        Assert.Equal(StopResult.Stopped, area.Runner(linkedRoot).StopArenaServer(runtime));
+        Assert.True(Exited(server));
+    }
+
+    [SkippableFact]
+    public void TheTreeServerOfAnotherInstallationIsLeftAlone()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string first = area.Runtime("one", "SPT_Runtime");
+        string second = area.Runtime("two", "SPT_Runtime");
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, first, serverExe: treeExe);
+        HelperRunner runner = area.Runner(root);
+
+        Assert.Equal(StopResult.OtherInstallation, runner.StopArenaServer(second));
+
+        Assert.False(server.HasExited);
+        Assert.True(File.Exists(HelperServerTree.GetPidFilePath(root)));
+
+        Assert.Equal(StopResult.Stopped, runner.StopArenaServer(null!));
+        Assert.True(Exited(server));
+    }
+
+    [SkippableFact]
+    public void StatusNamesTheExeTheServerWasStartedFrom()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string runtime = area.Runtime("real", "SPT_Runtime");
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, runtime, serverExe: treeExe);
+
+        Assert.True(ArenaMode.Shared.Session.ArenaMiniJson.TryParse(area.Runner(root).Status(), out object? status, out _));
+
+        var marker = ArenaMode.Shared.Session.ArenaMiniJson.AsObject(ArenaMode.Shared.Session.ArenaMiniJson.AsObject(status)!["marker"])!;
+        Assert.Equal(treeExe, ArenaMode.Shared.Session.ArenaMiniJson.GetString(marker, "serverExe"));
+        var pid = ArenaMode.Shared.Session.ArenaMiniJson.AsObject(ArenaMode.Shared.Session.ArenaMiniJson.AsObject(status)!["serverPid"])!;
+        Assert.True(HelperProcesses.SameFileSystemObject(treeExe, (string)pid["image"]!));
     }
 
     // ------------------------------------------------------------------ leave

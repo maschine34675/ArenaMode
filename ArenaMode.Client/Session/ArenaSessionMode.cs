@@ -6,7 +6,7 @@ namespace ArenaMode.Session;
 /// <summary>
 /// Whether this game process is an Arena session (docs/ARENA-SESSION-20261021.md, sections 5 and 7):
 /// a process started with the <c>-arena-session</c> command-line flag, in which the preloader gate
-/// removed every plugin that is not on the whitelist before BepInEx instantiated it. The gate
+/// removed every plugin that the policy does not allow before BepInEx instantiated it. The gate
 /// publishes what it did as a JSON report in the AppDomain data; this class only reads it.
 ///
 /// Deliberately free of Core, Unity, EFT and BepInEx types: it is consulted from the rejected-Core
@@ -37,7 +37,7 @@ internal static class ArenaSessionMode
 
     /// <summary>
     /// True only in an Arena session whose gate ran to completion. False means nothing was
-    /// filtered, so this process is not a whitelist-only process and Arena must refuse to run.
+    /// filtered, so nothing proves that only allowed mods are loaded and Arena must refuse to run.
     /// </summary>
     internal static bool GateActive
     {

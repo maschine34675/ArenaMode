@@ -251,6 +251,8 @@ Fika is never filtered: with Fika, Arena stays unavailable as before.
 - **A normal session with other mods installed:** ARENA is disabled with the
   reason `Arena runs only with whitelisted mods. Not on the whitelist: ...` and
   the action **START ARENA SESSION** (two clicks, because it restarts the game).
+  With a blacklist file (below) the reason names the mods you denied instead:
+  `Arena does not run with mods denied in your Arena policy file: ...`.
 - **The Arena session:** the game restarts (about two minutes) with only the
   whitelisted plugins, against a second SPT server, started by the helper
   `maschine-ArenaMode.Session.exe`, that loads only the whitelisted server mods
@@ -269,7 +271,21 @@ Fika is never filtered: with Fika, Arena stays unavailable as before.
 
 Your own additions and exclusions belong in
 `BepInEx/config/com.maschine.ArenaMode.whitelist.json`, which is never shipped or
-overwritten by an update:
+overwritten by an update. It is a combined allow/deny list, and everything in it is
+optional. The Arena session decides each mod in this order:
+
+1. SPT's platform plugins and ArenaMode are always allowed; `deny` cannot remove them.
+2. A mod in `deny` is excluded. Only a hard dependency of an allowed mod still pulls it
+   in again, with a warning (otherwise the mod that needs it would not start). For a
+   server mod the dependencies are the ones it lists in its own metadata, which the server
+   reports; the server refuses to load any mod when one of them is missing.
+3. A mod the default list or your `allow` list names is allowed.
+4. Every other mod follows `"unlisted"`: `"deny"` (the default) excludes it, which makes
+   the file a **whitelist**; `"allow"` lets it load without a warning of its own, which
+   makes the file a **blacklist**: everything you did not deny runs.
+
+*Whitelist* (the default): add what should load besides the default list, and drop what
+you do not need.
 
 ```json
 {
@@ -279,15 +295,33 @@ overwritten by an update:
 }
 ```
 
+*Blacklist*: load every installed mod and name only the ones that must stay out. Use it
+when you would otherwise list a large mod collection by hand; nothing has been reviewed
+for the mods it lets through.
+
+```json
+{
+  "schema": 1,
+  "unlisted": "allow",
+  "deny": [ "com.example.looting", "Example.Patcher.dll" ]
+}
+```
+
 An entry names a `guid` (the plugin GUID, and the server mod GUID where the mod has
-a server part) or a preloader `patcher` file name; `name`, `kind` (`mod` or `tool`)
-and the reviewed `clientVersion`/`serverVersion` are optional. `deny` cannot remove
-SPT's platform plugins or ArenaMode. A file that does not parse is ignored with a
-warning. A mod you allow loads in the Arena session and is your responsibility; a
-server mod that resolves its paths from `AppContext.BaseDirectory` reads and writes
-the real server folder, not the session's private copy. This session feature has
-offline checks only so far; its native acceptance is still open
-(`docs/ARENA-SESSION-20261021.md`, section 10).
+a server part) or a preloader `patcher` file name (the same rules decide patchers and
+server mods); `name`, `kind` (`mod` or `tool`) and the reviewed
+`clientVersion`/`serverVersion` are optional, and only an entry with a reviewed version
+can produce a version warning. A file that does not parse, has an unknown `schema` or an
+`unlisted` value other than `"deny"` or `"allow"` is ignored as a whole with a warning,
+so a typo never silently inverts the list. A blacklist (`"unlisted": "allow"`) whose
+`deny` is not an array of GUIDs and file names is ignored as a whole as well, because a
+lost entry would load a mod you excluded; the shipped whitelist applies then. A mod you allow loads in the Arena session
+and is your responsibility. The Arena server runs from a copy of the server
+binaries inside the session's private tree, so a server mod that resolves its paths from
+`AppContext.BaseDirectory` or the working directory writes there and not into
+your `SPT_Runtime`; only the `SPT_Data` folders the tree links (database, images, ...)
+are the installation's own. This session feature has offline checks only so far; its native
+acceptance is still open (`docs/ARENA-SESSION-20261021.md`, section 10).
 
 ## Optional mods and compatibility
 

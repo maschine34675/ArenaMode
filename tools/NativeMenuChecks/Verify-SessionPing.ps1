@@ -32,7 +32,11 @@ $mutants = @(
     @{ Name = 'malformed-entry-kept'; From = 'if (string.IsNullOrWhiteSpace(guid)) continue;'; To = '';
        Expect = 'arenaInstance true is read and malformed serverMods entries are skipped' },
     @{ Name = 'instance-flag-coerced'; From = 'bool hasInstance = instance?.Type == JTokenType.Boolean;'; To = 'bool hasInstance = instance != null;';
-       Expect = 'arenaInstance that is not a boolean' }
+       Expect = 'arenaInstance that is not a boolean' },
+    @{ Name = 'dependencies-ignored'; From = 'ReadTextArray(mod["dependencies"])));'; To = 'null));';
+       Expect = 'the dependencies of a server mod keep their string entries and drop anything else' },
+    @{ Name = 'dependencies-blank-kept'; From = 'if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);'; To = 'texts.Add(text);';
+       Expect = 'the dependencies of a server mod keep their string entries and drop anything else' }
 )
 foreach ($mutant in $mutants) {
     $count = ($source.Split([string[]]@($mutant.From), [System.StringSplitOptions]::None)).Count - 1

@@ -11,7 +11,7 @@
 #      mscorlib,
 #   3. runs one scenario per Mono process (the Mono of the matching Unity editor, MONO_PATH = the
 #      game's Managed folder) on a fresh fake game folder under artifacts/gate-checks/<run>/,
-#   4. builds ten deliberately broken copies of the gate ("mutants") and requires that the checks
+#   4. builds eleven deliberately broken copies of the gate ("mutants") and requires that the checks
 #      fail for every one of them.
 #
 # Needs: the game (BepInEx\core, EscapeFromTarkov_Data\Managed, BepInEx\plugins for the real-install
@@ -180,6 +180,7 @@ $scenarios = @(
     @{ Name = 'inert'; Flag = $false },
     @{ Name = 'full'; Flag = $true },
     @{ Name = 'user-file'; Flag = $true },
+    @{ Name = 'user-blacklist'; Flag = $true },
     @{ Name = 'user-garbage'; Flag = $true },
     @{ Name = 'bad-default'; Flag = $true },
     @{ Name = 'missing-default'; Flag = $true },
@@ -239,6 +240,8 @@ $mutants = @(
         @{ File = 'ArenaGatePluginFilter.cs'; Find = 'if (excluded[i]) slots[i].List.RemoveAt(slots[i].Index);'; Replace = 'if (false) slots[i].List.RemoveAt(slots[i].Index);' }) },
     @{ Name = 'patchers-not-neutralised'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'plugin.TargetDLLs = NoTargets;'; Replace = 'plugin.TargetDLLs = targets;' }) },
+    @{ Name = 'blacklist-patchers-neutralised'; Scenarios = @('user-blacklist'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file)) continue;'; Replace = 'if (policy.FindPatcher(file) != null) continue;' }) },
     @{ Name = 'entry-point-patcher-neutralised'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'if (origin == self || origin == preloader || origin == core) continue;'; Replace = 'if (origin == self) continue;' }) },
     @{ Name = 'every-directory-filtered'; Scenarios = @('full'); Edits = @(

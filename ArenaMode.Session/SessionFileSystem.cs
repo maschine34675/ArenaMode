@@ -234,8 +234,11 @@ namespace ArenaMode.SessionHelper
 
         public int RetryDelayMilliseconds { get; set; }
 
-        /// <summary>Number of files <see cref="CopyFile"/> and <see cref="CopyDirectory"/> copied so far.</summary>
+        /// <summary>Number of files <see cref="CopyFile"/>, <see cref="CopyFileIfChanged"/> and <see cref="CopyDirectory"/> copied so far.</summary>
         public int FilesCopied { get; private set; }
+
+        /// <summary>Number of files <see cref="CopyFileIfChanged"/> found unchanged and left alone so far.</summary>
+        public int FilesUnchanged { get; private set; }
 
         /// <summary>Number of junctions created so far.</summary>
         public int JunctionsCreated { get; private set; }
@@ -316,6 +319,47 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
+        /// <see cref="CopyFile"/> unless the destination is already a copy of the source: a file whose
+        /// length and last-write time (UTC) match is left alone, which is what a copy made by this
+        /// sandbox looks like because it keeps the source's timestamp. Returns true when the file was
+        /// copied. A locked file is retried like any other copy.
+        /// </summary>
+        public bool CopyFileIfChanged(string source, string destination)
+        {
+            string full = RequireClean(destination);
+            if (IsCopyOf(source, full))
+            {
+                FilesUnchanged++;
+                return false;
+            }
+
+            string parent = HelperPathSafety.GetParent(full);
+            if (parent != null && !Directory.Exists(parent)) Directory.CreateDirectory(parent);
+            CopyFileCore(source, full);
+            return true;
+        }
+
+        private static bool IsCopyOf(string source, string destination)
+        {
+            try
+            {
+                var from = new FileInfo(source);
+                var to = new FileInfo(destination);
+                if (!from.Exists || !to.Exists) return false;
+                if ((to.Attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0) return false;
+                return HelperServerBinaries.IsUnchanged(from.Length, from.LastWriteTimeUtc, to.Length, to.LastWriteTimeUtc);
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Copies a folder tree. Reparse points found inside the source are skipped (and logged):
         /// following one could leave the tree the caller named or loop forever.
         /// </summary>
@@ -325,6 +369,23 @@ namespace ArenaMode.SessionHelper
             if (!Directory.Exists(source)) throw new HelperException("cannot copy '" + source + "': the folder does not exist");
             CopyDirectoryCore(source, full, 0);
         }
+
+        /// <summary>
+        /// Copies a server mod folder like <see cref="CopyDirectory"/>, except that a subfolder holding
+        /// only Unity asset bundles (<c>*.bundle</c> at any depth, at least one, no links) becomes a
+        /// junction to the installation's folder. SPT serves bundles read-only and neither SPT nor a
+        /// mod writes them (the hash cache lives in <c>user\cache</c>), so the link costs no isolation,
+        /// while a copy would duplicate gigabytes at every enter (WTT-ContentBackport ships about 8 GB).
+        /// </summary>
+        public void CopyModDirectory(string source, string destination)
+        {
+            string full = RequireClean(destination);
+            if (!Directory.Exists(source)) throw new HelperException("cannot copy '" + source + "': the folder does not exist");
+            CopyModDirectoryCore(source, full, 0);
+        }
+
+        /// <summary>Number of bundle-only folders <see cref="CopyModDirectory"/> linked instead of copying.</summary>
+        public int BundleFoldersLinked { get; private set; }
 
         public void CreateJunction(string junctionPath, string targetDirectory)
         {
@@ -394,8 +455,77 @@ namespace ArenaMode.SessionHelper
             }
         }
 
+        private void CopyModDirectoryCore(string source, string destination, int depth)
+        {
+            if (depth > MaxDepth) throw new HelperException("cannot copy '" + source + "': the folder tree is deeper than " + MaxDepth);
+            Directory.CreateDirectory(destination);
+            foreach (FileSystemInfo entry in new DirectoryInfo(source).EnumerateFileSystemInfos())
+            {
+                string target = Path.Combine(destination, entry.Name);
+                if ((entry.Attributes & FileAttributes.Directory) != 0)
+                {
+                    if (HelperPathSafety.IsReparsePoint(entry.Attributes))
+                    {
+                        _log("skipped the reparse point '" + entry.FullName + "' while copying");
+                        continue;
+                    }
+
+                    if (IsBundleOnlyFolder(entry.FullName, depth + 1))
+                    {
+                        CreateJunction(target, entry.FullName);
+                        BundleFoldersLinked++;
+                        continue;
+                    }
+
+                    CopyModDirectoryCore(entry.FullName, target, depth + 1);
+                }
+                else
+                {
+                    CopyFileCore(entry.FullName, target);
+                }
+            }
+        }
+
+        /// <summary>
+        /// True for a folder whose files, at any depth, are all <c>*.bundle</c> files and that holds at
+        /// least one of them. Any other file, any link and an empty folder answer false, so such a
+        /// folder is copied as before.
+        /// </summary>
+        internal static bool IsBundleOnlyFolder(string folder, int depth)
+        {
+            if (depth > MaxDepth) return false;
+            bool anyBundle = false;
+            foreach (FileSystemInfo entry in new DirectoryInfo(folder).EnumerateFileSystemInfos())
+            {
+                if (HelperPathSafety.IsReparsePoint(entry.Attributes)) return false;
+                if ((entry.Attributes & FileAttributes.Directory) != 0)
+                {
+                    if (!IsBundleOnlyFolder(entry.FullName, depth + 1)) return false;
+                    anyBundle = true;
+                }
+                else if (string.Equals(Path.GetExtension(entry.Name), ".bundle", StringComparison.OrdinalIgnoreCase))
+                {
+                    anyBundle = true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return anyBundle;
+        }
+
         private void CopyFileCore(string source, string destination)
         {
+            // A link where the copy goes would send the write to its target, wherever that is: replace the
+            // link itself (removed as a link, never followed) and write a plain file.
+            FileAttributes existing;
+            if (HelperFileSystem.TryGetAttributes(destination, out existing) && HelperPathSafety.IsReparsePoint(existing))
+            {
+                DeleteEntry(destination, 0);
+            }
+
             Retry("copy " + source, delegate
             {
                 // The source may be open in another process (the normal server, a game); share
@@ -546,11 +676,15 @@ namespace ArenaMode.SessionHelper
         {
             Junctions = new List<string>();
             Mods = new List<string>();
+            UnsharedFolders = new List<string>();
         }
 
         public string TreePath { get; set; }
 
         public int Port { get; set; }
+
+        /// <summary>The <c>SPT.Server.exe</c> in the tree, the image the arena server is started from.</summary>
+        public string ServerExe { get; set; }
 
         /// <summary>Names of the SPT_Data folders shared through a junction.</summary>
         public List<string> Junctions { get; private set; }
@@ -558,7 +692,21 @@ namespace ArenaMode.SessionHelper
         /// <summary>Folder names of the server mods that were copied.</summary>
         public List<string> Mods { get; private set; }
 
+        /// <summary>Every file the build copied (server binaries, configs, mods, profile).</summary>
         public int FilesCopied { get; set; }
+
+        /// <summary>Server binaries copied into the tree root by this build.</summary>
+        public int ServerFilesCopied { get; set; }
+
+        /// <summary>Server binaries a previous build had already copied and that were left as they were.</summary>
+        public int ServerFilesUnchanged { get; set; }
+
+        /// <summary>
+        /// Top-level folders of the runtime that the tree neither links nor copies (everything except
+        /// <c>SPT_Data</c> and <c>user</c>). A server whose <c>deps.json</c> pointed into such a folder
+        /// would not find it next to the copied exe; the runner warns about it.
+        /// </summary>
+        public List<string> UnsharedFolders { get; private set; }
     }
 
     /// <summary>Builds the disposable server tree <c>&lt;runtime root&gt;\server</c> of an Arena session.</summary>
@@ -580,12 +728,17 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
-        /// Deletes the old tree (junctions as links) and materialises a new one for an
-        /// <c>enter</c> request: the patched <c>sptLogger.json</c>, <c>SPT_Data</c> (junctions plus a
-        /// copied <c>configs</c> with the arena port in <c>http.json</c>), <c>user\mods</c> with a
-        /// copy of each listed server mod, the profile, its profile data, certificates and
-        /// credentials, and last the marker that turns the tree into an Arena instance. A tree
-        /// without a marker is therefore never mistaken for a finished one.
+        /// Empties the old tree (junctions as links) and materialises a new one for an
+        /// <c>enter</c> request: the server binaries (every top-level file of the runtime that
+        /// <see cref="HelperServerBinaries"/> selects, so that <c>SPT.Server.exe</c> runs from the tree
+        /// and <c>AppContext.BaseDirectory</c> points into it), the patched <c>sptLogger.json</c>,
+        /// <c>SPT_Data</c> (junctions plus a copied <c>configs</c> with the arena port in
+        /// <c>http.json</c>), <c>user\mods</c> with a copy of each listed server mod, the profile, its
+        /// profile data, certificates and credentials, and last the marker that turns the tree into an
+        /// Arena instance. A tree without a marker is therefore never mistaken for a finished one.
+        /// The server binaries of the previous tree stay in place and are copied only when the
+        /// runtime's file differs in length or last-write time: a session switch otherwise copied
+        /// about twenty megabytes of unchanged libraries every time.
         /// </summary>
         public static HelperTreeResult Build(HelperRequest request, int arenaPort, string runtimeRoot, string helperVersion,
             DateTime nowUtc, Action<string> log)
@@ -604,8 +757,30 @@ namespace ArenaMode.SessionHelper
             string tree = GetTreePath(root);
             var result = new HelperTreeResult { TreePath = tree, Port = arenaPort };
 
-            box.DeleteTree(tree);
-            box.CreateDirectory(tree);
+            // The exe the server is started from lives in the tree. Without the runtime's own it cannot be built.
+            if (!File.Exists(Path.Combine(source, HelperLayout.ServerExeName))) throw new HelperException("no " + HelperLayout.ServerExeName + " in " + source);
+            var topLevelFiles = new List<string>();
+            foreach (string path in Directory.GetFiles(source)) topLevelFiles.Add(Path.GetFileName(path));
+            List<string> binaries = HelperServerBinaries.Select(topLevelFiles);
+            result.ServerExe = Path.Combine(tree, HelperLayout.ServerExeName);
+            foreach (string path in Directory.GetDirectories(source))
+            {
+                string folder = Path.GetFileName(path);
+                if (!string.Equals(folder, HelperLayout.SptDataFolder, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(folder, HelperLayout.UserFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    result.UnsharedFolders.Add(folder);
+                }
+            }
+
+            PrepareTree(box, tree, binaries);
+
+            // The server binaries: the files the exe, its dll and deps.json need, beside the exe.
+            foreach (string name in binaries)
+            {
+                if (box.CopyFileIfChanged(Path.Combine(source, name), Path.Combine(tree, name))) result.ServerFilesCopied++;
+                else result.ServerFilesUnchanged++;
+            }
 
             // sptLogger.json: the server refuses to run from a folder without one, and its file
             // names get a prefix so the arena logs never share a name with the normal server's.
@@ -660,11 +835,11 @@ namespace ArenaMode.SessionHelper
             box.WriteAllText(httpJson, patchedHttp);
 
             // user\mods: a real copy of each allowed server mod (not a junction), so that what a mod
-            // writes beside its own files, found through its assembly location or the working
-            // directory, stays in the disposable tree. Only the helper's own operations are confined
-            // by this: the server is started from the real runtime's exe, so a mod that resolves its
-            // paths from AppContext.BaseDirectory (or AppDomain.CurrentDomain.BaseDirectory) still
-            // reads and writes the real installation, not this copy.
+            // writes beside its own files, found through its assembly location, the working directory
+            // or the exe's folder (AppContext.BaseDirectory, which is the tree because the server is
+            // started from the copy of the exe above), stays in the disposable tree. The SPT_Data
+            // folders that are junctions are the exception: they are shared with the installation,
+            // and so are folders inside a mod that hold only asset bundles (CopyModDirectory).
             string userSource = Path.Combine(source, HelperLayout.UserFolder);
             string userTarget = Path.Combine(tree, HelperLayout.UserFolder);
             string modsTarget = Path.Combine(userTarget, HelperLayout.ModsFolder);
@@ -672,7 +847,7 @@ namespace ArenaMode.SessionHelper
             foreach (HelperServerMod mod in request.ServerMods)
             {
                 if (!Directory.Exists(mod.Folder)) throw new HelperException("the server mod '" + mod.Guid + "' has no folder at " + mod.Folder);
-                box.CopyDirectory(mod.Folder, Path.Combine(modsTarget, mod.FolderName));
+                box.CopyModDirectory(mod.Folder, Path.Combine(modsTarget, mod.FolderName));
                 result.Mods.Add(mod.FolderName);
             }
 
@@ -688,12 +863,51 @@ namespace ArenaMode.SessionHelper
             CopyIfExists(box, Path.Combine(userSource, HelperLayout.CertsFolder), Path.Combine(userTarget, HelperLayout.CertsFolder));
             CopyIfExists(box, Path.Combine(userSource, HelperLayout.CredentialsFolder), Path.Combine(userTarget, HelperLayout.CredentialsFolder));
 
+            // The bundle hash cache: its keys are relative paths (user/mods/<mod>/...) and the linked
+            // bundle folders keep the installation's files, so carrying it over spares the server
+            // from hashing every bundle again on the first start of a fresh tree.
+            string bundleCache = Path.Combine(Path.Combine(userSource, HelperLayout.CacheFolder), HelperLayout.BundleHashCacheFileName);
+            if (File.Exists(bundleCache))
+                box.CopyFile(bundleCache, Path.Combine(Path.Combine(userTarget, HelperLayout.CacheFolder), HelperLayout.BundleHashCacheFileName));
+
             // The marker comes last.
-            HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion);
+            HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion, result.ServerExe);
             box.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), marker.ToJson());
 
             result.FilesCopied = box.FilesCopied;
             return result;
+        }
+
+        /// <summary>
+        /// Makes the tree root ready for a new build: the marker goes first (a half-cleaned tree must
+        /// not look finished), then everything except the plain files that are server binaries of the
+        /// runtime being copied now. A tree that is a link or a plain file is removed as that; a
+        /// folder or link inside it is removed without entering the link.
+        /// </summary>
+        private static void PrepareTree(HelperSandbox box, string tree, List<string> binaries)
+        {
+            FileAttributes attributes;
+            if (HelperFileSystem.TryGetAttributes(tree, out attributes))
+            {
+                if (HelperPathSafety.IsReparsePoint(attributes) || (attributes & FileAttributes.Directory) == 0)
+                {
+                    box.DeleteTree(tree);
+                }
+                else
+                {
+                    box.DeleteFile(Path.Combine(tree, ArenaSessionContract.MarkerFileName));
+                    foreach (string entry in Directory.GetFileSystemEntries(tree))
+                    {
+                        FileAttributes entryAttributes;
+                        bool plainFile = HelperFileSystem.TryGetAttributes(entry, out entryAttributes)
+                            && (entryAttributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0;
+                        if (HelperServerBinaries.KeepsTreeEntry(Path.GetFileName(entry), plainFile, binaries)) continue;
+                        box.DeleteTree(entry);
+                    }
+                }
+            }
+
+            box.CreateDirectory(tree);
         }
 
         private static void CopyIfExists(HelperSandbox box, string source, string destination)

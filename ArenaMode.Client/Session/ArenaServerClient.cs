@@ -13,22 +13,30 @@ namespace ArenaMode.Session;
 
 /// <summary>
 /// One server mod as the ping reports it (Arena session spec, section 8): GUID, display name,
-/// version and the absolute folder on the server's machine.
+/// version, the absolute folder on the server's machine and the GUIDs of the mods it depends on.
 /// </summary>
 internal sealed class ArenaServerModInfo
 {
-    internal ArenaServerModInfo(string guid, string name, string version, string folder)
+    internal ArenaServerModInfo(string guid, string name, string version, string folder,
+        IReadOnlyList<string> dependencies = null)
     {
         Guid = guid;
         Name = name;
         Version = version;
         Folder = folder;
+        Dependencies = dependencies ?? Array.Empty<string>();
     }
 
     internal string Guid { get; }
     internal string Name { get; }
     internal string Version { get; }
     internal string Folder { get; }
+
+    /// <summary>
+    /// The server mod's <c>ModDependencies</c>. Empty when it has none or when the server is older
+    /// than this member (its ping carries no <c>dependencies</c>).
+    /// </summary>
+    internal IReadOnlyList<string> Dependencies { get; }
 }
 
 /// <summary>
@@ -184,9 +192,10 @@ public static class ArenaServerClient
     }
 
     /// <summary>
-    /// Reads the optional <c>arenaInstance</c> (bool) and <c>serverMods</c> ([{guid,name,version,folder}])
-    /// fields. Anything malformed is treated as absent, entry by entry: a bad entry is skipped, a field
-    /// of the wrong type is ignored.
+    /// Reads the optional <c>arenaInstance</c> (bool) and <c>serverMods</c>
+    /// ([{guid,name,version,folder,dependencies}]) fields. Anything malformed is treated as absent, entry
+    /// by entry: a bad entry is skipped, a field of the wrong type is ignored, and so is a dependency
+    /// that is not a non-blank string (<c>dependencies</c> itself is optional: an older server omits it).
     /// </summary>
     private static void ReadSessionFields(JObject ping)
     {
@@ -205,10 +214,24 @@ public static class ArenaServerClient
             if (entry is not JObject mod) continue;
             string guid = ReadText(mod["guid"]);
             if (string.IsNullOrWhiteSpace(guid)) continue;
-            list.Add(new ArenaServerModInfo(guid, ReadText(mod["name"]), ReadText(mod["version"]), ReadText(mod["folder"])));
+            list.Add(new ArenaServerModInfo(guid, ReadText(mod["name"]), ReadText(mod["version"]), ReadText(mod["folder"]),
+                ReadTextArray(mod["dependencies"])));
         }
 
         _serverMods = list;
+    }
+
+    private static List<string> ReadTextArray(JToken token)
+    {
+        var texts = new List<string>();
+        if (token is not JArray array) return texts;
+        foreach (var item in array)
+        {
+            string text = ReadText(item);
+            if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);
+        }
+
+        return texts;
     }
 
     private static string ReadText(JToken token)

@@ -14,11 +14,18 @@ namespace ArenaMode.Server.Services;
 /// the allowed ones to the session helper, which copies them into the disposable
 /// Arena server tree.
 /// </summary>
+/// <remarks>
+/// <paramref name="Dependencies"/> are the GUIDs the mod lists in
+/// <c>IModMetadata.ModDependencies</c>. SPT's mod validator treats an unmet entry
+/// as fatal for every mod, not just for the one that lists it, so the client needs
+/// them to keep a dependency of an allowed mod in the session tree.
+/// </remarks>
 internal sealed record ArenaServerModInfo(
     [property: JsonPropertyName("guid")] string Guid,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("version")] string Version,
-    [property: JsonPropertyName("folder")] string Folder);
+    [property: JsonPropertyName("folder")] string Folder,
+    [property: JsonPropertyName("dependencies")] IReadOnlyList<string> Dependencies);
 
 /// <summary>
 /// What this server process knows about the Arena session feature: whether it is
@@ -97,11 +104,21 @@ internal static class ArenaServerInstance
                 metadata.ModGuid ?? string.Empty,
                 metadata.Name ?? string.Empty,
                 metadata.Version?.ToString() ?? string.Empty,
-                ResolveFolder(mod.Directory)));
+                ResolveFolder(mod.Directory),
+                DescribeDependencies(metadata)));
         }
 
         return mods;
     }
+
+    /// <summary>The GUIDs of <c>ModDependencies</c>, sorted ordinally so the ping is stable; never null.</summary>
+    private static string[] DescribeDependencies(IModMetadata metadata)
+        => metadata.ModDependencies == null
+            ? []
+            : metadata.ModDependencies.Keys
+                .Where(guid => !string.IsNullOrWhiteSpace(guid))
+                .Order(StringComparer.Ordinal)
+                .ToArray();
 
     private static string ResolveFolder(string? directory)
     {

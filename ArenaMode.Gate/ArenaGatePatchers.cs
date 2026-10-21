@@ -129,7 +129,10 @@ namespace ArenaMode.Gate
                 bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);
                 if (initializerMayHaveRun && selfIndex >= 0)
                 {
-                    outcome.Warnings.Add("preloader patcher " + file + " is not on the whitelist, but its initializer ran "
+                    // "Denied" covers both modes: in blacklist mode a patcher is only ever off because the
+                    // user's policy file names it; in whitelist mode it may be named there or simply absent.
+                    string cause = policy.IsDeniedByUser(file) ? "is denied in the user's policy file" : "is not on the whitelist";
+                    outcome.Warnings.Add("preloader patcher " + file + " " + cause + ", but its initializer ran "
                         + "before the gate and cannot be undone; its patch targets and finalizer were neutralised");
                 }
                 else if (initializerMayHaveRun)

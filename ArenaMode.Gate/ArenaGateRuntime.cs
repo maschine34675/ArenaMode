@@ -106,7 +106,8 @@ namespace ArenaMode.Gate
 
                     _stage = Stage.Prepared;
                     Log(LogLevel.Debug, "Whitelist policy " + _policy.Hash + ": " + _policy.Entries.Count
-                        + " entries, user file " + (_policy.UserFileApplied ? "applied" : "not applied"));
+                        + " entries, user file " + (_policy.UserFileApplied ? "applied" : "not applied")
+                        + ", unlisted units " + (_policy.AllowsUnlisted ? "allowed (blacklist)" : "denied (whitelist)"));
 
                     // Until the plugin list has been filtered the honest answer is "inactive".
                     Publish(BuildInactive("the plugin list has not been filtered yet"));

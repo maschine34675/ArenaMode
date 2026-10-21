@@ -77,21 +77,22 @@ Roslyn against the game's own `mscorlib`, and runs one scenario per process unde
 and `PatchAndLoad` (with BepInEx's real entry-point patcher patching a copy of the game's
 `UnityEngine.CoreModule`) and then the same `FindPluginTypes<PluginInfo>` call that
 `Chainloader.Start()` makes. Dummy plugins are generated with Cecil and carry real `BepInPlugin`
-and `BepInDependency` metadata. 11 scenarios, 275 checks:
+and `BepInDependency` metadata. 12 scenarios, 321 checks:
 
 | Scenario | Proves |
 |---|---|
 | inert | no flag: no Harmony patch, no log source, no report, every patcher and plugin untouched, even with an unreadable policy |
 | full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), built-in patcher intact, no Unity assembly before the patched CoreModule |
 | user-file / user-garbage | user allow and deny, platform units undeniable, unparsable user file ignored with a warning |
+| user-blacklist | `"unlisted": "allow"` with a deny list: everything not denied is allowed (`unlisted-allowed`, no warning of its own), denied plugins are excluded (`denied-by-user`), a denied hard dependency of an unlisted plugin is still pulled in with the override warning, every preloader patcher runs except the denied ones |
 | bad-default / missing-default | policy unusable: inactive report with the reason, no patch, no patcher touched, Error line |
 | no-core-module | the gate refuses to install and loads no Unity assembly itself |
 | postfix-failure | malformed plugin info: no exception, lists unchanged, report inactive, later scans unfiltered, the Error line says that the neutralised patchers stay off |
 | control-early-install | negative control: patching during `Initialize` is detected as an early Unity load |
 | baseline-real / real-install | the 42 plugins of the installed game, decided by the policy code from units read in a separate gate-free process |
 
-Ten mutants of the gate (install in `Initialize`, no flag check, nothing removed, patchers not
-neutralised, entry-point patcher neutralised, every directory filtered, soft dependency pulled in,
+Eleven mutants of the gate (install in `Initialize`, no flag check, nothing removed, patchers not
+neutralised, unlisted patchers neutralised in blacklist mode, entry-point patcher neutralised, every directory filtered, soft dependency pulled in,
 postfix may throw, patchers named at Debug, "stay off" not said) are compiled and must each fail a scenario; all do, for the intended reason.
 
 Not covered, because it needs the game: the player Mono instead of the editor Mono (same version,
