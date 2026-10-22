@@ -66,6 +66,7 @@ internal static class ArenaWhitelistAdmission
 
     private static Outcome _outcome;
     private static long _outcomeKey = -1;
+    private static string _outcomePolicyStamp;
     private static readonly HashSet<string> LoggedOnce = new HashSet<string>(StringComparer.Ordinal);
 
     private sealed class Outcome
@@ -160,6 +161,7 @@ internal static class ArenaWhitelistAdmission
     {
         try
         {
+            InvalidateIfPolicyChanged();
             if (ArenaServerClient.IsServerModKnownAvailable || HasFika()) return;
             // Nothing to ask without a policy either: that refusal names the installation, not the server.
             if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;
@@ -205,6 +207,7 @@ internal static class ArenaWhitelistAdmission
         long key = ((long)ArenaServerClient.PingGeneration << 32) | (uint)Chainloader.PluginInfos.Count;
         if (_outcome == null || key != _outcomeKey)
         {
+            _outcomePolicyStamp = PolicyStamp();
             var outcome = Compute();
             _outcome = outcome;
             _outcomeKey = key;
@@ -213,6 +216,44 @@ internal static class ArenaWhitelistAdmission
 
         return _outcome;
     }
+
+    /// <summary>
+    /// The policy files can change while the game runs (the user file is edited, or a mirrored copy
+    /// arrives). The cached outcome is keyed on the ping generation and the plugin count, so such a
+    /// change would stay invisible until the next ping. Opening the side screen therefore compares
+    /// the files' stamps with the ones the cached outcome was computed from and drops the cache when
+    /// they differ: one look at two files per screen, still no I/O while the menu polls.
+    /// </summary>
+    private static void InvalidateIfPolicyChanged()
+    {
+        if (_outcome == null) return;
+        if (string.Equals(PolicyStamp(), _outcomePolicyStamp, StringComparison.Ordinal)) return;
+        _outcome = null;
+        Plugin.ModLogger?.LogDebug("Arena whitelist: a policy file changed; the admission is evaluated again.");
+    }
+
+    /// <summary>Length and last-write time of both policy files; a file that cannot be read stamps as "?".</summary>
+    private static string PolicyStamp()
+        => FileStamp(DefaultPolicyPath()) + "|" + FileStamp(UserPolicyPath());
+
+    private static string FileStamp(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists) return "-";
+            return info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "@"
+                + info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (Exception) { return "?"; }
+    }
+
+    private static string DefaultPolicyPath()
+        => Path.Combine(Path.Combine(BepInEx.Paths.PluginPath, ArenaSessionContract.PluginFolderName),
+            ArenaSessionContract.DefaultPolicyFileName);
+
+    private static string UserPolicyPath()
+        => Path.Combine(BepInEx.Paths.ConfigPath, ArenaSessionContract.UserPolicyFileName);
 
     private static Outcome Compute()
     {
@@ -583,9 +624,8 @@ internal static class ArenaWhitelistAdmission
 
     private static ArenaWhitelistPolicy LoadPolicy(out string problem)
     {
-        string defaultPath = Path.Combine(Path.Combine(BepInEx.Paths.PluginPath, ArenaSessionContract.PluginFolderName),
-            ArenaSessionContract.DefaultPolicyFileName);
-        string userPath = Path.Combine(BepInEx.Paths.ConfigPath, ArenaSessionContract.UserPolicyFileName);
+        string defaultPath = DefaultPolicyPath();
+        string userPath = UserPolicyPath();
 
         string defaultJson = ReadPolicyFile(defaultPath, "default whitelist", true, out problem);
         if (defaultJson == null)

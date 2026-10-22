@@ -170,6 +170,12 @@ Invoke-Mutant 'admission-names-unsorted' 'admission' 'unique.Sort(StringComparer
 Invoke-Mutant 'admission-refusal-text' 'admission' `
     'Start an Arena session to play Arena without them; the game restarts.' 'Start a session.' `
     'The spec''s refusal text, with the session sentence'
+Invoke-Mutant 'admission-policy-edit-unnoticed' 'admission' `
+    'InvalidateIfPolicyChanged();' '' `
+    'A policy file edited while the screen was closed is read again when it opens'
+Invoke-Mutant 'admission-policy-stamp-ignores-user-file' 'admission' `
+    '=> FileStamp(DefaultPolicyPath()) + "|" + FileStamp(UserPolicyPath());' '=> FileStamp(DefaultPolicyPath());' `
+    'A policy file edited while the screen was closed is read again when it opens'
 Invoke-Mutant 'admission-always-pings' 'admission' `
     'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
     'A clean normal session needs no ping to open the screen'

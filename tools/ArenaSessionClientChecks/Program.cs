@@ -808,6 +808,19 @@ internal static partial class Program
         ArenaServerClient.PingGeneration++;
         ArenaWhitelistAdmission.PrepareForScreen();
         Require(ArenaServerClient.RefreshCalls == 0, "Without a policy there is nothing to ask the server for");
+
+        // A policy file edited while the screen was closed (or mirrored onto the machine) is noticed
+        // when the screen opens: the cached outcome stays until then, so menu polling does no I/O.
+        ResetWorld();
+        Ping(false, NormalServerMods());
+        Require(Reason() == null, "A clean normal session admits before the policy edit");
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"me.sol.sain\"]}");
+        Require(Reason() == null, "A policy edit alone does not re-evaluate the cached outcome");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() != null && Reason().Contains("Blocked for Arena: SAIN"),
+            "A policy file edited while the screen was closed is read again when it opens");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() != null && Reason().Contains("Blocked for Arena: SAIN"), "An unchanged policy keeps the outcome");
     }
 
     // ------------------------------------------------------------------ Arena session

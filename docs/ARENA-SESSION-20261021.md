@@ -733,6 +733,11 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
        is unknown, never a difference.
     Without a ping (not yet answered) there is no server to judge and no hash to compare: 5 to 7 wait for it, and
     the explicit Arena click asks again. The refusal leaves the RETURN TO NORMAL SESSION action.
+    The outcome is cached per ping generation and plugin count (menu polling does no I/O); opening the side
+    screen compares the two policy files' length and last-write time with the stamp the cached outcome was
+    computed from and evaluates again when they differ, so a user file edited or mirrored onto the machine while
+    the game runs is noticed at the next screen, in both session kinds (fourth pass, after a GPU run showed the
+    stale cache).
   - Normal session: evaluate `Chainloader.PluginInfos`, the preloader patchers and the server's `serverMods` with
     the same policy. A patcher is every `*.dll` below `Paths.PatcherPluginPath` (`BepInEx\patchers`, at any depth,
     the files BepInEx and the gate see) that can be a patcher (below), identified by file name, once per name, and is
