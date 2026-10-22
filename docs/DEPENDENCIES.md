@@ -34,18 +34,28 @@ Sources: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj
 
 ## Arena session and the mod whitelist
 
-Arena runs only with whitelisted mods: the default list is SAIN, APBS, ABPS, BigBrain and
-Waypoints plus UiBridge, ModProfiler and LogTools; the platform plugins and ArenaMode are always
-allowed, and Fika is never filtered. Everything else is not loaded in an Arena session (a separate game
-process with a preloader gate, against a second SPT server with a private tree of the allowed server
-mods). The shipped list is `arena-whitelist.json`; a user's own additions and exclusions are
+Arena runs only with whitelisted mods: the default list allows SAIN, APBS, ABPS, BigBrain and
+Waypoints, ArenaMapPort, Killcam, Redeploy and the other mods of this author (AutoCorpseSearch,
+DefaultAutoFireMode, DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMenuCleanupFix, StashFilter,
+SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport
+(and its patcher), SVM, give-ui, ContinuousHealing, Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
+BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
+UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
+differing version only warns). Its deny list holds the five mods ArenaMode refused by code before the
+whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; they are
+never loaded in an Arena session, and a user `allow` entry is what lifts that. The platform plugins
+and ArenaMode are always allowed, and Fika is never filtered. Everything else is not loaded in an
+Arena session (a separate game process with a preloader gate, against a second SPT server with a
+private tree of the allowed server mods). The shipped list is `arena-whitelist.json`; a user's own
+additions and exclusions are
 `BepInEx/config/com.maschine.ArenaMode.whitelist.json` and are never shipped. That file is a combined
-allow/deny list: with `"unlisted": "allow"` it turns the whitelist into a blacklist (every mod the user
-did not deny loads; a denied mod that an allowed mod hard-depends on is still pulled in, with a warning;
+allow/deny list: with `"unlisted": "allow"` it turns the whitelist into a blacklist (every mod neither
+list denies loads; a denied mod that an allowed mod hard-depends on is still pulled in, with a warning;
 for server mods the hard dependencies are their `ModDependencies`, which the server's ping reports, because
 the server refuses to load any mod when one is missing).
-The optional adapters below therefore apply to mods that are allowed to load; in the default Arena
-session they are dormant. See
+The optional adapters below therefore apply to mods that are allowed to load: in the default Arena
+session the adapters of mods on the default list (for example PitFireTeam, DynamicMaps, ContinuousHealing,
+SVM, Killcam) are active, those of mods outside it and of the five denied ones are dormant. See
 [the session specification](ARENA-SESSION-20261021.md) and the [README](../README.md).
 
 ## Optional features and targeted adapters

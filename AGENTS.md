@@ -57,10 +57,15 @@ START ARENA SESSION, which restarts the game with only the allowed plugins
 policy, the gate's install timing (`Finish`, never `Initialize`), the helper's
 process-identity rules or the request contract the client checks before it quits
 the game. Never add code that is specific to one foreign mod. The user policy file is a combined
-allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. Keep the per-unit order
-(platform/Arena, user deny, named entries, `unlisted`), an unknown `unlisted` value (or, in blacklist
-mode, an unreadable `deny` list) invalidating the whole file, the server mods' `ModDependencies` in the
-closure, and the mode out of the shipped default file (spec sections 3 and 4).
+allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. The shipped default file
+allows every installed mod and has its own `deny` list (ORBIT, Questing Bots, Adaptive Bot Culling,
+ISB Special Forces, Aishi: refused by ArenaMode before the whitelist existed; their code-level refusals
+stay). Keep the per-unit order (platform/Arena, user deny, user allow, DEFAULT deny, default entries,
+`unlisted`: a user allow lifts a default deny, a user deny always wins, default denies hold in
+blacklist mode), an unknown `unlisted` value (or, in blacklist mode, an unreadable `deny` list)
+invalidating the whole user file, a malformed default `deny` invalidating the default file, the server
+mods' `ModDependencies` in the closure, and the mode out of the shipped default file (spec sections 3
+and 4). The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
 Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
 changing camera-checked marker layers or its optional GC-pause guard. Never
 move pooled weapon objects into marker ownership or change foreign saved settings.

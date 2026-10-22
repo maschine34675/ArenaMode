@@ -51,7 +51,11 @@ builds pass the NoDeploy properties as before.
 `Write-ArenaAssets.ps1` names `assets/arena-whitelist.json` explicitly (like `LICENSE` and the README,
 without the tracked-file filter) and refuses to continue when it is not a schema 1 policy, has no entries or
 has an entry without exactly one of `guid` and `patcher`: a broken default list makes every Arena session
-unavailable, so build, deployment and the release ZIP stop instead.
+unavailable, so build, deployment and the release ZIP stop instead. Since 2026-10-22 the same check covers the
+optional `deny` member (an array of non-blank strings; the loader fails the whole default file otherwise),
+requires it to name the five refused mods (a missing, empty or differently spelled `deny` would silently turn
+them into plain unlisted mods) and refuses a unit that `mods` lists and `deny` names (the loader would deny it
+and report it at every start).
 
 ## Release package
 
@@ -60,7 +64,10 @@ the gate and the helper from the frozen snapshot, checks their assembly version 
 revision like the other binaries, adds them to the payload and describes the session in `INSTALL.txt`. A
 selected revision without the two projects and the default list is rejected before any build.
 `Verify-TestRelease.py` now requires the gate in the exact DLL set, the helper as the only executable and the
-default list as a schema 1 policy that still names SAIN, APBS, ABPS, BigBrain and Waypoints.
+default list as a schema 1 policy that still names every mod of the 2026-10-22 decision (SAIN, APBS, ABPS,
+BigBrain, Waypoints and all the other installed mods) and their two file patchers (`WTT-ContentBackportPatcher.dll`,
+`maschine-LogTools.dll`), keeps the five denies (ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces,
+Aishi) in a well-formed `deny` array, and does not allow what it denies.
 
 ## Offline evidence (integration run, 2026-10-21)
 

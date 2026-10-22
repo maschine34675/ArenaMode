@@ -76,13 +76,14 @@ namespace ArenaMode.Shared.Session
     /// Rules (docs/ARENA-SESSION-20261021.md, sections 3 and 4):
     /// a unit the policy names is allowed (reason <c>platform</c>, <c>arena</c>, <c>whitelist</c> or
     /// <c>tool</c>); in blacklist mode (<see cref="ArenaWhitelistPolicy.AllowsUnlisted"/>) a unit that
-    /// nothing names and the user did not deny is allowed too, with reason <c>unlisted-allowed</c> and
+    /// nothing names and neither the user file nor the default file denies is allowed too, with
+    /// reason <c>unlisted-allowed</c> and
     /// no warning of its own; a hard dependency of an allowed unit that is installed but not allowed
     /// (a denied unit, or in whitelist mode any unlisted one) is allowed as well, transitively, with
     /// reason <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
-    /// (<c>denied-by-user</c> when the user file's deny list names it, otherwise
-    /// <c>not-on-whitelist</c>). A reviewed version that differs from the installed one is a
-    /// warning, never an exclusion.
+    /// (<c>denied-by-user</c> when the user file's deny list names it, <c>denied</c> when the
+    /// shipped default file's deny list does, otherwise <c>not-on-whitelist</c>). A reviewed version
+    /// that differs from the installed one is a warning, never an exclusion.
     /// </summary>
     public sealed class ArenaWhitelistDecision
     {
@@ -92,8 +93,8 @@ namespace ArenaMode.Shared.Session
         public const string ReasonTool = "tool";
 
         /// <summary>
-        /// Blacklist mode: no entry names the unit and the user did not deny it. The unit has no
-        /// reviewed version, so it never produces a version warning.
+        /// Blacklist mode: no entry names the unit and neither the user file nor the default file
+        /// denies it. The unit has no reviewed version, so it never produces a version warning.
         /// </summary>
         public const string ReasonUnlistedAllowed = "unlisted-allowed";
 
@@ -101,7 +102,15 @@ namespace ArenaMode.Shared.Session
         public const string ReasonDependencyPrefix = "dependency-of:";
 
         public const string ReasonNotOnWhitelist = "not-on-whitelist";
+
+        /// <summary>The user file's deny list names the unit.</summary>
         public const string ReasonDeniedByUser = "denied-by-user";
+
+        /// <summary>
+        /// The shipped default file's deny list names the unit (a mod ArenaMode refuses by design) and
+        /// the user's allow list does not bring it back. Holds in whitelist and blacklist mode alike.
+        /// </summary>
+        public const string ReasonDenied = "denied";
 
         private ArenaWhitelistDecision()
         {
@@ -119,7 +128,8 @@ namespace ArenaMode.Shared.Session
         /// <summary>
         /// Human-readable warnings in input order, each starting with the unit name:
         /// <c>SAIN: version 4.5.2 differs from reviewed 4.5.1</c> and
-        /// <c>BigBrain: pulled in as hard dependency of SAIN</c>.
+        /// <c>BigBrain: pulled in as hard dependency of SAIN</c>; a denied unit adds
+        /// <c>(overrides the user's deny)</c> or <c>(overrides the default list's deny)</c>.
         /// </summary>
         public List<string> Warnings { get; private set; }
 
@@ -223,9 +233,7 @@ namespace ArenaMode.Shared.Session
                 ArenaSessionUnit unit = units[i];
                 if (reasons[i] == null)
                 {
-                    result.Excluded.Add(unit.CopyWithReason(policy.IsDeniedByUser(unit.Guid)
-                        ? ReasonDeniedByUser
-                        : ReasonNotOnWhitelist));
+                    result.Excluded.Add(unit.CopyWithReason(policy.ExclusionReason(unit.Guid)));
                     continue;
                 }
 
@@ -244,6 +252,7 @@ namespace ArenaMode.Shared.Session
                 {
                     string warning = unit.DisplayName + ": pulled in as hard dependency of " + pulledInBy[i].DisplayName;
                     if (policy.IsDeniedByUser(unit.Guid)) warning += " (overrides the user's deny)";
+                    else if (policy.IsDeniedByDefault(unit.Guid)) warning += " (overrides the default list's deny)";
                     result.Warnings.Add(warning);
                 }
             }

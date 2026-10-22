@@ -30,6 +30,7 @@ internal static partial class Program
             CheckSessionOffer();
             CheckNamesAndNotes();
             CheckPolicyFiles();
+            CheckDeniedMods();
             CheckFikaAndFailures();
             CheckPrepareForScreen();
             CheckArenaSessionAdmission();
@@ -443,7 +444,9 @@ internal static partial class Program
         ResetWorld();
         WriteUserPolicy("{\"schema\":1,\"deny\":[\"me.sol.sain\"]}");
         Ping(false, NormalServerMods());
-        Require(Reason() != null && Reason().Contains("SAIN"), "A user deny entry excludes a default mod");
+        Equal(Reason(),
+            "Arena runs only with whitelisted mods. Blocked for Arena: SAIN. Start an Arena session to play Arena without them; the game restarts.",
+            "A user deny entry excludes a default mod and names it as blocked");
 
         ResetWorld();
         AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
@@ -462,12 +465,12 @@ internal static partial class Program
         AddPlugin("com.example.looting", "Looting Pack", "2.0.0");
         ArenaServerClient.PingGeneration++;
         Equal(Reason(),
-            "Arena does not run with mods denied in your Arena policy file: Looting Pack. Start an Arena session to play Arena without them; the game restarts.",
+            "Arena does not run with denied mods. Blocked for Arena: Looting Pack. Start an Arena session to play Arena without them; the game restarts.",
             "In blacklist mode the refusal names the denied mods only and does not claim a whitelist");
         Require(ArenaWhitelistAdmission.CanOfferSessionStart(Reason()), "In blacklist mode the session is offered for a denied mod");
         OldServerPing();
         Equal(Reason(),
-            "Arena does not run with mods denied in your Arena policy file: Looting Pack. Remove them and restart the game to play Arena.",
+            "Arena does not run with denied mods. Blocked for Arena: Looting Pack. Remove them and restart the game to play Arena.",
             "In blacklist mode without a session-capable server the refusal asks to remove the denied mods");
 
         // The server side follows the same rule: an unlisted server mod goes into the session, a denied one does not.
@@ -557,6 +560,103 @@ internal static partial class Program
         Require(Reason() != null, "The policy files are not re-read within one ping generation");
         Ping(false, NormalServerMods());
         Require(Reason() == null, "A new ping re-reads them");
+    }
+
+    /// <summary>
+    /// Mods a deny list excludes (the shipped default's or the user's) are named apart from the mods that are
+    /// merely not on the whitelist: "Blocked for Arena" and "Not on the whitelist" are separate, either part is
+    /// left out when it has no names, and a default deny holds in blacklist mode too.
+    /// </summary>
+    private static void CheckDeniedMods()
+    {
+        const string offer = "Start an Arena session to play Arena without them; the game restarts.";
+        const string remove = "Remove them and restart the game to play Arena.";
+
+        // A mod the shipped default denies (ORBIT) is blocked, not merely unlisted.
+        ResetWorld();
+        AddPlugin("com.chazut.orbit", "ORBIT", "1.0.0");
+        Ping(false, NormalServerMods());
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: ORBIT. " + offer,
+            "A default-denied mod is named as blocked for Arena, without a Not on the whitelist part");
+        Require(ArenaWhitelistAdmission.CanOfferSessionStart(Reason()), "The session is offered for a default-denied mod");
+
+        // Both kinds at once: two parts, the blocked one first.
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        ArenaServerClient.PingGeneration++;
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: ORBIT. Not on the whitelist: Zombie Pack. " + offer,
+            "Blocked and unlisted mods are named in two separate parts");
+        OldServerPing();
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: ORBIT. Not on the whitelist: Zombie Pack. " + remove,
+            "Without a session-capable server both parts stay and the refusal asks to remove the mods");
+
+        // A mod with a client and a server part is listed once, and its server part stays out of the session.
+        ResetWorld();
+        AddPlugin("com.danw.questingbots", "Questing Bots", "1.0.0");
+        var deniedServer = NormalServerMods();
+        deniedServer.Add(Mod("com.danw.questingbots", "Questing Bots Server", "1.0.0"));
+        Ping(false, deniedServer);
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: Questing Bots. " + offer,
+            "A default-denied mod on both sides is listed once");
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out var deniedAllowed, out _)
+                && deniedAllowed.All(m => m.Guid != "com.danw.questingbots") && deniedAllowed.Count == 4,
+            "A default-denied server mod does not go into the session tree");
+
+        // A default-denied mod that only the server has.
+        ResetWorld();
+        var serverOnly = NormalServerMods();
+        serverOnly.Add(Mod("com.samc137.isbspecialforces", "ISB Server", "1.0.0"));
+        Ping(false, serverOnly);
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: ISB Server. " + offer,
+            "A default-denied server mod refuses Arena as blocked");
+
+        // The user's allow list brings a default-denied mod back, on both sides.
+        ResetWorld();
+        AddPlugin("com.chazut.orbit", "ORBIT", "1.0.0");
+        var orbitServer = NormalServerMods();
+        orbitServer.Add(Mod("com.chazut.orbit", "ORBIT Server", "1.0.0"));
+        WriteUserPolicy("{\"schema\":1,\"allow\":[{\"guid\":\"com.chazut.orbit\",\"name\":\"ORBIT\",\"kind\":\"mod\"}]}");
+        Ping(false, orbitServer);
+        Require(Reason() == null, "A user allow entry lifts the default deny for the client plugin and the server mod");
+        // ... but the user's own deny still wins over that allow.
+        ResetWorld();
+        AddPlugin("com.chazut.orbit", "ORBIT", "1.0.0");
+        WriteUserPolicy("{\"schema\":1,\"allow\":[{\"guid\":\"com.chazut.orbit\"}],\"deny\":[\"com.chazut.orbit\"]}");
+        Ping(false, NormalServerMods());
+        Equal(Reason(), "Arena runs only with whitelisted mods. Blocked for Arena: ORBIT. " + offer,
+            "A user deny beats a user allow of a default-denied mod");
+
+        // Blacklist mode: the default deny still holds, unlisted mods do not count, and the lead sentence says so.
+        ResetWorld();
+        AddPlugin("com.chazut.orbit", "ORBIT", "1.0.0");
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        AddPlugin("com.example.looting", "Looting Pack", "2.0.0");
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.looting\"]}");
+        Ping(false, NormalServerMods());
+        Equal(Reason(), "Arena does not run with denied mods. Blocked for Arena: Looting Pack, ORBIT. " + offer,
+            "In blacklist mode the default deny holds, is named with the user's deny and the unlisted mod is no part of it");
+        Require(!Reason().Contains("whitelist") && !Reason().Contains("Zombie"), "A blacklist refusal neither claims a whitelist nor names unlisted mods");
+        // A user allow lifts the default deny in blacklist mode too.
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"allow\":[{\"guid\":\"com.chazut.orbit\"}],\"deny\":[\"com.example.looting\"]}");
+        Ping(false, NormalServerMods());
+        Equal(Reason(), "Arena does not run with denied mods. Blocked for Arena: Looting Pack. " + offer,
+            "In blacklist mode a user allow lifts the default deny");
+
+        // Each part is capped on its own.
+        ResetWorld();
+        var deny = new List<string>();
+        for (int i = 0; i < 14; i++)
+        {
+            AddPlugin("com.example.d" + i.ToString("D2"), "Denied" + i.ToString("D2"), "1.0");
+            deny.Add("\"com.example.d" + i.ToString("D2") + "\"");
+        }
+
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        WriteUserPolicy("{\"schema\":1,\"deny\":[" + string.Join(",", deny) + "]}");
+        Ping(false, NormalServerMods());
+        Equal(Reason(),
+            "Arena runs only with whitelisted mods. Blocked for Arena: Denied00, Denied01, Denied02, Denied03, Denied04, Denied05, "
+            + "Denied06, Denied07, Denied08, Denied09, Denied10, Denied11, and 2 more. Not on the whitelist: Zombie Pack. " + offer,
+            "The blocked names are capped at twelve on their own, apart from the unlisted ones");
     }
 
     private static void CheckFikaAndFailures()

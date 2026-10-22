@@ -26,9 +26,16 @@ namespace ArenaMode.Session;
 /// session. Version warnings never refuse.</item>
 /// </list>
 ///
-/// The policy may be a blacklist (the user file says <c>"unlisted": "allow"</c>): then everything the
-/// user did not deny is allowed, only denied mods are excluded, and nothing else in this class changes.
-/// Only the refusal text differs, because "not on the whitelist" would be wrong there.
+/// The policy may be a blacklist (the user file says <c>"unlisted": "allow"</c>): then everything that
+/// neither the user file nor the default file denies is allowed, only denied mods are excluded, and
+/// nothing else in this class changes. Only the refusal text differs, because "not on the whitelist"
+/// would be wrong there.
+///
+/// The shipped default list has a deny list of its own (mods ArenaMode refuses by design). A denied mod,
+/// whether the default or the user's file denies it, is named apart from the mods that are merely not on
+/// the whitelist: a "Blocked for Arena" mod stays out of every session until the user file lifts the
+/// block (an allow entry lifts the default list's deny; a user-denied mod needs that deny removed),
+/// whereas a mod that is not listed only needs an allow entry in the user file.
 ///
 /// Fika is never filtered and keeps its own refusal: with Fika present this class admits (returns no
 /// reason) and offers no session, so the existing "unavailable with Fika" rule decides.
@@ -248,11 +255,12 @@ internal static class ArenaWhitelistAdmission
 
         // A mod with a client and a server part has the same GUID on both sides but often two
         // different names ("DynamicMaps" / "Dynamic Maps"): list it once, by GUID, under its
-        // client name.
-        var excluded = new List<string>();
+        // client name. Denied mods (either deny list) and unlisted ones are told apart.
+        var denied = new List<string>();
+        var unlisted = new List<string>();
         var listedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var unit in client.Excluded) AddExcluded(excluded, listedGuids, unit);
-        if (server != null) foreach (var unit in server.Excluded) AddExcluded(excluded, listedGuids, unit);
+        foreach (var unit in client.Excluded) AddExcluded(denied, unlisted, listedGuids, unit);
+        if (server != null) foreach (var unit in server.Excluded) AddExcluded(denied, unlisted, listedGuids, unit);
 
         var notes = new List<string>(client.Warnings);
         if (server != null)
@@ -265,10 +273,10 @@ internal static class ArenaWhitelistAdmission
         outcome.WarningLine = FormatNotes(notes);
         outcome.SessionImpossibleReason = FindSessionObstacle(outcome.AllowedServerMods);
         outcome.SessionPossible = outcome.SessionImpossibleReason == null;
-        if (excluded.Count == 0) return;
+        if (denied.Count == 0 && unlisted.Count == 0) return;
 
         outcome.CanStartSession = outcome.SessionPossible;
-        outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);
+        outcome.Reason = FormatRefusal(denied, unlisted, outcome.CanStartSession, policy.AllowsUnlisted);
         if (!outcome.CanStartSession)
             Plugin.ModLogger?.LogDebug("Arena session not offered: " + outcome.SessionImpossibleReason);
     }
@@ -435,19 +443,22 @@ internal static class ArenaWhitelistAdmission
     // ------------------------------------------------------------------ text
 
     /// <summary>
-    /// The refusal. In whitelist mode every mod that is not on the list is named. In blacklist mode
-    /// (the user file says <c>"unlisted": "allow"</c>) a mod can only be excluded by the user's own
-    /// deny list, so the text names those and does not claim a whitelist exists.
+    /// The refusal: a lead sentence for the mode, then the mods apart by cause, then what to do.
+    /// <c>Blocked for Arena</c> names the mods a deny list excludes (the shipped default's or the
+    /// user's own), <c>Not on the whitelist</c> the mods nothing names (whitelist mode only: in
+    /// blacklist mode, the user file says <c>"unlisted": "allow"</c>, a mod can only be excluded by a
+    /// deny list, so the text does not claim a whitelist). A part without names is left out.
     /// </summary>
-    private static string FormatRefusal(List<string> excluded, bool sessionOffered, bool blacklist)
+    private static string FormatRefusal(List<string> denied, List<string> unlisted, bool sessionOffered, bool blacklist)
     {
-        string names = JoinLimited(excluded, MaxNamesListed);
-        string cause = blacklist
-            ? "Arena does not run with mods denied in your Arena policy file: " + names
-            : "Arena runs only with whitelisted mods. Not on the whitelist: " + names;
-        return sessionOffered
-            ? cause + ". Start an Arena session to play Arena without them; the game restarts."
-            : cause + ". Remove them and restart the game to play Arena.";
+        var text = new StringBuilder(blacklist
+            ? "Arena does not run with denied mods."
+            : "Arena runs only with whitelisted mods.");
+        if (denied.Count > 0) text.Append(" Blocked for Arena: ").Append(JoinLimited(denied, MaxNamesListed)).Append('.');
+        if (unlisted.Count > 0) text.Append(" Not on the whitelist: ").Append(JoinLimited(unlisted, MaxNamesListed)).Append('.');
+        return text.Append(sessionOffered
+            ? " Start an Arena session to play Arena without them; the game restarts."
+            : " Remove them and restart the game to play Arena.").ToString();
     }
 
     private static string FormatNotes(List<string> notes)
@@ -456,10 +467,15 @@ internal static class ArenaWhitelistAdmission
         return "Notes: " + JoinLimited(notes, MaxWarningsListed, "; ");
     }
 
-    /// <summary>Sorted, case-insensitively de-duplicated, capped; the rest is counted.</summary>
-    private static void AddExcluded(List<string> names, HashSet<string> listedGuids, ArenaSessionUnit unit)
+    /// <summary>
+    /// Adds an excluded unit to the denied or the unlisted names, once per GUID. A unit is unlisted only
+    /// when nothing names it; every other exclusion (<c>denied-by-user</c>, <c>denied</c>) is a deny.
+    /// </summary>
+    private static void AddExcluded(List<string> denied, List<string> unlisted, HashSet<string> listedGuids, ArenaSessionUnit unit)
     {
-        if (string.IsNullOrEmpty(unit.Guid) || listedGuids.Add(unit.Guid)) names.Add(unit.DisplayName);
+        if (!string.IsNullOrEmpty(unit.Guid) && !listedGuids.Add(unit.Guid)) return;
+        if (string.Equals(unit.Reason, ArenaWhitelistDecision.ReasonNotOnWhitelist, StringComparison.Ordinal)) unlisted.Add(unit.DisplayName);
+        else denied.Add(unit.DisplayName);
     }
 
     private static string JoinLimited(List<string> items, int limit, string separator = ", ")

@@ -262,10 +262,13 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    default list BepInEx/plugins/maschine-ArenaMode/arena-whitelist.json (overwritten by
    updates). Arena runs only with whitelisted mods; with other mods installed the
    ARENA screen offers START ARENA SESSION, which restarts the game with only the
-   whitelisted plugins and a private copy of the server. Your own additions and
+   whitelisted plugins and a private copy of the server. The default list allows the
+   mods that were installed when it was written and denies ORBIT, Questing Bots,
+   Adaptive Bot Culling, ISB Special Forces and Aishi. Your own additions and
    exclusions belong in BepInEx/config/com.maschine.ArenaMode.whitelist.json, which is
-   never shipped or overwritten. The session needs the SPT_Runtime folder next to the
-   game. All three files are built from the same source revision as the Arena DLLs.
+   never shipped or overwritten (an allow entry there lifts a default deny). The session
+   needs the SPT_Runtime folder next to the game. All three files are built from the
+   same source revision as the Arena DLLs.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.

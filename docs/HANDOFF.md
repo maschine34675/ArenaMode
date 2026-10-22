@@ -27,6 +27,14 @@ current. User-facing communication is normally German.
   arena-server writes in the real SPT_Runtime); bundle-only mod folders are junctions and the
   bundle hash cache is carried over (WTT's 8 GB are no longer copied; server ready in 11 s).
   Spec and acceptance: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md).
+  **Default list (2026-10-22, branch `feature/arena-default-list`, offline checks only, not yet on a GPU
+  host):** user decision: the shipped list allows every mod installed on the development hosts (ArenaMapPort,
+  Killcam, PitFireTeam, DynamicMaps and the rest now load in an Arena session, and so do their adapters; the
+  sentences above that they are not on the list and that the adapters are dormant in a session are history, only
+  adapters of mods outside the list stay dormant) and has a `deny` list for the five mods ArenaMode refused by code (ORBIT,
+  Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi; those code-level refusals stay). Order per
+  unit: platform/Arena, user deny, user allow, default deny, default entries, `unlisted`. The refusal names
+  "Blocked for Arena" apart from "Not on the whitelist". Spec sections 2, 3, 7 and 11.
 
 - **Release 0.1.3 (2026-10-20):** version identities and the player README now
   target 0.1.3. [Release notes](RELEASE-0.1.3.md) cover the changes since 0.1.2

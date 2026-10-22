@@ -16,16 +16,21 @@ runs only with **whitelisted** mods:
   (about 1.5 to 2 minutes). Accepted by the user (2026-10-21).
 - The Arena session uses a **disposable copy** of the profile and offers **only Arena raids**.
   Accepted by the user.
-- Default whitelist besides ArenaMode: **SAIN, APBS, ABPS, BigBrain, Waypoints**.
+- Default whitelist besides ArenaMode: **SAIN, APBS, ABPS, BigBrain, Waypoints** (decision 2026-10-21), and since
+  2026-10-22 **every mod that is installed on the development hosts** (section 2), minus a **deny list** of the five
+  mods ArenaMode already refused by code before the whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling,
+  ISB Special Forces and Aishi. The existing code-level refusals for these stay as they are (separate decision).
 - A whitelisted mod whose installed version differs from the reviewed version only produces a
   **warning**, never a block.
 - The user may turn the whitelist into a blacklist (`"unlisted": "allow"` in the user file, decision
-  2026-10-21, section 3): everything the user did not deny is then allowed. The shipped default is
-  always a whitelist.
+  2026-10-21, section 3): everything that neither the user file nor the default file denies is then allowed.
+  The shipped default is always a whitelist.
 - A normal session whose loaded mods are already all whitelisted may play Arena directly, without
   a restart (it is equivalent to an Arena session except for the disposable profile).
 - No code specific to one foreign mod. Existing adapters under `ArenaMode.Client/Compat` stay as
-  they are; in an Arena session they are dormant because their mods are absent.
+  they are; in an Arena session an adapter is dormant only when its mod is absent there (not on the
+  default or user list, or one of the five denied mods). The adapters of the listed mods (PitFireTeam,
+  DynamicMaps, ContinuousHealing, SVM, Killcam, ...) are active in the session.
 - Fika is never filtered. With Fika present Arena stays unavailable as today and no session is
   offered.
 
@@ -43,16 +48,68 @@ the server. All units below use the same GUID on both sides.
 | platform (code) | `com.bepis.bepinex.configurationmanager` | yes | - | any |
 | platform (code) | every GUID starting with `com.fika.` | yes | - | never filtered |
 | arena (code) | `com.maschine.ArenaMode` | yes | yes | this build |
-| mod (file) | `me.sol.sain` SAIN | yes | yes | 4.5.1 |
-| mod (file) | `com.acidphantasm.progressivebotsystem` APBS | - | yes | 2.4.1 |
-| mod (file) | `com.acidphantasm.botplacementsystem` ABPS | yes | yes | 2.1.0 |
-| mod (file) | `xyz.drakia.bigbrain` BigBrain | yes | - | 1.5.0 |
-| mod (file) | `xyz.drakia.waypoints` Waypoints | yes | - | 1.9.0 |
-| tool (file) | `com.maschine.UiBridge`, `com.maschine.ModProfiler`, `com.maschine.LogTools` | yes | - | any |
+
+The default file (section 3) lists the units below. A GUID entry applies to the client plugin and to the server mod
+with that GUID; "Client" and "Server" say which side has a reviewed version (an absent side means any version, no
+warning, and a mod that exists on one side only simply is not installed on the other).
+
+| Group | Unit (GUID) | Client | Server |
+|---|---|---|---|
+| mod, bot stack | SAIN (`me.sol.sain`) | 4.5.1 | 4.5.1 |
+| | APBS (`com.acidphantasm.progressivebotsystem`) | - | 2.4.1 |
+| | ABPS (`com.acidphantasm.botplacementsystem`) | 2.1.0 | 2.1.0 |
+| | BigBrain (`xyz.drakia.bigbrain`) | 1.5.0 | - |
+| | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
+| mod, own | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.3.0 | 0.3.0 |
+| | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
+| | Redeploy (`com.maschine.Redeploy`) | 1.0.0 | 1.0.0 |
+| | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
+| | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
+| | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |
+| | LinkedSearchInStash (`com.maschine.LinkedSearchInStash`) | 2.0.1 | - |
+| | LowAmmoCue (`com.maschine.LowAmmoCue`) | 1.0.0 | - |
+| | RaidMenuCleanupFix (`com.maschine.RaidMenuCleanupFix`) | 2.0.0 | - |
+| | StashFilter (`com.maschine.StashFilter`) | 1.0.0 | - |
+| | SurroundAudio (`com.maschine.SurroundAudio`) | 1.0.0 | - |
+| | UnloadAllMagazines (`com.maschine.UnloadAllMagazines`) | 2.2.1 | - |
+| mod, other | PitFireTeam (`xyz.pit.fireteam`) | 0.10.3 | 0.10.3 |
+| | DynamicMaps (`com.mpstark.dynamicmaps`) | 1.2.1 | 1.2.1 |
+| | UIFixes (`com.tyfon.uifixes`) | 6.0.3 | 6.0.3 |
+| | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.6 | 3.0.6 |
+| | WTT-ContentBackport (`com.wtt.contentbackport`) | 2.0.5 | 2.0.5 |
+| | SVM (`fika.ghostfenixx.svm`) | - | 2.2.3 |
+| | give-ui (`com.agavalda.giveui`) | - | 5.0.0 |
+| | ContinuousHealing (`com.lacyway.ch`) | 1.6.3 | - |
+| | Freecam (`com.terkoiz.freecam`) | 1.4.8 | - |
+| | DoorDash (`com.tarkin.doordash`) | 1.2.0 | - |
+| | Anvil-WebOverlay (`com.anvil.weboverlay`) | 1.11.0 | - |
+| | ArmorClassIcon (`com.slpf.armorclassicon`) | 1.0.0 | - |
+| | BetterAmmoLoadingList (`katrin0522.betterammoloadinglist`) | 1.1.1 | - |
+| | BrighterInteriors (`7Bpencil.BrighterInteriors`) | 1.1.1 | - |
+| | DevBalaclavaFix (`com.acidphantasm.devbalaclavafix`) | 1.2.0 | - |
+| | HealingAutoCancel (`HealingAutoCancel`) | 1.1.0 | - |
+| | SmajlecLights (`com.smajlec.lights`) | 1.3.0 | - |
+| tool | UiBridge (`com.maschine.UiBridge`), ModProfiler (`com.maschine.ModProfiler`), LogTools (`com.maschine.LogTools`), ConsoleToMonitor (`com.maschine.ConsoleToMonitor`) | any | - |
 
 Preloader patchers are matched by file name. Platform patchers (code):
 `FixPluginTypesSerialization.dll`, `spt-prepatch.dll`, `maschine-ArenaMode.Gate.dll`.
-Tool patcher (file): `maschine-LogTools.dll`. Every other patcher is neutralised in an Arena session.
+File patchers on the default list: `maschine-LogTools.dll` (tool) and `WTT-ContentBackportPatcher.dll` (mod,
+WTT-ContentBackport's patcher). Every other patcher is neutralised in an Arena session.
+
+The default file also carries a **deny list** (section 3). Its five entries are the mods ArenaMode already refused by
+code before the whitelist existed; the reason in every case is "refused by ArenaMode before the whitelist existed":
+
+| Denied mod | GUID | Refused in code by |
+|---|---|---|
+| ORBIT | `com.chazut.orbit` | `ArenaOptionalMods` (loaded ORBIT blocks Arena) |
+| Questing Bots | `com.danw.questingbots` | `ArenaOptionalMods` (active Questing Bots blocks Arena) |
+| Adaptive Bot Culling | `com.hysocs.adaptivebotculling` | `ArenaOptionalMods` (loaded plugin blocks Arena) |
+| ISB Special Forces | `com.samc137.isbspecialforces` | `ArenaIsbAdmission` and the server ISB admission (client or server components block Arena) |
+| Aishi | `com.samc137.aishi` | `ArenaIsbAdmission` and the server ISB admission |
+
+Those code-level refusals stay: the deny list keeps the mods out of an Arena session and names them as "Blocked for
+Arena" in a normal one; the code keeps refusing them wherever a session cannot filter (for example when the player
+allows one again in the user file). Removing them is a separate decision.
 
 Libraries without a `BepInPlugin` (for example `maschine-Redeploy.Core.dll`,
 `maschine-ArenaMode.BigBrainCompat.dll`, `spt-common.dll`) are not plugins and are never filtered;
@@ -66,7 +123,7 @@ Tools are listed because the GPU test hosts need them; the user can deny them in
   Source in the repo: `assets/arena-whitelist.json`.
 - User file (optional, never shipped): `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
 
-Default file:
+Default file (abridged; the shipped one lists every unit of section 2):
 
 ```json
 {
@@ -74,31 +131,58 @@ Default file:
   "mods": [
     { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "clientVersion": "4.5.1", "serverVersion": "4.5.1" },
     { "patcher": "maschine-LogTools.dll", "name": "LogTools patcher", "kind": "tool" }
+  ],
+  "deny": [
+    "com.chazut.orbit"
   ]
 }
 ```
 
 Entry fields: `guid` or `patcher` (exactly one), `name`, `kind` (`mod` or `tool`), optional
 `clientVersion` / `serverVersion` (reviewed versions; absent = any version without warning).
+`deny` is optional: an array of non-blank strings, each a plugin/server GUID or a patcher file name (the syntax of
+the user file's `deny`). The names of the denied mods are not in the file (JSON has no comments): they are in
+section 2 and in the README.
 
 User file: `{ "schema": 1, "unlisted": "deny" | "allow", "allow": [ <entries as above> ], "deny": [ "<guid or patcher file>" ] }`.
 `unlisted`, `allow` and `deny` are each optional; schema stays 1.
 
-The policy is a combined allow/deny list (user decision 2026-10-21). For one unit, in this order:
+The policy is a combined allow/deny list (user decision 2026-10-21; the default file's deny list was added by the
+decision of 2026-10-22). For one unit, in this order:
 
-1. **Platform and arena units** are always allowed. `deny` cannot remove them.
+1. **Platform and arena units** are always allowed. Neither `deny` list can remove them (a default or user `deny`
+   that names one is skipped with a diagnostic).
 2. A unit in the user `deny` list is **excluded** (`denied-by-user`), except as a hard dependency of
    an allowed unit: the closure of section 4 still pulls it in, with a warning.
-3. A unit that a default entry or a user `allow` entry names is **allowed** (`whitelist` or `tool`). A
-   reviewed version that differs from the installed one is a warning; this is the only source of
-   version warnings, so it exists only for entries that carry a reviewed version.
-4. Every other unit follows `unlisted`. `"deny"` (the default) **excludes** it (`not-on-whitelist`):
+3. A unit that a user `allow` entry names is **allowed** (`whitelist` or `tool`), with the user's reviewed
+   versions. This is how the user brings back a unit the default file denies.
+4. A unit in the **default** file's `deny` list is **excluded** (`denied`), in whitelist and in blacklist mode
+   alike, except as a hard dependency of an allowed unit (closure, with a warning). Only step 3 (the user's
+   `allow`) or step 2 (the user's own `deny`, which then names the reason) is ahead of it.
+5. A unit that a default entry names is **allowed** (`whitelist` or `tool`). A reviewed version that differs from
+   the installed one is a warning; this is the only source of version warnings, so it exists only for entries
+   that carry a reviewed version.
+6. Every other unit follows `unlisted`. `"deny"` (the default) **excludes** it (`not-on-whitelist`):
    the whitelist behaviour. `"allow"` **allows** it (`unlisted-allowed`, no warning of its own): the
-   blacklist behaviour, everything the user did not deny is allowed.
+   blacklist behaviour, everything the user did not deny (and the default file did not deny) is allowed.
+
+Consequences: a user `allow` re-enables a default-denied mod; a user `deny` always wins, even over such an `allow`
+(the user file applies its `allow` before its `deny`); in blacklist mode (`"unlisted": "allow"`) the default
+denies still block, because they are not a statement about being unlisted.
 
 The same rules apply to client plugins and server mods (by GUID) and to preloader patchers (by file
 name). Because `deny` is checked before `unlisted`, a blacklist is just `"unlisted": "allow"` plus a
-`deny` list; `allow` entries are then only needed to attach reviewed versions.
+`deny` list; `allow` entries are then only needed to attach reviewed versions or to lift a default deny.
+
+The default file's `deny` member is parsed as strictly as its entries: a value that is not an array, JSON `null`,
+or an entry that is not a non-blank string makes the default file invalid, so the Arena session is unavailable (a
+lost deny would let through a mod the build refuses). A GUID or patcher that the default file both lists in `mods`
+and names in `deny` is **denied** (deny wins); the loader reports `default whitelist: '<id>' is both allowed and
+denied, the deny wins and the unit stays out`, the file stays valid, and `tools/Write-ArenaAssets.ps1` refuses to
+ship such a file. A user `allow` can still bring that unit back. The loader also reads only the exact key `deny`
+and accepts a default file without one, so `tools/Write-ArenaAssets.ps1` additionally refuses to ship a default file
+whose `deny` member is missing (or spelled differently) or does not name the five refused mods; the release check
+`tools/Verify-TestRelease.py` requires the same five names and the two file patchers of section 2.
 
 A user file with an unknown schema, an unknown `unlisted` value (anything but the strings `deny` and
 `allow`, compared ignoring case and surrounding white space; the empty string, numbers, booleans,
@@ -113,9 +197,10 @@ a whitelist nothing unlisted loads). A `unlisted` member in
 the shipped default file is not read: the default list is always a whitelist. A missing or unreadable
 default file makes the Arena session unavailable (the gate stays inactive and reports the error).
 
-The policy hash covers the entries after `deny`. In blacklist mode it also covers the mode and the
-denied names, because there they are the whole filter; a whitelist policy hashes exactly as before
-the mode existed.
+The policy hash covers the entries after `deny`, and the default file's deny list when it has one (one line
+`default-denied|<lower-case file name>` per name: a default file without a deny list hashes exactly as before the
+list existed). In blacklist mode it also covers the mode and the user's denied names, because there they are the
+whole filter; a whitelist policy hashes exactly as before the mode existed.
 
 GUID comparison is ordinal and case-insensitive. Versions compare as `System.Version` after
 dropping a leading `v` and any suffix after `-` or `+`; an unparsable version counts as different.
@@ -134,16 +219,18 @@ targets.
 - `ArenaWhitelistPolicy`: `TryLoad(string defaultJson, string userJsonOrNull, out policy, out
   List<string> diagnostics)`; queries `IsAllowedPlugin(guid)`, `IsAllowedPatcher(fileName)`,
   `IsAllowedServerMod(guid)` (a named entry, or blacklist mode and not denied), `ReviewedVersion(guid,
-  side)`, `UnlistedMode` / `AllowsUnlisted`, `IsUnlistedAllowed(id)`, `Hash` (stable hash of the
-  effective policy for logs and the marker).
+  side)`, `UnlistedMode` / `AllowsUnlisted`, `IsUnlistedAllowed(id)` (blacklist mode and denied by neither file),
+  `IsDeniedByUser(id)`, `IsDeniedByDefault(id)`, `ExclusionReason(id)` (`denied-by-user`, `denied` or
+  `not-on-whitelist`, in that order), `Hash` (stable hash of the effective policy for logs and the marker).
 - `ArenaWhitelistDecision`: input = installed units `(guid, name, version, file, hardDependencies)`
   for one side; output = `Allowed` (reason: `platform`, `arena`, `whitelist`, `tool`,
   `unlisted-allowed`, `dependency-of:<guid>`), `Excluded` (reason: `not-on-whitelist`,
-  `denied-by-user`) and `Warnings` (`version <installed> differs from reviewed <reviewed>`, `pulled in
-  as hard dependency of <name>`, with ` (overrides the user's deny)` appended for a denied unit).
+  `denied-by-user`, `denied`) and `Warnings` (`version <installed> differs from reviewed <reviewed>`, `pulled in
+  as hard dependency of <name>`, with ` (overrides the user's deny)` appended for a unit the user denied and
+  ` (overrides the default list's deny)` for one only the default file denies).
   `unlisted-allowed` occurs only in blacklist mode and carries no warning. Closure: a hard dependency
-  of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but not allowed (a
-  denied unit; in whitelist mode any unlisted one) is allowed with a warning, transitively. Same
+  of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but not allowed (a unit
+  either deny list names; in whitelist mode any unlisted one) is allowed with a warning, transitively. Same
   function for the server side, whose hard dependencies are the mod's `ModDependencies`, sent in the ping
   (section 8): SPT's mod validator refuses to load EVERY server mod when one listed dependency is missing,
   so a denied or unlisted library of an allowed server mod has to stay in the tree. The closure is per
@@ -344,11 +431,16 @@ patching, path safety, request parsing) live in their own file and are covered b
     `arenaInstance:true`. An internal failure refuses (a process that cannot prove it is
     filtered must not run Arena).
   - Normal session: evaluate `Chainloader.PluginInfos` and the server's `serverMods` with the same
-    policy. If anything is excluded, refuse: `Arena runs only with whitelisted mods. Not on the
-    whitelist: <names>. Start an Arena session to play Arena without them; the game restarts.`
-    and show the action **START ARENA SESSION**. In blacklist mode only mods the user denied are
-    excluded, so the first two sentences read `Arena does not run with mods denied in your Arena
-    policy file: <names>.` and the rest is unchanged. When no session can be offered (older server, no
+    policy. If anything is excluded, refuse: `Arena runs only with whitelisted mods. Blocked for
+    Arena: <denied names>. Not on the whitelist: <unlisted names>. Start an Arena session to play Arena
+    without them; the game restarts.` and show the action **START ARENA SESSION**. "Blocked for Arena"
+    names the mods a deny list excludes (the shipped default's or the user's), "Not on the whitelist" the
+    mods nothing names; a part without names is left out, so a normal session with only unlisted mods
+    reads as before (`... Not on the whitelist: <names>. Start ...`). Each part is sorted, listed once per GUID
+    and capped at twelve names on its own (`and N more`). In blacklist mode only denied mods are excluded
+    (the user's, and the default file's, which holds there too), so the first sentence reads `Arena does not
+    run with denied mods.` followed by the same `Blocked for Arena: <names>.` part, and the rest is
+    unchanged. When no session can be offered (older server, no
     helper, no local SPT server, a remote backend, the server already is an Arena instance, or a
     server the helper cannot switch: no allowed server mod, or one whose folder is not a direct
     child of `<game>\SPT_Runtime\user\mods`) the refusal ends instead with `Remove them and
@@ -422,6 +514,9 @@ Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all f
 | 4 | RETURN TO NORMAL SESSION: restart in 39 s, arena server stopped, normal server kept running, 41 plugins and 1198 patched methods again. |
 | 5 | Second enter, then `taskkill /F` on the game and a normal `gpu-run start`: normal session with 1198 patched methods; `stop-server` then ended the left-over arena server. |
 
+The run above used the default list of 2026-10-21 (SAIN, APBS, ABPS, BigBrain, Waypoints and the tools); since
+2026-10-22 the list is the larger one of section 2 and the counts differ.
+
 Follow-up fixed after the run: the refusal named a mod with differently named client and server parts
 twice ("DynamicMaps, Dynamic Maps"); the list is now de-duplicated by GUID.
 
@@ -478,3 +573,15 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   that is not an array of non-blank strings invalidates the user file like an unknown `unlisted` value (a lost
   deny entry would load a mod the user excluded); everything else in the user file stays lenient. Section 6
   states the mixed-helper limit of installations that share one Windows user.
+- Sections 1 to 4 and 7 (2026-10-22, user decision): the shipped default list allows every mod that is installed on
+  the development hosts (section 2) and carries a **deny list** (`deny`, same syntax as the user file's) with the
+  five mods ArenaMode already refused by code. Per unit the order is platform/arena, user `deny`, user `allow`,
+  default `deny`, default entries, then `unlisted`; a user `allow` lifts a default deny, a user `deny` always
+  wins, and the default denies also hold in blacklist mode. New exclusion reason `denied` (`denied-by-user` stays
+  the user's); the closure still pulls a denied hard dependency in, with the warning naming the list that denied it.
+  A malformed default `deny` invalidates the default file; a GUID both listed and denied there is denied and
+  reported. The policy hash gains `default-denied|<name>` lines only when the default file has a deny list, so
+  every earlier pinned value is unchanged (the pins use an empty default file). The client refusal splits "Blocked
+  for Arena" (denied) from "Not on the whitelist" (unlisted), the blacklist wording became `Arena does not run with
+  denied mods. Blocked for Arena: ...`, and the gate's patcher warning and Debug lines name the list that excluded
+  the unit. The code-level refusals for the five denied mods are unchanged.

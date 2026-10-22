@@ -129,9 +129,10 @@ namespace ArenaMode.Gate
                 bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);
                 if (initializerMayHaveRun && selfIndex >= 0)
                 {
-                    // "Denied" covers both modes: in blacklist mode a patcher is only ever off because the
-                    // user's policy file names it; in whitelist mode it may be named there or simply absent.
-                    string cause = policy.IsDeniedByUser(file) ? "is denied in the user's policy file" : "is not on the whitelist";
+                    // Name the list that excluded it. In blacklist mode a patcher is only ever off because a
+                    // deny list names it (the user's, or the shipped default's, which holds there too); in
+                    // whitelist mode it may be named by either or simply absent.
+                    string cause = DescribeExclusion(policy, file);
                     outcome.Warnings.Add("preloader patcher " + file + " " + cause + ", but its initializer ran "
                         + "before the gate and cannot be undone; its patch targets and finalizer were neutralised");
                 }
@@ -165,6 +166,18 @@ namespace ArenaMode.Gate
                 outcome.Warnings.Add("the position of the gate in the preloader's patcher list is unknown, so "
                     + "initializers of the neutralised patchers may already have run");
             }
+        }
+
+        /// <summary>
+        /// Why the policy keeps a patcher off, for the warning text: the user's deny list, the shipped
+        /// default's deny list, or (in whitelist mode) its absence from the list.
+        /// </summary>
+        internal static string DescribeExclusion(ArenaWhitelistPolicy policy, string file)
+        {
+            string reason = policy.ExclusionReason(file);
+            if (reason == ArenaWhitelistDecision.ReasonDeniedByUser) return "is denied in the user's policy file";
+            if (reason == ArenaWhitelistDecision.ReasonDenied) return "is denied by the default policy list";
+            return "is not on the whitelist";
         }
 
         /// <summary>

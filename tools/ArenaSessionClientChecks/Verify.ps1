@@ -113,10 +113,10 @@ Invoke-Mutant 'admission-soft-dependency-pulls-in' 'admission' `
     '(dependency.Flags & BepInDependency.DependencyFlags.HardDependency) != 0' 'true' `
     'A soft dependency target stays excluded'
 Invoke-Mutant 'admission-server-exclusions-dropped' 'admission' `
-    'if (server != null) foreach (var unit in server.Excluded) AddExcluded(excluded, listedGuids, unit);' '' `
+    'if (server != null) foreach (var unit in server.Excluded) AddExcluded(denied, unlisted, listedGuids, unit);' '' `
     'A server mod that is not whitelisted refuses Arena and offers the session'
 Invoke-Mutant 'admission-names-by-name-only' 'admission' `
-    'if (string.IsNullOrEmpty(unit.Guid) || listedGuids.Add(unit.Guid)) names.Add(unit.DisplayName);' 'names.Add(unit.DisplayName);' `
+    'if (!string.IsNullOrEmpty(unit.Guid) && !listedGuids.Add(unit.Guid)) return;' '' `
     'A mod with differently named client and server parts is listed once'
 Invoke-Mutant 'admission-offer-without-helper' 'admission' 'if (!File.Exists(helper))' 'if (false)' `
     'helper missing: the whitelist still refuses, without the session action'
@@ -174,12 +174,42 @@ Invoke-Mutant 'admission-server-dependencies-dropped' 'admission' `
     'units.Add(new ArenaSessionUnit(mod.Guid, mod.Name, mod.Version, mod.Folder, null));' `
     'A denied server library that an allowed server mod depends on is no refusal'
 Invoke-Mutant 'admission-blacklist-text-ignored' 'admission' `
-    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);' `
-    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, false);' `
+    'outcome.Reason = FormatRefusal(denied, unlisted, outcome.CanStartSession, policy.AllowsUnlisted);' `
+    'outcome.Reason = FormatRefusal(denied, unlisted, outcome.CanStartSession, false);' `
     'In blacklist mode the refusal names the denied mods only and does not claim a whitelist'
 Invoke-Mutant 'admission-blacklist-text-always' 'admission' `
-    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, policy.AllowsUnlisted);' `
-    'outcome.Reason = FormatRefusal(excluded, outcome.CanStartSession, true);' `
+    'outcome.Reason = FormatRefusal(denied, unlisted, outcome.CanStartSession, policy.AllowsUnlisted);' `
+    'outcome.Reason = FormatRefusal(denied, unlisted, outcome.CanStartSession, true);' `
+    'Without a session-capable server the refusal asks to remove the mods'
+
+# ---- denied mods (a deny list, the default's or the user's) are named apart from the merely unlisted ones
+$unlistedSplit = "        if (string.Equals(unit.Reason, ArenaWhitelistDecision.ReasonNotOnWhitelist, StringComparison.Ordinal)) unlisted.Add(unit.DisplayName);`n        else denied.Add(unit.DisplayName);"
+Invoke-Mutant 'admission-denied-counted-as-unlisted' 'admission' $unlistedSplit `
+    '        unlisted.Add(unit.DisplayName);' `
+    'A user deny entry excludes a default mod and names it as blocked'
+Invoke-Mutant 'admission-unlisted-counted-as-denied' 'admission' $unlistedSplit `
+    '        denied.Add(unit.DisplayName);' `
+    'Without a session-capable server the refusal asks to remove the mods'
+Invoke-Mutant 'admission-blocked-part-dropped' 'admission' `
+    'if (denied.Count > 0) text.Append(" Blocked for Arena: ")' 'if (false) text.Append(" Blocked for Arena: ")' `
+    'A soft dependency target stays excluded'
+Invoke-Mutant 'admission-unlisted-part-dropped' 'admission' `
+    'if (unlisted.Count > 0) text.Append(" Not on the whitelist: ")' 'if (false) text.Append(" Not on the whitelist: ")' `
+    'Without a session-capable server the refusal asks to remove the mods'
+Invoke-Mutant 'admission-blocked-label' 'admission' '" Blocked for Arena: "' '" Denied: "' `
+    'A user deny entry excludes a default mod and names it as blocked'
+Invoke-Mutant 'admission-parts-swapped' 'admission' `
+    "        if (denied.Count > 0) text.Append(`" Blocked for Arena: `").Append(JoinLimited(denied, MaxNamesListed)).Append('.');`n        if (unlisted.Count > 0) text.Append(`" Not on the whitelist: `").Append(JoinLimited(unlisted, MaxNamesListed)).Append('.');" `
+    "        if (unlisted.Count > 0) text.Append(`" Not on the whitelist: `").Append(JoinLimited(unlisted, MaxNamesListed)).Append('.');`n        if (denied.Count > 0) text.Append(`" Blocked for Arena: `").Append(JoinLimited(denied, MaxNamesListed)).Append('.');" `
+    'Blocked and unlisted mods are named in two separate parts'
+Invoke-Mutant 'admission-blocked-names-uncapped' 'admission' `
+    'JoinLimited(denied, MaxNamesListed)' 'JoinLimited(denied, 1000)' `
+    'The blocked names are capped at twelve on their own, apart from the unlisted ones'
+Invoke-Mutant 'admission-blacklist-lead-claims-a-whitelist' 'admission' `
+    '? "Arena does not run with denied mods."' '? "Arena runs only with whitelisted mods."' `
+    'In blacklist mode the refusal names the denied mods only and does not claim a whitelist'
+Invoke-Mutant 'admission-whitelist-lead-dropped' 'admission' `
+    ': "Arena runs only with whitelisted mods.");' ': "Arena runs with whitelisted mods.");' `
     'Without a session-capable server the refusal asks to remove the mods'
 
 # ---- session switch

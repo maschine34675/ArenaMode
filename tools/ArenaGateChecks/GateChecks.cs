@@ -82,6 +82,7 @@ public static class GateChecks
                 case "user-file": ScenarioWorld("user-file", new WorldOptions { Kind = WorldKind.UserFile }); break;
                 case "user-garbage": ScenarioWorld("user-garbage", new WorldOptions { Kind = WorldKind.UserGarbage }); break;
                 case "user-blacklist": ScenarioWorld("user-blacklist", new WorldOptions { Kind = WorldKind.UserBlacklist }); break;
+                case "default-deny": ScenarioWorld("default-deny", new WorldOptions { Kind = WorldKind.DefaultDeny }); break;
                 case "bad-default": ScenarioWorld("bad-default", new WorldOptions { Kind = WorldKind.BadDefault }); break;
                 case "missing-default": ScenarioWorld("missing-default", new WorldOptions { Kind = WorldKind.MissingDefault }); break;
                 case "no-core-module": ScenarioWorld("no-core-module", new WorldOptions { Kind = WorldKind.NoCoreModule }); break;
@@ -160,6 +161,7 @@ public static class GateChecks
         Full,
         UserFile,
         UserBlacklist,
+        DefaultDeny,
         UserGarbage,
         BadDefault,
         MissingDefault,
@@ -222,7 +224,8 @@ public static class GateChecks
             P("Waypoints.dll", "xyz.drakia.waypoints", "Waypoints", "1.9.0").Hard("xyz.drakia.bigbrain"),
             P("ABPS/abps.dll", "com.acidphantasm.botplacementsystem", "ABPS", "2.1.0"),
             P("tools/UiBridge.dll", "com.maschine.UiBridge", "UiBridge", "0.9.4"),
-            P("Freecam.dll", "com.terkoiz.freecam", "Freecam", "1.0.0"),
+            P("Foreign.dll", "com.example.foreign", "Foreign Mod", "1.0.0"),
+            P("orbit/ORBIT.dll", "com.chazut.orbit", "ORBIT", "1.0.0"),
             P("helper/helperlib.dll", "x.helperlib", "Helper Library", "1.0.0").Hard("x.deeper"),
             P("helper/deeper.dll", "x.deeper", "Deeper Library", "1.0.0"),
             P("soft/softonly.dll", "x.softonly", "Soft Only", "1.0.0"),
@@ -251,16 +254,24 @@ public static class GateChecks
             { "Waypoints.dll", "allowed:whitelist" },
             { "ABPS/abps.dll", "allowed:whitelist" },
             { "tools/UiBridge.dll", "allowed:tool" },
-            { "Freecam.dll", "excluded:not-on-whitelist" },
+            { "Foreign.dll", "excluded:not-on-whitelist" },
+            { "orbit/ORBIT.dll", "excluded:denied" },
             { "helper/helperlib.dll", "allowed:dependency-of:me.sol.sain" },
             { "helper/deeper.dll", "allowed:dependency-of:x.helperlib" },
             { "soft/softonly.dll", "excluded:not-on-whitelist" },
         };
 
-        if (kind == WorldKind.UserFile)
+        if (kind == WorldKind.DefaultDeny)
         {
-            // allow: Freecam; deny: SAIN, SPT core, the LogTools patcher, the WTT patcher
-            d["Freecam.dll"] = "allowed:whitelist";
+            // The default list denies com.example.foreign on top of the shipped denies (ORBIT): a unit nothing
+            // else lists, so the only thing that changes is the reason.
+            d["Foreign.dll"] = "excluded:denied";
+        }
+        else if (kind == WorldKind.UserFile)
+        {
+            // allow: Foreign Mod, ORBIT (a user allow lifts a default deny); deny: SAIN, SPT core, three patchers
+            d["Foreign.dll"] = "allowed:whitelist";
+            d["orbit/ORBIT.dll"] = "allowed:whitelist";
             d["SAIN/SAIN.dll"] = "excluded:denied-by-user";
             d["old/SAIN.dll"] = "excluded:denied-by-user";
             d["helper/helperlib.dll"] = "excluded:not-on-whitelist";
@@ -268,12 +279,13 @@ public static class GateChecks
         }
         else if (kind == WorldKind.UserBlacklist)
         {
-            // "unlisted": "allow"; deny: SAIN, Freecam, Deeper Library, the WTT patcher, the LogTools patcher, SPT core.
-            // Everything nobody names is allowed. Deeper Library is denied but Helper Library (unlisted, allowed)
+            // "unlisted": "allow"; deny: SAIN, Foreign Mod, Deeper Library, three patchers, SPT core.
+            // Everything nobody names is allowed, except what the shipped default denies (ORBIT keeps its reason
+            // "denied" in blacklist mode). Deeper Library is denied but Helper Library (unlisted, allowed)
             // needs it, so it is pulled in.
             d["SAIN/SAIN.dll"] = "excluded:denied-by-user";
             d["old/SAIN.dll"] = "excluded:denied-by-user";
-            d["Freecam.dll"] = "excluded:denied-by-user";
+            d["Foreign.dll"] = "excluded:denied-by-user";
             d["helper/helperlib.dll"] = "allowed:unlisted-allowed";
             d["helper/deeper.dll"] = "allowed:dependency-of:x.helperlib";
             d["soft/softonly.dll"] = "allowed:unlisted-allowed";
@@ -281,6 +293,15 @@ public static class GateChecks
 
         return d;
     }
+
+    /// <summary>The patchers the user file of the user-file scenario denies (whitelist mode).</summary>
+    private static readonly string[] UserFileDeniedPatchers = { "maschine-LogTools.dll", "WTT-ContentBackportPatcher.dll", "AAA-early-denied.dll" };
+
+    /// <summary>The patchers the user file of the user-blacklist scenario denies (blacklist mode).</summary>
+    private static readonly string[] UserBlacklistDeniedPatchers = { "maschine-LogTools.dll", "WTT-ContentBackportPatcher.dll", "AAA-early-denied.dll" };
+
+    /// <summary>The patchers the default-deny scenario adds to the shipped deny list (the shipped list allows the WTT one).</summary>
+    private static readonly string[] DefaultDeniedPatchers = { "WTT-ContentBackportPatcher.dll", "AAA-early-denied.dll" };
 
     private sealed class PatcherSpec
     {
@@ -298,7 +319,7 @@ public static class GateChecks
             new PatcherSpec { AssemblyName = "FixPluginTypesSerialization", RelativePath = "FixPluginTypesSerialization.dll", AllowedByDefault = true },
             new PatcherSpec { AssemblyName = "maschine-LogTools", RelativePath = "maschine-LogTools.dll", AllowedByDefault = true },
             new PatcherSpec { AssemblyName = "spt-prepatch", RelativePath = "spt-prepatch.dll", AllowedByDefault = true },
-            new PatcherSpec { AssemblyName = "WTT-ContentBackportPatcher", RelativePath = "WTT-ContentBackportPatcher/WTT-ContentBackportPatcher.dll", AllowedByDefault = false },
+            new PatcherSpec { AssemblyName = "WTT-ContentBackportPatcher", RelativePath = "WTT-ContentBackportPatcher/WTT-ContentBackportPatcher.dll", AllowedByDefault = true },
             new PatcherSpec { AssemblyName = "ZZZ-nested-denied", RelativePath = "nested/ZZZ-nested-denied.dll", AllowedByDefault = false },
             new PatcherSpec { AssemblyName = "zzz-late-denied", RelativePath = "zzz-late-denied.dll", AllowedByDefault = false },
         };
@@ -719,6 +740,9 @@ public static class GateChecks
                 // Unreadable on purpose: a gate that reads it in a normal start would show.
                 Directory.CreateDirectory(g.PolicyFile);
                 break;
+            case WorldKind.DefaultDeny:
+                File.WriteAllText(g.PolicyFile, ShippedPolicyWithExtraDenies());
+                break;
             default:
                 File.Copy(_policySource, g.PolicyFile, true);
                 break;
@@ -728,16 +752,17 @@ public static class GateChecks
         {
             File.WriteAllText(g.UserFile,
                 "{ \"schema\": 1,\n"
-                + "  \"allow\": [ { \"guid\": \"com.terkoiz.freecam\", \"name\": \"Freecam\", \"kind\": \"mod\", \"clientVersion\": \"1.0.1\" },\n"
+                + "  \"allow\": [ { \"guid\": \"com.example.foreign\", \"name\": \"Foreign Mod\", \"kind\": \"mod\", \"clientVersion\": \"1.0.1\" },\n"
+                + "              { \"guid\": \"com.chazut.orbit\", \"name\": \"ORBIT\", \"kind\": \"mod\" },\n"
                 + "              { \"patcher\": \"ZZZ-nested-denied.dll\", \"name\": \"Nested\", \"kind\": \"tool\" } ],\n"
-                + "  \"deny\": [ \"me.sol.sain\", \"WTT-ContentBackportPatcher.dll\", \"maschine-LogTools.dll\", \"com.SPT.core\" ] }");
+                + "  \"deny\": [ \"me.sol.sain\", " + Quoted(UserFileDeniedPatchers) + ", \"com.SPT.core\" ] }");
         }
         else if (kind == WorldKind.UserBlacklist)
         {
             File.WriteAllText(g.UserFile,
                 "{ \"schema\": 1,\n"
                 + "  \"unlisted\": \"allow\",\n"
-                + "  \"deny\": [ \"me.sol.sain\", \"com.terkoiz.freecam\", \"x.deeper\", \"WTT-ContentBackportPatcher.dll\", \"maschine-LogTools.dll\", \"com.SPT.core\" ] }");
+                + "  \"deny\": [ \"me.sol.sain\", \"com.example.foreign\", \"x.deeper\", " + Quoted(UserBlacklistDeniedPatchers) + ", \"com.SPT.core\" ] }");
         }
         else if (kind == WorldKind.UserGarbage)
         {
@@ -748,6 +773,28 @@ public static class GateChecks
 
         Directory.CreateDirectory(Path.GetDirectoryName(g.GateFile));
         File.Copy(Path.Combine(Path.Combine(_driverDir, "gate"), ArenaSessionContract.GateFileName), g.GateFile, true);
+    }
+
+    private static string Quoted(string[] names)
+    {
+        return string.Join(", ", names.Select(n => "\"" + n + "\"").ToArray());
+    }
+
+    /// <summary>
+    /// The shipped default file with a deny list that also names com.example.foreign and the default-denied
+    /// patchers: written by editing the file's own text, so that its real deny list stays in force.
+    /// </summary>
+    private static string ShippedPolicyWithExtraDenies()
+    {
+        string text = File.ReadAllText(_policySource);
+        const string anchor = "\"deny\": [";
+        int first = text.IndexOf(anchor, StringComparison.Ordinal);
+        if (first < 0 || text.IndexOf(anchor, first + anchor.Length, StringComparison.Ordinal) >= 0)
+        {
+            throw new InvalidOperationException("the shipped default file must carry exactly one \"deny\": [ list");
+        }
+
+        return text.Insert(first + anchor.Length, " \"com.example.foreign\", " + Quoted(DefaultDeniedPatchers) + ",");
     }
 
     private static ArenaGateReport ReadReport(out string rawJson)
@@ -771,7 +818,7 @@ public static class GateChecks
         string user = File.Exists(g.UserFile) ? File.ReadAllText(g.UserFile) : null;
         ArenaWhitelistPolicy policy;
         List<string> diagnostics;
-        if (!ArenaWhitelistPolicy.TryLoad(File.ReadAllText(_policySource), user, out policy, out diagnostics))
+        if (!ArenaWhitelistPolicy.TryLoad(File.ReadAllText(g.PolicyFile), user, out policy, out diagnostics))
         {
             throw new InvalidOperationException("the checks' own policy load failed: " + string.Join("; ", diagnostics.ToArray()));
         }
@@ -951,15 +998,27 @@ public static class GateChecks
         {
             bool allowed = p.AllowedByDefault;
             string leaf = Path.GetFileName(p.RelativePath);
+            string cause = "is not on the whitelist";
             if (kind == WorldKind.UserFile)
             {
-                if (leaf == "maschine-LogTools.dll") allowed = false;
+                if (UserFileDeniedPatchers.Contains(leaf))
+                {
+                    allowed = false;
+                    cause = "is denied in the user's policy file";
+                }
+
                 if (leaf == "ZZZ-nested-denied.dll") allowed = true;
             }
             else if (kind == WorldKind.UserBlacklist)
             {
-                // Blacklist: every patcher runs except the two the user denied.
-                allowed = leaf != "maschine-LogTools.dll" && leaf != "WTT-ContentBackportPatcher.dll";
+                // Blacklist: every patcher runs except the ones the user denied.
+                allowed = !UserBlacklistDeniedPatchers.Contains(leaf);
+                cause = "is denied in the user's policy file";
+            }
+            else if (kind == WorldKind.DefaultDeny && DefaultDeniedPatchers.Contains(leaf))
+            {
+                allowed = false;
+                cause = "is denied by the default policy list";
             }
 
             int index = sortedAssemblies.IndexOf(p.AssemblyName);
@@ -983,6 +1042,9 @@ public static class GateChecks
                     "init=" + init + " targets=" + targets + " patch=" + patch + " finish=" + finish);
                 bool warned = report != null && report.Warnings.Any(w => w.Contains(leaf) && w.Contains("initializer ran before the gate"));
                 Check(warned, "the report warns that the initializer of " + p.AssemblyName + " could not be stopped");
+                bool named = report != null && report.Warnings.Any(w => w.Contains(leaf) && w.Contains(" " + cause + ", but its initializer ran before the gate"));
+                Check(named, "the warning for " + p.AssemblyName + " names the list that keeps it off: it " + cause,
+                    "warnings: " + (report == null ? "no report" : string.Join(" | ", report.Warnings.Where(w => w.Contains(leaf)).ToArray())));
             }
             else
             {
@@ -1065,7 +1127,7 @@ public static class GateChecks
         }
 
         // Warnings
-        if (kind == WorldKind.Full || kind == WorldKind.UserGarbage)
+        if (kind == WorldKind.Full || kind == WorldKind.UserGarbage || kind == WorldKind.DefaultDeny)
         {
             Check(report.Warnings.Any(w => w.StartsWith("SAIN: version 4.5.2 differs from reviewed 4.5.1", StringComparison.Ordinal)),
                 "a version that differs from the reviewed one is a warning");
@@ -1084,6 +1146,26 @@ public static class GateChecks
                 "the ignored user file is also logged as a warning");
         }
 
+        if (kind == WorldKind.Full)
+        {
+            Check(report.Excluded.Single(u => u.Guid == "com.chazut.orbit").Reason == "denied",
+                "the shipped default's deny list excludes ORBIT with the reason 'denied'");
+            Check(report.Excluded.Single(u => u.Guid == "com.example.foreign").Reason == "not-on-whitelist",
+                "a plugin nothing names is 'not-on-whitelist', not 'denied'");
+            Check(!report.Warnings.Any(w => w.Contains("both allowed and denied")), "the shipped default has no allow-and-deny contradiction");
+        }
+
+        if (kind == WorldKind.DefaultDeny)
+        {
+            Check(report.Excluded.Single(u => u.Guid == "com.example.foreign").Reason == "denied", "a default deny on top of the shipped ones excludes with 'denied'");
+            Check(report.Excluded.Single(u => u.Guid == "com.chazut.orbit").Reason == "denied", "the shipped deny still holds beside it");
+            Check(report.Warnings.Any(w => w.StartsWith("default whitelist:", StringComparison.Ordinal) && w.Contains("WTT-ContentBackportPatcher.dll")
+                    && w.Contains("both allowed and denied")),
+                "a patcher the default list allows and denies is reported, and the deny wins");
+            Check(Log.From(GateSource).Any(e => e.Level == LogLevel.Warning && e.Message.Contains("both allowed and denied")),
+                "the contradiction is also logged as a warning");
+        }
+
         if (kind == WorldKind.UserBlacklist)
         {
             Check(report.Warnings.Any(w => w == "Deeper Library: pulled in as hard dependency of Helper Library (overrides the user's deny)"),
@@ -1092,14 +1174,17 @@ public static class GateChecks
                 "a plugin that nothing names gets no warning of its own");
             Check(report.Warnings.Any(w => w.Contains("deny of 'com.SPT.core' is ignored")), "a deny of a platform unit is reported and ignored");
             Check(report.Excluded.All(u => u.Guid != "com.SPT.core"), "a platform plugin cannot be denied");
-            Check(report.Excluded.All(u => u.Reason == "denied-by-user"), "in blacklist mode only denied plugins are excluded");
+            Check(report.Excluded.All(u => u.Reason == "denied-by-user" || u.Reason == "denied"), "in blacklist mode only denied plugins are excluded");
+            Check(report.Excluded.Single(u => u.Guid == "com.chazut.orbit").Reason == "denied", "a default deny holds in blacklist mode, with its own reason");
+            Check(report.Excluded.Single(u => u.Guid == "com.example.foreign").Reason == "denied-by-user", "the user's deny names itself");
             Check(report.Allowed.Any(u => u.Reason == "unlisted-allowed"), "the report carries the unlisted-allowed reason");
         }
 
         if (kind == WorldKind.UserFile)
         {
-            Check(report.Warnings.Any(w => w.StartsWith("Freecam: version 1.0.0 differs from reviewed 1.0.1", StringComparison.Ordinal)),
+            Check(report.Warnings.Any(w => w.StartsWith("Foreign Mod: version 1.0.0 differs from reviewed 1.0.1", StringComparison.Ordinal)),
                 "the user's reviewed version is checked like the shipped ones");
+            Check(report.Allowed.Single(u => u.Guid == "com.chazut.orbit").Reason == "whitelist", "a user allow lifts a default deny");
             Check(report.Warnings.Any(w => w.Contains("deny of 'com.SPT.core' is ignored")), "a deny of a platform unit is reported and ignored");
             Check(report.Excluded.All(u => u.Guid != "com.SPT.core"), "a platform plugin cannot be denied");
         }
@@ -1113,8 +1198,10 @@ public static class GateChecks
             "info lines: " + string.Join(" | ", info.Select(e => e.Message).ToArray()) + " / expected: " + summary);
         CheckPatchersNamedAtInfo(report.PatchersNeutralised, patcherInfo);
         List<LogEntry> debugExcluded = gateLog.Where(e => e.Level == LogLevel.Debug && e.Message.StartsWith("Excluded ", StringComparison.Ordinal)).ToList();
-        Check(debugExcluded.Count == report.Excluded.Count && report.Excluded.All(u => debugExcluded.Any(e => e.Message.Contains("(" + u.Guid + ")"))),
-            "one Debug line per excluded plugin", "debug lines: " + debugExcluded.Count + " for " + report.Excluded.Count + " excluded");
+        Check(debugExcluded.Count == report.Excluded.Count
+            && report.Excluded.All(u => debugExcluded.Any(e => e.Message.Contains("(" + u.Guid + "): " + u.Reason + ","))),
+            "one Debug line per excluded plugin, with the reason that excluded it",
+            "debug lines: " + string.Join(" | ", debugExcluded.Select(e => e.Message).ToArray()) + " for " + report.Excluded.Count + " excluded");
 
         // The policy hash is the hash of the policy this driver loads on its own.
         Check(report.PolicyHash == LoadPolicyLikeTheGate(g).Hash, "the final report carries the hash of the effective policy");
@@ -1339,15 +1426,13 @@ public static class GateChecks
         bool wttBefore = sorted.IndexOf("WTT-ContentBackportPatcher") < gateIndex;
         Console.WriteLine("  info: WTT-ContentBackportPatcher sorts " + (wttBefore ? "BEFORE" : "AFTER") + " the gate under this Mono");
         Check(UnityViolations().Count == 0, "no Unity assembly was loaded before the patched UnityEngine.CoreModule", string.Join("; ", UnityViolations().ToArray()));
-        foreach (string allowed in new[] { "FixPluginTypesSerialization", "maschine-LogTools", "spt-prepatch" })
+        // The shipped default list allows the WTT patcher (user decision 2026-10-22), so all four run untouched.
+        foreach (string allowed in new[] { "FixPluginTypesSerialization", "maschine-LogTools", "spt-prepatch", "WTT-ContentBackportPatcher" })
         {
             Check(Calls.Contains("init:" + allowed) && Calls.Contains("targets:" + allowed) && Calls.Contains("patch:" + allowed) && Calls.Contains("finish:" + allowed),
                 "the real patcher name " + allowed + " is allowed and runs untouched");
         }
 
-        bool init = Calls.Contains("init:WTT-ContentBackportPatcher");
-        Check(init == wttBefore && !Calls.Contains("targets:WTT-ContentBackportPatcher") && !Calls.Contains("patch:WTT-ContentBackportPatcher")
-            && !Calls.Contains("finish:WTT-ContentBackportPatcher"), "the WTT patcher is neutralised");
         CheckBuiltIn(true);
 
         Mark("phase:chainloader-start");

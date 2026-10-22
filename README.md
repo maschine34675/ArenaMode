@@ -242,17 +242,34 @@ WIP features. Leaving through the game's raid menu is supported.
 
 Many third-party mods break Arena raids, and Arena no longer adapts to each of
 them one by one. Arena therefore runs only with a **whitelist**. The default list
-(`arena-whitelist.json`, next to the client DLL) is SAIN, APBS, ABPS, BigBrain
-and Waypoints plus Arena's diagnostic tools (UiBridge, ModProfiler, LogTools);
-SPT's own plugins and ArenaMode itself are always allowed. A whitelisted mod
-whose installed version differs from the reviewed one only produces a warning.
-Fika is never filtered: with Fika, Arena stays unavailable as before.
+(`arena-whitelist.json`, next to the client DLL) allows every mod that was installed
+when it was written (2026-10-22), each with the version it was reviewed with:
+
+- the bot stack: SAIN, APBS, ABPS, BigBrain, Waypoints;
+- mods by the same author: ArenaMapPort, Killcam, Redeploy, AutoCorpseSearch, DefaultAutoFireMode,
+  DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMenuCleanupFix, StashFilter,
+  SurroundAudio, UnloadAllMagazines;
+- other mods: PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport (and its
+  preloader patcher), SVM, give-ui, ContinuousHealing, Freecam, DoorDash, Anvil-WebOverlay,
+  ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix,
+  HealingAutoCancel, SmajlecLights;
+- Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
+
+The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
+ISB Special Forces and Aishi. ArenaMode refused these before the whitelist existed (they
+still block Arena by their own checks), so they are named "Blocked for Arena" and never load
+in an Arena session, in whitelist and in blacklist mode alike. SPT's own plugins and
+ArenaMode itself are always allowed. A whitelisted mod whose installed version differs from
+the reviewed one only produces a warning. Fika is never filtered: with Fika, Arena stays
+unavailable as before.
 
 - **A normal session with other mods installed:** ARENA is disabled with the
-  reason `Arena runs only with whitelisted mods. Not on the whitelist: ...` and
-  the action **START ARENA SESSION** (two clicks, because it restarts the game).
-  With a blacklist file (below) the reason names the mods you denied instead:
-  `Arena does not run with mods denied in your Arena policy file: ...`.
+  reason `Arena runs only with whitelisted mods. Blocked for Arena: ... Not on the
+  whitelist: ...` and the action **START ARENA SESSION** (two clicks, because it
+  restarts the game). *Blocked for Arena* names the mods a deny list excludes (the
+  default list's, or yours); *Not on the whitelist* names the mods nothing lists; a part
+  without names is left out. With a blacklist file (below) only denied mods count and
+  the reason reads `Arena does not run with denied mods. Blocked for Arena: ...`.
 - **The Arena session:** the game restarts (about two minutes) with only the
   whitelisted plugins, against a second SPT server, started by the helper
   `maschine-ArenaMode.Session.exe`, that loads only the whitelisted server mods
@@ -274,15 +291,22 @@ Your own additions and exclusions belong in
 overwritten by an update. It is a combined allow/deny list, and everything in it is
 optional. The Arena session decides each mod in this order:
 
-1. SPT's platform plugins and ArenaMode are always allowed; `deny` cannot remove them.
-2. A mod in `deny` is excluded. Only a hard dependency of an allowed mod still pulls it
+1. SPT's platform plugins and ArenaMode are always allowed; no `deny` can remove them.
+2. A mod in your `deny` is excluded. Only a hard dependency of an allowed mod still pulls it
    in again, with a warning (otherwise the mod that needs it would not start). For a
    server mod the dependencies are the ones it lists in its own metadata, which the server
    reports; the server refuses to load any mod when one of them is missing.
-3. A mod the default list or your `allow` list names is allowed.
-4. Every other mod follows `"unlisted"`: `"deny"` (the default) excludes it, which makes
+3. A mod your `allow` list names is allowed. This also lifts the default list's deny for that
+   mod (the checks inside ArenaMode that refuse those mods stay in force).
+4. A mod the default list's `deny` names is excluded, with the reason *Blocked for Arena*,
+   even in a blacklist; the same dependency rule as in 2 applies.
+5. A mod the default list names is allowed.
+6. Every other mod follows `"unlisted"`: `"deny"` (the default) excludes it, which makes
    the file a **whitelist**; `"allow"` lets it load without a warning of its own, which
-   makes the file a **blacklist**: everything you did not deny runs.
+   makes the file a **blacklist**: everything you did not deny, and the default list did not
+   deny, runs.
+
+So your `deny` always has the last word, and your `allow` beats the default list's `deny`.
 
 *Whitelist* (the default): add what should load besides the default list, and drop what
 you do not need.
@@ -290,7 +314,7 @@ you do not need.
 ```json
 {
   "schema": 1,
-  "allow": [ { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod" } ],
+  "allow": [ { "guid": "com.example.extra", "name": "Extra Mod", "kind": "mod" } ],
   "deny":  [ "com.maschine.UiBridge" ]
 }
 ```
@@ -329,8 +353,8 @@ These are implemented integration targets, not a claim that every combination
 or future version has been tested. Optional mods retain their own prerequisites.
 They apply to a setup in which the mod is allowed to load: in the default Arena
 session (see above) only the whitelisted mods are loaded at all, so the adapters
-of mods outside the default list are dormant there unless you allow them in your
-own whitelist file.
+of mods outside the default list (and the mods on its deny list) are dormant there
+unless you allow them in your own whitelist file.
 
 | Mod | Integration target / purpose |
 |---|---|

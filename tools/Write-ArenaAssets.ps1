@@ -204,6 +204,39 @@ foreach ($entry in $documents.GetEnumerator()) {
                 throw 'Every Arena default whitelist entry needs exactly one of guid and patcher.'
             }
         }
+        # The deny list of the default file (the mods ArenaMode refuses by design): an array of non-blank strings,
+        # a plugin/server GUID or a patcher file name, exactly like the user file's deny. The loader fails the
+        # whole default file on any other shape but treats a missing member as "no deny list", and reads only
+        # the exact key 'deny'; a shipped file without it (or with it empty or mis-cased) would silently turn the
+        # refused mods into plain unlisted ones. So the shipped file must carry the member and name the five
+        # refused mods, and the build stops here otherwise. A unit that mods allows and deny names is denied by
+        # the loader (deny wins) and reported at every start; as a shipped file it is a mistake, so the build
+        # stops here as well.
+        if ($policyProperties -ccontains 'deny') {
+            $deny = $policy.PSObject.Properties['deny'].Value
+            if ($deny -isnot [array]) { throw 'The Arena default whitelist "deny" member must be an array of GUIDs or patcher file names.' }
+            $denied = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach ($id in $deny) {
+                if ($id -isnot [string] -or [string]::IsNullOrWhiteSpace($id)) {
+                    throw 'Every Arena default whitelist "deny" entry must be a non-blank GUID or patcher file name.'
+                }
+                [void]$denied.Add($id.Trim())
+                [void]$denied.Add(($id.Trim() -split '[\\/]')[-1])
+            }
+            foreach ($mod in @($policy.mods)) {
+                $listed = if ($mod.PSObject.Properties.Name -ccontains 'guid') { [string]$mod.guid } else { [string]$mod.patcher }
+                if ($denied.Contains($listed.Trim()) -or $denied.Contains(($listed.Trim() -split '[\\/]')[-1])) {
+                    throw "The Arena default whitelist both allows and denies '$listed'."
+                }
+            }
+            # ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi (user decision 2026-10-22).
+            foreach ($required in @('com.chazut.orbit', 'com.danw.questingbots', 'com.hysocs.adaptivebotculling',
+                    'com.samc137.isbspecialforces', 'com.samc137.aishi')) {
+                if (-not $denied.Contains($required)) { throw "The Arena default whitelist no longer denies '$required'." }
+            }
+        } else {
+            throw 'The Arena default whitelist needs its "deny" member (the mods ArenaMode refuses by design).'
+        }
     }
     $pending[$entry.Value] = $bytes
 }

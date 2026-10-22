@@ -11,7 +11,7 @@
 #      mscorlib,
 #   3. runs one scenario per Mono process (the Mono of the matching Unity editor, MONO_PATH = the
 #      game's Managed folder) on a fresh fake game folder under artifacts/gate-checks/<run>/,
-#   4. builds eleven deliberately broken copies of the gate ("mutants") and requires that the checks
+#   4. builds fourteen deliberately broken copies of the gate ("mutants") and requires that the checks
 #      fail for every one of them.
 #
 # Needs: the game (BepInEx\core, EscapeFromTarkov_Data\Managed, BepInEx\plugins for the real-install
@@ -181,6 +181,7 @@ $scenarios = @(
     @{ Name = 'full'; Flag = $true },
     @{ Name = 'user-file'; Flag = $true },
     @{ Name = 'user-blacklist'; Flag = $true },
+    @{ Name = 'default-deny'; Flag = $true },
     @{ Name = 'user-garbage'; Flag = $true },
     @{ Name = 'bad-default'; Flag = $true },
     @{ Name = 'missing-default'; Flag = $true },
@@ -253,7 +254,15 @@ $mutants = @(
     @{ Name = 'patchers-named-at-debug'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGateRuntime.cs'; Find = 'Log(LogLevel.Info, "Arena session: " + DescribeNeutralised());'; Replace = 'Log(LogLevel.Debug, "Arena session: " + DescribeNeutralised());' }) },
     @{ Name = 'stay-off-not-said'; Scenarios = @('postfix-failure'); Edits = @(
-        @{ File = 'ArenaGateRuntime.cs'; Find = 'if (Neutralised.Count > 0) message +=' ; Replace = 'if (false) message +=' }) }
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'if (Neutralised.Count > 0) message +=' ; Replace = 'if (false) message +=' }) },
+    # The reason a unit or patcher is off is part of what the gate says: the default list's deny, the user's deny
+    # and plain absence from the whitelist are three different causes.
+    @{ Name = 'patcher-default-deny-not-named'; Scenarios = @('default-deny'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (reason == ArenaWhitelistDecision.ReasonDenied) return "is denied by the default policy list";'; Replace = '' }) },
+    @{ Name = 'patcher-user-deny-not-named'; Scenarios = @('user-file', 'user-blacklist'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (reason == ArenaWhitelistDecision.ReasonDeniedByUser) return "is denied in the user''s policy file";'; Replace = '' }) },
+    @{ Name = 'excluded-debug-line-without-reason'; Scenarios = @('full'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = '+ unit.Reason + ", " + unit.File);'; Replace = '+ unit.File);' }) }
 )
 
 if (-not $SkipMutants -and -not $Only) {

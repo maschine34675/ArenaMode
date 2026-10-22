@@ -25,10 +25,30 @@ DLLS = {
 }
 EXES = {ASSETS + 'maschine-ArenaMode.Session.exe'}
 WHITELIST = ASSETS + 'arena-whitelist.json'
-# The user's decision (2026-10-21): these mods are always on the shipped default list.
+# The user's decisions (2026-10-21 and 2026-10-22): these mods are always on the shipped default list - the
+# five bot mods first, then every other mod installed on the development hosts (lower case, as compared below).
 DEFAULT_WHITELIST_GUIDS = {
     'me.sol.sain', 'com.acidphantasm.progressivebotsystem', 'com.acidphantasm.botplacementsystem',
     'xyz.drakia.bigbrain', 'xyz.drakia.waypoints',
+    'com.maschine.arenamapport', 'com.maschine.killcam', 'com.maschine.redeploy', 'com.maschine.autocorpsesearch',
+    'com.maschine.defaultautofiremode', 'com.maschine.dualsidedoorbreach', 'com.maschine.linkedsearchinstash',
+    'com.maschine.lowammocue', 'com.maschine.raidmenucleanupfix', 'com.maschine.stashfilter',
+    'com.maschine.surroundaudio', 'com.maschine.unloadallmagazines', 'xyz.pit.fireteam', 'com.mpstark.dynamicmaps',
+    'com.tyfon.uifixes', 'com.wtt.commonlib', 'com.wtt.contentbackport', 'fika.ghostfenixx.svm', 'com.agavalda.giveui',
+    'com.lacyway.ch', 'com.terkoiz.freecam', 'com.tarkin.doordash', 'com.anvil.weboverlay', 'com.slpf.armorclassicon',
+    'katrin0522.betterammoloadinglist', '7bpencil.brighterinteriors', 'com.acidphantasm.devbalaclavafix',
+    'healingautocancel', 'com.smajlec.lights', 'com.maschine.uibridge', 'com.maschine.modprofiler',
+    'com.maschine.logtools', 'com.maschine.consoletomonitor',
+}
+# The preloader patchers on the default list (lower-case file names): WTT-ContentBackport's patcher has to run
+# whenever its plugin does, and LogTools' patcher is the other half of the tool. Without their entries the gate
+# would switch them off in every Arena session.
+DEFAULT_WHITELIST_PATCHERS = {'wtt-contentbackportpatcher.dll', 'maschine-logtools.dll'}
+# The mods ArenaMode refused by code before the whitelist existed (ORBIT, Questing Bots, Adaptive Bot Culling,
+# ISB Special Forces, Aishi) stay on the default list's deny (user decision 2026-10-22).
+DEFAULT_WHITELIST_DENIES = {
+    'com.chazut.orbit', 'com.danw.questingbots', 'com.hysocs.adaptivebotculling',
+    'com.samc137.isbspecialforces', 'com.samc137.aishi',
 }
 REQUIRED = DLLS | EXES | {WHITELIST,
     DOCS + 'INSTALL.txt', DOCS + 'README.md', DOCS + 'LICENSE',
@@ -49,6 +69,35 @@ def resolve_reference(document, relative):
     path = posixpath.normpath(posixpath.join(posixpath.dirname(document), unquote(relative)))
     assert path.startswith(ASSETS), f'Reference leaves the asset tree: {document}: {relative}'
     return path
+
+
+def _unit_names(identifier):
+    """The ids a policy entry or a deny entry can match on: the text as written and its last path segment."""
+    text = identifier.strip().lower()
+    return {text, text.replace('\\', '/').split('/')[-1]}
+
+
+def check_default_whitelist(policy):
+    """Checks a parsed shipped Arena session whitelist the way the loader and the build do; raises AssertionError."""
+    assert policy.get('schema') == 1 and isinstance(policy.get('mods'), list) and policy['mods'], 'Bad default whitelist'
+    for entry in policy['mods']:
+        assert isinstance(entry, dict) and ('guid' in entry) != ('patcher' in entry), f'Whitelist entry needs one of guid and patcher: {entry}'
+    listed = {entry['guid'].lower() for entry in policy['mods'] if 'guid' in entry}
+    assert DEFAULT_WHITELIST_GUIDS <= listed, f'Default whitelist lost: {DEFAULT_WHITELIST_GUIDS - listed}'
+    # A patcher is matched by its file name only (a path is reduced to its last segment, like the loader does).
+    patchers = {entry['patcher'].strip().replace('\\', '/').split('/')[-1].lower() for entry in policy['mods'] if 'patcher' in entry}
+    assert DEFAULT_WHITELIST_PATCHERS <= patchers, f'Default whitelist lost its patchers: {DEFAULT_WHITELIST_PATCHERS - patchers}'
+    # The optional deny list: an array of non-blank strings (the loader fails the whole file on any other shape).
+    deny = policy.get('deny', [])
+    assert isinstance(deny, list), 'Default whitelist deny must be an array'
+    for item in deny:
+        assert isinstance(item, str) and item.strip(), f'Default whitelist deny entries must be non-blank strings: {item!r}'
+    denied = {item.strip().lower() for item in deny}
+    assert DEFAULT_WHITELIST_DENIES <= denied, f'Default whitelist lost its deny: {DEFAULT_WHITELIST_DENIES - denied}'
+    # A unit the list both allows and denies would be denied (and reported at every start): a mistake in the file.
+    denied_names = set().union(*(_unit_names(item) for item in deny)) if deny else set()
+    allowed_names = set().union(*(_unit_names(entry.get('guid') or entry['patcher']) for entry in policy['mods']))
+    assert not (denied_names & allowed_names), f'Default whitelist both allows and denies: {denied_names & allowed_names}'
 
 
 def verify(path):
@@ -95,14 +144,10 @@ def verify(path):
         for name in ('kits.json', 'ladder.json'):
             data = json.loads(archive.read('SPT_Runtime/user/mods/ArenaMode/config/' + name))
             assert data, f'Empty defaults: {name}'
-        # The shipped Arena session whitelist: a schema 1 policy whose entries name exactly one unit each and
-        # which keeps the agreed default mods. (A broken file would make every Arena session unavailable.)
-        policy = json.loads(archive.read(WHITELIST))
-        assert policy.get('schema') == 1 and isinstance(policy.get('mods'), list) and policy['mods'], 'Bad default whitelist'
-        for entry in policy['mods']:
-            assert isinstance(entry, dict) and ('guid' in entry) != ('patcher' in entry), f'Whitelist entry needs one of guid and patcher: {entry}'
-        listed = {entry['guid'].lower() for entry in policy['mods'] if 'guid' in entry}
-        assert DEFAULT_WHITELIST_GUIDS <= listed, f'Default whitelist lost: {DEFAULT_WHITELIST_GUIDS - listed}'
+        # The shipped Arena session whitelist: a schema 1 policy whose entries name exactly one unit each, which
+        # keeps the agreed default mods and the agreed deny list. (A broken file would make every Arena session
+        # unavailable; a lost deny would let a refused mod through.)
+        check_default_whitelist(json.loads(archive.read(WHITELIST)))
         links = 0
         for name in names:
             if not name.endswith('.md'):

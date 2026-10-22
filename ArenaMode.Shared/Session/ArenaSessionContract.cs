@@ -161,8 +161,9 @@ namespace ArenaMode.Shared.Session
     /// "patchersNeutralised":[file] }</c>. Unknown members are ignored when reading. A unit's
     /// <c>reason</c> is one of the <c>ArenaWhitelistDecision.Reason*</c> values: <c>platform</c>,
     /// <c>arena</c>, <c>whitelist</c>, <c>tool</c>, <c>unlisted-allowed</c> (blacklist mode),
-    /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c> or
-    /// <c>denied-by-user</c> for excluded ones.
+    /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c>,
+    /// <c>denied-by-user</c> (the user file's deny list) or <c>denied</c> (the shipped default
+    /// file's deny list) for excluded ones.
     /// </summary>
     public sealed class ArenaGateReport
     {

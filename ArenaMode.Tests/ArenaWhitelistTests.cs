@@ -330,6 +330,8 @@ public sealed class ArenaWhitelistTests
 
         var fromFile = policy.Entries.Where(e => e.Tier is ArenaWhitelistTier.Mod or ArenaWhitelistTier.Tool).ToList();
 
+        // The user's decision of 2026-10-22: every mod installed on the development hosts, with the versions it
+        // was installed in. Written out by hand, not derived from the file, so that a lost entry shows.
         var expected = new (string Id, string Name, ArenaWhitelistTier Tier, string? Client, string? Server)[]
         {
             ("me.sol.sain", "SAIN", ArenaWhitelistTier.Mod, "4.5.1", "4.5.1"),
@@ -337,9 +339,40 @@ public sealed class ArenaWhitelistTests
             ("com.acidphantasm.botplacementsystem", "ABPS", ArenaWhitelistTier.Mod, "2.1.0", "2.1.0"),
             ("xyz.drakia.bigbrain", "BigBrain", ArenaWhitelistTier.Mod, "1.5.0", null),
             ("xyz.drakia.waypoints", "Waypoints", ArenaWhitelistTier.Mod, "1.9.0", null),
+            ("com.maschine.ArenaMapPort", "ArenaMapPort", ArenaWhitelistTier.Mod, "0.3.0", "0.3.0"),
+            ("com.maschine.Killcam", "Killcam", ArenaWhitelistTier.Mod, "1.0.1", null),
+            ("com.maschine.Redeploy", "Redeploy", ArenaWhitelistTier.Mod, "1.0.0", "1.0.0"),
+            ("com.maschine.AutoCorpseSearch", "AutoCorpseSearch", ArenaWhitelistTier.Mod, "2.2.0", null),
+            ("com.maschine.DefaultAutoFireMode", "DefaultAutoFireMode", ArenaWhitelistTier.Mod, "2.0.0", null),
+            ("com.maschine.DualSideDoorBreach", "DualSideDoorBreach", ArenaWhitelistTier.Mod, "2.0.2", null),
+            ("com.maschine.LinkedSearchInStash", "LinkedSearchInStash", ArenaWhitelistTier.Mod, "2.0.1", null),
+            ("com.maschine.LowAmmoCue", "LowAmmoCue", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.maschine.RaidMenuCleanupFix", "RaidMenuCleanupFix", ArenaWhitelistTier.Mod, "2.0.0", null),
+            ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
+            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "0.10.3", "0.10.3"),
+            ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.2.1", "1.2.1"),
+            ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
+            ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.6", "3.0.6"),
+            ("com.wtt.contentbackport", "WTT-ContentBackport", ArenaWhitelistTier.Mod, "2.0.5", "2.0.5"),
+            ("WTT-ContentBackportPatcher.dll", "WTT-ContentBackport patcher", ArenaWhitelistTier.Mod, null, null),
+            ("fika.ghostfenixx.svm", "SVM", ArenaWhitelistTier.Mod, null, "2.2.3"),
+            ("com.agavalda.giveui", "give-ui", ArenaWhitelistTier.Mod, null, "5.0.0"),
+            ("com.lacyway.ch", "ContinuousHealing", ArenaWhitelistTier.Mod, "1.6.3", null),
+            ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
+            ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
+            ("com.slpf.armorclassicon", "ArmorClassIcon", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("katrin0522.betterammoloadinglist", "BetterAmmoLoadingList", ArenaWhitelistTier.Mod, "1.1.1", null),
+            ("7Bpencil.BrighterInteriors", "BrighterInteriors", ArenaWhitelistTier.Mod, "1.1.1", null),
+            ("com.acidphantasm.devbalaclavafix", "DevBalaclavaFix", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("HealingAutoCancel", "HealingAutoCancel", ArenaWhitelistTier.Mod, "1.1.0", null),
+            ("com.smajlec.lights", "SmajlecLights", ArenaWhitelistTier.Mod, "1.3.0", null),
             ("com.maschine.UiBridge", "UiBridge", ArenaWhitelistTier.Tool, null, null),
             ("com.maschine.ModProfiler", "ModProfiler", ArenaWhitelistTier.Tool, null, null),
             ("com.maschine.LogTools", "LogTools", ArenaWhitelistTier.Tool, null, null),
+            ("com.maschine.ConsoleToMonitor", "ConsoleToMonitor", ArenaWhitelistTier.Tool, null, null),
             ("maschine-LogTools.dll", "LogTools patcher", ArenaWhitelistTier.Tool, null, null),
         };
 
@@ -360,6 +393,86 @@ public sealed class ArenaWhitelistTests
             Assert.True(policy.IsAllowedPlugin(want.Id));
             Assert.True(policy.IsAllowedServerMod(want.Id));
         }
+    }
+
+    /// <summary>The mods ArenaMode already refused by code before the whitelist existed (ORBIT, Questing Bots, ...).</summary>
+    private static readonly (string Guid, string Name)[] ShippedDenies =
+    {
+        ("com.chazut.orbit", "ORBIT"),
+        ("com.danw.questingbots", "Questing Bots"),
+        ("com.hysocs.adaptivebotculling", "Adaptive Bot Culling"),
+        ("com.samc137.isbspecialforces", "ISB Special Forces"),
+        ("com.samc137.aishi", "Aishi"),
+    };
+
+    /// <summary>Every GUID the user has installed (decision 2026-10-22), typed from the decision, not from the file.</summary>
+    private static readonly string[] InstalledGuids =
+    {
+        "me.sol.sain", "com.acidphantasm.progressivebotsystem", "com.acidphantasm.botplacementsystem", "xyz.drakia.bigbrain",
+        "xyz.drakia.waypoints", "com.maschine.ArenaMapPort", "com.maschine.Killcam", "com.maschine.Redeploy",
+        "com.maschine.AutoCorpseSearch", "com.maschine.DefaultAutoFireMode", "com.maschine.DualSideDoorBreach",
+        "com.maschine.LinkedSearchInStash", "com.maschine.LowAmmoCue", "com.maschine.RaidMenuCleanupFix",
+        "com.maschine.StashFilter", "com.maschine.SurroundAudio", "com.maschine.UnloadAllMagazines", "xyz.pit.fireteam",
+        "com.mpstark.dynamicmaps", "com.tyfon.uifixes", "com.wtt.commonlib", "com.wtt.contentbackport",
+        "fika.ghostfenixx.svm", "com.agavalda.giveui", "com.lacyway.ch", "com.terkoiz.freecam", "com.tarkin.doordash",
+        "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
+        "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
+        "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",
+    };
+
+    [Fact]
+    public void ShippedDefaultFileDeniesTheFiveRefusedModsAndAllowsEveryInstalledOne()
+    {
+        string text = File.ReadAllText(ShippedDefaultPath);
+        var policy = LoadWithDiagnostics(text, null, out var diagnostics);
+        // No diagnostics also means: no GUID is both allowed and denied, and no platform unit is denied.
+        Assert.Empty(diagnostics);
+
+        // The file itself names the five, read as plain JSON: a check through the policy alone could not tell
+        // a lost deny from a unit that was never installed.
+        Assert.True(ArenaMiniJson.TryParse(text, out var root, out var parseError), parseError);
+        var denyMember = ArenaMiniJson.GetArray(ArenaMiniJson.AsObject(root), "deny");
+        Assert.NotNull(denyMember);
+        Assert.Equal(
+            ShippedDenies.Select(d => d.Guid).OrderBy(g => g, StringComparer.Ordinal).ToArray(),
+            denyMember!.Cast<string>().OrderBy(g => g, StringComparer.Ordinal).ToArray());
+
+        foreach (var (guid, name) in ShippedDenies)
+        {
+            Assert.True(policy.IsDeniedByDefault(guid), name);
+            Assert.False(policy.IsAllowedPlugin(guid), name);
+            Assert.False(policy.IsAllowedServerMod(guid), name);
+
+            // Whitelist and blacklist alike, on both sides, with the reason of the default list.
+            foreach (string? user in new[] { null, BlacklistOnly })
+            {
+                foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+                {
+                    var decision = ArenaWhitelistDecision.Evaluate(Load(text, user), side, new[] { Unit(guid, name, "1.0.0") });
+                    Assert.Equal("denied", Assert.Single(decision.Excluded).Reason);
+                    Assert.Empty(decision.Allowed);
+                }
+            }
+
+            // The user decides last: an allow brings the mod back.
+            Assert.True(Load(text, "{ \"schema\": 1, \"allow\": [ { \"guid\": \"" + guid + "\" } ] }").IsAllowedPlugin(guid), name);
+        }
+
+        foreach (string guid in InstalledGuids)
+        {
+            Assert.True(policy.IsAllowedPlugin(guid), guid);
+            Assert.True(policy.IsAllowedServerMod(guid), guid);
+            Assert.False(policy.IsDeniedByDefault(guid), guid);
+            Assert.NotNull(policy.FindPlugin(guid, ArenaWhitelistSide.Client));
+        }
+
+        Assert.True(policy.IsAllowedPatcher("WTT-ContentBackportPatcher.dll"));
+        Assert.True(policy.IsAllowedPatcher("maschine-LogTools.dll"));
+
+        // The shipped list stays a whitelist: a mod nobody named is still out.
+        Assert.False(policy.IsAllowedPlugin("com.example.foreign"));
+        Assert.False(policy.IsAllowedPatcher("Foreign.Patcher.dll"));
+        Assert.Equal(ArenaUnlistedMode.Deny, policy.UnlistedMode);
     }
 
     [Fact]
@@ -1630,6 +1743,415 @@ public sealed class ArenaWhitelistTests
             ArenaWhitelistDecision.Evaluate(null!, ArenaWhitelistSide.Client, Array.Empty<ArenaSessionUnit>()));
     }
 
+    // ------------------------------------------------------------------ default deny list
+
+    // The shipped default file may carry a "deny" list of its own (2026-10-22): mods ArenaMode refuses by design.
+    // Per unit the order is platform/Arena, user deny, user allow, DEFAULT deny, default entries, unlisted.
+
+    /// <summary>
+    /// A default file with a deny list: a plugin/server GUID and a patcher file name, next to SAIN and the
+    /// LogTools patcher as ordinary entries.
+    /// </summary>
+    private const string DenyDefault = """
+        {
+          "schema": 1,
+          "mods": [
+            { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "clientVersion": "4.5.1", "serverVersion": "4.5.1" },
+            { "patcher": "maschine-LogTools.dll", "name": "LogTools patcher", "kind": "tool" }
+          ],
+          "deny": [ "com.example.bad", "Bad.Patcher.dll" ]
+        }
+        """;
+
+    private const string BlacklistOnly = """{ "schema": 1, "unlisted": "allow" }""";
+
+    [Fact]
+    public void ADefaultDenyExcludesTheUnitInWhitelistModeWithItsOwnReasonOnBothSides()
+    {
+        var policy = LoadWithDiagnostics(DenyDefault, null, out var diagnostics);
+        Assert.Empty(diagnostics);
+        var installed = new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1"),
+            Unit("COM.EXAMPLE.BAD", "Bad", "1.0.0"),
+            Unit("com.example.other", "Other", "1.0.0"),
+        };
+
+        foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+        {
+            var decision = ArenaWhitelistDecision.Evaluate(policy, side, installed);
+
+            Assert.Equal(new[] { "me.sol.sain" }, decision.Allowed.Select(u => u.Guid).ToArray());
+            Assert.Equal("denied", Find(decision.Excluded, "com.example.bad").Reason);
+            Assert.Equal("not-on-whitelist", Find(decision.Excluded, "com.example.other").Reason);
+            Assert.Equal("Bad, Other", decision.DescribeExcluded());
+        }
+
+        Assert.Equal("denied", ArenaWhitelistDecision.ReasonDenied);
+        Assert.Equal("denied-by-user", ArenaWhitelistDecision.ReasonDeniedByUser);
+        Assert.False(policy.IsAllowedPlugin("com.example.bad"));
+        Assert.False(policy.IsAllowedServerMod("com.example.bad"));
+        Assert.True(policy.IsDeniedByDefault("com.example.bad"));
+        Assert.True(policy.IsDeniedByDefault("  COM.example.BAD "));
+        Assert.False(policy.IsDeniedByUser("com.example.bad"));
+        Assert.False(policy.IsDeniedByDefault("com.example.other"));
+        Assert.False(policy.IsDeniedByDefault("me.sol.sain"));
+        Assert.False(policy.IsDeniedByDefault(null!));
+        Assert.False(policy.IsDeniedByDefault("  "));
+        Assert.Equal("denied", policy.ExclusionReason("com.example.bad"));
+        Assert.Equal("not-on-whitelist", policy.ExclusionReason("com.example.other"));
+        Assert.Equal("not-on-whitelist", policy.ExclusionReason(""));
+    }
+
+    [Fact]
+    public void ADefaultDenyHoldsInBlacklistModeAndEverythingElseStaysUnlistedAllowed()
+    {
+        var policy = Load(DenyDefault, BlacklistOnly);
+        var installed = new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1"),
+            Unit("com.example.bad", "Bad", "1.0.0"),
+            Unit("com.example.other", "Other", "1.0.0"),
+        };
+
+        foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+        {
+            var decision = ArenaWhitelistDecision.Evaluate(policy, side, installed);
+
+            Assert.Equal("denied", Assert.Single(decision.Excluded).Reason);
+            Assert.Equal("com.example.bad", decision.Excluded[0].Guid);
+            Assert.Equal(new[] { "whitelist", "unlisted-allowed" }, decision.Allowed.Select(u => u.Reason).ToArray());
+            Assert.Empty(decision.Warnings);
+        }
+
+        Assert.False(policy.IsAllowedPlugin("com.example.bad"));
+        Assert.False(policy.IsAllowedServerMod("com.example.bad"));
+        Assert.False(policy.IsUnlistedAllowed("com.example.bad"));
+        Assert.True(policy.IsUnlistedAllowed("com.example.other"));
+    }
+
+    [Fact]
+    public void ADefaultDeniedPatcherIsOffInBothModesAndAPathFormIsReducedToItsFileName()
+    {
+        const string withPath = """
+            { "schema": 1, "mods": [ { "patcher": "maschine-LogTools.dll", "kind": "tool" } ], "deny": [ "BepInEx\\patchers\\Bad.Patcher.dll" ] }
+            """;
+
+        foreach (string? user in new[] { null, BlacklistOnly })
+        {
+            var policy = Load(withPath, user);
+
+            Assert.False(policy.IsAllowedPatcher("bad.patcher.dll"), "denied by the default list");
+            Assert.False(policy.IsAllowedPatcher(@"C:\game\BepInEx\patchers\BAD.PATCHER.DLL"));
+            Assert.True(policy.IsDeniedByDefault("Bad.Patcher.dll"));
+            Assert.Equal("denied", policy.ExclusionReason("Bad.Patcher.dll"));
+            Assert.True(policy.IsAllowedPatcher("maschine-LogTools.dll"));
+            Assert.Equal(user != null, policy.IsAllowedPatcher("Some.Other.dll"));
+        }
+    }
+
+    [Fact]
+    public void AUserAllowLiftsADefaultDenyOnBothSidesAndKeepsItsReviewedVersion()
+    {
+        const string user = """
+            {
+              "schema": 1,
+              "allow": [
+                { "guid": "com.example.bad", "name": "Bad", "kind": "mod", "clientVersion": "2.0.0", "serverVersion": "3.0.0" },
+                { "patcher": "bad.patcher.dll", "kind": "tool" }
+              ]
+            }
+            """;
+
+        foreach (string? userJson in new[] { user, user.Replace("\"schema\": 1,", "\"schema\": 1, \"unlisted\": \"allow\",") })
+        {
+            var policy = LoadWithDiagnostics(DenyDefault, userJson, out var diagnostics);
+            Assert.Empty(diagnostics);
+
+            Assert.True(policy.IsAllowedPlugin("com.example.bad"));
+            Assert.True(policy.IsAllowedServerMod("com.example.bad"));
+            Assert.True(policy.IsAllowedPatcher("Bad.Patcher.dll"));
+            Assert.Equal("2.0.0", policy.ReviewedVersion("com.example.bad", ArenaWhitelistSide.Client));
+            Assert.Equal("3.0.0", policy.ReviewedVersion("com.example.bad", ArenaWhitelistSide.Server));
+
+            var client = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[] { Unit("com.example.bad", "Bad", "2.0.1") });
+            Assert.Equal("whitelist", Assert.Single(client.Allowed).Reason);
+            Assert.Empty(client.Excluded);
+            Assert.Equal("Bad: version 2.0.1 differs from reviewed 2.0.0", Assert.Single(client.Warnings));
+
+            var server = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, new[] { Unit("com.example.bad", "Bad", "3.0.0") });
+            Assert.Equal("whitelist", Assert.Single(server.Allowed).Reason);
+            Assert.Empty(server.Warnings);
+        }
+
+        // Without the user's allow the same unit is out: the lift comes from the user file and from nothing else.
+        Assert.False(Load(DenyDefault).IsAllowedPlugin("com.example.bad"));
+        Assert.NotEqual(Load(DenyDefault).Hash, Load(DenyDefault, user).Hash);
+    }
+
+    [Fact]
+    public void AUserDenyBeatsADefaultAllowAndAUserAllowOfADefaultDeniedUnitAlike()
+    {
+        var policy = Load(DenyDefault, """
+            {
+              "schema": 1,
+              "allow": [ { "guid": "com.example.bad" }, { "patcher": "Bad.Patcher.dll" } ],
+              "deny": [ "me.sol.sain", "com.example.bad", "Bad.Patcher.dll", "maschine-LogTools.dll" ]
+            }
+            """);
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1"),
+            Unit("com.example.bad", "Bad", "1.0.0"),
+        });
+
+        Assert.Empty(decision.Allowed);
+        // The user's deny is the higher precedence, so it names the reason even for a default-denied unit.
+        Assert.All(decision.Excluded, u => Assert.Equal("denied-by-user", u.Reason));
+        Assert.False(policy.IsAllowedPatcher("Bad.Patcher.dll"));
+        Assert.False(policy.IsAllowedPatcher("maschine-LogTools.dll"));
+        Assert.Equal("denied-by-user", policy.ExclusionReason("Bad.Patcher.dll"));
+    }
+
+    [Fact]
+    public void AUserDenyOfADefaultAllowedUnitInBlacklistModeStillWinsAndADefaultDenyIsNotLostByTheUsersDenyList()
+    {
+        var policy = Load(DenyDefault, """
+            { "schema": 1, "unlisted": "allow", "deny": [ "me.sol.sain", "com.example.worse" ] }
+            """);
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1"),
+            Unit("com.example.bad", "Bad", "1.0.0"),
+            Unit("com.example.worse", "Worse", "1.0.0"),
+            Unit("com.example.fine", "Fine", "1.0.0"),
+        });
+
+        Assert.Equal("Fine", Assert.Single(decision.Allowed).DisplayName);
+        Assert.Equal("denied-by-user", Find(decision.Excluded, "me.sol.sain").Reason);
+        Assert.Equal("denied", Find(decision.Excluded, "com.example.bad").Reason);
+        Assert.Equal("denied-by-user", Find(decision.Excluded, "com.example.worse").Reason);
+    }
+
+    [Fact]
+    public void AGuidThatTheDefaultFileAllowsAndDeniesIsDeniedAndNamedInADiagnostic()
+    {
+        // "deny" comes first in the text on purpose: the order of the members must not matter.
+        const string contradiction = """
+            {
+              "schema": 1,
+              "deny": [ "COM.EXAMPLE.BOTH", "Both.Patcher.dll" ],
+              "mods": [
+                { "guid": "com.example.both", "name": "Both", "kind": "mod", "clientVersion": "1.0.0", "serverVersion": "1.0.0" },
+                { "patcher": "Both.Patcher.dll", "name": "Both patcher", "kind": "tool" },
+                { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod" }
+              ]
+            }
+            """;
+
+        var policy = LoadWithDiagnostics(contradiction, null, out var diagnostics);
+
+        Assert.Equal(2, diagnostics.Count);
+        Assert.All(diagnostics, d => Assert.StartsWith("default whitelist:", d));
+        Assert.Single(diagnostics, d => d.Contains("COM.EXAMPLE.BOTH") && d.Contains("both allowed and denied"));
+        Assert.Single(diagnostics, d => d.Contains("Both.Patcher.dll") && d.Contains("both allowed and denied"));
+
+        Assert.False(policy.IsAllowedPlugin("com.example.both"));
+        Assert.False(policy.IsAllowedServerMod("com.example.both"));
+        Assert.False(policy.IsAllowedPatcher("both.patcher.dll"));
+        Assert.Null(policy.ReviewedVersion("com.example.both", ArenaWhitelistSide.Client));
+        Assert.DoesNotContain(policy.Entries, e => e.Id.StartsWith("com.example.both", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(policy.Entries, e => e.Patcher != null && e.Patcher.StartsWith("Both", StringComparison.OrdinalIgnoreCase));
+        Assert.True(policy.IsAllowedPlugin("me.sol.sain"), "the rest of the file is intact");
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[] { Unit("com.example.both", "Both", "1.0.0") });
+        Assert.Equal("denied", Assert.Single(decision.Excluded).Reason);
+
+        // The deny wins also in blacklist mode, and a user allow still brings the unit back.
+        Assert.False(Load(contradiction, BlacklistOnly).IsAllowedPlugin("com.example.both"));
+        Assert.True(Load(contradiction, """{ "schema": 1, "allow": [ { "guid": "com.example.both" } ] }""").IsAllowedPlugin("com.example.both"));
+    }
+
+    [Theory]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": "com.example.x" }""", "\"deny\" must be an array")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": { "guid": "com.example.x" } }""", "\"deny\" must be an array")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": 5 }""", "\"deny\" must be an array")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": null }""", "\"deny\" must be an array")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ 5 ] }""", "deny[0]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ "" ] }""", "deny[0]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ "   " ] }""", "deny[0]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ null ] }""", "deny[0]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ "ok.guid", true ] }""", "deny[1]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ "ok.guid", [ "nested" ] ] }""", "deny[1]")]
+    [InlineData("""{ "schema": 1, "mods": [], "deny": [ "ok.guid", { "guid": "x" } ] }""", "deny[1]")]
+    public void AMalformedDefaultDenyListInvalidatesTheDefaultFile(string defaultJson, string fragment)
+    {
+        // Like any other broken default entry: the Arena session is unavailable, and a valid user file
+        // cannot rescue it. A lost deny would let through a mod the build refuses.
+        const string validUser = """{ "schema": 1, "allow": [ { "guid": "com.example.x" } ] }""";
+
+        foreach (string? user in new[] { null, validUser, BlacklistOnly })
+        {
+            bool loaded = ArenaWhitelistPolicy.TryLoad(defaultJson, user!, out var policy, out var diagnostics);
+
+            Assert.False(loaded);
+            Assert.Null(policy);
+            var diagnostic = Assert.Single(diagnostics);
+            Assert.StartsWith("default whitelist:", diagnostic);
+            Assert.Contains(fragment, diagnostic);
+        }
+    }
+
+    [Fact]
+    public void ADefaultDenyListThatIsEmptyOrAbsentIsTheSamePolicyAndAnEmptyOneIsNotAnError()
+    {
+        var baseline = Load(SmallDefault);
+        var emptyList = LoadWithDiagnostics(SmallDefault.Replace("\"schema\": 1,", "\"schema\": 1, \"deny\": [],"), null, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        Assert.Equal(baseline.Hash, emptyList.Hash);
+        Assert.False(emptyList.IsDeniedByDefault("me.sol.sain"));
+        Assert.True(emptyList.IsAllowedPlugin("me.sol.sain"));
+    }
+
+    [Fact]
+    public void ADefaultDenyCannotRemovePlatformOrArenaUnits()
+    {
+        string[] protectedIds =
+        [
+            "com.SPT.core", "com.bepis.bepinex.configurationmanager", "com.maschine.ArenaMode", "com.fika.core",
+            "FixPluginTypesSerialization.dll", "spt-prepatch.dll", "maschine-ArenaMode.Gate.dll",
+        ];
+        string deny = string.Join(",", protectedIds.Select(id => "\"" + id.ToUpperInvariant() + "\""));
+
+        var baseline = Load(EmptyDefault);
+        var policy = LoadWithDiagnostics("{ \"schema\": 1, \"mods\": [], \"deny\": [" + deny + "] }", null, out var diagnostics);
+
+        Assert.Equal(protectedIds.Length, diagnostics.Count);
+        Assert.All(diagnostics, d =>
+        {
+            Assert.StartsWith("default whitelist:", d);
+            Assert.Contains("cannot be denied", d);
+        });
+        foreach (string id in protectedIds)
+        {
+            Assert.False(policy.IsDeniedByDefault(id), id);
+            if (id.EndsWith(".dll", StringComparison.Ordinal)) Assert.True(policy.IsAllowedPatcher(id), id);
+            else Assert.True(policy.IsAllowedPlugin(id), id);
+        }
+
+        Assert.True(policy.IsAllowedServerMod("com.maschine.ArenaMode"));
+        Assert.Equal(baseline.Hash, policy.Hash);
+    }
+
+    [Fact]
+    public void ADefaultDeniedUnitIsStillPulledInAsAHardDependencyAndTheWarningNamesTheDefaultList()
+    {
+        var installed = new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1", "com.example.bad"),
+            Unit("com.example.bad", "Bad", "1.0.0", "com.example.badlib"),
+            Unit("com.example.badlib", "Bad Lib", "1.0.0"),
+            Unit("com.example.other", "Other", "1.0.0"),
+        };
+
+        foreach (string? user in new[] { null, BlacklistOnly })
+        {
+            foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+            {
+                var decision = ArenaWhitelistDecision.Evaluate(Load(DenyDefault, user), side, installed);
+
+                Assert.Equal("dependency-of:me.sol.sain", Find(decision.Allowed, "com.example.bad").Reason);
+                Assert.Contains("Bad: pulled in as hard dependency of SAIN (overrides the default list's deny)", decision.Warnings);
+
+                // The library below the denied unit is not denied itself: no deny wording for it. Under a
+                // whitelist the closure pulls it in; in blacklist mode it is allowed as an unlisted unit.
+                Assert.DoesNotContain(decision.Warnings, w => w.StartsWith("Bad Lib:", StringComparison.Ordinal) && w.Contains("deny"));
+                if (user == null)
+                {
+                    Assert.Equal("dependency-of:com.example.bad", Find(decision.Allowed, "com.example.badlib").Reason);
+                    Assert.Contains("Bad Lib: pulled in as hard dependency of Bad", decision.Warnings);
+                }
+                else
+                {
+                    Assert.Equal("unlisted-allowed", Find(decision.Allowed, "com.example.badlib").Reason);
+                }
+            }
+        }
+
+        // When the user denies the same unit too, the warning names the higher precedence: the user's.
+        var both = ArenaWhitelistDecision.Evaluate(
+            Load(DenyDefault, """{ "schema": 1, "deny": [ "com.example.bad" ] }"""), ArenaWhitelistSide.Client, installed);
+        Assert.Contains("Bad: pulled in as hard dependency of SAIN (overrides the user's deny)", both.Warnings);
+        Assert.DoesNotContain(both.Warnings, w => w.Contains("default list"));
+    }
+
+    [Fact]
+    public void ADefaultDeniedUnitDoesNotPullItsOwnDependenciesIn()
+    {
+        var policy = Load(DenyDefault);
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("com.example.bad", "Bad", "1.0.0", "com.example.lib"),
+            Unit("com.example.lib", "Lib", "1.0.0"),
+        });
+
+        Assert.Empty(decision.Allowed);
+        Assert.Equal("denied", Find(decision.Excluded, "com.example.bad").Reason);
+        Assert.Equal("not-on-whitelist", Find(decision.Excluded, "com.example.lib").Reason);
+        Assert.Empty(decision.Warnings);
+    }
+
+    [Fact]
+    public void ADefaultDenyKeepsAServerModOutOfTheArenaServerTreeUnlessTheUserAllowsIt()
+    {
+        const string defaultFile = """
+            {
+              "schema": 1,
+              "mods": [
+                { "guid": "com.example.servermod", "name": "Server Mod", "kind": "mod", "serverVersion": "1.0.0" },
+                { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "serverVersion": "4.5.1" }
+              ],
+              "deny": [ "com.example.servermod" ]
+            }
+            """;
+        var mods = new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1"),
+            Unit("com.example.servermod", "Server Mod", "1.0.0"),
+        };
+
+        var denied = ArenaWhitelistDecision.Evaluate(Load(defaultFile), ArenaWhitelistSide.Server, mods);
+        Assert.Equal(new[] { "me.sol.sain" }, denied.Allowed.Select(u => u.Guid).ToArray());
+        Assert.Equal("denied", Assert.Single(denied.Excluded).Reason);
+
+        var lifted = ArenaWhitelistDecision.Evaluate(
+            Load(defaultFile, """{ "schema": 1, "allow": [ { "guid": "com.example.servermod", "serverVersion": "1.0.1" } ] }"""),
+            ArenaWhitelistSide.Server, mods);
+        Assert.Empty(lifted.Excluded);
+        Assert.Equal("Server Mod: version 1.0.0 differs from reviewed 1.0.1", Assert.Single(lifted.Warnings));
+    }
+
+    [Fact]
+    public void AReportCarriesTheDeniedReasonThroughJson()
+    {
+        var policy = Load(DenyDefault);
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("com.example.bad", "Bad", "1.0.0"),
+            Unit("com.example.other", "Other", "1.0.0"),
+        });
+
+        var report = ArenaGateReport.FromDecision(policy, decision, null!);
+        Assert.True(ArenaGateReport.TryParse(report.ToJson(), out var parsed, out var error), error);
+
+        Assert.Equal(new[] { "denied", "not-on-whitelist" }, parsed!.Excluded.Select(u => u.Reason).ToArray());
+        Assert.Equal(policy.Hash, parsed.PolicyHash);
+    }
+
     // ------------------------------------------------------------------ hash
 
     [Fact]
@@ -1692,6 +2214,42 @@ public sealed class ArenaWhitelistTests
         MustDiffer("a denied unit in blacklist mode", Load(SmallDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.x" ] }"""));
         MustDiffer("another denied unit in blacklist mode", Load(SmallDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.y" ] }"""));
         MustDiffer("a denied patcher in blacklist mode", Load(SmallDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "x.dll" ] }"""));
+        MustDiffer("a default deny", Load(WithDefaultDeny(SmallDefault, "com.example.x")));
+        MustDiffer("another default deny", Load(WithDefaultDeny(SmallDefault, "com.example.y")));
+        MustDiffer("a default denied patcher", Load(WithDefaultDeny(SmallDefault, "x.dll")));
+        MustDiffer("a second default deny", Load(WithDefaultDeny(SmallDefault, "com.example.x", "com.example.y")));
+        MustDiffer("a user allow that lifts a default deny",
+            Load(WithDefaultDeny(SmallDefault, "com.example.x"), """{ "schema": 1, "allow": [ { "guid": "com.example.x" } ] }"""));
+    }
+
+    /// <summary>The same default file with a deny list of the given names added.</summary>
+    private static string WithDefaultDeny(string defaultJson, params string[] names)
+        => defaultJson.Replace("\"schema\": 1,", "\"schema\": 1, \"deny\": [ " + string.Join(", ", names.Select(n => "\"" + n + "\"")) + " ],");
+
+    [Fact]
+    public void PolicyHashIgnoresOrderCaseDuplicatesAndThePathFormOfDefaultDeniedNames()
+    {
+        string reference = Load(WithDefaultDeny(EmptyDefault, "com.example.a", "com.example.b", "x.dll")).Hash;
+
+        Assert.Equal(reference, Load(WithDefaultDeny(EmptyDefault, "BepInEx/patchers/X.DLL", "COM.EXAMPLE.B", "com.example.a", "com.example.a")).Hash);
+        Assert.NotEqual(reference, Load(WithDefaultDeny(EmptyDefault, "com.example.a", "com.example.b")).Hash);
+        Assert.NotEqual(reference, Load(WithDefaultDeny(EmptyDefault, "com.example.a", "com.example.b", "x.dll", "y.dll")).Hash);
+        Assert.NotEqual(Load(EmptyDefault).Hash, reference);
+    }
+
+    [Fact]
+    public void ADefaultDenyAndAUserDenyOfTheSameNamesAreDifferentPolicies()
+    {
+        // A user deny is the whole filter in blacklist mode and nothing in whitelist mode; a default deny is
+        // part of the build. The canonical text keeps them apart, so a hash never stands for both.
+        string defaultDeny = Load(WithDefaultDeny(EmptyDefault, "com.example.a")).Hash;
+        string userDeny = Load(EmptyDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.a" ] }""").Hash;
+        string both = Load(WithDefaultDeny(EmptyDefault, "com.example.a"),
+            """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.a" ] }""").Hash;
+
+        Assert.Equal(3, new HashSet<string> { defaultDeny, userDeny, both }.Count);
+        // In whitelist mode a user deny of a unit nothing lists is no policy change; a default deny is.
+        Assert.Equal(defaultDeny, Load(WithDefaultDeny(EmptyDefault, "com.example.a"), """{ "schema": 1, "deny": [ "com.example.b" ] }""").Hash);
     }
 
     [Fact]
@@ -1739,6 +2297,18 @@ public sealed class ArenaWhitelistTests
         // pinned whitelist hash above: change this value only on purpose, together with the spec.
         Assert.Equal("d909483c706fa307", Load(EmptyDefault, """{ "schema": 1, "unlisted": "allow" }""").Hash);
         Assert.Equal("660edbd88b08c0e4", Load(EmptyDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.bad", "Bad.dll" ] }""").Hash);
+    }
+
+    [Fact]
+    public void PolicyHashHasAPinnedValueForTheDefaultDenyCanonicalText()
+    {
+        // The default-denied lines are part of the canonical text. The pins above did not change when the default
+        // deny list was introduced: a default file without one hashes exactly as before. These two values were
+        // cross-checked with an independent FNV-1a implementation of the documented text. Same rule: change them
+        // only on purpose, together with the spec.
+        Assert.Equal("35a98336da50139b", Load(WithDefaultDeny(EmptyDefault, "com.example.bad", "Bad.dll")).Hash);
+        Assert.Equal("691ca16b33aeb510", Load(WithDefaultDeny(EmptyDefault, "com.example.bad", "Bad.dll"),
+            """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.other" ] }""").Hash);
     }
 
     [Fact]
@@ -2000,7 +2570,7 @@ public sealed class ArenaWhitelistTests
     // ------------------------------------------------------------------ the pieces together
 
     [Fact]
-    public void ShippedPolicyKeepsSainAndFriendsAndExcludesATypicalForeignMod()
+    public void ShippedPolicyKeepsTheInstalledModsAndExcludesTheRefusedOnesAndAForeignMod()
     {
         var policy = Load(File.ReadAllText(ShippedDefaultPath));
         var installed = new[]
@@ -2016,20 +2586,26 @@ public sealed class ArenaWhitelistTests
             Unit("xyz.drakia.waypoints", "Waypoints", "1.9.0"),
             Unit("com.acidphantasm.botplacementsystem", "ABPS", "2.1.0"),
             Unit("com.maschine.UiBridge", "UiBridge", "0.9.4"),
-            Unit("com.maschine.Killcam", "Killcam", "1.0.0"),
-            Unit("com.tyfon.uifixes", "UIFixes", "2.4.0"),
+            Unit("com.maschine.Killcam", "Killcam", "1.0.1"),
+            Unit("com.tyfon.uifixes", "UIFixes", "6.0.3"),
+            Unit("com.chazut.orbit", "ORBIT", "1.0.0"),
+            Unit("com.danw.questingbots", "Questing Bots", "1.0.0"),
+            Unit("com.example.foreign", "Foreign Mod", "1.0.0"),
         };
 
         var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, installed);
 
-        Assert.Equal(new[] { "Killcam", "UIFixes" }, decision.Excluded.Select(u => u.DisplayName).ToArray());
-        Assert.Equal(11, decision.Allowed.Count);
+        Assert.Equal(new[] { "ORBIT", "Questing Bots", "Foreign Mod" }, decision.Excluded.Select(u => u.DisplayName).ToArray());
+        Assert.Equal(new[] { "denied", "denied", "not-on-whitelist" }, decision.Excluded.Select(u => u.Reason).ToArray());
+        Assert.Equal(13, decision.Allowed.Count);
         Assert.Empty(decision.Warnings);
         Assert.Equal("whitelist", Find(decision.Allowed, "xyz.drakia.bigbrain").Reason);
+        Assert.Equal("whitelist", Find(decision.Allowed, "com.maschine.Killcam").Reason);
+        Assert.Equal("whitelist", Find(decision.Allowed, "com.tyfon.uifixes").Reason);
     }
 
     [Fact]
-    public void ShippedPolicyAsABlacklistKeepsTheReviewedModsAndOnlyExcludesWhatTheUserDenied()
+    public void ShippedPolicyAsABlacklistStillRefusesTheDefaultDeniedModsAndAddsWhatTheUserDenied()
     {
         var policy = Load(File.ReadAllText(ShippedDefaultPath), """
             { "schema": 1, "unlisted": "allow", "deny": [ "com.tyfon.uifixes" ] }
@@ -2040,15 +2616,19 @@ public sealed class ArenaWhitelistTests
             Unit("com.maschine.ArenaMode", "ArenaMode", "0.1.3"),
             Unit("me.sol.sain", "SAIN", "4.5.2", "xyz.drakia.bigbrain"),
             Unit("xyz.drakia.bigbrain", "BigBrain", "1.5.0"),
-            Unit("com.maschine.Killcam", "Killcam", "1.0.0"),
-            Unit("com.tyfon.uifixes", "UIFixes", "2.4.0"),
+            Unit("com.maschine.Killcam", "Killcam", "1.0.1"),
+            Unit("com.tyfon.uifixes", "UIFixes", "6.0.3"),
+            Unit("com.chazut.orbit", "ORBIT", "1.0.0"),
+            Unit("com.example.foreign", "Foreign Mod", "1.0.0"),
         };
 
         var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, installed);
 
-        Assert.Equal("UIFixes", decision.DescribeExcluded());
-        Assert.Equal("denied-by-user", decision.Excluded[0].Reason);
-        Assert.Equal("unlisted-allowed", Find(decision.Allowed, "com.maschine.Killcam").Reason);
+        Assert.Equal("UIFixes, ORBIT", decision.DescribeExcluded());
+        Assert.Equal("denied-by-user", Find(decision.Excluded, "com.tyfon.uifixes").Reason);
+        Assert.Equal("denied", Find(decision.Excluded, "com.chazut.orbit").Reason);
+        Assert.Equal("unlisted-allowed", Find(decision.Allowed, "com.example.foreign").Reason);
+        Assert.Equal("whitelist", Find(decision.Allowed, "com.maschine.Killcam").Reason);
         Assert.Equal("whitelist", Find(decision.Allowed, "me.sol.sain").Reason);
         Assert.Equal("SAIN: version 4.5.2 differs from reviewed 4.5.1", Assert.Single(decision.Warnings));
     }

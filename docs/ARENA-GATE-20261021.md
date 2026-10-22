@@ -64,9 +64,12 @@ never be the code that loads that assembly.
   of `PluginInfo` lists. Nothing calls it after `Finish()` (only BepInEx's own patcher scan, long
   done; no installed mod or patcher references `FindPluginTypes`), and the postfix ignores anything
   but the chainloader's plugin directory. It is a hazard only for a future caller.
-- The default list has no entry for ArenaMapPort, PitFireTeam, DynamicMaps or Killcam, so in an
-  Arena session they are excluded (see the shared agent's open issue). The installed game
-  excludes 29 of its 42 plugins and allows 13 with no warning.
+- The default list of 2026-10-21 had no entry for ArenaMapPort, PitFireTeam, DynamicMaps or Killcam, so in an
+  Arena session they were excluded (29 of 42 installed plugins excluded, 13 allowed with no warning). Since
+  2026-10-22 the default list allows every installed mod and denies five (ORBIT, Questing Bots, Adaptive Bot
+  Culling, ISB Special Forces, Aishi); the real-install scenario then allows all 41 plugins of the host, with no
+  warning. A unit the default file denies is excluded with the reason `denied` (the user's deny: `denied-by-user`,
+  absent from the list: `not-on-whitelist`); the gate's patcher warning names the list too.
 
 ## Offline checks
 
@@ -77,23 +80,26 @@ Roslyn against the game's own `mscorlib`, and runs one scenario per process unde
 and `PatchAndLoad` (with BepInEx's real entry-point patcher patching a copy of the game's
 `UnityEngine.CoreModule`) and then the same `FindPluginTypes<PluginInfo>` call that
 `Chainloader.Start()` makes. Dummy plugins are generated with Cecil and carry real `BepInPlugin`
-and `BepInDependency` metadata. 12 scenarios, 321 checks:
+and `BepInDependency` metadata. 13 scenarios, 383 checks (since 2026-10-22; `default-deny` is new):
 
 | Scenario | Proves |
 |---|---|
 | inert | no flag: no Harmony patch, no log source, no report, every patcher and plugin untouched, even with an unreadable policy |
 | full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), built-in patcher intact, no Unity assembly before the patched CoreModule |
-| user-file / user-garbage | user allow and deny, platform units undeniable, unparsable user file ignored with a warning |
-| user-blacklist | `"unlisted": "allow"` with a deny list: everything not denied is allowed (`unlisted-allowed`, no warning of its own), denied plugins are excluded (`denied-by-user`), a denied hard dependency of an unlisted plugin is still pulled in with the override warning, every preloader patcher runs except the denied ones |
+| user-file / user-garbage | user allow and deny, platform units undeniable, unparsable user file ignored with a warning; a user allow lifts a default deny (ORBIT); the patcher warning names the user's deny |
+| default-deny | the shipped file plus extra default denies (a plugin, an allowed patcher, a patcher that sorts before the gate): reason `denied`, a listed-and-denied patcher is denied and reported, the patcher warning says `is denied by the default policy list` |
+| user-blacklist | `"unlisted": "allow"` with a deny list: everything not denied is allowed (`unlisted-allowed`, no warning of its own), denied plugins are excluded (`denied-by-user`; the shipped default's deny of ORBIT still holds, reason `denied`), a denied hard dependency of an unlisted plugin is still pulled in with the override warning, every preloader patcher runs except the denied ones |
 | bad-default / missing-default | policy unusable: inactive report with the reason, no patch, no patcher touched, Error line |
 | no-core-module | the gate refuses to install and loads no Unity assembly itself |
 | postfix-failure | malformed plugin info: no exception, lists unchanged, report inactive, later scans unfiltered, the Error line says that the neutralised patchers stay off |
 | control-early-install | negative control: patching during `Initialize` is detected as an early Unity load |
-| baseline-real / real-install | the 42 plugins of the installed game, decided by the policy code from units read in a separate gate-free process |
+| baseline-real / real-install | the 41 plugins of the installed game, decided by the policy code from units read in a separate gate-free process; the WTT patcher is on the default list now and runs untouched |
 
-Eleven mutants of the gate (install in `Initialize`, no flag check, nothing removed, patchers not
+Fourteen mutants of the gate (install in `Initialize`, no flag check, nothing removed, patchers not
 neutralised, unlisted patchers neutralised in blacklist mode, entry-point patcher neutralised, every directory filtered, soft dependency pulled in,
-postfix may throw, patchers named at Debug, "stay off" not said) are compiled and must each fail a scenario; all do, for the intended reason.
+postfix may throw, patchers named at Debug, "stay off" not said, patcher warning does not name the default
+deny, patcher warning does not name the user's deny, Debug exclusion line without the reason) are compiled and
+must each fail a scenario; all do, for the intended reason.
 
 Not covered, because it needs the game: the player Mono instead of the editor Mono (same version,
 different build), the real chainloader and Unity start, `FixPluginTypesSerialization` and the other
@@ -105,10 +111,13 @@ real patchers, and anything ArenaMode does with the report.
    number of `Enabled patch` lines, no `maschine-ArenaMode.Gate` log source.
 2. An Arena session start: BepInEx starts at all (`Chainloader started`), no
    "loaded too early ... UnityEngine.CoreModule" warning, the Info line
-   `Arena session: N preloader patchers switched off: ...` (WTT-ContentBackportPatcher and any other foreign
-   patcher) among the preloader's lines, the Info line
+   `Arena session: N preloader patchers switched off: ...` among the preloader's lines, written only when a
+   patcher outside the default list is installed (with the default list of 2026-10-22 a host that has just
+   FixPluginTypesSerialization, maschine-LogTools, spt-prepatch and WTT-ContentBackportPatcher switches none off:
+   the line is not written, and the WTT patcher has to run), the Info line
    `Arena session: N plugins allowed, M excluded, K warnings` after `Chainloader started`, a Debug
-   line per excluded plugin (Debug needs the disk log level; the host has `All`), and
+   line per excluded plugin (none when every installed plugin is allowed, as with the default list of
+   2026-10-22 on the development hosts; Debug needs the disk log level, the host has `All`), and
    `Chainloader.PluginInfos` equal to the allowed list.
 3. The patcher order in the log matches the one above, and no "initializer ran before the gate"
    warning appears.
