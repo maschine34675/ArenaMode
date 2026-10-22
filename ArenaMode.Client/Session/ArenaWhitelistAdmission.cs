@@ -48,7 +48,9 @@ namespace ArenaMode.Session;
 ///
 /// <see cref="GetRejectionReason"/> is polled from UI frames. It performs no network I/O and reads
 /// the two small policy files only when its inputs change (a new server ping, a different plugin
-/// count), so the answer is cached per ping generation. Main thread only.
+/// count, or a policy file whose length or last-write time changed, which the side screen checks when
+/// it opens and the session start when it is requested), so the answer is cached per ping generation.
+/// Main thread only.
 /// </summary>
 internal static class ArenaWhitelistAdmission
 {
@@ -150,18 +152,19 @@ internal static class ArenaWhitelistAdmission
     }
 
     /// <summary>
-    /// Called by the side-selection screen before it evaluates eligibility: makes sure the server's
-    /// ping is known when the answer depends on it (always in an Arena session; in a normal session
-    /// only when the client side alone already shows excluded mods). The ping carries the server's
-    /// mods and the Arena-instance flag. The wait is bounded (<see cref="ProbeBudgetMilliseconds"/>)
-    /// and never throws; a ping that does not arrive in time simply leaves them unknown, and the
-    /// explicit Arena click asks again.
+    /// Called by the side-selection screen before it evaluates eligibility: first drops the cached
+    /// outcome when a policy file changed since it was computed (<see cref="InvalidateIfPolicyChanged"/>),
+    /// then makes sure the server's ping is known when the answer depends on it (always in an Arena
+    /// session; in a normal session only when the client side alone already shows excluded mods). The
+    /// ping carries the server's mods and the Arena-instance flag. The wait is bounded
+    /// (<see cref="ProbeBudgetMilliseconds"/>) and never throws; a ping that does not arrive in time
+    /// simply leaves them unknown, and the explicit Arena click asks again.
     /// </summary>
     internal static void PrepareForScreen()
     {
         try
         {
-            InvalidateIfPolicyChanged();
+            InvalidateIfPolicyChanged("screen");
             if (ArenaServerClient.IsServerModKnownAvailable || HasFika()) return;
             // Nothing to ask without a policy either: that refusal names the installation, not the server.
             if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;
@@ -175,7 +178,9 @@ internal static class ArenaWhitelistAdmission
 
     /// <summary>
     /// What the session switch needs for an <c>enter</c> request: the policy hash and the server mods
-    /// the Arena server tree may contain, with their folders from the last ping.
+    /// the Arena server tree may contain, with their folders from the last ping. Both come from the
+    /// policy of the moment the player clicks (<see cref="InvalidateIfPolicyChanged"/>), not from the
+    /// one the screen opened with.
     /// </summary>
     internal static bool TryPrepareSessionStart(out string policyHash, out List<ArenaSessionUnit> serverMods, out string error)
     {
@@ -188,6 +193,10 @@ internal static class ArenaWhitelistAdmission
             return false;
         }
 
+        // An edit or a mirrored copy that arrived while the screen stayed open would otherwise travel into
+        // the server tree and be refused after the restart (the gate reads the new file, the marker
+        // carries the old hash): two restarts for nothing.
+        InvalidateIfPolicyChanged("session start");
         var outcome = Current();
         if (outcome.Policy == null || !outcome.SessionPossible)
         {
@@ -220,19 +229,25 @@ internal static class ArenaWhitelistAdmission
     /// <summary>
     /// The policy files can change while the game runs (the user file is edited, or a mirrored copy
     /// arrives). The cached outcome is keyed on the ping generation and the plugin count, so such a
-    /// change would stay invisible until the next ping. Opening the side screen therefore compares
-    /// the files' stamps with the ones the cached outcome was computed from and drops the cache when
-    /// they differ: one look at two files per screen, still no I/O while the menu polls.
+    /// change would stay invisible until the next ping or plugin-count change. Opening the side screen
+    /// and requesting the session start therefore compare the files' stamps with the ones the cached
+    /// outcome was computed from and drop the cache when they differ: one look at two files per screen
+    /// or click, still no I/O while the menu polls. <paramref name="occasion"/> names the caller in the
+    /// log line.
     /// </summary>
-    private static void InvalidateIfPolicyChanged()
+    private static void InvalidateIfPolicyChanged(string occasion)
     {
         if (_outcome == null) return;
         if (string.Equals(PolicyStamp(), _outcomePolicyStamp, StringComparison.Ordinal)) return;
         _outcome = null;
-        Plugin.ModLogger?.LogDebug("Arena whitelist: a policy file changed; the admission is evaluated again.");
+        Plugin.ModLogger?.LogDebug("Arena whitelist: a policy file changed; the admission is evaluated again for the "
+            + occasion + ".");
     }
 
-    /// <summary>Length and last-write time of both policy files; a file that cannot be read stamps as "?".</summary>
+    /// <summary>
+    /// Length and last-write time of both policy files: "-" for a file that does not exist, "?" for one whose
+    /// metadata cannot be read. The content is not read here.
+    /// </summary>
     private static string PolicyStamp()
         => FileStamp(DefaultPolicyPath()) + "|" + FileStamp(UserPolicyPath());
 

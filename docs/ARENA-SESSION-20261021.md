@@ -734,10 +734,14 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
     Without a ping (not yet answered) there is no server to judge and no hash to compare: 5 to 7 wait for it, and
     the explicit Arena click asks again. The refusal leaves the RETURN TO NORMAL SESSION action.
     The outcome is cached per ping generation and plugin count (menu polling does no I/O); opening the side
-    screen compares the two policy files' length and last-write time with the stamp the cached outcome was
-    computed from and evaluates again when they differ, so a user file edited or mirrored onto the machine while
-    the game runs is noticed at the next screen, in both session kinds (fourth pass, after a GPU run showed the
-    stale cache).
+    screen and requesting the session start (START ARENA SESSION) first compare the length and last-write time
+    of the two policy files of section 3 with the stamps the cached outcome was computed from and evaluate
+    again when they differ (a Debug line names the occasion; the known ping is reused, nothing is asked again),
+    so a user file edited or mirrored onto the machine while the game runs is noticed at the next screen or
+    click, in both session kinds. A change that only widens the policy (the one-line override of section 3
+    arriving in a running session) is evaluated the same way and refuses nothing: the session keeps running
+    without the mods it did not load until it is started again, and nothing tells the player so (2026-10-22,
+    after a run on SPT-GPU-2 showed the stale cache).
   - Normal session: evaluate `Chainloader.PluginInfos`, the preloader patchers and the server's `serverMods` with
     the same policy. A patcher is every `*.dll` below `Paths.PatcherPluginPath` (`BepInEx\patchers`, at any depth,
     the files BepInEx and the gate see) that can be a patcher (below), identified by file name, once per name, and is
@@ -890,6 +894,12 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
     installed plugin that the default list does not name; the session's Arena menu refuses with `This game loaded
     <name>, which the current policy excludes: the policy changed during the switch. ...` and RETURN TO NORMAL
     SESSION works. With the same policy it admits.
+12. The policy edited while the session runs (2026-10-22): in a healthy Arena session whose side screen was opened
+    once, mirror a user file onto the machine that denies a loaded mod (`{"schema":1,"deny":["me.sol.sain"]}`),
+    close and reopen the side screen: it refuses with `This game loaded SAIN, which the current policy excludes:
+    the policy changed during the switch. ...`, RETURN TO NORMAL SESSION works, and no new ping was asked for.
+    A file that only widens the policy (the one-line override) is re-read the same way (the Debug line) and the
+    session stays admitted.
 
 Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all five passed:
 
@@ -919,6 +929,17 @@ report, not re-observed by the pass that writes it down; items 6 to 11 above wer
 
 Follow-up fixed after the run: the refusal named a mod with differently named client and server parts
 twice ("DynamicMaps, Dynamic Maps"); the list is now de-duplicated by GUID.
+
+Third run on SPT-GPU-2, 2026-10-22 (build `380f696`: the review fixes of this date plus the policy stamp; the throwaway
+probe plugin of the second run installed again; items 2, 3, 4, 12 and the handshake of item 6):
+
+| Step | Observed |
+|---|---|
+| Normal session with the probe, no user file | ARENA disabled: `Arena runs only with whitelisted mods. Not on the whitelist: ArenaWhitelistProbe. Start an Arena session to play Arena without them; the game restarts.`; START ARENA SESSION with its two clicks. |
+| Enter | The game quit only after the helper's acknowledgement; main menu of the session after 48 s; gate `40 plugins allowed, 1 excluded, 0 warnings` (the probe, `not-on-whitelist`); the side screen shows the ARENA SESSION notice, ARENA preselected. |
+| The override arrives in the running session | About 60 s after the file was written on the mirroring machine it was on the host; closing and reopening the side screen logged `a policy file changed; the admission is evaluated again`; the session stayed admitted (nothing it runs is excluded). |
+| A deny of SAIN arrives | Reopening the side screen refused: `ARENA UNAVAILABLE This game loaded SAIN, which the current policy excludes: the policy changed during the switch. Return to the normal session and start the Arena session again.`, ARENA locked, RETURN TO NORMAL SESSION offered; the Warning `Arena session refused: ...` logged once; no ping request. Before the stamp (the build of the second run) the same file arrived unnoticed: the cached outcome kept admitting until the next ping. |
+| Leave | RETURN TO NORMAL SESSION needs its two clicks inside the confirm window (a single click arms and expires); the leave of the previous build took 41 s to the normal main menu, the one of this build was not timed. Afterwards 40 plugins (probe and user file removed meanwhile), ARENA selectable, no note. |
 
 ## 11. Changes since the first draft
 
@@ -1191,3 +1212,18 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   it among the 17 tests run against them: the wildcard filter by equality (the two listener tests), the open with
   backup semantics (the test of `OpenFileForWriting`), a log that refuses a linked folder (the write-through test). Not covered:
   a GPU run (the helper binary changed: every installation of one Windows user receives it together with the client, as before).
+- Section 7 (2026-10-22, after the review fixes ran on SPT-GPU-2). The admission outcome was cached per ping generation and
+  plugin count, so a policy file changed while the game ran (the user file edited, or mirrored by Syncthing) stayed
+  invisible until the next ping: in the Arena session of the GPU run the refusals of checks 5 to 7 never fired for a file
+  that arrived after the first screen. Opening the side screen and requesting the session start now compare the length
+  and last-write time of both policy files with the stamps the cached outcome was computed from and evaluate again when
+  they differ (`ArenaWhitelistAdmission.InvalidateIfPolicyChanged`, a Debug line names the occasion); menu polling
+  still does no I/O, and the known ping is reused. Found by the run, not by the review. Reviewed once more (three
+  lenses, each finding checked by a skeptic): the START ARENA SESSION click still built its request from the cached
+  outcome (an edit while the screen stayed open travelled into the server tree and was refused after the restart: two
+  restarts for nothing; fixed), the harness pinned only the user file's creation (now also its deletion, an edited
+  default file, the Arena session kind, the click, and that an unchanged file re-evaluates nothing and pings nothing),
+  and the class summary named two triggers. Not changed: a widening change is noticed but produces no note (section 7).
+  Evidence: `ArenaSessionClientChecks` 679 assertions, 163 mutants rejected (seven on the stamp: invalidation
+  removed, the user file or the default file left out of the stamp, the stamp never recorded, the equality check
+  removed, the session kind skipped, the click without the check); the third run of section 10.

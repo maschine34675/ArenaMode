@@ -640,7 +640,8 @@ internal static partial class Program
         Require(ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("\"deny\" must be an array") && w.Contains("ignored")),
             "The ignored blacklist file is reported");
 
-        // The answer is cached per ping generation: a file change needs a new ping.
+        // The answer is cached per ping generation: polling alone never re-reads a changed file (a new ping
+        // does, and so do the screen and the session start, see CheckPrepareForScreen).
         ResetWorld();
         AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
         Ping(false, NormalServerMods());
@@ -812,16 +813,58 @@ internal static partial class Program
         // A policy file edited while the screen was closed (or mirrored onto the machine) is noticed
         // when the screen opens: the cached outcome stays until then, so menu polling does no I/O.
         ResetWorld();
+        ArenaServerClient.OnRefresh = () => Ping(false, NormalServerMods());
         Ping(false, NormalServerMods());
         Require(Reason() == null, "A clean normal session admits before the policy edit");
         WriteUserPolicy("{\"schema\":1,\"deny\":[\"me.sol.sain\"]}");
         Require(Reason() == null, "A policy edit alone does not re-evaluate the cached outcome");
+        int refreshes = ArenaServerClient.RefreshCalls;
         ArenaWhitelistAdmission.PrepareForScreen();
         Require(Reason() != null && Reason().Contains("Blocked for Arena: SAIN"),
             "A policy file edited while the screen was closed is read again when it opens");
+        Require(ArenaServerClient.RefreshCalls == refreshes, "The re-evaluation reuses the known ping");
+        int reevaluations = Reevaluations();
         ArenaWhitelistAdmission.PrepareForScreen();
-        Require(Reason() != null && Reason().Contains("Blocked for Arena: SAIN"), "An unchanged policy keeps the outcome");
+        Require(Reason() != null && Reason().Contains("Blocked for Arena: SAIN") && Reevaluations() == reevaluations,
+            "An unchanged policy keeps the outcome");
+        File.Delete(_userPolicyPath);
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() == null, "A deleted user file is noticed too");
+        WritePolicy(string.Join("\n", _repoPolicyText.Split('\n').Where(l => !l.Contains("\"me.sol.sain\""))));
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() != null && Reason().Contains("Not on the whitelist: ") && Reason().Contains("SAIN"),
+            "An edited default file is noticed as well");
+
+        // The START ARENA SESSION click builds its request from the policy of the moment, not from the one
+        // the screen opened with (the screen stays open while a file changes).
+        ResetWorld();
+        AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
+        Ping(false, NormalServerMods());
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out string hashBefore, out var modsBefore, out _)
+                && modsBefore.Any(m => m.Guid == "me.sol.sain"),
+            "The session start before the edit carries SAIN's server part");
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"me.sol.sain\"]}");
+        Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out string hashAfter, out var modsAfter, out _)
+                && !string.Equals(hashAfter, hashBefore, StringComparison.Ordinal) && !modsAfter.Any(m => m.Guid == "me.sol.sain"),
+            "The session start is built from the policy of the moment");
+
+        // The same in an Arena session: a mod the policy of the moment excludes refuses at the next screen.
+        ResetWorld();
+        ArenaServerClient.OnRefresh = () => Ping(true, NormalServerMods());
+        ArenaSession(ReportActive);
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() == null, "The Arena session admits before the policy edit");
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"me.sol.sain\"]}");
+        Require(Reason() == null, "A policy edit alone does not re-evaluate the session either");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() != null && Reason().Contains("which the current policy excludes"),
+            "A policy file edited while the Arena session runs refuses at the next screen");
     }
+
+    /// <summary>How often the admission dropped its cache for a changed policy file (the Debug line).</summary>
+    private static int Reevaluations()
+        => ArenaMode.Plugin.ModLogger.Debug.Count(d => d.StartsWith("Arena whitelist: a policy file changed", StringComparison.Ordinal));
 
     // ------------------------------------------------------------------ Arena session
 

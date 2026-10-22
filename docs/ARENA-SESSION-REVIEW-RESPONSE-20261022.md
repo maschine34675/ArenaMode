@@ -1,7 +1,9 @@
 # Arena session: answer to the external review (2026-10-22)
 
-Status: written on branch `feature/arena-session-review-fixes`, 2026-10-22. Nothing is committed. The changes
-below have offline checks only (unit tests, the harnesses under `tools/`); no GPU host has run them. The binding
+Status: written on branch `feature/arena-session-review-fixes`, 2026-10-22, committed there (`baf396e`; the policy stamp
+the GPU run exposed in `380f696`, its review fixes after it) and merged into master the same day. Checked by the unit
+tests and the harnesses under `tools/`; SPT-GPU-2 ran enter, leave, the helper handshake and the mid-session policy
+change (spec section 10, third run); items 10 and 11 of that section keep offline checks only. The binding
 specification is [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md); every change below is also recorded in its
 section 11.
 
@@ -226,3 +228,13 @@ linked folder); each failed exactly the tests named for it. `Verify-SessionPing.
 - **Still to run on a GPU host** (spec section 10, items 6 to 8, plus the review's list): the build with these changes, normal to
   Arena to normal with profile and client data checked, respawns, PFT, a policy file changed during the switch, a helper made to
   fail during the hand-over, and a throwaway patcher in `BepInEx\patchers`.
+
+## After the review: what the GPU run added
+
+The run of the fixes on SPT-GPU-2 (spec section 10, third run) found one thing the review did not: the admission
+outcome was cached per ping generation and plugin count, so a policy file that changed while the game ran stayed
+invisible until the next ping, and in an Arena session the refusals for a changed policy never fired for a file that
+arrived after the first screen. The side screen and the START ARENA SESSION click now compare the files' length and
+last-write time with the cached outcome's stamps and evaluate again when they differ (spec section 7 and section 11,
+last entry). A change that only widens the policy is noticed the same way and refuses nothing; the session keeps
+running without the mods it did not load, and nothing tells the player so: a known gap, not a safety one.

@@ -7,8 +7,9 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
-- **Arena session review fixes (2026-10-22, branch `feature/arena-session-review-fixes`, offline checks only for the
-  changes, nothing committed):** an external review (Codex, HEAD `1713f5f`, `artifacts/session-review-20261022/root/report.md`,
+- **Arena session review fixes (2026-10-22, branch `feature/arena-session-review-fixes`, committed there and merged
+  into master the same day; enter, leave, the handshake and the mid-session policy change ran on SPT-GPU-2, spec
+  section 10 third run):** an external review (Codex, HEAD `1713f5f`, `artifacts/session-review-20261022/root/report.md`,
   German, no game or server run) raised five release findings and five trade-offs; the answer to each is
   [ARENA-SESSION-REVIEW-RESPONSE-20261022.md](ARENA-SESSION-REVIEW-RESPONSE-20261022.md), the contract is spec sections 3 to 8,
   10 and 11. Changed: deny wins over hard dependencies on the client and for server mods (`requires-denied:<guid>`, listed
@@ -55,11 +56,14 @@ current. User-facing communication is normally German.
   (`CanConnect` makes the socket of the literal's family; new `tools/ArenaSessionHelperNet472Checks`, Windows PowerShell 5.1
   against the built exe); the `helper.log` parent-folder wording; this entry. Checks (all with the no-deploy properties):
   `dotnet build ArenaMode.sln` 0 errors; unit tests 2188 passed, 2 skipped (they need the installed game), 0 failed (2074 after
-  the second pass); `ArenaSessionClientChecks` 667 assertions, 156 mutants rejected (634 and 141 after the second pass);
+  the second pass); `ArenaSessionClientChecks` 679 assertions, 163 mutants rejected (667 and 156 before the policy-stamp follow-up, 634 and 141
+  after the second pass);
   `ArenaGateChecks` 17 scenarios, 617 checks, 35 mutants rejected; `ArenaSessionHelperNet472Checks` 7 checks, 3 mutants
   rejected (new). Not rerun in this pass: `Verify-SessionPing` (785 assertions, 13 mutants after the second pass),
-  `OptionalModAdmissionChecks`, `ArenaAvailabilityChecks`. Open: none of the third pass has run on a GPU host (spec section 10
-  items 10 and 11, and the changed helper binary: a real enter and leave).
+  `OptionalModAdmissionChecks`, `ArenaAvailabilityChecks`. The GPU run of the same day (spec section 10, third run, build `380f696`)
+  covered a real enter and leave with the changed helper binary, the handshake and the policy edited while the session
+  runs, and exposed the stale admission cache (fixed, spec section 11, last entry); items 10 and 11 of section 10 keep
+  offline checks only.
   **GPU evidence of the same day (SPT-GPU-2, 2026-10-22, build `1713f5f` = HEAD before these fixes; the two entries
   below were written with offline checks only and refer back to this one):** a normal session with every installed mod on the default list started an Arena
   deathmatch directly (no refusal, no warning); a throwaway probe plugin that is not on the list refused Arena with

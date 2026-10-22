@@ -171,11 +171,26 @@ Invoke-Mutant 'admission-refusal-text' 'admission' `
     'Start an Arena session to play Arena without them; the game restarts.' 'Start a session.' `
     'The spec''s refusal text, with the session sentence'
 Invoke-Mutant 'admission-policy-edit-unnoticed' 'admission' `
-    'InvalidateIfPolicyChanged();' '' `
+    'InvalidateIfPolicyChanged("screen");' '' `
     'A policy file edited while the screen was closed is read again when it opens'
 Invoke-Mutant 'admission-policy-stamp-ignores-user-file' 'admission' `
     '=> FileStamp(DefaultPolicyPath()) + "|" + FileStamp(UserPolicyPath());' '=> FileStamp(DefaultPolicyPath());' `
     'A policy file edited while the screen was closed is read again when it opens'
+Invoke-Mutant 'admission-policy-stamp-ignores-default-file' 'admission' `
+    '=> FileStamp(DefaultPolicyPath()) + "|" + FileStamp(UserPolicyPath());' '=> FileStamp(UserPolicyPath());' `
+    'An edited default file is noticed as well'
+Invoke-Mutant 'admission-policy-stamp-never-recorded' 'admission' `
+    '_outcomePolicyStamp = PolicyStamp();' '' `
+    'An unchanged policy keeps the outcome'
+Invoke-Mutant 'admission-policy-always-dropped' 'admission' `
+    'if (string.Equals(PolicyStamp(), _outcomePolicyStamp, StringComparison.Ordinal)) return;' '' `
+    'An unchanged policy keeps the outcome'
+Invoke-Mutant 'admission-policy-edit-unnoticed-in-session' 'admission' `
+    'InvalidateIfPolicyChanged("screen");' 'if (!ArenaSessionMode.IsArenaSession) InvalidateIfPolicyChanged("screen");' `
+    'A policy file edited while the Arena session runs refuses at the next screen'
+Invoke-Mutant 'admission-session-start-stale-policy' 'admission' `
+    'InvalidateIfPolicyChanged("session start");' '' `
+    'The session start is built from the policy of the moment'
 Invoke-Mutant 'admission-always-pings' 'admission' `
     'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
     'A clean normal session needs no ping to open the screen'
