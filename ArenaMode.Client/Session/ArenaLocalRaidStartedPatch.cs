@@ -248,8 +248,6 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             if (!ArenaServerClient.BindNativeEndIdentity(result))
                 throw new InvalidOperationException(
                     "Arena could not bind the native local-end request to its exact arm token.");
-            if (!Compat.ArenaMoreBotsCompatibility.BindProtectedStart(session, settings, result, armToken))
-                throw new InvalidOperationException("Arena could not protect MoreBotsAPI raid-end state.");
             if (captureFailure != null)
                 throw new InvalidOperationException("Arena could not capture its protected entry kit request.", captureFailure);
 

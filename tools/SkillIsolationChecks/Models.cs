@@ -2,13 +2,6 @@ namespace ArenaMode.Config {
     public sealed class Setting<T>(T value) { public T Value=value; }
     public static class Settings { public static Setting<bool> MaxSkills=new(true); }
 }
-namespace ArenaMode.Compat {
-    // This harness covers skill isolation without optional Effects Manager.
-    // Its actual ledger and replacement behavior live in EffectsCompatChecks.
-    internal static class ArenaEffectsCompat {
-        internal static int SkillBonusFor(EFT.Skill skill) => 0;
-    }
-}
 namespace UnityEngine { public static class Time { public static float realtimeSinceStartup, time; } }
 namespace Comfort.Common {
     public static class Singleton<T> where T:class { public static T Instance; public static bool Instantiated=>Instance!=null; }

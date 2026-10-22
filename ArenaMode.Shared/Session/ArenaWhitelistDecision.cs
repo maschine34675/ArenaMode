@@ -77,8 +77,10 @@ namespace ArenaMode.Shared.Session
     /// a unit the policy names is allowed (reason <c>platform</c>, <c>arena</c>, <c>whitelist</c> or
     /// <c>tool</c>); in blacklist mode (<see cref="ArenaWhitelistPolicy.AllowsUnlisted"/>) a unit that
     /// nothing names and neither the user file nor the default file denies is allowed too, with
-    /// reason <c>unlisted-allowed</c> and
-    /// no warning of its own; a hard dependency of an allowed unit that is installed but not allowed
+    /// reason <c>unlisted-allowed</c> and no warning of its own, but the units of that kind are
+    /// announced together by ONE policy-override warning per side (see <see cref="PolicyOverridePrefix"/>),
+    /// so that a user file that turned the whitelist into a blacklist cannot go unnoticed; a hard
+    /// dependency of an allowed unit that is installed but not allowed
     /// (a denied unit, or in whitelist mode any unlisted one) is allowed as well, transitively, with
     /// reason <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
     /// (<c>denied-by-user</c> when the user file's deny list names it, <c>denied</c> when the
@@ -112,6 +114,17 @@ namespace ArenaMode.Shared.Session
         /// </summary>
         public const string ReasonDenied = "denied";
 
+        /// <summary>
+        /// Start of the one warning a decision adds when it allowed at least one unit with reason
+        /// <see cref="ReasonUnlistedAllowed"/>: <c>policy override: 3 unlisted mod(s) allowed by your
+        /// policy file: A, B, C</c>. The reason exists only in blacklist mode, which only the user file
+        /// can switch on, hence "your policy file". The warning comes after the per-unit warnings.
+        /// </summary>
+        public const string PolicyOverridePrefix = "policy override: ";
+
+        /// <summary>The policy-override warning names this many units; the rest is counted (<c>and K more</c>).</summary>
+        public const int PolicyOverrideNamesListed = 6;
+
         private ArenaWhitelistDecision()
         {
             Allowed = new List<ArenaSessionUnit>();
@@ -130,8 +143,16 @@ namespace ArenaMode.Shared.Session
         /// <c>SAIN: version 4.5.2 differs from reviewed 4.5.1</c> and
         /// <c>BigBrain: pulled in as hard dependency of SAIN</c>; a denied unit adds
         /// <c>(overrides the user's deny)</c> or <c>(overrides the default list's deny)</c>.
+        /// In blacklist mode, when at least one unit was allowed as unlisted, the last entry is the
+        /// policy-override warning (<see cref="PolicyOverridePrefix"/>), which names no single unit.
         /// </summary>
         public List<string> Warnings { get; private set; }
+
+        /// <summary>True for the policy-override warning of a decision (it starts with <see cref="PolicyOverridePrefix"/>).</summary>
+        public static bool IsPolicyOverrideWarning(string warning)
+        {
+            return warning != null && warning.StartsWith(PolicyOverridePrefix, StringComparison.Ordinal);
+        }
 
         public bool HasExclusions
         {
@@ -257,7 +278,45 @@ namespace ArenaMode.Shared.Session
                 }
             }
 
+            string policyOverride = DescribePolicyOverride(result.Allowed);
+            if (policyOverride != null) result.Warnings.Add(policyOverride);
+
             return result;
+        }
+
+        /// <summary>
+        /// The policy-override warning for the units this decision allowed because nothing names them,
+        /// or null when there are none. That reason only occurs in blacklist mode, so a whitelist
+        /// (the shipped default, or a user file without <c>"unlisted": "allow"</c>) never gets one.
+        /// Names are the display names, sorted ignoring case; at most
+        /// <see cref="PolicyOverrideNamesListed"/> of them are listed, then <c>and K more</c>.
+        /// </summary>
+        private static string DescribePolicyOverride(List<ArenaSessionUnit> allowed)
+        {
+            var names = new List<string>();
+            foreach (ArenaSessionUnit unit in allowed)
+            {
+                if (!string.Equals(unit.Reason, ReasonUnlistedAllowed, StringComparison.Ordinal)) continue;
+                string name = unit.DisplayName;
+                names.Add(string.IsNullOrWhiteSpace(name) ? "(unnamed)" : name.Trim());
+            }
+
+            if (names.Count == 0) return null;
+
+            // Case-insensitive first; the ordinal tie-break keeps the text the same on every runtime
+            // (List.Sort is not stable).
+            names.Sort(delegate (string a, string b)
+            {
+                int order = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+                return order != 0 ? order : string.CompareOrdinal(a, b);
+            });
+
+            string list = names.Count <= PolicyOverrideNamesListed
+                ? string.Join(", ", names.ToArray())
+                : string.Join(", ", names.GetRange(0, PolicyOverrideNamesListed).ToArray()) + ", and "
+                    + (names.Count - PolicyOverrideNamesListed).ToString(CultureInfo.InvariantCulture) + " more";
+            return PolicyOverridePrefix + names.Count.ToString(CultureInfo.InvariantCulture)
+                + " unlisted mod(s) allowed by your policy file: " + list;
         }
 
         private static string Normalize(string guid)

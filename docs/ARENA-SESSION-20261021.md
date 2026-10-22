@@ -19,7 +19,8 @@ runs only with **whitelisted** mods:
 - Default whitelist besides ArenaMode: **SAIN, APBS, ABPS, BigBrain, Waypoints** (decision 2026-10-21), and since
   2026-10-22 **every mod that is installed on the development hosts** (section 2), minus a **deny list** of the five
   mods ArenaMode already refused by code before the whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling,
-  ISB Special Forces and Aishi. The existing code-level refusals for these stay as they are (separate decision).
+  ISB Special Forces and Aishi. Their code-level refusals were removed on 2026-10-22 (user decision, last entry
+  of section 11): the deny list alone refuses them.
 - A whitelisted mod whose installed version differs from the reviewed version only produces a
   **warning**, never a block.
 - The user may turn the whitelist into a blacklist (`"unlisted": "allow"` in the user file, decision
@@ -27,15 +28,19 @@ runs only with **whitelisted** mods:
   The shipped default is always a whitelist.
 - A normal session whose loaded mods are already all whitelisted may play Arena directly, without
   a restart (it is equivalent to an Arena session except for the disposable profile).
-- No code specific to one foreign mod. Existing adapters under `ArenaMode.Client/Compat` stay as
-  they are; in an Arena session an adapter is dormant only when its mod is absent there (not on the
-  default or user list, or one of the five denied mods). The adapters of the listed mods (PitFireTeam,
-  DynamicMaps, ContinuousHealing, SVM, Killcam, ...) are active in the session.
+- No code specific to one foreign mod. The adapters for twelve foreign mods (MoreBotsAPI, AI Limit, Looting
+  Bots, Remove The Dead, Smoothie, Late To The Party, Classic Movement, StatTrack, Deminvincibility, Skills
+  Extended, Pause Continued, EFT Effects Manager / Broken Limbs) and the code-level refusals of the five denied
+  mods were removed on 2026-10-22. What remains under `ArenaMode.Client/Compat` and in the server
+  (PitFireTeam, DynamicMaps corpse markers, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy, SVM,
+  APBS, BigBrain and the ArenaMapPort gates) is active in an Arena session when its mod is allowed there
+  and dormant when it is absent.
 - Fika is never filtered. With Fika present Arena stays unavailable as today and no session is
   offered.
 
-Non-goals for v1: pausing mods inside a running process, removing existing adapters, Arena with
-Fika, checking enum consistency of denied preloader patchers beyond neutralising them.
+Non-goals for v1: pausing mods inside a running process, Arena with Fika, checking enum consistency
+of denied preloader patchers beyond neutralising them. (Removing the existing adapters was a v1
+non-goal; the user decided it on 2026-10-22, see section 11.)
 
 ## 2. Units and the default list
 
@@ -99,7 +104,7 @@ WTT-ContentBackport's patcher). Every other patcher is neutralised in an Arena s
 The default file also carries a **deny list** (section 3). Its five entries are the mods ArenaMode already refused by
 code before the whitelist existed; the reason in every case is "refused by ArenaMode before the whitelist existed":
 
-| Denied mod | GUID | Refused in code by |
+| Denied mod | GUID | Formerly refused in code by (removed 2026-10-22) |
 |---|---|---|
 | ORBIT | `com.chazut.orbit` | `ArenaOptionalMods` (loaded ORBIT blocks Arena) |
 | Questing Bots | `com.danw.questingbots` | `ArenaOptionalMods` (active Questing Bots blocks Arena) |
@@ -107,9 +112,11 @@ code before the whitelist existed; the reason in every case is "refused by Arena
 | ISB Special Forces | `com.samc137.isbspecialforces` | `ArenaIsbAdmission` and the server ISB admission (client or server components block Arena) |
 | Aishi | `com.samc137.aishi` | `ArenaIsbAdmission` and the server ISB admission |
 
-Those code-level refusals stay: the deny list keeps the mods out of an Arena session and names them as "Blocked for
-Arena" in a normal one; the code keeps refusing them wherever a session cannot filter (for example when the player
-allows one again in the user file). Removing them is a separate decision.
+Those code-level refusals were removed on 2026-10-22 (user decision, section 11). The deny list is now the only
+mechanism: it keeps the mods out of an Arena session and names them as "Blocked for Arena" in a normal one. A user
+`allow` entry lifts it, at the player's own risk. Because nothing else refuses these mods any more, a normal
+session whose shipped whitelist is missing, unreadable or invalid, or whose evaluation fails, refuses Arena
+(section 7); ordinary raids are unaffected.
 
 Libraries without a `BepInPlugin` (for example `maschine-Redeploy.Core.dll`,
 `maschine-ArenaMode.BigBrainCompat.dll`, `spt-common.dll`) are not plugins and are never filtered;
@@ -170,6 +177,19 @@ Consequences: a user `allow` re-enables a default-denied mod; a user `deny` alwa
 (the user file applies its `allow` before its `deny`); in blacklist mode (`"unlisted": "allow"`) the default
 denies still block, because they are not a statement about being unlisted.
 
+**Testing override (user decision 2026-10-22).** The rule stays: what is not on the list blocks Arena and does not
+load in the session. The user's way to test without listing every mod is the blacklist file above, and nothing else
+(no second switch): `{ "schema": 1, "unlisted": "allow" }`. It is made visible. A decision that allowed at least one
+unit with the reason `unlisted-allowed` adds ONE last warning per side (client plugins, server mods):
+`policy override: N unlisted mod(s) allowed by your policy file: <names>`, with the display names sorted ignoring case,
+at most six, then `, and K more`. Units pulled in as dependencies are not counted and a whitelist never gets one. The
+client shows these notes first in the notes line (client note, then server note, not counted into the four-note cap),
+as the second notice line of a refusal and, once ARENA is selected, as an information notice and in the Arena session
+notice, and logs each once at Info. The gate's Info summary line gets the suffix ` (policy override: unlisted mods
+allowed)` whenever the policy allows unlisted units, and its report carries `"unlistedAllowed": true` (the policy's
+mode, whether or not an installed plugin was let through). The user file is mirrored to every machine by the user's
+Syncthing setup, so it has to be removed again after the test (README, "Testing override").
+
 The same rules apply to client plugins and server mods (by GUID) and to preloader patchers (by file
 name). Because `deny` is checked before `unlisted`, a blacklist is just `"unlisted": "allow"` plus a
 `deny` list; `allow` entries are then only needed to attach reviewed versions or to lift a default deny.
@@ -228,7 +248,8 @@ targets.
   `denied-by-user`, `denied`) and `Warnings` (`version <installed> differs from reviewed <reviewed>`, `pulled in
   as hard dependency of <name>`, with ` (overrides the user's deny)` appended for a unit the user denied and
   ` (overrides the default list's deny)` for one only the default file denies).
-  `unlisted-allowed` occurs only in blacklist mode and carries no warning. Closure: a hard dependency
+  `unlisted-allowed` occurs only in blacklist mode and carries no warning of its own; the units of that reason
+  are announced together by the one policy-override warning at the end of `Warnings` (section 3). Closure: a hard dependency
   of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but not allowed (a unit
   either deny list names; in whitelist mode any unlisted one) is allowed with a warning, transitively. Same
   function for the server side, whose hard dependencies are the mod's `ModDependencies`, sent in the ping
@@ -245,7 +266,7 @@ targets.
   - default arena port 6970 (fallback 6971 to 6979 if 6970 is taken by a foreign process)
   - helper file name `maschine-ArenaMode.Session.exe`
   - gate report JSON: `{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
-    "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
+    "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
     "patchersNeutralised":[file] }`
 
 ## 5. Gate: preloader patcher (`ArenaMode.Gate`, `maschine-ArenaMode.Gate.dll`)
@@ -287,7 +308,8 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
      report's `file` is the DLL path from the dictionary key (the path `Location` gets later).
   5. Publish the final report with `AppDomain.CurrentDomain.SetData(key, json)` and log through a
      BepInEx log source named `maschine-ArenaMode.Gate`: one Info line
-     (`Arena session: N plugins allowed, M excluded, K warnings`), one Info line from
+     (`Arena session: N plugins allowed, M excluded, K warnings`, followed by ` (policy override: unlisted mods
+     allowed)` when the policy allows unlisted units), one Info line from
      `Initialize` that names the neutralised patchers when there are any (Debug would not reach
      the log: the preloader keeps only the levels of `Logging.Console.LogLevels`, default Fatal
      to Info), and one Debug line per excluded plugin.
@@ -445,9 +467,11 @@ patching, path safety, request parsing) live in their own file and are covered b
     server the helper cannot switch: no allowed server mod, or one whose folder is not a direct
     child of `<game>\SPT_Runtime\user\mods`) the refusal ends instead with `Remove them and
     restart the game to play Arena.` and shows no action. A missing or unreadable default
-    whitelist makes the whitelist stand aside in a normal session (the existing adapters still
-    apply); an internal failure does the same there.
-  - Version warnings never refuse; log them once (Info) and show them as a second line.
+    whitelist makes the whitelist stand aside in a normal session (the server's reported failure and the remaining
+    adapters still apply, but no code refuses the five denied mods any more); an internal failure does the same
+    there.
+  - Version warnings never refuse; log them once (Info) and show them as a second line. The policy-override
+    notes (section 3) lead that line and are not counted into its cap of four notes.
   - Fika keeps its existing refusal first and gets no session action.
 - Arena session menu: ARENA is preselected, PMC and Scav are not selectable, and a notice reads
   `ARENA SESSION: only Arena is available. Profile changes in this session are discarded.` with the
@@ -539,8 +563,9 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   what the helper itself and the mods write beside their own files; mods that resolve paths from
   `AppContext.BaseDirectory` were not confined until the exe moved into the tree (last entry below).
 - Section 7: the profile id is the `-token=` argument first; the ping is refreshed with a 250 ms bound when a
-  screen opens; the refusal text differs when no session can be offered; the whitelist fails open in a normal
-  session and closed in an Arena session.
+  screen opens; the refusal text differs when no session can be offered; a whitelist that cannot be loaded
+  or evaluated refuses Arena in both session kinds (since 2026-10-22; before, a normal session failed open
+  onto the per-mod refusals that no longer exist).
 - Section 8: the refusal of an ordinary start is an SPT error body (`err` 1000), not an exception.
 - Sections 3, 4 and 7 (2026-10-21, user decision): the user file may carry `"unlisted": "allow"`. Per unit the
   order is platform/arena, then the user `deny`, then the named entries, then `unlisted`. New reason
@@ -585,3 +610,16 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   for Arena" (denied) from "Not on the whitelist" (unlisted), the blacklist wording became `Arena does not run with
   denied mods. Blocked for Arena: ...`, and the gate's patcher warning and Debug lines name the list that excluded
   the unit. The code-level refusals for the five denied mods are unchanged.
+- Sections 1 and 7 (2026-10-22, user decision): the whitelist replaces the per-mod code. Removed: the client
+  adapters for MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To The Party, Classic
+  Movement, StatTrack, Deminvincibility, Skills Extended, Pause Continued and EFT Effects Manager / Broken Limbs
+  (with their offline harnesses), and the code-level refusals of ORBIT, Adaptive Bot Culling, Questing Bots and
+  ISB Special Forces/Aishi (client `ArenaOptionalMods`, `ArenaIsbAdmission`, the server's ISB admission and the
+  ping's `admissionFailure` source). `ArenaOptionalMods.GetRejectionReason` is now the whitelist, then the
+  failure a server reported in its ping (the client still parses an `admissionFailure` member and shows it, an
+  older server may send one; this server sends none), then Continuous Healing, Continuous Load Ammo and Recoil
+  Rework Legacy. Consequence: the whitelist is the only guard, so a normal session with a missing, unreadable
+  or invalid default list, or a failing evaluation, refuses Arena instead of failing open. Also reverted as foreign-mod
+  specific: Arena's `BotSpawnParams` marker `Id_spawn = "arenamode-owned"` (MoreBotsAPI only), the pickup
+  markers' camera-checked layer (Smoothie only), the weapon pickup's foreign-cleanup registry (Late To The
+  Party only) and `ArenaSkills`' separate Effects Manager contribution.

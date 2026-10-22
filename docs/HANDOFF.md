@@ -32,9 +32,38 @@ current. User-facing communication is normally German.
   Killcam, PitFireTeam, DynamicMaps and the rest now load in an Arena session, and so do their adapters; the
   sentences above that they are not on the list and that the adapters are dormant in a session are history, only
   adapters of mods outside the list stay dormant) and has a `deny` list for the five mods ArenaMode refused by code (ORBIT,
-  Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi; those code-level refusals stay). Order per
+  Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi; their code-level refusals were removed on
+  2026-10-22, see the Compat cleanup entry below). Order per
   unit: platform/Arena, user deny, user allow, default deny, default entries, `unlisted`. The refusal names
   "Blocked for Arena" apart from "Not on the whitelist". Spec sections 2, 3, 7 and 11.
+  **Testing override (2026-10-22, branch `feature/arena-compat-cleanup`):** unlisted mods still block Arena and do
+  not load in a session; the user's own override for testing is the existing blacklist file
+  `{ "schema": 1, "unlisted": "allow" }`, made visible by one `policy override: N unlisted mod(s) ...` note per side
+  in the menu and the log, a suffix on the gate's Info summary and `unlistedAllowed` in the gate report (spec section
+  3, README "Testing override"); the file is mirrored by Syncthing, so remove it after the test.
+
+- **Compat cleanup (2026-10-22, branch `feature/arena-compat-cleanup`, offline checks only, not yet on a GPU
+  host):** user decision: the whitelist replaces the per-mod code, and nothing else decides which foreign mods Arena
+  refuses. Removed: the client adapters for MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To
+  The Party, Classic Movement, StatTrack, Deminvincibility, Skills Extended, Pause Continued and EFT Effects
+  Manager / Broken Limbs (`Compat\Arena<X>Compat/Contract/Scope.cs`, their `Plugin` soft dependencies, Initialize/
+  Shutdown/Tick calls and the twelve offline harness folders under `tools\`), the code-level refusals of ORBIT,
+  Adaptive Bot Culling, Questing Bots and ISB Special Forces/Aishi (`ArenaOptionalMods`, `ArenaIsbAdmission`,
+  the server's ISB admission, the ping's `admissionFailure` source; the client still tolerates that member from an
+  older server) and the foreign-mod seams they left in generic code: the `Id_spawn = "arenamode-owned"` marker of
+  Arena's `BotSpawnParams` (MoreBotsAPI only), the camera-checked pickup marker layer (Smoothie only), the weapon
+  pickup's foreign-cleanup registry (Late To The Party only) and `ArenaSkills`' separate Effects contribution.
+  The pickup marker's constructor ordering (TMP label built under an active root, root hidden last, cleanup after a
+  late failure) lost its harness with SmoothieCompatChecks and is pinned again by `tools\ArenaPickupViewChecks`
+  (real `ArenaPickupView.cs`, five mutants).
+  `ArenaOptionalMods.GetRejectionReason` is now: whitelist, then the server-reported failure, then Continuous
+  Healing, Continuous Load Ammo and Recoil Rework Legacy. Stays untouched: those three, PitFireTeam*,
+  DynamicMapsCorpseMarkers, ZombiePftFastPath, ArenaMapPortSpawnGates, ArenaBigBrainLibrary,
+  ArenaGpuAcceptanceCompat, the server SVM and APBS adapters, `ArenaLocationMutator.AbpsPresent`. Consequence:
+  the whitelist is the only guard, so a normal session with a missing, unreadable or invalid default list, or a
+  failing evaluation, refuses Arena (fail closed for Arena only). Entries below that describe the removed adapters,
+  and the dated documents they link, are history. Spec: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md)
+  sections 1 and 11.
 
 - **Release 0.1.3 (2026-10-20):** version identities and the player README now
   target 0.1.3. [Release notes](RELEASE-0.1.3.md) cover the changes since 0.1.2

@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <!-- Each production source can be swapped for a mutated copy (Verify.ps1). -->
+    <ProductionDecisionSource Condition="'$(ProductionDecisionSource)' == ''">../../ArenaMode.Shared/Session/ArenaWhitelistDecision.cs</ProductionDecisionSource>
     <ProductionModeSource Condition="'$(ProductionModeSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionMode.cs</ProductionModeSource>
     <ProductionAdmissionSource Condition="'$(ProductionAdmissionSource)' == ''">../../ArenaMode.Client/Session/ArenaWhitelistAdmission.cs</ProductionAdmissionSource>
     <ProductionSwitchSource Condition="'$(ProductionSwitchSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionSwitch.cs</ProductionSwitchSource>
@@ -12,7 +13,7 @@
   <ItemGroup>
     <Compile Include="../../ArenaMode.Shared/Session/ArenaMiniJson.cs" Link="Production/Shared/ArenaMiniJson.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistPolicy.cs" Link="Production/Shared/ArenaWhitelistPolicy.cs" />
-    <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistDecision.cs" Link="Production/Shared/ArenaWhitelistDecision.cs" />
+    <Compile Include="$(ProductionDecisionSource)" Link="Production/Shared/ArenaWhitelistDecision.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaSessionContract.cs" Link="Production/Shared/ArenaSessionContract.cs" />
     <!-- The helper's request parser, which ArenaSessionSwitch runs before the game quits. -->
     <Compile Include="../../ArenaMode.Session/SessionLogic.cs" Link="Production/Shared/SessionLogic.cs" />

@@ -68,7 +68,10 @@ internal static class ArenaWhitelistAdmission
         /// <summary>The refusal, or null when whitelist admission lets Arena run.</summary>
         internal string Reason;
 
-        /// <summary>The second line: reviewed-version differences and pulled-in dependencies.</summary>
+        /// <summary>
+        /// The second line: the policy-override notes (the user file lets unlisted mods through),
+        /// reviewed-version differences and pulled-in dependencies.
+        /// </summary>
         internal string WarningLine;
 
         /// <summary>The individual warnings behind <see cref="WarningLine"/>, for the log.</summary>
@@ -93,8 +96,9 @@ internal static class ArenaWhitelistAdmission
 
     /// <summary>
     /// The first provider of <c>ArenaOptionalMods.GetRejectionReason</c>. Null admits. Never throws:
-    /// an internal failure fails open in a normal session (the existing adapters still apply) and
-    /// closed in an Arena session (a process that cannot prove it is filtered must not run Arena).
+    /// an internal failure refuses Arena in both session kinds. Since 2026-10-22 the whitelist is the
+    /// only thing that keeps unlisted and denied mods out of Arena (the per-mod refusals are gone), so
+    /// a whitelist that cannot be evaluated must not let Arena start; ordinary raids are unaffected.
     /// </summary>
     internal static string GetRejectionReason()
     {
@@ -105,11 +109,16 @@ internal static class ArenaWhitelistAdmission
                 "Arena whitelist admission could not be evaluated: " + ex.Message);
             return ArenaSessionMode.IsArenaSession
                 ? "Arena could not verify the session state. Return to the normal session and check the client log."
-                : null;
+                : "Arena could not evaluate its mod whitelist (" + ex.Message + "). Check the client log; ordinary PMC/Scav raids remain available.";
         }
     }
 
-    /// <summary>The reviewed-version / dependency notes of the last evaluation, or null. Never throws.</summary>
+    /// <summary>
+    /// The notes of the last evaluation, or null: the policy-override notes first, then reviewed-version
+    /// differences and pulled-in dependencies. The Arena menu shows them as the second notice line (with
+    /// a refusal, or as an information notice once ARENA is selected) and the Arena session notice
+    /// carries them. Never throws.
+    /// </summary>
     internal static string WarningLine
     {
         get
@@ -147,7 +156,8 @@ internal static class ArenaWhitelistAdmission
         try
         {
             if (ArenaServerClient.IsServerModKnownAvailable || HasFika()) return;
-            if (!ArenaSessionMode.IsArenaSession && Current().Reason == null) return;
+            // Nothing to ask without a policy either: that refusal names the installation, not the server.
+            if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;
             ArenaServerClient.TryRefreshWithin(ProbeBudgetMilliseconds);
         }
         catch (Exception ex)
@@ -209,9 +219,10 @@ internal static class ArenaWhitelistAdmission
             return outcome;
         }
 
-        outcome.Policy = LoadPolicy();
+        outcome.Policy = LoadPolicy(out string policyProblem);
         if (ArenaSessionMode.IsArenaSession) ComputeArenaSession(outcome);
         else if (outcome.Policy != null) ComputeNormalSession(outcome, outcome.Policy);
+        else outcome.Reason = PolicyUnavailableRefusal(policyProblem);
         return outcome;
     }
 
@@ -383,13 +394,21 @@ internal static class ArenaWhitelistAdmission
 
     // ------------------------------------------------------------------ policy files
 
-    private static ArenaWhitelistPolicy LoadPolicy()
+    /// <summary>
+    /// A normal session without a usable shipped whitelist refuses Arena (nothing else keeps unlisted
+    /// or denied mods out of it) and offers no session; ordinary raids are untouched.
+    /// </summary>
+    private static string PolicyUnavailableRefusal(string problem)
+        => "Arena is unavailable: its mod whitelist could not be loaded (" + problem
+           + "). Repair the ArenaMode installation; ordinary PMC/Scav raids remain available.";
+
+    private static ArenaWhitelistPolicy LoadPolicy(out string problem)
     {
         string defaultPath = Path.Combine(Path.Combine(BepInEx.Paths.PluginPath, ArenaSessionContract.PluginFolderName),
             ArenaSessionContract.DefaultPolicyFileName);
         string userPath = Path.Combine(BepInEx.Paths.ConfigPath, ArenaSessionContract.UserPolicyFileName);
 
-        string defaultJson = ReadPolicyFile(defaultPath, "default whitelist", true, out string problem);
+        string defaultJson = ReadPolicyFile(defaultPath, "default whitelist", true, out problem);
         if (defaultJson == null)
         {
             LogOnce("policy:" + problem, true, "Arena whitelist unavailable: " + problem);
@@ -398,13 +417,14 @@ internal static class ArenaWhitelistAdmission
 
         // The user file is optional: absent is normal and silent; a defective one is reported by the
         // policy loader (it is ignored with a diagnostic), an unreadable one the same way here.
-        string userJson = ReadPolicyFile(userPath, "user whitelist", false, out problem);
-        if (problem != null) LogOnce("policy:" + problem, true, "Arena whitelist: " + problem);
+        string userJson = ReadPolicyFile(userPath, "user whitelist", false, out string userProblem);
+        if (userProblem != null) LogOnce("policy:" + userProblem, true, "Arena whitelist: " + userProblem);
 
         if (!ArenaWhitelistPolicy.TryLoad(defaultJson, userJson, out var policy, out var diagnostics))
         {
             foreach (string diagnostic in diagnostics)
                 LogOnce("policy:" + diagnostic, true, "Arena whitelist unavailable: " + diagnostic);
+            problem = diagnostics.Count > 0 ? diagnostics[0] : "the default whitelist is invalid";
             return null;
         }
 
@@ -461,10 +481,29 @@ internal static class ArenaWhitelistAdmission
             : " Remove them and restart the game to play Arena.").ToString();
     }
 
+    /// <summary>
+    /// The notes line. The policy-override notes (one per side at most, client first as they were
+    /// evaluated) come first and are never counted into the cap: they say that the user's own file lets
+    /// unlisted mods through, which must not disappear behind "and N more" because a handful of version
+    /// differences sort ahead of it. The remaining notes are sorted and capped at
+    /// <see cref="MaxWarningsListed"/>.
+    /// </summary>
     private static string FormatNotes(List<string> notes)
     {
         if (notes == null || notes.Count == 0) return null;
-        return "Notes: " + JoinLimited(notes, MaxWarningsListed, "; ");
+
+        var policyOverrides = new List<string>();
+        var others = new List<string>();
+        foreach (string note in notes)
+        {
+            if (!ArenaWhitelistDecision.IsPolicyOverrideWarning(note)) others.Add(note);
+            else if (!policyOverrides.Contains(note)) policyOverrides.Add(note);
+        }
+
+        var parts = new List<string>(2);
+        if (policyOverrides.Count > 0) parts.Add(string.Join("; ", policyOverrides.ToArray()));
+        if (others.Count > 0) parts.Add(JoinLimited(others, MaxWarningsListed, "; "));
+        return "Notes: " + string.Join("; ", parts);
     }
 
     /// <summary>

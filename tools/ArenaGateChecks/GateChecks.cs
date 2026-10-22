@@ -1178,7 +1178,25 @@ public static class GateChecks
             Check(report.Excluded.Single(u => u.Guid == "com.chazut.orbit").Reason == "denied", "a default deny holds in blacklist mode, with its own reason");
             Check(report.Excluded.Single(u => u.Guid == "com.example.foreign").Reason == "denied-by-user", "the user's deny names itself");
             Check(report.Allowed.Any(u => u.Reason == "unlisted-allowed"), "the report carries the unlisted-allowed reason");
+
+            // The override is visible: ONE warning names the plugins that only got in because nothing names them
+            // (written by hand: Helper Library and Soft Only; Deeper Library is a dependency, not unlisted).
+            List<string> overrides = report.Warnings.Where(w => w.StartsWith("policy override: ", StringComparison.Ordinal)).ToList();
+            Check(overrides.Count == 1 && overrides[0] == "policy override: 2 unlisted mod(s) allowed by your policy file: Helper Library, Soft Only",
+                "one warning says which unlisted plugins the user's policy file let through",
+                "policy override warnings: " + string.Join(" | ", overrides.ToArray()));
+            Check(overrides.Count == 1 && report.Warnings.IndexOf(overrides[0])
+                    > report.Warnings.IndexOf("Deeper Library: pulled in as hard dependency of Helper Library (overrides the user's deny)"),
+                "the policy-override warning comes after the per-plugin warnings of the decision");
         }
+
+        // The mode itself is in the report and in its JSON: true exactly when the user file made the policy a blacklist.
+        bool blacklistMode = kind == WorldKind.UserBlacklist;
+        Check(report.UnlistedAllowed == blacklistMode, "the report's unlistedAllowed flag is " + (blacklistMode ? "true" : "false"),
+            "flag: " + report.UnlistedAllowed);
+        Check(coldJson.Contains("\"unlistedAllowed\":" + (blacklistMode ? "true" : "false")), "the published JSON carries unlistedAllowed:" + (blacklistMode ? "true" : "false"));
+        Check(report.Warnings.Count(w => w.StartsWith("policy override: ", StringComparison.Ordinal)) == (blacklistMode ? 1 : 0),
+            blacklistMode ? "the blacklist has its policy-override warning" : "a whitelist has no policy-override warning");
 
         if (kind == WorldKind.UserFile)
         {
@@ -1192,7 +1210,9 @@ public static class GateChecks
         // Log lines
         List<LogEntry> gateLog = Log.From(GateSource);
         List<LogEntry> info = gateLog.Where(e => e.Level == LogLevel.Info).ToList();
-        string summary = "Arena session: " + report.Allowed.Count + " plugins allowed, " + report.Excluded.Count + " excluded, " + report.Warnings.Count + " warnings";
+        // Written by hand (not from ArenaGateReport.SummaryLine): the blacklist's line ends with the override suffix, no other does.
+        string summary = "Arena session: " + report.Allowed.Count + " plugins allowed, " + report.Excluded.Count + " excluded, " + report.Warnings.Count + " warnings"
+            + (blacklistMode ? " (policy override: unlisted mods allowed)" : string.Empty);
         List<LogEntry> patcherInfo = info.Where(e => e.Message.Contains(" preloader patcher")).ToList();
         Check(info.Count(e => e.Message == summary) == 1 && info.Count == 1 + patcherInfo.Count, "exactly one Info line carries the summary, the only other Info line names the neutralised patchers",
             "info lines: " + string.Join(" | ", info.Select(e => e.Message).ToArray()) + " / expected: " + summary);

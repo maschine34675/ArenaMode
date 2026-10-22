@@ -1,5 +1,4 @@
 using ArenaMode.Hud;
-using ArenaMode.Compat;
 using EFT.CameraControl;
 using System;
 using TMPro;
@@ -18,7 +17,6 @@ internal sealed class ArenaPickupView : IDisposable
     private readonly float _yaw;
     private readonly string _name;
     private float _nextText;
-    private int _markerLayer = -1;
 
     internal ArenaPickupView(ArenaPickupPoint point, Vector3 floor)
     {
@@ -116,13 +114,10 @@ internal sealed class ArenaPickupView : IDisposable
             _label.color = color; _label.richText = false; _label.enableWordWrapping = false;
             _label.rectTransform.sizeDelta = new Vector2(4f, .7f);
             _label.text = _name;
-            UpdateMarkerLayer(CameraManager.Exist ? CameraManager.Instance.Camera : null);
             // Construct active: native TMP.Awake must populate its renderer
-            // cache before the font setter calls LoadFontAsset. This constructor
-            // never yields; Smoothie's main-thread scan cannot interleave here.
-            // Hide before returning, after the safe layer is applied, so an
-            // unknown camera never exposes Default meshes between construction
-            // and the first visibility update in Tick.
+            // cache before the font setter calls LoadFontAsset. Hide before
+            // returning; Tick owns visibility from its first update on, so a
+            // marker never shows before a camera has been checked.
             _root.SetActive(false);
         }
         catch
@@ -137,7 +132,6 @@ internal sealed class ArenaPickupView : IDisposable
         if (_root == null) return;
         bool available = state.Phase == ArenaPickupPhase.Available && !preparing;
         var camera = CameraManager.Exist ? CameraManager.Instance.Camera : null;
-        UpdateMarkerLayer(camera);
         bool visible = state.Phase != ArenaPickupPhase.Retired && camera != null
             && (camera.transform.position - _floor).sqrMagnitude < 6400f;
         _root.SetActive(visible);
@@ -163,18 +157,6 @@ internal sealed class ArenaPickupView : IDisposable
             ArenaPickupPhase.Pending => _name + "\nCOLLECTING",
             _ => _name
         };
-    }
-
-    private void UpdateMarkerLayer(Camera camera)
-    {
-        int layer = ArenaSmoothieCompat.PickupMarkerLayer(camera);
-        // No safe excluded layer: preserve the marker's original Default layer.
-        // Re-evaluate after camera/optic changes without touching either mask.
-        if (layer < 0) layer = 0;
-        if (layer == _markerLayer) return;
-        foreach (var child in _root.GetComponentsInChildren<Transform>(true))
-            child.gameObject.layer = layer;
-        _markerLayer = layer;
     }
 
     public void Dispose()

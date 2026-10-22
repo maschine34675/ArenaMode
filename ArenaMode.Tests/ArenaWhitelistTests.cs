@@ -1440,7 +1440,9 @@ public sealed class ArenaWhitelistTests
         Assert.Equal("denied-by-user", excluded.Reason);
         Assert.Equal("Bad Mod", decision.DescribeExcluded());
         Assert.True(decision.HasExclusions);
-        Assert.Empty(decision.Warnings);
+        // No warning of its own for an unlisted unit; the one aggregated policy-override warning names them.
+        Assert.Equal("policy override: 3 unlisted mod(s) allowed by your policy file: Looting Bots, No Guid, Unversioned",
+            Assert.Single(decision.Warnings));
         Assert.Equal("unlisted-allowed", ArenaWhitelistDecision.ReasonUnlistedAllowed);
     }
 
@@ -1457,8 +1459,156 @@ public sealed class ArenaWhitelistTests
 
         Assert.Empty(decision.Excluded);
         Assert.False(decision.HasExclusions);
-        Assert.Empty(decision.Warnings);
+        Assert.Equal("policy override: 2 unlisted mod(s) allowed by your policy file: One, Two", Assert.Single(decision.Warnings));
         Assert.All(decision.Allowed, u => Assert.Equal("unlisted-allowed", u.Reason));
+    }
+
+    // ------------------------------------------------------------------ decision: policy-override warning
+
+    private const string PolicyOverrideText = "policy override: ";
+
+    private static bool IsOverride(string warning) => warning.StartsWith(PolicyOverrideText, StringComparison.Ordinal);
+
+    [Fact]
+    public void ThePolicyOverrideWarningConstantsMatchTheDocumentedWording()
+    {
+        Assert.Equal(PolicyOverrideText, ArenaWhitelistDecision.PolicyOverridePrefix);
+        Assert.Equal(6, ArenaWhitelistDecision.PolicyOverrideNamesListed);
+        Assert.True(ArenaWhitelistDecision.IsPolicyOverrideWarning("policy override: 1 unlisted mod(s) allowed by your policy file: X"));
+        Assert.False(ArenaWhitelistDecision.IsPolicyOverrideWarning("SAIN: version 4.5.2 differs from reviewed 4.5.1"));
+        Assert.False(ArenaWhitelistDecision.IsPolicyOverrideWarning("Policy override: 1 unlisted mod(s)"));
+        Assert.False(ArenaWhitelistDecision.IsPolicyOverrideWarning(string.Empty));
+        Assert.False(ArenaWhitelistDecision.IsPolicyOverrideWarning(null!));
+    }
+
+    [Fact]
+    public void BlacklistModeAddsExactlyOnePolicyOverrideWarningPerSideAndPutsItLast()
+    {
+        var policy = Load(SmallDefault, BlacklistUser);
+
+        // Client side: one version warning, then the override naming the unlisted units, sorted ignoring case.
+        var client = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("com.example.zed", "zed", "1.0.0"),
+            Unit("me.sol.sain", "SAIN", "4.5.2"),
+            Unit("com.example.alpha", "Alpha", "1.0.0"),
+            Unit("com.example.bad", "Bad Mod", "1.0.0"),           // denied: not counted
+            Unit("com.example.beta", "beta", "1.0.0"),
+        });
+        Assert.Equal(
+            new[]
+            {
+                "SAIN: version 4.5.2 differs from reviewed 4.5.1",
+                "policy override: 3 unlisted mod(s) allowed by your policy file: Alpha, beta, zed",
+            },
+            client.Warnings.ToArray());
+
+        // Server side: its own decision, its own single warning, counted from its own units.
+        var server = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, new[]
+        {
+            Unit("com.maschine.ArenaMode", "ArenaMode", "0.1.3"),
+            Unit("com.example.servermod", "Server Mod", "1.0.0"),
+        });
+        Assert.Equal("policy override: 1 unlisted mod(s) allowed by your policy file: Server Mod", Assert.Single(server.Warnings));
+
+        // The warning is about the allowed units only: nothing about it changes who is allowed or excluded.
+        Assert.Equal(new[] { "com.example.bad" }, client.Excluded.Select(u => u.Guid).ToArray());
+        Assert.Equal(4, client.Allowed.Count);
+    }
+
+    [Fact]
+    public void ThePolicyOverrideWarningListsAtMostSixNamesAndCountsTheRest()
+    {
+        var policy = Load(SmallDefault, BlacklistOnly);
+
+        string WarningFor(int total)
+        {
+            // Reverse input order: the names are sorted, not listed as installed.
+            var installed = Enumerable.Range(1, total).Reverse()
+                .Select(i => Unit("com.example.m" + i.ToString("D2"), "Mod" + i.ToString("D2"), "1.0.0")).ToArray();
+            return Assert.Single(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, installed).Warnings);
+        }
+
+        Assert.Equal("policy override: 1 unlisted mod(s) allowed by your policy file: Mod01", WarningFor(1));
+        Assert.Equal("policy override: 5 unlisted mod(s) allowed by your policy file: Mod01, Mod02, Mod03, Mod04, Mod05", WarningFor(5));
+        Assert.Equal("policy override: 6 unlisted mod(s) allowed by your policy file: Mod01, Mod02, Mod03, Mod04, Mod05, Mod06", WarningFor(6));
+        Assert.Equal("policy override: 7 unlisted mod(s) allowed by your policy file: Mod01, Mod02, Mod03, Mod04, Mod05, Mod06, and 1 more", WarningFor(7));
+        Assert.Equal("policy override: 30 unlisted mod(s) allowed by your policy file: Mod01, Mod02, Mod03, Mod04, Mod05, Mod06, and 24 more", WarningFor(30));
+    }
+
+    [Fact]
+    public void ThePolicyOverrideNamesAreSortedIgnoringCaseAndFallBackToTheGuid()
+    {
+        var policy = Load(SmallDefault, BlacklistOnly);
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("com.example.banana", "banana", "1.0.0"),
+            Unit("com.example.apple", "Apple", "1.0.0"),
+            Unit("com.example.cherry", "cherry", "1.0.0"),
+            Unit("com.example.nameless", "", "1.0.0"),              // no name: the GUID
+            Unit("com.example.blank", "   ", "1.0.0"),              // blank name: "(unnamed)"
+        });
+
+        Assert.Equal(
+            "policy override: 5 unlisted mod(s) allowed by your policy file: (unnamed), Apple, banana, cherry, com.example.nameless",
+            Assert.Single(decision.Warnings));
+
+        // Names that differ only in case come out in one fixed order, whatever the input order was.
+        foreach (var installed in new[]
+        {
+            new[] { Unit("com.example.a", "alpha", "1.0.0"), Unit("com.example.b", "Alpha", "1.0.0") },
+            new[] { Unit("com.example.b", "Alpha", "1.0.0"), Unit("com.example.a", "alpha", "1.0.0") },
+        })
+        {
+            Assert.Equal("policy override: 2 unlisted mod(s) allowed by your policy file: Alpha, alpha",
+                Assert.Single(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, installed).Warnings));
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("""{ "schema": 1 }""")]
+    [InlineData("""{ "schema": 1, "unlisted": "deny" }""")]
+    [InlineData("""{ "schema": 1, "unlisted": "deny", "allow": [ { "guid": "com.example.other" } ], "deny": [ "com.example.bad" ] }""")]
+    public void AWhitelistNeverAddsAPolicyOverrideWarning(string? userJson)
+    {
+        var policy = Load(SmallDefault, userJson);
+
+        foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+        {
+            var decision = ArenaWhitelistDecision.Evaluate(policy, side, new[]
+            {
+                Unit("me.sol.sain", "SAIN", "4.5.1"),
+                Unit("com.example.other", "Other", "1.0.0"),
+                Unit("com.example.bad", "Bad", "1.0.0"),
+                Unit("com.example.unknown", "Unknown", "1.0.0"),
+            });
+
+            Assert.DoesNotContain(decision.Warnings, IsOverride);
+            Assert.DoesNotContain(decision.Allowed, u => u.Reason == "unlisted-allowed");
+        }
+    }
+
+    [Fact]
+    public void ABlacklistWithoutAnUnlistedAllowedUnitAddsNoPolicyOverrideWarning()
+    {
+        // The mode alone is not the warning: it is about units that actually got in because nothing names them.
+        var policy = Load(SmallDefault, """{ "schema": 1, "unlisted": "allow", "deny": [ "com.example.bad", "com.example.lib" ] }""");
+
+        Assert.Empty(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, Array.Empty<ArenaSessionUnit>()).Warnings);
+        Assert.Empty(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, null!).Warnings);
+
+        var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, new[]
+        {
+            Unit("me.sol.sain", "SAIN", "4.5.1", "com.example.lib"),   // listed
+            Unit("com.example.lib", "Lib", "1.0.0"),                    // denied, but a hard dependency: pulled in, not unlisted
+            Unit("com.example.bad", "Bad", "1.0.0"),                    // denied
+            Unit("com.maschine.UiBridge", "UiBridge", "0.9.4"),         // tool
+        });
+
+        Assert.Equal("dependency-of:me.sol.sain", Find(decision.Allowed, "com.example.lib").Reason);
+        Assert.Equal("Lib: pulled in as hard dependency of SAIN (overrides the user's deny)", Assert.Single(decision.Warnings));
     }
 
     [Fact]
@@ -1533,6 +1683,8 @@ public sealed class ArenaWhitelistTests
             {
                 "SAIN: version 4.5.2 differs from reviewed 4.5.1",
                 "Reviewed: version 2.0.0 differs from reviewed 1.0.0",
+                // The unlisted units get no version warning; they are only named here, after the per-unit warnings.
+                "policy override: 3 unlisted mod(s) allowed by your policy file: Garbage, No Version, Unlisted",
             },
             decision.Warnings.ToArray());
         Assert.Equal(new[] { "whitelist", "whitelist", "unlisted-allowed", "unlisted-allowed", "unlisted-allowed" },
@@ -1568,6 +1720,8 @@ public sealed class ArenaWhitelistTests
                 "Lib: pulled in as hard dependency of Foreign (overrides the user's deny)",
                 "Leaf: pulled in as hard dependency of Lib (overrides the user's deny)",
                 "Sain Lib: pulled in as hard dependency of SAIN (overrides the user's deny)",
+                // Only Foreign was allowed as unlisted; the pulled-in libraries and the listed SAIN are not counted.
+                "policy override: 1 unlisted mod(s) allowed by your policy file: Foreign",
             },
             decision.Warnings.ToArray());
     }
@@ -1591,7 +1745,13 @@ public sealed class ArenaWhitelistTests
         Assert.Equal("unlisted-allowed", Find(decision.Allowed, "com.example.content").Reason);
         Assert.Equal("dependency-of:com.example.content", Find(decision.Allowed, "com.example.lib").Reason);
         Assert.Equal("com.example.unneeded", Assert.Single(decision.Excluded).Guid);
-        Assert.Equal("Lib: pulled in as hard dependency of Content Pack (overrides the user's deny)", Assert.Single(decision.Warnings));
+        Assert.Equal(
+            new[]
+            {
+                "Lib: pulled in as hard dependency of Content Pack (overrides the user's deny)",
+                "policy override: 1 unlisted mod(s) allowed by your policy file: Content Pack",
+            },
+            decision.Warnings.ToArray());
     }
 
     [Fact]
@@ -1648,7 +1808,14 @@ public sealed class ArenaWhitelistTests
             decision.Allowed.Select(u => u.Reason).ToArray());
         Assert.Equal("com.example.bad", Assert.Single(decision.Excluded).Guid);
         Assert.Equal("denied-by-user", decision.Excluded[0].Reason);
-        Assert.Equal("APBS: version 2.4.0 differs from reviewed 2.4.1", Assert.Single(decision.Warnings));
+        Assert.Equal(
+            new[]
+            {
+                "APBS: version 2.4.0 differs from reviewed 2.4.1",
+                // SPT.Core is a client platform entry only: on the server side it is just another unlisted mod.
+                "policy override: 2 unlisted mod(s) allowed by your policy file: Server Thing, SPT.Core",
+            },
+            decision.Warnings.ToArray());
     }
 
     [Fact]
@@ -1821,7 +1988,7 @@ public sealed class ArenaWhitelistTests
             Assert.Equal("denied", Assert.Single(decision.Excluded).Reason);
             Assert.Equal("com.example.bad", decision.Excluded[0].Guid);
             Assert.Equal(new[] { "whitelist", "unlisted-allowed" }, decision.Allowed.Select(u => u.Reason).ToArray());
-            Assert.Empty(decision.Warnings);
+            Assert.Equal("policy override: 1 unlisted mod(s) allowed by your policy file: Other", Assert.Single(decision.Warnings));
         }
 
         Assert.False(policy.IsAllowedPlugin("com.example.bad"));
@@ -2393,12 +2560,13 @@ public sealed class ArenaWhitelistTests
         var obj = Assert.IsType<Dictionary<string, object>>(root);
 
         Assert.Equal(
-            new[] { "schema", "active", "error", "policyHash", "allowed", "excluded", "warnings", "patchersNeutralised" },
+            new[] { "schema", "active", "error", "policyHash", "unlistedAllowed", "allowed", "excluded", "warnings", "patchersNeutralised" },
             obj.Keys.ToArray());
         Assert.Equal(1d, obj["schema"]);
         Assert.Equal(true, obj["active"]);
         Assert.Null(obj["error"]);
         Assert.Equal("0123456789abcdef", obj["policyHash"]);
+        Assert.Equal(false, obj["unlistedAllowed"]);
 
         var allowed = Assert.IsType<List<object>>(obj["allowed"]);
         var first = Assert.IsType<Dictionary<string, object>>(allowed[0]);
@@ -2493,8 +2661,76 @@ public sealed class ArenaWhitelistTests
         Assert.Equal(policy.Hash, parsed!.PolicyHash);
         Assert.Equal("unlisted-allowed", Assert.Single(parsed.Allowed).Reason);
         Assert.Equal("denied-by-user", Assert.Single(parsed.Excluded).Reason);
-        Assert.Empty(parsed.Warnings);
-        Assert.Equal("Arena session: 1 plugins allowed, 1 excluded, 0 warnings", parsed.SummaryLine());
+        Assert.Equal("policy override: 1 unlisted mod(s) allowed by your policy file: Other", Assert.Single(parsed.Warnings));
+        Assert.True(parsed.UnlistedAllowed);
+        Assert.Equal("Arena session: 1 plugins allowed, 1 excluded, 1 warnings (policy override: unlisted mods allowed)",
+            parsed.SummaryLine());
+    }
+
+    [Fact]
+    public void AReportRecordsWhetherThePolicyAllowsUnlistedUnitsWhateverWasInstalled()
+    {
+        // The flag is the policy's mode: a blacklist with nothing unlisted installed still sets it.
+        var noUnits = Array.Empty<ArenaSessionUnit>();
+        var blacklistPolicy = Load(SmallDefault, BlacklistUser);
+        var blacklist = ArenaGateReport.FromDecision(blacklistPolicy,
+            ArenaWhitelistDecision.Evaluate(blacklistPolicy, ArenaWhitelistSide.Client, noUnits), null!);
+        Assert.True(blacklist.UnlistedAllowed);
+        Assert.EndsWith(ArenaGateReport.PolicyOverrideSummarySuffix, blacklist.SummaryLine());
+
+        foreach (string? user in new[] { null, """{ "schema": 1, "unlisted": "deny" }""", """{ "schema": 1, "unlisted": "deny", "deny": [ "com.example.bad" ] }""" })
+        {
+            var whitelist = Load(SmallDefault, user);
+            var report = ArenaGateReport.FromDecision(whitelist,
+                ArenaWhitelistDecision.Evaluate(whitelist, ArenaWhitelistSide.Client, noUnits), null!);
+            Assert.False(report.UnlistedAllowed);
+            Assert.DoesNotContain(ArenaGateReport.PolicyOverrideSummarySuffix, report.SummaryLine());
+        }
+    }
+
+    [Fact]
+    public void TheSummaryLineGetsThePolicyOverrideSuffixExactlyWhenThePolicyAllowsUnlistedUnits()
+    {
+        Assert.Equal(" (policy override: unlisted mods allowed)", ArenaGateReport.PolicyOverrideSummarySuffix);
+
+        var report = SampleReport();
+        Assert.Equal("Arena session: 2 plugins allowed, 2 excluded, 2 warnings", report.SummaryLine());
+
+        report.UnlistedAllowed = true;
+        Assert.Equal("Arena session: 2 plugins allowed, 2 excluded, 2 warnings (policy override: unlisted mods allowed)", report.SummaryLine());
+    }
+
+    [Fact]
+    public void TheUnlistedAllowedFlagTravelsThroughTheJsonAndAnOlderReportReadsAsFalse()
+    {
+        var report = SampleReport();
+        report.UnlistedAllowed = true;
+        string json = report.ToJson();
+        Assert.Contains("\"unlistedAllowed\":true", json);
+        Assert.True(ArenaGateReport.TryParse(json, out var parsed, out var error), error);
+        Assert.True(parsed!.UnlistedAllowed);
+        Assert.Equal(json, parsed.ToJson());
+
+        report.UnlistedAllowed = false;
+        Assert.Contains("\"unlistedAllowed\":false", report.ToJson());
+        Assert.True(ArenaGateReport.TryParse(report.ToJson(), out parsed, out error), error);
+        Assert.False(parsed!.UnlistedAllowed);
+
+        // A report from before the member existed, and one with a member of the wrong type: both false.
+        foreach (string text in new[]
+        {
+            """{"schema":1,"active":true}""",
+            """{"schema":1,"active":true,"unlistedAllowed":"true"}""",
+            """{"schema":1,"active":true,"unlistedAllowed":1}""",
+            """{"schema":1,"active":true,"unlistedAllowed":null}""",
+        })
+        {
+            Assert.True(ArenaGateReport.TryParse(text, out parsed, out error), error);
+            Assert.False(parsed!.UnlistedAllowed, text);
+        }
+
+        // An inactive report says nothing about the mode.
+        Assert.False(ArenaGateReport.Inactive("boom", "abc").UnlistedAllowed);
     }
 
     // ------------------------------------------------------------------ contract
@@ -2630,6 +2866,12 @@ public sealed class ArenaWhitelistTests
         Assert.Equal("unlisted-allowed", Find(decision.Allowed, "com.example.foreign").Reason);
         Assert.Equal("whitelist", Find(decision.Allowed, "com.maschine.Killcam").Reason);
         Assert.Equal("whitelist", Find(decision.Allowed, "me.sol.sain").Reason);
-        Assert.Equal("SAIN: version 4.5.2 differs from reviewed 4.5.1", Assert.Single(decision.Warnings));
+        Assert.Equal(
+            new[]
+            {
+                "SAIN: version 4.5.2 differs from reviewed 4.5.1",
+                "policy override: 1 unlisted mod(s) allowed by your policy file: Foreign Mod",
+            },
+            decision.Warnings.ToArray());
     }
 }

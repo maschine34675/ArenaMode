@@ -324,12 +324,13 @@ public sealed class ArenaServerInstanceTests : IDisposable
         using var ping = await Ping(Router());
         var root = ping.RootElement;
 
-        // The existing fields stay; only arenaInstance and serverMods are new.
+        // The version stays; arenaInstance and serverMods are the Arena session fields. The old
+        // admissionFailure member is gone: the ISB refusal it carried belongs to the whitelist now
+        // (the client still reads such a member when an older server sends one).
         Assert.Equal(
-            ["admissionFailure", "arenaInstance", "serverMods", "version"],
+            ["arenaInstance", "serverMods", "version"],
             root.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
         Assert.False(root.GetProperty("arenaInstance").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, root.GetProperty("admissionFailure").ValueKind);
         Assert.False(string.IsNullOrEmpty(root.GetProperty("version").GetString()));
     }
 
@@ -379,22 +380,6 @@ public sealed class ArenaServerInstanceTests : IDisposable
 
         Assert.True(ping.RootElement.GetProperty("arenaInstance").GetBoolean());
         Assert.Equal(2, ping.RootElement.GetProperty("serverMods").GetArrayLength());
-    }
-
-    [Fact]
-    public async Task PingStillCarriesTheIsbAdmissionFailure()
-    {
-        try
-        {
-            ArenaMode.Server.Compat.ArenaIsbServerAdmission.Initialize(["com.samc137.aishi"]);
-            ArenaServerInstance.Initialize(SampleMods(), _noMarkerDirectory);
-
-            using var ping = await Ping(Router());
-
-            Assert.Contains("ISB",
-                ping.RootElement.GetProperty("admissionFailure").GetString());
-        }
-        finally { ArenaMode.Server.Compat.ArenaIsbServerAdmission.Initialize([]); }
     }
 
     // ------------------------------------------------------------------ refusal

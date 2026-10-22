@@ -1,4 +1,6 @@
-// Models owned object identity, layers and camera masks, not native rendering or occlusion.
+// Boundary doubles for ArenaPickupView.cs, which is linked unchanged. They model only what the
+// constructor ordering depends on: object identity and destruction, the active state of a parent,
+// and when native TMP runs Awake. No rendering is simulated.
 namespace UnityEngine
 {
     public class Object
@@ -21,7 +23,6 @@ namespace UnityEngine
         public GameObject gameObject;
         public Transform transform => gameObject.transform;
     }
-    public class MonoBehaviour : Component { }
     public class GameObject : Object
     {
         public static readonly List<GameObject> All = new();
@@ -38,7 +39,7 @@ namespace UnityEngine
         public T AddComponent<T>() where T : Component, new()
         {
             var c = new T { gameObject = this }; Components.Add(c);
-            // Unity delays Awake on components added below inactive parents.
+            // Unity delays Awake on a component added below an inactive parent until the parent is activated.
             if (activeInHierarchy && c is TMPro.TextMeshPro text) text.NativeAwake();
             return c;
         }
@@ -63,7 +64,7 @@ namespace UnityEngine
         public void SetParent(Transform target, bool world)
         { parent?.Children.Remove(this); parent = target; parent?.Children.Add(this); }
     }
-    public class Camera : Component { public int cullingMask = -1; }
+    public class Camera : Component { }
     public class Collider : Component { public bool enabled = true; }
     public class Renderer : Component
     { public bool enabled = true, receiveShadows; public Material sharedMaterial; public Rendering.ShadowCastingMode shadowCastingMode; }
@@ -94,10 +95,10 @@ namespace UnityEngine
     {
         public static Vector3 up => new(0, 1, 0);
         public static Vector3 one => new(1, 1, 1);
-        public float sqrMagnitude => x*x + y*y + z*z;
-        public static Vector3 operator +(Vector3 a, Vector3 b) => new(a.x+b.x, a.y+b.y, a.z+b.z);
-        public static Vector3 operator -(Vector3 a, Vector3 b) => new(a.x-b.x, a.y-b.y, a.z-b.z);
-        public static Vector3 operator *(Vector3 a, float s) => new(a.x*s, a.y*s, a.z*s);
+        public float sqrMagnitude => x * x + y * y + z * z;
+        public static Vector3 operator +(Vector3 a, Vector3 b) => new(a.x + b.x, a.y + b.y, a.z + b.z);
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new(a.x - b.x, a.y - b.y, a.z - b.z);
+        public static Vector3 operator *(Vector3 a, float s) => new(a.x * s, a.y * s, a.z * s);
     }
     public readonly record struct Quaternion(float x, float y, float z)
     { public static Quaternion Euler(float x, float y, float z) => new(x, y, z); }
@@ -110,13 +111,6 @@ namespace UnityEngine
         public static int CeilToInt(float f) => (int)MathF.Ceiling(f);
     }
     public static class Time { public static float time, unscaledTime; }
-    public static class LayerMask
-    {
-        public static Dictionary<string, int> Layers = new() { ["Loot"] = 11, ["Interactive"] = 13 };
-        public static bool FailRead;
-        public static int NameToLayer(string name) => FailRead
-            ? throw new InvalidOperationException("injected late marker layer failure") : Layers.GetValueOrDefault(name, -1);
-    }
 }
 namespace UnityEngine.Rendering { public enum ShadowCastingMode { Off } }
 namespace TMPro
@@ -124,8 +118,11 @@ namespace TMPro
     public enum TextAlignmentOptions { Center }
     public class TextMeshPro : UnityEngine.Component
     {
+        /// <summary>Makes the next text assignment throw, to model a late native failure in the constructor.</summary>
+        public static bool FailText;
         private UnityEngine.Renderer _renderer;
         private object _font;
+        private string _text;
         public bool Awakened { get; private set; }
         public void NativeAwake()
         {
@@ -133,9 +130,9 @@ namespace TMPro
             Awakened = true;
             _renderer = gameObject.GetComponent<UnityEngine.Renderer>() ?? gameObject.AddComponent<UnityEngine.Renderer>();
         }
-        // Installed TMP_Text.font calls LoadFontAsset; TextMeshPro.LoadFontAsset
-        // writes its cached m_renderer, which only Awake populates. This boundary
-        // intentionally throws if production configures a not-yet-awakened label.
+        // The installed TMP_Text.font setter calls LoadFontAsset, and TextMeshPro.LoadFontAsset writes its
+        // cached renderer, which only Awake populates. This boundary throws a NullReferenceException when
+        // production configures a label that has not awakened yet.
         public object font
         {
             get => _font;
@@ -150,8 +147,37 @@ namespace TMPro
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color;
         public bool richText, enableWordWrapping;
-        public string text;
+        public string text
+        {
+            get => _text;
+            set => _text = FailText ? throw new InvalidOperationException("injected late label failure") : value;
+        }
         public Rect rectTransform = new();
         public class Rect { public UnityEngine.Vector2 sizeDelta; }
     }
+}
+namespace EFT.CameraControl
+{
+    public class CameraManager
+    {
+        public static CameraManager Instance;
+        public static bool Exist => Instance != null;
+        public UnityEngine.Camera Camera;
+    }
+}
+namespace ArenaMode
+{
+    public static class Plugin { public static readonly Logger ModLogger = new(); }
+    public sealed class Logger { public List<string> Warnings = new(); public void LogWarning(string text) => Warnings.Add(text); }
+}
+namespace ArenaMode.Hud { public static class HudStyle { public static object Font = new(); } }
+namespace ArenaMode.Pickups
+{
+    public enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo, Health }
+    public enum ArenaPickupPhase { Available, Pending, Cooldown, Retired }
+    public class ArenaPickupPoint { public string Id; public float Yaw; public ArenaPickupKind Kind; }
+    public class ArenaPickupState { public ArenaPickupPhase Phase; public float ReadyAt; }
+    public static class ArenaHealthPickup { public const float Amount = 150f; }
+    // The real BeamLength probes physics; a fixed length keeps the beacon children in the tree.
+    public static class ArenaPickupGeometry { public static float BeamLength(UnityEngine.Vector3 point) => 4f; }
 }

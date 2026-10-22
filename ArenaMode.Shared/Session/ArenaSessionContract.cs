@@ -157,8 +157,9 @@ namespace ArenaMode.Shared.Session
     /// what the client reads back: whether the filter is active, which plugins it let through or
     /// removed, the warnings and the patchers it neutralised. JSON shape:
     /// <c>{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
-    /// "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
-    /// "patchersNeutralised":[file] }</c>. Unknown members are ignored when reading. A unit's
+    /// "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...],
+    /// "warnings":[string], "patchersNeutralised":[file] }</c>. Unknown members are ignored when
+    /// reading; a missing <c>unlistedAllowed</c> reads as false. A unit's
     /// <c>reason</c> is one of the <c>ArenaWhitelistDecision.Reason*</c> values: <c>platform</c>,
     /// <c>arena</c>, <c>whitelist</c>, <c>tool</c>, <c>unlisted-allowed</c> (blacklist mode),
     /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c>,
@@ -186,6 +187,13 @@ namespace ArenaMode.Shared.Session
 
         public string PolicyHash { get; set; }
 
+        /// <summary>
+        /// True when the policy the gate applied lets units through that nothing names (blacklist mode,
+        /// switched on by <c>"unlisted": "allow"</c> in the user file). Set on an active report; it is
+        /// the policy's mode, whether or not an installed plugin was actually let through by it.
+        /// </summary>
+        public bool UnlistedAllowed { get; set; }
+
         public List<ArenaSessionUnit> Allowed { get; set; }
 
         public List<ArenaSessionUnit> Excluded { get; set; }
@@ -210,7 +218,13 @@ namespace ArenaMode.Shared.Session
             if (policy == null) throw new ArgumentNullException("policy");
             if (decision == null) throw new ArgumentNullException("decision");
 
-            var report = new ArenaGateReport { Active = true, Error = null, PolicyHash = policy.Hash };
+            var report = new ArenaGateReport
+            {
+                Active = true,
+                Error = null,
+                PolicyHash = policy.Hash,
+                UnlistedAllowed = policy.AllowsUnlisted,
+            };
             report.Allowed.AddRange(decision.Allowed);
             report.Excluded.AddRange(decision.Excluded);
             report.Warnings.AddRange(decision.Warnings);
@@ -218,12 +232,19 @@ namespace ArenaMode.Shared.Session
             return report;
         }
 
-        /// <summary>The log line the gate writes: <c>Arena session: N plugins allowed, M excluded, K warnings</c>.</summary>
+        /// <summary>Appended to <see cref="SummaryLine"/> while <see cref="UnlistedAllowed"/> is true.</summary>
+        public const string PolicyOverrideSummarySuffix = " (policy override: unlisted mods allowed)";
+
+        /// <summary>
+        /// The log line the gate writes: <c>Arena session: N plugins allowed, M excluded, K warnings</c>,
+        /// followed by <see cref="PolicyOverrideSummarySuffix"/> when the policy allows unlisted units.
+        /// </summary>
         public string SummaryLine()
         {
             return "Arena session: " + Allowed.Count.ToString(CultureInfo.InvariantCulture) + " plugins allowed, "
                 + Excluded.Count.ToString(CultureInfo.InvariantCulture) + " excluded, "
-                + Warnings.Count.ToString(CultureInfo.InvariantCulture) + " warnings";
+                + Warnings.Count.ToString(CultureInfo.InvariantCulture) + " warnings"
+                + (UnlistedAllowed ? PolicyOverrideSummarySuffix : string.Empty);
         }
 
         /// <summary>Compact JSON in the documented shape.</summary>
@@ -234,6 +255,7 @@ namespace ArenaMode.Shared.Session
             root["active"] = Active;
             root["error"] = Error;
             root["policyHash"] = PolicyHash;
+            root["unlistedAllowed"] = UnlistedAllowed;
             root["allowed"] = UnitsToJson(Allowed);
             root["excluded"] = UnitsToJson(Excluded);
             root["warnings"] = Warnings == null ? new List<string>() : Warnings;
@@ -272,6 +294,7 @@ namespace ArenaMode.Shared.Session
                 Active = ArenaMiniJson.GetBool(obj, "active", false),
                 Error = ArenaMiniJson.GetString(obj, "error"),
                 PolicyHash = ArenaMiniJson.GetString(obj, "policyHash"),
+                UnlistedAllowed = ArenaMiniJson.GetBool(obj, "unlistedAllowed", false),
             };
             UnitsFromJson(ArenaMiniJson.GetArray(obj, "allowed"), parsed.Allowed);
             UnitsFromJson(ArenaMiniJson.GetArray(obj, "excluded"), parsed.Excluded);

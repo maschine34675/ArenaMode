@@ -256,9 +256,9 @@ when it was written (2026-10-22), each with the version it was reviewed with:
 - Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
 
 The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
-ISB Special Forces and Aishi. ArenaMode refused these before the whitelist existed (they
-still block Arena by their own checks), so they are named "Blocked for Arena" and never load
-in an Arena session, in whitelist and in blacklist mode alike. SPT's own plugins and
+ISB Special Forces and Aishi. ArenaMode refused these by code before the whitelist
+existed; that code is gone and the deny list alone decides now. They are named "Blocked
+for Arena" and never load in an Arena session, in whitelist and in blacklist mode alike. SPT's own plugins and
 ArenaMode itself are always allowed. A whitelisted mod whose installed version differs from
 the reviewed one only produces a warning. Fika is never filtered: with Fika, Arena stays
 unavailable as before.
@@ -297,14 +297,16 @@ optional. The Arena session decides each mod in this order:
    server mod the dependencies are the ones it lists in its own metadata, which the server
    reports; the server refuses to load any mod when one of them is missing.
 3. A mod your `allow` list names is allowed. This also lifts the default list's deny for that
-   mod (the checks inside ArenaMode that refuse those mods stay in force).
+   mod. No code in ArenaMode refuses those mods any more, so the entry lifts the block completely, at your
+   own risk.
 4. A mod the default list's `deny` names is excluded, with the reason *Blocked for Arena*,
    even in a blacklist; the same dependency rule as in 2 applies.
 5. A mod the default list names is allowed.
 6. Every other mod follows `"unlisted"`: `"deny"` (the default) excludes it, which makes
    the file a **whitelist**; `"allow"` lets it load without a warning of its own, which
    makes the file a **blacklist**: everything you did not deny, and the default list did not
-   deny, runs.
+   deny, runs. The Arena menu then announces it with one *policy override* note per side
+   (see *Testing override* below).
 
 So your `deny` always has the last word, and your `allow` beats the default list's `deny`.
 
@@ -347,6 +349,27 @@ your `SPT_Runtime`; only the `SPT_Data` folders the tree links (database, images
 are the installation's own. This session feature has offline checks only so far; its native
 acceptance is still open (`docs/ARENA-SESSION-20261021.md`, section 10).
 
+### Testing override
+
+Mods that are not on the list block Arena and do not load in an Arena session. To test with
+many such mods without entering each of them, create
+`BepInEx/config/com.maschine.ArenaMode.whitelist.json` with exactly this content:
+
+```json
+{ "schema": 1, "unlisted": "allow" }
+```
+
+That is the blacklist mode above with an empty `deny` list: every installed mod loads in the
+Arena session except the five mods of the default list's `deny` list, and nothing has been
+reviewed for the mods it lets through. It is not silent. Once ARENA is selected the menu
+shows `Notes: policy override: N unlisted mod(s) allowed by your policy file: ...` as the
+second notice line (one note for the game's plugins and one for the server's mods, at most
+six names each, then `and K more`) and so does the Arena session notice; the game log has
+the same notes at Info, and the preloader gate's summary line ends with
+`(policy override: unlisted mods allowed)`.
+
+The file stays in effect on every start until you delete it, so remove it when the test is over.
+
 ## Optional mods and compatibility
 
 These are implemented integration targets, not a claim that every combination
@@ -365,53 +388,42 @@ unless you allow them in your own whitelist file.
 | **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
 | **Killcam** | **1.0.0** is the current integration target; compatible API and enabled DeathReplay required. The former KillcamReplay plugin is not accepted. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1+**; not required for Arena's static Customs preview. |
-| **MoreBotsAPI** | **2.1.1+** scoped spawn, team-relationship and persistent revenge-state protection. Other mods using the API keep their own requirements. |
-| **AI Limit** | **1.9.2+**: Arena pauses its bot-limiter component for the exact match, preserving all participants. Normal PMC/Scav raids keep their limiter settings and behavior. |
-| **Looting Bots** | **1.8.0+**: autonomous looting is paused for Arena combatants, including both Team DM teams. Authenticated PFT companions retain their commanded looting. |
-| **Remove The Dead** | **4.1.3+**: automatic and manual cleanup are paused during Arena; Arena retains ownership of corpses and weapon pickups. |
-| **Smoothie** | **1.0.8+**: its optimizations remain enabled. Arena excludes its own pickup markers from static culling when a camera-visible excluded layer is available, and guards Smoothie's optional GC-pause routine during the match. |
 | **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |
-| **Late To The Party** | **3.1.1+**: Arena-owned weapon-pickup sources are excluded from discovery and destruction. Ordinary loot and collected weapons keep the mod's normal rules. |
-| **Classic Movement** | **1.1.3+**: Arena keeps native movement states and its own movement controls; ordinary raids retain Classic Movement. The unsupported legacy NostalgiaMode must be off. |
-| **StatTrack** | **2.1.1+**: Arena shots, hits and kills are excluded from permanent weapon statistics; respawns do not merge/save a raid. Existing statistics and ordinary raids remain untouched. |
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
-| **Deminvincibility** | **2.2.0+**: immortality, Second Chance and the one-HP clamp yield to Arena death/respawn rules. Damage scaling and medicine/fracture settings remain effective. |
-| **Skills Extended** | **3.1.4+**: Arena suspends Signals reward receipts and medical/weapon mastery XP callbacks. Native checks confirmed Arena callback removal and their return in a subsequent ordinary raid. Actual Signals rewards and perk combinations remain untested. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena. |
-| **Pause Continued** | **1.5.0+**: pause activation is suppressed during Arena to protect match timers and replacement bodies. A notice explains the restriction; ordinary raids can still be paused. |
-| **EFT Effects Manager / Broken Limbs Don't Heal** | Reviewed with **1.1.0 / 1.1.0**: custom-effect callbacks and temporary penalties follow the current Arena body. Native tests confirmed body/controller ownership through respawns and PFT refills; actual fracture treatment and re-fracture remain untested. |
 
-Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, MoreBotsAPI, AI Limit,
-Looting Bots, Remove The Dead, Smoothie, Continuous Healing, Late To The Party,
-Classic Movement, StatTrack, Continuous Load Ammo, SVM, Deminvincibility,
-Skills Extended, Recoil Rework Legacy and Pause Continued are attempted
-with a warning; required API and protection checks still apply. PFT 0.10.1 and
-0.10.2 remain excluded. Passing these checks does not certify a future release.
-These adapters do not change the optional mods' saved settings or ordinary raid
-behavior. An unavailable Smoothie adapter warns without blocking Arena; keep its
-optional memory-cleanup pause disabled in that case.
-Targeted Factory tests cover Classic Movement/StatTrack across ordinary–Arena–
-ordinary raids, SVM's SaveLoot/Ignore raid ends, and Continuous Load Ammo's basic
-operations and respawns with pending unloads. Deminvincibility's 1 HP and Second
-Chance controls also passed, including protected solo-Zombie exits and a
-one-companion PFT wave sequence. Specific timing/UI and replay cases remain open.
-See the [dated native results and limits](docs/GPU-OPTIONAL-COMPAT-20261020.md).
+Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, Continuous Healing,
+Continuous Load Ammo, SVM and Recoil Rework Legacy are attempted with a warning;
+required API and protection checks still apply. PFT 0.10.1 and 0.10.2 remain excluded.
+Passing these checks does not certify a future release. These adapters do not change
+the optional mods' saved settings or ordinary raid behavior.
+Targeted Factory tests cover SVM's SaveLoot/Ignore raid ends and Continuous Load
+Ammo's basic operations and respawns with pending unloads. Specific timing/UI and
+replay cases remain open. See the
+[dated native results and limits](docs/GPU-OPTIONAL-COMPAT-20261020.md), which also
+record tests of adapters that were removed on 2026-10-22.
+
+Adapters for other foreign mods (MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead,
+Smoothie, Late To The Party, Classic Movement, StatTrack, Deminvincibility, Skills
+Extended, Pause Continued, EFT Effects Manager / Broken Limbs Don't Heal) were removed
+on 2026-10-22: the whitelist is the one mechanism that keeps foreign mods away from
+Arena, and Arena carries no code specific to one of them. A mod you allow yourself
+runs unadapted. The dated reviews of the removed adapters stay in `docs/` as history.
 
 UIFixes' alternate reload path is handled. Arena includes its own relevant
 RaidInfoPanels and CombatSlide functionality; neither is a required separate
 download. **Fika is blocked**, rather than merely untested. See
 [the dependency inventory](docs/DEPENDENCIES.md) for more specific boundaries.
 
-**Active Questing Bots, loaded ORBIT, Adaptive Bot Culling, ISB Special Forces and ISB Aishi currently block Arena only.** Ordinary
-PMC/Scav raids remain available and keep those mods' behavior. Questing Bots
-1.1.0 can remain installed if its whole-mod server setting is disabled before
-starting the game; switching off only questing in F12 is not sufficient.
-ISB's separate progression stores are not protected by Arena's profile snapshot.
-The ISB check covers client and server components; remove the conflicting mod
-and restart both server and game. See [the exact admission scope](docs/ISB-ADMISSION-20261020.md).
-Adaptive Bot Culling pauses offscreen combat and changes death animations, so
-its F12 toggles do not provide a safe Arena exception.
+**ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi are blocked by
+the shipped default deny list, not by code specific to them.** Ordinary PMC/Scav raids
+remain available and keep those mods' behavior; in an Arena session they are not
+loaded. An `allow` entry in your own whitelist file lifts a default deny, at your own
+risk: ISB's separate progression stores are not protected by Arena's profile
+snapshot, and Adaptive Bot Culling pauses offscreen combat and changes death
+animations. The scope of the former per-mod checks is recorded in
+[the ISB admission review](docs/ISB-ADMISSION-20261020.md) (historical).
 An **ARENA UNAVAILABLE** notice explains blocked selection or a failed server
 connection directly in the character menu.
 

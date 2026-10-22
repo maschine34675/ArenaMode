@@ -112,7 +112,6 @@ public sealed class ArenaModeRouter : StaticRouter
                 new ValueTask<string>(Json(new
                 {
                     version = typeof(ArenaModeRouter).Assembly.GetName().Version?.ToString(),
-                    admissionFailure = Compat.ArenaIsbServerAdmission.RejectionReason,
                     // Arena session feature (docs/ARENA-SESSION-20261021.md, section 8).
                     // An older server omits both fields; the client reads absence as
                     // "no session offer" rather than as false/empty.
@@ -472,11 +471,6 @@ public sealed class ArenaModeRouter : StaticRouter
     {
         if (Sessions == null || Snapshots == null)
             return Json(new { armed = false, reason = "mod not initialized" });
-
-        // Own routes only: foreign ordinary raids and their persistence remain
-        // untouched. Reject before snapshot recovery, preparation or arming.
-        if (Compat.ArenaIsbServerAdmission.RejectionReason is { } isbFailure)
-            return Json(new { armed = false, reason = isbFailure });
 
         if (!Protocol.IsLifecycleRequestId(request.RequestId ?? string.Empty))
         {

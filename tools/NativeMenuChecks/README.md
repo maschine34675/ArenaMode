@@ -18,10 +18,9 @@ success responses and real transport failures remain visible in Arena diagnostic
 
 Optional-mod admission is checked at display/freeze, before server arming and
 again after settings refresh. Ordinary PMC/Scav starts must not even invoke the
-new provider. Closing setup preserves its process lifetime. Failed MoreBots
-binding rejects the exact returned Arena start before kit issue and cancels only
-that arm. Separate optional-mod harnesses cover the actual adapters/discovery;
-these tests use adapter responses as controlled boundary inputs.
+new provider. Closing setup preserves its process lifetime. Separate
+optional-mod harnesses cover the actual adapters/discovery; these tests use
+adapter responses as controlled boundary inputs.
 
 The area cases run the production arming hook and transport with controlled
 readiness inputs: exact area acknowledgement/token capture, wrong/missing area

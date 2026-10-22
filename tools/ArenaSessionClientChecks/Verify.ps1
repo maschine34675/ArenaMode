@@ -21,6 +21,7 @@ $mustNotExist = Join-Path $repo 'artifacts\nodeploy\must-not-exist'
 $safety = @("-p:CustomAfterMicrosoftCommonTargets=$noDeploy", "-p:SPTUserMods=$mustNotExist")
 
 $paths = [ordered]@{
+    decision  = Join-Path $repo 'ArenaMode.Shared\Session\ArenaWhitelistDecision.cs'
     mode      = Join-Path $repo 'ArenaMode.Client\Session\ArenaSessionMode.cs'
     admission = Join-Path $repo 'ArenaMode.Client\Session\ArenaWhitelistAdmission.cs'
     switch    = Join-Path $repo 'ArenaMode.Client\Session\ArenaSessionSwitch.cs'
@@ -30,6 +31,7 @@ $paths = [ordered]@{
 }
 # How a mutated copy reaches the harness: an MSBuild property (compiled sources) or an environment variable (pinned sources).
 $channel = @{
+    decision  = @{ Property = 'ProductionDecisionSource' }
     mode      = @{ Property = 'ProductionModeSource' }
     admission = @{ Property = 'ProductionAdmissionSource' }
     switch    = @{ Property = 'ProductionSwitchSource'; Variable = 'ARENA_SESSION_SWITCH_SOURCE' }
@@ -151,16 +153,19 @@ Invoke-Mutant 'admission-refusal-text' 'admission' `
     'Start an Arena session to play Arena without them; the game restarts.' 'Start a session.' `
     'The spec''s refusal text, with the session sentence'
 Invoke-Mutant 'admission-always-pings' 'admission' `
-    'if (!ArenaSessionMode.IsArenaSession && Current().Reason == null) return;' '' `
+    'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
     'A clean normal session needs no ping to open the screen'
 Invoke-Mutant 'admission-notes-uncapped' 'admission' 'private const int MaxWarningsListed = 4;' 'private const int MaxWarningsListed = 40;' `
     'Notes are capped at four lines and the rest counted'
 Invoke-Mutant 'admission-policy-size-unchecked' 'admission' 'if (info.Length > MaxPolicyFileBytes)' 'if (false)' `
     'A policy file above 256 KB is refused as a policy and reported'
 Invoke-Mutant 'admission-session-failure-fails-open' 'admission' `
-    "return ArenaSessionMode.IsArenaSession`n                ? ""Arena could not verify the session state. Return to the normal session and check the client log.""`n                : null;" `
+    "return ArenaSessionMode.IsArenaSession`n                ? ""Arena could not verify the session state. Return to the normal session and check the client log.""`n                : ""Arena could not evaluate its mod whitelist ("" + ex.Message + ""). Check the client log; ordinary PMC/Scav raids remain available."";" `
     'return null;' `
-    'An internal failure refuses Arena in an Arena session'
+    'An internal failure refuses Arena in a normal session'
+Invoke-Mutant 'admission-missing-policy-fails-open' 'admission' `
+    'else outcome.Reason = PolicyUnavailableRefusal(policyProblem);' '' `
+    'Without a policy file a normal session refuses Arena and names the missing file'
 Invoke-Mutant 'admission-offer-for-any-reason' 'admission' `
     'string.Equals(reason, outcome.Reason, StringComparison.Ordinal)' 'true' `
     'The action belongs to the whitelist refusal only'
@@ -211,6 +216,31 @@ Invoke-Mutant 'admission-blacklist-lead-claims-a-whitelist' 'admission' `
 Invoke-Mutant 'admission-whitelist-lead-dropped' 'admission' `
     ': "Arena runs only with whitelisted mods.");' ': "Arena runs with whitelisted mods.");' `
     'Without a session-capable server the refusal asks to remove the mods'
+
+# ---- policy override ("unlisted": "allow"): the decision's one warning per side, its way into the notes line, the screen
+Invoke-Mutant 'decision-override-note-missing' 'decision' `
+    'if (policyOverride != null) result.Warnings.Add(policyOverride);' '' `
+    'The policy override is shown first and never counted into the cap of four notes'
+Invoke-Mutant 'decision-override-note-without-override' 'decision' `
+    'if (!string.Equals(unit.Reason, ReasonUnlistedAllowed, StringComparison.Ordinal)) continue;' '' `
+    'A normal session whose plugins are all whitelisted may play Arena without a restart'
+Invoke-Mutant 'admission-override-note-in-the-cap' 'admission' `
+    'if (!ArenaWhitelistDecision.IsPolicyOverrideWarning(note)) others.Add(note);' 'if (true) others.Add(note);' `
+    'The policy override is shown first and never counted into the cap of four notes'
+Invoke-Mutant 'admission-override-notes-sorted' 'admission' `
+    'if (policyOverrides.Count > 0) parts.Add(string.Join("; ", policyOverrides.ToArray()));' `
+    'if (policyOverrides.Count > 0) parts.Add(JoinLimited(policyOverrides, 10, "; "));' `
+    'The policy override is announced once per side, client first'
+Invoke-Mutant 'admission-override-note-twice' 'admission' `
+    'else if (!policyOverrides.Contains(note)) policyOverrides.Add(note);' 'else policyOverrides.Add(note);' `
+    'Two sides with the same note show it once'
+Invoke-Mutant 'side-refusal-without-notes' 'side' `
+    'string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);' 'string text = reason;' `
+    'a refusal carries the whitelist notes, the policy override included, as its second line'
+Invoke-Mutant 'side-selected-notice-without-notes' 'side' `
+    "        else if (warnings != null)`n            ArenaAvailabilityNotice.ShowInfo(screen, warnings);" `
+    "        else if (false)`n            ArenaAvailabilityNotice.ShowInfo(screen, warnings);" `
+    'an Arena click shows the whitelist notes, the policy override included, as an information notice'
 
 # ---- session switch
 Invoke-Mutant 'switch-quit-before-launch' 'switch' `

@@ -19,26 +19,9 @@ namespace ArenaMode;
 [BepInDependency(PitFireTeamCompat.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("me.sol.sain", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(DynamicMapsCorpseMarkers.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaOptionalMods.QuestingBotsGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaOptionalMods.OrbitGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaOptionalMods.AdaptiveBotCullingGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(Shared.ArenaIsbAdmission.SpecialForcesGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(Shared.ArenaIsbAdmission.AishiGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.dvize.ailimit", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("me.skwizzy.lootingbots", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.jbs4bmx.RemoveTheDead", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.tominocz.smoothie", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.lacyway.ch", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.danw.latetotheparty", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.boogle.classicmovement", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.acidphantasm.stattrack", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.ozen.continuousloadammo", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("com.hazelify.deminvincibility", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaSkillsExtendedContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency(ArenaRecoilLegacyContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaPauseContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaEffectsContract.BrokenLimbsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -82,21 +65,9 @@ public class Plugin : BaseUnityPlugin
         Hud.InfoPanels.InfoPanelSettings.Init(Config,
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
         PitFireTeamCompat.Initialize();
-        ArenaMoreBotsCompatibility.Initialize();
-        ArenaAiLimitCompat.Initialize();
-        ArenaLootingBotsCompat.Initialize();
-        ArenaRemoveTheDeadCompat.Initialize();
-        ArenaSmoothieCompat.Initialize();
         ArenaContinuousHealingCompat.Initialize();
-        ArenaLateToThePartyCompat.Initialize();
-        ArenaClassicMovementCompat.Initialize();
-        ArenaStatTrackCompat.Initialize();
         ArenaContinuousLoadAmmoCompat.Initialize();
-        ArenaDeminvincibilityCompat.Initialize();
-        ArenaSkillsExtendedCompat.Initialize();
         ArenaRecoilLegacyCompat.Initialize();
-        ArenaPauseCompat.Initialize();
-        ArenaEffectsCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -236,7 +207,6 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaBigBrainLibrary.Tick();
         ArenaRecoilLegacyCompat.Tick();
-        ArenaEffectsCompat.Tick();
     }
 
     private void OnDestroy()
@@ -249,25 +219,13 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ShutdownRuntime()
     {
-        ArenaMoreBotsCompatibility.Shutdown();
-        ArenaAiLimitCompat.Shutdown();
-        ArenaLootingBotsCompat.Shutdown();
-        ArenaRemoveTheDeadCompat.Shutdown();
-        ArenaSmoothieCompat.Shutdown();
         ArenaContinuousHealingCompat.Shutdown();
-        ArenaLateToThePartyCompat.Shutdown();
-        ArenaClassicMovementCompat.Shutdown();
-        ArenaStatTrackCompat.Shutdown();
         ArenaContinuousLoadAmmoCompat.Shutdown();
-        ArenaDeminvincibilityCompat.Shutdown();
-        ArenaSkillsExtendedCompat.Shutdown();
         ArenaRecoilLegacyCompat.Shutdown();
-        ArenaPauseCompat.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();
-        ArenaEffectsCompat.Shutdown();
         Movement.VaultingTuning.Restore();
         Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();

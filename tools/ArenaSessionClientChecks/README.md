@@ -18,7 +18,9 @@ What is compiled unchanged from production:
   Arena instance); the START ARENA SESSION offer; per-ping caching; Fika; failure modes.
 - `ArenaSessionSwitch.cs`: profile id, request file, the helper's own parser run on the request before anything is
   written or started, helper launch and quit order, the two-click gate.
-- `ArenaMode.Shared/Session/*`: the shared policy and decision logic.
+- `ArenaMode.Shared/Session/*`: the shared policy and decision logic. The decision source can be mutated too
+  (`PolicyOverride.cs` follows the policy-override note, `"unlisted": "allow"`, from the decision into the notes
+  line, its cap, the Info log and the Arena session notice).
 - `ArenaMode.Session/SessionLogic.cs`: the helper's request parser (`HelperRequest`), which the client links.
 
 What is a stand-in (`StandIns.cs`): BepInEx (`Paths`, `Chainloader`), Unity's `Application.Quit`, the

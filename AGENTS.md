@@ -22,34 +22,18 @@ profile-protection contract; the proficiency contract is mandatory from 0.10.3
 onward. SAIN 4.5.1+, APBS 2.4.1+ and DynamicMaps 1.2.1+ likewise attempt their
 existing APIs and warn once for newer unreviewed versions. This is not a promise
 of future compatibility. See docs/OPTIONAL-MOD-VERSIONS-20261019.md.
-Arena-only optional AI-mod admission lives in
-docs/OPTIONAL-MOD-ADMISSION-20261019.md. Active Questing Bots and loaded ORBIT
-block Arena at selection and final start, never ordinary PMC/Scav raids. Preserve
-the process-lifetime admission provider across menu cleanup; do not replace it
-with global BepInEx incompatibility declarations or user-config edits.
-Loaded Adaptive Bot Culling also blocks Arena. Read
-docs/ARENA-AVAILABILITY-20261020.md for the published-DLL evidence and visible
-menu diagnostics. Keep the rejected-Core notice path free of Core-dependent
-types, exclude PFT's My Squad screen, and never replace final admission with UI.
-Loaded ISB Special Forces/Aishi client OR server components also block Arena;
-read docs/ISB-ADMISSION-20261020.md. Preserve server rejection before snapshot
-recovery/preparation and the optional ping reason. Never confuse MoreBotsAPI
-support with protection of ISB's own progression stores or block recovery/end
-routes and ordinary PMC/Scav starts.
-MoreBotsAPI 2.1.1+ requires the separate exact-request protections documented in
-docs/MOREBOTS-COMPATIBILITY-20261019.md. Its revenge files are outside SPT's
-profile snapshot. Preserve both the producer and delayed end-sender guards,
-the PFT null-marker/body check and Arena relationship ownership; never clear
-the global queue or blanket-block its identity-free server route.
-AI Limit 1.9.2+ is paused only at its component-creation seam, including the
-exact server-confirmed loading world before Arena becomes active. Read
-docs/AI-LIMIT-COMPAT-20261019.md before changing this timing, contract validation
-or admission-on-failure; ordinary PMC/Scav raids retain the original entry point.
-Looting Bots 1.8.0+ and Remove The Dead 4.1.3+ have separate exact-world guards;
-read docs/LOOTING-BOTS-COMPAT-20261019.md and docs/REMOVE-THE-DEAD-COMPAT-20261019.md.
-Preserve the real PFT companion exception, scan-ticket return and queue guards;
-faction friendship alone never exempts a TDM bot. RTD's shared automatic/manual
-destructive seam must stay suppressed while exact Arena corpse ownership lasts.
+Arena-only optional-mod admission is `ArenaOptionalMods.GetRejectionReason`: the whitelist
+first, then the failure the server reports in its ping, then the remaining adapters. It
+never disables a foreign mod, never touches ordinary PMC/Scav raids and carries no code
+specific to one foreign mod (the per-mod refusals of ORBIT, Questing Bots, Adaptive Bot
+Culling, ISB Special Forces/Aishi and the adapters for MoreBotsAPI, AI Limit, Looting Bots,
+Remove The Dead, Smoothie, Late To The Party, Classic Movement, StatTrack,
+Deminvincibility, Skills Extended, Pause Continued and EFT Effects Manager / Broken Limbs
+were removed on 2026-10-22; their dated reviews in docs/ are history). Preserve the
+process-lifetime admission provider across menu cleanup; do not replace it with global
+BepInEx incompatibility declarations or user-config edits. Keep the rejected-Core notice
+path free of Core-dependent types, exclude PFT's My Squad screen, and never replace final
+admission with UI (docs/ARENA-AVAILABILITY-20261020.md, historical for its mod checks).
 Arena runs only with whitelisted mods: a normal session with other mods offers
 START ARENA SESSION, which restarts the game with only the allowed plugins
 (preloader gate `ArenaMode.Gate`) against a second server with a private tree
@@ -59,40 +43,27 @@ process-identity rules or the request contract the client checks before it quits
 the game. Never add code that is specific to one foreign mod. The user policy file is a combined
 allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. The shipped default file
 allows every installed mod and has its own `deny` list (ORBIT, Questing Bots, Adaptive Bot Culling,
-ISB Special Forces, Aishi: refused by ArenaMode before the whitelist existed; their code-level refusals
-stay). Keep the per-unit order (platform/Arena, user deny, user allow, DEFAULT deny, default entries,
+ISB Special Forces, Aishi: ArenaMode refused them by code before the whitelist existed; that code was
+removed on 2026-10-22, so this deny list alone refuses them). Keep the per-unit order (platform/Arena, user deny, user allow, DEFAULT deny, default entries,
 `unlisted`: a user allow lifts a default deny, a user deny always wins, default denies hold in
 blacklist mode), an unknown `unlisted` value (or, in blacklist mode, an unreadable `deny` list)
 invalidating the whole user file, a malformed default `deny` invalidating the default file, the server
 mods' `ModDependencies` in the closure, and the mode out of the shipped default file (spec sections 3
 and 4). The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
-Smoothie 1.0.8+ remains enabled; read docs/SMOOTHIE-COMPAT-20261019.md before
-changing camera-checked marker layers or its optional GC-pause guard. Never
-move pooled weapon objects into marker ownership or change foreign saved settings.
-Continuous Load Ammo 1.2.0+, SVM 2.2.3+ and Deminvincibility 2.2.0+ have separate
-scoped adapters. Read docs/AMMO-RAID-HEALTH-COMPAT-20261020.md and its leaf reviews
-before changing them. Preserve CLA's physical controller/inventory/task epochs,
-SVM's actual Harmony order and one-use ordinary callback bridge, and Demi's
-native death result plus exact health-controller leases. Never replay unknown
-outer raid-end hooks, make a stale Arena end look successful, or globally disable
-foreign settings/SecondChance state. Bounded Factory gameplay evidence, including
-one-companion PFT-Zombie wave transitions, is recorded in
-docs/GPU-OPTIONAL-COMPAT-20261020.md. Preserve its untested CLA timing/UI,
-Tactical PFT, killer-replay and world-change debounce boundaries; it is not
-blanket compatibility certification.
-Skills Extended 3.1.4+ has exact-world Signals receipt and initial-player XP
-subscription guards; read docs/SKILLS-EXTENDED-COMPAT-20261020.md. Preserve the
-second Signals Boot during native loot loading, retired-world leases and exact
-delegate removal. Never clear the foreign journal, replay world initialization
-or replace ordinary XP delivery with a global Arena flag. Native perk and
-Signals-reward checks remain pending; the native Labs test had no configured
-signal placements. Native callback removal and ordinary-raid restoration,
-initial kits, repeated death replacements and PFT refills are recorded in
-docs/GPU-COMPAT-SECOND-20261020.md. Do not treat an unchanged empty journal as
-proof of a blocked real reward.
+The user's testing override is that blacklist file and no second mechanism; keep it visible (the decision's one
+`policy override` warning per side, the gate summary suffix, `unlistedAllowed`; spec section 3).
+Continuous Load Ammo 1.2.0+ and SVM 2.2.3+ have separate scoped adapters. Read
+docs/AMMO-RAID-HEALTH-COMPAT-20261020.md and its leaf reviews before changing them (the
+Deminvincibility part of that document is history). Preserve CLA's physical
+controller/inventory/task epochs and SVM's actual Harmony order and one-use ordinary
+callback bridge. Never replay unknown outer raid-end hooks, make a stale Arena end look
+successful, or globally disable foreign settings. Bounded Factory gameplay evidence is
+recorded in docs/GPU-OPTIONAL-COMPAT-20261020.md (it also covers adapters since removed).
+Preserve its untested CLA timing/UI, Tactical PFT, killer-replay and world-change debounce
+boundaries; it is not blanket compatibility certification.
 Before temporary testing of any server profile/enum extension, archive every
 canonical profile on both synchronized installations, not only the selected test
-profile. Skills Extended adds persisted Hacking/SignalsIntelligence entries
+profile. Example: Skills Extended adds persisted Hacking/SignalsIntelligence entries
 outside Arena; removing its prepatcher can make those profiles unloadable.
 Keep automatic-backup rotation in mind. Never restore whole profiles merely to
 remove a test mod; review the exact residue and preserve unrelated progress.
@@ -102,16 +73,6 @@ destroy an entire newly created player if the old component still exists.
 Preserve both singleton transfers before foreign initialization, deferred
 authoritative-body commit/recovery, retired controller guards and ordinary-raid
 pass-through. Never destroy a player object or replay foreign world startup.
-Pause Continued 1.5.0+ is suppressed only at a new pause activation in a confirmed
-Arena world; read docs/PAUSE-COMPAT-20261020.md. Preserve ordinary pause and all
-unpause/release paths. Do not toggle foreign saved settings or merely guard the
-private Pause method after its Update has already set the global paused flag.
-EFT Effects Manager / Broken Limbs body handoff is described in
-docs/EFFECTS-COMPAT-20261020.md. The library has no plugin GUID: preserve late
-assembly discovery and checked callback/ledger contracts. Remove only owned
-old-controller bonuses and penalties; never replay NotifyRaidStarted or invoke
-global bonus clearing on Arena replacement. ArenaSkills snapshots exclude the
-current library-owned contribution and retain its live contribution on restore.
 Five modes: Deathmatch, Gun Game, Tactical, Team Deathmatch, Zombies. Deathmatch merges
 legacy Endless/Rounds with frozen individual FFA or all-vs-player rules and
 optional finite/unlimited scoring rounds. See docs/DEATHMATCH-MENU-REVIEW.md and
@@ -255,18 +216,10 @@ acceptance evidence; use the dated handoff and the relevant review document.
 Read `docs/DEPENDENCIES.md` for hard/conditional dependencies, exact optional-mod
 contracts, absorbed own mods and release package boundaries. An installed mod
 is not automatically required or exhaustively certified compatible.
-For Continuous Healing and Late To The Party, read
-`docs/HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md` and its adapter contracts.
-Preserve the live local player's healing, exact retired-body leases, and native
-weapon-source ownership through pending transfers. Never turn either adapter
-into a global config switch, a profile-ID exemption, or an ordinary-loot filter.
-For Classic Movement and StatTrack, read
-`docs/MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md` and the linked contracts.
-Movement caches are constructed before the local player and bot game are fully
-registered; preserve the narrow server-confirmed construction proof rather than
-weakening native movement-state predicates. StatTrack isolation belongs at exact
-body-bearing producers and unregister callbacks, never global dictionary clears
-or a blanket save-route block. Preserve pending ordinary saves and insurance.
+For Continuous Healing, read `docs/HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md` (its Late
+To The Party half is history) and the adapter contract. Preserve the live local
+player's healing and exact retired-body leases. Never turn the adapter into a global
+config switch or a profile-ID exemption.
 Arena's local default full-auto rule is documented in `docs/DEFAULT-FIRE-MODE-REVIEW.md`.
 Preserve manual selection while held, native available modes and exact confirmed
 raid/body/hands ownership; the standalone DefaultAutoFireMode must be disabled

@@ -11,8 +11,8 @@
 #      mscorlib,
 #   3. runs one scenario per Mono process (the Mono of the matching Unity editor, MONO_PATH = the
 #      game's Managed folder) on a fresh fake game folder under artifacts/gate-checks/<run>/,
-#   4. builds fourteen deliberately broken copies of the gate ("mutants") and requires that the checks
-#      fail for every one of them.
+#   4. builds deliberately broken copies of the gate ("mutants": edits of the gate sources, and of the shared
+#      session sources the gate links) and requires that the checks fail for every one of them.
 #
 # Needs: the game (BepInEx\core, EscapeFromTarkov_Data\Managed, BepInEx\plugins for the real-install
 # scenario), the .NET SDK, and the Unity editor 2022.3.x (MonoBleedingEdge). It reads the game,
@@ -229,8 +229,9 @@ function Edit-Source([string]$Folder, [string]$File, [string]$Find, [string]$Rep
     [IO.File]::WriteAllText($path, $text.Replace($Find, $Replace))
 }
 
-# Each mutant is a plausible mistake, made in a copy of the gate sources. At least one of the scenarios
-# listed must fail for it. The anchors are single lines, so line endings do not matter.
+# Each mutant is a plausible mistake, made in a copy of the gate sources (Edits) or of the shared session
+# sources that are compiled into the gate (SharedEdits, file names of ArenaMode.Shared\Session). At least one of
+# the scenarios listed must fail for it. The anchors are single lines, so line endings do not matter.
 $mutants = @(
     @{ Name = 'install-in-initialize'; Scenarios = @('full'); Edits = @(
         @{ File = 'Patcher.cs'; Find = 'ArenaGateRuntime.Prepare();'; Replace = 'ArenaGateRuntime.Prepare(); ArenaGateRuntime.Arm();' },
@@ -262,7 +263,21 @@ $mutants = @(
     @{ Name = 'patcher-user-deny-not-named'; Scenarios = @('user-file', 'user-blacklist'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'if (reason == ArenaWhitelistDecision.ReasonDeniedByUser) return "is denied in the user''s policy file";'; Replace = '' }) },
     @{ Name = 'excluded-debug-line-without-reason'; Scenarios = @('full'); Edits = @(
-        @{ File = 'ArenaGateRuntime.cs'; Find = '+ unit.Reason + ", " + unit.File);'; Replace = '+ unit.File);' }) }
+        @{ File = 'ArenaGateRuntime.cs'; Find = '+ unit.Reason + ", " + unit.File);'; Replace = '+ unit.File);' }) },
+    # The user's own file can turn the whitelist into a blacklist, and the gate says so: the Info summary carries the
+    # override suffix, the report carries the flag, and the decision's one warning names the plugins let through.
+    @{ Name = 'summary-without-override-suffix'; Scenarios = @('user-blacklist'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = '+ (UnlistedAllowed ? PolicyOverrideSummarySuffix : string.Empty);'; Replace = ';' }) },
+    @{ Name = 'override-suffix-in-a-whitelist'; Scenarios = @('full', 'user-file'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = '+ (UnlistedAllowed ? PolicyOverrideSummarySuffix : string.Empty);'; Replace = '+ PolicyOverrideSummarySuffix;' }) },
+    @{ Name = 'report-without-unlisted-flag'; Scenarios = @('user-blacklist'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'UnlistedAllowed = policy.AllowsUnlisted,'; Replace = 'UnlistedAllowed = false,' }) },
+    @{ Name = 'flag-not-published'; Scenarios = @('user-blacklist'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'root["unlistedAllowed"] = UnlistedAllowed;'; Replace = 'root["unlistedAllowed"] = false;' }) },
+    @{ Name = 'override-warning-dropped'; Scenarios = @('user-blacklist'); SharedEdits = @(
+        @{ File = 'ArenaWhitelistDecision.cs'; Find = 'if (policyOverride != null) result.Warnings.Add(policyOverride);'; Replace = '' }) },
+    @{ Name = 'override-warning-in-a-whitelist'; Scenarios = @('full', 'user-file'); SharedEdits = @(
+        @{ File = 'ArenaWhitelistDecision.cs'; Find = 'if (!string.Equals(unit.Reason, ReasonUnlistedAllowed, StringComparison.Ordinal)) continue;'; Replace = '' }) }
 )
 
 if (-not $SkipMutants -and -not $Only) {
@@ -277,10 +292,20 @@ if (-not $SkipMutants -and -not $Only) {
             Edit-Source $src $edit.File $edit.Find $edit.Replace
         }
 
+        # A mutant of the shared sources compiles a mutated copy of them into the gate instead of the originals.
+        $mutantShared = $sharedSources
+        if ($mutant.SharedEdits) {
+            $sharedCopy = Join-Path $folder 'shared'
+            [IO.Directory]::CreateDirectory($sharedCopy) | Out-Null
+            foreach ($file in $sharedSources) { Copy-Item $file (Join-Path $sharedCopy (Split-Path $file -Leaf)) }
+            foreach ($edit in $mutant.SharedEdits) { Edit-Source $sharedCopy $edit.File $edit.Find $edit.Replace }
+            $mutantShared = @(Get-ChildItem $sharedCopy -Filter '*.cs' | ForEach-Object { $_.FullName })
+        }
+
         $gateOut = Join-Path $folder 'build'
         [IO.Directory]::CreateDirectory($gateOut) | Out-Null
         $refs = @($netstandard | ForEach-Object { "-r:$_" }) + ($coreReferences | ForEach-Object { "-r:$core\$_" })
-        $sources = @(Get-ChildItem $src -Filter '*.cs' | ForEach-Object { $_.FullName }) + $sharedSources
+        $sources = @(Get-ChildItem $src -Filter '*.cs' | ForEach-Object { $_.FullName }) + $mutantShared
         Invoke-Native "compile mutant $($mutant.Name)" {
             & dotnet $csc -nologo -nostdlib -noconfig -langversion:latest -debug:portable -target:library "-out:$gateOut\maschine-ArenaMode.Gate.dll" @refs @sources
         } (Join-Path $folder 'compile.log')

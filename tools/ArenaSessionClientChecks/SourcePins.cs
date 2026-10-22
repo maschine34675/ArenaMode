@@ -38,8 +38,9 @@ internal static partial class Program
 
         // ---- admission chain
         Require(Before(optional, "var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason(); if (whitelistFailure != null) return whitelistFailure;",
-                "Chainloader.PluginInfos.ContainsKey(OrbitGuid)"),
-            "the whitelist is the first provider of the admission chain");
+                "ArenaServerClient.ServerAdmissionFailure != null")
+                && Before(optional, "ArenaServerClient.ServerAdmissionFailure != null", "ArenaContinuousHealingCompat.GetRejectionReason()"),
+            "the whitelist is the first provider of the admission chain, ahead of the server's reported failure and the adapters");
 
         // ---- side screen
         string enable = Slice(side, "public static void Enable()", "private sealed class ArenaSideSelectionShowPatch");
@@ -109,6 +110,15 @@ internal static partial class Program
         Require(notices.Contains("ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), back);", StringComparison.Ordinal)
                 && notices.Contains("else if (warnings != null && ArenaMenuSelection.IsSelected) ArenaAvailabilityNotice.ShowInfo(screen, warnings);", StringComparison.Ordinal),
             "the session notice always shows in a session; whitelist warnings show only once ARENA is selected");
+
+        // The policy-override note travels with the whitelist notes: a refusal shows them as its second line, and
+        // an Arena click (ARENA selectable, nothing refused) shows them as an information notice.
+        Require(unavailable.Contains("string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);", StringComparison.Ordinal),
+            "a refusal carries the whitelist notes, the policy override included, as its second line");
+        string selectedNotice = Slice(side, "private static void ShowSelectedNotice(", "private static void ShowUnavailable(");
+        Require(selectedNotice.Contains("string warnings = ArenaWhitelistAdmission.WarningLine;", StringComparison.Ordinal)
+                && selectedNotice.Contains("else if (warnings != null) ArenaAvailabilityNotice.ShowInfo(screen, warnings);", StringComparison.Ordinal),
+            "an Arena click shows the whitelist notes, the policy override included, as an information notice");
 
         string switching = Slice(side, "private static void SwitchSession(", "private static void EnsureCompatibleMode(");
         Require(switching.Contains("Controller(screen)?.Session?.Profile?.Id", StringComparison.Ordinal)

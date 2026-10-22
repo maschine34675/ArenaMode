@@ -91,11 +91,8 @@ internal static class ArenaSkills
                 if (boost <= 0)
                     continue;
 
-                // Effects Manager owns a separate, body-bound contribution.
-                // Do not absorb it into the Arena baseline or erase it on boost.
-                int effectsBonus = Compat.ArenaEffectsCompat.SkillBonusFor(skill);
-                BuffSnapshot[skill] = skill.Buff - effectsBonus;
-                skill.Buff = boost + effectsBonus;
+                BuffSnapshot[skill] = skill.Buff;
+                skill.Buff = boost;
                 applied++;
             }
 
@@ -138,7 +135,7 @@ internal static class ArenaSkills
         {
             try
             {
-                skill.Buff = BuffSnapshot[skill] + Compat.ArenaEffectsCompat.SkillBonusFor(skill);
+                skill.Buff = BuffSnapshot[skill];
                 BuffSnapshot.Remove(skill);
             }
             catch (Exception ex) { failure ??= ex; }

@@ -7,7 +7,6 @@
     <ProductionAdmissionSource Condition="'$(ProductionAdmissionSource)' == ''">../../ArenaMode.Client/Compat/ArenaOptionalMods.cs</ProductionAdmissionSource>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../ArenaMode.Shared/ArenaIsbAdmission.cs" Link="Production/ArenaIsbAdmission.cs" />
     <Compile Include="$(ProductionAdmissionSource)" Link="Production/ArenaOptionalMods.cs" />
   </ItemGroup>
 </Project>

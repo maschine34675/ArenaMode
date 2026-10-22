@@ -34,7 +34,6 @@ public sealed class PatchManager(
         ArenaContext.OrdinaryRaids = ordinaryRaids;
         ArenaContext.MatchBotCache = matchBotCache;
         ArenaContext.Logger = logger;
-        ArenaIsbServerAdmission.Initialize(loadedMods.Select(m => m.ModMetadata.ModGuid));
         // Before ArenaStartLocalRaidPatch is enabled below: its refusal of
         // non-Arena starts on the Arena session server reads this. A failed probe
         // must never keep a normal server from starting; it stays inert instead.

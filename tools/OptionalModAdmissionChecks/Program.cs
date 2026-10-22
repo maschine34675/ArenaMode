@@ -1,32 +1,19 @@
-using System.Reflection;
-using System.Reflection.Emit;
 using ArenaMode.Compat;
 using ArenaMode.Session;
 using BepInEx.Bootstrap;
-using Comfort.Common;
-using HarmonyLib;
-using QuestingBots;
-using QuestingBots.Utils;
 
 internal static class Program
 {
     private static int _checks;
-    private static readonly MethodInfo Target = typeof(Program).GetMethod(nameof(DummyTarget), BindingFlags.Static | BindingFlags.NonPublic);
 
     private static int Main()
     {
         try
         {
             CheckAbsentAndAdapters();
-            CheckDisabledAtStartup();
-            CheckPartialAndStickyActivation();
-            CheckExistingPatches();
-            CheckUnknownContracts();
-            CheckLateOrbit();
-            CheckAdaptiveBotCulling();
-            CheckIsbAndServerOnly();
+            CheckServerAdmission();
             CheckWhitelistFirst();
-            Require(ConfigUtil.CurrentConfigReads == 0, "No scenario invokes the foreign network-capable CurrentConfig getter");
+            CheckNoCodeLevelModRefusals();
             Console.WriteLine($"OPTIONAL_MOD_ADMISSION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
@@ -41,252 +28,50 @@ internal static class Program
     {
         Reset();
         Allowed("No optional mods leaves Arena available");
-        Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1
-            && ArenaLootingBotsCompat.Calls == 1 && ArenaRemoveTheDeadCompat.Calls == 1
-            && ArenaSmoothieCompat.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
-            && ArenaLateToThePartyCompat.Calls == 1 && ArenaClassicMovementCompat.Calls == 1
-            && ArenaStatTrackCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
-            && ArenaDeminvincibilityCompat.Calls == 1 && ArenaSkillsExtendedCompat.Calls == 1
-            && ArenaRecoilLegacyCompat.Calls == 1 && ArenaPauseCompat.Calls == 1
-            && ArenaEffectsCompat.Calls == 1,
-            "All optional adapters are inspected when no earlier rejection exists");
-        ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaMoreBotsCompatibility.Reason,
-            "MoreBots adapter rejection reaches admission unchanged");
-        Require(ArenaAiLimitCompat.Calls == 1, "First adapter rejection short-circuits later providers");
-        ArenaMoreBotsCompatibility.Reason = null;
-        ArenaAiLimitCompat.Reason = "AI Limit contract unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaAiLimitCompat.Reason,
-            "AI Limit adapter rejection reaches admission unchanged");
-        ArenaAiLimitCompat.Reason = null;
-        ArenaLootingBotsCompat.Reason = "Looting Bots contract unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaLootingBotsCompat.Reason,
-            "Looting Bots adapter rejection reaches admission unchanged");
-        Require(ArenaRemoveTheDeadCompat.Calls == 1 && ArenaSmoothieCompat.Calls == 1,
-            "Looting Bots rejection short-circuits later providers");
-        ArenaLootingBotsCompat.Reason = null;
-        ArenaRemoveTheDeadCompat.Reason = "Remove The Dead contract unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaRemoveTheDeadCompat.Reason,
-            "Remove The Dead adapter rejection reaches admission unchanged");
-        Require(ArenaSmoothieCompat.Calls == 1,
-            "Remove The Dead rejection short-circuits later providers");
-        ArenaRemoveTheDeadCompat.Reason = null;
-        ArenaSmoothieCompat.Reason = "Smoothie GC protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaSmoothieCompat.Reason,
-            "Smoothie adapter rejection reaches admission unchanged");
-        ArenaSmoothieCompat.Reason = null;
+        Require(ArenaContinuousHealingCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
+            && ArenaRecoilLegacyCompat.Calls == 1,
+            "All three remaining optional adapters are inspected when no earlier rejection exists");
+
         ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousHealingCompat.Reason,
             "Continuous Healing adapter rejection reaches admission unchanged");
-        Require(ArenaLateToThePartyCompat.Calls == 1,
-            "Continuous Healing rejection short-circuits Late To The Party");
+        Require(ArenaContinuousLoadAmmoCompat.Calls == 1 && ArenaRecoilLegacyCompat.Calls == 1,
+            "Continuous Healing rejection short-circuits the later providers");
         ArenaContinuousHealingCompat.Reason = null;
-        ArenaLateToThePartyCompat.Reason = "Late To The Party pickup protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaLateToThePartyCompat.Reason,
-            "Late To The Party adapter rejection reaches admission unchanged");
-        ArenaLateToThePartyCompat.Reason = null;
-        ArenaClassicMovementCompat.Reason = "Classic Movement state protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaClassicMovementCompat.Reason,
-            "Classic Movement rejection reaches admission unchanged");
-        Require(ArenaStatTrackCompat.Calls == 1,
-            "Classic Movement rejection short-circuits StatTrack");
-        ArenaClassicMovementCompat.Reason = null;
-        ArenaStatTrackCompat.Reason = "StatTrack persistence protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaStatTrackCompat.Reason,
-            "StatTrack rejection reaches admission unchanged");
-        Require(ArenaContinuousLoadAmmoCompat.Calls == 1,
-            "StatTrack rejection short-circuits Continuous Load Ammo");
-        ArenaStatTrackCompat.Reason = null;
+
         ArenaContinuousLoadAmmoCompat.Reason = "Continuous Load Ammo lifecycle unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousLoadAmmoCompat.Reason,
             "Continuous Load Ammo rejection reaches admission unchanged");
-        Require(ArenaDeminvincibilityCompat.Calls == 1,
-            "Continuous Load Ammo rejection short-circuits Deminvincibility");
+        Require(ArenaRecoilLegacyCompat.Calls == 1,
+            "Continuous Load Ammo rejection short-circuits Recoil Rework Legacy");
         ArenaContinuousLoadAmmoCompat.Reason = null;
-        ArenaDeminvincibilityCompat.Reason = "Deminvincibility death protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaDeminvincibilityCompat.Reason,
-            "Deminvincibility rejection reaches admission unchanged");
-        ArenaDeminvincibilityCompat.Reason = null;
-        ArenaSkillsExtendedCompat.Reason = "Skills Extended protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaSkillsExtendedCompat.Reason,
-            "Skills Extended protection failure reaches admission unchanged");
-        ArenaSkillsExtendedCompat.Reason = null;
+
         ArenaRecoilLegacyCompat.Reason = "Recoil Rework Legacy body handoff unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == ArenaRecoilLegacyCompat.Reason,
             "Recoil Rework Legacy rejection reaches admission unchanged");
         ArenaRecoilLegacyCompat.Reason = null;
-        ArenaPauseCompat.Reason = "Pause Continued protection unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaPauseCompat.Reason,
-            "Pause Continued rejection reaches admission unchanged");
-        ArenaPauseCompat.Reason = null;
-        ArenaEffectsCompat.Reason = "Effects Manager body binding unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaEffectsCompat.Reason,
-            "Effects Manager rejection reaches admission unchanged");
-        ArenaEffectsCompat.Reason = null;
+
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
 
-    private static void CheckAdaptiveBotCulling()
+    private static void CheckServerAdmission()
     {
         Reset();
-        Allowed("ABC absent at startup");
-        foreach (var version in new Version[] { new(1, 2, 0), new(9, 0, 0), null })
-        {
-            Chainloader.PluginInfos[ArenaOptionalMods.AdaptiveBotCullingGuid] =
-                new PluginInfo { Metadata = new PluginMetadata { Version = version } };
-            Blocked("Adaptive Bot Culling", "Late loaded ABC is blocked regardless of version or missing instance");
-            Require(ArenaOptionalMods.GetRejectionReason().Contains("restart")
-                && ArenaOptionalMods.GetRejectionReason().Contains("PMC/Scav"),
-                "ABC rejection offers recovery and preserves ordinary raid availability");
-            Chainloader.PluginInfos.Remove(ArenaOptionalMods.AdaptiveBotCullingGuid);
-            Allowed("ABC removal leaves no sticky admission state");
-        }
-    }
+        ArenaServerClient.ServerAdmissionFailure = "Server-only rejection";
+        Require(ArenaOptionalMods.GetRejectionReason() == "Server-only rejection",
+            "A failure the server reported in its ping reaches the existing menu and final-start provider");
+        Require(ArenaContinuousHealingCompat.Calls == 0 && ArenaContinuousLoadAmmoCompat.Calls == 0
+            && ArenaRecoilLegacyCompat.Calls == 0,
+            "A server rejection short-circuits every adapter provider");
 
-    private static void CheckIsbAndServerOnly()
-    {
-        foreach (var candidate in new[]
-        {
-            (Guid: "com.samc137.isbspecialforces", Name: "ISB Special Forces"),
-            (Guid: "com.samc137.aishi", Name: "ISB Aishi"),
-        })
-        {
-            foreach (var version in new Version[] { new(2, 0, 1), new(2, 0, 4), new(9, 0, 0), null })
-            {
-                Reset();
-                Allowed("ISB absent initially");
-                Chainloader.PluginInfos[candidate.Guid] =
-                    new PluginInfo { Metadata = new PluginMetadata { Version = version } };
-                Blocked(candidate.Name, "Exact late ISB identity blocks without touching any instance or settings");
-                var reason = ArenaOptionalMods.GetRejectionReason();
-                Require(reason.Contains("restart") && reason.Contains("Ordinary PMC/Scav"),
-                    "ISB reason explains recovery and unchanged ordinary availability");
-                Require(ArenaMoreBotsCompatibility.Calls == 1,
-                    "Ready MoreBots does not imply ISB persistence support");
-                Chainloader.PluginInfos.Remove(candidate.Guid);
-                Allowed("No stale client blocker after the exact ISB entry disappears");
-            }
-        }
-        Reset();
-        Chainloader.PluginInfos["com.samc137.unrelated"] = new PluginInfo();
-        Allowed("Other content from the same author is not blanket-blocked");
-        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = "ISB Aishi server-only rejection";
-        Require(ArenaOptionalMods.GetRejectionReason() == "ISB Aishi server-only rejection",
-            "Server-only discovery reason reaches the existing menu and final-start provider");
-        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = null;
+        // The server's reason outranks an adapter reason: it is the broader refusal.
+        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == "Server-only rejection",
+            "The server rejection is reported ahead of an adapter rejection");
+        ArenaContinuousHealingCompat.Reason = null;
+
+        ArenaServerClient.ServerAdmissionFailure = null;
         Allowed("A successful refreshed server response clears its previous restriction");
-    }
-
-    private static void CheckDisabledAtStartup()
-    {
-        foreach (var version in new[] { new Version(1, 1, 0), new Version(1, 1, 0, 0) })
-        {
-            Reset();
-            InstallQuesting(new ModConfig { Enabled = false }, version);
-            AddPatch(nameof(Patches.Postfixes), typeof(QuestingBots.Patches.MenuShowPatch));
-            Allowed($"Known QB {version}, globally disabled at startup, may retain its menu notification patch");
-            Allowed("Repeated menu query stays allowed without another whole-Harmony scan");
-            Require(Harmony.EnumerationCount == 1, "Patch registry is scanned once per inspected plugin instance");
-        }
-        Reset();
-        InstallQuesting(new ModConfig { Enabled = false });
-        Allowed("Known QB disabled before patch registration is permitted with an empty registry");
-    }
-
-    private static void CheckPartialAndStickyActivation()
-    {
-        Reset();
-        var config = new ModConfig { Enabled = true, BotSpawnsEnabled = false, QuestingEnabled = false };
-        var plugin = InstallQuesting(config);
-        plugin.enabled = false;
-        Blocked("Questing Bots", "F12/subsystem flags and MonoBehaviour.enabled do not prove global startup disable");
-        config.Enabled = false;
-        Blocked("Questing Bots", "An observed active QB remains blocked after changing the cached whole-mod flag");
-
-        Reset();
-        config = new ModConfig { Enabled = false };
-        InstallQuesting(config);
-        Allowed("Initial proven startup-disabled QB admitted");
-        config.Enabled = true;
-        Blocked("Questing Bots", "Live whole-mod activation revokes admission");
-        config.Enabled = false;
-        Blocked("Questing Bots", "Admission stays revoked because turning the flag off does not remove installed systems");
-    }
-
-    private static void CheckExistingPatches()
-    {
-        foreach (var kind in new[] { nameof(Patches.Prefixes), nameof(Patches.Postfixes), nameof(Patches.Transpilers), nameof(Patches.Finalizers) })
-        {
-            Reset();
-            InstallQuesting(new ModConfig { Enabled = false });
-            AddPatch(kind, typeof(QuestingBots.Patches.BotsControllerInitPatch));
-            Blocked("Questing Bots", $"Cached false cannot hide an installed QB gameplay {kind} patch");
-        }
-        Reset();
-        InstallQuesting(new ModConfig { Enabled = false });
-        var unrelatedAssembly = ForeignPluginType("UnrelatedForeignPatch");
-        AddPatch(nameof(Patches.Prefixes), unrelatedAssembly);
-        Allowed("Unrelated plugin patches do not invalidate a genuine QB startup disable");
-
-        Reset();
-        InstallQuesting(new ModConfig { Enabled = false });
-        Harmony.ThrowOnEnumeration = true;
-        Blocked("Questing Bots", "A failed patch audit is never treated as proof of startup disable");
-    }
-
-    private static void CheckUnknownContracts()
-    {
-        foreach (var version in new Version[] { null, new(1, 1), new(1, 0, 9), new(1, 1, 1), new(1, 1, 0, 1), new(2, 0, 0) })
-        {
-            Reset();
-            InstallQuesting(new ModConfig { Enabled = false }, version, explicitVersion: true);
-            Blocked("Questing Bots", $"Unreviewed/unknown QB version {version?.ToString() ?? "null"} cannot claim the startup exemption");
-        }
-        Reset();
-        InstallQuesting(null);
-        Blocked("Questing Bots", "Null cached server config blocks without a fresh HTTP lookup");
-        Reset();
-        InstallQuesting(new ModConfig { Enabled = false });
-        Singleton<ConfigUtil>.Instance = null;
-        Blocked("Questing Bots", "Missing config owner is unknown, not disabled");
-        Reset();
-        InstallQuesting(new WrongConfig());
-        Blocked("Questing Bots", "A non-boolean Enabled contract is rejected");
-        Reset();
-        InstallQuesting(new MissingConfig());
-        Blocked("Questing Bots", "Missing Enabled property is rejected");
-        Reset();
-        InstallQuesting(new ThrowingConfig());
-        Blocked("Questing Bots", "Throwing enabled reader fails closed");
-        Reset();
-        InstallQuesting(new ModConfig { Enabled = false });
-        Chainloader.PluginInfos[ArenaOptionalMods.QuestingBotsGuid].Metadata = null;
-        Blocked("Questing Bots", "Missing plugin metadata is rejected");
-        Reset();
-        Chainloader.PluginInfos[ArenaOptionalMods.QuestingBotsGuid] = new PluginInfo
-        {
-            Instance = null, Metadata = new PluginMetadata { Version = new Version(1, 1, 0) }
-        };
-        Blocked("Questing Bots", "An incomplete plugin entry cannot prove disabled startup");
-        Reset();
-        Chainloader.PluginInfos[ArenaOptionalMods.QuestingBotsGuid] = new PluginInfo
-        {
-            Instance = Activator.CreateInstance(ForeignPluginType("MissingQBConfiguration")),
-            Metadata = new PluginMetadata { Version = new Version(1, 1, 0) }
-        };
-        Blocked("Questing Bots", "An unknown plugin assembly cannot borrow another assembly's QB configuration");
-    }
-
-    private static void CheckLateOrbit()
-    {
-        Reset();
-        Allowed("No ORBIT before its plugin registration");
-        Chainloader.PluginInfos[ArenaOptionalMods.OrbitGuid] = new PluginInfo();
-        Blocked("ORBIT", "ORBIT registered later is caught even before its delayed Awake work finishes");
-        Require(ArenaMoreBotsCompatibility.Calls == 1 && ArenaAiLimitCompat.Calls == 1,
-            "ORBIT presence does not consult unrelated readiness or config switches");
-        Chainloader.PluginInfos.Remove(ArenaOptionalMods.OrbitGuid);
-        Allowed("Plugin discovery is live rather than a cached initial absence");
     }
 
     private static void CheckWhitelistFirst()
@@ -294,110 +79,70 @@ internal static class Program
         // Arena session whitelist admission (docs/ARENA-SESSION-20261021.md, section 7) is the first
         // provider: its refusal reaches the caller unchanged and no other provider runs.
         Reset();
-        Allowed("A whitelist verdict of null leaves the existing chain in charge");
+        Allowed("A whitelist verdict of null leaves the rest of the chain in charge");
         Require(ArenaWhitelistAdmission.Calls == 1, "Admission consults the whitelist exactly once per query");
+
         Reset();
         ArenaWhitelistAdmission.Reason = "Arena runs only with whitelisted mods.";
-        Chainloader.PluginInfos[ArenaOptionalMods.OrbitGuid] = new PluginInfo();
         ArenaServerClient.ServerAdmissionFailure = "Server-only blocker";
-        ArenaMoreBotsCompatibility.Reason = "MoreBots persistence protection unavailable";
+        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == "Arena runs only with whitelisted mods.",
-            "The whitelist refusal reaches admission unchanged and ahead of ORBIT, server and adapter reasons");
-        Require(ArenaMoreBotsCompatibility.Calls == 0 && ArenaAiLimitCompat.Calls == 0 && ArenaEffectsCompat.Calls == 0,
+            "The whitelist refusal reaches admission unchanged and ahead of the server and adapter reasons");
+        Require(ArenaContinuousHealingCompat.Calls == 0 && ArenaContinuousLoadAmmoCompat.Calls == 0
+            && ArenaRecoilLegacyCompat.Calls == 0,
             "A whitelist refusal short-circuits every adapter provider");
+
         ArenaWhitelistAdmission.Reason = null;
-        Blocked("ORBIT", "Without a whitelist refusal the ORBIT rejection still applies");
-        Chainloader.PluginInfos.Remove(ArenaOptionalMods.OrbitGuid);
+        Require(ArenaOptionalMods.GetRejectionReason() == "Server-only blocker",
+            "Without a whitelist refusal the server rejection still applies");
         ArenaServerClient.ServerAdmissionFailure = null;
-        Blocked("MoreBots", "Without a whitelist refusal the adapters still apply");
+        Require(ArenaOptionalMods.GetRejectionReason() == "Continuous Healing contract unavailable",
+            "Without a whitelist or server refusal the adapters still apply");
     }
 
-    private static QuestingBotsPlugin InstallQuesting(object config, Version version = null, bool explicitVersion = false)
+    private static void CheckNoCodeLevelModRefusals()
     {
-        var plugin = new QuestingBotsPlugin();
-        Singleton<ConfigUtil>.Instance = new ConfigUtil(config);
-        Chainloader.PluginInfos[ArenaOptionalMods.QuestingBotsGuid] = new PluginInfo
+        // User decision 2026-10-22: the whitelist (shipped default deny list and the user's file) refuses foreign
+        // mods; admission carries no code specific to one of them. The mods the old code refused or adapted stay
+        // listed as installed here and must change nothing.
+        foreach (string guid in new[]
         {
-            Instance = plugin,
-            Metadata = new PluginMetadata { Version = explicitVersion ? version : version ?? new Version(1, 1, 0) }
-        };
-        return plugin;
-    }
-
-    private static void AddPatch(string list, Type declaringType)
-    {
-        if (!Harmony.Registry.TryGetValue(Target, out var patches))
-            Harmony.Registry.Add(Target, patches = new Patches());
-        var target = (List<Patch>)typeof(Patches).GetProperty(list).GetValue(patches);
-        target.Add(new Patch { PatchMethod = declaringType.GetMethod("PatchPostfix", BindingFlags.Public | BindingFlags.Static) });
-    }
-
-    private static Type ForeignPluginType(string name)
-    {
-        var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
-        var builder = assembly.DefineDynamicModule("Foreign").DefineType(name, TypeAttributes.Public);
-        builder.DefineDefaultConstructor(MethodAttributes.Public);
-        var method = builder.DefineMethod("PatchPostfix", MethodAttributes.Public | MethodAttributes.Static, typeof(void), Type.EmptyTypes);
-        method.GetILGenerator().Emit(OpCodes.Ret);
-        return builder.CreateType();
+            "com.chazut.orbit", "com.danw.questingbots", "com.hysocs.adaptivebotculling",
+            "com.samc137.isbspecialforces", "com.samc137.aishi", "com.morebotsapi.tacticaltoaster",
+            "com.dvize.ailimit", "me.skwizzy.lootingbots", "com.jbs4bmx.RemoveTheDead", "com.tominocz.smoothie",
+            "com.danw.latetotheparty", "com.boogle.classicmovement", "com.acidphantasm.stattrack",
+            "com.hazelify.deminvincibility", "com.cj.skillsextended",
+        })
+        {
+            Reset();
+            Chainloader.PluginInfos[guid] = new PluginInfo();
+            Allowed($"{guid} loaded: admission leaves the decision to the whitelist");
+            Require(ArenaWhitelistAdmission.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
+                && ArenaContinuousLoadAmmoCompat.Calls == 1 && ArenaRecoilLegacyCompat.Calls == 1,
+                $"{guid} loaded: the usual providers ran and nothing else decided");
+        }
+        Reset();
     }
 
     private static void Reset()
     {
-        ArenaMode.Session.ArenaServerClient.ServerAdmissionFailure = null;
+        ArenaServerClient.ServerAdmissionFailure = null;
         ArenaWhitelistAdmission.Reason = null;
         ArenaWhitelistAdmission.Calls = 0;
         Chainloader.PluginInfos.Clear();
-        Harmony.Reset();
-        Singleton<ConfigUtil>.Instance = null;
-        ArenaMoreBotsCompatibility.Reason = null;
-        ArenaMoreBotsCompatibility.Calls = 0;
-        ArenaAiLimitCompat.Reason = null;
-        ArenaAiLimitCompat.Calls = 0;
-        ArenaLootingBotsCompat.Reason = null;
-        ArenaLootingBotsCompat.Calls = 0;
-        ArenaRemoveTheDeadCompat.Reason = null;
-        ArenaRemoveTheDeadCompat.Calls = 0;
-        ArenaSmoothieCompat.Reason = null;
-        ArenaSmoothieCompat.Calls = 0;
         ArenaContinuousHealingCompat.Reason = null;
         ArenaContinuousHealingCompat.Calls = 0;
-        ArenaLateToThePartyCompat.Reason = null;
-        ArenaLateToThePartyCompat.Calls = 0;
-        ArenaClassicMovementCompat.Reason = null;
-        ArenaClassicMovementCompat.Calls = 0;
-        ArenaStatTrackCompat.Reason = null;
-        ArenaStatTrackCompat.Calls = 0;
         ArenaContinuousLoadAmmoCompat.Reason = null;
         ArenaContinuousLoadAmmoCompat.Calls = 0;
-        ArenaDeminvincibilityCompat.Reason = null;
-        ArenaDeminvincibilityCompat.Calls = 0;
-        ArenaSkillsExtendedCompat.Reason = null;
-        ArenaSkillsExtendedCompat.Calls = 0;
         ArenaRecoilLegacyCompat.Reason = null;
         ArenaRecoilLegacyCompat.Calls = 0;
-        ArenaPauseCompat.Reason = null;
-        ArenaPauseCompat.Calls = 0;
-        ArenaEffectsCompat.Reason = null;
-        ArenaEffectsCompat.Calls = 0;
-        // Each installed fake plugin is a distinct process identity; no production
-        // statics are reset by reflection, preserving the real sticky-state logic.
     }
+
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);
-    private static void Blocked(string name, string message) => Require(ArenaOptionalMods.GetRejectionReason()?.Contains(name, StringComparison.Ordinal) == true, message);
+
     private static void Require(bool condition, string message)
     {
         _checks++;
         if (!condition) throw new InvalidOperationException(message);
     }
-    private static void DummyTarget() { }
-    private sealed class ModConfig
-    {
-        public bool Enabled { get; set; }
-        public bool BotSpawnsEnabled { get; set; } = true;
-        public bool QuestingEnabled { get; set; } = true;
-    }
-    private sealed class WrongConfig { public string Enabled => "false"; }
-    private sealed class MissingConfig { public bool SomeOtherSwitch => false; }
-    private sealed class ThrowingConfig { public bool Enabled => throw new InvalidOperationException("Unreadable config"); }
 }

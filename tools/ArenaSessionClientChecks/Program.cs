@@ -30,6 +30,7 @@ internal static partial class Program
             CheckSessionOffer();
             CheckNamesAndNotes();
             CheckPolicyFiles();
+            CheckPolicyOverrideNote();
             CheckDeniedMods();
             CheckFikaAndFailures();
             CheckPrepareForScreen();
@@ -416,12 +417,15 @@ internal static partial class Program
 
     private static void CheckPolicyFiles()
     {
-        // Missing default file: fail open in a normal session, one warning, no session.
+        // Missing default file: Arena is refused in a normal session (nothing else keeps unlisted or
+        // denied mods out of it), one warning, no session offer.
         ResetWorld();
         File.Delete(_policyPath);
         AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
         Ping(false, NormalServerMods());
-        Require(Reason() == null, "Without a policy file a normal session is not refused (the adapters still apply)");
+        Require(Reason() != null && Reason().Contains("mod whitelist could not be loaded") && Reason().Contains("not found"),
+            "Without a policy file a normal session refuses Arena and names the missing file");
+        Require(!ArenaWhitelistAdmission.CanOfferSessionStart(Reason()), "No session action without a policy");
         Require(ArenaMode.Plugin.ModLogger.Warnings.Count(w => w.Contains("whitelist unavailable")) == 1,
             "The missing policy is reported once");
         Require(!ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out _, out _), "No session without a policy");
@@ -431,8 +435,16 @@ internal static partial class Program
         WritePolicy(new string(' ', 300 * 1024) + _repoPolicyText);
         AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
         Ping(false, NormalServerMods());
-        Require(Reason() == null && ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("larger than 256 KB")),
+        Require(Reason() != null && Reason().Contains("mod whitelist could not be loaded")
+                && ArenaMode.Plugin.ModLogger.Warnings.Any(w => w.Contains("larger than 256 KB")),
             "A policy file above 256 KB is refused as a policy and reported");
+
+        // Invalid default file: refused the same way, naming the loader's diagnostic.
+        ResetWorld();
+        WritePolicy("{\"schema\":9}");
+        Ping(false, NormalServerMods());
+        Require(Reason() != null && Reason().Contains("mod whitelist could not be loaded") && Reason().Contains("default whitelist"),
+            "An invalid default policy refuses Arena and names the diagnostic");
 
         // User file: allow, deny, bad schema, bad entry.
         ResetWorld();
@@ -671,12 +683,13 @@ internal static partial class Program
         Require(!ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out _, out string fika) && fika.Contains("Fika"),
             "The session start refuses with Fika");
 
-        // A failure inside the evaluation: fail open in a normal session, closed in an Arena session.
+        // A failure inside the evaluation refuses Arena in both session kinds.
         ResetWorld();
         string pluginPath = Paths.PluginPath;
         Paths.PluginPath = null;
         ArenaServerClient.PingGeneration++;
-        Require(Reason() == null, "An internal failure does not refuse a normal session");
+        Require(Reason() != null && Reason().Contains("could not evaluate its mod whitelist"),
+            "An internal failure refuses Arena in a normal session");
         ArenaSession(ReportActive);
         ArenaServerClient.PingGeneration++;
         Require(Reason() != null && Reason().Contains("could not verify the session state"),

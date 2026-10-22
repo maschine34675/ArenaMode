@@ -6,37 +6,45 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+Reviews, contracts and test results of the adapters and per-mod refusals removed on
+2026-10-22 (MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To
+The Party, Classic Movement, StatTrack, Deminvincibility, Skills Extended, Pause
+Continued, EFT Effects Manager / Broken Limbs, and the code-level refusals of ORBIT,
+Questing Bots, Adaptive Bot Culling, ISB Special Forces/Aishi) are kept as dated
+records, marked "history" below. The code and the offline harnesses they describe no
+longer exist; the whitelist replaced them.
+
 - [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
 - [Arena session: solution, deployment and packaging](ARENA-SESSION-DEPLOY-20261021.md)
 - [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md)
-- [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md)
+- [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md) (history: adapter removed 2026-10-22)
 - [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md)
-- [Pause Continued: Arena-only activation suppression](PAUSE-COMPAT-20261020.md)
-- [EFT Effects Manager / Broken Limbs: body and skill ownership](EFFECTS-COMPAT-20261020.md)
+- [Pause Continued: Arena-only activation suppression](PAUSE-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
+- [EFT Effects Manager / Broken Limbs: body and skill ownership](EFFECTS-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
 - [Candidate compatibility: native GPU tests and cleanup](GPU-COMPAT-SECOND-20261020.md)
-- [Skills Extended: scoped XP and external receipt protection](SKILLS-EXTENDED-COMPAT-20261020.md)
+- [Skills Extended: scoped XP and external receipt protection](SKILLS-EXTENDED-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
 - [Recoil Rework Legacy: published lifecycle conflict review](RECOIL-REWORK-REVIEW-20261020.md)
 - [Recoil Rework Legacy: scoped body/component handoff](RECOIL-REWORK-COMPAT-20261020.md)
 - [Additional compatibility candidates: skills, health, ISB, pause, doors and stances](COMPATIBILITY-CANDIDATES-20261020.md)
 - [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
-- [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md)
-- [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md)
-- [AI Limit: exact Arena-world component pause](AI-LIMIT-COMPAT-20261019.md)
-- [Looting Bots: scoped autonomous-looting pause](LOOTING-BOTS-COMPAT-20261019.md)
-- [Remove The Dead: retained corpses and pickup protection](REMOVE-THE-DEAD-COMPAT-20261019.md)
-- [Smoothie: moving pickup markers and optional GC policy](SMOOTHIE-COMPAT-20261019.md)
+- [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md) (history: adapter removed 2026-10-22)
+- [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md) (history: adapter removed 2026-10-22)
+- [AI Limit: exact Arena-world component pause](AI-LIMIT-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
+- [Looting Bots: scoped autonomous-looting pause](LOOTING-BOTS-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
+- [Remove The Dead: retained corpses and pickup protection](REMOVE-THE-DEAD-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
+- [Smoothie: moving pickup markers and optional GC policy](SMOOTHIE-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
 - [Continuous Healing: native bot healing and retired-body isolation](CONTINUOUS-HEALING-COMPAT-20261019.md)
-- [Late To The Party: exact weapon-pickup source protection](LATE-TO-THE-PARTY-COMPAT-20261019.md)
+- [Late To The Party: exact weapon-pickup source protection](LATE-TO-THE-PARTY-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
 - [Health and loot compatibility: combined implementation and verification](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md)
 - [GPU2 healing, pickup protection and ordinary-raid controls](GPU-HEALTH-LOOT-COMPAT-20261019.md)
-- [Classic Movement: exact Arena movement-state ownership](CLASSIC-MOVEMENT-COMPAT-20261019.md)
-- [StatTrack: Arena statistics and body-lifecycle isolation](STATTRACK-COMPAT-20261019.md)
-- [Movement and statistics compatibility: integration and verification](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md)
-- [GPU2 movement/statistics initial checks and lifecycle interruption](GPU-MOVEMENT-STATS-COMPAT-20261019.md)
+- [Classic Movement: exact Arena movement-state ownership](CLASSIC-MOVEMENT-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
+- [StatTrack: Arena statistics and body-lifecycle isolation](STATTRACK-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
+- [Movement and statistics compatibility: integration and verification](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md) (history: adapter removed 2026-10-22)
+- [GPU2 movement/statistics initial checks and lifecycle interruption](GPU-MOVEMENT-STATS-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
 - [Continuous Load Ammo: body changes and delayed completion](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md)
 - [SVM: protected and ordinary raid-end transactions](SVM-COMPAT-20261019.md)
-- [Deminvincibility: exact Arena-local damage and death](DEMINVINCIBILITY-COMPAT-20261019.md)
+- [Deminvincibility: exact Arena-local damage and death](DEMINVINCIBILITY-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
 - [Ammo, raid end and health: integration and native followup](AMMO-RAID-HEALTH-COMPAT-20261020.md)
 - [GPU2 lifecycle retest, ammo/health/SVM checks and terminal-exit correction](GPU-OPTIONAL-COMPAT-20261020.md)
 - [Combined optional-mod integration and verification](OPTIONAL-COMPAT-INTEGRATION-20261019.md)
