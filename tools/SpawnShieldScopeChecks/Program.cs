@@ -106,7 +106,7 @@ internal static class Program
 
         // Do not derive the expected allow-list from the production catalog.
         // A widened/mistyped catalog must not silently widen this oracle too.
-        foreach (string map in new[] { "factory4_day", "factory4_night", "bigmap", "laboratory", "labyrinth",
+        foreach (string map in new[] { "factory4_day", "factory4_night", "bigmap", "laboratory", "labyrinth", "arena_bowl", "ARENA_BOWL",
                      "woods", "interchange", "shoreline", "rezervbase", "lighthouse", "tarkovstreets", "sandbox",
                      "sandbox_high", "arena_unknown", "arena_equator_copy", "equator", " arena_bay5", "", null })
         {

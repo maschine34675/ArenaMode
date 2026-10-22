@@ -16,7 +16,7 @@ internal static class Program
     private static readonly string[] SupportedMaps =
     {
         "laboratory", "factory4_day", "factory4_night", "labyrinth", "bigmap",
-        "arena_equator", "arena_bay5", "arena_airpit",
+        "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "ARENA_BOWL",
     };
     private static int _assertions;
 

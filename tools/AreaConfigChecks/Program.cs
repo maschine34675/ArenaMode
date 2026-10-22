@@ -36,7 +36,7 @@ try
 
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId,ArenaMapCatalog.CustomsId,
-        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId})
+        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId,ArenaMapCatalog.BowlId})
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
@@ -164,7 +164,9 @@ try
         (Name: "bay5-removed", Maps: ArenaMapCatalog.EquatorDefaultClientAllowlist, Legacy: true, Revision: 2, Gain: false),
         (Name: "bay5-release", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 2, Gain: true),
         (Name: "airpit-removed", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 3, Gain: false),
-        (Name: "future-version", Maps: ArenaMapCatalog.Bay5DefaultClientAllowlist, Legacy: true, Revision: 4, Gain: false),
+        (Name: "airpit-release", Maps: ArenaMapCatalog.AirPitDefaultClientAllowlist, Legacy: true, Revision: 3, Gain: true),
+        (Name: "bowl-removed", Maps: ArenaMapCatalog.AirPitDefaultClientAllowlist, Legacy: true, Revision: 4, Gain: false),
+        (Name: "future-version", Maps: ArenaMapCatalog.AirPitDefaultClientAllowlist, Legacy: true, Revision: 5, Gain: false),
     })
     {
         string path=Path.Combine(scratch,"optional-"+migration.Name+".cfg");

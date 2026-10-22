@@ -342,7 +342,8 @@ internal static partial class Program
             "A malformed empty success response remains visible without the wrapper");
         CheckAreaNegotiation();
         CheckEquatorPftAdmission();
-        CheckAirPitAdmission();
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.AirPitId, ArenaMode.Shared.ArenaMapCatalog.Bay5DefaultClientAllowlist);
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.BowlId, ArenaMode.Shared.ArenaMapCatalog.AirPitDefaultClientAllowlist);
         CheckEquatorBoxHookAdmission();
         CheckDeathmatchNegotiation();
         CheckCustomsNegotiation();

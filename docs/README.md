@@ -6,6 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Bowl map admission, migration and generic spawns](BOWL-INTEGRATION-20261023.md)
+
 Reviews, contracts and test results of the adapters and per-mod refusals removed on
 2026-10-22 (MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To
 The Party, Classic Movement, StatTrack, Deminvincibility, Skills Extended, Pause

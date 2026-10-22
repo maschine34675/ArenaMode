@@ -31,7 +31,7 @@ static class Program
     }
     static void Main()
     {
-        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT"})
+        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT","arena_bowl","ARENA_BOWL"})
         foreach(var mode in new[]{"tactical","zombie"})
         foreach(bool active in new[]{false,true})
         {
@@ -55,7 +55,7 @@ static class Program
         Exclude(()=>world.MainPlayer.IsYourPlayer=false,"not local leader");
         Exclude(()=>world.MainPlayer.ProfileId="other","wrong leader profile");
         Exclude(()=>game.Profile=null,"no profile");
-        foreach(var map in new[]{"factory4_day","bigmap","laboratory","arena_bay50","arena_airpit_extra",null})
+        foreach(var map in new[]{"factory4_day","bigmap","laboratory","arena_bay50","arena_airpit_extra","arena_bowl_extra",null})
             Exclude(()=>world.LocationId=ArenaSession.ArmedMap=map,"ordinary or unknown map");
         Exclude(()=>ArenaSession.ArmedForNextRaid=false,"ordinary loading");
         Exclude(()=>ArenaSession.ArmedMap="arena_equator","arm mismatch");

@@ -13,7 +13,15 @@ foreach ($fault in @(
     @{ Name = 'AirPitMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_airpit", StringComparison.OrdinalIgnoreCase)'; After = '';
-       Failure = 'EMPTY-COVER arena_airpittactical' }
+       Failure = 'EMPTY-COVER arena_airpittactical' },
+    @{ Name = 'BowlMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
+       Property = 'PortedSource'; Harness = 'PftPortedMapChecks';
+       Before = '&& !string.Equals(map, "arena_bowl", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'arena_bowl/tactical/False' },
+    @{ Name = 'BowlMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
+       Property = 'CombatSource'; Harness = 'PortedCoverChecks';
+       Before = '&& !string.Equals(world.LocationId, "arena_bowl", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'EMPTY-COVER arena_bowltactical' }
 )) {
     $source = [IO.File]::ReadAllText((Join-Path $arenaRepo $fault.File))
     if (!$source.Contains($fault.Before)) { throw "Missing fault anchor: $($fault.Name)" }

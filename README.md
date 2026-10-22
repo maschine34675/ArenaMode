@@ -31,13 +31,16 @@ loadout between cleared waves, including for the surviving player.
 | Factory, day and night | All five modes |
 | Labs / Labyrinth | All five modes |
 | Customs: Factory Center, Factory Side, Customs Yard | All five modes, within the selected boundary; no whole-map Customs option |
-| Bay5 / Air Pit, with ArenaMapPort | All five modes |
+| Bay5 / Air Pit / Bowl, with ArenaMapPort | All five modes |
 | Equator, with ArenaMapPort | Gun Game, Deathmatch, Team DM and solo Zombies; no Tactical or PFT Zombies |
 
 Deathmatch and Gun Game let you select the participant total, including yourself.
 Team DM offers team sizes within the selected map/area's limits. Customs areas
 have separate team starts and a visible boundary when approached.
 **Air Pit Team DM requires ArenaMapPort 0.2.2 or newer** for its team-start boxes.
+Bowl uses its existing map-wide spawn points, with eight participants by default
+in DM/Gun Game/Team DM. Its original team boxes are not yet bound to Arena's
+match countdown; see [Bowl integration](docs/BOWL-INTEGRATION-20261023.md).
 
 ## Features and mutators
 
@@ -408,7 +411,7 @@ unless you allow them in your own whitelist file.
 | **SAIN** | **4.5.1+** adapters for personalities, pursuit and movement. Native AI remains available without it. |
 | **BigBrain** | **1.5.0+** (tested on 1.5.0; newer versions warn), with the bundled ArenaMode companion: bot pickup objectives, post-death pursuit and Molotov fire avoidance. |
 | **APBS** | **2.4.1+** equipment/progression adapter. Not required for kit or bot generation. |
-| **ArenaMapPort** | Optional Bay5/Equator/Air Pit client, server and map assets. |
+| **ArenaMapPort** | Optional Bay5/Equator/Air Pit/Bowl client, server and map assets. |
 | **Killcam** | **1.0.0** is the current integration target; compatible API and enabled DeathReplay required. The former KillcamReplay plugin is not accepted. |
 | **DynamicMaps** | Corpse-marker cleanup adapter for **1.2.1+**; not required for Arena's static Customs preview. |
 | **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |

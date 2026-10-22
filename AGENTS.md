@@ -132,6 +132,13 @@ generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
 Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
 for its original north USEC / south BEAR boxes; see docs/AIRPIT-TEAM-BOXES-REVIEW.md.
 See docs/AIRPIT-INTEGRATION-20261017.md for migration and native-test boundaries.
+Bowl is optional in all five modes, including PFT Tactical/Zombies, with the
+same exact-raid coverless adapters. It uses MapPort's existing generic spawns
+(default eight total for DM/Gun Game/TDM); no Bowl team-box hold, private markers
+or bot spawn shield is negotiated. Its gates park open at raid startup without
+an owned hold. Do not add Bowl to ArenaTeamBoxCatalog without accommodating the
+map's asynchronous opening poses (up to 13.5 s after Release/IsHeld=false).
+See docs/BOWL-INTEGRATION-20261023.md for revision-4 migration and test boundaries.
 Independent Equator, Bay5 and AirPit Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read

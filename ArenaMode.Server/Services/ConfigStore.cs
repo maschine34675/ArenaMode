@@ -179,6 +179,8 @@ public static class ConfigStore
                 && ExactMapSet(ArenaMapCatalog.EquatorDefaultClientAllowlist);
             bool bay5Default = revision < 3
                 && ExactMapSet(ArenaMapCatalog.Bay5DefaultClientAllowlist);
+            bool airPitDefault = revision < 4
+                && ExactMapSet(ArenaMapCatalog.AirPitDefaultClientAllowlist);
 
             // Detached defaults retain per-map field repair for existing entries,
             // including explicitly disabled or customized optional entries.
@@ -189,6 +191,8 @@ public static class ConfigStore
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.Bay5Id);
             if (!maps.ContainsKey(ArenaMapCatalog.AirPitId) && !nativeDefault && !equatorDefault && !bay5Default)
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.AirPitId);
+            if (!maps.ContainsKey(ArenaMapCatalog.BowlId) && !nativeDefault && !equatorDefault && !bay5Default && !airPitDefault)
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.BowlId);
             if (revision < ArenaMapCatalog.OptionalMapsRevision)
             {
                 root["optionalMapsRevision"] = ArenaMapCatalog.OptionalMapsRevision;

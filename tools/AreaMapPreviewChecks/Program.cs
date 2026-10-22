@@ -269,7 +269,7 @@ try
 
     // Real presentation logic, external TMP/layout surfaces. No native map data
     // or event wiring is involved; both leases must exactly restore their rows.
-    foreach(var id in new[]{ArenaMapCatalog.Bay5Id,ArenaMapCatalog.EquatorId,ArenaMapCatalog.AirPitId,"ARENA_AIRPIT"})
+    foreach(var id in new[]{ArenaMapCatalog.Bay5Id,ArenaMapCatalog.EquatorId,ArenaMapCatalog.AirPitId,"ARENA_AIRPIT",ArenaMapCatalog.BowlId,"ARENA_BOWL"})
     {
         var row=Child(screen,"native optional map",typeof(RectTransform));
         var rowRect=(RectTransform)row.transform;
@@ -280,12 +280,12 @@ try
         bool selectedMarker=false;
         var marker=ArenaPortedMapPresentation.Create(id,rowRect,header,size,()=>selectedMarker);
         var gold=row.GetComponentsInChildren<TextMeshProUGUI>().Single(t=>t.gameObject.name.StartsWith("Arena ported map label"));
-        var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":id==ArenaMapCatalog.EquatorId?"EQUATOR":"AIR PIT";
+        var expected=id==ArenaMapCatalog.Bay5Id?"BAY 5":id==ArenaMapCatalog.EquatorId?"EQUATOR":ArenaMapCatalog.IsBowl(id)?"BOWL":"AIR PIT";
         Need(gold.text==expected&&size.text==expected&&header.enabled&&header.GetComponent<CanvasGroup>()?.alpha==0,
             "PORTED-LABEL","Hidden native TMP stays enabled for preferred-size layout; short text sizes the entire toggle.");
         Need(gold.color==ArenaPortedMapPresentation.Gold&&gold.raycastTarget==header.raycastTarget,"PORTED-LABEL","Gold is independent of native text tint while preserving a native header hit surface.");
         Need(gold.GetComponent<LayoutElement>().ignoreLayout,"PORTED-LABEL","New text does not add a second element to native layout calculation.");
-        if (ArenaMapCatalog.IsAirPit(id))
+        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id))
         {
             Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)
                 &&rowRect.anchoredPosition==new Vector2(2,3),"AIRPIT-NATIVE-POSITION","AirPit keeps the complete native MapPort geometry, not the Equator fallback.");
@@ -306,7 +306,7 @@ try
         selectedMarker=true;marker.Refresh();
         Need(gold.color.r<ArenaPortedMapPresentation.Gold.r,"PORTED-COLOR","Selected label uses a darker gold on native light selection background.");
         marker.Close();UObject.EndFrame();
-        if (ArenaMapCatalog.IsAirPit(id))
+        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id))
             Need(rowRect.anchorMin==new Vector2(.2f,.7f)&&rowRect.anchorMax==new Vector2(.3f,.8f)&&rowRect.anchoredPosition==new Vector2(4,5),
                 "AIRPIT-CLOSE-POSITION","Closing a label-only lease leaves newer native coordinates untouched.");
         else

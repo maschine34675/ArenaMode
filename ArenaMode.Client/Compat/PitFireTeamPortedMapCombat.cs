@@ -74,7 +74,8 @@ internal static class PitFireTeamPortedMapCombat
         if (world == null || !ReferenceEquals(game.GameWorld, world) || !ArenaSession.IsExactActiveRaid(game, world)
             || (!string.Equals(world.LocationId, "arena_bay5", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(world.LocationId, "arena_equator", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(world.LocationId, "arena_airpit", StringComparison.OrdinalIgnoreCase))) return false;
+                && !string.Equals(world.LocationId, "arena_airpit", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(world.LocationId, "arena_bowl", StringComparison.OrdinalIgnoreCase))) return false;
         var controller = ((IBotGame)game).BotsController;
         var player = bot?.GetPlayer;
         return bot != null && controller != null && ReferenceEquals(bot.BotsController, controller)

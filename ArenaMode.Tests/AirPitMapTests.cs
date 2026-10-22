@@ -36,7 +36,7 @@ public sealed class AirPitMapTests
         var defaults = JsonSerializer.SerializeToNode(new ArenaModeConfig())!;
         string original = defaults.ToJsonString();
         Assert.True(ConfigStore.FillMissingKeys(saved, defaults));
-        Assert.Equal(3, saved["optionalMapsRevision"]!.GetValue<int>());
+        Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, saved["optionalMapsRevision"]!.GetValue<int>());
         var maps = saved["maps"]!.AsObject();
         Assert.True(maps[ArenaMapCatalog.AirPitId]!["enabled"]!.GetValue<bool>());
         Assert.Equal("BotZone_Main", maps[ArenaMapCatalog.AirPitId]!["spawnZones"]!.GetValue<string>());
@@ -118,7 +118,7 @@ public sealed class AirPitMapTests
             Assert.Equal(ConfigResult.Success, ConfigStore.Reload(out _));
             Assert.True(ArenaContext.Config.IsMapEnabled(ArenaMapCatalog.AirPitId));
             var saved = JsonNode.Parse(File.ReadAllText(ConfigStore.ConfigFile))!;
-            Assert.Equal(3, saved["optionalMapsRevision"]!.GetValue<int>());
+            Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, saved["optionalMapsRevision"]!.GetValue<int>());
             saved["maps"]!.AsObject().Remove(ArenaMapCatalog.AirPitId);
             File.WriteAllText(ConfigStore.ConfigFile, saved.ToJsonString());
             Assert.Equal(ConfigResult.Success, ConfigStore.Reload(out _));

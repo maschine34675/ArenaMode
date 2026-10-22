@@ -24,7 +24,7 @@ internal static partial class Program
         _game.Location.SpawnPointParams=Enumerable.Range(0,40).Select(i=>Seed("native-"+i,(i%8)*8,0,(i/8)*8)).ToArray();
         var original=_game.Location.SpawnPointParams;
         string snapshot=Newtonsoft.Json.JsonConvert.SerializeObject(original);
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl"})
         {
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"chosen-kit").Layouts.Single();
             Check(layout.Points.Count==6&&layout.Points.Select(p=>p.Kind).Distinct().Count()==6,"all supported full maps retain all six pickup types: "+map);
@@ -83,7 +83,7 @@ internal static partial class Program
                 (float)row["Position"]["y"],(float)row["Position"]["z"],(string)row["BotZoneName"],
                 row["Categories"].Aggregate(ESpawnCategoryMask.None,(mask,c)=>mask|Enum.Parse<ESpawnCategoryMask>((string)c)))).ToArray();
         }
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl"})
         {
             string path=map.StartsWith("arena_")?Path.Combine(root,"SPT_Runtime/user/mods/ArenaMapPort/db",map,"base.json")
                 :Path.Combine(root,"SPT_Runtime/SPT_Data/database/locations",map,"base.json");

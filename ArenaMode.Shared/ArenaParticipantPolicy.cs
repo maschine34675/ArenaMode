@@ -19,7 +19,7 @@ public static class ArenaParticipantPolicy
         => ArenaTeamBoxCatalog.Applies(map, mode) ? 20 : MaximumTotal;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
     public static int DefaultTotal(string map, string mode)
-        => ArenaMapCatalog.IsEquator(map) ? 4 : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map)) ? 8
+        => ArenaMapCatalog.IsEquator(map) ? 4 : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;
 

@@ -49,7 +49,7 @@ static class Program
         Check(harmony.Hooks.Count==2&&harmony.Hooks[0].Target.Name=="GetCoverPointMain2"&&harmony.Hooks[1].Target.Name=="GoToPosition","NATIVE-BINDING");
         Check(harmony.Hooks.All(x=>x.Priority==Priority.Last),"HARMONY-PRIORITY");
         SourceContracts();
-        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT"})
+        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT","arena_bowl","ARENA_BOWL"})
         foreach(var mode in new[]{"tactical","zombie"})
         {
             Fresh();world.LocationId=map;ArenaSession.ActiveMode=mode;
@@ -69,7 +69,7 @@ static class Program
         Excluded(()=>PitFireTeamCompat.IsFinalizing=true,"finalizing");
         Excluded(()=>ArenaSession.Exact=false,"wrong exact raid");
         foreach(var mode in new[]{"deathmatch","gungame","teamdeathmatch",null})Excluded(()=>ArenaSession.ActiveMode=mode,"mode "+mode);
-        foreach(var map in new[]{"bigmap","factory4_day","arena_bay50","arena_airpit_extra",null})Excluded(()=>world.LocationId=map,"map "+map);
+        foreach(var map in new[]{"bigmap","factory4_day","arena_bay50","arena_airpit_extra","arena_bowl_extra",null})Excluded(()=>world.LocationId=map,"map "+map);
         foreach(var status in new[]{GameStatus.Running,GameStatus.Stopping,GameStatus.Stopped})Excluded(()=>game.Status=status,"status "+status);
         Excluded(()=>Singleton<AbstractGame>.Instance=null,"no game");
         Excluded(()=>Singleton<AbstractGame>.Instance=new AbstractGame(),"not local game");

@@ -1,11 +1,22 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-22. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-23. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Bowl Arena admission (2026-10-23):** optional `arena_bowl` is supported in all
+  five modes, including PFT, using existing generic MapPort spawns and exact-raid
+  coverless adapters. DM/Gun Game/TDM recommend eight participants. Gold BOWL
+  label preserves native location/time presentation; built-in pickups and phase
+  lighting are admitted. Revision 4 adds Bowl only to recognized previous default
+  lists, preserving custom settings and removed maps. No original team-box hold
+  or box-only bot shield: Bowl opening poses are asynchronous after Release.
+  See [review and offline evidence](BOWL-INTEGRATION-20261023.md). Full unit suite:
+  2,222 passed, 1 existing APBS prerequisite skip; all targeted harnesses passed.
+  No new Arena GPU raid acceptance; restart game and server after delivery.
 
 - **Arena session review fixes (2026-10-22, branch `feature/arena-session-review-fixes`, committed there and merged
   into master the same day; enter, leave, the handshake and the mid-session policy change ran on SPT-GPU-2, spec
