@@ -179,10 +179,14 @@ function Invoke-Scenario([string]$DriverFolder, [string]$Scenario, [bool]$Flag, 
 $scenarios = @(
     @{ Name = 'inert'; Flag = $false },
     @{ Name = 'full'; Flag = $true },
+    @{ Name = 'no-early-patcher'; Flag = $true },
     @{ Name = 'user-file'; Flag = $true },
     @{ Name = 'user-blacklist'; Flag = $true },
     @{ Name = 'default-deny'; Flag = $true },
     @{ Name = 'user-garbage'; Flag = $true },
+    @{ Name = 'user-oversize'; Flag = $true },
+    @{ Name = 'unidentified-patcher'; Flag = $true },
+    @{ Name = 'gate-unlocated'; Flag = $true },
     @{ Name = 'bad-default'; Flag = $true },
     @{ Name = 'missing-default'; Flag = $true },
     @{ Name = 'no-core-module'; Flag = $true },
@@ -245,7 +249,7 @@ $mutants = @(
     @{ Name = 'blacklist-patchers-neutralised'; Scenarios = @('user-blacklist'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file)) continue;'; Replace = 'if (policy.FindPatcher(file) != null) continue;' }) },
     @{ Name = 'entry-point-patcher-neutralised'; Scenarios = @('full'); Edits = @(
-        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (origin == self || origin == preloader || origin == core) continue;'; Replace = 'if (origin == self) continue;' }) },
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (origin != null && (origin == self || origin == preloader || origin == core)) continue;'; Replace = 'if (origin != null && origin == self) continue;' }) },
     @{ Name = 'every-directory-filtered'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGateRuntime.cs'; Find = 'if (!IsChainloaderDirectory(directory)) return;'; Replace = '' }) },
     @{ Name = 'soft-dependency-pulled-in'; Scenarios = @('full'); Edits = @(
@@ -277,7 +281,44 @@ $mutants = @(
     @{ Name = 'override-warning-dropped'; Scenarios = @('user-blacklist'); SharedEdits = @(
         @{ File = 'ArenaWhitelistDecision.cs'; Find = 'if (policyOverride != null) result.Warnings.Add(policyOverride);'; Replace = '' }) },
     @{ Name = 'override-warning-in-a-whitelist'; Scenarios = @('full', 'user-file'); SharedEdits = @(
-        @{ File = 'ArenaWhitelistDecision.cs'; Find = 'if (!string.Equals(unit.Reason, ReasonUnlistedAllowed, StringComparison.Ordinal)) continue;'; Replace = '' }) }
+        @{ File = 'ArenaWhitelistDecision.cs'; Find = 'if (!string.Equals(unit.Reason, ReasonUnlistedAllowed, StringComparison.Ordinal)) continue;'; Replace = '' }) },
+    # Patchers that sort before the gate have already run their initializer, which cannot be undone. The report lists
+    # exactly those (and not the allowed ones that sort there, nor the denied ones that sort after the gate), always
+    # carries the member, keeps it in the inactive reports and counts it in the Info summary.
+    @{ Name = 'ran-before-gate-not-collected'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'AddOnce(outcome.RanBeforeGate, file);'; Replace = '' }) },
+    @{ Name = 'ran-before-gate-lists-every-neutralised'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'RanBeforeGate.AddRange(patchers.RanBeforeGate);'; Replace = 'RanBeforeGate.AddRange(patchers.Neutralised);' }) },
+    @{ Name = 'ran-before-gate-lists-allowed-early-patchers'; Scenarios = @('full', 'no-early-patcher'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file)) continue;'; Replace = 'if (policy.IsAllowedPatcher(file)) { if (plugin.Initializer != null && selfIndex >= 0 && i < selfIndex) AddOnce(outcome.RanBeforeGate, file); continue; }' }) },
+    @{ Name = 'ran-before-gate-missing-in-final-report'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate);'; Replace = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised);' }) },
+    @{ Name = 'ran-before-gate-missing-in-inactive-report'; Scenarios = @('full', 'no-core-module', 'postfix-failure'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'report.PatchersRanBeforeGate.AddRange(RanBeforeGate);'; Replace = '' }) },
+    @{ Name = 'ran-before-gate-not-published'; Scenarios = @('full', 'postfix-failure'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'root["patchersRanBeforeGate"] = PatchersRanBeforeGate == null ? new List<string>() : PatchersRanBeforeGate;'; Replace = 'root["patchersRanBeforeGate"] = new List<string>();' }) },
+    @{ Name = 'ran-before-gate-omitted-when-empty'; Scenarios = @('no-early-patcher', 'bad-default', 'missing-default'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'root["patchersRanBeforeGate"] = PatchersRanBeforeGate == null ? new List<string>() : PatchersRanBeforeGate;'; Replace = 'if (PatchersRanBeforeGate != null && PatchersRanBeforeGate.Count > 0) root["patchersRanBeforeGate"] = PatchersRanBeforeGate;' }) },
+    # A user file above 256 KB is not a policy file for the client, so it cannot be one for the gate: the Arena session refuses
+    # on the policy hash when the two sides apply different policies to the same file.
+    @{ Name = 'user-file-size-unchecked'; Scenarios = @('user-oversize'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'if (total > MaxBytes)'; Replace = 'if (false)' }) },
+    @{ Name = 'user-file-read-privately'; Scenarios = @('user-oversize'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaPolicyFileState userState = ArenaPolicyFiles.TryRead(userPath, out userJson, out detail);'; Replace = 'ArenaPolicyFileState userState = ArenaPolicyFileState.Read; userJson = File.Exists(userPath) ? File.ReadAllText(userPath) : null;' }) },
+    # Fail closed for patchers the gate cannot place: one without a file is switched off and reported, and when the gate's own
+    # position in the patcher list is unknown every neutralised patcher with an initializer counts as one that ran early.
+    @{ Name = 'unidentified-patcher-left-active'; Scenarios = @('unidentified-patcher'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'file = UnidentifiedName(plugin, i);'; Replace = 'continue;' }) },
+    @{ Name = 'unidentified-patcher-not-reported-as-early'; Scenarios = @('unidentified-patcher'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);'; Replace = 'bool initializerMayHaveRun = plugin.Initializer != null && identified && (selfIndex < 0 || i < selfIndex);' }) },
+    @{ Name = 'unidentified-patcher-without-warning'; Scenarios = @('unidentified-patcher'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = '+ " could not be determined, so it cannot be on the whitelist and was neutralised");'; Replace = '+ " could not be determined");' }) },
+    @{ Name = 'unknown-position-lists-nothing'; Scenarios = @('gate-unlocated'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);'; Replace = 'bool initializerMayHaveRun = plugin.Initializer != null && selfIndex >= 0 && i < selfIndex;' }) },
+    @{ Name = 'summary-without-ran-before-suffix'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'line += " (" + PatchersRanBeforeGate.Count.ToString(CultureInfo.InvariantCulture) + " patcher(s) ran before the gate)";'; Replace = '' }) },
+    @{ Name = 'ran-before-suffix-without-patchers'; Scenarios = @('no-early-patcher'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'if (PatchersRanBeforeGate != null && PatchersRanBeforeGate.Count > 0)'; Replace = 'if (PatchersRanBeforeGate != null)' }) }
 )
 
 if (-not $SkipMutants -and -not $Only) {

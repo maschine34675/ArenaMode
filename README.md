@@ -270,6 +270,10 @@ unavailable as before.
   default list's, or yours); *Not on the whitelist* names the mods nothing lists; a part
   without names is left out. With a blacklist file (below) only denied mods count and
   the reason reads `Arena does not run with denied mods. Blocked for Arena: ...`.
+  Preloader patchers count as well: every patcher `.dll` below `BepInEx/patchers` (matched by file
+  name, at any depth) that the list does not allow is named like a plugin, and the session
+  switches it off. A support library that merely sits there (a DLL without a `TargetDLLs`
+  member, which every patcher has) is not a patcher and counts for nothing.
 - **The Arena session:** the game restarts (about two minutes) with only the
   whitelisted plugins, against a second SPT server, started by the helper
   `maschine-ArenaMode.Session.exe`, that loads only the whitelisted server mods
@@ -278,9 +282,21 @@ unavailable as before.
   in the session are discarded, and it offers only Arena raids: PMC and Scav are
   not selectable. **RETURN TO NORMAL SESSION** restarts the game with your normal
   server and the full mod set. The helper writes
-  `%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log`.
+  `%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log`. The game closes only after the
+  helper has confirmed that it took the switch over; if the helper stops or stays silent for
+  15 seconds, the game keeps running, says so and offers the action again, and the request is
+  taken back, so a helper that was only slow does not switch the session later. The session checks
+  itself too: Arena stays unavailable in it when the policy cannot be loaded, when a plugin the
+  game loaded or a mod the server runs is one your current policy file excludes, when the server
+  was built for another policy (both happen when a policy file was edited while the game
+  restarted: return to the normal session and start the Arena session again), or when a
+  preloader patcher that the policy does not allow had already run before the gate could stop it
+  (allow it or remove it, then start the session again).
 - **A normal session whose mods are all whitelisted** plays Arena directly, as
-  before, without a restart.
+  before, without a restart. That is a deliberate choice: it uses your normal server, so a
+  mod you allowed that writes server data of its own (a statistics mod, say) writes there as
+  usual and only Arena's own profile protection applies. Start the Arena session when you want
+  the disposable server.
 - The switch needs a local SPT server in the `SPT_Runtime` folder beside the game
   and this release's ArenaMode server mod, which must run from that folder. If it
   cannot be offered (older server, server elsewhere, remote backend), the refusal
@@ -292,15 +308,17 @@ overwritten by an update. It is a combined allow/deny list, and everything in it
 optional. The Arena session decides each mod in this order:
 
 1. SPT's platform plugins and ArenaMode are always allowed; no `deny` can remove them.
-2. A mod in your `deny` is excluded. Only a hard dependency of an allowed mod still pulls it
-   in again, with a warning (otherwise the mod that needs it would not start). For a
-   server mod the dependencies are the ones it lists in its own metadata, which the server
-   reports; the server refuses to load any mod when one of them is missing.
+2. A mod in your `deny` is excluded, and it stays excluded when another mod needs it: a mod that
+   lists it as a hard dependency (or needs a mod that does) cannot start without it, so it is
+   excluded too, with a warning. A library nobody denied is still loaded for the mods that
+   need it. For a server mod the dependencies are the ones it lists in its own metadata,
+   which the server reports; the server refuses to load any mod when one of them is missing.
 3. A mod your `allow` list names is allowed. This also lifts the default list's deny for that
    mod. No code in ArenaMode refuses those mods any more, so the entry lifts the block completely, at your
    own risk.
 4. A mod the default list's `deny` names is excluded, with the reason *Blocked for Arena*,
-   even in a blacklist; the same dependency rule as in 2 applies.
+   even in a blacklist; the same dependency rule as in 2 applies (a mod that needs it is
+   excluded too, and listed under *Blocked for Arena* as well).
 5. A mod the default list names is allowed.
 6. Every other mod follows `"unlisted"`: `"deny"` (the default) excludes it, which makes
    the file a **whitelist**; `"allow"` lets it load without a warning of its own, which
@@ -339,15 +357,20 @@ server mods); `name`, `kind` (`mod` or `tool`) and the reviewed
 `clientVersion`/`serverVersion` are optional, and only an entry with a reviewed version
 can produce a version warning. A file that does not parse, has an unknown `schema` or an
 `unlisted` value other than `"deny"` or `"allow"` is ignored as a whole with a warning,
-so a typo never silently inverts the list. A blacklist (`"unlisted": "allow"`) whose
+so a typo never silently inverts the list; a file above 256 KB is not read at all, by the game and
+by the session alike. A blacklist (`"unlisted": "allow"`) whose
 `deny` is not an array of GUIDs and file names is ignored as a whole as well, because a
 lost entry would load a mod you excluded; the shipped whitelist applies then. A mod you allow loads in the Arena session
 and is your responsibility. The Arena server runs from a copy of the server
 binaries inside the session's private tree, so a server mod that resolves its paths from
 `AppContext.BaseDirectory` or the working directory writes there and not into
 your `SPT_Runtime`; only the `SPT_Data` folders the tree links (database, images, ...)
-are the installation's own. This session feature has offline checks only so far; its native
-acceptance is still open (`docs/ARENA-SESSION-20261021.md`, section 10).
+are the installation's own. The switch, leaving it, the default list and the testing override were
+accepted on a GPU host on 2026-10-21 and 2026-10-22 (`docs/ARENA-SESSION-20261021.md`, section 10).
+Still open on a GPU host (section 10, items 6 to 11; offline checks only so far, see
+`docs/ARENA-SESSION-REVIEW-RESPONSE-20261022.md`): the helper's acknowledgement and a late helper,
+the Arena session's own checks (a server mod, a plugin or a policy hash that disagrees with the policy
+as it reads now, and a policy that cannot be loaded) and a preloader patcher as a unit of the decision.
 
 ### Testing override
 

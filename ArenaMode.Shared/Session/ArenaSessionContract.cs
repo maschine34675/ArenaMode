@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 
 namespace ArenaMode.Shared.Session
 {
@@ -152,19 +153,109 @@ namespace ArenaMode.Shared.Session
         }
     }
 
+    /// <summary>What <see cref="ArenaPolicyFiles.TryRead"/> found at a path.</summary>
+    public enum ArenaPolicyFileState
+    {
+        /// <summary>There is no such file.</summary>
+        Absent,
+
+        /// <summary>The text was read in full.</summary>
+        Read,
+
+        /// <summary>The file is larger than <see cref="ArenaPolicyFiles.MaxBytes"/>; none of it is used.</summary>
+        TooLarge,
+
+        /// <summary>The file exists but could not be read (locked, access denied, I/O error).</summary>
+        Unreadable,
+    }
+
+    /// <summary>
+    /// The one way the client and the gate read the two policy files (the shipped default and the user's own),
+    /// docs/ARENA-SESSION-20261021.md sections 3, 5 and 7. They must read the same bytes into the same policy:
+    /// the client builds the request (and so the server tree) from its reading and the gate applies its own, and
+    /// the Arena session refuses when the two policy hashes differ. A size limit that only one side enforced
+    /// would make them disagree about the same file for ever, so there is one reader, one limit and one decoding.
+    /// A file above <see cref="MaxBytes"/> is not a policy file; none of it is used.
+    /// </summary>
+    public static class ArenaPolicyFiles
+    {
+        /// <summary>The largest policy file that is read: 256 KB.</summary>
+        public const int MaxBytes = 256 * 1024;
+
+        /// <summary>
+        /// Reads the file as UTF-8 text (a byte order mark is honoured, like <c>File.ReadAllText</c>), at most
+        /// <see cref="MaxBytes"/> bytes of it, with the sharing mode of <c>File.ReadAllText</c>: a file that an editor
+        /// holds open for writing is <see cref="ArenaPolicyFileState.Unreadable"/>, not read half-written. Never
+        /// throws. <paramref name="detail"/> says why for <see cref="ArenaPolicyFileState.TooLarge"/> and
+        /// <see cref="ArenaPolicyFileState.Unreadable"/>; otherwise it is null, and so is <paramref name="text"/> unless
+        /// the state is <see cref="ArenaPolicyFileState.Read"/>.
+        /// </summary>
+        public static ArenaPolicyFileState TryRead(string path, out string text, out string detail)
+        {
+            text = null;
+            detail = null;
+            try
+            {
+                if (!File.Exists(path)) return ArenaPolicyFileState.Absent;
+
+                // One byte more than the limit is read, so that a file that grows between a size check and the
+                // read cannot get past it.
+                byte[] buffer = new byte[MaxBytes + 1];
+                int total = 0;
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    while (total < buffer.Length)
+                    {
+                        int read = stream.Read(buffer, total, buffer.Length - total);
+                        if (read <= 0) break;
+                        total += read;
+                    }
+                }
+
+                if (total > MaxBytes)
+                {
+                    detail = "larger than " + (MaxBytes / 1024).ToString(CultureInfo.InvariantCulture) + " KB";
+                    return ArenaPolicyFileState.TooLarge;
+                }
+
+                using (var reader = new StreamReader(new MemoryStream(buffer, 0, total), Encoding.UTF8, true))
+                {
+                    text = reader.ReadToEnd();
+                }
+
+                return ArenaPolicyFileState.Read;
+            }
+            catch (Exception ex)
+            {
+                text = null;
+                detail = ex.Message;
+                return ArenaPolicyFileState.Unreadable;
+            }
+        }
+
+        /// <summary>A short phrase for the state, for messages that follow a colon.</summary>
+        public static string Describe(ArenaPolicyFileState state, string detail)
+        {
+            if (state == ArenaPolicyFileState.Absent) return "the file does not exist";
+            return string.IsNullOrEmpty(detail) ? state.ToString() : detail;
+        }
+    }
+
     /// <summary>
     /// What the gate publishes through <see cref="ArenaSessionContract.GateReportDataKey"/> and
     /// what the client reads back: whether the filter is active, which plugins it let through or
     /// removed, the warnings and the patchers it neutralised. JSON shape:
     /// <c>{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
     /// "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...],
-    /// "warnings":[string], "patchersNeutralised":[file] }</c>. Unknown members are ignored when
-    /// reading; a missing <c>unlistedAllowed</c> reads as false. A unit's
+    /// "warnings":[string], "patchersNeutralised":[file], "patchersRanBeforeGate":[file] }</c>.
+    /// Unknown members are ignored when reading; a missing <c>unlistedAllowed</c> reads as false and a
+    /// missing <c>patchersRanBeforeGate</c> (a report of an older gate) as empty. A unit's
     /// <c>reason</c> is one of the <c>ArenaWhitelistDecision.Reason*</c> values: <c>platform</c>,
     /// <c>arena</c>, <c>whitelist</c>, <c>tool</c>, <c>unlisted-allowed</c> (blacklist mode),
     /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c>,
-    /// <c>denied-by-user</c> (the user file's deny list) or <c>denied</c> (the shipped default
-    /// file's deny list) for excluded ones.
+    /// <c>denied-by-user</c> (the user file's deny list), <c>denied</c> (the shipped default
+    /// file's deny list) or <c>requires-denied:&lt;guid&gt;</c> (a hard dependency, directly or
+    /// through other units, is denied) for excluded ones.
     /// </summary>
     public sealed class ArenaGateReport
     {
@@ -175,6 +266,7 @@ namespace ArenaMode.Shared.Session
             Excluded = new List<ArenaSessionUnit>();
             Warnings = new List<string>();
             PatchersNeutralised = new List<string>();
+            PatchersRanBeforeGate = new List<string>();
         }
 
         public int Schema { get; set; }
@@ -202,6 +294,16 @@ namespace ArenaMode.Shared.Session
 
         public List<string> PatchersNeutralised { get; set; }
 
+        /// <summary>
+        /// File names of the patchers in <see cref="PatchersNeutralised"/> whose initializer had already run when the
+        /// gate got to them: they sort before the gate in the preloader's patcher list, so only their target list,
+        /// patch method and finalizer could still be switched off. For those patchers the process is not clean even
+        /// though the gate is active. Always a subset of <see cref="PatchersNeutralised"/>; empty when none, and also
+        /// empty when the gate's own position in the list could not be determined (the report then carries a warning
+        /// that says so).
+        /// </summary>
+        public List<string> PatchersRanBeforeGate { get; set; }
+
         /// <summary>A report for a gate that did not filter anything.</summary>
         public static ArenaGateReport Inactive(string error, string policyHash)
         {
@@ -213,7 +315,7 @@ namespace ArenaMode.Shared.Session
         /// the decision do not leak in.
         /// </summary>
         public static ArenaGateReport FromDecision(ArenaWhitelistPolicy policy, ArenaWhitelistDecision decision,
-            IEnumerable<string> patchersNeutralised)
+            IEnumerable<string> patchersNeutralised, IEnumerable<string> patchersRanBeforeGate = null)
         {
             if (policy == null) throw new ArgumentNullException("policy");
             if (decision == null) throw new ArgumentNullException("decision");
@@ -229,6 +331,7 @@ namespace ArenaMode.Shared.Session
             report.Excluded.AddRange(decision.Excluded);
             report.Warnings.AddRange(decision.Warnings);
             if (patchersNeutralised != null) report.PatchersNeutralised.AddRange(patchersNeutralised);
+            if (patchersRanBeforeGate != null) report.PatchersRanBeforeGate.AddRange(patchersRanBeforeGate);
             return report;
         }
 
@@ -237,14 +340,21 @@ namespace ArenaMode.Shared.Session
 
         /// <summary>
         /// The log line the gate writes: <c>Arena session: N plugins allowed, M excluded, K warnings</c>,
-        /// followed by <see cref="PolicyOverrideSummarySuffix"/> when the policy allows unlisted units.
+        /// followed by <see cref="PolicyOverrideSummarySuffix"/> when the policy allows unlisted units and by
+        /// <c> (N patcher(s) ran before the gate)</c> when <see cref="PatchersRanBeforeGate"/> is not empty.
         /// </summary>
         public string SummaryLine()
         {
-            return "Arena session: " + Allowed.Count.ToString(CultureInfo.InvariantCulture) + " plugins allowed, "
+            string line = "Arena session: " + Allowed.Count.ToString(CultureInfo.InvariantCulture) + " plugins allowed, "
                 + Excluded.Count.ToString(CultureInfo.InvariantCulture) + " excluded, "
                 + Warnings.Count.ToString(CultureInfo.InvariantCulture) + " warnings"
                 + (UnlistedAllowed ? PolicyOverrideSummarySuffix : string.Empty);
+            if (PatchersRanBeforeGate != null && PatchersRanBeforeGate.Count > 0)
+            {
+                line += " (" + PatchersRanBeforeGate.Count.ToString(CultureInfo.InvariantCulture) + " patcher(s) ran before the gate)";
+            }
+
+            return line;
         }
 
         /// <summary>Compact JSON in the documented shape.</summary>
@@ -260,6 +370,7 @@ namespace ArenaMode.Shared.Session
             root["excluded"] = UnitsToJson(Excluded);
             root["warnings"] = Warnings == null ? new List<string>() : Warnings;
             root["patchersNeutralised"] = PatchersNeutralised == null ? new List<string>() : PatchersNeutralised;
+            root["patchersRanBeforeGate"] = PatchersRanBeforeGate == null ? new List<string>() : PatchersRanBeforeGate;
             return ArenaMiniJson.Write(root);
         }
 
@@ -300,6 +411,7 @@ namespace ArenaMode.Shared.Session
             UnitsFromJson(ArenaMiniJson.GetArray(obj, "excluded"), parsed.Excluded);
             StringsFromJson(ArenaMiniJson.GetArray(obj, "warnings"), parsed.Warnings);
             StringsFromJson(ArenaMiniJson.GetArray(obj, "patchersNeutralised"), parsed.PatchersNeutralised);
+            StringsFromJson(ArenaMiniJson.GetArray(obj, "patchersRanBeforeGate"), parsed.PatchersRanBeforeGate);
             report = parsed;
             error = null;
             return true;

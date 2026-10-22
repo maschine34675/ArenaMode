@@ -16,9 +16,30 @@ namespace ArenaMode
         public void Clear() { Info.Clear(); Warnings.Clear(); Debug.Clear(); }
     }
 
-    public static class Plugin
+    /// <summary>
+    /// The plugin object the switch starts its wait on. <see cref="StartCoroutine"/> only records the routine:
+    /// the checks drive it by hand with <c>MoveNext()</c>, which runs the production loop frame by frame.
+    /// </summary>
+    public sealed class Plugin
     {
         public static TestLogger ModLogger = new();
+
+        /// <summary>Null stands for a plugin that is not running.</summary>
+        public static Plugin Instance { get; set; } = new();
+
+        public readonly List<System.Collections.IEnumerator> Coroutines = new();
+
+        /// <summary>Makes the next <see cref="StartCoroutine"/> fail, as a host that cannot run it would.</summary>
+        public bool ThrowOnStart;
+
+        public UnityEngine.Coroutine StartCoroutine(System.Collections.IEnumerator routine)
+        {
+            if (ThrowOnStart) throw new InvalidOperationException("coroutine host refused");
+            Coroutines.Add(routine);
+            // Unity runs a new coroutine up to its first yield inside StartCoroutine; so does this double.
+            routine.MoveNext();
+            return new UnityEngine.Coroutine();
+        }
     }
 }
 
@@ -27,6 +48,7 @@ namespace BepInEx
     public static class Paths
     {
         public static string PluginPath;
+        public static string PatcherPluginPath;
         public static string ConfigPath;
         public static string GameRootPath;
         public static string ExecutablePath;
@@ -70,6 +92,18 @@ namespace UnityEngine
         public static int QuitCalls;
         public static void Quit() => QuitCalls++;
     }
+
+    public sealed class Coroutine
+    {
+    }
+
+    public static class Time
+    {
+        public static float realtimeSinceStartup;
+
+        /// <summary>Game time. The wait for the helper must not use it (a pause would stretch the timeout).</summary>
+        public static float time;
+    }
 }
 
 namespace SPT.Common.Http
@@ -108,6 +142,9 @@ namespace ArenaMode.Session
         internal static bool SessionFieldsPresent;
         internal static bool IsArenaInstance;
         internal static IReadOnlyList<ArenaServerModInfo> ServerMods;
+
+        /// <summary>The ping's policyHash member; null when the ping carried none.</summary>
+        internal static string PolicyHash;
         internal static int RefreshCalls;
 
         /// <summary>What the next ping "learns" from the server.</summary>
@@ -130,6 +167,7 @@ namespace ArenaMode.Session
             SessionFieldsPresent = false;
             IsArenaInstance = false;
             ServerMods = null;
+            PolicyHash = null;
             RefreshCalls = 0;
             OnRefresh = null;
         }

@@ -79,6 +79,79 @@ foreach ($name in $requiredNotices) {
     }
 }
 
+# The units that code allows in every Arena session: ArenaSessionContract.SptPlatformGuids,
+# ConfigurationManagerGuid, ArenaPluginGuid, PlatformPatcherFiles and every GUID that starts with the Fika prefix.
+# The shipped default whitelist must not name them. The loader skips such an entry (and such a deny) with a
+# diagnostic, but a shipped file that lists one is a mistake: before the loader skipped them, an entry replaced the
+# code entry of its unit and a deny of the same name then removed it. ArenaMode.Tests pins this list to the contract.
+# A name is checked as a GUID (as written) and as a patcher (its last path segment), whichever member it is in,
+# like the loader's own test for protected names.
+function Test-ArenaProtectedUnit([string]$Id) {
+    $protectedGuids = @('com.SPT.core', 'com.SPT.custom', 'com.SPT.debugging', 'com.SPT.singleplayer',
+        'com.bepis.bepinex.configurationmanager', 'com.maschine.ArenaMode')
+    $protectedPatchers = @('FixPluginTypesSerialization.dll', 'spt-prepatch.dll', 'maschine-ArenaMode.Gate.dll')
+    $name = $Id.Trim()
+    $file = ($name -split '[\\/]')[-1]
+    return ($protectedGuids -contains $name) -or ($protectedPatchers -contains $file) -or
+        $name.StartsWith('com.fika.', [StringComparison]::OrdinalIgnoreCase)
+}
+
+# Throws on the first defect of the shipped default whitelist (docs/ARENA-SESSION-20261021.md, section 3).
+function Assert-ArenaDefaultWhitelist([string]$Path) {
+    $policy = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    $policyProperties = @($policy.PSObject.Properties.Name)
+    if ($policyProperties -cnotcontains 'schema' -or $policy.schema -ne 1 -or $policyProperties -cnotcontains 'mods' -or @($policy.mods).Count -eq 0) {
+        throw 'The Arena default whitelist is not a schema 1 policy with entries.'
+    }
+    foreach ($mod in @($policy.mods)) {
+        $names = @($mod.PSObject.Properties.Name)
+        if (($names -ccontains 'guid') -eq ($names -ccontains 'patcher')) {
+            throw 'Every Arena default whitelist entry needs exactly one of guid and patcher.'
+        }
+        $listed = if ($names -ccontains 'guid') { [string]$mod.guid } else { [string]$mod.patcher }
+        if (Test-ArenaProtectedUnit $listed) {
+            throw "The Arena default whitelist lists the platform or Arena unit '$($listed.Trim())': code allows those units, the default list must not name them."
+        }
+    }
+    # The deny list of the default file (the mods ArenaMode refuses by design): an array of non-blank strings,
+    # a plugin/server GUID or a patcher file name, exactly like the user file's deny. The loader fails the
+    # whole default file on any other shape but treats a missing member as "no deny list", and reads only
+    # the exact key 'deny'; a shipped file without it (or with it empty or mis-cased) would silently turn the
+    # refused mods into plain unlisted ones. So the shipped file must carry the member and name the five
+    # refused mods, and the build stops here otherwise. A unit that mods allows and deny names is denied by
+    # the loader (deny wins) and reported at every start; as a shipped file it is a mistake, so the build
+    # stops here as well. A deny that names a platform or Arena unit is skipped by the loader the same way
+    # and is refused here for the same reason.
+    if ($policyProperties -ccontains 'deny') {
+        $deny = $policy.PSObject.Properties['deny'].Value
+        if ($deny -isnot [array]) { throw 'The Arena default whitelist "deny" member must be an array of GUIDs or patcher file names.' }
+        $denied = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        foreach ($id in $deny) {
+            if ($id -isnot [string] -or [string]::IsNullOrWhiteSpace($id)) {
+                throw 'Every Arena default whitelist "deny" entry must be a non-blank GUID or patcher file name.'
+            }
+            if (Test-ArenaProtectedUnit $id) {
+                throw "The Arena default whitelist denies the platform or Arena unit '$($id.Trim())': code allows those units, they cannot be denied."
+            }
+            [void]$denied.Add($id.Trim())
+            [void]$denied.Add(($id.Trim() -split '[\\/]')[-1])
+        }
+        foreach ($mod in @($policy.mods)) {
+            $listed = if ($mod.PSObject.Properties.Name -ccontains 'guid') { [string]$mod.guid } else { [string]$mod.patcher }
+            if ($denied.Contains($listed.Trim()) -or $denied.Contains(($listed.Trim() -split '[\\/]')[-1])) {
+                throw "The Arena default whitelist both allows and denies '$listed'."
+            }
+        }
+        # ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi (user decision 2026-10-22).
+        foreach ($required in @('com.chazut.orbit', 'com.danw.questingbots', 'com.hysocs.adaptivebotculling',
+                'com.samc137.isbspecialforces', 'com.samc137.aishi')) {
+            if (-not $denied.Contains($required)) { throw "The Arena default whitelist no longer denies '$required'." }
+        }
+    } else {
+        throw 'The Arena default whitelist needs its "deny" member (the mods ArenaMode refuses by design).'
+    }
+}
+
 function Assert-NoReparsePath([string]$Path) {
     $cursor = [IO.Path]::GetFullPath($Path)
     $isLeaf = $true
@@ -191,52 +264,10 @@ foreach ($entry in $documents.GetEnumerator()) {
         $record | Add-Member -NotePropertyName packageScope -NotePropertyValue 'Only shipped recordings are listed. Unused announcements/reserve recordings remain in the source repository and are excluded from build/deploy/release payloads.' -Force
         $bytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 12) + [Environment]::NewLine)
     } elseif ($entry.Key -eq 'assets/arena-whitelist.json') {
-        # Stop the build, deployment or package instead of shipping a default list that the gate and the
-        # client would refuse (that makes every Arena session unavailable). The bytes are copied unchanged.
-        $policy = Get-Content -LiteralPath $inputFile -Raw | ConvertFrom-Json
-        $policyProperties = @($policy.PSObject.Properties.Name)
-        if ($policyProperties -cnotcontains 'schema' -or $policy.schema -ne 1 -or $policyProperties -cnotcontains 'mods' -or @($policy.mods).Count -eq 0) {
-            throw 'The Arena default whitelist is not a schema 1 policy with entries.'
-        }
-        foreach ($mod in @($policy.mods)) {
-            $names = @($mod.PSObject.Properties.Name)
-            if (($names -ccontains 'guid') -eq ($names -ccontains 'patcher')) {
-                throw 'Every Arena default whitelist entry needs exactly one of guid and patcher.'
-            }
-        }
-        # The deny list of the default file (the mods ArenaMode refuses by design): an array of non-blank strings,
-        # a plugin/server GUID or a patcher file name, exactly like the user file's deny. The loader fails the
-        # whole default file on any other shape but treats a missing member as "no deny list", and reads only
-        # the exact key 'deny'; a shipped file without it (or with it empty or mis-cased) would silently turn the
-        # refused mods into plain unlisted ones. So the shipped file must carry the member and name the five
-        # refused mods, and the build stops here otherwise. A unit that mods allows and deny names is denied by
-        # the loader (deny wins) and reported at every start; as a shipped file it is a mistake, so the build
-        # stops here as well.
-        if ($policyProperties -ccontains 'deny') {
-            $deny = $policy.PSObject.Properties['deny'].Value
-            if ($deny -isnot [array]) { throw 'The Arena default whitelist "deny" member must be an array of GUIDs or patcher file names.' }
-            $denied = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-            foreach ($id in $deny) {
-                if ($id -isnot [string] -or [string]::IsNullOrWhiteSpace($id)) {
-                    throw 'Every Arena default whitelist "deny" entry must be a non-blank GUID or patcher file name.'
-                }
-                [void]$denied.Add($id.Trim())
-                [void]$denied.Add(($id.Trim() -split '[\\/]')[-1])
-            }
-            foreach ($mod in @($policy.mods)) {
-                $listed = if ($mod.PSObject.Properties.Name -ccontains 'guid') { [string]$mod.guid } else { [string]$mod.patcher }
-                if ($denied.Contains($listed.Trim()) -or $denied.Contains(($listed.Trim() -split '[\\/]')[-1])) {
-                    throw "The Arena default whitelist both allows and denies '$listed'."
-                }
-            }
-            # ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces, Aishi (user decision 2026-10-22).
-            foreach ($required in @('com.chazut.orbit', 'com.danw.questingbots', 'com.hysocs.adaptivebotculling',
-                    'com.samc137.isbspecialforces', 'com.samc137.aishi')) {
-                if (-not $denied.Contains($required)) { throw "The Arena default whitelist no longer denies '$required'." }
-            }
-        } else {
-            throw 'The Arena default whitelist needs its "deny" member (the mods ArenaMode refuses by design).'
-        }
+        # The checks live in Assert-ArenaDefaultWhitelist (above): the build, the deployment and the package stop
+        # here instead of shipping a default list that the gate and the client would refuse. The bytes are copied
+        # unchanged.
+        Assert-ArenaDefaultWhitelist $inputFile
     }
     $pending[$entry.Value] = $bytes
 }

@@ -13,9 +13,10 @@ namespace ArenaMode.Tests;
 /// sptLogger.json patching, path safety, request parsing) and the file system behaviour of
 /// <c>ArenaMode.Session/SessionFileSystem.cs</c> against real temporary folders (junctions are
 /// removed as links, nothing outside the sandbox root is touched, the server tree is built and
-/// torn down without harming the folders it only links to). Both files are linked into this
-/// project; the process and socket side of the helper is covered by
-/// <see cref="ArenaSessionHelperProcessTests"/>.
+/// torn down without harming the folders it only links to, and only the prepatch folders of the listed
+/// mods are copied), plus the request's acknowledgement file (names, content, the atomic temporary-file-then-move
+/// write, removal of stale files). Both files are linked into this project; the process and socket side of the
+/// helper, and the order of one run, are covered by <see cref="ArenaSessionHelperProcessTests"/>.
 /// </summary>
 public sealed class ArenaSessionHelperTests
 {
@@ -1053,6 +1054,173 @@ public sealed class ArenaSessionHelperTests
         Assert.False(string.IsNullOrEmpty(error));
     }
 
+    // ------------------------------------------------------------------ sptLogger.json: where the arena server logs
+
+    private static string JsonString(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+
+    private static string LoggerWithPath(string pathJson) =>
+        "{ \"loggers\": [ { \"type\": \"File\", \"filePath\": " + pathJson + ", \"filePattern\": \"spt-%DATE%.log\" } ] }";
+
+    private static string Prefixed(string loggerJson) => loggerJson.Replace("\"spt-%DATE%", "\"arena-spt-%DATE%");
+
+    [Theory]
+    [InlineData("./user/logs/spt/")]
+    [InlineData("user/logs/requests")]
+    [InlineData(@".\user\logs\spt\")]
+    [InlineData("./USER/Logs/spt/")]
+    [InlineData("./user/../user/logs/spt")]
+    [InlineData("./user/./logs//spt/")]
+    [InlineData("user")]
+    public void ALoggerPathBelowUserIsKept(string path)
+    {
+        Assert.True(HelperJsonText.IsLogPathUnderUser(path));
+        string text = LoggerWithPath(JsonString(path));
+
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(text, "arena-", out var patched, out var changed, out List<string> moved, out var error), error);
+
+        Assert.Empty(moved);
+        Assert.Equal(1, changed);
+        Assert.Equal(Prefixed(text), patched);
+    }
+
+    [Theory]
+    [InlineData(@"D:\SPT41\SPT_Runtime\user\logs\spt")] // absolute
+    [InlineData("C:/logs/requests/")]
+    [InlineData(@"\\server\share\logs")]
+    [InlineData(@"\logs")]
+    [InlineData("/var/log/spt")]
+    [InlineData("/user/logs/spt")] // starts at the root of the current drive, whatever its first segment is
+    [InlineData(@"\user\logs")]
+    [InlineData("C:logs")] // relative to the current folder of a drive
+    [InlineData("../logs/spt/")] // climbs out of the tree
+    [InlineData("../user/logs/spt")] // out of the tree and into a folder that is called user
+    [InlineData("./../user/logs")]
+    [InlineData("./user/../../user/logs")]
+    [InlineData("./user/../../logs/spt")]
+    [InlineData("./user/..")] // the tree itself
+    [InlineData("./SPT_Data/database/")] // inside the tree, but the SPT_Data folders are junctions into the installation
+    [InlineData("./user/../SPT_Data/database")]
+    [InlineData("./logs/")] // inside the tree, not below user
+    [InlineData("logs/user/spt")]
+    [InlineData(".")]
+    [InlineData("user./logs")] // Windows rewrites the segment
+    [InlineData("user/logs:stream")]
+    [InlineData("user/lo*gs")]
+    [InlineData("user/con/x")] // a device name
+    [InlineData(" ")]
+    public void ALoggerPathThatIsNotRelativeBelowUserIsNot(string path)
+    {
+        Assert.False(HelperJsonText.IsLogPathUnderUser(path));
+    }
+
+    [Theory]
+    [InlineData(@"D:\SPT41\SPT_Runtime\user\logs\spt", "spt")]
+    [InlineData("C:/logs/requests/", "requests")]
+    [InlineData(@"\\server\share\logs\", "logs")]
+    [InlineData("/var/log/spt", "spt")]
+    [InlineData("../logs/spt/", "spt")]
+    [InlineData("./user/../../logs/spt", "spt")]
+    [InlineData("./SPT_Data/database/", "database")]
+    [InlineData("./logs/", "logs")]
+    [InlineData(@"D:\", "arena")] // no folder name at all
+    [InlineData(".", "arena")]
+    [InlineData("C:logs", "arena")] // not a single folder name for Windows
+    [InlineData(@"D:\logs\con", "arena")] // a device name
+    public void ALoggerPathOutsideUserMovesBelowUserLogsUnderItsLastSegment(string path, string folder)
+    {
+        string text = LoggerWithPath(JsonString(path));
+        string expected = "./user/logs/" + folder + "/";
+
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(text, "arena-", out var patched, out var changed, out List<string> moved, out var error), error);
+
+        Assert.Equal(Prefixed(LoggerWithPath(JsonString(expected))), patched);
+        Assert.Equal(new[] { "'" + path + "' -> '" + expected + "'" }, moved);
+        Assert.Equal(1, changed); // only the filePattern is counted as an edited pattern
+        Assert.True(HelperJsonText.IsLogPathUnderUser(expected));
+
+        // What was moved stays where it is: a second pass changes nothing.
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(patched, "arena-", out var again, out var changedAgain, out List<string> movedAgain, out _));
+        Assert.Equal(patched, again);
+        Assert.Equal(0, changedAgain);
+        Assert.Empty(movedAgain);
+    }
+
+    [Fact]
+    public void OnlyTheLoggerPathsOutsideUserChangeAndTheRestOfTheFileStaysAsItWas()
+    {
+        string text = SptLoggerJson.Replace("\"./user/logs/requests/\"", JsonString(@"D:\SPT41\SPT_Runtime\user\logs\requests"));
+
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(text, "arena-", out var patched, out var changed, out List<string> moved, out var error), error);
+
+        Assert.Equal(2, changed);
+        Assert.Equal(new[] { @"'D:\SPT41\SPT_Runtime\user\logs\requests' -> './user/logs/requests/'" }, moved);
+        Assert.Equal(SptLoggerJson
+            .Replace("\"filePattern\": \"spt-SPT-VM-%DATE%.log\"", "\"filePattern\": \"arena-spt-SPT-VM-%DATE%.log\"")
+            .Replace("\"filePattern\": \"requests-SPT-VM-%DATE%.log\"", "\"filePattern\": \"arena-requests-SPT-VM-%DATE%.log\""), patched);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("5")]
+    [InlineData("\"\"")] // SPT itself refuses an empty path
+    [InlineData("[ \"C:\\\\x\" ]")]
+    public void AFilePathThatIsNotAStringValueIsLeftAlone(string valueJson)
+    {
+        string text = LoggerWithPath(valueJson);
+
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(text, "arena-", out var patched, out _, out List<string> moved, out var error), error);
+
+        Assert.Empty(moved);
+        Assert.Equal(Prefixed(text), patched);
+    }
+
+    [Fact]
+    public void AFilePathAtAnyDepthIsJudgedLikeAFilePatternAtAnyDepth()
+    {
+        const string text = "{ \"a\": { \"b\": [ { \"filePath\": \"C:/deep\", \"filePattern\": \"x.log\" } ] }, \"filePath\": \"user/ok\" }";
+
+        Assert.True(HelperJsonText.TryPrefixLogFilePatterns(text, "arena-", out var patched, out var changed, out List<string> moved, out var error), error);
+
+        Assert.Equal("{ \"a\": { \"b\": [ { \"filePath\": \"./user/logs/deep/\", \"filePattern\": \"arena-x.log\" } ] }, \"filePath\": \"user/ok\" }", patched);
+        Assert.Equal(1, changed);
+        Assert.Single(moved);
+    }
+
+    [SkippableFact]
+    public void TheTreesLoggerConfigurationNeverLogsOutsideUser()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string absolute = area.At("real runtime", "user", "logs", "spt");
+        string logger = "{ \"loggers\": [ { \"type\": \"File\", \"filePath\": " + JsonString(absolute) + ", \"filePattern\": \"spt-%DATE%.log\" }, "
+            + "{ \"type\": \"File\", \"filePath\": \"./user/logs/requests/\", \"filePattern\": \"requests-%DATE%.log\" } ] }";
+        File.WriteAllText(Path.Combine(runtime.Dir, "sptLogger.json"), logger);
+        string root = area.At("session");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        string copy = File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "sptLogger.json"));
+        Assert.Equal(logger
+            .Replace(JsonString(absolute), "\"./user/logs/spt/\"")
+            .Replace("\"spt-%DATE%", "\"arena-spt-%DATE%")
+            .Replace("\"requests-%DATE%", "\"arena-requests-%DATE%"), copy);
+        Assert.Equal(new[] { "'" + absolute + "' -> './user/logs/spt/'" }, result.LogPathRewrites);
+        Assert.Equal(logger, File.ReadAllText(Path.Combine(runtime.Dir, "sptLogger.json"))); // the installation's file is not touched
+    }
+
+    [SkippableFact]
+    public void ALoggerConfigurationThatNeedsNoMoveLeavesNothingToReport()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Empty(result.LogPathRewrites);
+    }
+
     // ------------------------------------------------------------------ plans
 
     [Theory]
@@ -1781,6 +1949,342 @@ public sealed class ArenaSessionHelperTests
         }
     }
 
+    private static void CreateFileLinkOrSkip(string link, string target)
+    {
+        try
+        {
+            File.CreateSymbolicLink(link, target);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            Skip.If(true, "creating a symbolic link needs a privilege this account does not have");
+        }
+    }
+
+    [SkippableFact]
+    public void AWriteReplacesTheWholeContentAsUtf8WithoutAMark()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var box = area.Sandbox(area.At("root"));
+        string path = area.At("root", "deep", "server.pid");
+
+        box.WriteAllText(path, "a long first content, \u00e9 and more");
+        box.WriteAllText(path, "4242");
+        Assert.Equal(new byte[] { (byte)'4', (byte)'2', (byte)'4', (byte)'2' }, File.ReadAllBytes(path));
+
+        box.WriteAllText(path, "\u00e9");
+        Assert.Equal(new byte[] { 0xC3, 0xA9 }, File.ReadAllBytes(path));
+
+        box.WriteAllText(path, "");
+        Assert.Empty(File.ReadAllBytes(path));
+    }
+
+    [SkippableFact]
+    public void AWriteOntoALinkReplacesTheLinkAndNeverTouchesItsTarget()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        Directory.CreateDirectory(area.At("root"));
+        CreateFileLinkOrSkip(area.At("root", "server.pid"), target);
+        CreateFileLinkOrSkip(area.At("root", "dangling.txt"), area.At("outside", "missing.txt")); // nothing at the end of this one
+        var box = area.Sandbox(area.At("root"));
+
+        box.WriteAllText(area.At("root", "server.pid"), "4242");
+        box.WriteAllText(area.At("root", "dangling.txt"), "written");
+
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.False(File.Exists(area.At("outside", "missing.txt")), "a dangling link must not create its target");
+        Assert.False(HelperFileSystem.IsReparsePoint(area.At("root", "server.pid")));
+        Assert.False(HelperFileSystem.IsReparsePoint(area.At("root", "dangling.txt")));
+        Assert.Equal("4242", File.ReadAllText(area.At("root", "server.pid")));
+        Assert.Equal("written", File.ReadAllText(area.At("root", "dangling.txt")));
+        Assert.Equal(2, area.Log.Count(line => line.Contains("is a link: removing the link itself")));
+    }
+
+    [SkippableFact]
+    public void AWriteOntoAJunctionReplacesTheJunctionAndNeverTouchesItsTarget()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        area.Write(area.At("outside", "data", "keep.txt"), "keep");
+        var box = area.Sandbox(area.At("root"));
+        box.CreateJunction(area.At("root", "server.pid"), area.At("outside", "data"));
+
+        box.WriteAllText(area.At("root", "server.pid"), "4242");
+
+        Assert.False(HelperFileSystem.IsReparsePoint(area.At("root", "server.pid")));
+        Assert.Equal("4242", File.ReadAllText(area.At("root", "server.pid")));
+        Assert.Equal("keep", File.ReadAllText(area.At("outside", "data", "keep.txt")));
+    }
+
+    [SkippableFact]
+    public void AFileIsNotOpenedForWritingThroughALinkEvenWhenNobodyRemovedItFirst()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        area.Write(area.At("outside", "data", "keep.txt"), "keep");
+        Directory.CreateDirectory(area.At("root"));
+        CreateFileLinkOrSkip(area.At("root", "link.txt"), target);
+        area.Sandbox(area.At("root")).CreateJunction(area.At("root", "junction"), area.At("outside", "data"));
+
+        // The caller's own check (RemoveLinkAt) is not the only line of defence: the open itself refuses the link, so
+        // one that appears between the check and the open is not followed either.
+        var ex = Assert.Throws<HelperException>(() => HelperNative.OpenFileForWriting(area.At("root", "link.txt"), true, FileShare.None));
+        Assert.Contains("symbolic link or junction", ex.Message);
+
+        // A junction and a folder never reach the attribute check: without backup semantics CreateFile cannot open a folder
+        // for writing, so both fail with access denied (UnauthorizedAccessException, not a HelperException). Nothing is written.
+        Assert.Throws<UnauthorizedAccessException>(() => HelperNative.OpenFileForWriting(area.At("root", "junction"), true, FileShare.None));
+        Assert.Throws<UnauthorizedAccessException>(() => HelperNative.OpenFileForWriting(area.At("outside", "data"), true, FileShare.None)); // a plain folder
+
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.Equal("keep", File.ReadAllText(area.At("outside", "data", "keep.txt")));
+        Assert.Single(Directory.GetFileSystemEntries(area.At("outside", "data")));
+        Assert.True(HelperFileSystem.IsReparsePoint(area.At("root", "link.txt")), "the refused open leaves the link as it is");
+    }
+
+    [SkippableFact]
+    public void ALinkThatAppearsAfterTheCheckIsRefusedByAWriteAndByACopy()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        string source = area.Write(area.At("src", "a.dll"), "payload");
+        Directory.CreateDirectory(area.At("root"));
+        CreateFileLinkOrSkip(area.At("probe.lnk"), target); // proves that links can be made here, so the hook below may use them directly
+        File.Delete(area.At("probe.lnk"));
+        var box = area.Sandbox(area.At("root"));
+
+        // The helper looked for a link at the destination and found none; the hook plants one in the instant before the open.
+        box.BeforeWriteOpen = destination => File.CreateSymbolicLink(destination, target);
+
+        var written = Assert.Throws<HelperException>(() => box.WriteAllText(area.At("root", "server.pid"), "4242"));
+        var copied = Assert.Throws<HelperException>(() => box.CopyFile(source, area.At("root", "a.dll")));
+
+        Assert.Contains("symbolic link or junction", written.Message);
+        Assert.Contains("symbolic link or junction", copied.Message);
+        Assert.Equal("the target stays", File.ReadAllText(target));
+    }
+
+    [SkippableFact]
+    public void OpeningAPlainFileForWritingTruncatesOrAppendsAsAsked()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string path = area.At("root", "a.log");
+        Directory.CreateDirectory(area.At("root"));
+
+        using (FileStream created = HelperNative.OpenFileForWriting(path, false, FileShare.ReadWrite | FileShare.Delete)) created.Write(new byte[] { (byte)'a' }, 0, 1);
+        using (FileStream appended = HelperNative.OpenFileForWriting(path, false, FileShare.ReadWrite | FileShare.Delete)) appended.Write(new byte[] { (byte)'b' }, 0, 1);
+        Assert.Equal("ab", File.ReadAllText(path));
+
+        using (FileStream truncated = HelperNative.OpenFileForWriting(path, true, FileShare.Read)) truncated.Write(new byte[] { (byte)'c' }, 0, 1);
+        Assert.Equal("c", File.ReadAllText(path));
+    }
+
+    [SkippableFact]
+    public void AWriteWaitsForALockedFileToBeReleased()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string file = area.Write(area.At("root", "server.pid"), "old");
+        var box = area.Sandbox(area.At("root"), attempts: 40, delay: 25);
+
+        using var gate = new ManualResetEventSlim();
+        var holder = new Thread(() =>
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            gate.Set();
+            Thread.Sleep(300);
+        });
+        holder.Start();
+        gate.Wait();
+
+        box.WriteAllText(file, "4242");
+        holder.Join();
+
+        Assert.Equal("4242", File.ReadAllText(file));
+        Assert.Contains(area.Log, line => line.StartsWith("retry "));
+    }
+
+    [SkippableFact]
+    public void AWriteToAFileThatStaysLockedOrReadOnlyFailsInsteadOfHanging()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string locked = area.Write(area.At("root", "locked.pid"), "old");
+        string readOnly = area.Write(area.At("root", "readonly.pid"), "old");
+        File.SetAttributes(readOnly, FileAttributes.ReadOnly);
+        var box = area.Sandbox(area.At("root"), attempts: 3, delay: 5);
+
+        using (new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            Assert.ThrowsAny<IOException>(() => box.WriteAllText(locked, "4242"));
+        }
+
+        Assert.Throws<UnauthorizedAccessException>(() => box.WriteAllText(readOnly, "4242"));
+        File.SetAttributes(readOnly, FileAttributes.Normal);
+        Assert.Equal("old", File.ReadAllText(locked));
+        Assert.Equal("old", File.ReadAllText(readOnly));
+    }
+
+    [SkippableFact]
+    public void ALinkUnderTheAcknowledgementsTemporaryNameIsNotWrittenThrough()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        CreateFileLinkOrSkip(request + ".accepted.4242.tmp", target);
+
+        var ex = Assert.Throws<HelperException>(() => HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, null!));
+
+        Assert.Contains("symbolic link or junction", ex.Message);
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.False(File.Exists(request + ".accepted"), "no acknowledgement came out of a refused write");
+    }
+
+    // ------------------------------------------------------------------ helper.log
+
+    [SkippableFact]
+    public void TheLogAppendsOneLineAfterTheOtherWithoutAMark()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string path = area.At("session", "helper.log"); // the folder does not exist yet
+
+        var log = new HelperLog(path);
+        log.Info("first");
+        log.Warn("second");
+        log.Error("third");
+        new HelperLog(path).Info("fourth"); // another run appends
+
+        byte[] bytes = File.ReadAllBytes(path);
+        Assert.Equal((byte)'2', bytes[0]); // the year: no byte order mark
+        string[] lines = File.ReadAllLines(path);
+        Assert.Equal(4, lines.Length);
+        Assert.EndsWith(" INFO first", lines[0]);
+        Assert.EndsWith(" WARN second", lines[1]);
+        Assert.EndsWith(" ERROR third", lines[2]);
+        Assert.EndsWith(" INFO fourth", lines[3]);
+        Assert.Equal(path, log.FilePath);
+    }
+
+    [SkippableFact]
+    public void ALogThatIsALinkIsReplacedByAPlainFileAndNeverWrittenThrough()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        string path = area.At("session", "helper.log");
+        Directory.CreateDirectory(area.At("session"));
+        CreateFileLinkOrSkip(path, target);
+
+        var log = new HelperLog(path);
+        log.Info("hello");
+        log.Info("again");
+
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.False(HelperFileSystem.IsReparsePoint(path));
+        string[] lines = File.ReadAllLines(path);
+        Assert.Equal(3, lines.Length);
+        Assert.Contains(" WARN helper.log was a symbolic link or junction; the link itself was removed", lines[0]);
+        Assert.EndsWith(" INFO hello", lines[1]);
+        Assert.EndsWith(" INFO again", lines[2]);
+    }
+
+    [SkippableFact]
+    public void ALogThatIsAJunctionIsReplacedByAPlainFileAndItsTargetIsNeverWritten()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        area.Write(area.At("outside", "data", "keep.txt"), "keep");
+        string path = area.At("session", "helper.log");
+        area.Sandbox(area.At("session")).CreateJunction(path, area.At("outside", "data"));
+
+        new HelperLog(path).Error("hello");
+
+        Assert.Equal(new[] { "keep.txt" }, Directory.GetFiles(area.At("outside", "data")).Select(file => Path.GetFileName(file)));
+        Assert.Equal("keep", File.ReadAllText(area.At("outside", "data", "keep.txt")));
+        Assert.False(HelperFileSystem.IsReparsePoint(path));
+        string[] lines = File.ReadAllLines(path);
+        Assert.Equal(2, lines.Length);
+        Assert.Contains("helper.log was a symbolic link or junction", lines[0]);
+        Assert.EndsWith(" ERROR hello", lines[1]);
+    }
+
+    [SkippableFact]
+    public void ALinkThatAppearsAfterTheCheckIsNotAppendedThrough()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        string path = area.At("session", "helper.log");
+        Directory.CreateDirectory(area.At("session"));
+        CreateFileLinkOrSkip(area.At("probe.lnk"), target);
+        File.Delete(area.At("probe.lnk"));
+        bool planted = false;
+        var log = new HelperLog(path)
+        {
+            // The first write finds no link and the hook plants one in the instant before the open; later writes are left alone.
+            BeforeOpen = fullPath =>
+            {
+                if (planted) return;
+                planted = true;
+                File.CreateSymbolicLink(fullPath, target);
+            },
+        };
+
+        log.Info("refused");
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.True(HelperFileSystem.IsReparsePoint(path));
+
+        log.Info("written"); // this one finds the link, removes it and goes on in a plain file
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.False(HelperFileSystem.IsReparsePoint(path));
+        string[] lines = File.ReadAllLines(path);
+        Assert.Equal(2, lines.Length);
+        Assert.Contains("helper.log was a symbolic link or junction", lines[0]);
+        Assert.EndsWith(" INFO written", lines[1]);
+    }
+
+    [SkippableFact]
+    public void ALogLinkInAFolderThatIsAJunctionIsRefusedNotRedirected()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string target = area.Write(area.At("outside", "target.txt"), "the target stays");
+        Directory.CreateDirectory(area.At("session"));
+        // The log's own name is a link to a file, and the folder that holds it is a link as well: the sandbox that would
+        // remove the link refuses to work inside a link, so nothing is written and nothing throws.
+        area.Sandbox(area.At("holder")).CreateJunction(area.At("holder", "linked"), area.At("session"));
+        CreateFileLinkOrSkip(area.At("session", "helper.log"), target);
+
+        new HelperLog(area.At("holder", "linked", "helper.log")).Info("hello");
+
+        Assert.Equal("the target stays", File.ReadAllText(target));
+        Assert.True(HelperFileSystem.IsReparsePoint(area.At("session", "helper.log")));
+    }
+
+    [SkippableFact]
+    public void APlainLogInAFolderThatIsAJunctionIsWrittenThrough()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        Directory.CreateDirectory(area.At("session"));
+        area.Sandbox(area.At("holder")).CreateJunction(area.At("holder", "linked"), area.At("session"));
+
+        // Only a link under the log's own name is refused or replaced; the folder that holds a plain log may be a link.
+        new HelperLog(area.At("holder", "linked", "helper.log")).Info("hello");
+
+        string[] lines = File.ReadAllLines(area.At("session", "helper.log"));
+        Assert.Single(lines);
+        Assert.EndsWith(" INFO hello", lines[0]);
+    }
+
     [SkippableFact]
     public void ACopyWaitsForALockedSourceToBeReleased()
     {
@@ -1931,6 +2435,21 @@ public sealed class ArenaSessionHelperTests
                 new Dictionary<string, object?> { ["guid"] = "me.sol.sain", ["folder"] = Path.Combine(Dir, "user", "mods", "Solarint-SAIN-ServerMod") },
             };
             return ParseRequest(fields, direction);
+        }
+
+        /// <summary>An enter request that lists exactly these server mods (GUID, folder below user\mods).</summary>
+        public HelperRequest RequestFor(params (string Guid, string FolderName)[] mods)
+        {
+            var fields = RequestFields("enter");
+            fields["sptRuntimeDir"] = Dir;
+            fields["gameDir"] = Path.GetDirectoryName(Dir);
+            fields["gameExe"] = Path.Combine(Path.GetDirectoryName(Dir)!, "EscapeFromTarkov.exe");
+            fields["serverMods"] = mods.Select(mod => (object?)new Dictionary<string, object?>
+            {
+                ["guid"] = mod.Guid,
+                ["folder"] = Path.Combine(Dir, "user", "mods", mod.FolderName),
+            }).ToList();
+            return ParseRequest(fields, "enter");
         }
 
         /// <summary>Every file below the runtime with its content, to prove nothing in it changed.</summary>
@@ -2300,6 +2819,384 @@ public sealed class ArenaSessionHelperTests
         Assert.True(File.Exists(HelperServerTree.GetMarkerPath(root)));
     }
 
+    // ------------------------------------------------------------------ the server tree: prepatch definitions of the listed mods
+
+    private static readonly string[] ArenaAndSainGuids = { "com.maschine.ArenaMode", "me.sol.sain" };
+
+    [SkippableFact]
+    public void ThePrepatchFoldersOfTheListedModsAreCopiedAndNoOthers()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "me.sol.sain", "EnumExtensions.json"), "{\"sain\":1}");
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "com.maschine.ArenaMode", "enums.json"), "{\"arena\":1}");
+
+        // A mod the policy left out: SPT's prepatch pass applies EVERY folder it finds in user\patchers, so this
+        // one must not come along even though it sits next to the others.
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "com.foreign.unlisted", "EnumExtensions.json"), "{\"foreign\":1}");
+        var before = runtime.Snapshot();
+        string root = area.At("session");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        string patchers = Path.Combine(HelperServerTree.GetTreePath(root), "user", "patchers");
+        Assert.Equal(ArenaAndSainGuids, result.Patchers);
+        Assert.Equal(ArenaAndSainGuids.OrderBy(n => n, StringComparer.Ordinal),
+            Directory.GetDirectories(patchers).Select(path => Path.GetFileName(path)).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.Equal("{\"sain\":1}", File.ReadAllText(Path.Combine(patchers, "me.sol.sain", "EnumExtensions.json")));
+        Assert.Equal("{\"arena\":1}", File.ReadAllText(Path.Combine(patchers, "com.maschine.ArenaMode", "enums.json")));
+        Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(patchers, "me.sol.sain")), "a real copy, not a link into the installation");
+        Assert.False(Directory.Exists(Path.Combine(patchers, "com.foreign.unlisted")));
+        Assert.Equal(before, runtime.Snapshot());
+    }
+
+    [SkippableFact]
+    public void WithoutPrepatchFoldersTheTreeHasNoPatchersFolderAtAll()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "com.foreign.unlisted", "EnumExtensions.json"), "{\"foreign\":1}");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Empty(result.Patchers);
+        Assert.False(Directory.Exists(Path.Combine(HelperServerTree.GetTreePath(area.At("session")), "user", "patchers")));
+    }
+
+    [SkippableFact]
+    public void AGuidThatIsNotAPlainFolderNameNeverLooksAnythingUp()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "com.maschine.ArenaMode", "enums.json"), "{\"arena\":1}");
+
+        // <runtime>\user\patchers\..\profiles is the profiles folder: a lookup by the raw GUID would copy it.
+        var request = runtime.RequestFor(("com.maschine.ArenaMode", "ArenaMode"), (@"..\profiles", "Solarint-SAIN-ServerMod"));
+        var result = HelperServerTree.Build(request, 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(new[] { "com.maschine.ArenaMode" }, result.Patchers);
+        Assert.Contains(area.Log, line => line.Contains("is not a plain folder name", StringComparison.Ordinal) && line.Contains(@"..\profiles", StringComparison.Ordinal));
+    }
+
+    [SkippableFact]
+    public void TwoModsWithOneGuidShareOnePrepatchFolder()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        area.Write(Path.Combine(runtime.Dir, "user", "patchers", "me.sol.sain", "EnumExtensions.json"), "{\"sain\":1}");
+
+        var request = runtime.RequestFor(("me.sol.sain", "Solarint-SAIN-ServerMod"), ("ME.SOL.SAIN", "ArenaMode"));
+        var result = HelperServerTree.Build(request, 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(new[] { "me.sol.sain" }, result.Patchers);
+    }
+
+    [SkippableFact]
+    public void ASecondBuildDropsPrepatchFoldersTheRuntimeNoLongerHas()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string source = Path.Combine(runtime.Dir, "user", "patchers", "me.sol.sain");
+        area.Write(Path.Combine(source, "EnumExtensions.json"), "{\"sain\":1}");
+        string root = area.At("session");
+        string patchers = Path.Combine(HelperServerTree.GetTreePath(root), "user", "patchers");
+
+        HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+        Assert.True(File.Exists(Path.Combine(patchers, "me.sol.sain", "EnumExtensions.json")));
+
+        Directory.Delete(source, true);
+        var second = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Empty(second.Patchers);
+        Assert.False(Directory.Exists(patchers));
+    }
+
+    [Theory]
+    [InlineData("me.sol.sain", "me.sol.sain")]
+    [InlineData("com.maschine.ArenaMode", "com.maschine.ArenaMode")]
+    [InlineData(@"..\profiles", null)]
+    [InlineData("a/b", null)]
+    [InlineData(@"C:\x", null)]
+    [InlineData("..", null)]
+    [InlineData("con", null)]
+    [InlineData(" lead", null)]
+    [InlineData("trail.", null)]
+    [InlineData(null, null)]
+    public void OnlyAPlainGuidNamesAPrepatchFolder(string? guid, string? expected)
+    {
+        Assert.Equal(expected, new HelperServerMod { Guid = guid!, Folder = @"C:\SPT\user\mods\x" }.PatcherFolderName);
+    }
+
+    // ------------------------------------------------------------------ acknowledgement of a request
+
+    private static readonly DateTime AcceptedAt = new(2026, 10, 22, 12, 34, 56, 789, DateTimeKind.Utc);
+    private const string AcceptedJson = "{\"schema\":1,\"helperPid\":4242,\"acceptedUtc\":\"2026-10-22T12:34:56.789Z\"}";
+
+    private static string[] FileNames(string folder) =>
+        Directory.GetFileSystemEntries(folder).Select(path => Path.GetFileName(path)).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+
+    [Fact]
+    public void TheAcknowledgementNamesAreDerivedFromTheRequestFile()
+    {
+        Assert.Equal(@"C:\s\request.json.accepted", HelperAcknowledgement.GetPath(@"C:\s\request.json"));
+        Assert.Equal(@"C:\s\request.json.accepted.4242.tmp", HelperAcknowledgement.GetTempPath(@"C:\s\request.json", 4242));
+        Assert.Equal(".accepted", HelperAcknowledgement.FileSuffix);
+        Assert.Equal(AcceptedJson, HelperAcknowledgement.BuildContent(4242, AcceptedAt));
+    }
+
+    [Fact]
+    public void TheAcknowledgementTimeIsAlwaysWrittenInUtc()
+    {
+        string local = HelperAcknowledgement.BuildContent(7, new DateTime(2026, 10, 22, 14, 34, 56, 789, DateTimeKind.Utc).ToLocalTime());
+
+        Assert.Equal("{\"schema\":1,\"helperPid\":7,\"acceptedUtc\":\"2026-10-22T14:34:56.789Z\"}", local);
+    }
+
+    [Fact]
+    public void TheAcknowledgementReadsBackWhatWasWritten()
+    {
+        Assert.True(HelperAcknowledgement.TryParse(AcceptedJson, out int pid, out DateTime accepted, out string? error), error);
+
+        Assert.Equal(4242, pid);
+        Assert.Equal(AcceptedAt, accepted);
+        Assert.Equal(DateTimeKind.Utc, accepted.Kind);
+    }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("[]", "JSON object")]
+    [InlineData("{\"schema\":2,\"helperPid\":1,\"acceptedUtc\":\"2026-10-22T12:34:56.789Z\"}", "schema")]
+    [InlineData("{\"helperPid\":1,\"acceptedUtc\":\"2026-10-22T12:34:56.789Z\"}", "schema")]
+    [InlineData("{\"schema\":1,\"helperPid\":0,\"acceptedUtc\":\"2026-10-22T12:34:56.789Z\"}", "helperPid")]
+    [InlineData("{\"schema\":1,\"acceptedUtc\":\"2026-10-22T12:34:56.789Z\"}", "helperPid")]
+    [InlineData("{\"schema\":1,\"helperPid\":1,\"acceptedUtc\":\"yesterday\"}", "acceptedUtc")]
+    [InlineData("{\"schema\":1,\"helperPid\":1}", "acceptedUtc")]
+    public void ContentThatIsNotAnAcknowledgementIsRefused(string json, string fragment)
+    {
+        Assert.False(HelperAcknowledgement.TryParse(json, out int pid, out _, out string? error));
+
+        Assert.Equal(0, pid);
+        Assert.Contains(fragment, error);
+    }
+
+    [Theory]
+    [InlineData("request.json", "request.json.accepted.4242.tmp", true)]
+    [InlineData("request.json", "REQUEST.JSON.ACCEPTED.1.TMP", true)]
+    [InlineData("request.json", "request.json.accepted.tmp", false)]
+    [InlineData("request.json", "request.json.accepted.4242x.tmp", false)]
+    [InlineData("request.json", "request.json.accepted.4242.tmp.bak", false)]
+    [InlineData("request.json", "request.json.accepted", false)]
+    [InlineData("request.json", "request.json.tmp", false)]
+    [InlineData("request.json", "other.json.accepted.4242.tmp", false)]
+    [InlineData("request.json", "", false)]
+    [InlineData("", "request.json.accepted.4242.tmp", false)]
+    public void OnlyTheTemporaryFilesOfThisRequestAreRecognised(string request, string candidate, bool expected)
+    {
+        Assert.Equal(expected, HelperAcknowledgement.IsTempName(request, candidate));
+    }
+
+    [SkippableFact]
+    public void TheAcknowledgementSitsBesideTheRequestFileWithTheDocumentedContent()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+
+        string path = HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, null!);
+
+        Assert.Equal(request + ".accepted", path);
+        Assert.Equal(AcceptedJson, File.ReadAllText(path));
+        Assert.Equal((byte)'{', File.ReadAllBytes(path)[0]);
+        Assert.Equal(new[] { "request.json", "request.json.accepted" }, FileNames(area.At("session")));
+    }
+
+    [SkippableFact]
+    public void TheAcknowledgementIsMovedIntoPlaceFromACompleteTemporaryFile()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        string final = request + ".accepted";
+        string? seen = null;
+        string? content = null;
+        bool finalThereEarly = true;
+
+        HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, temporary =>
+        {
+            seen = temporary;
+            finalThereEarly = File.Exists(final);
+            content = File.ReadAllText(temporary);
+        });
+
+        // Before the move: a finished temporary file, and no final name for the client to find yet.
+        Assert.NotNull(seen);
+        Assert.Equal(request + ".accepted.4242.tmp", seen);
+        Assert.False(finalThereEarly);
+        Assert.Equal(AcceptedJson, content);
+
+        // After it: the same bytes under the final name, and the temporary name gone (moved, not copied).
+        Assert.False(File.Exists(seen!));
+        Assert.Equal(AcceptedJson, File.ReadAllText(final));
+        Assert.Equal(new[] { "request.json", "request.json.accepted" }, FileNames(area.At("session")));
+    }
+
+    [SkippableFact]
+    public void TheClientsOwnTemporaryRequestFileIsNeverTheAcknowledgementsTemporaryFile()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        string? seen = null;
+
+        HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, temporary => seen = temporary);
+
+        Assert.NotEqual(request + ".tmp", seen);
+    }
+
+    [SkippableFact]
+    public void AnAcknowledgementReplacesAStaleOneInOneStep()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        area.Write(request + ".accepted", "stale from an earlier request");
+
+        HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, null!);
+
+        Assert.Equal(AcceptedJson, File.ReadAllText(request + ".accepted"));
+        Assert.Equal(new[] { "request.json", "request.json.accepted" }, FileNames(area.At("session")));
+    }
+
+    [SkippableFact]
+    public void AnAcknowledgementThatCannotBePublishedLeavesNoTemporaryFile()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        Directory.CreateDirectory(request + ".accepted"); // a folder where the file belongs
+
+        var ex = Assert.Throws<HelperException>(() => HelperAcknowledgementFile.Write(request, 4242, AcceptedAt, null!));
+
+        Assert.Contains("acknowledgement", ex.Message);
+        Assert.Equal(new[] { "request.json", "request.json.accepted" }, FileNames(area.At("session")));
+        Assert.True(Directory.Exists(request + ".accepted"));
+    }
+
+    [SkippableFact]
+    public void ARequestPathThatIsNotAbsoluteGetsNoAcknowledgement()
+    {
+        SkipUnlessWindows();
+
+        Assert.Throws<HelperException>(() => HelperAcknowledgementFile.Write(@"session\request.json", 4242, AcceptedAt, null!));
+        Assert.Throws<HelperException>(() => HelperAcknowledgementFile.Write(@"\\server\share\request.json", 4242, AcceptedAt, null!));
+        Assert.False(HelperAcknowledgementFile.DiscardStale(@"session\request.json", out string? problem));
+        Assert.Contains("absolute", problem);
+    }
+
+    [SkippableFact]
+    public void AStaleAcknowledgementIsRemoved()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        area.Write(request + ".accepted", AcceptedJson);
+
+        Assert.True(HelperAcknowledgementFile.DiscardStale(request, out string? problem), problem);
+
+        Assert.False(File.Exists(request + ".accepted"));
+        Assert.Equal("{}", File.ReadAllText(request));
+    }
+
+    [SkippableFact]
+    public void AReadOnlyStaleAcknowledgementIsRemovedToo()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        area.Write(request + ".accepted", AcceptedJson);
+        File.SetAttributes(request + ".accepted", FileAttributes.ReadOnly);
+
+        Assert.True(HelperAcknowledgementFile.DiscardStale(request, out string? problem), problem);
+
+        Assert.False(File.Exists(request + ".accepted"));
+    }
+
+    [SkippableFact]
+    public void DiscardingNothingIsSuccessEvenWithoutARequestFolder()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+
+        Assert.True(HelperAcknowledgementFile.DiscardStale(area.At("session", "request.json"), out string? problem), problem);
+        Assert.True(HelperAcknowledgementFile.DiscardStale(area.Write(area.At("session2", "request.json"), "{}"), out problem), problem);
+    }
+
+    [SkippableFact]
+    public void OnlyTheTemporaryFilesOfADeadHelperAreRemovedWithTheStaleAcknowledgement()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        area.Write(request + ".accepted.111.tmp", "left by a helper that died");
+        area.Write(request + ".accepted.222.tmp", "left by another one");
+        area.Write(request + ".tmp", "the client's own temporary request file");
+        area.Write(request + ".accepted.abc.tmp", "not a helper's temporary file");
+        area.Write(area.At("session", "other.json.accepted.333.tmp"), "belongs to another request");
+
+        Assert.True(HelperAcknowledgementFile.DiscardStale(request, out string? problem), problem);
+
+        Assert.Equal(new[] { "other.json.accepted.333.tmp", "request.json", "request.json.accepted.abc.tmp", "request.json.tmp" }, FileNames(area.At("session")));
+    }
+
+    [SkippableFact]
+    public void AFolderInThePlaceOfTheStaleAcknowledgementIsReportedNotThrown()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string request = area.Write(area.At("session", "request.json"), "{}");
+        Directory.CreateDirectory(request + ".accepted");
+
+        Assert.False(HelperAcknowledgementFile.DiscardStale(request, out string? problem));
+
+        Assert.Contains("is a folder", problem);
+        Assert.True(Directory.Exists(request + ".accepted"));
+    }
+
+    [Fact]
+    public void TheAcknowledgementIsPartOfTheDocumentedHandshake()
+    {
+        // The client waits for "<request file>.accepted" (spec section 6); this pins the name and the schema it reads.
+        Assert.Equal("request.json.accepted", ArenaSessionContract.RequestFileName + HelperAcknowledgement.FileSuffix);
+        Assert.Equal(1, ArenaSessionContract.SchemaVersion);
+        Assert.StartsWith("{\"schema\":1,", HelperAcknowledgement.BuildContent(1, AcceptedAt), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProgramHandsEverythingToTheHostThatKeepsTheOrder()
+    {
+        string program = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "Program.cs"));
+        string host = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "HelperHost.cs"));
+
+        // Program must not bypass the host (and its order of stale acknowledgement, mutex, request, acknowledgement).
+        Assert.Contains("new HelperHost(runner, _log, ArenaSessionContract.HelperMutexName", program, StringComparison.Ordinal);
+        Assert.Contains(".Execute(command)", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("new Mutex", program, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Enter(", program, StringComparison.Ordinal);
+
+        int stale = host.IndexOf("HelperAcknowledgementFile.DiscardStale", StringComparison.Ordinal);
+        int mutex = host.IndexOf("new Mutex(", StringComparison.Ordinal);
+        int load = host.IndexOf("LoadRequest(command, requestPath);", StringComparison.Ordinal);
+        int acknowledge = host.IndexOf("Acknowledge(requestPath)", StringComparison.Ordinal);
+        int run = host.IndexOf("_runner.Enter(request)", StringComparison.Ordinal);
+        Assert.True(stale > 0 && stale < mutex, "the stale acknowledgement goes first");
+        Assert.True(mutex < load && load < acknowledge && acknowledge < run, "mutex, then request, then acknowledgement, then the command");
+    }
+
     [Fact]
     public void TheFixedFileNamesMatchTheContract()
     {
@@ -2307,6 +3204,7 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal(Path.Combine("R", "server", "arena-session.json"), HelperServerTree.GetMarkerPath("R"));
         Assert.Equal(Path.Combine("R", "server.pid"), HelperServerTree.GetPidFilePath("R"));
         Assert.Equal("arena-", HelperLayout.LogFilePatternPrefix);
+        Assert.Equal("patchers", HelperLayout.PatchersFolder);
         Assert.Equal(120, HelperLayout.GameExitTimeoutSeconds);
         Assert.Equal(180, HelperLayout.ServerStartTimeoutSeconds);
         Assert.Equal(1024 * 1024, HelperLayout.LogRotateBytes);

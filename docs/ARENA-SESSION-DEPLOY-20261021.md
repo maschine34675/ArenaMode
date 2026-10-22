@@ -158,3 +158,51 @@ written, checked by modification time): `dotnet build ArenaMode.sln -c Release` 
 1894 passed, 2 skipped (both need the installed game), 0 failed; `Verify-SessionPing.ps1` 777 assertions and 9 mutants
 rejected (two new); `ArenaSessionClientChecks/Verify.ps1` 194 assertions and 66 mutants rejected (one new);
 `ArenaGateChecks/Verify.ps1` 12 scenarios, 321 checks, 11 mutants rejected; `DeployLayoutChecks/Verify.ps1` 126 checks.
+
+## External review fixes (2026-10-22)
+
+The findings of the external review and what was changed are in
+[ARENA-SESSION-REVIEW-RESPONSE-20261022.md](ARENA-SESSION-REVIEW-RESPONSE-20261022.md). Packaging is unchanged: the same
+three session files, the same payload; the helper, gate, client and server DLLs carry the new behaviour, so every
+installation of one Windows user has to receive the new helper together with the new client (the client waits for the
+helper's acknowledgement, which an older helper never writes: the game then stays running and says so after 15 s).
+
+The "third pass" table above is superseded in one respect: its first row says that the closure keeps a denied server
+library in the tree "with the usual warning". Since the deny-wins rule (2026-10-22) a denied library is never kept; the
+allowed server mod that lists it in `ModDependencies` is excluded with it (`requires-denied:<guid>`), because SPT's mod
+validator would otherwise drop every mod. An unlisted library of an allowed server mod is still kept, with the warning.
+
+A second pass over these fixes followed on the same day (spec section 11, last entry; its offline results are at the end of
+this section): the policy hash covers the
+user's denied names in a whitelist, the client takes the request back on every failure and the helper ends when it is
+gone, the gate fails closed for patchers it cannot place, an unregistered arena server is found by its image, a support
+DLL in `BepInEx\patchers` is no patcher, and the client and the gate read the policy files through one function.
+Packaging is unchanged; the same rule holds that every installation of one Windows user receives the new helper together
+with the new client.
+
+Offline results of the first pass (no-deploy properties throughout, run through PowerShell, nothing under `D:\SPT41` written):
+`dotnet build ArenaMode.sln -c Release` 0 errors; `dotnet test ArenaMode.Tests` 2040 passed, 2 skipped (both need the
+installed game), 0 failed; `ArenaSessionClientChecks/Verify.ps1` 614 assertions and 133 mutants rejected;
+`Verify-SessionPing.ps1` 785 assertions and 13 mutants rejected; `ArenaGateChecks/Verify.ps1` 14 scenarios, 526 checks,
+29 mutants rejected; `OptionalModAdmissionChecks/Verify.ps1` 48 assertions and 9 negative controls;
+`ArenaAvailabilityChecks/Verify.ps1` passes (it runs the native menu, optional-mod, session-ping and client checks). `DeployLayoutChecks/Verify.ps1` was not
+counted: it tests the deploy target itself and cannot pass under the no-deploy environment this pass was bound to.
+
+Offline results of the second pass (same properties, run through PowerShell; `D:\SPT41` outside the worktree was only read):
+`dotnet build ArenaMode.sln -c Release` 0 errors (25 warnings, all in files this pass did not touch); `dotnet test
+ArenaMode.Tests` 2074 passed, 2 skipped (both need the installed game), 0 failed; `ArenaSessionClientChecks/Verify.ps1` 634
+assertions and 141 mutants rejected; `ArenaGateChecks/Verify.ps1` 17 scenarios, 617 checks, 35 mutants rejected;
+`Verify-SessionPing.ps1` 785 assertions, 13 mutants rejected (its sources are untouched; rerun as a check); `OptionalModAdmissionChecks/Verify.ps1` 9 negative controls. `ArenaAvailabilityChecks/Verify.ps1`
+and `DeployLayoutChecks/Verify.ps1` were not rerun (the first aggregates the checks listed above, the second cannot pass under
+the no-deploy properties).
+
+A third pass and a review of it followed on the same day (spec section 11, last entries; response document "Third pass"): the
+client and the helper changed again, the packaging did not. The helper binary changed (an IPv6-literal probe, the owner
+lookup, write opens that never follow a link), so the rule above holds once more: every installation of one Windows user
+receives the new helper together with the new client. Offline results (same properties, run through PowerShell; nothing under
+`D:\SPT41` outside the worktree was written): `dotnet build ArenaMode.sln` 0 errors; `dotnet test ArenaMode.Tests` 2188 passed,
+2 skipped (both need the installed game), 0 failed; `ArenaSessionClientChecks/Verify.ps1` 667 assertions and 156 mutants
+rejected; `ArenaGateChecks/Verify.ps1` 17 scenarios, 617 checks, 35 mutants rejected; the new
+`ArenaSessionHelperNet472Checks/Verify.ps1` (the helper's socket code on .NET Framework, from Windows PowerShell 5.1) 7 checks,
+3 of 3 mutants rejected. `Verify-SessionPing.ps1`, `OptionalModAdmissionChecks`, `ArenaAvailabilityChecks` and
+`DeployLayoutChecks` were not rerun in this pass.

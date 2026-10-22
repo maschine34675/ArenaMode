@@ -390,8 +390,10 @@ internal static class ArenaSideSelectionPatch
             () => SwitchSession(screen, ArenaSessionContract.DirectionLeave));
 
     /// <summary>
-    /// The confirmed action: restart the game into (or out of) an Arena session. On success the game
-    /// quits; on failure the reason replaces the notice and the action stays available.
+    /// The confirmed action: restart the game into (or out of) an Arena session. The request starts the
+    /// helper and the game quits once the helper has acknowledged it (a moment later, no action to click
+    /// meanwhile: the notice only says so). On failure, at once or when the helper stops or stays silent, the
+    /// reason replaces the notice, the game keeps running and the action stays available.
     /// </summary>
     private static void SwitchSession(MatchMakerSideSelectionScreen screen, string direction)
     {
@@ -399,12 +401,23 @@ internal static class ArenaSideSelectionPatch
         try { profileId = Controller(screen)?.Session?.Profile?.Id; }
         catch (Exception) { }
 
-        if (ArenaSessionSwitch.Request(direction, profileId, out var error))
+        if (ArenaSessionSwitch.Request(direction, profileId, out var error, failure => ShowSwitchFailure(screen, direction, failure)))
+        {
+            // The first look at the helper comes a quarter second later, but a failure that already reached the
+            // callback has shown its own notice, which this must not cover.
+            if (ArenaSessionSwitch.HelperPending) ArenaAvailabilityNotice.ShowInfo(screen, ArenaSessionSwitch.WaitingText);
             return;
+        }
 
+        ShowSwitchFailure(screen, direction, error);
+    }
+
+    private static void ShowSwitchFailure(MatchMakerSideSelectionScreen screen, string direction, string error)
+    {
         var retry = direction == ArenaSessionContract.DirectionEnter ? StartAction(screen) : ReturnAction(screen);
         ArenaAvailabilityNotice.Show(screen, error, retry);
-        NotificationManager.DisplayWarningNotification(error);
+        try { NotificationManager.DisplayWarningNotification(error); }
+        catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena session failure notification could not be shown: " + ex.Message); }
     }
 
     private static void EnsureCompatibleMode(ArenaMenuSelection.Eligibility eligibility)

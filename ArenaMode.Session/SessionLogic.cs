@@ -32,6 +32,14 @@ namespace ArenaMode.SessionHelper
         public const string HttpJsonFileName = "http.json";
         public const string UserFolder = "user";
         public const string ModsFolder = "mods";
+
+        /// <summary>
+        /// <c>user\patchers</c>: SPT 4.1.6 reads the server prepatch (enum extension) definitions of a mod from
+        /// <c>user\patchers\&lt;ModGuid&gt;</c> before it loads the mods, and throws when a mod that declares
+        /// <c>HasPrepatcher</c> has no such folder.
+        /// </summary>
+        public const string PatchersFolder = "patchers";
+
         public const string ProfilesFolder = "profiles";
         public const string ProfileDataFolder = "profileData";
         public const string CertsFolder = "certs";
@@ -41,6 +49,15 @@ namespace ArenaMode.SessionHelper
 
         /// <summary>Prefix of every log file name the arena server writes.</summary>
         public const string LogFilePatternPrefix = "arena-";
+
+        /// <summary><c>user\logs</c>: the folder below which the arena server's file loggers write inside the tree.</summary>
+        public const string LogsFolder = "logs";
+
+        /// <summary>
+        /// The folder below <c>user\logs</c> for a logger whose own folder name is unusable (a drive root, a name
+        /// Windows would rewrite) when its <c>filePath</c> had to be moved into the tree.
+        /// </summary>
+        public const string FallbackLogFolder = "arena";
 
         /// <summary>A top-level file of the runtime whose name starts like this belongs to the launcher, not to the server.</summary>
         public const string LauncherFilePrefix = "SPT.Launcher";
@@ -352,6 +369,16 @@ namespace ArenaMode.SessionHelper
                 return cut < 0 ? Folder : Folder.Substring(cut + 1);
             }
         }
+
+        /// <summary>
+        /// The folder below <c>user\patchers</c> that holds this mod's server prepatch definitions: SPT 4.1.6 names
+        /// it after the mod's GUID. Null when the GUID is not a plain folder name (it could then point anywhere,
+        /// so no folder is looked up for such a mod; the request parser only demands a non-blank GUID).
+        /// </summary>
+        public string PatcherFolderName
+        {
+            get { return HelperPathSafety.IsSafeSingleName(Guid) ? Guid : null; }
+        }
     }
 
     /// <summary>
@@ -657,6 +684,120 @@ namespace ArenaMode.SessionHelper
             root["serverMods"] = mods;
             root["policyHash"] = PolicyHash;
             return ArenaMiniJson.Write(root, true);
+        }
+    }
+
+    // ------------------------------------------------------------------------------ acknowledgement
+
+    /// <summary>
+    /// The acknowledgement the helper leaves beside its request file (docs/ARENA-SESSION-20261021.md, section 6):
+    /// <c>&lt;request file&gt;.accepted</c>, written once the request validated and the helper holds its mutex,
+    /// before it waits for the game. The client closes the game only after it has seen this file, so a helper
+    /// that failed before taking the request over cannot leave the player without a game. Content:
+    /// <c>{"schema":1,"helperPid":&lt;int&gt;,"acceptedUtc":"&lt;ISO 8601 UTC&gt;"}</c>. This class holds the
+    /// names and the content (pure, linked into the client and the tests); the file work is in
+    /// <c>HelperAcknowledgementFile</c> (SessionFileSystem.cs, which the client does not link).
+    /// </summary>
+    public static class HelperAcknowledgement
+    {
+        /// <summary>Appended to the request file's full name, extension included: <c>request.json.accepted</c>.</summary>
+        public const string FileSuffix = ".accepted";
+
+        /// <summary>The time format of <c>acceptedUtc</c>: ISO 8601, UTC, milliseconds.</summary>
+        public const string TimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+
+        private const string TempSuffix = ".tmp";
+
+        /// <summary>The acknowledgement file of a request file.</summary>
+        public static string GetPath(string requestPath)
+        {
+            return requestPath + FileSuffix;
+        }
+
+        /// <summary>
+        /// The temporary file the content is written to before it is moved onto <see cref="GetPath"/> (the
+        /// client polls for the final name and must never read half a file). The helper's process id keeps
+        /// two helpers from sharing one, and a name the client's own <c>request.json.tmp</c> cannot be.
+        /// </summary>
+        public static string GetTempPath(string requestPath, int helperPid)
+        {
+            return requestPath + FileSuffix + "." + helperPid.ToString(CultureInfo.InvariantCulture) + TempSuffix;
+        }
+
+        /// <summary>
+        /// True when <paramref name="candidateFileName"/> has the shape of a temporary acknowledgement file of the
+        /// request file named <paramref name="requestFileName"/> (file names without a folder). Used to remove the
+        /// leftovers of a helper that died between writing and moving.
+        /// </summary>
+        public static bool IsTempName(string requestFileName, string candidateFileName)
+        {
+            if (string.IsNullOrEmpty(requestFileName) || string.IsNullOrEmpty(candidateFileName)) return false;
+            string prefix = requestFileName + FileSuffix + ".";
+            if (candidateFileName.Length <= prefix.Length + TempSuffix.Length) return false; // no room for a pid between the two
+            if (!candidateFileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
+            if (!candidateFileName.EndsWith(TempSuffix, StringComparison.OrdinalIgnoreCase)) return false;
+            string middle = candidateFileName.Substring(prefix.Length, candidateFileName.Length - prefix.Length - TempSuffix.Length);
+            if (middle.Length == 0) return false;
+            foreach (char c in middle)
+            {
+                if (c < '0' || c > '9') return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>The compact JSON the helper writes, with the members in the documented order.</summary>
+        public static string BuildContent(int helperPid, DateTime acceptedUtc)
+        {
+            var root = new Dictionary<string, object>();
+            root["schema"] = ArenaSessionContract.SchemaVersion;
+            root["helperPid"] = helperPid;
+            root["acceptedUtc"] = acceptedUtc.ToUniversalTime().ToString(TimeFormat, CultureInfo.InvariantCulture);
+            return ArenaMiniJson.Write(root);
+        }
+
+        /// <summary>
+        /// Reads an acknowledgement. False, with the reason, for anything that is not exactly the documented
+        /// content: another schema, a missing or non-positive pid, a time that is not in <see cref="TimeFormat"/>.
+        /// </summary>
+        public static bool TryParse(string json, out int helperPid, out DateTime acceptedUtc, out string error)
+        {
+            helperPid = 0;
+            acceptedUtc = DateTime.MinValue;
+            object root;
+            if (!ArenaMiniJson.TryParse(json, out root, out error)) return false;
+            if (ArenaMiniJson.AsObject(root) == null)
+            {
+                error = "the acknowledgement must be a JSON object";
+                return false;
+            }
+
+            int schema = ArenaMiniJson.GetInt(root, "schema", -1);
+            if (schema != ArenaSessionContract.SchemaVersion)
+            {
+                error = "unsupported acknowledgement schema " + schema.ToString(CultureInfo.InvariantCulture);
+                return false;
+            }
+
+            int pid = ArenaMiniJson.GetInt(root, "helperPid", 0);
+            if (pid <= 0)
+            {
+                error = "helperPid must be a positive integer";
+                return false;
+            }
+
+            DateTime time;
+            if (!DateTime.TryParseExact(ArenaMiniJson.GetString(root, "acceptedUtc") ?? string.Empty, TimeFormat, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out time))
+            {
+                error = "acceptedUtc must look like 2026-10-22T12:00:00.000Z";
+                return false;
+            }
+
+            helperPid = pid;
+            acceptedUtc = time;
+            error = null;
+            return true;
         }
     }
 
@@ -1434,14 +1575,33 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
-        /// Prefixes every string <c>filePattern</c> member (at any depth) of an <c>sptLogger.json</c>
-        /// with <paramref name="prefix"/>. A value that already starts with the prefix is left alone,
-        /// so patching twice changes nothing more. <paramref name="changed"/> counts the edited values.
+        /// <see cref="TryPrefixLogFilePatterns(string, string, out string, out int, out List{string}, out string)"/>
+        /// for a caller that does not need to know which <c>filePath</c> values were moved.
         /// </summary>
         public static bool TryPrefixLogFilePatterns(string text, string prefix, out string patched, out int changed, out string error)
         {
+            List<string> pathRewrites;
+            return TryPrefixLogFilePatterns(text, prefix, out patched, out changed, out pathRewrites, out error);
+        }
+
+        /// <summary>
+        /// Makes an <c>sptLogger.json</c> safe to run from the arena tree. (1) Prefixes every string <c>filePattern</c>
+        /// member (at any depth) with <paramref name="prefix"/>. A value that already starts with the prefix is left alone,
+        /// so patching twice changes nothing more. <paramref name="changed"/> counts these edited values only.
+        /// (2) Moves every string <c>filePath</c> member that is not a relative path below <c>user</c> to
+        /// <c>./user/logs/&lt;last segment of the old path&gt;/</c> (<see cref="IsLogPathUnderUser"/>,
+        /// <see cref="LogFolderNameOf"/>). The arena server resolves a relative path against its working directory, which
+        /// is the tree, but an absolute path, a path with <c>..</c> out of the tree and a path to another folder of
+        /// the tree (the <c>SPT_Data</c> folders are junctions to the installation's own) would make it log into the
+        /// real runtime. <paramref name="pathRewrites"/> names each moved value (<c>'old' -> 'new'</c>), empty when
+        /// nothing moved; a second pass over the result moves nothing.
+        /// </summary>
+        public static bool TryPrefixLogFilePatterns(string text, string prefix, out string patched, out int changed,
+            out List<string> pathRewrites, out string error)
+        {
             patched = null;
             changed = 0;
+            pathRewrites = new List<string>();
             error = null;
             if (string.IsNullOrEmpty(prefix))
             {
@@ -1453,17 +1613,96 @@ namespace ArenaMode.SessionHelper
             if (!HelperJsonDocument.TryScan(text, out doc, out error)) return false;
 
             var edits = new List<Edit>();
+            int patterns = 0;
             foreach (HelperJsonMember member in doc.Members)
             {
-                if (member.Key != "filePattern" || member.ValueKind != '"') continue;
-                int contentStart = member.ValueStart + 1;
-                if (string.CompareOrdinal(text, contentStart, prefix, 0, prefix.Length) == 0) continue;
-                edits.Add(new Edit { Start = contentStart, End = contentStart, Text = prefix });
+                if (member.ValueKind != '"') continue;
+                if (member.Key == "filePattern")
+                {
+                    int contentStart = member.ValueStart + 1;
+                    if (string.CompareOrdinal(text, contentStart, prefix, 0, prefix.Length) == 0) continue;
+                    edits.Add(new Edit { Start = contentStart, End = contentStart, Text = prefix });
+                    patterns++;
+                }
+                else if (member.Key == "filePath")
+                {
+                    string old = ReadStringValue(text, member);
+                    if (old != null && (old.Length == 0 || IsLogPathUnderUser(old))) continue; // SPT itself refuses an empty path
+
+                    // A string this scanner accepts but the JSON reader cannot decode is moved as well: fail closed.
+                    if (old == null) old = text.Substring(member.ValueStart + 1, member.ValueEnd - member.ValueStart - 2);
+                    string moved = "./" + HelperLayout.UserFolder + "/" + HelperLayout.LogsFolder + "/" + LogFolderNameOf(old) + "/";
+                    edits.Add(new Edit { Start = member.ValueStart, End = member.ValueEnd, Text = "\"" + moved + "\"" });
+                    pathRewrites.Add("'" + old + "' -> '" + moved + "'");
+                }
             }
 
-            changed = edits.Count;
+            changed = patterns;
             patched = Apply(text, edits);
             return true;
+        }
+
+        /// <summary>The decoded text of a JSON string member, or null when it cannot be decoded.</summary>
+        private static string ReadStringValue(string text, HelperJsonMember member)
+        {
+            object value;
+            string parseError;
+            if (!ArenaMiniJson.TryParse(text.Substring(member.ValueStart, member.ValueEnd - member.ValueStart), out value, out parseError)) return null;
+            return value as string;
+        }
+
+        /// <summary>
+        /// True when a logger's <c>filePath</c> is a relative path that stays below the tree's <c>user</c> folder
+        /// (<c>./user/logs/spt/</c>, <c>user\logs</c>, <c>./user/../user/logs</c>; both separators, any case). Anything
+        /// else is not: a drive or UNC path, a path that starts at a root, a stream or drive-relative name (a colon
+        /// anywhere), a <c>..</c> that climbs out of <c>user</c>, a segment Windows would rewrite or refuse
+        /// (<see cref="HelperPathSafety.IsSafeSingleName"/>), and a relative path to another folder of the tree such as
+        /// <c>./SPT_Data/x</c> or <c>./logs</c>: the tree's <c>SPT_Data</c> subfolders are junctions into the
+        /// installation, and only <c>user</c> is a folder of copies. Decided on the text alone, no file is looked at.
+        /// </summary>
+        public static bool IsLogPathUnderUser(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            if (path[0] == '\\' || path[0] == '/') return false;
+
+            // A colon, a wildcard or any other character a file name cannot hold is in some segment, and a segment
+            // like that fails IsSafeSingleName below.
+            var kept = new List<string>();
+            foreach (string segment in path.Split('\\', '/'))
+            {
+                if (segment.Length == 0 || segment == ".") continue;
+                if (segment == "..")
+                {
+                    if (kept.Count == 0) return false;
+                    kept.RemoveAt(kept.Count - 1);
+                    continue;
+                }
+
+                if (!HelperPathSafety.IsSafeSingleName(segment)) return false;
+                kept.Add(segment);
+            }
+
+            return kept.Count > 0 && string.Equals(kept[0], HelperLayout.UserFolder, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// The folder name a moved logger gets below <c>user\logs</c>: the last real segment of its old path
+        /// (<c>D:\logs\spt\</c> gives <c>spt</c>), or <see cref="HelperLayout.FallbackLogFolder"/> when there is none
+        /// (<c>D:\</c>, <c>.</c>) or Windows would not take it as a single folder name (<c>C:logs</c>).
+        /// </summary>
+        public static string LogFolderNameOf(string path)
+        {
+            string name = null;
+            if (path != null)
+            {
+                foreach (string segment in path.Split('\\', '/'))
+                {
+                    if (segment.Length == 0 || segment == "." || segment == "..") continue;
+                    name = segment;
+                }
+            }
+
+            return name != null && HelperPathSafety.IsSafeSingleName(name) ? name : HelperLayout.FallbackLogFolder;
         }
 
         /// <summary>

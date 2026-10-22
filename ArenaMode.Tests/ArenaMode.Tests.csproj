@@ -78,6 +78,8 @@
     <Compile Include="..\ArenaMode.Session\HelperRunner.cs" Link="SessionHelper\HelperRunner.cs" />
     <Compile Include="..\ArenaMode.Session\HelperProcesses.cs" Link="SessionHelper\HelperProcesses.cs" />
     <Compile Include="..\ArenaMode.Session\HelperLog.cs" Link="SessionHelper\HelperLog.cs" />
+    <!-- The order of the steps of one run (stale acknowledgement, mutex, request, acknowledgement, command). -->
+    <Compile Include="..\ArenaMode.Session\HelperHost.cs" Link="SessionHelper\HelperHost.cs" />
   </ItemGroup>
 
   <!-- Referenced again here WITHOUT ExcludeAssets, which the server project sets

@@ -49,9 +49,25 @@ removed on 2026-10-22, so this deny list alone refuses them). Keep the per-unit 
 blacklist mode), an unknown `unlisted` value (or, in blacklist mode, an unreadable `deny` list)
 invalidating the whole user file, a malformed default `deny` invalidating the default file, the server
 mods' `ModDependencies` in the closure, and the mode out of the shipped default file (spec sections 3
-and 4). The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
+and 4). A deny also wins over hard dependencies: the closure never pulls a denied unit in, and a unit that
+needs one (directly or through other units, client and server) is excluded with `requires-denied:<guid>`;
+platform/Arena units are the only exception. Never turn that back into a pull-in with a warning. The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
 The user's testing override is that blacklist file and no second mechanism; keep it visible (the decision's one
 `policy override` warning per side, the gate summary suffix, `unlistedAllowed`; spec section 3).
+The game quits for a session switch only after the helper's `<request>.accepted` acknowledgement (a coroutine looks
+every 250 ms for at most 15 s; a helper that is gone or silent leaves the game running and the action available, and
+the client deletes the request file on every failure: the helper stamps that file and ends its wait for the game when
+it is gone or replaced, so a late helper cannot switch the session behind the player's back).
+An Arena session refuses Arena when it cannot load the policy, when a plugin the game loaded or a mod the server runs
+is one the current policy excludes, when the ping's `policyHash` is not the gate's, or when the gate report's
+`patchersRanBeforeGate` is not empty; a normal session judges every
+preloader patcher below `BepInEx\patchers` (a `.dll` with a `TargetDLLs` member in its bytes; a support library is no
+unit) by file name like a plugin (spec sections 6 and 7). Never turn any of these back into a
+mere notice, and never quit the game on `Process.Start` alone. The gate fails closed: a patcher it cannot place (no
+file) is neutralised and reported, and an unknown gate position reports every neutralised patcher with an initializer
+as having run early. The client and the gate read the policy files only through `ArenaPolicyFiles` (one limit, 256 KB:
+a limit on one side only locks the session out through the policy hash check), and the policy hash covers the user's
+denied names in a whitelist as well.
 Continuous Load Ammo 1.2.0+ and SVM 2.2.3+ have separate scoped adapters. Read
 docs/AMMO-RAID-HEALTH-COMPAT-20261020.md and its leaf reviews before changing them (the
 Deminvincibility part of that document is history). Preserve CLA's physical

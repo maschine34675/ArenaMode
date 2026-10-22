@@ -1,4 +1,5 @@
 using ArenaMode.Session;
+using ArenaMode.SessionHelper;
 using ArenaMode.Shared.Session;
 using BepInEx;
 using BepInEx.Bootstrap;
@@ -35,10 +36,16 @@ internal static partial class Program
             CheckFikaAndFailures();
             CheckPrepareForScreen();
             CheckArenaSessionAdmission();
+            CheckArenaSessionReview();
+            CheckArenaSessionPolicyAvailable();
+            CheckArenaSessionLoadedPlugins();
+            CheckPatcherUnits();
+            CheckDenyWinsInTheRefusal();
             CheckProfileAndRequestShape();
             CheckTwoClickGate();
             CheckRequestFailures();
             CheckRequestSuccess();
+            CheckHelperHandshake();
             CheckSourcePins();
             Console.WriteLine($"ARENA_SESSION_CLIENT_CHECKS_PASSED ({_checks} assertions)");
             return 0;
@@ -56,8 +63,12 @@ internal static partial class Program
 
     // ------------------------------------------------------------------ world
 
+    /// <summary>The production check of the helper process, kept before ResetWorld replaces the seam.</summary>
+    private static Func<int, bool> _realHelperHasExited;
+
     private static void Setup()
     {
+        _realHelperHasExited = ArenaSessionSwitch.HelperHasExited;
         string repo = FindRepositoryRoot();
         _repoPolicyText = File.ReadAllText(Path.Combine(repo, "assets", "arena-whitelist.json"));
         _root = Path.Combine(Path.GetTempPath(), "arena-session-client-checks-" + Guid.NewGuid().ToString("N"));
@@ -70,8 +81,51 @@ internal static partial class Program
         _userPolicyPath = Path.Combine(Paths.ConfigPath, ArenaSessionContract.UserPolicyFileName);
         _helperPath = Path.Combine(Paths.PluginPath, ArenaSessionContract.PluginFolderName, ArenaSessionContract.HelperFileName);
         _requestPath = Path.Combine(_root, "session", ArenaSessionContract.RequestFileName);
+        Paths.PatcherPluginPath = Path.Combine(_gameDir, "BepInEx", "patchers");
         ArenaSessionSwitch.RequestPathProvider = () => _requestPath;
     }
+
+    /// <summary>The preloader patchers of the development hosts (the installed set of 2026-10-22), below BepInEx\patchers.</summary>
+    private static readonly string[] DefaultPatchers =
+    {
+        "FixPluginTypesSerialization.dll",
+        "spt-prepatch.dll",
+        "maschine-LogTools.dll",
+        Path.Combine("maschine-ArenaMode", "maschine-ArenaMode.Gate.dll"),
+        Path.Combine("WTT-ContentBackportPatcher", "WTT-ContentBackportPatcher.dll"),
+    };
+
+    private static void ResetPatchers()
+    {
+        if (Directory.Exists(Paths.PatcherPluginPath)) Directory.Delete(Paths.PatcherPluginPath, true);
+        foreach (string relative in DefaultPatchers) AddPatcher(relative);
+    }
+
+    // A preloader patcher has a public static TargetDLLs member; that name is in the metadata of every real one, and it is
+    // what the client looks for in a DLL below BepInEx\patchers (a DLL without it is a library, not a patcher).
+    private const string PatcherMemberName = "TargetDLLs";
+
+    private static void AddPatcher(string relativePath)
+        => WriteFile(Path.Combine(Paths.PatcherPluginPath, relativePath), "stand-in patcher with public static IEnumerable<string> " + PatcherMemberName);
+
+    /// <summary>A DLL in the patchers folder that is no patcher: a library that a patcher ships beside itself.</summary>
+    private static void AddLibrary(string relativePath) => WriteFile(Path.Combine(Paths.PatcherPluginPath, relativePath), "stand-in library, no patcher");
+
+    /// <summary>A DLL of <paramref name="size"/> bytes whose bytes hold the patcher member name at <paramref name="offset"/> (or nowhere when negative).</summary>
+    private static void AddBinaryDll(string relativePath, int size, int offset)
+    {
+        var bytes = new byte[size];
+        for (int i = 0; i < bytes.Length; i++) bytes[i] = (byte)'x';
+        if (offset >= 0) System.Text.Encoding.ASCII.GetBytes(PatcherMemberName).CopyTo(bytes, offset);
+        string path = Path.Combine(Paths.PatcherPluginPath, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllBytes(path, bytes);
+    }
+
+    // The wait for the helper runs on this clock and asks this question about the helper process.
+    private static float _clock;
+    private static readonly HashSet<int> ExitedHelpers = new();
+    private static int _exitChecks;
 
     private static string FindRepositoryRoot()
     {
@@ -101,6 +155,13 @@ internal static partial class Program
         AddPlugin("com.maschine.UiBridge", "UiBridge", "1.0.0");
         ArenaServerClient.Reset();
         ArenaSessionMode.Initialize(new[] { Paths.ExecutablePath, "-token=0123456789abcdef01234567" }, null);
+        ResetPatchers();
+        _clock = 1000f;
+        ExitedHelpers.Clear();
+        _exitChecks = 0;
+        ArenaSessionSwitch.Clock = () => _clock;
+        ArenaSessionSwitch.HelperHasExited = pid => { _exitChecks++; return ExitedHelpers.Contains(pid); };
+        ArenaMode.Plugin.Instance = new ArenaMode.Plugin();
         ArenaSessionSwitch.ResetRequestLatch();
         ArenaSessionSwitch.CommandLineProvider = () => new[] { Paths.ExecutablePath, "-force-gfx-jobs", "native", "-token=0123456789abcdef01234567" };
         SPT.Common.Http.RequestHandler.IsLocal = true;
@@ -151,12 +212,13 @@ internal static partial class Program
     };
 
     /// <summary>What a current server's ping says; a new generation, like a real refresh.</summary>
-    private static void Ping(bool arenaInstance, List<ArenaServerModInfo> mods)
+    private static void Ping(bool arenaInstance, List<ArenaServerModInfo> mods, string policyHash = null)
     {
         ArenaServerClient.IsServerModKnownAvailable = true;
         ArenaServerClient.SessionFieldsPresent = true;
         ArenaServerClient.IsArenaInstance = arenaInstance;
         ArenaServerClient.ServerMods = mods;
+        ArenaServerClient.PolicyHash = policyHash;
         ArenaServerClient.PingGeneration++;
     }
 
@@ -166,6 +228,7 @@ internal static partial class Program
         ArenaServerClient.SessionFieldsPresent = false;
         ArenaServerClient.IsArenaInstance = false;
         ArenaServerClient.ServerMods = null;
+        ArenaServerClient.PolicyHash = null;
         ArenaServerClient.PingGeneration++;
     }
 
@@ -267,6 +330,17 @@ internal static partial class Program
         AddPlugin("com.chazut.orbit", "ORBIT", "1.0.0");
         Ping(false, NormalServerMods());
         Require(Reason() != null && Reason().Contains("ORBIT"), "A soft dependency target stays excluded");
+
+        // Nor does an unlisted one (a denied target stays out whatever the flag, since deny wins over dependencies;
+        // only an unlisted target tells a soft dependency from a hard one).
+        ResetWorld();
+        AddPlugin("com.example.softtarget", "Soft Target", "1.0.0");
+        Chainloader.PluginInfos["com.acidphantasm.botplacementsystem"].Dependencies = new[]
+        {
+            new BepInDependency { DependencyGUID = "com.example.softtarget", Flags = BepInDependency.DependencyFlags.SoftDependency },
+        };
+        Ping(false, NormalServerMods());
+        Require(Reason() != null && Reason().Contains("Not on the whitelist: Soft Target."), "A soft dependency target stays excluded");
     }
 
     private static void CheckSessionOffer()
@@ -504,9 +578,10 @@ internal static partial class Program
             && blacklistHash == blacklistPolicy.Hash && blacklistHash != LoadRepoPolicy().Hash,
             "The request carries the blacklist policy's hash, not the whitelist's");
 
-        // The server's ModDependencies close over the same way as BepInEx hard dependencies: its mod validator
-        // drops EVERY mod when one listed dependency is missing, so a denied library that an allowed server mod
-        // lists goes into the session tree, with a note.
+        // Deny wins over hard dependencies (review 2026-10-22). The server's ModDependencies are hard dependencies:
+        // its mod validator drops EVERY mod of the tree when one listed dependency is missing. So a server mod
+        // that needs a denied library cannot be offered the library (the deny stands) and is excluded with it,
+        // under Blocked for Arena; a denied library nobody needs is out as before.
         ResetWorld();
         WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.commonlib\",\"com.example.unneeded\"]}");
         var libraryMods = NormalServerMods();
@@ -514,14 +589,16 @@ internal static partial class Program
         libraryMods.Add(Mod("com.example.commonlib", "Common Lib", "3.0.6"));
         libraryMods.Add(Mod("com.example.unneeded", "Unneeded Lib", "1.0"));
         Ping(false, libraryMods);
-        Require(Reason() != null && Reason().Contains("Unneeded Lib.") && !Reason().Contains("Common Lib"),
-            "A denied server library that an allowed server mod depends on is no refusal; an unneeded denied one still is");
+        Equal(Reason(),
+            "Arena does not run with denied mods. Blocked for Arena: Common Lib, Content Pack, Unneeded Lib. "
+            + "Start an Arena session to play Arena without them; the game restarts.",
+            "A server mod that needs a denied library is blocked with it, under Blocked for Arena");
         Require(ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out var libraryAllowed, out _)
-                && libraryAllowed.Any(m => m.Guid == "com.example.commonlib")
-                && libraryAllowed.All(m => m.Guid != "com.example.unneeded"),
-            "The session tree gets the library its dependant needs, and not the unneeded denied one");
-        Require(ArenaWhitelistAdmission.WarningLine.Contains("Common Lib: pulled in as hard dependency of Content Pack (overrides the user's deny)"),
-            "The pulled-in server library is noted");
+                && libraryAllowed.All(m => m.Guid != "com.example.commonlib" && m.Guid != "com.example.content" && m.Guid != "com.example.unneeded")
+                && libraryAllowed.Count == 4,
+            "Neither the denied library nor the mod that needs it goes into the session tree");
+        Require(ArenaWhitelistAdmission.WarningLine.Contains("Content Pack: excluded because it requires Common Lib (denied by the user's policy file)"),
+            "The excluded dependant is noted with the denied library's name");
 
         // A whitelist closes the same way: an unlisted library of an allowed server mod is not left out.
         ResetWorld();
@@ -865,12 +942,16 @@ internal static partial class Program
         internal int Calls;
         internal string Helper, Direction, RequestPath;
         internal bool RequestExistedAtLaunch;
+        internal bool AcknowledgementExistedAtLaunch;
         internal int QuitCallsAtLaunch;
         internal bool Succeed = true;
         internal bool Throw;
     }
 
     private static readonly LaunchRecord Launch = new();
+
+    /// <summary>The process id the stand-in launcher reports for the helper it "started".</summary>
+    private const int HelperPid = 4321;
 
     private static bool DefaultLauncher(string helper, string direction, string requestPath, out int pid, out string error)
     {
@@ -879,9 +960,10 @@ internal static partial class Program
         Launch.Direction = direction;
         Launch.RequestPath = requestPath;
         Launch.RequestExistedAtLaunch = File.Exists(requestPath);
+        Launch.AcknowledgementExistedAtLaunch = File.Exists(HelperAcknowledgement.GetPath(requestPath));
         Launch.QuitCallsAtLaunch = Application.QuitCalls;
         if (Launch.Throw) throw new InvalidOperationException("launcher exploded");
-        pid = Launch.Succeed ? 4321 : 0;
+        pid = Launch.Succeed ? HelperPid : 0;
         error = Launch.Succeed ? null : "The Arena session helper could not be started.";
         return Launch.Succeed;
     }
@@ -893,6 +975,7 @@ internal static partial class Program
         Launch.Succeed = true;
         Launch.Throw = false;
         if (File.Exists(_requestPath)) File.Delete(_requestPath);
+        if (File.Exists(HelperAcknowledgement.GetPath(_requestPath))) File.Delete(HelperAcknowledgement.GetPath(_requestPath));
     }
 
     /// <summary>A normal session that may enter: one excluded mod, a current server.</summary>
@@ -992,11 +1075,15 @@ internal static partial class Program
         Require(ArenaSessionSwitch.Request("enter", null, out string error) && error == null, "A prepared normal session enters");
         Require(Launch.Calls == 1 && Launch.Direction == "enter" && Launch.RequestPath == _requestPath && Launch.Helper == _helperPath
             && Launch.RequestExistedAtLaunch, "The helper starts with the request file already in place");
+        Require(Application.QuitCalls == 0 && ArenaSessionSwitch.HelperPending && !ArenaSessionSwitch.RestartRequested,
+            "A helper that has only started does not close the game: it has to acknowledge first");
+        AcceptAndQuit(HelperPid);
         Require(Launch.QuitCallsAtLaunch == 0 && Application.QuitCalls == 1,
-            "The game quits only after the helper started, exactly once");
+            "The game quits only after the helper acknowledged, exactly once");
         var info = ArenaMode.Plugin.ModLogger.Info.Where(l => l.StartsWith("Arena session:")).ToList();
-        Require(info.Count == 1 && info[0].Contains("enter") && info[0].Contains("4321"), "One Info line per request");
-        Require(ArenaSessionSwitch.RestartRequested, "The restart is latched");
+        Require(info.Count == 1 && info[0].Contains("enter") && info[0].Contains("4321") && info[0].Contains("accepted"),
+            "One Info line per request, written when the helper accepted it");
+        Require(ArenaSessionSwitch.RestartRequested && !ArenaSessionSwitch.HelperPending, "The restart is latched");
 
         string json = File.ReadAllText(_requestPath);
         Require(ArenaMiniJson.TryParse(json, out var parsed, out _), "The request file is valid JSON");
@@ -1022,8 +1109,10 @@ internal static partial class Program
         ArenaSession(ReportActive);
         Ping(true, NormalServerMods());
         ArenaSessionSwitch.CommandLineProvider = () => new[] { Paths.ExecutablePath, "-token=0123456789abcdef01234567", "-arena-session" };
-        Require(ArenaSessionSwitch.Request("leave", null, out error) && Launch.Direction == "leave" && Application.QuitCalls == 1,
-            "An Arena session returns to the normal session");
+        Require(ArenaSessionSwitch.Request("leave", null, out error) && Launch.Direction == "leave" && Application.QuitCalls == 0,
+            "An Arena session asks to return to the normal session; the helper has to acknowledge before the game quits");
+        AcceptAndQuit(HelperPid);
+        Require(Application.QuitCalls == 1, "The leave request quits the game after the acknowledgement too");
         Require(ArenaMiniJson.TryParse(File.ReadAllText(_requestPath), out parsed, out _)
             && ArenaMiniJson.GetString(parsed, "direction") == "leave"
             && ArenaMiniJson.GetArray(parsed, "serverMods").Count == 0

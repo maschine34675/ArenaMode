@@ -50,6 +50,17 @@ DEFAULT_WHITELIST_DENIES = {
     'com.chazut.orbit', 'com.danw.questingbots', 'com.hysocs.adaptivebotculling',
     'com.samc137.isbspecialforces', 'com.samc137.aishi',
 }
+# The units that code allows in every Arena session (ArenaSessionContract: SptPlatformGuids, ConfigurationManagerGuid,
+# ArenaPluginGuid, PlatformPatcherFiles; every GUID that starts with the Fika prefix is Fika). Lower case, as compared
+# below. The default list must not name them, neither in "mods" nor in "deny": the loader skips such an entry with a
+# diagnostic, but a shipped file that lists one is a mistake (tools/Write-ArenaAssets.ps1 refuses it as well, and
+# ArenaMode.Tests pins all three lists to the contract).
+PROTECTED_GUIDS = {
+    'com.spt.core', 'com.spt.custom', 'com.spt.debugging', 'com.spt.singleplayer',
+    'com.bepis.bepinex.configurationmanager', 'com.maschine.arenamode',
+}
+PROTECTED_PATCHERS = {'fixplugintypesserialization.dll', 'spt-prepatch.dll', 'maschine-arenamode.gate.dll'}
+FIKA_GUID_PREFIX = 'com.fika.'
 REQUIRED = DLLS | EXES | {WHITELIST,
     DOCS + 'INSTALL.txt', DOCS + 'README.md', DOCS + 'LICENSE',
     DOCS + 'THIRD-PARTY-NOTICES.md', MANIFEST,
@@ -77,11 +88,21 @@ def _unit_names(identifier):
     return {text, text.replace('\\', '/').split('/')[-1]}
 
 
+def _is_protected_unit(identifier):
+    """True when a GUID or patcher name (as written in the file) is a platform, Arena or Fika unit of the code."""
+    names = _unit_names(identifier)
+    return bool(names & (PROTECTED_GUIDS | PROTECTED_PATCHERS)) or any(name.startswith(FIKA_GUID_PREFIX) for name in names)
+
+
 def check_default_whitelist(policy):
     """Checks a parsed shipped Arena session whitelist the way the loader and the build do; raises AssertionError."""
     assert policy.get('schema') == 1 and isinstance(policy.get('mods'), list) and policy['mods'], 'Bad default whitelist'
     for entry in policy['mods']:
         assert isinstance(entry, dict) and ('guid' in entry) != ('patcher' in entry), f'Whitelist entry needs one of guid and patcher: {entry}'
+        unit = entry['guid'] if 'guid' in entry else entry['patcher']
+        assert isinstance(unit, str) and unit.strip(), f'Whitelist entry needs a non-blank guid or patcher: {entry}'
+        assert not _is_protected_unit(unit), (
+            f"Default whitelist lists the platform or Arena unit '{unit.strip()}': code allows those units, the default list must not name them")
     listed = {entry['guid'].lower() for entry in policy['mods'] if 'guid' in entry}
     assert DEFAULT_WHITELIST_GUIDS <= listed, f'Default whitelist lost: {DEFAULT_WHITELIST_GUIDS - listed}'
     # A patcher is matched by its file name only (a path is reduced to its last segment, like the loader does).
@@ -92,6 +113,8 @@ def check_default_whitelist(policy):
     assert isinstance(deny, list), 'Default whitelist deny must be an array'
     for item in deny:
         assert isinstance(item, str) and item.strip(), f'Default whitelist deny entries must be non-blank strings: {item!r}'
+        assert not _is_protected_unit(item), (
+            f"Default whitelist denies the platform or Arena unit '{item.strip()}': code allows those units, they cannot be denied")
     denied = {item.strip().lower() for item in deny}
     assert DEFAULT_WHITELIST_DENIES <= denied, f'Default whitelist lost its deny: {DEFAULT_WHITELIST_DENIES - denied}'
     # A unit the list both allows and denies would be denied (and reported at every start): a mistake in the file.

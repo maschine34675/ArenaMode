@@ -1,6 +1,10 @@
 // File system side of the Arena session helper (docs/ARENA-SESSION-20261021.md, section 6):
 // the sandbox that every write and delete goes through, directory junctions, reparse-point-aware
-// deletion, copying with retries, and the builder of the disposable server tree.
+// deletion, copying with retries, and the builder of the disposable server tree. The files the
+// helper writes outside the sandbox are helper.log (HelperLog) and the acknowledgement of a request,
+// which sits beside the request file the client chose (HelperAcknowledgementFile at the end of this
+// file). Every file any of these writes creates or truncates is opened without following a link
+// (HelperNative.OpenFileForWriting), and the sandbox removes a link at the destination first.
 //
 // Linked source, like SessionLogic.cs: compiled into maschine-ArenaMode.Session.exe (net472) and,
 // through a Compile Include with Link, into ArenaMode.Tests (net10.0), so the junction and delete
@@ -40,8 +44,10 @@ namespace ArenaMode.SessionHelper
     {
         private const uint GenericWrite = 0x40000000;
         private const uint OpenExisting = 3;
+        private const uint OpenAlways = 4;
         private const uint FileFlagBackupSemantics = 0x02000000;
         private const uint FileFlagOpenReparsePoint = 0x00200000;
+        private const uint FileAttributeReparsePoint = 0x400;
         private const uint FsctlSetReparsePoint = 0x000900A4;
         private const uint IoReparseTagMountPoint = 0xA0000003;
         private const int MaxReparseBuffer = 16 * 1024;
@@ -49,6 +55,25 @@ namespace ArenaMode.SessionHelper
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern SafeFileHandle CreateFile(string fileName, uint desiredAccess, uint shareMode,
             IntPtr securityAttributes, uint creationDisposition, uint flagsAndAttributes, IntPtr templateFile);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ByHandleFileInformation
+        {
+            public uint FileAttributes;
+            public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
+            public uint VolumeSerialNumber;
+            public uint FileSizeHigh;
+            public uint FileSizeLow;
+            public uint NumberOfLinks;
+            public uint FileIndexHigh;
+            public uint FileIndexLow;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandle(SafeFileHandle file, out ByHandleFileInformation information);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -80,6 +105,78 @@ namespace ArenaMode.SessionHelper
         {
             if (path == null || path.StartsWith(@"\\", StringComparison.Ordinal)) return path;
             return @"\\?\" + path;
+        }
+
+        /// <summary>
+        /// Opens a plain file for writing and never follows a reparse point at the last component of the path: the
+        /// file is opened with <c>FILE_FLAG_OPEN_REPARSE_POINT</c>, so a file symbolic link (a dangling one included)
+        /// is opened itself and not its target, and the handle's attributes are checked before anything is written.
+        /// A file link is refused with a <see cref="HelperException"/> (nothing was changed), so a link that appears
+        /// after a caller looked at the path still cannot redirect the write. A junction and a folder never get that
+        /// far: without <c>FILE_FLAG_BACKUP_SEMANTICS</c> <c>CreateFile</c> cannot open a folder for writing and fails
+        /// with "access denied", so they surface as an <see cref="UnauthorizedAccessException"/> and nothing is
+        /// changed either (the sandbox's retry repeats such a failure for about three seconds, then gives up). A
+        /// missing file is created. With <paramref name="truncate"/> the file is emptied (after the check), otherwise
+        /// the position is the end of the file (an append). Other failures are the exceptions the managed file API
+        /// throws for them (<see cref="IOException"/> for a sharing violation, <see cref="UnauthorizedAccessException"/>
+        /// for a read-only file), so the sandbox's retry treats them as it always did.
+        /// </summary>
+        internal static FileStream OpenFileForWriting(string path, bool truncate, FileShare share)
+        {
+            SafeFileHandle handle = CreateFile(ToExtendedPath(path), GenericWrite, (uint)share & 7, IntPtr.Zero, OpenAlways,
+                FileFlagOpenReparsePoint, IntPtr.Zero);
+            if (handle.IsInvalid)
+            {
+                int error = Marshal.GetLastWin32Error();
+                handle.Dispose();
+                throw OpenFailure(error, path);
+            }
+
+            bool owned = true;
+            try
+            {
+                ByHandleFileInformation information;
+                if (!GetFileInformationByHandle(handle, out information)) throw OpenFailure(Marshal.GetLastWin32Error(), path);
+                // Only a file link gets here (the open above already failed for a junction or a folder, see the summary).
+                if ((information.FileAttributes & FileAttributeReparsePoint) != 0)
+                {
+                    throw new HelperException("refusing to write to '" + path + "': it is a symbolic link or junction, which a write never follows");
+                }
+
+                var stream = new FileStream(handle, FileAccess.Write);
+                owned = false; // the stream closes the handle now
+                try
+                {
+                    if (truncate) stream.SetLength(0);
+                    else stream.Seek(0, SeekOrigin.End);
+                    return stream;
+                }
+                catch (Exception)
+                {
+                    stream.Dispose();
+                    throw;
+                }
+            }
+            finally
+            {
+                if (owned) handle.Dispose();
+            }
+        }
+
+        private static Exception OpenFailure(int error, string path)
+        {
+            string message = "cannot open '" + path + "' for writing: " + new Win32Exception(error).Message;
+            switch (error)
+            {
+                case 2:
+                    return new FileNotFoundException(message, path);
+                case 3:
+                    return new DirectoryNotFoundException(message);
+                case 5:
+                    return new UnauthorizedAccessException(message);
+                default:
+                    return new IOException(message, unchecked((int)0x80070000) | (error & 0xFFFF));
+            }
         }
 
         /// <summary>
@@ -243,6 +340,13 @@ namespace ArenaMode.SessionHelper
         /// <summary>Number of junctions created so far.</summary>
         public int JunctionsCreated { get; private set; }
 
+        /// <summary>
+        /// Tests only: called with the destination of a write (<see cref="WriteAllText"/>, a copy) after the link at it was
+        /// removed and just before the file is opened, so a test can plant a link in the instant that the removal cannot
+        /// cover. The open must then refuse the link (<see cref="HelperNative.OpenFileForWriting"/>). Null in the helper.
+        /// </summary>
+        internal Action<string> BeforeWriteOpen { get; set; }
+
         // ------------------------------------------------------------------ checks
 
         /// <summary>The normalised path, which must lie strictly below the root.</summary>
@@ -299,14 +403,27 @@ namespace ArenaMode.SessionHelper
             Directory.CreateDirectory(full);
         }
 
+        /// <summary>
+        /// Writes <paramref name="text"/> (UTF-8 without a byte order mark) as the whole content of a file. A link
+        /// where the file goes (a file symbolic link, a junction, a dangling one) is removed as a link first and the file
+        /// is then written in its place, like a copy does: the write never follows the link, whatever it points to.
+        /// The file is also opened without following a link (<see cref="HelperNative.OpenFileForWriting"/>), so a link
+        /// that appears between the removal and the open is refused (<see cref="HelperException"/>) and not followed.
+        /// </summary>
         public void WriteAllText(string path, string text)
         {
             string full = RequireClean(path);
             string parent = HelperPathSafety.GetParent(full);
             if (parent != null && !Directory.Exists(parent)) Directory.CreateDirectory(parent);
+            byte[] bytes = new UTF8Encoding(false).GetBytes(text ?? string.Empty);
+            RemoveLinkAt(full);
             Retry("write " + full, delegate
             {
-                File.WriteAllText(full, text, new UTF8Encoding(false));
+                if (BeforeWriteOpen != null) BeforeWriteOpen(full);
+                using (FileStream output = HelperNative.OpenFileForWriting(full, true, FileShare.Read))
+                {
+                    output.Write(bytes, 0, bytes.Length);
+                }
             });
         }
 
@@ -516,22 +633,32 @@ namespace ArenaMode.SessionHelper
             return anyBundle;
         }
 
-        private void CopyFileCore(string source, string destination)
+        // A link where a write goes would send the write to its target, wherever that is: replace the link itself
+        // (removed as a link, never followed) and write a plain file. Used by every write that creates or truncates
+        // a file of the sandbox; the open of the file refuses a link as well (HelperNative.OpenFileForWriting), for
+        // the instant between this check and the open.
+        private void RemoveLinkAt(string destination)
         {
-            // A link where the copy goes would send the write to its target, wherever that is: replace the
-            // link itself (removed as a link, never followed) and write a plain file.
             FileAttributes existing;
             if (HelperFileSystem.TryGetAttributes(destination, out existing) && HelperPathSafety.IsReparsePoint(existing))
             {
+                _log("'" + destination + "' is a link: removing the link itself (never its target) before writing the file");
                 DeleteEntry(destination, 0);
             }
+        }
+
+        private void CopyFileCore(string source, string destination)
+        {
+            RemoveLinkAt(destination);
 
             Retry("copy " + source, delegate
             {
+                if (BeforeWriteOpen != null) BeforeWriteOpen(destination);
+
                 // The source may be open in another process (the normal server, a game); share
                 // everything so a reader never blocks on a writer.
                 using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                using (var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (FileStream output = HelperNative.OpenFileForWriting(destination, true, FileShare.None))
                 {
                     input.CopyTo(output);
                 }
@@ -676,7 +803,9 @@ namespace ArenaMode.SessionHelper
         {
             Junctions = new List<string>();
             Mods = new List<string>();
+            Patchers = new List<string>();
             UnsharedFolders = new List<string>();
+            LogPathRewrites = new List<string>();
         }
 
         public string TreePath { get; set; }
@@ -691,6 +820,12 @@ namespace ArenaMode.SessionHelper
 
         /// <summary>Folder names of the server mods that were copied.</summary>
         public List<string> Mods { get; private set; }
+
+        /// <summary>
+        /// Names of the <c>user\patchers\&lt;ModGuid&gt;</c> folders (server prepatch definitions) that were copied:
+        /// one per listed server mod whose GUID has such a folder in the runtime.
+        /// </summary>
+        public List<string> Patchers { get; private set; }
 
         /// <summary>Every file the build copied (server binaries, configs, mods, profile).</summary>
         public int FilesCopied { get; set; }
@@ -707,6 +842,14 @@ namespace ArenaMode.SessionHelper
         /// would not find it next to the copied exe; the runner warns about it.
         /// </summary>
         public List<string> UnsharedFolders { get; private set; }
+
+        /// <summary>
+        /// The <c>filePath</c> values of the runtime's <c>sptLogger.json</c> that were not relative paths below
+        /// <c>user</c> and were moved to <c>./user/logs/&lt;name&gt;/</c> in the tree's copy (each entry reads
+        /// <c>'old' -> 'new'</c>); empty when the logger configuration needed no change. The runner logs one warning
+        /// for them.
+        /// </summary>
+        public List<string> LogPathRewrites { get; private set; }
     }
 
     /// <summary>Builds the disposable server tree <c>&lt;runtime root&gt;\server</c> of an Arena session.</summary>
@@ -733,7 +876,8 @@ namespace ArenaMode.SessionHelper
         /// <see cref="HelperServerBinaries"/> selects, so that <c>SPT.Server.exe</c> runs from the tree
         /// and <c>AppContext.BaseDirectory</c> points into it), the patched <c>sptLogger.json</c>,
         /// <c>SPT_Data</c> (junctions plus a copied <c>configs</c> with the arena port in
-        /// <c>http.json</c>), <c>user\mods</c> with a copy of each listed server mod, the profile, its
+        /// <c>http.json</c>), <c>user\mods</c> with a copy of each listed server mod, <c>user\patchers\&lt;ModGuid&gt;</c>
+        /// (server prepatch definitions) of every listed mod that has such a folder, the profile, its
         /// profile data, certificates and credentials, and last the marker that turns the tree into an
         /// Arena instance. A tree without a marker is therefore never mistaken for a finished one.
         /// The server binaries of the previous tree stay in place and are copied only when the
@@ -788,13 +932,17 @@ namespace ArenaMode.SessionHelper
             if (!File.Exists(loggerSource)) throw new HelperException("no " + HelperLayout.LoggerFileName + " in " + source);
             string patchedLogger;
             int patterns;
+            List<string> movedPaths;
             string error;
             if (!HelperJsonText.TryPrefixLogFilePatterns(HelperFileSystem.ReadAllTextShared(loggerSource),
-                HelperLayout.LogFilePatternPrefix, out patchedLogger, out patterns, out error))
+                HelperLayout.LogFilePatternPrefix, out patchedLogger, out patterns, out movedPaths, out error))
             {
                 throw new HelperException(HelperLayout.LoggerFileName + ": " + error);
             }
 
+            // A logger path outside user (an absolute one, one that climbs out of the tree, one into the SPT_Data
+            // junctions) is moved below user\logs, so that the arena server never logs into the real runtime.
+            result.LogPathRewrites.AddRange(movedPaths);
             box.WriteAllText(Path.Combine(tree, HelperLayout.LoggerFileName), patchedLogger);
 
             // SPT_Data: shared folders by junction, small files and configs by copy.
@@ -849,6 +997,30 @@ namespace ArenaMode.SessionHelper
                 if (!Directory.Exists(mod.Folder)) throw new HelperException("the server mod '" + mod.Guid + "' has no folder at " + mod.Folder);
                 box.CopyModDirectory(mod.Folder, Path.Combine(modsTarget, mod.FolderName));
                 result.Mods.Add(mod.FolderName);
+            }
+
+            // user\patchers\<ModGuid>: SPT 4.1.6 loads the server prepatch (enum extension) definitions of a mod
+            // that declares HasPrepatcher from there, before it loads any mod, and refuses to load the mods when
+            // the folder of such a mod is missing. Exactly the folders of the listed mods are copied (a copy, like
+            // the mods): the prepatch pass applies EVERY folder it finds in user\patchers, so a folder of a mod the
+            // policy left out must not come along. A listed mod without a folder here has no prepatcher.
+            string patchersSource = Path.Combine(userSource, HelperLayout.PatchersFolder);
+            string patchersTarget = Path.Combine(userTarget, HelperLayout.PatchersFolder);
+            var patcherGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (HelperServerMod mod in request.ServerMods)
+            {
+                string folder = mod.PatcherFolderName;
+                if (folder == null)
+                {
+                    if (log != null) log("the server mod GUID '" + mod.Guid + "' is not a plain folder name, so no prepatch folder is looked up for it");
+                    continue;
+                }
+
+                if (!patcherGuids.Add(folder)) continue;
+                string patcherSource = Path.Combine(patchersSource, folder);
+                if (!Directory.Exists(patcherSource)) continue;
+                box.CopyDirectory(patcherSource, Path.Combine(patchersTarget, folder));
+                result.Patchers.Add(folder);
             }
 
             // The profile: a fresh copy of exactly this one file (never a pattern: the profiles
@@ -913,6 +1085,154 @@ namespace ArenaMode.SessionHelper
         private static void CopyIfExists(HelperSandbox box, string source, string destination)
         {
             if (Directory.Exists(source)) box.CopyDirectory(source, destination);
+        }
+    }
+
+    /// <summary>
+    /// The file work behind <see cref="HelperAcknowledgement"/> (docs/ARENA-SESSION-20261021.md, section 6): removing
+    /// the acknowledgement an earlier request of the same file name left behind, and writing the new one atomically.
+    /// The acknowledgement sits beside the request file, wherever the client put it, so it does not go through a
+    /// <see cref="HelperSandbox"/> (which is bound to the session runtime root); it only ever touches the three
+    /// names <see cref="HelperAcknowledgement"/> derives from the request path.
+    /// </summary>
+    public static class HelperAcknowledgementFile
+    {
+        private const int Attempts = 5;
+        private const int DelayMilliseconds = 100;
+
+        /// <summary>
+        /// Deletes <c>&lt;request&gt;.accepted</c> from an earlier request, plus the temporary files a helper that
+        /// died while writing it left. Done before the new request is even read: an acknowledgement that survived
+        /// would tell the client to close the game for a helper that has not taken anything over. Nothing there is
+        /// success. False, with the reason in <paramref name="problem"/>, when the stale file could not be removed;
+        /// it never throws.
+        /// </summary>
+        public static bool DiscardStale(string requestPath, out string problem)
+        {
+            problem = null;
+            string request;
+            if (!HelperPathSafety.TryNormalize(requestPath, out request))
+            {
+                problem = "the request path is not an absolute path on a drive: " + requestPath;
+                return false;
+            }
+
+            try
+            {
+                RemoveLeftoverTemporaries(request);
+
+                string path = HelperAcknowledgement.GetPath(request);
+                FileAttributes attributes;
+                if (!HelperFileSystem.TryGetAttributes(path, out attributes)) return true;
+                if ((attributes & FileAttributes.Directory) != 0)
+                {
+                    problem = "'" + path + "' is a folder";
+                    return false;
+                }
+
+                for (int attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        if ((attributes & FileAttributes.ReadOnly) != 0) File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
+                        File.Delete(path);
+                        return true;
+                    }
+                    catch (Exception ex) when ((ex is IOException || ex is UnauthorizedAccessException) && attempt < Attempts)
+                    {
+                        Thread.Sleep(DelayMilliseconds);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                problem = ex.Message;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Writes the acknowledgement of <paramref name="requestPath"/> and returns its path. The content goes to a
+        /// temporary file of its own first (flushed to disk, closed), and that file is then moved onto
+        /// <c>&lt;request&gt;.accepted</c> in one step: a client that polls for the final name sees either no file or
+        /// the complete one, never half of it. <paramref name="beforePublish"/> (tests) is called with the temporary
+        /// file's path after it is complete and before it is moved. Throws a <see cref="HelperException"/> when the
+        /// file cannot be published; the temporary file is removed then.
+        /// </summary>
+        public static string Write(string requestPath, int helperPid, DateTime acceptedUtc, Action<string> beforePublish)
+        {
+            string request;
+            if (!HelperPathSafety.TryNormalize(requestPath, out request))
+            {
+                throw new HelperException("the request path is not an absolute path on a drive: " + requestPath);
+            }
+
+            string path = HelperAcknowledgement.GetPath(request);
+            string temporary = HelperAcknowledgement.GetTempPath(request, helperPid);
+            byte[] bytes = new UTF8Encoding(false).GetBytes(HelperAcknowledgement.BuildContent(helperPid, acceptedUtc));
+            try
+            {
+                // Opened without following a link: a link planted under the temporary name is refused, not written through.
+                using (FileStream stream = HelperNative.OpenFileForWriting(temporary, true, FileShare.None))
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush(true);
+                }
+
+                if (beforePublish != null) beforePublish(temporary);
+                Publish(temporary, path);
+                return path;
+            }
+            catch (Exception ex)
+            {
+                TryDelete(temporary);
+                if (ex is HelperException) throw;
+                throw new HelperException("cannot write the acknowledgement '" + path + "': " + ex.Message, ex);
+            }
+        }
+
+        // Moves the finished temporary file onto the final name. An existing file (a stale one that
+        // DiscardStale could not remove, say) is replaced in the same step; a scanner that has the new file open for
+        // a moment is waited out.
+        private static void Publish(string temporary, string path)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    if (HelperFileSystem.PathExists(path)) File.Replace(temporary, path, null);
+                    else File.Move(temporary, path);
+                    return;
+                }
+                catch (Exception ex) when ((ex is IOException || ex is UnauthorizedAccessException) && attempt < Attempts)
+                {
+                    Thread.Sleep(DelayMilliseconds);
+                }
+            }
+        }
+
+        private static void RemoveLeftoverTemporaries(string request)
+        {
+            string directory = Path.GetDirectoryName(request);
+            string requestName = Path.GetFileName(request);
+            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) return;
+            foreach (string candidate in Directory.GetFiles(directory, requestName + HelperAcknowledgement.FileSuffix + ".*"))
+            {
+                if (!HelperAcknowledgement.IsTempName(requestName, Path.GetFileName(candidate))) continue;
+                TryDelete(candidate);
+            }
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception)
+            {
+                // A leftover temporary file is harmless: the next DiscardStale removes it.
+            }
         }
     }
 }

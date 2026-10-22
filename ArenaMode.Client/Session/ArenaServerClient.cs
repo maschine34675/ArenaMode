@@ -58,6 +58,7 @@ public static class ArenaServerClient
     private static bool _sessionFieldsPresent;
     private static bool _arenaInstance;
     private static List<ArenaServerModInfo> _serverMods;
+    private static string _policyHash;
     private static int _pingGeneration;
 
     /// <summary>
@@ -77,6 +78,17 @@ public static class ArenaServerClient
     /// (older server, or no successful ping).
     /// </summary>
     internal static IReadOnlyList<ArenaServerModInfo> ServerMods => _available == true ? _serverMods : null;
+
+    /// <summary>
+    /// The policy hash the Arena session server reports: the hash of the policy its tree was built for (the
+    /// helper writes it into the tree's marker from the request, the server reads it once at startup). Exactly
+    /// as the server sent it, without trimming. Null when the last ping carried none: a normal server sends
+    /// no such member, an Arena server sends JSON null when its marker gave no usable hash, an older server
+    /// predates it, and a member that is not a non-blank string reads the same. A reader must treat null as
+    /// "unknown", never as a mismatch.
+    /// </summary>
+    internal static string PolicyHash => _available == true ? _policyHash : null;
+
     private static readonly string ClientProcessId = Guid.NewGuid().ToString("N");
     private static string _pendingArmToken;
     private static string _activeArmToken;
@@ -191,13 +203,15 @@ public static class ArenaServerClient
         _sessionFieldsPresent = false;
         _arenaInstance = false;
         _serverMods = null;
+        _policyHash = null;
     }
 
     /// <summary>
-    /// Reads the optional <c>arenaInstance</c> (bool) and <c>serverMods</c>
-    /// ([{guid,name,version,folder,dependencies}]) fields. Anything malformed is treated as absent, entry
-    /// by entry: a bad entry is skipped, a field of the wrong type is ignored, and so is a dependency
-    /// that is not a non-blank string (<c>dependencies</c> itself is optional: an older server omits it).
+    /// Reads the optional <c>arenaInstance</c> (bool), <c>serverMods</c>
+    /// ([{guid,name,version,folder,dependencies}]) and <c>policyHash</c> (string) fields. Anything malformed
+    /// is treated as absent, entry by entry: a bad entry is skipped, a field of the wrong type is ignored, and
+    /// so is a dependency that is not a non-blank string (<c>dependencies</c> itself is optional: an older
+    /// server omits it) and a <c>policyHash</c> that is not a non-blank string (JSON null included).
     /// </summary>
     private static void ReadSessionFields(JObject ping)
     {
@@ -207,6 +221,10 @@ public static class ArenaServerClient
         var mods = ping["serverMods"] as JArray;
         _sessionFieldsPresent = hasInstance || mods != null;
         _arenaInstance = hasInstance && instance.Value<bool>();
+        var hash = ping["policyHash"];
+        _policyHash = hash?.Type == JTokenType.String && !string.IsNullOrWhiteSpace(hash.Value<string>())
+            ? hash.Value<string>()
+            : null;
         if (mods == null) return;
 
         var list = new List<ArenaServerModInfo>(Math.Min(mods.Count, MaxServerMods));

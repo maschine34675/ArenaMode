@@ -29,9 +29,10 @@ internal sealed record ArenaServerModInfo(
 
 /// <summary>
 /// What this server process knows about the Arena session feature: whether it is
-/// the Arena instance (the disposable tree the session helper starts) and which
-/// mods it loaded. Both are fixed for the life of the process, so they are read
-/// once from <see cref="Initialize"/>, not per request.
+/// the Arena instance (the disposable tree the session helper starts), the policy
+/// hash the helper recorded in that tree's marker and which mods it loaded. All
+/// three are fixed for the life of the process, so they are read once from
+/// <see cref="Initialize"/>, not per request.
 /// </summary>
 /// <remarks>
 /// A normal server never has the marker file, so for it everything here is inert
@@ -55,31 +56,74 @@ internal static class ArenaServerInstance
         "Arena session: only Arena raids can be started on this server. "
         + "Use RETURN TO NORMAL SESSION in the Arena menu to play ordinary PMC or Scav raids.";
 
-    private sealed record State(bool ArenaInstance, IReadOnlyList<ArenaServerModInfo> Mods);
+    private sealed record State(bool ArenaInstance, IReadOnlyList<ArenaServerModInfo> Mods, string? PolicyHash);
 
-    private static volatile State _state = new(false, []);
+    private static volatile State _state = new(false, [], null);
 
     /// <summary>True when <c>arena-session.json</c> existed in the working directory at startup.</summary>
     internal static bool IsArenaInstance => _state.ArenaInstance;
+
+    /// <summary>
+    /// The <c>policyHash</c> member of the marker, read once at startup. Null on a normal server
+    /// and on an Arena instance whose marker has no usable hash (see <see cref="ReadPolicyHash"/>).
+    /// The ping reports it so the client can tell which policy the running server tree was built
+    /// for.
+    /// </summary>
+    internal static string? PolicyHash => _state.PolicyHash;
 
     /// <summary>Every loaded server mod, in the server's own load order (GUID, ordinal ignoring case).</summary>
     internal static IReadOnlyList<ArenaServerModInfo> Mods => _state.Mods;
 
     /// <summary>
-    /// Reads the marker and snapshots the loaded mods. <paramref name="workingDirectory"/>
-    /// defaults to the process working directory, which is where SPT resolves
-    /// <c>user/mods</c> and where the session helper puts the marker.
+    /// Reads the marker (existence and policy hash) and snapshots the loaded mods.
+    /// <paramref name="workingDirectory"/> defaults to the process working directory,
+    /// which is where SPT resolves <c>user/mods</c> and where the session helper puts
+    /// the marker. A normal server has no marker, so its hash is null without any file
+    /// access beyond the existence check.
     /// </summary>
     internal static void Initialize(IEnumerable<SptMod>? loadedMods, string? workingDirectory = null)
     {
-        bool arena = HasMarker(workingDirectory ?? Directory.GetCurrentDirectory());
-        _state = new State(arena, Describe(loadedMods));
+        string directory = workingDirectory ?? Directory.GetCurrentDirectory();
+        bool arena = HasMarker(directory);
+        _state = new State(arena, Describe(loadedMods), arena ? ReadPolicyHash(directory) : null);
     }
 
     /// <summary>True when the marker file exists directly in <paramref name="workingDirectory"/>.</summary>
     internal static bool HasMarker(string? workingDirectory)
         => !string.IsNullOrEmpty(workingDirectory)
            && File.Exists(Path.Combine(workingDirectory, ArenaSessionContract.MarkerFileName));
+
+    /// <summary>
+    /// The <c>policyHash</c> string of the marker in <paramref name="workingDirectory"/>, or null
+    /// when there is nothing usable to report: no marker, a marker that cannot be read (locked,
+    /// removed meanwhile, access denied), text that is not one JSON object, a missing, JSON-null,
+    /// non-string, empty or blank <c>policyHash</c>. The value is returned as written, never
+    /// trimmed or normalised, because the client compares it with the hash of its own policy.
+    /// Never throws.
+    /// </summary>
+    internal static string? ReadPolicyHash(string? workingDirectory)
+    {
+        if (string.IsNullOrEmpty(workingDirectory))
+            return null;
+
+        string text;
+        try
+        {
+            text = File.ReadAllText(Path.Combine(workingDirectory, ArenaSessionContract.MarkerFileName));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException
+                                       or ArgumentException or System.Security.SecurityException)
+        {
+            return null;
+        }
+
+        // GetString is null for anything but an object that has a string member of that name.
+        if (!ArenaMiniJson.TryParse(text, out object? root, out _))
+            return null;
+
+        string? hash = ArenaMiniJson.GetString(root, "policyHash");
+        return string.IsNullOrWhiteSpace(hash) ? null : hash;
+    }
 
     /// <summary>
     /// GUID, name, version and absolute folder of every mod. SPT records a mod's
@@ -168,10 +212,29 @@ internal static class ArenaServerInstance
         return $"Arena session server: {state.Mods.Count} mods loaded ({names})";
     }
 
-    /// <summary>Writes <see cref="StartupLine"/> at Info; nothing at all on a normal server.</summary>
+    /// <summary>
+    /// The warning of an Arena instance whose marker gave no policy hash, or null when the hash is
+    /// there or this is a normal server. The ping then reports <c>policyHash</c> as JSON null and the
+    /// client cannot confirm which policy this server tree was built for.
+    /// </summary>
+    internal static string? MissingPolicyHashWarning()
+    {
+        State state = _state;
+        return state.ArenaInstance && state.PolicyHash == null
+            ? $"Arena session server: {ArenaSessionContract.MarkerFileName} has no readable policyHash; "
+              + "the client cannot confirm which policy this server was built for."
+            : null;
+    }
+
+    /// <summary>
+    /// Writes <see cref="StartupLine"/> at Info, followed by <see cref="MissingPolicyHashWarning"/>
+    /// at Warning when it applies; nothing at all on a normal server.
+    /// </summary>
     internal static void LogStartup(ISptLogger<PatchManager> logger)
     {
         if (StartupLine() is { } line)
             logger.Info($"[ArenaMode] {line}");
+        if (MissingPolicyHashWarning() is { } warning)
+            logger.Warning($"[ArenaMode] {warning}");
     }
 }

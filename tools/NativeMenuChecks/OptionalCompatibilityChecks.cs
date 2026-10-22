@@ -78,8 +78,9 @@ internal static partial class Program
         }
     }
 
-    // Arena session spec, sections 7 and 8: the ping may carry arenaInstance (bool) and serverMods
-    // ([{guid,name,version,folder}]). Absent means an older server; malformed parts are ignored.
+    // Arena session spec, sections 7 and 8: the ping may carry arenaInstance (bool), serverMods
+    // ([{guid,name,version,folder,dependencies}]) and, on the Arena instance, policyHash (string). Absent means an
+    // older server; malformed parts are ignored.
     private static void CheckSessionPingFields()
     {
         var oldGet = RequestHandler.Get;
@@ -133,6 +134,28 @@ internal static partial class Program
                 && ArenaServerClient.ServerMods[0].Dependencies.Count == 0,
                 "a server mod entry without dependencies (an older server) reads as no dependencies");
 
+            // policyHash: the hash of the policy the Arena instance's tree was built for, kept as the server wrote it.
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"policyHash\":\"3755e0db97983440\",\"serverMods\":[]}" : oldGet(route);
+            Assert(ArenaServerClient.RefreshAvailability() && ArenaServerClient.PolicyHash == "3755e0db97983440",
+                "the policyHash of an Arena instance's ping is read as written");
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"policyHash\":\" Ab12 Cd \",\"serverMods\":[]}" : oldGet(route);
+            Assert(ArenaServerClient.RefreshAvailability() && ArenaServerClient.PolicyHash == " Ab12 Cd ",
+                "a policyHash is passed on exactly as written, without trimming or case change");
+            RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                ? "{\"version\":\"0.1.3\",\"arenaInstance\":false,\"serverMods\":[]}" : oldGet(route);
+            Assert(ArenaServerClient.RefreshAvailability() && ArenaServerClient.PolicyHash == null,
+                "a normal server sends no policyHash and a ping without one does not keep the earlier hash");
+
+            foreach (string member in new[] { "null", "7", "true", "\"\"", "\"   \"", "{\"x\":1}", "[\"a\"]" })
+            {
+                RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
+                    ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"policyHash\":" + member + ",\"serverMods\":[]}" : oldGet(route);
+                Assert(ArenaServerClient.RefreshAvailability() && ArenaServerClient.IsArenaInstance && ArenaServerClient.PolicyHash == null,
+                    "a policyHash that is not a non-blank string reads as unknown (" + member + ")");
+            }
+
             RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
                 ? "{\"version\":\"0.1.3\",\"arenaInstance\":\"yes\",\"serverMods\":{\"guid\":\"x\"}}" : oldGet(route);
             Assert(ArenaServerClient.RefreshAvailability()
@@ -141,13 +164,13 @@ internal static partial class Program
                 "arenaInstance that is not a boolean and serverMods that is not an array count as absent");
 
             RequestHandler.Get = route => route == ArenaMode.Shared.Protocol.PingRoute
-                ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"serverMods\":[{\"guid\":\"a\"}]}" : oldGet(route);
+                ? "{\"version\":\"0.1.3\",\"arenaInstance\":true,\"policyHash\":\"3755e0db97983440\",\"serverMods\":[{\"guid\":\"a\"}]}" : oldGet(route);
             ArenaServerClient.RefreshAvailability();
             generation = ArenaServerClient.PingGeneration;
             RequestHandler.Get = route => throw new InvalidOperationException("transport unavailable");
             Assert(!ArenaServerClient.RefreshAvailability() && ArenaServerClient.PingGeneration == generation + 1
                 && !ArenaServerClient.SessionFieldsPresent && !ArenaServerClient.IsArenaInstance
-                && ArenaServerClient.ServerMods == null,
+                && ArenaServerClient.ServerMods == null && ArenaServerClient.PolicyHash == null,
                 "a failed ping forgets the previous session fields and still counts as a new generation");
         }
         finally

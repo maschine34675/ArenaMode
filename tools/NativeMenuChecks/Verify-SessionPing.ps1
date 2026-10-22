@@ -4,7 +4,7 @@ if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
 }
 
 # Arena session spec (docs/ARENA-SESSION-20261021.md, sections 7 and 8): the ping's optional
-# arenaInstance/serverMods fields and the bounded ping the side screen asks for when it opens.
+# arenaInstance/serverMods/policyHash fields and the bounded ping the side screen asks for when it opens.
 # NativeMenuChecks compiles the production ArenaServerClient.cs and executes both
 # (CheckSessionPingFields, CheckBoundedPing). Each mutant below is a copy of that source outside the
 # repository and must fail the NAMED assertion; the production file is hash-checked afterwards.
@@ -36,7 +36,15 @@ $mutants = @(
     @{ Name = 'dependencies-ignored'; From = 'ReadTextArray(mod["dependencies"])));'; To = 'null));';
        Expect = 'the dependencies of a server mod keep their string entries and drop anything else' },
     @{ Name = 'dependencies-blank-kept'; From = 'if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);'; To = 'texts.Add(text);';
-       Expect = 'the dependencies of a server mod keep their string entries and drop anything else' }
+       Expect = 'the dependencies of a server mod keep their string entries and drop anything else' },
+    @{ Name = 'policy-hash-ignored'; From = 'var hash = ping["policyHash"];'; To = 'var hash = (JToken)null;';
+       Expect = 'the policyHash of an Arena instance''s ping is read as written' },
+    @{ Name = 'policy-hash-trimmed'; From = '? hash.Value<string>()'; To = '? hash.Value<string>().Trim()';
+       Expect = 'a policyHash is passed on exactly as written, without trimming or case change' },
+    @{ Name = 'policy-hash-blank-kept'; From = ' && !string.IsNullOrWhiteSpace(hash.Value<string>())'; To = '';
+       Expect = 'a policyHash that is not a non-blank string reads as unknown' },
+    @{ Name = 'policy-hash-coerced'; From = 'hash?.Type == JTokenType.String &&'; To = 'hash != null &&';
+       Expect = 'a policyHash that is not a non-blank string reads as unknown' }
 )
 foreach ($mutant in $mutants) {
     $count = ($source.Split([string[]]@($mutant.From), [System.StringSplitOptions]::None)).Count - 1

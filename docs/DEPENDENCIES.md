@@ -48,9 +48,11 @@ private tree of the allowed server mods). The shipped list is `arena-whitelist.j
 additions and exclusions are
 `BepInEx/config/com.maschine.ArenaMode.whitelist.json` and are never shipped. That file is a combined
 allow/deny list: with `"unlisted": "allow"` it turns the whitelist into a blacklist (every mod neither
-list denies loads; a denied mod that an allowed mod hard-depends on is still pulled in, with a warning;
-for server mods the hard dependencies are their `ModDependencies`, which the server's ping reports, because
-the server refuses to load any mod when one is missing).
+list denies loads). A denied mod is never pulled in as a hard dependency: an allowed mod that needs one,
+directly or through other mods, is excluded with it (reason `requires-denied:<guid>`, listed under "Blocked for
+Arena" in the refusal), so whoever wants such a mod has to allow the library. A library nobody denied is still
+pulled in for the mods that need it, with a warning. For server mods the hard dependencies are their
+`ModDependencies`, which the server's ping reports, because the server refuses to load any mod when one is missing.
 The optional adapters below therefore apply to mods that are allowed to load: in the default Arena
 session the adapters of mods on the default list (for example PitFireTeam, DynamicMaps, ContinuousHealing,
 SVM, Killcam) are active, those of mods outside it (Continuous Load Ammo, Recoil Rework Legacy) are

@@ -17,8 +17,9 @@ namespace ArenaMode.Shared.Session
     }
 
     /// <summary>
-    /// Where a whitelisted unit comes from. Platform and Arena are code constants and cannot be
-    /// removed by the user file; Mod and Tool come from the shipped default file or the user file.
+    /// Where a whitelisted unit comes from. Platform and Arena are code constants: neither the shipped
+    /// default file nor the user file can replace, change or remove them; Mod and Tool come from the
+    /// shipped default file or the user file.
     /// </summary>
     public enum ArenaWhitelistTier
     {
@@ -136,18 +137,20 @@ namespace ArenaMode.Shared.Session
     /// for every unit that none of those names. See docs/ARENA-SESSION-20261021.md, sections 2 and 3.
     /// Immutable after <see cref="TryLoad"/>.
     ///
-    /// Per unit, in this order: a platform or Arena unit is always allowed (a <c>deny</c> cannot
-    /// remove it); a unit the user denied is excluded (the decision still pulls it in as a hard
-    /// dependency of an allowed unit); a unit the user's <c>allow</c> names is allowed; a unit the
+    /// Per unit, in this order: a platform or Arena unit is always allowed (no file can remove it
+    /// and no entry of either file can replace it); a unit the user denied is excluded (and not
+    /// pulled in as a hard dependency of an allowed unit either: <see cref="ArenaWhitelistDecision"/>
+    /// excludes the units that need it); a unit the user's <c>allow</c> names is allowed; a unit the
     /// default file denies is excluded (also in blacklist mode, and also when the default file
     /// allows it too); a unit that a default entry names is allowed; everything else follows
     /// <see cref="UnlistedMode"/>. So a user <c>allow</c> re-enables a default-denied unit, and a
     /// user <c>deny</c> always has the last word.
     ///
     /// GUID and file name comparison is ordinal and case-insensitive. The shipped default file is
-    /// trusted code-adjacent data and is parsed strictly (any defect fails the load, except two
-    /// that only produce a diagnostic: a <c>deny</c> entry that names a platform or Arena unit is
-    /// skipped, and a unit that <c>mods</c> allows and <c>deny</c> names stays denied); the user
+    /// trusted code-adjacent data and is parsed strictly (any defect fails the load, except three
+    /// that only produce a diagnostic: a <c>mods</c> entry or a <c>deny</c> entry that names a
+    /// platform or Arena unit is skipped, so that the file cannot replace or remove a unit that
+    /// code allows, and a unit that <c>mods</c> allows and <c>deny</c> names stays denied); the user
     /// file is hand-edited and is parsed leniently (a defect costs the file or the entry, with a
     /// diagnostic, never the session). Two defects cost the whole file instead: a value of
     /// <c>unlisted</c> that this build does not know, because guessing "deny" or "allow" for it
@@ -155,7 +158,11 @@ namespace ArenaMode.Shared.Session
     /// mode only, a <c>deny</c> list that cannot be read in full (not an array, or an entry that is
     /// not a non-blank string). There the deny list is the whole filter, and a lost entry would be
     /// a mod the user wanted out that loads; a lost <c>allow</c> entry, or a lost deny entry under
-    /// a whitelist, only leaves out or keeps a mod the list already treats as unlisted.
+    /// a whitelist, only leaves out or keeps a mod the list already treats as unlisted. A JSON null
+    /// for the user file's <c>unlisted</c>, <c>allow</c> or <c>deny</c> is the same as a missing
+    /// member, in both modes and without a diagnostic (in blacklist mode too: a null <c>deny</c> is
+    /// an absent deny list, not an unreadable one); the default file's <c>deny</c> is stricter and a
+    /// null there fails the load like any other value that is not an array.
     /// </summary>
     public sealed class ArenaWhitelistPolicy
     {
@@ -195,11 +202,11 @@ namespace ArenaMode.Shared.Session
 
         /// <summary>
         /// Stable hash of the effective policy (platform, Arena, default and user entries after
-        /// deny; the default file's deny list when it has one; in blacklist mode also the mode and
-        /// the user's denied names; display names do not count; order does not count). 16
-        /// lower-case hex digits. For logs, the session marker and the helper request. A whitelist
-        /// policy without a default deny list hashes exactly as it did before the unlisted mode and
-        /// the default deny list existed.
+        /// deny; the default file's deny list when it has one; the user's denied names when there
+        /// are any, and in blacklist mode the mode as well; display names do not count; order does
+        /// not count). 16 lower-case hex digits. For logs, the session marker and the helper request.
+        /// A whitelist policy without a default deny list and without a user deny hashes exactly as
+        /// it did before the unlisted mode and the default deny list existed.
         /// </summary>
         public string Hash { get; private set; }
 
@@ -237,10 +244,13 @@ namespace ArenaMode.Shared.Session
         ///
         /// Returns false (and a null policy) when the default file is missing, empty, unparsable,
         /// has an unknown schema, any invalid entry or a <c>deny</c> member that is not an array of
-        /// non-blank strings: the Arena session is then unavailable.
+        /// non-blank strings: the Arena session is then unavailable. An entry (or a deny name) of
+        /// the default file that names a platform or Arena unit is not an invalid entry: it is
+        /// skipped with a <c>default whitelist:</c> diagnostic and the file stays valid.
         /// A defective user file never makes this return false: an unknown schema, an unknown
         /// <c>unlisted</c> value, a parse error or (blacklist mode only) a <c>deny</c> list that
-        /// cannot be read in full ignores the whole user file, an invalid entry elsewhere ignores
+        /// cannot be read in full ignores the whole user file (a JSON null <c>deny</c> is an absent
+        /// one, not an unreadable one), an invalid entry elsewhere ignores
         /// that entry, each with one diagnostic. A <c>unlisted</c> member in the default
         /// file is not read (the mode is the user's decision; the shipped list stays a whitelist).
         /// <paramref name="diagnostics"/> is never null; on a false return it holds at least one
@@ -337,6 +347,19 @@ namespace ArenaMode.Shared.Session
                 {
                     diagnostics.Add("default whitelist: mods[" + i.ToString(CultureInfo.InvariantCulture) + "]: " + error);
                     return false;
+                }
+
+                if (IsProtected(entry))
+                {
+                    // Platform and Arena units are allowed by code (AddPlatformAndArenaUnits ran first). An entry
+                    // for one must not replace it: AddEntry would swap in a Mod/Tool entry with the file's sides and
+                    // versions, and a deny of the same name would then remove the unit, because
+                    // AddDefaultDenyList protects code-tier entries only. The shipped file is trusted, so this is
+                    // a mistake to report (the build script refuses to ship such a file), not a reason to fail
+                    // the load; the user file's allow list skips the same entries.
+                    diagnostics.Add("default whitelist: mods[" + i.ToString(CultureInfo.InvariantCulture) + "]: '" + entry.Id
+                        + "' is ignored, platform and Arena units are fixed in code and cannot be listed");
+                    continue;
                 }
 
                 AddEntry(entry);
@@ -448,6 +471,8 @@ namespace ArenaMode.Shared.Session
             UserFileApplied = true;
             UnlistedMode = unlisted;
 
+            // A JSON null member counts as a missing one (allow and deny here, unlisted in TryReadUnlisted),
+            // in both modes and without a diagnostic.
             object allowValue;
             if (document.TryGetValue("allow", out allowValue) && allowValue != null)
             {
@@ -518,7 +543,8 @@ namespace ArenaMode.Shared.Session
         /// <summary>
         /// True when the optional <c>deny</c> member is absent, JSON null or an array of non-blank
         /// strings. Used in blacklist mode, where a deny entry that is silently lost lets a mod load
-        /// that the user excluded; otherwise <c>error</c> says what is wrong.
+        /// that the user excluded; otherwise <c>error</c> says what is wrong. JSON null is the same as
+        /// absent (<see cref="AddUserFile"/> skips a null member as well), so no entry is lost by it.
         /// </summary>
         private static bool TryCheckDenyListForBlacklist(Dictionary<string, object> document, out string error)
         {
@@ -618,6 +644,10 @@ namespace ArenaMode.Shared.Session
             else _plugins[entry.Guid] = entry;
         }
 
+        /// <summary>
+        /// True when this entry names a platform or Arena unit (a code-tier entry exists for it) or a
+        /// Fika GUID. No file may add an entry for such a unit: it would replace the code entry.
+        /// </summary>
         private bool IsProtected(ArenaWhitelistEntry entry)
         {
             ArenaWhitelistEntry existing;
@@ -939,22 +969,19 @@ namespace ArenaMode.Shared.Session
                 foreach (string name in defaultNames) lines.Add("default-denied|" + name);
             }
 
-            // Whitelist mode is the original behaviour and adds nothing here, so the hash of every
-            // whitelist policy is the one earlier builds computed (pinned by a test). In whitelist
-            // mode a denied unit is already missing from the entries, and a deny of a unit nothing
-            // lists changes no decision. In blacklist mode the denied names are the whole filter,
-            // so the mode and the names are part of the policy. The names are reduced to the
-            // lower-case file name (the form IsDeniedByUser also matches), so that "x.dll" and
-            // "patchers/X.DLL" agree.
-            if (unlisted == ArenaUnlistedMode.Allow)
+            // The user's denied names are part of the policy in both modes. In blacklist mode they are the
+            // whole filter, so the mode line comes with them. In whitelist mode a deny changes decisions
+            // too, even when nothing lists the unit: a denied library is never pulled in as a hard
+            // dependency, so every allowed unit that needs it is excluded (deny wins over hard
+            // dependencies, ArenaWhitelistDecision). A whitelist policy without a user deny adds nothing
+            // here, so its hash is the one earlier builds computed (pinned by a test). The names are
+            // reduced to the lower-case file name (the form IsDeniedByUser also matches), so that
+            // "x.dll" and "patchers/X.DLL" agree.
+            if (unlisted == ArenaUnlistedMode.Allow) lines.Add("unlisted|" + UnlistedAllowValue);
+            if (denied != null && denied.Count > 0)
             {
-                lines.Add("unlisted|" + UnlistedAllowValue);
                 var names = new HashSet<string>(StringComparer.Ordinal);
-                if (denied != null)
-                {
-                    foreach (string name in denied) names.Add(FileNameOf(name).ToLowerInvariant());
-                }
-
+                foreach (string name in denied) names.Add(FileNameOf(name).ToLowerInvariant());
                 foreach (string name in names) lines.Add("denied|" + name);
             }
 

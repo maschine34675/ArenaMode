@@ -80,12 +80,20 @@ namespace ArenaMode.Shared.Session
     /// reason <c>unlisted-allowed</c> and no warning of its own, but the units of that kind are
     /// announced together by ONE policy-override warning per side (see <see cref="PolicyOverridePrefix"/>),
     /// so that a user file that turned the whitelist into a blacklist cannot go unnoticed; a hard
-    /// dependency of an allowed unit that is installed but not allowed
-    /// (a denied unit, or in whitelist mode any unlisted one) is allowed as well, transitively, with
-    /// reason <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
+    /// dependency of an allowed unit that is installed but unlisted (whitelist mode only: in blacklist
+    /// mode an unlisted unit is allowed anyway) is allowed as well, transitively, with reason
+    /// <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
     /// (<c>denied-by-user</c> when the user file's deny list names it, <c>denied</c> when the
     /// shipped default file's deny list does, otherwise <c>not-on-whitelist</c>). A reviewed version
     /// that differs from the installed one is a warning, never an exclusion.
+    ///
+    /// A deny wins over hard dependencies: a unit that either deny list names (and no <c>allow</c>
+    /// entry lifts) is never pulled in by the closure. A unit that would be allowed but has such a
+    /// unit as an installed hard dependency, directly or through other units, cannot start without
+    /// it, so it is excluded itself with reason <c>requires-denied:&lt;guid&gt;</c> (the GUID of the
+    /// denied unit it needs) and one warning; so is every unit between it and the denied one. Platform
+    /// and Arena units are the exception: no list can remove them (spec section 3, step 1), so they
+    /// stay allowed even then (they depend on nothing deniable in practice).
     /// </summary>
     public sealed class ArenaWhitelistDecision
     {
@@ -102,6 +110,14 @@ namespace ArenaMode.Shared.Session
 
         /// <summary>Prefix of the dependency reason; the dependant's GUID follows.</summary>
         public const string ReasonDependencyPrefix = "dependency-of:";
+
+        /// <summary>
+        /// Prefix of the reason of a unit that is excluded because an installed hard dependency of it
+        /// (directly or through other units) is denied by the user file or the default file; the GUID of
+        /// that denied unit follows (<c>requires-denied:com.example.lib</c>). The unit would be allowed
+        /// otherwise (a listed or unlisted-allowed unit, or an unlisted library an allowed unit needs).
+        /// </summary>
+        public const string ReasonRequiresDeniedPrefix = "requires-denied:";
 
         public const string ReasonNotOnWhitelist = "not-on-whitelist";
 
@@ -140,9 +156,13 @@ namespace ArenaMode.Shared.Session
 
         /// <summary>
         /// Human-readable warnings in input order, each starting with the unit name:
-        /// <c>SAIN: version 4.5.2 differs from reviewed 4.5.1</c> and
-        /// <c>BigBrain: pulled in as hard dependency of SAIN</c>; a denied unit adds
-        /// <c>(overrides the user's deny)</c> or <c>(overrides the default list's deny)</c>.
+        /// <c>SAIN: version 4.5.2 differs from reviewed 4.5.1</c>,
+        /// <c>BigBrain: pulled in as hard dependency of SAIN</c> (an unlisted library) and, for a unit
+        /// excluded with a <see cref="ReasonRequiresDeniedPrefix"/> reason,
+        /// <c>Foreign: excluded because it requires Lib (denied by the user's policy file)</c> or
+        /// <c>(denied by the default list)</c>. The name in front of the parenthesis is the denied unit's,
+        /// also for a unit that needs it only through other units; the user's list is named when both
+        /// lists deny it.
         /// In blacklist mode, when at least one unit was allowed as unlisted, the last entry is the
         /// policy-override warning (<see cref="PolicyOverridePrefix"/>), which names no single unit.
         /// </summary>
@@ -152,6 +172,12 @@ namespace ArenaMode.Shared.Session
         public static bool IsPolicyOverrideWarning(string warning)
         {
             return warning != null && warning.StartsWith(PolicyOverridePrefix, StringComparison.Ordinal);
+        }
+
+        /// <summary>True when <paramref name="reason"/> is a <see cref="ReasonRequiresDeniedPrefix"/> reason.</summary>
+        public static bool IsRequiresDeniedReason(string reason)
+        {
+            return reason != null && reason.StartsWith(ReasonRequiresDeniedPrefix, StringComparison.Ordinal);
         }
 
         public bool HasExclusions
@@ -187,10 +213,12 @@ namespace ArenaMode.Shared.Session
 
             var result = new ArenaWhitelistDecision();
             int count = units.Count;
-            var reasons = new string[count];
+            var initial = new string[count];          // the reason of a unit the policy allows by itself
+            var reasons = new string[count];          // the reason of every unit that ends up allowed
             var direct = new ArenaWhitelistEntry[count];
             var pulledInBy = new ArenaSessionUnit[count];
-            var queue = new Queue<int>();
+            var denied = new bool[count];             // no entry, and a deny list names it
+            var protectedUnit = new bool[count];      // a platform or Arena entry: no list can remove it
             var byGuid = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < count; i++)
@@ -212,21 +240,95 @@ namespace ArenaMode.Shared.Session
                 if (entry != null)
                 {
                     direct[i] = entry;
-                    reasons[i] = entry.Reason;
-                    queue.Enqueue(i);
+                    initial[i] = entry.Reason;
+                    protectedUnit[i] = entry.Tier == ArenaWhitelistTier.Platform || entry.Tier == ArenaWhitelistTier.Arena;
                 }
                 else if (policy.IsUnlistedAllowed(units[i].Guid))
                 {
                     // Blacklist mode. No entry, so no reviewed version and no warning. It joins the
-                    // closure like any allowed unit: a denied hard dependency of it must still load.
-                    reasons[i] = ReasonUnlistedAllowed;
-                    queue.Enqueue(i);
+                    // closure like any allowed unit.
+                    initial[i] = ReasonUnlistedAllowed;
+                }
+                else if (policy.IsDeniedByUser(units[i].Guid) || policy.IsDeniedByDefault(units[i].Guid))
+                {
+                    // Excluded, and (below) never pulled in as a dependency. A user allow entry would
+                    // have been found above, so this is a unit nobody lifted the deny for.
+                    denied[i] = true;
                 }
             }
 
-            // Closure over hard dependencies. Breadth first from the directly allowed units in
-            // input order, so the dependant named in a reason is the first one that reached the
-            // dependency: deterministic for a given input order.
+            // Dependants of every unit, in input order: dependants[d] lists the units that name d as a
+            // hard dependency. A dependency GUID that is not installed (or blank) names nothing.
+            var dependants = new List<int>[count];
+            for (int user = 0; user < count; user++)
+            {
+                if (units[user].HardDependencies == null) continue;
+                foreach (string dependencyGuid in units[user].HardDependencies)
+                {
+                    List<int> installedDependencies = InstalledUnits(byGuid, dependencyGuid);
+                    if (installedDependencies == null) continue;
+                    foreach (int dependencyIndex in installedDependencies)
+                    {
+                        if (dependants[dependencyIndex] == null) dependants[dependencyIndex] = new List<int>();
+                        dependants[dependencyIndex].Add(user);
+                    }
+                }
+            }
+
+            // Deny wins over hard dependencies. A unit that has a denied unit among its installed hard
+            // dependencies cannot be allowed (its loader would drop it, or the server's mod validator
+            // would drop every mod), and neither can a unit that needs such a unit: requiresDenied[i] is
+            // the index of the denied unit unit i is cut off by, or -1. First the units that name a denied
+            // unit themselves (their first denied dependency in their own order), then, breadth first, the
+            // units that need one of those. Platform and Arena units are never cut off, and a denied unit
+            // keeps its own deny reason.
+            var requiresDenied = new int[count];
+            var cutOff = new Queue<int>();
+            for (int i = 0; i < count; i++)
+            {
+                requiresDenied[i] = -1;
+                if (denied[i] || protectedUnit[i] || units[i].HardDependencies == null) continue;
+
+                foreach (string dependencyGuid in units[i].HardDependencies)
+                {
+                    List<int> installedDependencies = InstalledUnits(byGuid, dependencyGuid);
+                    if (installedDependencies == null) continue;
+                    foreach (int dependencyIndex in installedDependencies)
+                    {
+                        if (denied[dependencyIndex] && requiresDenied[i] < 0) requiresDenied[i] = dependencyIndex;
+                    }
+
+                    if (requiresDenied[i] >= 0) break;
+                }
+
+                if (requiresDenied[i] >= 0) cutOff.Enqueue(i);
+            }
+
+            while (cutOff.Count > 0)
+            {
+                int blocked = cutOff.Dequeue();
+                if (dependants[blocked] == null) continue;
+                foreach (int user in dependants[blocked])
+                {
+                    if (denied[user] || protectedUnit[user] || requiresDenied[user] >= 0) continue;
+                    requiresDenied[user] = requiresDenied[blocked];
+                    cutOff.Enqueue(user);
+                }
+            }
+
+            // Closure over hard dependencies. Breadth first from the directly allowed units that are not
+            // cut off, in input order, so the dependant named in a reason is the first one that reached
+            // the dependency: deterministic for a given input order. What is pulled in is an unlisted
+            // library (whitelist mode); a denied unit is never entered, and neither is a unit that is cut
+            // off from an allowed one (only a protected dependant can still name such a unit).
+            var queue = new Queue<int>();
+            for (int i = 0; i < count; i++)
+            {
+                if (initial[i] == null || requiresDenied[i] >= 0) continue;
+                reasons[i] = initial[i];
+                queue.Enqueue(i);
+            }
+
             while (queue.Count > 0)
             {
                 int index = queue.Dequeue();
@@ -235,15 +337,44 @@ namespace ArenaMode.Shared.Session
 
                 foreach (string dependencyGuid in dependant.HardDependencies)
                 {
-                    string key = Normalize(dependencyGuid);
-                    List<int> installedDependencies;
-                    if (key.Length == 0 || !byGuid.TryGetValue(key, out installedDependencies)) continue;
+                    List<int> installedDependencies = InstalledUnits(byGuid, dependencyGuid);
+                    if (installedDependencies == null) continue;
 
                     foreach (int dependencyIndex in installedDependencies)
                     {
-                        if (reasons[dependencyIndex] != null) continue;
+                        if (reasons[dependencyIndex] != null || denied[dependencyIndex] || requiresDenied[dependencyIndex] >= 0) continue;
                         reasons[dependencyIndex] = ReasonDependencyPrefix + dependant.Guid;
                         pulledInBy[dependencyIndex] = dependant;
+                        queue.Enqueue(dependencyIndex);
+                    }
+                }
+            }
+
+            // Which of the cut-off units are reported as such: the ones that the policy allows by itself
+            // and the ones an allowed-by-itself unit would have pulled in. A cut-off unlisted library that
+            // nothing allowed needs stays a plain not-on-whitelist exclusion.
+            var wouldBeAllowed = new bool[count];
+            for (int i = 0; i < count; i++)
+            {
+                if (initial[i] == null) continue;
+                wouldBeAllowed[i] = true;
+                queue.Enqueue(i);
+            }
+
+            while (queue.Count > 0)
+            {
+                int index = queue.Dequeue();
+                if (units[index].HardDependencies == null) continue;
+
+                foreach (string dependencyGuid in units[index].HardDependencies)
+                {
+                    List<int> installedDependencies = InstalledUnits(byGuid, dependencyGuid);
+                    if (installedDependencies == null) continue;
+
+                    foreach (int dependencyIndex in installedDependencies)
+                    {
+                        if (wouldBeAllowed[dependencyIndex] || denied[dependencyIndex]) continue;
+                        wouldBeAllowed[dependencyIndex] = true;
                         queue.Enqueue(dependencyIndex);
                     }
                 }
@@ -254,7 +385,18 @@ namespace ArenaMode.Shared.Session
                 ArenaSessionUnit unit = units[i];
                 if (reasons[i] == null)
                 {
-                    result.Excluded.Add(unit.CopyWithReason(policy.ExclusionReason(unit.Guid)));
+                    if (requiresDenied[i] >= 0 && wouldBeAllowed[i])
+                    {
+                        ArenaSessionUnit blocker = units[requiresDenied[i]];
+                        result.Excluded.Add(unit.CopyWithReason(ReasonRequiresDeniedPrefix + blocker.Guid));
+                        result.Warnings.Add(unit.DisplayName + ": excluded because it requires " + blocker.DisplayName
+                            + (policy.IsDeniedByUser(blocker.Guid) ? " (denied by the user's policy file)" : " (denied by the default list)"));
+                    }
+                    else
+                    {
+                        result.Excluded.Add(unit.CopyWithReason(policy.ExclusionReason(unit.Guid)));
+                    }
+
                     continue;
                 }
 
@@ -271,10 +413,7 @@ namespace ArenaMode.Shared.Session
                 }
                 else if (pulledInBy[i] != null)
                 {
-                    string warning = unit.DisplayName + ": pulled in as hard dependency of " + pulledInBy[i].DisplayName;
-                    if (policy.IsDeniedByUser(unit.Guid)) warning += " (overrides the user's deny)";
-                    else if (policy.IsDeniedByDefault(unit.Guid)) warning += " (overrides the default list's deny)";
-                    result.Warnings.Add(warning);
+                    result.Warnings.Add(unit.DisplayName + ": pulled in as hard dependency of " + pulledInBy[i].DisplayName);
                 }
             }
 
@@ -317,6 +456,14 @@ namespace ArenaMode.Shared.Session
                     + (names.Count - PolicyOverrideNamesListed).ToString(CultureInfo.InvariantCulture) + " more";
             return PolicyOverridePrefix + names.Count.ToString(CultureInfo.InvariantCulture)
                 + " unlisted mod(s) allowed by your policy file: " + list;
+        }
+
+        /// <summary>The indices of the installed units with this GUID, or null for a blank or unknown one.</summary>
+        private static List<int> InstalledUnits(Dictionary<string, List<int>> byGuid, string guid)
+        {
+            string key = Normalize(guid);
+            List<int> indices;
+            return key.Length > 0 && byGuid.TryGetValue(key, out indices) ? indices : null;
         }
 
         private static string Normalize(string guid)

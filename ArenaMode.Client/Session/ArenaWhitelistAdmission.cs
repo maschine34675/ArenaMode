@@ -18,12 +18,18 @@ namespace ArenaMode.Session;
 /// <list type="bullet">
 /// <item><b>Arena session</b> (started with <c>-arena-session</c>): the preloader gate already
 /// removed every mod that is not on the whitelist. Arena is admitted only if that gate ran to
-/// completion and the server answers as an Arena instance; the player can only return to the normal
-/// session.</item>
-/// <item><b>Normal session</b>: the installed plugins (and the server's mods from the ping) are
-/// evaluated with the same policy and the same <see cref="ArenaWhitelistDecision"/> the gate uses.
-/// Anything excluded refuses Arena and, when the server and the helper can do it, offers an Arena
-/// session. Version warnings never refuse.</item>
+/// completion, the policy can be loaded (without one nothing below can be judged), no neutralised
+/// preloader patcher had already run before the gate, every plugin this game loaded is allowed by the
+/// policy as it reads now, the server answers as an Arena instance, the mods it reports are all allowed
+/// by the policy as it reads now, and the policy hash the server reports is the gate's (review
+/// 2026-10-22: the client used to compute the server's exclusions and then only show them as notes, the
+/// hashes were never compared, and a policy that could not be loaded was not noticed at all). The player
+/// can only return to the normal session.</item>
+/// <item><b>Normal session</b>: the installed plugins, the preloader patchers (every <c>*.dll</c> below
+/// <c>BepInEx\patchers</c>, by file name, at any depth: the files the gate would see) and the server's
+/// mods from the ping are evaluated with the same policy and, for plugins and server mods, the same
+/// <see cref="ArenaWhitelistDecision"/> the gate uses. Anything excluded refuses Arena and, when the
+/// server and the helper can do it, offers an Arena session. Version warnings never refuse.</item>
 /// </list>
 ///
 /// The policy may be a blacklist (the user file says <c>"unlisted": "allow"</c>): then everything that
@@ -55,7 +61,6 @@ internal static class ArenaWhitelistAdmission
     /// <summary>The longest the main thread waits for the ping when a screen opens.</summary>
     private const int ProbeBudgetMilliseconds = 250;
 
-    private const long MaxPolicyFileBytes = 256 * 1024;
     private const int MaxNamesListed = 12;
     private const int MaxWarningsListed = 4;
 
@@ -220,13 +225,17 @@ internal static class ArenaWhitelistAdmission
         }
 
         outcome.Policy = LoadPolicy(out string policyProblem);
-        if (ArenaSessionMode.IsArenaSession) ComputeArenaSession(outcome);
+        if (ArenaSessionMode.IsArenaSession) ComputeArenaSession(outcome, policyProblem);
         else if (outcome.Policy != null) ComputeNormalSession(outcome, outcome.Policy);
         else outcome.Reason = PolicyUnavailableRefusal(policyProblem);
         return outcome;
     }
 
-    private static void ComputeArenaSession(Outcome outcome)
+    /// <summary>What the player is told to do when the policy of the moment disagrees with the one the session was built for.</summary>
+    private const string PolicyChangedText =
+        "the policy changed during the switch. Return to the normal session and start the Arena session again.";
+
+    private static void ComputeArenaSession(Outcome outcome, string policyProblem)
     {
         if (!ArenaSessionMode.GateActive)
         {
@@ -234,6 +243,44 @@ internal static class ArenaWhitelistAdmission
             outcome.Reason = "The Arena session could not filter the installed mods (" + problem
                 + "). Arena is unavailable in this session; return to the normal session.";
             LogOnce("gate:" + problem, true, "Arena session without an active mod filter: " + problem);
+            return;
+        }
+
+        // The gate filtered with the policy it read when this game started. Everything below compares what is
+        // running with the policy as the client reads it NOW, so without one nothing can be judged and the
+        // session must not trust the gate's word alone (it used to admit, because every comparison below was
+        // skipped for a missing policy). Same wording as a normal session, plus the way out.
+        var policy = outcome.Policy;
+        if (policy == null)
+        {
+            outcome.Reason = PolicyUnavailableRefusal(policyProblem) + " Return to the normal session.";
+            LogOnce("sessionpolicy:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);
+            return;
+        }
+
+        // A not-allowed patcher that sorts before the gate has run its initializer: the gate switched off what
+        // was left of it, but the process is not the clean, filtered one this session promises.
+        var ranBeforeGate = ArenaSessionMode.GateReport.PatchersRanBeforeGate;
+        if (ranBeforeGate != null && ranBeforeGate.Count > 0)
+        {
+            outcome.Reason = PatchersRanBeforeGateRefusal(ranBeforeGate);
+            LogOnce("ranbeforegate:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);
+            return;
+        }
+
+        // The plugins this game loaded are judged with the policy as it reads now, like the server's mods below. The
+        // gate removed what the policy of the moment it started excluded; if the files changed during the restart
+        // (Syncthing mirrors the user file), a loaded plugin may be one the current policy excludes, and nothing else
+        // compares the two. The decision is the gate's own, so with an unchanged policy it excludes nothing. It needs
+        // no ping. Its warnings are not added to the notes: the gate's report already carries them. Known limit: a
+        // library the gate pulled in for a plugin that then failed to load has no dependant left to pull it in and
+        // reads as excluded; that refuses (fail closed), with the same hint to return and start again.
+        var loaded = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, ClientUnits());
+        if (loaded.Excluded.Count > 0)
+        {
+            outcome.Reason = "This game loaded " + JoinLimited(ExcludedNames(loaded), MaxNamesListed)
+                + ", which the current policy excludes: " + PolicyChangedText;
+            LogOnce("clientexcluded:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);
             return;
         }
 
@@ -246,14 +293,64 @@ internal static class ArenaWhitelistAdmission
 
         var notes = new List<string>(ArenaSessionMode.GateReport.Warnings);
         var serverMods = ArenaServerClient.ServerMods;
-        if (outcome.Policy != null && serverMods != null)
+        if (serverMods != null)
         {
-            var decision = ArenaWhitelistDecision.Evaluate(outcome.Policy, ArenaWhitelistSide.Server, ServerUnits(serverMods));
+            var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, ServerUnits(serverMods));
+
+            // The server tree was built from the request, with the policy of the moment the player clicked. If the
+            // policy files changed during the restart (Syncthing mirrors the user file), the server may run a mod
+            // the policy as it reads now excludes: nothing else compares the two, so it is refused here.
+            if (decision.Excluded.Count > 0)
+            {
+                var names = new List<string>(decision.Excluded.Count);
+                foreach (var unit in decision.Excluded) names.Add(unit.DisplayName);
+                outcome.Reason = "The Arena session server runs " + JoinLimited(names, MaxNamesListed)
+                    + ", which the current policy excludes: " + PolicyChangedText;
+                LogOnce("serverexcluded:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);
+                return;
+            }
+
             notes.AddRange(decision.Warnings);
+        }
+
+        // Both hashes must be known to disagree: a server that reports none (an older build, an unreadable
+        // marker) is "unknown", not "different".
+        string gateHash = ArenaSessionMode.GateReport.PolicyHash;
+        string serverHash = ArenaServerClient.PolicyHash;
+        if (!string.IsNullOrWhiteSpace(gateHash) && !string.IsNullOrWhiteSpace(serverHash)
+            && !string.Equals(gateHash, serverHash, StringComparison.Ordinal))
+        {
+            outcome.Reason = "The Arena session server was built for a different policy than this game applies: "
+                + PolicyChangedText;
+            LogOnce("policyhash:" + serverHash + "|" + gateHash, true,
+                "Arena session refused: " + outcome.Reason + " (server policy " + serverHash + ", game policy " + gateHash + ")");
+            return;
         }
 
         outcome.Notes = notes;
         outcome.WarningLine = FormatNotes(notes);
+    }
+
+    private static List<string> ExcludedNames(ArenaWhitelistDecision decision)
+    {
+        var names = new List<string>(decision.Excluded.Count);
+        foreach (var unit in decision.Excluded) names.Add(unit.DisplayName);
+        return names;
+    }
+
+    /// <summary>
+    /// The refusal for patchers that ran before the gate (<c>patchersRanBeforeGate</c> of the gate report).
+    /// The wording is the spec's, in the singular; several files get the plural forms.
+    /// </summary>
+    private static string PatchersRanBeforeGateRefusal(List<string> files)
+    {
+        string names = JoinLimited(files, MaxNamesListed);
+        bool several = files.Count > 1;
+        return several
+            ? "The preloader patchers " + names + " ran before the Arena gate could stop them. "
+                + "Allow them in the policy file or remove them, then start the Arena session again."
+            : "The preloader patcher " + names + " ran before the Arena gate could stop it. "
+                + "Allow it in the policy file or remove it, then start the Arena session again.";
     }
 
     private static void ComputeNormalSession(Outcome outcome, ArenaWhitelistPolicy policy)
@@ -272,6 +369,12 @@ internal static class ArenaWhitelistAdmission
         var listedGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var unit in client.Excluded) AddExcluded(denied, unlisted, listedGuids, unit);
         if (server != null) foreach (var unit in server.Excluded) AddExcluded(denied, unlisted, listedGuids, unit);
+
+        // Preloader patchers are units too (review 2026-10-22): a normal session loads all of them, the Arena
+        // session neutralises every one the policy does not allow, so an excluded patcher blocks a direct start
+        // here like an excluded plugin does and the session start stays available (it neutralises them; one that
+        // sorts before the gate is then caught by the gate report's patchersRanBeforeGate).
+        foreach (var unit in ExcludedPatchers(policy)) AddExcluded(denied, unlisted, listedGuids, unit);
 
         var notes = new List<string>(client.Warnings);
         if (server != null)
@@ -382,6 +485,81 @@ internal static class ArenaWhitelistAdmission
         return units;
     }
 
+    /// <summary>
+    /// The preloader patchers the policy does not allow. Like the gate, this goes by the file name and looks at
+    /// every <c>*.dll</c> below <c>BepInEx\patchers</c>, at any depth (BepInEx finds patchers the same way), once
+    /// per file name. The unit's <c>Guid</c> and <c>Name</c> are the file name and its
+    /// <c>Reason</c> is the policy's exclusion reason: <c>denied-by-user</c>, <c>denied</c> or
+    /// <c>not-on-whitelist</c>. A folder that cannot be listed throws, which refuses Arena like any other
+    /// failure to evaluate the whitelist. A library that sits in the patchers folder without being a patcher
+    /// is no unit (<see cref="MayBePatcher"/>): the gate leaves it alone as well, and it must not block a direct
+    /// start. A file that cannot be read counts as a patcher.
+    /// </summary>
+    private static List<ArenaSessionUnit> ExcludedPatchers(ArenaWhitelistPolicy policy)
+    {
+        var excluded = new List<ArenaSessionUnit>();
+        string root = BepInEx.Paths.PatcherPluginPath;
+        if (string.IsNullOrEmpty(root) || !Directory.Exists(root)) return excluded;
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string path in Directory.GetFiles(root, "*.dll", SearchOption.AllDirectories))
+        {
+            string file = Path.GetFileName(path);
+            if (string.IsNullOrEmpty(file) || seen.Contains(file)) continue;
+            if (policy.IsAllowedPatcher(file)) continue;
+            if (!MayBePatcher(path)) continue;
+            seen.Add(file);
+            excluded.Add(new ArenaSessionUnit(file, file, null, path, null) { Reason = policy.ExclusionReason(file) });
+        }
+
+        return excluded;
+    }
+
+    /// <summary>The member name BepInEx looks for when it decides whether a type is a preloader patcher.</summary>
+    private static readonly byte[] PatcherMemberName = Encoding.ASCII.GetBytes("TargetDLLs");
+
+    /// <summary>
+    /// False for a DLL that cannot be a preloader patcher. BepInEx takes a type for a patcher only when it has a
+    /// public static <c>TargetDLLs</c> property, so that name is in the metadata of every patcher (the UTF-8 string
+    /// heap of the assembly); a DLL whose bytes do not contain it is a library that merely sits in the patchers
+    /// folder. The file is searched, not loaded. A file that cannot be read counts as a patcher: not knowing is no
+    /// reason to let it pass.
+    /// </summary>
+    internal static bool MayBePatcher(string path)
+    {
+        try
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                return ContainsBytes(stream, PatcherMemberName);
+        }
+        catch (Exception)
+        {
+            return true;
+        }
+    }
+
+    private static bool ContainsBytes(Stream stream, byte[] needle)
+    {
+        var buffer = new byte[64 * 1024 + needle.Length];
+        int carried = 0;
+        while (true)
+        {
+            int read = stream.Read(buffer, carried, buffer.Length - carried);
+            if (read <= 0) return false;
+            int total = carried + read;
+            for (int start = 0; start + needle.Length <= total; start++)
+            {
+                int i = 0;
+                while (i < needle.Length && buffer[start + i] == needle[i]) i++;
+                if (i == needle.Length) return true;
+            }
+
+            // A match can straddle two reads: keep the last needle.Length - 1 bytes in front of the next read.
+            carried = Math.Min(needle.Length - 1, total);
+            Buffer.BlockCopy(buffer, total - carried, buffer, 0, carried);
+        }
+    }
+
     private static List<ArenaSessionUnit> ServerUnits(IReadOnlyList<ArenaServerModInfo> mods)
     {
         var units = new List<ArenaSessionUnit>(mods.Count);
@@ -395,8 +573,9 @@ internal static class ArenaWhitelistAdmission
     // ------------------------------------------------------------------ policy files
 
     /// <summary>
-    /// A normal session without a usable shipped whitelist refuses Arena (nothing else keeps unlisted
-    /// or denied mods out of it) and offers no session; ordinary raids are untouched.
+    /// A session of either kind without a usable shipped whitelist refuses Arena (nothing else keeps unlisted
+    /// or denied mods out of it); a normal session offers no Arena session then, an Arena session adds
+    /// the way back to the normal one. Ordinary raids are untouched.
     /// </summary>
     private static string PolicyUnavailableRefusal(string problem)
         => "Arena is unavailable: its mod whitelist could not be loaded (" + problem
@@ -435,28 +614,22 @@ internal static class ArenaWhitelistAdmission
 
     private static string ReadPolicyFile(string path, string label, bool required, out string problem)
     {
+        // The gate reads both files through the same ArenaPolicyFiles (one limit, one decoding): both sides must end
+        // up with the same policy, or the Arena session refuses on the policy hash for ever.
         problem = null;
-        try
+        switch (ArenaPolicyFiles.TryRead(path, out string text, out string detail))
         {
-            var info = new FileInfo(path);
-            if (!info.Exists)
-            {
+            case ArenaPolicyFileState.Read:
+                return text;
+            case ArenaPolicyFileState.Absent:
                 if (required) problem = label + " not found at " + path;
                 return null;
-            }
-
-            if (info.Length > MaxPolicyFileBytes)
-            {
-                problem = label + " is larger than " + (MaxPolicyFileBytes / 1024) + " KB and was ignored";
+            case ArenaPolicyFileState.TooLarge:
+                problem = label + " is larger than " + (ArenaPolicyFiles.MaxBytes / 1024) + " KB and was ignored";
                 return null;
-            }
-
-            return File.ReadAllText(path, Encoding.UTF8);
-        }
-        catch (Exception ex)
-        {
-            problem = label + " could not be read: " + ex.Message;
-            return null;
+            default:
+                problem = label + " could not be read: " + detail;
+                return null;
         }
     }
 

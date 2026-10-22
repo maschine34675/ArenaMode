@@ -43,8 +43,11 @@ never be the code that loads that assembly.
   user file or entry), the patcher warnings. The Info line counts all of them.
 - Patchers that sort before the gate have run their initializer already. They are still
   neutralised (target list, patch, finalizer) and listed in `patchersNeutralised`; the report gets
-  one warning per such patcher. BepInEx's own entry-point patcher and the gate are recognised by
-  the assembly their delegates come from and are never touched.
+  one warning per such patcher, and (since 2026-10-22) their file names go into `patchersRanBeforeGate`: a
+  member every report carries (an empty array when none), a subset of `patchersNeutralised`, kept by the
+  provisional and the inactive reports, and counted in the Info summary as ` (N patcher(s) ran before the gate)`.
+  An allowed patcher is never listed, wherever it sorts. BepInEx's own entry-point patcher and the gate are
+  recognised by the assembly their delegates come from and are never touched.
 - The postfix never throws. The plan (decision, report JSON) is built before any list changes;
   the removal restores the lists if it fails. A failure turns the gate Failed for good: later scans
   pass everything, the report is inactive with the reason, an Error line is logged.
@@ -73,33 +76,45 @@ never be the code that loads that assembly.
 
 ## Offline checks
 
-`pwsh -File tools/ArenaGateChecks/Verify.ps1` (about 80 seconds). It builds the gate with
+`pwsh -File tools/ArenaGateChecks/Verify.ps1` (about one minute for the scenarios, about five with the mutants;
+`-SkipMutants` leaves them out). It builds the gate with
 `dotnet build` (no deploy), compiles a driver and a dummy patcher template with the .NET SDK's
 Roslyn against the game's own `mscorlib`, and runs one scenario per process under the editor Mono
 (`MONO_PATH` = the game's `Managed`). The driver calls the real `AssemblyPatcher.AddPatchersFromDirectory`
 and `PatchAndLoad` (with BepInEx's real entry-point patcher patching a copy of the game's
 `UnityEngine.CoreModule`) and then the same `FindPluginTypes<PluginInfo>` call that
 `Chainloader.Start()` makes. Dummy plugins are generated with Cecil and carry real `BepInPlugin`
-and `BepInDependency` metadata. 13 scenarios, 383 checks (since 2026-10-22; `default-deny` is new):
+and `BepInDependency` metadata. 17 scenarios, 617 checks (since 2026-10-22; `default-deny`, `no-early-patcher`, `user-oversize`,
+`unidentified-patcher` and `gate-unlocated` are new):
 
 | Scenario | Proves |
 |---|---|
 | inert | no flag: no Harmony patch, no log source, no report, every patcher and plugin untouched, even with an unreadable policy |
-| full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), built-in patcher intact, no Unity assembly before the patched CoreModule |
+| full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), `patchersRanBeforeGate` (read from the raw JSON of the provisional and the final report: exactly the denied patchers that sort before the gate, not the allowed ones that sort there nor the denied ones that sort after it), the ` (1 patcher(s) ran before the gate)` suffix of the summary, built-in patcher intact, no Unity assembly before the patched CoreModule |
+| no-early-patcher | the same world without the denied patcher that sorts before the gate: `patchersRanBeforeGate` is present and empty in the provisional and the final report, the summary line has no suffix, the denied patchers that sort after the gate are neutralised without a warning |
 | user-file / user-garbage | user allow and deny, platform units undeniable, unparsable user file ignored with a warning; a user allow lifts a default deny (ORBIT); the patcher warning names the user's deny |
 | default-deny | the shipped file plus extra default denies (a plugin, an allowed patcher, a patcher that sorts before the gate): reason `denied`, a listed-and-denied patcher is denied and reported, the patcher warning says `is denied by the default policy list` |
-| user-blacklist | `"unlisted": "allow"` with a deny list: everything not denied is allowed (`unlisted-allowed`, no warning of its own), denied plugins are excluded (`denied-by-user`; the shipped default's deny of ORBIT still holds, reason `denied`), a denied hard dependency of an unlisted plugin is still pulled in with the override warning, every preloader patcher runs except the denied ones |
-| bad-default / missing-default | policy unusable: inactive report with the reason, no patch, no patcher touched, Error line |
-| no-core-module | the gate refuses to install and loads no Unity assembly itself |
-| postfix-failure | malformed plugin info: no exception, lists unchanged, report inactive, later scans unfiltered, the Error line says that the neutralised patchers stay off |
+| user-blacklist | `"unlisted": "allow"` with a deny list: everything not denied is allowed (`unlisted-allowed`, no warning of its own), denied plugins are excluded (`denied-by-user`; the shipped default's deny of ORBIT still holds, reason `denied`), a hard dependency the user denied is not pulled in and the unlisted plugin that needs it is excluded (`requires-denied:<guid>`, with its own warning; deny wins over hard dependencies), every preloader patcher runs except the denied ones |
+| bad-default / missing-default | policy unusable: inactive report with the reason, no patch, no patcher touched, Error line, `patchersRanBeforeGate` present and empty |
+| no-core-module | the gate refuses to install and loads no Unity assembly itself; the inactive report still lists the patchers that ran before the gate |
+| postfix-failure | malformed plugin info: no exception, lists unchanged, report inactive, later scans unfiltered, the Error line says that the neutralised patchers stay off, the inactive report keeps `patchersRanBeforeGate` |
+| user-oversize | a valid user file one byte above 256 KB that would deny SAIN is ignored as a whole with a warning (`user whitelist: cannot read ..., the file is ignored: larger than 256 KB`), none of its deny list applies and the report's policy hash is the one of the default list alone; the client reads the same files through the same function (`ArenaPolicyFiles`) and ignores it too |
+| unidentified-patcher | four patchers the gate cannot place, one early and one late of each kind (delegates from a dynamic assembly, which has no file; a patcher with only a patch method, so no assembly to find): all four are neutralised under `(unidentified) <type name>` with their own warning, the early one with an initializer is listed in `patchersRanBeforeGate` and its initializer ran, none of the late ones ran anything, and the preloader gets to its end (BepInEx would fail on a patcher without a target list) |
+| gate-unlocated | the gate is called through a wrapper patcher and is not itself in the patcher list, so its position is unknown: every neutralised patcher is listed in `patchersRanBeforeGate` (including ones whose initializer has not run) and one warning says why |
 | control-early-install | negative control: patching during `Initialize` is detected as an early Unity load |
-| baseline-real / real-install | the 41 plugins of the installed game, decided by the policy code from units read in a separate gate-free process; the WTT patcher is on the default list now and runs untouched |
+| baseline-real / real-install | the 41 plugins of the installed game, decided by the policy code from units read in a separate gate-free process; the WTT patcher is on the default list now and runs untouched; no patcher is neutralised, so `patchersRanBeforeGate` is empty whatever sorts before the gate |
 
-Fourteen mutants of the gate (install in `Initialize`, no flag check, nothing removed, patchers not
-neutralised, unlisted patchers neutralised in blacklist mode, entry-point patcher neutralised, every directory filtered, soft dependency pulled in,
-postfix may throw, patchers named at Debug, "stay off" not said, patcher warning does not name the default
-deny, patcher warning does not name the user's deny, Debug exclusion line without the reason) are compiled and
-must each fail a scenario; all do, for the intended reason.
+Thirty-five mutants of the gate and of the shared session sources it links (install in `Initialize`, no flag
+check, nothing removed, patchers not neutralised, unlisted patchers neutralised in blacklist mode, entry-point
+patcher neutralised, every directory filtered, soft dependency pulled in, postfix may throw, patchers named at
+Debug, "stay off" not said, patcher warning does not name the default deny, patcher warning does not name the
+user's deny, Debug exclusion line without the reason, the six around the policy-override suffix, flag and
+warning, and nine for `patchersRanBeforeGate`: never collected, every neutralised patcher listed, allowed early
+patchers listed, missing in the final report, missing in the inactive reports, not published, omitted when empty,
+summary suffix missing, suffix written for an empty list, and six of the second pass: the size limit of the shared
+policy reader off, a private reader for the user file, a patcher without a file left active, not reported as having run
+early, without its warning, and an unknown gate position listing nothing) are compiled and must each fail a scenario; all
+do, for the intended reason.
 
 Not covered, because it needs the game: the player Mono instead of the editor Mono (same version,
 different build), the real chainloader and Unity start, `FixPluginTypesSerialization` and the other

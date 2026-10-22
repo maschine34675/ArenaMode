@@ -122,9 +122,12 @@ internal static partial class Program
 
         string switching = Slice(side, "private static void SwitchSession(", "private static void EnsureCompatibleMode(");
         Require(switching.Contains("Controller(screen)?.Session?.Profile?.Id", StringComparison.Ordinal)
-                && switching.Contains("ArenaSessionSwitch.Request(direction, profileId, out var error)", StringComparison.Ordinal)
+                && switching.Contains("ArenaSessionSwitch.Request(direction, profileId, out var error, failure => ShowSwitchFailure(screen, direction, failure))", StringComparison.Ordinal)
+                && switching.Contains("ShowSwitchFailure(screen, direction, error);", StringComparison.Ordinal)
                 && switching.Contains("ArenaAvailabilityNotice.Show(screen, error, retry);", StringComparison.Ordinal),
-            "the confirmed action passes the logged-in profile and keeps the action after a failure");
+            "the confirmed action passes the logged-in profile, shows a failure that arrives later as well, and keeps the action after a failure");
+        Require(switching.Contains("if (ArenaSessionSwitch.HelperPending) ArenaAvailabilityNotice.ShowInfo(screen, ArenaSessionSwitch.WaitingText);", StringComparison.Ordinal),
+            "while the helper has not answered the screen says so and offers no second click");
 
         // ---- notice
         Require(notice.Contains("_text.richText = false;", StringComparison.Ordinal)
@@ -140,10 +143,24 @@ internal static partial class Program
             "the notice stays independent of Core, settings and adapters");
 
         // ---- switch
-        string request = Slice(switchCode, "private static bool RequestUnsafe(", "internal static string BuildRequestJson(");
-        Require(Before(request, "WriteRequestFile(requestPath, requestJson);", "LaunchHelper(helper, direction, requestPath, out int helperPid, out error)")
-                && Before(request, "LaunchHelper(helper, direction, requestPath, out int helperPid, out error)", "QuitGame();"),
-            "the request file exists before the helper starts and the game quits only after it started");
+        string request = Slice(switchCode, "private static bool RequestUnsafe(", "private static void StartWaiting(");
+        Require(Before(request, "DeleteStaleAcknowledgement(requestPath);", "WriteRequestFile(requestPath, requestJson);")
+                && Before(request, "WriteRequestFile(requestPath, requestJson);", "LaunchHelper(helper, direction, requestPath, out int helperPid, out error)")
+                && Before(request, "LaunchHelper(helper, direction, requestPath, out int helperPid, out error)", "StartWaiting(pending);")
+                && !request.Contains("QuitGame", StringComparison.Ordinal),
+            "a stale acknowledgement goes first, the request file exists before the helper starts and the request itself never quits the game");
+        string step = Slice(switchCode, "private static bool Step(", "private static void Fail(");
+        string accepted = Slice(step, "case ArenaHandshakeStatus.Accepted:", "case ArenaHandshakeStatus.HelperExited:");
+        Require(Regex.Matches(switchCode, @"QuitGame\(\)").Count == 1 && Before(accepted, "_requested = true;", "QuitGame();"),
+            "the game quits in exactly one place: when the helper has accepted the request");
+        Require(!switchCode.Contains("Thread.Sleep", StringComparison.Ordinal) && !switchCode.Contains(".Wait(", StringComparison.Ordinal)
+                && !switchCode.Contains("WaitOne(", StringComparison.Ordinal) && !switchCode.Contains("SpinWait", StringComparison.Ordinal)
+                && switchCode.Contains("plugin.StartCoroutine(WaitForHelper(pending));", StringComparison.Ordinal)
+                && switchCode.Contains("yield return null;", StringComparison.Ordinal),
+            "the wait for the helper is a coroutine on the plugin and never blocks the main thread");
+        Require(switchCode.Contains("Clock = () => Time.realtimeSinceStartup;", StringComparison.Ordinal)
+                && !switchCode.Contains("Time.time", StringComparison.Ordinal) && !switchCode.Contains("deltaTime", StringComparison.Ordinal),
+            "the wait runs on real time, not on game time that a pause or a slow frame would stretch");
         Require(Before(request, "string requestJson = BuildRequestJson(request);", "HelperRequest.TryParse(requestJson, direction, out _, out string refusal)")
                 && Before(request, "HelperRequest.TryParse(requestJson, direction, out _, out string refusal)", "WriteRequestFile(requestPath, requestJson);"),
             "the helper's own parser checks the request text before the file is written, the helper started or the game quit");

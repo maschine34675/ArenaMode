@@ -50,10 +50,12 @@ namespace ArenaMode.Gate
         private static readonly object Sync = new object();
 
         // What the report carries besides the decision: policy diagnostics (an ignored user file,
-        // for example), patcher warnings and the neutralised patcher files.
+        // for example), patcher warnings, the neutralised patcher files and, of those, the ones whose
+        // initializer had already run when the gate got to them.
         private static readonly List<string> Diagnostics = new List<string>();
         private static readonly List<string> PatcherWarnings = new List<string>();
         private static readonly List<string> Neutralised = new List<string>();
+        private static readonly List<string> RanBeforeGate = new List<string>();
 
         private static Stage _stage = Stage.Idle;
         private static ManualLogSource _log;
@@ -101,6 +103,7 @@ namespace ArenaMode.Gate
 
                     patchers = ArenaGatePatchers.Neutralise(_policy);
                     Neutralised.AddRange(patchers.Neutralised);
+                    RanBeforeGate.AddRange(patchers.RanBeforeGate);
                     PatcherWarnings.AddRange(patchers.Warnings);
                     foreach (string warning in PatcherWarnings) Log(LogLevel.Warning, "Arena session: " + warning);
 
@@ -124,6 +127,7 @@ namespace ArenaMode.Gate
                 {
                     if (patchers != null) patchers.Rollback();
                     Neutralised.Clear();
+                    RanBeforeGate.Clear();
                     PatcherWarnings.Clear();
                     Fail("the gate could not prepare the Arena session: " + ex.Message, ex);
                 }
@@ -137,26 +141,25 @@ namespace ArenaMode.Gate
             string defaultPath = Path.Combine(
                 Path.Combine(Paths.PluginPath, ArenaSessionContract.PluginFolderName),
                 ArenaSessionContract.DefaultPolicyFileName);
+
+            // Both files go through ArenaPolicyFiles, the reader the client uses as well (one size limit, one
+            // decoding): the client builds the request from its reading of these files, and the Arena session
+            // refuses when the two policy hashes differ.
             string defaultJson;
-            try
+            string detail;
+            ArenaPolicyFileState defaultState = ArenaPolicyFiles.TryRead(defaultPath, out defaultJson, out detail);
+            if (defaultState != ArenaPolicyFileState.Read)
             {
-                defaultJson = File.ReadAllText(defaultPath);
-            }
-            catch (Exception ex)
-            {
-                error = "cannot read the default whitelist '" + defaultPath + "': " + ex.Message;
+                error = "cannot read the default whitelist '" + defaultPath + "': " + ArenaPolicyFiles.Describe(defaultState, detail);
                 return false;
             }
 
             string userPath = Path.Combine(Paths.ConfigPath, ArenaSessionContract.UserPolicyFileName);
-            string userJson = null;
-            try
+            string userJson;
+            ArenaPolicyFileState userState = ArenaPolicyFiles.TryRead(userPath, out userJson, out detail);
+            if (userState == ArenaPolicyFileState.TooLarge || userState == ArenaPolicyFileState.Unreadable)
             {
-                if (File.Exists(userPath)) userJson = File.ReadAllText(userPath);
-            }
-            catch (Exception ex)
-            {
-                Diagnostics.Add("user whitelist: cannot read '" + userPath + "', the file is ignored: " + ex.Message);
+                Diagnostics.Add("user whitelist: cannot read '" + userPath + "', the file is ignored: " + ArenaPolicyFiles.Describe(userState, detail));
                 userJson = null;
             }
 
@@ -313,7 +316,7 @@ namespace ArenaMode.Gate
                 // publishing and logging are left.
                 ArenaGatePluginFilter.Plan plan = ArenaGatePluginFilter.Decide(_policy, (IDictionary)result);
                 ArenaWhitelistDecision decision = plan.Decision;
-                ArenaGateReport report = ArenaGateReport.FromDecision(_policy, decision, Neutralised);
+                ArenaGateReport report = ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate);
                 report.Warnings.AddRange(Diagnostics);
                 report.Warnings.AddRange(PatcherWarnings);
                 string json = report.ToJson();
@@ -389,6 +392,7 @@ namespace ArenaMode.Gate
             report.Warnings.AddRange(Diagnostics);
             report.Warnings.AddRange(PatcherWarnings);
             report.PatchersNeutralised.AddRange(Neutralised);
+            report.PatchersRanBeforeGate.AddRange(RanBeforeGate);
             return report;
         }
 

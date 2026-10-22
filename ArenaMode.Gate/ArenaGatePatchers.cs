@@ -18,7 +18,14 @@ namespace ArenaMode.Gate
     /// target list and the patch method afterwards, the finalizer at the end. Replacing the
     /// delegates of a patcher that has not run yet therefore stops it. A patcher that sorts before
     /// the gate has already run its initializer; that cannot be undone, so it is reported as a
-    /// warning, and its target list, patch method and finalizer are still replaced.
+    /// warning and listed in <see cref="Outcome.RanBeforeGate"/> (the report's
+    /// <c>patchersRanBeforeGate</c>), and its target list, patch method and finalizer are still replaced.
+    ///
+    /// Fail closed: a patcher whose file cannot be determined (its delegates come from an assembly
+    /// without a location, or from no assembly at all) cannot be on the whitelist, so it is treated as one
+    /// that is not allowed, under the name <c>(unidentified) &lt;type name&gt;</c>. And when the gate
+    /// cannot find its own place in the patcher list, every neutralised patcher that has an initializer
+    /// is listed in <see cref="Outcome.RanBeforeGate"/>, because any of them may have run.
     ///
     /// Never touched: the gate itself and BepInEx's own entry-point patcher (without which no
     /// plugin would ever start), recognised by the assembly their delegates come from.
@@ -34,8 +41,19 @@ namespace ArenaMode.Gate
         {
             private readonly List<Action> _undo = new List<Action>();
 
-            /// <summary>Files of the patchers that were switched off (each once).</summary>
+            /// <summary>
+            /// Files of the patchers that were switched off (each once). A patcher whose file could not be
+            /// determined is named <c>(unidentified) &lt;type name&gt;</c>.
+            /// </summary>
             public readonly List<string> Neutralised = new List<string>();
+
+            /// <summary>
+            /// The files in <see cref="Neutralised"/> whose initializer had already run, because they sort
+            /// before the gate in the preloader's patcher list (each once). When the gate's own position in
+            /// that list is not known, every neutralised patcher that has an initializer is listed (any of
+            /// them may have run), and one warning says so.
+            /// </summary>
+            public readonly List<string> RanBeforeGate = new List<string>();
 
             /// <summary>Patchers that could not be handled completely.</summary>
             public readonly List<string> Warnings = new List<string>();
@@ -107,38 +125,45 @@ namespace ArenaMode.Gate
                 PatcherPlugin plugin = plugins[i];
                 Assembly origin = origins[i];
 
-                if (origin == null)
+                if (origin != null && (origin == self || origin == preloader || origin == core)) continue;
+
+                string file = origin == null ? string.Empty : FileNameOf(origin);
+                bool identified = file.Length > 0;
+                string cause;
+                if (identified)
                 {
-                    outcome.Warnings.Add("preloader patcher " + plugin.TypeName
-                        + ": its assembly could not be determined, so it was left unchanged");
-                    continue;
-                }
+                    if (policy.IsAllowedPatcher(file)) continue;
 
-                if (origin == self || origin == preloader || origin == core) continue;
-
-                string file = FileNameOf(origin);
-                if (file.Length == 0)
-                {
-                    outcome.Warnings.Add("preloader patcher " + plugin.TypeName
-                        + ": its file could not be determined, so it was left unchanged");
-                    continue;
-                }
-
-                if (policy.IsAllowedPatcher(file)) continue;
-
-                bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);
-                if (initializerMayHaveRun && selfIndex >= 0)
-                {
                     // Name the list that excluded it. In blacklist mode a patcher is only ever off because a
                     // deny list names it (the user's, or the shipped default's, which holds there too); in
                     // whitelist mode it may be named by either or simply absent.
-                    string cause = DescribeExclusion(policy, file);
-                    outcome.Warnings.Add("preloader patcher " + file + " " + cause + ", but its initializer ran "
-                        + "before the gate and cannot be undone; its patch targets and finalizer were neutralised");
+                    cause = DescribeExclusion(policy, file);
                 }
-                else if (initializerMayHaveRun)
+                else
                 {
-                    orderUnknown = true;
+                    // Fail closed. Without a file name the policy cannot name this patcher, so it cannot be allowed,
+                    // and leaving it active would let a patcher run in a session that claims to be filtered.
+                    file = UnidentifiedName(plugin, i);
+                    cause = "could not be identified";
+                    outcome.Warnings.Add("preloader patcher " + file + ": " + (origin == null ? "its assembly" : "its file")
+                        + " could not be determined, so it cannot be on the whitelist and was neutralised");
+                }
+
+                // The initializer ran when the patcher sorts before the gate. If the gate's own place is unknown,
+                // any of them may have run: they are all reported (fail closed) and one warning says why.
+                bool initializerMayHaveRun = plugin.Initializer != null && (selfIndex < 0 || i < selfIndex);
+                if (initializerMayHaveRun)
+                {
+                    AddOnce(outcome.RanBeforeGate, file);
+                    if (selfIndex >= 0)
+                    {
+                        outcome.Warnings.Add("preloader patcher " + file + " " + cause + ", but its initializer ran "
+                            + "before the gate and cannot be undone; its patch targets and finalizer were neutralised");
+                    }
+                    else
+                    {
+                        orderUnknown = true;
+                    }
                 }
 
                 Func<IEnumerable<string>> targets = plugin.TargetDLLs;
@@ -164,9 +189,21 @@ namespace ArenaMode.Gate
             if (orderUnknown)
             {
                 outcome.Warnings.Add("the position of the gate in the preloader's patcher list is unknown, so "
-                    + "initializers of the neutralised patchers may already have run");
+                    + "initializers of the neutralised patchers may already have run; every neutralised patcher "
+                    + "with an initializer is reported as having run before the gate");
             }
         }
+
+        /// <summary>The name a patcher gets in the report when its file cannot be determined.</summary>
+        internal static string UnidentifiedName(PatcherPlugin plugin, int index)
+        {
+            string typeName = plugin.TypeName;
+            if (string.IsNullOrEmpty(typeName)) typeName = "patcher #" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return UnidentifiedPrefix + typeName;
+        }
+
+        /// <summary>Prefix of the report name of a patcher whose file is unknown.</summary>
+        internal const string UnidentifiedPrefix = "(unidentified) ";
 
         /// <summary>
         /// Why the policy keeps a patcher off, for the warning text: the user's deny list, the shipped

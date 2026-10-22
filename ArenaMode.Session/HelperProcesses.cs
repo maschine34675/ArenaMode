@@ -68,6 +68,47 @@ namespace ArenaMode.SessionHelper
         private const uint ErrorInsufficientBuffer = 122;
         private const uint NoError = 0;
 
+        /// <summary>
+        /// The running processes whose image is the file <paramref name="exe"/>, compared as a file (a junction or a SUBST
+        /// drive gives one file several spellings). Candidates are found by process name; the caller disposes the
+        /// result. Processes that cannot be inspected are not included. Never throws.
+        /// </summary>
+        public static List<Process> FindByImage(string exe)
+        {
+            var found = new List<Process>();
+            Process[] candidates;
+            try
+            {
+                candidates = Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(exe));
+            }
+            catch (Exception)
+            {
+                return found;
+            }
+
+            foreach (Process candidate in candidates)
+            {
+                bool keep = false;
+                try
+                {
+                    if (!candidate.HasExited)
+                    {
+                        string image = GetImagePath(candidate);
+                        keep = image != null && SameFileSystemObject(image, exe);
+                    }
+                }
+                catch (Exception)
+                {
+                    keep = false;
+                }
+
+                if (keep) found.Add(candidate);
+                else candidate.Dispose();
+            }
+
+            return found;
+        }
+
         /// <summary>The running process with this id, or null when there is none (or it has exited).</summary>
         public static Process TryOpen(int processId)
         {
@@ -227,20 +268,44 @@ namespace ArenaMode.SessionHelper
         /// <summary>True when something accepts a TCP connection on host:port within the timeout.</summary>
         public static bool CanConnect(string host, int port, int timeoutMilliseconds)
         {
+            IPAddress connected;
+            return CanConnect(host, port, timeoutMilliseconds, out connected);
+        }
+
+        /// <summary>
+        /// <see cref="CanConnect(string, int, int)"/> that also says which address the connection reached (the
+        /// remote address of the connected socket: <c>127.0.0.1</c> or <c>::1</c> for a loopback probe), so that the
+        /// owner of the listener can be looked up for that address and no other. Null when nothing connected. A host
+        /// that is an IP address is probed with a socket of its own address family: a <see cref="TcpClient"/> made
+        /// without one is an IPv4 socket on .NET Framework (the runtime of the helper), which cannot reach an IPv6
+        /// literal such as <c>::1</c>; a host name is probed as before.
+        /// </summary>
+        public static bool CanConnect(string host, int port, int timeoutMilliseconds, out IPAddress connectedAddress)
+        {
+            connectedAddress = null;
             try
             {
-                using (var client = new TcpClient())
+                using (TcpClient client = NewProbeClient(host))
                 {
                     IAsyncResult result = client.BeginConnect(host, port, null, null);
                     if (!result.AsyncWaitHandle.WaitOne(timeoutMilliseconds) || !client.Connected) return false;
                     client.EndConnect(result);
+                    var remote = client.Client.RemoteEndPoint as IPEndPoint;
+                    connectedAddress = remote == null ? null : UnmapIPv4(remote.Address);
                     return true;
                 }
             }
             catch (Exception)
             {
+                connectedAddress = null;
                 return false;
             }
+        }
+
+        private static TcpClient NewProbeClient(string host)
+        {
+            IPAddress literal;
+            return IPAddress.TryParse(host, out literal) ? new TcpClient(literal.AddressFamily) : new TcpClient();
         }
 
         /// <summary>
@@ -255,8 +320,8 @@ namespace ArenaMode.SessionHelper
             bool readAny = false;
             try
             {
-                readAny |= ReadListeners(AddressFamilyInet, port, owners);
-                readAny |= ReadListeners(AddressFamilyInet6, port, owners);
+                readAny |= ReadListeners(AddressFamilyInet, port, null, owners);
+                readAny |= ReadListeners(AddressFamilyInet6, port, null, owners);
             }
             catch (Exception)
             {
@@ -266,7 +331,68 @@ namespace ArenaMode.SessionHelper
             return readAny ? owners : null;
         }
 
-        private static bool ReadListeners(int addressFamily, int port, List<int> owners)
+        /// <summary>
+        /// The ids of the processes that listen on this TCP port for connections to <paramref name="address"/>: a
+        /// listener bound to exactly that address, or to the wildcard of its family (<c>0.0.0.0</c>, or <c>::</c>,
+        /// which may also take IPv4 connections when the socket is dual-stack). A listener of another process on a
+        /// different local address of the same port (<c>127.0.0.2</c> beside <c>127.0.0.1</c>) is not the one a
+        /// connection to <paramref name="address"/> reaches and is not listed. Empty means that no such listener was
+        /// found; null means that the system table of the address's own family could not be read (for an IPv4
+        /// address the IPv6 table is read as well but only adds the wildcard listeners it holds, so it is not
+        /// required). Without an address this is <see cref="GetListenerProcessIds(int)"/>.
+        /// </summary>
+        public static List<int> GetListenerProcessIds(int port, IPAddress address)
+        {
+            if (address == null) return GetListenerProcessIds(port);
+
+            var owners = new List<int>();
+            try
+            {
+                address = UnmapIPv4(address);
+                bool v4 = address.AddressFamily == AddressFamily.InterNetwork;
+                if (!ReadListeners(v4 ? AddressFamilyInet : AddressFamilyInet6, port, address, owners)) return null;
+                if (v4) ReadListeners(AddressFamilyInet6, port, address, owners);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            return owners;
+        }
+
+        /// <summary>
+        /// The plain IPv4 address for an IPv4-mapped IPv6 one (<c>::ffff:127.0.0.1</c>), anything else unchanged. A
+        /// dual-stack client socket (the default one of .NET Core and later) reports the address of an IPv4 server in
+        /// that form, while the system's TCP table lists the listener under its IPv4 address.
+        /// </summary>
+        internal static IPAddress UnmapIPv4(IPAddress address)
+        {
+            if (address == null || address.AddressFamily != AddressFamily.InterNetworkV6) return address;
+            byte[] bytes = address.GetAddressBytes();
+            for (int i = 0; i < 10; i++)
+            {
+                if (bytes[i] != 0) return address;
+            }
+
+            if (bytes[10] != 0xFF || bytes[11] != 0xFF) return address;
+            return new IPAddress(new[] { bytes[12], bytes[13], bytes[14], bytes[15] });
+        }
+
+        /// <summary>
+        /// True when a socket listening on <paramref name="listening"/> accepts a connection made to
+        /// <paramref name="connected"/>: the same address, or the wildcard of the listener's family.
+        /// </summary>
+        internal static bool ListenerServes(IPAddress listening, IPAddress connected)
+        {
+            if (listening == null || connected == null) return false;
+            if (listening.Equals(connected)) return true;
+            if (listening.Equals(IPAddress.Any)) return connected.AddressFamily == AddressFamily.InterNetwork;
+            if (listening.Equals(IPAddress.IPv6Any)) return true; // an IPv6 listener on [::] can be dual-stack: it may take IPv4 too
+            return false;
+        }
+
+        private static bool ReadListeners(int addressFamily, int port, IPAddress serves, List<int> owners)
         {
             // MIB_TCPTABLE_OWNER_PID: a DWORD count, then rows. IPv4 row: state, local address, local
             // port, remote address, remote port, pid (24 bytes). IPv6 row: local address (16 bytes),
@@ -274,6 +400,9 @@ namespace ArenaMode.SessionHelper
             // bytes). A port is a network-order 16-bit value in the low half of its DWORD.
             bool v4 = addressFamily == AddressFamilyInet;
             int rowSize = v4 ? 24 : 56;
+            int addressOffset = v4 ? 4 : 0;
+            int addressLength = v4 ? 4 : 16;
+            int scopeOffset = 16;
             int portOffset = v4 ? 8 : 20;
             int pidOffset = v4 ? 20 : 52;
 
@@ -293,7 +422,17 @@ namespace ArenaMode.SessionHelper
                         IntPtr row = IntPtr.Add(buffer, 4 + i * rowSize);
                         int raw = Marshal.ReadInt32(row, portOffset);
                         int localPort = ((raw & 0xFF) << 8) | ((raw >> 8) & 0xFF);
-                        if (localPort == port) owners.Add(Marshal.ReadInt32(row, pidOffset));
+                        if (localPort != port) continue;
+                        if (serves != null)
+                        {
+                            var bytes = new byte[addressLength];
+                            Marshal.Copy(IntPtr.Add(row, addressOffset), bytes, 0, addressLength);
+                            IPAddress local = v4 ? new IPAddress(bytes) : new IPAddress(bytes, Marshal.ReadInt32(row, scopeOffset));
+                            if (!ListenerServes(local, serves)) continue;
+                        }
+
+                        int owner = Marshal.ReadInt32(row, pidOffset);
+                        if (!owners.Contains(owner)) owners.Add(owner);
                     }
 
                     return true;
@@ -313,10 +452,23 @@ namespace ArenaMode.SessionHelper
         /// </summary>
         public static bool IsPortFree(int port)
         {
-            if (CanConnect("127.0.0.1", port, 300)) return false;
+            return IsPortFree("127.0.0.1", port);
+        }
+
+        /// <summary>
+        /// <see cref="IsPortFree(int)"/> for the address a server will be waited for on: nothing may accept a
+        /// connection on <paramref name="host"/>:<paramref name="port"/>, and the port must be bindable on that
+        /// address (a host that is not an IP address is probed through the IPv4 loopback address). An address the
+        /// machine does not have cannot be bound, so it counts as not free.
+        /// </summary>
+        public static bool IsPortFree(string host, int port)
+        {
+            if (CanConnect(host, port, 300)) return false;
+            IPAddress address;
+            if (!IPAddress.TryParse(host, out address)) address = IPAddress.Loopback;
             try
             {
-                var listener = new TcpListener(IPAddress.Loopback, port);
+                var listener = new TcpListener(address, port);
                 listener.Start();
                 listener.Stop();
                 return true;

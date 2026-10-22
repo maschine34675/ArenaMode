@@ -4,6 +4,7 @@ using ArenaMode.Server;
 using ArenaMode.Server.Patches;
 using ArenaMode.Server.Routers;
 using ArenaMode.Server.Services;
+using ArenaMode.SessionHelper;
 using ArenaMode.Shared;
 using ArenaMode.Shared.Session;
 using SPTarkov.Common.Models.Logging;
@@ -17,9 +18,10 @@ namespace ArenaMode.Tests;
 
 /// <summary>
 /// Server half of the Arena session feature (docs/ARENA-SESSION-20261021.md,
-/// section 8): the two extra ping fields, the Arena-instance refusal of non-Arena
-/// raid starts and the single startup line. A normal server must behave exactly
-/// as before; several cases below pin that explicitly.
+/// section 8): the extra ping fields (arenaInstance, serverMods and, on the Arena
+/// instance only, the policyHash of its marker), the Arena-instance refusal of
+/// non-Arena raid starts and the startup lines. A normal server must behave
+/// exactly as before; several cases below pin that explicitly.
 /// </summary>
 [Collection(ArenaContextSerialCollection.Name)]
 public sealed class ArenaServerInstanceTests : IDisposable
@@ -74,12 +76,23 @@ public sealed class ArenaServerInstanceTests : IDisposable
 
     private void ResetInstance() => ArenaServerInstance.Initialize([], _noMarkerDirectory);
 
-    /// <summary>Makes <see cref="_root"/>/<paramref name="name"/> an Arena server tree.</summary>
-    private string ArenaTree(string name = "tree")
+    private const string MarkerHash = "3755e0db97983440";
+
+    /// <summary>
+    /// Makes <see cref="_root"/>/<paramref name="name"/> an Arena server tree. Unless
+    /// <paramref name="markerText"/> says otherwise the marker is the one the session
+    /// helper itself writes (its own writer, so the reader here is tested against the
+    /// real format), carrying <see cref="MarkerHash"/>.
+    /// </summary>
+    private string ArenaTree(string name = "tree", string? markerText = null)
     {
         string tree = Path.Combine(_root, name);
         Directory.CreateDirectory(tree);
-        File.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), "{}");
+        File.WriteAllText(
+            Path.Combine(tree, ArenaSessionContract.MarkerFileName),
+            markerText ?? HelperMarker.Create(
+                new DateTime(2026, 10, 22, 8, 0, 0, DateTimeKind.Utc), "6ab7db1164f04b565cf78be7", 6970,
+                @"C:\SPT41\SPT_Runtime", MarkerHash, "0.1.3", @"C:\t\server\SPT.Server.exe").ToJson());
         return tree;
     }
 
@@ -217,11 +230,132 @@ public sealed class ArenaServerInstanceTests : IDisposable
         ArenaServerInstance.Initialize(SampleMods(), ArenaTree());
         Assert.True(ArenaServerInstance.IsArenaInstance);
         Assert.Equal(2, ArenaServerInstance.Mods.Count);
+        Assert.Equal(MarkerHash, ArenaServerInstance.PolicyHash);
 
         ArenaServerInstance.Initialize([], _noMarkerDirectory);
 
         Assert.False(ArenaServerInstance.IsArenaInstance);
         Assert.Empty(ArenaServerInstance.Mods);
+        Assert.Null(ArenaServerInstance.PolicyHash);
+    }
+
+    // ------------------------------------------------------------------ policy hash
+
+    [Fact]
+    public void TheArenaInstanceReadsThePolicyHashOfTheMarkerTheHelperWrites()
+    {
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree());
+
+        Assert.Equal(MarkerHash, ArenaServerInstance.PolicyHash);
+    }
+
+    [Fact]
+    public void ANormalServerHasNoPolicyHash()
+    {
+        ArenaServerInstance.Initialize(SampleMods(), _noMarkerDirectory);
+
+        Assert.Null(ArenaServerInstance.PolicyHash);
+    }
+
+    [Fact]
+    public void TheHashIsReturnedAsWrittenNotTrimmedOrNormalised()
+    {
+        // The client compares the string with the hash of its own policy, so the server must not
+        // second-guess it: no trimming, no case change, a marker from a newer helper with extra
+        // members and a byte order mark still reads.
+        string tree = ArenaTree("as-written");
+        File.WriteAllText(
+            Path.Combine(tree, ArenaSessionContract.MarkerFileName),
+            "{ \"schema\": 1, \"future\": [1, 2], \"policyHash\": \" AbC123 \" }",
+            new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        ArenaServerInstance.Initialize([], tree);
+
+        Assert.True(ArenaServerInstance.IsArenaInstance);
+        Assert.Equal(" AbC123 ", ArenaServerInstance.PolicyHash);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"schema\":1}")]
+    [InlineData("{\"policyHash\":null}")]
+    [InlineData("{\"policyHash\":\"\"}")]
+    [InlineData("{\"policyHash\":\"   \"}")]
+    [InlineData("{\"policyHash\":42}")]
+    [InlineData("{\"policyHash\":true}")]
+    [InlineData("{\"policyHash\":[\"3755e0db97983440\"]}")]
+    [InlineData("{\"policyHash\":{\"value\":\"3755e0db97983440\"}}")]
+    // The shared reader is strict on purpose: these are not "almost JSON that still works".
+    [InlineData("{\"policyHash\":\"a\",\"policyHash\":\"b\"}")]
+    [InlineData("{\"policyHash\":\"3755e0db97983440\"")]
+    [InlineData("{\"policyHash\":\"3755e0db97983440\",}")]
+    [InlineData("[\"3755e0db97983440\"]")]
+    [InlineData("\"3755e0db97983440\"")]
+    [InlineData("null")]
+    [InlineData("not json")]
+    [InlineData("")]
+    public void AMarkerWithoutAUsableHashGivesNull(string markerText)
+    {
+        string tree = ArenaTree("no-hash", markerText);
+
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(tree));
+
+        // It is still the Arena instance: the marker exists, only its hash is unknown.
+        ArenaServerInstance.Initialize(SampleMods(), tree);
+        Assert.True(ArenaServerInstance.IsArenaInstance);
+        Assert.Null(ArenaServerInstance.PolicyHash);
+    }
+
+    [Fact]
+    public void AMarkerThatCannotBeReadGivesNullAndStaysAnArenaInstance()
+    {
+        string tree = ArenaTree("locked");
+
+        // Exclusive handle: File.Exists still sees the marker, reading it fails with a sharing violation.
+        using (new FileStream(
+                   Path.Combine(tree, ArenaSessionContract.MarkerFileName), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            ArenaServerInstance.Initialize(SampleMods(), tree);
+        }
+
+        Assert.True(ArenaServerInstance.IsArenaInstance);
+        Assert.Null(ArenaServerInstance.PolicyHash);
+        // Once the lock is gone the file is fine, so the null above came from the failed read only.
+        Assert.Equal(MarkerHash, ArenaServerInstance.ReadPolicyHash(tree));
+    }
+
+    [Fact]
+    public void ReadPolicyHashNeverThrowsForAnUnusableDirectory()
+    {
+        string folderMarker = Path.Combine(_root, "folder-marker-hash");
+        Directory.CreateDirectory(Path.Combine(folderMarker, ArenaSessionContract.MarkerFileName));
+
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(null));
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(string.Empty));
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(_noMarkerDirectory));
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(Path.Combine(_root, "does", "not", "exist")));
+        Assert.Null(ArenaServerInstance.ReadPolicyHash(folderMarker));
+        Assert.Null(ArenaServerInstance.ReadPolicyHash("bad\0path"));
+    }
+
+    [Fact]
+    public async Task TheMarkerIsReadOnceAtStartupNotPerPing()
+    {
+        string tree = ArenaTree("read-once");
+        string marker = Path.Combine(tree, ArenaSessionContract.MarkerFileName);
+        ArenaServerInstance.Initialize(SampleMods(), tree);
+        var router = Router();
+
+        File.WriteAllText(marker, "{\"policyHash\":\"ffffffffffffffff\"}");
+        using (var changed = await Ping(router))
+            Assert.Equal(MarkerHash, changed.RootElement.GetProperty("policyHash").GetString());
+
+        File.Delete(marker);
+        using (var removed = await Ping(router))
+        {
+            Assert.True(removed.RootElement.GetProperty("arenaInstance").GetBoolean());
+            Assert.Equal(MarkerHash, removed.RootElement.GetProperty("policyHash").GetString());
+        }
     }
 
     // ------------------------------------------------------------------ mod list
@@ -332,6 +466,9 @@ public sealed class ArenaServerInstanceTests : IDisposable
             root.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
         Assert.False(root.GetProperty("arenaInstance").GetBoolean());
         Assert.False(string.IsNullOrEmpty(root.GetProperty("version").GetString()));
+        // policyHash belongs to the Arena instance: a normal server's ping has no such member at all
+        // (not even a null), so it is unchanged for every client that has never heard of the member.
+        Assert.False(root.TryGetProperty("policyHash", out _));
     }
 
     [Fact]
@@ -380,6 +517,40 @@ public sealed class ArenaServerInstanceTests : IDisposable
 
         Assert.True(ping.RootElement.GetProperty("arenaInstance").GetBoolean());
         Assert.Equal(2, ping.RootElement.GetProperty("serverMods").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task PingOfTheArenaInstanceAddsExactlyThePolicyHashOfItsMarker()
+    {
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree());
+
+        using var ping = await Ping(Router());
+        var root = ping.RootElement;
+
+        Assert.Equal(
+            ["arenaInstance", "policyHash", "serverMods", "version"],
+            root.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(JsonValueKind.String, root.GetProperty("policyHash").ValueKind);
+        Assert.Equal(MarkerHash, root.GetProperty("policyHash").GetString());
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"policyHash\":null}")]
+    [InlineData("{\"policyHash\":7}")]
+    [InlineData("not json")]
+    [InlineData("")]
+    public async Task PingOfAnArenaInstanceWithoutAUsableHashCarriesAnExplicitNull(string markerText)
+    {
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree("null-hash", markerText));
+
+        using var ping = await Ping(Router());
+        var root = ping.RootElement;
+
+        // The member is there (the Arena instance always reports it) and says "unknown".
+        Assert.True(root.TryGetProperty("policyHash", out var hash));
+        Assert.Equal(JsonValueKind.Null, hash.ValueKind);
+        Assert.True(root.GetProperty("arenaInstance").GetBoolean());
     }
 
     // ------------------------------------------------------------------ refusal
@@ -533,6 +704,37 @@ public sealed class ArenaServerInstanceTests : IDisposable
         Assert.Equal(
             "[ArenaMode] Arena session server: 2 mods loaded (ArenaMode, SAIN)",
             line.Text);
+    }
+
+    [Fact]
+    public void AnArenaInstanceWithoutAPolicyHashWarnsAfterTheInfoLine()
+    {
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree("startup-no-hash", "{}"));
+        var logger = Recording();
+
+        ArenaServerInstance.LogStartup(logger.Logger);
+
+        Assert.Equal(2, logger.Lines.Count);
+        Assert.Equal("Info", logger.Lines[0].Level);
+        Assert.StartsWith("[ArenaMode] Arena session server: 2 mods loaded", logger.Lines[0].Text);
+        Assert.Equal("Warning", logger.Lines[1].Level);
+        Assert.StartsWith("[ArenaMode] ", logger.Lines[1].Text);
+        Assert.Contains("policyHash", logger.Lines[1].Text);
+        Assert.Contains(ArenaSessionContract.MarkerFileName, logger.Lines[1].Text);
+    }
+
+    [Fact]
+    public void ThePolicyHashWarningExistsOnlyForAnArenaInstanceThatLacksOne()
+    {
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree());
+        Assert.Null(ArenaServerInstance.MissingPolicyHashWarning());
+
+        ArenaServerInstance.Initialize(SampleMods(), ArenaTree("warn-no-hash", "{}"));
+        Assert.NotNull(ArenaServerInstance.MissingPolicyHashWarning());
+
+        // A normal server has no hash by design and says nothing about it.
+        ArenaServerInstance.Initialize(SampleMods(), _noMarkerDirectory);
+        Assert.Null(ArenaServerInstance.MissingPolicyHashWarning());
     }
 
     [Fact]

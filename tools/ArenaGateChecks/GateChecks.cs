@@ -53,6 +53,12 @@ public static class GateChecks
     private static readonly List<string> Calls = new List<string>();
     private static readonly Capture Log = new Capture();
 
+    private const string EarlyDeniedAssembly = "AAA-early-denied";
+    private static bool _omitEarlyPatcher;
+
+    /// <summary>The files the report has to list as patchersRanBeforeGate in the running scenario (see ExpectedRanBeforeGate).</summary>
+    private static List<string> _expectedRanBeforeGate = new List<string>();
+
     // ------------------------------------------------------------------ entry point
 
     public static int Main(string[] args)
@@ -79,8 +85,12 @@ public static class GateChecks
             {
                 case "inert": ScenarioWorld("inert", new WorldOptions { Kind = WorldKind.Inert }); break;
                 case "full": ScenarioWorld("full", new WorldOptions { Kind = WorldKind.Full }); break;
+                case "no-early-patcher": ScenarioWorld("no-early-patcher", new WorldOptions { Kind = WorldKind.Full, OmitEarlyPatcher = true }); break;
+                case "unidentified-patcher": ScenarioUnidentifiedPatchers(); break;
+                case "gate-unlocated": ScenarioGateUnlocated(); break;
                 case "user-file": ScenarioWorld("user-file", new WorldOptions { Kind = WorldKind.UserFile }); break;
                 case "user-garbage": ScenarioWorld("user-garbage", new WorldOptions { Kind = WorldKind.UserGarbage }); break;
+                case "user-oversize": ScenarioWorld("user-oversize", new WorldOptions { Kind = WorldKind.UserOversize }); break;
                 case "user-blacklist": ScenarioWorld("user-blacklist", new WorldOptions { Kind = WorldKind.UserBlacklist }); break;
                 case "default-deny": ScenarioWorld("default-deny", new WorldOptions { Kind = WorldKind.DefaultDeny }); break;
                 case "bad-default": ScenarioWorld("bad-default", new WorldOptions { Kind = WorldKind.BadDefault }); break;
@@ -163,6 +173,7 @@ public static class GateChecks
         UserBlacklist,
         DefaultDeny,
         UserGarbage,
+        UserOversize,
         BadDefault,
         MissingDefault,
         NoCoreModule,
@@ -172,6 +183,9 @@ public static class GateChecks
     private sealed class WorldOptions
     {
         public WorldKind Kind;
+
+        /// <summary>Leave out the one denied dummy patcher that sorts before the gate (nothing is then denied and sorts before it).</summary>
+        public bool OmitEarlyPatcher;
     }
 
     private sealed class Dep
@@ -281,13 +295,13 @@ public static class GateChecks
         {
             // "unlisted": "allow"; deny: SAIN, Foreign Mod, Deeper Library, three patchers, SPT core.
             // Everything nobody names is allowed, except what the shipped default denies (ORBIT keeps its reason
-            // "denied" in blacklist mode). Deeper Library is denied but Helper Library (unlisted, allowed)
-            // needs it, so it is pulled in.
+            // "denied" in blacklist mode). Deeper Library is denied and a deny wins over hard dependencies: it is
+            // not pulled in, and Helper Library (unlisted, would be allowed) needs it, so it is excluded as well.
             d["SAIN/SAIN.dll"] = "excluded:denied-by-user";
             d["old/SAIN.dll"] = "excluded:denied-by-user";
             d["Foreign.dll"] = "excluded:denied-by-user";
-            d["helper/helperlib.dll"] = "allowed:unlisted-allowed";
-            d["helper/deeper.dll"] = "allowed:dependency-of:x.helperlib";
+            d["helper/helperlib.dll"] = "excluded:requires-denied:x.deeper";
+            d["helper/deeper.dll"] = "excluded:denied-by-user";
             d["soft/softonly.dll"] = "allowed:unlisted-allowed";
         }
 
@@ -313,9 +327,9 @@ public static class GateChecks
     /// <summary>The dummy patchers of the generated worlds. The names decide the sort order.</summary>
     private static List<PatcherSpec> WorldPatchers()
     {
-        return new List<PatcherSpec>
+        var patchers = new List<PatcherSpec>
         {
-            new PatcherSpec { AssemblyName = "AAA-early-denied", RelativePath = "AAA-early-denied.dll", AllowedByDefault = false },
+            new PatcherSpec { AssemblyName = EarlyDeniedAssembly, RelativePath = EarlyDeniedAssembly + ".dll", AllowedByDefault = false },
             new PatcherSpec { AssemblyName = "FixPluginTypesSerialization", RelativePath = "FixPluginTypesSerialization.dll", AllowedByDefault = true },
             new PatcherSpec { AssemblyName = "maschine-LogTools", RelativePath = "maschine-LogTools.dll", AllowedByDefault = true },
             new PatcherSpec { AssemblyName = "spt-prepatch", RelativePath = "spt-prepatch.dll", AllowedByDefault = true },
@@ -323,6 +337,95 @@ public static class GateChecks
             new PatcherSpec { AssemblyName = "ZZZ-nested-denied", RelativePath = "nested/ZZZ-nested-denied.dll", AllowedByDefault = false },
             new PatcherSpec { AssemblyName = "zzz-late-denied", RelativePath = "zzz-late-denied.dll", AllowedByDefault = false },
         };
+        if (_omitEarlyPatcher) patchers.RemoveAll(p => p.AssemblyName == EarlyDeniedAssembly);
+        return patchers;
+    }
+
+    /// <summary>
+    /// Whether the policy of a world lets the dummy patcher run and, when it does not, the words the gate's warning uses
+    /// for the list that keeps it off. Written from the world definitions above, not from anything the gate says.
+    /// </summary>
+    private static bool PatcherAllowedInWorld(WorldKind kind, PatcherSpec p, out string cause)
+    {
+        bool allowed = p.AllowedByDefault;
+        string leaf = Path.GetFileName(p.RelativePath);
+        cause = "is not on the whitelist";
+        if (kind == WorldKind.UserFile)
+        {
+            if (UserFileDeniedPatchers.Contains(leaf))
+            {
+                allowed = false;
+                cause = "is denied in the user's policy file";
+            }
+
+            if (leaf == "ZZZ-nested-denied.dll") allowed = true;
+        }
+        else if (kind == WorldKind.UserBlacklist)
+        {
+            // Blacklist: every patcher runs except the ones the user denied.
+            allowed = !UserBlacklistDeniedPatchers.Contains(leaf);
+            cause = "is denied in the user's policy file";
+        }
+        else if (kind == WorldKind.DefaultDeny && DefaultDeniedPatchers.Contains(leaf))
+        {
+            allowed = false;
+            cause = "is denied by the default policy list";
+        }
+
+        return allowed;
+    }
+
+    /// <summary>
+    /// The file names the report has to list as patchersRanBeforeGate: the patchers the world's policy denies that sort
+    /// before the gate in the preloader's real patcher order, because their initializer has run when the gate gets to
+    /// them. A policy the gate could not load neutralises nothing, so nothing is listed there either.
+    /// </summary>
+    private static List<string> ExpectedRanBeforeGate(WorldKind kind, List<PatcherSpec> patchers, List<string> sortedAssemblies, int gateIndex)
+    {
+        var files = new List<string>();
+        if (kind == WorldKind.Inert || kind == WorldKind.BadDefault || kind == WorldKind.MissingDefault) return files;
+        foreach (PatcherSpec p in patchers)
+        {
+            string cause;
+            if (PatcherAllowedInWorld(kind, p, out cause)) continue;
+            int index = sortedAssemblies.IndexOf(p.AssemblyName);
+            if (index >= 0 && index < gateIndex) files.Add(Path.GetFileName(p.RelativePath));
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// The published JSON carries "patchersRanBeforeGate" as an array of exactly the expected file names, and every one of
+    /// them is also a neutralised patcher. Read from the raw text and not only through ArenaGateReport.TryParse, which
+    /// reads a missing member as an empty list: the member is present in every report, empty when nothing ran early.
+    /// </summary>
+    private static void CheckRanBeforeGateJson(string when, string json, List<string> expected)
+    {
+        object root = null;
+        string error = null;
+        Dictionary<string, object> obj = json != null && ArenaMiniJson.TryParse(json, out root, out error) ? ArenaMiniJson.AsObject(root) : null;
+        object member = null;
+        List<object> array = obj != null && obj.TryGetValue("patchersRanBeforeGate", out member) ? ArenaMiniJson.AsArray(member) : null;
+        Check(array != null, "the report " + when + " has the array member patchersRanBeforeGate (also when it is empty)",
+            json == null ? "no report" : "json: " + json);
+        if (array == null) return;
+
+        Check(array.All(x => x is string), "every entry of patchersRanBeforeGate " + when + " is a file name");
+        SameSet("the report " + when + " lists exactly the denied patchers that sort before the gate as ran before the gate",
+            expected, array.OfType<string>());
+        ArenaGateReport parsed;
+        string parseError;
+        if (ArenaGateReport.TryParse(json, out parsed, out parseError))
+        {
+            Check(parsed.PatchersRanBeforeGate.All(f => parsed.PatchersNeutralised.Contains(f)),
+                "every patcher that ran before the gate " + when + " is also listed as neutralised",
+                "ran before: " + string.Join(", ", parsed.PatchersRanBeforeGate.ToArray()) + " / neutralised: " + string.Join(", ", parsed.PatchersNeutralised.ToArray()));
+        }
+        else
+        {
+            Bad("the report " + when + " parses", parseError);
+        }
     }
 
     // ------------------------------------------------------------------ the fake game
@@ -680,7 +783,7 @@ public static class GateChecks
             Delegate d = (Delegate)p.TargetDLLs ?? (Delegate)p.Initializer;
             lines.Add(new PatcherLine
             {
-                Assembly = d == null ? "?" : d.Method.DeclaringType.Assembly.GetName().Name,
+                Assembly = d == null || d.Method.DeclaringType == null ? "?" : d.Method.DeclaringType.Assembly.GetName().Name,
                 TypeName = p.TypeName,
             });
         }
@@ -707,11 +810,18 @@ public static class GateChecks
 
     private static List<PatcherLine> _orderBeforePatching = new List<PatcherLine>();
 
+    // Patchers a scenario registers by hand: before the patchers of the directory (they then sort before the gate, which
+    // is one of them) or after them.
+    private static Action _beforeDirectory;
+    private static Action _afterDirectory;
+
     private static void RunPreloaderPhase(bool builtIn)
     {
         Mark("phase:preloader-start");
         if (builtIn) AssemblyPatcher.AddPatcher(MakeBuiltInPatcher());
+        if (_beforeDirectory != null) _beforeDirectory();
         AssemblyPatcher.AddPatchersFromDirectory(Paths.PatcherPluginPath);
+        if (_afterDirectory != null) _afterDirectory();
         _orderBeforePatching = DescribePatchers();
         Console.WriteLine("  patcher order: " + string.Join(" > ", _orderBeforePatching.Select(l => l.Assembly).ToArray()));
         AssemblyPatcher.PatchAndLoad(Paths.DllSearchPaths);
@@ -768,6 +878,12 @@ public static class GateChecks
         {
             File.WriteAllText(g.UserFile, "{ \"schema\": 1, \"allow\": [ nope");
         }
+        else if (kind == WorldKind.UserOversize)
+        {
+            // A valid user file that would deny SAIN, one byte above the limit of 256 KB: the gate must not apply any of it.
+            const string deny = "{ \"schema\": 1, \"deny\": [ \"me.sol.sain\" ] }";
+            File.WriteAllText(g.UserFile, deny + new string(' ', 256 * 1024 + 1 - deny.Length));
+        }
 
         foreach (PatcherSpec patcher in WorldPatchers()) WriteDummyPatcher(Path.Combine(g.Patchers, patcher.RelativePath), patcher.AssemblyName);
 
@@ -815,7 +931,8 @@ public static class GateChecks
 
     private static ArenaWhitelistPolicy LoadPolicyLikeTheGate(Fake g)
     {
-        string user = File.Exists(g.UserFile) ? File.ReadAllText(g.UserFile) : null;
+        // Written by hand, not through ArenaPolicyFiles: a user file above 256 KB is not a policy file and is ignored as a whole.
+        string user = File.Exists(g.UserFile) && new FileInfo(g.UserFile).Length <= 256 * 1024 ? File.ReadAllText(g.UserFile) : null;
         ArenaWhitelistPolicy policy;
         List<string> diagnostics;
         if (!ArenaWhitelistPolicy.TryLoad(File.ReadAllText(g.PolicyFile), user, out policy, out diagnostics))
@@ -829,6 +946,7 @@ public static class GateChecks
     private static void ScenarioWorld(string name, WorldOptions options)
     {
         WorldKind kind = options.Kind;
+        _omitEarlyPatcher = options.OmitEarlyPatcher;
         bool coreModule = kind != WorldKind.NoCoreModule;
         bool builtIn = kind != WorldKind.NoCoreModule;
         Fake g = Fake.Create(name, coreModule);
@@ -850,6 +968,8 @@ public static class GateChecks
         List<string> sortedAssemblies = _orderBeforePatching.Select(l => l.Assembly).ToList();
         int gateIndex = sortedAssemblies.IndexOf(GateAssemblyName);
         Check(gateIndex >= 0, "the gate was found as a patcher", "patcher order: " + string.Join(",", sortedAssemblies.ToArray()));
+        _expectedRanBeforeGate = ExpectedRanBeforeGate(kind, patchers, sortedAssemblies, gateIndex);
+        if (!inert) CheckRanBeforeGateJson("after the preloader phase", rawJson, _expectedRanBeforeGate);
 
         CheckBuiltIn(builtIn);
         List<string> violations = UnityViolations();
@@ -996,30 +1116,9 @@ public static class GateChecks
         var deniedBeforeGate = new List<string>();
         foreach (PatcherSpec p in patchers)
         {
-            bool allowed = p.AllowedByDefault;
             string leaf = Path.GetFileName(p.RelativePath);
-            string cause = "is not on the whitelist";
-            if (kind == WorldKind.UserFile)
-            {
-                if (UserFileDeniedPatchers.Contains(leaf))
-                {
-                    allowed = false;
-                    cause = "is denied in the user's policy file";
-                }
-
-                if (leaf == "ZZZ-nested-denied.dll") allowed = true;
-            }
-            else if (kind == WorldKind.UserBlacklist)
-            {
-                // Blacklist: every patcher runs except the ones the user denied.
-                allowed = !UserBlacklistDeniedPatchers.Contains(leaf);
-                cause = "is denied in the user's policy file";
-            }
-            else if (kind == WorldKind.DefaultDeny && DefaultDeniedPatchers.Contains(leaf))
-            {
-                allowed = false;
-                cause = "is denied by the default policy list";
-            }
+            string cause;
+            bool allowed = PatcherAllowedInWorld(kind, p, out cause);
 
             int index = sortedAssemblies.IndexOf(p.AssemblyName);
             bool before = index >= 0 && index < gateIndex;
@@ -1127,7 +1226,7 @@ public static class GateChecks
         }
 
         // Warnings
-        if (kind == WorldKind.Full || kind == WorldKind.UserGarbage || kind == WorldKind.DefaultDeny)
+        if (kind == WorldKind.Full || kind == WorldKind.UserGarbage || kind == WorldKind.UserOversize || kind == WorldKind.DefaultDeny)
         {
             Check(report.Warnings.Any(w => w.StartsWith("SAIN: version 4.5.2 differs from reviewed 4.5.1", StringComparison.Ordinal)),
                 "a version that differs from the reviewed one is a warning");
@@ -1144,6 +1243,19 @@ public static class GateChecks
                 "a user file that does not parse is ignored with a warning");
             Check(Log.From(GateSource).Any(e => e.Level == LogLevel.Warning && e.Message.Contains("user whitelist: cannot parse")),
                 "the ignored user file is also logged as a warning");
+        }
+
+        if (kind == WorldKind.UserOversize)
+        {
+            // The client reads the same file through the same reader and ignores it too, so both end up with the policy of
+            // the default list alone (and the same hash): the plugin SAIN, which the oversized file denies, is allowed.
+            Check(report.Warnings.Any(w => w.StartsWith("user whitelist: cannot read", StringComparison.Ordinal) && w.Contains("the file is ignored: larger than 256 KB")),
+                "a user file above 256 KB is ignored with a warning", "warnings: " + string.Join(" | ", report.Warnings.ToArray()));
+            Check(Log.From(GateSource).Any(e => e.Level == LogLevel.Warning && e.Message.Contains("larger than 256 KB")),
+                "the ignored user file is also logged as a warning");
+            Check(report.Allowed.Any(u => u.Guid == "me.sol.sain") && report.Excluded.All(u => u.Reason != "denied-by-user"),
+                "nothing of the oversized file's deny list was applied");
+            Check(!report.UnlistedAllowed, "the oversized file did not turn the whitelist into a blacklist");
         }
 
         if (kind == WorldKind.Full)
@@ -1168,27 +1280,32 @@ public static class GateChecks
 
         if (kind == WorldKind.UserBlacklist)
         {
-            Check(report.Warnings.Any(w => w == "Deeper Library: pulled in as hard dependency of Helper Library (overrides the user's deny)"),
-                "a denied hard dependency of an unlisted-allowed plugin is pulled in, and the warning says the deny was overridden");
-            Check(!report.Warnings.Any(w => w.StartsWith("Helper Library:", StringComparison.Ordinal) || w.StartsWith("Soft Only:", StringComparison.Ordinal)),
+            const string requiresDenied = "Helper Library: excluded because it requires Deeper Library (denied by the user's policy file)";
+            Check(report.Warnings.Contains(requiresDenied),
+                "a plugin that needs a denied hard dependency is excluded, and the warning names the dependency and the list that denied it");
+            Check(!report.Warnings.Any(w => w.Contains("pulled in as hard dependency")), "a denied hard dependency is not pulled in");
+            Check(!report.Warnings.Any(w => w.StartsWith("Soft Only:", StringComparison.Ordinal)),
                 "a plugin that nothing names gets no warning of its own");
             Check(report.Warnings.Any(w => w.Contains("deny of 'com.SPT.core' is ignored")), "a deny of a platform unit is reported and ignored");
             Check(report.Excluded.All(u => u.Guid != "com.SPT.core"), "a platform plugin cannot be denied");
-            Check(report.Excluded.All(u => u.Reason == "denied-by-user" || u.Reason == "denied"), "in blacklist mode only denied plugins are excluded");
+            Check(report.Excluded.All(u => u.Reason == "denied-by-user" || u.Reason == "denied" || u.Reason == "requires-denied:x.deeper"),
+                "in blacklist mode only denied plugins and the ones that need a denied plugin are excluded");
             Check(report.Excluded.Single(u => u.Guid == "com.chazut.orbit").Reason == "denied", "a default deny holds in blacklist mode, with its own reason");
             Check(report.Excluded.Single(u => u.Guid == "com.example.foreign").Reason == "denied-by-user", "the user's deny names itself");
             Check(report.Allowed.Any(u => u.Reason == "unlisted-allowed"), "the report carries the unlisted-allowed reason");
 
             // The override is visible: ONE warning names the plugins that only got in because nothing names them
-            // (written by hand: Helper Library and Soft Only; Deeper Library is a dependency, not unlisted).
+            // (written by hand: only Soft Only; Helper Library would have been unlisted but needs the denied Deeper Library).
             List<string> overrides = report.Warnings.Where(w => w.StartsWith("policy override: ", StringComparison.Ordinal)).ToList();
-            Check(overrides.Count == 1 && overrides[0] == "policy override: 2 unlisted mod(s) allowed by your policy file: Helper Library, Soft Only",
+            Check(overrides.Count == 1 && overrides[0] == "policy override: 1 unlisted mod(s) allowed by your policy file: Soft Only",
                 "one warning says which unlisted plugins the user's policy file let through",
                 "policy override warnings: " + string.Join(" | ", overrides.ToArray()));
-            Check(overrides.Count == 1 && report.Warnings.IndexOf(overrides[0])
-                    > report.Warnings.IndexOf("Deeper Library: pulled in as hard dependency of Helper Library (overrides the user's deny)"),
+            Check(overrides.Count == 1 && report.Warnings.IndexOf(overrides[0]) > report.Warnings.IndexOf(requiresDenied),
                 "the policy-override warning comes after the per-plugin warnings of the decision");
         }
+
+        // The patchers whose initializer ran before the gate are in the final report as well, and the summary line counts them.
+        CheckRanBeforeGateJson("after the plugin scan", coldJson, _expectedRanBeforeGate);
 
         // The mode itself is in the report and in its JSON: true exactly when the user file made the policy a blacklist.
         bool blacklistMode = kind == WorldKind.UserBlacklist;
@@ -1212,7 +1329,8 @@ public static class GateChecks
         List<LogEntry> info = gateLog.Where(e => e.Level == LogLevel.Info).ToList();
         // Written by hand (not from ArenaGateReport.SummaryLine): the blacklist's line ends with the override suffix, no other does.
         string summary = "Arena session: " + report.Allowed.Count + " plugins allowed, " + report.Excluded.Count + " excluded, " + report.Warnings.Count + " warnings"
-            + (blacklistMode ? " (policy override: unlisted mods allowed)" : string.Empty);
+            + (blacklistMode ? " (policy override: unlisted mods allowed)" : string.Empty)
+            + (_expectedRanBeforeGate.Count > 0 ? " (" + _expectedRanBeforeGate.Count + " patcher(s) ran before the gate)" : string.Empty);
         List<LogEntry> patcherInfo = info.Where(e => e.Message.Contains(" preloader patcher")).ToList();
         Check(info.Count(e => e.Message == summary) == 1 && info.Count == 1 + patcherInfo.Count, "exactly one Info line carries the summary, the only other Info line names the neutralised patchers",
             "info lines: " + string.Join(" | ", info.Select(e => e.Message).ToArray()) + " / expected: " + summary);
@@ -1337,12 +1455,224 @@ public static class GateChecks
         Check(Log.From(GateSource).Any(e => e.Level == LogLevel.Error && e.Message.Contains("already switched off stay off") && stayOff.All(file => e.Message.Contains(file))),
             "the Error line says that the neutralised patchers stay off");
 
+        // Their initializers ran before the gate and that stays true: the inactive report keeps saying so.
+        Check(_expectedRanBeforeGate.Count > 0, "the postfix-failure world has a denied patcher that sorts before the gate");
+        CheckRanBeforeGateJson("after the failure", json, _expectedRanBeforeGate);
+
         // Phase 3: a failed gate stays failed and filters nothing from then on.
         Scan again = ScanPlugins(g.Plugins, "chainloader");
         Check(again.Items.Count == totalPlugins, "after a failure every plugin is passed on to the chainloader", "found " + again.Items.Count + " of " + totalPlugins);
         string finalJson;
         ArenaGateReport final = ReadReport(out finalJson);
         Check(final != null && !final.Active, "the report stays inactive");
+    }
+
+
+    // ------------------------------------------------------------------ patchers the gate cannot place
+
+    /// <summary>Called by the emitted callbacks of the dynamic patchers below (public: emitted code in another assembly calls it).</summary>
+    public static void DynamicRecord(string what)
+    {
+        Calls.Add(what);
+    }
+
+    private static void EmitRecord(System.Reflection.Emit.ILGenerator il, string what)
+    {
+        il.Emit(System.Reflection.Emit.OpCodes.Ldstr, what);
+        il.Emit(System.Reflection.Emit.OpCodes.Call, typeof(GateChecks).GetMethod("DynamicRecord", BindingFlags.Public | BindingFlags.Static));
+    }
+
+    /// <summary>
+    /// A patcher whose delegates come from a dynamic assembly: it has no file, so the gate cannot name it. The callbacks
+    /// record "targets:", "init:" and "fin:" plus <paramref name="callName"/>.
+    /// </summary>
+    private static PatcherPlugin MakeDynamicAssemblyPatcher(string typeName, string callName)
+    {
+        System.Reflection.Emit.AssemblyBuilder asm = AppDomain.CurrentDomain.DefineDynamicAssembly(
+            new AssemblyName("Dynamic_" + callName), System.Reflection.Emit.AssemblyBuilderAccess.Run);
+        System.Reflection.Emit.ModuleBuilder module = asm.DefineDynamicModule("Dynamic_" + callName);
+        System.Reflection.Emit.TypeBuilder type = module.DefineType("Dynamic.Patcher_" + callName,
+            System.Reflection.TypeAttributes.Public | System.Reflection.TypeAttributes.Class | System.Reflection.TypeAttributes.Abstract | System.Reflection.TypeAttributes.Sealed);
+        System.Reflection.MethodAttributes attributes = System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.Static;
+
+        System.Reflection.Emit.ILGenerator il = type.DefineMethod("Targets", attributes, typeof(IEnumerable<string>), Type.EmptyTypes).GetILGenerator();
+        EmitRecord(il, "targets:" + callName);
+        il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_0);
+        il.Emit(System.Reflection.Emit.OpCodes.Newarr, typeof(string));
+        il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+        il = type.DefineMethod("Init", attributes, typeof(void), Type.EmptyTypes).GetILGenerator();
+        EmitRecord(il, "init:" + callName);
+        il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+        il = type.DefineMethod("Fin", attributes, typeof(void), Type.EmptyTypes).GetILGenerator();
+        EmitRecord(il, "fin:" + callName);
+        il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+        Type created = type.CreateType();
+        return new PatcherPlugin
+        {
+            TypeName = typeName,
+            TargetDLLs = (Func<IEnumerable<string>>)Delegate.CreateDelegate(typeof(Func<IEnumerable<string>>), created.GetMethod("Targets")),
+            Initializer = (Action)Delegate.CreateDelegate(typeof(Action), created.GetMethod("Init")),
+            Finalizer = (Action)Delegate.CreateDelegate(typeof(Action), created.GetMethod("Fin")),
+        };
+    }
+
+    private static void NoPatchAtAll(ref AssemblyDefinition assembly)
+    {
+    }
+
+    /// <summary>
+    /// A patcher with a patch method and nothing else: no target list, no initializer, no finalizer. The gate looks for the
+    /// assembly of a patcher in those three delegates, so it finds none. (Mono's dynamic methods do not make such a patcher:
+    /// their delegates report an assembly of the runtime, which no list names, so that case is switched off as "mscorlib.dll".)
+    /// BepInEx itself would fail on the missing target list if the gate left the patcher alone.
+    /// </summary>
+    private static PatcherPlugin MakeNullOriginPatcher(string typeName)
+    {
+        return new PatcherPlugin { TypeName = typeName, Patcher = NoPatchAtAll };
+    }
+
+    private static bool RanAny(string callName)
+    {
+        return Calls.Contains("init:" + callName) || Calls.Contains("targets:" + callName) || Calls.Contains("fin:" + callName);
+    }
+
+    /// <summary>
+    /// Fail closed: a patcher the gate cannot trace to a file cannot be on the whitelist, so the gate switches it off and
+    /// names it as "(unidentified) type name" instead of leaving it active in a session that calls itself filtered. One that
+    /// sorts before the gate has run its initializer, which cannot be undone: it is listed in patchersRanBeforeGate like any
+    /// other denied patcher that ran early. Two kinds of patchers the gate cannot place, one before and one after the gate each:
+    /// delegates from a dynamic assembly (an assembly without a file) and a patcher with no delegate to look at (no assembly).
+    /// The second kind has no initializer, so it cannot have run early; BepInEx would fail on its missing target list if the
+    /// gate left it active, so a preloader phase that gets to its end shows that it was switched off.
+    /// </summary>
+    private static void ScenarioUnidentifiedPatchers()
+    {
+        _omitEarlyPatcher = false;
+        Fake g = Fake.Create("unidentified", true);
+        BuildWorld(g, WorldKind.Full);
+        InstallProbes();
+        _beforeDirectory = () =>
+        {
+            AssemblyPatcher.AddPatcher(MakeDynamicAssemblyPatcher("Early.Dynamic", "dyn-early"));
+            AssemblyPatcher.AddPatcher(MakeNullOriginPatcher("Early.Null"));
+        };
+        _afterDirectory = () =>
+        {
+            AssemblyPatcher.AddPatcher(MakeDynamicAssemblyPatcher("Late.Dynamic", "dyn-late"));
+            AssemblyPatcher.AddPatcher(MakeNullOriginPatcher("Late.Null"));
+        };
+
+        RunPreloaderPhase(true);
+        string json;
+        ArenaGateReport report = ReadReport(out json);
+        Check(report != null, "the gate published a report", "no report");
+        if (report == null) return;
+
+        List<PatcherSpec> patchers = WorldPatchers();
+        List<string> sorted = _orderBeforePatching.Select(l => l.Assembly).ToList();
+        int gateIndex = sorted.IndexOf(GateAssemblyName);
+        Check(gateIndex >= 0, "the gate was found as a patcher", "patcher order: " + string.Join(",", sorted.ToArray()));
+        List<string> order = _orderBeforePatching.Select(l => l.TypeName).ToList();
+        int gateTypeIndex = _orderBeforePatching.FindIndex(l => l.Assembly == GateAssemblyName);
+        Check(order.IndexOf("Early.Dynamic") >= 0 && order.IndexOf("Early.Dynamic") < gateTypeIndex && order.IndexOf("Early.Null") >= 0 && order.IndexOf("Early.Null") < gateTypeIndex
+                && order.IndexOf("Late.Dynamic") > gateTypeIndex && order.IndexOf("Late.Null") > gateTypeIndex,
+            "the setup puts two patchers the gate cannot place before the gate and two after it", "patcher type order: " + string.Join(" > ", order.ToArray()));
+
+        const string earlyDynamic = "(unidentified) Early.Dynamic";
+        const string earlyNull = "(unidentified) Early.Null";
+        const string lateDynamic = "(unidentified) Late.Dynamic";
+        const string lateNull = "(unidentified) Late.Null";
+        var deniedFiles = new List<string>();
+        foreach (PatcherSpec p in patchers)
+        {
+            string cause;
+            if (!PatcherAllowedInWorld(WorldKind.Full, p, out cause)) deniedFiles.Add(Path.GetFileName(p.RelativePath));
+        }
+
+        SameSet("every patcher that is not allowed is neutralised, the ones the gate cannot place under their type names",
+            deniedFiles.Concat(new[] { earlyDynamic, earlyNull, lateDynamic, lateNull }), report.PatchersNeutralised);
+        List<string> ranEarly = ExpectedRanBeforeGate(WorldKind.Full, patchers, sorted, gateIndex);
+        ranEarly.Add(earlyDynamic); // the one with an initializer that sorts before the gate; the others have none, or sort after it
+        CheckRanBeforeGateJson("with patchers the gate cannot place", json, ranEarly);
+
+        // What actually ran: the early ones their initializer (nothing can be done about that), the late ones nothing at all.
+        Check(Calls.Contains("init:dyn-early"), "the file-less patcher dyn-early sorts before the gate, so its initializer ran");
+        Check(!Calls.Contains("targets:dyn-early") && !Calls.Contains("fin:dyn-early"), "its target list and finalizer were switched off");
+        Check(!RanAny("dyn-late"), "the file-less patcher dyn-late sorts after the gate and ran nothing", string.Join(",", Calls.Where(c => c.EndsWith("dyn-late")).ToArray()));
+
+        const string cannotBeOn = "could not be determined, so it cannot be on the whitelist and was neutralised";
+        foreach (string name in new[] { earlyDynamic, earlyNull, lateDynamic, lateNull })
+        {
+            Check(report.Warnings.Any(w => w.StartsWith("preloader patcher " + name + ": ", StringComparison.Ordinal) && w.EndsWith(cannotBeOn, StringComparison.Ordinal)),
+                "the report warns that " + name + " cannot be placed and was neutralised", "warnings: " + string.Join(" | ", report.Warnings.ToArray()));
+        }
+
+        Check(report.Warnings.Any(w => w.StartsWith("preloader patcher " + earlyDynamic + " could not be identified, but its initializer ran before the gate and cannot be undone", StringComparison.Ordinal)),
+            "the report warns that the initializer of " + earlyDynamic + " could not be stopped");
+        Check(!report.Warnings.Any(w => (w.Contains(lateDynamic) || w.Contains(earlyNull) || w.Contains(lateNull)) && w.Contains("initializer ran")),
+            "no initializer warning for a patcher that has no initializer or sorts after the gate");
+        CheckPatchersNamedAtInfo(report.PatchersNeutralised,
+            Log.From(GateSource).Where(e => e.Level == LogLevel.Info && e.Message.Contains(" preloader patcher")).ToList());
+        Console.WriteLine("  info: patcher order " + string.Join(" > ", order.ToArray()));
+    }
+
+    /// <summary>
+    /// Fail closed: when the gate cannot find its own place in the preloader's patcher list it cannot tell which patchers ran
+    /// before it, so every neutralised patcher that has an initializer is listed in patchersRanBeforeGate and one warning
+    /// says why. Here the gate is called through a wrapper patcher (a file of its own is not in the list), which sorts first.
+    /// </summary>
+    private static void ScenarioGateUnlocated()
+    {
+        _omitEarlyPatcher = false;
+        Fake g = Fake.Create("unlocated", true);
+        BuildWorld(g, WorldKind.Full);
+        File.Delete(g.GateFile); // the gate is not a patcher of this game: only the wrapper calls it
+        InstallProbes();
+        string gatePath = Path.Combine(Path.Combine(_driverDir, "gate"), ArenaSessionContract.GateFileName);
+        _beforeDirectory = () =>
+        {
+            AssemblyPatcher.AddPatcher(new PatcherPlugin
+            {
+                TypeName = "Wrapper.Gate",
+                TargetDLLs = EmptyTargets,
+                Initializer = () =>
+                {
+                    Assembly gate = Assembly.LoadFrom(gatePath);
+                    gate.GetType("ArenaMode.Gate.Patcher", true).GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
+                },
+            });
+        };
+
+        RunPreloaderPhase(true);
+        string json;
+        ArenaGateReport report = ReadReport(out json);
+        Check(report != null, "the gate published a report", "no report");
+        if (report == null) return;
+
+        Check(!_orderBeforePatching.Any(l => l.Assembly == GateAssemblyName), "the gate is not in the patcher list of this game",
+            string.Join(" > ", _orderBeforePatching.Select(l => l.Assembly).ToArray()));
+        List<PatcherSpec> patchers = WorldPatchers();
+        var denied = new List<string>();
+        foreach (PatcherSpec p in patchers)
+        {
+            string cause;
+            if (!PatcherAllowedInWorld(WorldKind.Full, p, out cause)) denied.Add(Path.GetFileName(p.RelativePath));
+        }
+
+        // The wrapper is a patcher of the driver's own file (GateChecks.exe), which no list names: switched off like the rest.
+        string wrapper = Path.GetFileName(Assembly.GetExecutingAssembly().Location);
+        List<string> expected = denied.Concat(new[] { wrapper }).ToList();
+        SameSet("every patcher that is not allowed is neutralised", expected, report.PatchersNeutralised);
+        CheckRanBeforeGateJson("with an unknown gate position", json, expected);
+        Check(report.Warnings.Any(w => w.StartsWith("the position of the gate in the preloader's patcher list is unknown", StringComparison.Ordinal)
+                && w.Contains("reported as having run before the gate")),
+            "one warning says that the position of the gate is unknown", "warnings: " + string.Join(" | ", report.Warnings.ToArray()));
+        Check(report.Warnings.Count(w => w.StartsWith("the position of the gate", StringComparison.Ordinal)) == 1, "the warning is given once");
+        Check(!report.Warnings.Any(w => w.Contains("but its initializer ran before the gate")), "no per-patcher initializer warning without a known position");
+        Console.WriteLine("  info: patcher order " + string.Join(" > ", _orderBeforePatching.Select(l => l.Assembly).ToArray()));
     }
 
     // ------------------------------------------------------------------ control: installing too early
@@ -1461,6 +1791,10 @@ public static class GateChecks
         ArenaGateReport report = ReadReport(out json);
         Check(report != null && report.Active, "the gate is active on the installed game's plugins", report == null ? "no report" : report.Error);
         if (report == null || !report.Active) return;
+
+        // Every real patcher is allowed, so none is neutralised and none counts as having run before the gate, wherever it sorts.
+        Check(report.PatchersNeutralised.Count == 0, "no patcher of the installed game is neutralised", string.Join(", ", report.PatchersNeutralised.ToArray()));
+        CheckRanBeforeGateJson("on the installed game's patchers", json, new List<string>());
 
         // The oracle: the units as the baseline process read them, decided by the shared code.
         var units = new List<ArenaSessionUnit>();

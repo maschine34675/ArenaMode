@@ -1,11 +1,76 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-21. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-22. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Arena session review fixes (2026-10-22, branch `feature/arena-session-review-fixes`, offline checks only for the
+  changes, nothing committed):** an external review (Codex, HEAD `1713f5f`, `artifacts/session-review-20261022/root/report.md`,
+  German, no game or server run) raised five release findings and five trade-offs; the answer to each is
+  [ARENA-SESSION-REVIEW-RESPONSE-20261022.md](ARENA-SESSION-REVIEW-RESPONSE-20261022.md), the contract is spec sections 3 to 8,
+  10 and 11. Changed: deny wins over hard dependencies on the client and for server mods (`requires-denied:<guid>`, listed
+  under "Blocked for Arena"; platform/Arena units excepted); the gate report has `patchersRanBeforeGate` (and the Info
+  suffix); the Arena instance's ping has `policyHash` (a normal server's ping is unchanged); the helper writes
+  `<request>.accepted` atomically after validation and the mutex (`HelperHost` fixes the order), copies
+  `user\patchers\<ModGuid>` of the request's server mods into the tree and ends a just-started server whose `server.pid`
+  cannot be written; the client refuses Arena in a session when a patcher ran before the gate, when the server runs a mod
+  the current policy excludes or was built for another policy hash, judges every patcher `.dll` below `BepInEx\patchers` (a
+  support library without a `TargetDLLs` member excepted since the second pass) by file name in a normal session, and quits the game only after the acknowledgement (coroutine, every 250 ms, at most 15 s; a
+  helper that is gone or silent leaves the game running with the action available). Checks after the second pass (all with the no-deploy properties): `dotnet build ArenaMode.sln` 0 errors;
+  unit tests 2074 passed, 2 skipped (they need the installed game), 0 failed (2040 after the first pass);
+  `ArenaSessionClientChecks` 634 assertions, 141 mutants rejected on their named assertion (614 and 133 after the first pass);
+  `ArenaGateChecks` 17 scenarios, 617 checks, 35 mutants rejected (14, 526 and 29 after the first pass);
+  `Verify-SessionPing` 785 assertions, 13 mutants rejected (its sources are untouched; rerun as a check); `OptionalModAdmissionChecks` passes (9 negative controls); `ArenaAvailabilityChecks` passed after the first pass and
+  was not rerun as a whole (its parts above were). The new unit tests were also checked against 17 hand-made mutants of the production
+  code (hash, tie-break, reader, request watch, stray scan, registration), each killed by the test named for it. Open: none of this has run on a GPU host (spec
+  section 10 items 6 to 11 (10 and 11 are the third pass) and the review's list: normal to Arena to normal with profile and client data, respawns, PFT,
+  a policy file changed during the switch, a failing helper, a late helper, a throwaway patcher and a support DLL beside it).
+  **Second pass over these fixes (same branch, same day, also offline only; response document "Second pass", spec
+  section 11 last entry):** the policy hash covers a user deny in a whitelist too; the client deletes the request file on
+  every failure and the helper ends its wait for the game when the file is gone or replaced (a late helper no longer
+  switches the session behind the player's back); the gate neutralises a patcher it cannot place (`(unidentified) <type>`)
+  and lists every neutralised patcher with an initializer as ran-before-gate when its own position is unknown; an arena
+  server that no `server.pid` names is found by its image (marker of this helper required, same ownership rule as for a
+  registered server); a support DLL without a `TargetDLLs` member in `BepInEx\patchers` is no patcher unit; the client and
+  the gate read the policy files through `ArenaPolicyFiles` (256 KB). Limits that remain: the patcher test is a search for
+  the name `TargetDLLs` in the DLL (BepInEx's own rule; a file that cannot be read counts as a patcher); an unregistered
+  server without a marker is not killed (`enter` refuses and `helper.log` names its pid, end it by hand); a patcher the gate cannot place
+  is named by type name, not by file; the helper looks at the request file about twice a second.
+  **Third pass and its review (same branch, same day, offline only; response document "Third pass", spec section 11 last
+  four entries):** three changes from the `gate-policy` and `isolation` sub-reports, then a review of them. (1) Client (spec
+  sections 2, 3, 7, 10): an Arena session whose policy cannot be loaded refuses, and the plugins the game loaded are judged with
+  the policy as it reads now ("the policy changed during the switch"). (2) Default file (sections 2, 3, 9): a `mods` entry that
+  names a platform/Arena unit or a `com.fika.` GUID is skipped with a diagnostic, `Write-ArenaAssets.ps1` and
+  `Verify-TestRelease.py` reject such a list, JSON `null` for the user file's `allow`/`deny`/`unlisted` is a missing member.
+  (3) Helper (section 6): the wait for the arena server no longer takes a missing owner for the server and binds the owner
+  lookup to the address the connection reached; every file the helper creates or truncates is opened without following a link
+  (`HelperNative.OpenFileForWriting`), `WriteAllText`/`server.pid` removes a link first; an absolute or out-of-tree `filePath`
+  of the copied `sptLogger.json` moves to `./user/logs/`. The review's five minor points: real `0.0.0.0` and dual-stack `[::]`
+  listener tests (one premise did not hold: Windows Server 2025 lists a dual-stack socket in the IPv4 table too, so the IPv6
+  read for an IPv4 address is a safety net without a mutant); `OpenFileForWriting` documentation (a junction or folder fails
+  with access denied, not a `HelperException`; dead folder branch removed); an IPv6-literal probe now works on .NET Framework
+  (`CanConnect` makes the socket of the literal's family; new `tools/ArenaSessionHelperNet472Checks`, Windows PowerShell 5.1
+  against the built exe); the `helper.log` parent-folder wording; this entry. Checks (all with the no-deploy properties):
+  `dotnet build ArenaMode.sln` 0 errors; unit tests 2188 passed, 2 skipped (they need the installed game), 0 failed (2074 after
+  the second pass); `ArenaSessionClientChecks` 667 assertions, 156 mutants rejected (634 and 141 after the second pass);
+  `ArenaGateChecks` 17 scenarios, 617 checks, 35 mutants rejected; `ArenaSessionHelperNet472Checks` 7 checks, 3 mutants
+  rejected (new). Not rerun in this pass: `Verify-SessionPing` (785 assertions, 13 mutants after the second pass),
+  `OptionalModAdmissionChecks`, `ArenaAvailabilityChecks`. Open: none of the third pass has run on a GPU host (spec section 10
+  items 10 and 11, and the changed helper binary: a real enter and leave).
+  **GPU evidence of the same day (SPT-GPU-2, 2026-10-22, build `1713f5f` = HEAD before these fixes; the two entries
+  below were written with offline checks only and refer back to this one):** a normal session with every installed mod on the default list started an Arena
+  deathmatch directly (no refusal, no warning); a throwaway probe plugin that is not on the list refused Arena with
+  START ARENA SESSION and the session excluded it (40 allowed, 1 excluded); with the one-line override
+  `{ "schema": 1, "unlisted": "allow" }` the normal session allowed Arena with the note `policy override: 1 unlisted
+  mod(s) allowed by your policy file: ArenaWhitelistProbe` and the session loaded the probe (41 allowed, 0 excluded, the
+  gate's override suffix); the arena server from freshly copied binaries needed 35 s on its first start and 6 s on the second.
+  Recorded from the run's report (spec section 10), not re-observed by the pass that wrote this entry. The report names no
+  build hash and no file with its observations was found; `1713f5f` follows from the policy-override note the run shows,
+  which first exists in that commit (nothing came after it). The external review's own files are in the main checkout's
+  ignored `artifacts` folder: `D:\SPT41\Development\ArenaMode\artifacts\session-review-20261022\root\report.md`.
 
 - **Arena session: whitelist by not loading (2026-10-21, branch
   `feature/arena-whitelist-session`, GPU2 accepted):** user decision: no more per-mod
@@ -27,8 +92,8 @@ current. User-facing communication is normally German.
   arena-server writes in the real SPT_Runtime); bundle-only mod folders are junctions and the
   bundle hash cache is carried over (WTT's 8 GB are no longer copied; server ready in 11 s).
   Spec and acceptance: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md).
-  **Default list (2026-10-22, branch `feature/arena-default-list`, offline checks only, not yet on a GPU
-  host):** user decision: the shipped list allows every mod installed on the development hosts (ArenaMapPort,
+  **Default list (2026-10-22, branch `feature/arena-default-list`, offline checks first, GPU2 evidence of the same
+  day in the entry above):** user decision: the shipped list allows every mod installed on the development hosts (ArenaMapPort,
   Killcam, PitFireTeam, DynamicMaps and the rest now load in an Arena session, and so do their adapters; the
   sentences above that they are not on the list and that the adapters are dormant in a session are history, only
   adapters of mods outside the list stay dormant) and has a `deny` list for the five mods ArenaMode refused by code (ORBIT,
@@ -42,8 +107,8 @@ current. User-facing communication is normally German.
   in the menu and the log, a suffix on the gate's Info summary and `unlistedAllowed` in the gate report (spec section
   3, README "Testing override"); the file is mirrored by Syncthing, so remove it after the test.
 
-- **Compat cleanup (2026-10-22, branch `feature/arena-compat-cleanup`, offline checks only, not yet on a GPU
-  host):** user decision: the whitelist replaces the per-mod code, and nothing else decides which foreign mods Arena
+- **Compat cleanup (2026-10-22, branch `feature/arena-compat-cleanup`, offline checks first, GPU2 evidence of the
+  same day in the first entry above):** user decision: the whitelist replaces the per-mod code, and nothing else decides which foreign mods Arena
   refuses. Removed: the client adapters for MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To
   The Party, Classic Movement, StatTrack, Deminvincibility, Skills Extended, Pause Continued and EFT Effects
   Manager / Broken Limbs (`Compat\Arena<X>Compat/Contract/Scope.cs`, their `Plugin` soft dependencies, Initialize/

@@ -108,16 +108,7 @@ public sealed class ArenaModeRouter : StaticRouter
     [
         new RouteAction<EmptyRequestData>(
             Protocol.PingRoute,
-            (url, info, sessionId, output, _) =>
-                new ValueTask<string>(Json(new
-                {
-                    version = typeof(ArenaModeRouter).Assembly.GetName().Version?.ToString(),
-                    // Arena session feature (docs/ARENA-SESSION-20261021.md, section 8).
-                    // An older server omits both fields; the client reads absence as
-                    // "no session offer" rather than as false/empty.
-                    arenaInstance = ArenaServerInstance.IsArenaInstance,
-                    serverMods = ArenaServerInstance.Mods,
-                }))),
+            (url, info, sessionId, output, _) => new ValueTask<string>(Json(BuildPing()))),
 
         new RouteAction<EmptyRequestData>(
             Protocol.ConfigRoute,
@@ -848,4 +839,24 @@ public sealed class ArenaModeRouter : StaticRouter
     }
 
     private static string Json(object value) => JsonSerializer.Serialize(value);
+
+    /// <summary>
+    /// The ping body. <c>arenaInstance</c> and <c>serverMods</c> are the Arena session feature
+    /// (docs/ARENA-SESSION-20261021.md, section 8); an older server omits both and the client reads
+    /// absence as "no session offer" rather than as false/empty. <c>policyHash</c> exists only on the
+    /// Arena instance (the hash from its marker, JSON null when the marker gives none), so the ping of
+    /// a normal server stays exactly what it was with the two fields above.
+    /// </summary>
+    private static Dictionary<string, object?> BuildPing()
+    {
+        var ping = new Dictionary<string, object?>
+        {
+            ["version"] = typeof(ArenaModeRouter).Assembly.GetName().Version?.ToString(),
+            ["arenaInstance"] = ArenaServerInstance.IsArenaInstance,
+            ["serverMods"] = ArenaServerInstance.Mods,
+        };
+        if (ArenaServerInstance.IsArenaInstance)
+            ping["policyHash"] = ArenaServerInstance.PolicyHash;
+        return ping;
+    }
 }

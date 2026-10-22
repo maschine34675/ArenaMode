@@ -3,7 +3,6 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using ArenaMode.Shared.Session;
 using Microsoft.Win32.SafeHandles;
 
@@ -15,7 +14,8 @@ namespace ArenaMode.SessionHelper
     /// shows a console window or any other UI; everything it does goes to
     /// <c>%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log</c>. Exit code 0 means success,
     /// 1 failure. One instance at a time (named mutex); <c>status</c> only reads and so does not
-    /// take the mutex.
+    /// take the mutex. <c>enter</c> and <c>leave</c> write <c>&lt;request file&gt;.accepted</c> once they have the
+    /// mutex and a valid request, before they wait for the game (see <see cref="HelperHost"/>).
     ///
     /// <code>
     /// maschine-ArenaMode.Session.exe enter --request &lt;file&gt;
@@ -26,7 +26,6 @@ namespace ArenaMode.SessionHelper
     /// </summary>
     internal static class Program
     {
-        private const int MutexWaitSeconds = 5;
         private const uint SemFailCriticalErrors = 0x0001;
         private const uint SemNoGpFaultErrorBox = 0x0002;
         private const uint SemNoOpenFileErrorBox = 0x8000;
@@ -70,81 +69,8 @@ namespace ArenaMode.SessionHelper
             _log.Info("maschine-ArenaMode.Session " + version + ": " + command.Name);
             var runner = new HelperRunner(root, _log, version);
 
-            try
-            {
-                if (command.Name == HelperCommand.Status)
-                {
-                    HelperConsole.WriteLine(runner.Status());
-                    return 0;
-                }
-
-                using (var mutex = new Mutex(false, ArenaSessionContract.HelperMutexName))
-                {
-                    bool owned;
-                    try
-                    {
-                        owned = mutex.WaitOne(TimeSpan.FromSeconds(MutexWaitSeconds));
-                    }
-                    catch (AbandonedMutexException)
-                    {
-                        _log.Warn("a previous helper instance ended without releasing the mutex");
-                        owned = true;
-                    }
-
-                    if (!owned)
-                    {
-                        _log.Error("another helper instance is running; exiting");
-                        return 1;
-                    }
-
-                    try
-                    {
-                        return Run(command, runner) ? 0 : 1;
-                    }
-                    finally
-                    {
-                        mutex.ReleaseMutex();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Error("unexpected failure: " + ex);
-                return 1;
-            }
-        }
-
-        private static bool Run(HelperCommand command, HelperRunner runner)
-        {
-            if (command.Name == HelperCommand.StopServer) return runner.StopServerCommand();
-
-            HelperRequest request = LoadRequest(command);
-            if (request == null) return false;
-            return command.Name == HelperCommand.Enter ? runner.Enter(request) : runner.Leave(request);
-        }
-
-        private static HelperRequest LoadRequest(HelperCommand command)
-        {
-            string json;
-            try
-            {
-                json = HelperFileSystem.ReadAllTextShared(Path.GetFullPath(command.RequestPath));
-            }
-            catch (Exception ex)
-            {
-                _log.Error("cannot read the request file '" + command.RequestPath + "': " + ex.Message);
-                return null;
-            }
-
-            HelperRequest request;
-            string error;
-            if (!HelperRequest.TryParse(json, command.Name, out request, out error))
-            {
-                _log.Error("the request file '" + command.RequestPath + "' is not usable: " + error);
-                return null;
-            }
-
-            return request;
+            // The order of the steps (stale acknowledgement, mutex, request, acknowledgement, command) is HelperHost's.
+            return new HelperHost(runner, _log, ArenaSessionContract.HelperMutexName, HelperConsole.WriteLine).Execute(command);
         }
 
         private static string GetVersion()

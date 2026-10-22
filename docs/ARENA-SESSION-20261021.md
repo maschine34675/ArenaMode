@@ -54,6 +54,9 @@ the server. All units below use the same GUID on both sides.
 | platform (code) | every GUID starting with `com.fika.` | yes | - | never filtered |
 | arena (code) | `com.maschine.ArenaMode` | yes | yes | this build |
 
+Neither policy file can replace, change or remove these rows: an entry for one is skipped and a `deny` of one is skipped
+(section 3, step 1).
+
 The default file (section 3) lists the units below. A GUID entry applies to the client plugin and to the server mod
 with that GUID; "Client" and "Server" say which side has a reviewed version (an absent side means any version, no
 warning, and a mod that exists on one side only simply is not installed on the other).
@@ -114,8 +117,8 @@ code before the whitelist existed; the reason in every case is "refused by Arena
 
 Those code-level refusals were removed on 2026-10-22 (user decision, section 11). The deny list is now the only
 mechanism: it keeps the mods out of an Arena session and names them as "Blocked for Arena" in a normal one. A user
-`allow` entry lifts it, at the player's own risk. Because nothing else refuses these mods any more, a normal
-session whose shipped whitelist is missing, unreadable or invalid, or whose evaluation fails, refuses Arena
+`allow` entry lifts it, at the player's own risk. Because nothing else refuses these mods any more, a session
+of either kind whose shipped whitelist is missing, unreadable or invalid, or whose evaluation fails, refuses Arena
 (section 7); ordinary raids are unaffected.
 
 Libraries without a `BepInPlugin` (for example `maschine-Redeploy.Core.dll`,
@@ -152,19 +155,22 @@ the user file's `deny`). The names of the denied mods are not in the file (JSON 
 section 2 and in the README.
 
 User file: `{ "schema": 1, "unlisted": "deny" | "allow", "allow": [ <entries as above> ], "deny": [ "<guid or patcher file>" ] }`.
-`unlisted`, `allow` and `deny` are each optional; schema stays 1.
+`unlisted`, `allow` and `deny` are each optional; schema stays 1. A JSON `null` for any of the three is the same as a
+missing member (below).
 
 The policy is a combined allow/deny list (user decision 2026-10-21; the default file's deny list was added by the
 decision of 2026-10-22). For one unit, in this order:
 
-1. **Platform and arena units** are always allowed. Neither `deny` list can remove them (a default or user `deny`
-   that names one is skipped with a diagnostic).
-2. A unit in the user `deny` list is **excluded** (`denied-by-user`), except as a hard dependency of
-   an allowed unit: the closure of section 4 still pulls it in, with a warning.
+1. **Platform and arena units** are always allowed. No file can change or remove them: a default or user `deny`
+   that names one is skipped with a diagnostic, and so is a default `mods` entry that names one (with a
+   diagnostic) or a user `allow` entry (without one), so the code entry keeps its tier, its sides and its reviewed
+   versions. Every GUID that starts with `com.fika.` counts as one of these units.
+2. A unit in the user `deny` list is **excluded** (`denied-by-user`). It is not pulled in as a hard dependency
+   of an allowed unit either: that unit is excluded too (deny wins over hard dependencies, below and section 4).
 3. A unit that a user `allow` entry names is **allowed** (`whitelist` or `tool`), with the user's reviewed
    versions. This is how the user brings back a unit the default file denies.
 4. A unit in the **default** file's `deny` list is **excluded** (`denied`), in whitelist and in blacklist mode
-   alike, except as a hard dependency of an allowed unit (closure, with a warning). Only step 3 (the user's
+   alike, and not pulled in as a hard dependency either (same rule as step 2). Only step 3 (the user's
    `allow`) or step 2 (the user's own `deny`, which then names the reason) is ahead of it.
 5. A unit that a default entry names is **allowed** (`whitelist` or `tool`). A reviewed version that differs from
    the installed one is a warning; this is the only source of version warnings, so it exists only for entries
@@ -176,6 +182,22 @@ decision of 2026-10-22). For one unit, in this order:
 Consequences: a user `allow` re-enables a default-denied mod; a user `deny` always wins, even over such an `allow`
 (the user file applies its `allow` before its `deny`); in blacklist mode (`"unlisted": "allow"`) the default
 denies still block, because they are not a statement about being unlisted.
+
+**Deny wins over hard dependencies (2026-10-22, external review).** A unit that a deny list names (and no `allow`
+entry lifts) is never allowed, not even as a hard dependency of an allowed unit: the closure of section 4 never
+pulls it in. A unit that would be allowed (a listed one, an `unlisted-allowed` one, or an unlisted library that an
+allowed unit needs) but has such a unit among its installed hard dependencies, directly or through other units
+that need it in turn, cannot start without it: BepInEx skips a plugin with a missing hard dependency, and SPT's
+mod validator refuses to load every server mod when one `ModDependencies` entry is missing. That unit is
+therefore **excluded** itself, with the reason `requires-denied:<guid>` (the GUID of the denied unit it needs)
+and one warning `<name>: excluded because it requires <dependency name> (denied by the user's policy file)`, or
+`(denied by the default list)` when only the default file denies it (the user's file is named when both do).
+So A that requires B that requires a denied C excludes A and B, both with `requires-denied:C` and C's name in
+the warning. A unit that is merely unlisted is still pulled in with the warning of section 4; under a
+blacklist an unlisted library is allowed on its own, so only a denied dependency can ever block there. Platform
+and Arena units are the exception (step 1): no list can remove them, so this rule does not either. The same
+rule holds on the server, with the mod's `ModDependencies` as hard dependencies. The normal-session refusal
+(section 7) lists the excluded dependants under "Blocked for Arena" with the denied mods.
 
 **Testing override (user decision 2026-10-22).** The rule stays: what is not on the list blocks Arena and does not
 load in the session. The user's way to test without listing every mod is the blacklist file above, and nothing else
@@ -199,7 +221,19 @@ or an entry that is not a non-blank string makes the default file invalid, so th
 lost deny would let through a mod the build refuses). A GUID or patcher that the default file both lists in `mods`
 and names in `deny` is **denied** (deny wins); the loader reports `default whitelist: '<id>' is both allowed and
 denied, the deny wins and the unit stays out`, the file stays valid, and `tools/Write-ArenaAssets.ps1` refuses to
-ship such a file. A user `allow` can still bring that unit back. The loader also reads only the exact key `deny`
+ship such a file. A user `allow` can still bring that unit back. A `mods` entry or a `deny` entry of the default file
+that names a platform or Arena unit (step 1, `com.fika.` GUIDs included) is skipped and the file stays valid: the
+loader reports `default whitelist: mods[<i>]: '<id>' is ignored, platform and Arena units are fixed in code and cannot
+be listed` or `default whitelist: deny of '<id>' is ignored, platform and Arena units cannot be denied`. Before
+2026-10-22 (external review `gate-policy`, appendix) only the deny was skipped: a `mods` entry replaced the code entry
+of its unit (another tier, both sides, the file's versions), and a deny of the same name, which protects code-tier
+entries only, then removed the unit, so a shipped file could make `com.SPT.core` or `com.maschine.ArenaMode` not
+allowed. A
+malformed entry still fails the load first, whatever unit it names. Such a file is a mistake in the build, not
+something to load around, so `tools/Write-ArenaAssets.ps1` and `tools/Verify-TestRelease.py` refuse to ship it (any
+`mods` or `deny` entry that names one of these units; a platform patcher by its file name, also written as a path).
+Their lists are the contract's (`ArenaSessionContract`), and the tests run both scripts against every unit of the
+contract. The loader also reads only the exact key `deny`
 and accepts a default file without one, so `tools/Write-ArenaAssets.ps1` additionally refuses to ship a default file
 whose `deny` member is missing (or spelled differently) or does not name the five refused mods; the release check
 `tools/Verify-TestRelease.py` requires the same five names and the two file patchers of section 2.
@@ -209,18 +243,41 @@ A user file with an unknown schema, an unknown `unlisted` value (anything but th
 arrays and objects included; JSON `null` counts as absent) or a parse error is ignored with a
 warning, as a whole: guessing a mode would silently invert what the user wrote. In blacklist mode
 (`"unlisted": "allow"`) the same goes for a `deny` member that cannot be read in full, that is, one that is
-not an array or has an entry that is not a non-blank string: there the deny list is the whole filter, and
+not an array or has an entry that is not a non-blank string (JSON `null` is neither: `"deny": null` is a missing
+member there as everywhere, not an unreadable list, so the file applies and hashes like the file without the
+member, while `"deny": ""` or `"deny": {}` discard it): there the deny list is the whole filter, and
 applying part of it would load a mod the user excluded, so the file is ignored as a whole and the shipped
 whitelist stays in force. A mistyped `allow` member or entry, and under a whitelist a mistyped `deny` member
 or entry, are skipped individually with a warning (a lost `allow` entry only leaves a mod unlisted, and under
-a whitelist nothing unlisted loads). A `unlisted` member in
-the shipped default file is not read: the default list is always a whitelist. A missing or unreadable
-default file makes the Arena session unavailable (the gate stays inactive and reports the error).
+a whitelist nothing unlisted loads). A JSON `null` for `allow` or `deny` is a missing member in both modes and costs
+no warning. A `unlisted` member in
+the shipped default file is not read: the default list is always a whitelist. A missing, unreadable, oversized
+or invalid default file makes the Arena session unavailable (the gate stays inactive and reports the error) and
+makes the client refuse Arena in a session of either kind, in an Arena session that is already running as well
+(section 7, check 2 of the Arena session).
+
+Both files are read through one function, `ArenaPolicyFiles.TryRead` (section 4), by the client and by the gate: at
+most 256 KB, as UTF-8 text (a byte order mark is honoured), with the sharing mode of `File.ReadAllText`. A file above
+the limit is not a policy file, none of it is read: the user file is ignored with a warning (the gate's diagnostic reads
+`user whitelist: cannot read '<path>', the file is ignored: larger than 256 KB`, the client logs
+`user whitelist is larger than 256 KB and was ignored`), a default file of that size makes the Arena session
+unavailable. The reason is the policy hash: the client builds the
+request and so the server tree from its reading of the files, the gate applies its own, and the Arena session refuses
+when the two hashes differ (section 7). A limit that only one side enforced would make them disagree about the same
+file for ever ("the policy changed during the switch" on every attempt, although nothing changed), so there is one
+reader and one limit; a source pin in `ArenaMode.Tests` keeps a private reader from coming back on either side, and
+the gate harness has a world with an oversized user file (`user-oversize`).
 
 The policy hash covers the entries after `deny`, and the default file's deny list when it has one (one line
 `default-denied|<lower-case file name>` per name: a default file without a deny list hashes exactly as before the
-list existed). In blacklist mode it also covers the mode and the user's denied names, because there they are the
-whole filter; a whitelist policy hashes exactly as before the mode existed.
+list existed). It also covers the user's denied names (one line `denied|<lower-case file name>` per name; a deny of a
+platform or Arena unit is skipped and is not hashed, and neither is a default `mods` entry or `deny` for one: a
+default file that names such a unit hashes like the one without it) and, in blacklist mode, the mode (`unlisted|allow`). In blacklist
+mode the denied names are the whole filter. In a whitelist they are part of the policy since the deny-wins rule
+(2026-10-22): a deny of a library that no list names cuts off every allowed unit that needs it, so two whitelist
+policies that differ only in such a deny decide differently and must not share a hash (the Arena session compares the
+hash of the server tree with the gate's, section 7). A whitelist policy without a user deny and without a default deny
+list hashes exactly as before the mode existed (the pinned values of the tests).
 
 GUID comparison is ordinal and case-insensitive. Versions compare as `System.Version` after
 dropping a leading `v` and any suffix after `-` or `+`; an unparsable version counts as different.
@@ -245,18 +302,30 @@ targets.
 - `ArenaWhitelistDecision`: input = installed units `(guid, name, version, file, hardDependencies)`
   for one side; output = `Allowed` (reason: `platform`, `arena`, `whitelist`, `tool`,
   `unlisted-allowed`, `dependency-of:<guid>`), `Excluded` (reason: `not-on-whitelist`,
-  `denied-by-user`, `denied`) and `Warnings` (`version <installed> differs from reviewed <reviewed>`, `pulled in
-  as hard dependency of <name>`, with ` (overrides the user's deny)` appended for a unit the user denied and
-  ` (overrides the default list's deny)` for one only the default file denies).
+  `denied-by-user`, `denied`, `requires-denied:<guid>`) and `Warnings` (`version <installed> differs from reviewed
+  <reviewed>`, `pulled in as hard dependency of <name>`, `<name>: excluded because it requires <dependency name>
+  (denied by the user's policy file)` or `(denied by the default list)`).
   `unlisted-allowed` occurs only in blacklist mode and carries no warning of its own; the units of that reason
-  are announced together by the one policy-override warning at the end of `Warnings` (section 3). Closure: a hard dependency
-  of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but not allowed (a unit
-  either deny list names; in whitelist mode any unlisted one) is allowed with a warning, transitively. Same
-  function for the server side, whose hard dependencies are the mod's `ModDependencies`, sent in the ping
-  (section 8): SPT's mod validator refuses to load EVERY server mod when one listed dependency is missing,
-  so a denied or unlisted library of an allowed server mod has to stay in the tree. The closure is per
-  side: a client plugin pulled in as a dependency does not pull in a server mod that merely shares its GUID,
-  nor the other way round. A ping without `dependencies` (an older server) means none.
+  are announced together by the one policy-override warning at the end of `Warnings` (section 3), which does not
+  count excluded units. Closure and deny rule (section 3, "Deny wins over hard dependencies"): a hard dependency
+  of an allowed unit (a listed one or an `unlisted-allowed` one) that is installed but unlisted is allowed with a
+  warning, transitively (whitelist mode; in blacklist mode an unlisted unit is allowed anyway). A unit a deny
+  list names is never allowed by the closure. A unit that has a denied unit among its installed hard dependencies,
+  directly or through other units, is excluded with `requires-denied:<guid>` (the denied unit's GUID as
+  installed) and one warning, instead of being allowed; so is an unlisted library between it and the denied
+  unit. A cut-off unit pulls nothing in: a library only it needs stays `not-on-whitelist`. An unlisted unit
+  that no allowed unit needs keeps its plain reason even if it needs a denied unit. A unit with several denied
+  hard dependencies names the first one in its own dependency order in the reason and in the warning (of one GUID
+  that is installed twice, the first installed copy that is denied; the GUID in the reason is the same for both).
+  Platform and Arena units are never cut off. Same function for the server side, whose hard dependencies are the mod's
+  `ModDependencies`, sent in the ping (section 8): SPT's mod validator refuses to load EVERY server mod when one
+  listed dependency is missing, so a server mod that needs a denied library goes out of the tree with it, and an
+  unlisted library of an allowed server mod stays in. The closure is per side: a client plugin pulled in as a
+  dependency does not pull in a server mod that merely shares its GUID, nor the other way round. A ping without
+  `dependencies` (an older server) means none.
+- `ArenaPolicyFiles` (in `ArenaSessionContract.cs`): `TryRead(path, out text, out detail)` reads a policy file for the
+  client and the gate (section 3) and says what it found: `Absent`, `Read`, `TooLarge` (above `MaxBytes`, 256 KB) or
+  `Unreadable`. It never throws.
 - `ArenaSessionContract`: constants and the report format.
   - command-line flag `-arena-session`
   - AppDomain data key `com.maschine.ArenaMode.Gate.Report`
@@ -267,7 +336,19 @@ targets.
   - helper file name `maschine-ArenaMode.Session.exe`
   - gate report JSON: `{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
     "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
-    "patchersNeutralised":[file] }`
+    "patchersNeutralised":[file], "patchersRanBeforeGate":[file] }`
+  - `patchersRanBeforeGate` (since 2026-10-22, external review) is present in every report, an empty array when
+    none: the file names of the not-allowed patchers the gate neutralised although their initializer had already
+    run, because they sort before the gate in the preloader's patcher list (section 5, step 2). It is a subset of
+    `patchersNeutralised`, in the same report (provisional, final and every inactive one). For these patchers the
+    process is not clean although the plugin list is filtered: their initializers could not be stopped. A patcher
+    whose file the gate cannot determine appears as `(unidentified) <type name>`, and when the gate cannot find its
+    own place in the patcher list every neutralised patcher with an initializer is listed (any of them may have
+    run). A report without the member (an older gate) reads as an empty list.
+  - the Info summary line `Arena session: N plugins allowed, M excluded, K warnings` gets the suffixes
+    ` (policy override: unlisted mods allowed)` (when `unlistedAllowed`) and, after it, ` (N patcher(s) ran before the
+    gate)` (N = the length of `patchersRanBeforeGate`, only when it is not empty); `ArenaGateReport.SummaryLine()`
+    builds it.
 
 ## 5. Gate: preloader patcher (`ArenaMode.Gate`, `maschine-ArenaMode.Gate.dll`)
 
@@ -279,14 +360,25 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
 - Both callbacks: if `Environment.GetCommandLineArgs()` has no `-arena-session` (case-insensitive),
   return on the first line: no Harmony, no logging, no file access.
 - With the flag, `Initialize()`:
-  1. Load the policy (paths from `BepInEx.Paths`). On failure: report `active:false` + error, do
-     not filter anything, return.
+  1. Load the policy (paths from `BepInEx.Paths`, read through `ArenaPolicyFiles`, section 3). On failure: report
+     `active:false` + error, do not filter anything, return.
   2. Neutralise every patcher that is not allowed, through the public members of
      `PatcherPlugin`: its target list is replaced by an empty one and its patch, initializer and
      finalizer delegates by no-ops. The gate itself and BepInEx's own entry-point patcher are
      recognised by the assembly their delegates come from and are never touched. Initializers
      that already ran (patchers that sort before the gate) cannot be undone; each gets a warning
-     in the report. Never touch `FixPluginTypesSerialization` lists or any file on disk.
+     in the report and its file name goes into the report's `patchersRanBeforeGate` (once per file, only for
+     patchers that are not allowed and have an initializer; an allowed patcher is never listed, wherever it
+     sorts). The list is part of the provisional report and of every later inactive one, so it survives a
+     failure of the gate. Fail closed in two places (2026-10-22, second review). (a) A patcher whose file cannot
+     be determined (its delegates come from an assembly without a location, or from no assembly: the gate reads
+     the assembly from the target list, initializer or finalizer delegate) cannot be on the whitelist: it is
+     neutralised like a patcher that is not allowed, under the name `(unidentified) <type name>`, with its own
+     warning, and listed in `patchersRanBeforeGate` when it has an initializer and sorts before the gate. (b) When
+     the gate does not find its own position in the patcher list, it cannot tell which initializers ran, so every
+     neutralised patcher that has an initializer is listed in `patchersRanBeforeGate` and one warning says so (a
+     process that is not clean must not look clean). Never touch `FixPluginTypesSerialization` lists or any file on
+     disk.
   3. Publish a provisional `active:false` report ("the plugin list has not been filtered yet"),
      so that a postfix that never runs cannot look like an active gate.
 - With the flag, `Finish()`, which runs after the preloader has loaded its patched assemblies:
@@ -309,14 +401,15 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
   5. Publish the final report with `AppDomain.CurrentDomain.SetData(key, json)` and log through a
      BepInEx log source named `maschine-ArenaMode.Gate`: one Info line
      (`Arena session: N plugins allowed, M excluded, K warnings`, followed by ` (policy override: unlisted mods
-     allowed)` when the policy allows unlisted units), one Info line from
+     allowed)` when the policy allows unlisted units and by ` (N patcher(s) ran before the gate)` when
+     `patchersRanBeforeGate` is not empty), one Info line from
      `Initialize` that names the neutralised patchers when there are any (Debug would not reach
      the log: the preloader keeps only the levels of `Logging.Console.LogLevels`, default Fatal
      to Info), and one Debug line per excluded plugin.
 - Any exception: report `active:false` + error, leave the plugin list unfiltered (all plugins
   load), never exit the game. ArenaMode then refuses Arena in that process. Patchers that were
   already neutralised stay off (the preloader has consumed their lists); the Error line and the
-  report's `patchersNeutralised` say so.
+  report's `patchersNeutralised` say so, and `patchersRanBeforeGate` keeps saying which of them had already run.
 
 ## 6. Helper (`ArenaMode.Session`, `maschine-ArenaMode.Session.exe`)
 
@@ -324,7 +417,30 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
 `BepInEx/plugins/maschine-ArenaMode/`. `enter`, `leave` and `stop-server` run one at a time (named
 mutex `Local\maschine-ArenaMode.Session`); `status` only reads and takes no mutex. Every run appends
 to `helper.log` (rotated at 1 MB) and exits 0 on success, 1 on failure, never shows UI. The
-manifest declares `longPathAware`: the server tree sits deeper than the install.
+manifest declares `longPathAware`: the server tree sits deeper than the install. The order of the steps of
+one `enter`/`leave` run (stale acknowledgement, mutex, request, acknowledgement, command; see "Acknowledgement"
+below) is kept by `HelperHost`, which `Program.Main` hands the parsed command to; it is linked into the tests.
+`HelperHost` also stamps the request file (last-write time and length) before it reads it and lets the command look
+at that stamp while it waits for the game ("A request the client takes back", below).
+
+Writes never follow a link (review 2026-10-22, third pass). Every file the helper creates or truncates is opened without
+following a reparse point at its last component (`HelperNative.OpenFileForWriting`: `CreateFile` with
+`FILE_FLAG_OPEN_REPARSE_POINT`, then a check of the handle's attributes, then the truncation): a file symbolic link
+(a dangling one included) under that name is refused with a `HelperException` and nothing is written. A junction or a
+folder under the name never gets as far as the attribute check: without `FILE_FLAG_BACKUP_SEMANTICS` the open of a folder
+for writing fails with "access denied", so it surfaces as an `UnauthorizedAccessException` (nothing is written either; the
+sandbox's retry repeats it, six attempts and about three seconds of delays in all, before it fails with `cannot open '...'
+for writing: ...`, and `helper.log` gives up after three attempts). The sandbox
+(`WriteAllText`, which also writes `server.pid`, and every copy) additionally removes a link at the destination first, as
+a link and without entering or following it (a dangling one included), and writes a plain file in its place; the refusal
+of the open covers the instant between that check and the open. The two files written outside the sandbox follow the same
+rule. `helper.log`: a link under the log's name is removed as a link and the log goes on in a plain file whose first line
+says so; a link that appears after the check makes that write end without writing anything (the log never throws). Only
+the log's own name is judged: a plain `helper.log` inside a folder that is a link or junction is written through. If the
+log's own name is a link and its folder is a link as well, the link cannot be removed (the sandbox refuses to work inside a
+link), so nothing is written. The temporary file of the acknowledgement: a link under its name fails the write, so the
+helper ends without acknowledging and the target is untouched. Not covered: a hard link (a second name of a plain file),
+and the way down from the sandbox root, which `RequireClean` checks as before.
 
 The runtime root, the mutex, `server.pid` and the tree are shared by every SPT installation of one
 Windows user. A helper therefore never stops, replaces or deletes the arena server of another
@@ -356,7 +472,54 @@ same rules before it quits the game (section 7). The rules, in `HelperRequest.Tr
 (no UNC or device paths), `gameExe` an `.exe` strictly inside `gameDir`; `gameArgs` strings; for
 `enter` a `profileId` of exactly 24 hexadecimal characters (optional for `leave`, the same rule
 when given) and a non-empty `serverMods` whose folders are each a direct child of
-`<sptRuntimeDir>\user\mods` with a plain, unique folder name.
+`<sptRuntimeDir>\user\mods` with a plain, unique folder name. A server mod's `guid` is only required to be
+non-blank; the helper uses it as a folder name below `<sptRuntimeDir>\user\patchers` (step 3) and therefore looks
+up nothing for a GUID that is not a plain single folder name.
+
+Acknowledgement (review 2026-10-22). The client quits the game as soon as the helper process has started, but a
+helper that then fails before it has taken the request over (an unreadable or refused request, a busy mutex)
+would leave the player with no game and the reason only in `helper.log`. So the helper confirms in a file, and
+the client closes the game only after it has seen that file. Once the request is read and validated and the
+helper holds its mutex, and before it waits for the game to exit, the helper writes `<request file>.accepted`
+beside the request (`request.json.accepted` for `request.json`):
+
+```json
+{"schema":1,"helperPid":4242,"acceptedUtc":"2026-10-22T12:34:56.789Z"}
+```
+
+- **Atomic.** The content goes to `<request file>.accepted.<helper pid>.tmp` (flushed to disk, closed) and that
+  file is moved onto the final name in one step, so a client that polls for the final name sees no file or the
+  complete one, never half of it. The temporary name cannot be the client's own `request.json.tmp`.
+  `HelperAcknowledgementFile.Write`; the names and the content are `HelperAcknowledgement` (`SessionLogic.cs`,
+  linkable: the client may use it to read the file).
+- **Stale files go first.** Before the helper reads the request, and before it takes the mutex, it deletes an
+  acknowledgement of that name that an earlier request left (and the temporary files of a helper that died
+  while writing one). So no failure path can leave a stale acknowledgement for the client to find: a request the
+  helper refuses, a busy mutex and an acknowledgement it cannot write all end without a fresh one. If the stale file
+  cannot be removed the helper logs a warning and goes on (the final move replaces it in one step); a client
+  should therefore also delete it before it starts the helper and compare `helperPid` with the pid of the helper
+  it started.
+- **No acknowledgement, no run.** If the acknowledgement cannot be written the helper ends (exit 1, nothing
+  changed, the game untouched): the client would never close the game and the helper would wait for it in vain.
+- **The client's side** (section 7): it deletes a stale acknowledgement before it starts the helper, then waits for
+  the file (looking every 250 ms, at most 15 s, on a coroutine, never blocking the main thread) and only then quits the
+  game. The file counts only when it parses, its `helperPid` is the pid of the helper the client started and that
+  helper is still running; if the helper process exits first or the time runs out, the game stays running and the
+  notice says so. Whenever it reports a failure (a timeout, a helper that stopped, a wait that failed or could not be
+  scheduled) the client also deletes the request file: it takes the request back.
+- **A request the client takes back** (second pass, 2026-10-22). A helper that is merely slow and has not read the
+  request yet (a busy mutex, a slow start) fails to read the deleted file and ends without touching anything. A helper
+  that had already read it and acknowledges late (an antivirus scan of its exe, a busy disk) would otherwise wait for
+  the game for up to 120 s and switch the session when the player closes the game by hand, unannounced, after the
+  client told the player that the game keeps running. So `HelperHost` stamps the request file (last-write time and
+  length) before the helper reads it, and the wait for the game looks at the file in every round (about twice a
+  second) and once more after the game is gone: when the file is gone, or is another file than the one the helper
+  acted on (a new attempt writes a new file, even with the same text), the run ends at once with one Warning
+  (`the request was withdrawn (its file is gone or was replaced) while the helper waited for the game ...; nothing was
+  changed and the game was not touched`), exit code 1, nothing changed, the game untouched. A file that cannot be
+  inspected counts as unchanged: only a request that is really gone or replaced ends the run. A new attempt that
+  replaces the file ends the old helper within half a second, so the new helper (which waits up to 5 s for the mutex)
+  proceeds. The acknowledgement file is left as it is (the next client and helper delete a stale one first).
 
 `enter`:
 1. Wait until `gamePid` has exited (max 120 s; on timeout log and exit 1, never kill the game).
@@ -381,7 +544,21 @@ when given) and a non-empty `serverMods` whose folders are each a direct child o
      4.1.6), because a `deps.json` that pointed into one would not find it beside the copied exe. A
      runtime without `SPT.Server.exe` fails the build.
    - `sptLogger.json`: copy of `<sptRuntimeDir>\sptLogger.json` with every `filePattern` value
-     prefixed by `arena-`.
+     prefixed by `arena-` and every string `filePath` value that is not a relative path below `user` replaced by
+     `./user/logs/<last segment of the old path>/` (review 2026-10-22, third pass; `HelperJsonText.TryPrefixLogFilePatterns`,
+     `IsLogPathUnderUser`, `LogFolderNameOf`). The server combines `filePath` with the file name and resolves a relative
+     path against its working directory, which is the tree; an absolute path, a path that climbs out of the tree with
+     `..` and a path into the tree's `SPT_Data` folders (junctions into the installation) would make the arena server log
+     into the real runtime. So the only paths kept are relative ones whose first segment, after `.` and `..` are resolved
+     on the text, is `user` (any case, either separator); a drive, UNC or root-relative path, a drive-relative or stream
+     name (a colon), a wildcard, a `..` that climbs out of `user`, a path to any other folder of the tree (`./logs`,
+     `./SPT_Data/...`) and a segment Windows would rewrite or refuse (a trailing dot or space, a device name) are moved. The
+     new folder name is the last real segment of the old path (`D:\logs\spt\` gives `spt`), `arena` when there is none or
+     Windows would not take it as one folder name. An empty `filePath` (SPT itself refuses it) and one that is not a string
+     are left alone; the key is judged at any depth, like `filePattern`. A second pass over the result moves nothing. The
+     runtime's own file is never changed. What was moved is one Warning of `helper.log` (`sptLogger.json: N logger path(s)
+     did not lie below user ... : 'old' -> 'new'`; the list is `HelperTreeResult.LogPathRewrites`). Not judged: the
+     content of `filePattern` beyond the prefix.
    - `SPT_Data\`: a directory junction for every subdirectory of `<sptRuntimeDir>\SPT_Data`
      except `configs`; files directly in `SPT_Data` copied; `configs\` copied, then `http.json`
      patched: `port` and `backendPort` set to the arena port, everything else unchanged.
@@ -393,23 +570,64 @@ when given) and a non-empty `serverMods` whose folders are each a direct child o
      folder that holds only `*.bundle` files (at any depth, at least one) is a junction too: SPT
      serves asset bundles read-only and nothing writes them, while a copy would duplicate
      gigabytes at every enter (WTT-ContentBackport ships about 8 GB of bundles).
+   - `user\patchers\<guid>\` (review 2026-10-22): SPT 4.1.6 reads the server prepatch (enum extension) definitions
+     of a mod whose metadata sets `HasPrepatcher` from `user\patchers\<ModGuid>`, before it loads any mod, applies
+     EVERY folder it finds there, and refuses to load the mods when the folder of such a mod is missing. So for every
+     server mod of the request the helper copies `<sptRuntimeDir>\user\patchers\<guid>` into the tree (a copy,
+     through the sandbox) when that folder exists, and nothing else from `user\patchers`: the prepatch of a mod the
+     policy left out must not be applied. A GUID listed twice is copied once; a GUID that is not a plain single folder
+     name is not looked up (`HelperServerMod.PatcherFolderName`); a listed mod without such a folder has no
+     prepatcher and the tree gets no `user\patchers` at all. The "server tree ready" line of `helper.log` gives the
+     count and the folder names. (Before this, a user-allowed mod with a server prepatcher, e.g. Skills Extended,
+     was copied without its definitions and SPT could not load it.)
    - `user\cache\bundleHashCache.json`: copied if it exists (its keys are relative paths and the
      linked bundles are the installation's files), so the server does not hash every bundle again.
    - `user\profiles\<profileId>.json`: fresh copy; `user\profileData\<profileId>\` copied if it
      exists; `user\certs\` and `user\credentials\` copied if they exist.
    - `arena-session.json` marker: `{schema, createdUtc, profileId, port, sourceRuntime, serverExe,
      policyHash, helperVersion}`. `serverExe` is the tree's `SPT.Server.exe`; a marker of an older
-     helper has no such member (its server ran the installation's exe).
+     helper has no such member (its server ran the installation's exe). `policyHash` is the hash of the
+     policy the request was made with (`request.policyHash`); the server reports it in its ping (section 8),
+     which lets the restarted client compare it with its own.
    Before anything is built, the tree root is cleaned: the marker first (a half-cleaned tree must not
    look finished), then everything except the plain files that are server binaries of the runtime being
    copied (folders and links, a stale binary, last session's leftovers).
 4. Start `<root>\server\SPT.Server.exe` (the tree's own copy, never the installation's) with
    `WorkingDirectory = <root>\server` (the server resolves data and mods relative to the working
    directory and its DLLs relative to the exe), its own console window, an environment without
-   `DOORSTOP_*` variables; write `server.pid`.
-   Wait until `127.0.0.1:<port>` accepts TCP and the listener is the process that was started
-   (max 180 s). A server that has exited ends the wait at once; a listener owned by another
-   process is not taken for the server.
+   `DOORSTOP_*` variables; write `server.pid` as the very next step after `Process.Start` returns (the
+   sandbox that does it is built before the process is started). `server.pid` is the only record that lets
+   `stop-server`, `leave` and the next `enter` find the process, so if the write fails after its retries the
+   helper ends the process it just started, with the handle it holds, removes a partial pid file and fails the
+   enter with a clear Error line (`the arena server (pid N) started but server.pid could not be written (...);
+   the server was ended, so no unregistered server stays behind`, or, if it cannot be ended, the pid to end by
+   hand); step 6 then restores the normal session. A failure after the pid is written (the port never opens)
+   leaves the server registered, and the stop in step 6 ends it. The normal server that `leave` and the
+   recovery start writes no pid file and is left running if its port does not open in time: it is the user's
+   own server. A helper that is killed in the instant between the start and the write leaves a server that no
+   `server.pid` names; `stop-server`, `leave` and the next `enter` find it by its image (see `stop-server`).
+   Wait until `<host>:<port>` accepts TCP (host: the `ip` of the tree's `http.json`, a wildcard or `localhost` mapped to
+   `127.0.0.1`; an IP literal is probed with a socket of its own address family, so an IPv6 literal such as `::1` works on
+   .NET Framework too, where a `TcpClient` made without a family is IPv4-only; a host name is probed through the default
+   socket as before; max 180 s) and the system's TCP table names the process that was started as a listener of that port for
+   the address the connection reached (review 2026-10-22, third pass; `HelperProcesses.GetListenerProcessIds(port,
+   address)`). The lookup is bound to that address: a listener bound to exactly it or to the wildcard of its family counts
+   (an IPv6 `[::]` listener too, it can be dual-stack; observed on Windows Server 2025: a dual-stack socket on `[::]` is
+   also listed in the IPv4 table as `0.0.0.0`, so the IPv6 table that is read as well for an IPv4 address is a safety net for
+   a system that lists it only once, and it also counts a V6-only `[::]` listener, the false accept named in section 11),
+   one on another local address of the same port does not
+   (`127.0.0.2` beside `127.0.0.1`), and an IPv4-mapped spelling (`::ffff:127.0.0.1`, what a dual-stack client socket
+   reports) is the IPv4 address. A server that has exited ends the wait at once. Otherwise: the started process listens:
+   ready. Other processes listen, or the table lists no listener at all (it vanished, or is not up yet): keep waiting
+   (`port N is held by pid X, not by the server that was started (pid S)`; `port N accepts connections but the system's TCP
+   table lists no listener for it`; the first occurrence of each is one Warning, and the timeout names the last). The table
+   cannot be read (or the lookup throws): ready only if the helper's own probe found the port free immediately before the
+   start, with one Warning that the owner could not be verified; otherwise keep waiting and fail at the timeout with
+   `the owner of port N could not be verified: the system's TCP table cannot be read and the port was not verified free just
+   before the start`. The proof is a connect plus bind probe on the server's address (`HelperProcesses.IsPortFree(host,
+   port)`): used to choose the port, and repeated right before `Process.Start`, because building the tree takes seconds
+   between the two (a port that is not free then is a Warning and withdraws the proof). The normal server that `leave` and
+   the recovery start has the connect probe that decided to start it as that proof (nothing answered a moment before).
 5. Start `gameExe` from `gameDir` with `gameArgs` rewritten: the port inside the `BackendUrl` of
    the `-config=` argument replaced by the arena port, `-arena-session` appended once; environment
    without `DOORSTOP_*` variables (an inherited `DOORSTOP_DISABLE`/`DOORSTOP_INITIALIZED` would
@@ -438,27 +656,105 @@ a SUBST drive gives one file several spellings). A pid that fails these checks i
 is left alone (a reused pid also loses its `server.pid`). `enter` and `leave` additionally leave a
 server alone whose `sourceRuntime` is not their own `sptRuntimeDir`.
 
+An arena server that no `server.pid` names (the helper that started it was killed before it wrote the file, or the
+file was lost) is found by its image, when no registered server was stopped (no pid file, a pid that is not
+running, a pid of another program): a running process whose image is the same file as `<root>\server\SPT.Server.exe`
+(the tree copy; only a helper starts it) is such a server. The same ownership rule applies as for a registered one:
+the marker must be there, written by this helper (`serverExe`) and name the caller's own installation as
+`sourceRuntime` (`stop-server` asks for no installation). Then the process is killed, and the result is `Stopped`.
+Without a marker its origin cannot be verified and it is left alone (`Unverified`: `helper.log` names the pid, `enter`
+fails, and the process has to be ended by hand), the server of another installation is left alone (`OtherInstallation`, as
+above), a process under the marker of an older helper (no `serverExe`: its server ran the installation's exe) is
+none of this rule's business, and a process that survives the kill is `StillRunning`. The installation's own
+`SPT.Server.exe`, the normal server, is another file and is never taken for an unregistered arena server.
+
 `status`: print a JSON line with tree, marker, pid and port state.
 
 Pure functions (argument rewrite, environment cleaning, `http.json` and `sptLogger.json`
-patching, path safety, request parsing) live in their own file and are covered by
-`ArenaMode.Tests`; the client links the request parser.
+patching, path safety, request parsing, the names and content of the acknowledgement) live in their own file and
+are covered by `ArenaMode.Tests`; the client links the request parser and may link the acknowledgement's names.
+The file work (junctions, copies, the acknowledgement's atomic write), the runner (processes, `server.pid`) and
+`HelperHost` (the order of one run) are linked into the tests too; only the entry point `Program.cs` is not.
 
 ## 7. Client (`ArenaMode.Client`)
 
 - `ArenaSessionMode`: `IsArenaSession` (command-line flag), `GateReport` (parsed from the
   AppDomain data), `GateActive`.
 - Whitelist admission, evaluated first inside `Compat/ArenaOptionalMods.GetRejectionReason()`:
-  - Arena session: refuse with a reason if the gate is not active or the server ping does not say
-    `arenaInstance:true`. An internal failure refuses (a process that cannot prove it is
-    filtered must not run Arena).
-  - Normal session: evaluate `Chainloader.PluginInfos` and the server's `serverMods` with the same
-    policy. If anything is excluded, refuse: `Arena runs only with whitelisted mods. Blocked for
+  - Arena session: refuse with a reason if the gate is not active, no policy can be loaded, the gate reports a
+    patcher that ran before it, a plugin this game loaded is one the current policy excludes, the server ping does
+    not say `arenaInstance:true`, the server runs a mod the current policy excludes, or the server was built for
+    another policy than the gate applied. An internal failure refuses (a process that cannot
+    prove it is filtered must not run Arena). Before the review of 2026-10-22 the client evaluated the server's
+    mods in a session but only showed the warnings, and the policy hash was written to the marker and the gate
+    report but never compared; a policy file that changed while the game restarted (Syncthing mirrors the user
+    file) could therefore leave a server running a mod the new policy excludes. The third pass (the gate-policy
+    review's appendix) closed the same kind of hole twice more: a session whose policy could not be loaded admitted,
+    because every comparison with the policy was skipped, and the plugins that were running were never compared with
+    the policy as it reads now. The checks, in this order, each logged once at Warning (check 5 is not logged: it is
+    about the connection, not about the policy):
+    1. gate inactive: the existing text (`The Arena session could not filter the installed mods (<problem>). ...`);
+    2. no usable policy (the shipped default list is missing, unreadable, larger than 256 KB or invalid; a defective
+       user file is only ignored, section 3): the normal session's text plus the way back, `Arena is unavailable: its
+       mod whitelist could not be loaded (<problem>). Repair the ArenaMode installation; ordinary PMC/Scav raids
+       remain available. Return to the normal session.` Everything below compares what is running with the policy
+       as the client reads it now, so without one nothing can be judged and the gate's word alone is not trusted
+       (before the third pass the session admitted here). Logged as `Arena session refused: ...` beside the loader's
+       own `Arena whitelist unavailable: ...` line. Needs no ping;
+    3. `patchersRanBeforeGate` of the gate report (section 4) not empty: `The preloader patcher <files> ran before
+       the Arena gate could stop it. Allow it in the policy file or remove it, then start the Arena session again.`
+       (several files: `The preloader patchers <files> ran before the Arena gate could stop them. Allow them in
+       the policy file or remove them, ...`). The gate neutralised what was left of those patchers, but their
+       initializers had already run, so the process is not the clean one the session promises. Needs no ping;
+    4. a plugin this game loaded is excluded: `Chainloader.PluginInfos` evaluated with the policy as it reads now
+       (the client side of the same `ArenaWhitelistDecision`; platform and Arena units cannot be excluded) exclude
+       at least one unit, of any exclusion reason, `requires-denied` included: `This game loaded <names>, which
+       the current policy excludes: the policy changed during the switch. Return to the normal session and start
+       the Arena session again.` (names sorted, once each, twelve at most, then `and N more`). The gate removed what
+       the policy excluded at the moment the game started; with an unchanged policy the same decision excludes
+       nothing, so this fires when a policy file changed during the restart (Syncthing mirrors the user file). The
+       decision's warnings are not added to the notes: the gate's report carries them. Needs no ping. Known limit:
+       a library that the gate pulled in as the dependency of a plugin which then failed to load (BepInEx skips a
+       plugin for a missing dependency or an incompatibility) has no dependant left and reads as excluded; that
+       refuses with the same text, which fails closed;
+    5. the server is known and is no Arena instance: the existing text (`This game is not connected to the Arena
+       session server. ...`);
+    6. the ping's `serverMods` evaluated with the policy as the client reads it now (the files through
+       `ArenaPolicyFiles`, section 3, so the bytes the gate reads; server side of the same
+       `ArenaWhitelistDecision`) exclude at least one unit, of any exclusion reason, `requires-denied` included:
+       `The Arena session server runs <names>, which the current policy excludes: the policy changed during the
+       switch. Return to the normal session and start the Arena session again.` (names sorted, once each, twelve
+       at most, then `and N more`);
+    7. the ping's `policyHash` (section 8) and the gate report's `policyHash` are both present (non-blank) and
+       differ, compared exactly (ordinal, no case folding): `The Arena session server was built for a different
+       policy than this game applies: the policy changed during the switch. Return to the normal session and
+       start the Arena session again.` (the Warning in the log carries both hashes). A hash that is absent on
+       either side (an older server, a normal server, a marker without a usable hash, a gate report without one)
+       is unknown, never a difference.
+    Without a ping (not yet answered) there is no server to judge and no hash to compare: 5 to 7 wait for it, and
+    the explicit Arena click asks again. The refusal leaves the RETURN TO NORMAL SESSION action.
+  - Normal session: evaluate `Chainloader.PluginInfos`, the preloader patchers and the server's `serverMods` with
+    the same policy. A patcher is every `*.dll` below `Paths.PatcherPluginPath` (`BepInEx\patchers`, at any depth,
+    the files BepInEx and the gate see) that can be a patcher (below), identified by file name, once per name, and is
+    allowed or excluded by `IsAllowedPatcher` exactly as in the gate (`ExclusionReason` tells denied from unlisted). It
+    has no dependencies and no version. An excluded patcher counts like an excluded plugin: it refuses Arena, is named
+    under "Blocked for Arena" or "Not on the whitelist", and the START ARENA SESSION action stays available (the
+    session neutralises it; one that sorts before the gate is then caught by check 3 above). A library that
+    sits in the patchers folder without being a patcher (a support DLL that a patcher ships beside itself) is no
+    unit: the gate leaves it alone, and it must not block a direct start, with an allow entry for a file that is no
+    mod as the only way out. It is told from a patcher without loading it: BepInEx takes a type for a preloader
+    patcher only when it has a public static `TargetDLLs` property, so that name is in the metadata (the UTF-8
+    string heap) of every patcher, and a DLL whose bytes do not contain it is a library (`MayBePatcher`, a search of
+    the file in 64 KB reads; a name that straddles two reads is found). A file the client cannot read counts as a
+    patcher: not knowing is no reason to let it pass. A DLL the policy allows is not read at all, and one name in
+    two folders is judged by the copy that can be a patcher. If anything is excluded, refuse: `Arena runs only with whitelisted mods. Blocked for
     Arena: <denied names>. Not on the whitelist: <unlisted names>. Start an Arena session to play Arena
     without them; the game restarts.` and show the action **START ARENA SESSION**. "Blocked for Arena"
     names the mods a deny list excludes (the shipped default's or the user's), "Not on the whitelist" the
-    mods nothing names; a part without names is left out, so a normal session with only unlisted mods
-    reads as before (`... Not on the whitelist: <names>. Start ...`). Each part is sorted, listed once per GUID
+    mods nothing names (a plugin, a server mod or a patcher; a unit excluded because it requires a denied one,
+    `requires-denied:<guid>`, is a deny, so it is named under "Blocked for Arena" with the denied unit, and the notes
+    line says `<name>: excluded because it requires <dependency> (denied by ...)`); a part without names is left out,
+    so a normal session with only unlisted mods reads as before (`... Not on the whitelist: <names>. Start ...`). Each part is sorted, listed once per GUID
     and capped at twelve names on its own (`and N more`). In blacklist mode only denied mods are excluded
     (the user's, and the default file's, which holds there too), so the first sentence reads `Arena does not
     run with denied mods.` followed by the same `Blocked for Arena: <names>.` part, and the rest is
@@ -466,10 +762,13 @@ patching, path safety, request parsing) live in their own file and are covered b
     helper, no local SPT server, a remote backend, the server already is an Arena instance, or a
     server the helper cannot switch: no allowed server mod, or one whose folder is not a direct
     child of `<game>\SPT_Runtime\user\mods`) the refusal ends instead with `Remove them and
-    restart the game to play Arena.` and shows no action. A missing or unreadable default
-    whitelist makes the whitelist stand aside in a normal session (the server's reported failure and the remaining
-    adapters still apply, but no code refuses the five denied mods any more); an internal failure does the same
-    there.
+    restart the game to play Arena.` and shows no action. A missing, unreadable, oversized or invalid default
+    whitelist refuses Arena in a normal session (`Arena is unavailable: its mod whitelist could not be loaded
+    (<problem>). Repair the ArenaMode installation; ordinary PMC/Scav raids remain available.`, with no session
+    action): no code refuses the five denied mods any more, so nothing else keeps them out. An internal failure
+    refuses Arena in both session kinds (`Arena could not evaluate its mod whitelist (<message>). ...` in a normal
+    session, `Arena could not verify the session state. ...` in an Arena session). The whitelist never fails open;
+    ordinary PMC/Scav raids are unaffected.
   - Version warnings never refuse; log them once (Info) and show them as a second line. The policy-override
     notes (section 3) lead that line and are not counted into its cap of four notes.
   - Fika keeps its existing refusal first and gets no session action.
@@ -479,34 +778,63 @@ patching, path safety, request parsing) live in their own file and are covered b
 - `ArenaAvailabilityNotice` gets an optional action (label + callback). The action needs two clicks:
   the first changes the label to `CLICK AGAIN TO RESTART THE GAME`, a second click within five
   seconds triggers it.
-- `ArenaSessionSwitch.Request(direction)`: writes the request file (game exe and root from
-  `BepInEx.Paths`, arguments from `Environment.GetCommandLineArgs()` without argv[0], profile id
+- `ArenaSessionSwitch.Request(direction, profileId, out error, onFailure)`: writes the request file (game exe and
+  root from `BepInEx.Paths`, arguments from `Environment.GetCommandLineArgs()` without argv[0], profile id
   from the `-token=` argument, else from the logged-in profile, and only if it is the 24
   hexadecimal characters the helper accepts, `sptRuntimeDir = <gameDir>\SPT_Runtime`, the allowed
-  `serverMods` with folders from the last ping), starts the helper and, only if the helper process
-  started, quits the game with `Application.Quit()`. Before anything is written it runs the
-  helper's own request parser (`HelperRequest.TryParse`, linked source) on the request text; a
-  request the helper would refuse leaves the game running and shows the reason. One Info line per
-  request.
-- Ping parsing: new optional fields `arenaInstance` (bool) and `serverMods`
+  `serverMods` with folders from the last ping), starts the helper and then waits for its acknowledgement
+  (section 6, "Acknowledgement"); the game quits with `Application.Quit()` only once the helper has written
+  `<request file>.accepted`. Before anything is written it runs the helper's own request parser
+  (`HelperRequest.TryParse`, linked source) on the request text; a request the helper would refuse leaves the game
+  running and shows the reason. In order: stale acknowledgement deleted, request file written, helper started.
+  `Request` returns true as soon as the helper has started (the game has not quit yet; `HelperPending`); the
+  screen then says `Starting the Arena session helper. ...` and offers no second click. The wait
+  (`ArenaHelperHandshake`, driven by a coroutine on the plugin object, one call per frame, real time) looks every
+  250 ms for at most 15 s: the acknowledgement must parse (`HelperAcknowledgement.TryParse`, a file above 4 KB
+  is no acknowledgement), name the pid of the helper that was started (a file of an earlier request or of another
+  helper is ignored) and the helper must still be running (a helper that acknowledged and vanished cannot
+  switch anything). Then the Info line is logged and the game quits. If the helper process is gone first, or
+  the 15 s pass, the game keeps running, one Warning is logged (`Arena session switch (<direction>) not
+  completed: ...`; the request file is deleted on every failure, see section 6), `onFailure` gets the message (`The Arena session helper stopped before it accepted the
+  request, so the game keeps running. See <helper.log>.` or `... did not accept the request within 15 seconds ...`),
+  the screen shows it with the action again and a new attempt is possible. Without the plugin object (nothing
+  to wait on) the helper is not started at all; a wait that cannot be scheduled after the start also keeps the
+  game running, says so and takes the request back. One Info line per request, written when the helper accepted it.
+- Ping parsing: new optional fields `arenaInstance` (bool), `serverMods`
   (`[{guid,name,version,folder,dependencies}]`, `dependencies` an optional array of GUID strings, absent
-  or malformed = none); absent fields mean an older server: no session offer, normal
+  or malformed = none) and `policyHash` (a non-blank string, kept exactly as the server wrote it; absent, JSON
+  null, blank or of another type = unknown, `ArenaServerClient.PolicyHash` is null); absent fields mean an older
+  server: no session offer, normal
   admission continues with the client-side check only. When a screen opens, the ping is
   refreshed with a bounded wait (250 ms) if the answer depends on it; a ping that does not
   arrive in time leaves the fields unknown and the explicit Arena click asks again.
 
 ## 8. Server (`ArenaMode.Server`)
 
-- Ping adds `arenaInstance` (`arena-session.json` exists in the working directory) and
+- Ping adds `arenaInstance` (`arena-session.json` exists in the working directory),
   `serverMods` (every loaded mod: GUID, name, version, absolute folder, and the GUIDs of its
-  `ModDependencies`, sorted).
+  `ModDependencies`, sorted) and, on the Arena instance only, `policyHash`: the `policyHash` string of the
+  tree's marker, which the helper writes from the request it was started with. Like the marker's
+  existence it is read once at startup (parsed with `ArenaMiniJson`, the reader of the other session files) and
+  never again, so a marker that is replaced or deleted later does not change the ping of a running server. The
+  client compares it with the policy hash of the gate report (section 7) to tell whether the server tree was
+  built for the policy that is active now. The string is passed on exactly as written (no trimming, no case
+  change). The member is JSON `null` when the marker has no usable hash: it cannot be read (locked, removed
+  meanwhile, access denied), is not one JSON object (strict reader: duplicate keys, trailing commas and the
+  like count), or its `policyHash` is missing, JSON `null`, not a string, empty or blank. A normal server
+  sends no `policyHash` member at all (not even `null`); for a reader, absence and `null` both mean
+  "unknown".
 - Arena instance: refuse ordinary (non-Arena) local raid starts with a clear error; log one Info
   line at startup: `Arena session server: N mods loaded (<names>)`. The refusal is a normal SPT
   response body `{err: 1000, errmsg, data: null}` (`UnknownScriptExecutionError`), not an
   exception or an HTTP error: the EFT client retries every failure it classifies as default for
   minutes, while it treats this code as expected, aborts the start at once and returns to the
   main menu.
-- Nothing changes for a normal server apart from the two ping fields.
+- An Arena instance whose marker gave no usable hash logs one Warning right after the startup line:
+  `Arena session server: arena-session.json has no readable policyHash; the client cannot confirm which policy this
+  server was built for.` (degraded, not fatal: the ping carries `null`).
+- Nothing changes for a normal server apart from the two ping fields (`arenaInstance`, `serverMods`); in
+  particular it has no `policyHash` member and logs nothing about it.
 
 ## 9. Build, deploy, packaging
 
@@ -514,7 +842,13 @@ patching, path safety, request parsing) live in their own file and are covered b
 - Deploy targets: the gate to `<SPT>\BepInEx\patchers\maschine-ArenaMode\`, the helper exe and
   `assets/arena-whitelist.json` to `<SPT>\BepInEx\plugins\maschine-ArenaMode\`. Every new deploy
   target must be overridable the same way the existing ones are (`tools/AirPitChecks/NoDeploy.targets`).
-- `tools/Write-ArenaAssets.ps1` and the release packaging include the three new files.
+- `tools/Write-ArenaAssets.ps1` and the release packaging include the three new files. The script
+  (`Assert-ArenaDefaultWhitelist`) and `tools/Verify-TestRelease.py` (`check_default_whitelist`) also refuse a default
+  list that lists or denies a platform or Arena unit (section 3).
+- `tools/ArenaSessionHelperNet472Checks/Verify.ps1` runs the helper's socket code (`CanConnect`, the owner lookup) on the
+  runtime the helper ships on: it builds a copy of the helper sources and calls the built exe by reflection from Windows
+  PowerShell 5.1 (the CLR of .NET Framework 4.x). `ArenaMode.Tests` runs the same sources on net10.0, where a `TcpClient` is
+  dual-stack and an IPv6-literal probe works; on .NET Framework it does not unless the socket is made for that family.
 
 ## 10. Acceptance on SPT-GPU-2
 
@@ -527,6 +861,30 @@ patching, path safety, request parsing) live in their own file and are covered b
    selectable; a deathmatch on Factory runs to the end.
 4. Leave: the normal server and the full plugin set are back.
 5. Killing the game inside a session leaves the normal launch path unaffected.
+6. The helper's acknowledgement (review 2026-10-22): after the second click the notice reads `Starting the Arena
+   session helper. ...`, the game quits only once `request.json.accepted` exists, and with the helper made to fail
+   (a second helper holding the mutex, or an unusable request) the game keeps running, the failure notice with
+   the action appears and `helper.log` says why.
+7. The session-side policy check: edit the user policy file between the click and the restart so that a server mod
+   becomes excluded; the Arena menu of the session then refuses with `... the policy changed during the switch.`
+   and RETURN TO NORMAL SESSION works. With the same policy it admits.
+8. The patcher unit: a preloader patcher that the policy does not name (a throwaway DLL below `BepInEx\patchers`)
+   makes the normal session refuse Arena with START ARENA SESSION; in the session the gate neutralises it (the
+   report lists it under `patchersNeutralised`, and under `patchersRanBeforeGate` only when it sorts before the
+   gate, which then refuses Arena). A support DLL without a `TargetDLLs` member in the same folder blocks nothing.
+9. The late helper (second pass, 2026-10-22): with the helper made slow after it read the request (for example a
+   second helper holding the mutex for more than 15 seconds), the client reports the timeout and deletes the request
+   file; the helper that acknowledges late logs `the request was withdrawn` and ends, and closing the game by hand
+   afterwards starts nothing.
+10. The session without a policy (third pass, 2026-10-22): in an Arena session, move the shipped
+    `arena-whitelist.json` away before the Arena menu opens (or make it unreadable); ARENA then refuses with `Arena
+    is unavailable: its mod whitelist could not be loaded (...). ... Return to the normal session.` and RETURN TO
+    NORMAL SESSION works. With the file back, the next Arena click (it asks the server again, so the files are read
+    again) admits.
+11. The plugins of the session (third pass): between the click and the restart, remove the user `allow` entry of an
+    installed plugin that the default list does not name; the session's Arena menu refuses with `This game loaded
+    <name>, which the current policy excludes: the policy changed during the switch. ...` and RETURN TO NORMAL
+    SESSION works. With the same policy it admits.
 
 Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all five passed:
 
@@ -540,6 +898,19 @@ Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all f
 
 The run above used the default list of 2026-10-21 (SAIN, APBS, ABPS, BigBrain, Waypoints and the tools); since
 2026-10-22 the list is the larger one of section 2 and the counts differ.
+
+Second run on SPT-GPU-2, 2026-10-22 (the default list of section 2, before the review changes of this date; build:
+HEAD `1713f5f`, the commit that first has the policy-override note the run shows, with no commit after it before the
+review changes; the run's report names no hash, and no file with its observations was found, a search of the main
+checkout for the probe's name in text files finds nothing, so the table below is the only record; recorded from that
+report, not re-observed by the pass that writes it down; items 6 to 11 above were not part of it and are still open):
+
+| Step | Observed |
+|---|---|
+| Normal session, every installed mod on the default list | Arena deathmatch started directly: no refusal, no warning, no restart. |
+| A throwaway probe plugin that is not on the list | ARENA disabled with START ARENA SESSION; the session excluded the probe: 40 plugins allowed, 1 excluded. |
+| The one-line override (`{ "schema": 1, "unlisted": "allow" }`) | The normal session allowed Arena with the note `policy override: 1 unlisted mod(s) allowed by your policy file: ArenaWhitelistProbe`; the session loaded the probe: 41 allowed, 0 excluded, with the gate's policy-override suffix. |
+| The arena server from freshly copied binaries | 35 s to be ready on its first start, 6 s on the second. |
 
 Follow-up fixed after the run: the refusal named a mod with differently named client and server parts
 twice ("DynamicMaps, Dynamic Maps"); the list is now de-duplicated by GUID.
@@ -567,6 +938,11 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   or evaluated refuses Arena in both session kinds (since 2026-10-22; before, a normal session failed open
   onto the per-mod refusals that no longer exist).
 - Section 8: the refusal of an ordinary start is an SPT error body (`err` 1000), not an exception.
+- Sections 7 and 8 (2026-10-22, external review): the ping of the Arena instance gains `policyHash`, the hash from
+  the marker (read once at startup, `null` when the marker gives none), so that the client can compare it with
+  the gate's hash; before, the hash was recorded in the marker and the gate report but never compared in
+  admission. Chosen: a normal server has no such member (its ping is unchanged), an unusable hash is `null`
+  plus a startup Warning instead of an exception or a refusal on the server side.
 - Sections 3, 4 and 7 (2026-10-21, user decision): the user file may carry `"unlisted": "allow"`. Per unit the
   order is platform/arena, then the user `deny`, then the named entries, then `unlisted`. New reason
   `unlisted-allowed`; an unknown `unlisted` value invalidates the whole user file; the policy hash
@@ -603,7 +979,8 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   five mods ArenaMode already refused by code. Per unit the order is platform/arena, user `deny`, user `allow`,
   default `deny`, default entries, then `unlisted`; a user `allow` lifts a default deny, a user `deny` always
   wins, and the default denies also hold in blacklist mode. New exclusion reason `denied` (`denied-by-user` stays
-  the user's); the closure still pulls a denied hard dependency in, with the warning naming the list that denied it.
+  the user's); the closure still pulled a denied hard dependency in, with the warning naming the list that denied it
+  (superseded on 2026-10-22, see the last entry).
   A malformed default `deny` invalidates the default file; a GUID both listed and denied there is denied and
   reported. The policy hash gains `default-denied|<name>` lines only when the default file has a deny list, so
   every earlier pinned value is unchanged (the pins use an empty default file). The client refusal splits "Blocked
@@ -623,3 +1000,189 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   specific: Arena's `BotSpawnParams` marker `Id_spawn = "arenamode-owned"` (MoreBotsAPI only), the pickup
   markers' camera-checked layer (Smoothie only), the weapon pickup's foreign-cleanup registry (Late To The
   Party only) and `ArenaSkills`' separate Effects Manager contribution.
+- Sections 3, 4 and 7 (2026-10-22, external review, `artifacts/session-review-20261022/gate-policy`): deny wins over
+  hard dependencies. Before, the closure pulled a unit that a deny list names in as a hard dependency of an allowed
+  unit, with a warning. Since the code-level refusals of ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special
+  Forces and Aishi are gone, the default deny list is the only guard for them, and one allowed mod that lists such a
+  mod as a dependency (or a user `deny` on a library) defeated it. Now a denied unit is never allowed; a unit that
+  needs it, directly or through other units, is excluded with `requires-denied:<guid>` and one warning, on the client
+  and on the server; unlisted libraries are still pulled in. Consequences: the pull-in warnings with
+  `(overrides the ... deny)` are gone, `dependency-of:` occurs under a whitelist only, the excluded dependants count
+  as denied ("Blocked for Arena") in the normal-session refusal, and a user who wants a mod that needs a denied
+  library has to allow the library. Platform and Arena units stay allowed whatever they name (step 1).
+- Section 6 (2026-10-22, external review, `artifacts/session-review-20261022/isolation` and `root`): three helper
+  changes. (1) The helper acknowledges a request with `<request file>.accepted` (atomic, after validation and the
+  mutex, before it waits for the game) and the client closes the game only after it has seen it; before, the client
+  quit the game right after `Process.Start` and a helper that failed at once (an unusable request, a busy mutex)
+  left the player at the desktop with the reason only in `helper.log`. The stale-file deletion, the mutex, the
+  validation and the acknowledgement run in the fixed order of `HelperHost`, which was split out of `Program.Main`
+  so that the order is tested against the real classes. (2) The tree gets `user\patchers\<ModGuid>` for every server
+  mod of the request that has one (SPT 4.1.6 loads server prepatch definitions from there, and drops every mod when a
+  mod's folder is missing); before, a user-allowed mod with a server prepatcher was copied without it. Only the
+  listed mods' folders are copied, because SPT applies every folder it finds. (3) `server.pid` is written right after
+  the start, and a failed write ends the just-started server with the handle at hand and fails the enter; before,
+  the exception left a running server that no later cleanup could find. Not done at the time: a helper killed in
+  the instant between the start and the write, and recognising an unregistered server by its image (an interrupted
+  registration); done in the second pass, see the last entry.
+- Sections 4 and 5 (2026-10-22, external review, `artifacts/session-review-20261022/gate-policy`, finding 3): the gate
+  report names the patchers whose initializer had already run. Before, such a patcher (one that is not allowed and
+  sorts before the gate) was only a free-text warning in the report, which nothing could tell from a harmless
+  version note, although "not loaded at all" is not true for it: its assembly is loaded and its initializer may have
+  registered Harmony patches, events or writes. Now the report has the member `patchersRanBeforeGate` (file names, a
+  subset of `patchersNeutralised`, always present, kept by the provisional and every inactive report) and the Info
+  summary gets the suffix ` (N patcher(s) ran before the gate)`. Chosen: the gate only reports (the member is data,
+  the decision is the reader's); the warning text and the neutralising are unchanged; the list was filled only when the
+  gate found its own position in the patcher list, otherwise the existing "position unknown" warning stayed the only
+  trace (changed in the second pass, see the last entry). The harness has a world without the early patcher
+  (`no-early-patcher`) for the empty case, and nine mutants.
+- Sections 6, 7 and 10 (2026-10-22, external review, `artifacts/session-review-20261022/root`, findings 1 to 3 on the
+  client side; the answer to each finding is in [ARENA-SESSION-REVIEW-RESPONSE-20261022.md](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)).
+  (1) An Arena session now refuses when the server runs a unit the current policy excludes and when the server's
+  policy hash (new `policyHash` member of the ping, section 8) is not the gate's: before, the client computed the
+  server's exclusions in a session and only turned them into notes, and the hash was never compared. (2) It refuses
+  when the gate report's `patchersRanBeforeGate` is not empty, and a normal session counts every preloader patcher
+  (`*.dll` below `BepInEx\patchers`, by file name) as a unit of the decision, so a patcher the policy does not name
+  blocks a direct start like an unlisted plugin does while the session action stays available. (3) The game quits
+  only after the helper's `<request file>.accepted`: before, it quit as soon as `Process.Start` returned and the
+  helper had not exited in that instant, which left the player at the desktop when the helper failed a moment
+  later. Chosen: a coroutine on the plugin looking every 250 ms for at most 15 s, a helper that is gone or
+  silent leaves the game running with the action available again, a file only counts with this helper's pid and a
+  running helper, the stale file is deleted first, and a timeout also deletes the request file (a helper that has not read
+  it yet then fails to read it). Not done at the time: stopping a helper that had already taken the request over (it
+  still waited 120 s for the game and could switch if the player closed it then; the helper could not tell that the
+  client had given up), and telling a library in the patchers folder from a patcher without loading it; both done in
+  the second pass, see the last entry. The review's files (`artifacts/session-review-20261022/`, the `root` report in
+  German with the `gate-policy`, `compat` and `isolation` sub-reports) are in the main checkout's ignored `artifacts`
+  folder (`D:\SPT41\Development\ArenaMode\artifacts\session-review-20261022\root\report.md`), not in this branch.
+- Sections 3 to 7 and 10 (2026-10-22, second pass: the fixes above were reviewed again, eleven findings; the decision on
+  each is in [ARENA-SESSION-REVIEW-RESPONSE-20261022.md](ARENA-SESSION-REVIEW-RESPONSE-20261022.md), "Second pass").
+  (1) The policy hash covers the user's denied names in a whitelist as well: since deny wins over hard dependencies a
+  deny of an unlisted library changes decisions, and two policies that decide differently shared a hash (a user file
+  edited between the click and the restart went unnoticed by the comparison of the hashes). Policies without a user
+  deny keep their hash; two new pinned values. (2) A request the client takes back: the client deletes the request
+  file on every failure (also when the helper stopped, the wait failed or could not be scheduled), and the helper
+  stamps the file and ends its wait for the game when the file is gone or replaced, so a helper that acknowledged
+  late can no longer switch the session behind the player's back after "the game keeps running". (3) The gate fails
+  closed: a patcher it cannot place is neutralised as `(unidentified) <type name>` and reported, and an unknown gate
+  position reports every neutralised patcher with an initializer as having run early; harness scenarios
+  `unidentified-patcher` and `gate-unlocated`. (4) An arena server that no `server.pid` names is found by its image and
+  stopped under the ownership rule of the registered one (`stop-server`, `leave`, `enter`). (5) A support library in
+  `BepInEx\patchers` is no unit in a normal session (a `TargetDLLs` search; a file that cannot be read counts as a
+  patcher). (6) The client and the gate read the policy files through one function (`ArenaPolicyFiles`, 256 KB, one
+  decoding): before, only the client enforced the limit, and a user file above it locked the Arena session out for good
+  through the policy-hash check; harness world `user-oversize`, source pin in `ArenaMode.Tests`. (7) Tests and
+  harness mutants for what the first pass left unpinned: the first of several denied dependencies, a stale pid file
+  after a failed registration, the "could NOT be ended" outcome. Not done: the observations of section 10 items 6 to 9
+  on a GPU host.
+- Sections 2, 3, 7 and 10 (2026-10-22, third pass, the gate-policy review's appendix; the client part). (1) An Arena
+  session whose policy cannot be loaded now refuses (check 2 of the Arena session), with the normal session's wording
+  plus `Return to the normal session.`: before, `ComputeArenaSession` judged the server's mods only `if the policy
+  loaded` and otherwise admitted on the gate's word, although a normal session refuses in the same situation (the
+  review reproduced it: default file missing, normal session refuses, Arena session admits). (2) The plugins the
+  game loaded are evaluated with the policy as it reads now (check 4): the gate filtered with the files of the
+  moment the game started and nothing compared the plugin list with the current files, the same hole the second
+  pass closed for the server's mods. Chosen: the gate's own decision, any exclusion reason refuses, the wording
+  follows the server-mod refusal (`This game loaded <names>, ...`), the checks that need no ping come first (2, 3
+  and 4), and the decision's warnings are not added to the notes because the gate's report carries them. Accepted
+  limit: a library pulled in for a plugin that then failed to load reads as excluded and refuses (fail closed, the
+  same hint). (3) Section 7 said that a missing or unreadable default list "makes the whitelist stand aside" in a
+  normal session, which contradicted the code, section 2 and the entry of this section on the same subject (the
+  compat review quoted it); it now says what the code does, that the whitelist never fails open. Harness:
+  `tools/ArenaSessionClientChecks/SessionPolicyChecks.cs` with fifteen mutants, among them one swap per adjacent pair
+  of checks (the order is part of the contract). Not done: the observations of section 10 items 10 and 11 on a GPU
+  host.
+- Sections 2, 3 and 9 (2026-10-22, external review `artifacts/session-review-20261022/gate-policy`, appendix: code-defined
+  units in the default file, and `deny: null`). (1) A `mods` entry of the shipped default file that names a platform or
+  Arena unit, or any `com.fika.` GUID, is skipped with a `default whitelist:` diagnostic and the file stays valid (the
+  user file's `allow` skips the same entries, without a diagnostic). Before, `AddEntry` replaced the code entry (Mod
+  or Tool tier, both sides, the file's versions), and a default `deny` of the same name, which protects code-tier
+  entries only, then removed the unit: a shipped file that named `com.SPT.core` or `com.maschine.ArenaMode` in `mods`
+  and `deny` left it not allowed. A default `deny` of such a unit was already skipped with a diagnostic; that is
+  pinned now, together with the chain. Neither skip changes the policy hash. Chosen: skip, not fail the load, like the
+  deny and like the user file; the build scripts are where the mistake is caught. (2) `tools/Write-ArenaAssets.ps1`
+  (its checks moved into the functions `Test-ArenaProtectedUnit` and `Assert-ArenaDefaultWhitelist`) and
+  `tools/Verify-TestRelease.py` (`check_default_whitelist`) reject a default file that lists or denies such a unit.
+  Each holds its own copy of the contract's lists; the tests hand both scripts every unit of `ArenaSessionContract`,
+  so a unit added to the contract and not to the scripts fails them. (3) JSON `null` for the user file's `allow`,
+  `deny` and `unlisted` is a missing member in both modes. The code already behaved so, `"deny": null` under a
+  blacklist included (the review found the spec wording stricter than the code); the spec says it now and tests pin
+  it, hash included. Chosen: null is not an unreadable list because it carries no entry that could be lost; the
+  default file's `deny` stays strict. Tests: nine new test methods in `ArenaWhitelistTests` (twelve cases, 292 to 304
+  in that class), two of which run the real scripts (the PowerShell functions are lifted out of the script with its syntax tree, the Python function is imported;
+  they skip without `pwsh` or `python`). Evidence (offline, scratch copies only, the installation was not touched):
+  26 mutants of the policy, of the PowerShell functions and of the Python function (guard removed, one unit lost from
+  a list, no path reduction, case-sensitive match, silent skip, skip that fails the load, null treated as an error)
+  each fail a test; `Write-ArenaAssets.ps1`, run in full against a scratch copy of the tree, accepts the shipped list
+  and refuses twelve variants before it writes anything; `verify()` of `Verify-TestRelease.py` on a synthetic
+  74-file package accepts the shipped list and refuses the same variants; the versions of both scripts before this
+  change accepted a list that names `com.SPT.core` and denies `com.maschine.ArenaMode`. Not covered: a package made by
+  `Package-TestRelease.ps1`, a game run.
+- Section 6 (2026-10-22, third pass of the helper, `artifacts/session-review-20261022/isolation` finding 3 and its
+  hardening notes). Three changes, all in `ArenaMode.Session`. (1) The wait for the server no longer takes a missing owner
+  for the server. Before, a connection that succeeded counted as "our server is ready" when the system's TCP table was
+  unreadable or listed no listener at all (`owners == null || owners.Count == 0 || owners.Contains(pid)`), and the owner
+  lookup covered every local address of the port, not the one the connection reached. Now an empty table keeps the wait
+  going, other owners keep it going (as before), and an unreadable table is accepted only if the helper's own probe
+  found the port free right before the start (re-probed in `StartArenaServer`, because the tree build sits between
+  the choice and the start; the normal server of `leave` has its connect probe as proof), with one Warning that the owner
+  could not be verified; the timeout names the reason. The lookup is bound to the address the connection reached
+  (`CanConnect(..., out address)`, `GetListenerProcessIds(port, address)`, IPv4-mapped spellings unmapped, wildcard
+  listeners counted). `IsPortFree` takes the server's host. Chosen: a failing probe or lookup is "cannot verify", never
+  "free"; the dual-stack `[::]` listener counts for an IPv4 connection (the IPv6 table alone cannot tell it from a V6-only
+  one; the IPv4 table of Windows Server 2025 lists a dual-stack socket as `0.0.0.0` as well, which would, but the IPv6 read
+  stays for systems that list it only once; a false accept would need our server on `[::]` V6-only beside a foreign IPv4
+  holder of the same port).
+  (2) Writes never follow a link: `WriteAllText` (and so `server.pid`) removes a link at the destination first, like a
+  copy, and every file creation or truncation (`WriteAllText`, copies, `helper.log`, the acknowledgement's temporary
+  file) goes through `HelperNative.OpenFileForWriting`, which opens with `FILE_FLAG_OPEN_REPARSE_POINT` and refuses a
+  file link (a junction or a folder cannot be opened for writing at all and fails with access denied); `helper.log` replaces a link under its name with a plain file and says so in its first line.
+  Before, `File.WriteAllText` and `FileMode.Append` followed a link planted at the destination (the review's scratch test
+  changed a file through a `server.pid` link). Open: a hard link, which is not a reparse point. (3) `filePath` of the
+  copied `sptLogger.json`: a value that is not a relative path below `user` is moved to `./user/logs/<last segment>/`
+  (one Warning names the moves); before, only `filePattern` was prefixed and an absolute `filePath` kept the arena
+  server logging into the real runtime. Open: the content of `filePattern` beyond the prefix is not judged (a pattern
+  with `..` segments could still climb). Tests: 99 new cases in `ArenaSessionHelperTests`/`ArenaSessionHelperProcessTests`
+  (the lookup binding with real listeners on `127.0.0.1`, `127.0.0.2` and `::1`; every branch of the wait with an
+  injectable lookup (`HelperRunner.ListenerLookup`) and probe (`PortFreeProbe`); links planted before and, through the
+  test hooks `HelperSandbox.BeforeWriteOpen` and `HelperLog.BeforeOpen`, between the check and the open; the logger path
+  table). Evidence (offline, scratch folders only, the installation was not touched): 27 mutants of the helper (each
+  rule of the wait, the probe before the start, the address binding in the runner and in the table read, the unmapping,
+  each link rule and each open flag of the four writers, each rule of the path table) were applied one at a time to the
+  production source and run against these tests; 26 turn at least one test red. The survivor makes `IsPortFree` connect
+  to the loopback address instead of the server's own: equivalent in practice, because the bind that follows on the
+  server's address fails for any address with a listener (a socket that opted into address reuse is the only case, and
+  none is staged). Four mutants survived the first round: two led to test cases (`..` that climbs out and comes back
+  through a folder called `user`, and a root-relative `/user/...` path), one was a redundant check (a colon or wildcard
+  anywhere in the path, which `IsSafeSingleName` rejects per segment anyway) and was removed, and one is the equivalent
+  survivor above. Not covered: a GPU run, a hard link.
+- Section 6 (2026-10-22, review of the helper's third pass; offline only). Four findings, each checked against the code and the
+  real file system / sockets before anything was changed. (1) Real wildcard listeners had no test of their own: the only
+  wildcard coverage was the pure `ListenerServes` table, so a mutant that keeps that function but compares addresses exactly
+  where the rows of the system table are filtered survived every test. Two tests now bind a real `0.0.0.0` listener and a real
+  dual-stack `[::]` listener and look the owner up for the address a `CanConnect` probe reached
+  (`AnIpv4WildcardListenerIsWhatAnIpv4ConnectionReachesAndAnIpv6OneIsNot`,
+  `ADualStackWildcardListenerServesAnIpv4Connection`). One premise of the finding did not hold and is recorded: it said
+  that a healthy server on `[::]` is listed in the IPv6 table only, so that dropping the IPv6 read for an IPv4 address would fail every wait. On Windows Server 2025 the IPv4
+  table lists a dual-stack `[::]` socket as `0.0.0.0` too (`netstat -ano -p tcp` and `-p tcpv6` both show it; a V6-only socket
+  only in the IPv6 table), so that mutant is invisible with a dual-stack listener on this system; it only stops counting a
+  V6-only `[::]` listener, the false accept named in the previous entry for section 6. The read stays (older systems may list a
+  dual-stack socket once), and it has no mutant. (2) `HelperNative.OpenFileForWriting` was documented to refuse a link, a
+  junction and a folder with a `HelperException`. Only a file symbolic link gets that far; a junction and a folder fail in
+  `CreateFile` with "access denied" because the open has no backup semantics, so they surface as an
+  `UnauthorizedAccessException` (nothing is written in any of the three cases; the sandbox's retry repeats it for about three
+  seconds). The folder branch of the attribute check was dead and was removed; the XML summary and section 6 say what
+  happens; the test pins each exception type and that the folder stays untouched. The refusal message of a file link still
+  says "symbolic link or junction". (3) `CanConnect` probed with `new TcpClient()`: an IPv4-only socket on .NET Framework (the
+  helper) and a dual-stack one on net10.0 (the tests), so an `ip` of `::1` in `http.json` could never connect on the shipping
+  runtime while its unit tests passed; the user's installed `http.json` has `127.0.0.1`, so nothing is known to be affected.
+  An IP literal is now probed with a socket of its own address family, a host name as before (`NewProbeClient`).
+  `tools/ArenaSessionHelperNet472Checks` (section 9) checks it on .NET Framework: seven checks, three mutants (the probe
+  without the family, wildcard rows matched by equality only, an IPv4 wildcard that serves nothing); the exe built before this
+  change fails exactly the IPv6-literal check. (4) The text said that a parent folder that is a link ends the `helper.log`
+  write. It does so only when the log's own name is a link as well; a plain log in a folder that is a link is written through
+  (only the log's own name is judged). Section 6 says so; a new test pins the write-through, and the old test, which sets up
+  both conditions, was renamed `ALogLinkInAFolderThatIsAJunctionIsRefusedNotRedirected`. Evidence: `dotnet test` 2188
+  passed (3 more than before), and three hand-made mutants of the production source were each killed by the test named for
+  it among the 17 tests run against them: the wildcard filter by equality (the two listener tests), the open with
+  backup semantics (the test of `OpenFileForWriting`), a log that refuses a linked folder (the write-through test). Not covered:
+  a GPU run (the helper binary changed: every installation of one Windows user receives it together with the client, as before).

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Threading;
 using ArenaMode.Shared.Session;
 
@@ -54,6 +55,33 @@ namespace ArenaMode.SessionHelper
         public int GameSettleMilliseconds = 1500;
         public int GameStartCheckMilliseconds = 2000;
 
+        // How hard the writes of the helper's own bookkeeping (server.pid) are retried before they count as failed.
+        public int FileRetryAttempts = 6;
+        public int FileRetryDelayMilliseconds = 200;
+
+        // How the helper starts the servers and the game (executable, arguments, working directory). The default is
+        // HelperProcesses.Start; a test harness substitutes a stand-in that stays alive without a real server.
+        public Func<string, string, string, Process> ProcessStarter = HelperProcesses.Start;
+
+        // How long the helper waits for a server process it has killed (process, milliseconds; true = it exited).
+        // The default is HelperProcesses.WaitForExit; a test harness substitutes one that reports "still running".
+        public Func<Process, int, bool> ServerExitWaiter = HelperProcesses.WaitForExit;
+
+        // Who listens on a port for connections to an address (port, the address the connection reached): the ids of the
+        // listening processes, an empty list when the table names none, null when the system's TCP table cannot be read.
+        // The default is HelperProcesses.GetListenerProcessIds; a test harness substitutes one that cannot read the table.
+        public Func<int, IPAddress, List<int>> ListenerLookup = HelperProcesses.GetListenerProcessIds;
+
+        // The helper's own probe of a port it is about to start a server on (host the server will be waited for on, port;
+        // true = nothing accepts a connection there and the port can be bound). The default is HelperProcesses.IsPortFree.
+        public Func<string, int, bool> PortFreeProbe = HelperProcesses.IsPortFree;
+
+        // True while the request file the helper acted on is still there unchanged. HelperHost sets it for the
+        // duration of one run; null means nobody watches (a test that drives the runner directly). It is consulted
+        // while the helper waits for the game to exit: a client that gave up has taken the request back, and a
+        // helper that acknowledged late must not switch the session when the player closes the game by hand.
+        public Func<bool> RequestStillStands;
+
         // True once a game process exists; a recovery must never start another one.
         private bool _gameStarted;
 
@@ -69,11 +97,7 @@ namespace ArenaMode.SessionHelper
         public bool Enter(HelperRequest request)
         {
             _log.Info("enter: " + request.ServerMods.Count + " server mods, policy " + (request.PolicyHash ?? "(none)"));
-            if (!WaitForGameExit(request))
-            {
-                _log.Error("the game (pid " + request.GamePid + ") did not exit within " + GameExitTimeoutSeconds + " s; nothing was changed and the game was not touched");
-                return false;
-            }
+            if (!AwaitGame(request)) return false;
 
             _gameStarted = false;
             try
@@ -93,20 +117,27 @@ namespace ArenaMode.SessionHelper
                     throw new HelperException("the previous arena server could not be stopped (" + stopped + ")");
                 }
 
-                int port = HelperPorts.PickArenaPort(HelperProcesses.IsPortFree, normal.ServerPort);
+                int port = HelperPorts.PickArenaPort(candidate => ProbePort(normal.ServerHost, candidate), normal.ServerPort);
                 if (port < 0) throw new HelperException("no free port between " + ArenaSessionContract.ArenaPort + " and " + ArenaSessionContract.FallbackPortLast);
                 if (port != ArenaSessionContract.ArenaPort) _log.Warn("port " + ArenaSessionContract.ArenaPort + " is taken, the arena server uses " + port);
 
                 HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, DateTime.UtcNow, Info);
                 _log.Info("server tree ready at " + tree.TreePath + ": " + tree.Junctions.Count + " junctions, " + tree.Mods.Count + " server mods, "
-                    + tree.FilesCopied + " files copied, server binaries " + tree.ServerFilesCopied + " copied and " + tree.ServerFilesUnchanged + " unchanged");
+                    + "server prepatch folders (user\\patchers): " + tree.Patchers.Count + (tree.Patchers.Count == 0 ? string.Empty : " (" + string.Join(", ", tree.Patchers.ToArray()) + ")")
+                    + ", " + tree.FilesCopied + " files copied, server binaries " + tree.ServerFilesCopied + " copied and " + tree.ServerFilesUnchanged + " unchanged");
+                if (tree.LogPathRewrites.Count > 0)
+                {
+                    _log.Warn("sptLogger.json: " + tree.LogPathRewrites.Count + " logger path(s) did not lie below user and were moved below user\\" + HelperLayout.LogsFolder
+                        + " in the tree's copy, so that the arena server does not log into the real runtime: " + string.Join("; ", tree.LogPathRewrites.ToArray()));
+                }
+
                 if (tree.UnsharedFolders.Count > 0)
                 {
                     _log.Warn("the runtime has folders the arena tree does not contain (" + string.Join(", ", tree.UnsharedFolders.ToArray())
                         + "); the server, which runs from the copy of its exe, will not find files in them");
                 }
 
-                StartArenaServer(request, tree);
+                StartArenaServer(tree);
 
                 List<string> arguments;
                 string error;
@@ -135,11 +166,7 @@ namespace ArenaMode.SessionHelper
         public bool Leave(HelperRequest request)
         {
             _log.Info("leave: returning to the normal session");
-            if (!WaitForGameExit(request))
-            {
-                _log.Error("the game (pid " + request.GamePid + ") did not exit within " + GameExitTimeoutSeconds + " s; nothing was changed and the game was not touched");
-                return false;
-            }
+            if (!AwaitGame(request)) return false;
 
             try
             {
@@ -183,10 +210,12 @@ namespace ArenaMode.SessionHelper
                 string serverExe = Path.Combine(request.SptRuntimeDir, HelperLayout.ServerExeName);
                 if (!File.Exists(serverExe)) throw new HelperException("the SPT server is missing: " + serverExe);
                 _log.Info("starting the normal server " + serverExe + " in " + request.SptRuntimeDir);
-                using (Process server = HelperProcesses.Start(serverExe, string.Empty, request.SptRuntimeDir))
+                using (Process server = StartProcess(serverExe, string.Empty, request.SptRuntimeDir))
                 {
                     if (server == null) throw new HelperException("the normal server did not start");
-                    WaitForServer(normal.ServerHost, normal.ServerPort, server, "the normal server");
+
+                    // The connect probe above, a moment ago, is the helper's own proof that nothing held this port.
+                    WaitForServer(normal.ServerHost, normal.ServerPort, server, "the normal server", true);
                 }
             }
 
@@ -235,6 +264,17 @@ namespace ArenaMode.SessionHelper
         /// belongs to another installation is not stopped (<see cref="StopResult.OtherInstallation"/>).
         /// Null for the <c>stop-server</c> command, which stops whichever server was recorded.</param>
         public StopResult StopArenaServer(string callerRuntime)
+        {
+            StopResult registered = StopRegisteredServer(callerRuntime);
+            if (registered != StopResult.NothingToStop && registered != StopResult.NotOurs) return registered;
+
+            // No usable record of a running server. A helper that was killed between the start of the server and the
+            // write of server.pid leaves one that no record names; it holds the tree open and its port.
+            StopResult unregistered = StopUnregisteredServers(callerRuntime);
+            return unregistered == StopResult.NothingToStop ? registered : unregistered;
+        }
+
+        private StopResult StopRegisteredServer(string callerRuntime)
         {
             string pidPath = HelperServerTree.GetPidFilePath(_runtimeRoot);
             if (!File.Exists(pidPath)) return StopResult.NothingToStop;
@@ -320,7 +360,7 @@ namespace ArenaMode.SessionHelper
                     _log.Warn("Kill failed: " + ex.Message);
                 }
 
-                if (!HelperProcesses.WaitForExit(process, 15000))
+                if (!ServerExitWaiter(process, 15000))
                 {
                     _log.Error("the arena server (pid " + pid + ") is still running");
                     return StopResult.StillRunning;
@@ -329,6 +369,82 @@ namespace ArenaMode.SessionHelper
 
             box.DeleteFile(pidPath);
             return StopResult.Stopped;
+        }
+
+        /// <summary>
+        /// Ends arena servers that run from the tree's own <c>SPT.Server.exe</c> although no <c>server.pid</c> names them
+        /// (the helper that started one was killed before it wrote the file, or the file was lost). The tree copy is
+        /// started by a helper and by nothing else, so the image identifies them, compared as a file like everywhere
+        /// else. The ownership rule of the registered server holds here too: the marker must name the caller's own
+        /// installation, and without a marker the origin cannot be verified, so the process is left alone
+        /// (<see cref="StopResult.Unverified"/>). Without such a process the result is <see cref="StopResult.NothingToStop"/>.
+        /// </summary>
+        private StopResult StopUnregisteredServers(string callerRuntime)
+        {
+            string expected = Path.Combine(HelperServerTree.GetTreePath(_runtimeRoot), HelperLayout.ServerExeName);
+            if (!File.Exists(expected)) return StopResult.NothingToStop;
+
+            List<Process> strays = HelperProcesses.FindByImage(expected);
+            try
+            {
+                if (strays.Count == 0) return StopResult.NothingToStop;
+
+                var ids = new List<string>();
+                foreach (Process stray in strays) ids.Add("pid " + stray.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                string named = string.Join(", ", ids.ToArray());
+                _log.Warn("an arena server runs from " + expected + " (" + named + ") although no server.pid names it: an interrupted start");
+
+                HelperMarker marker = ReadMarker();
+                if (marker == null || string.IsNullOrEmpty(marker.SourceRuntime))
+                {
+                    _log.Warn("the arena marker is missing, so the origin of " + named + " cannot be verified; leaving it alone (end it by hand)");
+                    return StopResult.Unverified;
+                }
+
+                if (!marker.RunsFromTree)
+                {
+                    // The marker of an older helper, whose server ran the installation's own exe: a process from the tree
+                    // copy is not one that helper started, and what it is, is not for this rule to decide.
+                    _log.Info("the marker is from an older helper (" + (marker.HelperVersion ?? "unknown") + "), whose server did not run from the tree; leaving "
+                        + named + " alone");
+                    return StopResult.NothingToStop;
+                }
+
+                if (callerRuntime != null && !HelperProcesses.SameFileSystemObject(marker.SourceRuntime, callerRuntime))
+                {
+                    _log.Warn("the arena server (" + named + ") belongs to the SPT installation at " + marker.SourceRuntime
+                        + ", not to " + callerRuntime + "; leaving it alone");
+                    return StopResult.OtherInstallation;
+                }
+
+                foreach (Process stray in strays)
+                {
+                    _log.Info("stopping the unregistered arena server (pid " + stray.Id + ")");
+                    try
+                    {
+                        stray.Kill();
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn("Kill failed: " + ex.Message);
+                    }
+                }
+
+                foreach (Process stray in strays)
+                {
+                    if (!ServerExitWaiter(stray, 15000))
+                    {
+                        _log.Error("the unregistered arena server (pid " + stray.Id + ") is still running; end it by hand");
+                        return StopResult.StillRunning;
+                    }
+                }
+
+                return StopResult.Stopped;
+            }
+            finally
+            {
+                foreach (Process stray in strays) stray.Dispose();
+            }
         }
 
         public bool StopServerCommand()
@@ -462,17 +578,62 @@ namespace ArenaMode.SessionHelper
             return endpoint;
         }
 
+        private enum GameWait
+        {
+            Exited,
+            TimedOut,
+
+            /// <summary>The client took the request back while the helper waited (see <see cref="RequestStillStands"/>).</summary>
+            Withdrawn,
+        }
+
+        /// <summary>
+        /// Waits for the old game to exit. False, with the reason logged, when the game did not exit in time or the
+        /// client withdrew the request meanwhile: nothing has been changed in either case.
+        /// </summary>
+        private bool AwaitGame(HelperRequest request)
+        {
+            switch (WaitForGameExit(request))
+            {
+                case GameWait.Exited:
+                    return true;
+                case GameWait.Withdrawn:
+                    _log.Warn("the request was withdrawn (its file is gone or was replaced) while the helper waited for the game (pid "
+                        + request.GamePid + "); nothing was changed and the game was not touched");
+                    return false;
+                default:
+                    _log.Error("the game (pid " + request.GamePid + ") did not exit within " + GameExitTimeoutSeconds + " s; nothing was changed and the game was not touched");
+                    return false;
+            }
+        }
+
+        private bool RequestWithdrawn()
+        {
+            Func<bool> stands = RequestStillStands;
+            if (stands == null) return false;
+            try
+            {
+                return !stands();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// Waits for the old game process to exit. A pid that now belongs to a program with another
         /// file name counts as exited (the game is gone and the number was reused). Never kills.
+        /// Looks at the request file in every round (about twice a second) and once more after the game is gone.
         /// </summary>
-        private bool WaitForGameExit(HelperRequest request)
+        private GameWait WaitForGameExit(HelperRequest request)
         {
             var clock = Stopwatch.StartNew();
             bool announced = false;
             string expectedName = Path.GetFileName(request.GameExe);
             while (true)
             {
+                if (RequestWithdrawn()) return GameWait.Withdrawn;
                 using (Process process = HelperProcesses.TryOpen(request.GamePid))
                 {
                     if (process == null) break;
@@ -490,34 +651,121 @@ namespace ArenaMode.SessionHelper
                         announced = true;
                     }
 
-                    if (clock.Elapsed.TotalSeconds >= GameExitTimeoutSeconds) return false;
+                    if (clock.Elapsed.TotalSeconds >= GameExitTimeoutSeconds) return GameWait.TimedOut;
                     HelperProcesses.WaitForExit(process, 500);
                 }
             }
 
             _log.Info("the game has exited" + (announced ? " after " + clock.Elapsed.TotalSeconds.ToString("0.0") + " s" : string.Empty));
             Thread.Sleep(GameSettleMilliseconds);
-            return true;
+            return RequestWithdrawn() ? GameWait.Withdrawn : GameWait.Exited;
         }
 
         // The arena server runs from its own copy of the exe in the tree: AppContext.BaseDirectory, which some
         // server mods resolve their paths from, is then the disposable tree and not the installation.
-        private void StartArenaServer(HelperRequest request, HelperTreeResult tree)
+        // Internal so that a test drives it against a stand-in process (ProcessStarter).
+        internal void StartArenaServer(HelperTreeResult tree)
         {
             string serverExe = tree.ServerExe;
             if (!File.Exists(serverExe)) throw new HelperException("the SPT server is missing from the arena tree: " + serverExe);
 
+            // Everything the registration needs exists before the process does, so that writing server.pid is
+            // the very next thing that happens once Process.Start returns.
+            var box = new HelperSandbox(_runtimeRoot, Info) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
+            string pidPath = HelperServerTree.GetPidFilePath(_runtimeRoot);
+
+            // The port was probed when it was chosen, before the tree was built, which takes seconds. The probe repeated
+            // here, just before the start, is what lets the wait below accept a listener that the system's TCP table
+            // cannot name (see WaitForServer).
+            string probeHost = "127.0.0.1";
+            try
+            {
+                probeHost = ReadArenaEndpoint(tree.TreePath).ServerHost;
+            }
+            catch (Exception)
+            {
+                // The read after the start reports an unusable http.json; here the loopback address stands in.
+            }
+
+            bool portFree = ProbePort(probeHost, tree.Port);
+            if (!portFree)
+            {
+                _log.Warn("port " + tree.Port + " is not free just before the arena server starts; the server will be accepted only if the system names it as the listener");
+            }
+
             _log.Info("starting the arena server " + serverExe + " in " + tree.TreePath + " (port " + tree.Port + ")");
-            using (Process server = HelperProcesses.Start(serverExe, string.Empty, tree.TreePath))
+            using (Process server = StartProcess(serverExe, string.Empty, tree.TreePath))
             {
                 if (server == null) throw new HelperException("the arena server did not start");
-                var box = new HelperSandbox(_runtimeRoot, Info);
-                box.WriteAllText(HelperServerTree.GetPidFilePath(_runtimeRoot), server.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                RegisterStartedServer(server, box, pidPath);
                 _log.Info("arena server pid " + server.Id);
 
                 HelperHttpEndpoint arena = ReadArenaEndpoint(tree.TreePath);
-                WaitForServer(arena.ServerHost, tree.Port, server, "the arena server");
+                WaitForServer(arena.ServerHost, tree.Port, server, "the arena server", portFree);
             }
+        }
+
+        private bool ProbePort(string host, int port)
+        {
+            try
+            {
+                return PortFreeProbe(host, port);
+            }
+            catch (Exception)
+            {
+                return false; // a probe that fails proves nothing
+            }
+        }
+
+        // server.pid is the only record that lets stop-server, leave and the next enter find this process. A server
+        // whose pid could not be recorded would run on, unknown to every later cleanup, and the next enter would
+        // clean the tree it runs from. So the failed registration ends the server right here, with the handle that is
+        // at hand (disposing the handle would not), and fails the enter with a line that says what happened; the
+        // recovery then brings the normal session back. Once the pid is written, a later failure (the port never
+        // opens, say) leaves the server registered, and the recovery's stop-server ends it.
+        private void RegisterStartedServer(Process server, HelperSandbox box, string pidPath)
+        {
+            int pid = server.Id;
+            try
+            {
+                box.WriteAllText(pidPath, pid.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            catch (Exception ex)
+            {
+                string outcome = KillUnregisteredServer(server, pid);
+                try
+                {
+                    box.DeleteFile(pidPath);
+                }
+                catch (Exception)
+                {
+                    // Whatever half-written content remains is rejected as unreadable by the next stop-server.
+                }
+
+                throw new HelperException("the arena server (pid " + pid + ") started but server.pid could not be written (" + ex.Message + "); " + outcome, ex);
+            }
+        }
+
+        private string KillUnregisteredServer(Process server, int pid)
+        {
+            _log.Error("server.pid could not be written, so the arena server (pid " + pid + ") that was just started would be unknown to every cleanup; ending it");
+            try
+            {
+                server.Kill();
+            }
+            catch (Exception ex)
+            {
+                _log.Warn("Kill failed: " + ex.Message);
+            }
+
+            if (ServerExitWaiter(server, 15000)) return "the server was ended, so no unregistered server stays behind";
+            _log.Error("the unregistered arena server (pid " + pid + ") is still running; end it by hand");
+            return "it could NOT be ended and keeps running unregistered: end the process with pid " + pid + " by hand";
+        }
+
+        private Process StartProcess(string executable, string arguments, string workingDirectory)
+        {
+            return ProcessStarter(executable, arguments, workingDirectory);
         }
 
         private HelperHttpEndpoint ReadArenaEndpoint(string treePath)
@@ -534,11 +782,26 @@ namespace ArenaMode.SessionHelper
             return endpoint;
         }
 
-        private void WaitForServer(string host, int port, Process server, string what)
+        /// <summary>
+        /// Waits until the server that was started accepts connections on <paramref name="host"/>:<paramref name="port"/>
+        /// (<see cref="ServerStartTimeoutSeconds"/> at most). An accepted connection alone proves nothing: a program that took
+        /// the port while the server was still starting would be taken for the server, and the game would be started against
+        /// it with the player's token. So the owner of the listener is looked up for the address the connection reached
+        /// (<see cref="ListenerLookup"/>, not for every local address) and decides:
+        /// the started process listens: ready. Other processes listen, or the table lists no listener at all (it
+        /// vanished, or it is not up yet): keep waiting. The table cannot be read: ready only when
+        /// <paramref name="portVerifiedFree"/> says that the helper's own probe found the port free just before the start
+        /// (then nothing but the started server can have taken it), with one warning that the owner could not be verified;
+        /// otherwise keep waiting. A wait that runs into the timeout names the last of these reasons.
+        /// </summary>
+        internal void WaitForServer(string host, int port, Process server, string what, bool portVerifiedFree)
         {
             var clock = Stopwatch.StartNew();
             _log.Info("waiting for " + what + " on " + host + ":" + port);
-            string foreignListener = null;
+            string blocker = null; // why the last accepted connection was not taken for the server
+            bool warnedHeld = false;
+            bool warnedNone = false;
+            bool warnedUnverified = false;
             while (true)
             {
                 // First: a server that has exited can no longer be the one that answers, whatever else holds
@@ -546,39 +809,81 @@ namespace ArenaMode.SessionHelper
                 if (server != null && server.HasExited)
                 {
                     throw new HelperException(what + " exited with code " + server.ExitCode + " before it opened port " + port
-                        + (foreignListener == null ? string.Empty : " (" + foreignListener + ")"));
+                        + (blocker == null ? string.Empty : " (" + blocker + ")"));
                 }
 
-                if (HelperProcesses.CanConnect(host, port, 500))
+                IPAddress reached;
+                if (HelperProcesses.CanConnect(host, port, 500, out reached))
                 {
-                    // Something answers; make sure it is the process that was started. A program that took
-                    // the port while the server was still starting would otherwise be taken for the server,
-                    // and the game would be started against it with the player's token.
-                    List<int> owners = server == null ? null : HelperProcesses.GetListenerProcessIds(port);
-                    if (owners == null || owners.Count == 0 || owners.Contains(server.Id))
+                    List<int> owners = server == null ? null : LookUpListeners(port, reached);
+                    if (owners != null && owners.Contains(server.Id))
                     {
                         _log.Info(what + " accepts connections after " + clock.Elapsed.TotalSeconds.ToString("0.0") + " s");
                         Thread.Sleep(ServerSettleMilliseconds);
                         return;
                     }
 
-                    if (foreignListener == null)
+                    if (owners == null)
+                    {
+                        blocker = "the owner of port " + port + " could not be verified: the system's TCP table cannot be read and the port was not verified free just before the start";
+                        if (portVerifiedFree)
+                        {
+                            _log.Warn("the owner of port " + port + " could not be verified (the system's TCP table cannot be read); accepting the connection as "
+                                + what + " because the port was verified free just before the start");
+                            _log.Info(what + " accepts connections after " + clock.Elapsed.TotalSeconds.ToString("0.0") + " s");
+                            Thread.Sleep(ServerSettleMilliseconds);
+                            return;
+                        }
+
+                        if (!warnedUnverified)
+                        {
+                            warnedUnverified = true;
+                            _log.Warn(blocker + "; waiting");
+                        }
+                    }
+                    else if (owners.Count == 0)
+                    {
+                        blocker = "port " + port + " accepts connections but the system's TCP table lists no listener for it";
+                        if (!warnedNone)
+                        {
+                            warnedNone = true;
+                            _log.Warn(blocker + "; waiting");
+                        }
+                    }
+                    else
                     {
                         var ids = new List<string>();
                         foreach (int owner in owners) ids.Add("pid " + owner.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                        foreignListener = "port " + port + " is held by " + string.Join(", ", ids.ToArray())
+                        blocker = "port " + port + " is held by " + string.Join(", ", ids.ToArray())
                             + ", not by the server that was started (pid " + server.Id + ")";
-                        _log.Warn(foreignListener + "; waiting");
+                        if (!warnedHeld)
+                        {
+                            warnedHeld = true;
+                            _log.Warn(blocker + "; waiting");
+                        }
                     }
                 }
 
                 if (clock.Elapsed.TotalSeconds >= ServerStartTimeoutSeconds)
                 {
                     throw new HelperException(what + " did not open port " + port + " within " + ServerStartTimeoutSeconds + " s"
-                        + (foreignListener == null ? string.Empty : " (" + foreignListener + ")"));
+                        + (blocker == null ? string.Empty : " (" + blocker + ")"));
                 }
 
                 Thread.Sleep(500);
+            }
+        }
+
+        // A lookup that throws is a table that cannot be read.
+        private List<int> LookUpListeners(int port, IPAddress address)
+        {
+            try
+            {
+                return ListenerLookup(port, address);
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
 
@@ -587,7 +892,7 @@ namespace ArenaMode.SessionHelper
             if (!File.Exists(request.GameExe)) throw new HelperException("the game is missing: " + request.GameExe);
             string commandLine = HelperCommandLine.BuildCommandLine(arguments);
             _log.Info("starting the game " + request.GameExe + " in " + request.GameDir + ": " + HelperCommandLine.RedactForLog(arguments));
-            using (Process game = HelperProcesses.Start(request.GameExe, commandLine, request.GameDir))
+            using (Process game = StartProcess(request.GameExe, commandLine, request.GameDir))
             {
                 if (game == null) throw new HelperException("the game did not start");
                 _gameStarted = true;
