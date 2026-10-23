@@ -1,4 +1,4 @@
-
+param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
 $arenaSnapshotRoot = $SptPath
 $arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot

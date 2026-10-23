@@ -27,13 +27,10 @@ function Test-ContourServer([string]$Filter) {
         '--logger', "trx;LogFileName=contour-$Stage.trx", '--results-directory', $arenaResults)
     if ($Filter) { $arenaArgs += @('--filter', $Filter) }
     Invoke-ContourDotnet $arenaArgs
-    [xml]$arenaTrx = Get-Content -Raw -LiteralPath (Join-Path $arenaResults "contour-$Stage.trx")
-    $arenaCounts = $arenaTrx.TestRun.ResultSummary.Counters
-    $arenaUnpassed = @($arenaTrx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -ne 'Passed' })
-    if ([int]$arenaCounts.total -le 0 -or [int]$arenaCounts.passed -ne [int]$arenaCounts.total -or $arenaUnpassed.Count -ne 0) {
-        throw "Expected executed and unskipped contour tests: $($arenaCounts.OuterXml)"
-    }
-    Write-Output "Contour test evidence: total=$($arenaCounts.total), passed=$($arenaCounts.passed), unpassed=$($arenaUnpassed.Count)"
+    # Every result must pass; only the known environment-gated skips are tolerated (see
+    # tools/Assert-ArenaTestRun.ps1); before 2026-10-23 the APBS SkippableFact failed this stage.
+    $arenaRun = Assert-ArenaTestRun -TrxPath (Join-Path $arenaResults "contour-$Stage.trx")
+    Write-Output "Contour test evidence: total=$($arenaRun.Total), passed=$($arenaRun.Passed), skipped=$($arenaRun.Skipped) ($($arenaRun.SkippedNames -join ', '))"
 }
 function Run-ContourHarness([string]$Project) {
     Invoke-ContourDotnet @('run', '--project', $Project, '-c', 'Release', "-p:SPTPath=$arenaSpt")

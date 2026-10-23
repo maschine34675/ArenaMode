@@ -5,6 +5,7 @@ param(
     [string]$SptRoot = 'D:\SPT41'
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Assert-ArenaTestRun.ps1')
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSpt = (Resolve-Path -LiteralPath $SptRoot).Path
 $arenaRuntime = Join-Path $arenaSpt 'SPT_Runtime'
@@ -32,15 +33,11 @@ function Test-ArenaServer([string]$Filter, [switch]$NoBuild) {
     if ($Filter) { $arenaTestArgs += @('--filter', $Filter) }
     if ($NoBuild) { $arenaTestArgs += '--no-build' }
     Invoke-ArenaDotnet $arenaTestArgs
-    [xml]$arenaTrx = Get-Content -Raw -LiteralPath (Join-Path $arenaResults "area-$Stage.trx")
-    $arenaCounts = $arenaTrx.TestRun.ResultSummary.Counters
-    # xUnit dynamic skips can appear as a NotExecuted result while VSTest's
-    # aggregate notExecuted counter remains zero. Require every result to pass.
-    $arenaUnpassed = @($arenaTrx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -ne 'Passed' })
-    if ([int]$arenaCounts.total -le 0 -or [int]$arenaCounts.passed -ne [int]$arenaCounts.total -or $arenaUnpassed.Count -ne 0) {
-        throw "Expected executed, passing, unskipped tests; counters: $($arenaCounts.OuterXml)"
-    }
-    Write-Output "Area test evidence: total=$($arenaCounts.total), passed=$($arenaCounts.passed), unpassed=$($arenaUnpassed.Count)"
+    # Every result must pass; only the known environment-gated skips (APBS root, symlink
+    # privilege) are tolerated, see tools/Assert-ArenaTestRun.ps1. Before 2026-10-23 any skip
+    # failed this stage, so the Build stage was red since the APBS SkippableFact of 503540e.
+    $arenaRun = Assert-ArenaTestRun -TrxPath (Join-Path $arenaResults "area-$Stage.trx")
+    Write-Output "Area test evidence: total=$($arenaRun.Total), passed=$($arenaRun.Passed), skipped=$($arenaRun.Skipped) ($($arenaRun.SkippedNames -join ', '))"
 }
 
 Push-Location $arenaRepo
