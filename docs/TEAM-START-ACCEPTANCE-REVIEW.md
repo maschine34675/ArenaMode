@@ -88,7 +88,7 @@ not change the protected end pipeline or the generic native summary screen.
 Root reran all seven executable integration gates successfully after independent
 review: team runtime, connectivity, roles, double jump, staged build, render/menu
 compatibility and existing integration regressions. Exact output fingerprints
-are recorded in `tools/TeamStartAcceptanceChecks/GATES.md`. All nine gates are
+are recorded in `docs/ledgers/TeamStartAcceptanceChecks/GATES.md`. All nine gates are
 now met including integration into master and local delivery from clean code
 commit `e2859e8`. The delivered client SHA256 is
 `DEFC7DA21EA311A5078F83037FEA56972C24C36CAE499F5D9FEF7FCC06CE973E`;

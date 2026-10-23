@@ -54,6 +54,8 @@ Regenerate locally (Python 3 plus FFmpeg; verifies the original hash):
 python tools/AnnouncerChecks/split_local_trial.py 'D:\SPT41\Development\ansagen2.wav'
 ```
 
+(The helper was removed on 2026-10-23; the trial recording no longer exists at that path.)
+
 The splitter still writes its intermediate outputs and hashes to the ignored
 `artifacts/local-announcer-trial/ansagen2/` directory and never installs files.
 The five reviewed OGGs have now been copied unchanged into the tracked asset

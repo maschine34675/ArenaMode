@@ -91,7 +91,7 @@ ownership is verified independently, not by that no-renderer double.
 
 Independent review found and corrected the opening-kit loading gap, permanent
 SAIN-wrapper contact latch and callback/native-stop ownership gap. No remaining
-P0-P2 findings in the revised changes. See `tools/TdmRetestChecks/` for the parent
+P0-P2 findings in the revised changes. See `docs/ledgers/TdmRetestChecks/` for the parent
 gate fingerprints and `tools/TeamDeathmatchRuntimeChecks/PREPARATION-GATES.md`
 for leaf self-verification.
 

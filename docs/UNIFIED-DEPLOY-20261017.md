@@ -69,7 +69,9 @@ observe all twelve possible Client/Compat DLL/PDB paths (flat, old grouped and
 canonical), including absence. This catches accidental new installs instead of
 only comparing old files. Historical reports keep their original paths.
 
-The historical AnnouncerDelivery helper now uses the same payload/migration
+The historical AnnouncerDelivery helper (retired on 2026-10-23: it pinned ProductVersion
+`0.1.0+` and threw on every later build; its `Inventory.ps1` moved to
+`tools/DeploymentHelperChecks`) now uses the same payload/migration
 helpers and binds a current staging manifest. Its earlier four-file rollback
 contract no longer describes the full payload migration; it shares the recovery
 limits above and was not used for this deployment.

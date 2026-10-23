@@ -55,7 +55,10 @@ native evidence and cleanup failure behavior are in BLEEDING-NRE-REVIEW.md.
 - Full server suite: **221 passed, 0 failed, 0 skipped**, also rechecked from the
   built Release test assembly after final deployment without rebuilding.
 - Existing tracer, give-up, TDM runtime, Tactical expansion and goal-handoff
-  regressions passed through Verify-Integration.ps1.
+  regressions passed through Verify-Integration.ps1. (The `tools/ArenaPolishChecks` scripts were
+  retired on 2026-10-23: their baseline oracle no longer matched the install and the integration
+  wrapper deployed the server DLL; the regressions live on in the leaf harnesses and
+  `tools/ArenaNotificationChecks`.)
 - Independent adversarial reviews found no open P0–P2 findings for all six
   production changes. Initial harness name/import/parser errors were corrected
   before the successful checks; compile failures did not count as mutant passes.

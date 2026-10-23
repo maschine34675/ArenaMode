@@ -52,6 +52,9 @@ The feature-specific native contracts, negative controls and limitations are doc
 the server/catalogue test suite and existing tracer, TDM and Tactical regression
 harnesses. `Verify-Deployment.ps1` builds the server and optional companion, then
 the client last, and compares built/installed SHA-256 values including Redeploy.Core.
+(`Verify-Deployment.ps1` and `ExternalFiles.ps1` were retired on 2026-10-23: their
+baseline oracle `.unlazy/weapons-lasers/external-before.json` no longer matched the
+install; `Verify.ps1` remains and no longer deploys during its test run.)
 
 Both integration and deployment oracles passed on 2026-09-06. The existing
 server/catalogue suite and the tracer, Give up, TDM, Tactical expansion and PFT

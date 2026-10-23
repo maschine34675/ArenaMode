@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 . (Join-Path $repo 'tools/Read-ArenaInstalledSnapshot.ps1')
-. (Join-Path $repo 'tools/AnnouncerDelivery/Inventory.ps1')
+. (Join-Path $PSScriptRoot 'Inventory.ps1')
 $stage = Join-Path $repo ('artifacts/deployment-helper-checks/' + [Guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($stage)
 $script:checks = 0

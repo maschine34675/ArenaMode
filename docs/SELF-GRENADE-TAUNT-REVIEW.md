@@ -43,7 +43,7 @@ These boundary doubles and native metadata checks are not a live HUD/raid test.
 The native client is built using `tools/DoubleJumpChecks/Build-Staged.ps1`, which
 uses the installed Core API without rebuilding or deploying Redeploy.
 
-`tools/AnnouncerDelivery/Deploy-Staged.ps1` accepts only a clean current master
+`tools/AnnouncerDelivery/Deploy-Staged.ps1` (retired on 2026-10-23) accepts only a clean current master
 build with matching version/hash and unchanged installed dependencies. It backs
 up and copies only the client DLL plus ANNOUNCER-PACK.md, ANNOUNCER-SOURCES.json
 and AUDIO-LICENSES.md. The 46 installed OGGs are already byte-identical; no audio,

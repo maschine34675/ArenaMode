@@ -1,3 +1,6 @@
+# Inventory of the installed ArenaMode payload, read and compared by DeploymentHelperChecks. Written for
+# the AnnouncerDelivery helper (retired on 2026-10-23: it pinned ProductVersion 0.1.0+ and threw on every
+# later build); the Announcer* function names are kept so the checks read as before.
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
 . (Join-Path $PSScriptRoot '../Arena-NoticeLayout.ps1')
 
