@@ -294,6 +294,9 @@ $manifest = [ordered]@{
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $payload "$docsRoot/PACKAGE-MANIFEST.json") -Encoding utf8
 $zipName = if ($Release) { "ArenaMode-$version.zip" } else { "ArenaMode-$version-test-$($arenaCommit.Substring(0,7)).zip" }
 $zip = Join-Path $run $zipName
+# AGENTS.md rule 3 at packaging time: no PitFireTeam binary and no byte-identical reference payload in the package.
+& pwsh -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'Verify-PitFireTeamDeployment.ps1') -PayloadRoot $payload
+if ($LASTEXITCODE -ne 0) { throw 'The package payload violates the PitFireTeam rule; see the output above.' }
 [IO.Compression.ZipFile]::CreateFromDirectory($payload, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
 & python (Join-Path $PSScriptRoot 'Verify-TestRelease.py') $zip
 if ($LASTEXITCODE -ne 0) { throw 'Archive verification failed.' }

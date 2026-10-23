@@ -1,3 +1,9 @@
+# Without -PayloadRoot: the built DLLs equal the deployed ones and no ArenaMode-owned tree holds a
+# PitFireTeam binary or a byte-identical copy of its reference payload (AGENTS.md rule 3). With
+# -PayloadRoot: the same two assertions over a package payload (Package-TestRelease.ps1 calls it
+# before zipping), without the deployment comparison, which a package built from a source snapshot
+# cannot satisfy.
+param([string]$PayloadRoot)
 $ErrorActionPreference = 'Stop'
 
 $repo = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
@@ -74,6 +80,15 @@ function Get-ReferencePayloadHashes {
         }
     }
     return $hashes
+}
+
+if ($PayloadRoot) {
+    $payload = [System.IO.Path]::GetFullPath($PayloadRoot)
+    $referenceHashes = Get-ReferencePayloadHashes
+    Assert-NoPitFireTeamBinary $payload
+    Assert-NoReferencePayload $payload $referenceHashes
+    Write-Output "PITFIRETEAM_PAYLOAD_CLEAN $payload ($($referenceHashes.Count) reference hashes)"
+    exit 0
 }
 
 $pairs = @(

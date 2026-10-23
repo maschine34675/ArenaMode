@@ -21,7 +21,8 @@ tools/ takes hours: pick the harnesses whose production code the change touched,
 only when a pass ends.
 
 .PARAMETER Harness
-Harness folder names (tools/<name>/Verify.ps1), optionally with a stage for the scripts that need one
+Harness folder names (tools/<name>/Verify.ps1; a folder without one but with tools/<name>/<name>.csproj is
+run with `dotnet run` and the no-deploy properties), optionally with a stage for the scripts that need one
 (<name>:<Stage>, forwarded as -Stage), or script paths relative to the repository root. Several names
 go comma-separated without spaces (-Harness A,B:Stage) or as repeated arguments.
 
@@ -116,14 +117,25 @@ try {
     foreach ($item in $Harness) {
         $name, $stage = $item -split ':', 2
         $script = if ($name -like '*.ps1') { Join-Path $repo $name } else { Join-Path $repo "tools\$name\Verify.ps1" }
-        if (-not (Test-Path -LiteralPath $script)) { Add-Verdict $item $false 0 "no such script: $script"; continue }
+        $project = Join-Path $repo "tools\$name\$name.csproj"
         $t0 = Get-Date
         $log = Join-Path $results (($item -replace '[^A-Za-z0-9]', '_') + '.log')
-        $arguments = @('-NonInteractive', '-NoLogo', '-NoProfile', '-File', $script)
-        if ($stage) { $arguments += @('-Stage', $stage) }
         $previousPreference = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
-        try { & pwsh @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log }
+        try {
+            if (Test-Path -LiteralPath $script) {
+                $arguments = @('-NonInteractive', '-NoLogo', '-NoProfile', '-File', $script)
+                if ($stage) { $arguments += @('-Stage', $stage) }
+                & pwsh @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
+            }
+            elseif ($name -notlike '*.ps1' -and (Test-Path -LiteralPath $project)) {
+                # A harness without a Verify.ps1: its program is the whole check (no mutants).
+                & dotnet run --project $project -c Release "-p:SPTPath=$SptRoot" `
+                    "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $repo 'tools\AirPitChecks\NoDeploy.targets')" "-p:SPTUserMods=$noDeploy" `
+                    -- $SptRoot 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
+            }
+            else { Add-Verdict $item $false 0 "no such script or project: $script"; continue }
+        }
         finally { $ErrorActionPreference = $previousPreference }
         $code = $LASTEXITCODE
         $tail = (Get-Content -LiteralPath $log -Tail 3) -join ' | '

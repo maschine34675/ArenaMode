@@ -10,6 +10,8 @@ integration. No adviser may edit, build, deploy or operate the GPU host.
 - [x] G1: Exact authored formation and strict protected-clone admission pass automated tests.
   CHECK: pwsh -NoProfile -File tools/AirPitTeamBoxChecks/Verify.ps1
   EXPECT: AIRPIT_TEAM_BOX_CHECKS_PASSED
+  (Historical: the folder merged into tools/BowlTeamBoxChecks on 2026-10-23; run that Verify.ps1,
+  which now includes MapModeAdmissionChecks and the installed-snapshot comparison.)
   CWD: ..
   EVIDENCE: automatic-evidence=v1; definition-sha256=ab7d4488fdafe3f4abf4318f2dd360aef0bb59c3edd73a5e4cd5dc3ca4fa99be; exit=0; EXPECT=matched; output-sha256=16895b6ab555e26b5212b5508052af419e577cf9766ddcd9aef70960280de3b9; output-bytes=8347; shell=C:\WINDOWS\system32\cmd.exe; cwd=D:\SPT41\Development\ArenaMode-airpit-boxes; path=5efda2e351da/33 entries
 - [x] G2: Independent geometry and adversarial implementation review have no unresolved defect.

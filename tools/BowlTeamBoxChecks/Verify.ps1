@@ -1,6 +1,10 @@
 param([string]$SptRoot = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+. (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+# Absorbs tools/AirPitTeamBoxChecks (2026-10-23): the installed snapshot proves that nothing below
+# reached the live install, over and above the sentinel the deploy targets would need.
+$installedBefore = Read-ArenaInstalledSnapshot $SptRoot
 $output = Join-Path $repo 'artifacts/bowl-team-boxes-20261023/offline'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $targets = Join-Path $repo 'tools/AirPitChecks/NoDeploy.targets'
@@ -27,10 +31,14 @@ try {
     foreach ($harness in @('ParticipantMenuChecks','NativeMenuChecks','TeamDeathmatchRuntimeChecks','SpawnShieldScopeChecks')) {
         Run-Dotnet $harness @('run', '--project', "$repo/tools/$harness/$harness.csproj", '-c', 'Release')
     }
+    Run-Dotnet 'MapModeAdmissionChecks' @('run', '--project', "$repo/tools/MapModeAdmissionChecks/MapModeAdmissionChecks.csproj", '-c', 'Release') @($SptRoot)
     Run-Dotnet 'pickups' @('run', '--project', "$repo/tools/ArenaPickupChecks/ArenaPickupChecks.csproj", '-c', 'Release') @($SptRoot)
     foreach ($project in @('ArenaMode.Client','ArenaMode.BigBrainCompat','ArenaMode.Server')) {
         Run-Dotnet $project @('build', "$repo/$project/$project.csproj", '-c', 'Release', '--nologo')
     }
     if (Test-Path -LiteralPath $sentinel) { throw 'Offline checks unexpectedly deployed files.' }
-} finally { $env:SPT_DATABASE = $previousDatabase }
+} finally {
+    $env:SPT_DATABASE = $previousDatabase
+    Assert-ArenaInstalledSnapshotUnchanged $installedBefore $SptRoot
+}
 Write-Output 'BOWL_TEAM_BOX_CHECKS_PASSED'
