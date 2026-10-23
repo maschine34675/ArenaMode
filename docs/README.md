@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Changelog since 0.1.0, including unreleased changes](CHANGELOG.md)
 - [Bowl original Team DM boxes and gate opening](BOWL-TEAM-BOXES-20261023.md)
 - [Bowl team boxes: GPU-2 native results and delivery](GPU-BOWL-TEAM-BOXES-20261023.md)
 - [Bowl map admission, migration and generic spawns](BOWL-INTEGRATION-20261023.md)

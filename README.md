@@ -8,6 +8,9 @@ Current version: **0.1.3**. Download the installable ZIP from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
+See the [changelog](docs/CHANGELOG.md) for changes since 0.1.0, including
+unreleased development changes.
+
 ## Modes
 
 | Mode | Rules |
