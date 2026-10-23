@@ -95,3 +95,14 @@ Detailed implementation-side results are in sibling Redeploy's
 `docs/BODY-REPLACEMENT-COMPAT-20261023.md`. Private captures, execution notes,
 log extracts and cleanup receipts remain under
 `artifacts/shared-body-gpu-20261023/`, outside release assets.
+
+## Default admission after testing
+
+Following user approval, the shipped `assets/arena-whitelist.json` now includes
+Continuous Load Ammo (`com.ozen.continuousloadammo`, reviewed client 1.2.0) and
+Recoil Rework Legacy (`com.pein.camerarecoilmod`, reviewed client 2.0.0).
+ContinuousHealing 1.6.3 was already listed. No user override is needed for these
+clients; Core's version/API validation and explicit user denials remain in force.
+Recoil's server package shares the client GUID and is also admitted if installed;
+this does not certify that untested server component. The temporary test DLLs
+are not reinstalled.

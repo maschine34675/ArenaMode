@@ -35,7 +35,8 @@ Arena runs only with whitelisted mods: the default list allows SAIN, APBS, ABPS,
 Waypoints, ArenaMapPort, Killcam, Redeploy and the other mods of this author (AutoCorpseSearch,
 DefaultAutoFireMode, DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMenuCleanupFix, StashFilter,
 SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport
-(and its patcher), SVM, give-ui, ContinuousHealing, Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
+(and its patcher), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
+Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing version only warns). Its deny list holds the five mods ArenaMode refused by code before the
@@ -54,9 +55,11 @@ Arena" in the refusal), so whoever wants such a mod has to allow the library. A 
 pulled in for the mods that need it, with a warning. For server mods the hard dependencies are their
 `ModDependencies`, which the server's ping reports, because the server refuses to load any mod when one is missing.
 The optional adapters below therefore apply to mods that are allowed to load: in the default Arena
-session the adapters of mods on the default list (for example PitFireTeam, DynamicMaps, ContinuousHealing,
-SVM, Killcam) are active, those of mods outside it (Continuous Load Ammo, Recoil Rework Legacy) are
-dormant unless the user's own file allows them. See
+session the adapters of installed mods on the default list (for example PitFireTeam, DynamicMaps,
+ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy, SVM, Killcam) are active.
+The two newly listed clients were approved after the shared-Core GPU checks on 2026-10-23;
+their existing Core version/API checks still apply. Recoil's server package shares its GUID
+and is therefore also admitted if installed, but was not part of those checks. See
 [the session specification](ARENA-SESSION-20261021.md) and the [README](../README.md).
 
 ## Optional features and targeted adapters

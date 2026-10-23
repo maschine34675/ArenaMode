@@ -36,6 +36,7 @@ DEFAULT_WHITELIST_GUIDS = {
     'com.maschine.surroundaudio', 'com.maschine.unloadallmagazines', 'xyz.pit.fireteam', 'com.mpstark.dynamicmaps',
     'com.tyfon.uifixes', 'com.wtt.commonlib', 'com.wtt.contentbackport', 'fika.ghostfenixx.svm', 'com.agavalda.giveui',
     'com.lacyway.ch', 'com.terkoiz.freecam', 'com.tarkin.doordash', 'com.anvil.weboverlay', 'com.slpf.armorclassicon',
+    'com.ozen.continuousloadammo', 'com.pein.camerarecoilmod',
     'katrin0522.betterammoloadinglist', '7bpencil.brighterinteriors', 'com.acidphantasm.devbalaclavafix',
     'healingautocancel', 'com.smajlec.lights', 'com.maschine.uibridge', 'com.maschine.modprofiler',
     'com.maschine.logtools', 'com.maschine.consoletomonitor',

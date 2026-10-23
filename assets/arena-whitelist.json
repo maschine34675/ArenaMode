@@ -27,6 +27,8 @@
     { "guid": "fika.ghostfenixx.svm", "name": "SVM", "kind": "mod", "serverVersion": "2.2.3" },
     { "guid": "com.agavalda.giveui", "name": "give-ui", "kind": "mod", "serverVersion": "5.0.0" },
     { "guid": "com.lacyway.ch", "name": "ContinuousHealing", "kind": "mod", "clientVersion": "1.6.3" },
+    { "guid": "com.ozen.continuousloadammo", "name": "Continuous Load Ammo", "kind": "mod", "clientVersion": "1.2.0" },
+    { "guid": "com.pein.camerarecoilmod", "name": "Recoil Rework Legacy", "kind": "mod", "clientVersion": "2.0.0" },
     { "guid": "com.terkoiz.freecam", "name": "Freecam", "kind": "mod", "clientVersion": "1.4.8" },
     { "guid": "com.tarkin.doordash", "name": "DoorDash", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.anvil.weboverlay", "name": "Anvil-WebOverlay", "kind": "mod", "clientVersion": "1.11.0" },

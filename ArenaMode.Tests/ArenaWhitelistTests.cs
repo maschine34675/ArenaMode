@@ -351,7 +351,8 @@ public sealed class ArenaWhitelistTests
         var fromFile = policy.Entries.Where(e => e.Tier is ArenaWhitelistTier.Mod or ArenaWhitelistTier.Tool).ToList();
 
         // The user's decision of 2026-10-22: every mod installed on the development hosts, with the versions it
-        // was installed in. Written out by hand, not derived from the file, so that a lost entry shows.
+        // was installed in, plus the two body-replacement integrations approved after GPU tests on 2026-10-23.
+        // Written out by hand, not derived from the file, so that a lost entry shows.
         var expected = new (string Id, string Name, ArenaWhitelistTier Tier, string? Client, string? Server)[]
         {
             ("me.sol.sain", "SAIN", ArenaWhitelistTier.Mod, "4.5.1", "4.5.1"),
@@ -380,6 +381,8 @@ public sealed class ArenaWhitelistTests
             ("fika.ghostfenixx.svm", "SVM", ArenaWhitelistTier.Mod, null, "2.2.3"),
             ("com.agavalda.giveui", "give-ui", ArenaWhitelistTier.Mod, null, "5.0.0"),
             ("com.lacyway.ch", "ContinuousHealing", ArenaWhitelistTier.Mod, "1.6.3", null),
+            ("com.ozen.continuousloadammo", "Continuous Load Ammo", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("com.pein.camerarecoilmod", "Recoil Rework Legacy", ArenaWhitelistTier.Mod, "2.0.0", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
@@ -425,7 +428,7 @@ public sealed class ArenaWhitelistTests
         ("com.samc137.aishi", "Aishi"),
     };
 
-    /// <summary>Every GUID the user has installed (decision 2026-10-22), typed from the decision, not from the file.</summary>
+    /// <summary>Installed GUIDs approved on 2026-10-22 plus the two clients approved after GPU testing on 2026-10-23.</summary>
     private static readonly string[] InstalledGuids =
     {
         "me.sol.sain", "com.acidphantasm.progressivebotsystem", "com.acidphantasm.botplacementsystem", "xyz.drakia.bigbrain",
@@ -435,6 +438,7 @@ public sealed class ArenaWhitelistTests
         "com.maschine.StashFilter", "com.maschine.SurroundAudio", "com.maschine.UnloadAllMagazines", "xyz.pit.fireteam",
         "com.mpstark.dynamicmaps", "com.tyfon.uifixes", "com.wtt.commonlib", "com.wtt.contentbackport",
         "fika.ghostfenixx.svm", "com.agavalda.giveui", "com.lacyway.ch", "com.terkoiz.freecam", "com.tarkin.doordash",
+        "com.ozen.continuousloadammo", "com.pein.camerarecoilmod",
         "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
         "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
         "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",

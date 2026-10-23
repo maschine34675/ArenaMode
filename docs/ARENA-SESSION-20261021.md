@@ -88,6 +88,8 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | SVM (`fika.ghostfenixx.svm`) | - | 2.2.3 |
 | | give-ui (`com.agavalda.giveui`) | - | 5.0.0 |
 | | ContinuousHealing (`com.lacyway.ch`) | 1.6.3 | - |
+| | Continuous Load Ammo (`com.ozen.continuousloadammo`) | 1.2.0 | - |
+| | Recoil Rework Legacy (`com.pein.camerarecoilmod`) | 2.0.0 | - |
 | | Freecam (`com.terkoiz.freecam`) | 1.4.8 | - |
 | | DoorDash (`com.tarkin.doordash`) | 1.2.0 | - |
 | | Anvil-WebOverlay (`com.anvil.weboverlay`) | 1.11.0 | - |
@@ -98,6 +100,12 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | HealingAutoCancel (`HealingAutoCancel`) | 1.1.0 | - |
 | | SmajlecLights (`com.smajlec.lights`) | 1.3.0 | - |
 | tool | UiBridge (`com.maschine.UiBridge`), ModProfiler (`com.maschine.ModProfiler`), LogTools (`com.maschine.LogTools`), ConsoleToMonitor (`com.maschine.ConsoleToMonitor`) | any | - |
+
+Continuous Load Ammo and Recoil Rework Legacy were added after the shared-Core
+GPU checks on 2026-10-23; ContinuousHealing was already listed. Recoil's server
+package uses the same GUID and is therefore also admitted if installed, but was
+not tested; the entry records only the reviewed client version.
+See [the bounded native results](SHARED-BODY-COMPAT-20261023.md).
 
 Preloader patchers are matched by file name. Platform patchers (code):
 `FixPluginTypesSerialization.dll`, `spt-prepatch.dll`, `maschine-ArenaMode.Gate.dll`.
