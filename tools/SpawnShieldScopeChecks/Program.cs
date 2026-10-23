@@ -83,7 +83,7 @@ internal static class Program
     private static void Main()
     {
         TeamDeathmatchRelations.Enable();
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT", "arena_bowl", "ARENA_BOWL" })
         foreach (bool usec in new[] { true, false })
         {
             using var raid = new Raid(map, usec);
@@ -106,7 +106,7 @@ internal static class Program
 
         // Do not derive the expected allow-list from the production catalog.
         // A widened/mistyped catalog must not silently widen this oracle too.
-        foreach (string map in new[] { "factory4_day", "factory4_night", "bigmap", "laboratory", "labyrinth", "arena_bowl", "ARENA_BOWL",
+        foreach (string map in new[] { "factory4_day", "factory4_night", "bigmap", "laboratory", "labyrinth",
                      "woods", "interchange", "shoreline", "rezervbase", "lighthouse", "tarkovstreets", "sandbox",
                      "sandbox_high", "arena_unknown", "arena_equator_copy", "equator", " arena_bay5", "", null })
         {
@@ -122,7 +122,7 @@ internal static class Program
         }
 
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie", "endless", "rounds", "", null })
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
         {
             Check(!ArenaTeamBoxCatalog.Applies(map, mode), "other modes must not enter the box catalog");
             using var raid = new Raid(map, mode: mode);

@@ -38,9 +38,10 @@ Deathmatch and Gun Game let you select the participant total, including yourself
 Team DM offers team sizes within the selected map/area's limits. Customs areas
 have separate team starts and a visible boundary when approached.
 **Air Pit Team DM requires ArenaMapPort 0.2.2 or newer** for its team-start boxes.
-Bowl uses its existing map-wide spawn points, with eight participants by default
-in DM/Gun Game/Team DM. Its original team boxes are not yet bound to Arena's
-match countdown; see [Bowl integration](docs/BOWL-INTEGRATION-20261023.md).
+Bowl defaults to eight participants in DM/Gun Game/Team DM. Independent Team DM
+uses the original east/west team boxes for 2v2–10v10, with gates held during
+preparation and open for respawns. Other modes keep generic map spawns.
+See [Bowl team boxes](docs/BOWL-TEAM-BOXES-20261023.md).
 
 ## Features and mutators
 

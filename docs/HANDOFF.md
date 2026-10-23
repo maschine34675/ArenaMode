@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bowl team boxes (2026-10-23):** independent TDM now uses the original east
+  USEC/west BEAR formations, private clone markers, rotated inset interiors,
+  total 4–20 and the existing box-only shields. An owned release waits 13.5
+  scaled seconds for Bowl's longest drive AND all twenty complete paths; the
+  watchdog is 20 seconds. Respawns never re-close. No MapPort files changed;
+  non-TDM modes remain generic. See [review](BOWL-TEAM-BOXES-20261023.md).
+  Native evidence will be recorded after the GPU-2 runs.
+
 - **Bowl Arena admission (2026-10-23):** optional `arena_bowl` is supported in all
   five modes, including PFT, using existing generic MapPort spawns and exact-raid
   coverless adapters. DM/Gun Game/TDM recommend eight participants. Gold BOWL

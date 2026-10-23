@@ -437,10 +437,15 @@ internal static class ArenaTeamBoxRuntime
             // paths use ReleaseGates instead and deliberately discard them.
             _gates.Release($"ArenaMode {MapLabel} TDM countdown finished");
         }
-        // IsHeld becomes false before MapPort's 0..5 s slide removes carvers.
+        // IsHeld becomes false before MapPort's slide/drive removes carvers.
+        // Bowl can already have a complete path through one of its two exits
+        // while the other is still opening. Its authored longest drive is a
+        // conservative minimum until MapPort provides a public pose-ready API.
         // Keep damage, score, clock and announcement blocked until native
         // complete paths prove both booths have really reopened.
-        bool connected = _gates.Released && Points.Values.All(p =>
+        bool connected = _gates.Released
+            && Time.time - _openingStartedAt >= _formation.MinimumGateOpeningSeconds
+            && Points.Values.All(p =>
             PointCurrent(p, _formation.Find(p.Id).Usec) && FloorAndClear(p.Position) && Connected(p.Position));
         if (connected)
         {
@@ -451,7 +456,7 @@ internal static class ArenaTeamBoxRuntime
         }
         // Use the same simulation clock as MapPort's slide coroutine: pausing
         // the game must not turn a paused animation into a failed opening.
-        if (Time.time - _openingStartedAt >= 10f)
+        if (Time.time - _openingStartedAt >= _formation.GateOpeningTimeoutSeconds)
             throw new InvalidOperationException($"{MapLabel} team boxes did not reconnect after opening their spawn gates.");
         return false;
     }

@@ -34,10 +34,23 @@ public static class ArenaTeamBoxCatalog
     public sealed class Bounds
     {
         private readonly float _minX, _maxX, _minY, _maxY, _minZ, _maxZ;
-        public Bounds(float minX, float maxX, float minY, float maxY, float minZ, float maxZ)
-        { _minX = minX; _maxX = maxX; _minY = minY; _maxY = maxY; _minZ = minZ; _maxZ = maxZ; }
+        private readonly float _originX, _originZ, _cos, _sin;
+        public Bounds(float minX, float maxX, float minY, float maxY, float minZ, float maxZ,
+            float originX = 0f, float originZ = 0f, float yaw = 0f)
+        {
+            _minX = minX; _maxX = maxX; _minY = minY; _maxY = maxY; _minZ = minZ; _maxZ = maxZ;
+            _originX = originX; _originZ = originZ;
+            _cos = (float)Math.Cos(yaw * Math.PI / 180); _sin = (float)Math.Sin(yaw * Math.PI / 180);
+        }
         public bool Contains(float x, float y, float z)
-            => x >= _minX && x <= _maxX && y >= _minY && y <= _maxY && z >= _minZ && z <= _maxZ;
+        {
+            // Inverse Unity yaw: preserve the actual rotated interior, not its
+            // larger world AABB, which would admit paths around a closed gate.
+            float dx = x - _originX, dz = z - _originZ;
+            float localX = _cos * dx - _sin * dz, localZ = _sin * dx + _cos * dz;
+            return localX >= _minX && localX <= _maxX && y >= _minY && y <= _maxY
+                && localZ >= _minZ && localZ <= _maxZ;
+        }
     }
 
     public sealed class Formation
@@ -53,6 +66,13 @@ public static class ArenaTeamBoxCatalog
         public int CapacityPerTeam => 10;
         public int MaximumParticipants => CapacityPerTeam * 2;
         public float ColliderRadius => .8f;
+        // Bowl's registered vehicles/gates drive for up to 13.5 scaled seconds.
+        // MapPort's current public API exposes no pose-completion signal, and
+        // a path through one exit can reconnect before the other gate finishes.
+        // Keep this minimum even with instantaneous opening configured; complete
+        // native paths and physical spawn clearance are still required afterward.
+        public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
+        public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,
             Point donor, Point destination, Point[] points, Bounds usecBounds, Bounds bearBounds,
             int usecAnchor, int bearAnchor, params string[] boothExits)
@@ -143,11 +163,48 @@ public static class ArenaTeamBoxCatalog
         new Bounds(-36.45f, 13.50f, -.62f, 4.97f, 69.16f, 85.15f),
         new Bounds(-22.81f, -.50f, -.62f, 4.97f, -80.41f, -64.42f), 1, 17);
 
+    // Original Bowl TeamFight starts (bowl.modes.json, bowl-native-v2).
+    // Source pocket labels north/south mean east/west here; the installed map
+    // assigns USEC east and BEAR west despite every source marker's Bear name.
+    public static readonly Formation Bowl = new Formation("arena_bowl", "Bowl", "arena-bowl-tdm-v1-",
+        "ArenaBowl", "USEC east / BEAR west",
+        new Point("arena_bowl-bot-core-02", false, 2.5f, .11f, -21.1f),
+        new Point("", false, 2.5f, .11f, -21.1f), new[]
+        {
+            new Point("arena-bowl-tdm-v1-east-01", true, 50.16f, .047f, -3.25f, 216.8446f),
+            new Point("arena-bowl-tdm-v1-east-02", true, 53.346f, .047f, -3.043f, 225.5344f),
+            new Point("arena-bowl-tdm-v1-east-03", true, 52.986f, .047f, -6.003f, 230.1743f),
+            new Point("arena-bowl-tdm-v1-east-04", true, 55.966f, .047f, -5.853f, 237.9887f),
+            new Point("arena-bowl-tdm-v1-east-05", true, 55.976f, .047f, -8.703f, 238.7445f),
+            new Point("arena-bowl-tdm-v1-east-06", true, 46.224f, .047f, -5.707f, 258.2478f),
+            new Point("arena-bowl-tdm-v1-east-07", true, 49.41f, .047f, -5.5f, 247.4753f),
+            new Point("arena-bowl-tdm-v1-east-08", true, 49.05f, .047f, -8.46f, 230.1743f),
+            new Point("arena-bowl-tdm-v1-east-09", true, 52.03f, .047f, -8.31f, 209.5248f),
+            new Point("arena-bowl-tdm-v1-east-10", true, 52.04f, .047f, -11.16f, 198.9134f),
+            new Point("arena-bowl-tdm-v1-west-01", false, -52.144f, .047f, -68.883f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-02", false, -55.33f, .047f, -69.09f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-03", false, -54.97f, .047f, -66.13f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-04", false, -57.95f, .047f, -66.28f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-05", false, -57.96f, .047f, -63.43f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-06", false, -48.764f, .047f, -66.183f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-07", false, -51.95f, .047f, -66.39f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-08", false, -51.59f, .047f, -63.43f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-09", false, -54.57f, .047f, -63.58f, 51.3698f),
+            new Point("arena-bowl-tdm-v1-west-10", false, -54.58f, .047f, -60.73f, 51.3698f),
+        },
+        // Original rotated SPAWN_BOUND_FIGHTER, inset by a standing capsule's
+        // radius horizontally. All held-path corners must stay in this OBB.
+        new Bounds(-11.1677f, 11.1677f, -.1498f, 4.1334f, -12.82095f, 12.82095f,
+            51.2529f, -7.0645f, 318.9815f),
+        new Bounds(-9.82035f, 9.82035f, -.1498f, 4.1334f, -10.53575f, 10.53575f,
+            -52.8998f, -64.8147f, 318.9815f), 2, 16);
+
     public static Formation? Find(string? map)
         => string.Equals(map, Equator.MapId, StringComparison.OrdinalIgnoreCase) ? Equator
             : string.Equals(map, Bay5.MapId, StringComparison.OrdinalIgnoreCase) ? Bay5
-            : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit : null;
+            : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit
+            : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl : null;
     public static bool Applies(string? map, string? mode)
         => string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase) && Find(map) != null;
-    public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id);
+    public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id);
 }

@@ -101,7 +101,7 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See docs/DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See docs/TEAM-DEATHMATCH-REVIEW.md.
-Independent TDM bots on catalog-backed team-box maps (Equator, Bay5 and Air Pit)
+Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit and Bowl)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read
 docs/BOT-SPAWN-SHIELD-SCOPE-20261019.md and docs/TDM-BOT-SPAWN-SHIELD-20261017.md
@@ -133,13 +133,15 @@ Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
 for its original north USEC / south BEAR boxes; see docs/AIRPIT-TEAM-BOXES-REVIEW.md.
 See docs/AIRPIT-INTEGRATION-20261017.md for migration and native-test boundaries.
 Bowl is optional in all five modes, including PFT Tactical/Zombies, with the
-same exact-raid coverless adapters. It uses MapPort's existing generic spawns
-(default eight total for DM/Gun Game/TDM); no Bowl team-box hold, private markers
-or bot spawn shield is negotiated. Its gates park open at raid startup without
-an owned hold. Do not add Bowl to ArenaTeamBoxCatalog without accommodating the
-map's asynchronous opening poses (up to 13.5 s after Release/IsHeld=false).
-See docs/BOWL-INTEGRATION-20261023.md for revision-4 migration and test boundaries.
-Independent Equator, Bay5 and AirPit Team DM use their original team boxes for initial
+same exact-raid coverless adapters (default eight for DM/Gun Game/TDM).
+Independent TDM uses its original east USEC / west BEAR boxes, oriented interior
+bounds, twenty private markers and the existing box-only bot shield. Its owned
+release waits at least 13.5 scaled seconds for asynchronous poses AND all twenty
+complete outside paths before combat, with a twenty-second watchdog. Never use
+IsHeld=false or elapsed time alone as proof of open navigation. Other modes use
+generic spawns and no hold. Read docs/BOWL-TEAM-BOXES-20261023.md; revision-4
+migration is documented in docs/BOWL-INTEGRATION-20261023.md.
+Independent Equator, Bay5, AirPit and Bowl Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
 docs/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact

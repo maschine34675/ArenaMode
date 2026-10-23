@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Bowl original Team DM boxes and gate opening](BOWL-TEAM-BOXES-20261023.md)
 - [Bowl map admission, migration and generic spawns](BOWL-INTEGRATION-20261023.md)
 
 Reviews, contracts and test results of the adapters and per-mod refusals removed on

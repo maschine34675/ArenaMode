@@ -69,14 +69,14 @@ public sealed class BowlMapTests
     [Theory]
     [InlineData("arena_bowl")]
     [InlineData("ARENA_BOWL")]
-    public void BowlUsesGenericSpawnsAndAllowsAllModes(string map)
+    public void BowlUsesTeamBoxesOnlyForIndependentTdmAndAllowsAllModes(string map)
     {
         Assert.Equal(ArenaMapCatalog.BowlId, ArenaMapCatalog.CanonicalOptionalMapId(map));
         Assert.True(ArenaMapCatalog.AnyMapAvailable(ArenaMapCatalog.IsBowl));
         Assert.True(ArenaMapCatalog.ShouldDisplayNativeLocation(map, ArenaMapCatalog.IsBowl));
         Assert.True(ArenaMapCatalog.CanSelectNativeLocation(map, ArenaMapCatalog.IsBowl));
         Assert.True(ArenaMapCatalog.RequiresModeFilteredView(map));
-        Assert.Null(ArenaTeamBoxCatalog.Find(map));
+        Assert.Same(ArenaTeamBoxCatalog.Bowl, ArenaTeamBoxCatalog.Find(map));
         foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical", "zombie" })
         {
             Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _));
@@ -85,7 +85,7 @@ public sealed class BowlMapTests
             else
             {
                 Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(map, mode));
-                Assert.Equal(24, ArenaParticipantPolicy.MaximumFor(map, mode));
+                Assert.Equal(mode == "teamdeathmatch" ? 20 : 24, ArenaParticipantPolicy.MaximumFor(map, mode));
                 Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 8, out var count, out _));
                 Assert.Equal(8, count);
             }

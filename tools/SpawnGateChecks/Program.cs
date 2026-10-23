@@ -237,7 +237,9 @@ internal static class GateProgram
     {
         OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();ExtractionPreparation();
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5);
-        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);Runtime.Shutdown();
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
+        BowlOpening();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
     private static void OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Formation selected)
@@ -273,6 +275,11 @@ internal static class GateProgram
         var flow=new ArenaMode.Modes.GateCountdownFixture();flow.Tick(true);Time.time=3;flow.Tick(true);
         Check(!Gates.Held&&flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"BOX-SLIDE: wait for all real paths");
         NavMesh.Path=(a,b)=>true;flow.Tick(true);
+        if (selected == ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl)
+        {
+            Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"BOWL-DRIVE: alternate exit path cannot skip unfinished gate pose");
+            Time.time=16.5f;flow.Tick(true);
+        }
         Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live,"BOX-LIVE: full paths precede score/time");
         Runtime.PickRespawn(Game,default);Call("RestoreCollection",Collection);
         Check(Gates.Holds==1&&Gates.Releases==1,"BOX-RESPAWN: no reclose after release");
@@ -282,6 +289,28 @@ internal static class GateProgram
         Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-HOLD: supported different armed map denied");
         Setup(active:false,installed:false);Game.Settings.location="arena_equator";
         Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-SETTINGS: native settings must match world");
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
+    }
+    private static void BowlOpening()
+    {
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl;
+        Setup();SealedPaths();
+        Check(!Runtime.TryOpenForCombat(),"BOWL-OPEN: own release starts once");
+        NavMesh.Path=(a,b)=>true;
+        Time.time=10f;
+        Check(!Runtime.TryOpenForCombat(),"BOWL-DRIVE: old ten-second watchdog cannot abort the longer drive");
+        Time.time=13.49f;Time.realtimeSinceStartup=300f;
+        Check(!Runtime.TryOpenForCombat(),"BOWL-PAUSE: real time and early connected exit cannot finish authored pose");
+        Time.time=13.5f;SealedPaths();
+        Check(!Runtime.TryOpenForCombat(),"BOWL-NAV: elapsed drive never manufactures an outside path");
+        NavMesh.Path=(a,b)=>true;
+        Check(Runtime.TryOpenForCombat(),"BOWL-LIVE: elapsed drive and all real paths allow combat");
+        Check(Gates.Releases==1,"BOWL-ONCE: no repeated release during long drive");
+        Setup();SealedPaths();Runtime.TryOpenForCombat();Time.time=19.99f;
+        Check(!Runtime.TryOpenForCombat(),"BOWL-TIMEOUT: navigation receives the remaining settle budget");
+        Time.time=20f;Reject(()=>Runtime.TryOpenForCombat(),"BOWL-TIMEOUT: disconnected formation fails closed");
+        Setup();Runtime.TryOpenForCombat();Runtime.Reset();
+        Check(Gates.Releases==1&&!Gates.Held&&!Runtime.GatesOpening,"BOWL-CANCEL: opening cleanup leaves no hold or pose timer");
         Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
     }
     public static class MissingContract { }

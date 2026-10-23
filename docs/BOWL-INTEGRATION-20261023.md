@@ -1,5 +1,8 @@
 # Bowl Arena admission
 
+Follow-up: independent TDM now uses the original boxes; the generic-only scope
+below records the initial admission. See [Bowl team boxes](BOWL-TEAM-BOXES-20261023.md).
+
 Date: 2026-10-23. Implementation starts from `ba016ba`. This adds `arena_bowl`
 as an optional ArenaMapPort location; it does not distribute or change the map.
 
