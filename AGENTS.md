@@ -280,7 +280,7 @@ hold the sequences and failure pictures; this file keeps only what is Arena-spec
 | `ArenaMode.BigBrainCompat/` | Plain optional BigBrain 1.5.0+ library for pursuit, pickups and fire avoidance; no separate plugin GUID. |
 | `ArenaMode.Server/` | SPT server mod (net10.0) + the Blazor config page. |
 | `ArenaMode.Shared/` | Linked source compiled into BOTH — routes and DTOs only. |
-| `tools/` | Offline generators for the kit catalogue and the weapon ladder. |
+| `tools/` | The offline verification: about 180 harness folders (each a console program that links production sources, plus a `Verify.ps1` that runs it and hand-made mutants of the production code), the shared helpers (`Invoke-ArenaSourceChecks.ps1`, `Assert-ArenaTestRun.ps1`, `Read-ArenaInstalledSnapshot.ps1`, `AirPitChecks/NoDeploy.targets`), the entry point `Run-ArenaVerification.ps1`, the build/deploy/release scripts, and the kit and ladder generators. |
 
 External, outside the repo:
 
@@ -302,13 +302,17 @@ Redeploy.Core itself has no server dependency.
 
 ```bash
 dotnet build ArenaMode.sln -c Release   # builds and deploys both halves
-dotnet test  ArenaMode.Tests            # ~30 tests, under a second
+pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness <folder>...   # xunit once without deploying, then the named harnesses
 ```
 
-All mod projects copy themselves into place on build. The tests cover the SERVER
-half and the generated data; the client half is Harmony patches against Unity and EFT
-types that cannot load outside the game, so **for anything client-side, verification is
-still a raid.**
+All mod projects copy themselves into place on build, and so does a bare
+`dotnet test ArenaMode.Tests`: the test project builds the server, whose deploy target
+writes the live `user\mods` unless `tools/AirPitChecks/NoDeploy.targets` and a
+`SPTUserMods` sentinel are passed (the runner does). The suite has about 2 200 tests
+(about 40 s plus the build) and links client, session and shared sources besides the
+server; what it cannot hold are the Harmony patches against Unity and EFT types, so
+**for anything client-side, verification is still a raid** — the harnesses under
+`tools/` cover the seams with linked production sources and mutants.
 
 Build/deploy and release packaging share `tools/Write-ArenaAssets.ps1`; do not
 reintroduce direct copies of source notice JSON after its relocation to `docs/`.
@@ -320,7 +324,7 @@ Arena session files, `DeployArenaGate` and `DeployArenaSessionHelper`
 (`tools/AirPitChecks/NoDeploy.targets` empties all five).
 `StageArenaAssets`/`StageArenaPublishAssets` write only build/publish output.
 Read [docs/UNIFIED-DEPLOY-20261017.md](docs/UNIFIED-DEPLOY-20261017.md) for migration
-limits, no-deploy checks and current evidence. Core's separate sibling target
+limits, no-deploy checks and the evidence of 2026-10-17. Core's separate sibling target
 must remain suppressed in offline builds too.
 
 - **Client changes** need the game restarted, nothing else.
@@ -337,7 +341,16 @@ your offset, which has cost hours before).
 ## Tests
 
 `ArenaMode.Tests/` — xunit, no game required (checks that need the item database skip
-themselves; point `SPT_DATABASE` at it to run them elsewhere).
+themselves; point `SPT_DATABASE` at it to run them elsewhere). The harnesses under
+`tools/<Feature>Checks/` are the second half: each links production sources into a
+console program and its `Verify.ps1` runs the baseline, then hand-made mutants of the
+production code, each of which must fail its named assertion. A mutant anchor must
+occur exactly once in the source; a changed production line therefore shows up as
+"anchor missing" or "exactly one site" (anchors are compared with LF line endings).
+Inside a fix loop run only the affected harness, with its baseline and the mutants whose
+anchors changed; the whole suite and the whole mutant sets run once at the end of a
+pass, before the commit (`tools/Run-ArenaVerification.ps1`). Several wrappers run the
+whole suite themselves; the inventory of 2026-10-23 names them in the runner's help.
 
 They exist because these are the things that broke repeatedly and quietly:
 

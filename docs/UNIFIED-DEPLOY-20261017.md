@@ -3,6 +3,13 @@
 Date: 2026-10-17. The user requested identical build/deploy and ZIP destinations,
 then renamed the client asset folder to `maschine-ArenaMode`.
 
+Status 2026-10-23: partly superseded by [AUDIO-LAYOUT-20261018.md](AUDIO-LAYOUT-20261018.md)
+and [ARENA-SESSION-DEPLOY-20261021.md](ARENA-SESSION-DEPLOY-20261021.md). The layout is
+`spt-root-folders-v6` now (`announcements/`, `arena-whitelist.json`, the gate patcher and
+`maschine-ArenaMode.Session.exe` are part of the payload), `tools/AirPitChecks/NoDeploy.targets`
+empties five deployment targets, and the file counts, test counts and layout checks below are
+those of 2026-10-17.
+
 ## Layout
 
 ```text

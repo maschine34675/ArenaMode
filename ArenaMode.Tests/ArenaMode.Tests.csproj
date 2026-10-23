@@ -1,8 +1,10 @@
-<!-- Tests cover the SERVER half and the generated data. The client half is not
-     here on purpose: it is Harmony patches against Unity and EFT types that
-     cannot be loaded outside the game, so anything testable there would be a
-     mock of the game rather than the game. What IS here is everything that
-     broke repeatedly during development, all of which is pure data. -->
+<!-- The suite links the server, the shared sources and the client and session sources
+     that do not touch Unity or EFT types (policies, catalogues, the whitelist, the
+     session helper's file, process, junction and socket logic). What stays out on
+     purpose are the Harmony patches against Unity and EFT types, which cannot load
+     outside the game: those seams have the harnesses under tools/. A bare `dotnet test`
+     of this project builds the server and deploys it unless the no-deploy targets
+     and a SPTUserMods sentinel are passed (tools/Run-ArenaVerification.ps1 does). -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
