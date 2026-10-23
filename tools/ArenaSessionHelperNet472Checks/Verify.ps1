@@ -1,4 +1,4 @@
-# Offline checks of the Arena session helper's socket code on the runtime it ships on.
+# Offline checks of the Arena session helper's socket and mutex code on the runtime it ships on.
 #
 #   pwsh -File tools/ArenaSessionHelperNet472Checks/Verify.ps1 [-Configuration Debug|Release] [-SkipMutants] [-KeepWork]
 #
@@ -11,7 +11,7 @@
 #   1. copies the helper sources (and the shared session sources it links) to artifacts/helper-net472-checks/<run>/,
 #      builds that copy with `dotnet build` (never deploying: the NoDeploy.targets override and a SPTUserMods path that does not
 #      exist, like every other offline build of this repository) and requires every check to pass,
-#   2. builds deliberately broken copies ("mutants": one text edit of HelperProcesses.cs each) and requires that the check
+#   2. builds deliberately broken copies ("mutants": one text edit of a helper source each) and requires that the check
 #      named for the edit fails. A mutant that does not compile, or fails on another check only, is itself a failure.
 # Nothing under the game folders is read or written; the production sources are only copied.
 
@@ -33,7 +33,8 @@ $run = Join-Path $repo ('artifacts\helper-net472-checks\' + (Get-Date -Format 'y
 [IO.Directory]::CreateDirectory($run) | Out-Null
 Write-Output "Evidence folder: $run"
 
-# One text edit of HelperProcesses.cs (LF-normalised) and the check that has to fail for it.
+# One text edit of a helper source (HelperProcesses.cs unless File names another; LF-normalised) and the check that has to
+# fail for it.
 $mutants = @(
     @{ Name = 'probe-without-address-family'; Expect = 'ipv6-literal-connect'
        Old = 'return IPAddress.TryParse(host, out literal) ? new TcpClient(literal.AddressFamily) : new TcpClient();'
@@ -43,7 +44,18 @@ $mutants = @(
        New = 'if (!local.Equals(serves)) continue;' },
     @{ Name = 'ipv4-wildcard-serves-nothing'; Expect = 'ipv4-wildcard-owner'
        Old = 'if (listening.Equals(IPAddress.Any)) return connected.AddressFamily == AddressFamily.InterNetwork;'
-       New = 'if (listening.Equals(IPAddress.Any)) return false;' }
+       New = 'if (listening.Equals(IPAddress.Any)) return false;' },
+    # The helper mutex (review 2026-10-23): a Local name is one per logon session; the default access list of a Global object
+    # does not name the user, so another logon session of the same user could not open it.
+    @{ Name = 'mutex-per-logon-session'; Expect = 'mutex-name-global-for-user'; File = 'ArenaMode.Shared\Session\ArenaSessionContract.cs'
+       Old = 'public const string HelperMutexNamePrefix = "Global\\maschine-ArenaMode.Session.";'
+       New = 'public const string HelperMutexNamePrefix = "Local\\maschine-ArenaMode.Session.";' },
+    @{ Name = 'mutex-without-user-rule'; Expect = 'mutex-access-list'; File = 'ArenaMode.Session\HelperHost.cs'
+       Old = 'if (user != null) security.AddAccessRule(new MutexAccessRule(user, MutexRights.FullControl, AccessControlType.Allow));'
+       New = '' },
+    @{ Name = 'mutex-default-access-list'; Expect = 'mutex-access-list'; File = 'ArenaMode.Session\HelperHost.cs'
+       Old = 'return new Mutex(false, name, out createdNew, security);'
+       New = 'return new Mutex(false, name, out createdNew);' }
 )
 
 function New-SourceCopy([string]$Name) {
@@ -88,7 +100,8 @@ $rejected = 0
 if (-not $SkipMutants -and $failures.Count -eq 0) {
     foreach ($mutant in $mutants) {
         $root = New-SourceCopy ('mutant-' + $mutant.Name)
-        $path = Join-Path $root 'ArenaMode.Session\HelperProcesses.cs'
+        $file = if ($mutant.File) { $mutant.File } else { 'ArenaMode.Session\HelperProcesses.cs' }
+        $path = Join-Path $root $file
         $text = [IO.File]::ReadAllText($path).Replace("`r`n", "`n")
         if (([regex]::Matches($text, [regex]::Escape($mutant.Old))).Count -ne 1) { throw "Mutant '$($mutant.Name)': the text to edit is not there exactly once." }
         [IO.File]::WriteAllText($path, $text.Replace($mutant.Old, $mutant.New))

@@ -344,7 +344,7 @@ targets.
   - helper file name `maschine-ArenaMode.Session.exe`
   - gate report JSON: `{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
     "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...], "warnings":[string],
-    "patchersNeutralised":[file], "patchersRanBeforeGate":[file] }`
+    "patchersNeutralised":[file], "patchersRanBeforeGate":[file], "patchersAllowed":[file] }`
   - `patchersRanBeforeGate` (since 2026-10-22, external review) is present in every report, an empty array when
     none: the file names of the not-allowed patchers the gate neutralised although their initializer had already
     run, because they sort before the gate in the preloader's patcher list (section 5, step 2). It is a subset of
@@ -353,6 +353,13 @@ targets.
     whose file the gate cannot determine appears as `(unidentified) <type name>`, and when the gate cannot find its
     own place in the patcher list every neutralised patcher with an initializer is listed (any of them may have
     run). A report without the member (an older gate) reads as an empty list.
+  - `patchersAllowed` (since 2026-10-23, external review) is present in every report, an empty array when none: the
+    file names of the preloader patchers the gate let run because the policy of the moment allowed them (each once,
+    platform patchers included; never the gate itself or BepInEx's own patcher, which are not judged). The client
+    judges them again with the policy as it reads now (section 7, check 4): a patcher allowed at the start and denied
+    since has run in this process, and neither the plugin nor the server-mod comparison sees a patcher. Kept by the
+    provisional, the final and every inactive report. A report without the member (an older gate) reads as an empty
+    list.
   - the Info summary line `Arena session: N plugins allowed, M excluded, K warnings` gets the suffixes
     ` (policy override: unlisted mods allowed)` (when `unlistedAllowed`) and, after it, ` (N patcher(s) ran before the
     gate)` (N = the length of `patchersRanBeforeGate`, only when it is not empty); `ArenaGateReport.SummaryLine()`
@@ -378,7 +385,9 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
      in the report and its file name goes into the report's `patchersRanBeforeGate` (once per file, only for
      patchers that are not allowed and have an initializer; an allowed patcher is never listed, wherever it
      sorts). The list is part of the provisional report and of every later inactive one, so it survives a
-     failure of the gate. Fail closed in two places (2026-10-22, second review). (a) A patcher whose file cannot
+     failure of the gate. The patchers the policy allows are left untouched and listed in `patchersAllowed` (each once;
+     2026-10-23, external review), in the same reports, so that the client can judge them again (section 7, check 4).
+     Fail closed in two places (2026-10-22, second review). (a) A patcher whose file cannot
      be determined (its delegates come from an assembly without a location, or from no assembly: the gate reads
      the assembly from the target list, initializer or finalizer delegate) cannot be on the whitelist: it is
      neutralised like a patcher that is not allowed, under the name `(unidentified) <type name>`, with its own
@@ -423,13 +432,24 @@ behind the split are in [ARENA-GATE-20261021.md](ARENA-GATE-20261021.md).
 
 .NET Framework 4.7.2 `WinExe` without NuGet packages (no console window), deployed to
 `BepInEx/plugins/maschine-ArenaMode/`. `enter`, `leave` and `stop-server` run one at a time (named
-mutex `Local\maschine-ArenaMode.Session`); `status` only reads and takes no mutex. Every run appends
+mutex `Global\maschine-ArenaMode.Session.<SID of the user>`, below); `status` only reads and takes no mutex. Every run appends
 to `helper.log` (rotated at 1 MB) and exits 0 on success, 1 on failure, never shows UI. The
 manifest declares `longPathAware`: the server tree sits deeper than the install. The order of the steps of
 one `enter`/`leave` run (stale acknowledgement, mutex, request, acknowledgement, command; see "Acknowledgement"
 below) is kept by `HelperHost`, which `Program.Main` hands the parsed command to; it is linked into the tests.
 `HelperHost` also stamps the request file (last-write time and length) before it reads it and lets the command look
 at that stamp while it waits for the game ("A request the client takes back", below).
+
+The mutex is `Global\` and named for the user (review 2026-10-23, `HelperMutex` in `HelperHost.cs`): a `Local\`
+object is one per Windows logon session, while the runtime root, `server.pid` and the tree are one per user, so two
+logon sessions of one account (a console and a Remote Desktop session) each had a mutex of their own over the same
+files and did not serialise. The SID in the name keeps the accounts of one machine apart in the shared namespace, and
+the helper creates the mutex with an access list that grants only that user and SYSTEM: the default list of a
+`Global\` object names the logon session and the administrators, not the user, so another logon session of the same
+user could not even open it. The unit tests run the same code on net10.0 without the access list
+(System.Threading.AccessControl is not part of that runtime); `tools/ArenaSessionHelperNet472Checks` reads the name and
+the list of the shipping build. A mutex of that name that exists but cannot be opened (another account created it)
+ends the helper with an error, and a helper that cannot determine the user's SID ends before it touches anything.
 
 Writes never follow a link (review 2026-10-22, third pass). Every file the helper creates or truncates is opened without
 following a reparse point at its last component (`HelperNative.OpenFileForWriting`: `CreateFile` with
@@ -451,7 +471,8 @@ helper ends without acknowledging and the target is untouched. Not covered: a ha
 and the way down from the sandbox root, which `RequireClean` checks as before.
 
 The runtime root, the mutex, `server.pid` and the tree are shared by every SPT installation of one
-Windows user. A helper therefore never stops, replaces or deletes the arena server of another
+Windows user, and by every logon session of that user (the mutex is `Global\`, see the start of this section). A
+helper therefore never stops, replaces or deletes the arena server of another
 installation (see `stop-server`). That protects only between helpers that know the rule. An older helper
 (the 0.1.3 builds from before the server binaries moved into the tree) does not understand a marker with
 `serverExe`: it takes the tree's server for "not ours", deletes `server.pid` and leaves the server running,
@@ -571,6 +592,18 @@ beside the request (`request.json.accepted` for `request.json`):
    - `SPT_Data\`: a directory junction for every subdirectory of `<sptRuntimeDir>\SPT_Data`
      except `configs`; files directly in `SPT_Data` copied; `configs\` copied, then `http.json`
      patched: `port` and `backendPort` set to the arena port, everything else unchanged.
+   - `SPT_Data\configs\backup.json` (review 2026-10-23; `HelperJsonText.TryConfineBackupDirectory`): in the copy, the
+     top-level `directory` is replaced by `./user/profiles/backups` (SPT's own default) unless it is a relative path
+     below `user` by the rule of `sptLogger.json` above (`IsLogPathUnderUser`). SPT's backup service writes the copies
+     of the tree's profiles to `<directory>/<date>`, resolved against the working directory, deletes the oldest
+     folders there beyond `maxBackups` and restores a profile from the newest one; an absolute path, a path that
+     climbs out of the tree and a path into the `SPT_Data` junctions would put the disposable profile's copies into
+     the normal server's pool, where that cleanup deletes the normal server's backups and a restore may pick an arena
+     copy. A `directory` that is not a string is replaced as well (fail closed); a missing member and a missing file
+     keep SPT's default, which is the private folder; a member of that name deeper in the document is not touched.
+     The runtime's own file is never changed; a replaced value is one Warning of `helper.log` (`backup.json: the
+     backup directory did not lie below user ... : 'old' -> 'new'`, `HelperTreeResult.BackupDirectoryRewrite`). The
+     installed file uses the default, so nothing is replaced there.
    - `user\mods\`: emptied, then a copy of every folder in `serverMods` (copies, not junctions,
      so what those mods write beside their own files stays in the disposable tree). A user-allowed
      server mod that resolves its paths from `AppContext.BaseDirectory`, the working directory or its
@@ -719,7 +752,8 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
   AppDomain data), `GateActive`.
 - Whitelist admission, evaluated first inside `Compat/ArenaOptionalMods.GetRejectionReason()`:
   - Arena session: refuse with a reason if the gate is not active, no policy can be loaded, the gate reports a
-    patcher that ran before it, a plugin this game loaded is one the current policy excludes, the server ping does
+    patcher that ran before it, a patcher the gate let run is one the current policy excludes, a plugin this game
+    loaded is one the current policy excludes, the server ping does
     not say `arenaInstance:true`, the server runs a mod the current policy excludes, or the server was built for
     another policy than the gate applied. An internal failure refuses (a process that cannot
     prove it is filtered must not run Arena). Before the review of 2026-10-22 the client evaluated the server's
@@ -728,7 +762,7 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
     file) could therefore leave a server running a mod the new policy excludes. The third pass (the gate-policy
     review's appendix) closed the same kind of hole twice more: a session whose policy could not be loaded admitted,
     because every comparison with the policy was skipped, and the plugins that were running were never compared with
-    the policy as it reads now. The checks, in this order, each logged once at Warning (check 5 is not logged: it is
+    the policy as it reads now. The checks, in this order, each logged once at Warning (check 6 is not logged: it is
     about the connection, not about the policy):
     1. gate inactive: the existing text (`The Arena session could not filter the installed mods (<problem>). ...`);
     2. no usable policy (the shipped default list is missing, unreadable, larger than 256 KB or invalid; a defective
@@ -743,7 +777,16 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
        (several files: `The preloader patchers <files> ran before the Arena gate could stop them. Allow them in
        the policy file or remove them, ...`). The gate neutralised what was left of those patchers, but their
        initializers had already run, so the process is not the clean one the session promises. Needs no ping;
-    4. a plugin this game loaded is excluded: `Chainloader.PluginInfos` evaluated with the policy as it reads now
+    4. a preloader patcher the gate let run (`patchersAllowed` of the gate report, section 4) is one the policy as it
+       reads now does not allow (`IsAllowedPatcher`, the gate's own rule; 2026-10-23, external review): `This game
+       ran the preloader patcher <file>, which the current policy excludes: the policy changed during the switch.
+       Return to the normal session and start the Arena session again.` (several files: `This game ran the
+       preloader patchers <files>, which ...`; names sorted, once each, twelve at most, then `and N more`). The
+       patcher ran in this process, so a policy that excludes it now excludes this session, and neither check 5
+       nor check 7 sees a patcher. A patcher the gate neutralised is not in the list and cannot refuse here, whatever
+       the policy says now; one the policy allows now and did not then is a widening, which refuses nothing. A report
+       without the member (an older gate) has nothing to judge. Needs no ping;
+    5. a plugin this game loaded is excluded: `Chainloader.PluginInfos` evaluated with the policy as it reads now
        (the client side of the same `ArenaWhitelistDecision`; platform and Arena units cannot be excluded) exclude
        at least one unit, of any exclusion reason, `requires-denied` included: `This game loaded <names>, which
        the current policy excludes: the policy changed during the switch. Return to the normal session and start
@@ -754,21 +797,21 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
        a library that the gate pulled in as the dependency of a plugin which then failed to load (BepInEx skips a
        plugin for a missing dependency or an incompatibility) has no dependant left and reads as excluded; that
        refuses with the same text, which fails closed;
-    5. the server is known and is no Arena instance: the existing text (`This game is not connected to the Arena
+    6. the server is known and is no Arena instance: the existing text (`This game is not connected to the Arena
        session server. ...`);
-    6. the ping's `serverMods` evaluated with the policy as the client reads it now (the files through
+    7. the ping's `serverMods` evaluated with the policy as the client reads it now (the files through
        `ArenaPolicyFiles`, section 3, so the bytes the gate reads; server side of the same
        `ArenaWhitelistDecision`) exclude at least one unit, of any exclusion reason, `requires-denied` included:
        `The Arena session server runs <names>, which the current policy excludes: the policy changed during the
        switch. Return to the normal session and start the Arena session again.` (names sorted, once each, twelve
        at most, then `and N more`);
-    7. the ping's `policyHash` (section 8) and the gate report's `policyHash` are both present (non-blank) and
+    8. the ping's `policyHash` (section 8) and the gate report's `policyHash` are both present (non-blank) and
        differ, compared exactly (ordinal, no case folding): `The Arena session server was built for a different
        policy than this game applies: the policy changed during the switch. Return to the normal session and
        start the Arena session again.` (the Warning in the log carries both hashes). A hash that is absent on
        either side (an older server, a normal server, a marker without a usable hash, a gate report without one)
        is unknown, never a difference.
-    Without a ping (not yet answered) there is no server to judge and no hash to compare: 5 to 7 wait for it, and
+    Without a ping (not yet answered) there is no server to judge and no hash to compare: 6 to 8 wait for it, and
     the explicit Arena click asks again. The refusal leaves the RETURN TO NORMAL SESSION action.
     The outcome is cached per ping generation and plugin count (menu polling does no I/O); opening the side
     screen and requesting the session start (START ARENA SESSION) first compare the length and last-write time
@@ -1162,7 +1205,7 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   plus `Return to the normal session.`: before, `ComputeArenaSession` judged the server's mods only `if the policy
   loaded` and otherwise admitted on the gate's word, although a normal session refuses in the same situation (the
   review reproduced it: default file missing, normal session refuses, Arena session admits). (2) The plugins the
-  game loaded are evaluated with the policy as it reads now (check 4): the gate filtered with the files of the
+  game loaded are evaluated with the policy as it reads now (check 4 then, check 5 since 2026-10-23): the gate filtered with the files of the
   moment the game started and nothing compared the plugin list with the current files, the same hole the second
   pass closed for the server's mods. Chosen: the gate's own decision, any exclusion reason refuses, the wording
   follows the server-mod refusal (`This game loaded <names>, ...`), the checks that need no ping come first (2, 3
@@ -1271,7 +1314,7 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   a GPU run (the helper binary changed: every installation of one Windows user receives it together with the client, as before).
 - Section 7 (2026-10-22, after the review fixes ran on SPT-GPU-2). The admission outcome was cached per ping generation and
   plugin count, so a policy file changed while the game ran (the user file edited, or mirrored by Syncthing) stayed
-  invisible until the next ping: in the Arena session of the GPU run the refusals of checks 5 to 7 never fired for a file
+  invisible until the next ping: in the Arena session of the GPU run the refusals of checks 5 to 7 (6 to 8 since 2026-10-23) never fired for a file
   that arrived after the first screen. Opening the side screen and requesting the session start now compare the length
   and last-write time of both policy files with the stamps the cached outcome was computed from and evaluate again when
   they differ (`ArenaWhitelistAdmission.InvalidateIfPolicyChanged`, a Debug line names the occasion); menu polling

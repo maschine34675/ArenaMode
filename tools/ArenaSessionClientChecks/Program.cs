@@ -37,6 +37,7 @@ internal static partial class Program
             CheckPrepareForScreen();
             CheckArenaSessionAdmission();
             CheckArenaSessionReview();
+            CheckArenaSessionPatchersAllowed();
             CheckArenaSessionPolicyAvailable();
             CheckArenaSessionLoadedPlugins();
             CheckPatcherUnits();

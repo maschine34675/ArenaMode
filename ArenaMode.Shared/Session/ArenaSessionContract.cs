@@ -65,8 +65,15 @@ namespace ArenaMode.Shared.Session
         /// <summary>Optional user policy in <c>BepInEx/config</c>; never shipped.</summary>
         public const string UserPolicyFileName = "com.maschine.ArenaMode.whitelist.json";
 
-        /// <summary>Named mutex that keeps one helper instance at a time.</summary>
-        public const string HelperMutexName = "Local\\maschine-ArenaMode.Session";
+        /// <summary>
+        /// Prefix of the named mutex that keeps one helper instance at a time; the helper appends the SID of the Windows
+        /// user it runs as (<c>HelperMutex.Name</c> in the helper). <c>Global\</c>, because a <c>Local\</c> object is one
+        /// per logon session while the runtime root, <c>server.pid</c> and the tree are one per user (review 2026-10-23:
+        /// two logon sessions of one account, a console and a Remote Desktop one, each had a mutex of their own over the
+        /// same files). The SID keeps the accounts of one machine apart in the shared namespace, and the helper creates
+        /// the mutex with an access list for that user and SYSTEM only.
+        /// </summary>
+        public const string HelperMutexNamePrefix = "Global\\maschine-ArenaMode.Session.";
 
         public const string DirectionEnter = "enter";
         public const string DirectionLeave = "leave";
@@ -247,9 +254,10 @@ namespace ArenaMode.Shared.Session
     /// removed, the warnings and the patchers it neutralised. JSON shape:
     /// <c>{ "schema":1, "active":bool, "error":string|null, "policyHash":string,
     /// "unlistedAllowed":bool, "allowed":[{guid,name,version,file,reason}], "excluded":[...],
-    /// "warnings":[string], "patchersNeutralised":[file], "patchersRanBeforeGate":[file] }</c>.
+    /// "warnings":[string], "patchersNeutralised":[file], "patchersRanBeforeGate":[file],
+    /// "patchersAllowed":[file] }</c>.
     /// Unknown members are ignored when reading; a missing <c>unlistedAllowed</c> reads as false and a
-    /// missing <c>patchersRanBeforeGate</c> (a report of an older gate) as empty. A unit's
+    /// missing <c>patchersRanBeforeGate</c> or <c>patchersAllowed</c> (a report of an older gate) as empty. A unit's
     /// <c>reason</c> is one of the <c>ArenaWhitelistDecision.Reason*</c> values: <c>platform</c>,
     /// <c>arena</c>, <c>whitelist</c>, <c>tool</c>, <c>unlisted-allowed</c> (blacklist mode),
     /// <c>dependency-of:&lt;guid&gt;</c> for allowed units, <c>not-on-whitelist</c>,
@@ -267,6 +275,7 @@ namespace ArenaMode.Shared.Session
             Warnings = new List<string>();
             PatchersNeutralised = new List<string>();
             PatchersRanBeforeGate = new List<string>();
+            PatchersAllowed = new List<string>();
         }
 
         public int Schema { get; set; }
@@ -304,6 +313,16 @@ namespace ArenaMode.Shared.Session
         /// </summary>
         public List<string> PatchersRanBeforeGate { get; set; }
 
+        /// <summary>
+        /// File names of the preloader patchers the gate let run because the policy of the moment allowed them (each
+        /// once; platform patchers included, never the gate itself or BepInEx's own patcher, which are not judged).
+        /// The client judges them again with the policy as it reads now (review 2026-10-23): a patcher allowed at
+        /// the start and denied since has run in this process, which neither the plugin nor the server-mod
+        /// comparison can see. Present in every report (provisional, final and inactive); a report without the
+        /// member (an older gate) reads as empty.
+        /// </summary>
+        public List<string> PatchersAllowed { get; set; }
+
         /// <summary>A report for a gate that did not filter anything.</summary>
         public static ArenaGateReport Inactive(string error, string policyHash)
         {
@@ -315,7 +334,8 @@ namespace ArenaMode.Shared.Session
         /// the decision do not leak in.
         /// </summary>
         public static ArenaGateReport FromDecision(ArenaWhitelistPolicy policy, ArenaWhitelistDecision decision,
-            IEnumerable<string> patchersNeutralised, IEnumerable<string> patchersRanBeforeGate = null)
+            IEnumerable<string> patchersNeutralised, IEnumerable<string> patchersRanBeforeGate = null,
+            IEnumerable<string> patchersAllowed = null)
         {
             if (policy == null) throw new ArgumentNullException("policy");
             if (decision == null) throw new ArgumentNullException("decision");
@@ -332,6 +352,7 @@ namespace ArenaMode.Shared.Session
             report.Warnings.AddRange(decision.Warnings);
             if (patchersNeutralised != null) report.PatchersNeutralised.AddRange(patchersNeutralised);
             if (patchersRanBeforeGate != null) report.PatchersRanBeforeGate.AddRange(patchersRanBeforeGate);
+            if (patchersAllowed != null) report.PatchersAllowed.AddRange(patchersAllowed);
             return report;
         }
 
@@ -371,6 +392,7 @@ namespace ArenaMode.Shared.Session
             root["warnings"] = Warnings == null ? new List<string>() : Warnings;
             root["patchersNeutralised"] = PatchersNeutralised == null ? new List<string>() : PatchersNeutralised;
             root["patchersRanBeforeGate"] = PatchersRanBeforeGate == null ? new List<string>() : PatchersRanBeforeGate;
+            root["patchersAllowed"] = PatchersAllowed == null ? new List<string>() : PatchersAllowed;
             return ArenaMiniJson.Write(root);
         }
 
@@ -412,6 +434,7 @@ namespace ArenaMode.Shared.Session
             StringsFromJson(ArenaMiniJson.GetArray(obj, "warnings"), parsed.Warnings);
             StringsFromJson(ArenaMiniJson.GetArray(obj, "patchersNeutralised"), parsed.PatchersNeutralised);
             StringsFromJson(ArenaMiniJson.GetArray(obj, "patchersRanBeforeGate"), parsed.PatchersRanBeforeGate);
+            StringsFromJson(ArenaMiniJson.GetArray(obj, "patchersAllowed"), parsed.PatchersAllowed);
             report = parsed;
             error = null;
             return true;

@@ -48,6 +48,11 @@ never be the code that loads that assembly.
   provisional and the inactive reports, and counted in the Info summary as ` (N patcher(s) ran before the gate)`.
   An allowed patcher is never listed, wherever it sorts. BepInEx's own entry-point patcher and the gate are
   recognised by the assembly their delegates come from and are never touched.
+- The patchers the gate lets run are listed in `patchersAllowed` (since 2026-10-23, external review): a member every
+  report carries (an empty array when none), kept by the provisional and the inactive reports, each file once,
+  platform patchers included, never the gate or BepInEx's own patcher. The client judges them again with the policy
+  as it reads now, because a patcher allowed at the start and denied since has run in the process (spec section 7,
+  check 4).
 - The postfix never throws. The plan (decision, report JSON) is built before any list changes;
   the removal restores the lists if it fails. A failure turns the gate Failed for good: later scans
   pass everything, the report is inactive with the reason, an Error line is logged.
@@ -90,7 +95,7 @@ and `BepInDependency` metadata. 17 scenarios, 617 checks (since 2026-10-22; `def
 | Scenario | Proves |
 |---|---|
 | inert | no flag: no Harmony patch, no log source, no report, every patcher and plugin untouched, even with an unreadable policy |
-| full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), `patchersRanBeforeGate` (read from the raw JSON of the provisional and the final report: exactly the denied patchers that sort before the gate, not the allowed ones that sort there nor the denied ones that sort after it), the ` (1 patcher(s) ran before the gate)` suffix of the summary, built-in patcher intact, no Unity assembly before the patched CoreModule |
+| full | shipped policy: decisions per plugin, hard and soft dependencies, version warnings, the Info summary, the Info line that names the neutralised patchers and one Debug line per exclusion, the type cache still complete, cache-warm rescan identical, other directory untouched, patcher neutralisation (including the order cases), `patchersRanBeforeGate` (read from the raw JSON of the provisional and the final report: exactly the denied patchers that sort before the gate, not the allowed ones that sort there nor the denied ones that sort after it), the ` (1 patcher(s) ran before the gate)` suffix of the summary, built-in patcher intact, no Unity assembly before the patched CoreModule, `patchersAllowed` exactly the allowed patchers in the provisional and the final report (checked in every scenario that reads a report, the inactive ones of the failure worlds included) |
 | no-early-patcher | the same world without the denied patcher that sorts before the gate: `patchersRanBeforeGate` is present and empty in the provisional and the final report, the summary line has no suffix, the denied patchers that sort after the gate are neutralised without a warning |
 | user-file / user-garbage | user allow and deny, platform units undeniable, unparsable user file ignored with a warning; a user allow lifts a default deny (ORBIT); the patcher warning names the user's deny |
 | default-deny | the shipped file plus extra default denies (a plugin, an allowed patcher, a patcher that sorts before the gate): reason `denied`, a listed-and-denied patcher is denied and reported, the patcher warning says `is denied by the default policy list` |

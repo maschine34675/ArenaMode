@@ -30,6 +30,19 @@ namespace ArenaMode.SessionHelper
         public const string SptDataFolder = "SPT_Data";
         public const string ConfigsFolder = "configs";
         public const string HttpJsonFileName = "http.json";
+
+        /// <summary>
+        /// <c>SPT_Data\configs\backup.json</c>: the settings of SPT's profile backup service. Its <c>directory</c> is
+        /// confined to the tree (review 2026-10-23, <see cref="HelperJsonText.TryConfineBackupDirectory"/>).
+        /// </summary>
+        public const string BackupJsonFileName = "backup.json";
+
+        /// <summary>
+        /// Where the tree's copy of <c>backup.json</c> sends the arena server's profile backups when the runtime's
+        /// <c>directory</c> does not lie below <c>user</c>: SPT's own default, relative to the server's working
+        /// directory, which is the tree.
+        /// </summary>
+        public const string PrivateBackupDirectory = "./user/profiles/backups";
         public const string UserFolder = "user";
         public const string ModsFolder = "mods";
 
@@ -1503,8 +1516,8 @@ namespace ArenaMode.SessionHelper
     }
 
     /// <summary>
-    /// Text-level edits of the two SPT JSON files the helper has to change. Both keep every other
-    /// byte (formatting, comments, member order) exactly as it was.
+    /// Text-level edits of the three SPT JSON files the helper has to change (<c>http.json</c>, <c>sptLogger.json</c>,
+    /// <c>backup.json</c>). All keep every other byte (formatting, comments, member order) exactly as it was.
     /// </summary>
     public static class HelperJsonText
     {
@@ -1673,6 +1686,42 @@ namespace ArenaMode.SessionHelper
             return true;
         }
 
+        /// <summary>
+        /// Makes a <c>backup.json</c> safe to run from the arena tree (review 2026-10-23): the top-level <c>directory</c>
+        /// is replaced by <see cref="HelperLayout.PrivateBackupDirectory"/> unless it is a relative path below <c>user</c>
+        /// (<see cref="IsLogPathUnderUser"/>, the rule of the logger paths). SPT's backup service writes the copies of
+        /// the tree's profiles to <c>&lt;directory&gt;/&lt;date&gt;</c>, resolved against the working directory, deletes
+        /// the oldest folders there beyond <c>maxBackups</c> and restores a profile from the newest one; an absolute
+        /// path, a path that climbs out of the tree and a path into the <c>SPT_Data</c> junctions would put the
+        /// disposable profile's copies into the normal server's pool, where that cleanup deletes the normal server's
+        /// backups and a restore may pick an arena copy. <paramref name="rewrite"/> reads <c>'old' -> 'new'</c> when
+        /// the value was replaced and is null when nothing changed (<paramref name="patched"/> is then
+        /// <paramref name="text"/>); a missing member keeps SPT's default, which is the private folder. A
+        /// <c>directory</c> that is not a string, or a string the JSON reader cannot decode, is replaced as well (fail
+        /// closed) and named by its text. Members of that name deeper in the document are not touched.
+        /// </summary>
+        public static bool TryConfineBackupDirectory(string text, out string patched, out string rewrite, out string error)
+        {
+            patched = null;
+            rewrite = null;
+            HelperJsonDocument doc;
+            if (!HelperJsonDocument.TryScan(text, out doc, out error)) return false;
+
+            var edits = new List<Edit>();
+            foreach (HelperJsonMember member in doc.Members)
+            {
+                if (member.Depth != 1 || member.Key != "directory") continue;
+                string old = member.ValueKind == '"' ? ReadStringValue(text, member) : null;
+                if (old != null && IsLogPathUnderUser(old)) continue;
+                if (old == null) old = text.Substring(member.ValueStart, member.ValueEnd - member.ValueStart);
+                edits.Add(new Edit { Start = member.ValueStart, End = member.ValueEnd, Text = "\"" + HelperLayout.PrivateBackupDirectory + "\"" });
+                rewrite = "'" + old + "' -> '" + HelperLayout.PrivateBackupDirectory + "'";
+            }
+
+            patched = Apply(text, edits);
+            return true;
+        }
+
         /// <summary>The decoded text of a JSON string member, or null when it cannot be decoded.</summary>
         private static string ReadStringValue(string text, HelperJsonMember member)
         {
@@ -1683,7 +1732,8 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
-        /// True when a logger's <c>filePath</c> is a relative path that stays below the tree's <c>user</c> folder
+        /// True when a logger's <c>filePath</c>, or the <c>directory</c> of <c>backup.json</c>, is a relative path that
+        /// stays below the tree's <c>user</c> folder
         /// (<c>./user/logs/spt/</c>, <c>user\logs</c>, <c>./user/../user/logs</c>; both separators, any case). Anything
         /// else is not: a drive or UNC path, a path that starts at a root, a stream or drive-relative name (a colon
         /// anywhere), a <c>..</c> that climbs out of <c>user</c>, a segment Windows would rewrite or refuse
@@ -1861,7 +1911,7 @@ namespace ArenaMode.SessionHelper
     {
         /// <summary>
         /// Every directory of <c>SPT_Data</c> is shared through a junction except <c>configs</c>, which
-        /// is copied (its <c>http.json</c> is patched); files are copied.
+        /// is copied (its <c>http.json</c> and <c>backup.json</c> are patched); files are copied.
         /// </summary>
         public static HelperSptDataAction Classify(string name, bool isDirectory)
         {

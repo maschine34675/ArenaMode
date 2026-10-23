@@ -51,11 +51,13 @@ namespace ArenaMode.Gate
 
         // What the report carries besides the decision: policy diagnostics (an ignored user file,
         // for example), patcher warnings, the neutralised patcher files and, of those, the ones whose
-        // initializer had already run when the gate got to them.
+        // initializer had already run when the gate got to them, and the patcher files the policy
+        // allowed (they ran; the client judges them again with the policy of a later moment).
         private static readonly List<string> Diagnostics = new List<string>();
         private static readonly List<string> PatcherWarnings = new List<string>();
         private static readonly List<string> Neutralised = new List<string>();
         private static readonly List<string> RanBeforeGate = new List<string>();
+        private static readonly List<string> AllowedPatchers = new List<string>();
 
         private static Stage _stage = Stage.Idle;
         private static ManualLogSource _log;
@@ -104,6 +106,7 @@ namespace ArenaMode.Gate
                     patchers = ArenaGatePatchers.Neutralise(_policy);
                     Neutralised.AddRange(patchers.Neutralised);
                     RanBeforeGate.AddRange(patchers.RanBeforeGate);
+                    AllowedPatchers.AddRange(patchers.Allowed);
                     PatcherWarnings.AddRange(patchers.Warnings);
                     foreach (string warning in PatcherWarnings) Log(LogLevel.Warning, "Arena session: " + warning);
 
@@ -128,6 +131,7 @@ namespace ArenaMode.Gate
                     if (patchers != null) patchers.Rollback();
                     Neutralised.Clear();
                     RanBeforeGate.Clear();
+                    AllowedPatchers.Clear();
                     PatcherWarnings.Clear();
                     Fail("the gate could not prepare the Arena session: " + ex.Message, ex);
                 }
@@ -316,7 +320,7 @@ namespace ArenaMode.Gate
                 // publishing and logging are left.
                 ArenaGatePluginFilter.Plan plan = ArenaGatePluginFilter.Decide(_policy, (IDictionary)result);
                 ArenaWhitelistDecision decision = plan.Decision;
-                ArenaGateReport report = ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate);
+                ArenaGateReport report = ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate, AllowedPatchers);
                 report.Warnings.AddRange(Diagnostics);
                 report.Warnings.AddRange(PatcherWarnings);
                 string json = report.ToJson();
@@ -393,6 +397,7 @@ namespace ArenaMode.Gate
             report.Warnings.AddRange(PatcherWarnings);
             report.PatchersNeutralised.AddRange(Neutralised);
             report.PatchersRanBeforeGate.AddRange(RanBeforeGate);
+            report.PatchersAllowed.AddRange(AllowedPatchers);
             return report;
         }
 

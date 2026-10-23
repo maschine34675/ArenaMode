@@ -147,6 +147,12 @@ namespace ArenaMode.SessionHelper
                         + " in the tree's copy, so that the arena server does not log into the real runtime: " + string.Join("; ", tree.LogPathRewrites.ToArray()));
                 }
 
+                if (tree.BackupDirectoryRewrite != null)
+                {
+                    _log.Warn("backup.json: the backup directory did not lie below user and was moved in the tree's copy, so that the arena server's"
+                        + " profile backups stay out of the normal server's backup pool (its cleanup deletes there): " + tree.BackupDirectoryRewrite);
+                }
+
                 if (tree.UnsharedFolders.Count > 0)
                 {
                     _log.Warn("the runtime has folders the arena tree does not contain (" + string.Join(", ", tree.UnsharedFolders.ToArray())

@@ -21,6 +21,10 @@ namespace ArenaMode.Gate
     /// warning and listed in <see cref="Outcome.RanBeforeGate"/> (the report's
     /// <c>patchersRanBeforeGate</c>), and its target list, patch method and finalizer are still replaced.
     ///
+    /// The patchers the policy allows are left alone and listed in <see cref="Outcome.Allowed"/> (the report's
+    /// <c>patchersAllowed</c>), so that the client can judge them again with the policy of a later moment: they
+    /// ran in the process, whatever the policy says then (review 2026-10-23).
+    ///
     /// Fail closed: a patcher whose file cannot be determined (its delegates come from an assembly
     /// without a location, or from no assembly at all) cannot be on the whitelist, so it is treated as one
     /// that is not allowed, under the name <c>(unidentified) &lt;type name&gt;</c>. And when the gate
@@ -54,6 +58,12 @@ namespace ArenaMode.Gate
             /// them may have run), and one warning says so.
             /// </summary>
             public readonly List<string> RanBeforeGate = new List<string>();
+
+            /// <summary>
+            /// Files of the patchers the policy allows, which therefore run (each once): the report's
+            /// <c>patchersAllowed</c>. Never the gate itself or BepInEx's own patcher, which are not judged.
+            /// </summary>
+            public readonly List<string> Allowed = new List<string>();
 
             /// <summary>Patchers that could not be handled completely.</summary>
             public readonly List<string> Warnings = new List<string>();
@@ -132,7 +142,11 @@ namespace ArenaMode.Gate
                 string cause;
                 if (identified)
                 {
-                    if (policy.IsAllowedPatcher(file)) continue;
+                    if (policy.IsAllowedPatcher(file))
+                    {
+                        AddOnce(outcome.Allowed, file);
+                        continue;
+                    }
 
                     // Name the list that excluded it. In blacklist mode a patcher is only ever off because a
                     // deny list names it (the user's, or the shipped default's, which holds there too); in

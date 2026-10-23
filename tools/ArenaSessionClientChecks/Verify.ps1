@@ -191,6 +191,21 @@ Invoke-Mutant 'admission-policy-edit-unnoticed-in-session' 'admission' `
 Invoke-Mutant 'admission-session-start-stale-policy' 'admission' `
     'InvalidateIfPolicyChanged("session start");' '' `
     'The session start is built from the policy of the moment'
+# Review 2026-10-23: the patchers the gate let run are judged with the policy of the moment as well.
+Invoke-Mutant 'admission-ran-patchers-not-judged' 'admission' `
+    'var ranExcluded = PatchersNowExcluded(policy, ArenaSessionMode.GateReport.PatchersAllowed);' 'var ranExcluded = new List<string>();' `
+    'A patcher the gate let run and the current policy denies refuses Arena in the session'
+Invoke-Mutant 'admission-ran-patchers-judged-by-listing' 'admission' `
+    'if (string.IsNullOrEmpty(file) || policy.IsAllowedPatcher(file)) continue;' 'if (string.IsNullOrEmpty(file) || policy.FindPatcher(file) != null) continue;' `
+    'In blacklist mode an unlisted patcher the gate let run refuses nothing'
+Invoke-Mutant 'admission-ran-patchers-singular-only' 'admission' `
+    '(files.Count > 1 ? "This game ran the preloader patchers " : "This game ran the preloader patcher ")' '"This game ran the preloader patcher "' `
+    'Several denied patchers are listed once each, sorted, in the plural'
+Invoke-SwapMutant 'admission-ran-patchers-before-early-patchers' 'admission' `
+    '// A not-allowed patcher that sorts before the gate has run its initializer' `
+    '// The preloader patchers the gate let run are judged with the policy as it reads now as well' `
+    '// The plugins this game loaded are judged with the policy as it reads now, like the server' `
+    'A patcher that ran before the gate is refused ahead of a patcher the policy excludes now'
 Invoke-Mutant 'admission-always-pings' 'admission' `
     'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
     'A clean normal session needs no ping to open the screen'

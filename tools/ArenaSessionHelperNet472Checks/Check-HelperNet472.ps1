@@ -1,5 +1,5 @@
 # Runs inside Windows PowerShell 5.1 (the CLR of .NET Framework 4.x, the runtime of the Arena session helper) and
-# calls the helper's socket code through reflection on the built exe. Started by Verify.ps1, which says why.
+# calls the helper's socket and mutex code through reflection on the built exe. Started by Verify.ps1, which says why.
 #
 #   powershell.exe -NoProfile -File Check-HelperNet472.ps1 -Exe <path to maschine-ArenaMode.Session.exe>
 #
@@ -17,6 +17,10 @@ $flags = [Reflection.BindingFlags]'Public,NonPublic,Static'
 $canConnect = $type.GetMethod('CanConnect', $flags, $null, [Type[]]@([string], [int], [int], [Net.IPAddress].MakeByRefType()), $null)
 $lookUp = $type.GetMethod('GetListenerProcessIds', $flags, $null, [Type[]]@([int], [Net.IPAddress]), $null)
 if (-not $canConnect -or -not $lookUp) { Write-Output 'RESULT: FAIL (HelperProcesses.CanConnect / GetListenerProcessIds not found)'; exit 2 }
+$mutexType = $assembly.GetType('ArenaMode.SessionHelper.HelperMutex', $true)
+$mutexName = $mutexType.GetMethod('Name', $flags, $null, [Type[]]@(), $null)
+$mutexOpen = $mutexType.GetMethod('Open', $flags, $null, [Type[]]@([string]), $null)
+if (-not $mutexName -or -not $mutexOpen) { Write-Output 'RESULT: FAIL (HelperMutex.Name / Open not found)'; exit 2 }
 
 $failed = 0
 function Report([string]$Name, [bool]$Ok, [string]$Detail) {
@@ -76,6 +80,20 @@ try {
     $result = Connect '127.0.0.1' $port
     Report 'dual-stack-wildcard-owner' ($result[0] -and (Owns $port ([Net.IPAddress]$result[1]))) "connected=$($result[0]) reached=$($result[1]), listener of [::] not found for an IPv4 connection"
 } finally { $dual.Stop() }
+
+# The helper mutex (review 2026-10-23): Global and named for the user, so that every logon session of the user shares it,
+# with an access list of exactly that user and SYSTEM (the default list of a Global object names the logon session and the
+# administrators instead, and another logon session of the same user could not open it).
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$name = [string]$mutexName.Invoke($null, @())
+Report 'mutex-name-global-for-user' ($name -eq ('Global\maschine-ArenaMode.Session.' + $sid)) "name=$name sid=$sid"
+$mutex = $mutexOpen.Invoke($null, [object[]]@($name))
+try {
+    $rules = @($mutex.GetAccessControl().GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier]) |
+        ForEach-Object { '{0}:{1}:{2}' -f $_.IdentityReference.Value, $_.AccessControlType, $_.MutexRights } | Sort-Object)
+    $expected = @('S-1-5-18:Allow:FullControl', ($sid + ':Allow:FullControl')) | Sort-Object
+    Report 'mutex-access-list' (($rules -join '|') -eq ($expected -join '|')) "rules: $($rules -join ' ; ')"
+} finally { $mutex.Dispose() }
 
 if ($failed -eq 0) { Write-Output 'RESULT: PASS'; exit 0 }
 Write-Output 'RESULT: FAIL'

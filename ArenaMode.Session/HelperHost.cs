@@ -5,8 +5,12 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Threading;
 using ArenaMode.Shared.Session;
+#if NETFRAMEWORK
+using System.Security.AccessControl;
+#endif
 
 namespace ArenaMode.SessionHelper
 {
@@ -19,7 +23,8 @@ namespace ArenaMode.SessionHelper
     /// <item><description>For <c>enter</c> and <c>leave</c>: the acknowledgement of an earlier request of the same
     /// file name is deleted FIRST, before the request is read, whatever happens next, so that no failure path can
     /// leave a stale one behind for the client to find.</description></item>
-    /// <item><description>The helper mutex is taken (one helper at a time).</description></item>
+    /// <item><description>The helper mutex is taken (one helper at a time, for every logon session of the user:
+    /// <see cref="HelperMutex"/>).</description></item>
     /// <item><description>The request is read and validated.</description></item>
     /// <item><description>Only now is <c>&lt;request&gt;.accepted</c> written (atomically): the helper has taken the
     /// request over. The client closes the game when it sees the file. If it cannot be written the run ends here,
@@ -104,7 +109,7 @@ namespace ArenaMode.SessionHelper
                 }
 
                 int exit;
-                using (var mutex = new Mutex(false, _mutexName))
+                using (Mutex mutex = HelperMutex.Open(_mutexName))
                 {
                     bool owned;
                     try
@@ -161,7 +166,7 @@ namespace ArenaMode.SessionHelper
                 _log.Info("the Arena game exited; stopping the arena server");
             }
 
-            using (var mutex = new Mutex(false, _mutexName))
+            using (Mutex mutex = HelperMutex.Open(_mutexName))
             {
                 bool owned;
                 try
@@ -255,6 +260,66 @@ namespace ArenaMode.SessionHelper
                 _log.Error("cannot acknowledge the request (" + ex.Message + "); the client would not close the game, so nothing was changed"
                     + " and the game was not touched");
                 return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The helper's mutex: <see cref="ArenaSessionContract.HelperMutexNamePrefix"/> followed by the SID of the user the
+    /// helper runs as, one for every logon session of that user, because the runtime root it guards is one per user
+    /// (review 2026-10-23: a <c>Local\</c> mutex is one per logon session, so a console and a Remote Desktop session of
+    /// the same account did not serialise). The shipping helper creates it with an access list that lets only that user
+    /// and SYSTEM at it: the default list of a <c>Global\</c> object names the logon session and the administrators, not
+    /// the user, so another logon session of the same user could not even open it, and no other account can hold the
+    /// name. The tests run this code on net10.0, where System.Threading.AccessControl is not part of the runtime, and
+    /// create it with the default list; tools/ArenaSessionHelperNet472Checks reads the name and the list of the
+    /// shipping build.
+    /// </summary>
+    internal static class HelperMutex
+    {
+        /// <summary>The name for the user this process runs as; a <see cref="HelperException"/> when it has no SID.</summary>
+        public static string Name()
+        {
+            SecurityIdentifier user = CurrentUserSid();
+            if (user == null) throw new HelperException("the SID of the current Windows user could not be determined");
+            return NameFor(user.Value);
+        }
+
+        public static string NameFor(string sid)
+        {
+            return ArenaSessionContract.HelperMutexNamePrefix + sid;
+        }
+
+        /// <summary>
+        /// Creates the mutex, or opens the one of that name, never owned at the start. A mutex of that name that exists
+        /// but cannot be opened (another account created it) is a <see cref="HelperException"/>.
+        /// </summary>
+        public static Mutex Open(string name)
+        {
+#if NETFRAMEWORK
+            var security = new MutexSecurity();
+            SecurityIdentifier user = CurrentUserSid();
+            if (user != null) security.AddAccessRule(new MutexAccessRule(user, MutexRights.FullControl, AccessControlType.Allow));
+            security.AddAccessRule(new MutexAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), MutexRights.FullControl, AccessControlType.Allow));
+            bool createdNew;
+            try
+            {
+                return new Mutex(false, name, out createdNew, security);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new HelperException("the helper mutex " + name + " exists but cannot be opened (created by another account?): " + ex.Message);
+            }
+#else
+            return new Mutex(false, name);
+#endif
+        }
+
+        private static SecurityIdentifier CurrentUserSid()
+        {
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                return identity.User;
             }
         }
     }

@@ -69,8 +69,20 @@ namespace ArenaMode.SessionHelper
             _log.Info("maschine-ArenaMode.Session " + version + ": " + command.Name);
             var runner = new HelperRunner(root, _log, version);
 
+            // The mutex is named for the user (HelperMutex); without a SID nothing is touched.
+            string mutexName;
+            try
+            {
+                mutexName = HelperMutex.Name();
+            }
+            catch (Exception ex)
+            {
+                _log.Error("the helper mutex cannot be named for this Windows user: " + ex.Message);
+                return 1;
+            }
+
             // The order of the steps (stale acknowledgement, mutex, request, acknowledgement, command) is HelperHost's.
-            return new HelperHost(runner, _log, ArenaSessionContract.HelperMutexName, HelperConsole.WriteLine).Execute(command);
+            return new HelperHost(runner, _log, mutexName, HelperConsole.WriteLine).Execute(command);
         }
 
         private static string GetVersion()

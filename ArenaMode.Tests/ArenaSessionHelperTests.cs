@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using ArenaMode.SessionHelper;
 using ArenaMode.Shared.Session;
@@ -1219,6 +1220,143 @@ public sealed class ArenaSessionHelperTests
         var result = HelperServerTree.Build(runtime.Request(), 6970, area.At("session"), "0.1.3", DateTime.UtcNow, area.Log.Add);
 
         Assert.Empty(result.LogPathRewrites);
+    }
+
+    // ------------------------------------------------------------------ backup.json (review 2026-10-23)
+
+    private const string SptBackupJson = """
+        {
+          "enabled": true,
+          "maxBackups": 15,
+          "backupCooldown": 30,
+          "directory": "./user/profiles/backups",
+          "backupInterval": {
+            "enabled": false,
+            "intervalMinutes": 120
+          }
+        }
+        """;
+
+    [Theory]
+    [InlineData("D:/SPT-Backups", "D:/SPT-Backups")]
+    [InlineData("D:\\\\SPT-Backups", "D:\\SPT-Backups")]
+    [InlineData("../../normal-backups", "../../normal-backups")]
+    [InlineData("./user/../../backups", "./user/../../backups")]
+    [InlineData("./SPT_Data/backups", "./SPT_Data/backups")]
+    [InlineData("./logs/backups", "./logs/backups")]
+    [InlineData("/backups", "/backups")]
+    [InlineData("", "")]
+    public void TheBackupDirectoryOfTheTreeIsMovedBelowUserWhenItWouldLeaveIt(string jsonValue, string decoded)
+    {
+        // SPT's backup service writes to <directory>/<date> against the working directory, deletes the oldest folders there
+        // and restores from the newest: a directory outside user would mix the disposable profile's copies into the normal
+        // server's pool. The private default replaces it; everything else in the file stays as it was.
+        string text = SptBackupJson.Replace("\"./user/profiles/backups\"", "\"" + jsonValue + "\"");
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(text, out var patched, out var rewrite, out var error), error);
+        Assert.Equal(SptBackupJson, patched);
+        Assert.Equal("'" + decoded + "' -> './user/profiles/backups'", rewrite);
+    }
+
+    [Theory]
+    [InlineData("./user/profiles/backups")]
+    [InlineData("user\\\\profiles\\\\backups")]
+    [InlineData("./user/../user/backups/")]
+    [InlineData("USER/x")]
+    public void ABackupDirectoryBelowUserIsKeptByteForByte(string jsonValue)
+    {
+        string text = SptBackupJson.Replace("\"./user/profiles/backups\"", "\"" + jsonValue + "\"");
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(text, out var patched, out var rewrite, out var error), error);
+        Assert.Equal(text, patched);
+        Assert.Null(rewrite);
+    }
+
+    [Fact]
+    public void ABackupConfigurationWithoutADirectoryKeepsSptsDefaultAndOnlyTheTopLevelMemberIsJudged()
+    {
+        string without = SptBackupJson.Replace("\"directory\": \"./user/profiles/backups\",", "");
+        Assert.DoesNotContain("directory", without);
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(without, out var patched, out var rewrite, out var error), error);
+        Assert.Equal(without, patched);
+        Assert.Null(rewrite);
+
+        // A member of that name deeper in the document is somebody else's.
+        string nested = SptBackupJson.Replace("\"intervalMinutes\": 120", "\"intervalMinutes\": 120, \"directory\": \"D:/elsewhere\"");
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(nested, out patched, out rewrite, out error), error);
+        Assert.Equal(nested, patched);
+        Assert.Null(rewrite);
+
+        // A directory that is not a string cannot be judged: replaced (fail closed), named by its text.
+        string number = SptBackupJson.Replace("\"./user/profiles/backups\"", "5");
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(number, out patched, out rewrite, out error), error);
+        Assert.Equal(SptBackupJson, patched);
+        Assert.Equal("'5' -> './user/profiles/backups'", rewrite);
+
+        Assert.False(HelperJsonText.TryConfineBackupDirectory("{ \"directory\": ", out _, out _, out error));
+        Assert.NotNull(error);
+    }
+
+    [SkippableFact]
+    public void TheTreesBackupConfigurationNeverBacksUpOutsideUser()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string external = area.At("normal-backups");
+        string config = SptBackupJson.Replace("\"./user/profiles/backups\"", JsonString(external));
+        File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"), config);
+        string root = area.At("session");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(SptBackupJson, File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
+        Assert.Equal("'" + external + "' -> './user/profiles/backups'", result.BackupDirectoryRewrite);
+        Assert.Equal(config, File.ReadAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"))); // the installation's file is not touched
+    }
+
+    [SkippableFact]
+    public void ABackupConfigurationBelowUserIsCopiedUnchangedAndARuntimeWithoutOneNeedsNothing()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string root = area.At("session");
+
+        var without = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+        Assert.Null(without.BackupDirectoryRewrite);
+        Assert.False(File.Exists(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
+
+        File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"), SptBackupJson);
+        var kept = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+        Assert.Null(kept.BackupDirectoryRewrite);
+        Assert.Equal(SptBackupJson, File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
+    }
+
+    // ------------------------------------------------------------------ the helper mutex (review 2026-10-23)
+
+    [SkippableFact]
+    public void TheHelperMutexIsGlobalNamedForTheUserAndKeepsASecondHelperOut()
+    {
+        SkipUnlessWindows();
+        // A Local\ object is one per logon session; the runtime root is one per user, so the mutex has to be too.
+        using var identity = WindowsIdentity.GetCurrent();
+        string sid = identity.User!.Value;
+        Assert.Equal("Global\\maschine-ArenaMode.Session." + sid, HelperMutex.Name());
+        Assert.Equal("Global\\maschine-ArenaMode.Session.S-1-5-21-1-2-3-1001", HelperMutex.NameFor("S-1-5-21-1-2-3-1001"));
+
+        string name = HelperMutex.NameFor("S-1-5-21-test-" + Guid.NewGuid().ToString("N"));
+        using var first = HelperMutex.Open(name);
+        Assert.True(first.WaitOne(0));
+        bool secondOwned = true;
+        var other = new Thread(() =>
+        {
+            using var second = HelperMutex.Open(name);
+            secondOwned = second.WaitOne(0);
+            if (secondOwned) second.ReleaseMutex();
+        });
+        other.Start();
+        Assert.True(other.Join(10000));
+        Assert.False(secondOwned, "the same name opened from another thread is the same mutex");
+        first.ReleaseMutex();
     }
 
     // ------------------------------------------------------------------ plans
@@ -3183,13 +3321,19 @@ public sealed class ArenaSessionHelperTests
         string host = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "HelperHost.cs"));
 
         // Program must not bypass the host (and its order of stale acknowledgement, mutex, request, acknowledgement).
-        Assert.Contains("new HelperHost(runner, _log, ArenaSessionContract.HelperMutexName", program, StringComparison.Ordinal);
+        Assert.Contains("new HelperHost(runner, _log, mutexName, HelperConsole.WriteLine)", program, StringComparison.Ordinal);
+        Assert.Contains("mutexName = HelperMutex.Name();", program, StringComparison.Ordinal);
         Assert.Contains(".Execute(command)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("new Mutex", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("HelperMutex.Open", program, StringComparison.Ordinal);
+
+        // The host opens the mutex through HelperMutex (the Global, per-user name with its access list), nowhere else.
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(host, @"HelperMutex\.Open\(_mutexName\)").Count);
+        Assert.DoesNotContain("new Mutex(false, _mutexName", host, StringComparison.Ordinal);
         Assert.DoesNotContain(".Enter(", program, StringComparison.Ordinal);
 
         int stale = host.IndexOf("HelperAcknowledgementFile.DiscardStale", StringComparison.Ordinal);
-        int mutex = host.IndexOf("new Mutex(", StringComparison.Ordinal);
+        int mutex = host.IndexOf("HelperMutex.Open(_mutexName)", StringComparison.Ordinal);
         int load = host.IndexOf("LoadRequest(command, requestPath);", StringComparison.Ordinal);
         int acknowledge = host.IndexOf("Acknowledge(requestPath)", StringComparison.Ordinal);
         int run = host.IndexOf("_runner.Enter(request)", StringComparison.Ordinal);
@@ -3216,10 +3360,10 @@ public sealed class ArenaSessionHelperTests
         // The host runs the watch before it takes the mutex (a leave must be able to take it while the game runs); the
         // watch takes the mutex only after the game exited, and Program leaves the dispatch to the host.
         int watchCommand = host.IndexOf("command.Name == HelperCommand.Watch", StringComparison.Ordinal);
-        int mutex = host.IndexOf("new Mutex(", StringComparison.Ordinal);
+        int mutex = host.IndexOf("HelperMutex.Open(_mutexName)", StringComparison.Ordinal);
         Assert.True(watchCommand > 0 && watchCommand < mutex, "the watch command runs before the host's mutex");
         int wait = host.IndexOf("_runner.WaitForArenaGameExit()", StringComparison.Ordinal);
-        int stopMutex = host.IndexOf("new Mutex(", wait, StringComparison.Ordinal);
+        int stopMutex = host.IndexOf("HelperMutex.Open(_mutexName)", wait, StringComparison.Ordinal);
         int stop = host.IndexOf("_runner.StopAfterGameExit()", StringComparison.Ordinal);
         Assert.True(wait > 0 && wait < stopMutex && stopMutex < stop, "the watch waits, then takes the mutex, then stops");
         Assert.DoesNotContain("Watch", program, StringComparison.Ordinal);
@@ -3233,6 +3377,8 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal(Path.Combine("R", "server.pid"), HelperServerTree.GetPidFilePath("R"));
         Assert.Equal("arena-", HelperLayout.LogFilePatternPrefix);
         Assert.Equal("watch.json", HelperLayout.WatchFileName);
+        Assert.Equal("backup.json", HelperLayout.BackupJsonFileName);
+        Assert.Equal("./user/profiles/backups", HelperLayout.PrivateBackupDirectory);
         Assert.Equal("patchers", HelperLayout.PatchersFolder);
         Assert.Equal(120, HelperLayout.GameExitTimeoutSeconds);
         Assert.Equal(180, HelperLayout.ServerStartTimeoutSeconds);

@@ -12,13 +12,14 @@ public sealed class ArenaGateReportTests
 {
     private const string Default = """{ "schema": 1, "mods": [ { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod" } ] }""";
 
-    private static ArenaGateReport FromEmptyDecision(IEnumerable<string>? neutralised, IEnumerable<string>? ranBefore, bool threeArguments = false)
+    private static ArenaGateReport FromEmptyDecision(IEnumerable<string>? neutralised, IEnumerable<string>? ranBefore,
+        IEnumerable<string>? allowed = null, bool threeArguments = false)
     {
         Assert.True(ArenaWhitelistPolicy.TryLoad(Default, null!, out var policy, out var diagnostics), string.Join(" | ", diagnostics));
         var decision = ArenaWhitelistDecision.Evaluate(policy!, ArenaWhitelistSide.Client, Array.Empty<ArenaSessionUnit>());
         return threeArguments
             ? ArenaGateReport.FromDecision(policy!, decision, neutralised!)
-            : ArenaGateReport.FromDecision(policy!, decision, neutralised!, ranBefore!);
+            : ArenaGateReport.FromDecision(policy!, decision, neutralised!, ranBefore!, allowed!);
     }
 
     [Fact]
@@ -38,7 +39,7 @@ public sealed class ArenaGateReportTests
         Assert.True(ArenaMiniJson.TryParse(json, out var root, out var error), error);
         var obj = Assert.IsType<Dictionary<string, object>>(root);
         Assert.Equal(
-            new[] { "schema", "active", "error", "policyHash", "unlistedAllowed", "allowed", "excluded", "warnings", "patchersNeutralised", "patchersRanBeforeGate" },
+            new[] { "schema", "active", "error", "policyHash", "unlistedAllowed", "allowed", "excluded", "warnings", "patchersNeutralised", "patchersRanBeforeGate", "patchersAllowed" },
             obj.Keys.ToArray());
         var ranBefore = Assert.IsType<List<object>>(obj["patchersRanBeforeGate"]);
         Assert.Equal(new object[] { "Early.dll" }, ranBefore.ToArray());
@@ -109,6 +110,37 @@ public sealed class ArenaGateReportTests
 
         // The argument is optional: a caller that does not know any leaves the list empty.
         Assert.Empty(FromEmptyDecision(new[] { "Early.dll" }, null, threeArguments: true).PatchersRanBeforeGate);
+    }
+
+    [Fact]
+    public void ThePatchersTheGateLetRunTravelThroughTheJsonAndAnOlderReportReadsAsNone()
+    {
+        // Review 2026-10-23: the client judges the patchers the gate let run with the policy as it reads now, so the
+        // report has to say which they were (patchersAllowed), in every report, copied like the other lists.
+        Assert.Empty(new ArenaGateReport().PatchersAllowed);
+        Assert.Empty(ArenaGateReport.Inactive("boom", null!).PatchersAllowed);
+
+        var allowed = new List<string> { "spt-prepatch.dll", "WTT-ContentBackportPatcher.dll" };
+        var report = FromEmptyDecision(new[] { "Late.dll" }, Array.Empty<string>(), allowed);
+        allowed.Clear();
+        Assert.Equal(new[] { "spt-prepatch.dll", "WTT-ContentBackportPatcher.dll" }, report.PatchersAllowed.ToArray());
+
+        string json = report.ToJson();
+        Assert.EndsWith("\"patchersAllowed\":[\"spt-prepatch.dll\",\"WTT-ContentBackportPatcher.dll\"]}", json);
+        Assert.True(ArenaGateReport.TryParse(json, out var parsed, out var error), error);
+        Assert.Equal(new[] { "spt-prepatch.dll", "WTT-ContentBackportPatcher.dll" }, parsed!.PatchersAllowed.ToArray());
+        Assert.Equal(json, parsed.ToJson());
+
+        // Every report carries the member, an empty array when the gate let nothing run; null is written as the empty array.
+        Assert.Contains("\"patchersAllowed\":[]", FromEmptyDecision(new[] { "Late.dll" }, null, threeArguments: true).ToJson());
+        Assert.Contains("\"patchersAllowed\":[]", ArenaGateReport.Inactive("boom", "feedfacecafebeef").ToJson());
+        Assert.Contains("\"patchersAllowed\":[]", new ArenaGateReport { PatchersAllowed = null! }.ToJson());
+
+        // A report of an older gate has no member: nothing to judge again. Only file names are read.
+        Assert.True(ArenaGateReport.TryParse("""{"schema":1,"active":true,"patchersNeutralised":["a.dll"]}""", out var older, out error), error);
+        Assert.Empty(older!.PatchersAllowed);
+        Assert.True(ArenaGateReport.TryParse("""{"schema":1,"active":true,"patchersAllowed":["x.dll",3,null,"y.dll"]}""", out var tolerant, out error), error);
+        Assert.Equal(new[] { "x.dll", "y.dll" }, tolerant!.PatchersAllowed.ToArray());
     }
 
     [Fact]

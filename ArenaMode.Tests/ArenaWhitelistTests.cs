@@ -3185,7 +3185,7 @@ public sealed class ArenaWhitelistTests
         var obj = Assert.IsType<Dictionary<string, object>>(root);
 
         Assert.Equal(
-            new[] { "schema", "active", "error", "policyHash", "unlistedAllowed", "allowed", "excluded", "warnings", "patchersNeutralised", "patchersRanBeforeGate" },
+            new[] { "schema", "active", "error", "policyHash", "unlistedAllowed", "allowed", "excluded", "warnings", "patchersNeutralised", "patchersRanBeforeGate", "patchersAllowed" },
             obj.Keys.ToArray());
         Assert.Equal(1d, obj["schema"]);
         Assert.Equal(true, obj["active"]);
@@ -3200,6 +3200,7 @@ public sealed class ArenaWhitelistTests
         Assert.IsType<List<object>>(obj["warnings"]);
         Assert.IsType<List<object>>(obj["patchersNeutralised"]);
         Assert.IsType<List<object>>(obj["patchersRanBeforeGate"]);
+        Assert.IsType<List<object>>(obj["patchersAllowed"]);
     }
 
     [Fact]
@@ -3378,7 +3379,7 @@ public sealed class ArenaWhitelistTests
         Assert.Equal("maschine-ArenaMode.Gate.dll", ArenaSessionContract.GateFileName);
         Assert.Equal("arena-whitelist.json", ArenaSessionContract.DefaultPolicyFileName);
         Assert.Equal("com.maschine.ArenaMode.whitelist.json", ArenaSessionContract.UserPolicyFileName);
-        Assert.Equal("Local\\maschine-ArenaMode.Session", ArenaSessionContract.HelperMutexName);
+        Assert.Equal("Global\\maschine-ArenaMode.Session.", ArenaSessionContract.HelperMutexNamePrefix);
         Assert.Equal("enter", ArenaSessionContract.DirectionEnter);
         Assert.Equal("leave", ArenaSessionContract.DirectionLeave);
         Assert.Equal("com.maschine.ArenaMode", ArenaSessionContract.ArenaPluginGuid);

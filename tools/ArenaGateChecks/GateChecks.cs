@@ -58,6 +58,7 @@ public static class GateChecks
 
     /// <summary>The files the report has to list as patchersRanBeforeGate in the running scenario (see ExpectedRanBeforeGate).</summary>
     private static List<string> _expectedRanBeforeGate = new List<string>();
+    private static List<string> _expectedAllowedPatchers = new List<string>();
 
     // ------------------------------------------------------------------ entry point
 
@@ -393,6 +394,56 @@ public static class GateChecks
         }
 
         return files;
+    }
+
+    /// <summary>
+    /// The file names the report has to list as patchersAllowed (review 2026-10-23): the dummy patchers the world's policy
+    /// allows, which therefore ran, wherever they sort. A policy the gate could not load lets nothing run on purpose, so
+    /// nothing is listed there.
+    /// </summary>
+    private static List<string> ExpectedAllowedPatchers(WorldKind kind, List<PatcherSpec> patchers)
+    {
+        var files = new List<string>();
+        if (kind == WorldKind.Inert || kind == WorldKind.BadDefault || kind == WorldKind.MissingDefault) return files;
+        foreach (PatcherSpec p in patchers)
+        {
+            string cause;
+            if (PatcherAllowedInWorld(kind, p, out cause)) files.Add(Path.GetFileName(p.RelativePath));
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// The published JSON carries "patchersAllowed" as an array of exactly the expected file names (the patchers the gate
+    /// let run, which the client judges again with a later policy), and none of them is a neutralised patcher. Read from
+    /// the raw text like patchersRanBeforeGate: the member is present in every report, empty when nothing was let run.
+    /// </summary>
+    private static void CheckAllowedPatchersJson(string when, string json, List<string> expected)
+    {
+        object root = null;
+        string error = null;
+        Dictionary<string, object> obj = json != null && ArenaMiniJson.TryParse(json, out root, out error) ? ArenaMiniJson.AsObject(root) : null;
+        object member = null;
+        List<object> array = obj != null && obj.TryGetValue("patchersAllowed", out member) ? ArenaMiniJson.AsArray(member) : null;
+        Check(array != null, "the report " + when + " has the array member patchersAllowed (also when it is empty)",
+            json == null ? "no report" : "json: " + json);
+        if (array == null) return;
+
+        Check(array.All(x => x is string), "every entry of patchersAllowed " + when + " is a file name");
+        SameSet("the report " + when + " lists exactly the allowed patchers as the patchers the gate let run", expected, array.OfType<string>());
+        ArenaGateReport parsed;
+        string parseError;
+        if (ArenaGateReport.TryParse(json, out parsed, out parseError))
+        {
+            Check(!parsed.PatchersAllowed.Any(f => parsed.PatchersNeutralised.Contains(f)),
+                "no patcher the gate let run " + when + " is also listed as neutralised",
+                "allowed: " + string.Join(", ", parsed.PatchersAllowed.ToArray()) + " / neutralised: " + string.Join(", ", parsed.PatchersNeutralised.ToArray()));
+        }
+        else
+        {
+            Bad("the report " + when + " parses", parseError);
+        }
     }
 
     /// <summary>
@@ -970,6 +1021,8 @@ public static class GateChecks
         Check(gateIndex >= 0, "the gate was found as a patcher", "patcher order: " + string.Join(",", sortedAssemblies.ToArray()));
         _expectedRanBeforeGate = ExpectedRanBeforeGate(kind, patchers, sortedAssemblies, gateIndex);
         if (!inert) CheckRanBeforeGateJson("after the preloader phase", rawJson, _expectedRanBeforeGate);
+        _expectedAllowedPatchers = ExpectedAllowedPatchers(kind, patchers);
+        if (!inert) CheckAllowedPatchersJson("after the preloader phase", rawJson, _expectedAllowedPatchers);
 
         CheckBuiltIn(builtIn);
         List<string> violations = UnityViolations();
@@ -1306,6 +1359,7 @@ public static class GateChecks
 
         // The patchers whose initializer ran before the gate are in the final report as well, and the summary line counts them.
         CheckRanBeforeGateJson("after the plugin scan", coldJson, _expectedRanBeforeGate);
+        CheckAllowedPatchersJson("after the plugin scan", coldJson, _expectedAllowedPatchers);
 
         // The mode itself is in the report and in its JSON: true exactly when the user file made the policy a blacklist.
         bool blacklistMode = kind == WorldKind.UserBlacklist;
@@ -1458,6 +1512,7 @@ public static class GateChecks
         // Their initializers ran before the gate and that stays true: the inactive report keeps saying so.
         Check(_expectedRanBeforeGate.Count > 0, "the postfix-failure world has a denied patcher that sorts before the gate");
         CheckRanBeforeGateJson("after the failure", json, _expectedRanBeforeGate);
+        CheckAllowedPatchersJson("after the failure", json, _expectedAllowedPatchers);
 
         // Phase 3: a failed gate stays failed and filters nothing from then on.
         Scan again = ScanPlugins(g.Plugins, "chainloader");
@@ -1597,6 +1652,7 @@ public static class GateChecks
         List<string> ranEarly = ExpectedRanBeforeGate(WorldKind.Full, patchers, sorted, gateIndex);
         ranEarly.Add(earlyDynamic); // the one with an initializer that sorts before the gate; the others have none, or sort after it
         CheckRanBeforeGateJson("with patchers the gate cannot place", json, ranEarly);
+        CheckAllowedPatchersJson("with patchers the gate cannot place", json, ExpectedAllowedPatchers(WorldKind.Full, patchers));
 
         // What actually ran: the early ones their initializer (nothing can be done about that), the late ones nothing at all.
         Check(Calls.Contains("init:dyn-early"), "the file-less patcher dyn-early sorts before the gate, so its initializer ran");
@@ -1667,6 +1723,7 @@ public static class GateChecks
         List<string> expected = denied.Concat(new[] { wrapper }).ToList();
         SameSet("every patcher that is not allowed is neutralised", expected, report.PatchersNeutralised);
         CheckRanBeforeGateJson("with an unknown gate position", json, expected);
+        CheckAllowedPatchersJson("with an unknown gate position", json, ExpectedAllowedPatchers(WorldKind.Full, patchers));
         Check(report.Warnings.Any(w => w.StartsWith("the position of the gate in the preloader's patcher list is unknown", StringComparison.Ordinal)
                 && w.Contains("reported as having run before the gate")),
             "one warning says that the position of the gate is unknown", "warnings: " + string.Join(" | ", report.Warnings.ToArray()));
@@ -1795,6 +1852,8 @@ public static class GateChecks
         // Every real patcher is allowed, so none is neutralised and none counts as having run before the gate, wherever it sorts.
         Check(report.PatchersNeutralised.Count == 0, "no patcher of the installed game is neutralised", string.Join(", ", report.PatchersNeutralised.ToArray()));
         CheckRanBeforeGateJson("on the installed game's patchers", json, new List<string>());
+        CheckAllowedPatchersJson("on the installed game's patchers", json,
+            new List<string> { "FixPluginTypesSerialization.dll", "maschine-LogTools.dll", "spt-prepatch.dll", "WTT-ContentBackportPatcher.dll" });
 
         // The oracle: the units as the baseline process read them, decided by the shared code.
         var units = new List<ArenaSessionUnit>();

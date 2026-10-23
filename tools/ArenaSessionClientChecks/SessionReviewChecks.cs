@@ -10,7 +10,9 @@ using UnityEngine;
 //     policy hash is not the gate's, and when a patcher ran before the gate (spec section 7);
 //   * preloader patchers are units of the normal-session decision;
 //   * deny wins over hard dependencies, so a dependant of a denied mod is "Blocked for Arena";
-//   * the game quits only after the helper acknowledged the request (spec sections 6 and 7).
+//   * the game quits only after the helper acknowledged the request (spec sections 6 and 7);
+//   * (review 2026-10-23) a preloader patcher the gate let run (patchersAllowed) that the current policy excludes
+//     refuses Arena in the session (spec section 7, check 4).
 // Everything is driven through the production sources; the Unity coroutine is run by hand (StandIns.cs).
 internal static partial class Program
 {
@@ -592,5 +594,101 @@ internal static partial class Program
             finished.WaitForExit();
             Require(_realHelperHasExited(finishedPid), "A process that has finished is gone");
         }
+    }
+
+    // ------------------------------------------------------------------ patchers the gate let run (review 2026-10-23)
+
+    private static void CheckArenaSessionPatchersAllowed()
+    {
+        // The gate report lists the preloader patchers it let run (patchersAllowed). They ran in this process, so a
+        // patcher the policy allowed at the start and denies now refuses Arena like a loaded plugin would: the plugin and
+        // server-mod comparisons cannot see a patcher, and before this check the session looked clean to the new policy.
+        const string patcher = "WTT-ContentBackportPatcher.dll";
+        const string refusal = "This game ran the preloader patcher WTT-ContentBackportPatcher.dll, which the current policy excludes: "
+            + "the policy changed during the switch. " + ReturnHint;
+        string denyPatcher = "{\"schema\":1,\"deny\":[\"" + patcher + "\"]}";
+        var policy = LoadRepoPolicy();
+        Require(policy.IsAllowedPatcher(patcher), "The shipped policy allows the fixture patcher");
+
+        ResetWorld();
+        string report = ReportWith(",\"patchersRanBeforeGate\":[],\"patchersAllowed\":[\"spt-prepatch.dll\",\"" + patcher + "\"]");
+        ArenaSession(report);
+        Ping(true, NormalServerMods());
+        Require(Reason() == null, "An Arena session whose patchers the policy still allows admits");
+
+        WriteUserPolicy(denyPatcher);
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Equal(Reason(), refusal, "A patcher the gate let run and the current policy denies refuses Arena in the session");
+        Require(RefusedWarnings(patcher) == 1, "The patcher refusal is logged once, as a Warning");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        _ = Reason();
+        Require(RefusedWarnings(patcher) == 1, "A screen with the same policy does not log the patcher refusal again");
+
+        // The refusal does not wait for the ping: the patcher ran, whatever the server says.
+        ResetWorld();
+        WriteUserPolicy(denyPatcher);
+        ArenaSession(report);
+        Equal(Reason(), refusal, "The patcher refusal does not wait for the server's ping");
+
+        // Several files: once each, sorted, in the plural.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"" + patcher + "\",\"maschine-LogTools.dll\"]}");
+        ArenaSession(ReportWith(",\"patchersAllowed\":[\"" + patcher + "\",\"maschine-LogTools.dll\",\"spt-prepatch.dll\",\"" + patcher + "\"]"));
+        Ping(true, NormalServerMods());
+        Equal(Reason(), "This game ran the preloader patchers maschine-LogTools.dll, WTT-ContentBackportPatcher.dll, which the current policy excludes: "
+            + "the policy changed during the switch. " + ReturnHint, "Several denied patchers are listed once each, sorted, in the plural");
+
+        // A patcher the gate neutralised (other.dll of the report) is not in the list: a deny of it changes nothing, and an
+        // allow of it is a widening, which refuses nothing either.
+        ResetWorld();
+        ArenaSession(ReportWith(",\"patchersAllowed\":[\"spt-prepatch.dll\"]"));
+        Ping(true, NormalServerMods());
+        Require(Reason() == null, "The world with a neutralised patcher admits");
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"other.dll\"]}");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() == null, "A deny of a patcher the gate neutralised refuses nothing");
+        WriteUserPolicy("{\"schema\":1,\"allow\":[{\"patcher\":\"other.dll\"}]}");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() == null, "An allow of a patcher the gate neutralised (a widening) refuses nothing");
+
+        // Blacklist mode: an unlisted patcher the gate let run is allowed by the override, not only by a listing; a user deny
+        // still refuses it.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\"}");
+        ArenaSession(ReportWith(",\"patchersAllowed\":[\"Unlisted.Patcher.dll\"]"));
+        Ping(true, NormalServerMods());
+        Require(Reason() == null, "In blacklist mode an unlisted patcher the gate let run refuses nothing");
+        WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"Unlisted.Patcher.dll\"]}");
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() != null && Reason().StartsWith("This game ran the preloader patcher Unlisted.Patcher.dll, which the current policy excludes", StringComparison.Ordinal),
+            "In blacklist mode a user deny of a patcher the gate let run refuses");
+
+        // A report of an older gate has no member: nothing to judge again, the deny alone refuses nothing here.
+        ResetWorld();
+        ArenaSession(ReportWith(",\"patchersRanBeforeGate\":[]"));
+        Ping(true, NormalServerMods());
+        WriteUserPolicy(denyPatcher);
+        ArenaWhitelistAdmission.PrepareForScreen();
+        Require(Reason() == null, "A report without patchersAllowed (an older gate) has nothing to judge");
+
+        // Order: a patcher that ran before the gate first, then the patcher the policy excludes now, then a loaded plugin.
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"" + patcher + "\",\"me.sol.sain\"]}");
+        ArenaSession(ReportWith(",\"patchersRanBeforeGate\":[\"Early.Patcher.dll\"],\"patchersAllowed\":[\"" + patcher + "\"]"));
+        Ping(true, NormalServerMods());
+        Require(Reason().StartsWith("The preloader patcher Early.Patcher.dll ran before the Arena gate", StringComparison.Ordinal),
+            "A patcher that ran before the gate is refused ahead of a patcher the policy excludes now");
+        ResetWorld();
+        WriteUserPolicy("{\"schema\":1,\"deny\":[\"" + patcher + "\",\"me.sol.sain\"]}");
+        ArenaSession(ReportWith(",\"patchersAllowed\":[\"" + patcher + "\"]"));
+        Ping(true, NormalServerMods());
+        Equal(Reason(), refusal, "A patcher the policy excludes now is refused ahead of a loaded plugin it excludes");
+
+        // Control: the same deny names the same file in a normal session, as before (the patcher is a unit there).
+        ResetWorld();
+        WriteUserPolicy(denyPatcher);
+        Ping(false, NormalServerMods());
+        Require(Reason() != null && Reason().Contains(patcher) && Reason().Contains("Blocked for Arena"),
+            "Control: the same deny names the patcher in a normal session");
     }
 }

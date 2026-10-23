@@ -324,6 +324,21 @@ internal static class ArenaWhitelistAdmission
             return;
         }
 
+        // The preloader patchers the gate let run are judged with the policy as it reads now as well (review
+        // 2026-10-23): they ran in this process, and a patcher the policy allowed when the game started and excludes
+        // now (the user file changed during the restart or while the session runs) is one neither the plugin nor the
+        // server-mod comparison below can see, so the session looked clean to the policy of the moment. The report
+        // lists only the patchers the gate let run: one it neutralised cannot refuse here whatever the policy says now,
+        // and one the policy allows now but did not then is a widening, which refuses nothing (like everywhere else).
+        // Needs no ping; a report without the member (an older gate) has nothing to judge.
+        var ranExcluded = PatchersNowExcluded(policy, ArenaSessionMode.GateReport.PatchersAllowed);
+        if (ranExcluded.Count > 0)
+        {
+            outcome.Reason = PatchersNowExcludedRefusal(ranExcluded);
+            LogOnce("patcherexcluded:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);
+            return;
+        }
+
         // The plugins this game loaded are judged with the policy as it reads now, like the server's mods below. The
         // gate removed what the policy of the moment it started excluded; if the files changed during the restart
         // (Syncthing mirrors the user file), a loaded plugin may be one the current policy excludes, and nothing else
@@ -407,6 +422,36 @@ internal static class ArenaWhitelistAdmission
                 + "Allow them in the policy file or remove them, then start the Arena session again."
             : "The preloader patcher " + names + " ran before the Arena gate could stop it. "
                 + "Allow it in the policy file or remove it, then start the Arena session again.";
+    }
+
+    /// <summary>
+    /// The files of <paramref name="ranAllowed"/> (the gate report's <c>patchersAllowed</c>: the preloader patchers the
+    /// gate let run) that <paramref name="policy"/>, the policy as it reads now, does not allow, once each; empty for
+    /// a report without the member (an older gate). Judged by file name with
+    /// <see cref="ArenaWhitelistPolicy.IsAllowedPatcher"/>, exactly as the gate judged them.
+    /// </summary>
+    private static List<string> PatchersNowExcluded(ArenaWhitelistPolicy policy, List<string> ranAllowed)
+    {
+        var excluded = new List<string>();
+        if (ranAllowed == null) return excluded;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string file in ranAllowed)
+        {
+            if (string.IsNullOrEmpty(file) || policy.IsAllowedPatcher(file)) continue;
+            if (seen.Add(file)) excluded.Add(file);
+        }
+
+        return excluded;
+    }
+
+    /// <summary>
+    /// The refusal for preloader patchers the gate let run that the current policy excludes (check 4 of section 7):
+    /// the wording of the loaded-plugin refusal, in the singular for one file (names sorted, once each, capped).
+    /// </summary>
+    private static string PatchersNowExcludedRefusal(List<string> files)
+    {
+        return (files.Count > 1 ? "This game ran the preloader patchers " : "This game ran the preloader patcher ")
+            + JoinLimited(files, MaxNamesListed) + ", which the current policy excludes: " + PolicyChangedText;
     }
 
     private static void ComputeNormalSession(Outcome outcome, ArenaWhitelistPolicy policy)

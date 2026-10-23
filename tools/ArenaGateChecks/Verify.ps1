@@ -247,7 +247,7 @@ $mutants = @(
     @{ Name = 'patchers-not-neutralised'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'plugin.TargetDLLs = NoTargets;'; Replace = 'plugin.TargetDLLs = targets;' }) },
     @{ Name = 'blacklist-patchers-neutralised'; Scenarios = @('user-blacklist'); Edits = @(
-        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file)) continue;'; Replace = 'if (policy.FindPatcher(file) != null) continue;' }) },
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file))'; Replace = 'if (policy.FindPatcher(file) != null)' }) },
     @{ Name = 'entry-point-patcher-neutralised'; Scenarios = @('full'); Edits = @(
         @{ File = 'ArenaGatePatchers.cs'; Find = 'if (origin != null && (origin == self || origin == preloader || origin == core)) continue;'; Replace = 'if (origin != null && origin == self) continue;' }) },
     @{ Name = 'every-directory-filtered'; Scenarios = @('full'); Edits = @(
@@ -290,9 +290,9 @@ $mutants = @(
     @{ Name = 'ran-before-gate-lists-every-neutralised'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
         @{ File = 'ArenaGateRuntime.cs'; Find = 'RanBeforeGate.AddRange(patchers.RanBeforeGate);'; Replace = 'RanBeforeGate.AddRange(patchers.Neutralised);' }) },
     @{ Name = 'ran-before-gate-lists-allowed-early-patchers'; Scenarios = @('full', 'no-early-patcher'); Edits = @(
-        @{ File = 'ArenaGatePatchers.cs'; Find = 'if (policy.IsAllowedPatcher(file)) continue;'; Replace = 'if (policy.IsAllowedPatcher(file)) { if (plugin.Initializer != null && selfIndex >= 0 && i < selfIndex) AddOnce(outcome.RanBeforeGate, file); continue; }' }) },
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'AddOnce(outcome.Allowed, file);'; Replace = 'AddOnce(outcome.Allowed, file); if (plugin.Initializer != null && selfIndex >= 0 && i < selfIndex) AddOnce(outcome.RanBeforeGate, file);' }) },
     @{ Name = 'ran-before-gate-missing-in-final-report'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
-        @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate);'; Replace = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised);' }) },
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate, AllowedPatchers);'; Replace = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, null, AllowedPatchers);' }) },
     @{ Name = 'ran-before-gate-missing-in-inactive-report'; Scenarios = @('full', 'no-core-module', 'postfix-failure'); Edits = @(
         @{ File = 'ArenaGateRuntime.cs'; Find = 'report.PatchersRanBeforeGate.AddRange(RanBeforeGate);'; Replace = '' }) },
     @{ Name = 'ran-before-gate-not-published'; Scenarios = @('full', 'postfix-failure'); SharedEdits = @(
@@ -305,6 +305,18 @@ $mutants = @(
         @{ File = 'ArenaSessionContract.cs'; Find = 'if (total > MaxBytes)'; Replace = 'if (false)' }) },
     @{ Name = 'user-file-read-privately'; Scenarios = @('user-oversize'); Edits = @(
         @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaPolicyFileState userState = ArenaPolicyFiles.TryRead(userPath, out userJson, out detail);'; Replace = 'ArenaPolicyFileState userState = ArenaPolicyFileState.Read; userJson = File.Exists(userPath) ? File.ReadAllText(userPath) : null;' }) },
+    # The patchers the gate let run (review 2026-10-23): listed as patchersAllowed, exactly those, in every report, so that the
+    # client can judge them again with the policy of a later moment.
+    @{ Name = 'allowed-patchers-not-collected'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGatePatchers.cs'; Find = 'AddOnce(outcome.Allowed, file);'; Replace = '' }) },
+    @{ Name = 'allowed-patchers-list-the-neutralised'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'AllowedPatchers.AddRange(patchers.Allowed);'; Replace = 'AllowedPatchers.AddRange(patchers.Neutralised);' }) },
+    @{ Name = 'allowed-patchers-missing-in-final-report'; Scenarios = @('full', 'user-file', 'user-blacklist', 'default-deny'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate, AllowedPatchers);'; Replace = 'ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate);' }) },
+    @{ Name = 'allowed-patchers-missing-in-inactive-report'; Scenarios = @('full', 'no-core-module', 'postfix-failure'); Edits = @(
+        @{ File = 'ArenaGateRuntime.cs'; Find = 'report.PatchersAllowed.AddRange(AllowedPatchers);'; Replace = '' }) },
+    @{ Name = 'allowed-patchers-not-published'; Scenarios = @('full', 'postfix-failure'); SharedEdits = @(
+        @{ File = 'ArenaSessionContract.cs'; Find = 'root["patchersAllowed"] = PatchersAllowed == null ? new List<string>() : PatchersAllowed;'; Replace = 'root["patchersAllowed"] = new List<string>();' }) },
     # Fail closed for patchers the gate cannot place: one without a file is switched off and reported, and when the gate's own
     # position in the patcher list is unknown every neutralised patcher with an initializer counts as one that ran early.
     @{ Name = 'unidentified-patcher-left-active'; Scenarios = @('unidentified-patcher'); Edits = @(

@@ -850,6 +850,13 @@ namespace ArenaMode.SessionHelper
         /// for them.
         /// </summary>
         public List<string> LogPathRewrites { get; private set; }
+
+        /// <summary>
+        /// The <c>directory</c> of the runtime's <c>backup.json</c> when it was not a relative path below <c>user</c> and
+        /// was replaced by <see cref="HelperLayout.PrivateBackupDirectory"/> in the tree's copy (<c>'old' -> 'new'</c>);
+        /// null when the file is absent or needed no change. The runner logs one warning for it.
+        /// </summary>
+        public string BackupDirectoryRewrite { get; set; }
     }
 
     /// <summary>Builds the disposable server tree <c>&lt;runtime root&gt;\server</c> of an Arena session.</summary>
@@ -981,6 +988,28 @@ namespace ArenaMode.SessionHelper
             }
 
             box.WriteAllText(httpJson, patchedHttp);
+
+            // backup.json (review 2026-10-23): SPT's profile backup writes to its `directory`, resolved against the working
+            // directory, deletes the oldest folders there and restores from the newest. A directory outside user (an
+            // absolute one, one that climbs out of the tree, one into the SPT_Data junctions) is replaced by SPT's default
+            // below user\profiles in the tree's copy, so that the arena server's backups of the disposable profile never
+            // land in the normal server's pool. A runtime without the file keeps SPT's default, which is that folder.
+            string backupJson = Path.Combine(Path.Combine(dataTarget, HelperLayout.ConfigsFolder), HelperLayout.BackupJsonFileName);
+            if (File.Exists(backupJson))
+            {
+                string patchedBackup;
+                string backupRewrite;
+                if (!HelperJsonText.TryConfineBackupDirectory(HelperFileSystem.ReadAllTextShared(backupJson), out patchedBackup, out backupRewrite, out error))
+                {
+                    throw new HelperException(HelperLayout.BackupJsonFileName + ": " + error);
+                }
+
+                if (backupRewrite != null)
+                {
+                    box.WriteAllText(backupJson, patchedBackup);
+                    result.BackupDirectoryRewrite = backupRewrite;
+                }
+            }
 
             // user\mods: a real copy of each allowed server mod (not a junction), so that what a mod
             // writes beside its own files, found through its assembly location, the working directory
