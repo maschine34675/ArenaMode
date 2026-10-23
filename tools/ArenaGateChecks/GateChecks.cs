@@ -398,8 +398,8 @@ public static class GateChecks
 
     /// <summary>
     /// The file names the report has to list as patchersAllowed (review 2026-10-23): the dummy patchers the world's policy
-    /// allows, which therefore ran, wherever they sort. A policy the gate could not load lets nothing run on purpose, so
-    /// nothing is listed there.
+    /// allows, which therefore ran, wherever they sort. A policy the gate could not load is not judged: every patcher runs
+    /// untouched and the gate lists none (the report is inactive).
     /// </summary>
     private static List<string> ExpectedAllowedPatchers(WorldKind kind, List<PatcherSpec> patchers)
     {

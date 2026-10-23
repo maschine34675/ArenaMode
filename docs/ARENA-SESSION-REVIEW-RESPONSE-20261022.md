@@ -175,8 +175,8 @@ still held after the second pass. Three changes, each with its entry in spec sec
 
 - **Client (spec sections 2, 3, 7, 10).** An Arena session whose policy cannot be loaded refuses (`Return to the normal
   session.`): before, it judged the server's mods only if the policy had loaded and otherwise admitted on the gate's word. The
-  plugins the game loaded are judged with the policy as it reads now (check 4, `This game loaded <names>, which the current
-  policy excludes: the policy changed during the switch.`); checks 2, 3 and 4 need no ping and come first. Section 7 no longer
+  plugins the game loaded are judged with the policy as it reads now (check 4 then, check 5 since 2026-10-23, `This game loaded <names>, which the current
+  policy excludes: the policy changed during the switch.`); checks 2, 3 and 4 (2 to 5 since 2026-10-23) need no ping and come first. Section 7 no longer
   says that a missing default list makes the whitelist stand aside in a normal session (it never fails open).
 - **Default file and policy files (spec sections 2, 3, 9).** A `mods` entry of the shipped default file that names a platform or
   Arena unit, or any `com.fika.` GUID, is skipped with a `default whitelist:` diagnostic; `Write-ArenaAssets.ps1` and

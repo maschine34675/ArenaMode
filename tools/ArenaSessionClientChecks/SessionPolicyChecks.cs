@@ -4,7 +4,8 @@ using ArenaMode.Shared.Session;
 using BepInEx;
 using BepInEx.Bootstrap;
 
-// The third pass over the Arena session's own checks (docs/ARENA-SESSION-20261021.md, section 7, checks 2 and 4;
+// The third pass over the Arena session's own checks (docs/ARENA-SESSION-20261021.md, section 7, checks 2 and 5, the
+// latter check 4 before the review of 2026-10-23 inserted the patchersAllowed check;
 // section 11, last entry). The gate-policy review found that an Arena session admitted when the policy could not be
 // loaded (every comparison with the policy was skipped), and the same trust gap sits in the plugin list: the gate
 // filtered with the policy files of the moment the game started, but nothing compared the plugins that are running

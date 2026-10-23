@@ -37,11 +37,11 @@ internal static partial class Program
             CheckPrepareForScreen();
             CheckArenaSessionAdmission();
             CheckArenaSessionReview();
-            CheckArenaSessionPatchersAllowed();
             CheckArenaSessionPolicyAvailable();
             CheckArenaSessionLoadedPlugins();
             CheckPatcherUnits();
             CheckDenyWinsInTheRefusal();
+            CheckArenaSessionPatchersAllowed();
             CheckProfileAndRequestShape();
             CheckTwoClickGate();
             CheckRequestFailures();

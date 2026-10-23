@@ -147,10 +147,11 @@ namespace ArenaMode.SessionHelper
                         + " in the tree's copy, so that the arena server does not log into the real runtime: " + string.Join("; ", tree.LogPathRewrites.ToArray()));
                 }
 
-                if (tree.BackupDirectoryRewrite != null)
+                if (tree.BackupDirectoryRewrites.Count > 0)
                 {
-                    _log.Warn("backup.json: the backup directory did not lie below user and was moved in the tree's copy, so that the arena server's"
-                        + " profile backups stay out of the normal server's backup pool (its cleanup deletes there): " + tree.BackupDirectoryRewrite);
+                    _log.Warn("backup config: " + tree.BackupDirectoryRewrites.Count + " backup directory value(s) did not lie below user (or were missing) and were"
+                        + " set to the private folder in the tree's copy, so that the arena server's profile backups stay out of the normal server's backup pool"
+                        + " (its cleanup deletes there): " + string.Join("; ", tree.BackupDirectoryRewrites.ToArray()));
                 }
 
                 if (tree.UnsharedFolders.Count > 0)

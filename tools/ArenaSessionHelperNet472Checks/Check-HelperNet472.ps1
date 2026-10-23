@@ -19,8 +19,9 @@ $lookUp = $type.GetMethod('GetListenerProcessIds', $flags, $null, [Type[]]@([int
 if (-not $canConnect -or -not $lookUp) { Write-Output 'RESULT: FAIL (HelperProcesses.CanConnect / GetListenerProcessIds not found)'; exit 2 }
 $mutexType = $assembly.GetType('ArenaMode.SessionHelper.HelperMutex', $true)
 $mutexName = $mutexType.GetMethod('Name', $flags, $null, [Type[]]@(), $null)
+$mutexNameFor = $mutexType.GetMethod('NameFor', $flags, $null, [Type[]]@([string]), $null)
 $mutexOpen = $mutexType.GetMethod('Open', $flags, $null, [Type[]]@([string]), $null)
-if (-not $mutexName -or -not $mutexOpen) { Write-Output 'RESULT: FAIL (HelperMutex.Name / Open not found)'; exit 2 }
+if (-not $mutexName -or -not $mutexNameFor -or -not $mutexOpen) { Write-Output 'RESULT: FAIL (HelperMutex.Name / NameFor / Open not found)'; exit 2 }
 
 $failed = 0
 function Report([string]$Name, [bool]$Ok, [string]$Detail) {
@@ -81,13 +82,16 @@ try {
     Report 'dual-stack-wildcard-owner' ($result[0] -and (Owns $port ([Net.IPAddress]$result[1]))) "connected=$($result[0]) reached=$($result[1]), listener of [::] not found for an IPv4 connection"
 } finally { $dual.Stop() }
 
-# The helper mutex (review 2026-10-23): Global and named for the user, so that every logon session of the user shares it,
-# with an access list of exactly that user and SYSTEM (the default list of a Global object names the logon session and the
-# administrators instead, and another logon session of the same user could not open it).
+# The helper mutex (review 2026-10-23): Global and named for the user, so that every Windows session of the user shares it,
+# with an access list of exactly that user and SYSTEM (the default list comes from the creating token; for an elevated
+# administrator it names SYSTEM, the Administrators and the creating logon session, not the user). The list is read from a
+# mutex this run creates itself, under a fresh name: an object of the real name that already exists (a helper or a watch of
+# this user) would be opened as it is, with whatever list it has.
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $name = [string]$mutexName.Invoke($null, @())
 Report 'mutex-name-global-for-user' ($name -eq ('Global\maschine-ArenaMode.Session.' + $sid)) "name=$name sid=$sid"
-$mutex = $mutexOpen.Invoke($null, [object[]]@($name))
+$fresh = [string]$mutexNameFor.Invoke($null, [object[]]@('S-1-5-21-check-' + [guid]::NewGuid().ToString('N')))
+$mutex = $mutexOpen.Invoke($null, [object[]]@($fresh))
 try {
     $rules = @($mutex.GetAccessControl().GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier]) |
         ForEach-Object { '{0}:{1}:{2}' -f $_.IdentityReference.Value, $_.AccessControlType, $_.MutexRights } | Sort-Object)

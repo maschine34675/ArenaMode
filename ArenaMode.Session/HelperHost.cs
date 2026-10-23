@@ -266,13 +266,16 @@ namespace ArenaMode.SessionHelper
 
     /// <summary>
     /// The helper's mutex: <see cref="ArenaSessionContract.HelperMutexNamePrefix"/> followed by the SID of the user the
-    /// helper runs as, one for every logon session of that user, because the runtime root it guards is one per user
-    /// (review 2026-10-23: a <c>Local\</c> mutex is one per logon session, so a console and a Remote Desktop session of
-    /// the same account did not serialise). The shipping helper creates it with an access list that lets only that user
-    /// and SYSTEM at it: the default list of a <c>Global\</c> object names the logon session and the administrators, not
-    /// the user, so another logon session of the same user could not even open it, and no other account can hold the
-    /// name. The tests run this code on net10.0, where System.Threading.AccessControl is not part of the runtime, and
-    /// create it with the default list; tools/ArenaSessionHelperNet472Checks reads the name and the list of the
+    /// helper runs as, one object for every Windows session of that user, because the runtime root it guards is one per
+    /// user (review 2026-10-23: a <c>Local\</c> mutex is one per Windows session, the Terminal Services session a logon
+    /// lands in, so a console and a Remote Desktop session of the same account did not serialise). The shipping helper
+    /// creates it with an access list that grants only that user and SYSTEM: the default list of a <c>Global\</c> object
+    /// comes from the creating token (measured for an elevated administrator: SYSTEM, the Administrators and the creating
+    /// logon session, no user SID), so whether another session of the same user could open it would depend on that
+    /// token; the explicit list makes it independent of elevation and of the session. Once the helper holds the mutex no
+    /// other account can acquire it; an account that creates the name first only denies service (the helper ends with
+    /// an error). The tests run this code on net10.0, where System.Threading.AccessControl is not part of the runtime,
+    /// and create it with the default list; tools/ArenaSessionHelperNet472Checks reads the name and the list of the
     /// shipping build.
     /// </summary>
     internal static class HelperMutex

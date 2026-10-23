@@ -298,9 +298,10 @@ unavailable as before.
   itself too: Arena stays unavailable in it when the policy cannot be loaded, when a plugin the
   game loaded or a mod the server runs is one your current policy file excludes, when the server
   was built for another policy (both happen when a policy file was edited while the game
-  restarted: return to the normal session and start the Arena session again), or when a
-  preloader patcher that the policy does not allow had already run before the gate could stop it
-  (allow it or remove it, then start the session again).
+  restarted: return to the normal session and start the Arena session again), when a preloader
+  patcher that ran in this game is one your current policy file excludes now (the same way out), or
+  when a preloader patcher that the policy does not allow had already run before the gate could
+  stop it (allow it or remove it, then start the session again).
 - **A normal session whose mods are all whitelisted** plays Arena directly, as
   before, without a restart. That is a deliberate choice: it uses your normal server, so a
   mod you allowed that writes server data of its own (a statistics mod, say) writes there as

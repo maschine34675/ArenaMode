@@ -620,9 +620,9 @@ internal static partial class Program
         ArenaWhitelistAdmission.PrepareForScreen();
         Equal(Reason(), refusal, "A patcher the gate let run and the current policy denies refuses Arena in the session");
         Require(RefusedWarnings(patcher) == 1, "The patcher refusal is logged once, as a Warning");
-        ArenaWhitelistAdmission.PrepareForScreen();
+        Ping(true, NormalServerMods());
         _ = Reason();
-        Require(RefusedWarnings(patcher) == 1, "A screen with the same policy does not log the patcher refusal again");
+        Require(RefusedWarnings(patcher) == 1, "A new ping does not log the patcher refusal again");
 
         // The refusal does not wait for the ping: the patcher ran, whatever the server says.
         ResetWorld();
@@ -637,6 +637,22 @@ internal static partial class Program
         Ping(true, NormalServerMods());
         Equal(Reason(), "This game ran the preloader patchers maschine-LogTools.dll, WTT-ContentBackportPatcher.dll, which the current policy excludes: "
             + "the policy changed during the switch. " + ReturnHint, "Several denied patchers are listed once each, sorted, in the plural");
+
+        // Twelve names at most, the rest counted; a file listed twice is one file (the singular, not the plural).
+        ResetWorld();
+        var many = Enumerable.Range(0, 14).Select(i => "P" + i.ToString("D2") + ".dll").ToList();
+        string manyJson = string.Join(",", many.Select(f => "\"" + f + "\""));
+        WriteUserPolicy("{\"schema\":1,\"deny\":[" + manyJson + "]}");
+        ArenaSession(ReportWith(",\"patchersAllowed\":[" + manyJson + "]"));
+        Ping(true, NormalServerMods());
+        Require(Reason().StartsWith("This game ran the preloader patchers P00.dll, P01.dll", StringComparison.Ordinal)
+                && Reason().Contains("P11.dll, and 2 more, which the current policy excludes"),
+            "Twelve denied patcher names are listed, the rest is counted");
+        ResetWorld();
+        WriteUserPolicy(denyPatcher);
+        ArenaSession(ReportWith(",\"patchersAllowed\":[\"" + patcher + "\",\"" + patcher + "\"]"));
+        Ping(true, NormalServerMods());
+        Equal(Reason(), refusal, "A patcher listed twice is one file, in the singular");
 
         // A patcher the gate neutralised (other.dll of the report) is not in the list: a deny of it changes nothing, and an
         // allow of it is a widening, which refuses nothing either.

@@ -441,15 +441,19 @@ below) is kept by `HelperHost`, which `Program.Main` hands the parsed command to
 at that stamp while it waits for the game ("A request the client takes back", below).
 
 The mutex is `Global\` and named for the user (review 2026-10-23, `HelperMutex` in `HelperHost.cs`): a `Local\`
-object is one per Windows logon session, while the runtime root, `server.pid` and the tree are one per user, so two
-logon sessions of one account (a console and a Remote Desktop session) each had a mutex of their own over the same
-files and did not serialise. The SID in the name keeps the accounts of one machine apart in the shared namespace, and
-the helper creates the mutex with an access list that grants only that user and SYSTEM: the default list of a
-`Global\` object names the logon session and the administrators, not the user, so another logon session of the same
-user could not even open it. The unit tests run the same code on net10.0 without the access list
+object is one per Windows session (the Terminal Services session a logon lands in), while the runtime root,
+`server.pid` and the tree are one per user, so two sessions of one account (a console and a Remote Desktop session)
+each had a mutex of their own over the same files and did not serialise. The SID in the name keeps the accounts of one
+machine apart in the shared namespace, and the helper creates the mutex with an access list that grants only that
+user and SYSTEM: the default list of a `Global\` object comes from the creating token (measured for an elevated
+administrator: SYSTEM, the Administrators and the creating logon session, no user SID), so whether another session of
+the same user could open it would depend on that token; the explicit list makes it independent of elevation and of
+the session. Once the helper holds the mutex no other account can acquire it; an account that creates the name first
+only denies service. The unit tests run the same code on net10.0 without the access list
 (System.Threading.AccessControl is not part of that runtime); `tools/ArenaSessionHelperNet472Checks` reads the name and
-the list of the shipping build. A mutex of that name that exists but cannot be opened (another account created it)
-ends the helper with an error, and a helper that cannot determine the user's SID ends before it touches anything.
+the list of a mutex the shipping build creates. A mutex of that name that exists but cannot be opened (another account
+created it) ends the helper with an error, and a helper that cannot determine the user's SID ends before it touches
+anything.
 
 Writes never follow a link (review 2026-10-22, third pass). Every file the helper creates or truncates is opened without
 following a reparse point at its last component (`HelperNative.OpenFileForWriting`: `CreateFile` with
@@ -592,18 +596,23 @@ beside the request (`request.json.accepted` for `request.json`):
    - `SPT_Data\`: a directory junction for every subdirectory of `<sptRuntimeDir>\SPT_Data`
      except `configs`; files directly in `SPT_Data` copied; `configs\` copied, then `http.json`
      patched: `port` and `backendPort` set to the arena port, everything else unchanged.
-   - `SPT_Data\configs\backup.json` (review 2026-10-23; `HelperJsonText.TryConfineBackupDirectory`): in the copy, the
-     top-level `directory` is replaced by `./user/profiles/backups` (SPT's own default) unless it is a relative path
-     below `user` by the rule of `sptLogger.json` above (`IsLogPathUnderUser`). SPT's backup service writes the copies
-     of the tree's profiles to `<directory>/<date>`, resolved against the working directory, deletes the oldest
-     folders there beyond `maxBackups` and restores a profile from the newest one; an absolute path, a path that
-     climbs out of the tree and a path into the `SPT_Data` junctions would put the disposable profile's copies into
-     the normal server's pool, where that cleanup deletes the normal server's backups and a restore may pick an arena
-     copy. A `directory` that is not a string is replaced as well (fail closed); a missing member and a missing file
-     keep SPT's default, which is the private folder; a member of that name deeper in the document is not touched.
-     The runtime's own file is never changed; a replaced value is one Warning of `helper.log` (`backup.json: the
-     backup directory did not lie below user ... : 'old' -> 'new'`, `HelperTreeResult.BackupDirectoryRewrite`). The
-     installed file uses the default, so nothing is replaced there.
+   - the backup config (review 2026-10-23; `HelperJsonText.TryConfineBackupDirectory`, `HelperLayout.IsBackupConfigFile`):
+     every file of `configs` that SPT's loader reads as the backup config (extension `.json` or `.jsonc`, name without
+     extension a substring of `spt-backup`, both compared exactly as the loader does; `backup.json` in the shipped runtime)
+     gets its top-level `directory` replaced by `./user/profiles/backups` in the copy unless it is a relative path below
+     `user` by the rule of `sptLogger.json` above (`IsLogPathUnderUser`), and gets the member added when it is missing.
+     SPT's backup service writes the copies of the tree's profiles to `<directory>/<date>`, resolved against the working
+     directory, deletes the oldest folders there beyond `maxBackups` and restores a profile from the newest one; an
+     absolute path, a path that climbs out of the tree and a path into the `SPT_Data` junctions would put the disposable
+     profile's copies into the normal server's pool, where that cleanup deletes the normal server's backups and a restore
+     may pick an arena copy. `./user/profiles/backups` is the value the shipped `backup.json` carries, not SPT's code
+     default: that is the empty string, which resolves to the root of the working directory's drive, so a missing member
+     is as unsafe as an absolute path and is added (fail closed; a `directory` that is not a string is replaced the same
+     way). A member of that name deeper in the document is not touched; a runtime without any such file is left as it is
+     (the helper invents no config file; SPT's own loader decides what such a runtime does). The runtime's own files are
+     never changed; every replaced or added value is one entry of one Warning of `helper.log` (`backup config: N backup
+     directory value(s) did not lie below user ... : backup.json: 'old' -> 'new'`, `HelperTreeResult.BackupDirectoryRewrites`).
+     The installed file carries the shipped value, so nothing is replaced there.
    - `user\mods\`: emptied, then a copy of every folder in `serverMods` (copies, not junctions,
      so what those mods write beside their own files stays in the disposable tree). A user-allowed
      server mod that resolves its paths from `AppContext.BaseDirectory`, the working directory or its
@@ -937,10 +946,12 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
 - `tools/Write-ArenaAssets.ps1` and the release packaging include the three new files. The script
   (`Assert-ArenaDefaultWhitelist`) and `tools/Verify-TestRelease.py` (`check_default_whitelist`) also refuse a default
   list that lists or denies a platform or Arena unit (section 3).
-- `tools/ArenaSessionHelperNet472Checks/Verify.ps1` runs the helper's socket code (`CanConnect`, the owner lookup) on the
+- `tools/ArenaSessionHelperNet472Checks/Verify.ps1` runs the helper's socket code (`CanConnect`, the owner lookup) and,
+  since 2026-10-23, its mutex (`HelperMutex.Name`, the access list of a mutex it creates under a fresh name) on the
   runtime the helper ships on: it builds a copy of the helper sources and calls the built exe by reflection from Windows
   PowerShell 5.1 (the CLR of .NET Framework 4.x). `ArenaMode.Tests` runs the same sources on net10.0, where a `TcpClient` is
-  dual-stack and an IPv6-literal probe works; on .NET Framework it does not unless the socket is made for that family.
+  dual-stack and an IPv6-literal probe works; on .NET Framework it does not unless the socket is made for that family. The
+  access list exists only on .NET Framework (net10.0 has no `MutexSecurity` in the runtime), so only this harness sees it.
 
 ## 10. Acceptance on SPT-GPU-2
 
@@ -1209,7 +1220,7 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   moment the game started and nothing compared the plugin list with the current files, the same hole the second
   pass closed for the server's mods. Chosen: the gate's own decision, any exclusion reason refuses, the wording
   follows the server-mod refusal (`This game loaded <names>, ...`), the checks that need no ping come first (2, 3
-  and 4), and the decision's warnings are not added to the notes because the gate's report carries them. Accepted
+  and 4 then; 2 to 5 since 2026-10-23), and the decision's warnings are not added to the notes because the gate's report carries them. Accepted
   limit: a library pulled in for a plugin that then failed to load reads as excluded and refuses (fail closed, the
   same hint). (3) Section 7 said that a missing or unreadable default list "makes the whitelist stand aside" in a
   normal session, which contradicted the code, section 2 and the entry of this section on the same subject (the
@@ -1346,3 +1357,41 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   finished; host: the watch command before the mutex, the stop after the wait). Fixture: the runner does not
   start a watchdog (the test assembly is not the helper's exe). SPT-GPU-2 ran the three variants of item 13 the
   same day (section 10, fourth run).
+- Sections 4, 5, 6, 7 and 9 (2026-10-23, external review,
+  [ARENA-SESSION-REVIEW-RESPONSE-20261023.md](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)). Three findings of a second
+  Codex review at `c021c0d`, all three corrected. (1) The tree's copy of `backup.json` kept the runtime's backup
+  `directory`; an absolute one, or one that climbs out of the tree, put the disposable profile's backups into the
+  normal server's pool, where SPT's retention deletes the normal server's backups and a restore may pick an arena
+  copy. In every file SPT's loader reads as the backup config (`.json`/`.jsonc`, name a substring of `spt-backup`) the
+  copy now confines the directory to `./user/profiles/backups` unless it lies below `user`, and adds the member when it
+  is missing, because SPT's code default is the empty string, the drive root (`HelperJsonText.TryConfineBackupDirectory`,
+  `HelperLayout.IsBackupConfigFile`, the rule of the logger paths; `HelperTreeResult.BackupDirectoryRewrites`, one
+  Warning names the changes; the installed file carries the shipped value). (2) A preloader patcher the gate let run
+  and a later policy denies did not refuse the session: the client judged the loaded plugins, the server's mods and the
+  patchers that ran before the gate with the policy of the moment, never the allowed patchers. The gate report lists
+  them now (`patchersAllowed`, in every report; `ArenaGatePatchers.Outcome.Allowed`, `ArenaGateRuntime.AllowedPatchers`)
+  and the client refuses when the current policy does not allow one of them (section 7, check 4; the old checks 4 to
+  7 are 5 to 8). (3) The helper mutex was `Local\`, one per Windows session, while the runtime root is one per user:
+  two sessions of one account did not serialise. It is `Global\maschine-ArenaMode.Session.<SID>` now (`HelperMutex` in
+  HelperHost.cs, `ArenaSessionContract.HelperMutexNamePrefix`), created with an access list for that user and SYSTEM,
+  because the default list comes from the creating token (an elevated administrator's names no user SID). Tests:
+  `ArenaSessionHelperTests` (the backup directory in the text, with a missing member and in a built tree, the loader's
+  file rule, a malformed file, the mutex name and exclusion, the source pins), `ArenaSessionHelperProcessTests` (the
+  runner's Warning), `ArenaGateReportTests` and `ArenaWhitelistTests` (the member, the JSON shape, the contract prefix);
+  `tools/ArenaSessionClientChecks` (the refusal and its wording, the order against both neighbours, the cap, a file
+  listed twice, blacklist mode, an older report, a neutralised patcher, the normal-session control; eight mutants),
+  `tools/ArenaGateChecks` (`patchersAllowed` read from the raw JSON in every scenario that reads a report; five
+  mutants, three existing ones re-anchored), `tools/ArenaSessionHelperNet472Checks` (the shipping build's mutex name
+  and the access list of a mutex it creates; three mutants, the table can name its file). Negative control: the eleven
+  new xunit cases of the first draft fail against the three faults they claim to catch. An adversarial review of the
+  change (six lenses, three skeptics per finding, 75 agents) confirmed and this entry's state corrected: the missing
+  `directory` member was left alone on the false premise that SPT's default is the private folder; only `backup.json`
+  was confined although the loader reads `.jsonc` and other names; six existing client-harness mutants no longer hit
+  their named assertion because the new check ran ahead of older checks (it runs after them now, and the swap mutant
+  that spans it is re-anchored); the net472 access-list check opened the real name, which an existing helper's mutex
+  would have satisfied vacuously (it creates a fresh name); the wording about the default access list held only for an
+  elevated creator; stale check numbers, counts and refusal lists in the docs. The final run of the pass
+  (`tools/Run-ArenaVerification.ps1`, 2026-10-23): the xunit suite 2 308 tests, 2 307 passed, 1 known skip (the
+  installed-APBS clone test); `ArenaSessionClientChecks` 698 assertions, 171 mutants rejected; `ArenaGateChecks` 17 scenarios,
+  705 checks, 40 mutants rejected; `ArenaSessionHelperNet472Checks` 9 checks, 6 mutants rejected; the installed
+  files unchanged. The response document records the review's own evidence and what it listed as bounded.

@@ -19,7 +19,8 @@ namespace ArenaMode.Session;
 /// <item><b>Arena session</b> (started with <c>-arena-session</c>): the preloader gate already
 /// removed every mod that is not on the whitelist. Arena is admitted only if that gate ran to
 /// completion, the policy can be loaded (without one nothing below can be judged), no neutralised
-/// preloader patcher had already run before the gate, every plugin this game loaded is allowed by the
+/// preloader patcher had already run before the gate, every preloader patcher the gate let run is allowed by
+/// the policy as it reads now (review 2026-10-23), every plugin this game loaded is allowed by the
 /// policy as it reads now, the server answers as an Arena instance, the mods it reports are all allowed
 /// by the policy as it reads now, and the policy hash the server reports is the gate's (review
 /// 2026-10-22: the client used to compute the server's exclusions and then only show them as notes, the

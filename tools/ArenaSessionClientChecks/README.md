@@ -16,10 +16,11 @@ What is compiled unchanged from production:
 - `ArenaWhitelistAdmission.cs`: the whitelist verdict for a normal session (installed plugins, the preloader
   patchers below `BepInEx\patchers`, a DLL without a `TargetDLLs` member being a library and no patcher, and the
   server's mods evaluated with the shared policy) and for an Arena session
-  (gate active, a policy that loads, no patcher that ran before the gate, every loaded plugin allowed by the policy
+  (gate active, a policy that loads, no patcher that ran before the gate, every patcher the gate let run allowed by the
+  policy as read now, every loaded plugin allowed by the policy
   as read now, server is an Arena instance, the server's mods allowed by the policy as read now, the server's policy
   hash the gate's, in that order); the START ARENA SESSION offer; per-ping caching; Fika; failure modes.
-  `SessionReviewChecks.cs` holds the checks added for the review of 2026-10-22 (Arena session refusals, patcher
+  `SessionReviewChecks.cs` holds the checks added for the reviews of 2026-10-22 and 2026-10-23 (Arena session refusals, patcher
   units, deny wins over dependencies in the refusal, the helper handshake); `SessionPolicyChecks.cs` the third pass
   (an Arena session without a usable policy, the plugins the game loaded, and the order of the session checks).
 - `ArenaSessionSwitch.cs`: profile id, request file, the helper's own parser run on the request before anything is

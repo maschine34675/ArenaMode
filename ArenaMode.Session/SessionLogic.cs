@@ -32,17 +32,36 @@ namespace ArenaMode.SessionHelper
         public const string HttpJsonFileName = "http.json";
 
         /// <summary>
-        /// <c>SPT_Data\configs\backup.json</c>: the settings of SPT's profile backup service. Its <c>directory</c> is
-        /// confined to the tree (review 2026-10-23, <see cref="HelperJsonText.TryConfineBackupDirectory"/>).
+        /// <c>SPT_Data\configs\backup.json</c>: the shipped file with the settings of SPT's profile backup service. Its
+        /// <c>directory</c> is confined to the tree (review 2026-10-23, <see cref="HelperJsonText.TryConfineBackupDirectory"/>),
+        /// like that of every other file the loader reads as the backup config (<see cref="IsBackupConfigFile"/>).
         /// </summary>
         public const string BackupJsonFileName = "backup.json";
 
+        /// <summary>SPT's name of the backup config type (<c>ConfigTypes.BACKUP</c>); the loader maps a file to it by name.</summary>
+        public const string BackupConfigKind = "spt-backup";
+
         /// <summary>
-        /// Where the tree's copy of <c>backup.json</c> sends the arena server's profile backups when the runtime's
-        /// <c>directory</c> does not lie below <c>user</c>: SPT's own default, relative to the server's working
-        /// directory, which is the tree.
+        /// Where the tree's copy of the backup config sends the arena server's profile backups when the runtime's
+        /// <c>directory</c> does not lie below <c>user</c> or is missing: the value the shipped <c>backup.json</c> carries,
+        /// relative to the server's working directory, which is the tree. Not SPT's code default: that is the empty
+        /// string, which the backup service resolves to the root of the working directory's drive.
         /// </summary>
         public const string PrivateBackupDirectory = "./user/profiles/backups";
+
+        /// <summary>
+        /// True for a file of <c>SPT_Data\configs</c> that SPT's config loader reads as the backup config: its extension is
+        /// <c>.json</c> or <c>.jsonc</c> and its name without the extension is a substring of <see cref="BackupConfigKind"/>,
+        /// both compared exactly as the loader does (<c>backup.json</c>, <c>backup.jsonc</c>, <c>spt-backup.json</c>). When
+        /// several files match, the loader keeps the last one it reads, so the tree confines every one of them.
+        /// </summary>
+        public static bool IsBackupConfigFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+            string extension = System.IO.Path.GetExtension(fileName);
+            if (!string.Equals(extension, ".json", StringComparison.Ordinal) && !string.Equals(extension, ".jsonc", StringComparison.Ordinal)) return false;
+            return BackupConfigKind.Contains(System.IO.Path.GetFileNameWithoutExtension(fileName));
+        }
         public const string UserFolder = "user";
         public const string ModsFolder = "mods";
 
@@ -1567,52 +1586,11 @@ namespace ArenaMode.SessionHelper
                 }
             }
 
-            var missing = new List<string>();
-
-            // Match the file's own style for what has to be added.
-            string newline = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
-            string indent = "  ";
-            bool compact = false;
-            if (first != null)
-            {
-                int lineStart = text.LastIndexOf('\n', first.KeyStart > 0 ? first.KeyStart - 1 : 0);
-                if (lineStart < 0 || lineStart < doc.OpenBrace)
-                {
-                    compact = true;
-                }
-                else
-                {
-                    string lead = text.Substring(lineStart + 1, first.KeyStart - lineStart - 1);
-                    if (lead.Trim().Length == 0) indent = lead;
-                    else compact = true;
-                }
-            }
-
-            string separator = compact ? string.Empty : newline + indent;
-            string colon = compact ? ":" : ": ";
-            if (!hasPort) missing.Add("\"port\"" + colon + number);
-            if (!hasBackendPort) missing.Add("\"backendPort\"" + colon + number);
-
-            if (missing.Count > 0)
-            {
-                var sb = new StringBuilder();
-                if (doc.TopLevelCount > 0)
-                {
-                    foreach (string item in missing) sb.Append(',').Append(separator).Append(item);
-                    edits.Add(new Edit { Start = doc.LastTopLevelValueEnd, End = doc.LastTopLevelValueEnd, Text = sb.ToString() });
-                }
-                else
-                {
-                    for (int i = 0; i < missing.Count; i++)
-                    {
-                        if (i > 0) sb.Append(',');
-                        sb.Append(newline).Append(indent).Append(missing[i]);
-                    }
-
-                    sb.Append(newline);
-                    edits.Add(new Edit { Start = doc.OpenBrace + 1, End = doc.OpenBrace + 1, Text = sb.ToString() });
-                }
-            }
+            var keys = new List<string>();
+            var values = new List<string>();
+            if (!hasPort) { keys.Add("port"); values.Add(number); }
+            if (!hasBackendPort) { keys.Add("backendPort"); values.Add(number); }
+            if (keys.Count > 0) AppendMembers(text, doc, first, keys, values, edits);
 
             patched = Apply(text, edits);
             return true;
@@ -1687,18 +1665,21 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
-        /// Makes a <c>backup.json</c> safe to run from the arena tree (review 2026-10-23): the top-level <c>directory</c>
-        /// is replaced by <see cref="HelperLayout.PrivateBackupDirectory"/> unless it is a relative path below <c>user</c>
-        /// (<see cref="IsLogPathUnderUser"/>, the rule of the logger paths). SPT's backup service writes the copies of
-        /// the tree's profiles to <c>&lt;directory&gt;/&lt;date&gt;</c>, resolved against the working directory, deletes
-        /// the oldest folders there beyond <c>maxBackups</c> and restores a profile from the newest one; an absolute
-        /// path, a path that climbs out of the tree and a path into the <c>SPT_Data</c> junctions would put the
-        /// disposable profile's copies into the normal server's pool, where that cleanup deletes the normal server's
-        /// backups and a restore may pick an arena copy. <paramref name="rewrite"/> reads <c>'old' -> 'new'</c> when
-        /// the value was replaced and is null when nothing changed (<paramref name="patched"/> is then
-        /// <paramref name="text"/>); a missing member keeps SPT's default, which is the private folder. A
-        /// <c>directory</c> that is not a string, or a string the JSON reader cannot decode, is replaced as well (fail
-        /// closed) and named by its text. Members of that name deeper in the document are not touched.
+        /// Makes a backup config (<c>backup.json</c>) safe to run from the arena tree (review 2026-10-23): the top-level
+        /// <c>directory</c> is replaced by <see cref="HelperLayout.PrivateBackupDirectory"/> unless it is a relative path
+        /// below <c>user</c> (<see cref="IsLogPathUnderUser"/>, the rule of the logger paths), and added when the member is
+        /// missing. SPT's backup service writes the copies of the tree's profiles to <c>&lt;directory&gt;/&lt;date&gt;</c>,
+        /// resolved against the working directory, deletes the oldest folders there beyond <c>maxBackups</c> and restores
+        /// a profile from the newest one; an absolute path, a path that climbs out of the tree and a path into the
+        /// <c>SPT_Data</c> junctions would put the disposable profile's copies into the normal server's pool, where that
+        /// cleanup deletes the normal server's backups and a restore may pick an arena copy. SPT's code default for a
+        /// missing member is the empty string, which resolves to the root of the working directory's drive: as unsafe as
+        /// an absolute path, so the member is appended in the file's own style (like a missing port of <c>http.json</c>).
+        /// <paramref name="rewrite"/> reads <c>'old' -> 'new'</c> for a replaced value and
+        /// <c>(no directory member) -> 'new'</c> for an added one, and is null when nothing changed
+        /// (<paramref name="patched"/> is then <paramref name="text"/>). A <c>directory</c> that is not a string, or a
+        /// string the JSON reader cannot decode, is replaced as well (fail closed) and named by its text. Members of that
+        /// name deeper in the document are not touched. A second pass over the result changes nothing.
         /// </summary>
         public static bool TryConfineBackupDirectory(string text, out string patched, out string rewrite, out string error)
         {
@@ -1708,9 +1689,14 @@ namespace ArenaMode.SessionHelper
             if (!HelperJsonDocument.TryScan(text, out doc, out error)) return false;
 
             var edits = new List<Edit>();
+            HelperJsonMember first = null;
+            bool found = false;
             foreach (HelperJsonMember member in doc.Members)
             {
-                if (member.Depth != 1 || member.Key != "directory") continue;
+                if (member.Depth != 1) continue;
+                if (first == null) first = member;
+                if (member.Key != "directory") continue;
+                found = true;
                 string old = member.ValueKind == '"' ? ReadStringValue(text, member) : null;
                 if (old != null && IsLogPathUnderUser(old)) continue;
                 if (old == null) old = text.Substring(member.ValueStart, member.ValueEnd - member.ValueStart);
@@ -1718,8 +1704,65 @@ namespace ArenaMode.SessionHelper
                 rewrite = "'" + old + "' -> '" + HelperLayout.PrivateBackupDirectory + "'";
             }
 
+            if (!found)
+            {
+                AppendMembers(text, doc, first, new List<string> { "directory" },
+                    new List<string> { "\"" + HelperLayout.PrivateBackupDirectory + "\"" }, edits);
+                rewrite = "(no directory member) -> '" + HelperLayout.PrivateBackupDirectory + "'";
+            }
+
             patched = Apply(text, edits);
             return true;
+        }
+
+        /// <summary>
+        /// Appends top-level members (<paramref name="keys"/> with their JSON <paramref name="values"/> as text) at the end
+        /// of the top-level object, in the file's own style: the file's newline and the indentation of its first member
+        /// (<paramref name="first"/>, the first top-level member or null), compact when that member shares the line of the
+        /// opening brace. An empty object gets the members on lines of their own.
+        /// </summary>
+        private static void AppendMembers(string text, HelperJsonDocument doc, HelperJsonMember first, List<string> keys, List<string> values, List<Edit> edits)
+        {
+            string newline = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
+            string indent = "  ";
+            bool compact = false;
+            if (first != null)
+            {
+                int lineStart = text.LastIndexOf('\n', first.KeyStart > 0 ? first.KeyStart - 1 : 0);
+                if (lineStart < 0 || lineStart < doc.OpenBrace)
+                {
+                    compact = true;
+                }
+                else
+                {
+                    string lead = text.Substring(lineStart + 1, first.KeyStart - lineStart - 1);
+                    if (lead.Trim().Length == 0) indent = lead;
+                    else compact = true;
+                }
+            }
+
+            string separator = compact ? string.Empty : newline + indent;
+            string colon = compact ? ":" : ": ";
+            var items = new List<string>();
+            for (int i = 0; i < keys.Count; i++) items.Add("\"" + keys[i] + "\"" + colon + values[i]);
+
+            var sb = new StringBuilder();
+            if (doc.TopLevelCount > 0)
+            {
+                foreach (string item in items) sb.Append(',').Append(separator).Append(item);
+                edits.Add(new Edit { Start = doc.LastTopLevelValueEnd, End = doc.LastTopLevelValueEnd, Text = sb.ToString() });
+            }
+            else
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    sb.Append(newline).Append(indent).Append(items[i]);
+                }
+
+                sb.Append(newline);
+                edits.Add(new Edit { Start = doc.OpenBrace + 1, End = doc.OpenBrace + 1, Text = sb.ToString() });
+            }
         }
 
         /// <summary>The decoded text of a JSON string member, or null when it cannot be decoded.</summary>

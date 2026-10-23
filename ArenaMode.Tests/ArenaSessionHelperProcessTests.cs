@@ -1993,7 +1993,7 @@ public sealed class ArenaSessionHelperProcessTests
     }
 
     [SkippableFact]
-    public void AnEnterProbesTheArenaPortOnTheNormalServersAddressAndWarnsOnceAboutLoggerPathsItMoved()
+    public void AnEnterProbesTheArenaPortOnTheNormalServersAddressAndWarnsOnceAboutLoggerPathsAndTheBackupDirectoryItMoved()
     {
         SkipUnlessWindows();
         using var area = new Area();
@@ -2006,6 +2006,9 @@ public sealed class ArenaSessionHelperProcessTests
         File.WriteAllText(Path.Combine(game.Runtime, HelperLayout.LoggerFileName),
             "{ \"loggers\": [ { \"type\": \"File\", \"filePath\": \"" + absolute.Replace("\\", "\\\\") + "\", \"filePattern\": \"spt-%DATE%.log\" }, "
             + "{ \"type\": \"File\", \"filePath\": \"./user/logs/requests/\", \"filePattern\": \"requests-%DATE%.log\" } ] }");
+        string externalBackups = area.At("real runtime", "user", "profiles", "backups"); // the normal server's backup pool
+        File.WriteAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", HelperLayout.BackupJsonFileName),
+            "{ \"enabled\": true, \"maxBackups\": 15, \"directory\": \"" + externalBackups.Replace("\\", "\\\\") + "\" }");
         string root = area.At("session");
         Assert.True(HelperRequest.TryParse(Area.RequestJson("enter", game, Area.FinishedProcessId()), "enter", out HelperRequest? request, out string? parseError), parseError);
         HelperRunner runner = area.Runner(root);
@@ -2030,6 +2033,14 @@ public sealed class ArenaSessionHelperProcessTests
         Assert.DoesNotContain("requests", warnings[0]);
         string copy = File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "sptLogger.json"));
         Assert.Contains("\"filePath\": \"./user/logs/spt/\"", copy);
+
+        // The backup directory the same way: one Warning, the tree's copy confined, the runtime's file untouched.
+        List<string> backupWarnings = WarningsOf(root).Where(line => line.Contains("backup config")).ToList();
+        Assert.Single(backupWarnings);
+        Assert.Contains("1 backup directory value(s) did not lie below user", backupWarnings[0]);
+        Assert.Contains("backup.json: '" + externalBackups + "' -> './user/profiles/backups'", backupWarnings[0]);
+        Assert.Contains("\"directory\": \"./user/profiles/backups\"", File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
+        Assert.Contains(externalBackups.Replace("\\", "\\\\"), File.ReadAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", "backup.json")));
     }
     // ------------------------------------------------------------------ the watchdog after enter (watch --file)
 

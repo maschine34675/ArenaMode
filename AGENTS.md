@@ -59,7 +59,8 @@ every 250 ms for at most 15 s; a helper that is gone or silent leaves the game r
 the client deletes the request file on every failure: the helper stamps that file and ends its wait for the game when
 it is gone or replaced, so a late helper cannot switch the session behind the player's back).
 An Arena session refuses Arena when it cannot load the policy, when a plugin the game loaded or a mod the server runs
-is one the current policy excludes, when the ping's `policyHash` is not the gate's, or when the gate report's
+is one the current policy excludes, when a preloader patcher the gate let run (the report's `patchersAllowed`) is one
+the current policy excludes, when the ping's `policyHash` is not the gate's, or when the gate report's
 `patchersRanBeforeGate` is not empty; a normal session judges every
 preloader patcher below `BepInEx\patchers` (a `.dll` with a `TargetDLLs` member in its bytes; a support library is no
 unit) by file name like a plugin (spec sections 6 and 7). Never turn any of these back into a

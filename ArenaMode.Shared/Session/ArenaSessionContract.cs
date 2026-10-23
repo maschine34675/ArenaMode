@@ -68,10 +68,10 @@ namespace ArenaMode.Shared.Session
         /// <summary>
         /// Prefix of the named mutex that keeps one helper instance at a time; the helper appends the SID of the Windows
         /// user it runs as (<c>HelperMutex.Name</c> in the helper). <c>Global\</c>, because a <c>Local\</c> object is one
-        /// per logon session while the runtime root, <c>server.pid</c> and the tree are one per user (review 2026-10-23:
-        /// two logon sessions of one account, a console and a Remote Desktop one, each had a mutex of their own over the
-        /// same files). The SID keeps the accounts of one machine apart in the shared namespace, and the helper creates
-        /// the mutex with an access list for that user and SYSTEM only.
+        /// per Windows session while the runtime root, <c>server.pid</c> and the tree are one per user (review 2026-10-23:
+        /// two sessions of one account, a console and a Remote Desktop one, each had a mutex of their own over the same
+        /// files). The SID keeps the accounts of one machine apart in the shared namespace, and the helper creates the
+        /// mutex with an access list for that user and SYSTEM only (the default list depends on the creating token).
         /// </summary>
         public const string HelperMutexNamePrefix = "Global\\maschine-ArenaMode.Session.";
 

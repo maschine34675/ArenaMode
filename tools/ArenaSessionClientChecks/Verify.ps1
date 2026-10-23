@@ -206,6 +206,20 @@ Invoke-SwapMutant 'admission-ran-patchers-before-early-patchers' 'admission' `
     '// The preloader patchers the gate let run are judged with the policy as it reads now as well' `
     '// The plugins this game loaded are judged with the policy as it reads now, like the server' `
     'A patcher that ran before the gate is refused ahead of a patcher the policy excludes now'
+Invoke-SwapMutant 'admission-ran-patchers-before-plugins' 'admission' `
+    '        // The preloader patchers the gate let run are judged with the policy as it reads now as well' `
+    '        // The plugins this game loaded are judged with the policy as it reads now, like the server' `
+    '        if (ArenaServerClient.IsServerModKnownAvailable && !ArenaServerClient.IsArenaInstance)' `
+    'A patcher the policy excludes now is refused ahead of a loaded plugin it excludes'
+Invoke-Mutant 'admission-ran-patchers-unlogged' 'admission' `
+    'LogOnce("patcherexcluded:" + outcome.Reason, true, "Arena session refused: " + outcome.Reason);' '' `
+    'The patcher refusal is logged once, as a Warning'
+Invoke-Mutant 'admission-ran-patchers-names-uncapped' 'admission' `
+    '+ JoinLimited(files, MaxNamesListed) + ", which the current policy excludes: " + PolicyChangedText;' '+ JoinLimited(files, 1000) + ", which the current policy excludes: " + PolicyChangedText;' `
+    'Twelve denied patcher names are listed, the rest is counted'
+Invoke-Mutant 'admission-ran-patchers-duplicates-counted' 'admission' `
+    'if (seen.Add(file)) excluded.Add(file);' 'excluded.Add(file);' `
+    'A patcher listed twice is one file, in the singular'
 Invoke-Mutant 'admission-always-pings' 'admission' `
     'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
     'A clean normal session needs no ping to open the screen'
@@ -328,7 +342,7 @@ Invoke-SwapMutant 'admission-session-policy-before-gate' 'admission' `
     'An inactive gate is reported ahead of a missing policy'
 Invoke-SwapMutant 'admission-session-patchers-before-policy' 'admission' `
     '        // The gate filtered with the policy it read when this game started.' '        // A not-allowed patcher that sorts before the gate has run its initializer' `
-    '        // The plugins this game loaded are judged with the policy as it reads now' `
+    '        // The preloader patchers the gate let run are judged with the policy as it reads now as well' `
     'A missing policy is reported ahead of a patcher that ran before the gate'
 Invoke-SwapMutant 'admission-session-plugins-before-patchers' 'admission' `
     '        // A not-allowed patcher that sorts before the gate has run its initializer' '        // The plugins this game loaded are judged with the policy as it reads now' `

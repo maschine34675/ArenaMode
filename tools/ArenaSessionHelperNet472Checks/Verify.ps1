@@ -4,8 +4,10 @@
 #
 # Why this exists: ArenaMode.Tests runs the helper's sources on net10.0, where `new TcpClient()` is a dual-stack socket. The
 # helper itself is a .NET Framework 4.7.2 exe, where the same call is an IPv4-only socket, so a probe of an IPv6 literal such as
-# `::1` fails there and passes in the unit tests. Windows PowerShell 5.1 runs on the CLR of .NET Framework 4.x, so
-# Check-HelperNet472.ps1 loads the built exe in it and calls HelperProcesses.CanConnect / GetListenerProcessIds by reflection.
+# `::1` fails there and passes in the unit tests. The same holds for the helper mutex (review 2026-10-23): only .NET
+# Framework has MutexSecurity, so the Global, per-user mutex with its access list of the user and SYSTEM exists only in the
+# shipping build. Windows PowerShell 5.1 runs on the CLR of .NET Framework 4.x, so Check-HelperNet472.ps1 loads the built
+# exe in it and calls HelperProcesses.CanConnect / GetListenerProcessIds and HelperMutex.Name / NameFor / Open by reflection.
 #
 # What it does
 #   1. copies the helper sources (and the shared session sources it links) to artifacts/helper-net472-checks/<run>/,
@@ -45,8 +47,8 @@ $mutants = @(
     @{ Name = 'ipv4-wildcard-serves-nothing'; Expect = 'ipv4-wildcard-owner'
        Old = 'if (listening.Equals(IPAddress.Any)) return connected.AddressFamily == AddressFamily.InterNetwork;'
        New = 'if (listening.Equals(IPAddress.Any)) return false;' },
-    # The helper mutex (review 2026-10-23): a Local name is one per logon session; the default access list of a Global object
-    # does not name the user, so another logon session of the same user could not open it.
+    # The helper mutex (review 2026-10-23): a Local name is one per Windows session; the default access list of a Global object
+    # comes from the creating token (an elevated administrator's names no user SID), the explicit list does not depend on it.
     @{ Name = 'mutex-per-logon-session'; Expect = 'mutex-name-global-for-user'; File = 'ArenaMode.Shared\Session\ArenaSessionContract.cs'
        Old = 'public const string HelperMutexNamePrefix = "Global\\maschine-ArenaMode.Session.";'
        New = 'public const string HelperMutexNamePrefix = "Local\\maschine-ArenaMode.Session.";' },

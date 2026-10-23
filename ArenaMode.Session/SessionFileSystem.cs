@@ -806,6 +806,7 @@ namespace ArenaMode.SessionHelper
             Patchers = new List<string>();
             UnsharedFolders = new List<string>();
             LogPathRewrites = new List<string>();
+            BackupDirectoryRewrites = new List<string>();
         }
 
         public string TreePath { get; set; }
@@ -852,11 +853,13 @@ namespace ArenaMode.SessionHelper
         public List<string> LogPathRewrites { get; private set; }
 
         /// <summary>
-        /// The <c>directory</c> of the runtime's <c>backup.json</c> when it was not a relative path below <c>user</c> and
-        /// was replaced by <see cref="HelperLayout.PrivateBackupDirectory"/> in the tree's copy (<c>'old' -> 'new'</c>);
-        /// null when the file is absent or needed no change. The runner logs one warning for it.
+        /// One entry per backup config file of the runtime (<see cref="HelperLayout.IsBackupConfigFile"/>) whose
+        /// <c>directory</c> was not a relative path below <c>user</c>, or was missing, and was replaced by or set to
+        /// <see cref="HelperLayout.PrivateBackupDirectory"/> in the tree's copy (<c>&lt;file&gt;: 'old' -> 'new'</c>,
+        /// <c>&lt;file&gt;: (no directory member) -> 'new'</c>); empty when no such file exists or none needed a change.
+        /// The runner logs one warning for them.
         /// </summary>
-        public string BackupDirectoryRewrite { get; set; }
+        public List<string> BackupDirectoryRewrites { get; private set; }
     }
 
     /// <summary>Builds the disposable server tree <c>&lt;runtime root&gt;\server</c> of an Arena session.</summary>
@@ -989,25 +992,31 @@ namespace ArenaMode.SessionHelper
 
             box.WriteAllText(httpJson, patchedHttp);
 
-            // backup.json (review 2026-10-23): SPT's profile backup writes to its `directory`, resolved against the working
-            // directory, deletes the oldest folders there and restores from the newest. A directory outside user (an
-            // absolute one, one that climbs out of the tree, one into the SPT_Data junctions) is replaced by SPT's default
-            // below user\profiles in the tree's copy, so that the arena server's backups of the disposable profile never
-            // land in the normal server's pool. A runtime without the file keeps SPT's default, which is that folder.
-            string backupJson = Path.Combine(Path.Combine(dataTarget, HelperLayout.ConfigsFolder), HelperLayout.BackupJsonFileName);
-            if (File.Exists(backupJson))
+            // Backup config (review 2026-10-23): SPT's profile backup writes to its `directory`, resolved against the working
+            // directory, deletes the oldest folders there and restores from the newest. In every file the loader reads as
+            // the backup config (IsBackupConfigFile: backup.json, backup.jsonc, ...) a directory outside user (an absolute one,
+            // one that climbs out of the tree, one into the SPT_Data junctions) is replaced by the folder the shipped file names,
+            // below user\profiles, and a missing member is added (SPT's code default is the empty string: the drive root), so
+            // that the arena server's backups of the disposable profile never land in the normal server's pool. A runtime
+            // without such a file is left as it is: the helper invents no config file.
+            string configsTarget = Path.Combine(dataTarget, HelperLayout.ConfigsFolder);
+            var configFiles = Directory.Exists(configsTarget) ? new List<string>(Directory.GetFiles(configsTarget)) : new List<string>();
+            configFiles.Sort(StringComparer.OrdinalIgnoreCase);
+            foreach (string configFile in configFiles)
             {
+                string configName = Path.GetFileName(configFile);
+                if (!HelperLayout.IsBackupConfigFile(configName)) continue;
                 string patchedBackup;
                 string backupRewrite;
-                if (!HelperJsonText.TryConfineBackupDirectory(HelperFileSystem.ReadAllTextShared(backupJson), out patchedBackup, out backupRewrite, out error))
+                if (!HelperJsonText.TryConfineBackupDirectory(HelperFileSystem.ReadAllTextShared(configFile), out patchedBackup, out backupRewrite, out error))
                 {
-                    throw new HelperException(HelperLayout.BackupJsonFileName + ": " + error);
+                    throw new HelperException(configName + ": " + error);
                 }
 
                 if (backupRewrite != null)
                 {
-                    box.WriteAllText(backupJson, patchedBackup);
-                    result.BackupDirectoryRewrite = backupRewrite;
+                    box.WriteAllText(configFile, patchedBackup);
+                    result.BackupDirectoryRewrites.Add(configName + ": " + backupRewrite);
                 }
             }
 

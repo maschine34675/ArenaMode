@@ -89,8 +89,8 @@ Roslyn against the game's own `mscorlib`, and runs one scenario per process unde
 and `PatchAndLoad` (with BepInEx's real entry-point patcher patching a copy of the game's
 `UnityEngine.CoreModule`) and then the same `FindPluginTypes<PluginInfo>` call that
 `Chainloader.Start()` makes. Dummy plugins are generated with Cecil and carry real `BepInPlugin`
-and `BepInDependency` metadata. 17 scenarios, 617 checks (since 2026-10-22; `default-deny`, `no-early-patcher`, `user-oversize`,
-`unidentified-patcher` and `gate-unlocated` are new):
+and `BepInDependency` metadata. 17 scenarios, 705 checks (617 since 2026-10-22, when `default-deny`, `no-early-patcher`,
+`user-oversize`, `unidentified-patcher` and `gate-unlocated` were added; the `patchersAllowed` checks since 2026-10-23):
 
 | Scenario | Proves |
 |---|---|
@@ -107,16 +107,17 @@ and `BepInDependency` metadata. 17 scenarios, 617 checks (since 2026-10-22; `def
 | unidentified-patcher | four patchers the gate cannot place, one early and one late of each kind (delegates from a dynamic assembly, which has no file; a patcher with only a patch method, so no assembly to find): all four are neutralised under `(unidentified) <type name>` with their own warning, the early one with an initializer is listed in `patchersRanBeforeGate` and its initializer ran, none of the late ones ran anything, and the preloader gets to its end (BepInEx would fail on a patcher without a target list) |
 | gate-unlocated | the gate is called through a wrapper patcher and is not itself in the patcher list, so its position is unknown: every neutralised patcher is listed in `patchersRanBeforeGate` (including ones whose initializer has not run) and one warning says why |
 | control-early-install | negative control: patching during `Initialize` is detected as an early Unity load |
-| baseline-real / real-install | the 41 plugins of the installed game, decided by the policy code from units read in a separate gate-free process; the WTT patcher is on the default list now and runs untouched; no patcher is neutralised, so `patchersRanBeforeGate` is empty whatever sorts before the gate |
+| baseline-real / real-install | the 41 plugins of the installed game, decided by the policy code from units read in a separate gate-free process; the WTT patcher is on the default list now and runs untouched; no patcher is neutralised, so `patchersRanBeforeGate` is empty whatever sorts before the gate, and `patchersAllowed` is exactly the four installed patchers |
 
-Thirty-five mutants of the gate and of the shared session sources it links (install in `Initialize`, no flag
+Forty mutants of the gate and of the shared session sources it links (install in `Initialize`, no flag
 check, nothing removed, patchers not neutralised, unlisted patchers neutralised in blacklist mode, entry-point
 patcher neutralised, every directory filtered, soft dependency pulled in, postfix may throw, patchers named at
 Debug, "stay off" not said, patcher warning does not name the default deny, patcher warning does not name the
 user's deny, Debug exclusion line without the reason, the six around the policy-override suffix, flag and
 warning, and nine for `patchersRanBeforeGate`: never collected, every neutralised patcher listed, allowed early
 patchers listed, missing in the final report, missing in the inactive reports, not published, omitted when empty,
-summary suffix missing, suffix written for an empty list, and six of the second pass: the size limit of the shared
+summary suffix missing, suffix written for an empty list, five for `patchersAllowed` (2026-10-23: never collected, the
+neutralised listed instead, missing in the final report, missing in the inactive reports, not published), and six of the second pass: the size limit of the shared
 policy reader off, a private reader for the user file, a patcher without a file left active, not reported as having run
 early, without its warning, and an unknown gate position listing nothing) are compiled and must each fail a scenario; all
 do, for the intended reason.

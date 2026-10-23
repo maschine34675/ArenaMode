@@ -1271,13 +1271,29 @@ public sealed class ArenaSessionHelperTests
     }
 
     [Fact]
-    public void ABackupConfigurationWithoutADirectoryKeepsSptsDefaultAndOnlyTheTopLevelMemberIsJudged()
+    public void ABackupConfigurationWithoutADirectoryGetsThePrivateOneAddedAndOnlyTheTopLevelMemberIsJudged()
     {
+        // SPT's code default for the member is the empty string, which the backup service resolves to the root of the
+        // working directory's drive (the private folder is only the value the shipped file carries): the member is added,
+        // in the file's style, at the end of the object, and a second pass then finds a path below user.
         string without = SptBackupJson.Replace("\"directory\": \"./user/profiles/backups\",", "");
         Assert.DoesNotContain("directory", without);
         Assert.True(HelperJsonText.TryConfineBackupDirectory(without, out var patched, out var rewrite, out var error), error);
-        Assert.Equal(without, patched);
-        Assert.Null(rewrite);
+        Assert.EndsWith("  },\n  \"directory\": \"./user/profiles/backups\"\n}", patched!.Replace("\r\n", "\n"));
+        Assert.Equal(without.Replace("\r\n", "\n").TrimEnd('}', '\n'), patched.Replace("\r\n", "\n").Substring(0, without.Replace("\r\n", "\n").TrimEnd('}', '\n').Length));
+        Assert.Equal("(no directory member) -> './user/profiles/backups'", rewrite);
+        Assert.True(ArenaMiniJson.TryParse(patched, out var parsed, out error), error);
+        Assert.Equal("./user/profiles/backups", ArenaMiniJson.GetString(ArenaMiniJson.AsObject(parsed)!, "directory"));
+        Assert.True(HelperJsonText.TryConfineBackupDirectory(patched, out var again, out var rewriteAgain, out error), error);
+        Assert.Equal(patched, again);
+        Assert.Null(rewriteAgain);
+
+        // The file's own style: compact stays compact, an empty object gets the member on a line of its own.
+        Assert.True(HelperJsonText.TryConfineBackupDirectory("{\"enabled\":true}", out patched, out rewrite, out error), error);
+        Assert.Equal("{\"enabled\":true,\"directory\":\"./user/profiles/backups\"}", patched);
+        Assert.True(HelperJsonText.TryConfineBackupDirectory("{}", out patched, out rewrite, out error), error);
+        Assert.Equal("{\n  \"directory\": \"./user/profiles/backups\"\n}", patched);
+        Assert.Equal("(no directory member) -> './user/profiles/backups'", rewrite);
 
         // A member of that name deeper in the document is somebody else's.
         string nested = SptBackupJson.Replace("\"intervalMinutes\": 120", "\"intervalMinutes\": 120, \"directory\": \"D:/elsewhere\"");
@@ -1309,7 +1325,7 @@ public sealed class ArenaSessionHelperTests
         var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
 
         Assert.Equal(SptBackupJson, File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
-        Assert.Equal("'" + external + "' -> './user/profiles/backups'", result.BackupDirectoryRewrite);
+        Assert.Equal(new[] { "backup.json: '" + external + "' -> './user/profiles/backups'" }, result.BackupDirectoryRewrites);
         Assert.Equal(config, File.ReadAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"))); // the installation's file is not touched
     }
 
@@ -1322,13 +1338,52 @@ public sealed class ArenaSessionHelperTests
         string root = area.At("session");
 
         var without = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
-        Assert.Null(without.BackupDirectoryRewrite);
+        Assert.Empty(without.BackupDirectoryRewrites);
         Assert.False(File.Exists(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
 
         File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"), SptBackupJson);
         var kept = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
-        Assert.Null(kept.BackupDirectoryRewrite);
+        Assert.Empty(kept.BackupDirectoryRewrites);
         Assert.Equal(SptBackupJson, File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
+    }
+
+    [SkippableFact]
+    public void EveryFileTheLoaderReadsAsTheBackupConfigIsConfinedAndAMalformedOneFailsTheBuild()
+    {
+        SkipUnlessWindows();
+        // SPT's loader takes .json and .jsonc files whose name is a substring of spt-backup, the last one read wins.
+        Assert.True(HelperLayout.IsBackupConfigFile("backup.json"));
+        Assert.True(HelperLayout.IsBackupConfigFile("backup.jsonc"));
+        Assert.True(HelperLayout.IsBackupConfigFile("spt-backup.json"));
+        Assert.False(HelperLayout.IsBackupConfigFile("http.json"));
+        Assert.False(HelperLayout.IsBackupConfigFile("core.json"));
+        Assert.False(HelperLayout.IsBackupConfigFile("Backup.json")); // the loader compares exactly
+        Assert.False(HelperLayout.IsBackupConfigFile("backup.JSON"));
+        Assert.False(HelperLayout.IsBackupConfigFile("backup.json.bak"));
+
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string external = area.At("normal-backups");
+        string config = SptBackupJson.Replace("\"./user/profiles/backups\"", JsonString(external));
+        File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.jsonc"), "// comment\n" + config);
+        File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "spt-backup.json"), "{ \"enabled\": true }");
+        string root = area.At("session");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        Assert.Equal(new[]
+        {
+            "backup.jsonc: '" + external + "' -> './user/profiles/backups'",
+            "spt-backup.json: (no directory member) -> './user/profiles/backups'",
+        }, result.BackupDirectoryRewrites);
+        string configs = Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs");
+        Assert.Equal("// comment\n" + SptBackupJson, File.ReadAllText(Path.Combine(configs, "backup.jsonc")));
+        Assert.Equal("{ \"enabled\": true,\"directory\":\"./user/profiles/backups\" }", File.ReadAllText(Path.Combine(configs, "spt-backup.json")));
+        Assert.Equal("// comment\n" + config, File.ReadAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.jsonc"))); // the installation's files are not touched
+
+        File.WriteAllText(Path.Combine(runtime.Dir, "SPT_Data", "configs", "backup.json"), "{ \"directory\": ");
+        var ex = Assert.Throws<HelperException>(() => HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add));
+        Assert.StartsWith("backup.json: ", ex.Message);
     }
 
     // ------------------------------------------------------------------ the helper mutex (review 2026-10-23)
@@ -3379,6 +3434,7 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal("watch.json", HelperLayout.WatchFileName);
         Assert.Equal("backup.json", HelperLayout.BackupJsonFileName);
         Assert.Equal("./user/profiles/backups", HelperLayout.PrivateBackupDirectory);
+        Assert.Equal("spt-backup", HelperLayout.BackupConfigKind);
         Assert.Equal("patchers", HelperLayout.PatchersFolder);
         Assert.Equal(120, HelperLayout.GameExitTimeoutSeconds);
         Assert.Equal(180, HelperLayout.ServerStartTimeoutSeconds);
