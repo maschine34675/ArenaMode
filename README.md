@@ -186,7 +186,7 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. This build requires Core **1.0.8 or newer**. If Core is missing,
+plugin tree. This build requires Core **1.0.9 or newer**. If Core is missing,
 unreadable or too old, Arena disables its gameplay runtime and shows a reason on
 the character-selection screen; loader details also appear in the client log
 and SPT dependency list. Install the
@@ -424,6 +424,12 @@ unless you allow them in your own whitelist file.
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena. |
 
+The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
+body-change fixes are provided by Core 1.0.9 and also apply to standalone Redeploy.
+Arena retains only its additional medical fallback for Arena bots. The migration
+has offline lifecycle coverage; the older Arena GPU reports do not certify the
+new shared implementation. See [migration and verification scope](docs/SHARED-BODY-COMPAT-20261023.md).
+
 Newer versions of SAIN, PitFireTeam, APBS, DynamicMaps, BigBrain, Continuous Healing,
 Continuous Load Ammo, SVM and Recoil Rework Legacy are attempted with a warning;
 required API and protection checks still apply. PFT 0.10.1 and 0.10.2 remain excluded.
@@ -487,7 +493,7 @@ The source also requires a sibling [Redeploy](https://github.com/maschine34675/R
 checkout containing
 `Redeploy.Core/`, its `CoreVersion.props`, and `drivers/CoreVersionGate.cs`.
 Use the exact Redeploy commit recorded in the release's `PACKAGE-MANIFEST.json`;
-this release uses Core 1.0.8. Do not substitute an arbitrary Core DLL for the
+the current source uses Core 1.0.9. Do not substitute an arbitrary Core DLL for the
 source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**

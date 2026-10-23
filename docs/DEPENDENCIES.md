@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The current source requires at least 1.0.8 for optional respawn timing diagnostics; older test/build reports may still mention 1.0.6/1.0.7. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The current source requires at least 1.0.9 for shared optional-mod body replacement protection; older test/build reports may still mention 1.0.6/1.0.7. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -93,6 +93,12 @@ loading/respawn paths were checked in-game. Some timing/UI and replay edge cases
 remain untested. This does not certify every map, version or mod combination; the
 descriptions below state each adapter's contract. That document also records tests
 of adapters that were removed on 2026-10-22 (see the last bullets of this list).
+
+The following Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
+contracts are implemented by Redeploy.Core 1.0.9, also for standalone Redeploy.
+Arena supplies only its explicit additional medical scope for Arena bots. The
+native observations below predate that migration; see
+[shared implementation and new verification boundaries](SHARED-BODY-COMPAT-20261023.md).
 
 - **Recoil Rework Legacy 2.0.0+:** the two foreign recoil/camera singleton
   components are transferred across Arena player replacements without destroying
@@ -196,7 +202,7 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. Core remains at version 1.0.8.
+revision is recorded in the package manifest. The current source targets Core 1.0.9.
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

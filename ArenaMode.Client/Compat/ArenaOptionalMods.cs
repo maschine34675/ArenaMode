@@ -1,4 +1,5 @@
 using ArenaMode.Session;
+using Redeploy.Core.Compat;
 
 namespace ArenaMode.Compat;
 
@@ -20,9 +21,7 @@ internal static class ArenaOptionalMods
         if (ArenaServerClient.ServerAdmissionFailure != null)
             return ArenaServerClient.ServerAdmissionFailure;
 
-        // The three adapters that remain, each for a mod the whitelist allows.
-        return ArenaContinuousHealingCompat.GetRejectionReason()
-            ?? ArenaContinuousLoadAmmoCompat.GetRejectionReason()
-            ?? ArenaRecoilLegacyCompat.GetRejectionReason();
+        // Body replacement contracts belong to Core and also protect standalone Redeploy.
+        return BodyReplacementCompatibility.GetRejectionReason();
     }
 }

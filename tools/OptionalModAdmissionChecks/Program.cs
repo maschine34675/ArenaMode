@@ -1,4 +1,5 @@
 using ArenaMode.Compat;
+using Redeploy.Core.Compat;
 using ArenaMode.Session;
 using BepInEx.Bootstrap;
 
@@ -28,47 +29,31 @@ internal static class Program
     {
         Reset();
         Allowed("No optional mods leaves Arena available");
-        Require(ArenaContinuousHealingCompat.Calls == 1 && ArenaContinuousLoadAmmoCompat.Calls == 1
-            && ArenaRecoilLegacyCompat.Calls == 1,
-            "All three remaining optional adapters are inspected when no earlier rejection exists");
-
-        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousHealingCompat.Reason,
-            "Continuous Healing adapter rejection reaches admission unchanged");
-        Require(ArenaContinuousLoadAmmoCompat.Calls == 1 && ArenaRecoilLegacyCompat.Calls == 1,
-            "Continuous Healing rejection short-circuits the later providers");
-        ArenaContinuousHealingCompat.Reason = null;
-
-        ArenaContinuousLoadAmmoCompat.Reason = "Continuous Load Ammo lifecycle unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaContinuousLoadAmmoCompat.Reason,
-            "Continuous Load Ammo rejection reaches admission unchanged");
-        Require(ArenaRecoilLegacyCompat.Calls == 1,
-            "Continuous Load Ammo rejection short-circuits Recoil Rework Legacy");
-        ArenaContinuousLoadAmmoCompat.Reason = null;
-
-        ArenaRecoilLegacyCompat.Reason = "Recoil Rework Legacy body handoff unavailable";
-        Require(ArenaOptionalMods.GetRejectionReason() == ArenaRecoilLegacyCompat.Reason,
-            "Recoil Rework Legacy rejection reaches admission unchanged");
-        ArenaRecoilLegacyCompat.Reason = null;
-
+        Require(BodyReplacementCompatibility.Calls == 1,
+            "Arena delegates exactly once to the shared Core admission provider");
+        foreach (var reason in new[] { "Continuous Healing contract unavailable", "Continuous Load Ammo lifecycle unavailable", "Recoil Rework Legacy body handoff unavailable" })
+        {
+            BodyReplacementCompatibility.Reason = reason;
+            Require(ArenaOptionalMods.GetRejectionReason() == reason,
+                "A shared Core rejection reaches Arena admission unchanged: " + reason);
+        }
+        BodyReplacementCompatibility.Reason = null;
         Allowed("An adapter becoming ready is rechecked, not cached as a permanent rejection");
     }
-
     private static void CheckServerAdmission()
     {
         Reset();
         ArenaServerClient.ServerAdmissionFailure = "Server-only rejection";
         Require(ArenaOptionalMods.GetRejectionReason() == "Server-only rejection",
             "A failure the server reported in its ping reaches the existing menu and final-start provider");
-        Require(ArenaContinuousHealingCompat.Calls == 0 && ArenaContinuousLoadAmmoCompat.Calls == 0
-            && ArenaRecoilLegacyCompat.Calls == 0,
+        Require(BodyReplacementCompatibility.Calls == 0,
             "A server rejection short-circuits every adapter provider");
 
         // The server's reason outranks an adapter reason: it is the broader refusal.
-        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
+        BodyReplacementCompatibility.Reason = "Continuous Healing contract unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == "Server-only rejection",
             "The server rejection is reported ahead of an adapter rejection");
-        ArenaContinuousHealingCompat.Reason = null;
+        BodyReplacementCompatibility.Reason = null;
 
         ArenaServerClient.ServerAdmissionFailure = null;
         Allowed("A successful refreshed server response clears its previous restriction");
@@ -85,11 +70,10 @@ internal static class Program
         Reset();
         ArenaWhitelistAdmission.Reason = "Arena runs only with whitelisted mods.";
         ArenaServerClient.ServerAdmissionFailure = "Server-only blocker";
-        ArenaContinuousHealingCompat.Reason = "Continuous Healing contract unavailable";
+        BodyReplacementCompatibility.Reason = "Continuous Healing contract unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == "Arena runs only with whitelisted mods.",
             "The whitelist refusal reaches admission unchanged and ahead of the server and adapter reasons");
-        Require(ArenaContinuousHealingCompat.Calls == 0 && ArenaContinuousLoadAmmoCompat.Calls == 0
-            && ArenaRecoilLegacyCompat.Calls == 0,
+        Require(BodyReplacementCompatibility.Calls == 0,
             "A whitelist refusal short-circuits every adapter provider");
 
         ArenaWhitelistAdmission.Reason = null;
@@ -117,8 +101,7 @@ internal static class Program
             Reset();
             Chainloader.PluginInfos[guid] = new PluginInfo();
             Allowed($"{guid} loaded: admission leaves the decision to the whitelist");
-            Require(ArenaWhitelistAdmission.Calls == 1 && ArenaContinuousHealingCompat.Calls == 1
-                && ArenaContinuousLoadAmmoCompat.Calls == 1 && ArenaRecoilLegacyCompat.Calls == 1,
+            Require(ArenaWhitelistAdmission.Calls == 1 && BodyReplacementCompatibility.Calls == 1,
                 $"{guid} loaded: the usual providers ran and nothing else decided");
         }
         Reset();
@@ -130,12 +113,8 @@ internal static class Program
         ArenaWhitelistAdmission.Reason = null;
         ArenaWhitelistAdmission.Calls = 0;
         Chainloader.PluginInfos.Clear();
-        ArenaContinuousHealingCompat.Reason = null;
-        ArenaContinuousHealingCompat.Calls = 0;
-        ArenaContinuousLoadAmmoCompat.Reason = null;
-        ArenaContinuousLoadAmmoCompat.Calls = 0;
-        ArenaRecoilLegacyCompat.Reason = null;
-        ArenaRecoilLegacyCompat.Calls = 0;
+        BodyReplacementCompatibility.Reason = null;
+        BodyReplacementCompatibility.Calls = 0;
     }
 
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);

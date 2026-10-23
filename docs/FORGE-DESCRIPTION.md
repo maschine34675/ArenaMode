@@ -93,7 +93,7 @@ the post-raid XP page skipped.
   assets and notices belong in `BepInEx/plugins/maschine-ArenaMode/`.
   The server belongs in `SPT_Runtime/user/mods/ArenaMode/`.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
-- Use the supplied `maschine-Redeploy.Core.dll` (1.0.8); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.9); keep only one copy,
   directly in `BepInEx/plugins/`.
   Arena requires at least this version and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.

@@ -39,7 +39,7 @@ internal static partial class Program
         // ---- admission chain
         Require(Before(optional, "var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason(); if (whitelistFailure != null) return whitelistFailure;",
                 "ArenaServerClient.ServerAdmissionFailure != null")
-                && Before(optional, "ArenaServerClient.ServerAdmissionFailure != null", "ArenaContinuousHealingCompat.GetRejectionReason()"),
+                && Before(optional, "ArenaServerClient.ServerAdmissionFailure != null", "BodyReplacementCompatibility.GetRejectionReason()"),
             "the whitelist is the first provider of the admission chain, ahead of the server's reported failure and the adapters");
 
         // ---- side screen

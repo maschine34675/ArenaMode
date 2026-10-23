@@ -21,7 +21,7 @@ namespace ArenaMode;
 [BepInDependency(DynamicMapsCorpseMarkers.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.lacyway.ch", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("com.ozen.continuousloadammo", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency(ArenaRecoilLegacyContract.PluginGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("com.pein.camerarecoilmod", BepInDependency.DependencyFlags.SoftDependency)]
 public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
@@ -65,9 +65,7 @@ public class Plugin : BaseUnityPlugin
         Hud.InfoPanels.InfoPanelSettings.Init(Config,
             System.IO.Path.Combine(BepInEx.Paths.ConfigPath, "com.maschine.RaidInfoPanels.cfg"));
         PitFireTeamCompat.Initialize();
-        ArenaContinuousHealingCompat.Initialize();
-        ArenaContinuousLoadAmmoCompat.Initialize();
-        ArenaRecoilLegacyCompat.Initialize();
+        ArenaMedicalBodyScope.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
@@ -206,7 +204,6 @@ public class Plugin : BaseUnityPlugin
     private void UpdateRuntime()
     {
         ArenaBigBrainLibrary.Tick();
-        ArenaRecoilLegacyCompat.Tick();
     }
 
     private void OnDestroy()
@@ -219,9 +216,7 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ShutdownRuntime()
     {
-        ArenaContinuousHealingCompat.Shutdown();
-        ArenaContinuousLoadAmmoCompat.Shutdown();
-        ArenaRecoilLegacyCompat.Shutdown();
+        ArenaMedicalBodyScope.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
         PitFireTeamAreaSpawns.Reset();

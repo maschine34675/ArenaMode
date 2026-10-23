@@ -29,6 +29,7 @@ longer exist; the whitelist replaced them.
 - [EFT Effects Manager / Broken Limbs: body and skill ownership](EFFECTS-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
 - [Candidate compatibility: native GPU tests and cleanup](GPU-COMPAT-SECOND-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
 - [Skills Extended: scoped XP and external receipt protection](SKILLS-EXTENDED-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
+- [Shared body-replacement adapters in Redeploy.Core 1.0.9](SHARED-BODY-COMPAT-20261023.md)
 - [Recoil Rework Legacy: published lifecycle conflict review](RECOIL-REWORK-REVIEW-20261020.md)
 - [Recoil Rework Legacy: scoped body/component handoff](RECOIL-REWORK-COMPAT-20261020.md)
 - [Additional compatibility candidates: skills, health, ISB, pause, doors and stances](COMPATIBILITY-CANDIDATES-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)

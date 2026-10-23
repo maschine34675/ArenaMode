@@ -26,22 +26,12 @@ $mutants = @(
     @{
         Name = 'server-rejection-behind-adapter'
         Before = 'return ArenaServerClient.ServerAdmissionFailure;'
-        After = 'return ArenaContinuousHealingCompat.GetRejectionReason() ?? ArenaServerClient.ServerAdmissionFailure;'
+        After = 'return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaServerClient.ServerAdmissionFailure;'
     },
     @{
-        Name = 'skip-continuous-healing-contract'
-        Before = 'return ArenaContinuousHealingCompat.GetRejectionReason()'
-        After = 'return (string)null'
-    },
-    @{
-        Name = 'skip-continuous-load-ammo-contract'
-        Before = '?? ArenaContinuousLoadAmmoCompat.GetRejectionReason()'
-        After = ''
-    },
-    @{
-        Name = 'skip-recoil-legacy-contract'
-        Before = '?? ArenaRecoilLegacyCompat.GetRejectionReason()'
-        After = ''
+        Name = 'skip-shared-core-contract'
+        Before = 'return BodyReplacementCompatibility.GetRejectionReason();'
+        After = 'return (string)null;'
     },
     # Negative controls for the 2026-10-22 decision: a code-level refusal of a named mod, reintroduced next to
     # the admission chain, must fail on its own assertion.

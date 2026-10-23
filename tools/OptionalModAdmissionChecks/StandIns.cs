@@ -29,21 +29,9 @@ namespace BepInEx.Bootstrap
     }
 }
 
-namespace ArenaMode.Compat
+namespace Redeploy.Core.Compat
 {
-    internal static class ArenaContinuousHealingCompat
-    {
-        public static string Reason { get; set; }
-        public static int Calls { get; set; }
-        public static string GetRejectionReason() { Calls++; return Reason; }
-    }
-    internal static class ArenaContinuousLoadAmmoCompat
-    {
-        public static string Reason { get; set; }
-        public static int Calls { get; set; }
-        public static string GetRejectionReason() { Calls++; return Reason; }
-    }
-    internal static class ArenaRecoilLegacyCompat
+    internal static class BodyReplacementCompatibility
     {
         public static string Reason { get; set; }
         public static int Calls { get; set; }
