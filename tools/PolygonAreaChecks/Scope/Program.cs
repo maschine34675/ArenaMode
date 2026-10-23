@@ -134,14 +134,24 @@ internal static class Program
             Check(f.Files().Length == 0 && Input.Reads == 0 && Physics.Calls == 0 && GUI.Labels == 0,
                 scenario.Name + ": normal capture/export blocked");
         }
-        foreach (string marker in new[] { "arenamode-start:token", "native|arenamode:token", "ARENAmodE-invalid",
-            "arenamode-ordinary-start:bad", "native|ARENAmoDE:token" })
+        // Since cba148e the end marker is the exact "|arenamode:" tag (Protocol.HasNativeEndMarker): a raid the
+        // native game still labels with Arena's end identity after IsActive cleared is never reclassified as
+        // ordinary. Start-like or malformed identities are not end transactions and capture like any ordinary
+        // raid; until 2026-10-23 this harness still expected the old "arenamode" substring rule for them.
+        foreach (string marker in new[] { "native|arenamode:token", "native|ARENAmoDE:token" })
         {
             using var f = new Fixture(); f.NormalPmc(); f.SeedTriangle();
             f.Game.RaidSettings.serverId = marker; Input.Reads = 0;
             f.Call("OnGUI"); f.Press(KeyCode.F9);
             Check(f.Draft == null && Input.Reads == 0 && f.Files().Length == 0 && GUI.Labels == 0,
-                "inactive Arena marker cannot enter normal capture");
+                "Arena end marker cannot enter normal capture");
+        }
+        foreach (string marker in new[] { "arenamode-start:token", "ARENAmodE-invalid", "arenamode-ordinary-start:bad" })
+        {
+            using var f = new Fixture(); f.NormalPmc(); f.SeedTriangle();
+            f.Game.RaidSettings.serverId = marker;
+            f.Press(KeyCode.F9);
+            Check(f.Files().Length == 1, "a start-like or malformed identity without the end marker captures like an ordinary raid");
         }
         using (var f = new Fixture())
         {

@@ -23,6 +23,9 @@ $arenaProject | Set-Content -LiteralPath (Join-Path $arenaGeometry 'Checks.cspro
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ClientContracts\Program.cs') -Destination $arenaClient
 Copy-Item -LiteralPath (Join-Path $arenaRepo $arenaSources[0]) -Destination $arenaClient
 Copy-Item -LiteralPath (Join-Path $arenaRepo $arenaSources[1]) -Destination $arenaClient
+# Both client sources defer Equator placement to Bots.ArenaTeamBoxRuntime (381f784); the suite's external
+# fixture stands in for it here as it does in the main ArenaAreaChecks project.
+Copy-Item -LiteralPath (Join-Path $arenaRepo 'tools\EquatorSpawnExternalFixture.cs') -Destination $arenaClient
 Copy-Item -LiteralPath (Join-Path $arenaRepo $arenaSources[2]) -Destination $arenaGeometry
 Copy-Item -LiteralPath (Join-Path $arenaRepo 'ArenaMode.Shared\ArenaMapCatalog.cs') -Destination $arenaGeometry
 @'

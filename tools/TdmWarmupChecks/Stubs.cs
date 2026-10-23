@@ -17,7 +17,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session
 {
-    public static class ArenaSession { public static bool IsActive; public static string ActiveMode; }
+    public static class ArenaSession { public static bool IsActive; public static string ActiveMode; public static void TickAreaStart() { } }
     public static class LabyrinthSpawnTraps { public static void Tick() { } }
 }
 namespace ArenaMode.Compat
@@ -27,6 +27,8 @@ namespace ArenaMode.Compat
         public static bool TeamArenaActive, IsFinalizing;
         public static void Tick() { }
     }
+    public static class ZombiePftFastPath { public static void TickDiagnostics() { } }
+    public static class PitFireTeamAreaSpawns { public static void Tick() { } }
 }
 namespace ArenaMode.Kits
 {
@@ -66,12 +68,13 @@ namespace ArenaMode.Modes
     public class TeamDeathmatchMode { public bool InitialRosterReady; }
     public class GunGameMode { }
     public class Match { public object Mode; }
-    public static class ArenaMatchService { public static Match Current; public static void Tick() { } }
+    public static class ArenaMatchService { public static Match Current; public static bool TeamStartAbortPending; public static void Tick() { } }
 }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }
-namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static void Tick() { } } }
+namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static bool IsPending; public static void Tick() { } } }
 namespace ArenaMode.Bots
 {
+    public static class ZombieVoiceBudget { public static void Tick() { } }
     public static class BurstSpawnService { public static void Tick() { } }
     public static class BotLoadBoost { public static void Tick() { } }
     public static class ArenaHostility { public static void Tick() { } }
@@ -89,6 +92,7 @@ namespace ArenaMode.Audio { public static class HitmarkerAudioService { public s
 namespace ArenaMode.Bots { public static class ArenaBotPatches { public static void TickIndividualGroups() { } } }
 namespace ArenaMode.Combat
 {
+    public static class ArenaDefaultFireMode { public static void Tick() { } }
     public static class ArenaSkills { public static void Tick() { } }
     public static class ArenaGiveUp { public static void Tick() { } }
 }

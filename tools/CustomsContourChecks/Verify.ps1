@@ -3,6 +3,7 @@ param(
     [string]$SptRoot = 'D:\SPT41'
 )
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+. (Join-Path $PSScriptRoot '../Assert-ArenaTestRun.ps1')
 $arenaSnapshotRoot = $SptRoot
 $arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
 try {
@@ -81,7 +82,7 @@ try {
             Invoke-ContourDotnet (@('build', 'ArenaMode.Client\ArenaMode.Client.csproj') + $arenaBuildArgs)
             Invoke-ContourDotnet (@('build', 'ArenaMode.Server\ArenaMode.Server.csproj') + $arenaBuildArgs)
             $arenaPairs = @(
-                @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', (Join-Path $arenaPlugins.FullName 'maschine-ArenaMode.Client.dll')),
+                @('ArenaMode.Client\bin\Release\maschine-ArenaMode.Client.dll', (Join-Path $arenaPlugins.FullName 'maschine-ArenaMode\maschine-ArenaMode.Client.dll')),
                 @('build\server\Release\maschine-ArenaMode.Server\maschine-ArenaMode.Server.dll', (Join-Path $arenaMods.FullName 'ArenaMode\maschine-ArenaMode.Server.dll')))
             $arenaArtifacts = foreach ($arenaPair in $arenaPairs) {
                 $arenaBuilt = Join-Path $arenaRepo $arenaPair[0]

@@ -32,7 +32,7 @@ foreach ($binding in @(
     'allowed.Keys.Any(IsPlayerPoint)',
     'Connected.Where(IsPlayerPoint)',
     'Connected.Where(p=>IsPlayerPoint(p)&&!p.SpawnBlocked&&AllowsSpawn(p))',
-    'intrequiredBots=_area.MaxTeamSize*2-1;',
+    'intrequiredBots=_teamSize*2-1;',
     'bots.Length<requiredBots',
     'BurstSpawnPointSelector.MinSpawnDistance)<requiredBots',
     'ArenaToasts.Show(_area.DisplayName+'

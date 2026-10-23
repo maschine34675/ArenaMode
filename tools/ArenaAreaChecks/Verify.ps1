@@ -12,6 +12,11 @@ $arenaRuntime = Join-Path $arenaSpt 'SPT_Runtime'
 $arenaResults = Join-Path $arenaRepo 'artifacts\area-checks'
 New-Item -ItemType Directory -Path $arenaResults -Force | Out-Null
 $arenaBuildArgs = @('-c', 'Release', "-p:SPTPath=$arenaSpt", "-p:SPTUserPath=$arenaRuntime", '--nologo', '-v:minimal')
+# SPTUserMods is a global MSBuild property; the server's deploy target copies into it, so a path that
+# must not exist keeps the test runs from writing the live user/mods (the test project builds the
+# server). The Build stage's own `dotnet build` calls deploy on purpose and compare the hashes.
+$arenaNoDeploy = Join-Path $arenaResults 'must-not-exist-no-deploy'
+if (Test-Path -LiteralPath $arenaNoDeploy) { throw 'The no-deploy sentinel must not exist.' }
 $env:SPT_DATABASE = Join-Path $arenaRuntime 'SPT_Data\database'
 $env:SPT_RUNTIME = $arenaRuntime
 
@@ -29,7 +34,7 @@ function Invoke-ArenaDotnet([string[]]$Arguments) {
 }
 function Test-ArenaServer([string]$Filter, [switch]$NoBuild) {
     $arenaTestArgs = @('test', 'ArenaMode.Tests\ArenaMode.Tests.csproj') + $arenaBuildArgs + @(
-        '--logger', "trx;LogFileName=area-$Stage.trx", '--results-directory', $arenaResults)
+        "-p:SPTUserMods=$arenaNoDeploy", '--logger', "trx;LogFileName=area-$Stage.trx", '--results-directory', $arenaResults)
     if ($Filter) { $arenaTestArgs += @('--filter', $Filter) }
     if ($NoBuild) { $arenaTestArgs += '--no-build' }
     Invoke-ArenaDotnet $arenaTestArgs

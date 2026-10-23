@@ -4,7 +4,7 @@ Run `pwsh -NoProfile -File tools/BarbedDeathChecks/Verify.ps1` from the reposito
 No client build, deployment, game launch or profile access occurs.
 
 The executable links the actual capture patch, presentation DTO and administrative
-death lease. The HUD's `ShowBarbedDeath` method is extracted verbatim for each run;
+death lease. The HUD's `ShowUncreditedDeath` method is extracted verbatim for each run;
 only its settings, feed and match boundaries are doubled. Checks exercise ordinary
 raids and non-barbed damage, physical-body dedupe across same-profile respawns,
 stale match/session rejection, completed-before versus completed-during deaths,

@@ -3,11 +3,16 @@ param(
     [string]$SptRoot = 'D:\SPT41'
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Assert-ArenaTestRun.ps1')
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSpt = (Resolve-Path -LiteralPath $SptRoot).Path
 $arenaRuntime = Join-Path $arenaSpt 'SPT_Runtime'
 $arenaResults = Join-Path $arenaRepo 'artifacts\customs-checks'
 New-Item -ItemType Directory -Path $arenaResults -Force | Out-Null
+# SPTUserMods is a global MSBuild property; the server's deploy target copies into it, so a path that
+# must not exist keeps `dotnet test` from writing the live user/mods (the test project builds the server).
+$arenaNoDeploy = Join-Path $arenaResults 'must-not-exist-no-deploy'
+if (Test-Path -LiteralPath $arenaNoDeploy) { throw 'The no-deploy sentinel must not exist.' }
 $env:SPT_DATABASE = Join-Path $arenaRuntime 'SPT_Data\database'
 $env:SPT_RUNTIME = $arenaRuntime
 
@@ -17,15 +22,10 @@ function Invoke-CustomsDotnet([string[]]$Arguments) {
 }
 function Test-CustomsServer([string]$Filter) {
     Invoke-CustomsDotnet @('test', 'ArenaMode.Tests\ArenaMode.Tests.csproj', '-c', 'Release',
-        "-p:SPTPath=$arenaSpt", "-p:SPTUserPath=$arenaRuntime", '--nologo', '-v:minimal',
+        "-p:SPTPath=$arenaSpt", "-p:SPTUserPath=$arenaRuntime", "-p:SPTUserMods=$arenaNoDeploy", '--nologo', '-v:minimal',
         '--filter', $Filter, '--logger', "trx;LogFileName=customs-$Stage.trx", '--results-directory', $arenaResults)
-    [xml]$arenaTrx = Get-Content -Raw -LiteralPath (Join-Path $arenaResults "customs-$Stage.trx")
-    $arenaCounts = $arenaTrx.TestRun.ResultSummary.Counters
-    $arenaUnpassed = @($arenaTrx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -ne 'Passed' })
-    if ([int]$arenaCounts.total -le 0 -or [int]$arenaCounts.passed -ne [int]$arenaCounts.total -or $arenaUnpassed.Count -ne 0) {
-        throw "Expected passing, unskipped Customs tests: $($arenaCounts.OuterXml)"
-    }
-    Write-Output "Customs test evidence: total=$($arenaCounts.total), passed=$($arenaCounts.passed), unpassed=$($arenaUnpassed.Count)"
+    $arenaRun = Assert-ArenaTestRun -TrxPath (Join-Path $arenaResults "customs-$Stage.trx")
+    Write-Output "Customs test evidence: total=$($arenaRun.Total), passed=$($arenaRun.Passed), skipped=$($arenaRun.Skipped)"
 }
 
 Push-Location $arenaRepo
@@ -42,7 +42,9 @@ try {
                     'LabsBotSpawnChecks', 'TeamDeathmatchRuntimeChecks', 'TeamGiveUpChecks')) {
                 Invoke-CustomsDotnet @('run', '--project', "tools\$arenaHarness\$arenaHarness.csproj", '-c', 'Release', "-p:SPTPath=$arenaSpt")
             }
-            & (Join-Path $PSScriptRoot 'NegativeControls.ps1') -SptRoot $arenaSpt
+            # The Customs negative controls of 2026-09 were retired on 2026-10-23: their expected messages left
+            # the menu checks (e61b6e3, 9c67ed7) and the area-catalog mutant lives on in CustomsAllModesChecks
+            # and MapModeAdmissionChecks.
             & (Join-Path $PSScriptRoot '..\ArenaAreaChecks\Verify.ps1') -Stage Integration -SptRoot $arenaSpt
         }
         'Build' {

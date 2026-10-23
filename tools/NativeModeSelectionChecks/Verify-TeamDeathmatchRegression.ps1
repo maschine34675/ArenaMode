@@ -21,7 +21,9 @@ function Get-TdmSource([string] $RelativePath) {
 
 $tdmState = 'ArenaMode.Client\Session\ArenaModeSelectionState.cs'
 $tdmHostility = 'ArenaMode.Server\Patches\ArenaAdjustBotHostilityPatch.cs'
-$tdmLocation = 'ArenaMode.Server\Services\ArenaLocationMutator.cs'
+# The ambient-spawn ownership moved from ArenaLocationMutator to the shared ArenaPopulationPolicy (5cae5e7);
+# the server project compiles it as ..\ArenaMode.Shared\ArenaPopulationPolicy.cs, which the mutation removes.
+$tdmLocation = 'ArenaMode.Shared\ArenaPopulationPolicy.cs'
 $tdmOriginals = @{}
 foreach ($tdmFile in @($tdmState, $tdmHostility, $tdmLocation)) {
     $tdmOriginals[$tdmFile] = Get-TdmSource $tdmFile
@@ -33,7 +35,7 @@ $tdmMutantState = Join-Path $tdmTemp 'unguarded-selection-state.cs'
 [IO.File]::WriteAllText($tdmMutantState, $tdmOriginals[$tdmState].Replace($tdmStateAnchor, 'if (false)'))
 $tdmResult = Invoke-TdmCheck @('run', '--project', (Join-Path $PSScriptRoot 'NativeModeSelectionChecks.csproj'),
     '-c', 'TeamDeathmatchMutantStateGuard', "-p:ProductionStateSource=$tdmMutantState")
-if ($tdmResult.Exit -eq 0 -or -not $tdmResult.Output.Contains('protected team rejects a non-Tactical selection without calling the writer')) {
+if ($tdmResult.Exit -eq 0 -or -not $tdmResult.Output.Contains('protected team rejects an unsupported mode without calling the writer')) {
     throw "Unguarded state mutant did not fail its intended selection assertion:`n$($tdmResult.Output)"
 }
 Write-Output 'Rejected mutant: protected-team selection bypasses state guard'
@@ -48,8 +50,8 @@ $tdmMutants = @(
     @{ Name = 'ChancedPmc'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
        From = '.Where(chanced => !IsPmcRole(chanced.Role))'; To = '.Where(chanced => true)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
-    @{ Name = 'AmbientTeams'; Source = $tdmLocation; Compile = 'Services\ArenaLocationMutator.cs';
-       From = '|| string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)'; To = '|| false';
+    @{ Name = 'AmbientTeams'; Source = $tdmLocation; Compile = '..\ArenaMode.Shared\ArenaPopulationPolicy.cs';
+       From = '|| string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase)'; To = '|| false';
        Test = 'TeamDeathmatchSuppressesEveryAmbientSpawnTrack' }
 )
 

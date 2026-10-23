@@ -133,6 +133,9 @@ namespace ArenaMode.Combat
         public static List<float> Damage=new();
         public static void ObserveHealthDamage(EFT.Player victim, EFT.Player attacker, bool bullet, float damage) => Damage.Add(damage);
     }
+    // The staging damage prefix reports the attacker to the spawn protection (a374295); the balance
+    // fixture only needs the call to compile, the protection itself has TeamDeathmatchRuntimeChecks.
+    public static class TeamSpawnProtectionHooks { public static void Attacked(EFT.Player attacker) { } }
 }
 namespace ArenaMode { public static class Plugin { public static Log ModLogger = new(); } public class Log { public void LogWarning(object text) => Console.WriteLine(text); } }
 namespace HarmonyLib

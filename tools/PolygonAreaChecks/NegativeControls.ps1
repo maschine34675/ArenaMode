@@ -83,7 +83,7 @@ $arenaPmcMutations = @(
     @('settings.playerSide == ESideType.Pmc', 'true', 'scav request: normal capture/export blocked'),
     @('(side == EPlayerSide.Usec || side == EPlayerSide.Bear)', 'true', 'scav body: normal capture/export blocked'),
     @('string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)', 'true', 'normal location mismatch: normal capture/export blocked'),
-    @('(Protocol.IsNativeOrdinaryStartIdentity(settings.serverId) || !Protocol.HasNativeEndMarker(settings.serverId))', 'true', 'inactive Arena marker cannot enter normal capture')
+    @('(Protocol.IsNativeOrdinaryStartIdentity(settings.serverId) || !Protocol.HasNativeEndMarker(settings.serverId))', 'true', 'Arena end marker cannot enter normal capture')
 )
 foreach ($arenaMutation in $arenaPmcMutations) {
     if (!$arenaCaptureOriginal.Contains($arenaMutation[0])) { throw 'PMC capture mutation anchor missing.' }

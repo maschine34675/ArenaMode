@@ -25,7 +25,8 @@ try {
         'build', 'ArenaMode.sln',
         '-c', 'Release',
         '--nologo',
-        '-p:SPTModType=NoDeploy',
+        "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $repoRoot 'tools\AirPitChecks\NoDeploy.targets')",
+        "-p:SPTUserMods=$(Join-Path $noDeployRoot 'must-not-exist')",
         "-p:SPTUserPath=$noDeployRoot"
     )
 

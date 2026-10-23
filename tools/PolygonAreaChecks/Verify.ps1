@@ -34,14 +34,14 @@ Start-Transcript -Path (Join-Path $arenaResults "stage-$Stage.log") -Force | Out
 try {
     switch ($Stage) {
         'Geometry' {
-            Test-PolygonServer 'FullyQualifiedName~ArenaAreaPolygonTests|FullyQualifiedName~ArenaAreaGeometryTests|FullyQualifiedName~CustomsAreaServerTests'
+            Test-PolygonServer 'FullyQualifiedName~ArenaAreaPolygonTests|FullyQualifiedName~ArenaAreaGeometryTests|FullyQualifiedName~CustomsMapConfigTests'
             Invoke-PolygonDotnet @('run', '--project', 'tools\PolygonAreaChecks\Capture\Capture.csproj', '-c', 'Release', "-p:SPTPath=$arenaSpt")
         }
         'Enclosure' {
             & (Join-Path $PSScriptRoot 'Enclosure\Verify.ps1')
         }
         'Integration' {
-            Test-PolygonServer 'FullyQualifiedName~ArenaAreaServerTests|FullyQualifiedName~CustomsAreaServerTests'
+            Test-PolygonServer 'FullyQualifiedName~ArenaAreaServerTests|FullyQualifiedName~CustomsMapConfigTests'
             Invoke-PolygonDotnet @('run', '--project', 'tools\PolygonAreaChecks\Scope\Scope.csproj', '-c', 'Release', "-p:SPTPath=$arenaSpt")
             foreach ($arenaHarness in @('NativeMenuChecks', 'NativeAreaHookChecks', 'NativeMapViewChecks',
                 'NativeModeSelectionChecks', 'LabsBotSpawnChecks', 'TeamDeathmatchRuntimeChecks', 'TeamGiveUpChecks')) {

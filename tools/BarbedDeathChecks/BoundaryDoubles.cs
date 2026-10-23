@@ -73,6 +73,7 @@ namespace ArenaMode.Config
     {
         internal static readonly BoolSetting ShowKillfeed = new();
         internal static readonly BoolSetting KillfeedOtherKills = new();
+        internal static readonly BoolSetting CombatHudEnabled = new();
     }
 }
 namespace ArenaMode
