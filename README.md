@@ -285,7 +285,11 @@ unavailable as before.
   taken). It works on a disposable copy of your profile, so profile changes made
   in the session are discarded, and it offers only Arena raids: PMC and Scav are
   not selectable. **RETURN TO NORMAL SESSION** restarts the game with your normal
-  server and the full mod set. The helper writes
+  server and the full mod set. Closing the game by hand inside the session (EXIT, a crash, a
+  kill) ends the arena server too: the helper leaves a small watch process behind that waits
+  for the game and then stops the arena server, so a closed game normally does not leave a
+  second server behind (if that watch process is itself killed, the next Arena session or
+  RETURN TO NORMAL SESSION ends the leftover server). The helper writes
   `%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log`. The game closes only after the
   helper has confirmed that it took the switch over; if the helper stops or stays silent for
   15 seconds, the game keeps running, says so and offers the action again, and the request is

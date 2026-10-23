@@ -453,7 +453,8 @@ decision), so until then only the marker's `serverExe` member and `status` tell 
 installation of one Windows user therefore has to receive the new helper together; a server an older helper
 left behind (`SPT.Server.exe` running from `<root>\server`) is ended by hand.
 
-Commands: `enter --request <file>`, `leave --request <file>`, `stop-server`, `status`.
+Commands: `enter --request <file>`, `leave --request <file>`, `stop-server`, `status`, and `watch --file <file>`,
+which only the enter starts (step 7).
 
 Request file (written by the client):
 
@@ -635,6 +636,31 @@ beside the request (`request.json.accepted` for `request.json`):
 6. If a step after 1 fails and the arena game was not started, restore the normal session as
    `leave` does (the old game is gone; the player must not be left with nothing). Never start a
    second game.
+7. Start the session's watchdog (2026-10-23). The helper writes `<root>\watch.json` (the game's pid, exe name and
+   start time; the pid of the arena server it started and the marker's `createdUtc`; `sptRuntimeDir`) and starts
+   its own exe as `watch --file <root>\watch.json` through `HelperProcesses.Start`, then ends as before. A second
+   process on purpose: the enter helper is a child of the old game and holds copies of every handle that game
+   made inheritable (sockets, pipes); a process that waited for the whole session would keep them open, the
+   watch inherits nothing. A watchdog that cannot be started is a Warning (`no watchdog for this session`) and
+   the session runs as before this step. The watch takes no mutex while it waits: it opens the game by pid and
+   accepts it only with the recorded exe name and a start time within 2 s of the recorded one (a reused pid, or
+   a pid that is gone, counts as a game that has exited), then waits for it to exit, however the game ends
+   (EXIT in the main menu, a crash, a kill). Once the game is gone it takes the mutex (waiting up to 180 s: a
+   `leave` holds it from its start until the normal game runs) and stops the arena server with the rules of
+   `enter` and `leave` (`StopArenaServer(sptRuntimeDir)`: a server of another installation is left alone,
+   `OtherInstallation`; `Unverified` and `StillRunning` are logged and left), bound to its own session: when
+   `server.pid` names another process than the server this enter started, or no pid file but a marker with
+   another `createdUtc` is in place, a newer enter owns the record and nothing is touched (a watchdog whose
+   game lingered may wake after the next session began). After a `leave` there is nothing left to stop
+   (`NothingToStop`); a mutex that stays busy longer leaves the server to its holder and to the next `enter`,
+   `leave` or `stop-server` (a Warning; nothing is killed without the mutex). `helper.log` (the watch logs as
+   its own process): `watchdog started (pid W): the arena server (pid S) ends with the game (pid G)` from the
+   enter; `watching the Arena game (pid G): the arena server ends with it`, `the Arena game exited with code C;
+   stopping the arena server`, `arena server after the game: <result>` from the watch. One watch process per
+   Arena game; while it runs the helper's exe is in use (a deploy that replaces `maschine-ArenaMode.Session.exe`
+   waits for the Arena game to end). A watch that is itself killed degrades to the behaviour before this step:
+   the server lingers until the next command. Before 2026-10-23 only RETURN TO NORMAL SESSION ended the arena
+   server, and a game closed by hand left it running beside the normal one.
 
 `leave`: wait for `gamePid` to exit; stop the arena server (a failure to do so is logged and
 does not keep the game from starting); read the normal port from
@@ -900,6 +926,12 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
     the policy changed during the switch. ...`, RETURN TO NORMAL SESSION works, and no new ping was asked for.
     A file that only widens the policy (the one-line override) is re-read the same way (the Debug line) and the
     session stays admitted.
+13. The watchdog (2026-10-23): in an Arena session close the game by hand (EXIT in the main menu, or kill the
+    process); within a few seconds the arena server is gone (nothing listens on the arena port, 6970 or its
+    fallback; `server.pid` is deleted) and `helper.log` ends with `the Arena game exited ... arena server after
+    the game: Stopped`, written by the watch process the enter started (`watchdog started (pid W)`); a normal
+    start of the game afterwards finds the normal server and runs as before. RETURN TO NORMAL SESSION still
+    works (the watch of that game then logs `NothingToStop`).
 
 Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all five passed:
 
@@ -1227,3 +1259,21 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   Evidence: `ArenaSessionClientChecks` 679 assertions, 163 mutants rejected (seven on the stamp: invalidation
   removed, the user file or the default file left out of the stamp, the stamp never recorded, the equality check
   removed, the session kind skipped, the click without the check); the third run of section 10.
+- Section 6, step 7, and section 10, item 13 (2026-10-23, user request). A game closed by hand inside an Arena session
+  (EXIT, a crash, a kill) left the arena server running beside the normal one; only RETURN TO NORMAL SESSION stopped
+  it. The `enter` now writes `watch.json` and starts the helper's own exe as `watch --file`, a second process so
+  that nothing the old game made inheritable stays open for the session (the enter helper ends as before). The
+  watch opens the game by pid, exe name and start time, waits for it to exit without the mutex, then takes the
+  mutex (up to 180 s, because a `leave` holds it while it restarts the game) and stops the arena server with the
+  rules of enter and leave, bound to the server its enter started (`server.pid` naming another pid, or a newer
+  marker, means a newer session owns the record and nothing is touched); after a `leave` it finds `NothingToStop`,
+  a mutex that stays busy leaves the server to its holder (`HelperCommand.Watch`, `HelperWatchFile`,
+  `HelperRunner.StartWatchdog`/`LoadWatch`/`StopAfterGameExit`, `HelperHost.WatchArenaGame`). A first draft kept
+  the enter process alive instead; its review found the inherited handles and the unbound stop, hence this shape.
+  Tests (`ArenaSessionHelperProcessTests`, real stand-in processes): the watch ends a registered server and its pid
+  file when the game is killed; it waits for a mutex a leave holds and then finds nothing to stop; a mutex that
+  stays busy leaves the server alone; a newer session's record and the server of another installation are left
+  alone; the command reads its file, waits for a live game, stops at once for a gone or reused pid, and refuses a
+  file it cannot read; the command and the file parse; source pins hold the order (enter: game, watchdog,
+  finished; host: the watch command before the mutex, the stop after the wait). Fixture: the runner does not
+  start a watchdog (the test assembly is not the helper's exe).

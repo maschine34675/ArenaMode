@@ -3198,6 +3198,34 @@ public sealed class ArenaSessionHelperTests
     }
 
     [Fact]
+    public void TheEnterStartsTheWatchdogAsASecondProcessAndTheHostRunsItWithoutTheMutex()
+    {
+        string runner = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "HelperRunner.cs"));
+        string host = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "HelperHost.cs"));
+        string program = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "Program.cs"));
+
+        // The enter keeps the game's handle only to describe it in watch.json, then starts the watch as a process of its own
+        // (section 6, step 7) and ends; the normal game of a leave is let go.
+        int started = runner.IndexOf("StartGame(request, arguments, true);", StringComparison.Ordinal);
+        int watchdog = runner.IndexOf("StartWatchdog(request);", StringComparison.Ordinal);
+        int finished = runner.IndexOf("_log.Info(\"enter finished\");", StringComparison.Ordinal);
+        Assert.True(started > 0 && started < watchdog && watchdog < finished, "the enter starts the game, then the watchdog, then finishes");
+        Assert.Contains("HelperCommand.Watch, \"--file\", path", runner, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(runner, @"StartGame\(request, arguments, true\);"));
+
+        // The host runs the watch before it takes the mutex (a leave must be able to take it while the game runs); the
+        // watch takes the mutex only after the game exited, and Program leaves the dispatch to the host.
+        int watchCommand = host.IndexOf("command.Name == HelperCommand.Watch", StringComparison.Ordinal);
+        int mutex = host.IndexOf("new Mutex(", StringComparison.Ordinal);
+        Assert.True(watchCommand > 0 && watchCommand < mutex, "the watch command runs before the host's mutex");
+        int wait = host.IndexOf("_runner.WaitForArenaGameExit()", StringComparison.Ordinal);
+        int stopMutex = host.IndexOf("new Mutex(", wait, StringComparison.Ordinal);
+        int stop = host.IndexOf("_runner.StopAfterGameExit()", StringComparison.Ordinal);
+        Assert.True(wait > 0 && wait < stopMutex && stopMutex < stop, "the watch waits, then takes the mutex, then stops");
+        Assert.DoesNotContain("Watch", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheFixedFileNamesMatchTheContract()
     {
         Assert.Equal(Path.Combine("R", "server"), HelperServerTree.GetTreePath("R"));

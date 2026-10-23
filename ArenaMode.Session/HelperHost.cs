@@ -27,6 +27,11 @@ namespace ArenaMode.SessionHelper
     /// <item><description>The command runs (it starts by waiting for the game to exit). While it waits it watches the
     /// request file it acted on: if the client takes the request back (the file is deleted or replaced), the
     /// run ends without touching anything.</description></item>
+    /// <item><description><c>watch --file</c> (started by the enter as a second process, so that it inherits nothing from
+    /// the old game) takes no mutex at first: it waits for the Arena game to exit (EXIT, a crash, a kill), then takes
+    /// the mutex (a <c>leave</c> may hold it while it restarts the game) and stops the arena server of its own
+    /// session with the rules of enter and leave, so that a game closed by hand does not leave the arena server
+    /// beside the normal one. After a leave there is nothing left to stop.</description></item>
     /// </list>
     /// </summary>
     internal sealed class HelperHost
@@ -39,6 +44,10 @@ namespace ArenaMode.SessionHelper
 
         // Public so a test harness can shorten the wait; the specification's value is the default.
         public int MutexWaitSeconds = 5;
+
+        // How long the watchdog waits for the mutex once the Arena game has exited: a leave holds it from its
+        // start until the normal game runs again (the game-exit timeout, the server start and the game start).
+        public int WatchMutexWaitSeconds = 180;
 
         public HelperHost(HelperRunner runner, HelperLog log, string mutexName, Action<string> output)
         {
@@ -60,6 +69,14 @@ namespace ArenaMode.SessionHelper
                 if (command.Name == HelperCommand.Status)
                 {
                     _output(_runner.Status());
+                    return 0;
+                }
+
+                if (command.Name == HelperCommand.Watch)
+                {
+                    // No mutex while the game runs: a leave must be able to take it. The stop takes it (WatchArenaGame).
+                    if (!_runner.LoadWatch(command.RequestPath)) return 1;
+                    WatchArenaGame();
                     return 0;
                 }
 
@@ -85,6 +102,7 @@ namespace ArenaMode.SessionHelper
                     }
                 }
 
+                int exit;
                 using (var mutex = new Mutex(false, _mutexName))
                 {
                     bool owned;
@@ -106,18 +124,74 @@ namespace ArenaMode.SessionHelper
 
                     try
                     {
-                        return Run(command, requestPath) ? 0 : 1;
+                        exit = Run(command, requestPath) ? 0 : 1;
                     }
                     finally
                     {
                         mutex.ReleaseMutex();
                     }
                 }
+
+                return exit;
             }
             catch (Exception ex)
             {
                 _log.Error("unexpected failure: " + ex);
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// The watchdog: waits for the Arena game to exit (none to wait for when it is already gone), then takes the
+        /// mutex and stops the arena server of its own session (<see cref="HelperRunner.StopAfterGameExit"/>: the rules of
+        /// enter and leave, bound to the server the enter started). A mutex that stays busy beyond
+        /// <see cref="WatchMutexWaitSeconds"/> leaves the server to whoever holds it (and to the next enter, leave
+        /// or stop-server), never kills anything without the mutex, and is logged. Internal for the test harness.
+        /// </summary>
+        internal void WatchArenaGame()
+        {
+            Process game = _runner.ArenaGame;
+            if (game != null)
+            {
+                int pid;
+                try { pid = game.Id; } catch (Exception) { pid = -1; }
+                _log.Info("watching the Arena game (pid " + pid + "): the arena server ends with it");
+                int? code = _runner.WaitForArenaGameExit();
+                _log.Info("the Arena game exited" + (code.HasValue ? " with code " + code.Value : string.Empty) + "; stopping the arena server");
+            }
+
+            using (var mutex = new Mutex(false, _mutexName))
+            {
+                bool owned;
+                try
+                {
+                    owned = mutex.WaitOne(TimeSpan.FromSeconds(WatchMutexWaitSeconds));
+                }
+                catch (AbandonedMutexException)
+                {
+                    _log.Warn("a previous helper instance ended without releasing the mutex");
+                    owned = true;
+                }
+
+                if (!owned)
+                {
+                    _log.Warn("another helper holds the mutex for more than " + WatchMutexWaitSeconds + " s; the arena server is left to it"
+                        + " (the next enter, leave or stop-server ends a server that is still there)");
+                    return;
+                }
+
+                try
+                {
+                    _runner.StopAfterGameExit();
+                }
+                catch (Exception ex)
+                {
+                    _log.Error("the arena server could not be stopped after the game: " + ex);
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
             }
         }
 

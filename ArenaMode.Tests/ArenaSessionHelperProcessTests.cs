@@ -54,9 +54,9 @@ public sealed class ArenaSessionHelperProcessTests
 
         public Process StartServer(string runtime) => StartExe(Path.Combine(runtime, HelperLayout.ServerExeName));
 
-        public Process StartExe(string exe)
+        public Process StartExe(string exe, string arguments = "-n 120 127.0.0.1")
         {
-            var info = new ProcessStartInfo(exe, "-n 120 127.0.0.1")
+            var info = new ProcessStartInfo(exe, arguments)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
@@ -113,6 +113,7 @@ public sealed class ArenaSessionHelperProcessTests
                 GameSettleMilliseconds = 10,
                 GameStartCheckMilliseconds = 100,
                 ServerSettleMilliseconds = 10,
+                StartWatchdogAfterEnter = false, // the watchdog is the helper's own exe, which this assembly is not
             };
         }
 
@@ -2029,5 +2030,347 @@ public sealed class ArenaSessionHelperProcessTests
         Assert.DoesNotContain("requests", warnings[0]);
         string copy = File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "sptLogger.json"));
         Assert.Contains("\"filePath\": \"./user/logs/spt/\"", copy);
+    }
+    // ------------------------------------------------------------------ the watchdog after enter (watch --file)
+
+    /// <summary>What the enter writes into watch.json for the game and the registered server of a session root.</summary>
+    private static HelperWatchFile WatchFor(string root, Area.GameFolder game, Process arenaGame, int serverPid, string? markerCreatedUtc = null)
+    {
+        if (markerCreatedUtc == null)
+        {
+            Assert.True(HelperMarker.TryParse(File.ReadAllText(HelperServerTree.GetMarkerPath(root)), out HelperMarker? marker, out string? error), error);
+            markerCreatedUtc = marker!.CreatedUtc;
+        }
+
+        return new HelperWatchFile
+        {
+            GamePid = arenaGame.Id,
+            GameExe = Path.GetFileName(game.Exe),
+            GameStartUtc = arenaGame.StartTime.ToUniversalTime().ToString("o"),
+            ServerPid = serverPid,
+            MarkerCreatedUtc = markerCreatedUtc,
+            SptRuntimeDir = game.Runtime,
+        };
+    }
+
+    /// <summary>The helper log while another thread appends to it; empty until the first line created the file.</summary>
+    private static string LogOf(string root)
+    {
+        string path = Path.Combine(root, "helper.log");
+        return File.Exists(path) ? HelperFileSystem.ReadAllTextShared(path) : string.Empty;
+    }
+
+    /// <summary>
+    /// The watchdog's two halves, driven directly: the runner holds the game (a long-lived stand-in) and the watch file of a
+    /// registered arena server; once the test ends the game, the watch must end the server and its pid file and say so.
+    /// </summary>
+    [SkippableFact]
+    public void TheWatchStopsTheArenaServerWhenTheArenaGameExits()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        HelperRunner runner = area.Runner(root);
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.Watch = WatchFor(root, game, arenaGame, server.Id);
+        HelperHost host = area.Host(runner, root, NewMutexName(), new List<string>());
+
+        Task watch = Task.Run(host.WatchArenaGame);
+        WaitUntil(() => LogOf(root).Contains("watching the Arena game (pid " + arenaGame.Id + ")"), "the watch did not announce the game");
+        Assert.False(watch.IsCompleted, "the watch returned while the game was still running");
+        Assert.False(server.HasExited, "the server was stopped before the game ended");
+        arenaGame.Kill();
+        Assert.True(watch.Wait(TimeSpan.FromSeconds(20)), "the watch did not finish after the game ended");
+
+        Assert.True(Exited(server), "the arena server outlived the game");
+        Assert.False(File.Exists(HelperServerTree.GetPidFilePath(root)), "server.pid was left behind");
+        string log = LogOf(root);
+        Assert.Contains("the Arena game exited", log);
+        Assert.Contains("; stopping the arena server", log);
+        Assert.Contains("arena server after the game: Stopped", log);
+    }
+
+    /// <summary>
+    /// A leave holds the mutex from its start until the normal game runs again, and it stops the arena server itself. The
+    /// watch, which sees the game exit meanwhile, must wait for the mutex instead of killing alongside, and then find
+    /// nothing left to stop.
+    /// </summary>
+    [SkippableFact]
+    public void TheWatchWaitsForALeaveThatHoldsTheMutexAndThenFindsNothingLeftToStop()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        HelperRunner runner = area.Runner(root);
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.Watch = WatchFor(root, game, arenaGame, server.Id);
+        string mutexName = NewMutexName();
+        HelperHost host = area.Host(runner, root, mutexName, new List<string>());
+        host.WatchMutexWaitSeconds = 30;
+
+        Task watch;
+        using (new MutexOwner(mutexName))
+        {
+            watch = Task.Run(host.WatchArenaGame);
+            WaitUntil(() => LogOf(root).Contains("watching the Arena game"), "the watch did not announce the game");
+            arenaGame.Kill();
+            WaitUntil(() => LogOf(root).Contains("; stopping the arena server"), "the watch did not see the game exit");
+            Thread.Sleep(500); // a grace period: the watch is now waiting for the mutex
+            Assert.False(watch.IsCompleted, "the watch did not wait for the mutex");
+            Assert.False(server.HasExited, "the watch killed the server without the mutex");
+            Assert.DoesNotContain("arena server after the game", LogOf(root));
+            // The leave's own work: it stops the arena server and takes the pid file with it.
+            server.Kill();
+            Assert.True(Exited(server));
+            File.Delete(HelperServerTree.GetPidFilePath(root));
+        }
+
+        Assert.True(watch.Wait(TimeSpan.FromSeconds(20)), "the watch did not finish once the mutex was free");
+        string log = LogOf(root);
+        Assert.Contains("arena server after the game: NothingToStop", log);
+        Assert.DoesNotContain("another helper holds the mutex", log);
+    }
+
+    /// <summary>A mutex that stays busy beyond the watch's patience: nothing is killed, the log says who gets the server.</summary>
+    [SkippableFact]
+    public void TheWatchLeavesTheServerToAHelperThatKeepsTheMutex()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        HelperRunner runner = area.Runner(root);
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.Watch = WatchFor(root, game, arenaGame, server.Id);
+        string mutexName = NewMutexName();
+        HelperHost host = area.Host(runner, root, mutexName, new List<string>());
+        host.WatchMutexWaitSeconds = 0;
+
+        Task watch;
+        using (new MutexOwner(mutexName))
+        {
+            watch = Task.Run(host.WatchArenaGame);
+            WaitUntil(() => LogOf(root).Contains("watching the Arena game"), "the watch did not announce the game");
+            arenaGame.Kill();
+            Assert.True(watch.Wait(TimeSpan.FromSeconds(20)), "the watch did not give up on the busy mutex");
+        }
+
+        Assert.False(server.HasExited, "the watch killed the server although another helper held the mutex");
+        Assert.True(File.Exists(HelperServerTree.GetPidFilePath(root)));
+        string log = LogOf(root);
+        Assert.Contains("another helper holds the mutex for more than 0 s; the arena server is left to it", log);
+        Assert.DoesNotContain("arena server after the game", log);
+        Assert.Single(WarningsOf(root).Where(line => line.Contains("another helper holds the mutex")));
+    }
+
+    /// <summary>
+    /// A watchdog whose game lingered may wake after the next session began: server.pid then names the newer server and
+    /// the marker is the newer session's. Nothing of the newer session may be touched.
+    /// </summary>
+    [SkippableFact]
+    public void TheWatchLeavesANewerSessionsServerAlone()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process older = area.StartExe(treeExe);
+        Process newer = area.StartExe(treeExe);
+        area.Record(newer, game.Runtime, "session", treeExe); // the newer enter's marker and pid file
+        Process arenaGame = area.StartExe(game.Exe);
+        HelperRunner runner = area.Runner(root);
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.Watch = WatchFor(root, game, arenaGame, older.Id, "2026-01-01T00:00:00Z");
+        HelperHost host = area.Host(runner, root, NewMutexName(), new List<string>());
+
+        Task watch = Task.Run(host.WatchArenaGame);
+        WaitUntil(() => LogOf(root).Contains("watching the Arena game"), "the watch did not announce the game");
+        arenaGame.Kill();
+        Assert.True(watch.Wait(TimeSpan.FromSeconds(20)));
+
+        Assert.False(older.HasExited, "the older server was killed; the newer enter had already replaced the record");
+        Assert.False(newer.HasExited, "the newer session's server was killed by the older watchdog");
+        Assert.Equal(newer.Id.ToString(), File.ReadAllText(HelperServerTree.GetPidFilePath(root)).Trim());
+        string log = LogOf(root);
+        Assert.Contains("server.pid names pid " + newer.Id + ", not this session's server (pid " + older.Id + "): a newer session owns the record", log);
+        Assert.DoesNotContain("arena server after the game", log);
+
+        // The same once the pid file is gone and only the newer marker is in place.
+        File.Delete(HelperServerTree.GetPidFilePath(root));
+        Assert.Equal(StopResult.NothingToStop, runner.StopAfterGameExit());
+        Assert.False(newer.HasExited);
+        Assert.Contains("the marker in place is a newer session's", LogOf(root));
+    }
+
+    /// <summary>The installation rule of enter and leave holds for the watchdog: the server of another installation is left alone.</summary>
+    [SkippableFact]
+    public void TheWatchLeavesTheServerOfAnotherInstallationAlone()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string other = area.Runtime("other", "SPT_Runtime");
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, other, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        HelperRunner runner = area.Runner(root);
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.Watch = WatchFor(root, game, arenaGame, server.Id);
+        HelperHost host = area.Host(runner, root, NewMutexName(), new List<string>());
+
+        Task watch = Task.Run(host.WatchArenaGame);
+        WaitUntil(() => LogOf(root).Contains("watching the Arena game"), "the watch did not announce the game");
+        arenaGame.Kill();
+        Assert.True(watch.Wait(TimeSpan.FromSeconds(20)));
+
+        Assert.False(server.HasExited, "the server of another installation was killed");
+        Assert.True(File.Exists(HelperServerTree.GetPidFilePath(root)));
+        Assert.Contains("arena server after the game: OtherInstallation", LogOf(root));
+    }
+
+    /// <summary>
+    /// The watch command as the enter starts it: it reads watch.json, opens the game by pid, takes no mutex while it waits,
+    /// and stops the server once the game is gone. A game that is already gone when the command starts is stopped at once.
+    /// </summary>
+    [SkippableFact]
+    public void TheWatchCommandReadsItsFileWaitsForTheGameAndStopsTheServer()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        string path = Path.Combine(root, HelperLayout.WatchFileName);
+        File.WriteAllText(path, WatchFor(root, game, arenaGame, server.Id).ToJson());
+        string mutexName = NewMutexName();
+        HelperHost host = area.Host(area.Runner(root), root, mutexName, new List<string>());
+
+        Task<int> run = Task.Run(() => host.Execute(Command("watch", "--file", path)));
+        WaitUntil(() => LogOf(root).Contains("watching the Arena game (pid " + arenaGame.Id + ")"), "the watch command did not announce the game");
+        using (new MutexOwner(mutexName))
+        {
+            // Another helper (a leave) can take the mutex while the watch waits for the game.
+        }
+
+        Assert.False(run.IsCompleted);
+        arenaGame.Kill();
+        Assert.True(run.Wait(TimeSpan.FromSeconds(20)), "the watch command did not finish after the game ended");
+        Assert.Equal(0, run.Result);
+        Assert.True(Exited(server), "the arena server outlived the game");
+        Assert.Contains("arena server after the game: Stopped", LogOf(root));
+
+        // The game is already gone when the watch starts (the pid finished long ago): the stop follows at once.
+        Process second = area.StartExe(treeExe);
+        area.Record(second, game.Runtime, "session", treeExe);
+        var gone = new HelperWatchFile
+        {
+            GamePid = Area.FinishedProcessId(), GameExe = Path.GetFileName(game.Exe), GameStartUtc = DateTime.UtcNow.ToString("o"),
+            ServerPid = second.Id, SptRuntimeDir = game.Runtime,
+        };
+        File.WriteAllText(path, gone.ToJson());
+        Assert.Equal(0, area.Host(area.Runner(root), root, NewMutexName(), new List<string>()).Execute(Command("watch", "--file", path)));
+        Assert.True(Exited(second));
+        Assert.Contains("is already gone", LogOf(root));
+    }
+
+    /// <summary>A pid that now belongs to another program is a game that has exited, never something to wait for.</summary>
+    [SkippableFact]
+    public void TheWatchCommandDoesNotWaitForAReusedPid()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        using Process other = Process.Start(new ProcessStartInfo("cmd.exe", "/c ping -n 30 127.0.0.1 >nul") { UseShellExecute = false, CreateNoWindow = true })!;
+        try
+        {
+            string path = Path.Combine(root, HelperLayout.WatchFileName);
+            var watch = new HelperWatchFile
+            {
+                GamePid = other.Id, GameExe = Path.GetFileName(game.Exe), GameStartUtc = other.StartTime.ToUniversalTime().ToString("o"),
+                ServerPid = server.Id, SptRuntimeDir = game.Runtime,
+            };
+            File.WriteAllText(path, watch.ToJson());
+            var clock = Stopwatch.StartNew();
+
+            int exit = area.Host(area.Runner(root), root, NewMutexName(), new List<string>()).Execute(Command("watch", "--file", path));
+
+            Assert.Equal(0, exit);
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(15), "the watch waited for a process that is not the game");
+            Assert.False(other.HasExited);
+            Assert.True(Exited(server));
+            Assert.Contains("is not the Arena game any more", LogOf(root));
+        }
+        finally
+        {
+            try { other.Kill(); } catch (InvalidOperationException) { }
+        }
+    }
+
+    [SkippableFact]
+    public void TheWatchCommandRefusesAFileItCannotRead()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        string root = area.At("session");
+        HelperHost host = area.Host(area.Runner(root), root, NewMutexName(), new List<string>());
+
+        Assert.Equal(1, host.Execute(Command("watch", "--file", Path.Combine(root, "missing.json"))));
+        File.WriteAllText(Path.Combine(root, "bad.json"), "{ \"schema\": 1 }");
+        Assert.Equal(1, host.Execute(Command("watch", "--file", Path.Combine(root, "bad.json"))));
+
+        string log = LogOf(root);
+        Assert.Contains("cannot read the watch file", log);
+        Assert.Contains("the watch file needs gamePid, gameExe and sptRuntimeDir", log);
+    }
+
+    [Fact]
+    public void TheWatchCommandAndItsFileParse()
+    {
+        Assert.False(HelperCommand.TryParse(new[] { "watch" }, out _, out string? error));
+        Assert.Equal("'watch' needs --file <file>", error);
+        Assert.True(HelperCommand.TryParse(new[] { "watch", "--file", "C:\\x\\watch.json" }, out HelperCommand? command, out error), error);
+        Assert.Equal(HelperCommand.Watch, command!.Name);
+        Assert.Equal("C:\\x\\watch.json", command.RequestPath);
+        Assert.False(command.NeedsRequest);
+        Assert.True(HelperCommand.TryParse(new[] { "watch", "--file=w.json" }, out command, out _));
+        Assert.Equal("w.json", command!.RequestPath);
+        Assert.False(HelperCommand.TryParse(new[] { "watch", "--file" }, out _, out error));
+        Assert.Equal("--file needs a file name", error);
+        Assert.False(HelperCommand.TryParse(new[] { "enter", "--file", "x" }, out _, out error));
+        Assert.Contains("unexpected argument '--file'", error);
+
+        var file = new HelperWatchFile { GamePid = 4242, GameExe = "EscapeFromTarkov.exe", GameStartUtc = "2026-10-23T12:00:00.0000000Z", ServerPid = 77, MarkerCreatedUtc = "2026-10-23T12:00:00Z", SptRuntimeDir = @"C:\SPT41\SPT_Runtime" };
+        Assert.True(HelperWatchFile.TryParse(file.ToJson(), out HelperWatchFile? parsed, out error), error);
+        Assert.Equal((4242, "EscapeFromTarkov.exe", "2026-10-23T12:00:00.0000000Z", 77, "2026-10-23T12:00:00Z", @"C:\SPT41\SPT_Runtime"),
+            (parsed!.GamePid, parsed.GameExe, parsed.GameStartUtc, parsed.ServerPid, parsed.MarkerCreatedUtc, parsed.SptRuntimeDir));
+        Assert.False(HelperWatchFile.TryParse("{ \"schema\": 1, \"gameExe\": \"x\" }", out _, out error));
+        Assert.Equal("the watch file needs gamePid, gameExe and sptRuntimeDir", error);
+        Assert.False(HelperWatchFile.TryParse("[]", out _, out error));
+        Assert.Equal(180, new HelperHost(new HelperRunner(Path.GetTempPath(), new HelperLog(Path.Combine(Path.GetTempPath(), "arena-watch-pin.log")), "t"), new HelperLog(Path.Combine(Path.GetTempPath(), "arena-watch-pin.log")), NewMutexName(), _ => { }).WatchMutexWaitSeconds);
+        Assert.True(new HelperRunner(Path.GetTempPath(), new HelperLog(Path.Combine(Path.GetTempPath(), "arena-watch-pin.log")), "t").StartWatchdogAfterEnter);
     }
 }

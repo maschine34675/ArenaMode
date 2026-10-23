@@ -49,6 +49,8 @@ namespace ArenaMode.SessionHelper
 
         /// <summary>Prefix of every log file name the arena server writes.</summary>
         public const string LogFilePatternPrefix = "arena-";
+        /// <summary>The watchdog's file in the session root (section 6, step 7).</summary>
+        public const string WatchFileName = "watch.json";
 
         /// <summary><c>user\logs</c>: the folder below which the arena server's file loggers write inside the tree.</summary>
         public const string LogsFolder = "logs";
@@ -89,7 +91,8 @@ namespace ArenaMode.SessionHelper
 
     /// <summary>
     /// The helper's own command line: <c>enter --request &lt;file&gt;</c>,
-    /// <c>leave --request &lt;file&gt;</c>, <c>stop-server</c> and <c>status</c>.
+    /// <c>leave --request &lt;file&gt;</c>, <c>stop-server</c>, <c>status</c> and <c>watch --file &lt;file&gt;</c>
+    /// (the watchdog the enter starts).
     /// </summary>
     public sealed class HelperCommand
     {
@@ -98,9 +101,12 @@ namespace ArenaMode.SessionHelper
         public const string StopServer = "stop-server";
         public const string Status = "status";
 
+        /// <summary><c>watch --file &lt;file&gt;</c>: the session's watchdog, started by the enter helper (section 6, step 7).</summary>
+        public const string Watch = "watch";
+
         public string Name { get; private set; }
 
-        /// <summary>The value of <c>--request</c>; null for the commands that take none.</summary>
+        /// <summary>The value of <c>--request</c> (enter, leave) or of <c>--file</c> (watch); null for the commands that take none.</summary>
         public string RequestPath { get; private set; }
 
         public bool NeedsRequest
@@ -114,12 +120,12 @@ namespace ArenaMode.SessionHelper
             error = null;
             if (args == null || args.Length == 0)
             {
-                error = "no command given (expected enter, leave, stop-server or status)";
+                error = "no command given (expected enter, leave, stop-server, watch or status)";
                 return false;
             }
 
             string name = (args[0] ?? string.Empty).Trim().ToLowerInvariant();
-            if (name != Enter && name != Leave && name != StopServer && name != Status)
+            if (name != Enter && name != Leave && name != StopServer && name != Status && name != Watch)
             {
                 error = "unknown command '" + args[0] + "'";
                 return false;
@@ -130,6 +136,25 @@ namespace ArenaMode.SessionHelper
             {
                 string token = args[i] ?? string.Empty;
                 bool takesRequest = name == Enter || name == Leave;
+                if (name == Watch && (token.Equals("--file", StringComparison.OrdinalIgnoreCase) || token.StartsWith("--file=", StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (request != null)
+                    {
+                        error = "--file given twice";
+                        return false;
+                    }
+
+                    string value = token.Length > "--file".Length ? token.Substring("--file=".Length) : (i + 1 < args.Length ? args[++i] : null);
+                    if (string.IsNullOrWhiteSpace(value) || value.StartsWith("--", StringComparison.Ordinal))
+                    {
+                        error = "--file needs a file name";
+                        return false;
+                    }
+
+                    request = value;
+                    continue;
+                }
+
                 if (takesRequest && token.Equals("--request", StringComparison.OrdinalIgnoreCase))
                 {
                     if (request != null)
@@ -173,6 +198,12 @@ namespace ArenaMode.SessionHelper
             if ((name == Enter || name == Leave) && request == null)
             {
                 error = "'" + name + "' needs --request <file>";
+                return false;
+            }
+
+            if (name == Watch && request == null)
+            {
+                error = "'watch' needs --file <file>";
                 return false;
             }
 
@@ -1979,6 +2010,77 @@ namespace ArenaMode.SessionHelper
         {
             double seconds = (pidFileWriteUtc - processStartUtc).TotalSeconds;
             return seconds >= -5.0 && seconds <= 120.0;
+        }
+    }
+
+    /// <summary>
+    /// The <c>watch.json</c> the enter helper writes into the session root for the watchdog it starts (section 6, step 7):
+    /// which game to wait for (pid, exe name and start time, so that a reused pid is not mistaken for it), which arena
+    /// server the enter started (pid and the marker's <c>createdUtc</c>, so that a late watchdog never touches a newer
+    /// session's server) and the installation the request was for.
+    /// </summary>
+    public sealed class HelperWatchFile
+    {
+        public int GamePid { get; set; }
+
+        public string GameExe { get; set; }
+
+        /// <summary>Round-trip ("o") text of the game's start time, UTC; null when it could not be read.</summary>
+        public string GameStartUtc { get; set; }
+
+        public int ServerPid { get; set; }
+
+        public string MarkerCreatedUtc { get; set; }
+
+        public string SptRuntimeDir { get; set; }
+
+        public string ToJson()
+        {
+            var root = new Dictionary<string, object>();
+            root["schema"] = ArenaSessionContract.SchemaVersion;
+            root["gamePid"] = GamePid;
+            root["gameExe"] = GameExe;
+            root["gameStartUtc"] = GameStartUtc;
+            root["serverPid"] = ServerPid;
+            root["markerCreatedUtc"] = MarkerCreatedUtc;
+            root["sptRuntimeDir"] = SptRuntimeDir;
+            return ArenaMiniJson.Write(root, true);
+        }
+
+        public static bool TryParse(string json, out HelperWatchFile file, out string error)
+        {
+            file = null;
+            object root;
+            if (!ArenaMiniJson.TryParse(json, out root, out error)) return false;
+            if (ArenaMiniJson.AsObject(root) == null)
+            {
+                error = "the watch file must be a JSON object";
+                return false;
+            }
+
+            if (ArenaMiniJson.GetInt(root, "schema", -1) != ArenaSessionContract.SchemaVersion)
+            {
+                error = "unsupported watch file schema";
+                return false;
+            }
+
+            var parsed = new HelperWatchFile
+            {
+                GamePid = ArenaMiniJson.GetInt(root, "gamePid", 0),
+                GameExe = ArenaMiniJson.GetString(root, "gameExe"),
+                GameStartUtc = ArenaMiniJson.GetString(root, "gameStartUtc"),
+                ServerPid = ArenaMiniJson.GetInt(root, "serverPid", 0),
+                MarkerCreatedUtc = ArenaMiniJson.GetString(root, "markerCreatedUtc"),
+                SptRuntimeDir = ArenaMiniJson.GetString(root, "sptRuntimeDir"),
+            };
+            if (parsed.GamePid <= 0 || string.IsNullOrEmpty(parsed.GameExe) || string.IsNullOrEmpty(parsed.SptRuntimeDir))
+            {
+                error = "the watch file needs gamePid, gameExe and sptRuntimeDir";
+                return false;
+            }
+
+            file = parsed;
+            return true;
         }
     }
 

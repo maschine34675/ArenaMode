@@ -85,6 +85,20 @@ namespace ArenaMode.SessionHelper
         // True once a game process exists; a recovery must never start another one.
         private bool _gameStarted;
 
+        // The Arena game of this watchdog run (the watch command opened it by pid, or a test harness set it): what
+        // WaitForArenaGameExit waits for. Null when the game is already gone.
+        public Process ArenaGame { get; internal set; }
+
+        // What the enter wrote into watch.json and the watch command read back (section 6, step 7).
+        public HelperWatchFile Watch { get; internal set; }
+
+        // False in a test harness: the watchdog is a second process of the helper's own exe, which a test does not
+        // have (the runner is compiled into the test assembly). Program keeps the default.
+        public bool StartWatchdogAfterEnter = true;
+
+        // The pid of the arena server this run started (StartArenaServer); -1 before.
+        private int _startedServerPid = -1;
+
         public HelperRunner(string runtimeRoot, HelperLog log, string version)
         {
             _runtimeRoot = runtimeRoot;
@@ -146,7 +160,8 @@ namespace ArenaMode.SessionHelper
                     throw new HelperException("cannot build the game arguments: " + error);
                 }
 
-                StartGame(request, arguments);
+                StartGame(request, arguments, true);
+                StartWatchdog(request);
                 _log.Info("enter finished");
                 return true;
             }
@@ -462,6 +477,180 @@ namespace ArenaMode.SessionHelper
             }
         }
 
+        // ------------------------------------------------------------------ after the Arena game
+
+        /// <summary>
+        /// Waits for the Arena game that enter started to exit, however long the session lasts (EXIT, a crash and a
+        /// kill all end the process). Returns its exit code, or null when the process cannot be asked.
+        /// </summary>
+        public int? WaitForArenaGameExit()
+        {
+            Process game = ArenaGame;
+            if (game == null) return null;
+            try
+            {
+                game.WaitForExit();
+                return game.ExitCode;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The enter's last step: writes <c>watch.json</c> (which game, which server, which installation) into the session
+        /// root and starts the helper's own exe as <c>watch --file</c>. A second process because this one is a child of
+        /// the old game and holds copies of whatever handles that game had made inheritable (sockets, pipes); it ends
+        /// moments from now as it always did, and the watchdog, started through <see cref="HelperProcesses.Start"/>,
+        /// inherits nothing. A watchdog that cannot be started is a Warning: the session runs as before 2026-10-23
+        /// (the arena server lingers until the next enter, leave or stop-server).
+        /// </summary>
+        private void StartWatchdog(HelperRequest request)
+        {
+            Process game = ArenaGame;
+            try
+            {
+                if (game == null) return;
+                DateTime startUtc;
+                HelperMarker marker = ReadMarker();
+                var watch = new HelperWatchFile
+                {
+                    GamePid = game.Id,
+                    GameExe = Path.GetFileName(request.GameExe),
+                    GameStartUtc = HelperProcesses.TryGetStartTimeUtc(game, out startUtc) ? startUtc.ToString("o", System.Globalization.CultureInfo.InvariantCulture) : null,
+                    ServerPid = _startedServerPid,
+                    MarkerCreatedUtc = marker != null ? marker.CreatedUtc : null,
+                    SptRuntimeDir = request.SptRuntimeDir,
+                };
+                Watch = watch;
+                if (!StartWatchdogAfterEnter) return;
+
+                string path = Path.Combine(_runtimeRoot, HelperLayout.WatchFileName);
+                var box = new HelperSandbox(_runtimeRoot, Info) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
+                box.WriteAllText(path, watch.ToJson());
+                string exe = typeof(HelperRunner).Assembly.Location;
+                using (Process watchdog = StartProcess(exe, HelperCommandLine.BuildCommandLine(new List<string> { HelperCommand.Watch, "--file", path }), _runtimeRoot))
+                {
+                    if (watchdog == null) throw new HelperException("the watchdog did not start");
+                    _log.Info("watchdog started (pid " + watchdog.Id + "): the arena server (pid " + watch.ServerPid + ") ends with the game (pid " + watch.GamePid + ")");
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn("no watchdog for this session (" + ex.Message + "): the arena server will linger after the game until the next enter, leave or stop-server");
+            }
+            finally
+            {
+                // The enter helper ends now; the watchdog holds its own handle to the game.
+                if (game != null) game.Dispose();
+                ArenaGame = null;
+            }
+        }
+
+        /// <summary>
+        /// The watch command's first step: reads <c>watch.json</c> and opens the game it names. A pid that is gone, or
+        /// that now belongs to another image or to a process started at another time (the number was reused), counts
+        /// as a game that has already exited: <see cref="ArenaGame"/> stays null and the stop follows at once. False
+        /// (with the reason logged) when the file cannot be read: nothing is stopped on a guess.
+        /// </summary>
+        public bool LoadWatch(string path)
+        {
+            HelperWatchFile watch;
+            string error;
+            try
+            {
+                if (!HelperWatchFile.TryParse(HelperFileSystem.ReadAllTextShared(path), out watch, out error))
+                {
+                    _log.Error("the watch file '" + path + "' is not usable: " + error);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error("cannot read the watch file '" + path + "': " + ex.Message);
+                return false;
+            }
+
+            Watch = watch;
+            Process game = HelperProcesses.TryOpen(watch.GamePid);
+            if (game == null)
+            {
+                _log.Info("the Arena game (pid " + watch.GamePid + ") is already gone");
+                return true;
+            }
+
+            string image = HelperProcesses.GetImagePath(game);
+            DateTime startUtc, expectedUtc;
+            bool sameImage = image == null || string.Equals(Path.GetFileName(image), watch.GameExe, StringComparison.OrdinalIgnoreCase);
+            bool sameStart = watch.GameStartUtc == null || !HelperProcesses.TryGetStartTimeUtc(game, out startUtc)
+                || !DateTime.TryParse(watch.GameStartUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out expectedUtc)
+                || Math.Abs((startUtc.ToUniversalTime() - expectedUtc.ToUniversalTime()).TotalSeconds) <= 2.0;
+            if (!sameImage || !sameStart)
+            {
+                _log.Info("pid " + watch.GamePid + " is not the Arena game any more (" + (sameImage ? "another start time" : image) + "): it has exited");
+                game.Dispose();
+                return true;
+            }
+
+            ArenaGame = game;
+            return true;
+        }
+
+        /// <summary>
+        /// The second half of the watchdog: the arena server of the installation the enter was for is stopped with the
+        /// rules of enter and leave (<see cref="StopArenaServer"/>: a server of another installation is left alone,
+        /// Unverified and StillRunning are logged). Bound to its own session: when <c>server.pid</c> names another process
+        /// than the one this enter started, or the marker is a newer session's, a later enter owns the record and
+        /// nothing is touched (a watchdog whose game lingered may wake up after the next session began). After a
+        /// leave there is nothing left to stop.
+        /// </summary>
+        public StopResult StopAfterGameExit()
+        {
+            HelperWatchFile watch = Watch;
+            if (watch != null)
+            {
+                int recorded;
+                if (TryReadRecordedPid(out recorded))
+                {
+                    if (recorded != watch.ServerPid)
+                    {
+                        _log.Info("server.pid names pid " + recorded + ", not this session's server (pid " + watch.ServerPid + "): a newer session owns the record, nothing to stop here");
+                        return StopResult.NothingToStop;
+                    }
+                }
+                else
+                {
+                    HelperMarker marker = ReadMarker();
+                    if (marker != null && !string.IsNullOrEmpty(watch.MarkerCreatedUtc) && !string.Equals(marker.CreatedUtc, watch.MarkerCreatedUtc, StringComparison.Ordinal))
+                    {
+                        _log.Info("the marker in place is a newer session's (" + marker.CreatedUtc + ", this session: " + watch.MarkerCreatedUtc + "): nothing of this session is left to stop");
+                        return StopResult.NothingToStop;
+                    }
+                }
+            }
+
+            StopResult result = StopArenaServer(watch != null ? watch.SptRuntimeDir : null);
+            _log.Info("arena server after the game: " + result);
+            return result;
+        }
+
+        /// <summary>True with the pid when <c>server.pid</c> exists and holds one; false when it is absent or unreadable.</summary>
+        private bool TryReadRecordedPid(out int pid)
+        {
+            pid = 0;
+            string path = HelperServerTree.GetPidFilePath(_runtimeRoot);
+            try
+            {
+                if (!File.Exists(path)) return false;
+                return HelperPidFile.TryParsePid(HelperFileSystem.ReadAllTextShared(path), out pid);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         // ------------------------------------------------------------------ status
 
         /// <summary>One JSON line: the tree, the marker, the recorded pid and the port state.</summary>
@@ -698,6 +887,7 @@ namespace ArenaMode.SessionHelper
             {
                 if (server == null) throw new HelperException("the arena server did not start");
                 RegisterStartedServer(server, box, pidPath);
+                _startedServerPid = server.Id;
                 _log.Info("arena server pid " + server.Id);
 
                 HelperHttpEndpoint arena = ReadArenaEndpoint(tree.TreePath);
@@ -889,10 +1079,18 @@ namespace ArenaMode.SessionHelper
 
         private void StartGame(HelperRequest request, List<string> arguments)
         {
+            StartGame(request, arguments, false);
+        }
+
+        // keepForWatch: the Arena game of an enter stays open in ArenaGame for the watchdog; the normal game of a
+        // leave is let go.
+        private void StartGame(HelperRequest request, List<string> arguments, bool keepForWatch)
+        {
             if (!File.Exists(request.GameExe)) throw new HelperException("the game is missing: " + request.GameExe);
             string commandLine = HelperCommandLine.BuildCommandLine(arguments);
             _log.Info("starting the game " + request.GameExe + " in " + request.GameDir + ": " + HelperCommandLine.RedactForLog(arguments));
-            using (Process game = StartProcess(request.GameExe, commandLine, request.GameDir))
+            Process game = StartProcess(request.GameExe, commandLine, request.GameDir);
+            try
             {
                 if (game == null) throw new HelperException("the game did not start");
                 _gameStarted = true;
@@ -904,6 +1102,16 @@ namespace ArenaMode.SessionHelper
                 {
                     _log.Warn("the game exited " + (GameStartCheckMilliseconds / 1000.0).ToString("0.#") + " s after the start with code " + game.ExitCode);
                 }
+
+                if (keepForWatch)
+                {
+                    ArenaGame = game;
+                    game = null;
+                }
+            }
+            finally
+            {
+                if (game != null) game.Dispose();
             }
         }
     }
