@@ -13,18 +13,23 @@ current. User-facing communication is normally German.
   scaled seconds for Bowl's longest drive AND all twenty complete paths; the
   watchdog is 20 seconds. Respawns never re-close. No MapPort files changed;
   non-TDM modes remain generic. See [review](BOWL-TEAM-BOXES-20261023.md).
-  Native evidence will be recorded after the GPU-2 runs.
+  `314c7f5` built and deployed locally and to GPU-2 (client, companion, server).
+  GPU-2 passed 4v4, 10v10, box departures, own-box player respawn and a DM
+  control. Combat followed the four completed animations by 509/578 ms;
+  all twenty paths revalidated. No new box-related exception; known native
+  model/map warnings remain. Settings restored; inventory and progress equal
+  baseline. See [native results](GPU-BOWL-TEAM-BOXES-20261023.md).
 
 - **Bowl Arena admission (2026-10-23):** optional `arena_bowl` is supported in all
   five modes, including PFT, using existing generic MapPort spawns and exact-raid
   coverless adapters. DM/Gun Game/TDM recommend eight participants. Gold BOWL
   label preserves native location/time presentation; built-in pickups and phase
   lighting are admitted. Revision 4 adds Bowl only to recognized previous default
-  lists, preserving custom settings and removed maps. No original team-box hold
-  or box-only bot shield: Bowl opening poses are asynchronous after Release.
+  lists, preserving custom settings and removed maps. This initial admission
+  used generic starts; the TDM-only box follow-up above supersedes that part.
   See [review and offline evidence](BOWL-INTEGRATION-20261023.md). Full unit suite:
   2,222 passed, 1 existing APBS prerequisite skip; all targeted harnesses passed.
-  No new Arena GPU raid acceptance; restart game and server after delivery.
+  Native TDM/DM acceptance and the restarted delivery are recorded above.
 
 - **Arena session review fixes (2026-10-22, branch `feature/arena-session-review-fixes`, committed there and merged
   into master the same day; enter, leave, the handshake and the mid-session policy change ran on SPT-GPU-2, spec

@@ -63,5 +63,7 @@ donor drift, foreign private markers and quiet-clone isolation.
 
 Independent read-only review found no remaining code or test blocker after
 correcting single-axis fixtures, Bowl/AirPit cross-map coverage and the menu's
-twenty-participant expectation. Native evidence and build identities follow
-after GPU tests; offline checks alone do not certify bot departures or geometry.
+twenty-participant expectation. Final unit result: 2,276 passed, one existing
+APBS prerequisite skip, zero failures; all targeted harnesses and Release builds
+passed. [GPU-2 results and delivered identities](GPU-BOWL-TEAM-BOXES-20261023.md)
+cover 4v4, 10v10, player/bot departures, a player respawn and a DM control.

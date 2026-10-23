@@ -19,8 +19,8 @@ $status = Get-Content -Raw -LiteralPath (Join-Path $EvidenceRoot 'final-status.j
 $entries = @($status.structuredContent.plugins) + @($status.structuredContent.libraries)
 foreach ($name in @('maschine-ArenaMode.Client.dll','maschine-ArenaMode.BigBrainCompat.dll')) {
     $loaded = @($entries | Where-Object { (Split-Path $_.file -Leaf) -ceq $name })
-    if ($loaded.Count -ne 1 -or $loaded[0].compareStatus -cne 'identical'
-        -or !$loaded[0].loadedInformationalVersion.EndsWith($manifest.commit, [StringComparison]::Ordinal)) {
+    if ($loaded.Count -ne 1 -or $loaded[0].compareStatus -cne 'identical' -or
+        !$loaded[0].loadedInformationalVersion.EndsWith($manifest.commit, [StringComparison]::Ordinal)) {
         throw "Missing exact loaded module evidence: $name"
     }
 }
