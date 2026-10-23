@@ -113,6 +113,6 @@ Installed client SHA256:
 `99C7F9DB982D1DCBF8727D096363620087FD958C57231558C1A8AD36CE888C56`.
 The guarded transaction changed only client bytes, recopied three unchanged
 package documents and preserved 129 other inventoried files, including
-Core/server/UiBridge. `Verify-Deployed.ps1` passed. See the tracked
+Core/server/UiBridge. `Verify-Deployed.ps1` (retired on 2026-10-23) passed. See the tracked
 `ANNOUNCER-PREPARE-DEPLOYMENT-20260919.json`; remote mirror receipt and GPU hearing
 are not claimed. Restart EFT only.

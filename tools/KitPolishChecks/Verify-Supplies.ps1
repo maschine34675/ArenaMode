@@ -28,6 +28,9 @@ $supplyOutput=& dotnet run --project $supplyProject -c Release "-p:BuilderSource
 if($LASTEXITCODE -eq 0 -or ($supplyOutput -join "`n") -notmatch 'ASSERT: patched quick-throw list cannot redirect grenades to backpack'){throw "Supplies patched-getter negative control failed unexpectedly: $supplyOutput"}
 dotnet run --project $supplyProject -c Release -- $supplyRoot $Database
 if($LASTEXITCODE -ne 0){throw 'Supplies production recheck failed.'}
-dotnet test (Join-Path $supplyRoot 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --filter 'FullyQualifiedName~KitSuppliesTests'
+# The test project builds the server, whose deploy target writes the live user/mods unless the no-deploy
+# targets and a sentinel that must not exist are passed (review 2026-10-23: this leaf deployed on every run).
+dotnet test (Join-Path $supplyRoot 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --filter 'FullyQualifiedName~KitSuppliesTests' `
+    "-p:CustomAfterMicrosoftCommonTargets=$supplyRoot/tools/AirPitChecks/NoDeploy.targets" "-p:SPTUserMods=$supplyRoot/artifacts/kit-supplies-must-not-deploy"
 if($LASTEXITCODE -ne 0){throw 'Supplies actual server catalog/lifecycle tests failed.'}
 Write-Output 'ARENA_KIT_SUPPLIES_PASSED'

@@ -57,7 +57,10 @@ try {
             & (Join-Path $PSScriptRoot 'NegativeControls.ps1')
         }
         'Navigation' {
-            Invoke-ArenaDotnet (@('build', 'ArenaMode.Client\ArenaMode.Client.csproj') + $arenaBuildArgs)
+            # A compile check of the client: the no-deploy targets keep it from writing the live install
+            # (it did until 2026-10-23); only the Build stage deploys, on purpose, and compares hashes.
+            $arenaNavigationArgs = $arenaBuildArgs + @("-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $arenaRepo 'tools\AirPitChecks\NoDeploy.targets')", "-p:SPTUserMods=$arenaNoDeploy")
+            Invoke-ArenaDotnet (@('build', 'ArenaMode.Client\ArenaMode.Client.csproj') + $arenaNavigationArgs)
         }
         'Regression' {
             foreach ($arenaHarness in @('NativeMenuChecks', 'LabsBotSpawnChecks', 'TeamDeathmatchRuntimeChecks', 'TeamGiveUpChecks')) {

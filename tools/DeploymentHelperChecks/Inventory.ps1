@@ -1,4 +1,5 @@
-# Inventory of the installed ArenaMode payload, read and compared by DeploymentHelperChecks. Written for
+# Inventory of the installed ArenaMode payload, compared by DeploymentHelperChecks (Read-AnnouncerDeliveryInventory
+# has no caller left since the helper's retirement and stays for a reader of a live install). Written for
 # the AnnouncerDelivery helper (retired on 2026-10-23: it pinned ProductVersion 0.1.0+ and threw on every
 # later build); the Announcer* function names are kept so the checks read as before.
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')

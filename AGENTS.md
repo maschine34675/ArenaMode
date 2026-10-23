@@ -302,13 +302,13 @@ Redeploy.Core itself has no server dependency.
 
 ```bash
 dotnet build ArenaMode.sln -c Release   # builds and deploys both halves
-pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness <folder>...   # xunit once without deploying, then the named harnesses
+pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness <folder>[,<folder>:<Stage>...]   # xunit once without deploying, then the named harnesses
 ```
 
 All mod projects copy themselves into place on build, and so does a bare
 `dotnet test ArenaMode.Tests`: the test project builds the server, whose deploy target
 writes the live `user\mods` unless `tools/AirPitChecks/NoDeploy.targets` and a
-`SPTUserMods` sentinel are passed (the runner does). The suite has about 2 200 tests
+`SPTUserMods` sentinel are passed (the runner does). The suite has about 2 300 tests
 (about 40 s plus the build) and links client, session and shared sources besides the
 server; what it cannot hold are the Harmony patches against Unity and EFT types, so
 **for anything client-side, verification is still a raid** — the harnesses under
@@ -344,15 +344,15 @@ your offset, which has cost hours before).
 themselves; point `SPT_DATABASE` at it to run them elsewhere). The harnesses under
 `tools/<Feature>Checks/` are the second half: each links production sources into a
 console program and its `Verify.ps1` runs the baseline, then hand-made mutants of the
-production code, each of which must fail its named assertion. A mutant anchor must
-occur exactly once in the source; a changed production line therefore shows up as
-"anchor missing" or "exactly one site" (anchors are compared with LF line endings).
-Inside a fix loop run only the affected harness, with its baseline and the mutants whose
-anchors changed; the whole suite and the whole mutant sets run once at the end of a
+production code, each of which must fail its named assertion. A mutant is anchored on a
+literal of the production source: a changed production line shows up as "anchor
+missing" (`Test-ArenaSourceFaults` compares with LF line endings; the harnesses that
+use `Invoke-Mutant` also insist on exactly one site). Inside a fix loop run only the
+affected harness; the whole suite and the whole mutant sets run once at the end of a
 pass, before the commit (`tools/Run-ArenaVerification.ps1`). Several wrappers run the
-whole suite themselves; the inventory of 2026-10-23 names them in the runner's help.
+whole suite themselves (`git grep -n 'dotnet test' tools` shows them).
 
-They exist because these are the things that broke repeatedly and quietly:
+The xunit tests exist because these are the things that broke repeatedly and quietly:
 
 - **Kit catalogue invariants** — unique ids, one root, one primary weapon, no orphaned
   parents, no slot filled twice, every template real. The client REFUSES a kit that

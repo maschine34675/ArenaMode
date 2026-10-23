@@ -52,6 +52,9 @@ dotnet run --project $variantProject -c Release -- $variantRoot $Database
 if ($LASTEXITCODE -ne 0) { throw 'Production recheck after negative control failed.' }
 # These exercise the actual SessionService lifecycle and the actual typed
 # TemplateTable -> JSON projection used by LadderGenerator, not stand-ins.
-dotnet test (Join-Path $variantRoot 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --filter 'FullyQualifiedName~WeaponVariantTests'
+# The test project builds the server, whose deploy target writes the live user/mods unless the no-deploy
+# targets and a sentinel that must not exist are passed (review 2026-10-23: this leaf deployed on every run).
+dotnet test (Join-Path $variantRoot 'ArenaMode.Tests/ArenaMode.Tests.csproj') -c Release --filter 'FullyQualifiedName~WeaponVariantTests' `
+    "-p:CustomAfterMicrosoftCommonTargets=$variantRoot/tools/AirPitChecks/NoDeploy.targets" "-p:SPTUserMods=$variantRoot/artifacts/weapon-variant-must-not-deploy"
 if ($LASTEXITCODE -ne 0) { throw 'Weapon variant server adapter/lifecycle tests failed.' }
 Write-Output 'ARENA_WEAPON_VARIANTS_PASSED'

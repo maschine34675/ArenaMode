@@ -44,7 +44,8 @@ try {
             }
             # The Customs negative controls of 2026-09 were retired on 2026-10-23: their expected messages left
             # the menu checks (e61b6e3, 9c67ed7) and the area-catalog mutant lives on in CustomsAllModesChecks
-            # and MapModeAdmissionChecks.
+            # and MapModeAdmissionChecks; the stale-selection mutant of ArenaConditionalMapView has no
+            # replacement yet.
             & (Join-Path $PSScriptRoot '..\ArenaAreaChecks\Verify.ps1') -Stage Integration -SptRoot $arenaSpt
         }
         'Build' {

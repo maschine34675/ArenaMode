@@ -80,8 +80,9 @@ saved in the menu. This describes where points were captured, not an active
 whole-map Customs preset. The normal predicate requires a started `LocalGame`,
 matching singleton/game world and map, PMC raid settings, and its own living
 USEC/BEAR body. `_raidSettings.serverId` must be present and unmarked, or a
-strictly valid ordinary-start correlation ID. Reserved malformed/Arena markers
-remain rejected after Arena's active flag clears; an active mismatched Arena
+strictly valid ordinary-start correlation ID. Since cba148e only the exact
+`|arenamode:` end tag is rejected after Arena's active flag clears (start-like or
+malformed identities capture like an ordinary raid); an active mismatched Arena
 can never fall through to normal capture. No Session flags or native settings
 are written. Native evidence: `TarkovApplication.cs:2993`,
 `BaseLocalGame.cs:442`, `LocalGameAccessor.GetLocalRaidSettings`.

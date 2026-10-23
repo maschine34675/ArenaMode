@@ -126,9 +126,10 @@ even when a local test does not activate them.
 - `tools/Convert-WarlordAdditions.ps1` has no current automated consumer and
   targets the replaced pack. If manually run, it overwrites seven current cues
   and recreates the obsolete WARLORD manifest. Retire it in a future tooling
-  cleanup; do not use it for the current Creator pack.
+  cleanup; do not use it for the current Creator pack. (Retired on 2026-10-23.)
 - `tools/AnnouncerChecks/split_local_trial.py` is an old optional audition helper.
   It only writes ignored historical trial output. It is not a runtime dependency.
+  (Removed on 2026-10-23.)
 
 Neither tool was executed, removed or changed by this audit. Historical reports
 and old deployment manifests remain dated evidence, not current loader inputs.

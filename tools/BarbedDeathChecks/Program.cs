@@ -24,7 +24,7 @@ internal static class Program
         ArenaUncreditedDeathPatch.Reset();
         ArenaAdministrativeDeathGate.Reset();
         ArenaSession.IsActive = true;
-        Settings.ShowKillfeed.Value = Settings.KillfeedOtherKills.Value = true;
+        Settings.ShowKillfeed.Value = Settings.KillfeedOtherKills.Value = Settings.CombatHudEnabled.Value = true;
         Plugin.ModLogger.Warnings.Clear();
         var match = new ArenaMatch();
         ArenaMatchService.Current = match;
@@ -109,12 +109,15 @@ internal static class Program
     }
     private static void HudChecks()
     {
-        NoNotice("HUD master switch honored", () => Settings.ShowKillfeed.Value = false);
+        NoNotice("combat HUD master switch honored", () => Settings.CombatHudEnabled.Value = false);
+        Reset(); Settings.CombatHudEnabled.Value = false; Death(Body("local-profile", true));
+        Check(_feed.Rows.Count == 0, "combat HUD master switch also hides local death");
+        NoNotice("killfeed switch honored", () => Settings.ShowKillfeed.Value = false);
         NoNotice("HUD other deaths switch honored", () => Settings.KillfeedOtherKills.Value = false);
         Reset(); Settings.KillfeedOtherKills.Value = false; Death(Body("local-profile", true));
         Check(_feed.Rows.Count == 1 && _feed.Rows[0].LocalIsVictim, "local wire death remains visible with other kills disabled");
         Reset(); Settings.ShowKillfeed.Value = false; Death(Body("local-profile", true));
-        Check(_feed.Rows.Count == 0, "master HUD switch also hides local death");
+        Check(_feed.Rows.Count == 0, "killfeed switch also hides local death");
         NoNotice("detached HUD ignored", () => ArenaHud.SetBoundary(ArenaMatchService.Current, null));
         NoNotice("HUD belonging to another match ignored", () => ArenaHud.SetBoundary(new ArenaMatch(), _feed));
         Reset(); var dead = Body(); Settings.ShowKillfeed.Value = false; Death(dead);
