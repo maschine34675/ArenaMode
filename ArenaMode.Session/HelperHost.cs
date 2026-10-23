@@ -27,12 +27,12 @@ namespace ArenaMode.SessionHelper
     /// <item><description>The command runs (it starts by waiting for the game to exit). While it waits it watches the
     /// request file it acted on: if the client takes the request back (the file is deleted or replaced), the
     /// run ends without touching anything.</description></item>
-    /// <item><description><c>watch --file</c> (started by the enter as a second process, so that it inherits nothing from
-    /// the old game) takes no mutex at first: it waits for the Arena game to exit (EXIT, a crash, a kill), then takes
-    /// the mutex (a <c>leave</c> may hold it while it restarts the game) and stops the arena server of its own
-    /// session with the rules of enter and leave, so that a game closed by hand does not leave the arena server
-    /// beside the normal one. After a leave there is nothing left to stop.</description></item>
     /// </list>
+    /// <c>watch --file</c> takes none of steps 2 to 6: the enter starts it as a second process (so that it inherits
+    /// nothing from the old game), it waits for the Arena game to exit (EXIT, a crash, a kill) without the mutex,
+    /// then takes the mutex (a <c>leave</c> may hold it while it restarts the game) and stops the arena server of
+    /// its own session with the rules of enter and leave, so that a game closed by hand does not leave the arena
+    /// server beside the normal one. After a leave there is nothing left to stop.
     /// </summary>
     internal sealed class HelperHost
     {
@@ -46,7 +46,8 @@ namespace ArenaMode.SessionHelper
         public int MutexWaitSeconds = 5;
 
         // How long the watchdog waits for the mutex once the Arena game has exited: a leave holds it from its
-        // start until the normal game runs again (the game-exit timeout, the server start and the game start).
+        // start until the normal game runs again (a few seconds for the game to exit, the normal server's start
+        // when it is not running, the game start); the minutes are headroom for a slow server start.
         public int WatchMutexWaitSeconds = 180;
 
         public HelperHost(HelperRunner runner, HelperLog log, string mutexName, Action<string> output)
@@ -156,8 +157,8 @@ namespace ArenaMode.SessionHelper
                 int pid;
                 try { pid = game.Id; } catch (Exception) { pid = -1; }
                 _log.Info("watching the Arena game (pid " + pid + "): the arena server ends with it");
-                int? code = _runner.WaitForArenaGameExit();
-                _log.Info("the Arena game exited" + (code.HasValue ? " with code " + code.Value : string.Empty) + "; stopping the arena server");
+                _runner.WaitForArenaGameExit();
+                _log.Info("the Arena game exited; stopping the arena server");
             }
 
             using (var mutex = new Mutex(false, _mutexName))

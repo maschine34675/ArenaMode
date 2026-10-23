@@ -3232,6 +3232,7 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal(Path.Combine("R", "server", "arena-session.json"), HelperServerTree.GetMarkerPath("R"));
         Assert.Equal(Path.Combine("R", "server.pid"), HelperServerTree.GetPidFilePath("R"));
         Assert.Equal("arena-", HelperLayout.LogFilePatternPrefix);
+        Assert.Equal("watch.json", HelperLayout.WatchFileName);
         Assert.Equal("patchers", HelperLayout.PatchersFolder);
         Assert.Equal(120, HelperLayout.GameExitTimeoutSeconds);
         Assert.Equal(180, HelperLayout.ServerStartTimeoutSeconds);

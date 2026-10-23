@@ -2195,7 +2195,7 @@ public sealed class ArenaSessionHelperProcessTests
         Process arenaGame = area.StartExe(game.Exe);
         HelperRunner runner = area.Runner(root);
         runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
-        runner.Watch = WatchFor(root, game, arenaGame, older.Id, "2026-01-01T00:00:00Z");
+        runner.Watch = WatchFor(root, game, arenaGame, older.Id); // the newer enter's marker, this session's server pid
         HelperHost host = area.Host(runner, root, NewMutexName(), new List<string>());
 
         Task watch = Task.Run(host.WatchArenaGame);
@@ -2210,10 +2210,13 @@ public sealed class ArenaSessionHelperProcessTests
         Assert.Contains("server.pid names pid " + newer.Id + ", not this session's server (pid " + older.Id + "): a newer session owns the record", log);
         Assert.DoesNotContain("arena server after the game", log);
 
-        // The same once the pid file is gone and only the newer marker is in place.
+        // The same when the marker is a newer session's, whatever the pid file says, and once the pid file is gone.
+        runner.Watch.MarkerCreatedUtc = "2026-01-01T00:00:00Z";
+        Assert.Equal(StopResult.NothingToStop, runner.StopAfterGameExit());
         File.Delete(HelperServerTree.GetPidFilePath(root));
         Assert.Equal(StopResult.NothingToStop, runner.StopAfterGameExit());
         Assert.False(newer.HasExited);
+        Assert.False(older.HasExited);
         Assert.Contains("the marker in place is a newer session's", LogOf(root));
     }
 
@@ -2326,8 +2329,125 @@ public sealed class ArenaSessionHelperProcessTests
         }
         finally
         {
-            try { other.Kill(); } catch (InvalidOperationException) { }
+            try { other.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
         }
+    }
+
+    /// <summary>The start-time rule: the recorded start must lie within 2 s of the process's; otherwise the pid was reused.</summary>
+    [SkippableFact]
+    public void TheWatchCommandTellsAReusedPidByItsStartTime()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        Process arenaGame = area.StartExe(game.Exe);
+        string path = Path.Combine(root, HelperLayout.WatchFileName);
+        HelperWatchFile watch = WatchFor(root, game, arenaGame, server.Id);
+
+        // Recorded an hour earlier: the same exe name, but not the process that was started then.
+        watch.GameStartUtc = arenaGame.StartTime.ToUniversalTime().AddHours(-1).ToString("o");
+        File.WriteAllText(path, watch.ToJson());
+        var clock = Stopwatch.StartNew();
+        Assert.Equal(0, area.Host(area.Runner(root), root, NewMutexName(), new List<string>()).Execute(Command("watch", "--file", path)));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(15), "the watch waited for a process whose start time is not the recorded one");
+        Assert.False(arenaGame.HasExited);
+        Assert.True(Exited(server));
+        Assert.Contains("is not the Arena game any more (another start time)", LogOf(root));
+
+        // Recorded one second off: still the game, so the watch waits for it.
+        Process second = area.StartExe(treeExe);
+        area.Record(second, game.Runtime, "session", treeExe);
+        watch = WatchFor(root, game, arenaGame, second.Id);
+        watch.GameStartUtc = arenaGame.StartTime.ToUniversalTime().AddSeconds(-1).ToString("o");
+        File.WriteAllText(path, watch.ToJson());
+        Task<int> run = Task.Run(() => area.Host(area.Runner(root), root, NewMutexName(), new List<string>()).Execute(Command("watch", "--file", path)));
+        WaitUntil(() => LogOf(root).Contains("watching the Arena game (pid " + arenaGame.Id + ")"), "a start time one second off was not accepted");
+        Assert.False(run.IsCompleted);
+        arenaGame.Kill();
+        Assert.True(run.Wait(TimeSpan.FromSeconds(20)));
+        Assert.True(Exited(second));
+    }
+
+    /// <summary>A pid file that cannot be read at the moment of the stop: nothing is killed on a guess.</summary>
+    [SkippableFact]
+    public void TheWatchKillsNothingWhenThePidFileCannotBeRead()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        Process server = area.StartExe(treeExe);
+        area.Record(server, game.Runtime, "session", treeExe);
+        HelperRunner runner = area.Runner(root);
+        runner.Watch = WatchFor(root, game, server, server.Id); // the game does not matter here: StopAfterGameExit is driven directly
+
+        StopResult result;
+        using (new FileStream(HelperServerTree.GetPidFilePath(root), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            result = runner.StopAfterGameExit();
+        }
+
+        Assert.Equal(StopResult.NothingToStop, result);
+        Assert.False(server.HasExited, "the server was killed although its record could not be read");
+        Assert.Contains("server.pid cannot be read right now", LogOf(root));
+        Assert.Single(WarningsOf(root), line => line.Contains("server.pid cannot be read"));
+    }
+
+    /// <summary>
+    /// The enter's last step as a unit: StartWatchdog writes watch.json for the game and server at hand and starts the
+    /// helper's own exe as `watch --file` through the runner's process starter (the one that inherits nothing).
+    /// </summary>
+    [SkippableFact]
+    public void TheEnterWritesTheWatchFileAndStartsTheWatchFromItsOwnExe()
+    {
+        SkipUnlessWindows();
+        using var area = new Area();
+        var game = area.Game();
+        string root = area.At("session");
+        string treeExe = area.TreeServerExe(root);
+        area.RecordMarker(root, game.Runtime, treeExe);
+        Assert.True(HelperMarker.TryParse(File.ReadAllText(HelperServerTree.GetMarkerPath(root)), out HelperMarker? marker, out string? markerError), markerError);
+        Process arenaGame = area.StartExe(game.Exe);
+        Assert.True(HelperRequest.TryParse(Area.RequestJson("enter", game, Area.FinishedProcessId()), "enter", out HelperRequest? request, out string? parseError), parseError);
+        HelperRunner runner = area.Runner(root);
+        runner.StartWatchdogAfterEnter = true;
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.StartedServerPid = 4242;
+        var starts = new List<(string Exe, string Arguments, string Directory)>();
+        runner.ProcessStarter = (exe, args, directory) =>
+        {
+            starts.Add((exe, args, directory));
+            return Process.GetProcessById(area.StartExe(treeExe).Id); // stands in for the watch process
+        };
+
+        runner.StartWatchdog(request!);
+
+        string path = Path.Combine(root, HelperLayout.WatchFileName);
+        Assert.Single(starts);
+        Assert.Equal(typeof(HelperRunner).Assembly.Location, starts[0].Exe);
+        Assert.Equal(HelperCommandLine.BuildCommandLine(new List<string> { HelperCommand.Watch, "--file", path }), starts[0].Arguments);
+        Assert.Equal(root, starts[0].Directory);
+        Assert.True(HelperWatchFile.TryParse(File.ReadAllText(path), out HelperWatchFile? written, out string? error), error);
+        Assert.Equal(arenaGame.Id, written!.GamePid);
+        Assert.Equal("EscapeFromTarkov.exe", written.GameExe);
+        Assert.Equal(arenaGame.StartTime.ToUniversalTime().ToString("o"), written.GameStartUtc);
+        Assert.Equal(4242, written.ServerPid);
+        Assert.Equal(marker!.CreatedUtc, written.MarkerCreatedUtc);
+        Assert.Equal(game.Runtime, written.SptRuntimeDir);
+        Assert.Null(runner.ArenaGame);
+        Assert.Contains("watchdog started (pid ", LogOf(root));
+        Assert.Contains("the arena server (pid 4242) ends with the game (pid " + arenaGame.Id + ")", LogOf(root));
+
+        // A watch that cannot be started is a Warning, not a failed enter.
+        runner.ArenaGame = Process.GetProcessById(arenaGame.Id);
+        runner.ProcessStarter = (exe, args, directory) => null!;
+        runner.StartWatchdog(request!);
+        Assert.Single(WarningsOf(root), line => line.Contains("no watchdog for this session (the watchdog did not start)"));
     }
 
     [SkippableFact]

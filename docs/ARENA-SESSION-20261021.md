@@ -655,10 +655,13 @@ beside the request (`request.json.accepted` for `request.json`):
    (`NothingToStop`); a mutex that stays busy longer leaves the server to its holder and to the next `enter`,
    `leave` or `stop-server` (a Warning; nothing is killed without the mutex). `helper.log` (the watch logs as
    its own process): `watchdog started (pid W): the arena server (pid S) ends with the game (pid G)` from the
-   enter; `watching the Arena game (pid G): the arena server ends with it`, `the Arena game exited with code C;
-   stopping the arena server`, `arena server after the game: <result>` from the watch. One watch process per
-   Arena game; while it runs the helper's exe is in use (a deploy that replaces `maschine-ArenaMode.Session.exe`
-   waits for the Arena game to end). A watch that is itself killed degrades to the behaviour before this step:
+   enter; `watching the Arena game (pid G): the arena server ends with it`, `the Arena game exited; stopping the
+   arena server` (no exit code: a process opened by pid yields none on .NET Framework), `arena server after the
+   game: <result>` from the watch; a `server.pid` that cannot be read at that moment is a Warning and nothing is
+   killed on a guess. One watch process per Arena game; while it runs `maschine-ArenaMode.Session.exe` cannot be
+   replaced: `tools/Deploy-ArenaSession.ps1` (and so every build that deploys the helper) stops with its locked-file
+   error until the Arena game has ended, and a mirroring tool retries until then (section 9). A watch that is itself
+   killed degrades to the behaviour before this step:
    the server lingers until the next command. Before 2026-10-23 only RETURN TO NORMAL SESSION ended the arena
    server, and a game closed by hand left it running beside the normal one.
 
@@ -873,7 +876,10 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
 
 ## 9. Build, deploy, packaging
 
-- New projects in `ArenaMode.sln`: `ArenaMode.Gate`, `ArenaMode.Session`.
+- New projects in `ArenaMode.sln`: `ArenaMode.Gate`, `ArenaMode.Session`. While an Arena game runs, its watch
+  process (section 6, step 7) is the helper's exe: a build that deploys the helper fails at
+  `tools/Deploy-ArenaSession.ps1`'s locked-file check until the game has ended, and a Syncthing copy of the install
+  replaces the exe only then. Leave or close the Arena game before deploying the helper.
 - Deploy targets: the gate to `<SPT>\BepInEx\patchers\maschine-ArenaMode\`, the helper exe and
   `assets/arena-whitelist.json` to `<SPT>\BepInEx\plugins\maschine-ArenaMode\`. Every new deploy
   target must be overridable the same way the existing ones are (`tools/AirPitChecks/NoDeploy.targets`).
@@ -972,6 +978,17 @@ probe plugin of the second run installed again; items 2, 3, 4, 12 and the handsh
 | The override arrives in the running session | About 60 s after the file was written on the mirroring machine it was on the host; closing and reopening the side screen logged `a policy file changed; the admission is evaluated again`; the session stayed admitted (nothing it runs is excluded). |
 | A deny of SAIN arrives | Reopening the side screen refused: `ARENA UNAVAILABLE This game loaded SAIN, which the current policy excludes: the policy changed during the switch. Return to the normal session and start the Arena session again.`, ARENA locked, RETURN TO NORMAL SESSION offered; the Warning `Arena session refused: ...` logged once; no ping request. Before the stamp (the build of the second run) the same file arrived unnoticed: the cached outcome kept admitting until the next ping. |
 | Leave | RETURN TO NORMAL SESSION needs its two clicks inside the confirm window (a single click arms and expires); the leave of the previous build took 41 s to the normal main menu, the one of this build was not timed. Afterwards 40 plugins (probe and user file removed meanwhile), ARENA selectable, no note. |
+
+Fourth run on SPT-GPU-2, 2026-10-23 (build `fc46350`, the watchdog of section 6, step 7; the probe plugin installed
+again so that the session is offered; item 13 in its three variants):
+
+| Step | Observed |
+|---|---|
+| Enter | `helper.log`: the enter helper (pid 3456) started the arena server (pid 13888, ready after 26 s: the first start of freshly copied binaries), the game (pid 10984) and, 2 s later, `watchdog started (pid 8904): the arena server (pid 13888) ends with the game (pid 10984)`, then `enter finished`; the watch logged `watching the Arena game (pid 10984)` as its own process; `watch.json` and `server.pid` present. |
+| EXIT in the main menu | 0.1 s after the game process ended: `the Arena game exited; stopping the arena server`, `stopping the arena server (pid 13888, ...\session\server\SPT.Server.exe)`, `arena server after the game: Stopped`; `server.pid` deleted. A normal start afterwards found the normal server and ran as before (56 s to the main menu). |
+| Kill (`uibridge_quit hard=true`) | Second session (server 15260, game 6548, watch 13648): the same three lines within 0.1 s of the kill, `server.pid` deleted. |
+| RETURN TO NORMAL SESSION | Third session (server 15992, game 6484, watch 2680): the leave helper (8308) took the mutex at 13:26:05, saw the game exit after 2.0 s, stopped the arena server itself and started the normal game; the watch saw the exit at 13:26:07.168 and waited; 9 ms after `leave finished` (13:26:10.710) it logged `arena server after the game: NothingToStop`. No double stop, nothing touched that the leave needed. |
+| Remote two-click | Two of the four START ARENA SESSION attempts needed a second pair of clicks (the window is 5 s; the first pair after a fresh start did not arm), the user confirmed one pair by hand; not a helper matter. |
 
 ## 11. Changes since the first draft
 
@@ -1276,4 +1293,5 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   alone; the command reads its file, waits for a live game, stops at once for a gone or reused pid, and refuses a
   file it cannot read; the command and the file parse; source pins hold the order (enter: game, watchdog,
   finished; host: the watch command before the mutex, the stop after the wait). Fixture: the runner does not
-  start a watchdog (the test assembly is not the helper's exe).
+  start a watchdog (the test assembly is not the helper's exe). SPT-GPU-2 ran the three variants of item 13 the
+  same day (section 10, fourth run).

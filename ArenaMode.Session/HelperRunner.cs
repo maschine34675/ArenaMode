@@ -38,9 +38,10 @@ namespace ArenaMode.SessionHelper
     }
 
     /// <summary>
-    /// The four commands of the helper (docs/ARENA-SESSION-20261021.md, section 6). Each returns true
-    /// on success and logs what it does; it throws nothing the caller has to understand, expected
-    /// failures are <see cref="HelperException"/>s that are caught and logged here.
+    /// The commands of the helper (docs/ARENA-SESSION-20261021.md, section 6): enter, leave, stop-server, status
+    /// and the watch that an enter starts as a second process. Each returns true on success and logs what it
+    /// does; it throws nothing the caller has to understand, expected failures are
+    /// <see cref="HelperException"/>s that are caught and logged here.
     /// </summary>
     internal sealed class HelperRunner
     {
@@ -96,8 +97,9 @@ namespace ArenaMode.SessionHelper
         // have (the runner is compiled into the test assembly). Program keeps the default.
         public bool StartWatchdogAfterEnter = true;
 
-        // The pid of the arena server this run started (StartArenaServer); -1 before.
-        private int _startedServerPid = -1;
+        // The pid of the arena server this run started (StartArenaServer); -1 before. Settable for a test harness
+        // that drives StartWatchdog without a server start.
+        public int StartedServerPid { get; internal set; } = -1;
 
         public HelperRunner(string runtimeRoot, HelperLog log, string version)
         {
@@ -480,21 +482,22 @@ namespace ArenaMode.SessionHelper
         // ------------------------------------------------------------------ after the Arena game
 
         /// <summary>
-        /// Waits for the Arena game that enter started to exit, however long the session lasts (EXIT, a crash and a
-        /// kill all end the process). Returns its exit code, or null when the process cannot be asked.
+        /// Waits for the Arena game to exit, however long the session lasts (EXIT, a crash and a kill all end the
+        /// process). No exit code: the watch opened the game by pid, and such a process object yields none on .NET
+        /// Framework. A wait that fails (the process cannot be asked) counts as exited: the stop that follows is
+        /// bound to this session's server and harmless when the game still runs.
         /// </summary>
-        public int? WaitForArenaGameExit()
+        public void WaitForArenaGameExit()
         {
             Process game = ArenaGame;
-            if (game == null) return null;
+            if (game == null) return;
             try
             {
                 game.WaitForExit();
-                return game.ExitCode;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return null;
+                _log.Warn("the wait for the Arena game failed (" + ex.Message + "); treating it as exited");
             }
         }
 
@@ -506,7 +509,7 @@ namespace ArenaMode.SessionHelper
         /// inherits nothing. A watchdog that cannot be started is a Warning: the session runs as before 2026-10-23
         /// (the arena server lingers until the next enter, leave or stop-server).
         /// </summary>
-        private void StartWatchdog(HelperRequest request)
+        internal void StartWatchdog(HelperRequest request)
         {
             Process game = ArenaGame;
             try
@@ -519,7 +522,7 @@ namespace ArenaMode.SessionHelper
                     GamePid = game.Id,
                     GameExe = Path.GetFileName(request.GameExe),
                     GameStartUtc = HelperProcesses.TryGetStartTimeUtc(game, out startUtc) ? startUtc.ToString("o", System.Globalization.CultureInfo.InvariantCulture) : null,
-                    ServerPid = _startedServerPid,
+                    ServerPid = StartedServerPid,
                     MarkerCreatedUtc = marker != null ? marker.CreatedUtc : null,
                     SptRuntimeDir = request.SptRuntimeDir,
                 };
@@ -610,23 +613,29 @@ namespace ArenaMode.SessionHelper
             HelperWatchFile watch = Watch;
             if (watch != null)
             {
-                int recorded;
-                if (TryReadRecordedPid(out recorded))
+                // The marker first: a newer enter rewrote it (and the pid file) for its own session.
+                HelperMarker marker = ReadMarker();
+                if (marker != null && !string.IsNullOrEmpty(watch.MarkerCreatedUtc) && !string.Equals(marker.CreatedUtc, watch.MarkerCreatedUtc, StringComparison.Ordinal))
                 {
-                    if (recorded != watch.ServerPid)
-                    {
-                        _log.Info("server.pid names pid " + recorded + ", not this session's server (pid " + watch.ServerPid + "): a newer session owns the record, nothing to stop here");
-                        return StopResult.NothingToStop;
-                    }
+                    _log.Info("the marker in place is a newer session's (" + marker.CreatedUtc + ", this session: " + watch.MarkerCreatedUtc + "): nothing of this session is left to stop");
+                    return StopResult.NothingToStop;
                 }
-                else
+
+                int recorded;
+                switch (ReadRecordedPid(out recorded))
                 {
-                    HelperMarker marker = ReadMarker();
-                    if (marker != null && !string.IsNullOrEmpty(watch.MarkerCreatedUtc) && !string.Equals(marker.CreatedUtc, watch.MarkerCreatedUtc, StringComparison.Ordinal))
-                    {
-                        _log.Info("the marker in place is a newer session's (" + marker.CreatedUtc + ", this session: " + watch.MarkerCreatedUtc + "): nothing of this session is left to stop");
+                    case PidFileState.Present:
+                        if (recorded != watch.ServerPid)
+                        {
+                            _log.Info("server.pid names pid " + recorded + ", not this session's server (pid " + watch.ServerPid + "): a newer session owns the record, nothing to stop here");
+                            return StopResult.NothingToStop;
+                        }
+                        break;
+                    case PidFileState.Unreadable:
+                        // Nothing is killed on a guess: whatever holds the file (a scanner, an editor) lets go, and the
+                        // next enter, leave or stop-server finds the record.
+                        _log.Warn("server.pid cannot be read right now; the arena server is left to the next enter, leave or stop-server");
                         return StopResult.NothingToStop;
-                    }
                 }
             }
 
@@ -635,19 +644,21 @@ namespace ArenaMode.SessionHelper
             return result;
         }
 
-        /// <summary>True with the pid when <c>server.pid</c> exists and holds one; false when it is absent or unreadable.</summary>
-        private bool TryReadRecordedPid(out int pid)
+        private enum PidFileState { Absent, Present, Unreadable }
+
+        /// <summary><c>server.pid</c>: absent, present with its pid, or there but not readable (locked, or not a pid).</summary>
+        private PidFileState ReadRecordedPid(out int pid)
         {
             pid = 0;
             string path = HelperServerTree.GetPidFilePath(_runtimeRoot);
             try
             {
-                if (!File.Exists(path)) return false;
-                return HelperPidFile.TryParsePid(HelperFileSystem.ReadAllTextShared(path), out pid);
+                if (!File.Exists(path)) return PidFileState.Absent;
+                return HelperPidFile.TryParsePid(HelperFileSystem.ReadAllTextShared(path), out pid) ? PidFileState.Present : PidFileState.Unreadable;
             }
             catch (Exception)
             {
-                return false;
+                return PidFileState.Unreadable;
             }
         }
 
@@ -887,7 +898,7 @@ namespace ArenaMode.SessionHelper
             {
                 if (server == null) throw new HelperException("the arena server did not start");
                 RegisterStartedServer(server, box, pidPath);
-                _startedServerPid = server.Id;
+                StartedServerPid = server.Id;
                 _log.Info("arena server pid " + server.Id);
 
                 HelperHttpEndpoint arena = ReadArenaEndpoint(tree.TreePath);
