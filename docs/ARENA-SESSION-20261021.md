@@ -1000,6 +1000,12 @@ The file work (junctions, copies, the acknowledgement's atomic write), the runne
     the game: Stopped`, written by the watch process the enter started (`watchdog started (pid W)`); a normal
     start of the game afterwards finds the normal server and runs as before. RETURN TO NORMAL SESSION still
     works (the watch of that game then logs `NothingToStop`).
+14. A later deny of an allowed patcher (2026-10-23, external review): in an Arena session let a user file arrive that
+    denies a preloader patcher the gate let run (`WTT-ContentBackportPatcher.dll` is on the default list) and open the
+    side screen again: `ARENA UNAVAILABLE This game ran the preloader patcher <file>, which the current policy
+    excludes: ...` with RETURN TO NORMAL SESSION, and one Warning `Arena session refused: ...` in the client log
+    (section 7, check 4). Remove the deny and open the screen again: ARENA is selectable again (a widening refuses
+    nothing).
 
 Result on SPT-GPU-2, 2026-10-21 (build `db99587`, deployed to `D:\SPT41`), all five passed:
 
@@ -1051,6 +1057,18 @@ again so that the session is offered; item 13 in its three variants):
 | Kill (`uibridge_quit hard=true`) | Second session (server 15260, game 6548, watch 13648): the same three lines within 0.1 s of the kill, `server.pid` deleted. |
 | RETURN TO NORMAL SESSION | Third session (server 15992, game 6484, watch 2680): the leave helper (8308) took the mutex at 13:26:05, saw the game exit after 2.0 s, stopped the arena server itself and started the normal game; the watch saw the exit at 13:26:07.168 and waited; 9 ms after `leave finished` (13:26:10.710) it logged `arena server after the game: NothingToStop`. No double stop, nothing touched that the leave needed. |
 | Remote two-click | Two of the four START ARENA SESSION attempts needed a second pair of clicks (the window is 5 s; the first pair after a fresh start did not arm), the user confirmed one pair by hand; not a helper matter. |
+
+Fifth run on SPT-GPU-2, 2026-10-23 (build `015ff7b`, the review fixes of that date: the `Global\` mutex, `patchersAllowed`,
+the confined backup config; no probe plugin, `LoadAmmoAnim` unlisted, so the normal session refuses Arena and offers the
+session; items 2, 3 and 14):
+
+| Step | Observed |
+|---|---|
+| Enter | START ARENA SESSION armed at the first pair of clicks. `helper.log`: the enter helper (pid 4600) took the request at 17:51:47Z, the game exited after 2.0 s, the tree was rebuilt (13 server mods, policy `47ee5e5aa6df7eb1`), the arena server (pid 16352) accepted connections after 22.3 s, the game (pid 11544) started with `-arena-session`, `watchdog started (pid 7428)`, `enter finished`; no Warning. The gate: `Arena session: 40 plugins allowed, 1 excluded, 0 warnings`. The tree's `backup.json` is byte-identical to the installed one (its `directory` is the shipped value), so nothing was confined and nothing logged. The side screen: `ARENA SESSION: only Arena is available ...`, ARENA selected. The enter, the watch and the leave below all ran through the shipping build's `Global\` mutex. |
+| A deny of an allowed patcher arrives | The user file `{"schema":1,"deny":["WTT-ContentBackportPatcher.dll"]}` written on the VM reached the host after 14 s (Syncthing). BACK, ESCAPE FROM TARKOV: `Arena whitelist: a policy file changed; the admission is evaluated again for the screen` (Debug), then the Warning `Arena session refused: This game ran the preloader patcher WTT-ContentBackportPatcher.dll, which the current policy excludes: the policy changed during the switch. Return to the normal session and start the Arena session again.`; the screen shows `ARENA UNAVAILABLE This game ran the preloader patcher WTT-Co...`, ARENA disabled, RETURN TO NORMAL SESSION offered (item 14). Before this build the screen stayed admitted (the review's reproduction). |
+| The deny is removed | The file deleted on the VM was gone on the host after 58 s. BACK, ESCAPE FROM TARKOV: the Debug line again, no refusal, ARENA selected again (a widening refuses nothing). |
+| RETURN TO NORMAL SESSION | Armed at the first pair. The leave helper (pid 16248) took the mutex at 17:56:37Z, saw the game exit after 2.0 s, stopped the arena server (pid 16352), found the normal server listening and started the normal game (pid 16304), `leave finished` at 17:56:42.660Z; the watch (7428) had seen the exit at 17:56:39.043Z and logged `arena server after the game: NothingToStop` at 17:56:42.669Z, 9 ms after the leave released the mutex: the `Global\` mutex serialises the two. Normal main menu after 24 s of waiting, 41 plugins, 16 of 16 maschine files identical, normal server pid 1260, no second server; `server.pid` gone (`watch.json` stays, as before), no Warning in `helper.log` for the whole cycle; the user file removed on both machines. |
+| Not covered | A backup config outside `user` on a real installation (the installed one carries the shipped value; the confinement is proved offline), two Windows sessions of one account. |
 
 ## 11. Changes since the first draft
 
@@ -1394,4 +1412,6 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   (`tools/Run-ArenaVerification.ps1`, 2026-10-23): the xunit suite 2 308 tests, 2 307 passed, 1 known skip (the
   installed-APBS clone test); `ArenaSessionClientChecks` 698 assertions, 171 mutants rejected; `ArenaGateChecks` 17 scenarios,
   705 checks, 40 mutants rejected; `ArenaSessionHelperNet472Checks` 9 checks, 6 mutants rejected; the installed
-  files unchanged. The response document records the review's own evidence and what it listed as bounded.
+  files unchanged. SPT-GPU-2 ran the pass the same day (section 10, fifth run): enter and leave through the `Global\`
+  mutex (the watch waited for the leave's mutex), the refusal of a patcher denied in the running session and its lifting,
+  no Warning. The response document records the review's own evidence and what it listed as bounded.

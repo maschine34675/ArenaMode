@@ -1,9 +1,9 @@
 # Arena session: answer to the external review (2026-10-23)
 
-Status: written on branch `feature/arena-session-review-20261023` (worktree `ArenaMode-sr3`), 2026-10-23. The binding
-specification is [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md); every change below is also recorded in its
-section 11, and the GPU run of this pass, when it is done, in its section 10 (fifth run). The "Evidence and limits"
-section at the end says what ran and what did not.
+Status: written on branch `feature/arena-session-review-20261023` (worktree `ArenaMode-sr3`), 2026-10-23, merged into
+master the same day. The binding specification is [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md); every
+change below is also recorded in its section 11, and the GPU run of this pass in its section 10 (fifth run). The
+"Evidence and limits" section at the end says what ran and what did not.
 
 ## What was reviewed
 
@@ -184,7 +184,12 @@ a foreign object in the harness).
   xunit cases fail, the sources restored byte for byte afterwards.
 - `tools/ArenaSessionClientChecks`: baseline 698 assertions (679 before); `tools/ArenaGateChecks`: 17 scenarios, 705
   checks (617 before); `tools/ArenaSessionHelperNet472Checks`: 9 checks, 6 of 6 mutants rejected.
-- Not proved offline: SPT's backup service running against a confined copy (the native call path is read, the file is
-  rewritten and checked); two sessions of one account (see finding 3). The GPU run of this pass (spec section 10, fifth
-  run) covers a plain enter with the `Global\` mutex, a user-file deny of an allowed patcher arriving in the running
-  session (the new refusal on the side screen), the removal of that deny and the return to the normal session.
+- SPT-GPU-2, the same day (spec section 10, fifth run, build `015ff7b`): an enter through the `Global\` mutex (no
+  Warning, the tree's `backup.json` byte-identical to the installed one), a user-file deny of
+  `WTT-ContentBackportPatcher.dll` arriving in the running session and refusing at the next side screen with the new
+  text, its removal admitting again, RETURN TO NORMAL SESSION with the watch waiting for the leave's mutex and logging
+  `NothingToStop` 9 ms after `leave finished`; the normal session afterwards with 16 of 16 files identical and no second
+  server.
+- Not proved: SPT's backup service running against a confined copy on a real installation (the installed file carries
+  the shipped value; the native call path is read, the copy is rewritten and checked offline); two Windows sessions
+  of one account (see finding 3).
