@@ -61,6 +61,7 @@ internal static partial class Program
             Check(source==File.ReadAllText(path),"authored catalog file untouched");
             Check(output==supplies.CreateCatalog(output,out added)&&added==0,"catalog idempotent");
             GunGameChecks(after[0],JsonConvert.DeserializeObject<List<KitDefinition>>(File.ReadAllText(Path.Combine(root,"ArenaMode.Server/defaults/ladder.json")))!);
+            LooseReserveChecks(before, JsonConvert.DeserializeObject<List<KitDefinition>>(File.ReadAllText(Path.Combine(root,"ArenaMode.Server/defaults/ladder.json")))!);
         }
         PlacementFixtures();
         Console.WriteLine($"KIT_SUPPLIES_ASSERTIONS_PASSED: {_checks}");

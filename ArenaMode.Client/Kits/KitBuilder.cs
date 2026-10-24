@@ -165,7 +165,9 @@ public static class KitBuilder
             for (var i = 0; i < count; i++)
             {
                 var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-                ammo.StackObjectsCount = Math.Max(template.MaxCount, ammo.StackMaxSize);
+                ammo.StackObjectsCount = LooseReserveRounds(Math.Max(template.MaxCount, ammo.StackMaxSize), count, i);
+                if (ammo.StackObjectsCount == 0)
+                    break;
                 spares.Add(ammo);
             }
 
@@ -550,17 +552,25 @@ public static class KitBuilder
     }
 
     /// <summary>
-    /// Loose rounds for fixed-magazine weapons — FULL stacks. Such a weapon is
-    /// fed round by round, so handing out one magazine worth per stack would be
-    /// a rounding error of a reserve.
+    /// Half of the previous full-stack reserve for fixed-magazine weapons.
+    /// Round the total once, then spread it over the requested stacks: three
+    /// 15-round stacks become 8/8/7, rather than independently rounding to 24.
     /// </summary>
+    private static int LooseReserveRounds(int fullStackSize, int stacks, int index)
+    {
+        var total = ((long)fullStackSize * stacks + 1) / 2;
+        return (int)(total / stacks + (index < total % stacks ? 1 : 0));
+    }
+
     private static void FillLooseAmmo(List<CompoundItem> containers, ItemFactory factory, string ammoTpl,
         int roundsPerStack, int stacks)
     {
         for (var i = 0; i < stacks; i++)
         {
             var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = Math.Max(roundsPerStack, ammo.StackMaxSize);
+            ammo.StackObjectsCount = LooseReserveRounds(Math.Max(roundsPerStack, ammo.StackMaxSize), stacks, i);
+            if (ammo.StackObjectsCount == 0)
+                break;
 
             if (!AddToAnyGrid(containers, ammo, out var reason))
             {
