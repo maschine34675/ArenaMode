@@ -1,17 +1,32 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-23. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-24. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Spawn-gate completion (2026-10-24):** owned independent Team DM releases now
+  poll MapPort's optional public static `GatesOpen` getter before validating all
+  twenty complete outside paths and floor/capsule checks. Bowl no longer applies
+  its fixed 13.5-second minimum when that capability exists. Only an absent
+  member uses legacy timing; malformed metadata or getter failure aborts safely.
+  Exact raid ownership, hold/release/respawn rules and the scaled-time watchdogs
+  (Bowl 20 seconds, other box maps 10) are unchanged; no event subscriptions.
+  `SpawnGateChecks` passed 324 assertions and all compiled negative controls.
+  The full offline runner passed all four gates (2,307 unit tests, one known
+  environment skip; 324 gate, 424 formation and 382 TDM runtime assertions).
+  Installed payload hashes stayed unchanged; native gate/DynamicMaps tests and
+  delivery evidence are pending. See the [contract and evidence status](SPAWN-GATE-COMPLETION-20261024.md),
+  including its [native verification section](SPAWN-GATE-COMPLETION-20261024.md#native-verification).
+
 - **Bowl team boxes (2026-10-23):** independent TDM now uses the original east
   USEC/west BEAR formations, private clone markers, rotated inset interiors,
-  total 4–20 and the existing box-only shields. An owned release waits 13.5
-  scaled seconds for Bowl's longest drive AND all twenty complete paths; the
-  watchdog is 20 seconds. Respawns never re-close. No MapPort files changed;
+  total 4–20 and the existing box-only shields. The tested build used a 13.5
+  scaled-second minimum plus all twenty complete paths; the completion follow-up
+  above supersedes that minimum for MapPort builds with the new capability.
+  The watchdog is 20 seconds. Respawns never re-close. No MapPort files changed;
   non-TDM modes remain generic. See [review](BOWL-TEAM-BOXES-20261023.md).
   `314c7f5` built and deployed locally and to GPU-2 (client, companion, server).
   GPU-2 passed 4v4, 10v10, box departures, own-box player respawn and a DM

@@ -66,11 +66,10 @@ public static class ArenaTeamBoxCatalog
         public int CapacityPerTeam => 10;
         public int MaximumParticipants => CapacityPerTeam * 2;
         public float ColliderRadius => .8f;
-        // Bowl's registered vehicles/gates drive for up to 13.5 scaled seconds.
-        // MapPort's current public API exposes no pose-completion signal, and
-        // a path through one exit can reconnect before the other gate finishes.
-        // Keep this minimum even with instantaneous opening configured; complete
-        // native paths and physical spawn clearance are still required afterward.
+        // Legacy fallback only: older MapPort builds have no GatesOpen signal.
+        // Bowl's longest authored drive is 13.5 scaled seconds; an alternate exit
+        // can reconnect sooner. Current builds use their actual completion status.
+        // Both paths still require complete navigation and physical spawn clearance.
         public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
         public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,

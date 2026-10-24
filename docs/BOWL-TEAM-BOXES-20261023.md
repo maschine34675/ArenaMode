@@ -32,27 +32,39 @@ assembly and countdown. One release opens them; respawns never re-close them.
 Bot shields follow the existing box-map TDM policy: finite exact-body protection,
 visible contour and first-attack release.
 
-MapPort0.3.0+0dd0b2a has no public pose-ready signal. IsHeld becomes false at
-release; ClosedParts counts registered parts, not still-closed parts. Each pocket
-has two exits, so an outside path can exist while the other gate is still moving.
-Bowl waits at least **13.5 scaled seconds**, its longest authored drive, before
-accepting **all twenty complete outside paths and floor/capsule checks**. The
-watchdog is twenty scaled seconds; a paused animation does not time out in real
-time. Countdown remains active with OPENING SPAWN GATES, damage/scoring/match
-clock and the start cue blocked. No private MapPort state is accessed.
+The initial build tested with MapPort0.3.0+0dd0b2a had no public pose-ready
+signal and waited at least **13.5 scaled seconds**. That timing is now only the
+legacy fallback. The [2026-10-24 completion contract](SPAWN-GATE-COMPLETION-20261024.md)
+polls MapPort's public static `GatesOpen` after the owned release, then requires
+**all twenty complete outside paths and floor/capsule checks**. Current MapPort
+can therefore finish Bowl's faster drive without the old fixed wait; actual
+native timing for this follow-up is still pending.
 
-This conservative minimum also applies if opening is configured instantaneous
-or an older build switches the gates off. Without an acquired optional hold,
-existing open-box geometry checks apply without the artificial wait. A future
-public pose-ready capability can replace this minimum; recheck it if Bowl's
-animation durations change. Neither time nor IsHeld=false proves navigation.
+Only absence of the `GatesOpen` member enables the legacy minimum. An advertised
+but malformed member or a throwing getter fails closed through protected match
+abort. `IsHeld` becomes false at release, and `ClosedParts` counts registered
+parts, not still-closed parts; neither proves completion. Each pocket has two
+exits, so one outside path can exist while another gate is still moving.
+
+The watchdog remains twenty scaled seconds; a paused animation does not time
+out in real time. Countdown remains active with OPENING SPAWN GATES and
+damage/scoring/match clock and the start cue blocked until both completion and
+navigation succeed. Without an acquired optional hold, existing open-box
+geometry checks apply without the artificial wait. No private MapPort state or
+event subscription is used. Neither elapsed time nor `IsHeld=false` proves
+navigation.
 
 Bowl BTR Gate and Bowl Army Gate extracts are outside the formation pockets and
 are not suppressed. Cancellation/failure/teardown releases the owned hold; stale
-owners cannot release a successor raid. Existing Equator/Bay5/AirPit behavior
-is unchanged.
+owners cannot release a successor raid. Equator/Bay5/AirPit share the new
+completion check; their formations, hold/respawn rules and ten-second watchdogs
+are unchanged.
 
 ## Verification
+
+The following evidence records the initial 2026-10-23 implementation, not native
+acceptance of the later completion contract. Its current offline/native status
+is tracked [separately](SPAWN-GATE-COMPLETION-20261024.md#verification).
 
 `pwsh -NoProfile -File tools/BowlTeamBoxChecks/Verify.ps1` runs no-deploy Release
 builds, server/unit tests and production-linked runtime checks for all four maps.

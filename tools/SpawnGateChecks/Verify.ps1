@@ -36,7 +36,12 @@ $arenaResult = Invoke-GateCheck 'baseline'
 if ($arenaResult.Code -ne 0 -or !$arenaResult.Output.Contains('EQUATOR_SPAWN_GATE_CHECKS_PASSED')) { throw $arenaResult.Output }
 Write-Output $arenaResult.Output
 $arenaFaults = @(
-    @('bowl-drive-bypass','RuntimeSource',$arenaRuntime,'&& Time.time - _openingStartedAt >= _formation.MinimumGateOpeningSeconds','&& true','BOWL-DRIVE:'),
+    @('bowl-drive-bypass','RuntimeSource',$arenaRuntime,'_gates.OpeningComplete(Time.time - _openingStartedAt, _formation.MinimumGateOpeningSeconds)','_gates.Released','BOWL-DRIVE:'),
+    @('signal-ignored','GateSource',$arenaGates,'_gatesOpen != null ? _gatesOpen() : elapsed >= legacyMinimumSeconds','elapsed >= legacyMinimumSeconds','SIGNAL-WAIT:'),
+    @('signal-or-time','GateSource',$arenaGates,'_gatesOpen != null ? _gatesOpen() : elapsed >= legacyMinimumSeconds','(_gatesOpen != null && _gatesOpen()) || elapsed >= legacyMinimumSeconds','SIGNAL-WAIT:'),
+    @('signal-stale-owner','GateSource',$arenaGates,'if (!Released || !OwnsCurrentRaid) return false;','if (!Released) return false;','SIGNAL-OWNER:'),
+    @('signal-malformed-fallback','GateSource',$arenaGates,'return () => throw new InvalidOperationException("ArenaMapPort GatesOpen contract is incompatible: " + reason);','return null;','SIGNAL-MALFORMED:'),
+    @('signal-new-hold','GateSource',$arenaGates,'if (_isHeld()) return false;',';','SIGNAL-REHOLD:'),
     @('bowl-short-timeout','RuntimeSource',$arenaRuntime,'Time.time - _openingStartedAt >= _formation.GateOpeningTimeoutSeconds','Time.time - _openingStartedAt >= 10f','Bowl team boxes did not reconnect'),
     @('cross-map-hold','GateSource',$arenaGates,'|| !string.Equals(world.LocationId, ArenaSession.ArmedMap, StringComparison.OrdinalIgnoreCase)','','CROSS-MAP-HOLD:'),
     @('cross-map-settings','GateSource',$arenaGates,'&& string.Equals(settings.location, world.LocationId, StringComparison.OrdinalIgnoreCase)','','CROSS-MAP-SETTINGS:'),

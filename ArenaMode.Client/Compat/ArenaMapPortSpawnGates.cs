@@ -58,7 +58,7 @@ internal static class ArenaMapPortSpawnGates
             // has been offered yet means this is not a usable owned map scene.
             if (isHeld() || closedParts() <= 0) return null;
             lease = new Lease(game, world, epoch, token, isHeld,
-                (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), release));
+                (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), release), BindCompletion(type));
             var request = (Func<string, bool>)Delegate.CreateDelegate(typeof(Func<string, bool>), hold);
             if (!request("ArenaMode team-box TDM assembling")) return null;
             lease.Accepted = true;
@@ -73,6 +73,32 @@ internal static class ArenaMapPortSpawnGates
             Plugin.ModLogger.LogWarning("Arena team-box spawn gates unavailable: " + ex.GetBaseException().Message);
         }
         return null;
+    }
+
+    private static Func<bool> BindCompletion(Type type)
+    {
+        try
+        {
+            // Only true absence means an older API. A same-name but incompatible
+            // member must not silently bypass an advertised completion contract.
+            const BindingFlags any = BindingFlags.Public | BindingFlags.NonPublic
+                | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
+            if (type.GetMember("GatesOpen", any).Length == 0) return null;
+            var property = type.GetProperty("GatesOpen", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+            var getter = property?.GetGetMethod();
+            if (getter == null || getter.ReturnType != typeof(bool) || !getter.IsStatic
+                || getter.ContainsGenericParameters || getter.GetParameters().Length != 0)
+                throw new InvalidOperationException("expected a declared public static bool GatesOpen getter");
+            return (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), getter);
+        }
+        catch (Exception ex)
+        {
+            // Retain the owned hold/cleanup rather than treating malformed new
+            // metadata as no integration. Opening then fails through the normal
+            // protected match-abort path; no foreign property is invoked here.
+            string reason = ex.GetBaseException().Message;
+            return () => throw new InvalidOperationException("ArenaMapPort GatesOpen contract is incompatible: " + reason);
+        }
     }
 
     private static bool IsOwner(LocalGame game, GameWorld world, int epoch, string token)
@@ -95,12 +121,25 @@ internal static class ArenaMapPortSpawnGates
         private readonly string _token;
         private readonly Func<bool> _isHeld;
         private readonly Action<string> _release;
+        private readonly Func<bool> _gatesOpen;
         internal bool Accepted;
         internal bool Released { get; private set; }
-        internal Lease(LocalGame game, GameWorld world, int epoch, string token, Func<bool> held, Action<string> release)
-        { _game = game; _world = world; _epoch = epoch; _token = token; _isHeld = held; _release = release; }
+        internal Lease(LocalGame game, GameWorld world, int epoch, string token, Func<bool> held, Action<string> release, Func<bool> gatesOpen)
+        { _game = game; _world = world; _epoch = epoch; _token = token; _isHeld = held; _release = release; _gatesOpen = gatesOpen; }
         internal bool OwnsCurrentRaid => Accepted && IsOwner(_game, _world, _epoch, _token);
         internal bool IsHeld => !Released && OwnsCurrentRaid && _isHeld();
+        internal bool HasCompletionSignal => _gatesOpen != null;
+        internal bool OpeningComplete(float elapsed, float legacyMinimumSeconds)
+        {
+            if (!Released || !OwnsCurrentRaid) return false;
+            try
+            {
+                if (_isHeld()) return false;
+                return _gatesOpen != null ? _gatesOpen() : elapsed >= legacyMinimumSeconds;
+            }
+            catch (Exception ex)
+            { throw new InvalidOperationException("ArenaMapPort spawn gate completion check failed: " + ex.GetBaseException().Message, ex); }
+        }
         internal void Release(string reason)
         {
             if (!Accepted || Released) return;

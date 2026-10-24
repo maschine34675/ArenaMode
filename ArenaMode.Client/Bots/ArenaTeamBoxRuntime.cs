@@ -438,20 +438,20 @@ internal static class ArenaTeamBoxRuntime
             _gates.Release($"ArenaMode {MapLabel} TDM countdown finished");
         }
         // IsHeld becomes false before MapPort's slide/drive removes carvers.
-        // Bowl can already have a complete path through one of its two exits
-        // while the other is still opening. Its authored longest drive is a
-        // conservative minimum until MapPort provides a public pose-ready API.
+        // An alternate exit may reconnect before the last gate finishes. The
+        // optional public completion signal replaces only the legacy minimum;
+        // older MapPort builds retain Bowl's conservative authored drive time.
         // Keep damage, score, clock and announcement blocked until native
         // complete paths prove both booths have really reopened.
-        bool connected = _gates.Released
-            && Time.time - _openingStartedAt >= _formation.MinimumGateOpeningSeconds
+        bool connected = _gates.OpeningComplete(Time.time - _openingStartedAt, _formation.MinimumGateOpeningSeconds)
             && Points.Values.All(p =>
             PointCurrent(p, _formation.Find(p.Id).Usec) && FloorAndClear(p.Position) && Connected(p.Position));
         if (connected)
         {
             _gatesOpened = true;
             ResumeExtractions();
-            Plugin.ModLogger.LogDebug($"{MapLabel} Team DM gates open: all twenty formation paths revalidated.");
+            Plugin.ModLogger.LogDebug($"{MapLabel} Team DM gates open: all twenty formation paths revalidated; "
+                + $"{Time.time - _openingStartedAt:F2}s since release ({(_gates.HasCompletionSignal ? "MapPort GatesOpen" : "legacy minimum")}).");
             return true;
         }
         // Use the same simulation clock as MapPort's slide coroutine: pausing

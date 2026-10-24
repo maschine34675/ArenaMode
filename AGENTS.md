@@ -143,10 +143,13 @@ Bowl is optional in all five modes, including PFT Tactical/Zombies, with the
 same exact-raid coverless adapters (default eight for DM/Gun Game/TDM).
 Independent TDM uses its original east USEC / west BEAR boxes, oriented interior
 bounds, twenty private markers and the existing box-only bot shield. Its owned
-release waits at least 13.5 scaled seconds for asynchronous poses AND all twenty
-complete outside paths before combat, with a twenty-second watchdog. Never use
-IsHeld=false or elapsed time alone as proof of open navigation. Other modes use
-generic spawns and no hold. Read docs/BOWL-TEAM-BOXES-20261023.md; revision-4
+release waits for MapPort's optional public GatesOpen signal AND all twenty
+complete outside paths and floor/capsule checks before combat. Only an absent
+GatesOpen member retains the legacy 13.5-scaled-second Bowl minimum; malformed
+metadata or a throwing getter fails closed through protected match abort. The
+twenty-second watchdog remains. Never use IsHeld=false or elapsed time alone as
+proof of open navigation. Other modes use generic spawns and no hold. Read
+docs/BOWL-TEAM-BOXES-20261023.md and docs/SPAWN-GATE-COMPLETION-20261024.md; revision-4
 migration is documented in docs/BOWL-INTEGRATION-20261023.md.
 Independent Equator, Bay5, AirPit and Bowl Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
@@ -160,7 +163,11 @@ With MapPort's optional SpawnGates API, those booths stay closed through assembl
 and countdown. Only the exact owned hold permits a complete intra-booth path
 instead of the temporarily cut atrium route; Live still requires full navigation
 after opening. See docs/EQUATOR-SPAWN-GATES-20261017.md for gate ownership,
-preparation extraction deferral and cleanup. Never re-close during live respawns.
+preparation extraction deferral and cleanup. The completion contract is polled
+only after the owned release and while the exact game/world/arm/token still
+matches; never subscribe to MapPort's process-global GatesOpened event. Keep all
+twenty navigation checks and the simulation-time watchdog (20 seconds on Bowl,
+10 on the other box maps). Never re-close during live respawns.
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any

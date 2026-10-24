@@ -239,7 +239,7 @@ internal static class GateProgram
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
-        BowlOpening();Runtime.Shutdown();
+        BowlOpening();CompletionSignal();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
     private static void OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Formation selected)
@@ -313,6 +313,109 @@ internal static class GateProgram
         Check(Gates.Releases==1&&!Gates.Held&&!Runtime.GatesOpening,"BOWL-CANCEL: opening cleanup leaves no hold or pose timer");
         Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
     }
+    private static ArenaMapPortSpawnGates.Lease SetupCompletion(Type type = null)
+    {
+        Setup(active:false,installed:false);
+        var lease=Hold(type ?? typeof(CompletionContract));
+        Check(lease != null && Gates.Held,"SIGNAL-HOLD: exact owned request accepted");
+        typeof(Runtime).GetField("_gates",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,lease);
+        ArenaSession.IsActive=true;ArenaSession.ArmedForNextRaid=false;Game.Status=GameStatus.Started;
+        return lease;
+    }
+    private static void CompletionSignal()
+    {
+        foreach (var formation in new[] { ArenaMode.Shared.ArenaTeamBoxCatalog.Equator,
+                     ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5, ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit,
+                     ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl })
+        {
+            Program.Formation=formation;
+            var lease=SetupCompletion();NavMesh.Path=(a,b)=>true;
+            Check(!lease.OpeningComplete(100f,0f) && Gates.CompletionReads==0,"SIGNAL-BEFORE-RELEASE: never query before owned release");
+            Check(!Runtime.TryOpenForCombat(),"SIGNAL-WAIT: complete paths cannot replace unfinished gate signal");
+            Time.time=formation.MapId=="arena_bowl" ? 6.75f : formation.MapId=="arena_airpit" ? 1.5f : 3.5f;
+            Gates.Ready=true;
+            var first=formation.Points[0];
+            NavMesh.Status=(a,b)=>Math.Abs(a.x-first.X)<.001f ? NavMeshPathStatus.PathPartial : NavMeshPathStatus.PathComplete;
+            Check(!Runtime.TryOpenForCombat(),"SIGNAL-PATH: completion never replaces all20 complete paths");
+            NavMesh.Status=null;Physics.Clear=p=>Math.Abs(p.x-first.X)>.001f;
+            Check(!Runtime.TryOpenForCombat(),"SIGNAL-CLEARANCE: completion never replaces physical clearance");
+            Physics.Clear=p=>true;
+            Check(Runtime.TryOpenForCombat(),"SIGNAL-LIVE: actual completion and navigation bypass legacy minimum");
+            Runtime.PickRespawn(Game,default);Runtime.TryOpenForCombat();
+            Check(Gates.Holds==1&&Gates.Releases==1,"SIGNAL-RESPAWN: no reclose after completion");
+            SetupCompletion();Gates.Ready=true;
+            Check(Runtime.TryOpenForCombat(),"SIGNAL-SNAP: instantaneous gate completion has no artificial delay");
+        }
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl;
+        SetupCompletion();Check(!Runtime.TryOpenForCombat(),"SIGNAL-START: wait for drive");
+        Time.time=19.99f;Time.realtimeSinceStartup=1000f;
+        Check(!Runtime.TryOpenForCombat(),"SIGNAL-NO-FALLBACK: false signal stays authoritative beyond legacy minimum");
+        Time.time=20f;Reject(()=>Runtime.TryOpenForCombat(),"SIGNAL-TIMEOUT: false signal still has bounded simulation-clock watchdog");
+        SetupCompletion();Gates.ThrowCompletion=true;
+        Reject(()=>Runtime.TryOpenForCombat(),"SIGNAL-THROW: failing getter aborts instead of reverting to time");
+        Check(Gates.Releases==1,"SIGNAL-THROW-RELEASE: throwing query did not leave an owned hold");
+        foreach (var fault in new[] { "epoch", "world", "game", "token" })
+        {
+            var lease=SetupCompletion();lease.Release("fixture");int reads=Gates.CompletionReads;
+            switch(fault)
+            {
+                case "epoch":ArenaSession.ArmEpoch++;break;
+                case "world":Singleton<GameWorld>.Instance=new GameWorld();break;
+                case "game":Singleton<AbstractGame>.Instance=new LocalGame();break;
+                case "token":Game.Settings.serverId="successor";break;
+            }
+            Check(!lease.OpeningComplete(100f,0f)&&Gates.CompletionReads==reads,"SIGNAL-OWNER: stale identity cannot query completion "+fault);
+        }
+        foreach(var type in new[]{typeof(WrongCompletion),typeof(InstanceCompletion),typeof(PrivateCompletion),
+                     typeof(FieldCompletion),typeof(InheritedCompletion),typeof(IndexedCompletion)})
+        {
+            var lease=SetupCompletion(type);
+            Check(lease.HasCompletionSignal,"SIGNAL-MALFORMED: advertised incompatible signal cannot become legacy fallback");
+            lease.Release("fixture");
+            Reject(()=>lease.OpeningComplete(100f,0f),"SIGNAL-MALFORMED: invalid contract fails protected opening");
+        }
+        SetupCompletion();Runtime.TryOpenForCombat();Gates.Ready=true;Gates.Held=true;
+        Check(!Runtime.TryOpenForCombat(),"SIGNAL-REHOLD: contradictory new hold cannot start combat");
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
+    }
+    public static class CompletionContract
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;
+        public static bool GatesOpen { get { Gates.CompletionReads++;if(Gates.ThrowCompletion)throw new InvalidOperationException("fixture completion failed");return Gates.Ready; } }
+    }
+    public static class WrongCompletion
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;public static int GatesOpen=>1;
+    }
+    public class InstanceCompletion
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;public bool GatesOpen=>true;
+    }
+    public static class PrivateCompletion
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;private static bool GatesOpen=>true;
+    }
+    public static class FieldCompletion
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;public static bool GatesOpen=true;
+    }
+    public class CompletionBase { public static bool GatesOpen=>true; }
+    public class InheritedCompletion : CompletionBase
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;
+    }
+    public class IndexedCompletion
+    {
+        public static bool Hold(string reason)=>Gates.Hold(reason);public static void Release(string reason)=>Gates.Release(reason);
+        public static bool IsHeld=>Gates.IsHeld;public static int ClosedParts=>Gates.ClosedParts;
+        [System.Runtime.CompilerServices.IndexerName("GatesOpen")] public bool this[int index]=>true;
+    }
     public static class MissingContract { }
     public static class WrongContract
     { public static int Hold(string reason)=>1;public static void Release(string reason){}public static bool IsHeld=>false;public static int ClosedParts=>15; }
@@ -324,11 +427,11 @@ namespace ArenaMapPort.Client
 {
     public static class SpawnGates
     {
-        public static bool Enabled,Held,ThrowHold,HeldGatesClosed;public static int Holds,Releases,Parts;
+        public static bool Enabled,Held,ThrowHold,HeldGatesClosed,Ready,ThrowCompletion;public static int Holds,Releases,Parts,CompletionReads;
         public static bool IsHeld=>Held;
         public static int ClosedParts=>Parts;
         public static bool Hold(string reason){Holds++;if(!Enabled)return false;Held=true;if(ThrowHold)throw new InvalidOperationException("fixture hold failed");return true;}
         public static void Release(string reason){Releases++;if(Held)HeldGatesClosed=false;Held=false;}
-        public static void Reset(){Enabled=true;Held=ThrowHold=HeldGatesClosed=false;Holds=Releases=0;Parts=15;}
+        public static void Reset(){Enabled=true;Held=ThrowHold=HeldGatesClosed=Ready=ThrowCompletion=false;Holds=Releases=CompletionReads=0;Parts=15;}
     }
 }
