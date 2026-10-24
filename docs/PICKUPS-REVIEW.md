@@ -272,12 +272,15 @@ Enable F12 **Development - Pickups / Pickup Capture** (.cfg `Development - Picku
 the Development sections are shown with F12's **Advanced settings**). Select `Kind` and `RespawnSeconds`
 before adding a point; weapons use `PrototypeWeaponKit`.
 
-| Default shortcut | Action |
+All four shortcuts default to unbound. Assign them in F12 before capturing;
+existing saved bindings are preserved.
+
+| Setting | Action |
 |---|---|
-| Left Alt + F6 | Capture floor under crosshair |
-| Left Alt + F10 | Capture current feet position |
-| Left Alt + F7 | Undo last point |
-| Left Alt + F8 | Export uniquely named JSON draft |
+| CaptureAim | Capture floor under crosshair |
+| CaptureFeet | Capture current feet position |
+| Undo | Undo last point |
+| Export | Export uniquely named JSON draft |
 
 The preview numbers points and records the current map/area. Export writes only
 to `BepInEx/plugins/ArenaMode/PickupDrafts/`, never overwriting or activating a

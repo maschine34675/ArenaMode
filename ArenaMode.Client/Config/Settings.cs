@@ -528,13 +528,13 @@ public static class Settings
         AreaCaptureAllowInNormalPmc = config.Bind("Development - Area outline", "AllowInNormalPmc", false,
             "Allow the enabled capture tool in normal local PMC raids so you can walk an entire new outline. " +
             "Survey only: NO Arena kit, respawn, invulnerability or profile protection. Normal raid consequences still apply. No Scav or Hideout capture.");
-        AreaCaptureAim = config.Bind("Development - Area outline", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
+        AreaCaptureAim = config.Bind("Development - Area outline", "CaptureAim", KeyboardShortcut.Empty,
             "Capture the map surface under the crosshair, up to 250m away. Ignores Arena's own boundary colliders for this read-only ray.");
-        AreaCaptureFeet = config.Bind("Development - Area outline", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftControl),
+        AreaCaptureFeet = config.Bind("Development - Area outline", "CaptureFeet", KeyboardShortcut.Empty,
             "Capture the current local player's foot position. Walk the contour in order; the closing edge is automatic.");
-        AreaCaptureUndo = config.Bind("Development - Area outline", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
+        AreaCaptureUndo = config.Bind("Development - Area outline", "Undo", KeyboardShortcut.Empty,
             "Remove the last draft point.");
-        AreaCaptureExport = config.Bind("Development - Area outline", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
+        AreaCaptureExport = config.Bind("Development - Area outline", "Export", KeyboardShortcut.Empty,
             "Validate and export a new draft JSON to BepInEx/plugins/maschine-ArenaMode/AreaDrafts. Not automatically loaded or applied.");
         AreaCaptureMinY = config.Bind("Development - Area outline", "FloorY", 0f,
             "Draft enclosing floor in absolute map Y coordinates. Defaults match the existing Customs candidate.");

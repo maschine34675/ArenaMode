@@ -1,6 +1,5 @@
 using BepInEx.Configuration;
 using System;
-using UnityEngine;
 
 namespace ArenaMode.Pickups;
 
@@ -39,9 +38,9 @@ internal static class ArenaPickupSettings
             $"Kind of the next captured point. Health: up to {ArenaHealthPickup.Amount:0} HP on surviving parts; wounds remain. Shield: 220/30s; Double Damage: 20s; Jump Boots: +100% height/30s with Arena movement enabled; Infinite Ammo: 10s for loaded magazine weapons, including M60. No launchers/revolvers/break-action; native cycling and malfunctions remain. Boots/ammo are local only. Effects do not stack.");
         CaptureCooldown = config.Bind("Development - Pickups", "RespawnSeconds", 30f,
             new ConfigDescription("Pickup reappears this many gameplay seconds after successful collection.", new AcceptableValueRange<float>(10f, 600f)));
-        CaptureAim = config.Bind("Development - Pickups", "CaptureAim", new KeyboardShortcut(KeyCode.F6, KeyCode.LeftAlt), "Capture the surface under the crosshair.");
-        CaptureFeet = config.Bind("Development - Pickups", "CaptureFeet", new KeyboardShortcut(KeyCode.F10, KeyCode.LeftAlt), "Capture the current feet position.");
-        Undo = config.Bind("Development - Pickups", "Undo", new KeyboardShortcut(KeyCode.F7, KeyCode.LeftAlt), "Remove the last pickup draft point.");
-        Export = config.Bind("Development - Pickups", "Export", new KeyboardShortcut(KeyCode.F8, KeyCode.LeftAlt), "Write a new draft JSON; never overwrites or activates an existing layout.");
+        CaptureAim = config.Bind("Development - Pickups", "CaptureAim", KeyboardShortcut.Empty, "Capture the surface under the crosshair.");
+        CaptureFeet = config.Bind("Development - Pickups", "CaptureFeet", KeyboardShortcut.Empty, "Capture the current feet position.");
+        Undo = config.Bind("Development - Pickups", "Undo", KeyboardShortcut.Empty, "Remove the last pickup draft point.");
+        Export = config.Bind("Development - Pickups", "Export", KeyboardShortcut.Empty, "Write a new draft JSON; never overwrites or activates an existing layout.");
     }
 }

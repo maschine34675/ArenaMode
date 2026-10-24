@@ -26,12 +26,15 @@ protection. Disable the helper when not surveying. Scav and Hideout are excluded
 Arena capture still works with just `Enabled`, but its current physical boundary
 stays enabled. There is no boundary bypass or playable whole-map Customs Arena.
 
-| Default shortcut (left Ctrl) | Action |
+Updated 2026-10-24: all four shortcuts default to unbound. Assign them in F12
+before capturing; existing saved bindings are preserved.
+
+| Setting | Action |
 | --- | --- |
-| Ctrl+F6 | Record the map surface at the screen center, up to 250m away |
-| Ctrl+F10 | Record the current player's foot position |
-| Ctrl+F7 | Remove the last recorded point |
-| Ctrl+F8 | Validate and export a new JSON draft |
+| CaptureAim | Record the map surface at the screen center, up to 250m away |
+| CaptureFeet | Record the current player's foot position |
+| Undo | Remove the last recorded point |
+| Export | Validate and export a new JSON draft |
 
 Shortcuts can be changed in F12. Follow the desired perimeter in order, clockwise
 or counterclockwise, including the corners of each recess. Use 3 to 64 distinct
