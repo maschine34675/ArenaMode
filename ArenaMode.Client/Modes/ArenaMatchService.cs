@@ -51,6 +51,7 @@ internal static partial class ArenaMatchService
             return;
 
         match.Tick(Time.deltaTime);
+        ArenaRewardCapture.Observe();
 
         if (ReferenceEquals(Current, match) && Time.unscaledTime >= _nextScoreboardSyncAt)
         {
@@ -138,6 +139,7 @@ internal static partial class ArenaMatchService
             Audio.HitmarkerAudioService.Attach(match);
             Effects.ArenaLightingDirector.Attach(match, world);
             mode.OnMatchStart(match);
+            ArenaRewardCapture.Attach(match);
             SynchronizeScoreboard(match);
             Hud.ArenaHud.Attach(match);
             Plugin.ModLogger.LogDebug($"Arena match started ({mode.DisplayName}).");
@@ -172,6 +174,7 @@ internal static partial class ArenaMatchService
 
     private static void OnRaidEnded()
     {
+        ArenaRewardCapture.OnRaidEnded();
         TdmMatchExit.Reset();
         Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
@@ -430,7 +433,10 @@ internal static partial class ArenaMatchService
     }
 
     private static void OnLocalDied(Player player)
-        => Current?.ReportLocalDeath();
+    {
+        ArenaRewardCapture.NoticeLocalDeath(player);
+        Current?.ReportLocalDeath();
+    }
 
     private static void OnLocalRespawned(Player player)
     {

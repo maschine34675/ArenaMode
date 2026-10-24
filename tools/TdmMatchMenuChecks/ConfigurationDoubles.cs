@@ -18,6 +18,24 @@ namespace ArenaMode.Pickups
 namespace ArenaMode.Session
 {
     public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; }
+
+    // HTTP and persistence belong to the reward integration checks. This seam
+    // verifies the real map view's visibility, eligibility and click ownership.
+    internal static class ArenaRewardMenuState
+    {
+        internal static ArenaMode.Shared.RewardStatusResponse Status = new();
+        internal static bool Busy;
+        internal static int Toggles;
+        internal static string Label => "PROFILE REWARDS: " + (Status.Enabled ? "ON" : "OFF");
+        internal static string Detail => "Reward status fixture";
+        internal static void Refresh(bool force = false) { }
+        internal static void Toggle()
+        {
+            if (Busy || !Status.Available || !Status.CanChange || ArenaSession.IsActive || ArenaSession.ArmedForNextRaid) return;
+            Toggles++;
+            Status.Enabled = !Status.Enabled;
+        }
+    }
 }
 namespace ArenaMode.Config
 {
@@ -26,7 +44,10 @@ namespace ArenaMode.Config
 namespace BepInEx.Configuration
 {
     public sealed class KeyboardShortcut
-    { public KeyboardShortcut(UnityEngine.KeyCode main, params UnityEngine.KeyCode[] modifiers) { } }
+    {
+        public static readonly KeyboardShortcut Empty = new(default);
+        public KeyboardShortcut(UnityEngine.KeyCode main, params UnityEngine.KeyCode[] modifiers) { }
+    }
     public interface IAcceptableValue { object Clamp(object value); bool IsValid(object value); }
     public class AcceptableValueRange<T>(T min, T max) : IAcceptableValue where T : IComparable<T>
     {

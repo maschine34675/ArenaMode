@@ -1,5 +1,11 @@
 # Server result validation and payout approval (2026-10-24)
 
+Historical implementation-stage notes below. [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md)
+documents the connected collector, consent and private-session transfer. Its
+explicit runtime policy caps RUB and admits the last unfinished scoring round
+on a normal exit for kill rewards only when no terminal win was established;
+the original strict defaults below remain the default for internal candidates.
+
 The startup pipeline can now **derive an approval from a bound combat report**.
 It no longer requires the final RUB claim to have been prepared separately.
 `RewardApprovalProducer` runs inside the existing guarded ordinary-server startup

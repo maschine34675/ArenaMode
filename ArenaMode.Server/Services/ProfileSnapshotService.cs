@@ -31,6 +31,12 @@ public class ProfileSnapshotService(
     private readonly Dictionary<string, SptProfile> _snapshots = new();
     private readonly Lock _lock = new();
 
+    // Observers receive the actual cloned/restored object, never a client result.
+    // They are ancillary: a reward failure must not alter profile protection.
+    internal event Action<MongoId, SptProfile>? SnapshotTaken;
+    internal event Action<MongoId, SptProfile>? SnapshotRestored;
+    internal event Action<MongoId>? SnapshotDiscarded;
+
     public bool TakeSnapshot(MongoId sessionId)
     {
         try
@@ -53,6 +59,7 @@ public class ProfileSnapshotService(
             lock (_lock)
             {
                 _snapshots[sessionId.ToString()] = clone;
+                Notify(() => SnapshotTaken?.Invoke(sessionId, clone));
             }
 
             logger.Debug($"[ArenaMode] Profile snapshot taken for session {sessionId}.");
@@ -109,6 +116,7 @@ public class ProfileSnapshotService(
                 }
 
                 _snapshots.Remove(key);
+                Notify(() => SnapshotRestored?.Invoke(sessionId, snapshot));
                 logger.Info($"[ArenaMode] Profile snapshot restored for session {sessionId}.");
                 return true;
             }
@@ -136,7 +144,19 @@ public class ProfileSnapshotService(
         lock (_lock)
         {
             if (_snapshots.Remove(sessionId.ToString()))
+            {
+                Notify(() => SnapshotDiscarded?.Invoke(sessionId));
                 logger.Debug($"[ArenaMode] Profile snapshot discarded for session {sessionId}.");
+            }
+        }
+    }
+
+    private void Notify(Action observer)
+    {
+        try { observer(); }
+        catch (Exception e)
+        {
+            logger.Warning($"[ArenaMode] Reward evidence unavailable ({e.GetType().Name}); profile protection continues.");
         }
     }
 }

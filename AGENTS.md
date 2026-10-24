@@ -12,17 +12,23 @@ protection warnings or the independent LogDamageExceptions safety alarm.
 
 Before changing reward persistence, read [docs/REWARDS-CORE.md](docs/REWARDS-CORE.md)
 and [docs/REWARDS-SERVER.md](docs/REWARDS-SERVER.md), then
-[docs/REWARDS-RESULTS.md](docs/REWARDS-RESULTS.md). The ordinary-server consumer
+[docs/REWARDS-RESULTS.md](docs/REWARDS-RESULTS.md) and
+[docs/REWARDS-RUNTIME.md](docs/REWARDS-RUNTIME.md). The ordinary-server consumer
 runs only before native profile loading, with separately enrolled/approved state;
 the startup result validator/approval producer requires separately trusted run
-and restoration evidence; there is no gameplay evidence collector or automatic
-enrollment yet. Never accept its whole candidate envelope from a client. Never infer
+and restoration evidence. Explicit consent, startup-only enrollment, client combat
+capture and signed private-session receipts are now wired. Never accept its whole
+candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
-Reward work does not relax Arena's full-profile restoration protection.
+Reward work does not relax Arena's full-profile restoration protection. The
+server owns currency values; physical combat remains client-observed. New receipt
+allocations may bind the latest clean ordinary profile at startup, preserving
+intervening ordinary progress; an existing allocation/approval must never be rebased.
 
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
-arena: instant respawn, kits instead of loot, and a profile that is never touched.
+arena: instant respawn, kits instead of loot, and full restoration of the entry
+profile. Explicitly enabled RUB rewards are paid separately through startup mail.
 No Fika dependency. Arena is solo by default; the optional API-validated
 PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
 Zombie squad survival; read docs/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The
@@ -404,7 +410,9 @@ test above was verified that way — reintroduce the comma and three tests go re
 
 ## Non-negotiable
 
-1. **The profile is sacred.** An arena raid must cost and gain nothing. Two layers
+1. **The profile is sacred.** An arena raid must cost and gain nothing through its
+   raid-result merge. Explicitly opted-in RUB mail at a later normal server start
+   is a separate, journaled exception (REWARDS-RUNTIME.md). Two layers
    protect it: an exact-ID `EndLocalRaidAsync` prefix that replaces the complete native
    post-raid pipeline, and a snapshot/restore around the raid. Never weaken either.
 2. **Normal raids must be bit-identical.** Every patch starts with an

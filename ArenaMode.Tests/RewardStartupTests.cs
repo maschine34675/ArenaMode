@@ -70,6 +70,27 @@ public sealed class RewardStartupTests
     }
 
     [Theory]
+    [InlineData("{}", true)]
+    [InlineData("{\"location\":null,\"character\":null}", true)]
+    [InlineData("{\"location\":\"none\",\"character\":null}", true)]
+    [InlineData("{\"location\":\"none\",\"character\":\"none\"}", true)]
+    [InlineData("{\"location\":\"factory4_day\"}", false)]
+    [InlineData("{\"character\":\"pmc\"}", false)]
+    [InlineData("{\"location\":\"\"}", false)]
+    [InlineData("{\"location\":false}", false)]
+    [InlineData("[]", false)]
+    [InlineData("null", false)]
+    public async Task NativeNullableIdleRaidShapeIsAcceptedButActiveOrMalformedStateIsNot(string inraid, bool accepted)
+    {
+        using var f = new StartupFixture();
+        f.EditProfile(p => p["inraid"] = JsonNode.Parse(inraid), approve: true);
+        var before = f.Profile;
+        var outcome = await f.Process();
+        Assert.Equal(accepted ? RewardSettlementStatus.Paid : RewardSettlementStatus.Quarantined, outcome.Result.Status);
+        if (!accepted) Assert.Equal(before, f.Profile);
+    }
+
+    [Theory]
     [InlineData("state")]
     [InlineData("cleanProfileRevision")]
     [InlineData("claim")]

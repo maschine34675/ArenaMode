@@ -41,6 +41,7 @@ internal static class RewardResultValidator
                 || round.TimeLimitMilliseconds is < 0 or > MaxDurationMilliseconds
                 || round.KillTarget is < 0 or > MaxLives || round.Actors is null || round.Actors.Count is < 2 or > MaxLives)
                 Fail("invalid-authorized-round");
+            if (round.AllowIncomplete && !ReferenceEquals(round, run.Rounds[^1])) Fail("incomplete-round-not-last");
             duration += round.ObservedDurationMilliseconds;
             if (duration > MaxDurationMilliseconds) Fail("run-duration-limit");
             if (round.Rule is RewardRoundRule.LocalTarget or RewardRoundRule.FreeForAllScore or RewardRoundRule.TeamScore)
@@ -161,9 +162,11 @@ internal static class RewardResultValidator
                     // opponent score; ordinary suicides/environment deaths do not.
                     if (death.Kind == RewardDeathKind.LocalForfeit)
                     {
-                        if (round.Rule != RewardRoundRule.TeamScore || victim.ParticipantId != run.LocalParticipantId)
+                        if (run.Mode != "teamdeathmatch"
+                            || round.Rule is not (RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly)
+                            || victim.ParticipantId != run.LocalParticipantId)
                             Fail("invalid-local-forfeit");
-                        opponentScore++;
+                        if (round.Rule == RewardRoundRule.TeamScore) opponentScore++;
                     }
                     if (round.KillTarget > 0)
                     {
@@ -200,12 +203,17 @@ internal static class RewardResultValidator
                         _ => null
                     };
                 }
+                if (!terminalWin.HasValue && round.AllowIncomplete) terminalWin = false;
                 if (!terminalWin.HasValue) Fail("unfinished-round");
                 if (terminalWin.Value) wins++;
             }
             if (kills > run.Policy.MaxKills) Fail("reward-kill-limit");
             var amount = checked((long)kills * run.Policy.RoublesPerKill + (long)wins * run.Policy.RoublesPerRoundWin);
-            if (amount > run.Policy.MaxRoubles) Fail("reward-amount-limit");
+            if (amount > run.Policy.MaxRoubles)
+            {
+                if (!run.Policy.CapRoubles) Fail("reward-amount-limit");
+                amount = run.Policy.MaxRoubles;
+            }
             return new(amount == 0 ? RewardEvaluationStatus.NoReward : RewardEvaluationStatus.Eligible,
                 amount == 0 ? "no-eligible-reward" : "validated-result", kills, wins, amount);
         }
@@ -216,7 +224,7 @@ internal static class RewardResultValidator
     private static bool RuleFitsMode(string mode, RewardRoundRule rule) => mode switch
     {
         "deathmatch" => rule is RewardRoundRule.KillsOnly or RewardRoundRule.LocalTarget or RewardRoundRule.FreeForAllScore,
-        "teamdeathmatch" => rule is RewardRoundRule.TeamScore,
+        "teamdeathmatch" => rule is RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly,
         "tactical" => rule is RewardRoundRule.SoloElimination or RewardRoundRule.TeamElimination,
         // Ladder skips/demotions and administrative zombie wave retirements need
         // further evidence. Do not invent a round win from a kill total there.
@@ -224,11 +232,13 @@ internal static class RewardResultValidator
         _ => false
     };
 
-    private static bool ValidNativeIdentity(string value, string armToken)
+    internal static bool ValidNativeIdentity(string value, string armToken)
     {
         if (value is null || value.Length > 192 || !ArenaMode.Shared.Protocol.HasNativeEndIdentity(value, armToken)) return false;
         var prefix = value[..^(ArenaMode.Shared.Protocol.NativeEndIdentitySeparator.Length + armToken.Length)];
-        return Regex.IsMatch(prefix, "\\A[A-Za-z0-9_.:-]{1,128}\\z");
+        // Installed SPT 4.1.6 uses "location.PlayerSide unixTimestamp". The
+        // space before its decimal timestamp is native, not an Arena delimiter.
+        return prefix.Length <= 128 && Regex.IsMatch(prefix, "\\A[A-Za-z0-9_.:-]+(?: [0-9]{1,19})?\\z");
     }
 
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]

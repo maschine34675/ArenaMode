@@ -209,6 +209,21 @@ public sealed class RewardResultTests
         Assert.Equal(100, result.Roubles);
     }
 
+    [Theory]
+    [InlineData("teamdeathmatch", 1, true)]
+    [InlineData("teamdeathmatch", 3, false)]
+    [InlineData("deathmatch", 1, false)]
+    [InlineData("gungame", 1, false)]
+    [InlineData("zombies", 1, false)]
+    public void UnlimitedLocalForfeitIsRestrictedToTheLocalTeamDeathmatchPlayer(string mode, int victim, bool accepted)
+    {
+        var run = Run() with { Mode = mode };
+        var result = Evaluate(run, Death(1, 2, 1), Death(2, victim, null, RewardDeathKind.LocalForfeit));
+        Assert.Equal(accepted ? RewardEvaluationStatus.Eligible : RewardEvaluationStatus.Rejected, result.Status);
+        Assert.Equal(accepted ? 100 : 0, result.Roubles);
+        Assert.Equal(0, result.RoundWins);
+    }
+
     [Fact]
     public void SoloEliminationRequiresAllRegisteredEnemiesDead()
     {
@@ -444,6 +459,23 @@ public sealed class RewardResultTests
                      Protocol.BuildNativeEndIdentity("", run.ArmToken)
                  })
             Assert.Throws<RewardDataException>(() => RewardResultValidator.ValidateAuthorization(run with { NativeEndIdentity = identity }));
+    }
+
+    [Theory]
+    [InlineData("factory4_day.Pmc 1792870000", true)]
+    [InlineData("arena_bay5.Pmc 1", true)]
+    [InlineData("native-server-id", true)]
+    [InlineData("factory4_day.Pmc\t1792870000", false)]
+    [InlineData("factory4_day.Pmc 1792870000\n", false)]
+    [InlineData("factory4_day.Pmc  1792870000", false)]
+    [InlineData("factory4_day.Pmc text", false)]
+    [InlineData("factory4_day.Pmc 1|arenamode:other", false)]
+    public void NativeServerTimestampIdentityIsAcceptedWithoutBroadWhitespaceAdmission(string prefix, bool accepted)
+    {
+        var run = Run();
+        var identity = Protocol.BuildNativeEndIdentity(prefix, run.ArmToken);
+        Assert.Equal(accepted, RewardResultValidator.ValidNativeIdentity(identity, run.ArmToken));
+        if (accepted) RewardResultValidator.ValidateAuthorization(run with { NativeEndIdentity = identity });
     }
 
     [Fact]

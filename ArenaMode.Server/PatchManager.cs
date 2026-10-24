@@ -23,6 +23,7 @@ public sealed class PatchManager(
     MatchBotDetailsCacheService matchBotCache,
     SPTarkov.Server.Core.Models.Spt.Tables.LocationTable locationTable,
     IReadOnlyList<SptMod> loadedMods,
+    SPTarkov.Server.Core.Utils.JsonUtil jsonUtil,
     ISptLogger<PatchManager> logger) : IOnLoad
 {
     public Task OnLoadAsync(CancellationToken cancellationToken)
@@ -34,6 +35,7 @@ public sealed class PatchManager(
         ArenaContext.OrdinaryRaids = ordinaryRaids;
         ArenaContext.MatchBotCache = matchBotCache;
         ArenaContext.Logger = logger;
+        ArenaRewardLifecycle.Initialize(snapshots, jsonUtil);
         // Before ArenaStartLocalRaidPatch is enabled below: its refusal of
         // non-Arena starts on the Arena session server reads this. A failed probe
         // must never keep a normal server from starting; it stays inert instead.

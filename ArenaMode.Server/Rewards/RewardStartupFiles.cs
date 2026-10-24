@@ -7,7 +7,7 @@ namespace ArenaMode.Server.Rewards;
 // A future trusted coordinator must opt in, enroll and capture a verified run and
 // restoration. RewardApprovalProducer validates that evidence before approving;
 // neither producer nor consumer infers authority from a disposable Arena copy.
-internal sealed record RewardStartupEnrollment(int Schema, bool Enabled, string RuntimeRoot, RewardBinding Binding);
+internal sealed record RewardStartupEnrollment(int Schema, bool Enabled, string RuntimeRoot, RewardBinding Binding, bool RuntimeManaged = false);
 internal enum RewardStartupApprovalState { Blocked, RestoredAndApproved }
 internal sealed record RewardStartupApproval(int Schema, RewardStartupApprovalState State, RewardClaim Claim, string CleanProfileRevision);
 internal sealed record RewardStartupAcknowledgement(int Schema, string ReceiptKey, string Fingerprint, string MessageId);
@@ -111,8 +111,15 @@ internal static class RewardStartupFiles
             || profile["characters"]?["pmc"]?["Info"] is not JsonObject
             || profile["characters"]?["scav"]?["Info"] is not JsonObject
             || profile["characters"]?["pmc"]?["Inventory"]?["items"] is not JsonArray
-            || profile["inraid"]?["location"]?.GetValue<string>() != "none"
-            || profile["inraid"]?["character"]?.GetValue<string>() != "none")
+            || profile["inraid"] is not JsonObject inraid
+            || !IdleRaidField(inraid["location"]) || !IdleRaidField(inraid["character"]))
             throw new RewardDataException("profile-not-confirmed-clean");
     }
+
+    // SPT 4.1.6 CreateProfileService uses new Inraid(), serialized as {}.
+    // Its load router only supplies "none"/"none" when the whole object was
+    // absent. Both native idle forms are valid; a non-idle member still refuses
+    // settlement. This shape check never replaces snapshot/run recovery proof.
+    private static bool IdleRaidField(JsonNode? value) => value is null
+        || value is JsonValue primitive && primitive.TryGetValue<string>(out var text) && text == "none";
 }

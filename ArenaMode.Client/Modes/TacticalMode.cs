@@ -733,6 +733,7 @@ public sealed partial class TacticalMode : IArenaMode
             }
             _soloCombatReady = true;
             _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
+            BeginRewardCombat();
             if (ready > 0)
             {
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart, beginAwardRound: false);
@@ -749,6 +750,7 @@ public sealed partial class TacticalMode : IArenaMode
         {
             Plugin.ModLogger.LogDebug(
                 $"Tactical: round {RoundNumber} ran out of time with {SquadAlive} enemies left.");
+            _rewardTimerExpired = true;
             EndRound(won: false);
             return;
         }
@@ -1104,6 +1106,7 @@ public sealed partial class TacticalMode : IArenaMode
                 BindFriendlyFireRoster();
                 _phase = Phase.Live;
                 _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
+                BeginRewardCombat();
                 _preferredSpectatorProfileId = null;
                 // Only here, never during the rebuild: the previous round's ten
                 // actors have been retired and this round's ten already exist, so
@@ -1252,6 +1255,7 @@ public sealed partial class TacticalMode : IArenaMode
                 : enemiesAlive > alliesAlive
                     ? TeamArenaRoundResult.Lost
                     : TeamArenaRoundResult.Drawn;
+            _rewardTimerExpired = true;
             EndTeamRound(
                 expiry,
                 $"round timer expired with {alliesAlive} allies and {enemiesAlive} opponents alive");
@@ -2929,10 +2933,11 @@ public sealed partial class TacticalMode : IArenaMode
         // roster. A bot arriving during Aftermath must be killed by its observer,
         // never adopted and then forgotten by the next StartRound clear.
         _squadEpoch++;
-        RetireSquad();
-
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
+        // Close the combat phase before retiring surviving enemies. Their
+        // administrative cleanup must not become an in-combat fatal event.
+        RetireSquad();
         _match.Scoreboard.MarkCurrentRosterInactive();
 
         _match.ReportAnnouncerCue(

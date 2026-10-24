@@ -79,7 +79,8 @@ public sealed class ArenaProtectedRaidEndService(
                 transactionTimeout.Token);
             await backupService.InitializeAsync(transactionTimeout.Token);
 
-            if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity))
+            if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity,
+                    () => ArenaRewardLifecycle.Persisted(sessionId, nativeEndIdentity)))
             {
                 // Another exact retry may already have closed the same
                 // transaction. Its completed tombstone is equivalent success.
@@ -125,5 +126,6 @@ public sealed class ArenaProtectedRaidEndService(
         await saveServer.SaveProfileAsync(
             sessionId,
             transactionTimeout.Token);
+        ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
     }
 }

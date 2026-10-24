@@ -99,6 +99,8 @@ public static class ArenaServerClient
     internal static bool MolotovAvailableForConfirmedRaid =>
         !string.IsNullOrEmpty(_activeArmToken) && _molotovArmToken == _activeArmToken;
     private static string _boundNativeEndIdentity;
+    internal static string RewardArmToken => _activeArmToken;
+    internal static string RewardNativeEndIdentity => _boundNativeEndIdentity;
     private static string _ordinaryStartIdentity;
     private static string _ordinaryNativeEndIdentity;
     private static bool _ordinaryRaidConfirmed;
@@ -511,7 +513,7 @@ public static class ArenaServerClient
     {
         try
         {
-            // This is the one periodic route in ArenaMode. RequestHandler's
+            // This is a periodic route in ArenaMode. RequestHandler's
             // convenience wrapper writes two Info lines for every successful
             // poll; its underlying client keeps the same backend host, session
             // cookie, retries, certificate handling and zlib response handling
@@ -894,6 +896,7 @@ public static class ArenaServerClient
 
     public static bool PostRaidEnd(bool recoverWithoutNativeEnd = false)
     {
+        ArenaRewardCapture.FlushFinal();
         try
         {
             string armToken = _activeArmToken ?? _pendingArmToken;

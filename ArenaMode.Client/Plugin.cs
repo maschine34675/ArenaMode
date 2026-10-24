@@ -82,6 +82,7 @@ public class Plugin : BaseUnityPlugin
         ArenaLocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaRaidExit.Enable();
+        ArenaRewardCapture.Enable();
         ArenaFailedStartIntro.Enable();
         ArenaPostRaidScreens.Enable();
         Session.Preview.ArenaPreviewFlowPatch.Enable();

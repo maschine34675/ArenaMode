@@ -5,7 +5,7 @@ namespace ArenaMode.Server.Rewards;
 // restore + disk read-back. Copying these fields from a client would defeat this
 // design. Only RewardMatchReport is untrusted combat input. See REWARDS-RESULTS.md.
 internal sealed record RewardRatePolicy(string Version, long RoublesPerKill, long RoublesPerRoundWin,
-    int MaxKills, int MaxRounds, long MaxRoubles);
+    int MaxKills, int MaxRounds, long MaxRoubles, bool CapRoubles = false);
 
 internal enum RewardRoundRule { KillsOnly, LocalTarget, FreeForAllScore, TeamScore, SoloElimination, TeamElimination }
 internal enum RewardSide { Individual, Friendly, Opponent }
@@ -19,7 +19,7 @@ internal enum RewardEvaluationStatus { Eligible, NoReward, Rejected }
 // a bot in FFA must not inherit that previous bot's individual score.
 internal sealed record RewardActor(string ParticipantId, string LifeId, RewardSide Side, long SpawnedAtMilliseconds);
 internal sealed record RewardRoundAuthorization(string RoundId, RewardRoundRule Rule, long ObservedDurationMilliseconds,
-    long TimeLimitMilliseconds, int KillTarget, IReadOnlyList<RewardActor> Actors);
+    long TimeLimitMilliseconds, int KillTarget, IReadOnlyList<RewardActor> Actors, bool AllowIncomplete = false);
 internal sealed record RewardRunAuthorization(int Schema, RewardBinding Binding, string RunId, long Sequence, string ArmToken,
     string NativeEndIdentity, string RestorationId, string LocalParticipantId, string Mode,
     string CleanProfileRevision, RewardRatePolicy Policy, IReadOnlyList<RewardRoundAuthorization> Rounds);

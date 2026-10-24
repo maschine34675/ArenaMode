@@ -456,6 +456,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             || player.ActiveHealthController?.IsAlive != false
             || ReferenceEquals(_creditedGiveUpLife, player)) return;
         _creditedGiveUpLife = player;
+        ArenaRewardCapture.LocalForfeit(player);
         _match.Scoreboard.ReportOpponentForfeitKill();
         CheckMatchLimits();
     }

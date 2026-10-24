@@ -71,6 +71,10 @@ public sealed class ArenaMatch
         if (kill == null)
             return;
 
+        // Capture the fatal physical bodies before OnLocalDeath can end a
+        // Tactical/Zombie round and before scoreboard retirement drops aliases.
+        Session.ArenaRewardCapture.Kill(kill);
+
         if (Mode is ZombieMode zombie && !zombie.IsTeamArena)
         {
             if (kill.LocalIsVictim)

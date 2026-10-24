@@ -693,6 +693,28 @@ public class ArenaSessionService
         }
     }
 
+    /// <summary>One atomic, confirmed native transaction for reward capture admission.</summary>
+    internal bool TryGetRewardSession(MongoId sessionId, out string armToken,
+        out string nativeEndIdentity, out string mode, out bool team, out bool ffa)
+    {
+        lock (_lock)
+        {
+            armToken = nativeEndIdentity = mode = string.Empty;
+            team = ffa = false;
+            if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
+                || entry.State != ArenaSessionState.InRaid || !entry.NativeStartTaskSettled
+                || !entry.ClientRaidStarted || string.IsNullOrEmpty(entry.ArmToken)
+                || string.IsNullOrEmpty(entry.NativeEndIdentity) || string.IsNullOrEmpty(entry.Mode))
+                return false;
+            armToken = entry.ArmToken;
+            nativeEndIdentity = entry.NativeEndIdentity;
+            mode = entry.Mode;
+            team = entry.ProtectPitFireTeam;
+            ffa = entry.DeathmatchHostility == DeathmatchSelection.FreeForAll;
+            return true;
+        }
+    }
+
     public bool IsInRaid(MongoId sessionId)
     {
         lock (_lock)
@@ -945,7 +967,8 @@ public class ArenaSessionService
 
     public bool CompleteNativeEndFinalization(
         MongoId sessionId,
-        string? nativeEndIdentity)
+        string? nativeEndIdentity,
+        Action? beforeRelease = null)
     {
         string key = sessionId.ToString();
         lock (_lock)
@@ -963,6 +986,14 @@ public class ArenaSessionService
 
             bool protectPitFireTeam = entry.ProtectExternalPersistence;
             string? completedArmToken = entry.ArmToken;
+            // The restored disk image belongs to this transaction until this
+            // lock releases it. A new arm cannot replace reward capture state
+            // between durable proof and receipt publication.
+            try { beforeRelease?.Invoke(); }
+            catch (Exception e)
+            {
+                logger.Warning($"[ArenaMode] Reward finalization unavailable ({e.GetType().Name}); profile protection completed.");
+            }
             entry.State = ArenaSessionState.Idle;
             entry.AreaId = ArenaAreaCatalog.FullMapId;
             entry.DeathmatchHostility = null;

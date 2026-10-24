@@ -291,12 +291,44 @@ namespace ArenaMode.SessionHelper
         public StopResult StopArenaServer(string callerRuntime)
         {
             StopResult registered = StopRegisteredServer(callerRuntime);
-            if (registered != StopResult.NothingToStop && registered != StopResult.NotOurs) return registered;
+            StopResult result = registered;
 
             // No usable record of a running server. A helper that was killed between the start of the server and the
             // write of server.pid leaves one that no record names; it holds the tree open and its port.
-            StopResult unregistered = StopUnregisteredServers(callerRuntime);
-            return unregistered == StopResult.NothingToStop ? registered : unregistered;
+            if (registered == StopResult.NothingToStop || registered == StopResult.NotOurs)
+            {
+                StopResult unregistered = StopUnregisteredServers(callerRuntime);
+                result = unregistered == StopResult.NothingToStop ? registered : unregistered;
+            }
+
+            if (result == StopResult.Stopped || result == StopResult.NothingToStop || result == StopResult.NotOurs)
+                ReturnStoppedSessionRewards(callerRuntime);
+            return result;
+        }
+
+        private void ReturnStoppedSessionRewards(string callerRuntime)
+        {
+            if (!HelperRewardTransfer.HasPublishedResults(_runtimeRoot)) return;
+            string expected = Path.Combine(HelperServerTree.GetTreePath(_runtimeRoot), HelperLayout.ServerExeName);
+            // FindByImage deliberately ignores unreadable processes for kill decisions. Returning
+            // results needs positive writer absence instead: an unknown same-named server refuses
+            // transfer, and the outbox is retained for the next leave/enter/watchdog retry.
+            Process[] candidates = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(expected));
+            try
+            {
+                foreach (Process process in candidates)
+                {
+                    if (process.HasExited) continue;
+                    string image = HelperProcesses.GetImagePath(process);
+                    if (image == null || HelperProcesses.SameFileSystemObject(image, expected))
+                        throw new HelperException("Arena reward results remain in the private session: its server could still be running.");
+                }
+            }
+            finally
+            {
+                foreach (Process process in candidates) process.Dispose();
+            }
+            HelperRewardTransfer.ReturnPending(_runtimeRoot, callerRuntime, Info);
         }
 
         private StopResult StopRegisteredServer(string callerRuntime)

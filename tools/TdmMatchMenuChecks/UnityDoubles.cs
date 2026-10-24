@@ -64,6 +64,8 @@ namespace UnityEngine
             { var c=(Component)Activator.CreateInstance(type);c.gameObject=this;components.Add(c); }
         }
         public void SetActive(bool value)=>activeSelf=value;
+        public T AddComponent<T>() where T:Component,new()
+        { var component=new T { gameObject=this }; components.Add(component); return component; }
         public T GetComponent<T>() where T:Component=>components.OfType<T>().FirstOrDefault();
         public T[] GetComponentsInChildren<T>(bool inactive) where T:Component
         {
@@ -129,7 +131,7 @@ namespace TMPro
         public string text;
         public object font,fontSharedMaterial,fontStyle;
         public float fontSize,characterSpacing;
-        public bool enableWordWrapping,raycastTarget;
+        public bool enableWordWrapping,raycastTarget,richText;
         public TextOverflowModes overflowMode;
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color=UnityEngine.Color.white;
@@ -146,7 +148,12 @@ namespace EFT.UI
 {
     public enum EUISoundType { MenuDropdownSelect }
     public class GUISounds { public int Count;public void PlayUISound(EUISoundType sound)=>Count++; }
-    public class HoverTooltipArea:UnityEngine.Component { public void SetMessageText(string text,bool rawText){} public void SetUnlockStatus(bool value){} }
+    public class HoverTooltipArea:UnityEngine.Component
+    {
+        public string Message; public bool RawText;
+        public void SetMessageText(string text,bool rawText) { Message=text;RawText=rawText; }
+        public void SetUnlockStatus(bool value){}
+    }
     public class ItemUiContext { public static ItemUiContext Instance=new(); }
     public class MenuUI { public static MenuUI Instance=new(); public Offline MatchmakerOfflineRaidScreen=new(); }
     public class Offline { public RaidWindow _raidSettingsWindow=new(); }

@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Optional profile rewards (2026-10-24, development after 0.2.0):** explicit
+  PROFILE REWARDS consent on character selection and Arena's map screen; off by
+  default. Normal-server startup enrolls the selected profile and later pays
+  system mail. Rates: 1,000 RUB/eligible kill, 10,000 RUB/DM-TDM-Tactical round
+  win, 200,000 RUB/match cap; Gun Game/Zombies currently kills only. Runtime
+  capture is client-observed, server-validated and signed only after exact
+  snapshot restoration plus full saved-profile read-back. Private sessions
+  return immutable receipts through the helper, never profile copies. New
+  startup allocations preserve intervening normal progress; existing allocations
+  and payment history must never be reset/rebased. Native SPT 4.1.6 idle
+  `inraid: {}` and the space before its raid timestamp are intentional formats.
+  Read [runtime contract and verification](REWARDS-RUNTIME.md),
+  [independent review](REWARDS-RUNTIME-REVIEW-20261024.md) and
+  [bounded GPU evidence](GPU-REWARDS-RUNTIME-20261024.md) before changing this path.
+
 - **Transits, Gun Game warm-up and loose ammunition (2026-10-24):** confirmed
   Arena location clones copy transit records with `IsActive=false` (never clear
   their IDs). Ordinary raids and extracts stay intact. Loading-screen InitialKit

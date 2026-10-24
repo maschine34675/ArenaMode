@@ -11,6 +11,8 @@ internal static class Program
         try
         {
             string suite = args.FirstOrDefault() ?? "all";
+            if (suite is not ("all" or "shares" or "eligibility" or "identity" or "lifecycle" or "events" or "bounds"))
+                throw new ArgumentException("Unknown assist check suite: " + suite);
             if (suite is "all" or "shares") Shares();
             if (suite is "all" or "eligibility") Eligibility();
             if (suite is "all" or "identity") Identity();

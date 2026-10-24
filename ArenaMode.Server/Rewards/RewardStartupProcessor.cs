@@ -24,7 +24,8 @@ internal static class RewardStartupProcessor
         return results;
     }
 
-    internal static async Task<RewardStartupOutcome> ProcessProfileAsync(RewardStartupWindow window, string id, CancellationToken cancellationToken)
+    internal static async Task<RewardStartupOutcome> ProcessProfileAsync(RewardStartupWindow window, string id, CancellationToken cancellationToken,
+        bool includeRuntimeInbox = true)
     {
         long roubles = 0;
         try
@@ -34,6 +35,19 @@ internal static class RewardStartupProcessor
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-directory");
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);
             var enrollmentPath = Path.Combine(directory, "enrollment.json");
+            var runtimeManaged = RewardRuntimeFiles.Exists(window.Root, enrollmentPath)
+                && RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384).RuntimeManaged;
+            var hasRuntimeConsent = RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "consent.json"));
+            if (!hasRuntimeConsent && (runtimeManaged || RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "enrollment-plan.json"))
+                || RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "handoff.json"))
+                || RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "delegations"))
+                || RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "allocations"))))
+                throw new RewardDataException("runtime-reward-consent-missing");
+            if (hasRuntimeConsent)
+            {
+                if (!RewardEnrollment.WantsRewards(window.Root, id)) return Outcome(RewardSettlementStatus.Deferred, "rewards-not-enabled");
+                RewardEnrollment.EnsureAtStartup(window, id);
+            }
             RewardStartupFiles.RequireLocalPath(window.Root, enrollmentPath);
             var enrollment = RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384);
             if (enrollment.Schema != 1 || enrollment.Binding is null || enrollment.Binding.ProfileId != id
@@ -42,6 +56,16 @@ internal static class RewardStartupProcessor
                 throw new RewardDataException("enrollment-origin-mismatch");
             enrollment.Binding.Validate();
             if (!enrollment.Enabled) return Outcome(RewardSettlementStatus.Deferred, "rewards-not-enabled");
+
+            if (includeRuntimeInbox && hasRuntimeConsent)
+            {
+                var queued = await RewardRuntimeInbox.ProcessAsync(window, enrollment, cancellationToken,
+                    () => ProcessProfileAsync(window, id, cancellationToken, includeRuntimeInbox: false));
+                if (queued is not null) return queued;
+            }
+            if (hasRuntimeConsent && !RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "candidate.json"))
+                && !RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "approved.json")))
+                return Outcome(RewardSettlementStatus.Deferred, "rewards-enrolled-no-pending-result");
 
             var evaluation = RewardApprovalProducer.PrepareIfPresent(window, enrollment);
             if (evaluation is { Status: RewardEvaluationStatus.Rejected })

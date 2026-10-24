@@ -29,6 +29,8 @@ public partial class TacticalMode
     public enum Phase { Staging, Buy, Live, Aftermath, Rebinding, Ended }
     private ArenaMatch _match = new();
     private bool _teamArena,_playerDown,_roundStartPending,_soloCombatReady;
+    private bool _rewardTimerExpired;
+    private void BeginRewardCombat() { _rewardTimerExpired = false; }
     private KitDefinition _bought,_worn,_starter;
     private Phase _phase=Phase.Buy;
     private float _phaseEndsAt,_squadDeadlineAt;

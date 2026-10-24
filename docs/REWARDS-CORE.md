@@ -1,5 +1,9 @@
 # Reward settlement core (2026-10-24)
 
+Historical implementation-stage notes below. Gameplay capture, explicit consent,
+startup enrollment and private-session transport are now connected; see
+[REWARDS-RUNTIME.md](REWARDS-RUNTIME.md) for the current flow and its verification.
+
 Status: **no gameplay reward production yet**. The isolated kernel now has a
 [guarded ordinary-server startup consumer](REWARDS-SERVER.md), registered before
 native profile loading. There are no client endpoints, kill/win hooks, live-profile

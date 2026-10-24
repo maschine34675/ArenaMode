@@ -45,6 +45,7 @@ internal static class ArenaSideSelectionPatch
         {
             Preview.ArenaPreviewFlow.Reset();
             ArenaAvailabilityNotice.Hide(__instance);
+            ArenaRewardConsentView.Hide(__instance);
             ArenaSideSelectionLayout.Restore(__instance);
             if (PitFireTeamCompat.IsSquadManagementScreen)
             {
@@ -88,6 +89,7 @@ internal static class ArenaSideSelectionPatch
                 // Arena session: ARENA preselected, PMC and Scav locked. Any other session: unchanged.
                 eligibility = PrepareArenaSession(__instance, eligibility);
                 ShowNotice(__instance, eligibility);
+                ArenaRewardConsentView.Show(__instance);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     EnsureCompatibleMode(eligibility);
@@ -138,6 +140,7 @@ internal static class ArenaSideSelectionPatch
         private static void Prefix(MatchMakerSideSelectionScreen __instance)
         {
             ArenaAvailabilityNotice.Hide(__instance);
+            ArenaRewardConsentView.Hide(__instance);
             try { Preview.ArenaPreviewFlow.KeepFromSide(__instance, Controller(__instance)?.RaidSettings); }
             catch (Exception ex)
             {

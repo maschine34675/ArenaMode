@@ -224,6 +224,15 @@ and discard Arena loot, XP and quest changes. This is not a guarantee against
 crashes or conflicting mods; keep a profile backup, especially while testing
 WIP features. Leaving through the game's raid menu is supported.
 
+Development builds after 0.2.0 add optional **PROFILE REWARDS** on character
+selection and in the map menu.
+They default off. Enable them in a normal session and restart the normal SPT
+server once to register the profile. Eligible kills earn **1,000 ₽**, round wins
+**10,000 ₽**, up to **200,000 ₽ per match**. Gun Game and Zombies currently award
+kills only; no-contest results are excluded. Rewards arrive as RUB mail on the
+next normal server start. Private sessions return signed results, never their
+profile copy. [Details and verification](docs/REWARDS-RUNTIME.md).
+
 ## Controls and configuration
 
 | Default control | Action |

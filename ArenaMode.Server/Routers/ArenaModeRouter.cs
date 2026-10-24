@@ -584,6 +584,7 @@ public sealed class ArenaModeRouter : StaticRouter
             }
 
             await _saveServer.SaveProfileAsync(sessionId, ct);
+            ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
             Sessions.MarkIdle(sessionId);
         }
 

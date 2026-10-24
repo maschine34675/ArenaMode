@@ -485,7 +485,7 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf) == 22,
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 22,
     "inline panel shows twenty-two switches; Crowd shares the unsupported Fast Bots slot in Zombies");
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
@@ -1099,7 +1099,7 @@ foreach (bool team in new[] { false, true })
     Need(MutatorButton(ArenaMutator.ZombieCrowd).gameObject.activeSelf
         && !MutatorButton(ArenaMutator.FastBots).gameObject.activeSelf,
         "Crowd replaces unsupported Fast Bots without adding a visible row");
-    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf) == 22,
+    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 22,
         "Zombie keeps the same twenty-two readable rows");
     bool bots = Settings.BotMovementEnabled.Value;
     Need(MutatorStatus(ArenaMutator.ZombieCrowd) == "OFF", "Crowd starts visibly OFF");
@@ -1124,5 +1124,25 @@ foreach (bool team in new[] { false, true })
     Need(!Settings.ZombieCrowdEnabled.Value && Settings.BotMovementEnabled.Value == bots,
         "Crowd toggles independently of normal bot movement");
 }
+// Reward consent is a separate profile-level control, not a 23rd mutator. This
+// uses the real map-view callback; the transport seam performs no HTTP or I/O.
+var rewardButton = MutatorsRoot().GetComponentsInChildren<Button>(true).Single(b => b.name == "Arena Profile Rewards");
+Need(!rewardButton.interactable && !ArenaRewardMenuState.Status.Enabled, "reward consent is initially unavailable and off");
+ArenaRewardMenuState.Status.Available = ArenaRewardMenuState.Status.CanChange = true;
+view.Synchronize("zombie", false);
+Need(rewardButton.interactable, "available profile consent remains reachable in the map header");
+var rewardTooltip = rewardButton.GetComponent<EFT.UI.HoverTooltipArea>();
+Need(rewardTooltip != null && rewardTooltip.Message == ArenaRewardMenuState.Detail && rewardTooltip.RawText,
+    "reward header exposes complete literal status on hover without reducing mutator readability");
+rewardButton.onClick.Invoke();
+Need(ArenaRewardMenuState.Status.Enabled && ArenaRewardMenuState.Toggles == 1, "explicit reward click alone changes consent");
+ArenaSession.ArmedForNextRaid = true;
+rewardButton.onClick.Invoke();
+Need(ArenaRewardMenuState.Toggles == 1, "reward consent cannot change after a raid was armed");
+ArenaSession.ArmedForNextRaid = false;
+var oldRewardActions = rewardButton.onClick.Snapshot();
+view.Close(); Show();
+foreach (var action in oldRewardActions) action();
+Need(ArenaRewardMenuState.Toggles == 1, "retired reward consent callback cannot act on a reopened screen");
 view.Close();
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

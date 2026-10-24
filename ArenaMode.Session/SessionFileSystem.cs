@@ -929,6 +929,9 @@ namespace ArenaMode.SessionHelper
                 }
             }
 
+            // This guard also covers callers other than HelperRunner. Results must have been
+            // durably returned by the stopped-server path before any old user data is removed.
+            HelperRewardTransfer.RequireDrainedBeforeRebuild(root);
             PrepareTree(box, tree, binaries);
 
             // The server binaries: the files the exe, its dll and deps.json need, beside the exe.
@@ -1081,6 +1084,10 @@ namespace ArenaMode.SessionHelper
             string bundleCache = Path.Combine(Path.Combine(userSource, HelperLayout.CacheFolder), HelperLayout.BundleHashCacheFileName);
             if (File.Exists(bundleCache))
                 box.CopyFile(bundleCache, Path.Combine(Path.Combine(userTarget, HelperLayout.CacheFolder), HelperLayout.BundleHashCacheFileName));
+
+            // Only the enabled, server-issued reward delegation travels with the disposable
+            // profile. Ordinary enrollment, payment history and normal profiles never come back.
+            HelperRewardTransfer.CopyHandoff(source, request.ProfileId, tree);
 
             // The marker comes last.
             HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion, result.ServerExe);

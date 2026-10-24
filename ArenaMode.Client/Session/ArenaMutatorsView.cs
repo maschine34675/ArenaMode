@@ -32,6 +32,9 @@ internal sealed class ArenaMutatorsView
     private Transform _screen;
     private Action _changed;
     private bool _dispatching;
+    private Button _rewards;
+    private TextMeshProUGUI _rewardLabel;
+    private HoverTooltipArea _rewardTooltip;
 
     internal void Create(Transform screen, GameObject owner, TMP_Text typography, Action changed)
     {
@@ -47,6 +50,17 @@ internal sealed class ArenaMutatorsView
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
             Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
             var generation = _root;
+            var rewards = new GameObject("Arena Profile Rewards", typeof(RectTransform), typeof(Image), typeof(Button));
+            rewards.transform.SetParent(_root.transform, false);
+            _rewards = rewards.GetComponent<Button>();
+            _rewards.targetGraphic = rewards.GetComponent<Image>();
+            _rewardLabel = Text(rewards.transform, typography, "Reward consent", "PROFILE REWARDS: OFF", 13f, 8f, 0f, 240f, 26f);
+            ArenaUiTheme.StyleButton(_rewards, _rewardLabel);
+            // The character screen has the full consent card. Keep the dense
+            // mutator rows readable here and expose that same detail on hover.
+            _rewardTooltip = rewards.AddComponent<HoverTooltipArea>();
+            _rewards.onClick.AddListener(() => { if (Owns(generation)) ArenaRewardMenuState.Toggle(); });
+            ArenaRewardMenuState.Refresh(force: true);
             foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
             {
                 // Fresh controls deliberately avoid native prefab label animations.
@@ -86,6 +100,11 @@ internal sealed class ArenaMutatorsView
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
         float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
+        if (_rewards != null)
+        {
+            Rect((RectTransform)_rewards.transform, width - 280f, 16f, 260f, 26f);
+            Rect(_rewardLabel.rectTransform, 8f, 0f, 244f, 26f);
+        }
         int count = _rows.FindAll(row => _selection.Visible(row.Id)).Count;
         int index = 0;
         foreach (var row in _rows)
@@ -112,6 +131,15 @@ internal sealed class ArenaMutatorsView
         _selection.Synchronize(mode, team);
         if (_root == null) return;
         _root.SetActive(_owner != null && _owner.activeInHierarchy && !_selection.Locked);
+        if (_root.activeInHierarchy)
+        {
+            ArenaRewardMenuState.Refresh();
+            _rewardLabel.text = ArenaRewardMenuState.Label;
+            _rewardTooltip.SetMessageText(ArenaRewardMenuState.Detail, rawText: true);
+            _rewards.interactable = !ArenaRewardMenuState.Busy && ArenaRewardMenuState.Status.CanChange
+                && ArenaRewardMenuState.Status.Available && !_selection.Locked;
+            _rewardLabel.color = ArenaRewardMenuState.Status.Enabled ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
+        }
         Layout();
         foreach (var row in _rows)
         {
@@ -148,6 +176,8 @@ internal sealed class ArenaMutatorsView
 
     internal void Close()
     {
+        if (_rewards != null) _rewards.onClick.RemoveAllListeners();
+        _rewards = null; _rewardLabel = null; _rewardTooltip = null;
         foreach (var row in _rows) if (row.Button != null) row.Button.onClick.RemoveAllListeners();
         _rows.Clear();
         _owner = null; _screen = null; _changed = null;

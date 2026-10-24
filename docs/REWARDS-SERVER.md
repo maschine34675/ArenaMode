@@ -1,5 +1,9 @@
 # Ordinary-server reward startup integration (2026-10-24)
 
+Historical implementation-stage notes below. The current opt-in/enrollment,
+capture and transport integration is described in [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md).
+The startup boundary and existing-approval recovery restrictions remain binding.
+
 The ordinary server now has a guarded consumer for **already approved** reward
 receipts. The user accepted payout at the next real server start for this first
 version. Returning from the private Arena session while the ordinary server keeps

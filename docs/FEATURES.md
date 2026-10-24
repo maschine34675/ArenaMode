@@ -1,6 +1,7 @@
 # ArenaMode — complete feature inventory
 
-Source baseline: **67cad48, 2026-10-17**. This lists the current implemented
+Source baseline: **67cad48, 2026-10-17**, with optional profile rewards added on
+2026-10-24 for development builds after 0.2.0. This lists the implemented
 behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
 in-game test. Defaults below are code defaults; existing saved settings can
@@ -627,6 +628,17 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 
 ## 12. Profile protection, stability and performance
 
+- Optional **PROFILE REWARDS**, off by default and enabled explicitly for the
+  selected normal profile. The character and map menus show consent and status.
+  Initial registration and subsequent payments happen at normal server startup.
+- Eligible kills earn **1,000 RUB**, DM/TDM/Tactical round wins **10,000 RUB**,
+  capped at **200,000 RUB per match**. Gun Game and Zombies award kills only.
+  No-contest results do not pay. Normal exits can retain kills from an unfinished
+  round without granting a win. Rewards arrive as system mail.
+- Results are admitted only after positive whole-profile restoration and saved
+  profile read-back. Private sessions return signed result metadata, never a
+  profile copy. Permanent payment history prevents repeat delivery after mail
+  collection. See [reward behavior and limits](REWARDS-RUNTIME.md).
 - Profile snapshot/restore and guarded post-raid processing discard Arena loot,
   progression and quest changes and restore entry equipment. Ordinary raids
   retain their separate path; this is not a guarantee against every crash or

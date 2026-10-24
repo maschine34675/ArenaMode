@@ -200,3 +200,16 @@ namespace ArenaMode.Session
         }
     }
 }
+
+// Reward transport is a separate tested subsystem. These gameplay fixtures
+// exercise the real match/mode code without HTTP, file writes or enrollment.
+namespace ArenaMode.Session
+{
+    internal static class ArenaRewardCapture
+    {
+        internal static void Kill(object kill) { }
+        internal static void LocalForfeit(object player) { }
+        internal static void Invalidate(string reason) { }
+        internal static void FlushFinal() { }
+    }
+}

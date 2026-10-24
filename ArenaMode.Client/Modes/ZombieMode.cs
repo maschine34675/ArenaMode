@@ -28,7 +28,7 @@ namespace ArenaMode.Modes;
 /// spawned zombie becomes aware of the player even when the native bridge
 /// could not arm this raid.
 /// </summary>
-public sealed class ZombieMode : IArenaMode
+public sealed partial class ZombieMode : IArenaMode
 {
     private const float NudgeIntervalSeconds = 5f;
 
@@ -376,6 +376,7 @@ public sealed class ZombieMode : IArenaMode
 
             if (result.ForceRetireStuckInfected)
             {
+                ArenaRewardCapture.Invalidate("a zombie wave required administrative retirement");
                 // "did not clear" is no longer always literal (see
                 // ZombieWavePolicy's own doc comment, "Saturated waves arm
                 // the watchdog too"): a saturated MID-wave firing retires

@@ -12,8 +12,8 @@ namespace ArenaMode.Server.Rewards;
 
 /// <summary>
 /// Consumes explicitly approved receipts before native profiles/HTTP/timers start.
-/// Does nothing on existing installations without the separate enrollment store.
-/// No client route, enrollment/lifecycle evidence collector or live reload is installed.
+/// Does nothing without separately recorded consent/enrollment. Runtime capture
+/// is independent; this pre-load window is the only profile payout writer.
 /// </summary>
 [Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark + 1)]
 public sealed class ArenaRewardStartup(
@@ -57,6 +57,7 @@ public sealed class ArenaRewardStartup(
             using var window = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
             foreach (var outcome in await RewardStartupProcessor.ProcessAsync(window, cancellationToken))
             {
+                RewardRuntimeCoordinator.Current.ObserveStartupOutcome(outcome);
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
                     logger.Info($"[ArenaMode] Arena reward delivered by mail: {outcome.Roubles} RUB.");
                 else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected)
@@ -70,6 +71,7 @@ public sealed class ArenaRewardStartup(
         {
             // A refusal affects rewards, never ordinary server startup or raids.
             var reason = e is RewardDataException ? e.Message : e.GetType().Name;
+            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(reason);
             logger.Warning($"[ArenaMode] Startup rewards unavailable ({reason}); profiles will load normally.");
         }
     }
