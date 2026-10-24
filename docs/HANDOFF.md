@@ -182,6 +182,18 @@ current. User-facing communication is normally German.
   and the dated documents they link, are history. Spec: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md)
   sections 1 and 11.
 
+- **Release 0.2.0 (2026-10-24):** version identities (Shared.props, `Plugin.PluginVersion`, the
+  server's csproj and ModMetadata, the session helper's csproj) and the player README target
+  0.2.0; the Core minimum is 1.0.10, the library of Redeploy 1.0.1 (`RedeployCoreBuiltAgainst` is
+  stamped from the sibling repository's CoreVersion.props at build time). [Release notes](RELEASE-0.2.0.md)
+  cover the Arena session and whitelist, Bowl, the shared Core adapters and the removed per-mod
+  adapters, with what ran natively (five session runs, the Bowl runs, which Core each used) and
+  what did not. The package is built with `tools/Package-TestRelease.ps1 -Release -CoreAssemblyPath
+  <maschine-Redeploy.Core.dll of Redeploy-1.0.1.zip> -CoreAssemblySha256 <its hash>`, so the bundled
+  library is byte-identical to the published one. One smoke test of the build with Core 1.0.10
+  (Factory Deathmatch, a respawn, the leave) ran on SPT-GPU-2; the GitHub release records source,
+  package hash, test results and VirusTotal reports.
+
 - **Release 0.1.3 (2026-10-20):** version identities and the player README now
   target 0.1.3. [Release notes](RELEASE-0.1.3.md) cover the changes since 0.1.2
   and distinguish the existing native acceptance from the isolated release build.

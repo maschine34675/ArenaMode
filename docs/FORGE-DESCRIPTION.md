@@ -76,7 +76,7 @@ Population and starting equipment can be changed in the menu.
   shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
   rotate during play, within the selected Customs area where applicable.
 - Visible Team DM bot spawn protection in the fixed team boxes on Equator,
-  Bay5 and Air Pit, default four seconds; firing, throwing a grenade or dealing
+  Bay5, Air Pit and Bowl, default four seconds; firing, throwing a grenade or dealing
   damage ends it. Other maps retain player protection without bot spawn shields.
 - Narrow colored body contours identify bot spawn protection, Shield and Double
   Damage. Opaque cover hides the contour; simultaneous effects share its colors.
@@ -191,7 +191,7 @@ Optional integration targets:
 - **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
-- **ArenaMapPort:** Bay5, Equator and Air Pit, with client/server and map assets.
+- **ArenaMapPort:** Bay5, Equator, Air Pit and Bowl, with client/server and map assets.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
@@ -205,7 +205,9 @@ Optional integration targets:
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
-  afterward passed native tests; the full camera/Akimbo matrix remains untested.
+  afterward passed native tests with the former Arena-owned adapter; the shared Core
+  implementation that replaces it was validated natively without PFT, and the full
+  camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
 are provided by the bundled Redeploy.Core 1.0.10 (they also apply to standalone Redeploy);

@@ -102,7 +102,7 @@ current defaults, mode restrictions, all mutators and the supporting source.
 - Fixed participant/faction slots, including a retained Labyrinth boss slot.
   Difficulty pressure and bot gear progression are separate; timed Team DM
   scales both time curves to match duration.
-- Team DM bots starting in the fixed team boxes on Equator, Bay5 and Air Pit
+- Team DM bots starting in the fixed team boxes on Equator, Bay5, Air Pit and Bowl
   receive visible spawn protection, default four seconds from activation in
   live combat. Firing or throwing a grenade ends their shield. Other maps do
   not grant bot spawn protection; player protection is unchanged.
@@ -384,8 +384,10 @@ accepted on a GPU host between 2026-10-21 and 2026-10-23 (`docs/ARENA-SESSION-20
 runs, including a policy file changed while the session ran, the private server ending with a game closed
 by hand, and the return). Still open on a GPU host (section 10, items 6 to 11; offline checks only, see
 `docs/ARENA-SESSION-REVIEW-RESPONSE-20261022.md`): the helper's acknowledgement timeout and a late helper, a
-server mod or a policy hash that disagrees with the policy as it reads now, and a policy that cannot be
-loaded. A loaded plugin and a preloader patcher that the policy excludes since the restart were observed.
+server mod or a policy hash that disagrees with the policy as it reads now, a policy that cannot be
+loaded, an unlisted throwaway patcher in a normal session (and the support-DLL rule), and a policy changed
+between the click and the restart. Observed were policy edits in a running session: a loaded plugin and a
+preloader patcher the policy excludes since the restart (items 12 and 14).
 
 ### Testing override
 
@@ -429,7 +431,7 @@ unless you allow them in your own whitelist file.
 | **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
-| **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena. |
+| **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests of the former Arena-owned adapter covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena; the shared Core implementation was validated natively without PFT. |
 
 The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
 body-change fixes are provided by Core (since 1.0.9; 0.2.0 bundles 1.0.10) and also apply to standalone Redeploy.

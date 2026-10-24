@@ -37,8 +37,9 @@ signal and waited at least **13.5 scaled seconds**. That timing is now only the
 legacy fallback. The [2026-10-24 completion contract](SPAWN-GATE-COMPLETION-20261024.md)
 polls MapPort's public static `GatesOpen` after the owned release, then requires
 **all twenty complete outside paths and floor/capsule checks**. Current MapPort
-can therefore finish Bowl's faster drive without the old fixed wait; actual
-native timing for this follow-up is still pending.
+can therefore finish Bowl's faster drive without the old fixed wait; the native timing
+(Bowl Live 7.01 s after the release, 258 ms after MapPort's completion, 2026-10-24) is
+recorded in [GPU-SPAWN-GATE-COMPLETION-20261024.md](GPU-SPAWN-GATE-COMPLETION-20261024.md).
 
 Only absence of the `GatesOpen` member enables the legacy minimum. An advertised
 but malformed member or a throwing getter fails closed through protected match

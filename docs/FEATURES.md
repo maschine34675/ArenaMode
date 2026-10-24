@@ -102,7 +102,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   friendly to each other; the player's faction determines the team.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
-  Bay5 and Air Pit Team DM**, where initial and replacement bots use fixed team
+  Bay5, Air Pit and Bowl Team DM**, where initial and replacement bots use fixed team
   boxes. Other maps do not grant bot spawn protection; player protection is
   unchanged. The configured duration defaults to **4 seconds** and starts in live
   combat when the bot is active. Firing, throwing a grenade or dealing outgoing

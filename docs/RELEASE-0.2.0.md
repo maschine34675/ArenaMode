@@ -56,14 +56,23 @@ Native tests on SPT-GPU-2 (details and limits in the linked documents):
   the Arena game closed by hand (EXIT and kill) ending the private server, the return
   waiting for the helper. Not run natively, offline checks only: the helper's
   acknowledgement timeout and a late helper, a server mod or policy hash that disagrees with
-  the current policy, a policy that cannot be loaded, a backup configuration outside the
-  server tree, two Windows sessions of one account.
+  the current policy, a policy that cannot be loaded, an unlisted throwaway patcher in a
+  normal session (and the support-DLL rule), a policy changed between the click and the
+  restart, a backup configuration outside the server tree, two Windows sessions of one
+  account. The refusals that were observed came from policy edits in a running session.
 - Bowl: Team DM 4v4 runs, a death and respawn, Deathmatch overviews and the gate-completion
   signal on 2026-10-23 and 2026-10-24.
 - Shared body replacement: Arena with Core 1.0.9 on 2026-10-23 (Recoil Rework Legacy,
-  Continuous Load Ammo, Continuous Healing). Core 1.0.10 is the library published with
-  Redeploy 1.0.1 on 2026-10-24; the Arena native runs above used 1.0.9. The GitHub release
-  records the smoke test of this build with Core 1.0.10.
+  Continuous Load Ammo, Continuous Healing), without PitFireTeam. Which Core the native runs
+  used: the Arena session runs 1 to 4 and the Bowl run of 2026-10-23 ran with Core 1.0.8, the
+  shared-body validation, session run 5 and the gate runs of 2026-10-24 with Core 1.0.9. Core
+  1.0.10, the library published with Redeploy 1.0.1 on 2026-10-24, differs from that 1.0.9
+  build only in its version number (`CoreVersion.props`). One smoke test of this build
+  (`0.2.0+3c045cd`) with Core 1.0.10 ran on SPT-GPU-2 on 2026-10-24: a Factory Deathmatch
+  with four participants, one death given up by hand and the instant respawn (a new body
+  with full health and the kit's weapon), the raid left through the pause menu back to the
+  main menu; no error and no Arena or Core warning in the client log. That is a smoke test,
+  not a repeat of the earlier native coverage.
 - Not covered: every mod combination and optional-mod version, Tactical PFT beyond the
   earlier playtests, preloader patchers registered late by other patchers.
 
