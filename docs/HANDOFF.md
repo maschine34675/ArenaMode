@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Transits, Gun Game warm-up and loose ammunition (2026-10-24):** confirmed
+  Arena location clones copy transit records with `IsActive=false` (never clear
+  their IDs). Ordinary raids and extracts stay intact. Loading-screen InitialKit
+  includes the actual first three selected/validated Gun Game stages in the
+  opening batch. Both full kits and weapon-only swaps halve loose reserves with
+  total rounding; loaded rounds/detachable magazines stay intact. Commits
+  `6b09c84`, `6380270`, `131b9a9` are deployed. GPU-2 Factory day/night passed,
+  including 23 seconds in Woods transit, two real promotions, KS-23 23-round
+  reserve and Comrade 150-round reserve. Settings and 303 original items restored
+  (two logged pre-raid startup default counts). See
+  [implementation, limitations and separate log findings](TRANSITS-GUNGAME-AMMO-20261024.md).
+
 - **Spawn-gate completion (2026-10-24):** owned independent Team DM releases now
   poll MapPort's optional public static `GatesOpen` getter before validating all
   twenty complete outside paths and floor/capsule checks. Bowl no longer applies

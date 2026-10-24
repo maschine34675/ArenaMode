@@ -7,6 +7,12 @@ Read `AGENTS.md` and `HANDOFF.md` first.
 
 ## Separate findings from the 2026-10-24 gate tests
 
+The later Factory transit/kit tests also recorded one `BotFirstAid` completion
+null reference during protected exit (19:57:56), through
+`MedsInHandsOperation.Finish` / health effect updates. Reproduce and identify
+the invalid bot/medical owner before changing any callbacks. Attribution is
+unproven; [evidence and context](TRANSITS-GUNGAME-AMMO-20261024.md#log-findings-separately-scoped).
+
 The gate-completion integration passed. Preserve these unrelated observations
 for focused follow-up; see [native evidence](GPU-SPAWN-GATE-COMPLETION-20261024.md#logs-separate-findings):
 
