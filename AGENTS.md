@@ -22,7 +22,13 @@ candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
 Reward work does not relax Arena's full-profile restoration protection. The
-server owns currency values; physical combat remains client-observed. New receipt
+private map-menu consent relay uses a normal-server-issued, expiring control
+grant, pinned loopback TLS and explicit revision-checked settings. Keep the
+secret-bearing private-control listener separate from SPT's debug-logging router;
+refresh before snapshot locking, never within profile restoration. Missing,
+revoked or stale grants do not authorize new capture or normal-profile writes.
+Enrollment and payment remain startup-only. See docs/REWARDS-RUNTIME.md.
+The server owns currency values; physical combat remains client-observed. New receipt
 allocations may bind the latest clean ordinary profile at startup, preserving
 intervening ordinary progress; an existing allocation/approval must never be rebased.
 

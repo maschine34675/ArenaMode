@@ -54,7 +54,7 @@ internal static class ArenaRewardMenuState
             {
                 _consentRequest = true;
                 _request = Task.Run(() => JsonConvert.DeserializeObject<RewardStatusResponse>(RequestHandler.PostJson(
-                    RewardWire.ConsentRoute, JsonConvert.SerializeObject(new RewardConsentRequest { Enabled = enable }))));
+                    RewardWire.ConsentRoute, JsonConvert.SerializeObject(new RewardConsentRequest { Enabled = enable, Revision = Status.ConsentRevision }))));
             }
             return;
         }
@@ -87,8 +87,10 @@ internal static class ArenaRewardMenuState
             if (!Status.Available) return !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
                 : "Optional rewards are unavailable on this server.";
             string state = !string.IsNullOrEmpty(CaptureProblem) ? CaptureProblem
-                : Status.State == "withheld" && !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
-                : Status.Enabled && !Status.Enrolled ? "Activation pending — restart the normal SPT server."
+                : (Status.State == "withheld" || Status.State == "changed") && !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
+                : Status.Enabled && !Status.Enrolled ? Status.PrivateSession
+                    ? "Activation pending — return, restart the normal SPT server, then re-enter Arena."
+                    : "Activation pending — restart the normal SPT server."
                 : !Status.Enabled ? "Optional RUB mail for your normal profile; activation and payout on normal server start."
                 : Status.PendingRoubles > 0 ? $"{Status.PendingRoubles:N0} ₽ pending — paid on the next normal server start."
                 : Status.LastPaidRoubles > 0 ? $"Last payout: {Status.LastPaidRoubles:N0} ₽ by mail."

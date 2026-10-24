@@ -11,6 +11,7 @@
     <ProductionSwitchSource Condition="'$(ProductionSwitchSource)' == ''">../../ArenaMode.Client/Session/ArenaSessionSwitch.cs</ProductionSwitchSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/Shared/RewardWire.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaMiniJson.cs" Link="Production/Shared/ArenaMiniJson.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistPolicy.cs" Link="Production/Shared/ArenaWhitelistPolicy.cs" />
     <Compile Include="$(ProductionDecisionSource)" Link="Production/Shared/ArenaWhitelistDecision.cs" />

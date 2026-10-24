@@ -10,13 +10,16 @@ development change after release 0.2.0, not part of that existing download.
   default and belongs to the selected normal profile. It is separate from
   gameplay mutators. The full card above the map preview shows rates and current
   state directly. The old character-screen card and Mutators-header button are
-  removed. If the normal installation blocks direct Arena access, its existing
-  START ARENA SESSION notice retains a compact consent control so the player can
-  opt in before switching to the read-only private session.
+  removed. START ARENA SESSION and compatibility notices contain no reward
+  control. The same map-menu card can enable or disable rewards from the separate
+  Arena session, through a limited capability issued by the normal server.
   Background status checks keep the confirmed label and button state;
   only initial loading or an explicit consent change shows a waiting state.
 - The first opt-in records consent only. Restart the normal SPT server once to
   register the profile before it is loaded. The menu shows the required restart.
+  When opting in from a private session for the first time, return to the normal
+  game, restart its server, then enter Arena again. Existing enrolled profiles
+  can switch immediately; the normal server must remain running.
 - The server freezes 1,000 RUB per eligible local kill, 10,000 RUB per round win
   and a 200,000 RUB match cap. These are the user's selected starting values.
   The client cannot select an amount or payout recipient.
@@ -34,6 +37,43 @@ development change after release 0.2.0, not part of that existing download.
   existing profile generation and payment history.
 
 ## Capture and authority
+
+### Private-session consent
+
+Before a normal-to-Arena switch, the client generates a fresh non-secret control
+ID and asks the normal server to prepare its grant in the server's reward metadata;
+the helper copies it only for the matching profile, source installation and new
+private-session marker. The credential is never returned to the game client.
+Grant preparation or copy failure keeps the game usable with reward control
+unavailable. New markers that require a grant cannot fall back to an older ON
+handoff when the grant is missing or invalid.
+
+The private server relays status and explicit ON/OFF requests to a bounded,
+loopback-only HTTPS endpoint on the normal server. It pins that server's public
+certificate and does not follow redirects or retry writes. This separate HTTP
+listener avoids SPT's generic debug body logging. Public client responses contain
+only status and a consent revision, never grant or signing keys.
+
+Only the normal server writes consent metadata. Both sides keep their existing
+raid/snapshot guards. Every change advances the persisted revision; a stale
+click or request retry cannot overwrite a newer choice, including one made in
+the normal menu. The grant expires after twelve hours, rotates on the next entry,
+and is invalid after a normal-server restart. Recovery order is: return to the
+normal session, restart the normal server after the private server has stopped,
+then re-enter Arena. Restarting the normal server while the private server still
+runs deliberately holds startup enrollment/payment with
+`another-server-or-unknown-process`; a fresh entry alone does not clear that
+startup hold. An unreachable normal server disables changes and new reward capture.
+
+The private server refreshes authority before arming and starting a new run,
+outside the profile snapshot lock. Already accepted runs retain their exact
+authority and idempotent receipt/restoration path. Opt-out retains the old origin
+key needed to return earlier receipts; re-enable must preserve its binding and
+key. First enrollment and payouts still run exclusively before ordinary profile
+loading; no live profile, stash, progression or ledger is replaced by a toggle.
+Older helpers without a grant retain their previous read-only consent behavior.
+
+### Combat capture
 
 `ArenaRewardCapture` observes the actual mode's combat phase, active clock,
 native participant IDs, physical body generations and fatal events. Ready
@@ -119,11 +159,43 @@ cooperative-writer guarantee.
 
 ## Verification
 
-- The subsequent menu revision moves the full card above the Arena map preview
+### Private consent revision (2026-10-25)
+
+`RewardConsentControlTests` covers synthetic ordinary/private profiles, first
+activation and startup enrollment, enrolled OFF/ON/OFF, stale/duplicate revisions,
+grant expiry/replacement/restart, invalid/missing markers and sidecars, retained
+receipt keys, offline recovery and idempotent accepted runs. Real loopback TLS
+tests exercise certificate pinning before credentials, rejected redirects,
+bounded replies, lost responses, no write retries and the four-second timeout.
+The helper harness additionally checks path links, exact marker/export binding,
+bounded atomic copying and unchanged profile sentinels. The client harness checks
+bounded optional preparation and late-response cancellation. Its request check
+deserializes the actual outgoing body with the public DTO's case-sensitive
+contract, matching SPT's native JSON binding.
+
+The final no-deploy unit suite passed **2,777 tests**, with the one existing APBS
+environment skip. This includes **71 new control tests**. Production-linked
+checks passed **194 helper transfer**, **734 session client**, **39 reward menu**,
+**2,538 map-menu** and **117 existing receipt-transfer** assertions; both seeded
+receipt-transfer faults were rejected. Client, server and helper Release builds
+passed. Installed binaries remained unchanged throughout this offline run.
+All **173 session-client**, **35 map-menu** and **two receipt-transfer** injected
+faults were rejected by their named assertions. Two existing coroutine mutation
+anchors were narrowed after preparation added a second `yield return null` site;
+the complete named inventory was then verified across isolated compiler runs.
+The native test exposed and fixed the prepare request's initially lower-case
+field name; the added mutation check rejects that regression.
+Native acceptance is recorded separately in
+[GPU-PRIVATE-REWARD-CONSENT-20261025.md](GPU-PRIVATE-REWARD-CONSENT-20261025.md).
+
+### Previous verification (2026-10-24)
+
+- The preceding menu revision moved the full card above the Arena map preview
   and removes both the old character-screen card and the Mutators duplicate.
   `RewardMenuStateChecks` passed 36 assertions for quiet polling, serialized
-  consent, late responses and close/reopen cancellation. `RewardNoticeChecks`
-  passed 21 assertions for the blocked-entry fallback and restart ordering.
+  consent, late responses and close/reopen cancellation. Its blocked-entry
+  fallback harness passed 21 assertions; that fallback and its dedicated harness
+  were subsequently removed in favor of private-session consent.
   The session-client harness passed 700 assertions and all 171 named injected
   faults (isolated compiler runs, combined identity inventory checked).
   `TdmMatchMenuChecks/Run-Checks.ps1` passed 2,538 assertions and its 35 injected

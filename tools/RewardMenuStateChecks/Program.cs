@@ -15,7 +15,7 @@ internal static class Program
     private static RewardStatusResponse Ready(bool enabled = false, bool canChange = true) => new()
     {
         Available = true, Enabled = enabled, CanChange = canChange, Enrolled = true, State = "ready",
-        RoublesPerKill = 1000, RoublesPerRoundWin = 10000, MaxRoubles = 200000
+        RoublesPerKill = 1000, RoublesPerRoundWin = 10000, MaxRoubles = 200000, ConsentRevision = 7
     };
 
     private static void PumpUntil(Func<bool> complete)
@@ -74,6 +74,8 @@ internal static class Program
         var enable = RequestHandler.WaitFor(RequestHandler.Posts, 0);
         Check(enable.Route == RewardWire.ConsentRoute, "Consent used another endpoint");
         Check(JsonConvert.DeserializeObject<RewardConsentRequest>(enable.Body).Enabled, "Queued enable was inverted");
+        Check(JsonConvert.DeserializeObject<RewardConsentRequest>(enable.Body).Revision == 7,
+            "Consent did not preserve the exact confirmed revision for transport retries");
         Check(ArenaRewardMenuState.Busy, "Consent POST did not keep its visible pending state");
         ArenaRewardMenuState.Toggle();
         Check(RequestHandler.Posts.Count == 1, "Double click submitted consent twice");
@@ -162,6 +164,20 @@ internal static class Program
         PumpUntil(() => ArenaRewardMenuState.Detail == "Server unavailable");
         Check(!ArenaRewardMenuState.Busy && !ArenaRewardMenuState.CanToggle, "Unavailable response did not settle read-only");
         Check(RequestHandler.Posts.Count == 2, "Read-only failure handling submitted consent");
+
+        poll = Background();
+        var privatePending = Ready(enabled: true);
+        privatePending.PrivateSession = true;
+        privatePending.Enrolled = false;
+        poll.Complete(privatePending);
+        PumpUntil(() => ArenaRewardMenuState.CanToggle);
+        Check(ArenaRewardMenuState.Detail.Contains("return, restart") && ArenaRewardMenuState.Detail.Contains("re-enter Arena"),
+            "First private opt-in did not explain the safe enrollment round trip");
+        poll = Background();
+        var stale = Ready(); stale.State = "changed"; stale.Detail = "Changed elsewhere; review the current setting.";
+        poll.Complete(stale);
+        PumpUntil(() => ArenaRewardMenuState.Status.State == "changed");
+        Check(ArenaRewardMenuState.Detail.StartsWith(stale.Detail), "Stale consent feedback was hidden by generic OFF text");
         Console.WriteLine($"REWARD_MENU_STATE_CHECKS_PASSED ({_checks} assertions)");
     }
 }

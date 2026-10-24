@@ -9,13 +9,28 @@ public static class RewardWire
     public const int Schema = 1;
     public const string StatusRoute = "/arenamode/rewards/status";
     public const string ConsentRoute = "/arenamode/rewards/consent";
+    public const string PrepareControlRoute = "/arenamode/rewards/control/prepare";
     public const string BeginRoute = "/arenamode/rewards/begin";
     public const string CaptureRoute = "/arenamode/rewards/capture";
+}
+
+// Preparing a private-session control capability returns no bearer credential.
+// The helper copies the normal server's bounded export from disk instead.
+public class RewardControlPrepareRequest
+{
+    public string ControlId { get; set; } = "";
+}
+
+public sealed class RewardControlPrepareResponse
+{
+    public bool Accepted { get; set; }
+    public string Reason { get; set; } = "";
 }
 
 public class RewardConsentRequest
 {
     public bool Enabled { get; set; }
+    public long? Revision { get; set; }
 }
 
 public sealed class RewardStatusResponse
@@ -25,6 +40,7 @@ public sealed class RewardStatusResponse
     public bool Enrolled { get; set; }
     public bool PrivateSession { get; set; }
     public bool CanChange { get; set; }
+    public long ConsentRevision { get; set; }
     public string State { get; set; } = "unavailable";
     public string Detail { get; set; } = "";
     public long PendingRoubles { get; set; }

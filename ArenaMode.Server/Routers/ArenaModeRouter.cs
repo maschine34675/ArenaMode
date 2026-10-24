@@ -615,6 +615,13 @@ public sealed class ArenaModeRouter : StaticRouter
         }
 
         string armToken = request.RequestId!;
+        // Reward networking must finish before the native snapshot lock is entered.
+        // Unavailable control only withholds rewards; raid/profile protection proceeds normally.
+        try { await Rewards.RewardRuntimeCoordinator.Current.RefreshPrivateConsentAsync(sessionId.ToString(), ct); }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.Debug("[ArenaMode] Reward control refresh unavailable; continuing protected Arena start.");
+        }
         if (!Sessions.BeginArmPreparation(
                 sessionId,
                 request.Map!,

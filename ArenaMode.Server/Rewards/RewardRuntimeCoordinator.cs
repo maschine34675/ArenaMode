@@ -21,11 +21,16 @@ internal sealed class RewardRuntimeCoordinator
     private readonly Dictionary<string, string> _startupFailures = new(StringComparer.Ordinal);
     private string? _startupUnavailable;
     private readonly Func<DateTimeOffset> _now;
+    private readonly RewardConsentControl _control;
+    private readonly RewardPrivateConsent _privateConsent;
 
-    internal RewardRuntimeCoordinator(string root, Func<DateTimeOffset>? now = null)
+    internal RewardRuntimeCoordinator(string root, Func<DateTimeOffset>? now = null,
+        Func<RewardControlGrant, RewardControlRequest, CancellationToken, Task<RewardControlReply>>? controlTransport = null)
     {
         _root = RewardStartupFiles.Canonical(root);
         _now = now ?? (() => DateTimeOffset.UtcNow);
+        _control = new(_root, _now);
+        _privateConsent = new(_root, _now, controlTransport);
     }
 
     internal bool HasCapture(string id)
@@ -56,8 +61,21 @@ internal sealed class RewardRuntimeCoordinator
                 RoublesPerKill = Policy.RoublesPerKill, RoublesPerRoundWin = Policy.RoublesPerRoundWin, MaxRoubles = Policy.MaxRoubles
             };
             result.CanChange = !result.PrivateSession && !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
+            if (result.PrivateSession && _privateConsent.HasControl)
+            {
+                result = _privateConsent.Status();
+                result.CanChange &= !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
+                if (_runs.TryGetValue(id, out var active))
+                {
+                    result.State = "earning";
+                    if (active.Final is not null) result.PendingRoubles = Evaluate(active, active.Final).Roubles;
+                }
+                ApplyFailure(id, result);
+                return result;
+            }
             try
             {
+                if (!result.PrivateSession) result.ConsentRevision = RewardEnrollment.ReadConsent(_root, id).Revision;
                 var authority = Authority(id, required: false);
                 result.Enabled = result.PrivateSession ? authority?.Enabled == true : RewardEnrollment.WantsRewards(_root, id);
                 result.Enrolled = authority is not null;
@@ -100,13 +118,7 @@ internal sealed class RewardRuntimeCoordinator
                         if (result.LastPaidRoubles > 0 && result.State == "ready") result.State = "paid";
                     }
                 }
-                string? failure = _failures.GetValueOrDefault(id)
-                    ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
-                if (failure is not null)
-                {
-                    result.State = "withheld";
-                    result.Detail = "A reward result was withheld (" + failure + "); profile restoration remains protected.";
-                }
+                ApplyFailure(id, result);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or RewardDataException or JsonException or FormatException)
             {
@@ -118,6 +130,14 @@ internal sealed class RewardRuntimeCoordinator
         }
     }
 
+    private void ApplyFailure(string id, RewardStatusResponse result)
+    {
+        string? failure = _failures.GetValueOrDefault(id) ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
+        if (failure is null) return;
+        result.State = "withheld";
+        result.Detail = "A reward result was withheld (" + failure + "); profile restoration remains protected.";
+    }
+
     internal RewardStatusResponse SetConsent(string id, bool enabled)
     {
         lock (_sync)
@@ -125,6 +145,63 @@ internal sealed class RewardRuntimeCoordinator
             if (_snapshots.ContainsKey(id) || _runs.ContainsKey(id)) throw new RewardDataException("reward-session-active");
             RewardEnrollment.SetConsent(_root, id, enabled);
             return GetStatus(id);
+        }
+    }
+
+    internal Task RefreshPrivateConsentAsync(string id, CancellationToken ct = default)
+        => _privateConsent.HasControl ? _privateConsent.RefreshAsync(id, null, ct) : Task.CompletedTask;
+
+    internal async Task<RewardStatusResponse> SetConsentAsync(string id, bool enabled, CancellationToken ct, long? expectedRevision = null)
+    {
+        if (!_privateConsent.HasControl)
+        {
+            lock (_sync)
+            {
+                if (expectedRevision.HasValue && expectedRevision != RewardEnrollment.ReadConsent(_root, id).Revision)
+                {
+                    var status = GetStatus(id);
+                    status.State = "changed";
+                    status.Detail = "Reward preference changed elsewhere. Review the current setting before trying again.";
+                    return status;
+                }
+                return SetConsent(id, enabled);
+            }
+        }
+        lock (_sync)
+            if (_snapshots.ContainsKey(id) || _runs.ContainsKey(id)) throw new RewardDataException("reward-session-active");
+        // The route holds ArenaRaidStartGate across this await; no snapshot lock is held.
+        await _privateConsent.RefreshAsync(id, enabled, ct, expectedRevision);
+        return GetStatus(id);
+    }
+
+    internal RewardControlPrepareResponse PrepareControl(string id, string controlId)
+    {
+        lock (_sync)
+        {
+            if (!GetStatus(id).CanChange) return new() { Reason = "reward-control-unavailable" };
+            _control.Issue(id, controlId);
+            return new() { Accepted = true };
+        }
+    }
+
+    internal RewardControlReply ExchangeControl(string id, RewardControlRequest request, bool canChange)
+    {
+        lock (_sync)
+        {
+            if (!_control.Accepts(id, request)) return new(false, "control-expired-or-invalid", 0, null, null);
+            var consent = RewardEnrollment.ReadConsent(_root, id);
+            string reason = "";
+            if (request.Enabled.HasValue)
+            {
+                if (!canChange || _snapshots.ContainsKey(id) || _runs.ContainsKey(id))
+                    return new(false, "reward-session-active", consent.Revision, null, null);
+                if (request.ExpectedRevision != consent.Revision) reason = "stale-consent";
+                else SetConsent(id, request.Enabled.Value);
+            }
+            var status = GetStatus(id);
+            status.CanChange &= canChange;
+            return new(reason.Length == 0, reason, RewardEnrollment.ReadConsent(_root, id).Revision, status,
+                status.Available && status.Enabled && status.Enrolled ? Authority(id, false) : null);
         }
     }
 
@@ -170,7 +247,6 @@ internal sealed class RewardRuntimeCoordinator
         {
             try
             {
-                var authority = Authority(id, required: true)!;
                 // Native Arena mode IDs and the internal reward vocabulary are
                 // separate. Validate the exact armed ID before normalization.
                 var canonicalMode = expectedMode == "zombie" ? "zombies" : expectedMode;
@@ -185,13 +261,14 @@ internal sealed class RewardRuntimeCoordinator
                         && request.KillTarget == 0 && request.TimeLimitMilliseconds == 0)
                     throw new RewardDataException("reward-begin-mismatch");
                 if (!_snapshots.TryGetValue(id, out var snapshot)) throw new RewardDataException("reward-snapshot-not-observed");
-                if (snapshot.Binding != authority.Binding) throw new RewardDataException("reward-snapshot-binding-changed");
                 if (_runs.TryGetValue(id, out var prior))
                 {
                     if (prior.ArmToken != expectedArm || prior.NativeEnd != expectedNativeEnd || prior.BeginJson != RewardRuntimeFiles.Json(request))
                         throw new RewardDataException("reward-run-already-active");
                     return new() { Accepted = true, RunId = prior.Id };
                 }
+                var authority = Authority(id, required: true)!;
+                if (snapshot.Binding != authority.Binding) throw new RewardDataException("reward-snapshot-binding-changed");
                 var run = new Run(Guid.NewGuid().ToString("N"), expectedArm, expectedNativeEnd, localParticipantId, canonicalMode,
                     rule, request.TimeLimitMilliseconds, request.KillTarget, authority, snapshot, _now(), RewardRuntimeFiles.Json(request));
                 var pending = PendingPath(id, run.Id);
@@ -342,6 +419,10 @@ internal sealed class RewardRuntimeCoordinator
                         throw new RewardDataException("reward-authority-origin-mismatch");
                 }
             }
+        }
+        else if (_privateConsent.HasControl)
+        {
+            authority = _privateConsent.Authority(id);
         }
         else
         {

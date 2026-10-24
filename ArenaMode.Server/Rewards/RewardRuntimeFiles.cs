@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 
 namespace ArenaMode.Server.Rewards;
 
-internal sealed record RewardConsent(int Schema, bool Enabled);
+internal sealed record RewardConsent(int Schema, bool Enabled, long Revision = 0);
 internal sealed record RewardEnrollmentPlan(int Schema, RewardBinding Binding, string BeforeRevision, string AfterRevision);
 internal sealed record RewardHandoff(int Schema, bool Enabled, string RuntimeRoot, RewardBinding Binding,
     string DelegationId, string Key);
@@ -108,6 +108,11 @@ internal static class RewardRuntimeFiles
     {
         RewardStartupFiles.RequireLocalPath(root, path);
         var value = RewardStartupFiles.Read<RewardHandoff>(path, 16384);
+        return ValidateHandoff(value);
+    }
+
+    internal static RewardHandoff ValidateHandoff(RewardHandoff value)
+    {
         if (value.Schema != 1 || value.Binding is null || !RewardIdentity.IsGuid(value.DelegationId)
             || !Path.IsPathFullyQualified(value.RuntimeRoot) || Convert.FromBase64String(value.Key).Length != 32)
             throw new RewardDataException("invalid-reward-delegation");

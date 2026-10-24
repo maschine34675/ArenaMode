@@ -5,12 +5,15 @@ namespace ArenaMode.Server.Rewards;
 internal static class RewardEnrollment
 {
     internal static bool WantsRewards(string root, string id)
+        => ReadConsent(root, id).Enabled;
+
+    internal static RewardConsent ReadConsent(string root, string id)
     {
         var path = Path.Combine(RewardRuntimeFiles.DirectoryFor(root, id), "consent.json");
-        if (!RewardRuntimeFiles.Exists(root, path)) return false;
+        if (!RewardRuntimeFiles.Exists(root, path)) return new(1, false);
         var consent = RewardStartupFiles.Read<RewardConsent>(path, 1024);
-        if (consent.Schema != 1) throw new RewardDataException("unknown-reward-consent");
-        return consent.Enabled;
+        if (consent.Schema != 1 || consent.Revision < 0) throw new RewardDataException("unknown-reward-consent");
+        return consent;
     }
 
     internal static void SetConsent(string root, string id, bool enabled)
@@ -21,6 +24,7 @@ internal static class RewardEnrollment
         RewardStartupFiles.RequireLocalPath(root, profilePath);
         if (!File.Exists(profilePath)) throw new RewardDataException("reward-profile-missing");
         RewardRuntimeFiles.EnsureDirectory(root, directory);
+        long revision = checked(ReadConsent(root, id).Revision + 1);
         // Disable the delegatable authority before acknowledging opt-out. A
         // partial write can only keep rewards disabled; it cannot enable them.
         var handoffPath = Path.Combine(directory, "handoff.json");
@@ -29,7 +33,7 @@ internal static class RewardEnrollment
             var handoff = RewardRuntimeFiles.ReadHandoff(root, handoffPath);
             RewardRuntimeFiles.Write(root, handoffPath, handoff with { Enabled = false });
         }
-        RewardRuntimeFiles.Write(root, Path.Combine(directory, "consent.json"), new RewardConsent(1, enabled));
+        RewardRuntimeFiles.Write(root, Path.Combine(directory, "consent.json"), new RewardConsent(1, enabled, revision));
         // First enrollment deliberately waits for the native pre-load window.
         // Re-enabling an existing intact enrollment changes metadata only.
         if (enabled && RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json")))

@@ -15,6 +15,7 @@ namespace ArenaMode.Server.Routers;
 public class ArenaRewardConsentRequest : RewardConsentRequest, IRequestData;
 public class ArenaRewardBeginRequest : RewardBeginRequest, IRequestData;
 public class ArenaRewardCaptureRequest : RewardCaptureRequest, IRequestData;
+public class ArenaRewardControlPrepareRequest : RewardControlPrepareRequest, IRequestData;
 
 /// <summary>Accepts consent and combat observations; never payout or restoration authority.</summary>
 [Injectable(TypePriority = OnLoadOrder.Routers + 1)]
@@ -28,15 +29,37 @@ public sealed class ArenaRewardRouter : StaticRouter
         ProfileSnapshotService snapshots, OrdinaryRaidLifecycleService ordinary) =>
     [
         new RouteAction<EmptyRequestData>(RewardWire.StatusRoute,
-            (url, request, id, output, ct) => Status(id, saves, sessions, snapshots, ordinary)),
+            (url, request, id, output, ct) => Status(id, saves, sessions, snapshots, ordinary, ct)),
+        new RouteAction<ArenaRewardControlPrepareRequest>(RewardWire.PrepareControlRoute,
+            async (url, request, id, output, ct) =>
+            {
+                using (await ArenaRaidStartGate.EnterAsync(id, ct))
+                {
+                    try
+                    {
+                        if (CanChange(id, saves, sessions, snapshots, ordinary))
+                            return Json(RewardRuntimeCoordinator.Current.PrepareControl(id.ToString(), request.ControlId));
+                    }
+                    catch (Exception) { }
+                    return Json(new RewardControlPrepareResponse { Reason = "reward-control-unavailable" });
+                }
+            }),
         new RouteAction<ArenaRewardConsentRequest>(RewardWire.ConsentRoute,
             async (url, request, id, output, ct) =>
             {
                 using (await ArenaRaidStartGate.EnterAsync(id, ct))
                 {
                     if (!CanChange(id, saves, sessions, snapshots, ordinary))
-                        return Json(new RewardStatusResponse { State = "busy", Detail = "Return to the normal main menu before changing rewards." });
-                    try { return Json(RewardRuntimeCoordinator.Current.SetConsent(id.ToString(), request.Enabled)); }
+                        return Json(new RewardStatusResponse { State = "busy", Detail = "Finish the current raid before changing rewards." });
+                    if (request.Revision is null or < 0)
+                    {
+                        var current = RewardRuntimeCoordinator.Current.GetStatus(id.ToString());
+                        current.CanChange = false;
+                        current.State = "changed";
+                        current.Detail = "Restart the game with the current ArenaMode version before changing rewards.";
+                        return Json(current);
+                    }
+                    try { return Json(await RewardRuntimeCoordinator.Current.SetConsentAsync(id.ToString(), request.Enabled, ct, request.Revision)); }
                     catch (Exception) { return Json(Unavailable()); }
                 }
             }),
@@ -50,6 +73,7 @@ public sealed class ArenaRewardRouter : StaticRouter
                         return Json(new RewardBeginResponse { Reason = "no-confirmed-arena-session" });
                     try
                     {
+                        await RewardRuntimeCoordinator.Current.RefreshPrivateConsentAsync(id.ToString(), ct);
                         string? local = saves.GetProfile(id)?.CharacterData?.PmcData?.Id.ToString();
                         if (string.IsNullOrEmpty(local)) return Json(new RewardBeginResponse { Reason = "local-profile-unavailable" });
                         return Json(RewardRuntimeCoordinator.Current.Begin(id.ToString(), arm, nativeEnd,
@@ -72,20 +96,21 @@ public sealed class ArenaRewardRouter : StaticRouter
             }),
     ];
 
-    private static ValueTask<string> Status(MongoId id, SaveServer saves, ArenaSessionService sessions,
-        ProfileSnapshotService snapshots, OrdinaryRaidLifecycleService ordinary)
+    private static async ValueTask<string> Status(MongoId id, SaveServer saves, ArenaSessionService sessions,
+        ProfileSnapshotService snapshots, OrdinaryRaidLifecycleService ordinary, CancellationToken ct)
     {
         try
         {
-            if (saves.GetProfile(id) is null) return new(Json(Unavailable()));
+            if (saves.GetProfile(id) is null) return Json(Unavailable());
+            await RewardRuntimeCoordinator.Current.RefreshPrivateConsentAsync(id.ToString(), ct);
             var status = RewardRuntimeCoordinator.Current.GetStatus(id.ToString());
             status.CanChange &= CanChange(id, saves, sessions, snapshots, ordinary);
-            return new(Json(status));
+            return Json(status);
         }
-        catch (Exception) { return new(Json(Unavailable())); }
+        catch (Exception) { return Json(Unavailable()); }
     }
 
-    private static bool CanChange(MongoId id, SaveServer saves, ArenaSessionService sessions,
+    internal static bool CanChange(MongoId id, SaveServer saves, ArenaSessionService sessions,
         ProfileSnapshotService snapshots, OrdinaryRaidLifecycleService ordinary) =>
         saves.GetProfile(id) is not null && !saves.IsProfileInvalidOrUnloadable(id)
         && sessions.GetStatus(id).state == ArenaSessionState.Idle && !snapshots.HasSnapshot(id)

@@ -12,6 +12,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Server result validation and durable payout approvals](REWARDS-RESULTS.md)
 - [Optional rewards: gameplay capture, private-session transfer and player consent](REWARDS-RUNTIME.md)
 - [Reward card on the Arena map screen: GPU-2 menu checks](GPU-REWARD-MENU-20261024.md)
+- [Private Arena session reward control: GPU-2 checks](GPU-PRIVATE-REWARD-CONSENT-20261025.md)
 - [Arena transits, first three Gun Game stages and reduced ammunition: GPU-2 checks](TRANSITS-GUNGAME-AMMO-20261024.md)
 - [PitFireTeam 1.0.0 and version-filtered Arena sessions](PITFIRETEAM-1.0.0-20261024.md)
 - [Spawn-gate completion: MapPort contract and verification status](SPAWN-GATE-COMPLETION-20261024.md)

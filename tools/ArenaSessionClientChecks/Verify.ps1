@@ -540,7 +540,7 @@ Invoke-Mutant 'switch-accept-keeps-pending' 'switch' `
     ('                _pending = null;' + "`n" + '                _requested = true;') '                _requested = true;' `
     'The restart is latched'
 Invoke-Mutant 'switch-second-helper-allowed' 'switch' `
-    ('        if (_pending != null)' + "`n") ('        if (false)' + "`n") `
+    ('        if (HelperPending)' + "`n") ('        if (false)' + "`n") `
     'A second request while the helper is starting is refused and starts no second helper'
 Invoke-Mutant 'switch-no-coroutine' 'switch' 'plugin.StartCoroutine(WaitForHelper(pending));' 'WaitForHelper(pending);' `
     'The switch started its wait as a coroutine on the plugin'
@@ -563,7 +563,9 @@ Invoke-Mutant 'switch-request-kept-when-the-wait-fails' 'switch' `
 Invoke-Mutant 'switch-request-kept-when-scheduling-fails' 'switch' `
     ('            _pending = null;' + "`n" + '            WithdrawRequest(pending);' + "`n") ('            _pending = null;' + "`n") `
     'The helper that was started is already running, so the request is taken back'
-Invoke-Mutant 'switch-wait-ends-after-one-look' 'switch' 'yield return null;' 'yield break;' `
+Invoke-Mutant 'switch-wait-ends-after-one-look' 'switch' `
+    ('            if (finished) yield break;' + "`n" + '            yield return null;') `
+    ('            if (finished) yield break;' + "`n" + '            yield break;') `
     'The game quits only after the helper acknowledged, exactly once'
 Invoke-Mutant 'switch-plugin-unchecked' 'switch' ('        if (Plugin.Instance == null)' + "`n") ('        if (false)' + "`n") `
     'Without the plugin object there is nothing to wait on: no request file, no helper, no quit'
@@ -581,10 +583,14 @@ Invoke-Mutant 'switch-missing-process-is-alive' 'switch' `
     'A process id nobody has counts as a helper that is gone'
 Invoke-Mutant 'switch-game-time-clock' 'switch' 'Clock = () => Time.realtimeSinceStartup;' 'Clock = () => Time.time;' `
     'the wait runs on real time, not on game time that a pause or a slow frame would stretch'
-Invoke-Mutant 'switch-main-thread-sleeps' 'switch' 'yield return null;' 'System.Threading.Thread.Sleep(1); yield return null;' `
+Invoke-Mutant 'switch-main-thread-sleeps' 'switch' `
+    ('            if (finished) yield break;' + "`n" + '            yield return null;') `
+    ('            if (finished) yield break;' + "`n" + '            System.Threading.Thread.Sleep(1); yield return null;') `
     'the wait for the helper is a coroutine on the plugin and never blocks the main thread'
 
 # ---- side screen, notice and chain wiring (source pins)
+Invoke-Mutant 'reward-prepare-case-mismatch' 'switch' '[nameof(RewardControlPrepareRequest.ControlId)] = controlId' '["controlId"] = controlId' `
+    'Only the approved control identity travels to the helper'
 Invoke-Mutant 'side-lock-patch-ungated' 'side' `
     "        if (ArenaSessionMode.IsArenaSession)`n            new ArenaSideSelectionSessionLockPatch().Enable();" `
     '        new ArenaSideSelectionSessionLockPatch().Enable();' `
@@ -641,6 +647,9 @@ Invoke-Mutant 'notice-confirm-label' 'notice' '"CLICK AGAIN TO RESTART THE GAME"
     'the confirmation label is exactly CLICK AGAIN TO RESTART THE GAME'
 Invoke-Mutant 'notice-depends-on-core' 'notice' 'using TMPro;' "using TMPro;`nusing Redeploy.Core;" `
     'the notice stays independent of Core, settings and adapters'
+Invoke-Mutant 'notice-reward-preference-returned' 'notice' 'namespace ArenaMode.Session;' `
+    'namespace ArenaMode.Session; internal sealed class ArenaNoticeOption { }' `
+    'reward controls belong to the Arena map menu, never the incompatible-mod notice'
 Invoke-Mutant 'chain-whitelist-removed' 'optional' `
     "        var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();`n        if (whitelistFailure != null) return whitelistFailure;`n" '' `
     'the whitelist is the first provider of the admission chain'

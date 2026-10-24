@@ -373,7 +373,7 @@ internal static class ArenaSideSelectionPatch
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
         else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())
-            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen, includeRewardConsent: true));
+            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
         else
             ArenaAvailabilityNotice.Show(screen, text);
     }
@@ -389,19 +389,9 @@ internal static class ArenaSideSelectionPatch
     private static string WithWarnings(string text, string warnings)
         => string.IsNullOrEmpty(warnings) ? text : text + "\n" + warnings;
 
-    private static ArenaNoticeAction StartAction(MatchMakerSideSelectionScreen screen, bool includeRewardConsent = false)
+    private static ArenaNoticeAction StartAction(MatchMakerSideSelectionScreen screen)
         => new ArenaNoticeAction(ArenaWhitelistAdmission.StartActionLabel,
-            () => SwitchSession(screen, ArenaSessionContract.DirectionEnter),
-            option: includeRewardConsent ? new ArenaNoticeOption
-            {
-                Label = () => ArenaRewardMenuState.Label,
-                Detail = () => ArenaRewardMenuState.Detail,
-                Refresh = () => ArenaRewardMenuState.Refresh(),
-                CanClick = () => ArenaRewardMenuState.CanToggle,
-                CanProceed = () => !ArenaRewardMenuState.Busy,
-                Click = ArenaRewardMenuState.Toggle,
-                Close = ArenaRewardMenuState.CancelQueuedToggle
-            } : null);
+            () => SwitchSession(screen, ArenaSessionContract.DirectionEnter));
 
     private static ArenaNoticeAction ReturnAction(MatchMakerSideSelectionScreen screen)
         => new ArenaNoticeAction(ArenaWhitelistAdmission.ReturnActionLabel,
@@ -433,7 +423,7 @@ internal static class ArenaSideSelectionPatch
     private static void ShowSwitchFailure(MatchMakerSideSelectionScreen screen, string direction, string error)
     {
         var retry = direction == ArenaSessionContract.DirectionEnter
-            ? StartAction(screen, includeRewardConsent: true)
+            ? StartAction(screen)
             : ReturnAction(screen);
         ArenaAvailabilityNotice.Show(screen, error, retry);
         try { NotificationManager.DisplayWarningNotification(error); }

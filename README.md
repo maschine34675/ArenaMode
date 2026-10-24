@@ -226,8 +226,11 @@ WIP features. Leaving through the game's raid menu is supported.
 
 Development builds after 0.2.0 add optional **PROFILE REWARDS** above the map
 preview in Arena's map menu, including rates and payment status.
-They default off. Enable them in a normal session and restart the normal SPT
-server once to register the profile. Eligible kills earn **1,000 ₽**, round wins
+They default off and can be switched in either a normal or separate Arena session.
+The first activation still requires a normal SPT server restart to register the
+profile: leave the private Arena session first, restart the normal server, then
+enter Arena again. Keep the normal server running
+while changing rewards in the separate session. Eligible kills earn **1,000 ₽**, round wins
 **10,000 ₽**, up to **200,000 ₽ per match**. Gun Game and Zombies currently award
 kills only; no-contest results are excluded. Rewards arrive as RUB mail on the
 next normal server start. Private sessions return signed results, never their

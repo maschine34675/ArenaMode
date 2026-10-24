@@ -111,6 +111,8 @@ namespace SPT.Common.Http
     public static class RequestHandler
     {
         public static bool IsLocal = true;
+        public static Func<string, string, Task<string>> Post = (_, _) => Task.FromResult("{\"accepted\":false}");
+        public static Task<string> PostJsonAsync(string path, string json) => Post(path, json);
     }
 }
 

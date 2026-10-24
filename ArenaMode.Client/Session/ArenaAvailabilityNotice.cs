@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.CompilerServices;
-using EFT.UI;
 using EFT.UI.Matchmaker;
 using TMPro;
 using UnityEngine;
@@ -18,27 +17,16 @@ internal sealed class ArenaNoticeAction
 {
     internal const string DefaultConfirmLabel = "CLICK AGAIN TO RESTART THE GAME";
 
-    internal ArenaNoticeAction(string label, Action callback, string confirmLabel = DefaultConfirmLabel,
-        ArenaNoticeOption option = null)
+    internal ArenaNoticeAction(string label, Action callback, string confirmLabel = DefaultConfirmLabel)
     {
         Label = label;
         Callback = callback;
         ConfirmLabel = confirmLabel;
-        Option = option;
     }
 
     internal string Label { get; }
     internal Action Callback { get; }
     internal string ConfirmLabel { get; }
-    internal ArenaNoticeOption Option { get; }
-}
-
-/// <summary>Optional screen-owned preference; delegates keep the Core-free notice independent.</summary>
-internal sealed class ArenaNoticeOption
-{
-    internal Func<string> Label, Detail;
-    internal Func<bool> CanClick, CanProceed;
-    internal Action Refresh, Click, Close;
 }
 
 /// <summary>
@@ -100,7 +88,6 @@ internal static class ArenaAvailabilityNotice
         private const float Width = 440f;
         private const float ButtonHeight = 30f;
         private const float ButtonBlock = ButtonHeight + 14f; // button plus the gap above it
-        private const float OptionBlock = 36f;
 
         private static readonly Color UnavailableText = new Color(.95f, .77f, .46f, 1f);
         private static readonly Color InfoText = new Color(.78f, .88f, .95f, 1f);
@@ -114,12 +101,8 @@ internal static class ArenaAvailabilityNotice
         private readonly GameObject _button;
         private readonly Image _buttonImage;
         private readonly TextMeshProUGUI _buttonLabel;
-        private readonly Button _optionButton;
-        private readonly TextMeshProUGUI _optionLabel;
-        private readonly HoverTooltipArea _optionTooltip;
         private readonly ArenaTwoClickGate _gate = new ArenaTwoClickGate();
         private ArenaNoticeAction _action;
-        private ArenaNoticeOption _option;
         private bool _shownArmed;
 
         internal View(MatchMakerSideSelectionScreen screen)
@@ -190,48 +173,16 @@ internal static class ArenaAvailabilityNotice
             _buttonLabel.enableWordWrapping = false;
             _buttonLabel.richText = false; // The label is data too.
             _buttonLabel.raycastTarget = false;
-
-            var option = new GameObject("ArenaNoticePreference", typeof(RectTransform), typeof(Image), typeof(Button));
-            option.SetActive(false);
-            var optionRect = (RectTransform)option.transform;
-            optionRect.SetParent(rect, false);
-            optionRect.anchorMin = optionRect.anchorMax = new Vector2(.5f, 0f);
-            optionRect.pivot = new Vector2(.5f, 0f);
-            optionRect.sizeDelta = new Vector2(330f, 26f);
-            optionRect.anchoredPosition = new Vector2(0f, 12f + ButtonBlock);
-            option.GetComponent<Image>().color = ButtonIdle;
-            _optionButton = option.GetComponent<Button>();
-            _optionButton.targetGraphic = option.GetComponent<Image>();
-            _optionButton.colors = colors;
-            _optionButton.onClick.AddListener(OnOptionClick);
-            _optionTooltip = option.AddComponent<HoverTooltipArea>();
-            var optionText = new GameObject("Preference label", typeof(RectTransform), typeof(TextMeshProUGUI));
-            optionText.transform.SetParent(optionRect, false);
-            _optionLabel = optionText.GetComponent<TextMeshProUGUI>();
-            _optionLabel.rectTransform.anchorMin = Vector2.zero;
-            _optionLabel.rectTransform.anchorMax = Vector2.one;
-            _optionLabel.rectTransform.offsetMin = new Vector2(8f, 2f);
-            _optionLabel.rectTransform.offsetMax = new Vector2(-8f, -2f);
-            _optionLabel.font = screen._sideDescriptionText.font;
-            _optionLabel.fontSharedMaterial = screen._sideDescriptionText.fontSharedMaterial;
-            _optionLabel.fontSize = 14f;
-            _optionLabel.color = Color.white;
-            _optionLabel.alignment = TextAlignmentOptions.Center;
-            _optionLabel.enableWordWrapping = false;
-            _optionLabel.richText = false;
-            _optionLabel.raycastTarget = false;
         }
 
         internal void Set(MatchMakerSideSelectionScreen screen, string text, bool unavailable, ArenaNoticeAction action)
         {
             Unavailable = unavailable;
-            if (!ReferenceEquals(_option, action?.Option)) _option?.Close?.Invoke();
             _action = action;
-            _option = action?.Option;
             _gate.Reset();
             _text.color = unavailable ? UnavailableText : InfoText;
             _text.text = unavailable ? "ARENA UNAVAILABLE\n" + text : text;
-            float buttonBlock = action == null ? 0f : ButtonBlock + (_option == null ? 0f : OptionBlock);
+            float buttonBlock = action == null ? 0f : ButtonBlock;
             _text.rectTransform.offsetMin = new Vector2(14f, 10f + buttonBlock);
             var rect = (RectTransform)Root.transform;
             rect.sizeDelta = new Vector2(Width, _text.GetPreferredValues(_text.text, Width - 28f, 0f).y + 24f + buttonBlock);
@@ -240,46 +191,19 @@ internal static class ArenaAvailabilityNotice
             Root.GetComponent<ArenaAvailabilityNoticeAnchor>().Place();
             Root.transform.SetAsLastSibling();
             Root.SetActive(true);
-            RefreshOption();
         }
 
         internal void Close()
         {
-            var option = _option;
-            _option = null;
             _action = null;
             Root.GetComponent<ArenaAvailabilityNoticeAnchor>().Tick = null;
-            _optionButton.onClick.RemoveAllListeners();
-            option?.Close?.Invoke();
-        }
-
-        private void OnOptionClick()
-        {
-            var option = _option;
-            if (Root == null || !Root.activeInHierarchy || option == null || !option.CanClick()) return;
-            option.Click();
-            _gate.Reset();
-            UpdateButton(Time.realtimeSinceStartup);
-            RefreshOption();
-        }
-
-        private void RefreshOption()
-        {
-            _optionButton.gameObject.SetActive(_option != null);
-            if (_option != null)
-            {
-                _option.Refresh();
-                _optionLabel.text = _option.Label();
-                _optionTooltip.SetMessageText(_option.Detail(), rawText: true);
-                _optionButton.interactable = _option.CanClick();
-            }
-            _button.GetComponent<Button>().interactable = _option?.CanProceed() ?? true;
+            _button.GetComponent<Button>().onClick.RemoveAllListeners();
         }
 
         private void OnClick()
         {
             var action = _action;
-            if (Root == null || !Root.activeInHierarchy || action == null || !(_option?.CanProceed() ?? true)) return;
+            if (Root == null || !Root.activeInHierarchy || action == null) return;
             float now = Time.realtimeSinceStartup;
             bool confirmed = _gate.Click(now);
             UpdateButton(now);
@@ -292,7 +216,6 @@ internal static class ArenaAvailabilityNotice
         private void Tick()
         {
             if (Root == null || !Root.activeInHierarchy) return;
-            RefreshOption();
             if (_action != null && _shownArmed && !_gate.IsArmed(Time.realtimeSinceStartup))
                 UpdateButton(Time.realtimeSinceStartup);
         }

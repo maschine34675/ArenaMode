@@ -475,6 +475,9 @@ namespace ArenaMode.SessionHelper
         /// <summary>The logged-in profile; required for <c>enter</c>, 24 hexadecimal characters.</summary>
         public string ProfileId { get; set; }
 
+        /// <summary>Optional one-use identity for the normal server's private reward-control grant.</summary>
+        public string RewardControlId { get; set; }
+
         public string SptRuntimeDir { get; set; }
 
         public List<HelperServerMod> ServerMods { get; set; }
@@ -504,6 +507,13 @@ namespace ArenaMode.SessionHelper
             }
 
             return true;
+        }
+
+        public static bool IsValidControlId(string controlId)
+        {
+            Guid parsed;
+            return controlId != null && controlId.Length == 32 && Guid.TryParseExact(controlId, "N", out parsed)
+                && string.Equals(parsed.ToString("N"), controlId, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -616,6 +626,17 @@ namespace ArenaMode.SessionHelper
             }
 
             parsed.ProfileId = string.IsNullOrEmpty(profileId) ? null : profileId;
+            object rawControlId;
+            if (obj.TryGetValue("rewardControlId", out rawControlId))
+            {
+                string controlId = rawControlId as string;
+                if (!parsed.IsEnter || !IsValidControlId(controlId))
+                {
+                    error = "rewardControlId must be a lowercase GUID without separators on an enter request";
+                    return false;
+                }
+                parsed.RewardControlId = controlId;
+            }
             parsed.PolicyHash = ArenaMiniJson.GetString(obj, "policyHash");
 
             object rawPlan;
@@ -808,6 +829,7 @@ namespace ArenaMode.SessionHelper
             root["gameDir"] = GameDir;
             root["gameArgs"] = GameArgs ?? new List<string>();
             root["profileId"] = ProfileId;
+            if (RewardControlId != null) root["rewardControlId"] = RewardControlId;
             root["sptRuntimeDir"] = SptRuntimeDir;
             var mods = new List<object>();
             if (ServerMods != null)
@@ -2266,6 +2288,9 @@ namespace ArenaMode.SessionHelper
 
         public string ProfileId { get; set; }
 
+        /// <summary>A prepared control identity remains bound even when optional export copying failed.</summary>
+        public string RewardControlId { get; set; }
+
         public int Port { get; set; }
 
         public string SourceRuntime { get; set; }
@@ -2308,6 +2333,7 @@ namespace ArenaMode.SessionHelper
             root["schema"] = Schema;
             root["createdUtc"] = CreatedUtc;
             root["profileId"] = ProfileId;
+            if (RewardControlId != null) root["rewardControlId"] = RewardControlId;
             root["port"] = Port;
             root["sourceRuntime"] = SourceRuntime;
             if (RunsFromTree) root["serverExe"] = ServerExe;
@@ -2335,11 +2361,24 @@ namespace ArenaMode.SessionHelper
                 return false;
             }
 
+            object rawControl;
+            string controlId = null;
+            if (ArenaMiniJson.AsObject(root).TryGetValue("rewardControlId", out rawControl))
+            {
+                controlId = rawControl as string;
+                if (!HelperRequest.IsValidControlId(controlId))
+                {
+                    error = "marker rewardControlId is invalid";
+                    return false;
+                }
+            }
+
             marker = new HelperMarker
             {
                 Schema = schema,
                 CreatedUtc = ArenaMiniJson.GetString(root, "createdUtc"),
                 ProfileId = ArenaMiniJson.GetString(root, "profileId"),
+                RewardControlId = controlId,
                 Port = ArenaMiniJson.GetInt(root, "port", 0),
                 SourceRuntime = ArenaMiniJson.GetString(root, "sourceRuntime"),
                 ServerExe = ArenaMiniJson.GetString(root, "serverExe"),

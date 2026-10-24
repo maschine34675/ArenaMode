@@ -1,11 +1,14 @@
 using ArenaMode.SessionHelper;
+using ArenaMode.Shared;
 using ArenaMode.Shared.Session;
 using BepInEx;
+using SPT.Common.Http;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace ArenaMode.Session;
@@ -26,6 +29,7 @@ internal sealed class ArenaSessionRequest
 
     internal string ProfileId;
     internal string SptRuntimeDir;
+    internal string RewardControlId;
 
     /// <summary>The server mods the Arena server may load: <c>Guid</c> and the folder in <c>File</c>.</summary>
     internal List<ArenaSessionUnit> ServerMods = new List<ArenaSessionUnit>();
@@ -156,7 +160,8 @@ internal sealed class ArenaHelperHandshake
 /// starts the game again (docs/ARENA-SESSION-20261021.md, section 6). The restart takes about two
 /// minutes; the player accepted that.
 ///
-/// The main thread does no more I/O than writing one small file, starting one process and, while the helper
+/// Optional reward-control preparation runs asynchronously, with a five-second fallback to read-only rewards.
+/// The main thread otherwise does no more I/O than writing one small file, starting one process and, while the helper
 /// has not answered yet, looking at one small file and one process every quarter second (a coroutine on the
 /// plugin, never a wait). If the helper stops first or does not answer within
 /// <see cref="ArenaHelperHandshake.TimeoutSeconds"/> seconds the game keeps running and the caller's failure
@@ -166,11 +171,13 @@ internal static class ArenaSessionSwitch
 {
     private const string TokenPrefix = "-token=";
 
-    /// <summary>What the screen says while the helper has not answered yet (it takes well under a second).</summary>
-    internal const string WaitingText = "Starting the Arena session helper. The game closes as soon as the helper has taken the switch over.";
+    /// <summary>Shown during optional reward preparation and the helper acknowledgement.</summary>
+    internal const string WaitingText = "Preparing the Arena session. The game closes as soon as the helper has taken the switch over.";
+    internal const float RewardPrepareTimeoutSeconds = 5f;
 
     private static bool _requested;
     private static PendingSwitch _pending;
+    private static object _preparing;
 
     /// <summary>Everything the wait for one helper acknowledgement needs once <c>Request</c> has returned.</summary>
     private sealed class PendingSwitch
@@ -186,14 +193,15 @@ internal static class ArenaSessionSwitch
     /// <summary>True once a helper acknowledged a switch and the game was asked to quit.</summary>
     internal static bool RestartRequested => _requested;
 
-    /// <summary>True from the moment the helper started until it acknowledged the request, stopped or timed out.</summary>
-    internal static bool HelperPending => _pending != null;
+    /// <summary>True during preparation and until the helper acknowledged, stopped or timed out.</summary>
+    internal static bool HelperPending => _pending != null || _preparing != null;
 
     /// <summary>Clears the restart latch and any wait in progress; for the offline harness, which runs several requests.</summary>
     internal static void ResetRequestLatch()
     {
         _requested = false;
         _pending = null;
+        _preparing = null;
     }
 
     // Seams for the offline harness; production keeps the defaults. The helper launcher returns
@@ -204,6 +212,7 @@ internal static class ArenaSessionSwitch
     internal static Func<string> RequestPathProvider = ArenaSessionContract.GetRequestFilePath;
     internal static HelperLauncher LaunchHelper = StartHelper;
     internal static Action QuitGame = Application.Quit;
+    internal static Func<string, Task<bool>> PrepareRewardControl = PrepareRewardControlOnServer;
 
     /// <summary>The clock of the wait for the helper: real seconds, not game time.</summary>
     internal static Func<float> Clock = () => Time.realtimeSinceStartup;
@@ -212,7 +221,7 @@ internal static class ArenaSessionSwitch
     internal static Func<int, bool> HelperHasExited = HelperProcessHasExited;
 
     /// <summary>
-    /// Starts the switch. Returns true when the helper started and the wait for its acknowledgement began:
+    /// Starts the switch. Returns true once optional preparation or the helper acknowledgement is pending:
     /// the game has NOT quit yet, it quits when the helper has acknowledged, and if the helper stops or stays
     /// silent the game keeps running and <paramref name="onFailure"/> (on the main thread, later) gets the
     /// message for the player. Otherwise false with the message in <paramref name="error"/> and nothing changed.
@@ -220,7 +229,7 @@ internal static class ArenaSessionSwitch
     /// <param name="direction"><see cref="ArenaSessionContract.DirectionEnter"/> or <see cref="ArenaSessionContract.DirectionLeave"/>.</param>
     /// <param name="fallbackProfileId">The logged-in backend session's profile id, used only when the
     /// command line carries no usable <c>-token=</c> argument.</param>
-    /// <param name="onFailure">Called once if the helper started but did not take the request over.</param>
+    /// <param name="onFailure">Called once if a pending switch could not start or complete its helper handshake.</param>
     internal static bool Request(string direction, string fallbackProfileId, out string error, Action<string> onFailure = null)
     {
         error = null;
@@ -255,7 +264,7 @@ internal static class ArenaSessionSwitch
             return false;
         }
 
-        if (_pending != null)
+        if (HelperPending)
         {
             error = "The Arena session helper is still starting.";
             return false;
@@ -328,11 +337,81 @@ internal static class ArenaSessionSwitch
         // starts it again. So run the helper's own parser (linked source, the rules cannot drift) on exactly
         // the text it will read, before anything is written or started: a request it would refuse leaves the
         // game running and tells the player why.
-        if (!HelperRequest.TryParse(requestJson, direction, out _, out string refusal))
+        if (!ValidateHelperRequest(requestJson, direction, out error)) return false;
+
+        if (enter)
         {
-            error = "The Arena session cannot be started: " + refusal + ".";
-            return false;
+            string controlId = Guid.NewGuid().ToString("N");
+            Task<bool> preparation = null;
+            try { preparation = PrepareRewardControl(controlId); }
+            catch (Exception) { /* Optional control must never prevent entering Arena. */ }
+            // Observe even a cancelled switch's later transport fault; this continuation cannot launch a helper.
+            if (preparation != null)
+                _ = preparation.ContinueWith(task => { var observed = task.Exception; },
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+            if (preparation != null && !preparation.IsCompleted)
+            {
+                var ticket = new object();
+                _preparing = ticket;
+                try
+                {
+                    Plugin.Instance.StartCoroutine(WaitForRewardPreparation(ticket, preparation, controlId,
+                        request, helper, requestPath, onFailure, Clock() + RewardPrepareTimeoutSeconds));
+                    return true;
+                }
+                catch (Exception)
+                {
+                    _preparing = null;
+                    // The helper wait itself will report a broken coroutine host if needed.
+                }
+            }
+            request.RewardControlId = PreparedControlId(preparation, controlId);
         }
+        return StartPreparedSwitch(request, helper, requestPath, onFailure, out error);
+    }
+
+    private static IEnumerator WaitForRewardPreparation(object ticket, Task<bool> preparation, string controlId,
+        ArenaSessionRequest request, string helper, string requestPath, Action<string> onFailure, float deadline)
+    {
+        while (ReferenceEquals(_preparing, ticket) && !preparation.IsCompleted && Clock() < deadline)
+            yield return null;
+        if (!ReferenceEquals(_preparing, ticket)) yield break;
+        _preparing = null;
+        request.RewardControlId = PreparedControlId(preparation, controlId);
+        string failure = null;
+        try { if (StartPreparedSwitch(request, helper, requestPath, onFailure, out failure)) yield break; }
+        catch (Exception) { failure = "The Arena session helper could not be started. The game keeps running."; }
+        Plugin.ModLogger?.LogWarning("Arena session switch not started: " + failure);
+        try { onFailure?.Invoke(failure); }
+        catch (Exception) { Plugin.ModLogger?.LogDebug("Arena session switch failure notice could not be displayed."); }
+    }
+
+    private static string PreparedControlId(Task<bool> preparation, string controlId)
+    {
+        if (preparation != null && preparation.Status == TaskStatus.RanToCompletion && preparation.Result)
+            return controlId;
+        Plugin.ModLogger?.LogDebug("Arena reward control was not prepared; private-session rewards remain read-only.");
+        return null;
+    }
+
+    private static async Task<bool> PrepareRewardControlOnServer(string controlId)
+    {
+        string response = await RequestHandler.PostJsonAsync(RewardWire.PrepareControlRoute,
+            // SPT JsonUtil preserves case; match the public DTO as the other reward requests do.
+            ArenaMiniJson.Write(new Dictionary<string, object> { [nameof(RewardControlPrepareRequest.ControlId)] = controlId })).ConfigureAwait(false);
+        object root;
+        string error;
+        if (response == null || response.Length > 4096 || !ArenaMiniJson.TryParse(response, out root, out error)) return false;
+        return ArenaMiniJson.GetBool(root, "Accepted", false) || ArenaMiniJson.GetBool(root, "accepted", false);
+    }
+
+    private static bool StartPreparedSwitch(ArenaSessionRequest request, string helper, string requestPath,
+        Action<string> onFailure, out string error)
+    {
+        error = null;
+        string direction = request.Direction;
+        string requestJson = BuildRequestJson(request);
+        if (!ValidateHelperRequest(requestJson, direction, out error)) return false;
 
         // An acknowledgement of an earlier request must not be mistaken for this one's. The helper deletes it too
         // and the pid check would catch it, but the client has to be sure on its own.
@@ -378,6 +457,17 @@ internal static class ArenaSessionSwitch
     }
 
     // ------------------------------------------------------------------ the wait for the helper
+
+    private static bool ValidateHelperRequest(string requestJson, string direction, out string error)
+    {
+        error = null;
+        if (!HelperRequest.TryParse(requestJson, direction, out _, out string refusal))
+        {
+            error = "The Arena session cannot be started: " + refusal + ".";
+            return false;
+        }
+        return true;
+    }
 
     private static void StartWaiting(PendingSwitch pending)
     {
@@ -486,6 +576,7 @@ internal static class ArenaSessionSwitch
         root["gameDir"] = request.GameDir;
         root["gameArgs"] = new List<string>(request.GameArgs);
         root["profileId"] = request.ProfileId;
+        if (!string.IsNullOrEmpty(request.RewardControlId)) root["rewardControlId"] = request.RewardControlId;
         root["sptRuntimeDir"] = request.SptRuntimeDir;
         root["serverMods"] = mods;
         root["policyHash"] = request.PolicyHash ?? string.Empty;

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RewardControlSource Condition="'$(RewardControlSource)' == ''">../../ArenaMode.Session/RewardControlTransfer.cs</RewardControlSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RewardControlSource)" Link="Production/RewardControlTransfer.cs" />
+    <Compile Include="../../ArenaMode.Session/RewardTransfer.cs" Link="Production/RewardTransfer.cs" />
+    <Compile Include="../../ArenaMode.Session/SessionLogic.cs" Link="Production/SessionLogic.cs" />
+    <Compile Include="../../ArenaMode.Session/SessionFileSystem.cs" Link="Production/SessionFileSystem.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaMiniJson.cs" Link="Production/ArenaMiniJson.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistPolicy.cs" Link="Production/ArenaWhitelistPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistDecision.cs" Link="Production/ArenaWhitelistDecision.cs" />
+    <Compile Include="../../ArenaMode.Shared/Session/ArenaSessionContract.cs" Link="Production/ArenaSessionContract.cs" />
+  </ItemGroup>
+</Project>

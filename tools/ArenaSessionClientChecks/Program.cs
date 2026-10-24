@@ -48,6 +48,7 @@ internal static partial class Program
             CheckRequestSuccess();
             CheckHelperHandshake();
             CheckSourcePins();
+            CheckRewardPreparation();
             Console.WriteLine($"ARENA_SESSION_CLIENT_CHECKS_PASSED ({_checks} assertions)");
             return 0;
         }
@@ -66,10 +67,12 @@ internal static partial class Program
 
     /// <summary>The production check of the helper process, kept before ResetWorld replaces the seam.</summary>
     private static Func<int, bool> _realHelperHasExited;
+    private static Func<string, Task<bool>> _realPrepareRewardControl;
 
     private static void Setup()
     {
         _realHelperHasExited = ArenaSessionSwitch.HelperHasExited;
+        _realPrepareRewardControl = ArenaSessionSwitch.PrepareRewardControl;
         string repo = FindRepositoryRoot();
         _repoPolicyText = File.ReadAllText(Path.Combine(repo, "assets", "arena-whitelist.json"));
         _root = Path.Combine(Path.GetTempPath(), "arena-session-client-checks-" + Guid.NewGuid().ToString("N"));
@@ -166,6 +169,8 @@ internal static partial class Program
         ArenaSessionSwitch.ResetRequestLatch();
         ArenaSessionSwitch.CommandLineProvider = () => new[] { Paths.ExecutablePath, "-force-gfx-jobs", "native", "-token=0123456789abcdef01234567" };
         SPT.Common.Http.RequestHandler.IsLocal = true;
+        SPT.Common.Http.RequestHandler.Post = (_, _) => Task.FromResult("{\"accepted\":false}");
+        ArenaSessionSwitch.PrepareRewardControl = _realPrepareRewardControl;
         Application.QuitCalls = 0;
         ArenaMode.Plugin.ModLogger.Clear();
         WritePolicy(_repoPolicyText);

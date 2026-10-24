@@ -1089,10 +1089,12 @@ namespace ArenaMode.SessionHelper
             // profile. Ordinary enrollment, payment history and normal profiles never come back.
             HelperRewardTransfer.CopyHandoff(source, request.ProfileId, tree);
 
-            // The marker comes last.
+            // The marker commits the private tree. Optional reward control binds to this exact marker.
             HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion, result.ServerExe);
             marker.VersionPlan = request.VersionPlan;
+            marker.RewardControlId = request.RewardControlId;
             box.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), marker.ToJson());
+            HelperRewardControlTransfer.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
 
             result.FilesCopied = box.FilesCopied;
             return result;
