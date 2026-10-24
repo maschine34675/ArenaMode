@@ -415,7 +415,15 @@ public static class ArenaServerClient
     public static bool PostRaidStart(string map, string mode, bool pitFireTeamTeam = false,
         string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null,
         int? participants = null)
+        => PostRaidStart(map, mode, out _, pitFireTeamTeam, areaId, areaTeamSize, deathmatchHostility, participants);
+
+    // Return the reason from this exact synchronous attempt, not a process-wide last-error cache.
+    // A failed or malformed acknowledgement still owns its uncertain arm until cancellation succeeds.
+    internal static bool PostRaidStart(string map, string mode, out string failureReason, bool pitFireTeamTeam = false,
+        string areaId = ArenaAreaCatalog.FullMapId, int? areaTeamSize = null, string deathmatchHostility = null,
+        int? participants = null)
     {
+        failureReason = "The Arena start settings could not be validated.";
         PendingParticipantBosses = false;
         if (!DeathmatchSelection.TryResolve(mode, deathmatchHostility, out var frozenHostility, out _)
             || !ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam, out var area, out _)
@@ -432,6 +440,7 @@ public static class ArenaServerClient
         _pendingArmToken = Guid.NewGuid().ToString("N");
         _activeArmToken = null;
         _boundNativeEndIdentity = null;
+        failureReason = "The server did not arm Arena profile protection.";
         try
         {
             var payload = JObject.FromObject(new
@@ -478,15 +487,21 @@ public static class ArenaServerClient
                 // uncertainty until /status proves Idle or a token-bound cancel
                 // completes. Exact committed retries normally return the same
                 // token as success from the server.
+                if (parsed?["armed"]?.Type == JTokenType.Boolean && !parsed["armed"].Value<bool>()
+                    && parsed["reason"]?.Type == JTokenType.String
+                    && !string.IsNullOrWhiteSpace(parsed["reason"].Value<string>()))
+                    failureReason = parsed["reason"].Value<string>().Trim();
                 Plugin.ModLogger.LogWarning($"Arena raid-start rejected by server: {response}");
             }
+            else failureReason = null;
             if (ok && participants.HasValue)
                 PendingParticipantBosses = parsed["participantBosses"].Value<bool>();
             return ok;
         }
         catch (Exception ex)
         {
-            Plugin.ModLogger.LogError($"Arena raid-start failed: {ex.Message}");
+            failureReason = "Arena could not confirm server profile protection: " + ex.GetBaseException().Message;
+            Plugin.ModLogger.LogError($"Arena raid-start failed: {ex}");
             return false;
         }
     }

@@ -154,10 +154,10 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             if (participants.HasValue && Shared.ArenaParticipantPolicy.IsSolo(requestedMode)
                 && !Bots.ArenaBotSpawnPatches.SoloPopulationReady)
                 throw new InvalidOperationException("Arena participant spawn protection is unavailable; restart after updating the client.");
-            if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode,
+            if (!ArenaServerClient.PostRaidStart(settings.location, requestedMode, out var armFailure,
                     ArenaMenuSelection.CompatibilityTeamArenaActive, areaId, areaTeamSize == 0 ? (int?)null : areaTeamSize,
                     hostility, participants))
-                throw new InvalidOperationException("The server did not arm Arena profile protection.");
+                throw new InvalidOperationException(armFailure);
 
             if (!ArenaServerClient.BindNativeStartIdentity(settings))
                 throw new InvalidOperationException(
@@ -190,7 +190,9 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             InGameStatus.InRaid = false;
 #pragma warning restore CS0618
             __result = Task.FromException<LocalSettings>(new InvalidOperationException(
-                "Arena start cancelled to protect your profile. " + ex.Message, ex));
+                // EFT's PreloaderUI appends every inner exception's message. Keep the cause
+                // intact for its UI and logs, but do not also repeat it in this wrapper.
+                "Arena start cancelled to protect your profile.", ex));
             return false;
         }
     }
