@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The current source requires at least 1.0.9 for shared optional-mod body replacement protection; older test/build reports may still mention 1.0.6/1.0.7. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.2.0 bundles and requires at least **1.0.10**, the library published with Redeploy 1.0.1 on 2026-10-24 (the shared optional-mod body replacement protection arrived in 1.0.9); older test/build reports may still mention 1.0.6 to 1.0.9. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -98,7 +98,7 @@ descriptions below state each adapter's contract. That document also records tes
 of adapters that were removed on 2026-10-22 (see the last bullets of this list).
 
 The following Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
-contracts are implemented by Redeploy.Core 1.0.9, also for standalone Redeploy.
+contracts are implemented by Redeploy.Core since 1.0.9 (0.2.0 ships 1.0.10), also for standalone Redeploy.
 Arena supplies only its explicit additional medical scope for Arena bots. The
 native observations below predate that migration; see
 [shared implementation and new verification boundaries](SHARED-BODY-COMPAT-20261023.md).
@@ -198,14 +198,14 @@ checksums. Without that switch it creates a package explicitly labelled as a
 local test. Both variants use the same runtime assets and license notices.
 
 Player documentation is in the [README](../README.md) and the
-[Forge description with six tabs](FORGE-DESCRIPTION.md). The central
+[Forge description with seven tabs](FORGE-DESCRIPTION.md). The central
 [license overview](../THIRD-PARTY-NOTICES.md) distinguishes Arena's MIT code from
 separate image/audio rights. It and the [LICENSE](../LICENSE) are shipped with
 the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.9.
+revision is recorded in the package manifest. The current source targets Core 1.0.10.
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

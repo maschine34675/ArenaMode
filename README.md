@@ -4,12 +4,12 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Current version: **0.1.3**. Download the installable ZIP from
+Current version: **0.2.0**. Download the installable ZIP from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
-See the [changelog](docs/CHANGELOG.md) for changes since 0.1.0, including
-unreleased development changes.
+See the [changelog](docs/CHANGELOG.md) for changes since 0.1.0 and the
+[0.2.0 release notes](docs/RELEASE-0.2.0.md) for what this version changes and what was tested.
 
 ## Modes
 
@@ -189,7 +189,7 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. This build requires Core **1.0.9 or newer**. If Core is missing,
+plugin tree. This build requires Core **1.0.10 or newer**. If Core is missing,
 unreadable or too old, Arena disables its gameplay runtime and shows a reason on
 the character-selection screen; loader details also appear in the client log
 and SPT dependency list. Install the
@@ -259,7 +259,8 @@ when it was written (2026-10-22), each with the version it was reviewed with:
 - other mods: PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport (and its
   preloader patcher), SVM, give-ui, ContinuousHealing, Freecam, DoorDash, Anvil-WebOverlay,
   ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix,
-  HealingAutoCancel, SmajlecLights;
+  HealingAutoCancel, SmajlecLights, and since 2026-10-23 Continuous Load Ammo and Recoil Rework
+  Legacy (after the shared body-replacement checks);
 - Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
 
 The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
@@ -379,11 +380,12 @@ binaries inside the session's private tree, so a server mod that resolves its pa
 `AppContext.BaseDirectory` or the working directory writes there and not into
 your `SPT_Runtime`; only the `SPT_Data` folders the tree links (database, images, ...)
 are the installation's own. The switch, leaving it, the default list and the testing override were
-accepted on a GPU host on 2026-10-21 and 2026-10-22 (`docs/ARENA-SESSION-20261021.md`, section 10).
-Still open on a GPU host (section 10, items 6 to 11; offline checks only so far, see
-`docs/ARENA-SESSION-REVIEW-RESPONSE-20261022.md`): the helper's acknowledgement and a late helper,
-the Arena session's own checks (a server mod, a plugin or a policy hash that disagrees with the policy
-as it reads now, and a policy that cannot be loaded) and a preloader patcher as a unit of the decision.
+accepted on a GPU host between 2026-10-21 and 2026-10-23 (`docs/ARENA-SESSION-20261021.md`, section 10: five
+runs, including a policy file changed while the session ran, the private server ending with a game closed
+by hand, and the return). Still open on a GPU host (section 10, items 6 to 11; offline checks only, see
+`docs/ARENA-SESSION-REVIEW-RESPONSE-20261022.md`): the helper's acknowledgement timeout and a late helper, a
+server mod or a policy hash that disagrees with the policy as it reads now, and a policy that cannot be
+loaded. A loaded plugin and a preloader patcher that the policy excludes since the restart were observed.
 
 ### Testing override
 
@@ -430,7 +432,7 @@ unless you allow them in your own whitelist file.
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena. |
 
 The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
-body-change fixes are provided by Core 1.0.9 and also apply to standalone Redeploy.
+body-change fixes are provided by Core (since 1.0.9; 0.2.0 bundles 1.0.10) and also apply to standalone Redeploy.
 Arena retains only its additional medical fallback for Arena bots. The migration
 has offline lifecycle coverage; the older Arena GPU reports do not certify the
 new shared implementation. See [migration and verification scope](docs/SHARED-BODY-COMPAT-20261023.md).
@@ -484,7 +486,10 @@ connection directly in the character menu.
   private information before sharing logs. Do not upload your full profile.
 
 To uninstall, close the game/server and remove only ArenaMode's DLLs, its
-`BepInEx/plugins/maschine-ArenaMode/` assets and its server mod folder. Back up customized
+`BepInEx/plugins/maschine-ArenaMode/` assets, the gate folder `BepInEx/patchers/maschine-ArenaMode/`,
+its server mod folder and, if you created it, `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
+The Arena session's private server copy and helper log live in
+`%LOCALAPPDATA%\maschine-ArenaMode\session`; remove that folder as well. Back up customized
 files first. Keep Redeploy.Core if another installed mod uses it. Do not remove
 the BepInEx or SPT user directories themselves.
 
@@ -498,7 +503,7 @@ The source also requires a sibling [Redeploy](https://github.com/maschine34675/R
 checkout containing
 `Redeploy.Core/`, its `CoreVersion.props`, and `drivers/CoreVersionGate.cs`.
 Use the exact Redeploy commit recorded in the release's `PACKAGE-MANIFEST.json`;
-the current source uses Core 1.0.9. Do not substitute an arbitrary Core DLL for the
+the current source uses Core 1.0.10. Do not substitute an arbitrary Core DLL for the
 source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**

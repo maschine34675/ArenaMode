@@ -6,7 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
-- [Changelog since 0.1.0, including unreleased changes](CHANGELOG.md)
+- [Changelog since 0.1.0](CHANGELOG.md)
 - [Spawn-gate completion: MapPort contract and verification status](SPAWN-GATE-COMPLETION-20261024.md)
 - [Spawn-gate completion and refreshed DynamicMaps: GPU-2 results](GPU-SPAWN-GATE-COMPLETION-20261024.md)
 - [Bowl original Team DM boxes and gate opening](BOWL-TEAM-BOXES-20261023.md)
@@ -26,6 +26,7 @@ longer exist; the whitelist replaced them.
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
 - [Arena session: answer to the external review of 2026-10-23](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)
 - [Arena session: solution, deployment and packaging](ARENA-SESSION-DEPLOY-20261021.md)
+- [Release 0.2.0: Arena sessions and the whitelist, Bowl, shared Core 1.0.10](RELEASE-0.2.0.md)
 - [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
 - [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md) (history: adapter removed 2026-10-22)
 - [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)

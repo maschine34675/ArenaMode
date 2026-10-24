@@ -1,6 +1,8 @@
 # Shared replacement-body adapters
 
-Arena now requires Redeploy.Core **1.0.9 or newer**. The general Recoil Rework
+Arena now requires Redeploy.Core **1.0.10 or newer** (the adapters described here arrived in
+1.0.9; 1.0.10 is the library published with Redeploy 1.0.1 on 2026-10-24 and the one
+ArenaMode 0.2.0 bundles). The general Recoil Rework
 Legacy, Continuous Load Ammo and Continuous Healing adapters have moved to Core,
 where they also protect standalone Redeploy. Arena no longer installs or ticks a
 second copy of these hooks.

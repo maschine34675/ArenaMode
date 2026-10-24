@@ -11,6 +11,9 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - Scoreboard, assists, killfeed, hitmarkers, health/armor and weapon panels.
 - Profile restoration on exit: Arena loot, XP and quest changes are not kept.
 - Single-player only. **Fika is not supported.**
+- Arena runs only with **whitelisted mods**. With other mods installed, **START ARENA
+  SESSION** restarts the game into a filtered Arena session with a private copy of the
+  server; **RETURN TO NORMAL SESSION** brings the full setup back (see *Whitelist*).
 
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**. Back up your profile
 before playing, particularly when combining mods.
@@ -42,11 +45,14 @@ Population and starting equipment can be changed in the menu.
 - Factory, day and night; Labs; Labyrinth.
 - Customs: Factory Center, Factory Side and Customs Yard. Only these bounded
   areas are available, in all five modes.
-- With ArenaMapPort: Bay5 and Air Pit in all modes; Equator in Gun Game, Deathmatch, Team DM
-  and solo Zombies. Equator does not support Tactical or PFT Zombies.
+- With ArenaMapPort: Bay5, Air Pit and Bowl in all modes; Equator in Gun Game, Deathmatch,
+  Team DM and solo Zombies. Equator does not support Tactical or PFT Zombies.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
 - Air Pit Team DM requires ArenaMapPort 0.2.2 or newer for its team-start boxes.
+- Bowl (ArenaMapPort 0.3.0 was tested) defaults to eight participants in Deathmatch, Gun
+  Game and Team DM. Independent Team DM uses its east/west team boxes for 2v2 to 10v10;
+  combat waits for the spawn gates to open, and the gates stay open for respawns.
 
 #### Mutators
 
@@ -92,8 +98,13 @@ the post-raid XP page skipped.
 - Both the client and server are required. The two Arena client DLLs, audio,
   assets and notices belong in `BepInEx/plugins/maschine-ArenaMode/`.
   The server belongs in `SPT_Runtime/user/mods/ArenaMode/`.
+  The Arena session adds the preloader gate
+  `BepInEx/patchers/maschine-ArenaMode/maschine-ArenaMode.Gate.dll`, the helper
+  `maschine-ArenaMode.Session.exe` and the default whitelist `arena-whitelist.json`
+  beside the client DLL; the list is overwritten by updates, your own entries belong in
+  `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
-- Use the supplied `maschine-Redeploy.Core.dll` (1.0.9); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.10); keep only one copy,
   directly in `BepInEx/plugins/`.
   Arena requires at least this version and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
@@ -114,6 +125,62 @@ Default controls:
 Most switches are in the map-screen Mutators panel. Server configuration is
 also available at the SPT server's HTTPS address plus `/arenamode`. Preserve
 custom settings when updating; restart the game/server after replacing DLLs.
+
+### Whitelist
+
+Many third-party mods break Arena raids, and Arena no longer adapts to each of them
+one by one. Arena therefore runs only with whitelisted mods. The shipped default list
+(`arena-whitelist.json`, next to the client DLL) allows the mods that were installed on
+the author's hosts when it was written, each with its reviewed version: the bot stack
+(SAIN, APBS, ABPS, BigBrain, Waypoints), the author's own mods, PitFireTeam, DynamicMaps,
+UIFixes, WTT-CommonLib and WTT-ContentBackport (with its preloader patcher), SVM, give-ui,
+Continuous Healing, Continuous Load Ammo, Recoil Rework Legacy, Freecam, DoorDash,
+Anvil-WebOverlay, ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors,
+DevBalaclavaFix, HealingAutoCancel and SmajlecLights. It denies ORBIT, Questing Bots,
+Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
+always allowed; a version that differs from the reviewed one only produces a warning.
+Allowing a mod is **not** a compatibility certification: it runs unadapted, at your own
+risk.
+
+- **Other mods installed:** ARENA is disabled with the reason (`Blocked for Arena: ...`
+  for denied mods, `Not on the whitelist: ...` for unlisted ones; preloader patchers count
+  like plugins) and offers **START ARENA SESSION**. Two clicks, because the game restarts
+  (about two minutes): a preloader gate loads only the whitelisted plugins, the helper
+  `maschine-ArenaMode.Session.exe` starts a private copy of the SPT server on port 6970
+  with only the whitelisted server mods and a **disposable copy of your profile**, and only
+  Arena raids are offered. Profile changes made in the session are discarded.
+  **RETURN TO NORMAL SESSION** restarts with your normal server and the full mod set.
+  Closing the Arena game by hand (EXIT, a crash) ends the private server as well.
+- **Only whitelisted mods installed:** Arena plays directly, as before, on your normal
+  server, without a restart.
+- The switch needs a local SPT server in `SPT_Runtime` beside the game and this release's
+  Arena server mod. The session writes `%LOCALAPPDATA%\maschine-ArenaMode\session`
+  (helper log, private server copy); remove it when uninstalling. The first session start
+  copies the server binaries, which an antivirus scan can slow down.
+- A policy file edited while the session runs is noticed at the next character screen:
+  a session that no longer matches your policy refuses Arena and offers the way back.
+
+Your own additions and exclusions belong in
+`BepInEx/config/com.maschine.ArenaMode.whitelist.json`, which updates never touch. An
+entry names a plugin or server mod `guid` or a preloader `patcher` file name; your
+`deny` always wins (a denied mod also excludes the mods that need it), and your `allow`
+lifts a default deny:
+
+```json
+{
+  "schema": 1,
+  "allow": [ { "guid": "com.example.extra", "name": "Extra Mod", "kind": "mod" } ],
+  "deny":  [ "com.example.looting", "Example.Patcher.dll" ]
+}
+```
+
+To let every installed mod load and name only the ones that must stay out (a blacklist;
+nothing has been reviewed for the mods it lets through), add `"unlisted": "allow"`.
+`{ "schema": 1, "unlisted": "allow" }` alone is the testing override: everything loads
+except the default deny list, and the menu, the Arena session notice and the log say so
+(`policy override`). A file that does not parse is ignored as a whole with a warning. Fika
+is never filtered; with Fika, Arena stays unavailable. Full rules and the GPU acceptance
+runs: README and `docs/ARENA-SESSION-20261021.md` in the repository.
 
 ### Compatibility
 
@@ -139,6 +206,10 @@ Optional integration targets:
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
   afterward passed native tests; the full camera/Akimbo matrix remains untested.
+
+The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
+are provided by the bundled Redeploy.Core 1.0.10 (they also apply to standalone Redeploy);
+Arena keeps only its medical fallback for Arena bots.
 
 Targeted Factory tests cover SVM's SaveLoot/Ignore raid ends and CLA loading and
 respawns. Specific timing/UI and replay cases remain open; these checks are not

@@ -70,7 +70,7 @@ as having run early. The client and the gate read the policy files only through 
 a limit on one side only locks the session out through the policy hash check), and the policy hash covers the user's
 denied names in a whitelist as well.
 Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement
-adapters live in sibling Redeploy.Core from 1.0.9; read
+adapters live in sibling Redeploy.Core from 1.0.9 (0.2.0 bundles and requires Core 1.0.10, the library of Redeploy 1.0.1); read
 docs/SHARED-BODY-COMPAT-20261023.md before changing them. Do not restore duplicate
 Arena foreign hooks. Arena registers only ArenaMedicalBodyScope for its medical
 bot fallback; Core's normal replacement scope must never own unrelated ordinary bots.
@@ -786,7 +786,7 @@ with your explanation, the explanation is wrong; measure before you theorise aga
 
 Core admission: both clients fail closed before runtime initialization when the loaded
 Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.9). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+1.0.10, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
 provenance go under docs/licenses; preserve unknown user files during migration.

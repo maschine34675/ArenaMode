@@ -1,16 +1,14 @@
 # Changelog
 
 Notable changes since **v0.1.0**, reconstructed from the Git history and published
-release notes. Dates below are GitHub publication dates. Unreleased covers changes
-merged through [`73c61f7`](https://github.com/maschine34675/ArenaMode/commit/73c61f7)
-on 2026-10-24; it is not part of the 0.1.3 download.
+release notes. Dates below are GitHub publication dates.
 
 Released entries describe the behavior **at that release**. Several compatibility
 adapters were subsequently removed or moved to Redeploy.Core, as noted under
-Unreleased. See [Dependencies and compatibility](DEPENDENCIES.md) for the current
+0.2.0. See [Dependencies and compatibility](DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-24
 
 ### Arena sessions and mod policy
 
@@ -52,9 +50,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 ### Compatibility changes
 
 - Moved general body-replacement fixes for **Recoil Rework Legacy, Continuous Load
-  Ammo and Continuous Healing** into **Redeploy.Core 1.0.9**, sharing them with
-  standalone Redeploy. Arena now requires at least that Core version and no longer
-  installs duplicate hooks for those mods.
+  Ammo and Continuous Healing** into **Redeploy.Core** (1.0.9), sharing them with
+  standalone Redeploy. Arena bundles and requires at least **Core 1.0.10**, the
+  library of Redeploy 1.0.1, and no longer installs duplicate hooks for those mods.
 - Added Recoil Rework Legacy 2.0.0 and Continuous Load Ammo 1.2.0 to the default
   whitelist after native body-replacement checks. Continuous Healing was already
   listed. These checks do not cover every configuration or asynchronous operation;
@@ -75,6 +73,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 Details: [Arena sessions](ARENA-SESSION-20261021.md),
 [Bowl team boxes](BOWL-TEAM-BOXES-20261023.md),
 [shared body-replacement fixes](SHARED-BODY-COMPAT-20261023.md).
+
+[Release notes and verification limits](RELEASE-0.2.0.md).
 
 ## [0.1.3] - 2026-10-20
 
@@ -167,7 +167,7 @@ earlier same-version archives are not reconstructed here. Features already in
 this baseline are documented in its
 [feature inventory](https://github.com/maschine34675/ArenaMode/blob/v0.1.0/docs/FEATURES.md).
 
-[Unreleased]: https://github.com/maschine34675/ArenaMode/compare/v0.1.3...36402fe
+[0.2.0]: https://github.com/maschine34675/ArenaMode/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/maschine34675/ArenaMode/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/maschine34675/ArenaMode/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/maschine34675/ArenaMode/compare/v0.1.0...v0.1.1
