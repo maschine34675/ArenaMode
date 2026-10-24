@@ -25,6 +25,9 @@ namespace ArenaMode.Session
     {
         internal static ArenaMode.Shared.RewardStatusResponse Status = new();
         internal static bool Busy;
+        internal static bool CanToggle => !Busy && Status.Available && Status.CanChange
+            && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid;
+        internal static void CancelQueuedToggle() { }
         internal static int Toggles;
         internal static string Label => "PROFILE REWARDS: " + (Status.Enabled ? "ON" : "OFF");
         internal static string Detail => "Reward status fixture";

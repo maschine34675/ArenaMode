@@ -8,7 +8,7 @@ current. User-facing communication is normally German.
 ## Baseline and responsibilities
 
 - **Optional profile rewards (2026-10-24, development after 0.2.0):** explicit
-  PROFILE REWARDS consent on character selection and Arena's map screen; off by
+  PROFILE REWARDS consent in the full card above Arena's map preview; off by
   default. Normal-server startup enrolls the selected profile and later pays
   system mail. Rates: 1,000 RUB/eligible kill, 10,000 RUB/DM-TDM-Tactical round
   win, 200,000 RUB/match cap; Gun Game/Zombies currently kills only. Runtime

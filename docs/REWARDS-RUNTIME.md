@@ -6,11 +6,15 @@ development change after release 0.2.0, not part of that existing download.
 
 ## Player flow
 
-- **PROFILE REWARDS** on character selection and in Arena's map menu is off by
+- **PROFILE REWARDS** in Arena's map menu is off by
   default and belongs to the selected normal profile. It is separate from
-  gameplay mutators. Character selection shows the rate and current state; the
-  map menu exposes the same details in the button's tooltip. The consent control
-  remains reachable when the normal installation requires a private Arena session.
+  gameplay mutators. The full card above the map preview shows rates and current
+  state directly. The old character-screen card and Mutators-header button are
+  removed. If the normal installation blocks direct Arena access, its existing
+  START ARENA SESSION notice retains a compact consent control so the player can
+  opt in before switching to the read-only private session.
+  Background status checks keep the confirmed label and button state;
+  only initial loading or an explicit consent change shows a waiting state.
 - The first opt-in records consent only. Restart the normal SPT server once to
   register the profile before it is loaded. The menu shows the required restart.
 - The server freezes 1,000 RUB per eligible local kill, 10,000 RUB per round win
@@ -115,6 +119,21 @@ cooperative-writer guarantee.
 
 ## Verification
 
+- The subsequent menu revision moves the full card above the Arena map preview
+  and removes both the old character-screen card and the Mutators duplicate.
+  `RewardMenuStateChecks` passed 36 assertions for quiet polling, serialized
+  consent, late responses and close/reopen cancellation. `RewardNoticeChecks`
+  passed 21 assertions for the blocked-entry fallback and restart ordering.
+  The session-client harness passed 700 assertions and all 171 named injected
+  faults (isolated compiler runs, combined identity inventory checked).
+  `TdmMatchMenuChecks/Run-Checks.ps1` passed 2,538 assertions and its 35 injected
+  faults, covering the card's placement, ownership and raid lock as well as the
+  existing mode controls. These tests compile production sources with external
+  Unity/HTTP stand-ins; they do not establish native rendering acceptance.
+  [The separate GPU-2 menu test](GPU-REWARD-MENU-20261024.md) confirms native
+  placement, map selection, return/reopen and isolation from the ordinary PMC
+  menu. Status samples spanning 49 seconds retained their text and enabled state;
+  the blocked-entry fallback itself was checked offline, not by changing GPU policy.
 - The complete no-deploy unit suite passed: 2,699 tests passed; one existing APBS
   test remains skipped. This includes 63 runtime reward tests and four tests of
   the actual server snapshot/session lifecycle. Installed files were unchanged

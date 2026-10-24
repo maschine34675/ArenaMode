@@ -621,7 +621,7 @@ Invoke-Mutant 'side-pmc-fallback-in-session' 'side' `
     '                __instance._pmcButton.IsToggled = true;' `
     'a failed Arena click falls back to PMC outside an Arena session only'
 Invoke-Mutant 'side-start-direction-wrong' 'side' `
-    '() => SwitchSession(screen, ArenaSessionContract.DirectionEnter));' '() => SwitchSession(screen, ArenaSessionContract.DirectionLeave));' `
+    '() => SwitchSession(screen, ArenaSessionContract.DirectionEnter)' '() => SwitchSession(screen, ArenaSessionContract.DirectionLeave)' `
     'the actions request the matching direction'
 Invoke-Mutant 'side-profile-not-passed' 'side' 'try { profileId = Controller(screen)?.Session?.Profile?.Id; }' 'try { }' `
     'the confirmed action passes the logged-in profile'

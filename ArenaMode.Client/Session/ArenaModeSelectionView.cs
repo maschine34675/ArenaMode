@@ -33,6 +33,7 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _description;
     private ArenaModeSelectionState _selection;
     private readonly ArenaMutatorsView _mutators = new();
+    private readonly ArenaRewardConsentView _rewards = new();
     private readonly ArenaZombieRulesView _zombieRules = new();
 
     internal GameObject Root => _root;
@@ -119,6 +120,7 @@ internal sealed class ArenaModeSelectionView
             Safe(() => { if (button != null) button.onClick.RemoveAllListeners(); });
         _buttons.Clear();
         Safe(_mutators.Close);
+        Safe(_rewards.Close);
         _markers.Clear();
         var root = _root;
         _root = null;
@@ -163,6 +165,7 @@ internal sealed class ArenaModeSelectionView
         _description.enableWordWrapping = true;
         _description.color = Dim(typography, .75f);
         _mutators.Create(screen, _root, typography, Refresh);
+        _rewards.Create(screen, _root, typography);
         _rules = CreateFact("OBJECTIVE", typography, 330f);
         _respawn = CreateFact("RESPAWN", typography, 360f);
         _equipment = CreateFact("EQUIPMENT", typography, 390f);
@@ -332,6 +335,7 @@ internal sealed class ArenaModeSelectionView
                 ? Modes.ArenaEquipmentChoice.OwnGearLabel
             : mode.Equipment;
         _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
+        _rewards.Refresh();
         RefreshTdmRules();
     }
 

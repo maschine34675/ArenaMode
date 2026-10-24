@@ -629,7 +629,8 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 ## 12. Profile protection, stability and performance
 
 - Optional **PROFILE REWARDS**, off by default and enabled explicitly for the
-  selected normal profile. The character and map menus show consent and status.
+  selected normal profile. Arena's map menu shows consent, rates and status in
+  a separate card above the map preview.
   Initial registration and subsequent payments happen at normal server startup.
 - Eligible kills earn **1,000 RUB**, DM/TDM/Tactical round wins **10,000 RUB**,
   capped at **200,000 RUB per match**. Gun Game and Zombies award kills only.

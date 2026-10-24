@@ -45,7 +45,6 @@ internal static class ArenaSideSelectionPatch
         {
             Preview.ArenaPreviewFlow.Reset();
             ArenaAvailabilityNotice.Hide(__instance);
-            ArenaRewardConsentView.Hide(__instance);
             ArenaSideSelectionLayout.Restore(__instance);
             if (PitFireTeamCompat.IsSquadManagementScreen)
             {
@@ -89,7 +88,6 @@ internal static class ArenaSideSelectionPatch
                 // Arena session: ARENA preselected, PMC and Scav locked. Any other session: unchanged.
                 eligibility = PrepareArenaSession(__instance, eligibility);
                 ShowNotice(__instance, eligibility);
-                ArenaRewardConsentView.Show(__instance);
                 if (ArenaMenuSelection.IsSelected)
                 {
                     EnsureCompatibleMode(eligibility);
@@ -140,7 +138,6 @@ internal static class ArenaSideSelectionPatch
         private static void Prefix(MatchMakerSideSelectionScreen __instance)
         {
             ArenaAvailabilityNotice.Hide(__instance);
-            ArenaRewardConsentView.Hide(__instance);
             try { Preview.ArenaPreviewFlow.KeepFromSide(__instance, Controller(__instance)?.RaidSettings); }
             catch (Exception ex)
             {
@@ -376,7 +373,7 @@ internal static class ArenaSideSelectionPatch
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
         else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())
-            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
+            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen, includeRewardConsent: true));
         else
             ArenaAvailabilityNotice.Show(screen, text);
     }
@@ -392,9 +389,19 @@ internal static class ArenaSideSelectionPatch
     private static string WithWarnings(string text, string warnings)
         => string.IsNullOrEmpty(warnings) ? text : text + "\n" + warnings;
 
-    private static ArenaNoticeAction StartAction(MatchMakerSideSelectionScreen screen)
+    private static ArenaNoticeAction StartAction(MatchMakerSideSelectionScreen screen, bool includeRewardConsent = false)
         => new ArenaNoticeAction(ArenaWhitelistAdmission.StartActionLabel,
-            () => SwitchSession(screen, ArenaSessionContract.DirectionEnter));
+            () => SwitchSession(screen, ArenaSessionContract.DirectionEnter),
+            option: includeRewardConsent ? new ArenaNoticeOption
+            {
+                Label = () => ArenaRewardMenuState.Label,
+                Detail = () => ArenaRewardMenuState.Detail,
+                Refresh = () => ArenaRewardMenuState.Refresh(),
+                CanClick = () => ArenaRewardMenuState.CanToggle,
+                CanProceed = () => !ArenaRewardMenuState.Busy,
+                Click = ArenaRewardMenuState.Toggle,
+                Close = ArenaRewardMenuState.CancelQueuedToggle
+            } : null);
 
     private static ArenaNoticeAction ReturnAction(MatchMakerSideSelectionScreen screen)
         => new ArenaNoticeAction(ArenaWhitelistAdmission.ReturnActionLabel,
@@ -425,7 +432,9 @@ internal static class ArenaSideSelectionPatch
 
     private static void ShowSwitchFailure(MatchMakerSideSelectionScreen screen, string direction, string error)
     {
-        var retry = direction == ArenaSessionContract.DirectionEnter ? StartAction(screen) : ReturnAction(screen);
+        var retry = direction == ArenaSessionContract.DirectionEnter
+            ? StartAction(screen, includeRewardConsent: true)
+            : ReturnAction(screen);
         ArenaAvailabilityNotice.Show(screen, error, retry);
         try { NotificationManager.DisplayWarningNotification(error); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena session failure notification could not be shown: " + ex.Message); }

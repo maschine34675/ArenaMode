@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/RewardWire.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaRewardConsentView.cs" Link="Production/ArenaRewardConsentView.cs" />
     <Compile Include="$(ProductionZombieState)" Link="Production/ArenaZombieRulesState.cs" />
     <Compile Include="$(ProductionZombieView)" Link="Production/ArenaZombieRulesView.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFireSettings.cs" Link="Production/ArenaFireSettings.cs" />

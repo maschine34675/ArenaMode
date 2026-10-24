@@ -123,7 +123,7 @@ namespace TMPro
 {
     public enum FontStyles { Normal }
     public enum TextOverflowModes { Ellipsis }
-    public enum TextAlignmentOptions { MidlineLeft, Center }
+    public enum TextAlignmentOptions { MidlineLeft, Center, TopLeft }
     public class TMP_Text:UnityEngine.Component
     {
         public UnityEngine.Color RendererTint;

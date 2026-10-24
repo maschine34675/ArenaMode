@@ -1126,22 +1126,37 @@ foreach (bool team in new[] { false, true })
 }
 // Reward consent is a separate profile-level control, not a 23rd mutator. This
 // uses the real map-view callback; the transport seam performs no HTTP or I/O.
-var rewardButton = MutatorsRoot().GetComponentsInChildren<Button>(true).Single(b => b.name == "Arena Profile Rewards");
+var rewardRoot = screen.transform.Children.Single(x => x.name == "Arena Profile Rewards").gameObject;
+var rewardButton = rewardRoot.GetComponentsInChildren<Button>(true).Single(b => b.name == "Reward consent");
+Need(!MutatorsRoot().GetComponentsInChildren<Button>(true).Any(b => b.name is "Reward consent" or "Arena Profile Rewards"),
+    "mutators contain no duplicate profile reward button");
+var rewardRect = (RectTransform)rewardRoot.transform;
+float rewardScale = ArenaMapPanelLayout.Scale(screen.transform);
+Need(rewardRect.anchorMin == new Vector2(1, 1) && rewardRect.anchoredPosition == new Vector2(-56 * rewardScale, -40 * rewardScale)
+    && rewardRect.sizeDelta == new Vector2(600, 112)
+    && -rewardRect.anchoredPosition.y + rewardRect.sizeDelta.y * rewardScale < ArenaMapPanelLayout.InfoTop * rewardScale,
+    "full reward card sits above map preview without moving mutators or navigation");
 Need(!rewardButton.interactable && !ArenaRewardMenuState.Status.Enabled, "reward consent is initially unavailable and off");
 ArenaRewardMenuState.Status.Available = ArenaRewardMenuState.Status.CanChange = true;
 view.Synchronize("zombie", false);
-Need(rewardButton.interactable, "available profile consent remains reachable in the map header");
-var rewardTooltip = rewardButton.GetComponent<EFT.UI.HoverTooltipArea>();
-Need(rewardTooltip != null && rewardTooltip.Message == ArenaRewardMenuState.Detail && rewardTooltip.RawText,
-    "reward header exposes complete literal status on hover without reducing mutator readability");
+Need(rewardButton.interactable, "available profile consent remains reachable in the map card");
+var rewardDetail = rewardRoot.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Reward consent status");
+Need(rewardDetail.text == ArenaRewardMenuState.Detail && !rewardDetail.richText && rewardDetail.enableWordWrapping,
+    "reward card shows literal status without requiring a hover");
 rewardButton.onClick.Invoke();
 Need(ArenaRewardMenuState.Status.Enabled && ArenaRewardMenuState.Toggles == 1, "explicit reward click alone changes consent");
+Need(rewardRoot.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Reward consent label").text.EndsWith("ON"),
+    "explicit click refreshes the displayed consent state immediately");
 ArenaSession.ArmedForNextRaid = true;
+view.Synchronize("zombie", false);
+Need(!rewardButton.interactable, "armed raid visibly disables profile consent");
 rewardButton.onClick.Invoke();
 Need(ArenaRewardMenuState.Toggles == 1, "reward consent cannot change after a raid was armed");
 ArenaSession.ArmedForNextRaid = false;
 var oldRewardActions = rewardButton.onClick.Snapshot();
-view.Close(); Show();
+view.Close();
+Need(!rewardRoot.activeInHierarchy, "leaving the Arena map screen removes its reward card");
+Show();
 foreach (var action in oldRewardActions) action();
 Need(ArenaRewardMenuState.Toggles == 1, "retired reward consent callback cannot act on a reopened screen");
 view.Close();

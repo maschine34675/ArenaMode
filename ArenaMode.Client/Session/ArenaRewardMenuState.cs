@@ -13,9 +13,15 @@ internal static class ArenaRewardMenuState
 {
     private static Task<RewardStatusResponse> _request;
     private static float _nextRefresh;
+    private static bool _hasResponse, _consentRequest;
+    private static bool? _pendingConsent;
     internal static string CaptureProblem { get; set; }
     internal static RewardStatusResponse Status { get; private set; } = new RewardStatusResponse();
-    internal static bool Busy => _request != null;
+    // A background GET keeps the last confirmed presentation. Only the first
+    // load and an explicit consent change need a visible waiting state.
+    internal static bool Busy => _pendingConsent.HasValue || _request != null && (_consentRequest || !_hasResponse);
+    internal static bool CanToggle => !Busy && Status.Available && Status.CanChange
+        && !ArenaSession.ArmedForNextRaid && !ArenaSession.IsActive;
 
     internal static void Refresh(bool force = false)
     {
@@ -27,10 +33,30 @@ internal static class ArenaRewardMenuState
             else
             {
                 var observed = _request.Exception;
-                Status = new RewardStatusResponse { Detail = "Reward status unavailable. Existing consent is unchanged." };
+                Status = new RewardStatusResponse { Detail = _consentRequest
+                    ? "Reward change could not be confirmed. Checking the current status."
+                    : "Reward status unavailable. Existing consent is unchanged." };
             }
+            bool recheckConsent = _consentRequest && !Status.Available;
             _request = null;
-            _nextRefresh = Time.unscaledTime + 10f;
+            _consentRequest = false;
+            _hasResponse = true;
+            _nextRefresh = Time.unscaledTime + (recheckConsent ? 0f : 10f);
+        }
+        if (_pendingConsent.HasValue)
+        {
+            bool enable = _pendingConsent.Value;
+            _pendingConsent = null;
+            // A click during a GET means this desired value, not "invert the
+            // later response". Recheck native/server admission before writing;
+            // one in-flight operation prevents a stale GET overwriting a POST.
+            if (CanToggle && Status.Enabled != enable)
+            {
+                _consentRequest = true;
+                _request = Task.Run(() => JsonConvert.DeserializeObject<RewardStatusResponse>(RequestHandler.PostJson(
+                    RewardWire.ConsentRoute, JsonConvert.SerializeObject(new RewardConsentRequest { Enabled = enable }))));
+            }
+            return;
         }
         if (!force && Time.unscaledTime < _nextRefresh) return;
         // Poll through SPT's underlying client, as the settings poll does:
@@ -41,11 +67,14 @@ internal static class ArenaRewardMenuState
 
     internal static void Toggle()
     {
-        if (Busy || !Status.Available || !Status.CanChange || ArenaSession.ArmedForNextRaid || ArenaSession.IsActive) return;
-        bool enable = !Status.Enabled;
-        _request = Task.Run(() => JsonConvert.DeserializeObject<RewardStatusResponse>(RequestHandler.PostJson(
-            RewardWire.ConsentRoute, JsonConvert.SerializeObject(new RewardConsentRequest { Enabled = enable }))));
+        if (!CanToggle) return;
+        _pendingConsent = !Status.Enabled;
+        Refresh();
     }
+
+    // Closing the owning view cancels only a click still waiting behind a GET.
+    // A submitted POST must finish and be reconciled rather than sent twice.
+    internal static void CancelQueuedToggle() => _pendingConsent = null;
 
     internal static string Label => Busy ? "PROFILE REWARDS: …"
         : !Status.Available ? "PROFILE REWARDS: UNAVAILABLE"
@@ -55,7 +84,8 @@ internal static class ArenaRewardMenuState
     {
         get
         {
-            if (!Status.Available) return "Optional rewards are unavailable on this server.";
+            if (!Status.Available) return !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
+                : "Optional rewards are unavailable on this server.";
             string state = !string.IsNullOrEmpty(CaptureProblem) ? CaptureProblem
                 : Status.State == "withheld" && !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
                 : Status.Enabled && !Status.Enrolled ? "Activation pending — restart the normal SPT server."

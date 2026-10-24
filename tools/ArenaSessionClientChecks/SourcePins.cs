@@ -95,7 +95,7 @@ internal static partial class Program
 
         string unavailable = Slice(side, "private static void ShowUnavailable(", "private static string WithWarnings(");
         Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));", StringComparison.Ordinal),
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen, includeRewardConsent: true));", StringComparison.Ordinal),
             "START ARENA SESSION belongs to an eligible normal session, RETURN only to an Arena session");
 
         string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static ArenaNoticeAction ReturnAction(");
@@ -105,6 +105,12 @@ internal static partial class Program
                 && back.Contains("ArenaWhitelistAdmission.ReturnActionLabel", StringComparison.Ordinal)
                 && back.Contains("ArenaSessionContract.DirectionLeave", StringComparison.Ordinal),
             "the actions request the matching direction");
+        Require(start.Contains("option: includeRewardConsent ? new ArenaNoticeOption", StringComparison.Ordinal)
+                && start.Contains("CanClick = () => ArenaRewardMenuState.CanToggle", StringComparison.Ordinal)
+                && start.Contains("CanProceed = () => !ArenaRewardMenuState.Busy", StringComparison.Ordinal)
+                && start.Contains("Click = ArenaRewardMenuState.Toggle", StringComparison.Ordinal)
+                && start.Contains("Close = ArenaRewardMenuState.CancelQueuedToggle", StringComparison.Ordinal),
+            "blocked normal access retains explicit consent without private write authority or racing restart");
 
         string notices = Slice(side, "private static void ShowNotice(", "private static void ShowSelectedNotice(");
         Require(notices.Contains("ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), back);", StringComparison.Ordinal)
