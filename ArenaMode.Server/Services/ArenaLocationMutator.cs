@@ -54,6 +54,13 @@ public static class ArenaLocationMutator
         if (ArenaTeamBoxCatalog.Applies(location.Id!, mode!))
             ApplyOrValidateTeamBoxSpawns(location, validateOnly: false);
 
+        // EFT disables the scene's transit objects only for matching inactive
+        // parameters. An empty list would retain their active scene defaults.
+        // Keep IDs and copy records: this exact raid clone may still alias the
+        // database's transit list. Ordinary PMC/Scav locations stay untouched.
+        if (location.Transits != null)
+            location.Transits = location.Transits.Select(transit => transit with { IsActive = false }).ToList();
+
         // This object is already the exact Arena raid's clone. Mirror the
         // client menu projection without globally enabling Labyrinth, touching
         // entry keys or importing EnableLabyrinth's optional Scav/exfil changes.
