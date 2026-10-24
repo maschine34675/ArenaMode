@@ -89,7 +89,7 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | StashFilter (`com.maschine.StashFilter`) | 1.0.0 | - |
 | | SurroundAudio (`com.maschine.SurroundAudio`) | 1.0.0 | - |
 | | UnloadAllMagazines (`com.maschine.UnloadAllMagazines`) | 2.2.1 | - |
-| mod, other | PitFireTeam (`xyz.pit.fireteam`) | 0.10.3 | 0.10.3 |
+| mod, other | PitFireTeam (`xyz.pit.fireteam`) | 1.0.0 | 1.0.0 |
 | | DynamicMaps (`com.mpstark.dynamicmaps`) | 1.2.1 | 1.2.1 |
 | | UIFixes (`com.tyfon.uifixes`) | 6.0.3 | 6.0.3 |
 | | WTT-CommonLib (`com.wtt.commonlib`) | 3.0.6 | 3.0.6 |

@@ -40,7 +40,10 @@ onward. SAIN 4.5.1+, APBS 2.4.1+ and DynamicMaps 1.2.1+ likewise attempt their
 existing APIs and warn once for newer unreviewed versions. This is not a promise
 of future compatibility. See docs/OPTIONAL-MOD-VERSIONS-20261019.md.
 For PFT 1.0's LiteDB storage, queued karma/insurance reports and mode semaphore,
-read docs/PITFIRETEAM-1.0.0-20261024.md. Preserve external persistence protection
+read docs/PITFIRETEAM-1.0.0-20261024.md. The shipped policy now reviews 1.0.0;
+the adapter's reviewed baselines are 0.10.0, 0.10.3 and 1.0.0. Do not raise
+MinimumForwardVersion: 0.10.3 still owns admission and mandatory proficiency
+protection, and other unreviewed builds still warn. Preserve external persistence protection
 for solo Arena with PFT installed, separately from team roster/kit semantics;
 never wait for async PFT work while holding the profile-boundary writer lock.
 Arena-only optional-mod admission is `ArenaOptionalMods.GetRejectionReason`: the whitelist

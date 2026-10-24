@@ -496,7 +496,7 @@ public static partial class PitFireTeamDynamicPersistencePatches
             IncompatibilityReason = string.Empty;
             if (ArenaMode.Shared.PitFireTeamVersions.IsNewerThanVerified(version))
                 ArenaContext.Logger?.Warning(
-                    $"[ArenaMode] Attempting PitFireTeam server {version}, newer than the verified 0.10.3 baseline; persistence contracts passed, but this version has not been tested.");
+                    $"[ArenaMode] Attempting unreviewed PitFireTeam server {version}; persistence contracts passed, but this version has not been tested. Reviewed versions: {string.Join(", ", ArenaMode.Shared.PitFireTeamVersions.VerifiedPluginVersions)}.");
             // Report the RESOLVED management count, not the table length: a build
             // that predates a narrowed contract legitimately guards one fewer
             // transaction, and the log has to say which it actually patched.

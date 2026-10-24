@@ -1676,7 +1676,7 @@ internal static partial class PitFireTeamCompat
             _contractState = PitFireTeamContractState.Compatible;
             _contractProblem = string.Empty;
             if (PitFireTeamVersions.IsNewerThanVerified(assembly.GetName().Version))
-                Plugin.ModLogger.LogWarning($"Arena is attempting PitFireTeam {pluginVersion}, newer than the verified 0.10.3 baseline; reflected contracts passed, but this version has not been tested.");
+                Plugin.ModLogger.LogWarning($"Arena is attempting unreviewed PitFireTeam {pluginVersion}; reflected contracts passed, but this version has not been tested. Reviewed versions: {string.Join(", ", PitFireTeamVersions.VerifiedPluginVersions)}.");
             Plugin.ModLogger.LogInfo(
                 $"Arena found compatible PitFireTeam {pluginVersion}; optional Tactical/Zombie squad integration is available.");
         }

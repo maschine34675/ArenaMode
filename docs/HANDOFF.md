@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **PFT reviewed version (2026-10-24):** the shipped whitelist now records PFT
+  1.0.0 on both sides, following the bounded native checks documented in
+  [the PFT review](PITFIRETEAM-1.0.0-20261024.md). The adapter also recognizes
+  exactly 1.0.0 (including a zero revision) as reviewed. Unreviewed intermediate
+  and future versions still warn; the 0.10.3 admission/proficiency threshold
+  and all reflected protection contracts are unchanged. The installed default
+  policy must be updated along with the client/server DLLs; restart both to
+  refresh the loaded policy and adapter. User policies remain untouched.
+
 - **Optional profile rewards (2026-10-24, development after 0.2.0):** explicit
   PROFILE REWARDS consent in the full card above Arena's map preview; off by
   default. Normal-server startup enrolls the selected profile and later pays

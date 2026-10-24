@@ -13,14 +13,15 @@ namespace ArenaMode.Shared;
 /// </summary>
 public static class PitFireTeamVersions
 {
-    public static readonly string[] VerifiedPluginVersions = { "0.10.0", "0.10.3" };
+    public static readonly string[] VerifiedPluginVersions = { "0.10.0", "0.10.3", "1.0.0" };
     public static readonly Version[] VerifiedAssemblyVersions =
     {
         new Version(0, 10, 0, 0),
-        new Version(0, 10, 3, 0)
+        new Version(0, 10, 3, 0),
+        new Version(1, 0, 0, 0)
     };
     public static readonly Version MinimumForwardVersion = new Version(0, 10, 3, 0);
-    public static string Describe => "0.10.0 or 0.10.3+";
+    public static string Describe => "0.10.0 or 0.10.3+ (reviewed: " + string.Join(", ", VerifiedPluginVersions) + ")";
 
     public static bool IsSupportedPluginVersion(string? version)
         => IsSupportedAssemblyVersion(ParsePluginVersion(version));
@@ -42,7 +43,13 @@ public static class PitFireTeamVersions
     }
 
     public static bool IsNewerThanVerified(Version? version)
-        => Normalize(version)?.CompareTo(MinimumForwardVersion) > 0;
+    {
+        Version? normalized = Normalize(version);
+        // Keep unreviewed intervening releases advisory too. Reviewing 1.0.0
+        // does not certify 0.10.4 or change the minimum/proficiency contract.
+        return normalized != null && normalized.CompareTo(MinimumForwardVersion) > 0
+            && !VerifiedAssemblyVersions.Contains(normalized);
+    }
 
     // BepInEx exposes numeric System.Version metadata, not GitHub beta tags.
     // Three/four numeric components describe the same build when revision is 0.

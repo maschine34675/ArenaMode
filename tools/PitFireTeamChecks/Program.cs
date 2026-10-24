@@ -133,9 +133,9 @@ internal static class Program
                    version => incompatibleTeam.Reason.Contains(version, StringComparison.Ordinal))
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
             "unsupported contract rejection names every pinned version and the runtime layout");
-        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3" })
+        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3", "1.0.0" })
                && PitFireTeamVersions.VerifiedAssemblyVersions.SequenceEqual(
-                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0) })
+                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0), new Version(1, 0, 0, 0) })
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.0")
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.3")
                && PitFireTeamVersions.IsSupportedAssemblyVersion(new Version(0, 10, 3, 0)),
@@ -162,7 +162,10 @@ internal static class Program
         Assert(!PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 0))
                && !PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 3))
                && PitFireTeamVersions.IsNewerThanVerified(new Version(0, 10, 3, 1))
-               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0)),
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0, 0))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0, 1))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 1)),
             "warnings distinguish known baselines from untested newer versions");
 
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical", "zombie" })
@@ -624,7 +627,7 @@ internal static class Program
         // Every gate reads the shared admission policy and matching build identity:
         // six places accepting "a version" independently is how a build slips in
         // through the half of the contract nobody remembered to widen.
-        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\" }", StringComparison.Ordinal)
+        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\", \"1.0.0\" }", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyName.Version)", StringComparison.Ordinal)
@@ -936,7 +939,7 @@ internal static class Program
             "new runtime identities become current/history only after FollowersReady and independent body, registry and leader proof");
         Assert(compat.Contains("PersistenceSuppressionActive", StringComparison.Ordinal)
                && compat.Contains("=> TeamArenaActive || IsFinalizing || ProtectedAbortPending", StringComparison.Ordinal)
-               && compat.Contains("if (!PersistenceSuppressionActive)", StringComparison.Ordinal)
+               && compat.Contains("if (!PersistenceSuppressionActive && !PitFireTeamReportGuard.SuppressAutomaticReportCapture)", StringComparison.Ordinal)
                && compat.Contains("PitFireTeamRoundLifecycle.Configure(assembly, pluginVersion)", StringComparison.Ordinal)
                && compat.Contains("roundCapability.CanStartAdditionalRound", StringComparison.Ordinal)
                && roundLifecycle.Contains("RequirePersistenceSuppressionUnsafe", StringComparison.Ordinal)

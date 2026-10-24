@@ -40,8 +40,11 @@ real Harmony patches and temporary databases. It never uses live player data.
   then atomically reacquire it and recheck the queue. This avoids a lock cycle
   with PFT 1.0's own request semaphore without opening a snapshot gap.
 
-The reviewed-version policy remains at 0.10.3. Structural support for 1.0.0 is
-not a promise of compatibility with every future PFT version or configuration.
+After the bounded native checks below, the shipped client/server policy records
+1.0.0 as reviewed. The adapter recognizes 0.10.0, 0.10.3 and 1.0.0 without its
+unreviewed-version warning; intervening and future unreviewed builds still warn.
+The admission/proficiency threshold stays at 0.10.3. This is not a promise of
+compatibility with every future PFT version or configuration.
 
 ## Version-filtered Arena session
 
@@ -127,3 +130,30 @@ Deployed SHA-256 identities:
 | `maschine-ArenaMode.Gate.dll` | `B9AADA213A23287517CF19484A3B4444A43303B62A430798168B79D44AA3430E` |
 | `maschine-ArenaMode.Session.exe` | `AADF0E7D49874F51F5B1EF6B238B66127D11305B23B536EC21880DBD2CB5235C` |
 | `maschine-ArenaMode.BigBrainCompat.dll` | `22B5AE9B483B54DEC1F5B7097FC576F096C1985523D2115AE072299CDD582C1D` |
+
+## Reviewed-version follow-up
+
+The earlier native runs deliberately retained the advisory notice. After those
+checks, both shipped policy fields now name 1.0.0 and the adapter's explicit
+reviewed set includes it. `MinimumForwardVersion` stays at 0.10.3: it also owns
+the mandatory proficiency contract. Unreviewed intermediate builds and future
+revisions still warn. The policy's single current review version means older
+admitted PFT releases can still produce a general policy-difference note; direct
+admission and their known adapter status remain unchanged.
+
+The full suite passed 2,706 tests with one known environment-dependent APBS
+skip. PFT checks passed 370 assertions; the version-session harness rejected all
+eight compiled mutants. New shipped-policy cases cover both sides, zero-revision
+normalization and keeping reviewed PFT in a version-filtered session. The PFT
+harness initially hit a stale source pin for follower-report suppression; the
+pin now requires the existing additional solo-report guard already present in
+production. No persistence behavior changed. Independent review found no
+blocking issue. This follow-up does not add another native gameplay run to the
+bounded evidence above.
+
+Release build and local deployment succeeded with the same four existing
+CS8632 warnings in `ClientSettingsModels.cs`. The installed local policy reads
+1.0.0 on both sides. GPU-2 still had its game and server running; its file hashes
+had not synchronized at verification, and neither process was interrupted.
+Close both, allow the regular mirror to finish, then restart to load the updated
+policy and DLLs. Receipts are under ignored `artifacts/pft-reviewed-100/`.

@@ -15,8 +15,8 @@ relaxed generic team predicate. Runtime Zombie wave/rebuild checks live separate
 
 When the optional client plugin is installed, the check also reads the installed
 `pitFireTeam.dll` and `Assembly-CSharp.dll` as metadata (it does not execute either
-assembly). This verifies the installed identity against the exact 0.10.0/0.10.3
-allowlist, the selected-roster type, the
+assembly). This verifies the installed identity against the 0.10.0/0.10.3/1.0.0
+reviewed baselines and forward admission, the selected-roster type, the
 inherited `RaidPlayer` identity fields and PFT's own My Squad marker against the
 runtime that will actually load.
 

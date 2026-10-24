@@ -12,7 +12,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 - Adapt PitFireTeam's profile-protection contracts to 1.0.0, including both
   companion databases and the new recruitment, karma, insurance and cargo paths.
-  Older supported versions keep their existing guards.
+  Older supported versions keep their existing guards. Record 1.0.0 as reviewed
+  in the shipped policy and adapter after the bounded native checks, removing
+  its stale version warning and exclusion from version-filtered sessions.
 - Offer an Arena session when an installed mod differs from its reviewed version.
   This option omits that mod on both sides, together with its hard dependents,
   for this session only. Direct Arena entry still treats version differences as

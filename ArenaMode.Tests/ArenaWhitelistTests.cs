@@ -372,7 +372,7 @@ public sealed class ArenaWhitelistTests
             ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
-            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "0.10.3", "0.10.3"),
+            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.0.0", "1.0.0"),
             ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.2.1", "1.2.1"),
             ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
             ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.6", "3.0.6"),
@@ -416,6 +416,30 @@ public sealed class ArenaWhitelistTests
             Assert.True(policy.IsAllowedPlugin(want.Id));
             Assert.True(policy.IsAllowedServerMod(want.Id));
         }
+    }
+
+    [Theory]
+    [InlineData("1.0.0", false)]
+    [InlineData("1.0.0.0", false)]
+    [InlineData("1.0.0.1", true)]
+    [InlineData("1.0.1", true)]
+    public void ShippedPftReviewControlsBothNotesAndVersionFilteredSessions(string version, bool differs)
+    {
+        const string guid = "xyz.pit.fireteam";
+        var policy = Load(File.ReadAllText(ShippedDefaultPath));
+        var client = new[] { Unit(guid, "PitAlex-PitFireTeam", version) };
+        var server = new[] { Unit(guid, "PitFireTeam", version) };
+        foreach (var side in new[] { ArenaWhitelistSide.Client, ArenaWhitelistSide.Server })
+        {
+            var decision = ArenaWhitelistDecision.Evaluate(policy, side,
+                side == ArenaWhitelistSide.Client ? client : server);
+            Assert.Single(decision.Allowed);
+            Assert.Empty(decision.Excluded);
+            Assert.Equal(differs ? 1 : 0, decision.VersionDifferences.Count);
+            Assert.Equal(differs ? 1 : 0, decision.Warnings.Count);
+        }
+        var plan = ArenaSessionVersionPlan.Create(policy, client, server);
+        Assert.Equal(differs, plan.ExcludedGuids.Contains(guid));
     }
 
     /// <summary>The mods ArenaMode already refused by code before the whitelist existed (ORBIT, Questing Bots, ...).</summary>

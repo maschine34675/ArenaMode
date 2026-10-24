@@ -18,7 +18,7 @@
     { "guid": "com.maschine.StashFilter", "name": "StashFilter", "kind": "mod", "clientVersion": "1.0.0" },
     { "guid": "com.maschine.SurroundAudio", "name": "SurroundAudio", "kind": "mod", "clientVersion": "1.0.0" },
     { "guid": "com.maschine.UnloadAllMagazines", "name": "UnloadAllMagazines", "kind": "mod", "clientVersion": "2.2.1" },
-    { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod", "clientVersion": "0.10.3", "serverVersion": "0.10.3" },
+    { "guid": "xyz.pit.fireteam", "name": "PitFireTeam", "kind": "mod", "clientVersion": "1.0.0", "serverVersion": "1.0.0" },
     { "guid": "com.mpstark.dynamicmaps", "name": "DynamicMaps", "kind": "mod", "clientVersion": "1.2.1", "serverVersion": "1.2.1" },
     { "guid": "com.tyfon.uifixes", "name": "UIFixes", "kind": "mod", "clientVersion": "6.0.3", "serverVersion": "6.0.3" },
     { "guid": "com.wtt.commonlib", "name": "WTT-CommonLib", "kind": "mod", "clientVersion": "3.0.6", "serverVersion": "3.0.6" },
