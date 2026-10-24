@@ -13,19 +13,21 @@ internal static class RewardStartupProcessor
         RewardStartupFiles.RequireLocalPath(window.Root, directory);
         var profiles = Directory.GetDirectories(directory).OrderBy(p => p, StringComparer.Ordinal).Take(65).ToArray();
         if (profiles.Length > 64) throw new RewardDataException("too-many-reward-enrollments");
+        var ids = profiles.Select(Path.GetFileName).Where(id => RewardIdentity.IsHex(id, 24))
+            .Select(id => id!).Union(RewardStartupDefaults.ProfileIds(window), StringComparer.Ordinal)
+            .OrderBy(id => id, StringComparer.Ordinal).Take(65).ToArray();
+        if (ids.Length > 64) throw new RewardDataException("too-many-reward-enrollments");
         var results = new List<RewardStartupOutcome>();
-        foreach (var profileDirectory in profiles)
+        foreach (var id in ids)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var id = Path.GetFileName(profileDirectory);
-            if (!RewardIdentity.IsHex(id, 24)) continue;
-            results.Add(await ProcessProfileAsync(window, id, cancellationToken));
+            results.Add(await ProcessProfileAsync(window, id, cancellationToken, applyDefault: true));
         }
         return results;
     }
 
     internal static async Task<RewardStartupOutcome> ProcessProfileAsync(RewardStartupWindow window, string id, CancellationToken cancellationToken,
-        bool includeRuntimeInbox = true)
+        bool includeRuntimeInbox = true, bool applyDefault = false)
     {
         long roubles = 0;
         try
@@ -33,6 +35,7 @@ internal static class RewardStartupProcessor
             if (cancellationToken.IsCancellationRequested) return Outcome(RewardSettlementStatus.Deferred, "cancelled");
             window.RequireOpen();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-directory");
+            if (applyDefault) RewardStartupDefaults.EnableIfNew(window, id);
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);
             var enrollmentPath = Path.Combine(directory, "enrollment.json");
             var runtimeManaged = RewardRuntimeFiles.Exists(window.Root, enrollmentPath)

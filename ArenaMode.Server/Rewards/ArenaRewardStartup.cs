@@ -12,8 +12,8 @@ namespace ArenaMode.Server.Rewards;
 
 /// <summary>
 /// Consumes explicitly approved receipts before native profiles/HTTP/timers start.
-/// Does nothing without separately recorded consent/enrollment. Runtime capture
-/// is independent; this pre-load window is the only profile payout writer.
+/// Fresh profiles default to rewards ON at this guarded boundary. Existing
+/// choices/history remain authoritative; this is the only profile payout writer.
 /// </summary>
 [Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark + 1)]
 public sealed class ArenaRewardStartup(
@@ -28,14 +28,10 @@ public sealed class ArenaRewardStartup(
     {
         if (Interlocked.Exchange(ref _entered, 1) != 0) return;
         var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
-        // Absence is the untouched-install default; an access failure is not
-        // absence and must not bypass interprocess coordination during a payout.
-        FileAttributes stateAttributes;
-        try { stateAttributes = File.GetAttributes(Path.Combine(root, RewardStartupFiles.RelativeDirectory)); }
-        catch (FileNotFoundException) { return; }
-        catch (DirectoryNotFoundException) { return; }
-        if ((stateAttributes & FileAttributes.Directory) == 0)
-            throw new InvalidOperationException("Arena reward state path is not a directory.");
+        // Bootstrap only the ordinary metadata directory, not a profile or
+        // enrollment. New installs must join the same coordination gate before
+        // admission; missing state must not bypass it while a peer is writing.
+        if (!RewardStartupDefaults.PrepareDirectory(root)) return;
         // Every participating startup must wait BEFORE checking peers/refusing
         // rewards. Otherwise a second server could continue into native load while
         // the first is committing. Failure/cancellation here intentionally aborts

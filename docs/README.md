@@ -11,6 +11,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Protected ordinary-server reward startup consumer](REWARDS-SERVER.md)
 - [Server result validation and durable payout approvals](REWARDS-RESULTS.md)
 - [Optional rewards: gameplay capture, private-session transfer and player consent](REWARDS-RUNTIME.md)
+- [XP and other mail rewards: Give-UI/native feasibility](REWARD-XP-FEASIBILITY-20261025.md)
 - [Reward card on the Arena map screen: GPU-2 menu checks](GPU-REWARD-MENU-20261024.md)
 - [Private Arena session reward control: GPU-2 checks](GPU-PRIVATE-REWARD-CONSENT-20261025.md)
 - [Arena transits, first three Gun Game stages and reduced ammunition: GPU-2 checks](TRANSITS-GUNGAME-AMMO-20261024.md)

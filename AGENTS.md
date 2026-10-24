@@ -16,7 +16,7 @@ and [docs/REWARDS-SERVER.md](docs/REWARDS-SERVER.md), then
 [docs/REWARDS-RUNTIME.md](docs/REWARDS-RUNTIME.md). The ordinary-server consumer
 runs only before native profile loading, with separately enrolled/approved state;
 the startup result validator/approval producer requires separately trusted run
-and restoration evidence. Explicit consent, startup-only enrollment, client combat
+and restoration evidence. Recorded preferences, default-on startup enrollment, client combat
 capture and signed private-session receipts are now wired. Never accept its whole
 candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
@@ -28,6 +28,10 @@ secret-bearing private-control listener separate from SPT's debug-logging router
 refresh before snapshot locking, never within profile restoration. Missing,
 revoked or stale grants do not authorize new capture or normal-profile writes.
 Enrollment and payment remain startup-only. See docs/REWARDS-RUNTIME.md.
+Fresh, initialized normal profiles default ON at admitted startup. Preserve
+every existing OFF choice, and never infer a fresh profile from missing consent
+inside an existing reward directory or from a profile carrying reward history.
+Private sessions and already-loaded profiles must never bootstrap enrollment.
 The server owns currency values; physical combat remains client-observed. New receipt
 allocations may bind the latest clean ordinary profile at startup, preserving
 intervening ordinary progress; an existing allocation/approval must never be rebased.

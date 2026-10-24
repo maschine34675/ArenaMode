@@ -38,6 +38,37 @@ public sealed class RewardNativeLoadCollection
 public sealed class RewardNativeLoadTests
 {
     [Fact]
+    public async Task DefaultEnrollmentBeforeNativeLoadSurvivesMigrationAndSaveWithoutAnOptInClick()
+    {
+        using var fixture = new NativeFixture(fresh: true);
+        var previousDirectory = Environment.CurrentDirectory;
+        try
+        {
+            Directory.SetCurrentDirectory(fixture.Root);
+            var (saves, migration) = fixture.CreateNativeServer();
+            var original = JsonNode.Parse(File.ReadAllText(fixture.ProfilePath))!;
+            Assert.True(RewardStartupDefaults.PrepareDirectory(fixture.Root));
+            using (var window = new RewardStartupWindow(fixture.Root, () => saves.GetProfiles().Count == 0))
+                Assert.Equal("rewards-enrolled-no-pending-result",
+                    Assert.Single(await RewardStartupProcessor.ProcessAsync(window, CancellationToken.None)).Result.Reason);
+            var enrollment = RewardEnrollment.Read(fixture.Root, fixture.Binding.ProfileId);
+            Assert.True(RewardEnrollment.WantsRewards(fixture.Root, fixture.Binding.ProfileId));
+            Assert.Empty(saves.GetProfiles());
+            await saves.LoadProfileAsync(new MongoId(fixture.Binding.ProfileId));
+            Assert.False(saves.IsProfileInvalidOrUnloadable(new MongoId(fixture.Binding.ProfileId)));
+            Assert.Equal(1, migration.RawRuns);
+            await saves.SaveProfileAsync(new MongoId(fixture.Binding.ProfileId));
+            var persisted = File.ReadAllText(fixture.ProfilePath);
+            Assert.Empty(RewardProfileDocument.ReadLedger(persisted, enrollment.Binding, new()));
+            var saved = JsonNode.Parse(persisted)!;
+            Assert.True(JsonNode.DeepEquals(original["characters"]!["pmc"]!["Inventory"], saved["characters"]!["pmc"]!["Inventory"]));
+            Assert.True(JsonNode.DeepEquals(original["foreignFixture"], saved["foreignFixture"]));
+            Assert.True(new RewardRuntimeCoordinator(fixture.Root).GetStatus(fixture.Binding.ProfileId).Enrolled);
+        }
+        finally { Directory.SetCurrentDirectory(previousDirectory); }
+    }
+
+    [Fact]
     public async Task StartupPaymentSurvivesNativeMigrationSaveAndFreshNativeReload()
     {
         using var fixture = new NativeFixture();
@@ -221,7 +252,7 @@ public sealed class RewardNativeLoadTests
         internal string ProfilePath => Path.Combine(Root, "user", "profiles", Binding.ProfileId + ".json");
         internal string StatePath(string name) => Path.Combine(Root, RewardStartupFiles.RelativeDirectory, Binding.ProfileId, name);
 
-        internal NativeFixture(RewardStartupApprovalState state = RewardStartupApprovalState.RestoredAndApproved)
+        internal NativeFixture(RewardStartupApprovalState state = RewardStartupApprovalState.RestoredAndApproved, bool fresh = false)
         {
             Root = Path.Combine(Path.GetTempPath(), "ArenaMode.RewardNativeLoad.Tests", Guid.NewGuid().ToString("N"));
             Binding = new(Guid.NewGuid().ToString("N"), new MongoId().ToString(), Guid.NewGuid().ToString("N"));
@@ -230,12 +261,16 @@ public sealed class RewardNativeLoadTests
             _ownerPath = Path.Combine(Root, ".synthetic-owner");
             File.WriteAllText(_ownerPath, Owner);
             Directory.CreateDirectory(Path.GetDirectoryName(ProfilePath)!);
-            Directory.CreateDirectory(Path.GetDirectoryName(StatePath("enrollment.json"))!);
-            string profile = RewardProfileDocument.Enroll(CreateProfile(), Binding);
-            File.WriteAllText(ProfilePath, profile);
-            WriteState("enrollment.json", new RewardStartupEnrollment(1, true, Root, Binding));
-            WriteState("approved.json", new RewardStartupApproval(1, state, Claim, RewardIdentity.Hash(profile)));
-            WriteState("journal.json", new RewardJournal(1, Binding, []));
+            if (fresh) File.WriteAllText(ProfilePath, CreateProfile());
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(StatePath("enrollment.json"))!);
+                string profile = RewardProfileDocument.Enroll(CreateProfile(), Binding);
+                File.WriteAllText(ProfilePath, profile);
+                WriteState("enrollment.json", new RewardStartupEnrollment(1, true, Root, Binding));
+                WriteState("approved.json", new RewardStartupApproval(1, state, Claim, RewardIdentity.Hash(profile)));
+                WriteState("journal.json", new RewardJournal(1, Binding, []));
+            }
 
             // Real native localization is restricted to this generated one-key DB.
             string locale = Path.Combine(Root, "SPT_Data", "database", "locales", "server");

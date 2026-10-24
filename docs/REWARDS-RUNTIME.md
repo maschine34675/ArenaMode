@@ -6,8 +6,8 @@ development change after release 0.2.0, not part of that existing download.
 
 ## Player flow
 
-- **PROFILE REWARDS** in Arena's map menu is off by
-  default and belongs to the selected normal profile. It is separate from
+- **PROFILE REWARDS** in Arena's map menu defaults on for previously unconfigured,
+  initialized normal profiles and belongs to the selected normal profile. It is separate from
   gameplay mutators. The full card above the map preview shows rates and current
   state directly. The old character-screen card and Mutators-header button are
   removed. START ARENA SESSION and compatibility notices contain no reward
@@ -15,11 +15,14 @@ development change after release 0.2.0, not part of that existing download.
   Arena session, through a limited capability issued by the normal server.
   Background status checks keep the confirmed label and button state;
   only initial loading or an explicit consent change shows a waiting state.
-- The first opt-in records consent only. Restart the normal SPT server once to
-  register the profile before it is loaded. The menu shows the required restart.
-  When opting in from a private session for the first time, return to the normal
-  game, restart its server, then enter Arena again. Existing enrolled profiles
-  can switch immediately; the normal server must remain running.
+- The first normal server start with this version records the default and
+  registers eligible profiles before native loading. The old manual first
+  opt-in/restart cycle is unnecessary. Existing explicit OFF choices remain OFF.
+  Profiles created or initialized after the server started are eligible at the
+  next normal start. Explicit first activation of an unregistered profile still
+  records metadata only and shows the required restart: leave the private session,
+  restart the normal server, then re-enter Arena. Existing enrolled profiles can
+  switch immediately; the normal server must remain running.
 - The server freezes 1,000 RUB per eligible local kill, 10,000 RUB per round win
   and a 200,000 RUB match cap. These are the user's selected starting values.
   The client cannot select an amount or payout recipient.
@@ -37,6 +40,29 @@ development change after release 0.2.0, not part of that existing download.
   existing profile generation and payment history.
 
 ## Capture and authority
+
+### Default-on startup registration
+
+`ArenaRewardStartup` creates only the ordinary metadata directory before taking
+the existing startup coordination lock. Private markers return before this
+bootstrap. Profile discovery and every default/enrollment write run only after
+the unchanged native-version, process, callback, unloaded-profile and lifetime
+lock checks have admitted the startup window.
+
+Discovery considers only top-level canonical 24-hex profile filenames, excluding
+backup and synchronization-conflict files, and retains the 64-profile bound.
+Only initialized, clean profiles with no reward extension and no existing
+per-profile reward directory receive a persisted ON preference at revision 0.
+The existing enrollment plan then performs its guarded profile update. Existing
+directories, even empty or control-only ones, are not treated as first use;
+missing or malformed old consent/history is never repaired by the default.
+Explicit OFF, enrollment identities, journals and prior payments remain intact.
+No default is applied by a live route or a private server.
+
+The shared coordination path remains fail-closed: a path/link/permission failure
+before admission can stop startup rather than allow native profile loading while
+another process may still own settlement. Other refused reward cases continue
+through the existing reward-only failure reporting.
 
 ### Private-session consent
 
@@ -158,6 +184,21 @@ authority/profile files and unrelated external writers remain outside the local
 cooperative-writer guarantee.
 
 ## Verification
+
+### Default-on revision (2026-10-25)
+
+`RewardStartupDefaultsTests` adds 26 synthetic cases: first startup without
+reward state, idempotency, pre-enrollment and enrolled OFF, missing/malformed
+consent, copied history, private/loaded/closed windows, unsafe or uninitialized
+profiles, conflict backups, per-profile failures, capacity and linked paths.
+An additional native-load fixture runs default registration followed by the
+real referenced SPT `SaveServer` load/migration/save pipeline and checks intact
+inventory, foreign data and persisted enrollment. All input profiles are generated
+temporary fixtures; this does not claim a new installed-server or in-game run.
+
+The full no-deploy suite passed **2,804 tests**, with the one known APBS environment
+skip. Installed binaries remained unchanged during verification. The preceding
+private-session native test below predates this default change.
 
 ### Private consent revision (2026-10-25)
 
