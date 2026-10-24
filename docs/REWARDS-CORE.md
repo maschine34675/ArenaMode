@@ -1,10 +1,12 @@
 # Reward settlement core (2026-10-24)
 
-Status: **isolated implementation; inactive in the game**. The server contains
-internal settlement types, a detached profile editor and a storage contract.
-There are no endpoints, DI registrations, kill/win hooks, live profile adapters
-or automatic enrollment. The only file store is a synthetic test fixture under
-`ArenaMode.Tests`. This change does not pay players or change profile protection.
+Status: **no gameplay reward production yet**. The isolated kernel now has a
+[guarded ordinary-server startup consumer](REWARDS-SERVER.md), registered before
+native profile loading. There are no client endpoints, kill/win hooks, live-profile
+replacement or automatic enrollment. Existing installations without the separate
+trusted enrollment/approval store remain unchanged. This document records the
+kernel contract and its original synthetic verification; the startup document
+describes the additional native boundary, assumptions and tests.
 
 ## Scope
 
@@ -78,10 +80,12 @@ stack limit and policy for the enrollment. Reaching the ledger limit refuses new
 receipts; it never silently prunes duplicate protection. Per-match batching and
 a durable longer-term retention policy are still needed before live adoption.
 
-## What a live adapter must still establish
+## What live integration must still establish
 
 The synthetic store's file lock is not a solution for native SPT writers. The
-future adapter must establish all of the following together:
+startup adapter avoids regular live writers by running before native load; it
+does not prove an all-writer lock for arbitrary mod threads. The following still
+applies before enabling runtime rewards or a future live-server adapter:
 
 - Explicit opt-in and enrollment of the ordinary profile; trustworthy origin and
   epoch binding, including wipe/import and private-session copies.

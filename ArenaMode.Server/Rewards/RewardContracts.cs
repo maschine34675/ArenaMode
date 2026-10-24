@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace ArenaMode.Server.Rewards;
 
-// This module deliberately has no DI registration or live profile adapter. These are
-// internal settlement inputs, not an HTTP contract or a client authority to mint RUB.
+// These are internal settlement inputs, not an HTTP contract or a client authority
+// to mint RUB. Only the separately guarded pre-load consumer is registered in DI.
 internal sealed record RewardBinding(string InstallationId, string ProfileId, string Epoch)
 {
     public void Validate()
@@ -71,6 +71,8 @@ internal interface IRewardSettlementLease : IDisposable
 {
     // The lease covers ALL profile mutators/savers and journal writers, not only
     // Arena calls. It must bind the trusted ordinary-server origin/profile/epoch.
+    // The startup adapter relies on native writers not having started and the
+    // documented cooperative startup contract; it is never a live-profile lock.
     RewardProfileSnapshot ReadProfile();
     string ReadJournal();
     // Return only after durable replacement. The kernel independently reads back;

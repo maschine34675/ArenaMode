@@ -6,8 +6,9 @@ namespace ArenaMode.Server.Rewards;
 
 /// <summary>
 /// An inert, storage-independent settlement protocol. There is intentionally no
-/// adapter for SaveServer: its save semaphore does not exclude profile mutators,
-/// and a completed save may have skipped disk persistence. See docs/REWARDS-CORE.md.
+/// adapter for a live SaveServer profile: its save semaphore does not exclude
+/// profile mutators. The separate startup adapter only runs before native load.
+/// A completed native save may skip disk persistence. See docs/REWARDS-CORE.md.
 /// </summary>
 internal sealed class RewardSettlementCore
 {
@@ -59,7 +60,7 @@ internal sealed class RewardSettlementCore
         var profile = lease.ReadProfile();
         var ledger = RewardProfileDocument.ReadLedger(profile.Json, claim.Binding, _limits)
             .ToDictionary(p => p.ReceiptKey, StringComparer.Ordinal);
-        var journal = ParseJournal(lease.ReadJournal(), claim.Binding);
+        var journal = ParseJournal(lease.ReadJournal(), claim.Binding, _limits);
 
         // Check the complete history, not just the requested receipt: an older
         // restored profile must not evade detection by submitting a fresh run ID.
@@ -152,21 +153,21 @@ internal sealed class RewardSettlementCore
         return new(RewardSettlementStatus.Paid, "durable-payment-confirmed", payment.MessageId);
     }
 
-    private RewardJournal ParseJournal(string json, RewardBinding binding)
+    internal static RewardJournal ParseJournal(string json, RewardBinding binding, RewardLimits limits)
     {
         if (json.Length > 4_194_304) throw new RewardDataException("journal-too-large");
         using var document = JsonDocument.Parse(json);
         RejectDuplicateKeys(document.RootElement);
         var journal = document.Deserialize<RewardJournal>(JournalJson);
         if (journal is null || journal.Schema != 1 || journal.Binding != binding || journal.Entries is null
-            || journal.Entries.Count > _limits.MaxReceipts)
+            || journal.Entries.Count > limits.MaxReceipts)
             throw new RewardDataException("invalid-journal-binding-or-schema");
         var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in journal.Entries)
         {
             if (entry is null || !Enum.IsDefined(entry.Phase) || !RewardIdentity.IsHex(entry.BeforeRevision, 64))
                 throw new RewardDataException("invalid-journal-entry");
-            ValidatePayment(entry.Payment, binding, _limits);
+            ValidatePayment(entry.Payment, binding, limits);
             if (!keys.Add(entry.Payment.ReceiptKey)) throw new RewardDataException("duplicate-journal-receipt");
         }
         return journal;

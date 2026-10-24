@@ -10,6 +10,14 @@ reserved for player-relevant events; routine technical details use Debug and
 expensive probes require Diagnostics/DeveloperMode. Never gate gameplay cleanup,
 protection warnings or the independent LogDamageExceptions safety alarm.
 
+Before changing reward persistence, read [docs/REWARDS-CORE.md](docs/REWARDS-CORE.md)
+and [docs/REWARDS-SERVER.md](docs/REWARDS-SERVER.md). The ordinary-server consumer
+runs only before native profile loading, with separately enrolled/approved state;
+there is no gameplay receipt producer or automatic enrollment yet. Never infer
+restoration from empty RAM state, replace a live profile for payout, bypass the
+startup coordination gate, or use a client-supplied amount as payout authority.
+Reward work does not relax Arena's full-profile restoration protection.
+
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and a profile that is never touched.
 No Fika dependency. Arena is solo by default; the optional API-validated
