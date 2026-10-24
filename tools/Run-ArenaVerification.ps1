@@ -22,7 +22,7 @@ only when a pass ends.
 
 .PARAMETER Harness
 Harness folder names (tools/<name>/Verify.ps1; a folder without one but with tools/<name>/<name>.csproj is
-run with `dotnet run` and the no-deploy properties), optionally with a stage for the scripts that need one
+run with `dotnet run`, no program arguments and the no-deploy properties), optionally with a stage for the scripts that need one
 (<name>:<Stage>, forwarded as -Stage), or script paths relative to the repository root. Several names
 go comma-separated without spaces (-Harness A,B:Stage) or as repeated arguments.
 
@@ -130,9 +130,12 @@ try {
             }
             elseif ($name -notlike '*.ps1' -and (Test-Path -LiteralPath $project)) {
                 # A harness without a Verify.ps1: its program is the whole check (no mutants).
+                # There is no shared positional-argument contract: MolotovPresentationChecks
+                # treats a path as an audio export destination, NativeStopChecks as a repo root.
+                # Use their no-argument defaults; SPT paths are supplied via properties/env above.
                 & dotnet run --project $project -c Release "-p:SPTPath=$SptRoot" `
                     "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $repo 'tools\AirPitChecks\NoDeploy.targets')" "-p:SPTUserMods=$noDeploy" `
-                    -- $SptRoot 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
+                    2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
             }
             else { Add-Verdict $item $false 0 "no such script or project: $script"; continue }
         }
