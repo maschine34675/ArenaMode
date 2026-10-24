@@ -17,8 +17,17 @@ current. User-facing communication is normally German.
   `SpawnGateChecks` passed 324 assertions and all compiled negative controls.
   The full offline runner passed all four gates (2,307 unit tests, one known
   environment skip; 324 gate, 424 formation and 382 TDM runtime assertions).
-  Installed payload hashes stayed unchanged; native gate/DynamicMaps tests and
-  delivery evidence are pending. See the [contract and evidence status](SPAWN-GATE-COMPLETION-20261024.md),
+  Offline checks preserved installed payloads. `73c61f7` then built/deployed
+  client + companion and passed GPU-2 four-map 4v4 tests: Bowl Live after 7.01 s,
+  Equator/Bay5 4.00 s, AirPit 2.00 s. All twenty paths passed; both factions and
+  the player left the boxes, Bowl respawn stayed open. All four DynamicMaps
+  overviews rendered; three short DM controls acquired no hold. Settings restored,
+  303 original items preserved (two startup default-count normalizations).
+  Separate follow-ups: temporary SD mod.2 kit grid reconstruction/UIFixes
+  hypothesis, Bowl shell-audio teardown, one Bay5 animation hash message, and
+  expected solo-preparation cancellation logged as Warning on early exit.
+  See [native evidence and limits](GPU-SPAWN-GATE-COMPLETION-20261024.md) and the
+  [contract](SPAWN-GATE-COMPLETION-20261024.md),
   including its [native verification section](SPAWN-GATE-COMPLETION-20261024.md#native-verification).
 
 - **Bowl team boxes (2026-10-23):** independent TDM now uses the original east

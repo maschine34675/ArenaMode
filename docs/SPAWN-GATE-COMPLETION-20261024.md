@@ -90,15 +90,16 @@ environment-gated skip), 324 spawn-gate assertions, 424 formation assertions and
 382 TDM runtime checks. The gate/formation negative controls passed. Installed
 payload hashes stayed unchanged. An initial runner wrapper timed out at 120 s;
 the complete rerun used a 900 s budget and exited successfully.
-These checks are not native animation, navigation or DynamicMaps acceptance.
-No new deployment or GPU result is claimed here. The initial Bowl-box results remain a historical
+The initial Bowl-box results remain a historical
 baseline in [the 2026-10-23 report](GPU-BOWL-TEAM-BOXES-20261023.md).
 
 ## Native verification
 
-Pending on SPT-GPU-2. Record or link the tested source/build identities, loaded
-ArenaMode and MapPort artifacts, actual release/completion/combat timing and
-log evidence here once available. The intended checks cover gate holding and
-opening, bot/player departures and a live respawn without re-closing, plus the
-refreshed DynamicMaps outlines and team-box positions. Keep observed results
-separate from untested scenarios and offline fixtures.
+Source `73c61f7` was built, deployed and tested on SPT-GPU-2 with MapPort's
+default duration scale of 0.5. All four 4v4 starts passed: Bowl entered Live
+7.01 s after release, Equator/Bay5 4.00 s and AirPit 2.00 s. Both factions and
+the player left their boxes; Bowl's death/Killcam/respawn did not re-close them.
+All four refreshed DynamicMaps packages rendered, including full overviews.
+Three additional short DM controls acquired no Arena hold. See the
+[native report](GPU-SPAWN-GATE-COMPLETION-20261024.md) for identities, timeline,
+restoration, separate log findings and untested cases.

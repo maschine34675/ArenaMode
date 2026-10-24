@@ -5,6 +5,21 @@ work unless a section explicitly records implementation or test progress with
 a linked review. Recheck current source and saved configuration when resuming.
 Read `AGENTS.md` and `HANDOFF.md` first.
 
+## Separate findings from the 2026-10-24 gate tests
+
+The gate-completion integration passed. Preserve these unrelated observations
+for focused follow-up; see [native evidence](GPU-SPAWN-GATE-COMPLETION-20261024.md#logs-separate-findings):
+
+- Reproduce temporary SD mod.2 kit reconstruction after inventory-open/leave
+  with UIFixes grid reordering on/off. Surv12 and PP19 magazine grid-index errors
+  occurred after successful original-profile restoration; causality is unproven.
+- Trace Bowl shell-audio collisions after bundle unload and the single Bay5
+  animation-handler hash-zero message. Do not suppress native errors without
+  identifying ownership and teardown order.
+- Treat expected canceled solo preparations after a committed raid exit as
+  ordinary cleanup (Debug), preserving genuine preparation failures as Warning.
+  The current generic catch emitted seventeen warnings during three early exits.
+
 ## Confirmed supply limits from the 2026-10-15 player log
 
 - Gun Game's M60 promotion could not place either 2x2 spare box in the current

@@ -2,8 +2,8 @@
 
 Notable changes since **v0.1.0**, reconstructed from the Git history and published
 release notes. Dates below are GitHub publication dates. Unreleased covers changes
-merged through [`36402fe`](https://github.com/maschine34675/ArenaMode/commit/36402fe)
-on 2026-10-23; it is not part of the 0.1.3 download.
+merged through [`73c61f7`](https://github.com/maschine34675/ArenaMode/commit/73c61f7)
+on 2026-10-24; it is not part of the 0.1.3 download.
 
 Released entries describe the behavior **at that release**. Several compatibility
 adapters were subsequently removed or moved to Redeploy.Core, as noted under
@@ -44,6 +44,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   Combat waits for the spawn gates to open and all exit routes to pass safety
   checks; gates stay open for respawns. Other modes retain generic map spawns.
   Existing custom map allowlists are preserved.
+- Team DM now consumes ArenaMapPort's gate-completion signal on all four ported
+  maps. Bowl no longer waits the old fixed 13.5 seconds when its faster animation
+  has finished; complete exit paths and safe spawn positions remain mandatory.
+  Older MapPort builds keep the previous fallback timing.
 
 ### Compatibility changes
 
