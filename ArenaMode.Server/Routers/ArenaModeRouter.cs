@@ -591,11 +591,12 @@ public sealed class ArenaModeRouter : StaticRouter
             request.PitFireTeamTeam,
             request.Mode,
             PitFireTeamDynamicPersistencePatches.ProtectionReady,
-            PitFireTeamDynamicPersistencePatches.IncompatibilityReason);
+            PitFireTeamDynamicPersistencePatches.IncompatibilityReason,
+            PitFireTeamDynamicPersistencePatches.IsInstalled);
         if (pitFireTeamRejection != null)
         {
             _logger.Warning(
-                $"[ArenaMode] Rejected PitFireTeam team Arena before snapshot/arm: {pitFireTeamRejection}");
+                $"[ArenaMode] Rejected Arena before snapshot/arm because PitFireTeam protection is unavailable: {pitFireTeamRejection}");
             return Json(new { armed = false, reason = pitFireTeamRejection });
         }
 

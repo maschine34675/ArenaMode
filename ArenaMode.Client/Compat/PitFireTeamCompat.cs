@@ -29,6 +29,7 @@ namespace ArenaMode.Compat;
 /// </summary>
 internal static partial class PitFireTeamCompat
 {
+    private static bool _accountWideReportsRequired;
     public const string PluginGuid = "xyz.pit.fireteam";
 
     private const string SelectedGroupTypeName = "pitTeam.Patches.MainMenuControllerPatch";
@@ -286,6 +287,10 @@ internal static partial class PitFireTeamCompat
     {
         EnsureInitialized();
 
+        string persistenceProblem = PitFireTeamReportGuard.AdmissionProblem(_accountWideReportsRequired, _contractProblem);
+        if (!string.IsNullOrEmpty(persistenceProblem))
+            return PitFireTeamSelectionDecision.Reject(persistenceProblem);
+
         var nativeAccountIds = ReadNativeGroupAccountIds(controller);
         var currentAccountId = controller?.CurrentPlayer?.AccountId;
         IReadOnlyList<string> selectedAccountIds = Array.Empty<string>();
@@ -336,6 +341,12 @@ internal static partial class PitFireTeamCompat
     public static bool TryFreezeTeamRoster(PitFireTeamSelectionDecision decision, out string reason)
     {
         reason = string.Empty;
+        string persistenceProblem = PitFireTeamReportGuard.AdmissionProblem(_accountWideReportsRequired, _contractProblem);
+        if (!string.IsNullOrEmpty(persistenceProblem))
+        {
+            reason = persistenceProblem;
+            return false;
+        }
         if (decision == null || !decision.Allowed)
         {
             reason = decision?.Reason ?? "Arena could not validate the current PitFireTeam roster.";
@@ -1500,10 +1511,12 @@ internal static partial class PitFireTeamCompat
         MethodInfo stopGettingInfoPrefixMethod = null;
         try
         {
+            _accountWideReportsRequired = pluginInfo?.Metadata?.Version >= new System.Version(1, 0, 0);
             if (pluginInfo?.Instance == null)
                 throw new InvalidOperationException("the BepInEx plugin instance is unavailable");
 
             var assembly = pluginInfo.Instance.GetType().Assembly;
+            _accountWideReportsRequired |= assembly.GetName().Version >= new System.Version(1, 0, 0, 0);
             if (!string.Equals(assembly.GetName().Name, "pitFireTeam", StringComparison.Ordinal))
                 throw new InvalidOperationException($"assembly identity '{assembly.FullName}' is unsupported");
 
@@ -1637,6 +1650,7 @@ internal static partial class PitFireTeamCompat
             var progressPrefix = typeof(PitFireTeamCompat).GetMethod(nameof(SaveFollowersProgressPrefix),
                 BindingFlags.NonPublic | BindingFlags.Static);
             Harmony.Patch(saveFollowersProgressMethod, prefix: new HarmonyMethod(progressPrefix));
+            PitFireTeamReportGuard.Configure(assembly, Harmony);
 
             var stopFinalizer = typeof(PitFireTeamCompat).GetMethod(nameof(PitStopCleanupFinalizer),
                 BindingFlags.NonPublic | BindingFlags.Static);
@@ -1681,6 +1695,7 @@ internal static partial class PitFireTeamCompat
                     $"Arena could not roll back partial PitFireTeam patches: {rollbackException}");
             }
             PitFireTeamRoundLifecycle.RollbackConfiguration(ex.Message);
+            PitFireTeamReportGuard.RollbackConfiguration();
             InvalidateContract(ex.Message);
         }
     }
@@ -1712,7 +1727,7 @@ internal static partial class PitFireTeamCompat
 
     private static bool SaveFollowersProgressPrefix()
     {
-        if (!PersistenceSuppressionActive)
+        if (!PersistenceSuppressionActive && !PitFireTeamReportGuard.SuppressAutomaticReportCapture)
             return true;
 
         if (!_progressSuppressionLogged)
@@ -1946,8 +1961,9 @@ internal static partial class PitFireTeamCompat
     {
         _contractState = PitFireTeamContractState.Incompatible;
         _contractProblem = problem ?? "unknown compatibility failure";
-        Plugin.ModLogger.LogWarning(
-            $"Arena will not start a PitFireTeam team raid: {_contractProblem}. Solo Arena remains available.");
+        Plugin.ModLogger.LogWarning(_accountWideReportsRequired && !PitFireTeamReportGuard.IsReady
+            ? $"Arena is unavailable because PitFireTeam report protection failed: {_contractProblem}."
+            : $"Arena will not start a PitFireTeam team raid: {_contractProblem}. Solo Arena remains available.");
     }
 
     private static Type RequireType(Assembly assembly, string typeName)

@@ -28,6 +28,32 @@ internal static class PitFireTeamOperationGate
         return new Lease(write: true);
     }
 
+    /// <summary>
+    /// PFT 1.0 serializes requests and delayed invites through its own semaphore.
+    /// Never drain a delayed invite while retaining our writer: a route may own
+    /// that semaphore while waiting for our read lease. Releasing the writer
+    /// lets both finish; the final writer + zero pending check is atomic against
+    /// new operations, which register their logical lease under a read lease.
+    /// </summary>
+    public static bool TryReserveProfileBoundary(TimeSpan timeout, out IDisposable? lease)
+    {
+        lease = null;
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            TimeSpan remaining = timeout - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero || !Gate.TryEnterWriteLock(remaining)) return false;
+            if (PitFireTeamAsyncSideEffectGate.WaitForDrain(TimeSpan.Zero))
+            {
+                lease = new Lease(write: true);
+                return true;
+            }
+            Gate.ExitWriteLock();
+            remaining = timeout - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero || !PitFireTeamAsyncSideEffectGate.WaitForDrain(remaining)) return false;
+        }
+    }
+
     private sealed class Lease(bool write) : IDisposable
     {
         private int _disposed;

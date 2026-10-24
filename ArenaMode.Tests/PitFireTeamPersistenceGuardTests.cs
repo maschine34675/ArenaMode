@@ -1186,6 +1186,7 @@ public class PitFireTeamPersistenceGuardTests
 
         Assembly pitFireTeam = Assembly.LoadFrom(assemblyPath);
         Assert.True(ArenaMode.Shared.PitFireTeamVersions.IsSupportedAssemblyVersion(pitFireTeam.GetName().Version));
+        bool modernDatabase = pitFireTeam.GetName().Version >= new Version(1, 0, 0, 0);
 
         InstalledMethodContract[] raidContracts =
         [
@@ -1206,9 +1207,11 @@ public class PitFireTeamPersistenceGuardTests
         ];
         InstalledMethodContract[] managementContracts =
         [
-            new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammate", "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse"),
+            new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammate", modernDatabase
+                ? "pitTeam.Server.Models.FriendlyTeammateBuyKitResponse" : "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammateFromRecruitCandidate", "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse"),
-            new("pitTeam.Server.Services.FriendlyTeammateService", "SelectDefaultLoadoutForAllTeammates", "System.Void"),
+            new("pitTeam.Server.Services.FriendlyTeammateService", modernDatabase
+                ? "ApplyLoadoutManagementModeChange" : "SelectDefaultLoadoutForAllTeammates", "System.Void"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateSuit", "System.Void"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "RenameTeammate", "System.Void"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateLoadout", "System.Void"),
@@ -1226,7 +1229,9 @@ public class PitFireTeamPersistenceGuardTests
                 }
                 : [],
             new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAutoJoin", "System.Void"),
-            new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean"),
+            new("pitTeam.Server.Services.FriendlyTeammateService", modernDatabase
+                ? "DeleteTeammateWithPayment" : "DeleteTeammate", modernDatabase
+                ? "pitTeam.Server.Models.FriendlyTeammateDeleteResponse" : "System.Boolean"),
             new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammateByProfileId", "System.Boolean"),
             new("pitTeam.Server.Services.FriendlyRecruitService", "AcceptRecruitRequest", "System.Boolean"),
             new("pitTeam.Server.Services.FriendlyRecruitService", "AcceptAllRecruitRequests", "System.Boolean"),
@@ -1307,16 +1312,19 @@ public class PitFireTeamPersistenceGuardTests
             .Select(contract => ResolveInstalledContract(pitFireTeam, contract))
             .ToArray();
 
-        MethodInfo recoveryBackup = pitFireTeam
+        MethodInfo? recoveryBackup = pitFireTeam
             .GetType("pitTeam.Server.Services.FriendlyTeammateService", throwOnError: true)!
             .GetMethod(
                 "BackupFileBeforeRecovery",
                 BindingFlags.Instance | BindingFlags.NonPublic,
                 Type.DefaultBinder,
                 [typeof(string)],
-                null)!;
-        Assert.NotNull(recoveryBackup);
-        Assert.Equal(typeof(void), recoveryBackup.ReturnType);
+                null);
+        if (!modernDatabase)
+        {
+            Assert.NotNull(recoveryBackup);
+            Assert.Equal(typeof(void), recoveryBackup.ReturnType);
+        }
         Type settingsRequestType = pitFireTeam.GetType(
             "pitTeam.Server.Models.FriendlyServerSettingsRequest",
             throwOnError: true)!;
@@ -1339,7 +1347,7 @@ public class PitFireTeamPersistenceGuardTests
             .. managementTargets,
             .. recoveryTargets,
             .. operationBoundaryTargets,
-            recoveryBackup,
+            .. recoveryBackup == null ? [] : new[] { recoveryBackup },
             saveAndApply,
         ];
         allTargets = allTargets.Distinct().ToArray();
@@ -1351,7 +1359,7 @@ public class PitFireTeamPersistenceGuardTests
         Assert.Equal(30, operationBoundaryTargets.Length);
         // Two targets are shared between groups, so the distinct total is the
         // other four groups plus the management count for the installed build.
-        Assert.Equal(44 + expectedManagement, allTargets.Length);
+        Assert.Equal(44 + expectedManagement - (modernDatabase ? 1 : 0), allTargets.Length);
 
         PitFireTeamDynamicPersistencePatches.TryEnable();
 
@@ -1394,7 +1402,29 @@ public class PitFireTeamPersistenceGuardTests
             AssertHarmonyPrefix(target, harmonyId);
         }
 
-        AssertHarmonyPrefix(recoveryBackup, harmonyId);
+        if (recoveryBackup != null)
+            AssertHarmonyPrefix(recoveryBackup, harmonyId);
+        if (modernDatabase)
+        {
+            // Inspect the actual new transaction/storage graph. Detailed read,
+            // mutation, async and negative-contract tests run in the isolated
+            // production-linked PitFireTeam100Checks harness on the release DLL.
+            foreach ((string type, string method) in new[]
+            {
+                ("pitTeam.Server.Services.PmcKarmaService", "Record"),
+                ("pitTeam.Server.Services.FriendlyScavCargoService", "PrepareCoopCargo"),
+                ("pitTeam.Server.Services.FollowerInsuranceSettlementService", "TrySettle"),
+                ("pitTeam.Server.Services.FollowerInsuranceCourierTransferService", "TryApplyClaimed"),
+                ("pitTeam.Server.Persistence.TeammateDatabase", "Initialize"),
+                ("pitTeam.Server.Persistence.TeammateDatabase", "WriteBatch"),
+                ("pitTeam.Server.Persistence.TeammateDatabase", "DeleteTeammate"),
+                ("pitTeam.Server.Persistence.TeammateDatabase", "Wipe"),
+                ("pitTeam.Server.Persistence.TeammateDatabase", "Open"),
+                ("pitTeam.Server.Services.FriendlyTeammateStorage", "TryBackupImportedDirectory"),
+            })
+                AssertHarmonyPrefix(pitFireTeam.GetType(type, true)!.GetMethod(method,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!, harmonyId);
+        }
         Patches settingsPatchInfo = AssertHarmonyPrefix(saveAndApply, harmonyId);
         Assert.Contains(
             settingsPatchInfo.Prefixes,

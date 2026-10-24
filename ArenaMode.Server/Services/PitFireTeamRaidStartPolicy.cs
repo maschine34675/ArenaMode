@@ -7,12 +7,14 @@ public static class PitFireTeamRaidStartPolicy
         bool pitFireTeamTeamRequested,
         string? arenaMode,
         bool persistenceProtectionReady,
-        string? incompatibilityReason)
+        string? incompatibilityReason,
+        bool pitFireTeamInstalled = false)
     {
-        if (!pitFireTeamTeamRequested)
+        if (!pitFireTeamTeamRequested && !pitFireTeamInstalled)
             return null;
 
-        if (!string.Equals(arenaMode, "tactical", StringComparison.OrdinalIgnoreCase)
+        if (pitFireTeamTeamRequested
+            && !string.Equals(arenaMode, "tactical", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(arenaMode, "zombie", StringComparison.OrdinalIgnoreCase))
             return "PitFireTeam companions require Tactical or Zombies Arena.";
 

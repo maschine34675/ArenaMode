@@ -16,7 +16,7 @@ namespace ArenaMode.Server.Patches;
 /// optional mod itself. Every expected boundary is validated before Harmony
 /// changes any of them, so a changed PFT layout rejects team Arena as a whole.
 /// </summary>
-public static class PitFireTeamDynamicPersistencePatches
+public static partial class PitFireTeamDynamicPersistencePatches
 {
     private const string HarmonyId = "com.maschine.ArenaMode.server.pitfireteam-persistence";
     private static readonly Lock EnableLock = new();
@@ -41,7 +41,8 @@ public static class PitFireTeamDynamicPersistencePatches
         string ReturnTypeName,
         int SessionParameterIndex = 0,
         bool IsPublic = true,
-        Version? RequiredFromAssemblyVersion = null);
+        Version? RequiredFromAssemblyVersion = null,
+        Version? RemovedFromAssemblyVersion = null);
 
     /// <summary>Automatic raid-result work affecting profile, mail, queues, or PFT caches.</summary>
     private static readonly MethodContract[] RaidPersistenceContracts =
@@ -72,9 +73,9 @@ public static class PitFireTeamDynamicPersistencePatches
     /// </summary>
     private static readonly MethodContract[] ManagementContracts =
     [
-        new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammate", "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse"),
+        new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammate", "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse", RemovedFromAssemblyVersion: DatabaseVersion),
         new("pitTeam.Server.Services.FriendlyTeammateService", "CreateTeammateFromRecruitCandidate", "SPTarkov.Server.Core.Models.Eft.Profile.SearchFriendResponse"),
-        new("pitTeam.Server.Services.FriendlyTeammateService", "SelectDefaultLoadoutForAllTeammates", "System.Void"),
+        new("pitTeam.Server.Services.FriendlyTeammateService", "SelectDefaultLoadoutForAllTeammates", "System.Void", RemovedFromAssemblyVersion: DatabaseVersion),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateSuit", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "RenameTeammate", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateLoadout", "System.Void"),
@@ -89,7 +90,7 @@ public static class PitFireTeamDynamicPersistencePatches
             RequiredFromAssemblyVersion: ArenaMode.Shared.PitFireTeamVersions.MinimumForwardVersion),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateTactic", "System.Void"),
         new("pitTeam.Server.Services.FriendlyTeammateService", "SetTeammateAutoJoin", "System.Void"),
-        new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean"),
+        new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammate", "System.Boolean", RemovedFromAssemblyVersion: DatabaseVersion),
         new("pitTeam.Server.Services.FriendlyTeammateService", "DeleteTeammateByProfileId", "System.Boolean"),
         new("pitTeam.Server.Services.FriendlyRecruitService", "AcceptRecruitRequest", "System.Boolean"),
         new("pitTeam.Server.Services.FriendlyRecruitService", "AcceptAllRecruitRequests", "System.Boolean"),
@@ -255,26 +256,20 @@ public static class PitFireTeamDynamicPersistencePatches
         List<MethodInfo> operationBoundaryTargets = [];
         foreach ((MethodContract[] contracts, List<MethodInfo> resolved) in new[]
                  {
-                     (RaidPersistenceContracts, raidTargets),
-                     (ManagementContracts, managementTargets),
-                     (RecoveryContracts, recoveryTargets),
+                     (RaidPersistenceContracts.Concat(ModernRaidContracts).ToArray(), raidTargets),
+                     (ManagementContracts.Concat(ModernManagementContracts).ToArray(), managementTargets),
+                     (RecoveryContracts.Concat(ModernRecoveryContracts).ToArray(), recoveryTargets),
+                     (OperationBoundaryContracts.Concat(ModernOperationContracts).ToArray(), operationBoundaryTargets),
                  })
         {
             if (!TryResolveApplicableContracts(pitFireTeam, version, contracts, resolved))
                 return;
         }
 
-        foreach (MethodContract contract in OperationBoundaryContracts)
-        {
-            MethodInfo? target = ResolveContract(pitFireTeam, contract);
-            if (target == null)
-            {
-                RejectContract(contract.TypeName, contract.MethodName);
-                return;
-            }
-
-            operationBoundaryTargets.Add(target);
-        }
+        bool modernDatabase = version >= DatabaseVersion;
+        ModernDatabaseContract? databaseContract = null;
+        if (modernDatabase && !TryResolveModernDatabase(pitFireTeam, out databaseContract))
+            return;
 
         Type? teammateServiceType = pitFireTeam.GetType(
             "pitTeam.Server.Services.FriendlyTeammateService",
@@ -286,7 +281,7 @@ public static class PitFireTeamDynamicPersistencePatches
             Type.DefaultBinder,
             [typeof(string)],
             null);
-        if (recoveryBackup == null || recoveryBackup.ReturnType != typeof(void))
+        if (!modernDatabase && (recoveryBackup == null || recoveryBackup.ReturnType != typeof(void)))
         {
             RejectContract(
                 "pitTeam.Server.Services.FriendlyTeammateService",
@@ -436,7 +431,7 @@ public static class PitFireTeamDynamicPersistencePatches
                          .Concat(managementTargets)
                          .Concat(recoveryTargets)
                          .Concat(operationBoundaryTargets)
-                         .Append(recoveryBackup)
+                         .Concat(recoveryBackup == null ? [] : new[] { recoveryBackup })
                          .Append(saveAndApply)
                          .Distinct())
             {
@@ -470,7 +465,14 @@ public static class PitFireTeamDynamicPersistencePatches
                 harmony.Patch(target, prefix: new HarmonyMethod(prefix));
             }
 
-            harmony.Patch(recoveryBackup, prefix: new HarmonyMethod(recoveryPrefix));
+            if (recoveryBackup != null)
+                harmony.Patch(recoveryBackup, prefix: new HarmonyMethod(recoveryPrefix));
+            if (databaseContract != null)
+                PatchModernDatabase(harmony, databaseContract);
+            foreach (MethodInfo target in raidTargets.Where(method =>
+                         method.ReturnType.IsGenericType
+                         && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+                PatchAsyncTransaction(harmony, target);
             harmony.Patch(saveAndApply, prefix: new HarmonyMethod(globalSettingsPrefix));
             harmony.Patch(
                 sendGroupInvite,
@@ -501,8 +503,8 @@ public static class PitFireTeamDynamicPersistencePatches
             ArenaContext.Logger?.Debug(
                 $"[ArenaMode] PitFireTeam {version} persistence guard enabled " +
                 $"({raidTargets.Count} raid, {managementTargets.Count} management, " +
-                $"{OperationBoundaryContracts.Length} outer operations, " +
-                $"{recoveryTargets.Count + 1} recovery, and global settings boundaries).");
+                $"{operationBoundaryTargets.Count} outer operations, " +
+                $"{recoveryTargets.Count + (recoveryBackup == null ? 0 : 1)} recovery, and global settings boundaries).");
         }
         catch (Exception ex)
         {
@@ -522,10 +524,11 @@ public static class PitFireTeamDynamicPersistencePatches
     /// after the legacy baseline remains mandatory for every admitted newer build.
     /// </summary>
     private static bool AppliesToInstalledBuild(MethodContract contract, Version? installed)
-        => contract.RequiredFromAssemblyVersion == null
+        => (contract.RemovedFromAssemblyVersion == null || installed < contract.RemovedFromAssemblyVersion)
+           && (contract.RequiredFromAssemblyVersion == null
            || (installed != null && installed.Build >= 0
                && new Version(installed.Major, installed.Minor, installed.Build, Math.Max(0, installed.Revision))
-                   .CompareTo(contract.RequiredFromAssemblyVersion) >= 0);
+                   .CompareTo(contract.RequiredFromAssemblyVersion) >= 0));
 
     private static bool TryResolveApplicableContracts(
         Assembly assembly, Version? version, MethodContract[] contracts, List<MethodInfo> resolved)
@@ -595,8 +598,9 @@ public static class PitFireTeamDynamicPersistencePatches
     }
 
     private static bool ReturnTypeMatches(Type actual, string expected)
-        => expected == "System.Threading.Tasks.ValueTask<System.String>"
-            ? actual == typeof(ValueTask<string>)
+        => expected.StartsWith("System.Threading.Tasks.ValueTask<", StringComparison.Ordinal)
+            ? actual.IsGenericType && actual.GetGenericTypeDefinition() == typeof(ValueTask<>)
+              && actual.GetGenericArguments()[0].FullName == expected["System.Threading.Tasks.ValueTask<".Length..^1]
             : string.Equals(actual.FullName, expected, StringComparison.Ordinal);
 
     private static void RejectContract(string typeName, string methodName)

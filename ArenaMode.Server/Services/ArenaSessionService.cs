@@ -56,6 +56,9 @@ public class ArenaSessionService
         public DateTime ArmedAtUtc;
         public DateTime InRaidAtUtc;
         public bool ProtectPitFireTeam;
+        // PFT 1.0 also reports karma/insurance in solo raids. Keep persistence
+        // ownership separate from the companion roster and own-gear rules.
+        public bool ProtectExternalPersistence;
         public string? ArmToken;
         public bool ClientRaidStarted;
         public string? NativeStartIdentity;
@@ -76,6 +79,7 @@ public class ArenaSessionService
     private readonly Dictionary<string, Dictionary<string, DateTime>> _completedNativeEnds = new();
     private readonly Lock _lock = new();
     private readonly PitFireTeamPersistenceGuard _pitFireTeamGuard;
+    private readonly Func<bool> _externalPersistenceInstalled;
     private readonly ISptLogger<ArenaSessionService> logger;
 
     public ArenaSessionService(ISptLogger<ArenaSessionService> logger)
@@ -85,10 +89,13 @@ public class ArenaSessionService
 
     internal ArenaSessionService(
         ISptLogger<ArenaSessionService> logger,
-        PitFireTeamPersistenceGuard pitFireTeamGuard)
+        PitFireTeamPersistenceGuard pitFireTeamGuard,
+        Func<bool>? externalPersistenceInstalled = null)
     {
         this.logger = logger;
         _pitFireTeamGuard = pitFireTeamGuard;
+        _externalPersistenceInstalled = externalPersistenceInstalled
+            ?? (() => Patches.PitFireTeamDynamicPersistencePatches.IsInstalled);
     }
 
     public string Arm(
@@ -128,13 +135,14 @@ public class ArenaSessionService
                 AreaTeamSize = selectedSize,
                 ArmedAtUtc = DateTime.UtcNow,
                 ProtectPitFireTeam = protectPitFireTeam,
+                ProtectExternalPersistence = protectPitFireTeam || _externalPersistenceInstalled(),
                 ArmToken = token,
                 ClientRaidStarted = false,
                 LocationMutationReady = false,
                 LocationMutationFailure = null,
             };
 
-            if (protectPitFireTeam)
+            if (_sessions[key].ProtectExternalPersistence)
             {
                 _pitFireTeamGuard.BeginArmed(
                     key,
@@ -243,18 +251,17 @@ public class ArenaSessionService
             return false;
 
         string key = sessionId.ToString();
-        if (protectPitFireTeam)
+        if (protectPitFireTeam || _externalPersistenceInstalled())
         {
-            using (PitFireTeamOperationGate.ReserveProfileBoundary())
+            if (!PitFireTeamOperationGate.TryReserveProfileBoundary(TimeSpan.FromSeconds(15), out var boundary))
             {
-                if (!PitFireTeamAsyncSideEffectGate.WaitForDrain(TimeSpan.FromSeconds(15)))
-                {
-                    logger.Warning(
-                        "[ArenaMode] PitFireTeam delayed invite work did not settle within 15s; " +
-                        "protected Arena arm rejected before snapshot.");
-                    return false;
-                }
-
+                logger.Warning(
+                    "[ArenaMode] PitFireTeam pending operations did not settle within 15s; " +
+                    "protected Arena arm rejected before snapshot.");
+                return false;
+            }
+            using (boundary)
+            {
                 lock (_lock)
                     return PublishArmPreparationLocked(
                         key,
@@ -305,12 +312,13 @@ public class ArenaSessionService
             AreaTeamSize = areaTeamSize,
             ArmedAtUtc = DateTime.UtcNow,
             ProtectPitFireTeam = protectPitFireTeam,
+            ProtectExternalPersistence = protectPitFireTeam || _externalPersistenceInstalled(),
             ArmToken = armToken,
             ClientRaidStarted = false,
             LocationMutationReady = false,
             LocationMutationFailure = null,
         };
-        if (protectPitFireTeam)
+        if (_sessions[key].ProtectExternalPersistence)
         {
             _pitFireTeamGuard.BeginArmed(
                 key,
@@ -342,7 +350,7 @@ public class ArenaSessionService
             // Preparing has a deliberately longer safety window because the
             // snapshot duration is outside the session lock. Once capture is
             // complete, restart the normal armed TTL from this exact boundary.
-            if (entry.ProtectPitFireTeam)
+            if (entry.ProtectExternalPersistence)
                 _pitFireTeamGuard.BeginArmed(key, ArmedProtectionTtl());
             logger.Debug(
                 $"[ArenaMode] Completed protected PitFireTeam arm for session {sessionId}: " +
@@ -369,6 +377,7 @@ public class ArenaSessionService
             entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
+            entry.ProtectExternalPersistence = false;
             entry.ArmToken = null;
             entry.ClientRaidStarted = false;
             entry.LocationMutationReady = false;
@@ -476,7 +485,7 @@ public class ArenaSessionService
             entry.NativeEndIdentity = null;
             entry.LastCompletedArmToken = null;
             entry.NativeEndCompletedAtUtc = default;
-            if (entry.ProtectPitFireTeam)
+            if (entry.ProtectExternalPersistence)
             {
                 _pitFireTeamGuard.BeginRaid(
                     key,
@@ -903,7 +912,7 @@ public class ArenaSessionService
             entry.State = ArenaSessionState.FinalizingEnd;
             entry.NativeEndIdentity = nativeEndIdentity;
             entry.NativeEndCompletedAtUtc = default;
-            if (entry.ProtectPitFireTeam)
+            if (entry.ProtectExternalPersistence)
                 _pitFireTeamGuard.BeginRaid(key, ActiveBoundaryRefreshTtl());
             return true;
         }
@@ -952,7 +961,7 @@ public class ArenaSessionService
                 return false;
             }
 
-            bool protectPitFireTeam = entry.ProtectPitFireTeam;
+            bool protectPitFireTeam = entry.ProtectExternalPersistence;
             string? completedArmToken = entry.ArmToken;
             entry.State = ArenaSessionState.Idle;
             entry.AreaId = ArenaAreaCatalog.FullMapId;
@@ -961,6 +970,7 @@ public class ArenaSessionService
             entry.ParticipantBosses = false;
             entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
             entry.ProtectPitFireTeam = false;
+            entry.ProtectExternalPersistence = false;
             entry.ArmToken = null;
             entry.ClientRaidStarted = false;
             entry.NativeStartIdentity = null;
@@ -1119,6 +1129,7 @@ public class ArenaSessionService
                 entry.ParticipantBosses = false;
                 entry.KitsJson = entry.LadderJson = entry.LadderPoolJson = null;
                 entry.ProtectPitFireTeam = false;
+                entry.ProtectExternalPersistence = false;
                 entry.ArmToken = null;
                 entry.ClientRaidStarted = false;
                 entry.NativeStartIdentity = null;
@@ -1149,7 +1160,7 @@ public class ArenaSessionService
         {
             if (_sessions.TryGetValue(key, out var entry))
             {
-                protectPitFireTeam = entry.ProtectPitFireTeam;
+                protectPitFireTeam = entry.ProtectExternalPersistence;
                 entry.State = ArenaSessionState.Idle;
                 entry.AreaId = ArenaAreaCatalog.FullMapId;
                 entry.DeathmatchHostility = null;
@@ -1183,7 +1194,7 @@ public class ArenaSessionService
         lock (_lock)
         {
             if (_sessions.TryGetValue(key, out var entry)
-                && entry.ProtectPitFireTeam
+                && entry.ProtectExternalPersistence
                 && entry.State != ArenaSessionState.Idle)
             {
                 // The timer is only a leak limiter for an abandoned guard object;
@@ -1367,7 +1378,7 @@ public class ArenaSessionService
     {
         foreach (var pair in _sessions)
         {
-            if (pair.Value.ProtectPitFireTeam
+            if (pair.Value.ProtectExternalPersistence
                 && pair.Value.State != ArenaSessionState.Idle)
             {
                 _pitFireTeamGuard.BeginRaid(pair.Key, ActiveBoundaryRefreshTtl());
