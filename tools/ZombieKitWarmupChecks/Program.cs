@@ -132,6 +132,25 @@ internal static class Program
             Check(controller.Starts == 1, "other modes preserve optional background catalog work: " + mode);
         }
 
+        // Exercise the real asynchronous loading/adoption seam. Two later
+        // promotions must already be in the opening request even if the raid
+        // adopts it before its pools finish; a fourth rung remains cold.
+        {
+            var pools = New("gungame", KitPreloadScope.InitialKit);
+            LadderCatalog.Rungs = new() { Kit("ladder"), Kit("optional"), Kit("refill"), Kit("opening") };
+            KitBundlePreloader.BeginRaidStart();
+            Check(pools.Requested.Single().Select(k => k.Value).SequenceEqual(new[] { "ladder", "optional", "refill" }), "Gun Game starts one request for the selected first three rungs");
+            Check(KitCatalog.Draws == 0, "whole-kit ladder does not draw a random base kit");
+            Activate("gungame");
+            var next = KitBundlePreloader.Preload(LadderCatalog.Rungs[1]);
+            Check(next.MoveNext() && pools.Requested.Count == 1, "early Gun Game promotion joins the opening batch");
+            CompleteAll(pools);
+            Check(!next.MoveNext(), "second rung is warm after opening completes");
+            Check(!KitBundlePreloader.Preload(LadderCatalog.Rungs[2]).MoveNext(), "third rung needs no additional pool load");
+            Check(KitBundlePreloader.Preload(LadderCatalog.Rungs[3]).MoveNext() && pools.Requested.Count == 2, "fourth rung retains required cold-load fallback");
+            CompleteAll(pools);
+        }
+
         foreach (var mode in new[] { "zombie", "tactical" })
         {
             var pools = New(mode);

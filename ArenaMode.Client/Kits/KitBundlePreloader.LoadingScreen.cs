@@ -116,16 +116,20 @@ public static partial class KitBundlePreloader
         // setting requests the whole catalogue. Off stays off.
         scope = ZombieKitWarmupPolicy.LoadingScope(scope, mode);
 
-        var opening = KitPreloadPlan.OpeningKit(mode, false, KitCatalog.ReserveBaseKit, GunGameOpening,
+        var gunGame = string.Equals(mode, KitPreloadPlan.GunGameModeId, StringComparison.OrdinalIgnoreCase);
+        var weaponsOnly = false;
+        var selectedLadder = gunGame ? Modes.GunGameMode.BuildLadder(out weaponsOnly, quiet: true) : null;
+        var opening = KitPreloadPlan.OpeningKit(mode, false, KitCatalog.ReserveBaseKit,
+            () => GunGameOpening(selectedLadder, weaponsOnly),
             Modes.TacticalMode.SelectOpeningKit);
 
         var wholeCatalogue = scope == KitPreloadScope.WholeCatalogue;
-        var gunGame = string.Equals(mode, KitPreloadPlan.GunGameModeId, StringComparison.OrdinalIgnoreCase);
         var batches = KitPreloadPlan.Batches(
             scope,
             opening,
             wholeCatalogue ? KitCatalog.Kits : null,
-            wholeCatalogue && gunGame ? LadderCatalog.Rungs : null);
+            wholeCatalogue ? selectedLadder : null,
+            selectedLadder);
 
         if (batches.Count == 0)
         {
@@ -151,9 +155,8 @@ public static partial class KitBundlePreloader
     /// with nothing in it leaves the mode inert and the swap on the base kit,
     /// which is mirrored here too.
     /// </summary>
-    private static KitDefinition GunGameOpening()
+    private static KitDefinition GunGameOpening(List<KitDefinition> ladder, bool weaponsOnly)
     {
-        var ladder = Modes.GunGameMode.BuildLadder(out var weaponsOnly, quiet: true);
         var first = ladder.Count > 0 ? ladder[0] : null;
         if (first == null)
             return KitCatalog.ReserveBaseKit();

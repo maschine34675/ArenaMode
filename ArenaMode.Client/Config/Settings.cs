@@ -878,7 +878,8 @@ public static class Settings
             "22 s to load on a 60 fps " +
             "machine (10 s on a fast one) once the raid had begun, sharing the loader with " +
             "the first bots. InitialKit = the kit the raid starts you in (the random draw is " +
-            "made in the loading screen and kept for the raid start). WholeCatalogue = every " +
+            "made in the loading screen and kept for the raid start); Gun Game also warms the " +
+            "second and third selected weapon stages in that opening batch. WholeCatalogue = every " +
             "other kit as well, one after another, for as long as the loading screen lasts; " +
             "whatever has not started when the raid begins is left to the in-raid warm-up as " +
             "before, and a respawn that lands while one kit is still loading waits for that " +

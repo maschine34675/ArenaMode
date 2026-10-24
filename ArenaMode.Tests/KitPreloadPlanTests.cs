@@ -98,6 +98,33 @@ public sealed class KitPreloadPlanTests
         Assert.Empty(KitPreloadPlan.Batches(KitPreloadScope.WholeCatalogue, null, Array.Empty<KitDefinition>(), null));
     }
 
+    [Theory]
+    [InlineData(KitPreloadScope.InitialKit)]
+    [InlineData(KitPreloadScope.WholeCatalogue)]
+    public void GunGameFirstThreeSelectedStagesShareMandatoryOpeningBatch(KitPreloadScope scope)
+    {
+        var selected = new[] { Kit("custom-z", "first"), Kit("custom-b", "second", "mag"),
+            Kit("custom-x", "third", "MAG"), Kit("later", "fourth") };
+        var batches = KitPreloadPlan.Batches(scope, Kit("opening", "armour", "first"), null,
+            scope == KitPreloadScope.WholeCatalogue ? selected : null, selected);
+        Assert.Equal(new[] { "armour", "first", "second", "mag", "third" }, batches[0].Templates);
+        Assert.Contains("first 3 Gun Game rungs", batches[0].Label);
+        if (scope == KitPreloadScope.WholeCatalogue)
+            Assert.Equal(new[] { "fourth" }, batches[1].Templates);
+        else
+            Assert.Single(batches);
+    }
+
+    [Fact]
+    public void GunGameShortRepeatedOrDisabledLaddersDoNotInventExtraWork()
+    {
+        var rung = Kit("short", "gun");
+        var shortPlan = KitPreloadPlan.Batches(KitPreloadScope.InitialKit, rung, null, null, new[] { rung, rung });
+        Assert.Equal(new[] { "gun" }, Assert.Single(shortPlan).Templates);
+        Assert.Empty(KitPreloadPlan.Batches(KitPreloadScope.Off, rung, null, null, new[] { rung }));
+        Assert.Single(KitPreloadPlan.Batches(KitPreloadScope.InitialKit, rung, null, null, Array.Empty<KitDefinition>()));
+    }
+
     [Fact]
     public void TheWholeCatalogueFollowsOneKitAtATimeMinusWhatEarlierBatchesCover()
     {

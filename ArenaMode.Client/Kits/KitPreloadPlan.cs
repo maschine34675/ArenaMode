@@ -14,7 +14,7 @@ public enum KitPreloadScope
     /// <summary>Nothing: every kit loads cold the first time it is handed out.</summary>
     Off,
 
-    /// <summary>The kit the raid-start swap will hand out, and only that one.</summary>
+    /// <summary>The starting kit, plus Gun Game's first three selected rungs.</summary>
     InitialKit,
 
     /// <summary>
@@ -133,11 +133,12 @@ public static class KitPreloadPlan
 
     /// <summary>
     /// The batches to load, in order. The first is the opening kit, which the
-    /// raid start waits for. With the whole catalogue in scope every other kit
+    /// raid start waits for; in Gun Game it also includes the first three
+    /// selected rungs. With the whole catalogue in scope every other kit
     /// (and every ladder rung) follows as a batch of its own, minus whatever an
     /// earlier batch covers — one request per kit rather than one for the lot,
-    /// so a raid that begins while a batch is in flight waits for one kit at
-    /// most, and the batches not yet started can be left to the in-raid
+    /// so a raid that begins while a batch is in flight waits only for that
+    /// batch, and the batches not yet started can be left to the in-raid
     /// warm-up. A batch with nothing to load is left out rather than started
     /// empty.
     /// </summary>
@@ -145,7 +146,8 @@ public static class KitPreloadPlan
         KitPreloadScope scope,
         KitDefinition? opening,
         IEnumerable<KitDefinition>? catalogue,
-        IEnumerable<KitDefinition>? ladder)
+        IEnumerable<KitDefinition>? ladder,
+        IEnumerable<KitDefinition>? openingGunGameLadder = null)
     {
         var batches = new List<Batch>();
         if (scope == KitPreloadScope.Off)
@@ -153,10 +155,29 @@ public static class KitPreloadPlan
 
         var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var openingTemplates = TemplatesOf(opening);
+        covered.UnionWith(openingTemplates);
+        int openingRungs = 0;
+        if (openingGunGameLadder != null)
+        {
+            // Keep these in the mandatory opening batch: optional batches are
+            // handed off on raid adoption and might never reach rung two/three
+            // before the first kills. Never draw another random base kit here.
+            foreach (var rung in openingGunGameLadder)
+            {
+                if (openingRungs >= 3)
+                    break;
+                openingRungs++;
+                foreach (var tpl in TemplatesOf(rung))
+                    if (covered.Add(tpl))
+                        openingTemplates.Add(tpl);
+            }
+        }
         if (openingTemplates.Count > 0)
         {
-            covered.UnionWith(openingTemplates);
-            batches.Add(new Batch($"kit '{opening!.Id}'", openingTemplates));
+            var label = $"kit '{opening?.Id ?? "<none>"}'";
+            if (openingRungs > 0)
+                label += $" + first {openingRungs} Gun Game rungs";
+            batches.Add(new Batch(label, openingTemplates));
         }
 
         if (scope != KitPreloadScope.WholeCatalogue)

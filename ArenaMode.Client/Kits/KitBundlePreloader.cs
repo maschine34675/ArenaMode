@@ -90,7 +90,8 @@ public static partial class KitBundlePreloader
         var templates = KitPreloadPlan.TemplatesOf(kit);
 
         // A loading-screen batch that covers part of this kit is in flight.
-        // Waiting is bounded by that one batch — one kit or one rung — and
+        // Waiting is bounded by that one batch (the opening Gun Game batch
+        // includes its first three rungs) and
         // avoids asking the factory for bundles it is already retaining, which
         // leaks a retain token per overlapped bundle (vanilla does this to
         // itself; it need not be added to).
