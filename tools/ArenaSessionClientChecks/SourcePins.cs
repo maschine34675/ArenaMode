@@ -95,8 +95,8 @@ internal static partial class Program
 
         string unavailable = Slice(side, "private static void ShowUnavailable(", "private static string WithWarnings(");
         Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen));", StringComparison.Ordinal),
-            "START ARENA SESSION appears only on the whitelist refusal of a normal session, RETURN only in an Arena session");
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));", StringComparison.Ordinal),
+            "START ARENA SESSION belongs to an eligible normal session, RETURN only to an Arena session");
 
         string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static ArenaNoticeAction ReturnAction(");
         string back = Slice(side, "private static ArenaNoticeAction ReturnAction(", "private static void SwitchSession(");
@@ -108,7 +108,7 @@ internal static partial class Program
 
         string notices = Slice(side, "private static void ShowNotice(", "private static void ShowSelectedNotice(");
         Require(notices.Contains("ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), back);", StringComparison.Ordinal)
-                && notices.Contains("else if (warnings != null && ArenaMenuSelection.IsSelected) ArenaAvailabilityNotice.ShowInfo(screen, warnings);", StringComparison.Ordinal),
+                && notices.Contains("else if (warnings != null && ArenaMenuSelection.IsSelected) ShowVersionNotes(screen, warnings);", StringComparison.Ordinal),
             "the session notice always shows in a session; whitelist warnings show only once ARENA is selected");
 
         // The policy-override note travels with the whitelist notes: a refusal shows them as its second line, and
@@ -117,7 +117,7 @@ internal static partial class Program
             "a refusal carries the whitelist notes, the policy override included, as its second line");
         string selectedNotice = Slice(side, "private static void ShowSelectedNotice(", "private static void ShowUnavailable(");
         Require(selectedNotice.Contains("string warnings = ArenaWhitelistAdmission.WarningLine;", StringComparison.Ordinal)
-                && selectedNotice.Contains("else if (warnings != null) ArenaAvailabilityNotice.ShowInfo(screen, warnings);", StringComparison.Ordinal),
+                && selectedNotice.Contains("else if (warnings != null) ShowVersionNotes(screen, warnings);", StringComparison.Ordinal),
             "an Arena click shows the whitelist notes, the policy override included, as an information notice");
 
         string switching = Slice(side, "private static void SwitchSession(", "private static void EnsureCompatibleMode(");

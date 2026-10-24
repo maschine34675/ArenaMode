@@ -220,9 +220,10 @@ Invoke-Mutant 'admission-ran-patchers-names-uncapped' 'admission' `
 Invoke-Mutant 'admission-ran-patchers-duplicates-counted' 'admission' `
     'if (seen.Add(file)) excluded.Add(file);' 'excluded.Add(file);' `
     'A patcher listed twice is one file, in the singular'
-Invoke-Mutant 'admission-always-pings' 'admission' `
-    'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' '' `
-    'A clean normal session needs no ping to open the screen'
+Invoke-Mutant 'admission-misses-server-only-drift' 'admission' `
+    'if (!ArenaSessionMode.IsArenaSession && Current().Policy == null) return;' `
+    'if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;' `
+    'A clean normal session probes once for server-only version differences'
 Invoke-Mutant 'admission-notes-uncapped' 'admission' 'private const int MaxWarningsListed = 4;' 'private const int MaxWarningsListed = 40;' `
     'Notes are capped at four lines and the rest counted'
 Invoke-Mutant 'admission-policy-oversize-unreported' 'admission' `
@@ -238,7 +239,7 @@ Invoke-Mutant 'admission-missing-policy-fails-open' 'admission' `
 Invoke-Mutant 'admission-offer-for-any-reason' 'admission' `
     'string.Equals(reason, outcome.Reason, StringComparison.Ordinal)' 'true' `
     'The action belongs to the whitelist refusal only'
-Invoke-Mutant 'admission-policy-hash-dropped' 'admission' 'policyHash = outcome.Policy.Hash;' 'policyHash = string.Empty;' `
+Invoke-Mutant 'admission-policy-hash-dropped' 'admission' 'policyHash = versionPlan?.PolicyHash ?? outcome.Policy.Hash;' 'policyHash = string.Empty;' `
     'The request carries the effective policy'
 Invoke-Mutant 'admission-all-server-mods-allowed' 'admission' `
     'outcome.AllowedServerMods.AddRange(server.Allowed);' 'outcome.AllowedServerMods.AddRange(ServerUnits(serverMods));' `
@@ -273,7 +274,7 @@ Invoke-Mutant 'admission-session-server-exclusions-ignored' 'admission' `
     'if (decision.Excluded.Count > 0)' 'if (false)' `
     'A server mod the policy does not name refuses Arena in the session'
 Invoke-Mutant 'admission-session-server-names-unsorted' 'admission' `
-    'JoinLimited(names, MaxNamesListed)' 'string.Join(", ", names.ToArray())' `
+    '"The Arena session server runs " + JoinLimited(names, MaxNamesListed)' '"The Arena session server runs " + string.Join(", ", names.ToArray())' `
     'A default-denied, a user-denied and an unlisted server mod all refuse, sorted'
 Invoke-Mutant 'admission-session-server-refusal-unlogged' 'admission' `
     'LogOnce("serverexcluded:" + outcome.Reason, true,' 'LogOnce("serverexcluded:" + outcome.Reason, false,' `
@@ -332,13 +333,13 @@ Invoke-Mutant 'admission-session-client-refusal-unlogged' 'admission' `
     'The plugin refusal is logged once, as a Warning'
 # The gate's report already carries the plugin notes; the session's own evaluation must not add them a second time.
 Invoke-Mutant 'admission-session-client-warnings-added' 'admission' `
-    'var notes = new List<string>(ArenaSessionMode.GateReport.Warnings);' `
-    ('var notes = new List<string>(ArenaSessionMode.GateReport.Warnings);' + "`n" + '        notes.AddRange(loaded.Warnings);') `
+    'AddNotes(notes, noteIdentities, ArenaSessionMode.GateReport.Warnings, gateVersions);' `
+    ('AddNotes(notes, noteIdentities, ArenaSessionMode.GateReport.Warnings, gateVersions);' + "`n" + '        notes.AddRange(loaded.Warnings);') `
     'The gate''s report is the only source of the plugin notes in a session'
 # The order of the session checks (spec section 7): gate, policy, patchers that ran early, loaded plugins, Arena instance, server mods, hash.
 Invoke-SwapMutant 'admission-session-policy-before-gate' 'admission' `
     '        if (!ArenaSessionMode.GateActive)' '        // The gate filtered with the policy it read when this game started.' `
-    '        // A not-allowed patcher that sorts before the gate has run its initializer' `
+    '        var versionPlan = ArenaSessionMode.GateReport.VersionPlan;' `
     'An inactive gate is reported ahead of a missing policy'
 Invoke-SwapMutant 'admission-session-patchers-before-policy' 'admission' `
     '        // The gate filtered with the policy it read when this game started.' '        // A not-allowed patcher that sorts before the gate has run its initializer' `
@@ -350,7 +351,7 @@ Invoke-SwapMutant 'admission-session-plugins-before-patchers' 'admission' `
     'A patcher that ran before the gate is reported ahead of a loaded plugin the policy excludes'
 Invoke-SwapMutant 'admission-session-instance-before-plugins' 'admission' `
     '        // The plugins this game loaded are judged with the policy as it reads now' '        if (ArenaServerClient.IsServerModKnownAvailable && !ArenaServerClient.IsArenaInstance)' `
-    '        var notes = new List<string>(ArenaSessionMode.GateReport.Warnings);' `
+    '        var gateVersions = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client,' `
     'A loaded plugin the policy excludes is reported ahead of a server that is no Arena instance'
 
 # ---- preloader patchers are units of the normal-session decision
@@ -444,13 +445,13 @@ Invoke-Mutant 'admission-override-notes-sorted' 'admission' `
     'The policy override is announced once per side, client first'
 Invoke-Mutant 'admission-override-note-twice' 'admission' `
     'else if (!policyOverrides.Contains(note)) policyOverrides.Add(note);' 'else policyOverrides.Add(note);' `
-    'Two sides with the same note show it once'
+    'Formatting duplicate policy-override notes keeps one notice'
 Invoke-Mutant 'side-refusal-without-notes' 'side' `
     'string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);' 'string text = reason;' `
     'a refusal carries the whitelist notes, the policy override included, as its second line'
 Invoke-Mutant 'side-selected-notice-without-notes' 'side' `
-    "        else if (warnings != null)`n            ArenaAvailabilityNotice.ShowInfo(screen, warnings);" `
-    "        else if (false)`n            ArenaAvailabilityNotice.ShowInfo(screen, warnings);" `
+    "        else if (warnings != null)`n            ShowVersionNotes(screen, warnings);" `
+    "        else if (false)`n            ShowVersionNotes(screen, warnings);" `
     'an Arena click shows the whitelist notes, the policy override included, as an information notice'
 
 # ---- session switch
@@ -610,8 +611,8 @@ Invoke-Mutant 'side-select-skips-whitelist' 'side' `
     '' `
     'a click re-checks the whitelist with the fresh ping before it selects Arena'
 Invoke-Mutant 'side-start-action-for-any-refusal' 'side' `
-    'else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))' 'else if (true)' `
-    'START ARENA SESSION appears only on the whitelist refusal of a normal session'
+    'else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())' 'else if (true)' `
+    'START ARENA SESSION belongs to an eligible normal session'
 Invoke-Mutant 'side-warnings-always-shown' 'side' `
     'else if (warnings != null && ArenaMenuSelection.IsSelected)' 'else if (warnings != null)' `
     'whitelist warnings show only once ARENA is selected'

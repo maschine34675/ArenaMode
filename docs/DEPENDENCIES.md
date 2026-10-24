@@ -39,7 +39,10 @@ SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-Commo
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
-differing version only warns). Its deny list holds the five mods ArenaMode refused by code before the
+differing version warns and offers an Arena session that omits it on both sides,
+together with its hard dependents; direct Arena entry still treats the version
+difference as advisory). This temporary selection never edits the user policy.
+Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
 session, and a user `allow` entry is what lifts that. The platform plugins

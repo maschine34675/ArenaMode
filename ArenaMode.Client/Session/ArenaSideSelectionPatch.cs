@@ -349,7 +349,7 @@ internal static class ArenaSideSelectionPatch
         if (!eligibility.Allowed)
             ShowUnavailable(screen, eligibility.Reason);
         else if (warnings != null && ArenaMenuSelection.IsSelected)
-            ArenaAvailabilityNotice.ShowInfo(screen, warnings);
+            ShowVersionNotes(screen, warnings);
         else
             ArenaAvailabilityNotice.Show(screen, null);
     }
@@ -361,7 +361,7 @@ internal static class ArenaSideSelectionPatch
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), ReturnAction(screen));
         else if (warnings != null)
-            ArenaAvailabilityNotice.ShowInfo(screen, warnings);
+            ShowVersionNotes(screen, warnings);
         else
             ArenaAvailabilityNotice.Hide(screen);
     }
@@ -372,10 +372,18 @@ internal static class ArenaSideSelectionPatch
         string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
-        else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))
-            ArenaAvailabilityNotice.Show(screen, text, StartAction(screen));
+        else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())
+            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
         else
             ArenaAvailabilityNotice.Show(screen, text);
+    }
+
+    private static void ShowVersionNotes(MatchMakerSideSelectionScreen screen, string warnings)
+    {
+        if (ArenaWhitelistAdmission.CanOfferSessionStart(null))
+            ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(warnings, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
+        else
+            ArenaAvailabilityNotice.ShowInfo(screen, warnings);
     }
 
     private static string WithWarnings(string text, string warnings)

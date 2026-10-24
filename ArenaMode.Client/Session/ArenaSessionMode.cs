@@ -19,6 +19,9 @@ internal static class ArenaSessionMode
     private static bool _isArenaSession;
     private static ArenaGateReport _report;
     private static string _problem;
+    private static string _versionPlanHash;
+
+    internal static string VersionPlanHash { get { EnsureLoaded(); return _versionPlanHash; } }
 
     /// <summary>True when the process was started with the <c>-arena-session</c> flag.</summary>
     internal static bool IsArenaSession
@@ -74,6 +77,7 @@ internal static class ArenaSessionMode
     internal static void Initialize(System.Collections.Generic.IEnumerable<string> args, string gateReportJson)
     {
         _isArenaSession = ArenaSessionContract.HasSessionFlag(args);
+        _versionPlanHash = ArenaSessionVersionPlan.ExpectedHash(args);
         _report = null;
         _problem = null;
         if (_isArenaSession)
@@ -89,7 +93,14 @@ internal static class ArenaSessionMode
             else
             {
                 _report = parsed;
-                if (!parsed.Active)
+                if ((_versionPlanHash != null || parsed.VersionPlan != null) && (string.IsNullOrEmpty(_versionPlanHash)
+                    || parsed.VersionPlan == null || !string.Equals(_versionPlanHash, parsed.VersionPlan.PolicyHash, StringComparison.Ordinal)
+                    || !string.Equals(_versionPlanHash, parsed.PolicyHash, StringComparison.Ordinal)))
+                {
+                    _report = null;
+                    _problem = "the preloader gate did not verify the requested version-filtered session";
+                }
+                else if (!parsed.Active)
                 {
                     _problem = string.IsNullOrWhiteSpace(parsed.Error)
                         ? "the preloader gate is inactive"

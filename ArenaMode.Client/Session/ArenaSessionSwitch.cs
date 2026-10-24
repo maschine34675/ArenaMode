@@ -31,6 +31,7 @@ internal sealed class ArenaSessionRequest
     internal List<ArenaSessionUnit> ServerMods = new List<ArenaSessionUnit>();
 
     internal string PolicyHash;
+    internal ArenaSessionVersionPlan VersionPlan;
 }
 
 /// <summary>
@@ -309,9 +310,10 @@ internal static class ArenaSessionSwitch
 
         if (enter)
         {
-            if (!ArenaWhitelistAdmission.TryPrepareSessionStart(out string policyHash, out var serverMods, out error))
+            if (!ArenaWhitelistAdmission.TryPrepareSessionStart(out string policyHash, out var serverMods, out var versionPlan, out error))
                 return false;
             request.PolicyHash = policyHash;
+            request.VersionPlan = versionPlan;
             request.ServerMods = serverMods;
         }
         else
@@ -477,7 +479,7 @@ internal static class ArenaSessionSwitch
         }
 
         var root = new Dictionary<string, object>();
-        root["schema"] = ArenaSessionContract.SchemaVersion;
+        root["schema"] = request.VersionPlan == null ? ArenaSessionContract.SchemaVersion : ArenaSessionContract.VersionPlanRequestSchema;
         root["direction"] = request.Direction;
         root["gamePid"] = request.GamePid;
         root["gameExe"] = request.GameExe;
@@ -487,6 +489,7 @@ internal static class ArenaSessionSwitch
         root["sptRuntimeDir"] = request.SptRuntimeDir;
         root["serverMods"] = mods;
         root["policyHash"] = request.PolicyHash ?? string.Empty;
+        if (request.VersionPlan != null) root["versionPlan"] = request.VersionPlan.ToObject();
         return ArenaMiniJson.Write(root);
     }
 

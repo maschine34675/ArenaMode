@@ -244,6 +244,12 @@ namespace ArenaMode.SessionHelper
                 return null;
             }
 
+            if (!request.ValidateVersionPlan(out error))
+            {
+                _log.Error("the version-filtered session request is no longer valid: " + error);
+                return null;
+            }
+
             return request;
         }
 

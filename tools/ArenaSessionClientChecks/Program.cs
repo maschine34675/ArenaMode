@@ -781,7 +781,7 @@ internal static partial class Program
         ResetWorld();
         ArenaServerClient.OnRefresh = () => Ping(false, NormalServerMods());
         ArenaWhitelistAdmission.PrepareForScreen();
-        Require(ArenaServerClient.RefreshCalls == 0, "A clean normal session needs no ping to open the screen");
+        Require(ArenaServerClient.RefreshCalls == 1, "A clean normal session probes once for server-only version differences");
 
         AddPlugin("com.example.zombies", "Zombie Pack", "1.0.0");
         ArenaServerClient.PingGeneration++;

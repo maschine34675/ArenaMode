@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Changelog since 0.1.0](CHANGELOG.md)
+- [PitFireTeam 1.0.0 and version-filtered Arena sessions](PITFIRETEAM-1.0.0-20261024.md)
 - [Spawn-gate completion: MapPort contract and verification status](SPAWN-GATE-COMPLETION-20261024.md)
 - [Spawn-gate completion and refreshed DynamicMaps: GPU-2 results](GPU-SPAWN-GATE-COMPLETION-20261024.md)
 - [Bowl original Team DM boxes and gate opening](BOWL-TEAM-BOXES-20261023.md)

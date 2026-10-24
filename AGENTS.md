@@ -22,6 +22,10 @@ profile-protection contract; the proficiency contract is mandatory from 0.10.3
 onward. SAIN 4.5.1+, APBS 2.4.1+ and DynamicMaps 1.2.1+ likewise attempt their
 existing APIs and warn once for newer unreviewed versions. This is not a promise
 of future compatibility. See docs/OPTIONAL-MOD-VERSIONS-20261019.md.
+For PFT 1.0's LiteDB storage, queued karma/insurance reports and mode semaphore,
+read docs/PITFIRETEAM-1.0.0-20261024.md. Preserve external persistence protection
+for solo Arena with PFT installed, separately from team roster/kit semantics;
+never wait for async PFT work while holding the profile-boundary writer lock.
 Arena-only optional-mod admission is `ArenaOptionalMods.GetRejectionReason`: the whitelist
 first, then the failure the server reports in its ping, then the remaining adapters. It
 never disables a foreign mod, never touches ordinary PMC/Scav raids and carries no code
@@ -54,6 +58,10 @@ needs one (directly or through other units, client and server) is excluded with 
 platform/Arena units are the only exception. Never turn that back into a pull-in with a warning. The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
 The user's testing override is that blacklist file and no second mechanism; keep it visible (the decision's one
 `policy override` warning per side, the gate summary suffix, `unlistedAllowed`; spec section 3).
+The optional version-filtered restart is specified in docs/PITFIRETEAM-1.0.0-20261024.md.
+It omits both sides of each differing GUID and hard dependents without editing
+policy files; direct play still treats version differences as advisory. Preserve
+the strict request/marker/process-flag agreement and old-helper refusal.
 The game quits for a session switch only after the helper's `<request>.accepted` acknowledgement (a coroutine looks
 every 250 ms for at most 15 s; a helper that is gone or silent leaves the game running and the action available, and
 the client deletes the request file on every failure: the helper stamps that file and ends its wait for the game when

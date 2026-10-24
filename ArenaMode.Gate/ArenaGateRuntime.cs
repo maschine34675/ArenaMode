@@ -62,6 +62,7 @@ namespace ArenaMode.Gate
         private static Stage _stage = Stage.Idle;
         private static ManualLogSource _log;
         private static ArenaWhitelistPolicy _policy;
+        private static ArenaSessionVersionPlan _versionPlan;
         private static int _filterRuns;
 
         // ------------------------------------------------------------------ Initialize
@@ -177,6 +178,16 @@ namespace ArenaMode.Gate
                 return false;
             }
 
+            string expectedHash = ArenaSessionVersionPlan.ExpectedHash(Environment.GetCommandLineArgs());
+            if (expectedHash != null)
+            {
+                string tree = ArenaSessionContract.GetServerTreePath();
+                if (tree == null || !ArenaSessionVersionPlan.TryReadMarker(Path.Combine(tree, ArenaSessionContract.MarkerFileName),
+                    expectedHash, Path.Combine(Paths.GameRootPath, "SPT_Runtime"), out _versionPlan, out error)) return false;
+                ArenaWhitelistPolicy effective;
+                if (!_versionPlan.TryApply(policy, out effective, out error)) return false;
+                policy = effective;
+            }
             _policy = policy;
             Diagnostics.AddRange(diagnostics);
             return true;
@@ -320,7 +331,11 @@ namespace ArenaMode.Gate
                 // publishing and logging are left.
                 ArenaGatePluginFilter.Plan plan = ArenaGatePluginFilter.Decide(_policy, (IDictionary)result);
                 ArenaWhitelistDecision decision = plan.Decision;
+                string versionError;
+                if (_versionPlan != null && !_versionPlan.ValidateAllowed(_policy, ArenaWhitelistSide.Client, decision.Allowed, out versionError))
+                    throw new InvalidOperationException(versionError);
                 ArenaGateReport report = ArenaGateReport.FromDecision(_policy, decision, Neutralised, RanBeforeGate, AllowedPatchers);
+                report.VersionPlan = _versionPlan;
                 report.Warnings.AddRange(Diagnostics);
                 report.Warnings.AddRange(PatcherWarnings);
                 string json = report.ToJson();

@@ -86,7 +86,7 @@ internal static class ArenaWhitelistAdmission
         /// <summary>The individual warnings behind <see cref="WarningLine"/>, for the log.</summary>
         internal List<string> Notes = new List<string>();
 
-        /// <summary>The refusal is a whitelist refusal and an Arena session can be started from here.</summary>
+        /// <summary>A whitelist refusal or version deviation has a usable optional session.</summary>
         internal bool CanStartSession;
 
         /// <summary>The server and the helper could start a session, whether or not anything is excluded.</summary>
@@ -96,6 +96,8 @@ internal static class ArenaWhitelistAdmission
         internal string SessionImpossibleReason;
 
         internal ArenaWhitelistPolicy Policy;
+        internal ArenaSessionVersionPlan VersionPlan;
+        internal string VersionSessionText;
 
         /// <summary>The server mods the Arena session server may load (folder in <c>File</c>).</summary>
         internal List<ArenaSessionUnit> AllowedServerMods = new List<ArenaSessionUnit>();
@@ -138,17 +140,28 @@ internal static class ArenaWhitelistAdmission
     }
 
     /// <summary>
-    /// True when <paramref name="reason"/> is the current whitelist refusal and a session can be
-    /// started from this process (the START ARENA SESSION action). Never throws.
+    /// True when <paramref name="reason"/> matches the current whitelist refusal (null for the
+    /// version-only offer) and a session can be started. Never throws.
     /// </summary>
     internal static bool CanOfferSessionStart(string reason)
     {
         try
         {
             var outcome = Current();
-            return outcome.CanStartSession && reason != null
+            return outcome.CanStartSession
                 && string.Equals(reason, outcome.Reason, StringComparison.Ordinal);
         }
+        catch (Exception) { return false; }
+    }
+
+    internal static string VersionSessionText
+    {
+        get { try { return Current().VersionSessionText; } catch (Exception) { return null; } }
+    }
+
+    internal static bool CanOfferVersionSessionStart()
+    {
+        try { var outcome = Current(); return outcome.VersionPlan != null && outcome.SessionPossible; }
         catch (Exception) { return false; }
     }
 
@@ -156,7 +169,7 @@ internal static class ArenaWhitelistAdmission
     /// Called by the side-selection screen before it evaluates eligibility: first drops the cached
     /// outcome when a policy file changed since it was computed (<see cref="InvalidateIfPolicyChanged"/>),
     /// then makes sure the server's ping is known when the answer depends on it (always in an Arena
-    /// session; in a normal session only when the client side alone already shows excluded mods). The
+    /// session and in a normal session with a readable policy, including server-only version drift). The
     /// ping carries the server's mods and the Arena-instance flag. The wait is bounded
     /// (<see cref="ProbeBudgetMilliseconds"/>) and never throws; a ping that does not arrive in time
     /// simply leaves them unknown, and the explicit Arena click asks again.
@@ -168,7 +181,7 @@ internal static class ArenaWhitelistAdmission
             InvalidateIfPolicyChanged("screen");
             if (ArenaServerClient.IsServerModKnownAvailable || HasFika()) return;
             // Nothing to ask without a policy either: that refusal names the installation, not the server.
-            if (!ArenaSessionMode.IsArenaSession && (Current().Reason == null || Current().Policy == null)) return;
+            if (!ArenaSessionMode.IsArenaSession && Current().Policy == null) return;
             ArenaServerClient.TryRefreshWithin(ProbeBudgetMilliseconds);
         }
         catch (Exception ex)
@@ -184,9 +197,14 @@ internal static class ArenaWhitelistAdmission
     /// one the screen opened with.
     /// </summary>
     internal static bool TryPrepareSessionStart(out string policyHash, out List<ArenaSessionUnit> serverMods, out string error)
+        => TryPrepareSessionStart(out policyHash, out serverMods, out _, out error);
+
+    internal static bool TryPrepareSessionStart(out string policyHash, out List<ArenaSessionUnit> serverMods,
+        out ArenaSessionVersionPlan versionPlan, out string error)
     {
         policyHash = null;
         serverMods = null;
+        versionPlan = null;
         error = null;
         if (ArenaSessionMode.IsArenaSession)
         {
@@ -205,7 +223,8 @@ internal static class ArenaWhitelistAdmission
             return false;
         }
 
-        policyHash = outcome.Policy.Hash;
+        versionPlan = outcome.VersionPlan;
+        policyHash = versionPlan?.PolicyHash ?? outcome.Policy.Hash;
         serverMods = new List<ArenaSessionUnit>(outcome.AllowedServerMods);
         return true;
     }
@@ -315,6 +334,17 @@ internal static class ArenaWhitelistAdmission
             return;
         }
 
+        var versionPlan = ArenaSessionMode.GateReport.VersionPlan;
+        if (versionPlan != null)
+        {
+            if (!versionPlan.TryApply(policy, out var effective, out string versionError))
+            {
+                outcome.Reason = versionError + ". Return to the normal session.";
+                return;
+            }
+            policy = effective;
+        }
+
         // A not-allowed patcher that sorts before the gate has run its initializer: the gate switched off what
         // was left of it, but the process is not the clean, filtered one this session promises.
         var ranBeforeGate = ArenaSessionMode.GateReport.PatchersRanBeforeGate;
@@ -348,6 +378,11 @@ internal static class ArenaWhitelistAdmission
         // library the gate pulled in for a plugin that then failed to load has no dependant left to pull it in and
         // reads as excluded; that refuses (fail closed), with the same hint to return and start again.
         var loaded = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, ClientUnits());
+        if (versionPlan != null && !versionPlan.ValidateAllowed(policy, ArenaWhitelistSide.Client, loaded.Allowed, out string loadedVersionError))
+        {
+            outcome.Reason = loadedVersionError + ". Return to the normal session.";
+            return;
+        }
         if (loaded.Excluded.Count > 0)
         {
             outcome.Reason = "This game loaded " + JoinLimited(ExcludedNames(loaded), MaxNamesListed)
@@ -363,11 +398,20 @@ internal static class ArenaWhitelistAdmission
             return;
         }
 
-        var notes = new List<string>(ArenaSessionMode.GateReport.Warnings);
+        var notes = new List<string>();
+        var noteIdentities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var gateVersions = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client,
+            ArenaSessionMode.GateReport.Allowed).VersionDifferences;
+        AddNotes(notes, noteIdentities, ArenaSessionMode.GateReport.Warnings, gateVersions);
         var serverMods = ArenaServerClient.ServerMods;
         if (serverMods != null)
         {
             var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, ServerUnits(serverMods));
+            if (versionPlan != null && !versionPlan.ValidateAllowed(policy, ArenaWhitelistSide.Server, decision.Allowed, out string serverVersionError))
+            {
+                outcome.Reason = serverVersionError + ". Return to the normal session.";
+                return;
+            }
 
             // The server tree was built from the request, with the policy of the moment the player clicked. If the
             // policy files changed during the restart (Syncthing mirrors the user file), the server may run a mod
@@ -382,13 +426,19 @@ internal static class ArenaWhitelistAdmission
                 return;
             }
 
-            notes.AddRange(decision.Warnings);
+            AddNotes(notes, noteIdentities, decision.Warnings, decision.VersionDifferences);
         }
 
         // Both hashes must be known to disagree: a server that reports none (an older build, an unreadable
         // marker) is "unknown", not "different".
         string gateHash = ArenaSessionMode.GateReport.PolicyHash;
         string serverHash = ArenaServerClient.PolicyHash;
+        if (versionPlan != null && (!string.Equals(versionPlan.PolicyHash, gateHash, StringComparison.Ordinal)
+            || !string.Equals(versionPlan.PolicyHash, serverHash, StringComparison.Ordinal)))
+        {
+            outcome.Reason = "The server did not verify the version-filtered Arena session. Return to the normal session.";
+            return;
+        }
         if (!string.IsNullOrWhiteSpace(gateHash) && !string.IsNullOrWhiteSpace(serverHash)
             && !string.Equals(gateHash, serverHash, StringComparison.Ordinal))
         {
@@ -457,7 +507,8 @@ internal static class ArenaWhitelistAdmission
 
     private static void ComputeNormalSession(Outcome outcome, ArenaWhitelistPolicy policy)
     {
-        var client = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, ClientUnits());
+        var clientUnits = ClientUnits();
+        var client = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, clientUnits);
         var serverMods = ArenaServerClient.ServerMods;
         ArenaWhitelistDecision server = serverMods == null
             ? null
@@ -478,17 +529,40 @@ internal static class ArenaWhitelistAdmission
         // sorts before the gate is then caught by the gate report's patchersRanBeforeGate).
         foreach (var unit in ExcludedPatchers(policy)) AddExcluded(denied, unlisted, listedGuids, unit);
 
-        var notes = new List<string>(client.Warnings);
+        var notes = new List<string>();
+        var noteIdentities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AddNotes(notes, noteIdentities, client.Warnings, client.VersionDifferences);
         if (server != null)
         {
-            notes.AddRange(server.Warnings);
+            AddNotes(notes, noteIdentities, server.Warnings, server.VersionDifferences);
             outcome.AllowedServerMods.AddRange(server.Allowed);
         }
 
         outcome.Notes = notes;
         outcome.WarningLine = FormatNotes(notes);
-        outcome.SessionImpossibleReason = FindSessionObstacle(outcome.AllowedServerMods);
+        if (server != null)
+        {
+            ArenaSessionVersionPlan plan = null;
+            try { plan = ArenaSessionVersionPlan.Create(policy, clientUnits, ServerUnits(serverMods)); }
+            catch (InvalidOperationException ex) { outcome.SessionImpossibleReason = ex.Message; }
+            if (plan != null && plan.ExcludedGuids.Count > 0)
+            {
+                outcome.VersionPlan = plan;
+                var effective = policy.WithSessionExclusions(plan.ExcludedGuids);
+                outcome.AllowedServerMods = ArenaWhitelistDecision.Evaluate(effective, ArenaWhitelistSide.Server, ServerUnits(serverMods)).Allowed;
+                var names = new List<string>();
+                var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var unit in plan.ClientUnits)
+                    if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
+                foreach (var unit in plan.ServerUnits)
+                    if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
+                outcome.VersionSessionText = "Optional Arena session: restart without mods with unreviewed versions and mods that require them ("
+                    + JoinLimited(names, MaxNamesListed) + "). Your normal installation stays unchanged. Other Arena requirements still apply.";
+            }
+        }
+        outcome.SessionImpossibleReason = outcome.SessionImpossibleReason ?? FindSessionObstacle(outcome.AllowedServerMods);
         outcome.SessionPossible = outcome.SessionImpossibleReason == null;
+        outcome.CanStartSession = outcome.SessionPossible && (outcome.VersionPlan != null || denied.Count > 0 || unlisted.Count > 0);
         if (denied.Count == 0 && unlisted.Count == 0) return;
 
         outcome.CanStartSession = outcome.SessionPossible;
@@ -762,6 +836,29 @@ internal static class ArenaWhitelistAdmission
     /// differences sort ahead of it. The remaining notes are sorted and capped at
     /// <see cref="MaxWarningsListed"/>.
     /// </summary>
+    private static void AddNotes(List<string> notes, HashSet<string> identities, IEnumerable<string> warnings,
+        List<ArenaVersionDifference> differences)
+    {
+        var remaining = new List<ArenaVersionDifference>(differences);
+        foreach (string warning in warnings)
+        {
+            ArenaVersionDifference version = null;
+            for (int index = 0; index < remaining.Count; index++)
+            {
+                if (!string.Equals(remaining[index].Message, warning, StringComparison.Ordinal)) continue;
+                version = remaining[index];
+                remaining.RemoveAt(index);
+                break;
+            }
+            string identity = version == null ? "text:" + warning : "version:" + version.Identity;
+            if (!identities.Add(identity)) continue;
+            // Two distinct GUIDs can happen to advertise the same name and versions. Keep their
+            // notices distinct rather than letting JoinLimited's text deduplication hide one.
+            notes.Add(version != null && notes.Exists(note => string.Equals(note, warning, StringComparison.OrdinalIgnoreCase))
+                ? warning + " [" + version.Guid + "]" : warning);
+        }
+    }
+
     private static string FormatNotes(List<string> notes)
     {
         if (notes == null || notes.Count == 0) return null;

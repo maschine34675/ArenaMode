@@ -8,6 +8,20 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## Unreleased
+
+- Adapt PitFireTeam's profile-protection contracts to 1.0.0, including both
+  companion databases and the new recruitment, karma, insurance and cargo paths.
+  Older supported versions keep their existing guards.
+- Offer an Arena session when an installed mod differs from its reviewed version.
+  This option omits that mod on both sides, together with its hard dependents,
+  for this session only. Direct Arena entry still treats version differences as
+  advisory; the normal installation and user policy are not changed.
+- Show a shared client/server version note once, even when the two components
+  use different display names. Preserve genuinely different version warnings.
+- Show the server's actual Arena-start refusal reason and remove the duplicate
+  message caused by EFT also displaying inner exceptions.
+
 ## [0.2.0] - 2026-10-24
 
 ### Arena sessions and mod policy

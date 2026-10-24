@@ -3,7 +3,7 @@
 // Linked source: compiled into maschine-ArenaMode.Session.exe (net472) and, through a Compile
 // Include with Link, into ArenaMode.Tests (net10.0). Therefore it uses only the BCL, only C# 7.3
 // syntax and only APIs that exist on both targets, and it does no process, socket or registry
-// work and touches no file. The file system side lives in SessionFileSystem.cs, the process side
+// work. ValidateVersionPlan only reads the policy files; mutations live in SessionFileSystem.cs, the process side
 // in the files that are not linked.
 //
 // It carries no nullable annotations on purpose (the net472 default language version cannot
@@ -481,6 +481,8 @@ namespace ArenaMode.SessionHelper
 
         public string PolicyHash { get; set; }
 
+        public ArenaSessionVersionPlan VersionPlan { get; set; }
+
         public bool IsEnter
         {
             get { return Direction == ArenaSessionContract.DirectionEnter; }
@@ -527,7 +529,7 @@ namespace ArenaMode.SessionHelper
             }
 
             int schema = ArenaMiniJson.GetInt(obj, "schema", -1);
-            if (schema != SupportedSchema)
+            if (schema != SupportedSchema && schema != ArenaSessionContract.VersionPlanRequestSchema)
             {
                 error = "unsupported request schema " + schema.ToString(CultureInfo.InvariantCulture);
                 return false;
@@ -616,10 +618,85 @@ namespace ArenaMode.SessionHelper
             parsed.ProfileId = string.IsNullOrEmpty(profileId) ? null : profileId;
             parsed.PolicyHash = ArenaMiniJson.GetString(obj, "policyHash");
 
+            object rawPlan;
+            bool hasPlan = obj.TryGetValue("versionPlan", out rawPlan);
+            if (schema == ArenaSessionContract.VersionPlanRequestSchema)
+            {
+                ArenaSessionVersionPlan plan;
+                if (!parsed.IsEnter || !hasPlan || !ArenaSessionVersionPlan.TryRead(rawPlan, out plan, out error))
+                {
+                    error = error ?? "schema 2 requires an enter request with a version-filtered session plan";
+                    return false;
+                }
+                parsed.VersionPlan = plan;
+                if (!string.Equals(parsed.PolicyHash, plan.PolicyHash, StringComparison.Ordinal))
+                {
+                    error = "the request policy hash does not match its version-filtered plan";
+                    return false;
+                }
+            }
+            else if (hasPlan)
+            {
+                error = "a version-filtered session requires request schema 2";
+                return false;
+            }
+
             if (!ReadServerMods(obj, parsed, ref error)) return false;
 
             request = parsed;
             error = null;
+            return true;
+        }
+
+        /// <summary>Rechecked before acknowledgement and after waiting, before any disposable tree writes.</summary>
+        public bool ValidateVersionPlan(out string error)
+        {
+            error = null;
+            if (VersionPlan == null)
+            {
+                if (Schema != ArenaSessionContract.VersionPlanRequestSchema) return true;
+                error = "the version-filtered session plan is missing";
+                return false;
+            }
+            if (Schema != ArenaSessionContract.VersionPlanRequestSchema || !IsEnter
+                || !string.Equals(PolicyHash, VersionPlan.PolicyHash, StringComparison.Ordinal))
+            {
+                error = "the version-filtered session request contract changed";
+                return false;
+            }
+            string defaultJson, userJson, detail;
+            string defaultPath = Path.Combine(GameDir, "BepInEx", "plugins", ArenaSessionContract.PluginFolderName, ArenaSessionContract.DefaultPolicyFileName);
+            if (ArenaPolicyFiles.TryRead(defaultPath, out defaultJson, out detail) != ArenaPolicyFileState.Read)
+            {
+                error = "cannot verify the version-filtered session policy: " + detail;
+                return false;
+            }
+            var state = ArenaPolicyFiles.TryRead(Path.Combine(GameDir, "BepInEx", "config", ArenaSessionContract.UserPolicyFileName), out userJson, out detail);
+            if (state == ArenaPolicyFileState.Unreadable || state == ArenaPolicyFileState.TooLarge) userJson = null;
+            ArenaWhitelistPolicy policy, effective;
+            List<string> diagnostics;
+            if (!ArenaWhitelistPolicy.TryLoad(defaultJson, userJson, out policy, out diagnostics))
+            {
+                error = "cannot verify the version-filtered session policy: " + string.Join("; ", diagnostics.ToArray());
+                return false;
+            }
+            if (!VersionPlan.TryApply(policy, out effective, out error)) return false;
+            var allowed = ArenaWhitelistDecision.Evaluate(effective, ArenaWhitelistSide.Server, VersionPlan.ServerUnits).Allowed;
+            if (allowed.Count != ServerMods.Count)
+            {
+                error = "the requested server mods do not match the version-filtered session plan";
+                return false;
+            }
+            foreach (var unit in allowed)
+            {
+                bool found = false;
+                foreach (var mod in ServerMods)
+                    found |= string.Equals(unit.Guid, mod.Guid, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(unit.File, mod.Folder, StringComparison.OrdinalIgnoreCase);
+                if (found) continue;
+                error = "a requested server mod differs from the version-filtered session plan: " + unit.DisplayName;
+                return false;
+            }
             return true;
         }
 
@@ -746,6 +823,7 @@ namespace ArenaMode.SessionHelper
 
             root["serverMods"] = mods;
             root["policyHash"] = PolicyHash;
+            if (VersionPlan != null) root["versionPlan"] = VersionPlan.ToObject();
             return ArenaMiniJson.Write(root, true);
         }
     }
@@ -911,7 +989,7 @@ namespace ArenaMode.SessionHelper
                     return false;
                 }
 
-                if (IsSessionFlag(arg)) continue;
+                if (IsSessionFlag(arg) || arg.StartsWith(ArenaSessionContract.VersionPlanFlag, StringComparison.OrdinalIgnoreCase)) continue;
 
                 if (IsConfigArgument(arg))
                 {
@@ -2182,6 +2260,8 @@ namespace ArenaMode.SessionHelper
     {
         public int Schema { get; set; }
 
+        public ArenaSessionVersionPlan VersionPlan { get; set; }
+
         public string CreatedUtc { get; set; }
 
         public string ProfileId { get; set; }
@@ -2233,6 +2313,7 @@ namespace ArenaMode.SessionHelper
             if (RunsFromTree) root["serverExe"] = ServerExe;
             root["policyHash"] = PolicyHash;
             root["helperVersion"] = HelperVersion;
+            if (VersionPlan != null) root["versionPlan"] = VersionPlan.ToObject();
             return ArenaMiniJson.Write(root, true);
         }
 

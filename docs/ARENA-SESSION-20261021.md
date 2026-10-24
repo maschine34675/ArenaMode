@@ -21,8 +21,17 @@ runs only with **whitelisted** mods:
   mods ArenaMode already refused by code before the whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling,
   ISB Special Forces and Aishi. Their code-level refusals were removed on 2026-10-22 (user decision, last entry
   of section 11): the deny list alone refuses them.
-- A whitelisted mod whose installed version differs from the reviewed version only produces a
-  **warning**, never a block.
+- A whitelisted mod whose installed version differs from the reviewed version produces a
+  **warning** for direct Arena entry, not a version-only block. Since 2026-10-24,
+  that warning also offers an optional Arena session that omits differing mods
+  on both sides by GUID, plus their hard dependents. The user explicitly chose
+  omission for this restart; the normal installation and policy files stay unchanged.
+  The offer also remains available when a separate adapter refusal prevents direct entry.
+  See [the extension contract and verification](PITFIRETEAM-1.0.0-20261024.md).
+  Strict enter requests use schema 2 (old helpers must refuse); their temporary
+  plan is checked before acknowledgement and tree construction, then pinned by
+  the process flag, marker, gate report and server policy hash. Legacy requests
+  without a version plan retain schema 1.
 - The user may turn the whitelist into a blacklist (`"unlisted": "allow"` in the user file, decision
   2026-10-21, section 3): everything that neither the user file nor the default file denies is then allowed.
   The shipped default is always a whitelist.

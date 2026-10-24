@@ -68,6 +68,27 @@ namespace ArenaMode.Shared.Session
         }
     }
 
+    /// <summary>Identity behind a human-readable reviewed-version warning; never a refusal by itself.</summary>
+    public sealed class ArenaVersionDifference
+    {
+        public string Guid { get; set; }
+        public string Installed { get; set; }
+        public string Reviewed { get; set; }
+        public string Message { get; set; }
+
+        public string Identity
+        {
+            get { return (Guid ?? string.Empty).Trim().ToLowerInvariant() + "|" + VersionIdentity(Installed) + "|" + VersionIdentity(Reviewed); }
+        }
+
+        private static string VersionIdentity(string text)
+        {
+            Version version;
+            return ArenaWhitelistPolicy.TryParseVersion(text, out version)
+                ? version.ToString() : (text ?? string.Empty).Trim().ToLowerInvariant();
+        }
+    }
+
     /// <summary>
     /// The outcome of applying an <see cref="ArenaWhitelistPolicy"/> to the units installed on one
     /// side. Pure function: the same code decides in the gate (client plugins), in the client (the
@@ -85,7 +106,8 @@ namespace ArenaMode.Shared.Session
     /// <c>dependency-of:&lt;guid&gt;</c> and a warning; everything else is excluded
     /// (<c>denied-by-user</c> when the user file's deny list names it, <c>denied</c> when the
     /// shipped default file's deny list does, otherwise <c>not-on-whitelist</c>). A reviewed version
-    /// that differs from the installed one is a warning, never an exclusion.
+    /// that differs from the installed one is a warning under the normal policy. A separately chosen
+    /// version-filtered session adds transient exclusions before this decision is evaluated.
     ///
     /// A deny wins over hard dependencies: a unit that either deny list names (and no <c>allow</c>
     /// entry lifts) is never pulled in by the closure. A unit that would be allowed but has such a
@@ -146,6 +168,7 @@ namespace ArenaMode.Shared.Session
             Allowed = new List<ArenaSessionUnit>();
             Excluded = new List<ArenaSessionUnit>();
             Warnings = new List<string>();
+            VersionDifferences = new List<ArenaVersionDifference>();
         }
 
         /// <summary>Allowed units in input order, copies with <see cref="ArenaSessionUnit.Reason"/> set.</summary>
@@ -167,6 +190,13 @@ namespace ArenaMode.Shared.Session
         /// policy-override warning (<see cref="PolicyOverridePrefix"/>), which names no single unit.
         /// </summary>
         public List<string> Warnings { get; private set; }
+
+        /// <summary>
+        /// Allowed units whose installed version differs from the policy's reviewed version.
+        /// GUID and normalized versions, rather than human-readable warning text, identify each note.
+        /// Ordinary admission remains unchanged.
+        /// </summary>
+        public List<ArenaVersionDifference> VersionDifferences { get; private set; }
 
         /// <summary>True for the policy-override warning of a decision (it starts with <see cref="PolicyOverridePrefix"/>).</summary>
         public static bool IsPolicyOverrideWarning(string warning)
@@ -249,7 +279,7 @@ namespace ArenaMode.Shared.Session
                     // closure like any allowed unit.
                     initial[i] = ReasonUnlistedAllowed;
                 }
-                else if (policy.IsDeniedByUser(units[i].Guid) || policy.IsDeniedByDefault(units[i].Guid))
+                else if (policy.IsDeniedForSession(units[i].Guid) || policy.IsDeniedByUser(units[i].Guid) || policy.IsDeniedByDefault(units[i].Guid))
                 {
                     // Excluded, and (below) never pulled in as a dependency. A user allow entry would
                     // have been found above, so this is a unit nobody lifted the deny for.
@@ -390,7 +420,8 @@ namespace ArenaMode.Shared.Session
                         ArenaSessionUnit blocker = units[requiresDenied[i]];
                         result.Excluded.Add(unit.CopyWithReason(ReasonRequiresDeniedPrefix + blocker.Guid));
                         result.Warnings.Add(unit.DisplayName + ": excluded because it requires " + blocker.DisplayName
-                            + (policy.IsDeniedByUser(blocker.Guid) ? " (denied by the user's policy file)" : " (denied by the default list)"));
+                            + (policy.IsDeniedForSession(blocker.Guid) ? " (omitted from this version-filtered session)"
+                                : policy.IsDeniedByUser(blocker.Guid) ? " (denied by the user's policy file)" : " (denied by the default list)"));
                     }
                     else
                     {
@@ -407,8 +438,13 @@ namespace ArenaMode.Shared.Session
                     string reviewed = direct[i].ReviewedVersion(side);
                     if (!string.IsNullOrEmpty(reviewed) && ArenaWhitelistPolicy.VersionDiffers(unit.Version, reviewed))
                     {
-                        result.Warnings.Add(unit.DisplayName + ": version " + DescribeVersion(unit.Version)
-                            + " differs from reviewed " + reviewed);
+                        string warning = unit.DisplayName + ": version " + DescribeVersion(unit.Version)
+                            + " differs from reviewed " + reviewed;
+                        result.Warnings.Add(warning);
+                        result.VersionDifferences.Add(new ArenaVersionDifference
+                        {
+                            Guid = unit.Guid, Installed = unit.Version, Reviewed = reviewed, Message = warning,
+                        });
                     }
                 }
                 else if (pulledInBy[i] != null)

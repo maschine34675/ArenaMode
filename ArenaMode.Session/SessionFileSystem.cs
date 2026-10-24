@@ -901,6 +901,8 @@ namespace ArenaMode.SessionHelper
             if (!request.IsEnter) throw new HelperException("only an 'enter' request builds the server tree");
             if (arenaPort < 1 || arenaPort > 65535) throw new HelperException("invalid arena port " + arenaPort);
             if (!HelperRequest.IsValidProfileId(request.ProfileId)) throw new HelperException("the profile id is not valid");
+            string versionError;
+            if (!request.ValidateVersionPlan(out versionError)) throw new HelperException(versionError);
 
             string root;
             if (!HelperPathSafety.TryNormalize(runtimeRoot, out root)) throw new HelperException("the runtime root is not usable: " + runtimeRoot);
@@ -1082,6 +1084,7 @@ namespace ArenaMode.SessionHelper
 
             // The marker comes last.
             HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion, result.ServerExe);
+            marker.VersionPlan = request.VersionPlan;
             box.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), marker.ToJson());
 
             result.FilesCopied = box.FilesCopied;

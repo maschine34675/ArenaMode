@@ -69,6 +69,14 @@ internal static partial class Program
             "Notes: policy override: 1 unlisted mod(s) allowed by your policy file: Override Both Parts",
             "Two sides with the same note show it once");
 
+        // The upstream note aggregation also deduplicates now. Exercise the formatter's independent
+        // guard directly so a mutation of that guard still has an observable duplicate input.
+        const string repeatedOverride = "policy override: 1 unlisted mod(s) allowed by your policy file: Override Both Parts";
+        var formatNotes = typeof(ArenaWhitelistAdmission).GetMethod("FormatNotes",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Equal((string)formatNotes.Invoke(null, new object[] { new List<string> { repeatedOverride, repeatedOverride } }),
+            "Notes: " + repeatedOverride, "Formatting duplicate policy-override notes keeps one notice");
+
         // The refusal of a denied mod carries the override note as its second line, and the offer is unchanged.
         ResetWorld();
         WriteUserPolicy("{\"schema\":1,\"unlisted\":\"allow\",\"deny\":[\"com.example.looting\"]}");

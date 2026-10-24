@@ -268,7 +268,11 @@ ISB Special Forces and Aishi. ArenaMode refused these by code before the whiteli
 existed; that code is gone and the deny list alone decides now. They are named "Blocked
 for Arena" and never load in an Arena session, in whitelist and in blacklist mode alike. SPT's own plugins and
 ArenaMode itself are always allowed. A whitelisted mod whose installed version differs from
-the reviewed one only produces a warning. Fika is never filtered: with Fika, Arena stays
+the reviewed one produces a warning and offers an Arena-session switch that leaves
+that mod out on both client and server, along with mods that require it. This
+applies only to the new session; the normal installation and your policy file
+stay unchanged. You can still enter Arena directly with the warning, subject to
+the adapters' API and profile-protection checks. Fika is never filtered: with Fika, Arena stays
 unavailable as before.
 
 - **A normal session with other mods installed:** ARENA is disabled with the

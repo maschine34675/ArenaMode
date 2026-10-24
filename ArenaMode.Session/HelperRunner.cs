@@ -169,6 +169,7 @@ namespace ArenaMode.SessionHelper
                     throw new HelperException("cannot build the game arguments: " + error);
                 }
 
+                if (request.VersionPlan != null) arguments.Add(ArenaSessionContract.VersionPlanFlag + request.VersionPlan.PolicyHash);
                 StartGame(request, arguments, true);
                 StartWatchdog(request);
                 _log.Info("enter finished");

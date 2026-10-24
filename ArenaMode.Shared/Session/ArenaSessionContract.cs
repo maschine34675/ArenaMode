@@ -22,6 +22,9 @@ namespace ArenaMode.Shared.Session
         /// <summary>Command-line flag that marks an Arena session game process (case-insensitive).</summary>
         public const string CommandLineFlag = "-arena-session";
 
+        public const string VersionPlanFlag = "-arena-version-plan=";
+        public const int VersionPlanRequestSchema = 2;
+
         /// <summary>AppDomain data key under which the gate publishes its report JSON.</summary>
         public const string GateReportDataKey = "com.maschine.ArenaMode.Gate.Report";
 
@@ -160,6 +163,226 @@ namespace ArenaMode.Shared.Session
         }
     }
 
+    /// <summary>
+    /// Optional, disposable session restriction, derived from both loaded-mod inventories. It is
+    /// carried by the schema-2 request, server marker and gate report. The process argument pins its
+    /// effective hash; an old helper rejects schema 2, and an old gate cannot prove that it applied it.
+    /// </summary>
+    public sealed class ArenaSessionVersionPlan
+    {
+        public string BasePolicyHash { get; private set; }
+        public string PolicyHash { get; private set; }
+        public List<string> ExcludedGuids { get; private set; } = new List<string>();
+        public List<ArenaSessionUnit> ClientUnits { get; private set; } = new List<ArenaSessionUnit>();
+        public List<ArenaSessionUnit> ServerUnits { get; private set; } = new List<ArenaSessionUnit>();
+
+        public static ArenaSessionVersionPlan Create(ArenaWhitelistPolicy policy,
+            IEnumerable<ArenaSessionUnit> client, IEnumerable<ArenaSessionUnit> server)
+        {
+            var plan = new ArenaSessionVersionPlan { BasePolicyHash = policy.Hash };
+            plan.ClientUnits.AddRange(client);
+            plan.ServerUnits.AddRange(server);
+            var omitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddDrift(policy, ArenaWhitelistSide.Client, plan.ClientUnits, omitted);
+            AddDrift(policy, ArenaWhitelistSide.Server, plan.ServerUnits, omitted);
+            bool changed;
+            do
+            {
+                changed = AddDependants(policy, plan.ClientUnits, omitted);
+                changed |= AddDependants(policy, plan.ServerUnits, omitted);
+            } while (changed);
+            foreach (string guid in omitted) plan.ExcludedGuids.Add(guid.ToLowerInvariant());
+            plan.ExcludedGuids.Sort(StringComparer.Ordinal);
+            plan.PolicyHash = policy.WithSessionExclusions(plan.ExcludedGuids).Hash;
+            return plan;
+        }
+
+        private static void AddDrift(ArenaWhitelistPolicy policy, ArenaWhitelistSide side,
+            List<ArenaSessionUnit> units, HashSet<string> omitted)
+        {
+            foreach (var difference in ArenaWhitelistDecision.Evaluate(policy, side, units).VersionDifferences)
+                if (!Protected(policy, difference.Guid)) omitted.Add(difference.Guid);
+        }
+
+        private static bool Protected(ArenaWhitelistPolicy policy, string guid)
+        {
+            var entry = policy.FindPlugin(guid, ArenaWhitelistSide.Client) ?? policy.FindPlugin(guid, ArenaWhitelistSide.Server);
+            return entry != null && (entry.Tier == ArenaWhitelistTier.Platform || entry.Tier == ArenaWhitelistTier.Arena);
+        }
+
+        private static bool AddDependants(ArenaWhitelistPolicy policy, List<ArenaSessionUnit> units, HashSet<string> omitted)
+        {
+            bool changed = false;
+            foreach (var unit in units)
+            {
+                if (omitted.Contains(unit.Guid) || unit.HardDependencies == null) continue;
+                foreach (string dependency in unit.HardDependencies)
+                {
+                    if (!omitted.Contains(dependency)) continue;
+                    if (Protected(policy, unit.Guid))
+                        throw new InvalidOperationException("a required platform/Arena unit depends on an omitted version: " + unit.DisplayName);
+                    changed |= omitted.Add(unit.Guid);
+                    break;
+                }
+            }
+            return changed;
+        }
+
+        public bool TryApply(ArenaWhitelistPolicy policy, out ArenaWhitelistPolicy effective, out string error)
+        {
+            effective = null;
+            error = null;
+            if (!string.Equals(BasePolicyHash, policy.Hash, StringComparison.Ordinal))
+            {
+                error = "the whitelist policy changed after the version-filtered session was prepared";
+                return false;
+            }
+            try
+            {
+                var rebuilt = Create(policy, ClientUnits, ServerUnits);
+                if (!string.Equals(PolicyHash, rebuilt.PolicyHash, StringComparison.Ordinal)
+                    || string.Join("|", ExcludedGuids.ToArray()) != string.Join("|", rebuilt.ExcludedGuids.ToArray()))
+                {
+                    error = "the version-filtered session plan changed or does not match its mod inventories";
+                    return false;
+                }
+                effective = policy.WithSessionExclusions(ExcludedGuids);
+                return true;
+            }
+            catch (Exception ex) { error = "the version-filtered session plan is invalid: " + ex.Message; return false; }
+        }
+
+        public Dictionary<string, object> ToObject()
+        {
+            return new Dictionary<string, object> {
+                { "schema", 1 }, { "basePolicyHash", BasePolicyHash }, { "policyHash", PolicyHash },
+                { "excludedGuids", ExcludedGuids }, { "clientUnits", WriteUnits(ClientUnits) }, { "serverUnits", WriteUnits(ServerUnits) }
+            };
+        }
+
+        private static List<object> WriteUnits(List<ArenaSessionUnit> units)
+        {
+            var result = new List<object>();
+            foreach (var unit in units) result.Add(new Dictionary<string, object> {
+                { "guid", unit.Guid }, { "name", unit.Name }, { "version", unit.Version }, { "file", unit.File },
+                { "dependencies", unit.HardDependencies ?? new List<string>() }
+            });
+            return result;
+        }
+
+        public static bool TryRead(object value, out ArenaSessionVersionPlan plan, out string error)
+        {
+            plan = null;
+            error = "the version-filtered session plan is missing or malformed";
+            var obj = ArenaMiniJson.AsObject(value);
+            if (obj == null || ArenaMiniJson.GetInt(obj, "schema", -1) != 1) return false;
+            var parsed = new ArenaSessionVersionPlan {
+                BasePolicyHash = ArenaMiniJson.GetString(obj, "basePolicyHash"),
+                PolicyHash = ArenaMiniJson.GetString(obj, "policyHash")
+            };
+            if (string.IsNullOrWhiteSpace(parsed.BasePolicyHash) || string.IsNullOrWhiteSpace(parsed.PolicyHash)) return false;
+            var exclusions = ArenaMiniJson.GetArray(obj, "excludedGuids");
+            if (exclusions == null || exclusions.Count == 0) return false;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (object item in exclusions)
+            {
+                string guid = item as string;
+                if (string.IsNullOrWhiteSpace(guid) || guid != guid.Trim() || !seen.Add(guid)) return false;
+                parsed.ExcludedGuids.Add(guid);
+            }
+            if (!ReadUnits(obj, "clientUnits", parsed.ClientUnits) || !ReadUnits(obj, "serverUnits", parsed.ServerUnits)) return false;
+            plan = parsed;
+            error = null;
+            return true;
+        }
+
+        private static bool ReadUnits(object obj, string key, List<ArenaSessionUnit> units)
+        {
+            var source = ArenaMiniJson.GetArray(obj, key);
+            if (source == null || source.Count > 4096) return false;
+            foreach (object item in source)
+            {
+                string guid = ArenaMiniJson.GetString(item, "guid");
+                if (string.IsNullOrWhiteSpace(guid)) return false;
+                var dependencies = ArenaMiniJson.GetArray(item, "dependencies");
+                if (dependencies == null) return false;
+                var parsed = new List<string>();
+                foreach (object dependency in dependencies)
+                {
+                    string text = dependency as string;
+                    if (string.IsNullOrWhiteSpace(text)) return false;
+                    parsed.Add(text);
+                }
+                units.Add(new ArenaSessionUnit(guid, ArenaMiniJson.GetString(item, "name"),
+                    ArenaMiniJson.GetString(item, "version"), ArenaMiniJson.GetString(item, "file"), parsed));
+            }
+            return true;
+        }
+
+        /// <summary>Null means a legacy session; an empty/duplicate flag is deliberately invalid.</summary>
+        public static string ExpectedHash(IEnumerable<string> arguments)
+        {
+            string hash = null;
+            if (arguments == null) return null;
+            foreach (string argument in arguments)
+            {
+                if (argument == null || !argument.StartsWith(ArenaSessionContract.VersionPlanFlag, StringComparison.OrdinalIgnoreCase)) continue;
+                if (hash != null) return string.Empty;
+                hash = argument.Substring(ArenaSessionContract.VersionPlanFlag.Length);
+            }
+            return hash;
+        }
+
+        public bool ValidateAllowed(ArenaWhitelistPolicy effective, ArenaWhitelistSide side,
+            IEnumerable<ArenaSessionUnit> units, out string error)
+        {
+            error = null;
+            foreach (var unit in units)
+            {
+                string reviewed = effective.ReviewedVersion(unit.Guid, side);
+                bool forbidden = effective.IsDeniedForSession(unit.Guid)
+                    || (!Protected(effective, unit.Guid) && !string.IsNullOrEmpty(reviewed)
+                        && ArenaWhitelistPolicy.VersionDiffers(unit.Version, reviewed));
+                if (unit.HardDependencies != null)
+                    foreach (string dependency in unit.HardDependencies) forbidden |= effective.IsDeniedForSession(dependency);
+                if (!forbidden) continue;
+                error = "the installed mods changed after the version-filtered session was prepared: " + unit.DisplayName;
+                return false;
+            }
+            return true;
+        }
+
+        public static bool TryReadMarker(string markerPath, string expectedHash, string sourceRuntime,
+            out ArenaSessionVersionPlan plan, out string error)
+        {
+            plan = null;
+            string text, detail;
+            var state = ArenaPolicyFiles.TryRead(markerPath, out text, out detail);
+            error = "cannot read the version-filtered session marker: " + ArenaPolicyFiles.Describe(state, detail);
+            if (state != ArenaPolicyFileState.Read) return false;
+            object value;
+            if (!ArenaMiniJson.TryParse(text, out value, out error)) return false;
+            var obj = ArenaMiniJson.AsObject(value);
+            object raw;
+            if (obj == null || !obj.TryGetValue("versionPlan", out raw))
+            {
+                error = "the version-filtered session marker has no plan";
+                return false;
+            }
+            if (!TryRead(raw, out plan, out error)) return false;
+            if (string.IsNullOrEmpty(expectedHash) || !string.Equals(expectedHash, plan.PolicyHash, StringComparison.Ordinal)
+                || !string.Equals(ArenaMiniJson.GetString(obj, "policyHash"), plan.PolicyHash, StringComparison.Ordinal)
+                || !string.Equals(Path.GetFullPath(ArenaMiniJson.GetString(obj, "sourceRuntime") ?? ".").TrimEnd('\\', '/'),
+                    Path.GetFullPath(sourceRuntime).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+            {
+                plan = null;
+                error = "the version-filtered session marker belongs to another plan or installation";
+                return false;
+            }
+            return true;
+        }
+    }
+
     /// <summary>What <see cref="ArenaPolicyFiles.TryRead"/> found at a path.</summary>
     public enum ArenaPolicyFileState
     {
@@ -295,6 +518,8 @@ namespace ArenaMode.Shared.Session
         /// </summary>
         public bool UnlistedAllowed { get; set; }
 
+        public ArenaSessionVersionPlan VersionPlan { get; set; }
+
         public List<ArenaSessionUnit> Allowed { get; set; }
 
         public List<ArenaSessionUnit> Excluded { get; set; }
@@ -387,6 +612,7 @@ namespace ArenaMode.Shared.Session
             root["error"] = Error;
             root["policyHash"] = PolicyHash;
             root["unlistedAllowed"] = UnlistedAllowed;
+            if (VersionPlan != null) root["versionPlan"] = VersionPlan.ToObject();
             root["allowed"] = UnitsToJson(Allowed);
             root["excluded"] = UnitsToJson(Excluded);
             root["warnings"] = Warnings == null ? new List<string>() : Warnings;
@@ -429,6 +655,13 @@ namespace ArenaMode.Shared.Session
                 PolicyHash = ArenaMiniJson.GetString(obj, "policyHash"),
                 UnlistedAllowed = ArenaMiniJson.GetBool(obj, "unlistedAllowed", false),
             };
+            object rawPlan;
+            if (obj.TryGetValue("versionPlan", out rawPlan))
+            {
+                ArenaSessionVersionPlan plan;
+                if (!ArenaSessionVersionPlan.TryRead(rawPlan, out plan, out error)) return false;
+                parsed.VersionPlan = plan;
+            }
             UnitsFromJson(ArenaMiniJson.GetArray(obj, "allowed"), parsed.Allowed);
             UnitsFromJson(ArenaMiniJson.GetArray(obj, "excluded"), parsed.Excluded);
             StringsFromJson(ArenaMiniJson.GetArray(obj, "warnings"), parsed.Warnings);

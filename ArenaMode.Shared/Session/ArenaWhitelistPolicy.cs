@@ -194,6 +194,8 @@ namespace ArenaMode.Shared.Session
         // dictionaries unless the user's allow list names it again.
         private readonly HashSet<string> _defaultDenied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        private readonly HashSet<string> _sessionDenied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         private IReadOnlyList<ArenaWhitelistEntry> _entries;
 
         private ArenaWhitelistPolicy()
@@ -234,6 +236,38 @@ namespace ArenaMode.Shared.Session
 
         /// <summary>True when a user file was present and accepted.</summary>
         public bool UserFileApplied { get; private set; }
+
+        /// <summary>A process-local restriction. Never writes or changes either policy file.</summary>
+        public ArenaWhitelistPolicy WithSessionExclusions(IEnumerable<string> guids)
+        {
+            var copy = new ArenaWhitelistPolicy { UnlistedMode = UnlistedMode, UserFileApplied = UserFileApplied };
+            foreach (var item in _plugins) copy._plugins.Add(item.Key, item.Value);
+            foreach (var item in _patchers) copy._patchers.Add(item.Key, item.Value);
+            copy._denied.UnionWith(_denied);
+            copy._defaultDenied.UnionWith(_defaultDenied);
+            copy._sessionDenied.UnionWith(_sessionDenied);
+            foreach (string guid in guids)
+            {
+                if (string.IsNullOrWhiteSpace(guid) || IsProtectedId(guid))
+                    throw new ArgumentException("a session exclusion must name a non-platform mod");
+                copy._sessionDenied.Add(guid.Trim());
+            }
+            copy.Finish();
+            var sorted = new List<string>();
+            foreach (string guid in copy._sessionDenied) sorted.Add(guid.ToLowerInvariant());
+            sorted.Sort(StringComparer.Ordinal);
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] digest = sha.ComputeHash(Encoding.UTF8.GetBytes("arena-version-session/1\n" + Hash + "\n" + string.Join("\n", sorted.ToArray())));
+                copy.Hash = BitConverter.ToString(digest).Replace("-", string.Empty).ToLowerInvariant();
+            }
+            return copy;
+        }
+
+        public bool IsDeniedForSession(string guid)
+        {
+            return !string.IsNullOrWhiteSpace(guid) && _sessionDenied.Contains(guid.Trim());
+        }
 
         // ------------------------------------------------------------------ loading
 
@@ -803,7 +837,7 @@ namespace ArenaMode.Shared.Session
         /// </summary>
         public bool IsUnlistedAllowed(string guidOrPatcherFile)
         {
-            return AllowsUnlisted && !IsDeniedByUser(guidOrPatcherFile) && !IsDeniedByDefault(guidOrPatcherFile);
+            return AllowsUnlisted && !IsDeniedForSession(guidOrPatcherFile) && !IsDeniedByUser(guidOrPatcherFile) && !IsDeniedByDefault(guidOrPatcherFile);
         }
 
         /// <summary>
@@ -816,6 +850,7 @@ namespace ArenaMode.Shared.Session
         {
             if (string.IsNullOrWhiteSpace(guid)) return null;
             guid = guid.Trim();
+            if (IsDeniedForSession(guid)) return null;
 
             ArenaWhitelistEntry entry;
             if (_plugins.TryGetValue(guid, out entry)) return entry.AppliesTo(side) ? entry : null;
@@ -885,6 +920,7 @@ namespace ArenaMode.Shared.Session
         /// </summary>
         public string ExclusionReason(string guidOrPatcherFile)
         {
+            if (IsDeniedForSession(guidOrPatcherFile)) return "excluded-for-version-session";
             if (IsDeniedByUser(guidOrPatcherFile)) return ArenaWhitelistDecision.ReasonDeniedByUser;
             if (IsDeniedByDefault(guidOrPatcherFile)) return ArenaWhitelistDecision.ReasonDenied;
             return ArenaWhitelistDecision.ReasonNotOnWhitelist;
