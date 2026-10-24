@@ -6,13 +6,16 @@ native profile loading. There are no client endpoints, kill/win hooks, live-prof
 replacement or automatic enrollment. Existing installations without the separate
 trusted enrollment/approval store remain unchanged. This document records the
 kernel contract and its original synthetic verification; the startup document
-describes the additional native boundary, assumptions and tests.
+describes the additional native boundary, assumptions and tests. The subsequent
+[server result validator and approval producer](REWARDS-RESULTS.md) calculates
+amounts from separately trusted frozen rules and checked reports; real evidence
+capture and transport are still pending.
 
 ## Scope
 
 The first step toward optional RUB rewards is to settle an already-authorized
-receipt safely. It does not decide which kills or wins qualify, or their value.
-The ordinary server will have to authorize those facts and calculate amounts;
+receipt safely. This kernel does not decide which kills or wins qualify, or their
+value. The result validator handles the server-owned calculation separately;
 a future client request must never be allowed to supply its own payout amount.
 
 - A receipt is bound to the installation, native profile ID, explicit profile

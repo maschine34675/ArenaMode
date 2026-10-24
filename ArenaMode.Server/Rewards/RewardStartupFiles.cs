@@ -4,8 +4,9 @@ using System.Text.Json.Nodes;
 namespace ArenaMode.Server.Rewards;
 
 // These files are ordinary-server authority, not an incoming client/outbox format.
-// A future trusted coordinator must opt in, enroll and approve a verified clean
-// profile. This consumer never manufactures that authority from an Arena copy.
+// A future trusted coordinator must opt in, enroll and capture a verified run and
+// restoration. RewardApprovalProducer validates that evidence before approving;
+// neither producer nor consumer infers authority from a disposable Arena copy.
 internal sealed record RewardStartupEnrollment(int Schema, bool Enabled, string RuntimeRoot, RewardBinding Binding);
 internal enum RewardStartupApprovalState { Blocked, RestoredAndApproved }
 internal sealed record RewardStartupApproval(int Schema, RewardStartupApprovalState State, RewardClaim Claim, string CleanProfileRevision);

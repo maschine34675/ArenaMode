@@ -29,6 +29,7 @@ internal static class RewardStartupProcessor
         long roubles = 0;
         try
         {
+            if (cancellationToken.IsCancellationRequested) return Outcome(RewardSettlementStatus.Deferred, "cancelled");
             window.RequireOpen();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-directory");
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);
@@ -41,6 +42,12 @@ internal static class RewardStartupProcessor
                 throw new RewardDataException("enrollment-origin-mismatch");
             enrollment.Binding.Validate();
             if (!enrollment.Enabled) return Outcome(RewardSettlementStatus.Deferred, "rewards-not-enabled");
+
+            var evaluation = RewardApprovalProducer.PrepareIfPresent(window, enrollment);
+            if (evaluation is { Status: RewardEvaluationStatus.Rejected })
+                return Outcome(RewardSettlementStatus.Rejected, evaluation.Reason);
+            if (evaluation is { Status: RewardEvaluationStatus.NoReward })
+                return Outcome(RewardSettlementStatus.Deferred, evaluation.Reason);
 
             var approvalPath = Path.Combine(directory, "approved.json");
             RewardStartupFiles.RequireLocalPath(window.Root, approvalPath);

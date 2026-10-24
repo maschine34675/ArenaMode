@@ -5,9 +5,11 @@ receipts. The user accepted payout at the next real server start for this first
 version. Returning from the private Arena session while the ordinary server keeps
 running does not trigger payment. No profile reload is forced to simulate a start.
 
+The [result-validation and approval stage](REWARDS-RESULTS.md) now derives an
+approval from separately trusted run/restoration evidence and a combat report.
 This is still not a player-facing rewards feature: automatic opt-in/enrollment,
-authoritative kill/win accounting, rates, transfer from the private session and
-approval production are not implemented. No existing player profile was enrolled,
+gameplay evidence capture, rate selection and transfer from the private session
+are not implemented. No existing player profile was enrolled,
 no ready receipt was created in an installation, and nothing was deployed during
 this work. All executable profile tests use generated files.
 
@@ -95,10 +97,11 @@ re-enrolls a missing profile or reads a client-selected profile path.
 | `acknowledged.json` | Receipt key, fingerprint and message ID, written only after the kernel confirms durable payment. |
 
 These are internal server-owned protocol files, **not an import format or setup
-instructions for players**. A future producer must create approval only from the
-ordinary server's authoritative clean state and verified results. An empty RAM
-snapshot service or an incoming client's assertion is not restoration proof.
-This change deliberately supplies no producer that could accidentally do that.
+instructions for players**. The result producer requires an additional bound
+candidate and keeps permanent result decisions; see [its trust boundary and
+file layout](REWARDS-RESULTS.md). Its future lifecycle collector must supply the
+ordinary server's authoritative clean state. An empty RAM snapshot service or an
+incoming client's assertion is not restoration proof.
 
 The first attempt requires exact equality with `CleanProfileRevision`. On a
 retry after a successful write, the profile necessarily has another hash. That
@@ -149,7 +152,7 @@ reject the profile. The adapter does not claim client collection worked or repai
 that foreign/native failure. Future rollout still needs a copied-profile startup
 and mailbox collection test on the actual supported installation.
 
-Next is a trusted enrollment/approval producer, authoritative outcome accounting
+Next are trusted enrollment, real gameplay/lifecycle evidence capture
 and the private-session receipt transport. That stage must coordinate with the
 normal profile restoration and freezing of the native currency policy. It must
 not turn `approved.json` into a client-writable amount or use live reload to bypass

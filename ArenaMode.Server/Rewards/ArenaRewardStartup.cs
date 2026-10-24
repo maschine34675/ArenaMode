@@ -13,7 +13,7 @@ namespace ArenaMode.Server.Rewards;
 /// <summary>
 /// Consumes explicitly approved receipts before native profiles/HTTP/timers start.
 /// Does nothing on existing installations without the separate enrollment store.
-/// No client route, enrollment producer, payout rate or live reload is installed.
+/// No client route, enrollment/lifecycle evidence collector or live reload is installed.
 /// </summary>
 [Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark + 1)]
 public sealed class ArenaRewardStartup(

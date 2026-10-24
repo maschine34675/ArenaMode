@@ -11,9 +11,12 @@ expensive probes require Diagnostics/DeveloperMode. Never gate gameplay cleanup,
 protection warnings or the independent LogDamageExceptions safety alarm.
 
 Before changing reward persistence, read [docs/REWARDS-CORE.md](docs/REWARDS-CORE.md)
-and [docs/REWARDS-SERVER.md](docs/REWARDS-SERVER.md). The ordinary-server consumer
+and [docs/REWARDS-SERVER.md](docs/REWARDS-SERVER.md), then
+[docs/REWARDS-RESULTS.md](docs/REWARDS-RESULTS.md). The ordinary-server consumer
 runs only before native profile loading, with separately enrolled/approved state;
-there is no gameplay receipt producer or automatic enrollment yet. Never infer
+the startup result validator/approval producer requires separately trusted run
+and restoration evidence; there is no gameplay evidence collector or automatic
+enrollment yet. Never accept its whole candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
 Reward work does not relax Arena's full-profile restoration protection.
