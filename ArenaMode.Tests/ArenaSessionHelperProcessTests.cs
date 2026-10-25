@@ -1993,7 +1993,7 @@ public sealed class ArenaSessionHelperProcessTests
     }
 
     [SkippableFact]
-    public void AnEnterProbesTheArenaPortOnTheNormalServersAddressAndWarnsOnceAboutLoggerPathsAndTheBackupDirectoryItMoved()
+    public void AnEnterProbesTheArenaPortOnTheNormalServersAddressWarnsOnceAboutLoggerPathsAndTheBackupDirectoryAndSwitchesOnTheProfileCleanUp()
     {
         SkipUnlessWindows();
         using var area = new Area();
@@ -2009,6 +2009,8 @@ public sealed class ArenaSessionHelperProcessTests
         string externalBackups = area.At("real runtime", "user", "profiles", "backups"); // the normal server's backup pool
         File.WriteAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", HelperLayout.BackupJsonFileName),
             "{ \"enabled\": true, \"maxBackups\": 15, \"directory\": \"" + externalBackups.Replace("\\", "\\\\") + "\" }");
+        File.WriteAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", "core.json"), // SPT's shipped clean-up flags: off
+            "{ \"fixes\": { \"removeModItemsFromProfile\": false, \"removeInvalidTradersFromProfile\": false } }");
         string root = area.At("session");
         Assert.True(HelperRequest.TryParse(Area.RequestJson("enter", game, Area.FinishedProcessId()), "enter", out HelperRequest? request, out string? parseError), parseError);
         HelperRunner runner = area.Runner(root);
@@ -2041,6 +2043,15 @@ public sealed class ArenaSessionHelperProcessTests
         Assert.Contains("backup.json: '" + externalBackups + "' -> './user/profiles/backups'", backupWarnings[0]);
         Assert.Contains("\"directory\": \"./user/profiles/backups\"", File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "backup.json")));
         Assert.Contains(externalBackups.Replace("\\", "\\\\"), File.ReadAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", "backup.json")));
+
+        // The core config: one Info line (SPT ships the flags off, so it is no Warning), the copy cleans, the runtime's file stays.
+        List<string> cleanup = LogOf(root).Split('\n').Where(line => line.Contains("core config:")).ToList();
+        Assert.Single(cleanup);
+        Assert.Contains(" INFO ", cleanup[0]);
+        Assert.Contains("core.json: fixes.removeModItemsFromProfile: false -> true, fixes.removeInvalidTradersFromProfile: false -> true", cleanup[0]);
+        Assert.DoesNotContain(WarningsOf(root), line => line.Contains("core config:"));
+        Assert.Contains("\"removeModItemsFromProfile\": true", File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "core.json")));
+        Assert.Contains("\"removeModItemsFromProfile\": false", File.ReadAllText(Path.Combine(game.Runtime, "SPT_Data", "configs", "core.json")));
     }
     // ------------------------------------------------------------------ the watchdog after enter (watch --file)
 

@@ -154,6 +154,14 @@ namespace ArenaMode.SessionHelper
                         + " (its cleanup deletes there): " + string.Join("; ", tree.BackupDirectoryRewrites.ToArray()));
                 }
 
+                // Info, not Warning: SPT ships both flags off, so most installations get this at every enter.
+                if (tree.ProfileCleanupChanges.Count > 0)
+                {
+                    _log.Info("core config: SPT's profile clean-up switched on in the tree's copy, so that items, clothing and trader records of the"
+                        + " mods the session leaves out are deleted from the disposable profile copy instead of making it unloadable: "
+                        + string.Join("; ", tree.ProfileCleanupChanges.ToArray()));
+                }
+
                 if (tree.UnsharedFolders.Count > 0)
                 {
                     _log.Warn("the runtime has folders the arena tree does not contain (" + string.Join(", ", tree.UnsharedFolders.ToArray())

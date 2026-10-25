@@ -807,6 +807,7 @@ namespace ArenaMode.SessionHelper
             UnsharedFolders = new List<string>();
             LogPathRewrites = new List<string>();
             BackupDirectoryRewrites = new List<string>();
+            ProfileCleanupChanges = new List<string>();
         }
 
         public string TreePath { get; set; }
@@ -860,6 +861,13 @@ namespace ArenaMode.SessionHelper
         /// The runner logs one warning for them.
         /// </summary>
         public List<string> BackupDirectoryRewrites { get; private set; }
+
+        /// <summary>
+        /// One entry per core config file of the runtime (<see cref="HelperLayout.IsCoreConfigFile"/>) whose profile clean-up
+        /// flags had to be switched on in the tree's copy (<c>&lt;file&gt;: fixes.removeModItemsFromProfile: false -> true, ...</c>);
+        /// empty when no such file exists or both flags were already on. The runner logs one Info line for them.
+        /// </summary>
+        public List<string> ProfileCleanupChanges { get; private set; }
     }
 
     /// <summary>Builds the disposable server tree <c>&lt;runtime root&gt;\server</c> of an Arena session.</summary>
@@ -1022,6 +1030,30 @@ namespace ArenaMode.SessionHelper
                 {
                     box.WriteAllText(configFile, patchedBackup);
                     result.BackupDirectoryRewrites.Add(configName + ": " + backupRewrite);
+                }
+            }
+
+            // Core config (review of the release 0.2.0, 2026-10-25): the session leaves out the mods the policy excludes, and
+            // with SPT's shipped fixes (removeModItemsFromProfile and removeInvalidTradersFromProfile both false) an item,
+            // mail attachment, suit or trader record of such a mod in the profile makes the server mark the whole profile
+            // invalid, so the session's game start is refused. The copy switches SPT's own clean-up on: it deletes those
+            // entries from the disposable profile copy, which is discarded with the session. Every file the loader reads as
+            // the core config is handled; a runtime without one is left as it is.
+            foreach (string configFile in configFiles)
+            {
+                string configName = Path.GetFileName(configFile);
+                if (!HelperLayout.IsCoreConfigFile(configName)) continue;
+                string patchedCore;
+                List<string> coreChanges;
+                if (!HelperJsonText.TryEnableProfileCleanup(HelperFileSystem.ReadAllTextShared(configFile), out patchedCore, out coreChanges, out error))
+                {
+                    throw new HelperException(configName + ": " + error);
+                }
+
+                if (coreChanges.Count > 0)
+                {
+                    box.WriteAllText(configFile, patchedCore);
+                    result.ProfileCleanupChanges.Add(configName + ": " + string.Join(", ", coreChanges.ToArray()));
                 }
             }
 

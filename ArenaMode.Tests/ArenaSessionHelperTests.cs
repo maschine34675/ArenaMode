@@ -1386,6 +1386,142 @@ public sealed class ArenaSessionHelperTests
         Assert.StartsWith("backup.json: ", ex.Message);
     }
 
+    // ------------------------------------------------------------------ core.json: SPT's profile clean-up (2026-10-25)
+
+    /// <summary>The fixes block as SPT 4.1 ships it: every profile clean-up off.</summary>
+    private const string SptCoreJson = """
+        {
+          "serverName": "SPT",
+          "fixes": {
+            "fixShotgunDispersion": true,
+            "shotgunIdsToFix": [
+              "576165642459773c7a400233"
+            ],
+            "removeModItemsFromProfile": false,
+            "removeInvalidTradersFromProfile": false,
+            "fixProfileBreakingInventoryItemIssues": false
+          },
+          "survey": { "locale": { "removeModItemsFromProfile": false } }
+        }
+        """;
+
+    /// <summary><see cref="SptCoreJson"/> with LF line ends, whatever the checkout's line ends are.</summary>
+    private static string SptCore => SptCoreJson.Replace("\r\n", "\n");
+
+    [Fact]
+    public void TheCoreConfigOfTheTreeSwitchesOnSptsProfileCleanUpAndChangesNothingElse()
+    {
+        // The session leaves out the mods the policy excludes; with SPT's shipped values an item of such a mod in the profile
+        // makes the server mark the whole profile invalid and refuse the game start. The copy switches SPT's clean-up on.
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(SptCore, out var patched, out var changes, out var error), error);
+        Assert.Equal(SptCore
+            .Replace("\"removeModItemsFromProfile\": false,\n    \"removeInvalidTradersFromProfile\": false",
+                "\"removeModItemsFromProfile\": true,\n    \"removeInvalidTradersFromProfile\": true"), patched);
+        Assert.Equal(new[] { "fixes.removeModItemsFromProfile: false -> true", "fixes.removeInvalidTradersFromProfile: false -> true" }, changes);
+
+        // A member of that name outside fixes (here deeper in another object) and the third fix are left alone.
+        Assert.Contains("\"locale\": { \"removeModItemsFromProfile\": false }", patched);
+        Assert.Contains("\"fixProfileBreakingInventoryItemIssues\": false", patched);
+
+        // A file that already has both on is not touched, byte for byte; a second pass over the result changes nothing.
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(patched, out var again, out var changesAgain, out error), error);
+        Assert.Equal(patched, again);
+        Assert.Empty(changesAgain);
+    }
+
+    [Theory]
+    [InlineData("\"false\"", "\"false\"")]
+    [InlineData("\"true\"", "\"true\"")]
+    [InlineData("0", "0")]
+    [InlineData("null", "null")]
+    public void AFlagThatIsNotTheLiteralTrueIsReplaced(string value, string shown)
+    {
+        // Fail closed: SPT's reader would not read a string, a number or null as true.
+        string text = "{ \"fixes\": { \"removeModItemsFromProfile\": " + value + ", \"removeInvalidTradersFromProfile\": true } }";
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(text, out var patched, out var changes, out var error), error);
+        Assert.Equal("{ \"fixes\": { \"removeModItemsFromProfile\": true, \"removeInvalidTradersFromProfile\": true } }", patched);
+        Assert.Equal(new[] { "fixes.removeModItemsFromProfile: " + shown + " -> true" }, changes);
+    }
+
+    [Fact]
+    public void AMissingFlagOrAMissingFixesObjectIsAddedInTheFilesStyle()
+    {
+        // One flag missing: appended at the end of fixes, indented like its members.
+        string oneMissing = "{\n  \"fixes\": {\n    \"removeModItemsFromProfile\": false\n  }\n}";
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(oneMissing, out var patched, out var changes, out var error), error);
+        Assert.Equal("{\n  \"fixes\": {\n    \"removeModItemsFromProfile\": true,\n    \"removeInvalidTradersFromProfile\": true\n  }\n}", patched);
+        Assert.Equal(new[] { "fixes.removeModItemsFromProfile: false -> true", "fixes.removeInvalidTradersFromProfile: (missing) -> true" }, changes);
+
+        // An empty fixes object, a compact file and a file without fixes at all.
+        Assert.True(HelperJsonText.TryEnableProfileCleanup("{\"fixes\":{}}", out patched, out changes, out error), error);
+        AssertBothFlagsOn(patched);
+        Assert.Equal(2, changes.Count);
+        Assert.True(HelperJsonText.TryEnableProfileCleanup("{\"serverName\":\"SPT\"}", out patched, out changes, out error), error);
+        Assert.Equal("{\"serverName\":\"SPT\",\"fixes\":{\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true}}", patched);
+        Assert.Equal(new[] { "fixes: (missing) -> {\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true}" }, changes);
+        Assert.True(HelperJsonText.TryEnableProfileCleanup("{}", out patched, out changes, out error), error);
+        AssertBothFlagsOn(patched);
+
+        // A fixes that is not an object is replaced by one (fail closed); a fixes nested deeper is somebody else's.
+        Assert.True(HelperJsonText.TryEnableProfileCleanup("{ \"fixes\": null }", out patched, out changes, out error), error);
+        Assert.Equal("{ \"fixes\": {\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true} }", patched);
+        Assert.Equal(new[] { "fixes: null -> {\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true}" }, changes);
+        string nested = "{ \"other\": { \"fixes\": { \"removeModItemsFromProfile\": false } }, \"fixes\": { \"removeModItemsFromProfile\": true, \"removeInvalidTradersFromProfile\": true } }";
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(nested, out patched, out changes, out error), error);
+        Assert.Equal(nested, patched);
+        Assert.Empty(changes);
+
+        // An object inside an array inside fixes holds no direct member of fixes.
+        string inArray = "{ \"fixes\": { \"list\": [ { \"removeModItemsFromProfile\": true } ], \"removeInvalidTradersFromProfile\": true } }";
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(inArray, out patched, out changes, out error), error);
+        Assert.Equal(new[] { "fixes.removeModItemsFromProfile: (missing) -> true" }, changes);
+        AssertBothFlagsOn(patched);
+
+        Assert.False(HelperJsonText.TryEnableProfileCleanup("{ \"fixes\": ", out _, out _, out error));
+        Assert.NotNull(error);
+    }
+
+    private static void AssertBothFlagsOn(string? text)
+    {
+        Assert.True(ArenaMiniJson.TryParse(text, out var root, out var error), error);
+        var fixes = ArenaMiniJson.AsObject(ArenaMiniJson.AsObject(root)!["fixes"])!;
+        foreach (string flag in HelperLayout.ProfileCleanupFlags) Assert.Equal(true, fixes[flag]);
+    }
+
+    [SkippableFact]
+    public void TheTreesCoreConfigCleansTheProfileCopyAndTheRuntimesFileIsNotTouched()
+    {
+        SkipUnlessWindows();
+        Assert.True(HelperLayout.IsCoreConfigFile("core.json"));
+        Assert.True(HelperLayout.IsCoreConfigFile("core.jsonc"));
+        Assert.True(HelperLayout.IsCoreConfigFile("spt-core.json"));
+        Assert.False(HelperLayout.IsCoreConfigFile("Core.json")); // the loader compares exactly
+        Assert.False(HelperLayout.IsCoreConfigFile("backup.json"));
+        Assert.False(HelperLayout.IsCoreConfigFile("http.json"));
+        Assert.False(HelperLayout.IsCoreConfigFile("core.json.bak"));
+        Assert.False(HelperLayout.IsConfigFileOf("spt-core", ".json"));
+
+        using var area = new TempArea();
+        var runtime = new FakeRuntime(area);
+        string runtimeCore = Path.Combine(runtime.Dir, "SPT_Data", "configs", "core.json");
+        File.WriteAllText(runtimeCore, SptCore);
+        string root = area.At("session");
+
+        var result = HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add);
+
+        string copy = File.ReadAllText(Path.Combine(HelperServerTree.GetTreePath(root), "SPT_Data", "configs", "core.json"));
+        Assert.True(HelperJsonText.TryEnableProfileCleanup(SptCore, out var expected, out _, out var error), error);
+        Assert.Equal(expected, copy);
+        Assert.Equal(new[] { "core.json: fixes.removeModItemsFromProfile: false -> true, fixes.removeInvalidTradersFromProfile: false -> true" },
+            result.ProfileCleanupChanges);
+        Assert.Equal(SptCore, File.ReadAllText(runtimeCore)); // the installation's file is not touched
+
+        // A malformed core config fails the build with its name, before the server would.
+        File.WriteAllText(runtimeCore, "{ \"fixes\": ");
+        var ex = Assert.Throws<HelperException>(() => HelperServerTree.Build(runtime.Request(), 6970, root, "0.1.3", DateTime.UtcNow, area.Log.Add));
+        Assert.StartsWith("core.json: ", ex.Message);
+    }
+
     // ------------------------------------------------------------------ the helper mutex (review 2026-10-23)
 
     [SkippableFact]
@@ -2593,7 +2729,7 @@ public sealed class ArenaSessionHelperTests
             foreach (string name in NotServerBinaries) area.Write(Path.Combine(Dir, name), "not for the arena tree: " + name);
             area.Write(Path.Combine(Dir, "SPT_Data", "checks.dat"), "checks");
             area.Write(Path.Combine(Dir, "SPT_Data", "configs", "http.json"), SptHttpJson);
-            area.Write(Path.Combine(Dir, "SPT_Data", "configs", "core.json"), "{\"core\":true}");
+            area.Write(Path.Combine(Dir, "SPT_Data", "configs", "core.json"), "{\"core\":true,\"fixes\":{\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true}}");
             area.Write(Path.Combine(Dir, "SPT_Data", "database", "items.json"), "items");
             area.Write(Path.Combine(Dir, "SPT_Data", "database", "locales", "en.json"), "en");
             area.Write(Path.Combine(Dir, "SPT_Data", "images", "a.png"), "png");
@@ -2699,7 +2835,7 @@ public sealed class ArenaSessionHelperTests
         Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(data, "configs")));
         Assert.False(HelperFileSystem.IsReparsePoint(Path.Combine(data, "checks.dat")));
         Assert.Equal("checks", File.ReadAllText(Path.Combine(data, "checks.dat")));
-        Assert.Equal("{\"core\":true}", File.ReadAllText(Path.Combine(data, "configs", "core.json")));
+        Assert.Equal("{\"core\":true,\"fixes\":{\"removeModItemsFromProfile\":true,\"removeInvalidTradersFromProfile\":true}}", File.ReadAllText(Path.Combine(data, "configs", "core.json"))); // both flags on: copied unchanged
 
         // http.json: the two ports, nothing else.
         Assert.Equal(SptHttpJson.Replace("\"port\": 6969", "\"port\": 6970").Replace("\"backendPort\": 6969", "\"backendPort\": 6970"),
@@ -3435,6 +3571,9 @@ public sealed class ArenaSessionHelperTests
         Assert.Equal("backup.json", HelperLayout.BackupJsonFileName);
         Assert.Equal("./user/profiles/backups", HelperLayout.PrivateBackupDirectory);
         Assert.Equal("spt-backup", HelperLayout.BackupConfigKind);
+        Assert.Equal("spt-core", HelperLayout.CoreConfigKind);
+        Assert.Equal("fixes", HelperLayout.FixesMemberName);
+        Assert.Equal(new[] { "removeModItemsFromProfile", "removeInvalidTradersFromProfile" }, HelperLayout.ProfileCleanupFlags);
         Assert.Equal("patchers", HelperLayout.PatchersFolder);
         Assert.Equal(120, HelperLayout.GameExitTimeoutSeconds);
         Assert.Equal(180, HelperLayout.ServerStartTimeoutSeconds);
