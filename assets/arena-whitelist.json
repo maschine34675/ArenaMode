@@ -29,6 +29,8 @@
     { "guid": "com.lacyway.ch", "name": "ContinuousHealing", "kind": "mod", "clientVersion": "1.6.3" },
     { "guid": "com.ozen.continuousloadammo", "name": "Continuous Load Ammo", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.pein.camerarecoilmod", "name": "Recoil Rework Legacy", "kind": "mod", "clientVersion": "2.0.0" },
+    { "guid": "com.fontaine.fovfix", "name": "Fontaine FOV Fix", "kind": "mod", "clientVersion": "4.1.0" },
+    { "guid": "com.manimal.loadammoanim", "name": "Manimal Ammo Loading Animations", "kind": "mod", "clientVersion": "2.0.0", "serverVersion": "2.0.0" },
     { "guid": "com.terkoiz.freecam", "name": "Freecam", "kind": "mod", "clientVersion": "1.4.8" },
     { "guid": "com.tarkin.doordash", "name": "DoorDash", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.anvil.weboverlay", "name": "Anvil-WebOverlay", "kind": "mod", "clientVersion": "1.11.0" },
