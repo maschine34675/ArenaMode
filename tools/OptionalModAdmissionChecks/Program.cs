@@ -12,6 +12,7 @@ internal static class Program
         try
         {
             CheckAbsentAndAdapters();
+            CheckTarkovaColaAdmission();
             CheckServerAdmission();
             CheckWhitelistFirst();
             CheckNoCodeLevelModRefusals();
@@ -48,6 +49,8 @@ internal static class Program
             "A failure the server reported in its ping reaches the existing menu and final-start provider");
         Require(BodyReplacementCompatibility.Calls == 0,
             "A server rejection short-circuits every adapter provider");
+        Require(ArenaTarkovaColaCompat.Calls == 0,
+            "A server rejection does not query Tarkova Cola");
 
         // The server's reason outranks an adapter reason: it is the broader refusal.
         BodyReplacementCompatibility.Reason = "Continuous Healing contract unavailable";
@@ -57,6 +60,24 @@ internal static class Program
 
         ArenaServerClient.ServerAdmissionFailure = null;
         Allowed("A successful refreshed server response clears its previous restriction");
+    }
+
+    private static void CheckTarkovaColaAdmission()
+    {
+        Reset();
+        Allowed("Absent or ready Tarkova Cola allows admission");
+        Require(ArenaTarkovaColaCompat.Calls == 1, "Ready Core consults Tarkova Cola once");
+        ArenaTarkovaColaCompat.Reason = "Tarkova Cola persistence protection unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaTarkovaColaCompat.Reason,
+            "Tarkova Cola protection failure reaches admission unchanged");
+        ArenaTarkovaColaCompat.Calls = 0;
+        BodyReplacementCompatibility.Reason = "Shared body contract unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason,
+            "Core refusal has priority over the Tarkova Cola refusal");
+        Require(ArenaTarkovaColaCompat.Calls == 0, "Core rejection short-circuits Tarkova Cola");
+        BodyReplacementCompatibility.Reason = null;
+        ArenaTarkovaColaCompat.Reason = null;
+        Allowed("A recovered Tarkova Cola contract is rechecked without a stale refusal");
     }
 
     private static void CheckWhitelistFirst()
@@ -75,6 +96,8 @@ internal static class Program
             "The whitelist refusal reaches admission unchanged and ahead of the server and adapter reasons");
         Require(BodyReplacementCompatibility.Calls == 0,
             "A whitelist refusal short-circuits every adapter provider");
+        Require(ArenaTarkovaColaCompat.Calls == 0,
+            "A whitelist refusal does not query Tarkova Cola");
 
         ArenaWhitelistAdmission.Reason = null;
         Require(ArenaOptionalMods.GetRejectionReason() == "Server-only blocker",
@@ -87,7 +110,7 @@ internal static class Program
     private static void CheckNoCodeLevelModRefusals()
     {
         // User decision 2026-10-22: the whitelist (shipped default deny list and the user's file) refuses foreign
-        // mods; admission carries no code specific to one of them. The mods the old code refused or adapted stay
+        // mods; the separately authorized Tarkova Cola persistence integration is tested above. The mods the old code refused or adapted stay
         // listed as installed here and must change nothing.
         foreach (string guid in new[]
         {
@@ -115,6 +138,8 @@ internal static class Program
         Chainloader.PluginInfos.Clear();
         BodyReplacementCompatibility.Reason = null;
         BodyReplacementCompatibility.Calls = 0;
+        ArenaTarkovaColaCompat.Reason = null;
+        ArenaTarkovaColaCompat.Calls = 0;
     }
 
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);

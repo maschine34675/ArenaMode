@@ -30,8 +30,18 @@ $mutants = @(
     },
     @{
         Name = 'skip-shared-core-contract'
-        Before = 'return BodyReplacementCompatibility.GetRejectionReason();'
-        After = 'return (string)null;'
+        Before = 'return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaTarkovaColaCompat.GetRejectionReason();'
+        After = 'return ArenaTarkovaColaCompat.GetRejectionReason();'
+    },
+    @{
+        Name = 'skip-tarkova-cola-contract'
+        Before = 'return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaTarkovaColaCompat.GetRejectionReason();'
+        After = 'return BodyReplacementCompatibility.GetRejectionReason();'
+    },
+    @{
+        Name = 'tarkova-cola-before-core'
+        Before = 'return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaTarkovaColaCompat.GetRejectionReason();'
+        After = 'return ArenaTarkovaColaCompat.GetRejectionReason() ?? BodyReplacementCompatibility.GetRejectionReason();'
     },
     # Negative controls for the 2026-10-22 decision: a code-level refusal of a named mod, reintroduced next to
     # the admission chain, must fail on its own assertion.

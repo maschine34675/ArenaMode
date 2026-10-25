@@ -15,6 +15,16 @@ namespace ArenaMode.Session
     }
 }
 
+namespace ArenaMode.Compat
+{
+    internal static class ArenaTarkovaColaCompat
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string GetRejectionReason() { Calls++; return Reason; }
+    }
+}
+
 // Production admission no longer reads the plugin list. The stand-in stays so that a code-level refusal of a
 // named mod, if one were reintroduced, would compile here and then fail CheckNoCodeLevelModRefusals.
 namespace BepInEx.Bootstrap
