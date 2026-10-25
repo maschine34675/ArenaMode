@@ -1033,12 +1033,13 @@ namespace ArenaMode.SessionHelper
                 }
             }
 
-            // Core config (review of the release 0.2.0, 2026-10-25): the session leaves out the mods the policy excludes, and
-            // with SPT's shipped fixes (removeModItemsFromProfile and removeInvalidTradersFromProfile both false) an item,
-            // mail attachment, suit or trader record of such a mod in the profile makes the server mark the whole profile
-            // invalid, so the session's game start is refused. The copy switches SPT's own clean-up on: it deletes those
-            // entries from the disposable profile copy, which is discarded with the session. Every file the loader reads as
-            // the core config is handled; a runtime without one is left as it is.
+            // Core config (after the release 0.2.0, 2026-10-25): the session leaves out the mods the policy excludes, and
+            // with SPT's shipped removeModItemsFromProfile: false an item, mail attachment, suit or trader record of such a
+            // mod in the profile makes the server mark the whole profile invalid, so the session's game start is refused. The
+            // copy switches SPT's own clean-up on (with removeInvalidTradersFromProfile): it deletes those records from the
+            // disposable profile copy, which is discarded with the session. Every file the loader reads as the core config is
+            // handled; a runtime without one is left as it is, and one without a fixes object fails the build (SPT would not
+            // start on it either).
             foreach (string configFile in configFiles)
             {
                 string configName = Path.GetFileName(configFile);

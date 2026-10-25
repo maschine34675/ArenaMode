@@ -95,6 +95,10 @@ The optional version-filtered restart is specified in docs/PITFIRETEAM-1.0.0-202
 It omits both sides of each differing GUID and hard dependents without editing
 policy files; direct play still treats version differences as advisory. Preserve
 the strict request/marker/process-flag agreement and old-helper refusal.
+The private tree's copy of SPT's core config always switches `fixes.removeModItemsFromProfile` and
+`removeInvalidTradersFromProfile` on (SPT ships them off): a profile copy holding items, suits or trader records of a mod
+the session leaves out is otherwise marked invalid and the session cannot start (0.2.1; spec section 6). Never drop that,
+and never write anything of the private tree back to the real runtime or profile.
 The game quits for a session switch only after the helper's `<request>.accepted` acknowledgement (a coroutine looks
 every 250 ms for at most 15 s; a helper that is gone or silent leaves the game running and the action available, and
 the client deletes the request file on every failure: the helper stamps that file and ends its wait for the game when

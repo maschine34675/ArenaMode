@@ -218,6 +218,14 @@ current. User-facing communication is normally German.
   and the dated documents they link, are history. Spec: [ARENA-SESSION-20261021.md](ARENA-SESSION-20261021.md)
   sections 1 and 11.
 
+- **Release 0.2.1 (2026-10-25, hotfix branch `hotfix/0.2.1` from `v0.2.0`, merged into the development line):** the
+  private tree's copy of SPT's core config switches `fixes.removeModItemsFromProfile` and
+  `fixes.removeInvalidTradersFromProfile` on (`HelperJsonText.TryEnableProfileCleanup`). SPT ships both off; every
+  development installation had them on, so no earlier run noticed that a session leaving out a content mod cannot
+  load a profile holding that mod's items. Reproduced and fixed on SPT-GPU-2 (spec section 10, sixth run). The hotfix
+  carries only this change and the version 0.2.1; the reward work on the development line is not part of it.
+  [Release notes](RELEASE-0.2.1.md).
+
 - **Release 0.2.0 (2026-10-24):** version identities (Shared.props, `Plugin.PluginVersion`, the
   server's csproj and ModMetadata, the session helper's csproj) and the player README target
   0.2.0; the Core minimum is 1.0.10, the library of Redeploy 1.0.1 (`RedeployCoreBuiltAgainst` is

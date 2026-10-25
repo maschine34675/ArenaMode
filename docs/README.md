@@ -37,6 +37,7 @@ longer exist; the whitelist replaced them.
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
 - [Arena session: answer to the external review of 2026-10-23](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)
 - [Arena session: solution, deployment and packaging](ARENA-SESSION-DEPLOY-20261021.md)
+- [Release 0.2.1: the Arena session with content mods left out](RELEASE-0.2.1.md)
 - [Release 0.2.0: Arena sessions and the whitelist, Bowl, shared Core 1.0.10](RELEASE-0.2.0.md)
 - [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
 - [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md) (history: adapter removed 2026-10-22)
