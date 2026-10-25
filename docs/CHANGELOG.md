@@ -8,6 +8,21 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## [0.2.1] - 2026-10-25
+
+### Fixes
+
+- **Arena session with content mods left out.** When the session left out a mod that adds
+  items, clothing or traders and the profile held such records, SPT's shipped settings
+  (`removeModItemsFromProfile` and `removeInvalidTradersFromProfile` off) marked the private
+  profile copy invalid: the session's game failed to load and closed itself after about a
+  minute, without a reason on screen. The private server's copy of `core.json` now switches
+  SPT's own clean-up on, so those records are deleted from the disposable copy only (a modded
+  weapon you carry is missing in the session and back afterwards). Your `core.json` and your
+  real profile are not changed.
+
+[Release notes and verification limits](RELEASE-0.2.1.md).
+
 ## [0.2.0] - 2026-10-24
 
 ### Arena sessions and mod policy
@@ -167,6 +182,7 @@ earlier same-version archives are not reconstructed here. Features already in
 this baseline are documented in its
 [feature inventory](https://github.com/maschine34675/ArenaMode/blob/v0.1.0/docs/FEATURES.md).
 
+[0.2.1]: https://github.com/maschine34675/ArenaMode/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/maschine34675/ArenaMode/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/maschine34675/ArenaMode/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/maschine34675/ArenaMode/compare/v0.1.1...v0.1.2

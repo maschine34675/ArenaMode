@@ -1095,6 +1095,19 @@ session; items 2, 3 and 14):
 | RETURN TO NORMAL SESSION | Armed at the first pair. The leave helper (pid 16248) took the mutex at 17:56:37Z, saw the game exit after 2.0 s, stopped the arena server (pid 16352), found the normal server listening and started the normal game (pid 16304), `leave finished` at 17:56:42.660Z; the watch (7428) had seen the exit at 17:56:39.043Z and logged `arena server after the game: NothingToStop` at 17:56:42.669Z, 9 ms after the leave released the mutex: the `Global\` mutex serialises the two. Normal main menu after 24 s of waiting, 41 plugins, 16 of 16 maschine files identical, normal server pid 1260, no second server; `server.pid` gone (`watch.json` stays, as before), no Warning in `helper.log` for the whole cycle; the user file removed on both machines. |
 | Not covered | A backup config outside `user` on a real installation (the installed one carries the shipped value; the confinement is proved offline), two Windows sessions of one account. |
 
+Sixth run on SPT-GPU-2, 2026-10-25 (the profile clean-up of section 6, the core config bullet; the development line,
+because the host carried it: first the build before the fix, client and server `64c3b4a`, helper `f98c1f5`, then the
+merge of the fix `bfe59be`, which carries `2e1155c`; the review corrections after it do not touch the path a core config
+with a `fixes` object takes; Core 1.0.10). Both flags were set to SPT's shipped `false` in the installation's `core.json`
+for the two enters and restored to the original bytes afterwards; a user file denied `com.wtt.contentbackport`, and the
+profile SPT-GPU-2 holds 11 items of WTT-ContentBackport, among them its primary weapon:
+
+| Step | Observed |
+|---|---|
+| Before the fix | START ARENA SESSION armed at the first pair; the enter built the tree (12 server mods) and started the arena server and the game. The arena server's log: `Failed to load profile with ID '6ab7db1c64f04b565cf78be9'. The profile will be marked as invalid.` with `InvalidModdedItemException` for the first WTT item. The client threw a `NullReferenceException` in `TarkovApplication.PrepareGameJob` 28 s after its start and closed itself 53 s after its start; the watch stopped the arena server (`Stopped`). Nothing on screen named the reason. |
+| With the fix | The enter logged `core config: SPT's profile clean-up switched on in the tree's copy ... : core.json: fixes.removeModItemsFromProfile: false -> true, fixes.removeInvalidTradersFromProfile: false -> true` (Info). The tree's copy carried both flags on, the installation's file still both off. The arena server deleted the 11 WTT items from the copy (`Deleting item id: ... from inventory and insurance`, eleven lines) and the session reached its main menu after 27 s; the gate `39 plugins allowed, 2 excluded, 0 warnings`; the side screen showed the ARENA SESSION notice with ARENA selected; no Arena warning in the client log. |
+| Return | RETURN TO NORMAL SESSION armed at the first pair; the leave stopped the arena server and started the normal game, the watch logged `NothingToStop` 13 ms after `leave finished`; no Warning in `helper.log` for the whole cycle. The real profile still holds its 314 items, the 11 WTT items and the WTT primary weapon among them. |
+
 ## 11. Changes since the first draft
 
 Sections 5 to 8 above describe the implementation, not the first draft. What changed, and why:

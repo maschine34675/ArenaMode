@@ -54,6 +54,10 @@ needs one (directly or through other units, client and server) is excluded with 
 platform/Arena units are the only exception. Never turn that back into a pull-in with a warning. The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
 The user's testing override is that blacklist file and no second mechanism; keep it visible (the decision's one
 `policy override` warning per side, the gate summary suffix, `unlistedAllowed`; spec section 3).
+The private tree's copy of SPT's core config always switches `fixes.removeModItemsFromProfile` and
+`removeInvalidTradersFromProfile` on (SPT ships them off): a profile copy holding items, suits or trader records of a mod
+the session leaves out is otherwise marked invalid and the session cannot start (0.2.1; spec section 6). Never drop that,
+and never write anything of the private tree back to the real runtime or profile.
 The game quits for a session switch only after the helper's `<request>.accepted` acknowledgement (a coroutine looks
 every 250 ms for at most 15 s; a helper that is gone or silent leaves the game running and the action available, and
 the client deletes the request file on every failure: the helper stamps that file and ends its wait for the game when
