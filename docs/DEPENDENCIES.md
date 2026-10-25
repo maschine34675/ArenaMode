@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-As of 2026-10-22. This overview describes the reviewed ArenaMode source revision,
+As of 2026-10-25. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -17,6 +17,9 @@ for every feature.
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
+The development additions for FOV Fix and Manimal require **Core 1.0.11**;
+their body-replacement fixes are implemented there for both Arena and standalone
+Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -130,6 +133,16 @@ native observations below predate that migration; see
   current living player retains Continuous Healing; ordinary raids are unchanged.
   See [healing operations and verification limits](CONTINUOUS-HEALING-COMPAT-20261019.md).
 - **UIFixes:** the alternative R-key reload path is covered; installed version 6.0.3.
+- **Fontaine FOV Fix 4.1.0+:** Core 1.0.11 transfers the persistent camera controller
+  to the replacement body and fences retired-body aim/weapon callbacks. Reviewed
+  whitelist version: 4.1.0. Newer versions still require the reflected APIs.
+- **Manimal Ammo Loading Animations 2.0.0+:** Core 1.0.11 removes retired owned
+  player sessions and fences delayed animation/controller/loading work. Reviewed
+  client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
+  requirements still apply; the native checks include Continuous Load Ammo 1.2.0.
+  See [four-candidate review and verification boundaries](FOUR-MOD-COMPAT-20261025.md)
+  for both additions and the reasons **Tarkova-Cola 2.2.1** and **Fast Grenade
+  Throw 2.0.0** were not added. These two are unlisted, not newly default-denied.
 - **ABPS/BotPlacementSystem:** spawn-pump/bot-limit behavior is covered; Arena's
   population ownership prevents additional third-party ambient spawns.
 - **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.

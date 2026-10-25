@@ -383,6 +383,8 @@ public sealed class ArenaWhitelistTests
             ("com.lacyway.ch", "ContinuousHealing", ArenaWhitelistTier.Mod, "1.6.3", null),
             ("com.ozen.continuousloadammo", "Continuous Load Ammo", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.pein.camerarecoilmod", "Recoil Rework Legacy", ArenaWhitelistTier.Mod, "2.0.0", null),
+            ("com.fontaine.fovfix", "Fontaine FOV Fix", ArenaWhitelistTier.Mod, "4.1.0", null),
+            ("com.manimal.loadammoanim", "Manimal Ammo Loading Animations", ArenaWhitelistTier.Mod, "2.0.0", "2.0.0"),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
