@@ -905,6 +905,12 @@ namespace ArenaMode.SessionHelper
         public static HelperTreeResult Build(HelperRequest request, int arenaPort, string runtimeRoot, string helperVersion,
             DateTime nowUtc, Action<string> log)
         {
+            return Build(request, arenaPort, runtimeRoot, helperVersion, nowUtc, log, null);
+        }
+
+        internal static HelperTreeResult Build(HelperRequest request, int arenaPort, string runtimeRoot, string helperVersion,
+            DateTime nowUtc, Action<string> log, HelperOfflineSession.Entry offline)
+        {
             if (request == null) throw new ArgumentNullException("request");
             if (!request.IsEnter) throw new HelperException("only an 'enter' request builds the server tree");
             if (arenaPort < 1 || arenaPort > 65535) throw new HelperException("invalid arena port " + arenaPort);
@@ -920,6 +926,13 @@ namespace ArenaMode.SessionHelper
             string source = request.SptRuntimeDir;
             string tree = GetTreePath(root);
             var result = new HelperTreeResult { TreePath = tree, Port = arenaPort };
+            if (request.Schema == ArenaSessionContract.OfflineRequestSchema)
+            {
+                if (offline == null) throw new HelperException("Offline Arena entry has not confirmed a saved normal-server shutdown.");
+                offline.RequireBuild(request, tree, arenaPort, nowUtc);
+            }
+            else if (offline != null || request.OfflineSessionId != null)
+                throw new HelperException("The offline Arena request contract changed.");
 
             // The exe the server is started from lives in the tree. Without the runtime's own it cannot be built.
             if (!File.Exists(Path.Combine(source, HelperLayout.ServerExeName))) throw new HelperException("no " + HelperLayout.ServerExeName + " in " + source);
@@ -939,6 +952,7 @@ namespace ArenaMode.SessionHelper
 
             // This guard also covers callers other than HelperRunner. Results must have been
             // durably returned by the stopped-server path before any old user data is removed.
+            HelperOfflineSession.RequireClosedBeforeRebuild(root);
             HelperRewardTransfer.RequireDrainedBeforeRebuild(root);
             PrepareTree(box, tree, binaries);
 
@@ -1103,6 +1117,7 @@ namespace ArenaMode.SessionHelper
             // folder may hold backups and sync conflicts of it).
             string profileName = request.ProfileId + ".json";
             string profileSource = Path.Combine(Path.Combine(userSource, HelperLayout.ProfilesFolder), profileName);
+            if (offline != null) offline.RequireBuild(request, tree, arenaPort, nowUtc);
             if (!File.Exists(profileSource)) throw new HelperException("no profile file at " + profileSource);
             box.CopyFile(profileSource, Path.Combine(Path.Combine(userTarget, HelperLayout.ProfilesFolder), profileName));
 
@@ -1120,15 +1135,21 @@ namespace ArenaMode.SessionHelper
 
             // Only the enabled, server-issued reward delegation travels with the disposable
             // profile. Ordinary enrollment, payment history and normal profiles never come back.
-            HelperRewardTransfer.CopyHandoff(source, request.ProfileId, tree);
+            if (offline == null) HelperRewardTransfer.CopyHandoff(source, request.ProfileId, tree);
 
             // The marker commits the private tree. Optional reward control binds to this exact marker.
             HelperMarker marker = HelperMarker.Create(nowUtc, request.ProfileId, arenaPort, source, request.PolicyHash, helperVersion, result.ServerExe);
             marker.VersionPlan = request.VersionPlan;
             marker.RewardControlId = request.RewardControlId;
+            marker.OfflineSessionId = request.OfflineSessionId;
+            if (offline != null) marker.CreatedUtc = offline.MarkerCreated;
+            if (offline != null) offline.CopyLease(marker);
             box.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), marker.ToJson());
-            HelperRewardControlTransfer.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
-            HelperRewardReturn.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
+            if (offline == null)
+            {
+                HelperRewardControlTransfer.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
+                HelperRewardReturn.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
+            }
 
             result.FilesCopied = box.FilesCopied;
             return result;

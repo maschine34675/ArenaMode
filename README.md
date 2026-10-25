@@ -230,11 +230,12 @@ They default **on**: the first normal server start with this version registers
 existing, initialized profiles before loading them. No initial opt-in/restart
 cycle is needed. An existing OFF choice stays off; the Arena map menu can switch
 rewards in either session. A profile created or initialized after the server has
-already started is registered at the next normal start. Keep the normal server running
-while changing rewards in the separate session. Eligible kills earn **1,000 ₽ + 100 XP**, round wins
+already started is registered at the next normal start. On the supported local path,
+the normal server saves and stops when entering Arena; the rewards switch works
+inside the separate session while it is stopped. Eligible kills earn **1,000 ₽ + 100 XP**, round wins
 **10,000 ₽ + 1,000 XP**, up to **200,000 ₽ + 20,000 XP per match**. Gun Game and Zombies currently award
 kills only; no-contest results are excluded. **RETURN TO NORMAL SESSION** automatically
-restarts the supported local server when a payout is pending, then opens the normal game:
+starts the normal server, imports the final reward setting and results, then opens the normal game:
 RUB arrives by mail and XP is already credited to the PMC. No separate manual restart is needed.
 Direct Arena play without a private session still pays at the next normal server start.
 The mail lists XP already
@@ -314,10 +315,12 @@ unavailable as before.
   switches it off. A support library that merely sits there (a DLL without a `TargetDLLs`
   member, which every patcher has) is not a patcher and counts for nothing.
 - **The Arena session:** the game restarts (about two minutes) with only the
-  whitelisted plugins, against a second SPT server, started by the helper
+  whitelisted plugins, against a private SPT server, started by the helper
   `maschine-ArenaMode.Session.exe`, that loads only the whitelisted server mods
   from a private copy of the server tree (port 6970, or 6971 to 6979 if it is
-  taken). It works on a disposable copy of your profile, so profile changes made
+  taken). The supported local normal server saves and stops before this copy is made;
+  it starts again on return. Unsupported older/remote setups retain the previous
+  live-server path. It works on a disposable copy of your profile, so profile changes made
   in the session are discarded (its profile backups stay inside that private copy as
   well; your normal server's backup folder is never touched). Items, clothing and trader
   records of mods the session leaves out are deleted from that copy by SPT's own clean-up,

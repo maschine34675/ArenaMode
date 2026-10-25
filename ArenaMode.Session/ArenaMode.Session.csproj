@@ -4,7 +4,7 @@
     maschine-ArenaMode.Session.exe: the Arena session helper (docs/ARENA-SESSION-20261021.md, section 6).
     A short-lived .NET Framework 4.7.2 process that survives the game it was started by, switches
     between the normal session and the Arena session (private server tree, second SPT server, game
-    restart) and never shows UI.
+    restart). A paused native save/readiness transition can show a Retry/Cancel dialog.
 
     Deliberately does NOT import ..\Shared.props: that file puts the SPT game folders in front of
     AssemblySearchPaths (so a framework reference could resolve to the game's Unity facades) and wires

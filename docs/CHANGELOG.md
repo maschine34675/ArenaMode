@@ -10,6 +10,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Stop the supported local normal server when entering a private Arena session,
+  after native save/read-back and before copying the profile. Rewards can still
+  be switched inside Arena. Returning starts normal SPT and recovers the final
+  choice and signed results before loading profiles. Concurrent normal starts
+  cannot open the same profiles while the private session owns them.
 - Adapt PitFireTeam's profile-protection contracts to 1.0.0, including both
   companion databases and the new recruitment, karma, insurance and cargo paths.
   Older supported versions keep their existing guards. Record 1.0.0 as reviewed

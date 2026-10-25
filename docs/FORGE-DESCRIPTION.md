@@ -250,8 +250,10 @@ default for newly registered profiles (existing OFF choices stay OFF):
 - Optional Tarkova Cola 2.2.1+: Zombie research and achievements can transfer to the
   normal profile with rewards enabled. No bottle/grenade refunds; no permanent
   Cola progress from other Arena modes. Install Tarkova Cola separately on both sides.
-- **RETURN TO NORMAL SESSION** automatically restarts the supported local server
-  when rewards are pending. On return, RUB is in the mailbox and XP is already credited.
+- The supported local normal server saves and stops when entering a private Arena
+  session. **RETURN TO NORMAL SESSION** starts it again and processes the final
+  reward setting and results. On return, enabled RUB rewards are in the mailbox
+  and XP is already credited.
   Direct Arena play without a private session pays at the next normal server start.
   The mail lists XP already credited; collecting it does not grant XP twice.
 - The Arena map menu controls rewards in either session. Private sessions return

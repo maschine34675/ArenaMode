@@ -16,11 +16,15 @@ internal sealed class RewardPrivateConsent
     private long _revision = -1;
     private DateTimeOffset _confirmed;
     internal bool HasControl { get; }
+    internal bool IsOffline { get; }
 
     internal RewardPrivateConsent(string root, Func<DateTimeOffset> now,
         Func<RewardControlGrant, RewardControlRequest, CancellationToken, Task<RewardControlReply>>? send = null)
     {
         _root = root; _now = now; _send = send ?? RewardConsentTransport.SendAsync;
+        // No fallback to an old copied ON handoff if offline ownership is missing.
+        try { if (RewardOfflineSession.Requested(root)) { IsOffline = true; HasControl = true; return; } }
+        catch { IsOffline = true; HasControl = true; return; }
         if (RewardStartupFiles.MarkerAbsent(root)) return;
         try
         {
@@ -54,11 +58,23 @@ internal sealed class RewardPrivateConsent
 
     internal RewardStatusResponse Status()
     {
+        if (IsOffline)
+        {
+            try
+            {
+                var status = Offline().Status();
+                lock (_sync) if (_status.State == "changed" && _status.ConsentRevision == status.ConsentRevision)
+                { status.State = _status.State; status.Detail = _status.Detail; }
+                return status;
+            }
+            catch { return new() { PrivateSession = true, State = "unavailable", Detail = "Offline Arena reward authority needs recovery; return to normal SPT." }; }
+        }
         lock (_sync) return JsonSerializer.Deserialize<RewardStatusResponse>(JsonSerializer.Serialize(_status))!;
     }
 
     internal RewardHandoff? Authority(string id)
     {
+        if (IsOffline) return Offline().Authority(id);
         lock (_sync) return _lease?.Grant.ProfileId == id && _status.Available && _status.Enabled
             && _now() - _confirmed <= TimeSpan.FromMinutes(2) && _lease.Grant.ExpiresUtc > _now() ? _authority : null;
     }
@@ -68,6 +84,14 @@ internal sealed class RewardPrivateConsent
         await _requests.WaitAsync(ct);
         try
         {
+            if (IsOffline)
+            {
+                var owner = Offline();
+                if (id != owner.Lease.ProfileId) throw new RewardDataException("offline-profile-mismatch");
+                var offlineStatus = enabled.HasValue ? owner.SetConsent(id, enabled.Value, expectedRevision) : owner.Status();
+                lock (_sync) _status = offlineStatus;
+                return;
+            }
             if (_lease is null || _lease.Grant.ProfileId != id) throw new RewardDataException("reward-control-not-bound");
             RewardConsentControl.ValidateGrant(_lease.Grant, _now());
             long revision;
@@ -114,6 +138,9 @@ internal sealed class RewardPrivateConsent
         }
         finally { _requests.Release(); }
     }
+
+    private RewardOfflinePrivate Offline() => RewardOfflineSession.Owner(_root)
+        ?? throw new RewardDataException("offline-owner-not-active");
 
     private static RewardStatusResponse Unavailable() => new()
     {

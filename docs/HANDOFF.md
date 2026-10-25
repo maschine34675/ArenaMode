@@ -25,12 +25,15 @@ current. User-facing communication is normally German.
   capture is client-observed, server-validated and signed only after exact
   snapshot restoration plus full saved-profile read-back. Private sessions
   return immutable receipts through the helper, never profile copies. New
-  development builds automatically restart the supported local normal server on
-  RETURN when enrollment/payment is pending; see [the return contract](REWARDS-RETURN.md).
+  development builds now save/stop the supported local normal server at entry and
+  start it again on RETURN, including OFF/no-result sessions. Private signed consent
+  works while it is stopped; see [offline ownership and recovery](ARENA-OFFLINE-SESSION-20261025.md)
+  and [the reused native save adapter](REWARDS-RETURN.md).
   The [native return report](GPU-REWARD-RETURN-20261025.md) covers the loaded
   build, real earned receipts, automatic startup payout and cleanup.
   Native save/readback and request/update quiescence precede shutdown; failures
-  preserve live RAM. No-work/OFF returns keep the normal server running. New
+  preserve live RAM. Legacy schema 1/2 retain the older live-server fallback only
+  when no offline capability was issued. New
   startup allocations preserve intervening normal progress; existing allocations
   and payment history must never be reset/rebased. Native SPT 4.1.6 idle
   `inraid: {}` and the space before its raid timestamp are intentional formats.

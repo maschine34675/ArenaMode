@@ -250,6 +250,13 @@ namespace ArenaMode.SessionHelper
                 return null;
             }
 
+            try { _runner.ValidateOfflineRequest(request); }
+            catch (Exception)
+            {
+                _log.Error("Offline Arena authorization is unavailable or changed; the game remains open.");
+                return null;
+            }
+
             return request;
         }
 

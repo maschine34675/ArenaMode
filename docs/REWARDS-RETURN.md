@@ -1,6 +1,11 @@
 # Automatic rewards on return — 2026-10-25
 
-Development change after 0.2.0. The supported local path is now:
+Development change after 0.2.0. **Current local entry/return is extended by
+[offline Arena sessions](ARENA-OFFLINE-SESSION-20261025.md): the ordinary server
+now saves and stops before copying the Arena profile, stays stopped during play,
+and starts on return.** The save/drain safeguards below are reused at entry.
+The flow and native evidence below describe the preceding implementation, retained
+as the schema 1/2 compatibility path when no offline entry capability is issued:
 
 1. Start an Arena session from normal SPT; rewards default ON for eligible profiles.
 2. Play and leave Arena normally. Existing result validation/restoration rules apply.

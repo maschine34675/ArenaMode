@@ -51,6 +51,8 @@ namespace ArenaMode.SessionHelper
         public static int ReturnPending(string runtimeRoot, string callerRuntime, Action<string> log = null,
             Action<string> afterPublish = null)
         {
+            if (HelperOfflineSession.HasOfflineTree(HelperServerTree.GetTreePath(runtimeRoot)))
+                return 0; // native ordinary startup imports signed offline state and receipts together
             if (!Exists(Path.Combine(HelperServerTree.GetTreePath(runtimeRoot), "user", OutboxFolderName))) return 0;
             string tree = RequireRoot(HelperServerTree.GetTreePath(RequireRoot(runtimeRoot)));
             List<string> receipts = PublishedResults(tree);

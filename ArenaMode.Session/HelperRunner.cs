@@ -108,6 +108,13 @@ namespace ArenaMode.SessionHelper
             _version = version;
         }
 
+        internal void ValidateOfflineRequest(HelperRequest request)
+        {
+            if (request.Schema != ArenaSessionContract.OfflineRequestSchema) return;
+            if (request.IsEnter) HelperOfflineSession.ReadGrant(request, ReadNormalEndpoint(request), DateTime.UtcNow);
+            else HelperOfflineSession.ReadPrivate(HelperServerTree.GetTreePath(_runtimeRoot), request);
+        }
+
         // ------------------------------------------------------------------ enter
 
         public bool Enter(HelperRequest request)
@@ -116,6 +123,7 @@ namespace ArenaMode.SessionHelper
             if (!AwaitGame(request)) return false;
 
             _gameStarted = false;
+            HelperOfflineSession.Entry offline = null;
             try
             {
                 HelperHttpEndpoint normal = ReadNormalEndpoint(request);
@@ -137,7 +145,15 @@ namespace ArenaMode.SessionHelper
                 if (port < 0) throw new HelperException("no free port between " + ArenaSessionContract.ArenaPort + " and " + ArenaSessionContract.FallbackPortLast);
                 if (port != ArenaSessionContract.ArenaPort) _log.Warn("port " + ArenaSessionContract.ArenaPort + " is taken, the arena server uses " + port);
 
-                HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, DateTime.UtcNow, Info);
+                DateTime created = DateTime.UtcNow;
+                if (request.Schema == ArenaSessionContract.OfflineRequestSchema)
+                {
+                    if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
+                    offline = HelperOfflineSession.Entry.Open(request, HelperServerTree.GetTreePath(_runtimeRoot), normal, created, port);
+                    if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
+                    offline.StopNormal(normal, Info);
+                }
+                HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, created, Info, offline);
                 _log.Info("server tree ready at " + tree.TreePath + ": " + tree.Junctions.Count + " junctions, " + tree.Mods.Count + " server mods, "
                     + "server prepatch folders (user\\patchers): " + tree.Patchers.Count + (tree.Patchers.Count == 0 ? string.Empty : " (" + string.Join(", ", tree.Patchers.ToArray()) + ")")
                     + ", " + tree.FilesCopied + " files copied, server binaries " + tree.ServerFilesCopied + " copied and " + tree.ServerFilesUnchanged + " unchanged");
@@ -168,7 +184,8 @@ namespace ArenaMode.SessionHelper
                         + "); the server, which runs from the copy of its exe, will not find files in them");
                 }
 
-                StartArenaServer(tree);
+                StartArenaServer(tree, offline);
+                if (offline != null) offline.Dispose(); // private now owns the original lifetime lock
 
                 List<string> arguments;
                 string error;
@@ -189,9 +206,19 @@ namespace ArenaMode.SessionHelper
 
                 // The old game is gone. Unless the Arena game was started, bring the normal session
                 // back instead of leaving the player with no game at all. Never start a second game.
-                if (!_gameStarted) RecoverNormalSession(request);
+                if (!_gameStarted)
+                {
+                    if (request.Schema != ArenaSessionContract.OfflineRequestSchema) RecoverNormalSession(request);
+                    else if (offline != null && offline.ReadyStopped)
+                    {
+                        try { StartOfflineNormalSession(request, offline.Lease, offline); }
+                        catch (Exception recovery) { LogFailure("Offline Arena recovery paused; start normal SPT after resolving its server log", recovery); }
+                    }
+                    // Held/unknown native-save failures never enter legacy fallback.
+                }
                 return false;
             }
+            finally { if (offline != null) offline.Dispose(); }
         }
 
         // ------------------------------------------------------------------ leave
@@ -217,6 +244,12 @@ namespace ArenaMode.SessionHelper
         // The steps shared by leave and by the recovery after a failed enter.
         private void StartNormalSession(HelperRequest request, bool settleRewards = false)
         {
+            string privateTree = HelperServerTree.GetTreePath(_runtimeRoot);
+            if (request.Schema == ArenaSessionContract.OfflineRequestSchema || HelperOfflineSession.HasOfflineTree(privateTree))
+            {
+                StartOfflineNormalSession(request, HelperOfflineSession.ReadPrivate(privateTree, request), null);
+                return;
+            }
             // Starting the game must not depend on cleaning up the arena server: a pid file that cannot be
             // read or deleted for a moment (a scanner, an editor) would otherwise cost the player the
             // game on leave, and on the recovery after a failed enter as well.
@@ -266,6 +299,31 @@ namespace ArenaMode.SessionHelper
             StartGame(request, arguments);
         }
 
+        private void StartOfflineNormalSession(HelperRequest request, HelperOfflineSession.Lease lease, HelperOfflineSession.Entry entry)
+        {
+            // A failed Build can have no marker yet; its original Ready lease still
+            // provides the only return authority. No legacy grant/port fallback.
+            FileStream startup = entry != null && entry.Startup != null ? null : HelperOfflineSession.AcquireStartup(lease.Source);
+            try
+            {
+                StopResult stopped = StopArenaServer(request.SptRuntimeDir, true);
+                if (stopped == StopResult.Unverified || stopped == StopResult.StillRunning || stopped == StopResult.OtherInstallation)
+                    throw new HelperException("The private Arena server could not be verified stopped; normal SPT was not started.");
+                HelperOfflineSession.RequirePrivateAbsent(lease);
+            }
+            finally
+            {
+                if (startup != null) startup.Dispose();
+                if (entry != null) entry.Dispose();
+            }
+            HelperHttpEndpoint normal = ReadNormalEndpoint(request);
+            HelperOfflineSession.StartNormal(lease, normal, StartProcess, WaitForServer, Info);
+            List<string> arguments; string error;
+            if (!HelperCommandLine.TryRewriteGameArguments(request.GameArgs, false, normal.BackendPort, out arguments, out error))
+                throw new HelperException("cannot build the game arguments: " + error);
+            StartGame(request, arguments);
+        }
+
         // A failed enter happens after the old game has exited. Starting the normal session again leaves
         // the user with a working game instead of nothing (the specification does not ask for this).
         private void RecoverNormalSession(HelperRequest request)
@@ -300,7 +358,21 @@ namespace ArenaMode.SessionHelper
         /// mutex and its pid file are shared by every installation of the Windows user, so a server that
         /// belongs to another installation is not stopped (<see cref="StopResult.OtherInstallation"/>).
         /// Null for the <c>stop-server</c> command, which stops whichever server was recorded.</param>
-        public StopResult StopArenaServer(string callerRuntime)
+        public StopResult StopArenaServer(string callerRuntime, bool offlineStartupHeld = false)
+        {
+            string tree = HelperServerTree.GetTreePath(_runtimeRoot);
+            FileStream startup = null;
+            if (!offlineStartupHeld && HelperOfflineSession.HasOfflineTree(tree))
+            {
+                var lease = HelperOfflineSession.ReadPrivate(tree);
+                if (callerRuntime != null && !HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return StopResult.OtherInstallation;
+                startup = HelperOfflineSession.AcquireStartup(lease.Source);
+            }
+            try { return StopArenaServerCore(callerRuntime); }
+            finally { if (startup != null) startup.Dispose(); }
+        }
+
+        private StopResult StopArenaServerCore(string callerRuntime)
         {
             StopResult registered = StopRegisteredServer(callerRuntime);
             StopResult result = registered;
@@ -320,6 +392,9 @@ namespace ArenaMode.SessionHelper
 
         private void ReturnStoppedSessionRewards(string callerRuntime)
         {
+            // Original startup validates signed local consent and imports the whole
+            // closed offline session, including OFF/no receipts. Never drain it here.
+            if (HelperOfflineSession.HasOfflineTree(HelperServerTree.GetTreePath(_runtimeRoot))) return;
             if (!HelperRewardTransfer.HasPublishedResults(_runtimeRoot)) return;
             string expected = Path.Combine(HelperServerTree.GetTreePath(_runtimeRoot), HelperLayout.ServerExeName);
             // FindByImage deliberately ignores unreadable processes for kill decisions. Returning
@@ -916,7 +991,7 @@ namespace ArenaMode.SessionHelper
         // The arena server runs from its own copy of the exe in the tree: AppContext.BaseDirectory, which some
         // server mods resolve their paths from, is then the disposable tree and not the installation.
         // Internal so that a test drives it against a stand-in process (ProcessStarter).
-        internal void StartArenaServer(HelperTreeResult tree)
+        internal void StartArenaServer(HelperTreeResult tree, HelperOfflineSession.Entry offline = null)
         {
             string serverExe = tree.ServerExe;
             if (!File.Exists(serverExe)) throw new HelperException("the SPT server is missing from the arena tree: " + serverExe);
@@ -954,7 +1029,8 @@ namespace ArenaMode.SessionHelper
                 _log.Info("arena server pid " + server.Id);
 
                 HelperHttpEndpoint arena = ReadArenaEndpoint(tree.TreePath);
-                WaitForServer(arena.ServerHost, tree.Port, server, "the arena server", portFree);
+                WaitForServer(arena.ServerHost, tree.Port, server, "the arena server", offline == null && portFree);
+                if (offline != null) offline.ConfirmActivation(server);
             }
         }
 

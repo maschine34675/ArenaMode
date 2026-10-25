@@ -45,6 +45,27 @@ internal static class RewardEnrollment
         }
     }
 
+    // Startup recovery only: preserve every acknowledged private revision and
+    // accept a crash retry at exactly the recorded before/after metadata state.
+    internal static void ApplyOfflineConsent(string root, string id, RewardConsent before, RewardConsent after)
+    {
+        if (!RewardStartupFiles.MarkerAbsent(root) || after.Schema != 1 || after.Revision < before.Revision)
+            throw new RewardDataException("offline-consent-transition-invalid");
+        var current = ReadConsent(root, id);
+        if (current != before && current != after) throw new RewardDataException("offline-consent-conflict");
+        string directory = RewardRuntimeFiles.DirectoryFor(root, id);
+        RewardRuntimeFiles.EnsureDirectory(root, directory);
+        string handoffPath = Path.Combine(directory, "handoff.json");
+        if (!after.Enabled && RewardRuntimeFiles.Exists(root, handoffPath))
+        {
+            var handoff = RewardRuntimeFiles.ReadHandoff(root, handoffPath);
+            RewardRuntimeFiles.Write(root, handoffPath, handoff with { Enabled = false });
+        }
+        RewardRuntimeFiles.Write(root, Path.Combine(directory, "consent.json"), after);
+        if (after.Enabled && RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json")))
+            PublishHandoff(root, directory, Read(root, id));
+    }
+
     internal static RewardStartupEnrollment Read(string root, string id)
     {
         var path = Path.Combine(RewardRuntimeFiles.DirectoryFor(root, id), "enrollment.json");

@@ -269,7 +269,7 @@ internal static class RewardReturnQuiescence
     private static bool Prefix(HttpContext __0, ref Task __result, out IDisposable? __state)
     {
         __state = null;
-        if (!Enabled || __0.Request.Path == RewardReturnControl.Route) return true;
+        if (!Enabled || __0.Request.Path == RewardReturnControl.Route || __0.Request.Path == RewardEntryControl.Route) return true;
         __state = Requests.TryEnter();
         if (__state is not null) return true;
         __result = Reject(__0);

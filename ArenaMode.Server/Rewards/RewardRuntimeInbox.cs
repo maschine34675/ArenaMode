@@ -23,6 +23,7 @@ internal static class RewardRuntimeInbox
         var receipt = RewardRuntimeFiles.Verify(authority, signed);
         if (Path.GetFileName(path) != receipt.Evidence.Authorization.RunId + ".json")
             throw new RewardDataException("reward-receipt-filename-mismatch");
+        RewardOfflineSession.RequireClosedReceipt(root, directory, authority, signed, receipt.Evidence.Authorization.RunId);
         return receipt;
     }
 

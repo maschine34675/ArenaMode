@@ -16,6 +16,7 @@ public class ArenaRewardConsentRequest : RewardConsentRequest, IRequestData;
 public class ArenaRewardBeginRequest : RewardBeginRequest, IRequestData;
 public class ArenaRewardCaptureRequest : RewardCaptureRequest, IRequestData;
 public class ArenaRewardControlPrepareRequest : RewardControlPrepareRequest, IRequestData;
+public class ArenaRewardEntryPrepareRequest : RewardEntryPrepareRequest, IRequestData;
 
 /// <summary>Accepts consent and combat observations; never payout or restoration authority.</summary>
 [Injectable(TypePriority = OnLoadOrder.Routers + 1)]
@@ -30,6 +31,21 @@ public sealed class ArenaRewardRouter : StaticRouter
     [
         new RouteAction<EmptyRequestData>(RewardWire.StatusRoute,
             (url, request, id, output, ct) => Status(id, saves, sessions, snapshots, ordinary, ct)),
+        new RouteAction<ArenaRewardEntryPrepareRequest>(RewardWire.PrepareEntryRoute,
+            async (url, request, id, output, ct) =>
+            {
+                using (await ArenaRaidStartGate.EnterAsync(id, ct))
+                {
+                    try
+                    {
+                        if (CanChange(id, saves, sessions, snapshots, ordinary)
+                            && RewardEntryControl.Current.Issue(id.ToString(), request.SessionId))
+                            return Json(new RewardEntryPrepareResponse { Accepted = true });
+                    }
+                    catch (Exception) { }
+                    return Json(new RewardEntryPrepareResponse { Reason = "entry-stop-unavailable" });
+                }
+            }),
         new RouteAction<ArenaRewardControlPrepareRequest>(RewardWire.PrepareControlRoute,
             async (url, request, id, output, ct) =>
             {

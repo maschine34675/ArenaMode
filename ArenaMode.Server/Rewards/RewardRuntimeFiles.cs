@@ -8,7 +8,8 @@ namespace ArenaMode.Server.Rewards;
 internal sealed record RewardConsent(int Schema, bool Enabled, long Revision = 0);
 internal sealed record RewardEnrollmentPlan(int Schema, RewardBinding Binding, string BeforeRevision, string AfterRevision);
 internal sealed record RewardHandoff(int Schema, bool Enabled, string RuntimeRoot, RewardBinding Binding,
-    string DelegationId, string Key);
+    string DelegationId, string Key,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? OfflineSessionId = null);
 internal sealed record RewardEarnedReceipt(int Schema, string DelegationId, RewardApprovalCandidate Evidence);
 internal sealed record RewardSignedReceipt(int Schema, string DelegationId, string Payload, string Signature);
 internal sealed record RewardAllocation(int Schema, string SourceFingerprint, RewardApprovalCandidate Candidate);
@@ -114,7 +115,8 @@ internal static class RewardRuntimeFiles
     internal static RewardHandoff ValidateHandoff(RewardHandoff value)
     {
         if (value.Schema != 1 || value.Binding is null || !RewardIdentity.IsGuid(value.DelegationId)
-            || !Path.IsPathFullyQualified(value.RuntimeRoot) || Convert.FromBase64String(value.Key).Length != 32)
+            || !Path.IsPathFullyQualified(value.RuntimeRoot) || Convert.FromBase64String(value.Key).Length != 32
+            || value.OfflineSessionId is not null && !RewardIdentity.IsGuid(value.OfflineSessionId))
             throw new RewardDataException("invalid-reward-delegation");
         value.Binding.Validate();
         return value;

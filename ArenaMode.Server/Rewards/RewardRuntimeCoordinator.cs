@@ -72,7 +72,7 @@ internal sealed class RewardRuntimeCoordinator
             if (result.PrivateSession && _privateConsent.HasControl)
             {
                 result = _privateConsent.Status();
-                result.AutomaticReturn &= RewardReturnControl.PrivateGrantAvailable(_root, id);
+                if (!_privateConsent.IsOffline) result.AutomaticReturn &= RewardReturnControl.PrivateGrantAvailable(_root, id);
                 result.CanChange &= !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
                 if (_runs.TryGetValue(id, out var active))
                 {

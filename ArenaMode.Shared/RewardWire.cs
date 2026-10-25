@@ -10,6 +10,7 @@ public static class RewardWire
     public const string StatusRoute = "/arenamode/rewards/status";
     public const string ConsentRoute = "/arenamode/rewards/consent";
     public const string PrepareControlRoute = "/arenamode/rewards/control/prepare";
+    public const string PrepareEntryRoute = "/arenamode/session/prepare";
     public const string BeginRoute = "/arenamode/rewards/begin";
     public const string CaptureRoute = "/arenamode/rewards/capture";
 }
@@ -22,6 +23,17 @@ public class RewardControlPrepareRequest
 }
 
 public sealed class RewardControlPrepareResponse
+{
+    public bool Accepted { get; set; }
+    public string Reason { get; set; } = "";
+}
+
+public class RewardEntryPrepareRequest
+{
+    public string SessionId { get; set; } = "";
+}
+
+public sealed class RewardEntryPrepareResponse
 {
     public bool Accepted { get; set; }
     public string Reason { get; set; } = "";

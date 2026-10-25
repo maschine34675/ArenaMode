@@ -10,6 +10,7 @@
     <Compile Include="$(RewardControlSource)" Link="Production/RewardControlTransfer.cs" />
     <Compile Include="../../ArenaMode.Session/RewardTransfer.cs" Link="Production/RewardTransfer.cs" />
     <Compile Include="../../ArenaMode.Session/RewardReturn.cs" Link="Production/RewardReturn.cs" />
+    <Compile Include="../../ArenaMode.Session/HelperOfflineSession.cs" Link="Production/HelperOfflineSession.cs" />
     <Compile Include="../../ArenaMode.Session/HelperProcesses.cs" Link="Production/HelperProcesses.cs" />
     <Compile Include="../../ArenaMode.Session/SessionLogic.cs" Link="Production/SessionLogic.cs" />
     <Compile Include="../../ArenaMode.Session/SessionFileSystem.cs" Link="Production/SessionFileSystem.cs" />

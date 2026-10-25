@@ -24,6 +24,8 @@ namespace ArenaMode.Shared.Session
 
         public const string VersionPlanFlag = "-arena-version-plan=";
         public const int VersionPlanRequestSchema = 2;
+        // An old helper must refuse rather than silently leave the ordinary server alive.
+        public const int OfflineRequestSchema = 3;
 
         /// <summary>AppDomain data key under which the gate publishes its report JSON.</summary>
         public const string GateReportDataKey = "com.maschine.ArenaMode.Gate.Report";

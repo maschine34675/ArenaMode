@@ -22,14 +22,21 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
     ProfileSnapshotService snapshots, OrdinaryRaidLifecycleService ordinary, JsonUtil json, CoreConfig config) : IHttpListener
 {
     private int _shutdownRequested;
-    public bool CanHandle(HttpContext context) => context.Request.Path == RewardReturnControl.Route;
+    private readonly RewardShutdownReservation _reservation = new();
+    public bool CanHandle(HttpContext context) => context.Request.Path == RewardReturnControl.Route
+        || context.Request.Path == RewardEntryControl.Route;
 
     public async Task HandleAsync(MongoId id, HttpContext context, CancellationToken cancellationToken = default)
     {
         context.Response.ContentType = "application/json";
         context.Response.Headers.CacheControl = "no-store";
         RewardReturnRequest? request = null;
+        RewardEntryRequest? entryRequest = null;
+        RewardEntryGrant? entryGrant = null;
+        bool entering = context.Request.Path == RewardEntryControl.Route;
         bool authorized = false;
+        bool reserved = false;
+        string stage = "admission";
         try
         {
             if (!RewardReturnQuiescence.Enabled || context.Request.Method != "POST"
@@ -41,15 +48,29 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             string body = await RewardConsentTransport.ReadBoundedAsync(context.Request.Body, readTimeout.Token);
             using var document = JsonDocument.Parse(body);
             RewardStartupFiles.RejectDuplicateProperties(document.RootElement);
-            request = document.RootElement.Deserialize<RewardReturnRequest>(RewardSettlementCore.JournalJson)
-                ?? throw new RewardDataException("return-empty-request");
             var control = RewardRuntimeCoordinator.Current.ReturnControl;
-            if (!control.Authorize(id.ToString(), request)) throw new RewardDataException("return-not-authorized");
+            if (entering)
+            {
+                entryRequest = document.RootElement.Deserialize<RewardEntryRequest>(RewardSettlementCore.JournalJson)
+                    ?? throw new RewardDataException("entry-empty-request");
+                if (!RewardEntryControl.Current.Authorize(id.ToString(), entryRequest, out entryGrant))
+                    throw new RewardDataException("entry-not-authorized");
+            }
+            else
+            {
+                request = document.RootElement.Deserialize<RewardReturnRequest>(RewardSettlementCore.JournalJson)
+                    ?? throw new RewardDataException("return-empty-request");
+                if (!control.Authorize(id.ToString(), request)) throw new RewardDataException("return-not-authorized");
+            }
             authorized = true;
-            if (!RewardReturnQuiescence.Sequence.UpdatesStopped
+            if (!_reservation.Reserve(entering, id.ToString(), (object?)entryRequest ?? request!))
+                throw new RewardDataException("shutdown-operation-busy");
+            reserved = true;
+            stage = "native-lifecycle";
+            if (!entering && !RewardReturnQuiescence.Sequence.UpdatesStopped
                 && !NeedsStartup(RewardRuntimeCoordinator.Current.GetStatus(id.ToString())))
             {
-                control.ReleaseBeforeQuiescence(id.ToString(), request);
+                Release();
                 await context.Response.WriteAsync(RewardRuntimeFiles.Json(new RewardReturnReply(false, "no-pending-rewards")), cancellationToken);
                 return;
             }
@@ -65,8 +86,10 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             // A dropped HTTP client cannot cancel a half-stopped server. The operation has its own
             // bound and reports a held state if a stopped update loop cannot safely be followed by exit.
             using var operationTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            stage = "save-and-drain";
             var reply = await RewardReturnQuiescence.Sequence.PrepareAsync(
-                () => control.Authorize(id.ToString(), request) && IsIdle(),
+                () => (entering ? RewardEntryControl.Current.Authorize(id.ToString(), entryRequest!, out _)
+                    : control.Authorize(id.ToString(), request!)) && IsIdle(),
                 SaveAndVerify,
                 async ct =>
                 {
@@ -78,36 +101,55 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     if (updates.ExecuteTask.IsFaulted) throw new RewardDataException("return-update-loop-faulted");
                 }, operationTimeout.Token);
 
-            if (!reply.Accepted && !reply.Held) control.ReleaseBeforeQuiescence(id.ToString(), request);
+            if (!reply.Accepted && !reply.Held) Release();
             if (reply.Accepted)
             {
+                if (entering)
+                {
+                    stage = "publish-entry-proof";
+                    // Durable proof is mandatory even when the HTTP reply is lost. A process exit
+                    // alone could also be a crash before its final native save finished.
+                    RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!);
+                }
                 // Register after durable save proof, before writing the acknowledgement. The helper
                 // also pins the old process and waits for its actual exit before starting a successor.
                 context.Response.OnCompleted(() =>
                 {
                     if (Interlocked.Exchange(ref _shutdownRequested, 1) == 0)
                     {
-                        ArenaContext.Logger?.Info("[ArenaMode] Returning to the normal session; restarting the local server to deliver Arena rewards.");
+                        ArenaContext.Logger?.Info(entering
+                            ? "[ArenaMode] Starting a private Arena session; the normal server has saved and will stop."
+                            : "[ArenaMode] Returning to the normal session; restarting the local server to deliver Arena rewards.");
                         lifetime.StopApplication();
                     }
                     return Task.CompletedTask;
                 });
             }
             else if (reply.Held)
-                ArenaContext.Logger?.Warning("[ArenaMode] Return paused: the local server retained its profiles in memory because a safe final save could not be confirmed. Do not close it; retry the Arena return.");
+                ArenaContext.Logger?.Warning("[ArenaMode] Session switch paused: the local server retained its profiles in memory because a safe final save could not be confirmed. Do not close it; retry the session switch.");
             await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), CancellationToken.None);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             bool held = ReturnHeld(RewardReturnQuiescence.Sequence, RewardReturnQuiescence.Requests);
-            if (authorized && !held && request is not null)
-                RewardRuntimeCoordinator.Current.ReturnControl.ReleaseBeforeQuiescence(id.ToString(), request);
+            if (authorized)
+                ArenaContext.Logger?.Debug($"[ArenaMode] Session shutdown refused at {stage}: "
+                    + (exception is RewardDataException ? exception.Message : exception.GetType().Name)
+                    + $"; held={held}.");
+            if (authorized && !held) Release();
             if (!context.Response.HasStarted)
             {
                 context.Response.StatusCode = authorized ? 200 : 400;
                 await context.Response.WriteAsync(RewardRuntimeFiles.Json(new RewardReturnReply(false,
                     held ? "return-held-preserving-profile" : "return-unavailable", held)), CancellationToken.None);
             }
+        }
+
+        void Release()
+        {
+            if (entryRequest is not null) RewardEntryControl.Current.ReleaseBeforeQuiescence(id.ToString(), entryRequest);
+            else if (request is not null) RewardRuntimeCoordinator.Current.ReturnControl.ReleaseBeforeQuiescence(id.ToString(), request);
+            if (reserved) _reservation.Release(entering, id.ToString(), (object?)entryRequest ?? request!);
         }
     }
 

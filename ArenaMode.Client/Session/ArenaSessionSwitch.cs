@@ -30,12 +30,19 @@ internal sealed class ArenaSessionRequest
     internal string ProfileId;
     internal string SptRuntimeDir;
     internal string RewardControlId;
+    internal string OfflineSessionId;
 
     /// <summary>The server mods the Arena server may load: <c>Guid</c> and the folder in <c>File</c>.</summary>
     internal List<ArenaSessionUnit> ServerMods = new List<ArenaSessionUnit>();
 
     internal string PolicyHash;
     internal ArenaSessionVersionPlan VersionPlan;
+}
+
+internal sealed class ArenaSessionPreparation
+{
+    internal bool RewardControl;
+    internal bool OfflineEntry;
 }
 
 /// <summary>
@@ -212,7 +219,8 @@ internal static class ArenaSessionSwitch
     internal static Func<string> RequestPathProvider = ArenaSessionContract.GetRequestFilePath;
     internal static HelperLauncher LaunchHelper = StartHelper;
     internal static Action QuitGame = Application.Quit;
-    internal static Func<string, Task<bool>> PrepareRewardControl = PrepareRewardControlOnServer;
+    internal static Func<string, Task<ArenaSessionPreparation>> PrepareRewardControl = PrepareRewardControlOnServer;
+    internal static Func<string, string, string> OfflineSessionIdReader = ReadOfflineSessionId;
 
     /// <summary>The clock of the wait for the helper: real seconds, not game time.</summary>
     internal static Func<float> Clock = () => Time.realtimeSinceStartup;
@@ -329,6 +337,7 @@ internal static class ArenaSessionSwitch
         {
             // Leaving needs no policy or server mods: the helper restores the normal server.
             request.PolicyHash = ArenaSessionMode.GateReport?.PolicyHash ?? string.Empty;
+            request.OfflineSessionId = OfflineSessionIdReader(request.ProfileId, request.SptRuntimeDir);
         }
 
         string requestJson = BuildRequestJson(request);
@@ -342,9 +351,13 @@ internal static class ArenaSessionSwitch
         if (enter)
         {
             string controlId = Guid.NewGuid().ToString("N");
-            Task<bool> preparation = null;
+            Task<ArenaSessionPreparation> preparation = null;
             try { preparation = PrepareRewardControl(controlId); }
-            catch (Exception) { /* Optional control must never prevent entering Arena. */ }
+            catch (Exception)
+            {
+                error = "Arena session preparation failed. The game keeps running; please try again.";
+                return false;
+            }
             // Observe even a cancelled switch's later transport fault; this continuation cannot launch a helper.
             if (preparation != null)
                 _ = preparation.ContinueWith(task => { var observed = task.Exception; },
@@ -362,47 +375,123 @@ internal static class ArenaSessionSwitch
                 catch (Exception)
                 {
                     _preparing = null;
-                    // The helper wait itself will report a broken coroutine host if needed.
+                    error = "Arena session preparation could not be completed. The game keeps running.";
+                    return false;
                 }
             }
-            request.RewardControlId = PreparedControlId(preparation, controlId);
+            if (preparation == null || preparation.Status != TaskStatus.RanToCompletion || preparation.Result == null)
+            {
+                error = "Arena session preparation failed. The game keeps running; please try again.";
+                return false;
+            }
+            ApplyPreparation(request, preparation, controlId);
         }
         return StartPreparedSwitch(request, helper, requestPath, onFailure, out error);
     }
 
-    private static IEnumerator WaitForRewardPreparation(object ticket, Task<bool> preparation, string controlId,
+    private static IEnumerator WaitForRewardPreparation(object ticket, Task<ArenaSessionPreparation> preparation, string controlId,
         ArenaSessionRequest request, string helper, string requestPath, Action<string> onFailure, float deadline)
     {
         while (ReferenceEquals(_preparing, ticket) && !preparation.IsCompleted && Clock() < deadline)
             yield return null;
         if (!ReferenceEquals(_preparing, ticket)) yield break;
         _preparing = null;
-        request.RewardControlId = PreparedControlId(preparation, controlId);
-        string failure = null;
-        try { if (StartPreparedSwitch(request, helper, requestPath, onFailure, out failure)) yield break; }
+        string failure = "Arena session preparation did not finish. The game keeps running; please try again.";
+        try
+        {
+            if (preparation.Status == TaskStatus.RanToCompletion && preparation.Result != null)
+            {
+                ApplyPreparation(request, preparation, controlId);
+                if (StartPreparedSwitch(request, helper, requestPath, onFailure, out failure)) yield break;
+            }
+        }
         catch (Exception) { failure = "The Arena session helper could not be started. The game keeps running."; }
         Plugin.ModLogger?.LogWarning("Arena session switch not started: " + failure);
         try { onFailure?.Invoke(failure); }
         catch (Exception) { Plugin.ModLogger?.LogDebug("Arena session switch failure notice could not be displayed."); }
     }
 
-    private static string PreparedControlId(Task<bool> preparation, string controlId)
+    private static void ApplyPreparation(ArenaSessionRequest request, Task<ArenaSessionPreparation> preparation, string controlId)
     {
-        if (preparation != null && preparation.Status == TaskStatus.RanToCompletion && preparation.Result)
-            return controlId;
-        Plugin.ModLogger?.LogDebug("Arena reward control was not prepared; private-session rewards remain read-only.");
-        return null;
+        if (preparation != null && preparation.Status == TaskStatus.RanToCompletion && preparation.Result != null)
+        {
+            request.RewardControlId = preparation.Result.RewardControl ? controlId : null;
+            request.OfflineSessionId = preparation.Result.OfflineEntry ? controlId : null;
+        }
+        if (request.OfflineSessionId == null)
+            Plugin.ModLogger?.LogDebug("Arena entry shutdown unavailable; the normal server remains running.");
+        if (request.RewardControlId == null && request.OfflineSessionId == null)
+            Plugin.ModLogger?.LogDebug("Arena reward control was not prepared; private-session rewards remain read-only.");
     }
 
-    private static async Task<bool> PrepareRewardControlOnServer(string controlId)
+    private static async Task<ArenaSessionPreparation> PrepareRewardControlOnServer(string controlId)
     {
-        string response = await RequestHandler.PostJsonAsync(RewardWire.PrepareControlRoute,
-            // SPT JsonUtil preserves case; match the public DTO as the other reward requests do.
-            ArenaMiniJson.Write(new Dictionary<string, object> { [nameof(RewardControlPrepareRequest.ControlId)] = controlId })).ConfigureAwait(false);
-        object root;
-        string error;
-        if (response == null || response.Length > 4096 || !ArenaMiniJson.TryParse(response, out root, out error)) return false;
-        return ArenaMiniJson.GetBool(root, "Accepted", false) || ArenaMiniJson.GetBool(root, "accepted", false);
+        // Independent: stopping an idle local server must not require enabled rewards.
+        var control = PrepareOne(RewardWire.PrepareControlRoute, nameof(RewardControlPrepareRequest.ControlId), controlId);
+        var entry = PrepareOne(RewardWire.PrepareEntryRoute, nameof(RewardEntryPrepareRequest.SessionId), controlId, true);
+        // A delayed optional consent grant must never hide an already accepted entry
+        // grant and downgrade the helper to legacy startup. Offline control uses the lease.
+        bool offline = await entry.ConfigureAwait(false);
+        return new ArenaSessionPreparation { RewardControl = control.Status == TaskStatus.RanToCompletion && control.Result,
+            OfflineEntry = offline };
+    }
+
+    // This ID is only a routing hint. The helper verifies the full lease, marker,
+    // source runtime and stopped-process identity before it can restore normal SPT.
+    internal static string ReadOfflineSessionId(string profileId, string sourceRuntime)
+    {
+        string root = ArenaSessionContract.GetServerTreePath();
+        return root == null ? null : ReadOfflineSessionIdFromMarker(
+            Path.Combine(root, ArenaSessionContract.MarkerFileName), profileId, sourceRuntime);
+    }
+
+    internal static string ReadOfflineSessionIdFromMarker(string path, string profileId, string sourceRuntime)
+    {
+        try
+        {
+            if (!File.Exists(path)) return null;
+            if (new FileInfo(path).Length > 16384) throw new InvalidDataException("Arena session marker is too large.");
+            if (!ArenaMiniJson.TryParse(File.ReadAllText(path), out var raw, out _))
+                throw new InvalidDataException("Arena session marker is unreadable.");
+            var marker = ArenaMiniJson.AsObject(raw);
+            string id = ArenaMiniJson.GetString(marker, "offlineSessionId");
+            if (id == null) return null;
+            if (!Guid.TryParseExact(id, "N", out _)
+                || ArenaMiniJson.GetString(marker, "profileId") != profileId
+                || !string.Equals(Path.GetFullPath(ArenaMiniJson.GetString(marker, "sourceRuntime") ?? ".").TrimEnd('\\', '/'),
+                    Path.GetFullPath(sourceRuntime).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Arena session marker belongs to another session.");
+            return id;
+        }
+        catch (Exception ex)
+        {
+            // No downgrade of a damaged offline session into the legacy return path.
+            throw new InvalidOperationException("The Arena session could not be verified for returning to normal SPT.", ex);
+        }
+    }
+
+    private static async Task<bool> PrepareOne(string route, string field, string id, bool strictEntry = false)
+    {
+        try
+        {
+            // SPT JsonUtil preserves case; match the actual public DTO.
+            string response = await RequestHandler.PostJsonAsync(route,
+                ArenaMiniJson.Write(new Dictionary<string, object> { [field] = id })).ConfigureAwait(false);
+            object root;
+            string error;
+            if (response == null || response.Length > 4096 || !ArenaMiniJson.TryParse(response, out root, out error))
+                throw new InvalidDataException();
+            var result = ArenaMiniJson.AsObject(root);
+            object accepted;
+            if (result == null || (!result.TryGetValue("Accepted", out accepted) && !result.TryGetValue("accepted", out accepted))
+                || !(accepted is bool)) throw new InvalidDataException();
+            return (bool)accepted;
+        }
+        catch (Exception)
+        {
+            if (strictEntry) throw new InvalidOperationException("Arena entry preparation could not be confirmed.");
+            return false;
+        }
     }
 
     private static bool StartPreparedSwitch(ArenaSessionRequest request, string helper, string requestPath,
@@ -569,7 +658,8 @@ internal static class ArenaSessionSwitch
         }
 
         var root = new Dictionary<string, object>();
-        root["schema"] = request.VersionPlan == null ? ArenaSessionContract.SchemaVersion : ArenaSessionContract.VersionPlanRequestSchema;
+        root["schema"] = request.OfflineSessionId != null ? ArenaSessionContract.OfflineRequestSchema
+            : request.VersionPlan == null ? ArenaSessionContract.SchemaVersion : ArenaSessionContract.VersionPlanRequestSchema;
         root["direction"] = request.Direction;
         root["gamePid"] = request.GamePid;
         root["gameExe"] = request.GameExe;
@@ -577,6 +667,7 @@ internal static class ArenaSessionSwitch
         root["gameArgs"] = new List<string>(request.GameArgs);
         root["profileId"] = request.ProfileId;
         if (!string.IsNullOrEmpty(request.RewardControlId)) root["rewardControlId"] = request.RewardControlId;
+        if (!string.IsNullOrEmpty(request.OfflineSessionId)) root["offlineSessionId"] = request.OfflineSessionId;
         root["sptRuntimeDir"] = request.SptRuntimeDir;
         root["serverMods"] = mods;
         root["policyHash"] = request.PolicyHash ?? string.Empty;

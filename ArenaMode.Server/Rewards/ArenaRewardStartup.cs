@@ -23,11 +23,19 @@ public sealed class ArenaRewardStartup(
 {
     private int _entered;
     private RewardStartupLifetimeLock? _lifetimeLock;
+    private RewardOfflinePrivate? _offlineOwner;
 
     public async Task OnLoadAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _entered, 1) != 0) return;
         var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
+        // Offline private ownership must precede every native profile load. It
+        // intentionally bypasses the ordinary payout/enrollment startup path.
+        if (RewardOfflineSession.Requested(root))
+        {
+            _offlineOwner = RewardOfflineSession.StartPrivate(root);
+            return;
+        }
         // Bootstrap only the ordinary metadata directory, not a profile or
         // enrollment. New installs must join the same coordination gate before
         // admission; missing state must not bypass it while a peer is writing.
@@ -37,6 +45,16 @@ public sealed class ArenaRewardStartup(
         // the first is committing. Failure/cancellation here intentionally aborts
         // this startup; it is not swallowed by the reward-only refusal below.
         using var startupGate = await RewardStartupLifetimeLock.AcquireStartupAsync(root, cancellationToken);
+        // The handle is authoritative even if ownership metadata is lost. Never
+        // downgrade a busy runtime to "rewards unavailable, load profiles anyway".
+        try { _lifetimeLock = RewardStartupLifetimeLock.Acquire(root); }
+        catch (Exception exception) { throw new RewardOfflineException("Another SPT or Arena session owns this installation. Stop or return from that session before starting normal SPT.", exception); }
+        {
+            // Outside the reward-only catch: continuing would load normal profiles
+            // while a private process owns the original runtime or recovery is unknown.
+            using var recovery = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
+            RewardOfflineSession.RecoverBeforeStartup(recovery);
+        }
         try
         {
             var reason = GetAdmissionFailure(
@@ -49,7 +67,6 @@ public sealed class ArenaRewardStartup(
                 FindConflictingServer(root));
             if (reason is not null) throw new RewardDataException(reason);
             if (!RewardStartupFiles.MarkerAbsent(root)) return;
-            _lifetimeLock = RewardStartupLifetimeLock.Acquire(root);
             using var window = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
             foreach (var outcome in await RewardStartupProcessor.ProcessAsync(window, cancellationToken))
             {
@@ -143,5 +160,5 @@ public sealed class ArenaRewardStartup(
         candidateName.StartsWith("SPT.Server", StringComparison.OrdinalIgnoreCase)
         || string.Equals(candidateName, currentName, StringComparison.OrdinalIgnoreCase);
 
-    public void Dispose() => _lifetimeLock?.Dispose();
+    public void Dispose() { _offlineOwner?.Dispose(); _lifetimeLock?.Dispose(); }
 }

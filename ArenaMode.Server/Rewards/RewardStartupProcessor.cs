@@ -11,7 +11,8 @@ internal static class RewardStartupProcessor
         window.RequireOpen();
         var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory);
         RewardStartupFiles.RequireLocalPath(window.Root, directory);
-        var profiles = Directory.GetDirectories(directory).OrderBy(p => p, StringComparer.Ordinal).Take(65).ToArray();
+        var profiles = Directory.GetDirectories(directory).Where(p => RewardIdentity.IsHex(Path.GetFileName(p), 24))
+            .OrderBy(p => p, StringComparer.Ordinal).Take(65).ToArray();
         if (profiles.Length > 64) throw new RewardDataException("too-many-reward-enrollments");
         var ids = profiles.Select(Path.GetFileName).Where(id => RewardIdentity.IsHex(id, 24))
             .Select(id => id!).Union(RewardStartupDefaults.ProfileIds(window), StringComparer.Ordinal)

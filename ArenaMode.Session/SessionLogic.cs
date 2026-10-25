@@ -516,6 +516,8 @@ namespace ArenaMode.SessionHelper
         /// <summary>Optional one-use identity for the normal server's private reward-control grant.</summary>
         public string RewardControlId { get; set; }
 
+        public string OfflineSessionId { get; set; }
+
         public string SptRuntimeDir { get; set; }
 
         public List<HelperServerMod> ServerMods { get; set; }
@@ -577,7 +579,8 @@ namespace ArenaMode.SessionHelper
             }
 
             int schema = ArenaMiniJson.GetInt(obj, "schema", -1);
-            if (schema != SupportedSchema && schema != ArenaSessionContract.VersionPlanRequestSchema)
+            if (schema != SupportedSchema && schema != ArenaSessionContract.VersionPlanRequestSchema
+                && schema != ArenaSessionContract.OfflineRequestSchema)
             {
                 error = "unsupported request schema " + schema.ToString(CultureInfo.InvariantCulture);
                 return false;
@@ -664,6 +667,16 @@ namespace ArenaMode.SessionHelper
             }
 
             parsed.ProfileId = string.IsNullOrEmpty(profileId) ? null : profileId;
+            object rawOfflineId;
+            bool hasOfflineId = obj.TryGetValue("offlineSessionId", out rawOfflineId);
+            if (schema == ArenaSessionContract.OfflineRequestSchema)
+            {
+                parsed.OfflineSessionId = rawOfflineId as string;
+                if (!hasOfflineId || !IsValidControlId(parsed.OfflineSessionId) || string.IsNullOrEmpty(parsed.ProfileId))
+                { error = "schema 3 requires an offline session identity and profile"; return false; }
+            }
+            else if (hasOfflineId)
+            { error = "an offline session requires request schema 3"; return false; }
             object rawControlId;
             if (obj.TryGetValue("rewardControlId", out rawControlId))
             {
@@ -679,7 +692,8 @@ namespace ArenaMode.SessionHelper
 
             object rawPlan;
             bool hasPlan = obj.TryGetValue("versionPlan", out rawPlan);
-            if (schema == ArenaSessionContract.VersionPlanRequestSchema)
+            if (schema == ArenaSessionContract.VersionPlanRequestSchema
+                || schema == ArenaSessionContract.OfflineRequestSchema && hasPlan)
             {
                 ArenaSessionVersionPlan plan;
                 if (!parsed.IsEnter || !hasPlan || !ArenaSessionVersionPlan.TryRead(rawPlan, out plan, out error))
@@ -696,7 +710,7 @@ namespace ArenaMode.SessionHelper
             }
             else if (hasPlan)
             {
-                error = "a version-filtered session requires request schema 2";
+                error = "a version-filtered session requires request schema 2 or 3";
                 return false;
             }
 
@@ -717,7 +731,7 @@ namespace ArenaMode.SessionHelper
                 error = "the version-filtered session plan is missing";
                 return false;
             }
-            if (Schema != ArenaSessionContract.VersionPlanRequestSchema || !IsEnter
+            if ((Schema != ArenaSessionContract.VersionPlanRequestSchema && Schema != ArenaSessionContract.OfflineRequestSchema) || !IsEnter
                 || !string.Equals(PolicyHash, VersionPlan.PolicyHash, StringComparison.Ordinal))
             {
                 error = "the version-filtered session request contract changed";
@@ -868,6 +882,7 @@ namespace ArenaMode.SessionHelper
             root["gameArgs"] = GameArgs ?? new List<string>();
             root["profileId"] = ProfileId;
             if (RewardControlId != null) root["rewardControlId"] = RewardControlId;
+            if (OfflineSessionId != null) root["offlineSessionId"] = OfflineSessionId;
             root["sptRuntimeDir"] = SptRuntimeDir;
             var mods = new List<object>();
             if (ServerMods != null)
@@ -2429,6 +2444,8 @@ namespace ArenaMode.SessionHelper
         /// <summary>A prepared control identity remains bound even when optional export copying failed.</summary>
         public string RewardControlId { get; set; }
 
+        public string OfflineSessionId { get; set; }
+
         public int Port { get; set; }
 
         public string SourceRuntime { get; set; }
@@ -2472,6 +2489,7 @@ namespace ArenaMode.SessionHelper
             root["createdUtc"] = CreatedUtc;
             root["profileId"] = ProfileId;
             if (RewardControlId != null) root["rewardControlId"] = RewardControlId;
+            if (OfflineSessionId != null) root["offlineSessionId"] = OfflineSessionId;
             root["port"] = Port;
             root["sourceRuntime"] = SourceRuntime;
             if (RunsFromTree) root["serverExe"] = ServerExe;
@@ -2511,12 +2529,22 @@ namespace ArenaMode.SessionHelper
                 }
             }
 
+            object rawOffline;
+            string offlineId = null;
+            if (ArenaMiniJson.AsObject(root).TryGetValue("offlineSessionId", out rawOffline))
+            {
+                offlineId = rawOffline as string;
+                if (!HelperRequest.IsValidControlId(offlineId))
+                { error = "marker offlineSessionId is invalid"; return false; }
+            }
+
             marker = new HelperMarker
             {
                 Schema = schema,
                 CreatedUtc = ArenaMiniJson.GetString(root, "createdUtc"),
                 ProfileId = ArenaMiniJson.GetString(root, "profileId"),
                 RewardControlId = controlId,
+                OfflineSessionId = offlineId,
                 Port = ArenaMiniJson.GetInt(root, "port", 0),
                 SourceRuntime = ArenaMiniJson.GetString(root, "sourceRuntime"),
                 ServerExe = ArenaMiniJson.GetString(root, "serverExe"),

@@ -156,7 +156,7 @@ internal sealed class RewardReturnControl
         catch (Exception e) when (e is FormatException or ArgumentNullException) { return false; }
     }
 
-    private static RewardReturnProcess? CurrentProcess(string root)
+    internal static RewardReturnProcess? CurrentProcess(string root)
     {
         if (!OperatingSystem.IsWindows() || !RewardReturnQuiescence.Enabled
             || typeof(SaveServer).Assembly.GetName().Version != new Version(4, 1, 6, 0)

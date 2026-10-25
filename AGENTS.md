@@ -21,8 +21,12 @@ capture and signed private-session receipts are now wired. Never accept its whol
 candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
-Reward work does not relax Arena's full-profile restoration protection. The
-private map-menu consent relay uses a normal-server-issued, expiring control
+Reward work does not relax Arena's full-profile restoration protection. Read
+docs/ARENA-OFFLINE-SESSION-20261025.md before changing session ownership: schema 3
+stops the ordinary server before copy, holds its lifetime lock privately, uses
+signed local consent and recovers only before normal profile loading. Missing
+activated evidence must never fall back to legacy authority or restore old ON.
+The legacy schema 1/2 private map-menu consent relay uses a normal-server-issued, expiring control
 grant, pinned loopback TLS and explicit revision-checked settings. Keep the
 secret-bearing private-control listener separate from SPT's debug-logging router;
 refresh before snapshot locking, never within profile restoration. Missing,
@@ -43,7 +47,8 @@ Read docs/REWARDS-XP.md before changing reward amounts or profile progression:
 old results remain RUB-only, XP fields must preserve legacy serialization, and
 native login owns Level/trader recalculation from the final XP curve.
 Read docs/REWARDS-RETURN.md before changing session return: local automatic payout
-uses a real normal-server restart after private shutdown and signed-result transfer.
+uses normal-server startup after private shutdown and signed-result transfer.
+Schema 3 reuses the same native drain/save proof at entry, independently of rewards.
 Keep the separate process-bound return capability, request/update drain, native
 save plus full disk/RAM readback, exact process exit and no forced normal-server kill.
 A failed final save retains the quiesced process/RAM for an explicit retry; never

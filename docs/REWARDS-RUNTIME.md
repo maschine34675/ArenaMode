@@ -25,8 +25,9 @@ boundary. It does not import foreign/private profiles or permit live payment.
   Profiles created or initialized after the server started are eligible at the
   next normal start. Explicit first activation of an unregistered profile still
   records metadata only: return to the normal session, then re-enter Arena. The supported
-  local return now performs the necessary normal-server restart automatically. Existing enrolled profiles can
-  switch immediately; the normal server must remain running.
+  local return starts the normal server automatically. Existing enrolled profiles can
+  switch immediately even while the normal server is stopped: new local schema-3
+  sessions use [signed private consent](ARENA-OFFLINE-SESSION-20261025.md).
 - The server freezes 1,000 RUB + 100 XP per eligible local kill, 10,000 RUB +
   1,000 XP per round win, capped at 200,000 RUB and 20,000 XP per match.
   These are the user's selected starting values (`arena-v2`).
@@ -36,11 +37,12 @@ boundary. It does not import foreign/private profiles or permit live payment.
   Gun Game and Zombies currently award kills only, not ladder/wave victories.
 - A normal exit can retain kills from the last unfinished combat round without
   inventing a win. Aborted/no-contest reports receive no payment for the run.
-- **RETURN TO NORMAL SESSION** stops the private server, transfers signed results and
-  automatically restarts the supported local normal server when rewards or enrollment
-  are pending. EFT starts only after that server is ready, so RUB mail and PMC XP are
-  available on return. No extra manual restart is needed. With no pending work or
-  rewards OFF, the normal server stays running. Payment itself remains at the guarded
+- **START ARENA SESSION** saves and stops the supported local normal server before
+  copying the profile. **RETURN TO NORMAL SESSION** stops the private server and starts
+  normal SPT; its startup imports the final choice and signed results. EFT starts only
+  after that server is ready, so enabled RUB mail and PMC XP are available on return.
+  No extra manual restart is needed. This lifecycle also applies with no results or
+  rewards OFF. Payment itself remains at the guarded
   **normal SPT server start**. Direct Arena raids without a private session therefore
   still pay at the next normal server start. Remote/unsupported or refused automatic
   return paths retain their queued results; the menu reports the applicable path.
@@ -89,6 +91,12 @@ another process may still own settlement. Other refused reward cases continue
 through the existing reward-only failure reporting.
 
 ### Private-session consent
+
+New schema-3 local sessions use the separate entry capability, exclusive original
+runtime ownership and signed private consent described in
+[the offline-session contract](ARENA-OFFLINE-SESSION-20261025.md). They do not contact
+the stopped normal server. Ordinary startup recovers the final revision before payout.
+The rest of this subsection documents the retained schema-1/2 live-server relay:
 
 Before a normal-to-Arena switch, the client generates a fresh non-secret control
 ID and asks the normal server to prepare its grant in the server's reward metadata;

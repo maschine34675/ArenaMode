@@ -67,7 +67,7 @@ internal static partial class Program
 
     /// <summary>The production check of the helper process, kept before ResetWorld replaces the seam.</summary>
     private static Func<int, bool> _realHelperHasExited;
-    private static Func<string, Task<bool>> _realPrepareRewardControl;
+    private static Func<string, Task<ArenaSessionPreparation>> _realPrepareRewardControl;
 
     private static void Setup()
     {
@@ -171,6 +171,7 @@ internal static partial class Program
         SPT.Common.Http.RequestHandler.IsLocal = true;
         SPT.Common.Http.RequestHandler.Post = (_, _) => Task.FromResult("{\"accepted\":false}");
         ArenaSessionSwitch.PrepareRewardControl = _realPrepareRewardControl;
+        ArenaSessionSwitch.OfflineSessionIdReader = (_, _) => null;
         Application.QuitCalls = 0;
         ArenaMode.Plugin.ModLogger.Clear();
         WritePolicy(_repoPolicyText);
