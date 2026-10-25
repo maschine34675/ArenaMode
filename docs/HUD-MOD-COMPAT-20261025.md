@@ -128,3 +128,19 @@ hosts were compared. Only the test profile's health-update and hideout-run
 timestamps changed; inventory, skills, quests and XP were preserved. No profile
 backup was written over a live profile. The GPU-1 installation received no
 temporary test plugins.
+
+## Integrated deployment
+
+After cleanup, the normal build deployed Arena client and BigBrain companion
+`0.2.1+c24cbc9`, plus Core `1.0.13+9d1672b`, to the development installation and
+GPU-2. Their file hashes and the default policy matched on both machines. The
+client's embedded `RedeployCoreBuiltAgainst` value is **1.0.13**. The server DLL
+remains `0.2.1+0ab7c44`; no server code changed in this task.
+
+Core implementation is commit `d49426a`; `9d1672b` changes only its native-test
+documentation. Arena policy/tests/documentation are `a6b23dd`, integrated by
+`c24cbc9` alongside an independently added review document. The final build had
+zero errors and four existing nullable-context warnings. The game stayed off
+after cleanup, so the new production hashes are disk-deployment evidence; the
+native acceptance above identifies the exact tested candidate separately. No
+GitHub push or release was performed.
