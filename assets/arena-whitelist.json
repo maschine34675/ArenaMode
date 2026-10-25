@@ -31,6 +31,8 @@
     { "guid": "com.pein.camerarecoilmod", "name": "Recoil Rework Legacy", "kind": "mod", "clientVersion": "2.0.0" },
     { "guid": "com.fontaine.fovfix", "name": "Fontaine FOV Fix", "kind": "mod", "clientVersion": "4.1.0" },
     { "guid": "com.manimal.loadammoanim", "name": "Manimal Ammo Loading Animations", "kind": "mod", "clientVersion": "2.0.0", "serverVersion": "2.0.0" },
+    { "guid": "com.flir.increaselookdirection", "name": "Increase Look Direction", "kind": "mod", "clientVersion": "1.3.0" },
+    { "guid": "com.ozen.magcheckinterrupt", "name": "Magazine Check Interrupt", "kind": "mod", "clientVersion": "1.1.1" },
     { "guid": "com.terkoiz.freecam", "name": "Freecam", "kind": "mod", "clientVersion": "1.4.8" },
     { "guid": "com.tarkin.doordash", "name": "DoorDash", "kind": "mod", "clientVersion": "1.2.0" },
     { "guid": "com.anvil.weboverlay", "name": "Anvil-WebOverlay", "kind": "mod", "clientVersion": "1.11.0" },

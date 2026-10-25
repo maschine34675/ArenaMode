@@ -20,6 +20,8 @@ The hard Core dependency comes from the assembly reference and `RedeployCore.Ini
 The development additions for FOV Fix and Manimal require **Core 1.0.11**;
 their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
+Magazine Check Interrupt's floating-panel correction additionally requires
+**Core 1.0.12**. Keep the newer shared Core when combining these development builds.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -145,6 +147,18 @@ native observations below predate that migration; see
   Throw 2.0.0** were not added. These two are unlisted, not newly default-denied.
 - **ABPS/BotPlacementSystem:** spawn-pump/bot-limit behavior is covered; Arena's
   population ownership prevents additional third-party ambient spawns.
+- **Increase Look Direction 1.3.0:** no body-replacement adapter is needed. When
+  Fontaine FOV Fix also handles armed free-look, its **Free Look Angle** takes
+  precedence over this mod's horizontal limits. The experimental camera lift
+  remains the mod's own option, disabled by default.
+- **Magazine Check Interrupt 1.1.1+:** Core 1.0.12 retires the old body's floating
+  magazine panel and fences delayed hide callbacks after replacement. The
+  custom UIFixes Reload in Place animation does not receive Arena's reload-speed
+  multiplier. Reviewed whitelist version: 1.1.1.
+- **Auto Shoulder Swap 1.1.1:** not whitelisted after a native knife/left-lean
+  test reproduced an upstream `CurrentScope` error. Normal firearm lean works,
+  including after respawn. No new global deny or ordinary-raid behavior change.
+  See [three input-mod tests and limitations](INPUT-MOD-COMPAT-20261025.md).
 - **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.
 - **NotificationFilter:** Arena also suppresses replacement quest popups without
   changing the mod's global configuration.
