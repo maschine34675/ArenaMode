@@ -1,11 +1,11 @@
 # Tarkova Cola compatibility: native test record — 2026-10-25
 
-Status: bounded native gameplay checks completed. Zombie research/achievement capture, DM exclusion, respawn binding, full restoration and ordinary PMC pass-through passed. Actual startup payout/idempotence and removal of the temporary server mod remain open pending coordination with the parallel GPU1 session.
+Status: bounded native acceptance completed. Zombie research/achievement capture, DM exclusion, physical respawn binding, restoration, ordinary PMC pass-through, coordinated startup payout, duplicate suppression and mod-absent normal startup passed. The temporary mod files/settings were archived and removed. A harmless empty directory and dangling bundle junction remain in the private cache; see the exact cleanup boundary below.
 
 ## Scope and preservation
 
-The planned run uses the existing SPT-GPU-2 test profile and Tarkova Cola 2.2.1.
-Only its client and server folders will be installed temporarily; the packaged
+The run used the existing SPT-GPU-2 test profile and Tarkova Cola 2.2.1.
+Only its client and server folders were installed temporarily; the packaged
 optional VisitAPI server is excluded. No fabricated receipts, manual profile or
 progress edits, or whole-profile rollback form part of the test.
 
@@ -48,7 +48,7 @@ than assuming this remains a RUB-only test.
 
 ## Results
 
-Build/deployment evidence is separate from the following native observations. Body replacement, research payout and ordinary PMC pass-through remain pending.
+Build/deployment evidence is separate from the native observations below. The earlier return blocker was resolved by user-coordinated shutdown of both hosts; the save/readback protection was never relaxed. Startup payment and a subsequent empty private-session return are separate proofs.
 
 ### First native pass and findings
 
@@ -85,13 +85,13 @@ Build/deployment evidence is separate from the following native observations. Bo
   quest trees were restored. Whole-file equality is not claimed.
 - Native research XP exposed an ordering defect: `FinishCapture` ran before
   `EndStatisticsSession`, therefore observed session XP=0 despite the kill.
-  Root is correcting the exact statistics-end capture seam before a repeat.
+  Root corrected the exact statistics-end capture seam before the repeat below.
 - **RETURN TO NORMAL SESSION** transferred the signed result, then safely
   deferred normal-server restart because another loaded profile (SPT-GPU-1,
   diagnostic fingerprint `38834474`) failed native save/readback equality.
   The visible queued-rewards notice was acknowledged. No server force-kill,
   save-hash reset or profile rollback was attempted. Logs are retained under
-  `native/return-1`; payout is still pending.
+  `native/return-1`; payout was pending at this first stopping point.
 
 The queued-rewards notice was the reason the normal restart initially appeared
 stalled. Windows-MCP observed and acknowledged that existing **OK** dialog; the
@@ -125,8 +125,8 @@ remote query script/output files were removed after archiving.
 The research-capture correction was built separately. Root reported 3092 passing
 unit tests, one existing skip, and client SHA256
 `fd3e8712454d2452bc7b0643416b51669669f242ed6efaf81115a09330ecccc0`.
-The next native pass restarts only the game; the normal server is left running
-while GPU1's synchronized profile remains in use. Startup payout is not forced.
+The next native pass restarted only the game; the normal server was left running
+while GPU1's synchronized profile remained in use. Startup payout was not forced.
 
 ### Corrected research capture: native success
 
@@ -172,7 +172,7 @@ forced. Normal instance `5f5cec3b` (14:56:43) now loads the independently update
 Redeploy.Core 1.0.12, so the forthcoming ordinary-raid countercheck has that distinct
 library identity; the preceding Arena body proof ran 1.0.11.
 
-### Ordinary PMC countercheck and final host state
+### Ordinary PMC countercheck and first stopping point
 
 Normal instance `5f5cec3b` started Factory through the native PMC path, with AI
 set to None and no companions. The optional adapter had no lease/failure. Native
@@ -189,7 +189,7 @@ lease/failure null. Evidence: `native/after-pmc` and
 `normal-after-pmc-status.json`. The ordinary Cola file contains no earned XP,
 challenge progress or achievements; only its native initialization defaults.
 
-The game was gracefully closed after returning to MainMenu. Final host-helper
+The game was gracefully closed after returning to MainMenu. At this first stopping point, host-helper
 status: GPU2 normal server pid 1748, started 13:18:37UTC, still running; no EFT or
 private server; the ordinary launcher remains open. No other running server was
 stopped. All three Arena settings changed by the menu recipes were restored to
@@ -204,43 +204,123 @@ run additionally differed in native Health.UpdateTime. Do not describe these as
 byte-identical files. Each signed restoration receipt separately confirms the
 protected expected/persisted revision equality.
 
-### Remaining work and exact cleanup boundary
+### Coordinated normal startup: genuine pending rewards paid once
 
-Do not mark payout or complete cleanup passed. The normal server is deliberately
-left running while the external synchronized profile is still in use. No paid,
-queued or unsigned reward journals/receipts were removed. The three genuine test
-runs retained for the next coordinated startup are:
+The user subsequently confirmed both hosts free and SPT stopped. Both helper
+status probes confirmed no server, game or launcher, and no second private server.
+Before starting anything, all six canonical profile files, both reward trees,
+foreign state and generated config were archived again with verified hashes in
+`native/resume-before-20261025-153313` (164 files). No profile rollback or manual
+progress edit was used. Arena client/server hashes remained the corrected values
+above; this resumed stage used Redeploy.Core 1.0.12.
 
-- `2b2f528472f5467e81d657dd3f439d0a`: first Zombie achievement-only capture;
-- `ef243202a1774ed2a44e7257173d4a4f`: corrected Zombie 28 research XP + same earned
-  achievements;
-- `e192d253aa4a40ea879d6f038a346716`: DM, no Cola delta.
+The first normal server start (pid 15460) paid the three retained, genuine signed
+results. They were earned by the earlier combat tests, not created for this stage:
 
-Existing unrelated inbox results remain untouched. A coordinated normal startup
-must still prove one-time research/native-achievement/prize/mail payment,
-duplicate suppression across these results, and repeat-start idempotence. Do not
-replace the live profile or weaken readback equality to obtain that result.
+| Signed run | Actual kills | Normal reward | Cola payment |
+| --- | ---: | --- | --- |
+| `2b2f528472f5467e81d657dd3f439d0a` | 1 | 1,000 RUB + 100 PMC XP | `a_first` and `a_found`: 40,000 RUB + one Speed Cola |
+| `ef243202a1774ed2a44e7257173d4a4f` | 2 | 2,000 RUB + 200 PMC XP | 28 Speed Cola research XP; the same achievements granted no second prize |
+| `e192d253aa4a40ea879d6f038a346716` | 1 | 1,000 RUB + 100 PMC XP | None (Deathmatch) |
 
-Temporary payloads remain on both `D:\SPT41` and GPU2's `C:\SPT41`:
+The verified test subset totals **44,000 RUB, 400 PMC XP, 28 research XP and one
+Speed Cola achievement prize**, with no refund payment. All three are kill-only
+results with incomplete final-round allowance, not round wins. PMC XP changed
+7,161 to 7,561; the ledger changed six to nine payments. Two native achievement
+keys were added once (`6a1c00000000000000000a01` and
+`6a1c00000000000000000a04`). The foreign state records `xp.speedcola=28` and both
+earned achievement flags. Two Cola plans have completed `.done` records.
 
-- `BepInEx\plugins\TarkovaCola` (29 release files);
-- `SPT_Runtime\user\mods\TarkovaCola` (120 release files plus generated state);
-- `BepInEx\config\com.tarkovacola.server.cfg` (generated upstream settings).
+The actual SYSTEM mail text displays the already-credited PMC XP, says two new
+achievements for the first Zombie result and zero for the second, and contains
+the exact catalog prizes. The complete existing unrelated mail and six earlier
+ledger payments were preserved. Evidence: `native/payout-first-start`, including
+the native mail UI capture and original persisted mail items.
 
-The 149-file release manifest is the removal authority. Preserve newly generated
-foreign profile state/settings outside discovery before removal, after the
-coordinated payout test. Snapshot copies already exist under
-`native/pending-cleanup-state`; refresh them if further progress occurs.
-Syncthing temporary files were observed on the VM and were not deleted while
-synchronization was active. The private helper cache may still contain its copied
-payload/state and signed outbox; it is not a second normal-profile payout source
-and must not be manually copied into the ordinary profile.
+A second **normal server restart**, using graceful Ctrl-C and no force, started
+pid 4748. The whole profile was semantically unchanged; mail, achievements,
+ledger and foreign state were unchanged, as were both plan/done file hashes.
+Evidence: `native/payout-second-start/idempotence-summary.json`. The independent
+parent audit is `artifacts/tarkova-cola/final-payout-review.json`.
 
-No custom Cola item or achievement residue was present in the active ordinary
-test profile at this stopping point. The startup payout can legitimately create
-a Speed Cola achievement prize; inspect that actual residue and use a normal
-inventory action if it must be removed before uninstalling. No whole-profile
-rollback is authorized. The final mod-absent ordinary startup remains pending.
+### Empty private-session switch after payment: no new payout
+
+This is an additional return-path test, not the event that paid the earlier
+results. Starting in normal instance `7697b184`, the existing **START ARENA
+SESSION** UI entered private instance `8859c15f`. No raid was started and no new
+result was produced. **RETURN TO NORMAL SESSION** returned to normal instance
+`82ca5d3a` on backend 6969 in 37 seconds, with no queued-rewards notice or error.
+The helper retained the already-running normal server because no payment restart
+was needed. XP, ledger, mail and foreign state remained unchanged.
+
+The temporary Freecam-only user policy was used solely to expose the genuine
+private-session UI, then removed from both installations after normal return.
+Neither installation had such a policy before the test. Evidence:
+`native/no-result-private-status.json` and `native/no-result-return`.
+
+This proves the separate empty return is idempotent. It does not replace the
+startup payment proof or claim a fresh pending-result return automatically
+restarted the normal server during this resumed stage.
+
+### Test cleanup, preservation and final mod-absent startup
+
+Only the single Speed Cola prize was claimed from its known SYSTEM mail via the
+native GET transfer screen. The native stash DISCARD action and its explicit
+confirmation destroyed that one test bottle. No RUB was claimed or deleted;
+all **44,000 test RUB** remain in the three reward mails. No unrelated items or
+mail were touched. After graceful game and server shutdown, the saved profile
+contains zero Cola items in inventory or mail, while both achievement keys and
+7,561 PMC XP remain. Evidence: `native/cleanup/bottle-discard-summary.json` and
+`post-native-bottle-discard-profile.json`.
+
+All temporary release files were identified by the original 149-file manifest.
+Before the first removal, every file was copied outside mod discovery and its
+archive SHA256 was compared with the source. The resulting 569 archived files
+include the two normal payloads, 149 VM Syncthing temporary copies whose hashes
+also exactly match the release, and the private cache's 114 copied release files.
+Generated native `loot.json`, foreign profile state and upstream config were
+archived and removed only at their exact known test paths. The private helper's
+bundle directory was a junction rather than a second bundle copy. No canonical
+profile, reward ledger, signed outbox or payment journal was removed.
+
+Absent on **both** `D:\SPT41` and GPU2 `C:\SPT41` after removal:
+
+- `BepInEx\plugins\TarkovaCola`;
+- `SPT_Runtime\user\mods\TarkovaCola`;
+- `BepInEx\config\com.tarkovacola.server.cfg`.
+
+Exact archives and removal inventory are under
+`native/cleanup/removed-payload/manifest.json`. They retain the earned research
+state outside discovery; restoring the test mod does not require reconstructing
+or modifying a player profile.
+
+There are **no remaining mod files** in the private cache. Its residual path on
+GPU2 is
+`C:\Users\Service\AppData\Local\maschine-ArenaMode\session\server\user\mods\TarkovaCola`:
+it contains only an empty `images` directory and a dangling `bundles` junction
+whose removed target was `C:\SPT41\SPT_Runtime\user\mods\TarkovaCola\bundles`.
+The final attempt to remove this empty structure was rejected by automatic
+approval review with `blocked by policy`; it was not retried or bypassed.
+`native/cleanup/private-residual-structure.json` records that precise boundary.
+
+With the mod absent, the normal server started successfully (pid 17544), then
+EFT reached MainMenu in 55 seconds, instance `5738591e`, normal backend 6969.
+The loader reported 41 plugins without failures/dependency errors; the saved
+default status verifies the 16 listed plugins and two listed libraries match
+the installed and VM files (`loadedMatchesDisk=true`, `compareStatus=identical`). Tarkova
+Cola was not loaded. There were no client Error/Fatal entries or server errors
+in this startup segment; known unrelated loader/Harmony/Fence warnings remain.
+The final saved profile preserves the same ledger, mail and achievements as
+after the deliberate bottle discard, with 7,561 PMC XP and no Cola items.
+A final read-only residue scan found no Cola item in inventory or mail in any
+of the six canonical profile files across the two installations.
+Evidence: `native/mod-absent-start/status.json`, `final-preservation-summary.json`
+and `final-mail-summary.json`.
+
+Finally, the game quit gracefully and the normal server stopped via Ctrl-C.
+Both host helpers confirmed no EFT, launcher, ordinary or private server running.
+The original Arena settings remain restored; no new combat tests were performed
+in this resumed payout/cleanup stage.
 
 Native coverage is intentionally bounded: solo Zombie living wave transition,
 DM physical death/respawn, and ordinary PMC. PFT squad replacement, rewards OFF,

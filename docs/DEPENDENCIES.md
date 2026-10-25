@@ -143,8 +143,17 @@ native observations below predate that migration; see
   client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
   requirements still apply; the native checks include Continuous Load Ammo 1.2.0.
   See [four-candidate review and verification boundaries](FOUR-MOD-COMPAT-20261025.md)
-  for both additions and the reasons **Tarkova-Cola 2.2.1** and **Fast Grenade
-  Throw 2.0.0** were not added. These two are unlisted, not newly default-denied.
+  for both additions and the initial exclusions. **Fast Grenade Throw 2.0.0**
+  remains unlisted, not newly default-denied; the subsequent Tarkova Cola
+  integration is described below.
+- **Tarkova Cola 2.2.1+:** both client and server are admitted with checked
+  lifecycle, storage and achievement-catalog contracts. Arena protects ordinary
+  progression and restores foreign state after play. Completed Zombie matches
+  can transfer research and earned achievements through the existing protected
+  reward path; bottle/grenade refunds are excluded. Other Arena modes retain
+  temporary perks without exporting Cola progression. Install Tarkova Cola
+  separately; its optional VisitAPI storyline is outside this integration.
+  See [scope, payout and recovery](TARKOVA-COLA-COMPAT.md).
 - **ABPS/BotPlacementSystem:** spawn-pump/bot-limit behavior is covered; Arena's
   population ownership prevents additional third-party ambient spawns.
 - **Increase Look Direction 1.3.0:** no body-replacement adapter is needed. When

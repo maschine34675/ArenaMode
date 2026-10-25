@@ -90,3 +90,20 @@ including incorrect Cola profile, mode, epoch and failed-arm cleanup. Separate
 reward transfer, control transfer, menu state and client capture harnesses also
 passed. Native results and test-mod cleanup are recorded in
 [the GPU test record](GPU-TARKOVA-COLA-20261025.md).
+
+The coordinated ordinary-server startup paid the three genuine retained test
+results exactly once: 4,000 RUB and 400 PMC XP for four kills, plus 40,000 RUB and
+one Speed Cola for two newly earned achievements. The corrected Zombie result
+also added 28 research XP. Repeated achievement flags in the second Zombie
+result granted no further prizes; the Deathmatch result carried no Cola delta.
+The payout changed only PMC XP, those two achievement entries, reward mail and
+the payment ledger. A second startup left the entire profile, foreign state and
+companion plans/completion records unchanged. These are native observations,
+separate from synthetic crash/recovery and opt-out coverage. PFT squad
+replacement was not exercised in this native run.
+
+A subsequent private-session round trip without a raid added no payment or
+research. After the temporary test bottle was discarded through the native
+inventory UI and the optional payload was removed, the normal game reached its
+main menu with XP, achievements and the payment ledger preserved. The test record
+documents the archived payload and the remaining inactive cache structure.
