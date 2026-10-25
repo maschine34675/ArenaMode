@@ -15,6 +15,7 @@ build/deployment JSON records live here. The automatically discovered
 - [Atomic XP rewards and native progression](REWARDS-XP.md)
 - [Automatic reward settlement when returning to the normal session](REWARDS-RETURN.md)
 - [Stopping the normal server during private Arena: ownership, consent and recovery](ARENA-OFFLINE-SESSION-20261025.md)
+- [Offline Arena session: GPU-2 switches, reward control and one-time payment](GPU-OFFLINE-SESSION-20261025.md)
 - [Tarkova Cola: protected gameplay, Zombie progression and achievement payout](TARKOVA-COLA-COMPAT.md)
 - [Automatic return: native mail, XP, pending totals and empty-return checks](GPU-REWARD-RETURN-20261025.md)
 - [XP rewards: private combat, startup payout, level and collection on GPU-2](GPU-REWARD-XP-20261025.md)

@@ -122,5 +122,6 @@ The verification
 runner confirmed installed payloads unchanged. The complete Release solution,
 including the net472 helper, built with deployment disabled (zero errors).
 
-Build/deploy and native acceptance are recorded separately in the handoff; these
-offline results alone are not evidence of a completed in-game test.
+Build/deploy and native acceptance are recorded separately in the
+[GPU-2 switch report](GPU-OFFLINE-SESSION-20261025.md); these offline results alone
+are not evidence of a completed in-game test.

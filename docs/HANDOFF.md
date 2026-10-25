@@ -29,8 +29,14 @@ current. User-facing communication is normally German.
   start it again on RETURN, including OFF/no-result sessions. Private signed consent
   works while it is stopped; see [offline ownership and recovery](ARENA-OFFLINE-SESSION-20261025.md)
   and [the reused native save adapter](REWARDS-RETURN.md).
-  The [native return report](GPU-REWARD-RETURN-20261025.md) covers the loaded
-  build, real earned receipts, automatic startup payout and cleanup.
+  The [offline-session native report](GPU-OFFLINE-SESSION-20261025.md) records
+  stop-before-copy, offline ON/OFF, competing-start refusal and the real
+  1,000-RUB/100-XP payment. Final `0ab7c44` built/deployed and passed two empty
+  return cycles: OFF persisted, ON was restored through the private menu, and
+  XP/payment history stayed unchanged. Settings restored and test processes
+  stopped normally. Offline: 3,194 passed, one known APBS skip. The
+  [earlier native return report](GPU-REWARD-RETURN-20261025.md)
+  covers the preceding live-normal-server flow.
   Native save/readback and request/update quiescence precede shutdown; failures
   preserve live RAM. Legacy schema 1/2 retain the older live-server fallback only
   when no offline capability was issued. New
