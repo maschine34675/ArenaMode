@@ -388,6 +388,9 @@ public sealed class ArenaWhitelistTests
             ("com.manimal.loadammoanim", "Manimal Ammo Loading Animations", ArenaWhitelistTier.Mod, "2.0.0", "2.0.0"),
             ("com.flir.increaselookdirection", "Increase Look Direction", ArenaWhitelistTier.Mod, "1.3.0", null),
             ("com.ozen.magcheckinterrupt", "Magazine Check Interrupt", ArenaWhitelistTier.Mod, "1.1.1", null),
+            ("com.leonana69.radar", "Accurate Circular Radar", ArenaWhitelistTier.Mod, "1.3.4", null),
+            ("com.mpstark.SimpleCrosshair", "Simple Crosshair", ArenaWhitelistTier.Mod, "1.4.0", null),
+            ("com.mybutthasarash.betterbepinex", "Better BepInEx", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
@@ -445,6 +448,32 @@ public sealed class ArenaWhitelistTests
         }
         var plan = ArenaSessionVersionPlan.Create(policy, client, server);
         Assert.Equal(differs, plan.ExcludedGuids.Contains(guid));
+    }
+
+    [Theory]
+    [InlineData("com.leonana69.radar", "1.3.4")]
+    [InlineData("com.mpstark.SimpleCrosshair", "1.4.0")]
+    [InlineData("com.mybutthasarash.betterbepinex", "1.0.0")]
+    public void HudModsAreVersionReviewedModsAndKeepTheStockMenuDependency(string guid, string reviewed)
+    {
+        const string stock = "com.bepis.bepinex.configurationmanager";
+        var policy = Load(File.ReadAllText(ShippedDefaultPath));
+        foreach (string version in new[] { reviewed, "9.0.0" })
+        {
+            var installed = new[]
+            {
+                Unit(stock, "ConfigurationManager", "18.4.0"),
+                Unit(guid, "HUD mod", version, guid == "com.mybutthasarash.betterbepinex" ? new[] { stock } : Array.Empty<string>())
+            };
+            var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, installed);
+            Assert.Equal(2, decision.Allowed.Count);
+            Assert.Empty(decision.Excluded);
+            AssertNoAllowedUnitNeedsAnExcludedOne(installed, decision);
+            Assert.Equal(version == reviewed ? 0 : 1, decision.VersionDifferences.Count);
+            var plan = ArenaSessionVersionPlan.Create(policy, installed, Array.Empty<ArenaSessionUnit>());
+            Assert.Equal(version != reviewed, plan.ExcludedGuids.Contains(guid, StringComparer.OrdinalIgnoreCase));
+            Assert.DoesNotContain(stock, plan.ExcludedGuids);
+        }
     }
 
     /// <summary>The mods ArenaMode already refused by code before the whitelist existed (ORBIT, Questing Bots, ...).</summary>

@@ -35,11 +35,15 @@ which was already in development while the 0.2.1 hotfix was published.
   Direct Arena play still treats version differences as advisory. User policy
   files are unchanged; refusal messages preserve the server's reason without
   duplicating it.
-- **Shared Core 1.0.12:** FOV Fix camera ownership, Manimal ammo-loading visuals
+- **Shared Core 1.0.13:** FOV Fix camera ownership, Manimal ammo-loading visuals
   and Magazine Check Interrupt panels follow player replacement. Add tested
   Fontaine FOV Fix 4.1.0, Manimal 2.0.0, Increase Look Direction 1.3.0 and Magazine
   Check Interrupt 1.1.1 to the default list. Auto Shoulder Swap 1.1.1 remains
   unlisted after its native knife/lean error.
+- **Optional HUDs:** Accurate Circular Radar 1.3.4 and Simple Crosshair 1.4.0
+  survive body/camera replacement through Core. Better BepInEx 1.0.0 is also
+  reviewed; keep its stock ConfigurationManager dependency installed. Radar
+  colors still represent faction/role, not Arena teams.
 - **Gameplay/loading:** disable native transits in confirmed Arena raids, preload
   the first three validated Gun Game weapons, and halve loose ammunition reserves
   in supplied kits/weapon swaps. Loaded rounds and spare magazines are unchanged.
@@ -49,7 +53,7 @@ which was already in development while the 0.2.1 hotfix was published.
 Close EFT and both normal/private SPT sessions before replacing files. Merge the
 release's `BepInEx` and `SPT_Runtime` folders into the SPT root. Update the client,
 server, companion, gate, helper and shipped default policy together. Keep exactly
-one shared `maschine-Redeploy.Core.dll`, using the verified **1.0.12** bundle for
+one shared `maschine-Redeploy.Core.dll`, using the verified **1.0.13** bundle for
 this source; the complete standalone Redeploy mod is not required.
 
 Preserve custom kits, ladder, configuration, areas/pickups and the user whitelist.
@@ -60,7 +64,7 @@ profile is never written over the normal profile.
 
 ## Verification already completed
 
-- Final existing unit run: **3,194 passed, zero failed, one known APBS environment
+- Latest HUD integration unit run: **3,197 passed, zero failed, one known APBS environment
   skip**. Separate helper, control, result and client-session harnesses cover
   recovery/ownership boundaries. This is recorded evidence, not a rerun of a
   future version-stamped release ZIP.
@@ -71,13 +75,18 @@ profile is never written over the normal profile.
 - Earlier bounded GPU runs cover a DM victory/XP level advancement, mail
   collection, Tarkova Cola solo Zombie progress/achievement payout, DM exclusion,
   ordinary PMC pass-through and the input/body-replacement integrations.
+- HUD checks on GPU-2 cover a living kit swap, two deaths, a second Factory raid,
+  Radar disabled during respawn and Better BepInEx input restoration. Core's
+  274 tests and coordinator mutation checks also passed. This HUD matrix did
+  not include a new standalone Redeploy raid or PFT.
 
 See [session verification](GPU-OFFLINE-SESSION-20261025.md),
 [XP verification](GPU-REWARD-XP-20261025.md),
 [Tarkova Cola verification](GPU-TARKOVA-COLA-20261025.md),
 [PFT 1.0 review](PITFIRETEAM-1.0.0-20261024.md),
 [FOV/Manimal review](FOUR-MOD-COMPAT-20261025.md) and
-[input-mod review](INPUT-MOD-COMPAT-20261025.md).
+[input-mod review](INPUT-MOD-COMPAT-20261025.md), and
+[HUD review](HUD-MOD-COMPAT-20261025.md).
 
 No new functional release blocker was found in these sources and reports.
 Fika, distributed ownership across simultaneously running mirrored hosts, native
@@ -91,14 +100,13 @@ These limits remain explicit; they are not claims of completed native tests.
    `ArenaMode.Server/ModMetadata.cs`, `ArenaMode.Server/ArenaMode.Server.csproj`
    and `ArenaMode.Session/ArenaMode.Session.csproj`. Then update README's released
    status and give the changelog its actual publication date.
-2. Freeze the tested **Redeploy.Core 1.0.12**, currently source commit `e3c2b36`,
+2. Freeze the tested **Redeploy.Core 1.0.13**, implementation commit `d49426a`,
    and make that source revision publicly reachable alongside Arena's source.
-   At this review, Redeploy's remote still points to `44adc56`/Core 1.0.10.
+   Recheck the remote: the HUD task does not publish its source or binaries.
    A separate standalone Redeploy release is not required to bundle Core.
 3. Build a fresh isolated package with `tools/Package-TestRelease.ps1 -Release`,
    run its tests/layout/hash checks and perform a bounded check of that exact
-   package. The normal sibling `bin/Release` currently holds an older Core 1.0.11;
-   do not manually reuse it. The package tool exports and rebuilds committed Core
+   package. Do not manually reuse an old sibling `bin/Release`. The package tool exports and rebuilds committed Core
    sources and verifies the resulting identity.
 4. Rerun Gitleaks for the final source/payload and VirusTotal for the **five DLLs
    plus the session-helper EXE**. Retain result links and exact hashes for those

@@ -850,7 +850,7 @@ with your explanation, the explanation is wrong; measure before you theorise aga
 
 Core admission: both clients fail closed before runtime initialization when the loaded
 Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.12, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+1.0.13, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
 provenance go under docs/licenses; preserve unknown user files during migration.
