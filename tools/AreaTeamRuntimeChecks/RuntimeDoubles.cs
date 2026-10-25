@@ -141,6 +141,11 @@ namespace ArenaMode.Session
 {
     public static class ArenaSession
     {
+        public static EPlayerSide? SelectedTeam;
+        public static EPlayerSide? TeamDeathmatchLocalSide(LocalGame game,GameWorld world)
+            => SelectedTeam ?? game?.Profile?.Info?.Side;
+        public static EPlayerSide? TeamDeathmatchBodySide(Player player,LocalGame game,GameWorld world)
+            => ReferenceEquals(player,world?.MainPlayer) ? TeamDeathmatchLocalSide(game,world) : player?.Profile?.Info?.Side;
         public static bool IsExactActiveRaid(LocalGame game,GameWorld world)
             =>ArenaMode.Areas.ArenaAreaRuntime.Active&&ReferenceEquals(game,ArenaMode.Areas.ArenaAreaRuntime.TestGame)
                 &&ReferenceEquals(world,ArenaMode.Areas.ArenaAreaRuntime.TestWorld);
@@ -155,6 +160,8 @@ namespace ArenaMode.Areas
     {
         private static ArenaAreaDefinition _area;
         private static string _mode = "teamdeathmatch";
+        private static EPlayerSide? LocalSpawnSide => _mode == "teamdeathmatch"
+            ? ArenaMode.Session.ArenaSession.TeamDeathmatchLocalSide(_game, _world) : _game?.Profile?.Info?.Side;
         internal static string TestMode { get => _mode; set => _mode = value; }
         private static LocalGame _game;
         private static GameWorld _world;
@@ -175,7 +182,7 @@ namespace ArenaMode.Areas
         internal static bool IsReady=>IsCurrentActive()&&Ready;
         private static bool IsCurrentActive()=>Active&&_area!=null&&_world!=null;
         private static bool IsCurrentLoading()=>Loading&&_area!=null&&_world!=null;
-        private static bool IsPlayerPoint(ISpawnPoint p)=>ArenaAreaSpawnPolicy.IsPlayerPoint(p,_game?.Profile?.Info?.Side);
+        private static bool IsPlayerPoint(ISpawnPoint p)=>ArenaAreaSpawnPolicy.IsPlayerPoint(p,LocalSpawnSide);
         private static bool IsBotPoint(ISpawnPoint p)=>p!=null&&!string.IsNullOrEmpty(p.BotZoneName)
             && ((p.Categories&ESpawnCategoryMask.Bot)!=0||p.Categories.ContainBotPmcCategory());
         private static bool Contains(Vector3 p,float inset=0)=>_area!=null&&_area.Bounds.Contains(p.x,p.y,p.z,inset);
@@ -189,6 +196,7 @@ namespace ArenaMode.Areas
             &&TrySample(p.Position,out var sample)&&CompleteInsidePath(_anchor,sample);
         internal static SpawnSystem TestSetup(ArenaAreaDefinition area,EPlayerSide side,int size,IEnumerable<ISpawnPoint> points)
         {
+            ArenaMode.Session.ArenaSession.SelectedTeam = null;
             ResetTeamStarts(); _area=area; _token=Guid.NewGuid().ToString("N"); _teamSize=size;
             _mode = "teamdeathmatch"; ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = false;
             _teamStarting=area?.TeamStarts!=null; Active=false;Loading=true;Ready=false;

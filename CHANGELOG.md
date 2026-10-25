@@ -8,6 +8,17 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## Unreleased
+
+- Select USEC or BEAR for Team DM in the map menu, including the corresponding
+  team starts and respawns. The real PMC faction and equipment stay unchanged.
+- Use consistent USEC blue / BEAR red for Team DM lighting, tracers, lasers and
+  team HUD accents. Connect ArenaMapPort score monitors to faction scores,
+  living players and the match clock.
+- Disable native extractions in every Arena mode/map, preventing accidental
+  raid endings in team boxes. Ordinary raids and leaving Arena through Esc
+  retain their existing behavior.
+
 ## [0.3.0] - 2026-10-25
 
 ### Profile rewards and private sessions

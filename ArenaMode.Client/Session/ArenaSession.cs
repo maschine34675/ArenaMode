@@ -134,6 +134,7 @@ public static class ArenaSession
 
     private static void ClearParticipants()
     {
+        ArenaTeamSideSelection.Reset();
         Participants = null;
         ParticipantBosses = false;
         Bots.ArenaSoloPopulation.Reset();
@@ -157,6 +158,49 @@ public static class ArenaSession
            && !ReferenceEquals(world, null)
            && ReferenceEquals(_startedGame, game)
            && ReferenceEquals(_startedWorld, world);
+
+    /// <summary>Virtual side only for this authenticated TDM game's local PMC.</summary>
+    internal static EPlayerSide? TeamDeathmatchLocalSide(LocalGame game, GameWorld world)
+    {
+        if (game == null || world == null || !ReferenceEquals(game.GameWorld, world)
+            || !Comfort.Common.Singleton<AbstractGame>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance, game)
+            || !Comfort.Common.Singleton<GameWorld>.Instantiated
+            || !ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance, world)) return null;
+        var native = game.Profile?.Info?.Side;
+        if (native != EPlayerSide.Usec && native != EPlayerSide.Bear) return null;
+        string token;
+        if (IsActive)
+        {
+            if (ActiveMode != Modes.ArenaModeCatalog.TeamDeathmatchId || !IsExactActiveRaid(game, world)
+                || game.Status != GameStatus.Started) return null;
+            token = ArenaServerClient.ActiveArmToken;
+        }
+        else
+        {
+            if (!ArmedForNextRaid || ArmedMode != Modes.ArenaModeCatalog.TeamDeathmatchId
+                || game.Status != GameStatus.Running
+                || !string.Equals(world.LocationId, ArmedMap, StringComparison.OrdinalIgnoreCase)) return null;
+            token = ArenaServerClient.PendingArmToken;
+            var settings = Redeploy.Core.GameAccess.LocalGameAccessor.GetLocalRaidSettings(game);
+            if (!Shared.Protocol.IsLifecycleRequestId(token) || settings == null
+                || !string.Equals(settings.location, ArmedMap, StringComparison.OrdinalIgnoreCase)
+                || (!Shared.Protocol.IsNativeStartIdentity(settings.serverId, token)
+                && !Shared.Protocol.HasNativeEndIdentity(settings.serverId, token))) return null;
+        }
+        return ArenaTeamSideSelection.TryResolve(ArmEpoch, token, game, world, game.Profile.Id,
+            native == EPlayerSide.Usec, out bool usec) ? (usec ? EPlayerSide.Usec : EPlayerSide.Bear) : null;
+    }
+
+    internal static EPlayerSide? TeamDeathmatchBodySide(Player player, LocalGame game, GameWorld world)
+    {
+        if (player == null) return null;
+        if (player.IsAI || (IsActive ? ActiveMode : ArmedMode) != Modes.ArenaModeCatalog.TeamDeathmatchId)
+            return player.Profile?.Info?.Side;
+        if (world == null || !ReferenceEquals(world.MainPlayer, player) || player.ProfileId != game?.Profile?.Id
+            || player.Profile?.Info?.Side != game.Profile.Info.Side) return null;
+        return TeamDeathmatchLocalSide(game, world);
+    }
 
     /// <summary>
     /// How long a death replay may run right now, in seconds. Zero means none.
@@ -194,7 +238,8 @@ public static class ArenaSession
     }
 
     public static void MarkArmed(string map, string mode, Modes.DeathmatchOptions deathmatch = null,
-        int? participants = null, bool participantBosses = false)
+        int? participants = null, bool participantBosses = false, string teamSide = null,
+        string localProfileId = null, EPlayerSide? nativeSide = null)
     {
         if (Modes.ArenaModeCatalog.NormalizeId(mode) == Modes.ArenaModeCatalog.DeathmatchId && deathmatch == null)
             throw new InvalidOperationException("Deathmatch rules are missing before arming.");
@@ -208,6 +253,10 @@ public static class ArenaSession
         DeathmatchSelection = deathmatch;
         ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamCompat.CanPlay(out _));
         unchecked { ArmEpoch++; }
+        if (mode == Modes.ArenaModeCatalog.TeamDeathmatchId && nativeSide != EPlayerSide.Usec && nativeSide != EPlayerSide.Bear)
+            throw new InvalidOperationException("Team DM requires an unchanged native PMC faction.");
+        ArenaTeamSideSelection.Capture(mode, teamSide, nativeSide == EPlayerSide.Usec,
+            localProfileId, ArmEpoch, ArenaServerClient.PendingArmToken);
         ArmedForNextRaid = true;
         ArmedMap = map;
         ArmedMode = mode;
@@ -229,7 +278,10 @@ public static class ArenaSession
     public static void ClearArmed(string reason)
     {
         if (!ArmedForNextRaid)
+        {
+            if (!IsActive) ArenaTeamSideSelection.Reset();
             return;
+        }
 
         ArenaTarkovaColaCompat.EndRaid();
         ArmedForNextRaid = false;

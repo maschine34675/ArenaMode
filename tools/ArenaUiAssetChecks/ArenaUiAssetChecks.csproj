@@ -8,6 +8,7 @@
   <HitmarkerSource Condition="'$(HitmarkerSource)' == ''">../../ArenaMode.Client/Hud/HitmarkerElement.cs</HitmarkerSource>
  </PropertyGroup>
  <ItemGroup>
+  <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
   <Compile Include="$(AssetSource)" Link="Assets.cs" />
   <Compile Include="$(IconSource)" Link="Icon.cs" />
   <Compile Include="$(FeedSource)" Link="Feed.cs" />

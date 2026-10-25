@@ -7,6 +7,7 @@
     <TacticalMarkerSource Condition="'$(TacticalMarkerSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TacticalMode.FriendlyMarkers.cs</TacticalMarkerSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
     <Compile Include="$(MarkerSource)" Link="Production/ArenaFriendlyMarkers.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaFriendlyMarkerPolicy.cs" />
     <Compile Include="$(TacticalMarkerSource)" Link="Production/TacticalMode.FriendlyMarkers.cs" />

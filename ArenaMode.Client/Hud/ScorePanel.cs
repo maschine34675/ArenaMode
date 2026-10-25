@@ -22,6 +22,7 @@ internal sealed class ScorePanel
     private TextMeshProUGUI _subLine;
     private TextMeshProUGUI _comparisonLine;
     private TextMeshProUGUI _rivalScore;
+    private UnityEngine.UI.Image _teamRule;
     private float _nextRefreshAt;
     private int _assistPoints;
     private float _assistUntil;
@@ -44,6 +45,7 @@ internal sealed class ScorePanel
         _root.sizeDelta = new Vector2(760f, PanelHeight);
         ArenaUiTheme.Fill(_root, "Score surface", ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .86f));
         ArenaUiTheme.Decorate(_root);
+        _teamRule = ArenaUiTheme.Rule(_root, "Team colour", Color.clear, inset: 1f, thickness: 2f);
 
         _mainLine = HudStyle.CreateText(_root, "Main", 24f, TextAlignmentOptions.Top);
         var mainRect = _mainLine.rectTransform;
@@ -100,6 +102,10 @@ internal sealed class ScorePanel
             return;
 
         _nextRefreshAt = Time.unscaledTime + RefreshInterval;
+        // A restrained faction accent; health, armor and effect colours keep
+        // their own meanings and the shared menu theme remains neutral.
+        _teamRule.color = match.Mode is TeamDeathmatchMode
+            ? ArenaUiTheme.WithAlpha(Effects.ArenaTeamPalette.FriendlyUi, .85f) : Color.clear;
 
         // TMP's SetText formatter does not know .NET specifiers like n0 — build
         // the string ourselves (4 Hz refresh, allocation is irrelevant).

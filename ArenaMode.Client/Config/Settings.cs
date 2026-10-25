@@ -196,6 +196,7 @@ public static class Settings
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchSize { get; private set; }
+    public static ConfigEntry<string> TeamDeathmatchSide { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchKillLimit { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> ZombieMaxAlive { get; private set; }
@@ -468,6 +469,20 @@ public static class Settings
 
     internal static bool TrySelectTeamDeathmatchKillLimit(int value)
         => TrySelectTeamDeathmatchLimit(TeamDeathmatchKillLimit, value, 1000, "kill limit");
+
+    internal static bool TrySelectTeamDeathmatchSide(bool usec)
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid || TeamDeathmatchSide == null) return false;
+        string value = usec ? Session.ArenaTeamSideSelection.UsecChoice : Session.ArenaTeamSideSelection.BearChoice;
+        try
+        {
+            TeamDeathmatchSide.Value = value;
+            if (TeamDeathmatchSide.Value != value) return false;
+            if (File?.SaveOnConfigSet == false) File.Save();
+            return true;
+        }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning("Arena TDM side selection failed: " + ex.Message); return false; }
+    }
 
     internal static bool TrySelectTeamDeathmatchTimeLimit(int value)
         => TrySelectTeamDeathmatchLimit(TeamDeathmatchTimeLimitSeconds, value, 7200, "time limit");
@@ -1181,6 +1196,12 @@ public static class Settings
             new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts. " +
                 "Separate from whole-map team size. Selected before loading; changes apply next match.",
                 new AcceptableValueRange<int>(2, 5)));
+
+        TeamDeathmatchSide = config.Bind("Team Deathmatch", "Side", Session.ArenaTeamSideSelection.ProfileChoice,
+            new ConfigDescription("Your Arena team: USEC (blue) or BEAR (red). Profile follows your original PMC faction. " +
+                "Frozen before loading. Your real PMC faction, appearance and gear stay unchanged.",
+                new AcceptableValueList<string>(Session.ArenaTeamSideSelection.ProfileChoice,
+                    Session.ArenaTeamSideSelection.UsecChoice, Session.ArenaTeamSideSelection.BearChoice)));
 
         TeamDeathmatchSize = config.Bind(
             "Team Deathmatch",

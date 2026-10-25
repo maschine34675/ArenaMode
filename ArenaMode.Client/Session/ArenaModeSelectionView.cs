@@ -20,6 +20,7 @@ internal sealed class ArenaModeSelectionView
     private readonly List<Button> _buttons = new();
     private readonly List<GameObject> _markers = new();
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
+    private readonly ArenaTdmSideView _tdmSideView = new();
     private ArenaTdmMatchRulesState _tdmRules;
     private readonly ArenaDeathmatchRulesView _dmRulesView = new();
     private ArenaDeathmatchRulesState _dmRules;
@@ -114,6 +115,7 @@ internal sealed class ArenaModeSelectionView
         _equipmentChoice = null;
         Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
+        Safe(_tdmSideView.Close);
         Safe(_equipmentChoiceView.Close);
         Safe(_zombieRules.Close);
         foreach (var button in _buttons)
@@ -170,6 +172,8 @@ internal sealed class ArenaModeSelectionView
         _respawn = CreateFact("RESPAWN", typography, 360f);
         _equipment = CreateFact("EQUIPMENT", typography, 390f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
+        _tdmSideView.Show(_root.transform, template, typography,
+            () => ArenaTdmSideView.ReadNativeSide(screen));
         _dmRulesView.Show(_root.transform, template, typography, _dmRules, Refresh);
         _equipmentChoiceView.Show(_root.transform, template, typography, _equipmentChoice);
         _zombieRules.Show(_root.transform, typography);
@@ -350,6 +354,7 @@ internal sealed class ArenaModeSelectionView
         _equipment.gameObject.SetActive(!_equipmentChoice.Visible);
         _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
+        _tdmSideView.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _equipmentChoiceView.Refresh();
         _zombieRules.Synchronize(_selection.SelectedMode);
     }

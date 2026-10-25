@@ -170,6 +170,10 @@ remain registered and must be retired only after membership ended (not merely
 AfterCreation, which is still PreActive). See docs/DEATHMATCH-GROUPS-REVIEW.md.
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See docs/TEAM-DEATHMATCH-REVIEW.md.
+Its selectable virtual team is frozen in ArenaTeamSideSelection; never mutate
+Profile.Info.Side. Both team-box and bounded-area local spawns/respawns use the
+exact-raid ArenaSession team facade. Read docs/TDM-SIDES-MONITORS-20261025.md before
+changing affiliation, faction colors or optional MapPort screen ownership.
 Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit and Bowl)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read
@@ -225,7 +229,12 @@ With MapPort's optional SpawnGates API, those booths stay closed through assembl
 and countdown. Only the exact owned hold permits a complete intra-booth path
 instead of the temporarily cut atrium route; Live still requires full navigation
 after opening. See docs/EQUATOR-SPAWN-GATES-20261017.md for gate ownership,
-preparation extraction deferral and cleanup. The completion contract is polled
+historical preparation extraction deferral and cleanup. Since 2026-10-25,
+ArenaExtractionIsolation owns extraction blocking across every Arena mode/map;
+team-box opening must never replay deferred native extraction entries.
+Ordinary PMC/Scav extraction and manual Arena match exit remain native.
+See docs/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
+The completion contract is polled
 only after the owned release and while the exact game/world/arm/token still
 matches; never subscribe to MapPort's process-global GatesOpened event. Keep all
 twenty navigation checks and the simulation-time watchdog (20 seconds on Bowl,

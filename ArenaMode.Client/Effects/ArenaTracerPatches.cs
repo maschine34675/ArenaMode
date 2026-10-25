@@ -80,8 +80,8 @@ internal static class ArenaTracerPatches
 
                 __instance.Color = ArenaTracerPalette.Resolve(
                     side == ArenaTracerSide.Friendly
-                        ? Settings.FriendlyTracerColor.Value
-                        : Settings.OpponentTracerColor.Value);
+                        ? ArenaTeamPalette.Friendly
+                        : ArenaTeamPalette.Opponent);
 
                 // Preserve EFT's special short/small visualization for native
                 // yellow grenade tracers; all other and formerly tracerless ammo

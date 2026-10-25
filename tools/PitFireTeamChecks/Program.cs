@@ -517,28 +517,46 @@ internal static class Program
     private static bool HasFrozenArmCall(string source)
         => Regex.Matches(source, @"ArenaSession\.MarkArmed\s*\(").Count == 1
            && Regex.Matches(source,
-            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*,\s*participants\s*,\s*ArenaServerClient\.PendingParticipantBosses\s*\)").Count == 1;
+            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*,\s*participants\s*,\s*ArenaServerClient\.PendingParticipantBosses\s*,\s*requestedTeamSide\s*,\s*requestedProfileId\s*,\s*requestedNativeSide\s*\)").Count == 1;
 
     private static void CheckFrozenArmContract()
     {
-        // Participant admission now freezes the negotiated population and boss
-        // reservation alongside the mode/rules. Require that exact live call;
+        // Participant admission freezes the negotiated population and boss
+        // reservation alongside the mode/rules and captured virtual/native team
+        // identity. Require every argument of that exact live call;
         // accepting an arbitrary suffix would hide a mutable or omitted value.
-        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch,\n participants, ArenaServerClient.PendingParticipantBosses );"),
-            "frozen mode, Deathmatch rules and negotiated population are required independent of formatting");
+        const string valid = "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide, requestedProfileId, requestedNativeSide)";
+        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch,\n participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide,\n requestedProfileId, requestedNativeSide );"),
+            "frozen mode, rules, population and selected/native identity are required independent of formatting");
+        foreach (var replacement in new[]
+                 {
+                     (From: "settings.location", To: "otherLocation"),
+                     (From: "requestedMode", To: "Settings.SelectedGameModeId"),
+                     (From: "deathmatch", To: "null"),
+                     (From: "participants", To: "otherParticipants"),
+                     (From: "ArenaServerClient.PendingParticipantBosses", To: "null"),
+                     (From: "requestedTeamSide", To: "Settings.TeamDeathmatchSide.Value"),
+                     (From: "requestedTeamSide", To: "null"),
+                     (From: "requestedProfileId", To: "__instance.Profile.Id"),
+                     (From: "requestedProfileId", To: "otherProfileId"),
+                     (From: "requestedNativeSide", To: "__instance.Profile.Info.Side"),
+                     (From: "requestedNativeSide", To: "null")
+                 })
+            Assert(!HasFrozenArmCall(valid.Replace(replacement.From, replacement.To, StringComparison.Ordinal)),
+                "each captured arm argument is independently required: " + replacement.From + " -> " + replacement.To);
         foreach (string call in new[]
                  {
                      "ArenaSession.MarkArmed(settings.location, requestedMode)",
-                     "ArenaSession.MarkArmed(settings.location, Settings.SelectedGameModeId, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, null, participants, ArenaServerClient.PendingParticipantBosses)",
-                     "ArenaSession.MarkArmed(otherLocation, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses); ArenaSession.MarkArmed(settings.location, requestedMode, null, participants, ArenaServerClient.PendingParticipantBosses)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses); ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
+                     valid + "; " + valid.Replace("deathmatch", "null", StringComparison.Ordinal),
+                     valid + "; " + valid,
                      "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch)",
                      "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, otherParticipants, ArenaServerClient.PendingParticipantBosses)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, null)",
-                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, ArenaServerClient.PendingParticipantBosses, participants)"
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide, requestedProfileId)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, ArenaServerClient.PendingParticipantBosses, participants, requestedTeamSide, requestedProfileId, requestedNativeSide)",
+                     "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide, requestedNativeSide, requestedProfileId)",
+                     valid[..^1] + ", unexpectedArgument)"
                  })
             Assert(!HasFrozenArmCall(call), "missing, mutable, foreign or duplicate arm contract is rejected: " + call);
     }

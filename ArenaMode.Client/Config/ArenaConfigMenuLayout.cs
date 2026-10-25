@@ -114,6 +114,7 @@ internal static class ArenaConfigMenuLayout
             I("ReplaySeconds", "Killcam Replay (s)"),
             I("Announcer", "Announcer")),
         new Section("Team Deathmatch", false,
+            I("Side", "Arena Team"),
             I("ExperimentalArea", "Arena Area (All Modes)"),
             I("PlayersPerTeam", "Players Per Team"),
             I("AreaPlayersPerTeam", "Players Per Team (Customs Areas)"),

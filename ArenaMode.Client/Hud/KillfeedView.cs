@@ -109,13 +109,13 @@ internal sealed class KillfeedView
 
     public void Push(ArenaKill kill)
         => Push(KillfeedText.Format(kill,
-            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
-            TeamHtmlColor(Settings.OpponentTracerColor.Value)), KillfeedIcon.Select(kill), kill.Headshot);
+            ArenaTeamPalette.FriendlyHex,
+            ArenaTeamPalette.OpponentHex), KillfeedIcon.Select(kill), kill.Headshot);
 
     internal void PushUncreditedDeath(ArenaUncreditedDeath death)
         => Push(KillfeedText.FormatUncreditedDeath(death,
-            TeamHtmlColor(Settings.FriendlyTracerColor.Value),
-            TeamHtmlColor(Settings.OpponentTracerColor.Value)), KillfeedIcon.SelectDeath(death), false);
+            ArenaTeamPalette.FriendlyHex,
+            ArenaTeamPalette.OpponentHex), KillfeedIcon.SelectDeath(death), false);
 
     private void Push(string text, ArenaUiIcon method, bool headshot)
     {
@@ -175,12 +175,6 @@ internal sealed class KillfeedView
         icon.raycastTarget = false;
         return icon;
     }
-
-    // Tracers use HDR RGB values; normalize their hue like the friendly marker
-    // before writing opaque UI text. Read settings for each new entry only.
-    private static string TeamHtmlColor(ArenaTracerColor color)
-        => "#" + ColorUtility.ToHtmlStringRGB(
-            ArenaFriendlyMarkerPolicy.Color(ArenaTracerPalette.Resolve(color)));
 
     public void Tick()
     {

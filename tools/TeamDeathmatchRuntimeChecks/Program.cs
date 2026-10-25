@@ -29,7 +29,7 @@ internal static partial class Program
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
             bool bounded = false, bool areaPending = false, int? areaSize = null,
             int killLimit = 0, int timeLimit = 0, int? participants = null, float protection = 0f,
-            string location = "factory4_day")
+            string location = "factory4_day", EPlayerSide? selectedTeam = null)
         {
             World.LocationId = location;
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
@@ -53,6 +53,8 @@ internal static partial class Program
             Singleton<GameWorld>.Instance = World;
             ArenaSession.IsActive = active;
             ArenaSession.ActiveMode = mode;
+            ArenaSession.SelectedTeam = selectedTeam;
+            ArenaSession.NativeTeam = localSide ?? (usec ? EPlayerSide.Usec : EPlayerSide.Bear);
             ArenaSession.Participants = participants;
             ArenaSession.OwnedGame = Game;
             ArenaSession.OwnedWorld = World;
@@ -761,6 +763,7 @@ internal static partial class Program
         TeamDeathmatchRelations.Enable();
         new ArenaNoCorpseLootingPatch().Enable();
         InitializationAndReady();
+        SelectedTeamRuntime();
         LoadingAndPreActiveOccupancy();
         HumanDeathRespawnAndAwareness();
         RejectionsAndRetirement();

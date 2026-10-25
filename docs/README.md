@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Team DM side selection, faction colors and ArenaMapPort score monitors](TDM-SIDES-MONITORS-20261025.md)
 - [Changelog since 0.1.0](../CHANGELOG.md)
 - [0.3.0 release notes and verification](RELEASE-0.3.0.md)
 - [Published 0.3.0 / Redeploy 1.0.2 packages: versions, tests, scans and download verification](RELEASE-VERIFICATION-20261025.md)

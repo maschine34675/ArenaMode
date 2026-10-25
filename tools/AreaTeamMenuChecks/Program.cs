@@ -31,7 +31,7 @@ var rootRect=(RectTransform)view.Root.transform;
 // layout (three area rows + four size buttons = 214 high) now ends at
 // 924; the measured native READY area starts at Y=984
 // (MUTATORS-MENU-REVIEW.md), so even the ceiling stays above it.
-Need(-rootRect.anchoredPosition.y>=710&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=958,
+Need(-rootRect.anchoredPosition.y>=764&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=984,
     "largest supported panel remains below mode panel and above native bottom controls");
 foreach(var button in Buttons())
 {

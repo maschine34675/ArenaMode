@@ -168,7 +168,7 @@ Need(!lying.TrySelectKills(25) && !lying.TrySelectTime(300), "success callback m
 // The actual mode view creates, synchronizes, displays and tears down the child.
 Settings.TeamDeathmatchKillLimit.Value = 50;
 Settings.TeamDeathmatchTimeLimitSeconds.Value = 600;
-var screen = new GameObject("native map screen", typeof(RectTransform));
+var screen = new GameObject("native map screen", typeof(RectTransform), typeof(EFT.UI.Matchmaker.MatchMakerSelectionLocationScreen));
 ((RectTransform)screen.transform).sizeDelta = new Vector2(1920f,1080f);
 var view = new ArenaModeSelectionView();
 void Show(string mode = "teamdeathmatch", bool team = false)
@@ -184,7 +184,26 @@ Show();
 // + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
 // 2026-10-06 follow-up) is built unconditionally in Create() just like the
 // TDM/Deathmatch rules rows, only its own visibility differs by mode.
-Need(Buttons().Length == 35 && RuleRoot().activeInHierarchy, "five modes, two previews and existing rules exist without a mutators opener");
+Need(Buttons().Length == 37 && RuleRoot().activeInHierarchy, "five modes, two previews, two faction choices and existing rules exist without a mutators opener");
+var usecChoice = Buttons().Single(b => b.name == "Arena Team USEC");
+var bearChoice = Buttons().Single(b => b.name == "Arena Team BEAR");
+Need(usecChoice.GetComponentInChildren<TMP_Text>(true).text == "● USEC", "profile default resolves to visible native faction");
+bearChoice.onClick.Invoke();
+Need(Settings.TeamDeathmatchSide.Value == "BEAR" && bearChoice.GetComponentInChildren<TMP_Text>(true).text == "● BEAR",
+    "BEAR button persists the explicit side and refreshes its selection marker");
+Need(bearChoice.colors.normalColor.a > usecChoice.colors.normalColor.a, "chosen team has stronger faction-colored background");
+ArenaSession.ArmedForNextRaid = true;
+view.Synchronize("teamdeathmatch", false);
+usecChoice.onClick.Invoke();
+Need(Settings.TeamDeathmatchSide.Value == "BEAR" && !usecChoice.interactable, "loading freezes side selection even under forced click");
+ArenaSession.ArmedForNextRaid = false;
+view.Synchronize("gungame", false);
+Need(!bearChoice.gameObject.activeInHierarchy, "team row disappears outside Team DM");
+view.Synchronize("teamdeathmatch", false);
+usecChoice.onClick.Invoke();
+Need(Settings.TeamDeathmatchSide.Value == "USEC", "USEC can be selected independently of prior choice");
+Settings.TeamDeathmatchSide.Value = "Profile";
+view.Synchronize("teamdeathmatch", false);
 void CheckPreviews()
 {
     var previews = Buttons().Where(b => b.name.StartsWith("Arena Preview ")).ToArray();
@@ -228,8 +247,9 @@ var panel = (RectTransform)view.Root.transform;
 // their pre-Zombie values for the fifth mode row (see ArenaModeCatalog's
 // ModePanelHeight/ModePanelTop and ArenaModeSelectionView.Create's own
 // "every top offset below is +42" comment).
-Need(panel.sizeDelta == new Vector2(360, 530) && panel.anchoredPosition == new Vector2(56, -168),
-    "mode panel footprint does not grow toward area or native bottom buttons");
+Need(panel.sizeDelta == new Vector2(360, ArenaModeCatalog.ModePanelHeight("teamdeathmatch"))
+    && panel.sizeDelta.y == 584 && panel.anchoredPosition == new Vector2(56, -168),
+    "mode and area panels share the same height including the faction row");
 var ruleRect = (RectTransform)RuleRoot().transform;
 Need(-ruleRect.anchoredPosition.y >= 432 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 530,
     "rules remain below heading and inside original mode panel");

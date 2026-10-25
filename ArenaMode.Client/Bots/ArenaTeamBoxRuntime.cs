@@ -7,9 +7,7 @@ using ArenaMode.Session;
 using ArenaMode.Compat;
 using ArenaMode.Shared;
 using Comfort.Common;
-using CommonAssets.Scripts.Game;
 using EFT;
-using EFT.Interactive;
 using EFT.Game.Spawning;
 using EFT.Bots;
 using EFT.InventoryLogic;
@@ -43,7 +41,6 @@ internal static class ArenaTeamBoxRuntime
     private static ArenaMapPortSpawnGates.Lease _gates;
     private static float _openingStartedAt = -1f;
     private static bool _gatesOpened;
-    private static readonly Dictionary<ExfiltrationPoint, Player> DeferredExtractions = new();
     private static readonly Dictionary<string, ISpawnPoint> Points = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Lease> Reservations = new(StringComparer.Ordinal);
     private static Lease _playerReservation;
@@ -51,6 +48,8 @@ internal static class ArenaTeamBoxRuntime
     private static ArenaTeamBoxRuntimeInitialPatch _initialPatch;
     private static readonly Harmony LoadingPatches = new Harmony(Plugin.PluginGuid + ".TeamBoxLoading");
     private static string MapLabel => _formation?.DisplayName ?? "Arena team-box";
+    private static EPlayerSide LocalSide => ArenaSession.TeamDeathmatchLocalSide(_game, _world)
+        ?? throw new InvalidOperationException("The team-box local affiliation lost its exact raid owner.");
     private const float OccupancySquared = 2.25f;
     internal static bool IsReady { get; private set; }
 
@@ -92,12 +91,6 @@ internal static class ArenaTeamBoxRuntime
             if (stop == null) throw new MissingMethodException("LocalGame.Stop contract changed.");
             LoadingPatches.Patch(stop,
                 postfix: new HarmonyMethod(typeof(ArenaTeamBoxRuntime), nameof(AfterStop)));
-            var proceed = AccessTools.DeclaredMethod(typeof(ExfiltrationPoint), nameof(ExfiltrationPoint.Proceed),
-                new[] { typeof(Player), typeof(bool) });
-            if (proceed == null || proceed.ReturnType != typeof(void))
-                throw new MissingMethodException("Native exfiltration Proceed contract changed.");
-            LoadingPatches.Patch(proceed,
-                prefix: new HarmonyMethod(typeof(ArenaTeamBoxRuntime), nameof(BeforeExtraction)));
             // ArenaSession registered first in Plugin.Awake. Native Run finishes
             // BEFORE GameWorld.OnGameStarted; only this later event observes
             // whether ArenaSession admitted or rejected the consumed arm.
@@ -139,7 +132,7 @@ internal static class ArenaTeamBoxRuntime
         }
         var local = world.MainPlayer;
         if (local == null || local.ProfileId != game.Profile.Id || !FloorAndClear(local.Position) || !Connected(local.Position)
-            || !Points.Values.Any(p => PointCurrent(p, game.Profile.Info.Side == EPlayerSide.Usec)
+            || !Points.Values.Any(p => PointCurrent(p, LocalSide == EPlayerSide.Usec)
                 && (p.Position - local.Position).sqrMagnitude <= .5625f && Connected(p.Position)))
             throw new InvalidOperationException($"{MapLabel} initial PMC did not reach its own connected team box.");
         Plugin.ModLogger.LogDebug($"{MapLabel} Team DM formation ready: {size}v{size}, {_formation.TeamDescription}.");
@@ -388,42 +381,7 @@ internal static class ArenaTeamBoxRuntime
 
     private static void ReleaseGates(string reason)
     {
-        // Teardown never starts an extraction or retains a local player body.
-        DeferredExtractions.Clear();
         _gates?.Release(reason);
-    }
-
-    private static bool CurrentLocal(Player player)
-        => player != null && _world != null && _game != null
-           && ReferenceEquals(player, _world.MainPlayer) && player.ProfileId == _game.Profile.Id
-           && player.HealthController?.IsAlive == true
-           && ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player);
-
-    private static bool CurrentBoothExit(ExfiltrationPoint point)
-        => point != null && _formation?.BoothExits.Contains(point.Settings?.Name) == true
-           && ExfiltrationController.Instance?.ExfiltrationPoints?.Any(p => ReferenceEquals(p, point)) == true;
-
-    private static bool BeforeExtraction(ExfiltrationPoint __instance, Player player)
-    {
-        if (_gates?.OwnsCurrentRaid != true || (!_gates.IsHeld && !GatesOpening)
-            || !(IsRequired || ArenaSession.ArmedForNextRaid
-                && Catalog.Applies(ArenaSession.ArmedMap, ArenaSession.ArmedMode))
-            || !CurrentLocal(player) || !CurrentBoothExit(__instance) || !__instance.Entered.Contains(player)) return true;
-        // Both original booth exits overlap genuine team starts. Let native
-        // Entered track the body, but do not register an eight-second escape
-        // while its only doorway is deliberately sealed for preparation.
-        DeferredExtractions[__instance] = player;
-        return false;
-    }
-
-    private static void ResumeExtractions()
-    {
-        var deferred = DeferredExtractions.ToArray();
-        DeferredExtractions.Clear();
-        foreach (var pair in deferred)
-            if (Current && _gates?.OwnsCurrentRaid == true && CurrentLocal(pair.Value)
-                && CurrentBoothExit(pair.Key) && pair.Key.Entered.Contains(pair.Value))
-                pair.Key.Proceed(pair.Value);
     }
 
     internal static bool TryOpenForCombat()
@@ -433,8 +391,8 @@ internal static class ArenaTeamBoxRuntime
         if (_openingStartedAt < 0f)
         {
             _openingStartedAt = Time.time;
-            // Keep deferred native exit entries through the slide. Cleanup
-            // paths use ReleaseGates instead and deliberately discard them.
+            // Extraction isolation is owned by the central Arena-only guard;
+            // opening a team box never starts an extraction timer.
             _gates.Release($"ArenaMode {MapLabel} TDM countdown finished");
         }
         // IsHeld becomes false before MapPort's slide/drive removes carvers.
@@ -449,7 +407,6 @@ internal static class ArenaTeamBoxRuntime
         if (connected)
         {
             _gatesOpened = true;
-            ResumeExtractions();
             Plugin.ModLogger.LogDebug($"{MapLabel} Team DM gates open: all twenty formation paths revalidated; "
                 + $"{Time.time - _openingStartedAt:F2}s since release ({(_gates.HasCompletionSignal ? "MapPort GatesOpen" : "legacy minimum")}).");
             return true;
@@ -479,7 +436,8 @@ internal static class ArenaTeamBoxRuntime
         var side = usec ? EPlayerSide.Usec : EPlayerSide.Bear;
         float distance = float.PositiveInfinity;
         foreach (var player in _world.AllAlivePlayersList.OfType<Player>())
-            if (player != null && player.HealthController?.IsAlive == true && player.Profile?.Info?.Side != side)
+            if (player != null && player.HealthController?.IsAlive == true
+                && ArenaSession.TeamDeathmatchBodySide(player, _game, _world) is EPlayerSide actorSide && actorSide != side)
                 distance = Mathf.Min(distance, HorizontalSquared(position, player.Position));
         return distance;
     }
@@ -513,7 +471,7 @@ internal static class ArenaTeamBoxRuntime
     {
         if (!Current || !ReferenceEquals(game, _game))
             throw new InvalidOperationException($"{MapLabel} Team DM respawn has no exact prepared raid.");
-        var point = Pick(Points.Values, _game.Profile.Info.Side == EPlayerSide.Usec, avoid, _world.MainPlayer);
+        var point = Pick(Points.Values, LocalSide == EPlayerSide.Usec, avoid, _world.MainPlayer);
         if (point == null) throw new InvalidOperationException("No unoccupied connected team-box team-box respawn is available.");
         return (point.Position, point.Rotation);
     }
@@ -528,7 +486,7 @@ internal static class ArenaTeamBoxRuntime
                 throw new InvalidOperationException("The team-box respawn lost its exact raid owner.");
             var position = original.Resolve(game);
             var point = Points.Values.SingleOrDefault(p => (p.Position - position.position).sqrMagnitude < .0001f);
-            bool usec = _game.Profile.Info.Side == EPlayerSide.Usec;
+            bool usec = LocalSide == EPlayerSide.Usec;
             if (point == null || !PointCurrent(point, usec) || !Unoccupied(point.Position, _world.MainPlayer, null))
                 throw new InvalidOperationException("The selected team-box respawn is no longer unoccupied.");
             if (_playerReservation != null)
@@ -580,7 +538,7 @@ internal static class ArenaTeamBoxRuntime
         internal bool Accept(Player player)
         {
             bool accepted = Valid && player != null && player.HealthController?.IsAlive == true
-                && player.Profile?.Info?.Side == (_usec ? EPlayerSide.Usec : EPlayerSide.Bear)
+                && ArenaSession.TeamDeathmatchBodySide(player, _game, _world) == (_usec ? EPlayerSide.Usec : EPlayerSide.Bear)
                 && ReferenceEquals(_world.GetAlivePlayerByProfileID(player.ProfileId), player)
                 && (player.Position - Position).sqrMagnitude <= .5625f
                 && FloorAndClear(Position) && Connected(Position)
@@ -589,7 +547,7 @@ internal static class ArenaTeamBoxRuntime
             if (accepted && !_arrivalLogged)
             {
                 _arrivalLogged = true;
-                Plugin.ModLogger.LogDebug($"{MapLabel} team arrival: {player.ProfileId}, {player.Profile.Info.Side}, {PointId}, actual {player.Position}.");
+                Plugin.ModLogger.LogDebug($"{MapLabel} team arrival: {player.ProfileId}, {(_usec ? "USEC" : "BEAR")}, {PointId}, actual {player.Position}.");
             }
             return accepted;
         }
@@ -643,13 +601,13 @@ internal static class ArenaTeamBoxRuntime
                 || __instance == null || !ReferenceEquals(__instance._players, _world)
                 || !ReferenceEquals(__instance._spawnPoints, _collection))
                 throw new InvalidOperationException($"{MapLabel} team initial spawn lost its exact prepared collection.");
-            bool usec = side == EPlayerSide.Usec;
+            bool usec = LocalSide == EPlayerSide.Usec;
             // Native NavMesh loads later in BotsController.Init. Initial entry
             // uses actual physics; each bot/respawn requires the full path later.
             var choices = Points.Values.Where(p => PointCurrent(p, usec) && FloorAndClear(p.Position)).ToArray();
             if (choices.Length == 0) throw new InvalidOperationException($"{MapLabel} has no physically clear initial team-box point.");
             __result = choices[UnityEngine.Random.Range(0, choices.Length)];
-            Plugin.ModLogger.LogDebug($"{MapLabel} team initial PMC: {side}, {__result.Id}, {__result.Position}.");
+            Plugin.ModLogger.LogDebug($"{MapLabel} team initial PMC: {LocalSide} (native {side}), {__result.Id}, {__result.Position}.");
             return false;
         }
     }

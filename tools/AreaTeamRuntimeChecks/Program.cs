@@ -110,6 +110,52 @@ internal static class Program
         Need(blocked.NativeSelections==0,"missing initial formation never calls native fallback");
     }
 
+    private static void OppositeVirtualTeams()
+    {
+        foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+        {
+            var system = Setup(native);
+            var selected = native == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;
+            bool usec = selected == EPlayerSide.Usec;
+            ArenaMode.Session.ArenaSession.SelectedTeam = selected;
+            ISpawnPoint initial = null;
+            try { initial = Initial(system, native); } catch (InvalidOperationException) { }
+            Need(initial != null && system.NativeSelections == 0
+                && Area.TeamStarts.Allows(usec, true, initial.Id),
+                "virtual team controls initial Customs pool while native request identity stays unchanged");
+            ArenaAreaRuntime.TestActivate(initial);
+            Need(ArenaAreaRuntime.TestGame.Profile.Info.Side == native, "virtual initial placement never mutates PMC faction");
+            Need(ArenaAreaRuntime.TestValidate(out var problem), "opposite selected team formation validates: " + problem);
+            var world = ArenaAreaRuntime.TestWorld;
+            var initialLease = ArenaAreaRuntime.ReservePlayerPosition(initial.Position);
+            Need(initialLease != null && initialLease.Usec == usec && initialLease.Accept(world.MainPlayer),
+                "virtual player arrival accepts selected side despite opposite native faction");
+            initialLease.Dispose();
+            ArenaAreaRuntime.FinishTeamAssembly();
+
+            // Native-faction bots are opponents after switching sides. Keep the
+            // PMC alive so the ranking must not mistake that same native side
+            // for a second opponent at the original player location.
+            var enemyPoint = system._spawnPoints.First(p => Area.TeamStarts.Allows(usec, false, p.Id));
+            world.AllAlivePlayersList.Add(Actor(enemyPoint.Position, !usec));
+            float EnemyDistance(Vector3 p) => world.AllAlivePlayersList.OfType<Player>()
+                .Where(actor => actor.HealthController.IsAlive
+                    && (ReferenceEquals(actor, world.MainPlayer) ? selected : actor.Profile.Info.Side) != selected)
+                .Min(actor => D2(actor.Position, p));
+            var eligible = system._spawnPoints.Where(p => ArenaAreaSpawnPolicy.IsPlayerPoint(p, selected)
+                && ArenaAreaRuntime.TestUnoccupied(p.Position, world.MainPlayer)).ToArray();
+            var respawn = ArenaAreaRuntime.PickRespawn(initial.Position, 0).position;
+            Need(Math.Abs(EnemyDistance(respawn) - eligible.Max(p => EnemyDistance(p.Position))) < .01f,
+                "virtual player respawn ranks opponents by selected team");
+            var lease = ArenaAreaRuntime.ReservePlayerPosition(respawn);
+            world.MainPlayer.Position = respawn;
+            Need(lease.Usec == usec && lease.Accept(world.MainPlayer),
+                "virtual respawn lease admits unchanged native PMC on selected team");
+            Need(world.MainPlayer.Profile.Info.Side == native, "virtual respawn preserves native faction");
+            lease.Dispose();
+        }
+    }
+
     private static void ReadinessRejections()
     {
         var s=Setup();var p=Initial(s,EPlayerSide.Usec);ArenaAreaRuntime.TestActivate(p);
@@ -354,7 +400,7 @@ internal static class Program
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
-            InitialAndCapacity();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();ProtectedInitialCoopCategory();
+            InitialAndCapacity();OppositeVirtualTeams();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();ProtectedInitialCoopCategory();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

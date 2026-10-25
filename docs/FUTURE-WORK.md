@@ -5,6 +5,15 @@ work unless a section explicitly records implementation or test progress with
 a linked review. Recheck current source and saved configuration when resuming.
 Read `AGENTS.md` and `HANDOFF.md` first.
 
+## Faction-specific Team DM equipment
+
+The USEC/BEAR choice introduced on 2026-10-25 can later select different kit
+pools, weapons or equipment rules. Consume the frozen Arena team selection,
+never rewrite or infer it from the persistent PMC faction. Current side choice
+changes affiliation, spawns and presentation only; kits, clothing and voices
+remain unchanged. Any future gear rules must retain protected slot handling,
+kit validation and exact entry-profile restoration.
+
 ## Separate findings from the 2026-10-24 gate tests
 
 The later Factory transit/kit tests also recorded one `BotFirstAid` completion

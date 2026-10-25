@@ -98,7 +98,12 @@ internal static class ArenaModeCatalog
     internal const float ModePanelTop = 168f;
     // Keep the accepted footprint: the area/participant panel sits immediately
     // below this one, including all four Customs choices at a 1080-unit height.
-    internal static float ModePanelHeight(string mode) => NormalizeId(mode) is DeathmatchId or ZombieId ? 596f : 530f;
+    internal static float ModePanelHeight(string mode) => NormalizeId(mode) switch
+    {
+        DeathmatchId or ZombieId => 596f,
+        TeamDeathmatchId => 584f,
+        _ => 530f,
+    };
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;
 

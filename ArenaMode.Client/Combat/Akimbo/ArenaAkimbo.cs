@@ -234,7 +234,7 @@ internal sealed class ArenaAkimbo : MonoBehaviour
             bool teamColor = Settings.TeamLasers?.Value == true && (ArenaMatchService.Current.Mode is TeamDeathmatchMode
                 || ArenaMatchService.Current.Mode is TacticalMode tactical && tactical.IsTeamArena);
             Color color = teamColor
-                ? ArenaTracerPalette.Resolve(Settings.FriendlyTracerColor?.Value ?? ArenaTracerColor.Cyan)
+                ? ArenaTracerPalette.Resolve(ArenaTeamPalette.Friendly)
                 : new Color(.2f, 1f, .16f, 1f);
             _view.Aim(CameraManager.Instance.Camera.transform.position, aim.Origin, aim.Direction, aim.Muzzle, aim.Body, color);
         }

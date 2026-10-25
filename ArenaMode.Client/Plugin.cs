@@ -83,6 +83,7 @@ public class Plugin : BaseUnityPlugin
         ArenaLocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
         ArenaRaidExit.Enable();
+        ArenaExtractionIsolation.Enable();
         ArenaRewardCapture.Enable();
         ArenaFailedStartIntro.Enable();
         ArenaPostRaidScreens.Enable();
@@ -231,6 +232,7 @@ public class Plugin : BaseUnityPlugin
         Combat.Akimbo.ArenaAkimbo.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();
+        ArenaExtractionIsolation.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
         Movement.ArenaBunnyhop.Shutdown();

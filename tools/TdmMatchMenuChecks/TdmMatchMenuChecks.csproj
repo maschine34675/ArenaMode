@@ -12,6 +12,8 @@
     <ProductionZombieView Condition="'$(ProductionZombieView)' == ''">../../ArenaMode.Client/Session/ArenaZombieRulesView.cs</ProductionZombieView>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTdmSideView.cs" Link="Production/ArenaTdmSideView.cs" />
     <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/RewardWire.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaRewardConsentView.cs" Link="Production/ArenaRewardConsentView.cs" />
     <Compile Include="$(ProductionZombieState)" Link="Production/ArenaZombieRulesState.cs" />

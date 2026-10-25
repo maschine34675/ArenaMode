@@ -301,8 +301,22 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session
 {
+    internal static class ArenaTeamSideSelection
+    {
+        internal static bool? NativeUsec => ArenaSession.NativeTeam.HasValue
+            ? ArenaSession.NativeTeam == EPlayerSide.Usec : null;
+    }
     internal static class ArenaSession
     {
+        // The pure selection lease is tested separately; model only the exact
+        // local-body facade at this existing runtime boundary.
+        internal static EPlayerSide? SelectedTeam, NativeTeam;
+        internal static EPlayerSide? TeamDeathmatchLocalSide(LocalGame game, GameWorld world)
+            => IsExactActiveRaid(game, world) ? SelectedTeam ?? world?.MainPlayer?.Profile?.Info?.Side : null;
+        internal static EPlayerSide? TeamDeathmatchBodySide(Player player, LocalGame game, GameWorld world)
+            => ReferenceEquals(player, world?.MainPlayer)
+                ? (NativeTeam.HasValue && player?.Profile?.Info?.Side != NativeTeam ? null : TeamDeathmatchLocalSide(game, world))
+                : player?.Profile?.Info?.Side;
         internal static int ArmEpoch = 1;
         internal static bool IsActive;
         internal static string ActiveMode;
@@ -321,6 +335,11 @@ namespace ArenaMode.Respawn
 }
 namespace ArenaMode.Effects
 {
+    internal static class ArenaTeamPalette
+    {
+        internal static string FriendlyHex => Session.ArenaSession.SelectedTeam == EFT.EPlayerSide.Bear ? "#FF6B6B" : "#7FA7FF";
+        internal static string OpponentHex => Session.ArenaSession.SelectedTeam == EFT.EPlayerSide.Bear ? "#7FA7FF" : "#FF6B6B";
+    }
     internal sealed class ArenaSpawnShieldView : IDisposable
     {
         internal static int Active;
@@ -333,6 +352,15 @@ namespace ArenaMode.Effects
 }
 namespace ArenaMode.Modes
 {
+    // MapPort transport and phase mapping have their own production-linked
+    // harness; these existing combat checks exercise the caller's lifecycle.
+    public sealed partial class TeamDeathmatchMode
+    {
+        internal int MonitorClaims, MonitorPushes, MonitorReleases;
+        private void ClaimMonitors() => MonitorClaims++;
+        private void PushMonitors() => MonitorPushes++;
+        private void ReleaseMonitors() => MonitorReleases++;
+    }
     internal static class ArenaToasts { internal static void Show(string text) => Model.Events.Add("toast:" + text); }
 #if !TEAM_GIVE_UP_CHECKS
     public sealed class ArenaMatch
@@ -439,7 +467,11 @@ internal static class Model
         body.Profile.Info.Settings.Role = side == EPlayerSide.Usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
         body.HealthController = new Health { Player = body };
         world.Players[id] = body;
-        if (!ai) world.MainPlayer = body;
+        if (!ai)
+        {
+            if (world.MainPlayer == null) ArenaMode.Session.ArenaSession.NativeTeam = side;
+            world.MainPlayer = body;
+        }
         else
         {
             var owner = new BotOwner { GetPlayer = body };

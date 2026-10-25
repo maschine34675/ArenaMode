@@ -197,7 +197,7 @@ internal static class ArenaTeamLaserColors
             if (originalBeam == null || originalPoint == null) { Release(laser); return null; }
             bool tint = friendly.HasValue && Settings.TeamLasers?.Value == true;
             Color palette = ArenaTracerPalette.Resolve(friendly == true
-                ? Settings.FriendlyTracerColor.Value : Settings.OpponentTracerColor.Value);
+                ? ArenaTeamPalette.Friendly : ArenaTeamPalette.Opponent);
             // Native LateUpdate writes every float consumed by each draw. These
             // blocks are reused, never installed permanently and never shared.
             state.Beam.Clear();

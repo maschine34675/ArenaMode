@@ -28,6 +28,7 @@ internal static class Program
             CheckPatchRegistration();
             CheckPatchRenderingAndGates();
             CheckPatchGeometryAndFailure();
+            CheckFactionColorsInRenderer();
             CheckSourceAndLifecycleContract();
             Console.WriteLine($"ARENA_TRACER_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -610,10 +611,42 @@ internal static class Program
         return (bool)prefix.Invoke(null, new object[] { renderer, shot });
     }
 
+    private static void CheckFactionColorsInRenderer()
+    {
+        foreach (bool usec in new[] { true, false })
+        {
+            Reset();
+            ArenaSession.IsActive = true;
+            ArenaSession.ActiveMode = "teamdeathmatch";
+            Comfort.Common.Singleton<AbstractGame>.Instance = new AbstractGame();
+            Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld();
+            ArenaSession.ExactGame = Comfort.Common.Singleton<AbstractGame>.Instance;
+            ArenaSession.ExactWorld = Comfort.Common.Singleton<GameWorld>.Instance;
+            ArenaTeamSideSelection.SelectedUsec = usec;
+            ArenaTracerTeams.BeginFactionMatch("local");
+            ArenaTracerTeams.RegisterFactionActor("enemy", false);
+            var renderer = new TracersLight();
+            Assert(!InvokePrefix(renderer, NewShot("local", true, false)), "selected TDM local shot renders");
+            var friendly = ArenaTracerPalette.Resolve(usec ? ArenaTracerColor.Blue : ArenaTracerColor.Red);
+            AssertColor(renderer.Color, friendly.r, friendly.g, friendly.b, "selected TDM local faction color");
+            Assert(!InvokePrefix(renderer, NewShot("enemy", true, false)), "selected TDM enemy shot renders");
+            var opponent = ArenaTracerPalette.Resolve(usec ? ArenaTracerColor.Red : ArenaTracerColor.Blue);
+            AssertColor(renderer.Color, opponent.r, opponent.g, opponent.b, "selected TDM opposing faction color");
+            Comfort.Common.Singleton<GameWorld>.Instance = new GameWorld();
+            Assert(!InvokePrefix(renderer, NewShot("local", true, false)), "stale faction override has no new rendering authority");
+            AssertColor(renderer.Color, .25f, 1.25f, 2f, "stale world cannot use prior faction override");
+        }
+        Reset();
+    }
+
     private static void Reset()
     {
         ArenaSession.IsActive = false;
         ArenaSession.ActiveMode = "tactical";
+        ArenaTeamSideSelection.SelectedUsec = null;
+        ArenaSession.ExactGame = ArenaSession.ExactWorld = null;
+        Comfort.Common.Singleton<AbstractGame>.Instance = null;
+        Comfort.Common.Singleton<GameWorld>.Instance = null;
         Settings.TeamTracers.Value = true;
         Settings.FriendlyTracerColor.Value = ArenaTracerColor.Cyan;
         Settings.OpponentTracerColor.Value = ArenaTracerColor.Red;

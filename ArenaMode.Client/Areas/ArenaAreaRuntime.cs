@@ -370,8 +370,11 @@ internal static partial class ArenaAreaRuntime
     // BaseLocalGame.Create publishes Profile before Run constructs scene spawns;
     // MainPlayer does not exist yet at that first filter. Use that same profile
     // side again for readiness and respawns, including after body replacement.
+    private static EPlayerSide? LocalSpawnSide => _mode == Modes.ArenaModeCatalog.TeamDeathmatchId
+        ? Session.ArenaSession.TeamDeathmatchLocalSide(_game, _world) : _game?.Profile?.Info?.Side;
+
     private static bool IsPlayerPoint(ISpawnPoint p)
-        => ArenaAreaSpawnPolicy.IsPlayerPoint(p, _game?.Profile?.Info?.Side);
+        => ArenaAreaSpawnPolicy.IsPlayerPoint(p, LocalSpawnSide);
     private static bool IsBotPoint(ISpawnPoint p) => p != null && !string.IsNullOrEmpty(p.BotZoneName)
         && ((p.Categories & ESpawnCategoryMask.Bot) != 0 || p.Categories.ContainBotPmcCategory());
 
@@ -393,9 +396,10 @@ internal static partial class ArenaAreaRuntime
         if (all.Count == 0) throw new InvalidOperationException("Bounded Arena has no verified player respawn; no outside fallback is permitted.");
         if (HasTeamStarts)
         {
-            var chosen = PickTeamPoint(all, _game.Profile.Info.Side == EPlayerSide.Usec, avoid, _world.MainPlayer);
+            var side = LocalSpawnSide ?? throw new InvalidOperationException("The team area local affiliation is unavailable.");
+            var chosen = PickTeamPoint(all, side == EPlayerSide.Usec, avoid, _world.MainPlayer);
             if (chosen == null) throw new InvalidOperationException("No unoccupied connected team respawn is available.");
-            Plugin.ModLogger.LogDebug($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, _game.Profile.Info.Side == EPlayerSide.Usec):F1}m.");
+            Plugin.ModLogger.LogDebug($"Arena team player respawn: {chosen.Id}; nearest enemy {NearestEnemyDistance(chosen.Position, side == EPlayerSide.Usec):F1}m.");
             return (chosen.Position, chosen.Rotation);
         }
         all.RemoveAll(p => !IsUnoccupied(p.Position, _world.MainPlayer, null));

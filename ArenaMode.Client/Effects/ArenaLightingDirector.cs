@@ -117,10 +117,8 @@ internal static class ArenaLightingDirector
             Outcome = _outcome,
             OutcomeRemaining = _outcomeUntil - now,
             OutcomeDuration = outcomeDuration,
-            FriendlyColor = ToPolicyColor(ArenaTracerPalette.Resolve(
-                Settings.FriendlyTracerColor?.Value ?? ArenaTracerColor.Cyan)),
-            OpponentColor = ToPolicyColor(ArenaTracerPalette.Resolve(
-                Settings.OpponentTracerColor?.Value ?? ArenaTracerColor.Red)),
+            FriendlyColor = ToPolicyColor(ArenaTracerPalette.Resolve(ArenaTeamPalette.Friendly)),
+            OpponentColor = ToPolicyColor(ArenaTracerPalette.Resolve(ArenaTeamPalette.Opponent)),
         };
 
         Apply(ArenaLightingPolicy.Evaluate(context));

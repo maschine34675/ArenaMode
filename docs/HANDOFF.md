@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Team DM sides and monitors (2026-10-25, post-0.3.0 development build):**
+  native USEC/BEAR menu choice freezes an Arena-only team without rewriting the
+  PMC profile. Team starts/respawns, faction colors and optional MapPort score
+  monitors follow it. GPU-2 verified both choices, real combat/respawn on Equator,
+  BEAR entry on Customs and matching monitor scores. Native testing exposed a
+  pre-existing box/exfil overlap; at the user's request, all native extractions
+  are now blocked centrally during Arena. The identical Equator point stayed
+  active in Arena and extracted normally in a PMC control. Both client DLLs
+  are deployed; server/Core/map files are unchanged. This is not a new release.
+  See [exact hashes, offline checks and native limits](TDM-SIDES-MONITORS-20261025.md).
+
 - **Published releases (2026-10-25):** ArenaMode **0.3.0** from `27cdb374` and
   Redeploy **1.0.2** from `1c78fb3`, both with identical **Core 1.0.13**.
   [Final verification](RELEASE-VERIFICATION-20261025.md) records exact package

@@ -9,6 +9,7 @@
     <ProductionPatchSource Condition="'$(ProductionPatchSource)' == ''">../../ArenaMode.Client/Effects/ArenaTracerPatches.cs</ProductionPatchSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
     <Compile Include="$(ProductionColorSource)" Link="Production/ArenaTracerColor.cs" />
     <Compile Include="$(ProductionTeamsSource)" Link="Production/ArenaTracerTeams.cs" />
     <Compile Include="$(ProductionPatchSource)" Link="Production/ArenaTracerPatches.cs" />

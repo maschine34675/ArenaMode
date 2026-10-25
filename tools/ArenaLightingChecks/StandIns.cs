@@ -271,6 +271,11 @@ namespace ArenaMode.Session
     {
         internal static bool IsActive { get; set; }
         internal static bool ArmedForNextRaid { get; set; }
+        internal static string ActiveMode { get; set; }
+        internal static object ExactGame { get; set; }
+        internal static object ExactWorld { get; set; }
+        internal static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world)
+            => IsActive && ReferenceEquals(game, ExactGame) && ReferenceEquals(world, ExactWorld);
     }
 }
 

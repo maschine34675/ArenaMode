@@ -35,7 +35,7 @@ internal static class Program
     }
     private static Player Body(string id,EPlayerSide side,Vector3 position,bool add=true)
     {var player=new Player{Profile=new(){Id=id,Info=new(){Side=side}},Position=position};if(add)World.AllAlivePlayersList.Add(player);return player;}
-    private static void Setup(bool active=true,EPlayerSide side=EPlayerSide.Usec,int total=4,bool restore=true)
+    private static void Setup(bool active=true,EPlayerSide side=EPlayerSide.Usec,int total=4,bool restore=true,EPlayerSide? selectedTeam=null)
     {
         Runtime.Shutdown();SPT.Reflection.Patching.ModulePatch.Fail=false;Runtime.Enable();
         Physics.Floor=p=>true;Physics.Clear=p=>true;NavMesh.Sample=p=>true;NavMesh.Path=(a,b)=>true;
@@ -44,6 +44,7 @@ internal static class Program
         Game=new(){GameWorld=World,Status=GameStatus.Running,Profile=new(){Id="local",Info=new(){Side=side}}};
         Singleton<AbstractGame>.Instance=Game;Singleton<GameWorld>.Instance=World;
         ArenaSession.ExactGame=Game;ArenaSession.ExactWorld=World;ArenaSession.IsActive=false;
+        ArenaSession.SelectedTeam=selectedTeam;
         ArenaSession.ArmedForNextRaid=true;ArenaSession.ArmedMap=Formation.MapId;ArenaSession.ArmedMode=Catalog.ModeId;
         ArenaSession.ActiveMode=Catalog.ModeId;ArenaSession.Participants=total;ArenaSession.ArmEpoch++;
         ArenaServerClient.PendingArmToken=Guid.NewGuid().ToString("N");
@@ -59,7 +60,7 @@ internal static class Program
             Zone.SpawnPointMarkers.Add(marker);Collection._dictionary.Add(point,marker);
         }
         if(restore)Invoke("RestoreCollection",Collection);
-        var first=Formation.Points.First(p=>p.Usec==(side==EPlayerSide.Usec));
+        var first=Formation.Points.First(p=>p.Usec==((selectedTeam??side)==EPlayerSide.Usec));
         World.MainPlayer=Body("local",side,new(first.X,first.Y,first.Z));
         if(active){ArenaSession.IsActive=true;ArenaSession.ArmedForNextRaid=false;Game.Status=GameStatus.Started;}
     }
@@ -207,6 +208,29 @@ internal static class Program
         {
             Formation=Catalog.Find(map);
             ScopeAndFormation();HeadersAndInitial();ReservationsAndArrival();PlayerHandover();await LoadingFailures();
+            foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+            {
+                var selectedTeam = native == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;
+                Setup(active:false,side:native,selectedTeam:selectedTeam);
+                var system = new SpawnSystem();
+                // Use the same native collection and physical world as the loading request.
+                system._players = World; system._spawnPoints = Collection;
+                Check(!(bool)Initial(ESpawnCategory.Player,native,"local",system,out var selected),
+                    "VIRTUAL-TEAM: initial native request is handled");
+                Check(Formation.Find(selected.Id).Usec == (selectedTeam == EPlayerSide.Usec),
+                    "VIRTUAL-TEAM: initial marker follows chosen faction");
+                Setup(side:native,selectedTeam:selectedTeam);Runtime.Begin(World,Game);
+                Check(Runtime.TryPrepareRespawn(Game,new ArenaMode.Respawn.ArenaSpawnSelector(),out var prepared),
+                    "VIRTUAL-TEAM: replacement position can be reserved");
+                var position = prepared.Resolve(Game).position;
+                Check(Formation.Points.Any(p => p.Usec == (selectedTeam == EPlayerSide.Usec)
+                    && p.X == position.x && p.Z == position.z), "VIRTUAL-TEAM: respawn stays in chosen box");
+                World.MainPlayer.HealthController.IsAlive=false;
+                World.MainPlayer=Body("local",native,position);
+                Check(Runtime.ReleasePlayerReservation(World.MainPlayer), "VIRTUAL-TEAM: native-faction replacement reaches chosen box");
+                Check(World.MainPlayer.Profile.Info.Side == native && Game.Profile.Info.Side == native,
+                    "VIRTUAL-TEAM: profile faction never changes");
+            }
             Setup();World.LocationId=map=="arena_equator"?"arena_bay5":"arena_equator";
             Check(Runtime.IsRequired,"MAP-DRIFT: supported replacement remains required");
             Reject(()=>Runtime.Begin(World,Game),"MAP-DRIFT: old formation cannot authorize replacement map");

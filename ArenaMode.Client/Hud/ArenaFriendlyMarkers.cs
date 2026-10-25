@@ -164,7 +164,7 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
         if (players == null) return;
         Vector3 origin = camera.transform.position;
         if (!ArenaFriendlyMarkerPolicy.Finite(origin)) return;
-        Color color = ArenaFriendlyMarkerPolicy.Color(ArenaTracerPalette.Resolve(Settings.FriendlyTracerColor.Value));
+        Color color = ArenaTeamPalette.FriendlyUi;
         // Native high-poly scenery plus physical doors and low-poly blocking
         // proxies. Transparent colliders conservatively hide markers at glass.
         int mask = (int)LayersMaskController.HighPolyWithTerrainMask

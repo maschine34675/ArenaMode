@@ -446,8 +446,8 @@ internal sealed class ArenaPanel : MonoBehaviour
         IReadOnlyList<ArenaScoreboardEntry> rows,
         GUIStyle sideStyle)
     {
-        var friendly = ArenaFriendlyMarkerPolicy.Color(Effects.ArenaTracerPalette.Resolve(Settings.FriendlyTracerColor.Value));
-        var opponent = ArenaFriendlyMarkerPolicy.Color(Effects.ArenaTracerPalette.Resolve(Settings.OpponentTracerColor.Value));
+        var friendly = Effects.ArenaTeamPalette.FriendlyUi;
+        var opponent = Effects.ArenaTeamPalette.OpponentUi;
         var tint = ReferenceEquals(sideStyle, _friendlyRowStyle) ? friendly
             : ReferenceEquals(sideStyle, _opponentRowStyle) ? opponent : ArenaUiTheme.Accent;
         _scoreboardView.Draw(heading, rows, tint, friendly, opponent, _windowRect.width - 66f);

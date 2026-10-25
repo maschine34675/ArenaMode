@@ -59,14 +59,16 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         get
         {
             if (_failure != null) return "TEAM DM stopped — " + _failure;
-            if (HasResult) return ResultHeading + " — " + _rules.FriendlyKills + " : " + _rules.OpponentKills;
+            if (HasResult) return ResultHeading + " — <color=" + ArenaTeamPalette.FriendlyHex + ">"
+                + FriendlyFaction + " " + _rules.FriendlyKills + "</color> : <color=" + ArenaTeamPalette.OpponentHex + ">"
+                + _rules.OpponentKills + " " + OpponentFaction + "</color>";
             if (Areas.ArenaAreaRuntime.IsPending) return "PREPARING ARENA AREA — checking navigation";
             if (_match == null) return "TEAM DM";
             int friendly = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
             int opponent = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
             string waiting = _reportedStall ? " | spawn delayed" : "";
-            return $"{TeamSize}v{TeamSize}  <color=#7FDBFF>{FriendlyFaction} {friendly}</color> : "
-                   + $"<color=#FF6B6B>{opponent} {OpponentFaction}</color> | {RulesStatus}{waiting}";
+            return $"{TeamSize}v{TeamSize}  <color={ArenaTeamPalette.FriendlyHex}>{FriendlyFaction} {friendly}</color> : "
+                   + $"<color={ArenaTeamPalette.OpponentHex}>{opponent} {OpponentFaction}</color> | {RulesStatus}{waiting}";
         }
     }
 
@@ -106,6 +108,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         spawner?.SetMaxBots(2 * TeamSize - 1);
         Plugin.ModLogger.LogDebug($"Team Deathmatch: {TeamSize}v{TeamSize}, local {FriendlyFaction}, "
             + $"{TeamSize - 1} friendly / {TeamSize} opposing bot slots; no PFT followers.");
+        ClaimMonitors();
     }
 
     public void Tick(float deltaTime)
@@ -113,6 +116,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         TickSpawnShields();
         if (ObserveNativeStop()) return;
         CheckMatchLimits();
+        PushMonitors();
         if (HasResult) { TickResult(); return; }
         if (IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Countdown
             && (Areas.ArenaAreaRuntime.IsPending || Respawn.ArenaRespawnDriver.IsRespawnInProgress
@@ -129,7 +133,13 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             Player current = _world.MainPlayer;
             if (!Respawn.ArenaRespawnDriver.IsRespawnInProgress
                 && current != null && !ReferenceEquals(current, _local)) OnLocalRespawn(current);
-            if (_local != null && _local.Profile?.Info?.Side != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear))
+            // A replacement may temporarily own MainPlayer while the respawn
+            // handover is still pending. Check the frozen native identity here;
+            // physical-current-body admission belongs to OnLocalRespawn below.
+            if (_local != null && (!ArenaTeamSideSelection.NativeUsec.HasValue
+                || _local.Profile?.Info?.Side != (ArenaTeamSideSelection.NativeUsec.Value ? EPlayerSide.Usec : EPlayerSide.Bear)
+                || ArenaSession.TeamDeathmatchLocalSide(_game, _world)
+                    != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear)))
                 Fail("local PMC faction changed");
             if (IsComplete) return;
             if (!ValidateActivations()) return;
@@ -360,6 +370,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
+        ReleaseMonitors();
         ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
         string state = DescribeState(); // capture pending work before Stop clears it
@@ -467,7 +478,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
            && ReferenceEquals(player, _world.MainPlayer)
            && !player.IsAI
            && player.ProfileId == _localId
-           && player.Profile?.Info?.Side
+           && ArenaSession.TeamDeathmatchBodySide(player, _game, _world)
                 == (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear);
 
     private bool IsCurrentMatch()
@@ -513,6 +524,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         catch (Exception ex)
         { Areas.ArenaAreaRuntime.Abort("replacement body left the verified area: " + ex.Message); return; }
         if (player == null || player.ProfileId != _localId
+            || ArenaSession.TeamDeathmatchBodySide(player, _game, _world) != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear)
             || TeamDeathmatchRelations.Faction(player) != (_population.LocalUsec ? EPlayerSide.Usec : EPlayerSide.Bear))
         { Fail("local PMC faction changed"); return; }
         _local = player;
@@ -528,6 +540,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
+        ReleaseMonitors();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM failure");
         string state = DescribeState();
         _population?.Stop();
@@ -561,6 +574,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void OnMatchEnd()
     {
+        ReleaseMonitors();
         ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");
         _ended = true;

@@ -101,8 +101,14 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 
 ### Team Deathmatch
 
-- Independent **USEC vs BEAR**, without requiring PitFireTeam. Teammates are
-  friendly to each other; the player's faction determines the team.
+- Independent **USEC vs BEAR**, without requiring PitFireTeam. Select your team
+  on the map screen; the initial default follows your PMC faction. The choice
+  determines allies and team starts/respawns without changing your profile or gear.
+- **USEC blue / BEAR red** consistently identify teams in tracers, lasers,
+  Arena lighting, friendly markers, killfeed and score accents. Other modes keep
+  their configured colors.
+- ArenaMapPort score monitors show **BEAR left / USEC right**, with matching
+  score colors, alive counts and match clock. The integration is optional.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
   Bay5, Air Pit and Bowl Team DM**, where initial and replacement bots use fixed team
@@ -435,8 +441,8 @@ Sources: [friendly fire](FRIENDLY-FIRE-REVIEW.md),
   match notices, scoreboard/team markers and audio remain separately controlled.
 - Quest-progress, achievement and XP-gain notifications are suppressed for
   Arena. The vanilla extraction list, including its automatic raid-start
-  appearance, is suppressed as well; the numeric raid clock and real extraction
-  countdown remain. The combat overlay hides behind native inventory/menus.
+  appearance, is suppressed as well; the numeric raid clock remains. Arena
+  extraction is disabled. The combat overlay hides behind native inventory/menus.
 
 Sources: [HUD implementation](../ArenaMode.Client/Hud),
 [HUD mutators](HUD-MUTATORS-REVIEW.md),
@@ -550,8 +556,10 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
 - Team starts, spacing, connected navigation and occupancy checks precede the
   match. Customs Yard has additional Arena-only start candidates; it does not
   overwrite normal map spawn records.
-- Confirmed Arena location clones disable native transit points. Normal raids
-  and normal extraction behavior keep their separate path.
+- Confirmed Arena location clones disable native transit points. Native
+  extractions are also disabled throughout every Arena mode/map. Match results
+  and leaving through Esc still end the raid; ordinary PMC/Scav raids retain
+  normal transit and extraction behavior.
 - Optional ArenaMapPort maps: **Bay5**, **Air Pit** and **Bowl** support all modes; **Equator** supports
   Gun Game, DM, TDM and solo Zombies, but no Tactical or PFT Zombies, even with
   fewer companions. ArenaMode does not ship or install those maps itself.
@@ -572,8 +580,7 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
   **not** remove every spike trap, trapdoor or environmental hazard on the map.
 - Labyrinth's center alarm is muted independently, without disabling the boss
   events or other sounds. The option can be switched off.
-- **Way Up** is available immediately but uses a **10-second extraction
-  countdown**, avoiding an instant exit when crossing the doorway.
+- **Way Up**, like all other exits, cannot extract the player during Arena.
 - Additive round-state lighting on **every supported Arena map**:
   countdown/start feedback, late-round pressure and Tactical result colors.
   It leaves map bundles, ordinary lamps, weather and AI vision unchanged.

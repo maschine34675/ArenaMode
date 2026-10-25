@@ -38,18 +38,21 @@ internal static partial class ArenaAreaRuntime
             || profileId != _game.Profile.Id || side != _game.Profile.Info.Side
             || system == null || !ReferenceEquals(system._players, _world)
             || !ReferenceEquals(system._spawnPoints, _loadingCollection)) return false;
+        var teamSide = LocalSpawnSide ?? throw new InvalidOperationException("The team area local affiliation is unavailable.");
         var points = Candidates.Where(p => IsPlayerPoint(p) && !p.SpawnBlocked
-            && _area.TeamStarts.Allows(side == EPlayerSide.Usec, true, p.Id)).ToArray();
+            && _area.TeamStarts.Allows(teamSide == EPlayerSide.Usec, true, p.Id)).ToArray();
         if (points.Length == 0) throw new InvalidOperationException("The exact team area has no initial PMC start for " + side);
         selected = points[UnityEngine.Random.Range(0, points.Length)];
         _initialTeamPoint = selected;
-        Plugin.ModLogger.LogDebug($"Arena team initial PMC: {side}, {selected.Id}, position {selected.Position}.");
+        Plugin.ModLogger.LogDebug($"Arena team initial PMC: {teamSide} (native {side}), {selected.Id}, position {selected.Position}.");
         return true;
     }
 
     private static bool ValidateTeamStarts(out string problem)
     {
         problem = null;
+        var localSide = LocalSpawnSide;
+        if (!localSide.HasValue) { problem = "the local team affiliation is unavailable"; return false; }
         if (_initialTeamPoint == null || !Connected.Contains(_initialTeamPoint))
         { problem = "the selected initial team point is not connected"; return false; }
         var zones = (_game as IBotGame)?.BotsController?.BotSpawner?.SpawnZones(false);
@@ -72,7 +75,7 @@ internal static partial class ArenaAreaRuntime
             // Only the local faction places a PMC body. Requiring an unused
             // opponent PMC marker (and an extra allied bot) rejected valid
             // formations before native bot activation could even begin.
-            bool localTeam = usec == (_game.Profile.Info.Side == EPlayerSide.Usec);
+            bool localTeam = usec == (localSide == EPlayerSide.Usec);
             int requiredPlayers = localTeam ? 1 : 0;
             int requiredBots = _teamSize - requiredPlayers;
             if (players.Length < requiredPlayers || bots.Length < requiredBots)
@@ -157,7 +160,8 @@ internal static partial class ArenaAreaRuntime
             && TeamReservations.TryGetValue(PointId, out var current) && ReferenceEquals(current, this);
         internal bool Accept(Player player)
             => IsCurrent && player != null && AllowsSpawn(Point)
-               && (!_requireFaction || player.Profile?.Info?.Side == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear))
+               && (!_requireFaction || Session.ArenaSession.TeamDeathmatchBodySide(player, _game, _world)
+                   == (Usec ? EPlayerSide.Usec : EPlayerSide.Bear))
                && (player.Position - Position).sqrMagnitude <= 4f
                && Contains(player.Position, ArenaAreaCatalog.NavigationInset)
                && TrySample(player.Position, out var sample) && CompleteConnectedPath(sample)
@@ -181,7 +185,8 @@ internal static partial class ArenaAreaRuntime
             && (p.Position-position).sqrMagnitude < 0.01f && AllowsSpawn(p));
         if (point == null || !IsUnoccupied(position, _world.MainPlayer, null))
             throw new InvalidOperationException("The selected player spawn is no longer available before handover.");
-        var lease = new TeamSpawnLease(_token, point, _game.Profile.Info.Side == EPlayerSide.Usec,
+        var side = LocalSpawnSide ?? throw new InvalidOperationException("The team area local affiliation is unavailable.");
+        var lease = new TeamSpawnLease(_token, point, side == EPlayerSide.Usec,
             requireFaction: HasTeamStarts);
         TeamReservations.Add(lease.PointId, lease);
         return _playerReservation = lease;
@@ -249,7 +254,8 @@ internal static partial class ArenaAreaRuntime
         var side = usec ? EPlayerSide.Usec : EPlayerSide.Bear;
         float nearest = float.PositiveInfinity;
         foreach (var player in _world.AllAlivePlayersList.OfType<Player>())
-            if (player != null && player.HealthController?.IsAlive == true && player.Profile?.Info?.Side != side)
+            if (player != null && player.HealthController?.IsAlive == true
+                && Session.ArenaSession.TeamDeathmatchBodySide(player, _game, _world) is EPlayerSide actorSide && actorSide != side)
                 nearest = Mathf.Min(nearest, Mathf.Sqrt(HorizontalSquared(position, player.Position)));
         return nearest;
     }

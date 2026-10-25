@@ -5,12 +5,17 @@
 Select Arena on the native Scav/PMC screen, then **TEAM DM** in the existing
 mode selector above the map controls. F12 also exposes `teamdeathmatch`.
 `Team Deathmatch / PlayersPerTeam` defaults to 5, accepts 2–12, and is captured
-at match start. The human's unchanged PMC faction determines their side.
+at match start. Since 2026-10-25 the map menu offers USEC/BEAR selection;
+the initial default follows the human's unchanged PMC faction. An explicit
+choice freezes for the exact raid and controls team starts and respawns without
+rewriting the PMC profile. See [side selection and monitors](TDM-SIDES-MONITORS-20261025.md)
+for the current authority and validation boundaries.
 At the default there are four friendly bots plus the human against five bots.
 Death reserves the human's place until their normal instant Arena respawn.
 
 This is continuous USEC-versus-BEAR combat using existing Arena kits and bot
-progression, without a score limit, intermission, buy phase or PFT followers.
+progression, with selectable team kill/time limits, readiness and countdown.
+It has no intermission, buy phase or PFT followers.
 Both factions receive periodic knowledge of the nearest live opponent, even
 while the human is dead; native AI or installed SAIN owns movement and combat.
 The ordinary HuntPlayer/PMC-floor controls do not govern this mode.
@@ -24,11 +29,11 @@ posthumous projectiles. Same-team kills do not earn points or announcements.
 Generated Team DM bots now receive fixed native faction armbands: **USEC blue,
 BEAR red**. Arena applies them after APBS inventory generation and before native
 profile bundle loading, with no APBS configuration changes. Human equipment and
-protected PFT kits are unchanged. Armbands use faction colors independently of
-the configurable friendly/opponent tracer palette.
+protected PFT kits are unchanged. TDM uses fixed faction colors consistently;
+other modes retain their configurable friendly/opponent tracer palette.
 
 `Effects / TeamLasers` defaults to enabled for Team DM. Visible mounted weapon
-lasers and their dots use `FriendlyTracerColor` / `OpponentTracerColor`, including
+lasers and their dots use blue for USEC and red for BEAR, including
 the current human body and admitted active bots. Infrared lasers, flashlight
 colors, activation and native intensity settings are unchanged. Unknown owners
 and shaders remain native; pooled state is restored. See `tools/TeamLaserChecks`.

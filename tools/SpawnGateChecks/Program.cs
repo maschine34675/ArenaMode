@@ -28,7 +28,9 @@ internal static class GateProgram
     private static void Setup(bool active = true, bool installed = true, bool enabled = true, bool preheld = false)
     {
         NavMesh.Status = null; NavMesh.Corners = null;
-        Call(typeof(Program), "Setup", false, EPlayerSide.Usec, 4, false);
+        // The shared spawn fixture now accepts an optional virtual team. This
+        // gate suite deliberately retains its profile-side USEC baseline.
+        Call(typeof(Program), "Setup", false, EPlayerSide.Usec, 4, false, null);
         BepInEx.Bootstrap.Chainloader.PluginInfos.Clear(); Gates.Reset();
         Gates.Enabled = enabled; Gates.Held = preheld;
         if (installed) BepInEx.Bootstrap.Chainloader.PluginInfos["com.maschine.ArenaMapPort"] = new() { Instance = new FixturePlugin() };
@@ -177,65 +179,9 @@ internal static class GateProgram
         Time.time=8;reset.Tick(true);Time.time=10.99f;reset.Tick(true);Check(Gates.Releases==0,"READINESS: cancelled countdown restarts full duration");
         Time.time=11;reset.Tick(true);Check(Gates.Releases==1,"READINESS: eventual ready countdown opens");
     }
-    private static EFT.Interactive.ExfiltrationPoint Exit(string name="Equator North Gate", bool registered=true)
-    {
-        var point=new EFT.Interactive.ExfiltrationPoint{Settings=new(){Name=name}};point.Entered.Add(World.MainPlayer);
-        CommonAssets.Scripts.Game.ExfiltrationController.Instance=new(){ExfiltrationPoints=registered?new[]{point}:Array.Empty<EFT.Interactive.ExfiltrationPoint>()};
-        return point;
-    }
-    private static bool Proceed(EFT.Interactive.ExfiltrationPoint point,Player player=null)
-    {
-        player??=World.MainPlayer;
-        bool run=(bool)Call("BeforeExtraction",point,player);
-        if(run)point.Proceed(player);
-        return run;
-    }
-    private static void ExtractionPreparation()
-    {
-        foreach(var name in new[]{"Equator North Gate","Equator South Gate"})
-        {
-            Setup();SealedPaths();var exit=Exit(name);
-            Check(!Proceed(exit)&&exit.Proceeds==0,"EXFIL: original booth starts cannot extract during assembly");
-            Check(!Runtime.TryOpenForCombat()&&!Proceed(exit)&&exit.Proceeds==0,"EXFIL-SLIDE: no native timer during opening");
-            NavMesh.Path=(a,b)=>true;Check(Runtime.TryOpenForCombat()&&exit.Proceeds==1,"EXFIL-RESUME: still-entered own body gets fresh native timer after opening");
-            Runtime.TryOpenForCombat();Check(exit.Proceeds==1,"EXFIL-ONCE: deferred timer replay occurs once");
-            Check(Proceed(exit)&&exit.Proceeds==2,"EXFIL-LIVE: ordinary native extraction restored in combat");
-        }
-        Setup(active:false);var loading=Exit();Check(!Proceed(loading),"EXFIL-LOADING: exact armed local body protected before active latch");
-        foreach(var fault in new[]{"ordinary","other-mode","other-map","other-body","unregistered","unknown-exit","not-entered","foreign-hold","disabled"})
-        {
-            Setup(preheld:fault=="foreign-hold",enabled:fault!="disabled");var exit=Exit(fault=="unknown-exit"?"Other exit":"Equator North Gate",fault!="unregistered");
-            Player player=World.MainPlayer;
-            switch(fault)
-            {
-                case "ordinary":ArenaSession.IsActive=false;break;
-                case "other-mode":ArenaSession.ActiveMode="deathmatch";break;
-                case "other-map":World.LocationId="factory4_day";break;
-                case "other-body":player=new Player{Profile=player.Profile};exit.Entered.Add(player);break;
-                case "not-entered":exit.Entered.Clear();break;
-            }
-            Check(Proceed(exit,player),"EXFIL-SCOPE: unchanged "+fault);
-        }
-        foreach(var fault in new[]{"left","replacement","dead","old-trigger","reset","failure","wrong-world"})
-        {
-            Setup();var exit=Exit();Check(!Proceed(exit),"EXFIL-PENDING: captured before "+fault);
-            switch(fault)
-            {
-                case "left":exit.Entered.Clear();break;
-                case "replacement":World.MainPlayer=new Player{Profile=World.MainPlayer.Profile};World.AllAlivePlayersList.Add(World.MainPlayer);break;
-                case "dead":World.MainPlayer.HealthController.IsAlive=false;break;
-                case "old-trigger":CommonAssets.Scripts.Game.ExfiltrationController.Instance.ExfiltrationPoints=Array.Empty<EFT.Interactive.ExfiltrationPoint>();break;
-                case "reset":Runtime.Reset();break;
-                case "failure":Runtime.ReleaseGates(Game,World,ArenaSession.ArmEpoch,"fixture failure");break;
-                case "wrong-world":Singleton<GameWorld>.Instance=new GameWorld();break;
-            }
-            if(fault=="reset"||fault=="wrong-world")Call("ResumeExtractions");else Runtime.TryOpenForCombat();
-            Check(exit.Proceeds==0,"EXFIL-STALE: no deferred extraction for "+fault);
-        }
-    }
     public static async Task Main()
     {
-        OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();ExtractionPreparation();
+        OptionalContracts();ScopedNavigation();await Lifecycle();OpeningAndCountdown();
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
@@ -283,8 +229,6 @@ internal static class GateProgram
         Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live,"BOX-LIVE: full paths precede score/time");
         Runtime.PickRespawn(Game,default);Call("RestoreCollection",Collection);
         Check(Gates.Holds==1&&Gates.Releases==1,"BOX-RESPAWN: no reclose after release");
-        foreach(var name in new[]{"Bay5 North Loading Bay","Bay5 South Container Lane","AirPit North Gate","AirPit South Gate","Equator North Gate"})
-        {Setup();var exit=Exit(name);Check(Proceed(exit)&&exit.Proceeds==1,"BOX-EXFIL: no suppression outside original boxes");}
         Setup(active:false,installed:false);ArenaSession.ArmedMap="arena_equator";
         Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-HOLD: supported different armed map denied");
         Setup(active:false,installed:false);Game.Settings.location="arena_equator";

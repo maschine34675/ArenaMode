@@ -25,6 +25,7 @@
     <Compile Include="$(ProductionConditionalMapSource)" Link="Production/ArenaConditionalMapView.cs" />
     <Compile Include="$(ProductionServerClientSource)" Link="Production/ArenaServerClient.cs" />
     <Compile Include="$(ProductionLocalStartSource)" Link="Production/ArenaLocalRaidStartedPatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
     <Compile Include="$(ProductionSessionModeCaptionSource)" Link="Production/ArenaSessionModeCaption.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />

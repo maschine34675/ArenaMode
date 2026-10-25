@@ -39,6 +39,7 @@ internal static partial class ArenaMatchService
     {
         if (TeamStartAbortPending)
         {
+            if (Current?.Mode is TeamDeathmatchMode team) team.OnNativePresentationStop();
             TickFailedStartAbort();
             return;
         }
@@ -47,8 +48,14 @@ internal static partial class ArenaMatchService
         // Stop disposes native bodies before GameEnd clears Current. Do not
         // advance a round or validate its scoreboard against that teardown.
         // A pending/failed leave remains Started and must keep normal checks.
-        if (match == null || ArenaRaidExit.NativeStopOwnsCurrentRaid)
+        if (match == null) return;
+        if (ArenaRaidExit.NativeStopOwnsCurrentRaid)
+        {
+            // Stop may dispose bodies before mode.Tick can observe it. Release
+            // only our optional screen claim; native gameplay teardown owns the rest.
+            if (match.Mode is TeamDeathmatchMode team) team.OnNativePresentationStop();
             return;
+        }
 
         match.Tick(Time.deltaTime);
         ArenaRewardCapture.Observe();

@@ -181,6 +181,7 @@ namespace ArenaMode.Config
     {
         public static Setting<bool> HudEnabled = new(true), ShowFriendlyMarkers = new(true);
         public static Setting<ArenaMode.Effects.ArenaTracerColor> FriendlyTracerColor = new(ArenaMode.Effects.ArenaTracerColor.Cyan);
+        public static Setting<ArenaMode.Effects.ArenaTracerColor> OpponentTracerColor = new(ArenaMode.Effects.ArenaTracerColor.Red);
     }
 }
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive = true, Exact = true; public static string ActiveMode = "teamdeathmatch"; public static bool IsExactActiveRaid(EFT.AbstractGame game, EFT.GameWorld world) => Exact; } }

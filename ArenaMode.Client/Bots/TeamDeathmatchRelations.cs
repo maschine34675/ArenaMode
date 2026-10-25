@@ -103,7 +103,12 @@ internal static class TeamDeathmatchRelations
                     || (side == EPlayerSide.Usec ? role != WildSpawnType.pmcUSEC : role != WildSpawnType.pmcBEAR))
                     return false;
             }
-            else if (!ReferenceEquals(player, _world.MainPlayer)) return false;
+            else
+            {
+                if (!ReferenceEquals(player, _world.MainPlayer)) return false;
+                side = ArenaSession.TeamDeathmatchBodySide(player, _game as LocalGame, _world);
+                if (side != EPlayerSide.Usec && side != EPlayerSide.Bear) return false;
+            }
 
             var affiliation = _affiliations.GetValue(player,
                 _ => new Affiliation(side.Value, player.ProfileId));

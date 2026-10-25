@@ -11,6 +11,7 @@
     <ProductionFastDeploySource Condition="'$(ProductionFastDeploySource)' == ''">../../ArenaMode.Client/Movement/FastDeployPatches.cs</ProductionFastDeploySource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaLightingPolicy.cs" />
     <Compile Include="$(ProductionDirectorSource)" Link="Production/ArenaLightingDirector.cs" />
     <Compile Include="$(ProductionPaletteSource)" Link="Production/ArenaTracerColor.cs" />

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 namespace EFT
 {
     public enum ESideType { Pmc, Savage, Random }
+    public enum EPlayerSide { Usec, Bear, Savage }
     public enum EDateTime { CURR, PAST }
     [Flags] public enum ELocationTransition { None = 0, Common = 1, Event = 2 }
     public class RaidSettings
@@ -23,7 +24,12 @@ namespace EFT
         public ESideType playerSide;
         public ELocationTransition transitionType;
     }
-    public class Profile { public string Id = "0123456789abcdef01234567"; }
+    public class Profile
+    {
+        public string Id = "0123456789abcdef01234567";
+        public ProfileInfo Info = new();
+    }
+    public class ProfileInfo { public EPlayerSide Side = EPlayerSide.Usec; }
     public class EftClientBackendSession { public Profile Profile = new(); public Task<JsonType.LocalSettings> LocalRaidStarted(LocalRaidSettings settings) => throw new NotSupportedException(); }
     public static class InGameStatus { public static bool InRaid; }
 }
@@ -131,6 +137,7 @@ namespace ArenaMode.Config
         public static Entry<string> GameMode = new() { Value = "endless" };
         public static Entry<string> TeamDeathmatchArea = new() { Value = ArenaMode.Shared.ArenaAreaCatalog.FullMapId };
         public static Entry<int> TeamDeathmatchSize = new() { Value = 5 };
+        public static Entry<string> TeamDeathmatchSide = new() { Value = "Profile" };
         public static Entry<int> AreaTeamSize = new() { Value = 2 };
         public static bool TrySelectAreaTeamSize(int size)
         { if (RefuseAreaWrite || size < 2 || size > 5) return false; AreaTeamSize.Value = size; return true; }
@@ -195,10 +202,13 @@ namespace ArenaMode.Session
         public static int? Participants;
         public static bool ParticipantBosses;
         public static void MarkArmed(string map, string mode, ArenaMode.Modes.DeathmatchOptions deathmatch = null,
-            int? participants = null, bool participantBosses = false)
+            int? participants = null, bool participantBosses = false, string teamSide = null,
+            string localProfileId = null, EFT.EPlayerSide? nativeSide = null)
         {
-            ArmedForNextRaid = true;
             ArmEpoch++;
+            ArenaTeamSideSelection.Capture(mode, teamSide, nativeSide == EFT.EPlayerSide.Usec,
+                localProfileId, ArmEpoch, ArenaServerClient.PendingArmToken);
+            ArmedForNextRaid = true;
             ArmedMode = mode;
             FrozenDeathmatch = deathmatch;
             Participants = participants;
@@ -206,6 +216,7 @@ namespace ArenaMode.Session
         }
         public static void ClearArmed(string reason)
         {
+            ArenaTeamSideSelection.Reset();
             if (!ArmedForNextRaid) return;
             ArenaMode.Compat.ArenaTarkovaColaCompat.EndRaid();
             ArmedForNextRaid = false;

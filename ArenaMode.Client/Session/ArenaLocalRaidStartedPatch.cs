@@ -115,6 +115,16 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             // not make the client create a different mode than the protected
             // location clone the server just armed.
             var requestedMode = Settings.SelectedGameModeId;
+            // Read once before the native asynchronous load. A later F12 edit
+            // selects the next match, never a different side halfway through loading.
+            string requestedTeamSide = Settings.TeamDeathmatchSide?.Value;
+            string requestedProfileId = __instance.Profile?.Id;
+            EPlayerSide? requestedNativeSide = __instance.Profile?.Info?.Side;
+            if (requestedMode == ArenaModeCatalog.TeamDeathmatchId
+                && ((requestedNativeSide != EPlayerSide.Usec && requestedNativeSide != EPlayerSide.Bear)
+                    || !ArenaTeamSideSelection.TryResolveChoice(requestedTeamSide,
+                        requestedNativeSide == EPlayerSide.Usec, out _)))
+                throw new InvalidOperationException("The Team DM side or local PMC faction is unavailable.");
             if (Shared.ArenaTeamBoxCatalog.Applies(settings.location, requestedMode)
                 && !Bots.ArenaTeamBoxRuntime.IsReady)
                 throw new InvalidOperationException("Team DM box placement is unavailable; restart after updating the client.");
@@ -164,7 +174,8 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
                     "Arena could not bind the native local-start request to its exact arm token.");
 
             ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch,
-                participants, ArenaServerClient.PendingParticipantBosses);
+                participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide,
+                requestedProfileId, requestedNativeSide);
             Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, requestedMode, ArenaSession.ArmEpoch);
             Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 

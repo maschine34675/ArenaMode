@@ -191,6 +191,11 @@ namespace ArenaMode.Session
 {
     public static class ArenaSession
     {
+        public static EPlayerSide? SelectedTeam;
+        public static EPlayerSide? TeamDeathmatchLocalSide(LocalGame game,GameWorld world)
+            => SelectedTeam ?? game?.Profile?.Info?.Side;
+        public static EPlayerSide? TeamDeathmatchBodySide(Player player,LocalGame game,GameWorld world)
+            => ReferenceEquals(player,world?.MainPlayer) ? TeamDeathmatchLocalSide(game,world) : player?.Profile?.Info?.Side;
         public static bool IsActive,ArmedForNextRaid;public static int ArmEpoch;public static int? Participants;
         public static string ActiveMode,ArmedMode,ArmedMap;public static LocalGame ExactGame;public static GameWorld ExactWorld;
         public static bool IsExactActiveRaid(LocalGame game,GameWorld world)=>ReferenceEquals(game,ExactGame)&&ReferenceEquals(world,ExactWorld);
