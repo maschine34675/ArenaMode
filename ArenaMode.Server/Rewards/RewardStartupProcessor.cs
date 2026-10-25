@@ -36,6 +36,9 @@ internal static class RewardStartupProcessor
             if (cancellationToken.IsCancellationRequested) return Outcome(RewardSettlementStatus.Deferred, "cancelled");
             window.RequireOpen();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-directory");
+            // Finish an already committed payment's companion write even if the
+            // player has since opted out. This path cannot create a new payment.
+            await RewardColaJournal.RecoverAsync(window, id, cancellationToken);
             if (applyDefault) RewardStartupDefaults.EnableIfNew(window, id);
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);
             var enrollmentPath = Path.Combine(directory, "enrollment.json");
@@ -79,7 +82,7 @@ internal static class RewardStartupProcessor
 
             var approvalPath = Path.Combine(directory, "approved.json");
             RewardStartupFiles.RequireLocalPath(window.Root, approvalPath);
-            var approval = RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, 16384);
+            var approval = RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, RewardStartupFiles.MaxApprovalBytes);
             if (approval.Schema != 1 || approval.Claim is null || approval.Claim.Binding != enrollment.Binding
                 || !Enum.IsDefined(approval.State) || !RewardIdentity.IsHex(approval.CleanProfileRevision, 64))
                 throw new RewardDataException("invalid-startup-approval");
@@ -90,10 +93,12 @@ internal static class RewardStartupProcessor
             roubles = approval.Claim.Roubles;
             experience = approval.Claim.Experience;
             var store = new RewardStartupStore(window, enrollment, approval, limits);
+            var colaPlan = RewardColaJournal.Prepare(window, enrollment, approval);
             var result = await new RewardSettlementCore(store, limits).SettleAsync(approval.Claim, cancellationToken);
             if (result.Status is RewardSettlementStatus.Paid or RewardSettlementStatus.AlreadyPaid)
             {
                 window.RequireOpen();
+                if (colaPlan is not null) RewardColaJournal.Complete(window, enrollment, colaPlan);
                 var acknowledgement = new RewardStartupAcknowledgement(1, approval.Claim.Key, approval.Claim.Fingerprint, result.MessageId!);
                 var json = JsonSerializer.Serialize(acknowledgement, RewardSettlementCore.JournalJson);
                 var path = Path.Combine(directory, "acknowledged.json");

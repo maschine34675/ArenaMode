@@ -19,11 +19,16 @@ internal sealed record RewardBinding(string InstallationId, string ProfileId, st
 }
 
 internal sealed record RewardClaim(RewardBinding Binding, string RunId, long Sequence, long Roubles, string RulesVersion,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cola = null)
 {
     public string Key => RunId + ":" + Sequence.ToString(CultureInfo.InvariantCulture);
     // Preserve the exact old fingerprint for RUB-only authorizations and journals.
-    public string Fingerprint => Experience == 0
+    public string Fingerprint => Cola is not null
+        ? RewardIdentity.Hash(string.Join("\n", "arena-reward-v3", Binding.InstallationId,
+            Binding.ProfileId, Binding.Epoch, Key, Roubles.ToString(CultureInfo.InvariantCulture),
+            Experience.ToString(CultureInfo.InvariantCulture), RulesVersion, Cola))
+        : Experience == 0
         ? RewardIdentity.Hash(string.Join("\n", "arena-reward-v1", Binding.InstallationId,
             Binding.ProfileId, Binding.Epoch, Key, Roubles.ToString(CultureInfo.InvariantCulture), RulesVersion))
         : RewardIdentity.Hash(string.Join("\n", "arena-reward-v2", Binding.InstallationId,
@@ -34,10 +39,11 @@ internal sealed record RewardClaim(RewardBinding Binding, string RunId, long Seq
     {
         if (Binding is null) throw new RewardDataException("missing-binding");
         Binding.Validate();
-        if (!RewardIdentity.IsGuid(RunId) || Sequence <= 0 || Roubles <= 0 || Roubles > limits.MaxRoublesPerReceipt
+        if (!RewardIdentity.IsGuid(RunId) || Sequence <= 0 || Roubles < 0 || Roubles == 0 && Cola is null || Roubles > limits.MaxRoublesPerReceipt
             || Experience < 0 || Experience > limits.MaxExperiencePerReceipt
             || RulesVersion is null || !Regex.IsMatch(RulesVersion, "\\A[A-Za-z0-9._-]{1,32}\\z"))
             throw new RewardDataException("invalid-claim");
+        if (Cola is not null) RewardColaDelta.Validate(Cola);
     }
 }
 
@@ -57,7 +63,8 @@ internal sealed record RewardLimits(long MaxRoublesPerReceipt = 10_000_000, int 
 }
 
 internal sealed record RewardPayment(string ReceiptKey, string Fingerprint, long Roubles, string MessageId, long PaidAtUnixSeconds,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cola = null);
 internal enum RewardJournalPhase { Prepared, Attempting, Committed }
 internal sealed record RewardJournalEntry(RewardPayment Payment, RewardJournalPhase Phase, string BeforeRevision);
 internal sealed record RewardJournal(int Schema, RewardBinding Binding, IReadOnlyList<RewardJournalEntry> Entries);

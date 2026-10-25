@@ -248,7 +248,9 @@ internal static class ArenaRewardCapture
             {
                 if (!_stopFrozen) Observe();
                 _stopFrozen = true;
-                _finalJson = JsonConvert.SerializeObject(_buffer.Finish());
+                var final = _buffer.Finish();
+                final.ColaState = Compat.ArenaTarkovaColaCompat.FinishCapture();
+                _finalJson = JsonConvert.SerializeObject(final);
             }
             var reply = JsonConvert.DeserializeObject<RewardCaptureResponse>(
                 RequestHandler.PostJson(RewardWire.CaptureRoute, _finalJson));
@@ -313,7 +315,8 @@ internal static class ArenaRewardCapture
         [PatchPrefix, HarmonyPriority(Priority.Last)]
         private static void Prefix(object __instance, bool __runOriginal)
         {
-            if (__runOriginal && __instance is LocalGame && ReferenceEquals(__instance, _game)) FlushFinal();
+            if (__runOriginal && __instance is LocalGame game && ReferenceEquals(__instance, _game)
+                && !Compat.ArenaTarkovaColaCompat.DeferFinalCapture(game)) FlushFinal();
         }
     }
 

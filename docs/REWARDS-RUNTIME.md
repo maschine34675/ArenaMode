@@ -4,6 +4,10 @@ This extends the settlement core, guarded startup consumer and result validator
 described in REWARDS-CORE.md, REWARDS-SERVER.md and REWARDS-RESULTS.md. It is a
 development change after release 0.2.0, not part of that existing download.
 
+The optional [Tarkova Cola extension](TARKOVA-COLA-COMPAT.md) adds catalog-bound
+Zombie research and achievement rewards to this same authority and startup
+boundary. It does not import foreign/private profiles or permit live payment.
+
 ## Player flow
 
 - **PROFILE REWARDS** in Arena's map menu defaults on for previously unconfigured,

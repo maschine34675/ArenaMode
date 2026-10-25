@@ -54,5 +54,6 @@ internal static class ArenaRewardLifecycle
             ArenaContext.Logger?.Warning(
                 $"[ArenaMode] Reward result withheld ({reason}); the protected Arena end remains complete.");
         }
+        finally { Compat.ArenaTarkovaColaState.Release(sessionId.ToString()); }
     }
 }

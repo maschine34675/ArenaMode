@@ -157,7 +157,7 @@ internal static class RewardRuntimeInbox
         var run = candidate.Authorization;
         var decisionPath = Path.Combine(directory, "decisions", run.RunId + ".json");
         RewardStartupFiles.RequireLocalPath(root, decisionPath);
-        var decision = RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, 32768);
+        var decision = RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, RewardStartupFiles.MaxApprovalBytes);
         var evaluation = RewardResultValidator.Evaluate(run, candidate.Report);
         if (decision.Schema != 1 || decision.Binding != run.Binding || decision.Sequence != run.Sequence || decision.RunId != run.RunId
             || decision.SourceFingerprint != RewardIdentity.Hash(RewardRuntimeFiles.Json(candidate)) || decision.Evaluation != evaluation)
@@ -175,9 +175,11 @@ internal static class RewardRuntimeInbox
         var ledger = RewardProfileDocument.ReadLedger(File.ReadAllText(profilePath), run.Binding, new());
         var approval = decision.Approval;
         if (approval is null || approval.Claim.Roubles != evaluation.Roubles || approval.Claim.Experience != evaluation.Experience
+            || approval.Claim.Cola != run.Cola
             || !journal.Entries.Any(e => e.Phase == RewardJournalPhase.Committed && ledger.Contains(e.Payment)
                 && e.Payment.ReceiptKey == approval.Claim.Key && e.Payment.Fingerprint == approval.Claim.Fingerprint
                 && e.Payment.Roubles == approval.Claim.Roubles && e.Payment.Experience == approval.Claim.Experience
+                && RewardColaProfile.MatchesClaim(e.Payment.Cola, approval.Claim.Cola)
                 && e.BeforeRevision == approval.CleanProfileRevision))
             throw new RewardDataException("reward-import-not-settled");
     }

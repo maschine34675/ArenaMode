@@ -49,7 +49,13 @@ Check 'discarded-cause' 'ArenaLocalRaidStartedPatch.cs' '"Arena start cancelled 
 Check 'discarded-uncertainty' 'ArenaServerClient.cs' "if (!ok)`n            {" "if (!ok)`n            {`n                HasPendingArm = false;" 'refusal retains uncertain exact arm'
 Check 'stale-success-reason' 'ArenaServerClient.cs' 'else failureReason = null;' 'else failureReason = "stale refusal";' 'successful start has no failure reason'
 Check 'skipped-cancellation' 'ArenaLocalRaidStartedPatch.cs' "if (ArenaServerClient.HasPendingArm)`n                ArenaServerClient.PostRaidCancel(startFailed: true);`n            // GamePrepare" "// MUTANT: do not settle the failed start.`n            // GamePrepare" 'failure cleans compatibility and cancels exact failed-start token'
+$colaPrepare = 'Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, requestedMode, ArenaSession.ArmEpoch);'
+Check 'skipped-cola-prepare' 'ArenaLocalRaidStartedPatch.cs' $colaPrepare '// MUTANT: skip accepted Cola preparation.' 'Cola preparation follows exact server acknowledgement'
+Check 'wrong-cola-profile' 'ArenaLocalRaidStartedPatch.cs' $colaPrepare 'Compat.ArenaTarkovaColaCompat.PrepareRaid("wrong-profile", requestedMode, ArenaSession.ArmEpoch);' 'Cola accepted arm uses the exact backend profile'
+Check 'wrong-cola-mode' 'ArenaLocalRaidStartedPatch.cs' $colaPrepare 'Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, "tactical", ArenaSession.ArmEpoch);' 'Cola accepted arm uses the frozen requested mode'
+Check 'stale-cola-epoch' 'ArenaLocalRaidStartedPatch.cs' $colaPrepare 'Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, requestedMode, ArenaSession.ArmEpoch - 1);' 'Cola accepted arm uses the current accepted epoch'
+Check 'skipped-cola-failure-cleanup' 'ArenaLocalRaidStartedPatch.cs' 'ArenaSession.ClearArmed("arena negotiation failed");' '// MUTANT: leave the accepted Arena lease armed.' 'Cola failure after acceptance cancels its exact arm and clears lease'
 foreach ($file in $files) {
     if ((Get-FileHash -LiteralPath (Join-Path $source $file)).Hash -ne $hashes[$file]) { throw "Production source changed during verification: $file" }
 }
-Write-Output "ARENA_START_ERROR_CHECKS_PASSED; 72 assertions and 6 compiled negative controls; evidence: $run"
+Write-Output "ARENA_START_ERROR_CHECKS_PASSED; baseline assertions reported above; 11 compiled negative controls; evidence: $run"

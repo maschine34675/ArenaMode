@@ -15,6 +15,8 @@ internal sealed record RewardStartupAcknowledgement(int Schema, string ReceiptKe
 internal static class RewardStartupFiles
 {
     internal const string RelativeDirectory = "user/arena-rewards";
+    // Typed Cola progression can accompany the otherwise small approval.
+    internal const int MaxApprovalBytes = 524288;
     internal static StringComparison PathComparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
     internal static string Canonical(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 

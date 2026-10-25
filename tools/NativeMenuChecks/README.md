@@ -16,6 +16,16 @@ checks that the periodic client-settings read uses SPT's authenticated low-level
 HTTP client without passing through the noisy `RequestHandler` wrapper. Empty
 success responses and real transport failures remain visible in Arena diagnostics.
 
+`ColaArmChecks.cs` also runs in ArenaStartErrorChecks. It covers optional Cola
+baseline transport, preparation only after an exact accepted arm/native identity,
+the backend profile ID, frozen mode and current arm epoch, refused/wrong-token
+arms, adapter failures before/after acceptance, and ordinary PMC/Scav bypass.
+The typed profile and optional-adapter stand-ins default to absent/no-op behavior.
+Only the adapter's boundary calls are observed here, not its reflected gameplay
+or persistence implementation; the session stand-in mirrors EndRaid on clearing
+an accepted arm. ArenaStartErrorChecks rejects five compiled mutations of this
+new seam in addition to its six existing refusal/error controls.
+
 Optional-mod admission is checked at display/freeze, before server arming and
 again after settings refresh. Ordinary PMC/Scav starts must not even invoke the
 new provider. Closing setup preserves its process lifetime. Separate

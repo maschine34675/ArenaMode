@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ArenaMode.Server.Services;
+using ArenaMode.Server.Compat;
 using ArenaMode.Server.Patches;
 using ArenaMode.Shared;
 using SPTarkov.DI.Annotations;
@@ -27,6 +28,9 @@ public record ArenaRaidStartRequest : IRequestData
 
     [JsonPropertyName("requestId")]
     public string? RequestId { get; set; }
+
+    [JsonPropertyName("colaBaseline")]
+    public string? ColaBaseline { get; set; }
 
     [JsonPropertyName("areaId")]
     public string? AreaId { get; set; }
@@ -477,6 +481,8 @@ public sealed class ArenaModeRouter : StaticRouter
         // or arming; an unknown SVM contract must not strand a protected raid.
         if (Compat.ArenaSvmCompat.TryGetAdmissionFailure(out string? svmFailure))
             return Json(new { armed = false, reason = svmFailure });
+        if (ArenaTarkovaColaState.Failure is { } colaFailure)
+            return Json(new { armed = false, reason = colaFailure });
 
         // Missing imported data must not trigger stale-snapshot recovery or arm
         // preparation. Config alone cannot make an optional location playable.
@@ -643,10 +649,12 @@ public sealed class ArenaModeRouter : StaticRouter
         bool snapshotTaken;
         try
         {
+            ArenaTarkovaColaState.Begin(sessionId.ToString(), armToken, request.Mode!, request.ColaBaseline);
             snapshotTaken = Snapshots.TakeSnapshot(sessionId);
         }
         catch (Exception ex)
         {
+            ArenaTarkovaColaState.Release(sessionId.ToString(), armToken);
             Sessions.CancelArmPreparation(sessionId);
             Snapshots.DiscardSnapshot(sessionId);
             _logger.Error($"[ArenaMode] Profile snapshot threw while arming Arena: {ex}");
@@ -655,6 +663,7 @@ public sealed class ArenaModeRouter : StaticRouter
 
         if (!snapshotTaken)
         {
+            ArenaTarkovaColaState.Release(sessionId.ToString(), armToken);
             Sessions.CancelArmPreparation(sessionId);
             Snapshots.DiscardSnapshot(sessionId);
             return Json(new { armed = false, reason = "profile snapshot failed" });
@@ -866,6 +875,8 @@ public sealed class ArenaModeRouter : StaticRouter
         };
         if (ArenaServerInstance.IsArenaInstance)
             ping["policyHash"] = ArenaServerInstance.PolicyHash;
+        if (ArenaTarkovaColaState.Failure is { } failure)
+            ping["admissionFailure"] = failure;
         return ping;
     }
 }

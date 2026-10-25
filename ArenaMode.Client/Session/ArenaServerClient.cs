@@ -160,8 +160,8 @@ public static class ArenaServerClient
     {
         var ping = JObject.Parse(response);
         var version = ping["version"];
-        // Optional: this build's server sends no admissionFailure (the whitelist owns that refusal now), but
-        // an older server may, and its text is shown unchanged. Absence reads as "no failure".
+        // Optional protection-contract failure, distinct from whitelist admission.
+        // Older servers omit it; absence reads as "no failure".
         var failure = ping["admissionFailure"];
         _serverAdmissionFailure = failure?.Type == JTokenType.String ? failure.Value<string>() : null;
         ReadSessionFields(ping);
@@ -453,6 +453,8 @@ public static class ArenaServerClient
                 areaId,
                 requestId = _pendingArmToken,
             });
+            var colaBaseline = Compat.ArenaTarkovaColaCompat.PrepareForArm();
+            if (colaBaseline != null) payload["colaBaseline"] = colaBaseline;
             if (selectedSize != 0) payload["areaTeamSize"] = selectedSize;
             if (frozenHostility != null) payload["deathmatchHostility"] = frozenHostility;
             if (participants.HasValue) payload["participants"] = participants.Value;

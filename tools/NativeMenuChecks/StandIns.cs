@@ -23,7 +23,8 @@ namespace EFT
         public ESideType playerSide;
         public ELocationTransition transitionType;
     }
-    public class EftClientBackendSession { public object Profile = new(); public Task<JsonType.LocalSettings> LocalRaidStarted(LocalRaidSettings settings) => throw new NotSupportedException(); }
+    public class Profile { public string Id = "0123456789abcdef01234567"; }
+    public class EftClientBackendSession { public Profile Profile = new(); public Task<JsonType.LocalSettings> LocalRaidStarted(LocalRaidSettings settings) => throw new NotSupportedException(); }
     public static class InGameStatus { public static bool InRaid; }
 }
 namespace JsonType
@@ -74,6 +75,20 @@ namespace SPT.Common.Http
     }
 }
 namespace Redeploy.Core.Compat { public static class FikaCompatCheck { public static bool IsFikaLoaded; } }
+namespace ArenaMode.Compat
+{
+    // The real optional adapter has its own contract/lease tests. These delegates
+    // expose only its menu boundary; absent Cola remains a no-op by default.
+    internal static class ArenaTarkovaColaCompat
+    {
+        internal static Func<string> BeforeArm;
+        internal static Action<string, string, int> AcceptedArm;
+        internal static Action End;
+        internal static string PrepareForArm() => BeforeArm?.Invoke();
+        internal static void PrepareRaid(string profile, string mode, int epoch) => AcceptedArm?.Invoke(profile, mode, epoch);
+        internal static void EndRaid() => End?.Invoke();
+    }
+}
 namespace ArenaMode.Bots
 {
     internal static class ArenaBotSpawnPatches { internal static bool SoloPopulationReady = true; }
@@ -192,6 +207,7 @@ namespace ArenaMode.Session
         public static void ClearArmed(string reason)
         {
             if (!ArmedForNextRaid) return;
+            ArenaMode.Compat.ArenaTarkovaColaCompat.EndRaid();
             ArmedForNextRaid = false;
             ArmedMode = null;
             Participants = null;

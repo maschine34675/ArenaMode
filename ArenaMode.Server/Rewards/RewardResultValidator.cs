@@ -16,6 +16,11 @@ internal static class RewardResultValidator
     {
         if (run is null || run.Schema != 1 || run.Binding is null) Fail("invalid-run-authorization");
         run.Binding.Validate();
+        if (run.Cola is not null)
+        {
+            if (run.Mode != "zombies") Fail("cola-rewards-require-zombies");
+            RewardColaDelta.Validate(run.Cola);
+        }
         if (!RewardIdentity.IsGuid(run.RunId) || run.Sequence is < 1 or > 4096 || !RewardIdentity.IsGuid(run.ArmToken)
             || !RewardIdentity.IsGuid(run.RestorationId) || !RewardIdentity.IsHex(run.LocalParticipantId, 24)
             || !ValidNativeIdentity(run.NativeEndIdentity, run.ArmToken) || !RewardIdentity.IsHex(run.CleanProfileRevision, 64)
@@ -221,8 +226,9 @@ internal static class RewardResultValidator
             }
             var experience = Math.Min(run.Policy.MaxExperience,
                 checked((long)kills * run.Policy.ExperiencePerKill + (long)wins * run.Policy.ExperiencePerRoundWin));
-            return new(amount == 0 ? RewardEvaluationStatus.NoReward : RewardEvaluationStatus.Eligible,
-                amount == 0 ? "no-eligible-reward" : "validated-result", kills, wins, amount, experience);
+            bool empty = amount == 0 && run.Cola is null;
+            return new(empty ? RewardEvaluationStatus.NoReward : RewardEvaluationStatus.Eligible,
+                empty ? "no-eligible-reward" : "validated-result", kills, wins, amount, experience);
         }
         catch (RewardDataException e) { return new(RewardEvaluationStatus.Rejected, e.Message, 0, 0, 0); }
         catch (OverflowException) { return new(RewardEvaluationStatus.Rejected, "reward-arithmetic-overflow", 0, 0, 0); }

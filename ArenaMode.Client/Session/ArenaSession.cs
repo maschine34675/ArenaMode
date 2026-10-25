@@ -231,6 +231,7 @@ public static class ArenaSession
         if (!ArmedForNextRaid)
             return;
 
+        ArenaTarkovaColaCompat.EndRaid();
         ArmedForNextRaid = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
@@ -415,6 +416,13 @@ public static class ArenaSession
         IsActive = true;
         ActiveMode = armedMode;
         LastRaidWasArena = true;
+        try { ArenaTarkovaColaCompat.BeginConfirmedRaid(world); }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogError("Tarkova Cola protection could not confirm this Arena raid: " + ex.Message);
+            Modes.ArenaMatchService.ScheduleFailedStartAbort("Tarkova Cola protection could not confirm this Arena raid");
+            return;
+        }
         Respawn.ArenaRespawnDriver.ResetSession();
         // After ResetSession, which clears the warm set, and before anything
         // asks for a kit: the loading-screen preload becomes this raid's.
@@ -561,6 +569,10 @@ public static class ArenaSession
 
     private static void OnRaidEnded()
     {
+        // Final observations normally ran in the native end prefix. Preserve
+        // that order here too, before restoring Cola's ordinary client state.
+        ArenaRewardCapture.FlushFinal();
+        ArenaTarkovaColaCompat.EndRaid();
         _pendingAreaStartGame = null;
         _pendingAreaStartWorld = null;
         ArenaPostRaidScreens.CaptureEndedRaid(_startedGame, _startedWorld);

@@ -115,6 +115,7 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | DevBalaclavaFix (`com.acidphantasm.devbalaclavafix`) | 1.2.0 | - |
 | | HealingAutoCancel (`HealingAutoCancel`) | 1.1.0 | - |
 | | SmajlecLights (`com.smajlec.lights`) | 1.3.0 | - |
+| | Tarkova Cola (`com.tarkovacola.server`) | 2.2.1 | 2.2.1 |
 | tool | UiBridge (`com.maschine.UiBridge`), ModProfiler (`com.maschine.ModProfiler`), LogTools (`com.maschine.LogTools`), ConsoleToMonitor (`com.maschine.ConsoleToMonitor`) | any | - |
 
 Continuous Load Ammo and Recoil Rework Legacy were added after the shared-Core
@@ -122,6 +123,11 @@ GPU checks on 2026-10-23; ContinuousHealing was already listed. Recoil's server
 package uses the same GUID and is therefore also admitted if installed, but was
 not tested; the entry records only the reviewed client version.
 See [the bounded native results](SHARED-BODY-COMPAT-20261023.md).
+
+Tarkova Cola was added on 2026-10-25 with an explicitly requested external-state
+protection and Zombie-reward adapter. See [its scope](TARKOVA-COLA-COMPAT.md).
+The optional `admissionFailure` ping field is emitted only if that adapter's
+required protection contract failed; ordinary PMC/Scav remains available.
 
 Preloader patchers are matched by file name. Platform patchers (code):
 `FixPluginTypesSerialization.dll`, `spt-prepatch.dll`, `maschine-ArenaMode.Gate.dll`.

@@ -204,6 +204,8 @@ Optional integration targets:
   cleanup or delayed completion affecting the replacement player.
 - **SVM 2.2.3+:** SaveLoot/Ignore settings do not bypass Arena's protected raid end;
   ordinary raids retain those rules. Other SVM settings remain effective.
+- **Tarkova Cola 2.2.1+:** temporary perks and protected Zombie research/achievement
+  transfer; requires both parts and matching lifecycle/catalog contracts.
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
@@ -245,6 +247,9 @@ default for newly registered profiles (existing OFF choices stay OFF):
 - Per eligible kill: 1,000 RUB + 100 XP; per DM/TDM/Tactical round win:
   10,000 RUB + 1,000 XP; maximum 200,000 RUB + 20,000 XP per match.
 - Gun Game and Zombies currently award kills only; no-contest results do not pay.
+- Optional Tarkova Cola 2.2.1+: Zombie research and achievements can transfer to the
+  normal profile with rewards enabled. No bottle/grenade refunds; no permanent
+  Cola progress from other Arena modes. Install Tarkova Cola separately on both sides.
 - **RETURN TO NORMAL SESSION** automatically restarts the supported local server
   when rewards are pending. On return, RUB is in the mailbox and XP is already credited.
   Direct Arena play without a private session pays at the next normal server start.

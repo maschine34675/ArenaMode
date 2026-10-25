@@ -34,7 +34,7 @@ internal static class RewardApprovalProducer
         var evaluation = RewardResultValidator.Evaluate(run, candidate.Report);
         RewardStartupApproval? approval = evaluation.Status == RewardEvaluationStatus.Eligible
             ? new(1, RewardStartupApprovalState.RestoredAndApproved,
-                new RewardClaim(run.Binding, run.RunId, run.Sequence, evaluation.Roubles, run.Policy.Version, evaluation.Experience), run.CleanProfileRevision)
+                new RewardClaim(run.Binding, run.RunId, run.Sequence, evaluation.Roubles, run.Policy.Version, evaluation.Experience, run.Cola), run.CleanProfileRevision)
             : null;
         approval?.Claim.Validate(new());
         // Persist the complete semantic input identity, not just the calculated
@@ -52,7 +52,7 @@ internal static class RewardApprovalProducer
         var existingDecision = Exists(window.Root, decisionPath);
         if (existingDecision)
         {
-            var previous = RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, 32768);
+            var previous = RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, RewardStartupFiles.MaxApprovalBytes);
             if (previous != decision) throw new RewardDataException("result-decision-conflict");
             if (run.Sequence != history.Count) throw new RewardDataException("stale-result-candidate");
         }
@@ -106,7 +106,7 @@ internal static class RewardApprovalProducer
         RewardStartupApproval? previousApproval = null;
         if (Exists(window.Root, approvalPath))
         {
-            previousApproval = RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, 16384);
+            previousApproval = RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, RewardStartupFiles.MaxApprovalBytes);
             if (previousApproval != approval)
             {
                 // A slot can only advance past a positively committed prior
@@ -130,14 +130,14 @@ internal static class RewardApprovalProducer
         if (!existingDecision)
         {
             RewardStartupFiles.WriteAtomic(window.Root, decisionPath, Json(decision));
-            if (RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, 32768) != decision)
+            if (RewardStartupFiles.Read<RewardApprovalDecision>(decisionPath, RewardStartupFiles.MaxApprovalBytes) != decision)
                 throw new IOException("Reward result decision was not durable.");
         }
         if (approval is not null && previousApproval != approval)
         {
             RequireUnchanged();
             RewardStartupFiles.WriteAtomic(window.Root, approvalPath, Json(approval));
-            if (RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, 16384) != approval)
+            if (RewardStartupFiles.Read<RewardStartupApproval>(approvalPath, RewardStartupFiles.MaxApprovalBytes) != approval)
                 throw new IOException("Reward approval was not durable.");
         }
         return evaluation;
@@ -177,6 +177,7 @@ internal static class RewardApprovalProducer
             if (current is null || entry.Payment.ReceiptKey != current.Claim.Key
                 || entry.Payment.Fingerprint != current.Claim.Fingerprint || entry.Payment.Roubles != current.Claim.Roubles
                 || entry.Payment.Experience != current.Claim.Experience
+                || !RewardColaProfile.MatchesClaim(entry.Payment.Cola, current.Claim.Cola)
                 || entry.BeforeRevision != current.CleanProfileRevision
                 || entry.Phase == RewardJournalPhase.Committed)
                 throw new RewardDataException("prior-payment-unsettled-or-diverged");
@@ -195,7 +196,7 @@ internal static class RewardApprovalProducer
         foreach (var path in paths)
         {
             RewardStartupFiles.RequireLocalPath(window.Root, path);
-            var value = RewardStartupFiles.Read<RewardApprovalDecision>(path, 32768);
+            var value = RewardStartupFiles.Read<RewardApprovalDecision>(path, RewardStartupFiles.MaxApprovalBytes);
             if (value.Schema != 1 || value.Binding != binding || !RewardIdentity.IsGuid(value.RunId)
                 || Path.GetFileName(path) != value.RunId + ".json" || value.Sequence is < 1 or > 4096
                 || !RewardIdentity.IsHex(value.SourceFingerprint, 64) || value.Evaluation is null
@@ -205,7 +206,7 @@ internal static class RewardApprovalProducer
                 || value.Evaluation.Roubles is < 0 or > 10_000_000
                 || value.Evaluation.Experience is < 0 or > 1_000_000
                 || value.Evaluation.Status != RewardEvaluationStatus.Eligible && value.Evaluation.Experience != 0
-                || (value.Evaluation.Status == RewardEvaluationStatus.Eligible) != (value.Evaluation.Roubles > 0)
+                || (value.Evaluation.Status == RewardEvaluationStatus.Eligible) != (value.Evaluation.Roubles > 0 || value.Approval?.Claim?.Cola is not null)
                 || value.Evaluation.Status == RewardEvaluationStatus.Rejected && (value.Evaluation.EligibleKills != 0 || value.Evaluation.RoundWins != 0)
                 || (value.Evaluation.Status == RewardEvaluationStatus.Eligible) != (value.Approval is not null))
                 throw new RewardDataException("invalid-result-history");

@@ -95,7 +95,7 @@ internal sealed class RewardSettlementCore
 
         var existing = recovered.SingleOrDefault(e => e.Payment.ReceiptKey == claim.Key);
         if (existing is not null && (existing.Payment.Fingerprint != claim.Fingerprint || existing.Payment.Roubles != claim.Roubles
-            || existing.Payment.Experience != claim.Experience))
+            || existing.Payment.Experience != claim.Experience || !RewardColaProfile.MatchesClaim(existing.Payment.Cola, claim.Cola)))
             return Result(RewardSettlementStatus.Quarantined, "receipt-content-conflict");
 
         if (!recovered.SequenceEqual(journal.Entries))
@@ -112,7 +112,8 @@ internal sealed class RewardSettlementCore
             return Result(RewardSettlementStatus.Rejected, "receipt-capacity-reached");
 
         var payment = existing?.Payment ?? new RewardPayment(claim.Key, claim.Fingerprint, claim.Roubles,
-            RewardIdentity.MessageId(claim.Binding, claim.Key), _time.GetUtcNow().ToUnixTimeSeconds(), claim.Experience);
+            RewardIdentity.MessageId(claim.Binding, claim.Key), _time.GetUtcNow().ToUnixTimeSeconds(), claim.Experience,
+            RewardColaProfile.Resolve(profile.Json, claim.Cola));
         ValidatePayment(payment, claim.Binding, _limits);
         // Compose and validate before any write. The editor works on a detached
         // document; it never holds or mutates a live SptProfile reference.
@@ -177,6 +178,9 @@ internal sealed class RewardSettlementCore
     private void WriteJournalVerified(IRewardSettlementLease lease, RewardJournal journal)
     {
         var json = JsonSerializer.Serialize(journal, JournalJson);
+        // The optional catalog decisions make entries larger than RUB-only ones.
+        // Never durably write a history which the next startup would refuse.
+        if (json.Length > 4_194_304) throw new RewardDataException("journal-too-large");
         lease.WriteJournal(json);
         if (lease.ReadJournal() != json) throw new IOException("Reward journal write was not durable.");
     }
@@ -193,11 +197,13 @@ internal sealed class RewardSettlementCore
         if (parts is not { Length: 2 } || !RewardIdentity.IsGuid(parts[0])
             || !long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) || sequence <= 0
             || sequence.ToString(CultureInfo.InvariantCulture) != parts[1]
-            || !RewardIdentity.IsHex(payment.Fingerprint, 64) || payment.Roubles <= 0 || payment.Roubles > limits.MaxRoublesPerReceipt
+            || !RewardIdentity.IsHex(payment.Fingerprint, 64) || payment.Roubles < 0 || payment.Roubles == 0 && payment.Cola is null
+            || payment.Roubles > limits.MaxRoublesPerReceipt
             || payment.Experience < 0 || payment.Experience > limits.MaxExperiencePerReceipt
             || payment.MessageId != RewardIdentity.MessageId(binding, payment.ReceiptKey!)
             || payment.PaidAtUnixSeconds is <= 0 or > 253402300799L)
             throw new RewardDataException("invalid-payment");
+        if (payment.Cola is not null) RewardColaProfile.Validate(payment.Cola);
     }
 
     private static void RejectDuplicateKeys(JsonElement element)

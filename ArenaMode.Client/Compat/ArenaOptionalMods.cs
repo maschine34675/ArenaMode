@@ -13,7 +13,8 @@ internal static class ArenaOptionalMods
     {
         // The whitelist comes first: Arena runs only with whitelisted mods (docs/ARENA-SESSION-20261021.md).
         // It never throws and yields to Fika's own refusal. Which foreign mods Arena refuses is that list's
-        // business (the shipped default deny list and the user's file), never code specific to one mod.
+        // business (the shipped default deny list and the user's file). The checks
+        // below protect actual integration contracts, rather than naming conflicts.
         var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();
         if (whitelistFailure != null) return whitelistFailure;
 
@@ -22,6 +23,6 @@ internal static class ArenaOptionalMods
             return ArenaServerClient.ServerAdmissionFailure;
 
         // Body replacement contracts belong to Core and also protect standalone Redeploy.
-        return BodyReplacementCompatibility.GetRejectionReason();
+        return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaTarkovaColaCompat.GetRejectionReason();
     }
 }

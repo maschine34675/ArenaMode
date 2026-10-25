@@ -51,6 +51,8 @@ public sealed class RewardStatusResponse
     public long MaxRoubles { get; set; }
     public long PendingExperience { get; set; }
     public long LastPaidExperience { get; set; }
+    public bool PendingCola { get; set; }
+    public bool LastPaidCola { get; set; }
     public long ExperiencePerKill { get; set; }
     public long ExperiencePerRoundWin { get; set; }
     public long MaxExperience { get; set; }
@@ -87,6 +89,9 @@ public class RewardCaptureRequest
     public long Revision { get; set; }
     public bool Final { get; set; }
     public string State { get; set; } = "Completed";
+    // A bounded observation of the foreign research state, never an item/mail
+    // claim. The server compares it to its own protected entry baseline.
+    public string ColaState { get; set; }
     public List<RewardRoundCapture> Rounds { get; set; } = new List<RewardRoundCapture>();
 }
 

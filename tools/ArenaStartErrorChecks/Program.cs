@@ -25,6 +25,7 @@ internal static class Program
         {
             DirectReplies();
             NativeFailureFlow();
+            ColaArmChecks.Run(Need);
             Console.WriteLine($"ARENA_START_ERROR_CHECKS_PASSED ({_checks} assertions)");
         }
         catch (Exception ex)
@@ -114,9 +115,9 @@ internal static class Program
 
     private static Exception StartFailure(out bool runOriginal)
     {
-        object[] arguments = { new LocalRaidSettings { playerSide = ESideType.Pmc, location = "factory4_day", transitionType = ELocationTransition.Common }, null };
+        object[] arguments = { new EftClientBackendSession(), new LocalRaidSettings { playerSide = ESideType.Pmc, location = "factory4_day", transitionType = ELocationTransition.Common }, null };
         runOriginal = (bool)Hook.Invoke(null, arguments);
-        var task = (Task<LocalSettings>)arguments[1];
+        var task = (Task<LocalSettings>)arguments[2];
         Need(task?.IsFaulted == true, "native start receives a faulted task");
         try { task.GetAwaiter().GetResult(); }
         catch (Exception ex) { return ex; }
@@ -183,7 +184,7 @@ internal static class Program
         // Ordinary raids still bypass Arena arming after an exact cancellation settles the failed attempt.
         Reset();
         int starts = RequestHandler.StartCount;
-        object[] ordinary = { new LocalRaidSettings { playerSide = ESideType.Pmc, location = "factory4_day", transitionType = ELocationTransition.Common }, null };
-        Need((bool)Hook.Invoke(null, ordinary) && ordinary[1] == null && RequestHandler.StartCount == starts, "ordinary raid remains pass-through");
+        object[] ordinary = { new EftClientBackendSession(), new LocalRaidSettings { playerSide = ESideType.Pmc, location = "factory4_day", transitionType = ELocationTransition.Common }, null };
+        Need((bool)Hook.Invoke(null, ordinary) && ordinary[2] == null && RequestHandler.StartCount == starts, "ordinary raid remains pass-through");
     }
 }

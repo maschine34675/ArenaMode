@@ -59,6 +59,7 @@ internal static class RewardProfileDocument
             throw new RewardDataException("reward-ledger-full");
 
         if (payment.Experience > 0) AddExperience(profile, payment.Experience);
+        RewardColaProfile.Apply(profile, claim, payment);
 
         var message = CreateMessage(payment, limits);
         var generatedIds = new HashSet<string>(StringComparer.Ordinal) { payment.MessageId, StashId(payment) };
@@ -75,7 +76,7 @@ internal static class RewardProfileDocument
         // Preserve existing native dialogue metadata and messages. Only the two
         // native unread counters change, exactly as SendMessageToPlayer does.
         dialogue["new"] = IncrementCounter(dialogue, "new");
-        dialogue["attachmentsNew"] = IncrementCounter(dialogue, "attachmentsNew");
+        if (Boolean(message["hasRewards"]!)) dialogue["attachmentsNew"] = IncrementCounter(dialogue, "attachmentsNew");
         messages.Add(message);
         ((JsonArray)profile[ExtensionKey]!["payments"]!).Add(WritePayment(payment));
         return profile.ToJsonString();
@@ -127,19 +128,26 @@ internal static class RewardProfileDocument
         var keys = new HashSet<string>(StringComparer.Ordinal);
         var messages = new HashSet<string>(StringComparer.Ordinal);
         var fingerprints = new HashSet<string>(StringComparer.Ordinal);
+        var colaAchievements = new HashSet<string>(StringComparer.Ordinal);
         foreach (var value in payments)
         {
             var entry = RequireObject(value);
             bool hasExperience = entry.ContainsKey("experience");
-            if (hasExperience)
-                RequireFields(entry, "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds", "experience");
-            else
-                RequireFields(entry, "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds");
+            bool hasCola = entry.ContainsKey("cola");
+            var fields = new List<string> { "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds" };
+            if (hasExperience) fields.Add("experience");
+            if (hasCola) fields.Add("cola");
+            RequireFields(entry, fields.ToArray());
             long experience = hasExperience ? Integer(entry["experience"]) : 0;
             if (hasExperience && experience <= 0) throw new RewardDataException("invalid-payment-experience");
             var payment = new RewardPayment(String(entry["receiptKey"]), String(entry["fingerprint"]),
-                Integer(entry["roubles"]), String(entry["messageId"]), Integer(entry["paidAtUnixSeconds"]), experience);
+                Integer(entry["roubles"]), String(entry["messageId"]), Integer(entry["paidAtUnixSeconds"]), experience,
+                hasCola ? String(entry["cola"]) : null);
             ValidatePayment(payment, binding, limits);
+            if (payment.Cola is not null)
+                foreach (var id in RewardColaProfile.Validate(payment.Cola))
+                    if (!colaAchievements.Add(id)) throw new RewardDataException("cola-duplicate-paid-achievement");
+            RewardColaProfile.ValidateApplied(profile, payment);
             if (!keys.Add(payment.ReceiptKey) || !messages.Add(payment.MessageId) || !fingerprints.Add(payment.Fingerprint))
                 throw new RewardDataException("duplicate-payment");
             result.Add(payment);
@@ -156,11 +164,12 @@ internal static class RewardProfileDocument
             || !long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence)
             || sequence <= 0 || sequence.ToString(CultureInfo.InvariantCulture) != parts[1]
             || !RewardIdentity.IsHex(payment.Fingerprint, 64)
-            || payment.Roubles <= 0 || payment.Roubles > limits.MaxRoublesPerReceipt
+            || payment.Roubles < 0 || payment.Roubles == 0 && payment.Cola is null || payment.Roubles > limits.MaxRoublesPerReceipt
             || payment.Experience < 0 || payment.Experience > limits.MaxExperiencePerReceipt
             || payment.MessageId != RewardIdentity.MessageId(binding, payment.ReceiptKey)
             || payment.PaidAtUnixSeconds <= 0 || payment.PaidAtUnixSeconds > LastUnixSecond - limits.MailLifetimeSeconds)
             throw new RewardDataException("invalid-payment");
+        if (payment.Cola is not null) RewardColaProfile.Validate(payment.Cola);
     }
 
     private static void ValidateProfile(JsonObject profile, RewardBinding binding)
@@ -194,6 +203,7 @@ internal static class RewardProfileDocument
             ["messageId"] = payment.MessageId, ["paidAtUnixSeconds"] = payment.PaidAtUnixSeconds
         };
         if (payment.Experience > 0) result["experience"] = payment.Experience;
+        if (payment.Cola is not null) result["cola"] = payment.Cola;
         return result;
     }
 
@@ -226,14 +236,17 @@ internal static class RewardProfileDocument
             });
             remaining -= count;
         }
+        RewardColaProfile.AddAttachments(data, payment, StashId(payment), limits.StackMax);
         return new JsonObject
         {
             ["_id"] = payment.MessageId, ["uid"] = SystemSenderId, ["type"] = 7,
             ["dt"] = payment.PaidAtUnixSeconds,
-            ["text"] = "Arena reward: " + payment.Roubles.ToString(CultureInfo.InvariantCulture) + " RUB."
+            ["text"] = (payment.Roubles == 0 && payment.Cola is not null ? "Arena rewards recorded."
+                : "Arena reward: " + payment.Roubles.ToString(CultureInfo.InvariantCulture) + " RUB.")
                 + (payment.Experience > 0 ? " " + payment.Experience.ToString(CultureInfo.InvariantCulture)
-                    + " XP already credited to your PMC. Collect the RUB below." : ""),
-            ["hasRewards"] = true, ["rewardCollected"] = false,
+                    + " XP already credited to your PMC." + (payment.Roubles > 0 ? " Collect the RUB below." : "") : "")
+                + RewardColaProfile.MessageSuffix(payment.Cola),
+            ["hasRewards"] = data.Count > 0, ["rewardCollected"] = false,
             ["items"] = new JsonObject { ["stash"] = StashId(payment), ["data"] = data },
             ["maxStorageTime"] = limits.MailLifetimeSeconds
         };

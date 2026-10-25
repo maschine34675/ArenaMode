@@ -355,6 +355,7 @@ public sealed class ArenaWhitelistTests
         // Written out by hand, not derived from the file, so that a lost entry shows.
         var expected = new (string Id, string Name, ArenaWhitelistTier Tier, string? Client, string? Server)[]
         {
+            ("com.tarkovacola.server", "Tarkova Cola", ArenaWhitelistTier.Mod, "2.2.1", "2.2.1"),
             ("me.sol.sain", "SAIN", ArenaWhitelistTier.Mod, "4.5.1", "4.5.1"),
             ("com.acidphantasm.progressivebotsystem", "APBS", ArenaWhitelistTier.Mod, null, "2.4.1"),
             ("com.acidphantasm.botplacementsystem", "ABPS", ArenaWhitelistTier.Mod, "2.1.0", "2.1.0"),

@@ -68,11 +68,12 @@ never wait for async PFT work while holding the profile-boundary writer lock.
 Arena-only optional-mod admission is `ArenaOptionalMods.GetRejectionReason`: the whitelist
 first, then the failure the server reports in its ping, then the remaining adapters. It
 never disables a foreign mod, never touches ordinary PMC/Scav raids and carries no code
-specific to one foreign mod (the per-mod refusals of ORBIT, Questing Bots, Adaptive Bot
+specific to one foreign mod except the explicitly requested Tarkova Cola protection
+adapter (2026-10-25; see docs/TARKOVA-COLA-COMPAT.md). The per-mod refusals of ORBIT, Questing Bots, Adaptive Bot
 Culling, ISB Special Forces/Aishi and the adapters for MoreBotsAPI, AI Limit, Looting Bots,
 Remove The Dead, Smoothie, Late To The Party, Classic Movement, StatTrack,
 Deminvincibility, Skills Extended, Pause Continued and EFT Effects Manager / Broken Limbs
-were removed on 2026-10-22; their dated reviews in docs/ are history). Preserve the
+were removed on 2026-10-22; their dated reviews in docs/ are history. Preserve the
 process-lifetime admission provider across menu cleanup; do not replace it with global
 BepInEx incompatibility declarations or user-config edits. Keep the rejected-Core notice
 path free of Core-dependent types, exclude PFT's My Squad screen, and never replace final
@@ -83,7 +84,10 @@ START ARENA SESSION, which restarts the game with only the allowed plugins
 (helper `ArenaMode.Session`). Read docs/ARENA-SESSION-20261021.md before changing the
 policy, the gate's install timing (`Finish`, never `Initialize`), the helper's
 process-identity rules or the request contract the client checks before it quits
-the game. Never add code that is specific to one foreign mod. The user policy file is a combined
+the game. New foreign adapters require an explicit task; Tarkova Cola is the approved
+exception for external progression and protected reward transfer. Never permit its native
+state writes, achievement grants or bottle/grenade refunds during a protected Arena scope.
+The user policy file is a combined
 allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. The shipped default file
 allows every installed mod and has its own `deny` list (ORBIT, Questing Bots, Adaptive Bot Culling,
 ISB Special Forces, Aishi: ArenaMode refused them by code before the whitelist existed; that code was

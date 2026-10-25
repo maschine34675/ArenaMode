@@ -25,9 +25,9 @@ internal static partial class Program
 
     private static bool Start(LocalRaidSettings request, out Task<LocalSettings> task)
     {
-        var args = new object[] { request, null };
+        var args = new object[] { new EftClientBackendSession(), request, null };
         var runOriginal = (bool)Hook.Invoke(null, args);
-        task = (Task<LocalSettings>)args[1];
+        task = (Task<LocalSettings>)args[2];
         if (task?.IsFaulted == true) _ = task.Exception;
         return runOriginal;
     }
@@ -355,6 +355,7 @@ internal static partial class Program
         CheckMolotovAvailability();
         CheckProtectedEntryAwait();
         CheckOptionalCompatibility();
+        ColaArmChecks.Run(Assert);
         Console.WriteLine($"ARENA_MENU_CHECKS_PASSED ({_checks} assertions)");
     }
 }

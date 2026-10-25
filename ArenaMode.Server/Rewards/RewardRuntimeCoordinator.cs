@@ -20,7 +20,7 @@ internal sealed class RewardRuntimeCoordinator
     private readonly Dictionary<string, Run> _runs = new(StringComparer.Ordinal);
     // Presentation only: these receipts are already durable in this private
     // process's outbox, but the normal server sees them only after return.
-    private readonly Dictionary<string, (long Roubles, long Experience)> _privatePending = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (long Roubles, long Experience, bool Cola)> _privatePending = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _failures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _startupFailures = new(StringComparer.Ordinal);
     private string? _startupUnavailable;
@@ -77,7 +77,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (_runs.TryGetValue(id, out var active))
                 {
                     result.State = "earning";
-                    if (active.Final is not null) SetPending(result, Evaluate(active, active.Final));
+                    if (active.Final is not null) SetPending(result, Evaluate(active, active.Final), active.Cola);
                 }
                 ApplyPrivatePending(id, result);
                 ApplyFailure(id, result);
@@ -96,7 +96,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (_runs.TryGetValue(id, out var run))
                 {
                     result.State = "earning";
-                    if (run.Final is not null) SetPending(result, Evaluate(run, run.Final));
+                    if (run.Final is not null) SetPending(result, Evaluate(run, run.Final), run.Cola);
                 }
                 if (!result.PrivateSession && result.Enrolled)
                 {
@@ -116,8 +116,9 @@ internal sealed class RewardRuntimeCoordinator
                             var reward = RewardResultValidator.Evaluate(earned.Evidence.Authorization, earned.Evidence.Report);
                             result.PendingRoubles = checked(result.PendingRoubles + reward.Roubles);
                             result.PendingExperience = checked(result.PendingExperience + reward.Experience);
+                            result.PendingCola |= reward.Status == RewardEvaluationStatus.Eligible && earned.Evidence.Authorization.Cola is not null;
                         }
-                        if (result.PendingRoubles > 0 && !_runs.ContainsKey(id)) result.State = "pending";
+                        if ((result.PendingRoubles > 0 || result.PendingCola) && !_runs.ContainsKey(id)) result.State = "pending";
                     }
                     var acknowledgement = Path.Combine(directory, "acknowledged.json");
                     if (RewardRuntimeFiles.Exists(_root, acknowledgement))
@@ -128,7 +129,8 @@ internal sealed class RewardRuntimeCoordinator
                             && e.Payment.Fingerprint == ack.Fingerprint && e.Phase == RewardJournalPhase.Committed)?.Payment;
                         result.LastPaidRoubles = payment?.Roubles ?? 0;
                         result.LastPaidExperience = payment?.Experience ?? 0;
-                        if (result.LastPaidRoubles > 0 && result.State == "ready") result.State = "paid";
+                        result.LastPaidCola = payment?.Cola is not null;
+                        if ((result.LastPaidRoubles > 0 || result.LastPaidCola) && result.State == "ready") result.State = "paid";
                     }
                 }
                 ApplyFailure(id, result);
@@ -144,10 +146,11 @@ internal sealed class RewardRuntimeCoordinator
         }
     }
 
-    private static void SetPending(RewardStatusResponse status, RewardEvaluation reward)
+    private static void SetPending(RewardStatusResponse status, RewardEvaluation reward, string? cola)
     {
         status.PendingRoubles = reward.Roubles;
         status.PendingExperience = reward.Experience;
+        status.PendingCola = reward.Status == RewardEvaluationStatus.Eligible && cola is not null;
     }
 
     private void ApplyPrivatePending(string id, RewardStatusResponse status)
@@ -155,8 +158,9 @@ internal sealed class RewardRuntimeCoordinator
         if (!status.PrivateSession || !_privatePending.TryGetValue(id, out var pending)) return;
         status.PendingRoubles = checked(status.PendingRoubles + pending.Roubles);
         status.PendingExperience = checked(status.PendingExperience + pending.Experience);
+        status.PendingCola |= pending.Cola;
         if (status.Available && status.Enabled && status.State is "ready" or "paid"
-            && (status.PendingRoubles > 0 || status.PendingExperience > 0)) status.State = "pending";
+            && (status.PendingRoubles > 0 || status.PendingExperience > 0 || status.PendingCola)) status.State = "pending";
     }
 
     private void ApplyFailure(string id, RewardStatusResponse result)
@@ -351,7 +355,10 @@ internal sealed class RewardRuntimeCoordinator
                 foreach (var round in request.Rounds)
                     duration = checked(duration + round.ObservedDurationMilliseconds);
                 if (duration > (_now() - run.Began).TotalMilliseconds + 5000) throw new RewardDataException("reward-active-time-exceeds-session");
-                var candidate = BuildEvidence(run, request, RewardIdentity.Hash(run.Snapshot.Json));
+                if (!request.Final && request.ColaState is not null) throw new RewardDataException("cola-observation-requires-final");
+                var cola = request.Final && state == RewardReportState.Completed
+                    ? Compat.ArenaTarkovaColaState.Capture(id, run.ArmToken, run.Mode, request.ColaState) : null;
+                var candidate = BuildEvidence(run, request, RewardIdentity.Hash(run.Snapshot.Json), cola);
                 RewardResultValidator.ValidateAuthorization(candidate.Authorization);
                 if (request.Rounds.Take(request.Rounds.Count - 1).Any(r => !r.Closed)) throw new RewardDataException("reward-earlier-round-open");
                 // Validate deaths even while a timed/scoring round is in
@@ -360,7 +367,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (evaluation.Status == RewardEvaluationStatus.Rejected && (request.Final || evaluation.Reason != "unfinished-round"))
                     throw new RewardDataException(evaluation.Reason);
                 run.Last = JsonSerializer.Deserialize<RewardCaptureRequest>(json, RewardSettlementCore.JournalJson)!;
-                if (request.Final) run.Final = run.Last;
+                if (request.Final) { run.Final = run.Last; run.Cola = cola; }
                 return new() { Accepted = true, Revision = request.Revision };
             }
             catch (RewardDataException e) { return new() { Reason = e.Message }; }
@@ -423,13 +430,16 @@ internal sealed class RewardRuntimeCoordinator
                     : Path.Combine(RewardRuntimeFiles.DirectoryFor(_root, id), "inbox");
                 RewardRuntimeFiles.EnsureDirectory(_root, directory);
                 RewardRuntimeFiles.WriteNew(_root, Path.Combine(directory, run.Id + ".json"), signed);
+                if (evaluation.Status == RewardEvaluationStatus.Eligible)
+                    Compat.ArenaTarkovaColaState.Published(id, run.ArmToken, run.Cola);
                 ClosePending(id, run, "restored");
                 _failures.Remove(id);
                 if (privateSession)
                 {
                     var previous = _privatePending.GetValueOrDefault(id);
                     _privatePending[id] = (checked(previous.Roubles + evaluation.Roubles),
-                        checked(previous.Experience + evaluation.Experience));
+                        checked(previous.Experience + evaluation.Experience), previous.Cola
+                        || evaluation.Status == RewardEvaluationStatus.Eligible && run.Cola is not null);
                 }
             }
             catch (Exception e)
@@ -510,7 +520,7 @@ internal sealed class RewardRuntimeCoordinator
         return RewardResultValidator.Evaluate(evidence.Authorization, evidence.Report);
     }
 
-    private static RewardApprovalCandidate BuildEvidence(Run run, RewardCaptureRequest capture, string revision)
+    private static RewardApprovalCandidate BuildEvidence(Run run, RewardCaptureRequest capture, string revision, string? cola = null)
     {
         var rounds = new List<RewardRoundAuthorization>();
         var reports = new List<RewardRoundReport>();
@@ -534,7 +544,7 @@ internal sealed class RewardRuntimeCoordinator
             reports.Add(new(roundId, deaths));
         }
         var authorization = new RewardRunAuthorization(1, run.Authority.Binding, run.Id, 1, run.ArmToken, run.NativeEnd,
-            run.Snapshot.Generation, run.LocalId, run.Mode, revision, Policy, rounds);
+            run.Snapshot.Generation, run.LocalId, run.Mode, revision, Policy, rounds, cola ?? run.Cola);
         var report = new RewardMatchReport(1, run.Id, run.ArmToken, run.NativeEnd, Parse<RewardReportState>(capture.State), reports);
         return new(1, authorization, report, new(1, run.Authority.Binding, run.Id, run.ArmToken, run.NativeEnd,
             run.Snapshot.Generation, RewardRestorationState.Persisted, revision, revision));
@@ -592,5 +602,6 @@ internal sealed class RewardRuntimeCoordinator
         internal string BeginJson { get; } = beginJson;
         internal RewardCaptureRequest? Last { get; set; }
         internal RewardCaptureRequest? Final { get; set; }
+        internal string? Cola { get; set; }
     }
 }

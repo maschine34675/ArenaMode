@@ -25,7 +25,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
     }
 
     [PatchPrefix]
-    private static bool Prefix(LocalRaidSettings settings, ref Task<LocalSettings> __result)
+    private static bool Prefix(EftClientBackendSession __instance, LocalRaidSettings settings, ref Task<LocalSettings> __result)
     {
         var arenaRequested = ArenaMenuSelection.IsSelected;
         var protectionRequired = arenaRequested || ArenaServerClient.HasPendingArm
@@ -165,6 +165,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
 
             ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch,
                 participants, ArenaServerClient.PendingParticipantBosses);
+            Compat.ArenaTarkovaColaCompat.PrepareRaid(__instance.Profile.Id, requestedMode, ArenaSession.ArmEpoch);
             Areas.ArenaAreaRuntime.Arm(area, ArenaServerClient.PendingArmToken, areaTeamSize);
 
             // Fetch catalog now (loading screen) instead of inside a gameplay frame.

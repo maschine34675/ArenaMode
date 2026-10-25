@@ -242,6 +242,15 @@ credited; collecting it does not grant XP again. Private sessions return signed 
 profile copy. Unsupported or unsafe automatic returns retain rewards for the next server start.
 [Details and verification](docs/REWARDS-RUNTIME.md).
 
+With **Tarkova Cola 2.2.1+** installed on both sides, completed Zombie matches can
+also transfer research, augment/synergy progress and newly earned achievements.
+Achievement items use the same guarded payout; already earned achievements do not
+pay again. Bottle/grenade refunds and equipped-perk settings are not transferred.
+Other Arena modes keep temporary Cola gameplay without permanent Cola progress.
+This uses the existing profile-rewards switch. Tarkova Cola is installed separately;
+its optional VisitAPI storyline is outside this integration.
+[Scope and recovery](docs/TARKOVA-COLA-COMPAT.md).
+
 ## Controls and configuration
 
 | Default control | Action |
@@ -456,6 +465,7 @@ unless you allow them in your own whitelist file.
 | **Continuous Healing** | **1.6.3+**: player-specific continuation/cancellation is isolated from Arena bots and retired player bodies. The current living player keeps Continuous Healing. |
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
+| **Tarkova Cola** | **2.2.1+**, client and server: protected temporary perks; optional Zombie research and achievement transfer. Required lifecycle and catalog contracts are checked. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests of the former Arena-owned adapter covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena; the shared Core implementation was validated natively without PFT. |
 
 The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing

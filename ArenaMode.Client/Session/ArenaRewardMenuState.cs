@@ -92,9 +92,11 @@ internal static class ArenaRewardMenuState
                     ? "Activation pending — return to the normal session, then re-enter Arena."
                     : "Activation pending — restart the normal SPT server."
                 : !Status.Enabled ? "Optional RUB and XP for your normal profile; paid on normal server start."
-                : Status.PendingRoubles > 0 ? $"{Status.PendingRoubles:N0} ₽ + {Status.PendingExperience:N0} XP pending — "
+                : Status.PendingRoubles > 0 || Status.PendingCola ? $"{Status.PendingRoubles:N0} ₽ + {Status.PendingExperience:N0} XP"
+                    + (Status.PendingCola ? " + Tarkova Cola progress" : "") + " pending — "
                     + (Status.PrivateSession && Status.AutomaticReturn ? "credited when you return to the normal session." : "next normal server start.")
-                : Status.LastPaidRoubles > 0 ? $"Last payout: {Status.LastPaidRoubles:N0} ₽ by mail; {Status.LastPaidExperience:N0} XP already credited."
+                : Status.LastPaidRoubles > 0 || Status.LastPaidCola ? $"Last payout: {Status.LastPaidRoubles:N0} ₽ by mail; {Status.LastPaidExperience:N0} XP already credited."
+                    + (Status.LastPaidCola ? " Tarkova Cola progress transferred." : "")
                 : Status.PrivateSession && Status.AutomaticReturn ? "On return to the normal session: RUB by mail, XP credited directly."
                 : !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
                 : "Next normal server start: RUB by mail, XP credited directly.";

@@ -27,7 +27,8 @@ internal sealed record RewardRoundAuthorization(string RoundId, RewardRoundRule 
     long TimeLimitMilliseconds, int KillTarget, IReadOnlyList<RewardActor> Actors, bool AllowIncomplete = false);
 internal sealed record RewardRunAuthorization(int Schema, RewardBinding Binding, string RunId, long Sequence, string ArmToken,
     string NativeEndIdentity, string RestorationId, string LocalParticipantId, string Mode,
-    string CleanProfileRevision, RewardRatePolicy Policy, IReadOnlyList<RewardRoundAuthorization> Rounds);
+    string CleanProfileRevision, RewardRatePolicy Policy, IReadOnlyList<RewardRoundAuthorization> Rounds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cola = null);
 
 internal sealed record RewardDeathReport(long Sequence, long AtMilliseconds, string VictimLifeId,
     string? KillerLifeId, RewardDeathKind Kind);

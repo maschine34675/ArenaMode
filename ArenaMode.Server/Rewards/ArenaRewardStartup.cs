@@ -63,6 +63,11 @@ public sealed class ArenaRewardStartup(
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (RewardColaRecoveryException)
+        {
+            logger.Error("[ArenaMode] A paid Tarkova Cola reward needs companion-file recovery. Startup stopped to preserve both profiles; restore access to the recorded files and retry. Do not delete the reward journal.");
+            throw;
+        }
         catch (Exception e)
         {
             // A refusal affects rewards, never ordinary server startup or raids.

@@ -51,6 +51,7 @@ public sealed class PatchManager(
 
         ArenaSettingsRequestLogPatch.TryEnable();
         Rewards.RewardReturnQuiescence.TryEnable();
+        ArenaTarkovaColaState.Initialize();
         ArenaOptionalMapPolicy.FindLocation = id => locationTable.GetDictionary()
             .TryGetValue(id, out var location) ? location.Base : null;
 

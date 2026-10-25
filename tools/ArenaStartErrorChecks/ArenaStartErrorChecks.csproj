@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../NativeMenuChecks/StandIns.cs" Link="StandIns.cs" />
+    <Compile Include="../NativeMenuChecks/ColaArmChecks.cs" Link="ColaArmChecks.cs" />
     <Compile Include="../NativeMenuChecks/AreaStandIns.cs" Link="AreaStandIns.cs" />
     <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />

@@ -141,6 +141,7 @@ public class ProfileSnapshotService(
 
     public void DiscardSnapshot(MongoId sessionId)
     {
+        Compat.ArenaTarkovaColaState.Release(sessionId.ToString());
         lock (_lock)
         {
             if (_snapshots.Remove(sessionId.ToString()))

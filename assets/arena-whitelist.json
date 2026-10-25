@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "mods": [
+    { "guid": "com.tarkovacola.server", "name": "Tarkova Cola", "kind": "mod", "clientVersion": "2.2.1", "serverVersion": "2.2.1" },
     { "guid": "me.sol.sain", "name": "SAIN", "kind": "mod", "clientVersion": "4.5.1", "serverVersion": "4.5.1" },
     { "guid": "com.acidphantasm.progressivebotsystem", "name": "APBS", "kind": "mod", "serverVersion": "2.4.1" },
     { "guid": "com.acidphantasm.botplacementsystem", "name": "ABPS", "kind": "mod", "clientVersion": "2.1.0", "serverVersion": "2.1.0" },
