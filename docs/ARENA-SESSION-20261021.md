@@ -87,7 +87,7 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
 | mod, own | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.3.0 | 0.3.0 |
 | | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
-| | Redeploy (`com.maschine.Redeploy`) | 1.0.0 | 1.0.0 |
+| | Redeploy (`com.maschine.Redeploy`) | 1.0.2 | 1.0.2 |
 | | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
 | | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
 | | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |
