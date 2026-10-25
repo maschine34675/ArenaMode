@@ -288,6 +288,10 @@ default for newly registered profiles (existing OFF choices stay OFF):
   review results and outstanding tests are in the repository's seven-mod review.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults
   are not a performance guarantee.
+- The unsigned session-switch helper has three unresolved VirusTotal detections.
+  Source review and a separate Defender scan found no concrete malicious behavior,
+  but these are not confirmed false positives. Exact reports and hashes are in
+  the GitHub release; an antivirus block can prevent session switching.
 - Some kits cannot fit large spare magazines/medical items; M60 spare boxes and
   the Enforcer Grizzly are known examples.
 - Report problems with the mode, map/area, versions and relevant client/server

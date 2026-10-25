@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Published releases (2026-10-25):** ArenaMode **0.3.0** from `27cdb374` and
+  Redeploy **1.0.2** from `1c78fb3`, both with identical **Core 1.0.13**.
+  [Final verification](RELEASE-VERIFICATION-20261025.md) records exact package
+  hashes, 3,197 Arena / 274 Redeploy passing unit tests, native ordinary respawn,
+  private combat/payout and final empty return without duplicate payment.
+  Redeploy's old installed 1.0.0 files and stale default-policy review were fixed.
+  Both ZIPs were published, downloaded and hash-verified. All seven DLLs have
+  zero VirusTotal detections; the session helper has three unresolved labels,
+  explicitly disclosed rather than described as confirmed false positives.
+  Original test settings are restored; GPU2 game/server processes are stopped.
+  The earlier preparation note below is historical and superseded by this entry.
+
 - **Repository cleanup (2026-10-25, after HUD tests):** all compatibility work
   was already integrated. The remaining Arena feature branch/worktree and
   Redeploy's three feature branches/two worktrees were removed after every
@@ -20,9 +32,9 @@ current. User-facing communication is normally German.
   adapters. GPU-2 verified a living kit swap, two deaths, disabled Radar across
   respawn, a new raid and Better BepInEx input restoration. See
   [exact identities, limits and cleanup](HUD-MOD-COMPAT-20261025.md).
-  Rebuild Arena against the updated sibling Core to stamp the new minimum.
+  The 0.3.0 release rebuild stamps and bundles that Core minimum.
 
-- **0.3.0 documentation preparation (2026-10-25):** the user requested readiness,
+- **Historical 0.3.0 documentation preparation (2026-10-25):** the user requested readiness,
   updated documentation and Arena branch/worktree cleanup, not publication.
   [Release draft and remaining steps](RELEASE-0.3.0.md) distinguishes the current
   published 0.2.1 from the upcoming source. `CHANGELOG.md` now lives in the repo

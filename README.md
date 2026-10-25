@@ -9,7 +9,10 @@ Current version: **0.3.0**, with shared **Redeploy.Core 1.0.13**. Get installabl
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
 See the [changelog](CHANGELOG.md), the [0.3.0 release notes](docs/RELEASE-0.3.0.md)
-and the published [0.2.1 notes](docs/RELEASE-0.2.1.md) for changes and test coverage.
+and [final package verification](docs/RELEASE-VERIFICATION-20261025.md) for changes
+and test coverage. The unsigned session helper has **three unresolved VirusTotal
+detections**; the seven DLLs across ArenaMode/Redeploy have none. The verification
+record and release page disclose the exact reports and review limits.
 
 ## Modes
 

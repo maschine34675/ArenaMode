@@ -4,6 +4,9 @@ Release for SPT 4.1.x, dated 2026-10-25. Native checks use SPT 4.1.6.
 These notes describe changes since the actual `v0.2.1` tag, including work
 which was already in development while the 0.2.1 hotfix was published.
 
+Final package hashes, native checks and the session helper's three unresolved
+VirusTotal detections are recorded in [release verification](RELEASE-VERIFICATION-20261025.md).
+
 ## Changes
 
 - **Profile rewards:** eligible kills award 1,000 RUB + 100 PMC XP; DM/TDM/Tactical
