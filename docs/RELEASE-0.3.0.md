@@ -43,6 +43,9 @@ which was already in development while the 0.2.1 hotfix was published.
   survive body/camera replacement through Core. Better BepInEx 1.0.0 is also
   reviewed; keep its stock ConfigurationManager dependency installed. Radar
   colors still represent faction/role, not Arena teams.
+- **Redeploy version review:** the default list records standalone Redeploy
+  Client/Server 1.0.2, verified with a normal PMC death, respawn and extraction.
+  Installing the companion release no longer produces a stale 1.0.0 notice.
 - **Gameplay/loading:** disable native transits in confirmed Arena raids, preload
   the first three validated Gun Game weapons, and halve loose ammunition reserves
   in supplied kits/weapon swaps. Loaded rounds and spare magazines are unchanged.
