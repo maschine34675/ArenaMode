@@ -1,3 +1,4 @@
+<!-- Description prepared for 0.3.0. Publish with the matching release, not 0.2.1. -->
 ## {.tabset}
 
 ### Overview
@@ -10,6 +11,7 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - Arena kits, a weapon ladder and mode-specific own-gear options.
 - Scoreboard, assists, killfeed, hitmarkers, health/armor and weapon panels.
 - Profile restoration on exit: Arena loot, XP and quest changes are not kept.
+- Optional profile rewards: RUB mail and PMC XP for eligible kills and round wins.
 - Single-player only. **Fika is not supported.**
 - Arena runs only with **whitelisted mods**. With other mods installed, **START ARENA
   SESSION** restarts the game into a filtered Arena session with a private copy of the
@@ -104,7 +106,7 @@ the post-raid XP page skipped.
   beside the client DLL; the list is overwritten by updates, your own entries belong in
   `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
-- Use the supplied `maschine-Redeploy.Core.dll` (1.0.10); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.12); keep only one copy,
   directly in `BepInEx/plugins/`.
   Arena requires at least this version and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
@@ -136,11 +138,13 @@ the author's hosts when it was written, each with its reviewed version: the bot 
 UIFixes, WTT-CommonLib and WTT-ContentBackport (with its preloader patcher), SVM, give-ui,
 Continuous Healing, Continuous Load Ammo, Recoil Rework Legacy, Freecam, DoorDash,
 Anvil-WebOverlay, ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors,
-DevBalaclavaFix, HealingAutoCancel and SmajlecLights. It denies ORBIT, Questing Bots,
+DevBalaclavaFix, HealingAutoCancel and SmajlecLights. 0.3.0 also lists Fontaine FOV Fix,
+Manimal Ammo Loading Animations, Increase Look Direction, Magazine Check Interrupt
+and Tarkova Cola. It denies ORBIT, Questing Bots,
 Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
 always allowed; a version that differs from the reviewed one only produces a warning.
-Allowing a mod is **not** a compatibility certification: it runs unadapted, at your own
-risk.
+Whitelist admission alone does not supply a compatibility adapter. The targeted
+integrations and their limits are listed in the Compatibility tab.
 
 - **Other mods installed:** ARENA is disabled with the reason (`Blocked for Arena: ...`
   for denied mods, `Not on the whitelist: ...` for unlisted ones; preloader patchers count
@@ -189,7 +193,8 @@ runs: README and `docs/ARENA-SESSION-20261021.md` in the repository.
 Optional integration targets:
 
 - **PitFireTeam 0.10.0 or 0.10.3+**, client and server: 1–4 companions in Tactical
-  or Zombies. PFT 0.10.1 and 0.10.2 remain excluded.
+  or Zombies; 1.0.0 has been reviewed, including its separate companion databases.
+  PFT 0.10.1 and 0.10.2 remain excluded.
 - **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain. Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
@@ -206,6 +211,12 @@ Optional integration targets:
   ordinary raids retain those rules. Other SVM settings remain effective.
 - **Tarkova Cola 2.2.1+:** temporary perks and protected Zombie research/achievement
   transfer; requires both parts and matching lifecycle/catalog contracts.
+- **Fontaine FOV Fix 4.1.0 / Manimal 2.0.0:** the shared Core handles camera and
+  ammo-loading visual ownership after player replacement.
+- **Increase Look Direction 1.3.0:** tested through respawns. With FOV Fix present,
+  FOV Fix's Free Look Angle controls armed free-look.
+- **Magazine Check Interrupt 1.1.1:** its floating panel follows the replacement
+  player through Core 1.0.12. Auto Shoulder Swap 1.1.1 remains unlisted.
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
@@ -214,7 +225,7 @@ Optional integration targets:
   camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
-are provided by the bundled Redeploy.Core 1.0.10 (they also apply to standalone Redeploy);
+are provided by the bundled Redeploy.Core 1.0.12 (they also apply to standalone Redeploy);
 Arena keeps only its medical fallback for Arena bots.
 
 Targeted Factory tests cover SVM's SaveLoot/Ignore raid ends and CLA loading and
@@ -239,9 +250,9 @@ PMC/Scav raids remain available. ISB's separate progression is not protected by 
 profile snapshot. An `allow` entry in your own whitelist file lifts a default deny, at
 your own risk.
 
-### Profile rewards (development)
+### Profile rewards
 
-Development builds after 0.2.0 also include optional profile rewards, enabled by
+0.3.0 includes optional profile rewards, enabled by
 default for newly registered profiles (existing OFF choices stay OFF):
 
 - Per eligible kill: 1,000 RUB + 100 XP; per DM/TDM/Tactical round win:
@@ -250,7 +261,8 @@ default for newly registered profiles (existing OFF choices stay OFF):
 - Optional Tarkova Cola 2.2.1+: Zombie research and achievements can transfer to the
   normal profile with rewards enabled. No bottle/grenade refunds; no permanent
   Cola progress from other Arena modes. Install Tarkova Cola separately on both sides.
-- The supported local normal server saves and stops when entering a private Arena
+- On supported Windows/loopback installations (tested with SPT 4.1.6), the normal
+  server saves and stops when entering a private Arena
   session. **RETURN TO NORMAL SESSION** starts it again and processes the final
   reward setting and results. On return, enabled RUB rewards are in the mailbox
   and XP is already credited.
@@ -258,6 +270,8 @@ default for newly registered profiles (existing OFF choices stay OFF):
   The mail lists XP already credited; collecting it does not grant XP twice.
 - The Arena map menu controls rewards in either session. Private sessions return
   signed results, without copying their profile back.
+- Remote or unsupported automatic-return setups retain rewards for a later
+  normal-server start; they do not force-close a server or replace its live profile.
 
 ### Notes and credits
 

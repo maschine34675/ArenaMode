@@ -4,6 +4,8 @@ Documentation, reviews, handoffs and historical build/deployment manifests live
 in `docs/`; start with [docs/README.md](docs/README.md). Keep this `AGENTS.md` at
 the repository root for automatic discovery and the offline harness root checks.
 Place new documentation and evidence summaries in `docs/`, not beside this file.
+The user-facing `CHANGELOG.md` lives at the repository root by explicit request;
+keep its relative documentation links rooted at `docs/`.
 
 Read [docs/LOGGING.md](docs/LOGGING.md) before adding runtime logging. Info is
 reserved for player-relevant events; routine technical details use Debug and
@@ -848,7 +850,7 @@ with your explanation, the explanation is wrong; measure before you theorise aga
 
 Core admission: both clients fail closed before runtime initialization when the loaded
 Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.10, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+1.0.12, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
 provenance go under docs/licenses; preserve unknown user files during migration.

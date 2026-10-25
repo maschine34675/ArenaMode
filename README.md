@@ -4,12 +4,13 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Current version: **0.2.1**. Download the installable ZIP from
+Latest published version: **0.2.1**. This branch documents the upcoming **0.3.0**;
+features marked for 0.3.0 are not included in the 0.2.1 download. Get released ZIPs from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
-See the [changelog](docs/CHANGELOG.md) for changes since 0.1.0 and the
-[0.2.1 release notes](docs/RELEASE-0.2.1.md) (and those of [0.2.0](docs/RELEASE-0.2.0.md)) for what changed and what was tested.
+See the [changelog](CHANGELOG.md), the [0.3.0 release draft](docs/RELEASE-0.3.0.md)
+and the published [0.2.1 notes](docs/RELEASE-0.2.1.md) for changes and test coverage.
 
 ## Modes
 
@@ -189,7 +190,8 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. This build requires Core **1.0.10 or newer**. If Core is missing,
+plugin tree. The 0.3.0 development source requires Core **1.0.12 or newer**;
+published 0.2.1 bundles 1.0.10. If Core is missing,
 unreadable or too old, Arena disables its gameplay runtime and shows a reason on
 the character-selection screen; loader details also appear in the client log
 and SPT dependency list. Install the
@@ -224,7 +226,9 @@ and discard Arena loot, XP and quest changes. This is not a guarantee against
 crashes or conflicting mods; keep a profile backup, especially while testing
 WIP features. Leaving through the game's raid menu is supported.
 
-Development builds after 0.2.0 add optional **PROFILE REWARDS** above the map
+### Profile rewards (0.3.0)
+
+The upcoming 0.3.0 adds optional **PROFILE REWARDS** above the map
 preview in Arena's map menu, including rates and payment status.
 They default **on**: the first normal server start with this version registers
 existing, initialized profiles before loading them. No initial opt-in/restart
@@ -289,6 +293,8 @@ when it was written (2026-10-22), each with the version it was reviewed with:
   ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix,
   HealingAutoCancel, SmajlecLights, and since 2026-10-23 Continuous Load Ammo and Recoil Rework
   Legacy (after the shared body-replacement checks);
+- additions for 0.3.0: Fontaine FOV Fix, Manimal Ammo Loading Animations,
+  Increase Look Direction, Magazine Check Interrupt and Tarkova Cola (client/server);
 - Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
 
 The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
@@ -469,10 +475,13 @@ unless you allow them in your own whitelist file.
 | **Continuous Load Ammo** | **1.2.0+**: continuous loading is rebound on Arena body changes; old cleanup and delayed completion cannot unlock or end a replacement body's load. |
 | **SVM** | **2.2.3+**: SaveLoot/Ignore rules cannot bypass Arena's protected raid end. Ordinary raids retain these SVM rules. Other SVM balance settings remain effective. |
 | **Tarkova Cola** | **2.2.1+**, client and server: protected temporary perks; optional Zombie research and achievement transfer. Required lifecycle and catalog contracts are checked. |
+| **Fontaine FOV Fix / Manimal** | Tested at **4.1.0 / 2.0.0**. Shared Core rebinds the FOV controller and retires old ammo-loading visuals during respawn. |
+| **Increase Look Direction** | Tested at **1.3.0**. With FOV Fix installed, FOV Fix's Free Look Angle controls armed free-look. |
+| **Magazine Check Interrupt** | Tested at **1.1.1**; Core 1.0.12 removes the retired player's floating panel and binds new checks to the replacement player. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests of the former Arena-owned adapter covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena; the shared Core implementation was validated natively without PFT. |
 
 The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
-body-change fixes are provided by Core (since 1.0.9; 0.2.0 bundles 1.0.10) and also apply to standalone Redeploy.
+body-change fixes are provided by Core (since 1.0.9; the 0.3.0 source targets 1.0.12) and also apply to standalone Redeploy.
 Arena retains only its additional medical fallback for Arena bots. The migration
 has offline lifecycle coverage; the older Arena GPU reports do not certify the
 new shared implementation. See [migration and verification scope](docs/SHARED-BODY-COMPAT-20261023.md).
@@ -543,7 +552,7 @@ The source also requires a sibling [Redeploy](https://github.com/maschine34675/R
 checkout containing
 `Redeploy.Core/`, its `CoreVersion.props`, and `drivers/CoreVersionGate.cs`.
 Use the exact Redeploy commit recorded in the release's `PACKAGE-MANIFEST.json`;
-the current source uses Core 1.0.10. Do not substitute an arbitrary Core DLL for the
+the current source uses Core 1.0.12. Do not substitute an arbitrary Core DLL for the
 source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**

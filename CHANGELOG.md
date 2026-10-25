@@ -5,16 +5,42 @@ release notes. Dates below are GitHub publication dates.
 
 Released entries describe the behavior **at that release**. Several compatibility
 adapters were subsequently removed or moved to Redeploy.Core, as noted under
-0.2.0. See [Dependencies and compatibility](DEPENDENCIES.md) for the current
+0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## Unreleased
+## [0.3.0] - Unreleased
+
+### Profile rewards and private sessions
+
+- Add optional normal-profile rewards, enabled by default for eligible profiles;
+  existing OFF choices stay OFF. The Arena map screen shows the switch, rates and
+  payment status. Eligible kills award 1,000 RUB + 100 PMC XP; DM/TDM/Tactical round
+  wins award 10,000 RUB + 1,000 XP, capped at 200,000 RUB + 20,000 XP per match.
+  Gun Game/Zombies currently award kills only; no-contest results do not pay.
+- Validate results after saved profile restoration. Returning from a private
+  session starts normal SPT and settles rewards before opening EFT: RUB arrives
+  as mail and XP is already credited. Direct Arena play pays at the next normal
+  server start. Permanent payment records prevent duplicate rewards.
 
 - Stop the supported local normal server when entering a private Arena session,
   after native save/read-back and before copying the profile. Rewards can still
   be switched inside Arena. Returning starts normal SPT and recovers the final
   choice and signed results before loading profiles. Concurrent normal starts
   cannot open the same profiles while the private session owns them.
+- Protect Tarkova Cola's separate progress during Arena. With both parts of
+  Tarkova Cola 2.2.1+ installed and rewards enabled, eligible Zombie results can
+  transfer research/augment/synergy progress and newly earned achievement rewards.
+  No bottle/grenade refunds or equipped-perk settings are transferred; other
+  modes keep temporary perks without permanent Cola progress.
+
+### Compatibility and setup
+
+- Require shared Redeploy.Core **1.0.12** for the current source. Its new
+  body-replacement fixes cover Fontaine FOV Fix, Manimal Ammo Loading Animations
+  and Magazine Check Interrupt; the full standalone Redeploy mod is not required.
+- Add tested Fontaine FOV Fix 4.1.0, Manimal 2.0.0, Increase Look Direction 1.3.0
+  and Magazine Check Interrupt 1.1.1 to the default list. Auto Shoulder Swap 1.1.1
+  remains unlisted after a native knife/lean error; ordinary raids are unchanged.
 - Adapt PitFireTeam's profile-protection contracts to 1.0.0, including both
   companion databases and the new recruitment, karma, insurance and cargo paths.
   Older supported versions keep their existing guards. Record 1.0.0 as reviewed
@@ -29,6 +55,16 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Show the server's actual Arena-start refusal reason and remove the duplicate
   message caused by EFT also displaying inner exceptions.
 
+### Gameplay and loading
+
+- Disable native transit points in confirmed Arena raids. Ordinary raids and
+  normal extracts retain their behavior.
+- Preload the first three selected and validated Gun Game weapons during loading.
+- Halve loose-ammunition reserves in Arena kits and weapon-only swaps, rounding
+  the total. Loaded rounds and spare detachable magazines remain unchanged.
+
+[Release draft, verification and remaining publication steps](docs/RELEASE-0.3.0.md).
+
 ## [0.2.1] - 2026-10-25
 
 ### Fixes
@@ -42,7 +78,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   weapon you carry is missing in the session and back afterwards). Your `core.json` and your
   real profile are not changed.
 
-[Release notes and verification limits](RELEASE-0.2.1.md).
+[Release notes and verification limits](docs/RELEASE-0.2.1.md).
 
 ## [0.2.0] - 2026-10-24
 
@@ -106,11 +142,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   deploying files and added detection of unintended installation changes during
   verification.
 
-Details: [Arena sessions](ARENA-SESSION-20261021.md),
-[Bowl team boxes](BOWL-TEAM-BOXES-20261023.md),
-[shared body-replacement fixes](SHARED-BODY-COMPAT-20261023.md).
+Details: [Arena sessions](docs/ARENA-SESSION-20261021.md),
+[Bowl team boxes](docs/BOWL-TEAM-BOXES-20261023.md),
+[shared body-replacement fixes](docs/SHARED-BODY-COMPAT-20261023.md).
 
-[Release notes and verification limits](RELEASE-0.2.0.md).
+[Release notes and verification limits](docs/RELEASE-0.2.0.md).
 
 ## [0.1.3] - 2026-10-20
 
@@ -133,7 +169,7 @@ Details: [Arena sessions](ARENA-SESSION-20261021.md),
 - Expanded the mod compatibility review and translated the dependency overview
   into English.
 
-[Release notes and verification limits](RELEASE-0.1.3.md).
+[Release notes and verification limits](docs/RELEASE-0.1.3.md).
 
 ## [0.1.2] - 2026-10-20
 
@@ -162,7 +198,7 @@ Details: [Arena sessions](ARENA-SESSION-20261021.md),
 - **Deminvincibility:** preserved Arena death/respawn despite immortality,
   Second Chance and minimum-health rules, while retaining its other multipliers.
 
-[Release notes and verification limits](RELEASE-0.1.2.md).
+[Release notes and verification limits](docs/RELEASE-0.1.2.md).
 
 ## [0.1.1] - 2026-10-19
 
@@ -192,7 +228,7 @@ Details: [Arena sessions](ARENA-SESSION-20261021.md),
   ordinary PMC/Scav raids. Questing Bots could remain installed when fully disabled
   in its server configuration.
 
-[Release notes and verification limits](RELEASE-0.1.1.md).
+[Release notes and verification limits](docs/RELEASE-0.1.1.md).
 
 ## [0.1.0] - 2026-10-19
 

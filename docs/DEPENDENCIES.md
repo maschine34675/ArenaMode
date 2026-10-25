@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.2.0 bundles and requires at least **1.0.10**, the library published with Redeploy 1.0.1 on 2026-10-24 (the shared optional-mod body replacement protection arrived in 1.0.9); older test/build reports may still mention 1.0.6 to 1.0.9. Ship the version appropriate to the specific Arena build. Do not confuse this library with the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The upcoming 0.3.0 source requires **1.0.12**; published Arena 0.2.0/0.2.1 bundled 1.0.10. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -43,6 +43,8 @@ SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-Commo
 (and its patcher), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
+Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
+Magazine Check Interrupt and Tarkova Cola for 0.3.0, and the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing version warns and offers an Arena session that omits it on both sides,
 together with its hard dependents; direct Arena entry still treats the version
@@ -78,7 +80,7 @@ and is therefore also admitted if installed, but was not part of those checks. S
 | BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
 | PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0. Current whitelist review: 1.0.0. Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator remains excluded from both PFT variants. |
 | APBS | Metadata version 2.4.1 or newer; reviewed at that version, newer versions warn | Bot equipment/progression. Without APBS, native SPT generation is used; a missing/old version or invalid API contract leaves APBS's own level selection in place with a warning. |
-| ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer | Bay5, Equator, Air Pit and Bowl. Bowl currently uses generic spawns, not Arena-owned team boxes. Not required for ordinary SPT maps. |
+| ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer | Bay5, Equator, Air Pit and Bowl. Independent Team DM uses their team starts; Bowl supports 2v2–10v10 from its east/west boxes. Other Bowl modes use generic spawns. Not required for ordinary SPT maps. |
 | Killcam | Current integration target: 1.0.0; API checks rather than a fixed version allowlist | Actual killcam replays; DeathReplay must be enabled. The former KillcamReplay plugin is not accepted. Arena's subsequent team-spectating mode is separate Arena code. |
 | DynamicMaps | 1.2.1 or newer; reviewed at that version, newer versions warn | Minimaps and corpse-marker cleanup. Arena's static map previews work without DynamicMaps. |
 | Waypoints | No direct Arena dependency; coexistence observed with 1.9.0 | Independent navigation/spawn-display features; do not list it as mandatory for Arena merely because it is part of a common AI-mod setup. |
@@ -237,14 +239,16 @@ checksums. Without that switch it creates a package explicitly labelled as a
 local test. Both variants use the same runtime assets and license notices.
 
 Player documentation is in the [README](../README.md) and the
-[Forge description with seven tabs](FORGE-DESCRIPTION.md). The central
+[Forge description with tabs](FORGE-DESCRIPTION.md). The central
 [license overview](../THIRD-PARTY-NOTICES.md) distinguishes Arena's MIT code from
 separate image/audio rights. It and the [LICENSE](../LICENSE) are shipped with
 the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.10.
+revision is recorded in the package manifest. The current source targets Core 1.0.12.
+The prepared 0.3.0 release must include the matching shared-Core fixes; see
+[remaining release steps](RELEASE-0.3.0.md#remaining-publication-steps).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

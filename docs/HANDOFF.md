@@ -7,6 +7,19 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **0.3.0 documentation preparation (2026-10-25):** the user requested readiness,
+  updated documentation and Arena branch/worktree cleanup, not publication.
+  [Release draft and remaining steps](RELEASE-0.3.0.md) distinguishes the current
+  published 0.2.1 from the upcoming source. `CHANGELOG.md` now lives in the repo
+  root. Current source imports Core 1.0.12 from Redeploy; publish that source
+  revision with the release and rebuild through the isolated package tool.
+  Version stamps, release ZIP/scans and final-package acceptance remain separate.
+  Both compatibility branches are integrated (the input branch ancestry merge
+  `659b157` left the tree unchanged) and removed; only master and its main worktree
+  remain. Before removing the redundant worktree, 1,601 ignored evidence/build
+  files were copied and SHA-256 verified under
+  `artifacts/archived-worktrees/compat-input-20261025` (private, not release data).
+
 - **PFT reviewed version (2026-10-24):** the shipped whitelist now records PFT
   1.0.0 on both sides, following the bounded native checks documented in
   [the PFT review](PITFIRETEAM-1.0.0-20261024.md). The adapter also recognizes

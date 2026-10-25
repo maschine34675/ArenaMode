@@ -6,7 +6,8 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
-- [Changelog since 0.1.0](CHANGELOG.md)
+- [Changelog since 0.1.0](../CHANGELOG.md)
+- [0.3.0 release draft and remaining release checks](RELEASE-0.3.0.md)
 - [RUB reward settlement core and synthetic profile tests](REWARDS-CORE.md)
 - [Protected ordinary-server reward startup consumer](REWARDS-SERVER.md)
 - [Server result validation and durable payout approvals](REWARDS-RESULTS.md)

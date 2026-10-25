@@ -1,7 +1,8 @@
 # ArenaMode — complete feature inventory
 
-Source baseline: **67cad48, 2026-10-17**, with optional profile rewards added on
-2026-10-24 for development builds after 0.2.0. This lists the implemented
+Source inventory updated **2026-10-25** for the upcoming **0.3.0**, including
+profile rewards, private-session ownership and current compatibility additions.
+Published 0.2.1 does not include all of these development changes. This lists the implemented
 behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
 in-game test. Defaults below are code defaults; existing saved settings can
@@ -81,6 +82,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Completing the ladder starts another cycle. Optional fresh draws on a cycle
   and an optional lost stage on death; the normal respawn retains the stage.
 - Announcements for the final weapon and ladder completion.
+- The first three selected, validated stages preload during the loading screen.
 - Select the total participant count, including the player; Arena replaces
   casualties while respecting that total.
 
@@ -244,6 +246,8 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   loose backpack rounds are not universally accessible to the reload key.
 - Supplied magazines/chambers are inspected so their ammunition information
   displays immediately; this does not examine every subsequently looted item.
+- Supplied kits and weapon-only swaps halve loose reserve ammunition with total
+  rounding; loaded rounds and spare detachable magazines are unchanged.
 - **Automatic medical quickslots** with consistent purposes: healing on 4,
   heavy bleed on 5, light bleed on 6, fractures on 7, pain on 8 and surgery on 9.
   Rebinding after reissue respects user changes instead of taking over weapon
@@ -546,6 +550,8 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
 - Team starts, spacing, connected navigation and occupancy checks precede the
   match. Customs Yard has additional Arena-only start candidates; it does not
   overwrite normal map spawn records.
+- Confirmed Arena location clones disable native transit points. Normal raids
+  and normal extraction behavior keep their separate path.
 - Optional ArenaMapPort maps: **Bay5**, **Air Pit** and **Bowl** support all modes; **Equator** supports
   Gun Game, DM, TDM and solo Zombies, but no Tactical or PFT Zombies, even with
   fewer companions. ArenaMode does not ship or install those maps itself.
@@ -632,9 +638,12 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   selected normal profile. Arena's map menu shows consent, rates and status in
   a separate card above the map preview.
   Initial registration and subsequent payments happen at normal server startup.
-  Returning from a private Arena session automatically restarts the supported local
-  server when payment or registration is pending, before reopening EFT. No extra
-  manual restart is needed; without pending work the server stays running.
+  Entering a private Arena session saves and stops the supported local normal
+  server before copying the profile. Returning starts it again before reopening
+  EFT, including when rewards are OFF or no match was played. The private menu
+  can change rewards while the normal server is stopped; the final setting is
+  applied before startup payouts. Concurrent normal startup is refused while
+  the private session owns the original installation.
 - Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
   capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only.
   No-contest results do not pay. Normal exits can retain kills from an unfinished
@@ -644,6 +653,11 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   profile read-back. Private sessions return signed result metadata, never a
   profile copy. Permanent payment history prevents repeat delivery after mail
   collection. See [reward behavior and limits](REWARDS-RUNTIME.md).
+- With Tarkova Cola 2.2.1+ on both sides, eligible Zombie results can also transfer
+  research, augment/synergy progress and newly earned achievement rewards. Other
+  modes retain temporary perks only. Bottle/grenade refunds and equipped-perk
+  settings are not exported. The same profile-rewards setting controls transfer;
+  [the Cola adapter](TARKOVA-COLA-COMPAT.md) preserves its separate persistence too.
 - Profile snapshot/restore and guarded post-raid processing discard Arena loot,
   progression and quest changes and restore entry equipment. Ordinary raids
   retain their separate path; this is not a guarantee against every crash or
@@ -707,6 +721,10 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
   DynamicMaps and Killcam; optional ArenaMapPort locations. UIFixes reload,
   BrightLasers, EnableLabyrinth and overlapping search/notification features have
   specific coexistence handling, not unlimited compatibility guarantees.
+- Core 1.0.12 includes the FOV Fix, Manimal ammo-loading visual and Magazine Check
+  Interrupt panel fixes across body replacement. Increase Look Direction needs
+  no dedicated adapter; FOV Fix's angle controls armed free-look when both are
+  installed. Auto Shoulder Swap 1.1.1 remains outside the default list.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**
