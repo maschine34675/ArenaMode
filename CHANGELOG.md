@@ -35,9 +35,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ### Compatibility and setup
 
-- Require shared Redeploy.Core **1.0.12** for the current source. Its new
+- Require shared Redeploy.Core **1.0.13** for the current source. Its new
   body-replacement fixes cover Fontaine FOV Fix, Manimal Ammo Loading Animations
   and Magazine Check Interrupt; the full standalone Redeploy mod is not required.
+- Preserve Accurate Circular Radar and Simple Crosshair through player/camera
+  replacement using shared Core adapters. Review versions 1.3.4 and 1.4.0,
+  together with Better BepInEx 1.0.0, for the default whitelist. The new F12 menu
+  still requires the stock ConfigurationManager.
 - Add tested Fontaine FOV Fix 4.1.0, Manimal 2.0.0, Increase Look Direction 1.3.0
   and Magazine Check Interrupt 1.1.1 to the default list. Auto Shoulder Swap 1.1.1
   remains unlisted after a native knife/lean error; ordinary raids are unchanged.

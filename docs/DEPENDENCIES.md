@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The upcoming 0.3.0 source requires **1.0.12**; published Arena 0.2.0/0.2.1 bundled 1.0.10. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. The upcoming 0.3.0 source requires **1.0.13**; published Arena 0.2.0/0.2.1 bundled 1.0.10. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -21,7 +21,8 @@ The development additions for FOV Fix and Manimal require **Core 1.0.11**;
 their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
-**Core 1.0.12**. Keep the newer shared Core when combining these development builds.
+**Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
+Keep the newer shared Core when combining these development builds.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -170,6 +171,14 @@ native observations below predate that migration; see
   test reproduced an upstream `CurrentScope` error. Normal firearm lean works,
   including after respawn. No new global deny or ordinary-raid behavior change.
   See [three input-mod tests and limitations](INPUT-MOD-COMPAT-20261025.md).
+- **Accurate Circular Radar 1.3.4 / Simple Crosshair 1.4.0:** Core 1.0.13
+  preserves their HUDs and rebinds physical player/camera references. Late old
+  bodies cannot remove the replacement crosshair. Radar colors remain faction
+  and role colors; they do not establish team hostility.
+- **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
+  Its existing ConfigurationManager dependency must remain installed. Other
+  mods' stock F12-window patches may be removed by Better BepInEx itself.
+  See [reviewed artifacts and native test scope](HUD-MOD-COMPAT-20261025.md).
 - **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.
 - **NotificationFilter:** Arena also suppresses replacement quest popups without
   changing the mod's global configuration.
@@ -246,7 +255,7 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.12.
+revision is recorded in the package manifest. The current source targets Core 1.0.13.
 The prepared 0.3.0 release must include the matching shared-Core fixes; see
 [remaining release steps](RELEASE-0.3.0.md#remaining-publication-steps).
 

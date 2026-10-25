@@ -106,7 +106,7 @@ the post-raid XP page skipped.
   beside the client DLL; the list is overwritten by updates, your own entries belong in
   `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
-- Use the supplied `maschine-Redeploy.Core.dll` (1.0.12); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.13); keep only one copy,
   directly in `BepInEx/plugins/`.
   Arena requires at least this version and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
@@ -217,6 +217,11 @@ Optional integration targets:
   FOV Fix's Free Look Angle controls armed free-look.
 - **Magazine Check Interrupt 1.1.1:** its floating panel follows the replacement
   player through Core 1.0.12. Auto Shoulder Swap 1.1.1 remains unlisted.
+- **Accurate Circular Radar 1.3.4 / Simple Crosshair 1.4.0:** shared Core keeps
+  their HUDs attached to the current player/camera after replacement. Radar
+  colors indicate factions and roles, not Arena teams.
+- **Better BepInEx 1.0.0:** alternate F12 menu; keep ConfigurationManager installed.
+  Other mods that patch the stock F12 window may lose their changes.
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
@@ -225,7 +230,7 @@ Optional integration targets:
   camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
-are provided by the bundled Redeploy.Core 1.0.12 (they also apply to standalone Redeploy);
+are provided by the bundled Redeploy.Core 1.0.13 (they also apply to standalone Redeploy);
 Arena keeps only its medical fallback for Arena bots.
 
 Targeted Factory tests cover SVM's SaveLoot/Ignore raid ends and CLA loading and
