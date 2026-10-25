@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 
 namespace ArenaMode.Server.Rewards;
 
@@ -17,17 +18,24 @@ internal sealed record RewardBinding(string InstallationId, string ProfileId, st
     }
 }
 
-internal sealed record RewardClaim(RewardBinding Binding, string RunId, long Sequence, long Roubles, string RulesVersion)
+internal sealed record RewardClaim(RewardBinding Binding, string RunId, long Sequence, long Roubles, string RulesVersion,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0)
 {
     public string Key => RunId + ":" + Sequence.ToString(CultureInfo.InvariantCulture);
-    public string Fingerprint => RewardIdentity.Hash(string.Join("\n", "arena-reward-v1", Binding.InstallationId,
-        Binding.ProfileId, Binding.Epoch, Key, Roubles.ToString(CultureInfo.InvariantCulture), RulesVersion));
+    // Preserve the exact old fingerprint for RUB-only authorizations and journals.
+    public string Fingerprint => Experience == 0
+        ? RewardIdentity.Hash(string.Join("\n", "arena-reward-v1", Binding.InstallationId,
+            Binding.ProfileId, Binding.Epoch, Key, Roubles.ToString(CultureInfo.InvariantCulture), RulesVersion))
+        : RewardIdentity.Hash(string.Join("\n", "arena-reward-v2", Binding.InstallationId,
+            Binding.ProfileId, Binding.Epoch, Key, Roubles.ToString(CultureInfo.InvariantCulture),
+            Experience.ToString(CultureInfo.InvariantCulture), RulesVersion));
 
     public void Validate(RewardLimits limits)
     {
         if (Binding is null) throw new RewardDataException("missing-binding");
         Binding.Validate();
         if (!RewardIdentity.IsGuid(RunId) || Sequence <= 0 || Roubles <= 0 || Roubles > limits.MaxRoublesPerReceipt
+            || Experience < 0 || Experience > limits.MaxExperiencePerReceipt
             || RulesVersion is null || !Regex.IsMatch(RulesVersion, "\\A[A-Za-z0-9._-]{1,32}\\z"))
             throw new RewardDataException("invalid-claim");
     }
@@ -36,18 +44,20 @@ internal sealed record RewardClaim(RewardBinding Binding, string RunId, long Seq
 // Safety bounds for the kernel, not gameplay reward rates. Live adoption must freeze
 // the actual RUB template's stack limit and the policy revision at enrollment.
 internal sealed record RewardLimits(long MaxRoublesPerReceipt = 10_000_000, int StackMax = 500_000,
-    int MaxReceipts = 4096, int MailLifetimeSeconds = 2_592_000)
+    int MaxReceipts = 4096, int MailLifetimeSeconds = 2_592_000, long MaxExperiencePerReceipt = 1_000_000)
 {
     public void Validate()
     {
         if (MaxRoublesPerReceipt is <= 0 or > 10_000_000 || StackMax is <= 0 or > 500_000
             || (MaxRoublesPerReceipt - 1) / StackMax + 1 > 100
-            || MaxReceipts is <= 0 or > 4096 || MailLifetimeSeconds is <= 0 or > 2_592_000)
+            || MaxReceipts is <= 0 or > 4096 || MailLifetimeSeconds is <= 0 or > 2_592_000
+            || MaxExperiencePerReceipt is <= 0 or > 1_000_000)
             throw new ArgumentOutOfRangeException(nameof(RewardLimits));
     }
 }
 
-internal sealed record RewardPayment(string ReceiptKey, string Fingerprint, long Roubles, string MessageId, long PaidAtUnixSeconds);
+internal sealed record RewardPayment(string ReceiptKey, string Fingerprint, long Roubles, string MessageId, long PaidAtUnixSeconds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0);
 internal enum RewardJournalPhase { Prepared, Attempting, Committed }
 internal sealed record RewardJournalEntry(RewardPayment Payment, RewardJournalPhase Phase, string BeforeRevision);
 internal sealed record RewardJournal(int Schema, RewardBinding Binding, IReadOnlyList<RewardJournalEntry> Entries);

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ArenaMode.Server.Rewards;
 
 // Internal server-owned contracts, NOT HTTP DTOs. A future lifecycle adapter must
@@ -5,7 +7,10 @@ namespace ArenaMode.Server.Rewards;
 // restore + disk read-back. Copying these fields from a client would defeat this
 // design. Only RewardMatchReport is untrusted combat input. See REWARDS-RESULTS.md.
 internal sealed record RewardRatePolicy(string Version, long RoublesPerKill, long RoublesPerRoundWin,
-    int MaxKills, int MaxRounds, long MaxRoubles, bool CapRoubles = false);
+    int MaxKills, int MaxRounds, long MaxRoubles, bool CapRoubles = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long ExperiencePerKill = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long ExperiencePerRoundWin = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long MaxExperience = 0);
 
 internal enum RewardRoundRule { KillsOnly, LocalTarget, FreeForAllScore, TeamScore, SoloElimination, TeamElimination }
 internal enum RewardSide { Individual, Friendly, Opponent }
@@ -40,6 +45,7 @@ internal sealed record RewardRestorationEvidence(int Schema, RewardBinding Bindi
 // never offer an endpoint that accepts the whole envelope from a game client.
 internal sealed record RewardApprovalCandidate(int Schema, RewardRunAuthorization Authorization,
     RewardMatchReport Report, RewardRestorationEvidence Restoration);
-internal sealed record RewardEvaluation(RewardEvaluationStatus Status, string Reason, int EligibleKills, int RoundWins, long Roubles);
+internal sealed record RewardEvaluation(RewardEvaluationStatus Status, string Reason, int EligibleKills, int RoundWins, long Roubles,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] long Experience = 0);
 internal sealed record RewardApprovalDecision(int Schema, RewardBinding Binding, string RunId, long Sequence, string SourceFingerprint,
     RewardEvaluation Evaluation, RewardStartupApproval? Approval);

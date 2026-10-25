@@ -5,6 +5,8 @@ documents the connected collector, consent and private-session transfer. Its
 explicit runtime policy caps RUB and admits the last unfinished scoring round
 on a normal exit for kill rewards only when no terminal win was established;
 the original strict defaults below remain the default for internal candidates.
+The [XP extension](REWARDS-XP.md) uses the same validated kills/wins and frozen
+policy, with zero-default omitted fields preserving old result fingerprints.
 
 The startup pipeline can now **derive an approval from a bound combat report**.
 It no longer requires the final RUB claim to have been prepared separately.

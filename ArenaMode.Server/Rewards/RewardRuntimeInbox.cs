@@ -58,6 +58,7 @@ internal static class RewardRuntimeInbox
             .ThenBy(p => Path.GetFileName(p.Path), StringComparer.Ordinal).ToArray();
         RewardStartupOutcome? last = null;
         long paid = 0;
+        long experiencePaid = 0;
         foreach (var item in ordered)
         {
             token.ThrowIfCancellationRequested();
@@ -109,11 +110,15 @@ internal static class RewardRuntimeInbox
             {
                 RequireSettled(root, directory, allocation.Candidate);
                 RewardRuntimeFiles.WriteNew(root, importedPath, new RewardImported(1, fingerprint, runId, allocation.Candidate.Authorization.Sequence));
-                if (last.Result.Status == RewardSettlementStatus.Paid) paid += last.Roubles;
+                if (last.Result.Status == RewardSettlementStatus.Paid)
+                {
+                    paid = checked(paid + last.Roubles);
+                    experiencePaid = checked(experiencePaid + last.Experience);
+                }
             }
             else return last;
         }
-        if (paid > 0) return new(id, new(RewardSettlementStatus.Paid, "queued-rewards-delivered", last?.Result.MessageId), paid);
+        if (paid > 0) return new(id, new(RewardSettlementStatus.Paid, "queued-rewards-delivered", last?.Result.MessageId), paid, experiencePaid);
         return last ?? (ordered.Length > 0 ? Outcome(RewardSettlementStatus.AlreadyPaid, "reward-inbox-already-imported") : null);
 
         RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), 0);
@@ -169,9 +174,10 @@ internal static class RewardRuntimeInbox
         var journal = RewardSettlementCore.ParseJournal(File.ReadAllText(journalPath), run.Binding, new());
         var ledger = RewardProfileDocument.ReadLedger(File.ReadAllText(profilePath), run.Binding, new());
         var approval = decision.Approval;
-        if (approval is null || approval.Claim.Roubles != evaluation.Roubles
+        if (approval is null || approval.Claim.Roubles != evaluation.Roubles || approval.Claim.Experience != evaluation.Experience
             || !journal.Entries.Any(e => e.Phase == RewardJournalPhase.Committed && ledger.Contains(e.Payment)
                 && e.Payment.ReceiptKey == approval.Claim.Key && e.Payment.Fingerprint == approval.Claim.Fingerprint
+                && e.Payment.Roubles == approval.Claim.Roubles && e.Payment.Experience == approval.Claim.Experience
                 && e.BeforeRevision == approval.CleanProfileRevision))
             throw new RewardDataException("reward-import-not-settled");
     }

@@ -86,7 +86,8 @@ internal sealed class RewardStartupStore(
                 if (before.Entries.Contains(entry)) continue;
                 if (entry.Payment.ReceiptKey != store._approval.Claim.Key
                     || entry.Payment.Fingerprint != store._approval.Claim.Fingerprint
-                    || entry.Payment.Roubles != store._approval.Claim.Roubles)
+                    || entry.Payment.Roubles != store._approval.Claim.Roubles
+                    || entry.Payment.Experience != store._approval.Claim.Experience)
                     throw new RewardDataException("unapproved-journal-change");
             }
             if (before.Entries.Any(old => !after.Entries.Any(e => e.Payment == old.Payment)))
@@ -103,7 +104,8 @@ internal sealed class RewardStartupStore(
             var added = after.Except(before).ToArray();
             if (after.Count != before.Count + 1 || before.Any(p => !after.Contains(p)) || added.Length != 1
                 || added[0].ReceiptKey != store._approval.Claim.Key || added[0].Fingerprint != store._approval.Claim.Fingerprint
-                || added[0].Roubles != store._approval.Claim.Roubles)
+                || added[0].Roubles != store._approval.Claim.Roubles
+                || added[0].Experience != store._approval.Claim.Experience)
                 throw new RewardDataException("unapproved-profile-payment");
             // Recompose from the exact durable base: reject any changes outside the
             // core's mail/ledger/counter edit, even from an accidental wrong caller.

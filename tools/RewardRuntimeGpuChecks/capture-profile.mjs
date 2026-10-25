@@ -22,8 +22,11 @@ const summary = {
     capturedUtc: new Date().toISOString(), label, bytes: bytes.length,
     fileSha256: hash(bytes), semanticSha256: digest(profile),
     sections: Object.fromEntries(Object.entries(profile).map(([key, value]) => [key, digest(value)])),
-    enrolled: !!extension, payments: payments.map(p => ({roubles:p.roubles, sequence:p.sequence, receiptFingerprint:hash(String(p.receiptKey))})),
+    enrolled: !!extension, payments: payments.map(p => ({roubles:p.roubles, experience:p.experience??0, sequence:p.sequence, receiptFingerprint:hash(String(p.receiptKey))})),
     paymentCount: payments.length, paidRoubles: payments.reduce((sum,p)=>sum+(p.roubles??0),0),
+    paidExperience: payments.reduce((sum,p)=>sum+(p.experience??0),0),
+    pmcExperience: profile.characters?.pmc?.Info?.Experience, pmcLevel: profile.characters?.pmc?.Info?.Level,
+    rewardMailText: rewardMail.map(m=>m.text),
     inventoryRoubles: (profile.characters?.pmc?.Inventory?.items??[]).filter(i=>i._tpl==='5449016a4bdc2d6f028b456f').reduce((sum,i)=>sum+(i.upd?.StackObjectsCount??0),0),
     rewardMailCount: rewardMail.length,
     attachedRewardRoubles: rewardMail.reduce((sum,m)=>sum+(m.items?.data??[]).filter(i=>i._tpl==='5449016a4bdc2d6f028b456f').reduce((n,i)=>n+(i.upd?.StackObjectsCount??0),0),0)
@@ -31,4 +34,4 @@ const summary = {
 fs.mkdirSync(output, {recursive:true});
 fs.writeFileSync(path.join(output, `${label}.profile.json`), bytes, {flag:'wx'});
 fs.writeFileSync(path.join(output, `${label}.summary.json`), JSON.stringify(summary,null,2), {flag:'wx'});
-console.log(JSON.stringify({label,enrolled:summary.enrolled,paymentCount:summary.paymentCount,paidRoubles:summary.paidRoubles,inventoryRoubles:summary.inventoryRoubles,rewardMailCount:summary.rewardMailCount,attachedRewardRoubles:summary.attachedRewardRoubles,semanticSha256:summary.semanticSha256}));
+console.log(JSON.stringify({label,enrolled:summary.enrolled,paymentCount:summary.paymentCount,paidRoubles:summary.paidRoubles,paidExperience:summary.paidExperience,pmcExperience:summary.pmcExperience,pmcLevel:summary.pmcLevel,inventoryRoubles:summary.inventoryRoubles,rewardMailCount:summary.rewardMailCount,attachedRewardRoubles:summary.attachedRewardRoubles,semanticSha256:summary.semanticSha256}));

@@ -68,10 +68,12 @@ public sealed class RewardNativeLoadTests
         finally { Directory.SetCurrentDirectory(previousDirectory); }
     }
 
-    [Fact]
-    public async Task StartupPaymentSurvivesNativeMigrationSaveAndFreshNativeReload()
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(1100L)]
+    public async Task StartupPaymentSurvivesNativeMigrationSaveAndFreshNativeReload(long experience)
     {
-        using var fixture = new NativeFixture();
+        using var fixture = new NativeFixture(experience: experience);
         var previousDirectory = Environment.CurrentDirectory;
         try
         {
@@ -90,9 +92,12 @@ public sealed class RewardNativeLoadTests
             string paid = File.ReadAllText(fixture.ProfilePath);
             var payment = Assert.Single(RewardProfileDocument.ReadLedger(paid, fixture.Binding, new()));
             Assert.Equal(fixture.Claim.Roubles, payment.Roubles);
+            Assert.Equal(experience, payment.Experience);
             Assert.True(RewardProfileDocument.HasOriginalMail(paid, payment, new()));
             Assert.Equal("Before migration", JsonNode.Parse(paid)!["characters"]!["pmc"]!["Info"]!["Nickname"]!.GetValue<string>());
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original)!["characters"], JsonNode.Parse(paid)!["characters"]));
+            var expectedCharacters = JsonNode.Parse(original)!["characters"]!;
+            expectedCharacters["pmc"]!["Info"]!["Experience"] = 100_000 + experience;
+            Assert.True(JsonNode.DeepEquals(expectedCharacters, JsonNode.Parse(paid)!["characters"]));
             var acknowledgement = RewardStartupFiles.Read<RewardStartupAcknowledgement>(fixture.StatePath("acknowledged.json"));
             Assert.Equal(payment.MessageId, acknowledgement.MessageId);
 
@@ -102,6 +107,7 @@ public sealed class RewardNativeLoadTests
             Assert.Equal(1, migration.RawRuns);
             Assert.Equal(1, migration.TypedRuns);
             Assert.Equal("After migration", loaded.CharacterData!.PmcData!.Info!.Nickname);
+            Assert.Equal(checked((int)(100_000 + experience)), loaded.CharacterData.PmcData.Info.Experience);
             Assert.Equal("synthetic-migrated-account", loaded.ProfileInfo!.Username);
             Assert.True(loaded.SptData!.Migrations!.ContainsKey(SyntheticMigration.Name));
             Assert.NotNull(loaded.InsuranceList); // Native InsuranceSaveLoadRouter ran.
@@ -213,6 +219,7 @@ public sealed class RewardNativeLoadTests
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original)!["foreignFixture"], saved["foreignFixture"]));
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original)!["characters"]!["pmc"]!["Inventory"], saved["characters"]!["pmc"]!["Inventory"]));
         Assert.Single(saved["dialogues"]![RewardProfileDocument.SystemSenderId]!["messages"]!.AsArray());
+        Assert.Equal(100_000 + fixture.Claim.Experience, saved["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
     }
 
     private sealed class SyntheticMigration : IProfileMigration
@@ -252,11 +259,11 @@ public sealed class RewardNativeLoadTests
         internal string ProfilePath => Path.Combine(Root, "user", "profiles", Binding.ProfileId + ".json");
         internal string StatePath(string name) => Path.Combine(Root, RewardStartupFiles.RelativeDirectory, Binding.ProfileId, name);
 
-        internal NativeFixture(RewardStartupApprovalState state = RewardStartupApprovalState.RestoredAndApproved, bool fresh = false)
+        internal NativeFixture(RewardStartupApprovalState state = RewardStartupApprovalState.RestoredAndApproved, bool fresh = false, long experience = 0)
         {
             Root = Path.Combine(Path.GetTempPath(), "ArenaMode.RewardNativeLoad.Tests", Guid.NewGuid().ToString("N"));
             Binding = new(Guid.NewGuid().ToString("N"), new MongoId().ToString(), Guid.NewGuid().ToString("N"));
-            Claim = new(Binding, Guid.NewGuid().ToString("N"), 1, 750_001, "synthetic-native-v1");
+            Claim = new(Binding, Guid.NewGuid().ToString("N"), 1, 750_001, "synthetic-native-v1", experience);
             Directory.CreateDirectory(Root);
             _ownerPath = Path.Combine(Root, ".synthetic-owner");
             File.WriteAllText(_ownerPath, Owner);
@@ -350,7 +357,7 @@ public sealed class RewardNativeLoadTests
             {
                 ["pmc"] = new JsonObject
                 {
-                    ["_id"] = Binding.ProfileId, ["Info"] = new JsonObject { ["Nickname"] = "Before migration", ["Side"] = "Usec" },
+                    ["_id"] = Binding.ProfileId, ["Info"] = new JsonObject { ["Nickname"] = "Before migration", ["Side"] = "Usec", ["Experience"] = 100_000 },
                     ["Inventory"] = new JsonObject
                     {
                         ["stash"] = "aaaaaaaaaaaaaaaaaaaaaaaa",

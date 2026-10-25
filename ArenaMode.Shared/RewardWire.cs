@@ -48,6 +48,11 @@ public sealed class RewardStatusResponse
     public long RoublesPerKill { get; set; }
     public long RoublesPerRoundWin { get; set; }
     public long MaxRoubles { get; set; }
+    public long PendingExperience { get; set; }
+    public long LastPaidExperience { get; set; }
+    public long ExperiencePerKill { get; set; }
+    public long ExperiencePerRoundWin { get; set; }
+    public long MaxExperience { get; set; }
 }
 
 public class RewardBeginRequest

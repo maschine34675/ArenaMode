@@ -3,6 +3,8 @@
 Historical implementation-stage notes below. Gameplay capture, explicit consent,
 startup enrollment and private-session transport are now connected; see
 [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md) for the current flow and its verification.
+The subsequent [XP extension](REWARDS-XP.md) includes an additive PMC XP delta
+in the same transaction; the no-XP scope below describes the original stage.
 
 Status: **no gameplay reward production yet**. The isolated kernel now has a
 [guarded ordinary-server startup consumer](REWARDS-SERVER.md), registered before

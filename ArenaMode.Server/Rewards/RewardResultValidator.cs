@@ -25,7 +25,12 @@ internal static class RewardResultValidator
         if (policy is null || policy.Version is null || !Regex.IsMatch(policy.Version, "\\A[A-Za-z0-9._-]{1,32}\\z")
             || policy.RoublesPerKill is < 0 or > 10_000_000 || policy.RoublesPerRoundWin is < 0 or > 10_000_000
             || policy.MaxKills is < 1 or > MaxLives || policy.MaxRounds is < 1 or > 100
-            || policy.MaxRoubles is < 1 or > 10_000_000)
+            || policy.MaxRoubles is < 1 or > 10_000_000
+            || policy.ExperiencePerKill is < 0 or > 1_000_000 || policy.ExperiencePerRoundWin is < 0 or > 1_000_000
+            || policy.MaxExperience is < 0 or > 1_000_000
+            || policy.MaxExperience == 0 && (policy.ExperiencePerKill != 0 || policy.ExperiencePerRoundWin != 0)
+            || policy.ExperiencePerKill > 0 && policy.RoublesPerKill == 0
+            || policy.ExperiencePerRoundWin > 0 && policy.RoublesPerRoundWin == 0)
             Fail("invalid-reward-policy");
         if (run.Rounds is null || run.Rounds.Count is < 1 or > 100 || run.Rounds.Count > policy.MaxRounds)
             Fail("invalid-authorized-round-count");
@@ -214,8 +219,10 @@ internal static class RewardResultValidator
                 if (!run.Policy.CapRoubles) Fail("reward-amount-limit");
                 amount = run.Policy.MaxRoubles;
             }
+            var experience = Math.Min(run.Policy.MaxExperience,
+                checked((long)kills * run.Policy.ExperiencePerKill + (long)wins * run.Policy.ExperiencePerRoundWin));
             return new(amount == 0 ? RewardEvaluationStatus.NoReward : RewardEvaluationStatus.Eligible,
-                amount == 0 ? "no-eligible-reward" : "validated-result", kills, wins, amount);
+                amount == 0 ? "no-eligible-reward" : "validated-result", kills, wins, amount, experience);
         }
         catch (RewardDataException e) { return new(RewardEvaluationStatus.Rejected, e.Message, 0, 0, 0); }
         catch (OverflowException) { return new(RewardEvaluationStatus.Rejected, "reward-arithmetic-overflow", 0, 0, 0); }

@@ -12,7 +12,8 @@ internal sealed class RewardRuntimeCoordinator
 {
     private static readonly Lazy<RewardRuntimeCoordinator> Instance = new(() => new(Directory.GetCurrentDirectory()));
     internal static RewardRuntimeCoordinator Current => Instance.Value;
-    internal static readonly RewardRatePolicy Policy = new("arena-v1", 1000, 10_000, 20_000, 100, 200_000, CapRoubles: true);
+    internal static readonly RewardRatePolicy Policy = new("arena-v2", 1000, 10_000, 20_000, 100, 200_000, CapRoubles: true,
+        ExperiencePerKill: 100, ExperiencePerRoundWin: 1000, MaxExperience: 20_000);
     private readonly string _root;
     private readonly object _sync = new();
     private readonly Dictionary<string, Snapshot> _snapshots = new(StringComparer.Ordinal);
@@ -58,7 +59,8 @@ internal sealed class RewardRuntimeCoordinator
             var result = new RewardStatusResponse
             {
                 Available = true, PrivateSession = !RewardStartupFiles.MarkerAbsent(_root),
-                RoublesPerKill = Policy.RoublesPerKill, RoublesPerRoundWin = Policy.RoublesPerRoundWin, MaxRoubles = Policy.MaxRoubles
+                RoublesPerKill = Policy.RoublesPerKill, RoublesPerRoundWin = Policy.RoublesPerRoundWin, MaxRoubles = Policy.MaxRoubles,
+                ExperiencePerKill = Policy.ExperiencePerKill, ExperiencePerRoundWin = Policy.ExperiencePerRoundWin, MaxExperience = Policy.MaxExperience
             };
             result.CanChange = !result.PrivateSession && !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
             if (result.PrivateSession && _privateConsent.HasControl)
@@ -68,7 +70,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (_runs.TryGetValue(id, out var active))
                 {
                     result.State = "earning";
-                    if (active.Final is not null) result.PendingRoubles = Evaluate(active, active.Final).Roubles;
+                    if (active.Final is not null) SetPending(result, Evaluate(active, active.Final));
                 }
                 ApplyFailure(id, result);
                 return result;
@@ -82,11 +84,11 @@ internal sealed class RewardRuntimeCoordinator
                 result.State = !result.Enabled ? "disabled" : !result.Enrolled ? "restart-required" : "ready";
                 result.Detail = !result.Enabled ? "Optional profile rewards are off."
                     : !result.Enrolled ? "Restart the normal SPT server once to activate rewards."
-                    : "Rewards are delivered by mail at the next normal SPT server start.";
+                    : "At the next normal server start: RUB by mail, XP credited directly.";
                 if (_runs.TryGetValue(id, out var run))
                 {
                     result.State = "earning";
-                    if (run.Final is not null) result.PendingRoubles = Evaluate(run, run.Final).Roubles;
+                    if (run.Final is not null) SetPending(result, Evaluate(run, run.Final));
                 }
                 if (!result.PrivateSession && result.Enrolled)
                 {
@@ -103,8 +105,9 @@ internal sealed class RewardRuntimeCoordinator
                             var imported = Path.Combine(directory, "imported", name + ".json");
                             if (RewardRuntimeFiles.Exists(_root, imported)) continue;
                             var earned = RewardRuntimeInbox.ReadReceipt(_root, directory, authority!, path);
-                            result.PendingRoubles = checked(result.PendingRoubles
-                                + RewardResultValidator.Evaluate(earned.Evidence.Authorization, earned.Evidence.Report).Roubles);
+                            var reward = RewardResultValidator.Evaluate(earned.Evidence.Authorization, earned.Evidence.Report);
+                            result.PendingRoubles = checked(result.PendingRoubles + reward.Roubles);
+                            result.PendingExperience = checked(result.PendingExperience + reward.Experience);
                         }
                         if (result.PendingRoubles > 0 && !_runs.ContainsKey(id)) result.State = "pending";
                     }
@@ -113,8 +116,10 @@ internal sealed class RewardRuntimeCoordinator
                     {
                         var ack = RewardStartupFiles.Read<RewardStartupAcknowledgement>(acknowledgement, 16384);
                         var journal = RewardSettlementCore.ParseJournal(File.ReadAllText(Path.Combine(directory, "journal.json")), authority!.Binding, new());
-                        result.LastPaidRoubles = journal.Entries.SingleOrDefault(e => e.Payment.ReceiptKey == ack.ReceiptKey
-                            && e.Payment.Fingerprint == ack.Fingerprint && e.Phase == RewardJournalPhase.Committed)?.Payment.Roubles ?? 0;
+                        var payment = journal.Entries.SingleOrDefault(e => e.Payment.ReceiptKey == ack.ReceiptKey
+                            && e.Payment.Fingerprint == ack.Fingerprint && e.Phase == RewardJournalPhase.Committed)?.Payment;
+                        result.LastPaidRoubles = payment?.Roubles ?? 0;
+                        result.LastPaidExperience = payment?.Experience ?? 0;
                         if (result.LastPaidRoubles > 0 && result.State == "ready") result.State = "paid";
                     }
                 }
@@ -128,6 +133,12 @@ internal sealed class RewardRuntimeCoordinator
             }
             return result;
         }
+    }
+
+    private static void SetPending(RewardStatusResponse status, RewardEvaluation reward)
+    {
+        status.PendingRoubles = reward.Roubles;
+        status.PendingExperience = reward.Experience;
     }
 
     private void ApplyFailure(string id, RewardStatusResponse result)

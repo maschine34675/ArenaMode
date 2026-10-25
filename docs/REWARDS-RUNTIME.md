@@ -23,8 +23,9 @@ development change after release 0.2.0, not part of that existing download.
   records metadata only and shows the required restart: leave the private session,
   restart the normal server, then re-enter Arena. Existing enrolled profiles can
   switch immediately; the normal server must remain running.
-- The server freezes 1,000 RUB per eligible local kill, 10,000 RUB per round win
-  and a 200,000 RUB match cap. These are the user's selected starting values.
+- The server freezes 1,000 RUB + 100 XP per eligible local kill, 10,000 RUB +
+  1,000 XP per round win, capped at 200,000 RUB and 20,000 XP per match.
+  These are the user's selected starting values (`arena-v2`).
   The client cannot select an amount or payout recipient.
 - Enemy final kills count; assists, friendly kills, self-kills and environmental
   deaths do not. DM/TDM/Tactical wins use the actual configured scoring rule.
@@ -33,13 +34,22 @@ development change after release 0.2.0, not part of that existing download.
   inventing a win. Aborted/no-contest reports receive no payment for the run.
 - Completed results wait for the next **normal SPT server start**. Returning from
   a private Arena session while that server keeps running does not pay immediately.
-  Payment is system mail with RUB and a 30-day collection window, not a direct
-  change to stash, XP or quests.
+  RUB is system mail with a 30-day collection window; XP is added directly to
+  PMC Experience in the same atomic profile transaction. The mail states that
+  XP has already been credited; it has no XP claim event. Level and trader loyalty
+  are derived by native login using the final XP curve. No stash, skill or quest
+  changes are imported. Old `arena-v1` results remain RUB-only.
 - The menu reports ready, pending, paid or withheld state. Turning rewards off
   stops new participation and defers queued payment; enabling again uses the
   existing profile generation and payment history.
 
 ## Capture and authority
+
+XP uses the same permanent journal/ledger and duplicate/crash protection as RUB.
+An invalid, missing, negative or overflowing native XP value withholds the entire
+new payment; it is never replaced with a default. See
+[XP settlement and native progression](REWARDS-XP.md) for the reviewed boundaries
+and verification.
 
 ### Default-on startup registration
 

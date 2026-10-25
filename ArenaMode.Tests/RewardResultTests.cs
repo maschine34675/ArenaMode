@@ -13,6 +13,29 @@ namespace ArenaMode.Tests;
 public sealed class RewardResultTests
 {
     [Fact]
+    public void LegacyPolicyAndEvaluationSerializeByteForByteWithoutOptionalXpFields()
+    {
+        const string policy = "{\"version\":\"arena-v1\",\"roublesPerKill\":1000,\"roublesPerRoundWin\":10000,\"maxKills\":20000,\"maxRounds\":100,\"maxRoubles\":200000,\"capRoubles\":true}";
+        Assert.Equal(policy, RewardRuntimeFiles.Json(JsonSerializer.Deserialize<RewardRatePolicy>(policy, RewardSettlementCore.JournalJson)));
+        const string evaluation = "{\"status\":0,\"reason\":\"validated-result\",\"eligibleKills\":1,\"roundWins\":1,\"roubles\":11000}";
+        Assert.Equal(evaluation, RewardRuntimeFiles.Json(JsonSerializer.Deserialize<RewardEvaluation>(evaluation, RewardSettlementCore.JournalJson)));
+    }
+
+    [Fact]
+    public void XpUsesSameEligibilityAndIndependentFrozenCapAsRoubles()
+    {
+        var run = Run(RewardRoundRule.LocalTarget, target: 2) with { Policy = RewardRuntimeCoordinator.Policy };
+        var result = Evaluate(run, Death(1, 2, 1), Death(2, 3, 1));
+        Assert.Equal(1200, result.Experience);
+        Assert.Equal(12_000, result.Roubles);
+        var capped = run with { Policy = run.Policy with { MaxExperience = 1100 } };
+        Assert.Equal(1100, Evaluate(capped, Death(1, 2, 1), Death(2, 3, 1)).Experience);
+        Assert.Equal(0, RewardResultValidator.Evaluate(run, Report(run) with { State = RewardReportState.NoContest }).Experience);
+        var invalid = run with { Policy = run.Policy with { ExperiencePerKill = -1 } };
+        Assert.Throws<RewardDataException>(() => Evaluate(invalid));
+    }
+
+    [Fact]
     public void ServerPolicyPricesOnlyLocalHostileFinalKills()
     {
         var run = Run(actors: [Actor(1), Actor(2), Actor(3), Actor(4, RewardSide.Friendly), Actor(5), Actor(6)]);

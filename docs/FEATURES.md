@@ -628,14 +628,15 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 
 ## 12. Profile protection, stability and performance
 
-- Optional **PROFILE REWARDS**, off by default and enabled explicitly for the
+- Optional **PROFILE REWARDS**, on by default for newly registered profiles, preserving existing OFF choices for the
   selected normal profile. Arena's map menu shows consent, rates and status in
   a separate card above the map preview.
   Initial registration and subsequent payments happen at normal server startup.
-- Eligible kills earn **1,000 RUB**, DM/TDM/Tactical round wins **10,000 RUB**,
-  capped at **200,000 RUB per match**. Gun Game and Zombies award kills only.
+- Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
+  capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only.
   No-contest results do not pay. Normal exits can retain kills from an unfinished
-  round without granting a win. Rewards arrive as system mail.
+  round without granting a win. RUB arrives as system mail; XP is credited directly
+  at normal server startup and listed in the mail, with the same duplicate protection.
 - Results are admitted only after positive whole-profile restoration and saved
   profile read-back. Private sessions return signed result metadata, never a
   profile copy. Permanent payment history prevents repeat delivery after mail

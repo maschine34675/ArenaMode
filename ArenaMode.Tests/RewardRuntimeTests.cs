@@ -39,14 +39,18 @@ public sealed class RewardRuntimeTests
         Assert.Equal(before, f.Profile);
         Assert.Equal("pending", f.Coordinator.GetStatus(Fixture.ProfileId).State);
         Assert.Equal(1000, f.Coordinator.GetStatus(Fixture.ProfileId).PendingRoubles);
+        Assert.Equal(100, f.Coordinator.GetStatus(Fixture.ProfileId).PendingExperience);
         var paid = await f.Process();
         Assert.Equal(RewardSettlementStatus.Paid, paid.Result.Status);
         Assert.Equal(1000, paid.Roubles);
+        Assert.Equal(100, paid.Experience);
+        Assert.Equal(160_100, JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
         Assert.Single(f.Ledger);
         var profile = f.Profile;
         Assert.Equal(RewardSettlementStatus.AlreadyPaid, (await f.Process()).Result.Status);
         Assert.Equal(profile, f.Profile);
         Assert.Equal(1000, f.Coordinator.GetStatus(Fixture.ProfileId).LastPaidRoubles);
+        Assert.Equal(100, f.Coordinator.GetStatus(Fixture.ProfileId).LastPaidExperience);
     }
 
     [Fact]
@@ -71,9 +75,12 @@ public sealed class RewardRuntimeTests
         f.EditProfile(p => p["foreignMod"]!["progress"] = 200);
         f.RestoreAndPublish(f.Capture());
         f.EditProfile(p => p["foreignMod"]!["progress"] = 777);
+        f.EditProfile(p => p["characters"]!["pmc"]!["Info"]!["Experience"] = 180_000);
         var result = await f.Process();
         Assert.Equal(RewardSettlementStatus.Paid, result.Result.Status);
         Assert.Equal(2000, result.Roubles);
+        Assert.Equal(200, result.Experience);
+        Assert.Equal(180_200, JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
         Assert.Equal(2, f.Ledger.Count);
         Assert.Equal(777, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
         Assert.Equal(new long[] { 1, 2 }, Directory.GetFiles(f.PathOf("decisions")).Select(p => RewardStartupFiles.Read<RewardApprovalDecision>(p).Sequence).Order());
@@ -91,12 +98,14 @@ public sealed class RewardRuntimeTests
         p.RestoreAndPublish(report);
         Assert.Single(Directory.GetFiles(Path.Combine(p.Root, "user", "arena-rewards-outbox"), "*.json"));
         f.EditProfile(profile => profile["foreignMod"]!["progress"] = 888);
+        f.EditProfile(profile => profile["characters"]!["pmc"]!["Info"]!["Experience"] = 190_000);
         var before = f.Profile;
         Directory.CreateDirectory(f.PathOf("inbox"));
         File.Copy(Path.Combine(p.Root, "user", "arena-rewards-outbox", report.RunId + ".json"), f.PathOf("inbox/" + report.RunId + ".json"));
         Assert.Equal(before, f.Profile);
         Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
         Assert.Equal(888, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
+        Assert.Equal(190_100, JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
         Assert.Single(f.Ledger);
     }
 
@@ -339,7 +348,9 @@ public sealed class RewardRuntimeTests
         }
         Assert.True(f.Coordinator.Capture(Fixture.ProfileId, report).Accepted);
         f.RestoreAndPublish(report);
-        Assert.Equal(200_000, (await f.Process()).Roubles);
+        var payment = await f.Process();
+        Assert.Equal(200_000, payment.Roubles);
+        Assert.Equal(20_000, payment.Experience);
     }
 
     [Fact]
@@ -388,7 +399,9 @@ public sealed class RewardRuntimeTests
             Deaths = [new() { Sequence = 2, AtMilliseconds = 1000, VictimBody = 3, KillerBody = 1 }] });
         Assert.True(f.Coordinator.Capture(Fixture.ProfileId, report).Accepted);
         f.RestoreAndPublish(report);
-        Assert.Equal(22_000, (await f.Process()).Roubles);
+        var payment = await f.Process();
+        Assert.Equal(22_000, payment.Roubles);
+        Assert.Equal(2200, payment.Experience);
     }
 
     [Fact]
@@ -634,6 +647,42 @@ public sealed class RewardRuntimeTests
             new() { ArmToken = arm, NativeEndIdentity = native, Mode = "deathmatch", Rule = "KillsOnly" }).Reason);
     }
 
+    [Fact]
+    public async Task OldSignedRoubleReceiptAndNewXpReceiptKeepTheirFrozenPoliciesAcrossRestarts()
+    {
+        using var f = new Fixture();
+        var report = f.Capture();
+        f.RestoreAndPublish(report);
+        var authority = RewardRuntimeFiles.ReadHandoff(f.Root, f.PathOf("handoff.json"));
+        string path = f.PathOf("inbox/" + report.RunId + ".json");
+        var current = RewardRuntimeFiles.Verify(authority, RewardStartupFiles.Read<RewardSignedReceipt>(path));
+        var old = current with { Evidence = current.Evidence with
+        {
+            Authorization = current.Evidence.Authorization with
+            {
+                Policy = new("arena-v1", 1000, 10_000, 20_000, 100, 200_000, CapRoubles: true)
+            }
+        } };
+        string oldJson = RewardRuntimeFiles.Json(old);
+        Assert.DoesNotContain("experience", oldJson, StringComparison.OrdinalIgnoreCase);
+        File.WriteAllText(path, RewardRuntimeFiles.Json(RewardRuntimeFiles.Sign(authority, old)));
+        var first = await f.Process();
+        Assert.Equal(RewardSettlementStatus.Paid, first.Result.Status);
+        Assert.Equal(0, first.Experience);
+        Assert.Equal(160_000, JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
+        Assert.Equal(RewardSettlementStatus.AlreadyPaid, (await f.Process()).Result.Status);
+
+        f.RestoreAndPublish(f.Capture(rule: "LocalTarget", target: 1));
+        var second = await f.Process();
+        Assert.Equal(RewardSettlementStatus.Paid, second.Result.Status);
+        Assert.Equal(11_000, second.Roubles);
+        Assert.Equal(1100, second.Experience);
+        Assert.Equal(new long[] { 0, 1100 }, f.Ledger.Select(p => p.Experience));
+        string after = f.Profile;
+        Assert.Equal(RewardSettlementStatus.AlreadyPaid, (await f.Process()).Result.Status);
+        Assert.Equal(after, f.Profile);
+    }
+
     private sealed class Fixture : IDisposable
     {
         internal const string ProfileId = "0123456789abcdef01234567";
@@ -655,7 +704,7 @@ public sealed class RewardRuntimeTests
             Directory.CreateDirectory(Path.GetDirectoryName(ProfilePath)!);
             File.WriteAllText(Path.Combine(Root, ".owner"), "synthetic-reward-runtime");
             var profile = JsonNode.Parse(RewardSettlementCoreTests.ProfileJson)!;
-            profile["characters"]!["pmc"]!["Info"] = new JsonObject { ["Level"] = 15 };
+            profile["characters"]!["pmc"]!["Info"] = new JsonObject { ["Level"] = 15, ["Experience"] = 160_000 };
             profile["characters"]!["scav"]!["Info"] = new JsonObject { ["Level"] = 1 };
             profile["foreignMod"] = new JsonObject { ["progress"] = 123 };
             File.WriteAllText(ProfilePath, profile.ToJsonString());

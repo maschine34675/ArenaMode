@@ -44,7 +44,8 @@ internal static class RewardProfileDocument
         if (claim is null) throw new RewardDataException("missing-claim");
         claim.Validate(limits);
         ValidatePayment(payment, claim.Binding, limits);
-        if (payment.ReceiptKey != claim.Key || payment.Fingerprint != claim.Fingerprint || payment.Roubles != claim.Roubles)
+        if (payment.ReceiptKey != claim.Key || payment.Fingerprint != claim.Fingerprint || payment.Roubles != claim.Roubles
+            || payment.Experience != claim.Experience)
             throw new RewardDataException("payment-claim-mismatch");
 
         var profile = Parse(profileJson);
@@ -56,6 +57,8 @@ internal static class RewardProfileDocument
             throw new RewardDataException("payment-already-present");
         if (ledger.Count >= limits.MaxReceipts)
             throw new RewardDataException("reward-ledger-full");
+
+        if (payment.Experience > 0) AddExperience(profile, payment.Experience);
 
         var message = CreateMessage(payment, limits);
         var generatedIds = new HashSet<string>(StringComparer.Ordinal) { payment.MessageId, StashId(payment) };
@@ -127,9 +130,15 @@ internal static class RewardProfileDocument
         foreach (var value in payments)
         {
             var entry = RequireObject(value);
-            RequireFields(entry, "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds");
+            bool hasExperience = entry.ContainsKey("experience");
+            if (hasExperience)
+                RequireFields(entry, "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds", "experience");
+            else
+                RequireFields(entry, "receiptKey", "fingerprint", "roubles", "messageId", "paidAtUnixSeconds");
+            long experience = hasExperience ? Integer(entry["experience"]) : 0;
+            if (hasExperience && experience <= 0) throw new RewardDataException("invalid-payment-experience");
             var payment = new RewardPayment(String(entry["receiptKey"]), String(entry["fingerprint"]),
-                Integer(entry["roubles"]), String(entry["messageId"]), Integer(entry["paidAtUnixSeconds"]));
+                Integer(entry["roubles"]), String(entry["messageId"]), Integer(entry["paidAtUnixSeconds"]), experience);
             ValidatePayment(payment, binding, limits);
             if (!keys.Add(payment.ReceiptKey) || !messages.Add(payment.MessageId) || !fingerprints.Add(payment.Fingerprint))
                 throw new RewardDataException("duplicate-payment");
@@ -148,6 +157,7 @@ internal static class RewardProfileDocument
             || sequence <= 0 || sequence.ToString(CultureInfo.InvariantCulture) != parts[1]
             || !RewardIdentity.IsHex(payment.Fingerprint, 64)
             || payment.Roubles <= 0 || payment.Roubles > limits.MaxRoublesPerReceipt
+            || payment.Experience < 0 || payment.Experience > limits.MaxExperiencePerReceipt
             || payment.MessageId != RewardIdentity.MessageId(binding, payment.ReceiptKey)
             || payment.PaidAtUnixSeconds <= 0 || payment.PaidAtUnixSeconds > LastUnixSecond - limits.MailLifetimeSeconds)
             throw new RewardDataException("invalid-payment");
@@ -176,11 +186,30 @@ internal static class RewardProfileDocument
         ["installationId"] = binding.InstallationId, ["profileId"] = binding.ProfileId, ["epoch"] = binding.Epoch
     };
 
-    private static JsonObject WritePayment(RewardPayment payment) => new()
+    private static JsonObject WritePayment(RewardPayment payment)
     {
-        ["receiptKey"] = payment.ReceiptKey, ["fingerprint"] = payment.Fingerprint, ["roubles"] = payment.Roubles,
-        ["messageId"] = payment.MessageId, ["paidAtUnixSeconds"] = payment.PaidAtUnixSeconds
-    };
+        var result = new JsonObject
+        {
+            ["receiptKey"] = payment.ReceiptKey, ["fingerprint"] = payment.Fingerprint, ["roubles"] = payment.Roubles,
+            ["messageId"] = payment.MessageId, ["paidAtUnixSeconds"] = payment.PaidAtUnixSeconds
+        };
+        if (payment.Experience > 0) result["experience"] = payment.Experience;
+        return result;
+    }
+
+    private static void AddExperience(JsonObject profile, long amount)
+    {
+        var info = RequireObject(RequireObject(RequireObject(profile["characters"])["pmc"])["Info"]);
+        long current = Integer(info["Experience"]);
+        // Native Info.Experience is Int32. Never invent an absent value or clamp
+        // existing progression. Validation completes before any durable write.
+        if (current < 0 || current > int.MaxValue || amount > int.MaxValue - current)
+            throw new RewardDataException("invalid-or-overflowing-profile-experience");
+        info["Experience"] = (int)(current + amount);
+        // Native traderSettings recalculates Level before GetProfiles at login,
+        // using the final (possibly modded) XP curve. Do not freeze an early curve
+        // or modify derived Level/trader loyalty at this pre-profile-load seam.
+    }
 
     private static JsonObject CreateMessage(RewardPayment payment, RewardLimits limits)
     {
@@ -201,7 +230,9 @@ internal static class RewardProfileDocument
         {
             ["_id"] = payment.MessageId, ["uid"] = SystemSenderId, ["type"] = 7,
             ["dt"] = payment.PaidAtUnixSeconds,
-            ["text"] = "Arena reward: " + payment.Roubles.ToString(CultureInfo.InvariantCulture) + " RUB.",
+            ["text"] = "Arena reward: " + payment.Roubles.ToString(CultureInfo.InvariantCulture) + " RUB."
+                + (payment.Experience > 0 ? " " + payment.Experience.ToString(CultureInfo.InvariantCulture)
+                    + " XP already credited to your PMC. Collect the RUB below." : ""),
             ["hasRewards"] = true, ["rewardCollected"] = false,
             ["items"] = new JsonObject { ["stash"] = StashId(payment), ["data"] = data },
             ["maxStorageTime"] = limits.MailLifetimeSeconds

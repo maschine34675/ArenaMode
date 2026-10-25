@@ -91,12 +91,13 @@ internal static class ArenaRewardMenuState
                 : Status.Enabled && !Status.Enrolled ? Status.PrivateSession
                     ? "Activation pending — return, restart the normal SPT server, then re-enter Arena."
                     : "Activation pending — restart the normal SPT server."
-                : !Status.Enabled ? "Optional RUB mail for your normal profile; activation and payout on normal server start."
-                : Status.PendingRoubles > 0 ? $"{Status.PendingRoubles:N0} ₽ pending — paid on the next normal server start."
-                : Status.LastPaidRoubles > 0 ? $"Last payout: {Status.LastPaidRoubles:N0} ₽ by mail."
+                : !Status.Enabled ? "Optional RUB and XP for your normal profile; paid on normal server start."
+                : Status.PendingRoubles > 0 ? $"{Status.PendingRoubles:N0} ₽ + {Status.PendingExperience:N0} XP pending — next normal server start."
+                : Status.LastPaidRoubles > 0 ? $"Last payout: {Status.LastPaidRoubles:N0} ₽ by mail; {Status.LastPaidExperience:N0} XP already credited."
                 : !string.IsNullOrWhiteSpace(Status.Detail) ? Status.Detail
-                : "Rewards enabled; paid by mail on the next normal server start.";
-            return state + $"\n{Status.RoublesPerKill:N0} ₽ / kill · {Status.RoublesPerRoundWin:N0} ₽ / round win · max. {Status.MaxRoubles:N0} ₽ / match";
+                : "Next normal server start: RUB by mail, XP credited directly.";
+            return state + $"\nKill: {Status.RoublesPerKill:N0} ₽ + {Status.ExperiencePerKill:N0} XP · Win: {Status.RoublesPerRoundWin:N0} ₽ + {Status.ExperiencePerRoundWin:N0} XP"
+                + $"\nMax. per match: {Status.MaxRoubles:N0} ₽ + {Status.MaxExperience:N0} XP";
         }
     }
 }

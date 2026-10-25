@@ -34,7 +34,7 @@ internal static class RewardApprovalProducer
         var evaluation = RewardResultValidator.Evaluate(run, candidate.Report);
         RewardStartupApproval? approval = evaluation.Status == RewardEvaluationStatus.Eligible
             ? new(1, RewardStartupApprovalState.RestoredAndApproved,
-                new RewardClaim(run.Binding, run.RunId, run.Sequence, evaluation.Roubles, run.Policy.Version), run.CleanProfileRevision)
+                new RewardClaim(run.Binding, run.RunId, run.Sequence, evaluation.Roubles, run.Policy.Version, evaluation.Experience), run.CleanProfileRevision)
             : null;
         approval?.Claim.Validate(new());
         // Persist the complete semantic input identity, not just the calculated
@@ -73,6 +73,7 @@ internal static class RewardApprovalProducer
         foreach (var entry in journal.Entries)
             if (!history.Any(d => d.Approval is { } known && known.Claim.Key == entry.Payment.ReceiptKey
                 && known.Claim.Fingerprint == entry.Payment.Fingerprint && known.Claim.Roubles == entry.Payment.Roubles
+                && known.Claim.Experience == entry.Payment.Experience
                 && known.CleanProfileRevision == entry.BeforeRevision))
                 throw new RewardDataException("payment-without-result-decision");
         var key = run.RunId + ":" + run.Sequence.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -85,7 +86,8 @@ internal static class RewardApprovalProducer
             var priorClaim = priorDecision.Approval!.Claim;
             if (!journal.Entries.Any(e => e.Phase == RewardJournalPhase.Committed && ledger.Contains(e.Payment)
                 && e.Payment.ReceiptKey == priorClaim.Key && e.Payment.Fingerprint == priorClaim.Fingerprint
-                && e.Payment.Roubles == priorClaim.Roubles && e.BeforeRevision == priorDecision.Approval.CleanProfileRevision))
+                && e.Payment.Roubles == priorClaim.Roubles && e.Payment.Experience == priorClaim.Experience
+                && e.BeforeRevision == priorDecision.Approval.CleanProfileRevision))
                 throw new RewardDataException("earlier-result-not-settled");
         }
         if (profile.Revision != run.CleanProfileRevision)
@@ -94,6 +96,7 @@ internal static class RewardApprovalProducer
             // settlement adapter still forces a confirmation-only profile lease.
             if (approval is null || payment is null || payment.BeforeRevision != run.CleanProfileRevision
                 || payment.Payment.Fingerprint != approval.Claim.Fingerprint || payment.Payment.Roubles != approval.Claim.Roubles
+                || payment.Payment.Experience != approval.Claim.Experience
                 || payment.Phase is not (RewardJournalPhase.Attempting or RewardJournalPhase.Committed)
                 || !ledger.Contains(payment.Payment))
                 throw new RewardDataException("result-clean-profile-changed");
@@ -117,6 +120,7 @@ internal static class RewardApprovalProducer
                 if (prior is null || prior.Phase != RewardJournalPhase.Committed || !ledger.Contains(prior.Payment)
                     || prior.Payment.Fingerprint != previousApproval.Claim.Fingerprint
                     || prior.Payment.Roubles != previousApproval.Claim.Roubles
+                    || prior.Payment.Experience != previousApproval.Claim.Experience
                     || prior.BeforeRevision != previousApproval.CleanProfileRevision)
                     throw new RewardDataException("prior-approval-unsettled");
                 if (previousApproval.Claim.Key == approval?.Claim.Key) throw new RewardDataException("prior-approval-conflict");
@@ -172,6 +176,7 @@ internal static class RewardApprovalProducer
             // transaction. Unrelated pending writes must be resolved first.
             if (current is null || entry.Payment.ReceiptKey != current.Claim.Key
                 || entry.Payment.Fingerprint != current.Claim.Fingerprint || entry.Payment.Roubles != current.Claim.Roubles
+                || entry.Payment.Experience != current.Claim.Experience
                 || entry.BeforeRevision != current.CleanProfileRevision
                 || entry.Phase == RewardJournalPhase.Committed)
                 throw new RewardDataException("prior-payment-unsettled-or-diverged");
@@ -198,6 +203,8 @@ internal static class RewardApprovalProducer
                 || value.Evaluation.Reason is null || !System.Text.RegularExpressions.Regex.IsMatch(value.Evaluation.Reason, "\\A[a-z0-9-]{1,80}\\z")
                 || value.Evaluation.EligibleKills is < 0 or > RewardResultValidator.MaxLives || value.Evaluation.RoundWins is < 0 or > 100
                 || value.Evaluation.Roubles is < 0 or > 10_000_000
+                || value.Evaluation.Experience is < 0 or > 1_000_000
+                || value.Evaluation.Status != RewardEvaluationStatus.Eligible && value.Evaluation.Experience != 0
                 || (value.Evaluation.Status == RewardEvaluationStatus.Eligible) != (value.Evaluation.Roubles > 0)
                 || value.Evaluation.Status == RewardEvaluationStatus.Rejected && (value.Evaluation.EligibleKills != 0 || value.Evaluation.RoundWins != 0)
                 || (value.Evaluation.Status == RewardEvaluationStatus.Eligible) != (value.Approval is not null))
@@ -207,6 +214,7 @@ internal static class RewardApprovalProducer
                 if (approved.Schema != 1 || approved.State != RewardStartupApprovalState.RestoredAndApproved
                     || approved.Claim is null || approved.Claim.Binding != binding || approved.Claim.RunId != value.RunId
                     || approved.Claim.Sequence != value.Sequence || approved.Claim.Roubles != value.Evaluation.Roubles
+                    || approved.Claim.Experience != value.Evaluation.Experience
                     || !RewardIdentity.IsHex(approved.CleanProfileRevision, 64)) throw new RewardDataException("invalid-result-history");
                 approved.Claim.Validate(new());
             }

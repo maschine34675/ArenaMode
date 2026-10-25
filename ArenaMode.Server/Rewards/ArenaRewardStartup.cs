@@ -55,7 +55,7 @@ public sealed class ArenaRewardStartup(
             {
                 RewardRuntimeCoordinator.Current.ObserveStartupOutcome(outcome);
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
-                    logger.Info($"[ArenaMode] Arena reward delivered by mail: {outcome.Roubles} RUB.");
+                    logger.Info($"[ArenaMode] Arena reward: {outcome.Roubles} RUB delivered by mail; {outcome.Experience} XP credited.");
                 else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected)
                     logger.Warning($"[ArenaMode] Arena reward withheld ({outcome.Result.Reason}); no profile repair was attempted.");
                 else

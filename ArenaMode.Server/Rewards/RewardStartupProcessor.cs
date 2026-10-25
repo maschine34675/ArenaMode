@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
 
-internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementResult Result, long Roubles);
+internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementResult Result, long Roubles, long Experience = 0);
 
 internal static class RewardStartupProcessor
 {
@@ -30,6 +30,7 @@ internal static class RewardStartupProcessor
         bool includeRuntimeInbox = true, bool applyDefault = false)
     {
         long roubles = 0;
+        long experience = 0;
         try
         {
             if (cancellationToken.IsCancellationRequested) return Outcome(RewardSettlementStatus.Deferred, "cancelled");
@@ -87,6 +88,7 @@ internal static class RewardStartupProcessor
             var limits = new RewardLimits();
             approval.Claim.Validate(limits);
             roubles = approval.Claim.Roubles;
+            experience = approval.Claim.Experience;
             var store = new RewardStartupStore(window, enrollment, approval, limits);
             var result = await new RewardSettlementCore(store, limits).SettleAsync(approval.Claim, cancellationToken);
             if (result.Status is RewardSettlementStatus.Paid or RewardSettlementStatus.AlreadyPaid)
@@ -98,7 +100,7 @@ internal static class RewardStartupProcessor
                 RewardStartupFiles.WriteAtomic(window.Root, path, json);
                 if (File.ReadAllText(path) != json) throw new IOException("Reward acknowledgement was not durable.");
             }
-            return new(id, result, roubles);
+            return new(id, result, roubles, experience);
         }
         catch (FileNotFoundException) { return Outcome(RewardSettlementStatus.Quarantined, "enrolled-state-missing"); }
         catch (DirectoryNotFoundException) { return Outcome(RewardSettlementStatus.Quarantined, "enrolled-state-missing"); }
@@ -110,6 +112,6 @@ internal static class RewardStartupProcessor
         catch (FormatException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
         catch (ArgumentException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
 
-        RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), roubles);
+        RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), roubles, experience);
     }
 }

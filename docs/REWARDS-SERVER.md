@@ -3,6 +3,8 @@
 Historical implementation-stage notes below. The current opt-in/enrollment,
 capture and transport integration is described in [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md).
 The startup boundary and existing-approval recovery restrictions remain binding.
+The [XP extension](REWARDS-XP.md) adds XP to the same atomic startup payment;
+it does not add a live-profile writer or move this boundary.
 
 The ordinary server now has a guarded consumer for **already approved** reward
 receipts. The user accepted payout at the next real server start for this first

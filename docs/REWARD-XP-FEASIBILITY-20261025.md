@@ -1,5 +1,8 @@
 # XP and other mail rewards — feasibility, 2026-10-25
 
+Historical investigation. Additive startup XP is now implemented separately;
+see [REWARDS-XP.md](REWARDS-XP.md). The native mail-event limitations below still apply.
+
 Read-only investigation. No XP, skill, reputation or item reward implementation,
 rates, live profile edits, deployment or native collection test was performed.
 

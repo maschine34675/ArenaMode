@@ -38,7 +38,10 @@ intervening ordinary progress; an existing allocation/approval must never be reb
 
 A total-conversion mod for SPT 4.1 that turns Tarkov into an Unreal-Tournament-style
 arena: instant respawn, kits instead of loot, and full restoration of the entry
-profile. Explicitly enabled RUB rewards are paid separately through startup mail.
+profile. Optional rewards use startup RUB mail plus an atomic PMC XP delta.
+Read docs/REWARDS-XP.md before changing reward amounts or profile progression:
+old results remain RUB-only, XP fields must preserve legacy serialization, and
+native login owns Level/trader recalculation from the final XP curve.
 No Fika dependency. Arena is solo by default; the optional API-validated
 PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
 Zombie squad survival; read docs/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The

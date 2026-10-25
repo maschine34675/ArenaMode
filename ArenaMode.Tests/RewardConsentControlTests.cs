@@ -802,7 +802,7 @@ public sealed class RewardConsentControlTests
             Directory.CreateDirectory(Path.GetDirectoryName(ProfilePath(NormalRoot))!);
             File.WriteAllText(Path.Combine(_base, ".owner"), "synthetic-reward-consent");
             var profile = JsonNode.Parse(RewardSettlementCoreTests.ProfileJson)!;
-            profile["characters"]!["pmc"]!["Info"] = new JsonObject { ["Level"] = 15 };
+            profile["characters"]!["pmc"]!["Info"] = new JsonObject { ["Level"] = 15, ["Experience"] = 160_000 };
             profile["characters"]!["scav"]!["Info"] = new JsonObject { ["Level"] = 1 };
             File.WriteAllText(ProfilePath(NormalRoot), profile.ToJsonString());
             string configs = Path.Combine(NormalRoot, "SPT_Data", "configs");

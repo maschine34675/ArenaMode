@@ -231,10 +231,11 @@ existing, initialized profiles before loading them. No initial opt-in/restart
 cycle is needed. An existing OFF choice stays off; the Arena map menu can switch
 rewards in either session. A profile created or initialized after the server has
 already started is registered at the next normal start. Keep the normal server running
-while changing rewards in the separate session. Eligible kills earn **1,000 ₽**, round wins
-**10,000 ₽**, up to **200,000 ₽ per match**. Gun Game and Zombies currently award
-kills only; no-contest results are excluded. Rewards arrive as RUB mail on the
-next normal server start. Private sessions return signed results, never their
+while changing rewards in the separate session. Eligible kills earn **1,000 ₽ + 100 XP**, round wins
+**10,000 ₽ + 1,000 XP**, up to **200,000 ₽ + 20,000 XP per match**. Gun Game and Zombies currently award
+kills only; no-contest results are excluded. At the next normal server start, RUB
+arrives by mail and XP is credited directly to the PMC. The mail lists XP already
+credited; collecting it does not grant XP again. Private sessions return signed results, never their
 profile copy. [Details and verification](docs/REWARDS-RUNTIME.md).
 
 ## Controls and configuration
