@@ -249,6 +249,69 @@ public sealed class RewardOfflineSessionTests
     }
 
     [Theory]
+    [InlineData("complete")]
+    [InlineData("missing-completion")]
+    [InlineData("changed-completion")]
+    [InlineData("new-marker")]
+    [InlineData("new-lease")]
+    [InlineData("changed-state")]
+    [InlineData("pending-result")]
+    public void EarlyNewBuildFailureCanOnlyIgnoreACompletelyClosedPredecessor(string predecessor)
+    {
+        using var f = new Fixture();
+        f.Start();
+        f.Owner!.SetConsent(Fixture.Id, false, f.Lease!.ConsentRevision);
+        f.StopAndRecover();
+        var previous = f.Lease!;
+        RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);
+        string nextId = Guid.NewGuid().ToString("N");
+        f.Grant = f.Grant with { SessionId = nextId };
+        f.Request = f.Request with { SessionId = nextId, OperationId = Guid.NewGuid().ToString("N") };
+        var current = f.Ready(); // normal saved and stopped; Build has not replaced the old tree
+        string before = f.Profile;
+        string completed = Path.Combine(RewardOfflineSession.SessionDirectory(f.Root, previous.SessionId), "completion.json");
+        switch (predecessor)
+        {
+            case "missing-completion": File.Delete(completed); break;
+            case "changed-completion": File.WriteAllText(completed, "{}"); break;
+            case "new-marker":
+                var marker = JsonNode.Parse(File.ReadAllText(Path.Combine(f.Private, "arena-session.json")))!;
+                marker["offlineSessionId"] = current.SessionId;
+                File.WriteAllText(Path.Combine(f.Private, "arena-session.json"), marker.ToJsonString());
+                break;
+            case "new-lease":
+                File.WriteAllText(Path.Combine(f.Private, RewardOfflineSession.LeaseFile), RewardRuntimeFiles.Json(current));
+                break;
+            case "changed-state":
+                var state = RewardOfflineSession.ReadState(previous);
+                File.WriteAllText(Path.Combine(f.Private, RewardOfflineSession.StateFile),
+                    RewardRuntimeFiles.Json(RewardOfflineSession.Sign(previous, state with { Revision = state.Revision + 1, Enabled = true })));
+                break;
+            case "pending-result":
+                string outbox = Path.Combine(f.Private, "user", "arena-rewards-outbox");
+                Directory.CreateDirectory(outbox);
+                File.WriteAllText(Path.Combine(outbox, Guid.NewGuid().ToString("N") + ".json"), "{}");
+                break;
+        }
+        if (predecessor == "complete")
+        {
+            f.Recover();
+            Assert.False(RewardOfflineSession.HasActive(f.Root));
+            var closure = RewardOfflineSession.ReadClosure(f.Root, current);
+            Assert.False(closure.Activated);
+            Assert.True(closure.State.Enabled); // old OFF is never copied into the new session
+            Assert.Empty(closure.Receipts);
+        }
+        else
+        {
+            Assert.Throws<RewardOfflineException>(() => f.Recover());
+            Assert.True(RewardOfflineSession.HasActive(f.Root));
+        }
+        Assert.True(RewardEnrollment.WantsRewards(f.Root, Fixture.Id));
+        Assert.Equal(before, f.Profile);
+    }
+
+    [Theory]
     [InlineData("closure")]
     [InlineData("consent")]
     [InlineData("receipt")]

@@ -85,6 +85,11 @@ continues through the unchanged approval and permanent-payment journal.
 - A failed private startup can return through the proven lease. The helper releases
   the startup lock before starting normal SPT. Listening alone does not prove successful
   recovery: the immutable closure and retired active pointer are required too.
+- If a new Build fails before replacing the previous private tree, recovery can
+  ignore that predecessor's state only with matching original/private leases,
+  roots and marker, a valid completed closure, its exact signed final state and
+  an empty outbox. The new session keeps its own initial consent and no results;
+  mixed or incomplete old/new evidence remains fatal.
 - Missing/malformed activated state, conflicting choices, multiple unclosed sessions
   or mismatched process identities stop recovery. An acknowledged OFF choice must
   never be silently replaced by the original ON state.
@@ -106,10 +111,14 @@ interrupted closure/import, late receipts, repeated startup payouts, original la
 arguments and refusal of a listener without completed recovery. Existing legacy
 session, control and receipt harnesses remain required.
 
-Offline run on 2026-10-25: **3,187 passed, zero failed, one known APBS environment
-skip**. It includes 31 server ownership/recovery cases and 34 helper cases. Control
+Offline run on 2026-10-25: **3,194 passed, zero failed, one known APBS environment
+skip**. It includes 38 server ownership/recovery cases and 34 helper cases. Control
 transfer: 194 assertions; client session harness: 748; result transfer: 117, with
-both conflicting-result and premature-rebuild mutants rejected. The verification
+both conflicting-result and premature-rebuild mutants rejected. Three focused client
+mutants also fail their named behavioral assertions: treating a lost entry reply as
+unsupported, hiding accepted entry behind optional consent, and downgrading after a
+preparation timeout. `tools/OfflineSessionChecks/Verify.ps1` runs those bounded checks.
+The verification
 runner confirmed installed payloads unchanged. The complete Release solution,
 including the net472 helper, built with deployment disabled (zero errors).
 

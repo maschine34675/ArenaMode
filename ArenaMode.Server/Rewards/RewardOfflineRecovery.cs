@@ -60,7 +60,7 @@ internal static partial class RewardOfflineSession
                     // acknowledged OFF merely because its activation proof vanished.
                     if (Directory.Exists(lease.PrivateRoot)
                         && RewardRuntimeFiles.Exists(lease.PrivateRoot, Path.Combine(lease.PrivateRoot, StateFile)))
-                        throw new RewardDataException("offline-initialization-proof-incomplete");
+                        RequireCompletedPreviousState(lease);
                     // No native private startup crossed the activation boundary. No rewards/choice
                     // may be inferred from a half-copied tree; original consent stays unchanged.
                     state = new(1, lease.SessionId, Hash(lease), lease.ConsentRevision, lease.Enabled);
@@ -123,6 +123,28 @@ internal static partial class RewardOfflineSession
         }
         catch (Exception exception) when (exception is not RewardOfflineException)
         { throw new RewardOfflineException("Offline Arena recovery is incomplete; normal startup stopped without replacing a profile.", exception); }
+    }
+
+    // A failed new Build may not have replaced the previous session's private
+    // tree yet. Ignore that state only when every byte still belongs to a fully
+    // completed predecessor; it must never become this session's consent/result.
+    private static void RequireCompletedPreviousState(RewardOfflineLease current)
+    {
+        var previous = ReadLease(current.PrivateRoot, Path.Combine(current.PrivateRoot, LeaseFile));
+        if (previous.SessionId == current.SessionId
+            || !RewardRuntimeFiles.SameRoot(previous.RuntimeRoot, current.RuntimeRoot)
+            || !RewardRuntimeFiles.SameRoot(previous.PrivateRoot, current.PrivateRoot)
+            || Hash(ReadLease(current.RuntimeRoot, LeasePath(current.RuntimeRoot, previous.SessionId))) != Hash(previous))
+            throw new RewardDataException("offline-initialization-proof-incomplete");
+        ValidateMarker(current.PrivateRoot, previous);
+        var closure = ReadClosure(current.RuntimeRoot, previous);
+        string path = Path.Combine(SessionDirectory(current.RuntimeRoot, previous.SessionId), "completion.json");
+        RewardStartupFiles.RequireLocalPath(current.RuntimeRoot, path);
+        var completion = RewardStartupFiles.Read<RewardOfflineCompletion>(path, 4096);
+        if (!closure.Activated || completion.Schema != 1 || completion.SessionId != previous.SessionId
+            || completion.ClosureHash != RewardIdentity.Hash(RewardRuntimeFiles.Json(closure))
+            || ReadState(previous) != closure.State || Published(previous).Length != 0)
+            throw new RewardDataException("offline-predecessor-not-complete");
     }
 
     // Caller already holds both ordinary locks. An immutable lease was published

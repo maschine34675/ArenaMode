@@ -47,6 +47,7 @@ internal static partial class Program
         RequestHandler.Post = (route, _) => route == RewardWire.PrepareControlRoute ? delayedControl.Task
             : Task.FromResult("{\"Accepted\":true}");
         Require(ArenaSessionSwitch.Request("enter", null, out _)
+            && File.Exists(_requestPath)
             && HelperRequest.TryParse(File.ReadAllText(_requestPath), "enter", out var acceptedEntry, out _)
             && acceptedEntry.Schema == ArenaSessionContract.OfflineRequestSchema && acceptedEntry.OfflineSessionId != null,
             "Delayed optional consent cannot hide an accepted offline entry or downgrade its schema");

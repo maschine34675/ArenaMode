@@ -1681,6 +1681,10 @@ public sealed class ArenaSessionHelperProcessTests
         {
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
             HelperRunner runner = WaitRunner(area, root, (p, a) => throw new InvalidOperationException("no table"));
+            // This checks the unreadable-owner refusal, not a one-second TCP
+            // startup deadline. Give the first probe the same scheduling margin
+            // as the independent positive probe below on a busy test host.
+            runner.ServerStartTimeoutSeconds = 5;
 
             var ex = Assert.Throws<HelperException>(() => runner.WaitForServer("127.0.0.1", port, server, "the test server", false));
             Assert.Contains("could not be verified", ex.Message);
