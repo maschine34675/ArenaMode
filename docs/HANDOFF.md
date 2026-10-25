@@ -7,6 +7,12 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Items/HUD compatibility (2026-10-25/26, development):** UIA 2.1.6 owns its
+  configured item/reload slots when installed; Arena's query patches and magazine
+  counter compose with that policy. Core 1.0.14 adds shared ImpactCue 2.0.3 and
+  Enemy Markers 1.4.0 body/camera fixes. Public mod versions stay unchanged.
+  See [tests, cleanup and limitations](ITEMS-HUD-COMPAT-20261025.md).
+
 - **Team DM sides and monitors (2026-10-25, post-0.3.0 development build):**
   native USEC/BEAR menu choice freezes an Arena-only team without rewriting the
   PMC profile. Team starts/respawns, faction colors and optional MapPort score

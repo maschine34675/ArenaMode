@@ -10,6 +10,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Compose Arena's backpack reload and item-access extension with Use Items Anywhere
+  2.1.6. Its configured slots take precedence, and Arena's magazine HUD uses the
+  same candidate query as reloading.
+- Update shared Redeploy.Core to 1.0.14 for ImpactCue 2.0.3 telemetry and Enemy
+  Markers 1.4.0 camera handover after player replacement.
 - Select USEC or BEAR for Team DM in the map menu, including the corresponding
   team starts and respawns. The real PMC faction and equipment stay unchanged.
 - Use consistent USEC blue / BEAR red for Team DM lighting, tracers, lasers and

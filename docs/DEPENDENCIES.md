@@ -22,6 +22,8 @@ their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
+The current development build requires **Core 1.0.14**, adding ImpactCue and
+Enemy Markers body/camera handovers for both Arena and standalone Redeploy.
 Keep the newer shared Core when combining these development builds.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -46,7 +48,8 @@ Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
-and Better BepInEx for 0.3.0, and the diagnostic tools
+and Better BepInEx for 0.3.0; current development also includes Use Items Anywhere,
+ImpactCue (client and Web Config server) and Enemy Markers, plus the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing version warns and offers an Arena session that omits it on both sides,
 together with its hard dependents; direct Arena entry still treats the version
@@ -176,6 +179,16 @@ native observations below predate that migration; see
   preserves their HUDs and rebinds physical player/camera references. Late old
   bodies cannot remove the replacement crosshair. Radar colors remain faction
   and role colors; they do not establish team hostility.
+- **Use Items Anywhere 2.1.6:** its configured slots own reach, binding and
+  magazine selection whenever installed. Arena does not widen those slots,
+  including when UIA's features are disabled. Arena's magazine HUD reads UIA's
+  current query. Without UIA, Arena's own extension remains available.
+- **ImpactCue 2.0.3 / Enemy Markers 1.4.0:** Core 1.0.14 transfers physical-body
+  telemetry and billboard cameras after replacement. Existing combat history
+  and bot markers are retained; local replacement bodies receive no enemy marker.
+  These mods retain their own HUD and marker settings, so overlapping HUDs may
+  need configuring in the respective mods. See
+  [native tests and limits](ITEMS-HUD-COMPAT-20261025.md).
 - **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
   Its existing ConfigurationManager dependency must remain installed. Other
   mods' stock F12-window patches may be removed by Better BepInEx itself.
@@ -256,7 +269,7 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.13.
+revision is recorded in the package manifest. The current source targets Core 1.0.14.
 The 0.3.0 package includes the matching shared-Core fixes; see
 [release verification](RELEASE-0.3.0.md#build-and-release-verification).
 

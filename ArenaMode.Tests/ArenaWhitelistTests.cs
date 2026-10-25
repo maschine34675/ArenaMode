@@ -351,7 +351,9 @@ public sealed class ArenaWhitelistTests
         var fromFile = policy.Entries.Where(e => e.Tier is ArenaWhitelistTier.Mod or ArenaWhitelistTier.Tool).ToList();
 
         // The user's decision of 2026-10-22: every mod installed on the development hosts, with the versions it
-        // was installed in, plus the two body-replacement integrations approved after GPU tests on 2026-10-23.
+        // was installed in, plus subsequently approved integrations. The 2026-10-25 additions use Arena's
+        // UIA slot ownership and Core 1.0.14's ImpactCue/Enemy Markers body hooks; review versions remain
+        // explicit per client/server GUID and do not certify every feature of those foreign mods.
         // Written out by hand, not derived from the file, so that a lost entry shows.
         var expected = new (string Id, string Name, ArenaWhitelistTier Tier, string? Client, string? Server)[]
         {
@@ -391,6 +393,10 @@ public sealed class ArenaWhitelistTests
             ("com.leonana69.radar", "Accurate Circular Radar", ArenaWhitelistTier.Mod, "1.3.4", null),
             ("com.mpstark.SimpleCrosshair", "Simple Crosshair", ArenaWhitelistTier.Mod, "1.4.0", null),
             ("com.mybutthasarash.betterbepinex", "Better BepInEx", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.cj.useFromAnywhere", "Use Items Anywhere", ArenaWhitelistTier.Mod, "2.1.6", null),
+            ("com.dizzlow.impactcue", "ImpactCue-UI-MOD", ArenaWhitelistTier.Mod, "2.0.3", null),
+            ("com.dizzlow.impactcue.webconfig", "ImpactCue Web Config", ArenaWhitelistTier.Mod, null, "2.0.3"),
+            ("flir.enemymarkers", "Enemy Markers", ArenaWhitelistTier.Mod, "1.4.0", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
@@ -476,6 +482,65 @@ public sealed class ArenaWhitelistTests
         }
     }
 
+    [Theory]
+    [InlineData("com.cj.useFromAnywhere", "2.1.6", ArenaWhitelistSide.Client)]
+    [InlineData("com.dizzlow.impactcue", "2.0.3", ArenaWhitelistSide.Client)]
+    [InlineData("com.dizzlow.impactcue.webconfig", "2.0.3", ArenaWhitelistSide.Server)]
+    [InlineData("flir.enemymarkers", "1.4.0", ArenaWhitelistSide.Client)]
+    public void ItemAccessAndBodyHudModsKeepExactIdentitiesAndSideSpecificReviews(string guid, string reviewed, ArenaWhitelistSide side)
+    {
+        string shipped = File.ReadAllText(ShippedDefaultPath);
+        var policy = Load(shipped);
+        // Deliberately case-sensitive: the released UIA GUID contains useFromAnywhere,
+        // even though policy matching itself correctly remains case-insensitive.
+        var entry = Assert.Single(policy.Entries, e => e.Guid == guid);
+        Assert.Equal(ArenaWhitelistTier.Mod, entry.Tier);
+        Assert.Equal(reviewed, policy.ReviewedVersion(guid, side));
+        var otherSide = side == ArenaWhitelistSide.Client ? ArenaWhitelistSide.Server : ArenaWhitelistSide.Client;
+        Assert.Null(policy.ReviewedVersion(guid, otherSide));
+
+        foreach (string version in new[] { reviewed, "9.0.0" })
+        {
+            var installed = new[] { Unit(guid, entry.Name, version) };
+            var decision = ArenaWhitelistDecision.Evaluate(policy, side, installed);
+            Assert.Equal("whitelist", Assert.Single(decision.Allowed).Reason);
+            Assert.Empty(decision.Excluded);
+            Assert.Equal(version == reviewed ? 0 : 1, decision.VersionDifferences.Count);
+            Assert.Equal(version == reviewed ? 0 : 1, decision.Warnings.Count);
+            var plan = ArenaSessionVersionPlan.Create(policy,
+                side == ArenaWhitelistSide.Client ? installed : Array.Empty<ArenaSessionUnit>(),
+                side == ArenaWhitelistSide.Server ? installed : Array.Empty<ArenaSessionUnit>());
+            Assert.Equal(version != reviewed, plan.ExcludedGuids.Contains(guid, StringComparer.OrdinalIgnoreCase));
+        }
+
+        var denied = Load(shipped, "{\"schema\":1,\"deny\":[\"" + guid + "\"]}");
+        var refused = ArenaWhitelistDecision.Evaluate(denied, side, new[] { Unit(guid, entry.Name, reviewed) });
+        Assert.Empty(refused.Allowed);
+        Assert.Equal("denied-by-user", Assert.Single(refused.Excluded).Reason);
+    }
+
+    [Fact]
+    public void ImpactCuePackageIncludesItsSeparateWebConfigServerAndReviewsEachGuidIndependently()
+    {
+        const string clientGuid = "com.dizzlow.impactcue";
+        const string serverGuid = "com.dizzlow.impactcue.webconfig";
+        var policy = Load(File.ReadAllText(ShippedDefaultPath));
+        var client = new[] { Unit(clientGuid, "ImpactCue-UI-MOD", "2.0.3") };
+        var server = new[] { Unit(serverGuid, "ImpactCue Web Config", "2.0.3") };
+        Assert.Single(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, client).Allowed);
+        Assert.Single(ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Server, server).Allowed);
+        Assert.Empty(ArenaSessionVersionPlan.Create(policy, client, server).ExcludedGuids);
+
+        var changedServer = new[] { Unit(serverGuid, "ImpactCue Web Config", "9.0.0") };
+        var serverPlan = ArenaSessionVersionPlan.Create(policy, client, changedServer);
+        Assert.Contains(serverGuid, serverPlan.ExcludedGuids);
+        Assert.DoesNotContain(clientGuid, serverPlan.ExcludedGuids);
+        var changedClient = new[] { Unit(clientGuid, "ImpactCue-UI-MOD", "9.0.0") };
+        var clientPlan = ArenaSessionVersionPlan.Create(policy, changedClient, server);
+        Assert.Contains(clientGuid, clientPlan.ExcludedGuids);
+        Assert.DoesNotContain(serverGuid, clientPlan.ExcludedGuids);
+    }
+
     /// <summary>The mods ArenaMode already refused by code before the whitelist existed (ORBIT, Questing Bots, ...).</summary>
     private static readonly (string Guid, string Name)[] ShippedDenies =
     {
@@ -486,7 +551,7 @@ public sealed class ArenaWhitelistTests
         ("com.samc137.aishi", "Aishi"),
     };
 
-    /// <summary>Installed GUIDs approved on 2026-10-22 plus the two clients approved after GPU testing on 2026-10-23.</summary>
+    /// <summary>Installed GUIDs approved on 2026-10-22 plus the subsequently approved integrations.</summary>
     private static readonly string[] InstalledGuids =
     {
         "me.sol.sain", "com.acidphantasm.progressivebotsystem", "com.acidphantasm.botplacementsystem", "xyz.drakia.bigbrain",
@@ -497,6 +562,7 @@ public sealed class ArenaWhitelistTests
         "com.mpstark.dynamicmaps", "com.tyfon.uifixes", "com.wtt.commonlib", "com.wtt.contentbackport",
         "fika.ghostfenixx.svm", "com.agavalda.giveui", "com.lacyway.ch", "com.terkoiz.freecam", "com.tarkin.doordash",
         "com.ozen.continuousloadammo", "com.pein.camerarecoilmod",
+        "com.cj.useFromAnywhere", "com.dizzlow.impactcue", "com.dizzlow.impactcue.webconfig", "flir.enemymarkers",
         "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
         "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
         "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",

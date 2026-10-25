@@ -1,5 +1,11 @@
 # Seven additional mod compatibility reviews
 
+**Follow-up:** Use Items Anywhere, ImpactCue and Enemy Markers have since received
+the scoped fixes and native tests described in
+[implementation and acceptance](ITEMS-HUD-COMPAT-20261025.md). The findings and
+unlisted status below are the original pre-implementation review. The other
+four candidates have not received new acceptance or whitelist entries.
+
 Reviewed on 2026-10-25 against ArenaMode `d353c02` and Redeploy `e3c2b36`
 (Core 1.0.12). This is a source and released-binary review, not native acceptance.
 No game installation, GPU host, default/user whitelist or runtime code was changed.
