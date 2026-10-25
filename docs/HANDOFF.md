@@ -7,6 +7,13 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Repository cleanup (2026-10-25, after HUD tests):** all compatibility work
+  was already integrated. The remaining Arena feature branch/worktree and
+  Redeploy's three feature branches/two worktrees were removed after every
+  ignored file was archived and SHA-256 verified. Both primary branches were
+  pushed. Only `master`/the primary Arena checkout and `main`/the primary Redeploy
+  checkout remain. See [archive locations and verification](WORKTREE-CLEANUP-20261025.md).
+
 - **HUD compatibility (2026-10-25):** reviewed Radar 1.3.4, Simple Crosshair 1.4.0
   and Better BepInEx 1.0.0 join the default policy. Shared Core **1.0.13** preserves
   Radar/Crosshair through body/camera replacement; Arena carries no duplicate

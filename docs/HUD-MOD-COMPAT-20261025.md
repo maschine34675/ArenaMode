@@ -69,7 +69,9 @@ interaction, not something Arena can promise to preserve.
 | SimpleCrosshair.dll | `21880A9FCEE185AAAC10023564454549F4310CF66F76700BB21542E1D4372EF2` |
 | BetterBepInEx.dll | `D8FE5576B7FD7FA21F32B8D3E006545E3AE8A7BDCC85D15BFC37ED21E1AB640D` |
 
-The local ignored `artifacts/compat-hud` directory holds package identities,
+The archived local ignored directory
+`artifacts/archived-worktrees/compat-hud-20261025/artifacts/compat-hud`
+holds package identities,
 tagged source, release decompilations and detailed source reviews. It must not
 be included in release ZIPs.
 
