@@ -4,12 +4,11 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Latest published version: **0.2.1**. This branch documents the upcoming **0.3.0**;
-features marked for 0.3.0 are not included in the 0.2.1 download. Get released ZIPs from
+Current version: **0.3.0**, with shared **Redeploy.Core 1.0.13**. Get installable ZIPs from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
-See the [changelog](CHANGELOG.md), the [0.3.0 release draft](docs/RELEASE-0.3.0.md)
+See the [changelog](CHANGELOG.md), the [0.3.0 release notes](docs/RELEASE-0.3.0.md)
 and the published [0.2.1 notes](docs/RELEASE-0.2.1.md) for changes and test coverage.
 
 ## Modes
@@ -190,7 +189,7 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. The 0.3.0 development source requires Core **1.0.13 or newer**;
+plugin tree. ArenaMode 0.3.0 requires Core **1.0.13 or newer**;
 published 0.2.1 bundles 1.0.10. If Core is missing,
 unreadable or too old, Arena disables its gameplay runtime and shows a reason on
 the character-selection screen; loader details also appear in the client log
@@ -228,7 +227,7 @@ WIP features. Leaving through the game's raid menu is supported.
 
 ### Profile rewards (0.3.0)
 
-The upcoming 0.3.0 adds optional **PROFILE REWARDS** above the map
+0.3.0 adds optional **PROFILE REWARDS** above the map
 preview in Arena's map menu, including rates and payment status.
 They default **on**: the first normal server start with this version registers
 existing, initialized profiles before loading them. No initial opt-in/restart
@@ -294,7 +293,8 @@ when it was written (2026-10-22), each with the version it was reviewed with:
   HealingAutoCancel, SmajlecLights, and since 2026-10-23 Continuous Load Ammo and Recoil Rework
   Legacy (after the shared body-replacement checks);
 - additions for 0.3.0: Fontaine FOV Fix, Manimal Ammo Loading Animations,
-  Increase Look Direction, Magazine Check Interrupt and Tarkova Cola (client/server);
+  Increase Look Direction, Magazine Check Interrupt, Tarkova Cola (client/server),
+  Accurate Circular Radar, Simple Crosshair and Better BepInEx;
 - Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
 
 The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
@@ -524,6 +524,14 @@ connection directly in the character menu.
 
 ## Known limitations and reporting problems
 
+- **Use Items Anywhere 2.1.6:** its magazine-query patches conflict with Arena's
+  backpack-reload patches while plugins load. A mutator or later Arena-session
+  filter cannot undo that collision in the already running normal process.
+  Avoid installing this combination until patch ownership is resolved.
+- ImpactCue 2.0.3, Enemy Markers 1.4.0, Amand's Graphics 1.8.0, HUD Breakout 1.2.0,
+  Manimal's Quick Cancel 2.0.0 and Picture in Picture Disabler 2.1.0 remain outside
+  the default whitelist. Some have confirmed body/camera ownership issues;
+  others need native tests. See the [seven-mod review](docs/SEVEN-MOD-COMPAT-20261025.md).
 - Tactical, Zombies, Akimbo and Molotov are unfinished features. Large populations
   depend heavily on the map, hardware and other AI mods; 32 zombies is a default,
   not a performance guarantee.

@@ -1,4 +1,4 @@
-<!-- Description prepared for 0.3.0. Publish with the matching release, not 0.2.1. -->
+<!-- ArenaMode 0.3.0 description. -->
 ## {.tabset}
 
 ### Overview
@@ -280,6 +280,12 @@ default for newly registered profiles (existing OFF choices stay OFF):
 
 ### Notes and credits
 
+- Use Items Anywhere 2.1.6 conflicts with Arena's magazine-query patches at
+  plugin startup. Avoid that combination; switching an Arena mutator off does
+  not prevent the patch-installation conflict.
+- ImpactCue, Enemy Markers, Amand's Graphics, HUD Breakout, Manimal's Quick Cancel
+  and Picture in Picture Disabler remain outside the default whitelist. Their
+  review results and outstanding tests are in the repository's seven-mod review.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults
   are not a performance guarantee.
 - Some kits cannot fit large spare magazines/medical items; M60 spare boxes and

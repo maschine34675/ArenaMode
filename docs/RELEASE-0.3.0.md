@@ -1,8 +1,7 @@
-# ArenaMode 0.3.0 — release draft
+# ArenaMode 0.3.0
 
-Prepared on 2026-10-25 for SPT 4.1.x. **Not published.** The latest public release
-is 0.2.1; the development binaries still carry that version until the final version
-bump. These notes describe changes since the actual `v0.2.1` tag, including work
+Release for SPT 4.1.x, dated 2026-10-25. Native checks use SPT 4.1.6.
+These notes describe changes since the actual `v0.2.1` tag, including work
 which was already in development while the 0.2.1 hotfix was published.
 
 ## Changes
@@ -50,6 +49,13 @@ which was already in development while the 0.2.1 hotfix was published.
 
 ## Updating
 
+Use Items Anywhere 2.1.6 currently conflicts with Arena's magazine-query patches
+at plugin startup, including in the normal process. A disabled mutator or later
+private-session filter does not resolve that overlap. ImpactCue, Enemy Markers,
+Amand's Graphics, HUD Breakout, Manimal's Quick Cancel and Picture in Picture
+Disabler also remain outside the default whitelist pending the fixes/tests
+described in [the seven-mod review](SEVEN-MOD-COMPAT-20261025.md).
+
 Close EFT and both normal/private SPT sessions before replacing files. Merge the
 release's `BepInEx` and `SPT_Runtime` folders into the SPT root. Update the client,
 server, companion, gate, helper and shipped default policy together. Keep exactly
@@ -94,27 +100,21 @@ power-loss injection and every PFT/Cola/optional-mod combination are not covered
 Held save failures preserve live RAM for the documented retry/investigation path.
 These limits remain explicit; they are not claims of completed native tests.
 
-## Remaining publication steps
+## Build and release verification
 
-1. Set **0.3.0** consistently in `Shared.props`, `ArenaMode.Client/Plugin.cs`,
-   `ArenaMode.Server/ModMetadata.cs`, `ArenaMode.Server/ArenaMode.Server.csproj`
-   and `ArenaMode.Session/ArenaMode.Session.csproj`. Then update README's released
-   status and give the changelog its actual publication date.
-2. Freeze the tested **Redeploy.Core 1.0.13**, implementation commit `d49426a`,
-   and make that source revision publicly reachable alongside Arena's source.
-   Recheck the remote: the HUD task does not publish its source or binaries.
-   A separate standalone Redeploy release is not required to bundle Core.
-3. Build a fresh isolated package with `tools/Package-TestRelease.ps1 -Release`,
-   run its tests/layout/hash checks and perform a bounded check of that exact
-   package. Do not manually reuse an old sibling `bin/Release`. The package tool exports and rebuilds committed Core
-   sources and verifies the resulting identity.
-4. Rerun Gitleaks for the final source/payload and VirusTotal for the **five DLLs
-   plus the session-helper EXE**. Retain result links and exact hashes for those
-   final bytes; older scans do not attest to a new build.
-5. Publish the source/tag/release ZIP, add the matching Forge description and
-   scan links, and download the uploaded asset again to verify its hash.
+All Arena assemblies and the session helper carry 0.3.0. The package includes
+shared Core 1.0.13, byte-identical to the library in Redeploy 1.0.2. Source
+revisions are recorded in the package manifest and embedded product versions.
 
-This preparation does not bump versions, deploy, push or publish. The notes and
-[Forge description](FORGE-DESCRIPTION.md) are ready for the matching release;
-the unchanged currently published 0.2.1 ZIP should not be described as containing
-these new features.
+The release pipeline exports committed Arena/Core sources, builds without
+writing to the installed game, runs the unit suite and verifies the archive
+layout and binary versions. The ZIP root contains only the installation folders;
+Arena assets and notices remain below its plugin folder. Core is rebuilt from
+its frozen source rather than taken from an old local build directory.
+
+The GitHub release records the final package hash, build/test results and
+VirusTotal links for all five DLLs plus the session-helper EXE. Final source and
+payload undergo Gitleaks checks; the uploaded ZIP is downloaded again and its
+hash compared with the verified local artifact. Older scan results do not attest
+to newly built bytes. The bounded final-package native result is reported
+separately from the implementation checks above.

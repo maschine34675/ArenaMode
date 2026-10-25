@@ -7,7 +7,8 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Changelog since 0.1.0](../CHANGELOG.md)
-- [0.3.0 release draft and remaining release checks](RELEASE-0.3.0.md)
+- [0.3.0 release notes and verification](RELEASE-0.3.0.md)
+- [Seven further mod reviews: confirmed conflicts and pending tests](SEVEN-MOD-COMPAT-20261025.md)
 - [Radar, Simple Crosshair and Better BepInEx: shared Core fixes and GPU-2 checks](HUD-MOD-COMPAT-20261025.md)
 - [RUB reward settlement core and synthetic profile tests](REWARDS-CORE.md)
 - [Protected ordinary-server reward startup consumer](REWARDS-SERVER.md)

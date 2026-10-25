@@ -1,8 +1,8 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-10-25** for the upcoming **0.3.0**, including
+Source inventory updated **2026-10-25** for **0.3.0**, including
 profile rewards, private-session ownership and current compatibility additions.
-Published 0.2.1 does not include all of these development changes. This lists the implemented
+The earlier 0.2.1 release does not include these additions. This lists the implemented
 behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
 in-game test. Defaults below are code defaults; existing saved settings can
@@ -725,6 +725,11 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
   Interrupt panel fixes across body replacement. Increase Look Direction needs
   no dedicated adapter; FOV Fix's angle controls armed free-look when both are
   installed. Auto Shoulder Swap 1.1.1 remains outside the default list.
+- The bundled Core 1.0.13 additionally transfers Accurate Circular Radar and
+  Simple Crosshair to the current player/camera and protects them from late
+  old-body callbacks. Reviewed versions are 1.3.4 and 1.4.0. Better BepInEx 1.0.0
+  is also admitted and keeps its stock ConfigurationManager dependency. Radar
+  colors represent its faction/role rules, not Arena team hostility.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**

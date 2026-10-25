@@ -26,7 +26,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.maschine.ArenaMode";
     public const string PluginName = "maschine-ArenaMode";
-    public const string PluginVersion = "0.2.1";
+    public const string PluginVersion = "0.3.0";
 
     public static ManualLogSource ModLogger { get; private set; }
 

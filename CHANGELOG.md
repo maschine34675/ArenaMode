@@ -8,7 +8,7 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## [0.3.0] - Unreleased
+## [0.3.0] - 2026-10-25
 
 ### Profile rewards and private sessions
 
@@ -45,6 +45,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Add tested Fontaine FOV Fix 4.1.0, Manimal 2.0.0, Increase Look Direction 1.3.0
   and Magazine Check Interrupt 1.1.1 to the default list. Auto Shoulder Swap 1.1.1
   remains unlisted after a native knife/lean error; ordinary raids are unchanged.
+- Document seven further mod reviews without adding them to the whitelist:
+  Use Items Anywhere, ImpactCue, Enemy Markers, Amand's Graphics, HUD Breakout,
+  Manimal's Quick Cancel and Picture in Picture Disabler. Use Items Anywhere's
+  competing magazine-query patches already conflict during normal plugin loading;
+  a later Arena admission check does not resolve that overlap.
 - Adapt PitFireTeam's profile-protection contracts to 1.0.0, including both
   companion databases and the new recruitment, karma, insurance and cargo paths.
   Older supported versions keep their existing guards. Record 1.0.0 as reviewed
@@ -67,7 +72,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Halve loose-ammunition reserves in Arena kits and weapon-only swaps, rounding
   the total. Loaded rounds and spare detachable magazines remain unchanged.
 
-[Release draft, verification and remaining publication steps](docs/RELEASE-0.3.0.md).
+[Release notes and verification limits](docs/RELEASE-0.3.0.md).
 
 ## [0.2.1] - 2026-10-25
 
@@ -249,3 +254,4 @@ this baseline are documented in its
 [0.1.2]: https://github.com/maschine34675/ArenaMode/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/maschine34675/ArenaMode/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/maschine34675/ArenaMode/releases/tag/v0.1.0
+[0.3.0]: https://github.com/maschine34675/ArenaMode/compare/v0.2.1...v0.3.0

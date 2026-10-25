@@ -15,7 +15,7 @@
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <LangVersion>latest</LangVersion>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <OutputPath>..\build\server\$(Configuration)\$(AssemblyName)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
