@@ -67,10 +67,12 @@ namespace ArenaMode.SessionHelper
         public const string FixesMemberName = "fixes";
 
         /// <summary>
-        /// The members of <c>fixes</c> the tree's copy of the core config switches on (review of the release 0.2.0,
-        /// 2026-10-25): <c>removeModItemsFromProfile</c> makes SPT delete items, mail attachments, clothing, repeatable quests
-        /// and trader purchases of mods it does not load instead of marking the whole profile invalid, and
-        /// <c>removeInvalidTradersFromProfile</c> removes the trader entries of such mods. SPT ships both as false.
+        /// The members of <c>fixes</c> the tree's copy of the core config switches on (after the release 0.2.0,
+        /// 2026-10-25). <c>removeModItemsFromProfile</c>: SPT deletes inventory and stash items, mail attachments, suits,
+        /// repeatable quests of a missing trader and trader purchases of a missing trader instead of throwing, which marks
+        /// the whole profile invalid; it also drops weapon, equipment and magazine builds with a missing item (otherwise only
+        /// logged). <c>removeInvalidTradersFromProfile</c>: SPT removes the trader entries (<c>TradersInfo</c>) of a missing
+        /// trader, which it otherwise only logs. SPT ships both as false.
         /// </summary>
         public static readonly string[] ProfileCleanupFlags = { "removeModItemsFromProfile", "removeInvalidTradersFromProfile" };
 
@@ -87,7 +89,8 @@ namespace ArenaMode.SessionHelper
         /// The loader's rule: the extension is <c>.json</c> or <c>.jsonc</c> and the name without it is a substring of the
         /// config type's name (<paramref name="kind"/>), both compared exactly (ordinal, case-sensitive). The loader takes
         /// the first type whose name contains the stem, so a stem shared by several names (<c>spt-</c>) is matched more
-        /// widely here than by the loader; no such file is part of SPT.
+        /// widely here than by the loader; no such file is part of SPT. An empty stem (<c>.json</c>) is no file of any type
+        /// here (the loader would read it as the first type of its list).
         /// </summary>
         public static bool IsConfigFileOf(string kind, string fileName)
         {
@@ -1354,7 +1357,7 @@ namespace ArenaMode.SessionHelper
                         if (next == '/')
                         {
                             _pos += 2;
-                            while (_pos < _text.Length && _text[_pos] != '\n') _pos++;
+                            while (_pos < _text.Length && _text[_pos] != '\n' && _text[_pos] != '\r') _pos++;
                             continue;
                         }
 
@@ -1751,20 +1754,23 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
-        /// Makes a core config (<c>core.json</c>) clean the disposable profile copy (review of the release 0.2.0,
-        /// 2026-10-25): every member of <see cref="HelperLayout.ProfileCleanupFlags"/> in the top-level <c>fixes</c> object
-        /// is set to <c>true</c>. The Arena session leaves out the mods the policy excludes; with SPT's shipped values
-        /// (both false) an item, mail attachment, suit, repeatable quest or trader purchase of such a mod makes SPT's
-        /// profile validator throw while the server loads the profile, the profile is marked invalid and the game start of
-        /// the session is refused (<c>This profile cannot be loaded due to it being invalid or unloadable!</c>). With the
-        /// flags on, SPT deletes those entries from the copy instead; the copy is discarded with the session, so nothing
+        /// Makes a core config (<c>core.json</c>) clean the disposable profile copy (after the release 0.2.0, 2026-10-25):
+        /// every member of <see cref="HelperLayout.ProfileCleanupFlags"/> in the top-level <c>fixes</c> object is set to
+        /// <c>true</c>. The Arena session leaves out the mods the policy excludes; with SPT's shipped
+        /// <c>removeModItemsFromProfile: false</c> an inventory or stash item, mail attachment or suit of such a mod, or a
+        /// repeatable quest or trader purchase of such a trader, makes SPT's profile validator throw while the server loads
+        /// the profile; the profile is marked invalid and the game start of the session is refused (<c>This profile cannot be
+        /// loaded due to it being invalid or unloadable!</c>). With the flags on, SPT deletes those records from the copy
+        /// instead (see <see cref="HelperLayout.ProfileCleanupFlags"/>); the copy is discarded with the session, so nothing
         /// reaches the real profile. A flag whose value is anything but the literal <c>true</c> (false, a string, a number,
-        /// null) is replaced; a missing flag is appended to <c>fixes</c> in the file's own style; a <c>fixes</c> that is not
-        /// an object is replaced by one that holds both flags, and a missing <c>fixes</c> is appended (fail closed: SPT reads
-        /// a missing member as false). Members of those names deeper in the document are not touched, and nothing else
-        /// changes. <paramref name="changes"/> names each change (<c>fixes.&lt;flag&gt;: false -> true</c>,
-        /// <c>fixes.&lt;flag&gt;: (missing) -> true</c>, <c>fixes: &lt;old&gt; -> {...}</c>); empty when the file already
-        /// had both flags on (<paramref name="patched"/> is then <paramref name="text"/>). A second pass changes nothing.
+        /// null) is replaced, and a missing flag is appended to <c>fixes</c> in the file's own style: SPT reads a missing flag
+        /// as false. A core config without a top-level <c>fixes</c> object (missing, or not an object) is refused with an
+        /// error: SPT requires that object and does not start without it, so the normal server could not run on that file
+        /// either, and a made-up object would give every other fix SPT's code default. Members of those names elsewhere are
+        /// not touched, and nothing else changes. <paramref name="changes"/> names each change
+        /// (<c>fixes.&lt;flag&gt;: false -> true</c>, <c>fixes.&lt;flag&gt;: (missing) -> true</c>); empty when the file
+        /// already had both flags on (<paramref name="patched"/> is then <paramref name="text"/>). A second pass changes
+        /// nothing.
         /// </summary>
         public static bool TryEnableProfileCleanup(string text, out string patched, out List<string> changes, out string error)
         {
@@ -1774,22 +1780,17 @@ namespace ArenaMode.SessionHelper
             if (!HelperJsonDocument.TryScan(text, out doc, out error)) return false;
 
             var edits = new List<Edit>();
-            HelperJsonMember firstTop = null;
             bool foundFixes = false;
             foreach (HelperJsonMember member in doc.Members)
             {
-                if (member.Depth != 1) continue;
-                if (firstTop == null) firstTop = member;
-                if (member.Key != HelperLayout.FixesMemberName) continue;
-                foundFixes = true;
-
+                if (member.Depth != 1 || member.Key != HelperLayout.FixesMemberName) continue;
                 if (member.ValueKind != '{')
                 {
-                    string old = text.Substring(member.ValueStart, member.ValueEnd - member.ValueStart);
-                    edits.Add(new Edit { Start = member.ValueStart, End = member.ValueEnd, Text = CleanupObjectText() });
-                    changes.Add(HelperLayout.FixesMemberName + ": " + old + " -> " + CleanupObjectText());
-                    continue;
+                    error = "the member '" + HelperLayout.FixesMemberName + "' is not an object (SPT requires it)";
+                    return false;
                 }
+
+                foundFixes = true;
 
                 // The direct members of this fixes object: depth 2 and inside its value (arrays do not count as depth, so an
                 // object inside an array inside fixes has depth 3 and is left out).
@@ -1832,25 +1833,12 @@ namespace ArenaMode.SessionHelper
 
             if (!foundFixes)
             {
-                AppendMembers(text, doc, firstTop, new List<string> { HelperLayout.FixesMemberName }, new List<string> { CleanupObjectText() }, edits);
-                changes.Add(HelperLayout.FixesMemberName + ": (missing) -> " + CleanupObjectText());
+                error = "no top-level '" + HelperLayout.FixesMemberName + "' object (SPT requires it)";
+                return false;
             }
 
             patched = Apply(text, edits);
             return true;
-        }
-
-        /// <summary>A compact <c>fixes</c> object with every flag of <see cref="HelperLayout.ProfileCleanupFlags"/> on.</summary>
-        private static string CleanupObjectText()
-        {
-            var sb = new StringBuilder("{");
-            for (int i = 0; i < HelperLayout.ProfileCleanupFlags.Length; i++)
-            {
-                if (i > 0) sb.Append(',');
-                sb.Append('"').Append(HelperLayout.ProfileCleanupFlags[i]).Append("\":true");
-            }
-
-            return sb.Append('}').ToString();
         }
 
         /// <summary>

@@ -1334,6 +1334,7 @@ public sealed class ArenaSessionHelperProcessTests
             string log = File.ReadAllText(Path.Combine(root, "helper.log"));
             Assert.Contains("stopping the unregistered arena server", log);
             Assert.Contains("server tree ready", log); // the build went ahead only once the stray was gone
+            Assert.DoesNotContain("core config:", log); // a runtime without a core config: nothing to switch on, no line
             Assert.True(log.IndexOf("stopping the unregistered arena server", StringComparison.Ordinal)
                         < log.IndexOf("server tree ready", StringComparison.Ordinal));
         }
