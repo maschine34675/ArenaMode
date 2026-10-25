@@ -385,6 +385,8 @@ public sealed class ArenaWhitelistTests
             ("com.pein.camerarecoilmod", "Recoil Rework Legacy", ArenaWhitelistTier.Mod, "2.0.0", null),
             ("com.fontaine.fovfix", "Fontaine FOV Fix", ArenaWhitelistTier.Mod, "4.1.0", null),
             ("com.manimal.loadammoanim", "Manimal Ammo Loading Animations", ArenaWhitelistTier.Mod, "2.0.0", "2.0.0"),
+            ("com.flir.increaselookdirection", "Increase Look Direction", ArenaWhitelistTier.Mod, "1.3.0", null),
+            ("com.ozen.magcheckinterrupt", "Magazine Check Interrupt", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
