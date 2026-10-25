@@ -148,7 +148,9 @@ risk.
   (about two minutes): a preloader gate loads only the whitelisted plugins, the helper
   `maschine-ArenaMode.Session.exe` starts a private copy of the SPT server on port 6970
   with only the whitelisted server mods and a **disposable copy of your profile**, and only
-  Arena raids are offered. Profile changes made in the session are discarded.
+  Arena raids are offered. Profile changes made in the session are discarded. Items,
+  clothing and trader records of mods the session leaves out are removed from that copy
+  only (a modded weapon you carry is missing in the session and back afterwards).
   **RETURN TO NORMAL SESSION** restarts with your normal server and the full mod set.
   Closing the Arena game by hand (EXIT, a crash) ends the private server as well.
 - **Only whitelisted mods installed:** Arena plays directly, as before, on your normal

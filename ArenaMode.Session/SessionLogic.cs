@@ -57,10 +57,45 @@ namespace ArenaMode.SessionHelper
         /// </summary>
         public static bool IsBackupConfigFile(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName)) return false;
+            return IsConfigFileOf(BackupConfigKind, fileName);
+        }
+
+        /// <summary>SPT's name of the core config type (<c>ConfigTypes.CORE</c>); the loader maps a file to it by name.</summary>
+        public const string CoreConfigKind = "spt-core";
+
+        /// <summary>The member of the core config that holds SPT's profile fixes (<c>CoreConfig.Fixes</c>).</summary>
+        public const string FixesMemberName = "fixes";
+
+        /// <summary>
+        /// The members of <c>fixes</c> the tree's copy of the core config switches on (review of the release 0.2.0,
+        /// 2026-10-25): <c>removeModItemsFromProfile</c> makes SPT delete items, mail attachments, clothing, repeatable quests
+        /// and trader purchases of mods it does not load instead of marking the whole profile invalid, and
+        /// <c>removeInvalidTradersFromProfile</c> removes the trader entries of such mods. SPT ships both as false.
+        /// </summary>
+        public static readonly string[] ProfileCleanupFlags = { "removeModItemsFromProfile", "removeInvalidTradersFromProfile" };
+
+        /// <summary>
+        /// True for a file of <c>SPT_Data\configs</c> that SPT's config loader reads as the core config, by the rule of
+        /// <see cref="IsBackupConfigFile"/> (<c>core.json</c>, <c>core.jsonc</c>, <c>spt-core.json</c>).
+        /// </summary>
+        public static bool IsCoreConfigFile(string fileName)
+        {
+            return IsConfigFileOf(CoreConfigKind, fileName);
+        }
+
+        /// <summary>
+        /// The loader's rule: the extension is <c>.json</c> or <c>.jsonc</c> and the name without it is a substring of the
+        /// config type's name (<paramref name="kind"/>), both compared exactly (ordinal, case-sensitive). The loader takes
+        /// the first type whose name contains the stem, so a stem shared by several names (<c>spt-</c>) is matched more
+        /// widely here than by the loader; no such file is part of SPT.
+        /// </summary>
+        public static bool IsConfigFileOf(string kind, string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(kind)) return false;
             string extension = System.IO.Path.GetExtension(fileName);
             if (!string.Equals(extension, ".json", StringComparison.Ordinal) && !string.Equals(extension, ".jsonc", StringComparison.Ordinal)) return false;
-            return BackupConfigKind.Contains(System.IO.Path.GetFileNameWithoutExtension(fileName));
+            string stem = System.IO.Path.GetFileNameWithoutExtension(fileName);
+            return stem.Length > 0 && kind.Contains(stem);
         }
         public const string UserFolder = "user";
         public const string ModsFolder = "mods";
@@ -1535,8 +1570,8 @@ namespace ArenaMode.SessionHelper
     }
 
     /// <summary>
-    /// Text-level edits of the three SPT JSON files the helper has to change (<c>http.json</c>, <c>sptLogger.json</c>,
-    /// <c>backup.json</c>). All keep every other byte (formatting, comments, member order) exactly as it was.
+    /// Text-level edits of the four SPT JSON files the helper has to change (<c>http.json</c>, <c>sptLogger.json</c>,
+    /// <c>backup.json</c>, <c>core.json</c>). All keep every other byte (formatting, comments, member order) exactly as it was.
     /// </summary>
     public static class HelperJsonText
     {
@@ -1716,6 +1751,109 @@ namespace ArenaMode.SessionHelper
         }
 
         /// <summary>
+        /// Makes a core config (<c>core.json</c>) clean the disposable profile copy (review of the release 0.2.0,
+        /// 2026-10-25): every member of <see cref="HelperLayout.ProfileCleanupFlags"/> in the top-level <c>fixes</c> object
+        /// is set to <c>true</c>. The Arena session leaves out the mods the policy excludes; with SPT's shipped values
+        /// (both false) an item, mail attachment, suit, repeatable quest or trader purchase of such a mod makes SPT's
+        /// profile validator throw while the server loads the profile, the profile is marked invalid and the game start of
+        /// the session is refused (<c>This profile cannot be loaded due to it being invalid or unloadable!</c>). With the
+        /// flags on, SPT deletes those entries from the copy instead; the copy is discarded with the session, so nothing
+        /// reaches the real profile. A flag whose value is anything but the literal <c>true</c> (false, a string, a number,
+        /// null) is replaced; a missing flag is appended to <c>fixes</c> in the file's own style; a <c>fixes</c> that is not
+        /// an object is replaced by one that holds both flags, and a missing <c>fixes</c> is appended (fail closed: SPT reads
+        /// a missing member as false). Members of those names deeper in the document are not touched, and nothing else
+        /// changes. <paramref name="changes"/> names each change (<c>fixes.&lt;flag&gt;: false -> true</c>,
+        /// <c>fixes.&lt;flag&gt;: (missing) -> true</c>, <c>fixes: &lt;old&gt; -> {...}</c>); empty when the file already
+        /// had both flags on (<paramref name="patched"/> is then <paramref name="text"/>). A second pass changes nothing.
+        /// </summary>
+        public static bool TryEnableProfileCleanup(string text, out string patched, out List<string> changes, out string error)
+        {
+            patched = null;
+            changes = new List<string>();
+            HelperJsonDocument doc;
+            if (!HelperJsonDocument.TryScan(text, out doc, out error)) return false;
+
+            var edits = new List<Edit>();
+            HelperJsonMember firstTop = null;
+            bool foundFixes = false;
+            foreach (HelperJsonMember member in doc.Members)
+            {
+                if (member.Depth != 1) continue;
+                if (firstTop == null) firstTop = member;
+                if (member.Key != HelperLayout.FixesMemberName) continue;
+                foundFixes = true;
+
+                if (member.ValueKind != '{')
+                {
+                    string old = text.Substring(member.ValueStart, member.ValueEnd - member.ValueStart);
+                    edits.Add(new Edit { Start = member.ValueStart, End = member.ValueEnd, Text = CleanupObjectText() });
+                    changes.Add(HelperLayout.FixesMemberName + ": " + old + " -> " + CleanupObjectText());
+                    continue;
+                }
+
+                // The direct members of this fixes object: depth 2 and inside its value (arrays do not count as depth, so an
+                // object inside an array inside fixes has depth 3 and is left out).
+                var inner = new List<HelperJsonMember>();
+                foreach (HelperJsonMember candidate in doc.Members)
+                {
+                    if (candidate.Depth == 2 && candidate.KeyStart > member.ValueStart && candidate.ValueEnd <= member.ValueEnd) inner.Add(candidate);
+                }
+
+                var missing = new List<string>();
+                foreach (string flag in HelperLayout.ProfileCleanupFlags)
+                {
+                    bool present = false;
+                    foreach (HelperJsonMember candidate in inner)
+                    {
+                        if (candidate.Key != flag) continue;
+                        present = true;
+                        string value = text.Substring(candidate.ValueStart, candidate.ValueEnd - candidate.ValueStart);
+                        if (value == "true") continue;
+                        edits.Add(new Edit { Start = candidate.ValueStart, End = candidate.ValueEnd, Text = "true" });
+                        changes.Add(HelperLayout.FixesMemberName + "." + flag + ": " + value + " -> true");
+                    }
+
+                    if (!present)
+                    {
+                        missing.Add(flag);
+                        changes.Add(HelperLayout.FixesMemberName + "." + flag + ": (missing) -> true");
+                    }
+                }
+
+                if (missing.Count > 0)
+                {
+                    var values = new List<string>();
+                    foreach (string flag in missing) values.Add("true");
+                    int lastEnd = -1;
+                    foreach (HelperJsonMember candidate in inner) lastEnd = Math.Max(lastEnd, candidate.ValueEnd);
+                    AppendMembers(text, member.ValueStart, inner.Count, lastEnd, inner.Count > 0 ? inner[0] : null, missing, values, edits);
+                }
+            }
+
+            if (!foundFixes)
+            {
+                AppendMembers(text, doc, firstTop, new List<string> { HelperLayout.FixesMemberName }, new List<string> { CleanupObjectText() }, edits);
+                changes.Add(HelperLayout.FixesMemberName + ": (missing) -> " + CleanupObjectText());
+            }
+
+            patched = Apply(text, edits);
+            return true;
+        }
+
+        /// <summary>A compact <c>fixes</c> object with every flag of <see cref="HelperLayout.ProfileCleanupFlags"/> on.</summary>
+        private static string CleanupObjectText()
+        {
+            var sb = new StringBuilder("{");
+            for (int i = 0; i < HelperLayout.ProfileCleanupFlags.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append('"').Append(HelperLayout.ProfileCleanupFlags[i]).Append("\":true");
+            }
+
+            return sb.Append('}').ToString();
+        }
+
+        /// <summary>
         /// Appends top-level members (<paramref name="keys"/> with their JSON <paramref name="values"/> as text) at the end
         /// of the top-level object, in the file's own style: the file's newline and the indentation of its first member
         /// (<paramref name="first"/>, the first top-level member or null), compact when that member shares the line of the
@@ -1723,13 +1861,25 @@ namespace ArenaMode.SessionHelper
         /// </summary>
         private static void AppendMembers(string text, HelperJsonDocument doc, HelperJsonMember first, List<string> keys, List<string> values, List<Edit> edits)
         {
+            AppendMembers(text, doc.OpenBrace, doc.TopLevelCount, doc.LastTopLevelValueEnd, first, keys, values, edits);
+        }
+
+        /// <summary>
+        /// <see cref="AppendMembers(string, HelperJsonDocument, HelperJsonMember, List{string}, List{string}, List{Edit})"/> for
+        /// any object of the document: <paramref name="openBrace"/> is the index of its <c>{</c>, <paramref name="count"/> the
+        /// number of its direct members, <paramref name="lastValueEnd"/> the index after the value of its last one (ignored
+        /// when it has none) and <paramref name="first"/> its first member or null. An empty nested object gets the members on
+        /// lines of their own, indented like a member of the top level.
+        /// </summary>
+        private static void AppendMembers(string text, int openBrace, int count, int lastValueEnd, HelperJsonMember first, List<string> keys, List<string> values, List<Edit> edits)
+        {
             string newline = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
             string indent = "  ";
             bool compact = false;
             if (first != null)
             {
                 int lineStart = text.LastIndexOf('\n', first.KeyStart > 0 ? first.KeyStart - 1 : 0);
-                if (lineStart < 0 || lineStart < doc.OpenBrace)
+                if (lineStart < 0 || lineStart < openBrace)
                 {
                     compact = true;
                 }
@@ -1747,10 +1897,10 @@ namespace ArenaMode.SessionHelper
             for (int i = 0; i < keys.Count; i++) items.Add("\"" + keys[i] + "\"" + colon + values[i]);
 
             var sb = new StringBuilder();
-            if (doc.TopLevelCount > 0)
+            if (count > 0)
             {
                 foreach (string item in items) sb.Append(',').Append(separator).Append(item);
-                edits.Add(new Edit { Start = doc.LastTopLevelValueEnd, End = doc.LastTopLevelValueEnd, Text = sb.ToString() });
+                edits.Add(new Edit { Start = lastValueEnd, End = lastValueEnd, Text = sb.ToString() });
             }
             else
             {
@@ -1761,7 +1911,7 @@ namespace ArenaMode.SessionHelper
                 }
 
                 sb.Append(newline);
-                edits.Add(new Edit { Start = doc.OpenBrace + 1, End = doc.OpenBrace + 1, Text = sb.ToString() });
+                edits.Add(new Edit { Start = openBrace + 1, End = openBrace + 1, Text = sb.ToString() });
             }
         }
 
@@ -1954,7 +2104,7 @@ namespace ArenaMode.SessionHelper
     {
         /// <summary>
         /// Every directory of <c>SPT_Data</c> is shared through a junction except <c>configs</c>, which
-        /// is copied (its <c>http.json</c> and <c>backup.json</c> are patched); files are copied.
+        /// is copied (its <c>http.json</c>, <c>backup.json</c> and <c>core.json</c> are patched); files are copied.
         /// </summary>
         public static HelperSptDataAction Classify(string name, bool isDirectory)
         {

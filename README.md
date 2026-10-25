@@ -288,7 +288,10 @@ unavailable as before.
   from a private copy of the server tree (port 6970, or 6971 to 6979 if it is
   taken). It works on a disposable copy of your profile, so profile changes made
   in the session are discarded (its profile backups stay inside that private copy as
-  well; your normal server's backup folder is never touched), and it offers only Arena
+  well; your normal server's backup folder is never touched). Items, clothing and trader
+  records of mods the session leaves out are deleted from that copy by SPT's own clean-up,
+  which the session switches on for the copy only, so a modded weapon you carry is missing
+  in the session and back afterwards. It offers only Arena
   raids: PMC and Scav are not selectable. **RETURN TO NORMAL SESSION** restarts the game with your normal
   server and the full mod set. Closing the game by hand inside the session (EXIT, a crash, a
   kill) ends the arena server too: the helper leaves a small watch process behind that waits

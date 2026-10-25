@@ -613,6 +613,26 @@ beside the request (`request.json.accepted` for `request.json`):
      never changed; every replaced or added value is one entry of one Warning of `helper.log` (`backup config: N backup
      directory value(s) did not lie below user ... : backup.json: 'old' -> 'new'`, `HelperTreeResult.BackupDirectoryRewrites`).
      The installed file carries the shipped value, so nothing is replaced there.
+   - the core config (2026-10-25, after the release 0.2.0; `HelperJsonText.TryEnableProfileCleanup`,
+     `HelperLayout.IsCoreConfigFile`, the loader's rule as for the backup config, `core.json` in the shipped runtime):
+     in the copy, `fixes.removeModItemsFromProfile` and `fixes.removeInvalidTradersFromProfile` are set to `true`.
+     The session leaves out the mods the policy excludes, and SPT ships both flags as `false`: then an inventory or
+     stash item, a mail attachment, a suit, a repeatable quest or a trader purchase of such a mod makes SPT's
+     `ProfileValidatorHelper` throw while the server loads the profile, `ProfileMigrationService` marks the profile
+     invalid and the server answers the session's game start with `This profile cannot be loaded due to it being
+     invalid or unloadable!`. On SPT-GPU-2 (2026-10-25, build `64c3b4a`, WTT-ContentBackport denied, both flags
+     false) the client then threw a `NullReferenceException` in `TarkovApplication.PrepareGameJob` and closed itself
+     about a minute after its start; the watch stopped the arena server; the player saw no reason. With the flags
+     on, SPT deletes those entries from the disposable copy instead (a modded weapon the player carries is missing in
+     the session; the real profile is never touched). A flag that is not the literal `true` is replaced, a missing
+     flag is appended to `fixes` in the file's own style, a `fixes` that is not an object is replaced and a missing
+     one appended (fail closed: SPT reads a missing flag as false); `fixProfileBreakingInventoryItemIssues` and
+     everything else is left as it is. Members of those names deeper in the document are not touched; a runtime
+     without a core config is left as it is. The runtime's own file is never changed; the changes are one Info line
+     of `helper.log` (`core config: SPT's profile clean-up switched on in the tree's copy ... : core.json:
+     fixes.removeModItemsFromProfile: false -> true, ...`, `HelperTreeResult.ProfileCleanupChanges`), Info and not
+     Warning because most installations carry SPT's values. Not covered by SPT's clean-up and so not by this: quests,
+     hideout areas and other profile records of a left-out mod that the validator does not look at.
    - `user\mods\`: emptied, then a copy of every folder in `serverMods` (copies, not junctions,
      so what those mods write beside their own files stays in the disposable tree). A user-allowed
      server mod that resolves its paths from `AppContext.BaseDirectory`, the working directory or its
@@ -1415,3 +1435,18 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   files unchanged. SPT-GPU-2 ran the pass the same day (section 10, fifth run): enter and leave through the `Global\`
   mutex (the watch waited for the leave's mutex), the refusal of a patcher denied in the running session and its lifting,
   no Warning. The response document records the review's own evidence and what it listed as bounded.
+- Section 6 (2026-10-25, after the release 0.2.0, user question): the tree's copy of the core config switches SPT's
+  profile clean-up on (`fixes.removeModItemsFromProfile` and `fixes.removeInvalidTradersFromProfile`). SPT ships both
+  as false; all development installations had them on, so no run noticed that a session leaving out a content mod
+  (items, suits, traders) cannot load a profile that holds that mod's records: the first run of section 10 excluded
+  WTT-ContentBackport with the flags on and only recorded the PitFireTeam trader's removal. Reproduced on SPT-GPU-2
+  with the build before the fix (section 6, the core config bullet). `HelperJsonText.TryEnableProfileCleanup` (a flag
+  not literally true replaced, a missing one or a missing `fixes` appended in the file's style through the shared
+  `AppendMembers`, which now takes any object of the document), `HelperLayout.IsCoreConfigFile`/`IsConfigFileOf` (the
+  loader's file rule, shared with the backup config), `HelperTreeResult.ProfileCleanupChanges`, one Info line of the
+  runner. Tests: `ArenaSessionHelperTests` (SPT's shipped block, values that are not the literal true, missing flags and
+  a missing or non-object `fixes` in three styles, members of those names elsewhere, a second pass, malformed text, the
+  loader's file rule, a built tree with the runtime's file unchanged and a malformed core config failing the build) and
+  `ArenaSessionHelperProcessTests` (the runner's Info line, no Warning); the general tree fixture's `core.json` now carries
+  both flags on. Negative control: with the core config skipped by the build, a present flag left as it is, or a
+  missing flag not appended, eight of the new and extended cases fail.
