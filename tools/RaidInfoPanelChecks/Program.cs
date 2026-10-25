@@ -360,6 +360,8 @@ internal static class Program
 
     private static void MagazineCounting()
     {
+        ArenaMode.Compat.UseItemsAnywhereCompat.OwnsItemAccess = false;
+        ArenaMode.Compat.UseItemsAnywhereCompat.FeaturesEnabled = ArenaMode.Compat.UseItemsAnywhereCompat.QueryAvailable = true;
         using var f = new Fixture(false);
         var equipment = f.Player.Inventory.Equipment;
         var rig = equipment.Put(EquipmentSlot.TacticalVest, new ArmoredRig { Grids = new[] { new Grid() } });
@@ -424,6 +426,23 @@ internal static class Program
             "Compatibility exception propagates to UI but finally clears every scratch reference");
         weapon.MagazineSlot.ThrowAccept = false;
         Counts(3, 3, "Counter recovers cleanly after compatibility fault");
+
+        ArenaMode.Compat.UseItemsAnywhereCompat.OwnsItemAccess = true;
+        ArenaMode.Compat.UseItemsAnywhereCompat.Slots = new[] { EquipmentSlot.Backpack };
+        Counts(1, 1, "UIA backpack-only slots exclude native rig and pocket magazines");
+        ArenaMode.Compat.UseItemsAnywhereCompat.Slots = new[] { EquipmentSlot.SecuredContainer };
+        Counts(1, 0, "UIA slot changes update the HUD without adding Arena backpack candidates");
+        ArenaMode.Compat.UseItemsAnywhereCompat.FeaturesEnabled = false;
+        Counts(2, 2, "Disabled UIA features use its native fallback without Arena widening");
+        ArenaMode.Compat.UseItemsAnywhereCompat.QueryAvailable = false;
+        Check(!MagazineInventoryCounter.TryGetSpareMagSummary(f.Player, weapon, out var foreignFailure)
+            && foreignFailure.FullCount == 0 && foreignFailure.PartialCount == 0,
+            "Failed foreign candidate query hides the summary rather than guessing native counts");
+        Check(MagazineScratch().Count == 0 && BackpackScratch().Count == 0,
+            "Failed foreign candidate query clears partial scratch results");
+        ArenaMode.Compat.UseItemsAnywhereCompat.OwnsItemAccess = false;
+        ArenaMode.Compat.UseItemsAnywhereCompat.FeaturesEnabled = ArenaMode.Compat.UseItemsAnywhereCompat.QueryAvailable = true;
+        Counts(3, 3, "Absent UIA restores the existing Arena candidate display");
 
         weapon.ReloadMode = Weapon.EReloadMode.OnlyBarrel;
         Check(!MagazineInventoryCounter.TryGetSpareMagSummary(f.Player, weapon, out var empty)

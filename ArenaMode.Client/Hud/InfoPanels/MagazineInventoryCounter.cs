@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ArenaMode.Compat;
 using ArenaMode.Kits;
 using EFT;
 using EFT.InventoryLogic;
@@ -68,7 +69,17 @@ namespace ArenaMode.Hud.InfoPanels
             // for DISPLAY the coarser rules below (compatible, not the loaded
             // magazine) are what decide the bucket a spare lands in.
             _magazineScratch.Clear();
-            controller.GetReachableItemsOfTypeNonAlloc(_magazineScratch, magazine => magazine.Count > 0);
+            if (UseItemsAnywhereCompat.OwnsItemAccess)
+            {
+                // Match the foreign reload query, including its current enabled state and
+                // configured slots. Never guess broader access if its contract has drifted.
+                if (!UseItemsAnywhereCompat.TryCollectMagazines(controller, _magazineScratch, magazine => magazine.Count > 0))
+                    return false;
+            }
+            else
+            {
+                controller.GetReachableItemsOfTypeNonAlloc(_magazineScratch, magazine => magazine.Count > 0);
+            }
 
             // Arena's own second source, appended exactly when the reload path
             // would append it (ArenaBackpackReload, BACKPACK-RELOAD-REVIEW.md):

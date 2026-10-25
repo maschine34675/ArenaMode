@@ -46,9 +46,11 @@ static class Program
             Fresh();var pocket=new ContainerCollection();var round=new Ammo();var grenade=new ThrowWeap();pocket.Items.AddRange([round,grenade,rig]);controller.Inventory.Equipment.GetSlot(EquipmentSlot.Pockets).ContainedItem=pocket;
             var ammo=new List<Ammo>();controller.GetReachableItemsOfTypeNonAlloc(ammo);Check(ammo.SequenceEqual(new[]{round}),"native ammo query retains type");
             var grenades=new List<ThrowWeap>();controller.GetReachableItemsOfTypeNonAlloc(grenades);Check(grenades.SequenceEqual(new[]{grenade}),"native grenade query retains type");
-            var collect=typeof(ArenaBackpackReload).GetMethod("CollectMagazines",BindingFlags.Static|BindingFlags.NonPublic);
-            output.Clear();collect.Invoke(null,new object[]{controller,output,null});Check(output.SequenceEqual(new[]{rig,packed}),"helper runs original then extends");
-            ArenaSession.IsActive=false;output.Clear();collect.Invoke(null,new object[]{controller,output,null});Check(output.SequenceEqual(new[]{rig}),"ordinary helper preserves original scan");
+            var extend=typeof(ArenaBackpackReload).GetMethod("AppendBackpackToResult",BindingFlags.Static|BindingFlags.NonPublic);
+            var native=controller.GetReachableItemsOfType<Magazine>(null);
+            output=((IEnumerable<Magazine>)extend.Invoke(null,new object[]{native,controller,null})).ToList();Check(output.SequenceEqual(new[]{rig,packed}),"helper runs original then extends");
+            ArenaSession.IsActive=false;native=controller.GetReachableItemsOfType<Magazine>(null);
+            var ordinary=(IEnumerable<Magazine>)extend.Invoke(null,new object[]{native,controller,null});Check(ReferenceEquals(ordinary,native)&&ordinary.SequenceEqual(new[]{rig}),"ordinary helper preserves original scan");
             Fresh();Apply(output.AsReadOnly());Check(output.Count==1,"read-only candidate list unchanged");
             foreach(Action deny in new Action[]{()=>ArenaSession.IsActive=false,()=>ArenaSession.Exact=false,()=>Settings.UseItemsAnywhere.Value=false,()=>player.IsAI=true,()=>player.IsYourPlayer=false,()=>player.HealthController.IsAlive=false,()=>player.InventoryController=new(),()=>Singleton<GameWorld>.Instance.MainPlayer=new(),()=>((LocalGame)Singleton<AbstractGame>.Instance).LocalPlayer=new(),()=>((LocalGame)Singleton<AbstractGame>.Instance).Status=GameStatus.Stopped,()=>((LocalGame)Singleton<AbstractGame>.Instance).GameWorld=new(),()=>ArenaRespawnDriver.IsRespawnInProgress=true,()=>ArenaRespawnDriver.StandDown=true,()=>ArenaSpectatorService.IsActive=true,()=>Singleton<GameWorld>.Instance=null,()=>Singleton<AbstractGame>.Instance=null,()=>controller.Inventory.Equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem=null})
             {Fresh();deny();Apply();Check(output.Count==1,"ordinary foreign or inactive inventory untouched");}
@@ -69,17 +71,21 @@ static class Program
             var query=typeof(InventoryController).GetMethod(nonAlloc?"GetReachableItemsOfTypeNonAlloc":"GetReachableItemsOfType");
             var mag=query.MakeGenericMethod(typeof(Magazine));var ammo=query.MakeGenericMethod(typeof(Ammo));var grenade=query.MakeGenericMethod(typeof(ThrowWeap));
             var method=patch.Patch.GetMethod("Transpiler",BindingFlags.Static|BindingFlags.NonPublic);
-            var call=new CodeInstruction(OpCodes.Callvirt,mag);var label=new DynamicMethod("labels",typeof(void),Type.EmptyTypes).GetILGenerator().DefineLabel();call.labels.Add(label);call.blocks.Add(new ExceptionBlock(ExceptionBlockType.BeginExceptionBlock));
+            var generator=new DynamicMethod("labels",typeof(void),Type.EmptyTypes).GetILGenerator();
+            var call=new CodeInstruction(OpCodes.Callvirt,mag);var label=generator.DefineLabel();call.labels.Add(label);call.blocks.Add(new ExceptionBlock(ExceptionBlockType.BeginExceptionBlock));
             var original=new[]{new CodeInstruction(OpCodes.Nop),new CodeInstruction(OpCodes.Callvirt,ammo),call,new CodeInstruction(OpCodes.Callvirt,grenade)};
-            var changed=((IEnumerable<CodeInstruction>)method.Invoke(null,new object[]{original})).ToArray();
-            Check(changed.Length==4&&Equals(changed[1].operand,ammo)&&Equals(changed[3].operand,grenade),"transpiler leaves unrelated typed calls intact");
-            Check(changed[2].opcode==OpCodes.Call&&changed[2].operand is MethodInfo helper&&!helper.IsGenericMethod&&helper.DeclaringType==typeof(ArenaBackpackReload),"transpiler uses non-generic helper");
+            var changed=((IEnumerable<CodeInstruction>)method.Invoke(null,new object[]{original,generator})).ToArray();
+            Check(changed.Count(i=>Equals(i.operand,ammo))==1&&changed.Count(i=>Equals(i.operand,grenade))==1,"transpiler leaves unrelated typed calls intact");
+            var extension=changed.Single(i=>i.operand is MethodInfo m&&m.DeclaringType==typeof(ArenaBackpackReload));
+            Check(extension.opcode==OpCodes.Call&&extension.operand is MethodInfo helper&&!helper.IsGenericMethod,"transpiler uses non-generic helper");
             Check(changed[2].labels.Single().Equals(label)&&changed[2].blocks.Count==1,"branch labels and exception boundaries retained");
-            var replacement=(MethodInfo)changed[2].operand;
-            Check(replacement.ReturnType==mag.ReturnType&&replacement.GetParameters().Select(p=>p.ParameterType).SequenceEqual(new[]{typeof(InventoryController)}.Concat(mag.GetParameters().Select(p=>p.ParameterType))),"replacement stack contract matches original receiver and arguments");
+            Check(changed.Count(i=>Equals(i.operand,mag))==1&&call.opcode==OpCodes.Callvirt,"native magazine query retained for foreign transpilers");
+            var append=(MethodInfo)extension.operand;
+            var parameters=nonAlloc?new[]{typeof(InventoryController),typeof(IList<Magazine>),typeof(Predicate<Magazine>)}:new[]{typeof(IEnumerable<Magazine>),typeof(InventoryController),typeof(Predicate<Magazine>)};
+            Check(append.ReturnType==mag.ReturnType&&append.GetParameters().Select(p=>p.ParameterType).SequenceEqual(parameters),"extension stack contract preserves original result");
             foreach(var invalid in new[]{new[]{new CodeInstruction(OpCodes.Callvirt,ammo)},new[]{new CodeInstruction(OpCodes.Callvirt,mag),new CodeInstruction(OpCodes.Callvirt,mag)}})
             {
-                bool refused=false;try{method.Invoke(null,new object[]{invalid});}catch(TargetInvocationException ex){refused=ex.InnerException is InvalidOperationException;}
+                bool refused=false;try{method.Invoke(null,new object[]{invalid,generator});}catch(TargetInvocationException ex){refused=ex.InnerException is InvalidOperationException;}
                 Check(refused&&invalid.All(i=>i.opcode==OpCodes.Callvirt),"missing or duplicate query rejected before editing IL");
             }
         }

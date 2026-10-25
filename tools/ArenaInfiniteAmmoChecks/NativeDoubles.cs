@@ -13,7 +13,15 @@ namespace ArenaMode.Config { public static class Settings { public static BepInE
 namespace ArenaMode.Session { public static class ArenaSession { public static bool IsActive=true, Exact=true; public static int ArmEpoch=1; public static bool IsExactActiveRaid(object game,object world)=>Exact; } }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool StandDown,IsRespawnInProgress; } }
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
-namespace ArenaMode { public static class Plugin { public static Logger ModLogger=new(); } public class Logger { public List<string> Warnings=[]; public void LogWarning(string value)=>Warnings.Add(value); } }
+namespace ArenaMode { public static class Plugin { public static Logger ModLogger=new(); } public class Logger { public List<string> Warnings=[]; public void LogWarning(string value)=>Warnings.Add(value); public void LogDebug(string value) { } } }
+#if BACKPACK_REAL_HARMONY
+namespace BepInEx
+{
+    [AttributeUsage(AttributeTargets.Class)] public class BepInPlugin(string guid,string name,string version):Attribute { public string GUID=guid; public Version Version=new(version); }
+    public class PluginInfo { public object Instance; public BepInPlugin Metadata; }
+}
+namespace BepInEx.Bootstrap { public static class Chainloader { public static readonly Dictionary<string,BepInEx.PluginInfo> PluginInfos=new(); } }
+#endif
 namespace ArenaMode.Pickups
 {
     internal static class ArenaPowerups

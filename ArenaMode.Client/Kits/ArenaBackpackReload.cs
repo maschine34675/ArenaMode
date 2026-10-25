@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Compat;
 using ArenaMode.Respawn;
 using ArenaMode.Session;
 using ArenaMode.Spectator;
@@ -24,6 +25,7 @@ internal static class ArenaBackpackReload
 
     internal static void Enable()
     {
+        UseItemsAnywhereCompat.Enable();
         try
         {
             new ArenaBackpackReloadReloadCandidatesPatch().Enable();
@@ -37,7 +39,7 @@ internal static class ArenaBackpackReload
     {
         if (_warnedEpoch == ArenaSession.ArmEpoch) return;
         _warnedEpoch = ArenaSession.ArmEpoch;
-        Plugin.ModLogger.LogWarning("Arena backpack magazine selection failed; native candidates retained: " + ex.GetBaseException().Message);
+        Plugin.ModLogger.LogWarning("Arena backpack magazine extension unavailable; existing query retained: " + ex.GetBaseException().Message);
     }
 
     // Read-only mirror of the gate above for display code (the weapon HUD's
@@ -49,7 +51,7 @@ internal static class ArenaBackpackReload
 
     private static bool Wanted(InventoryController controller)
     {
-        if (!ArenaSession.IsActive || Settings.UseItemsAnywhere?.Value != true
+        if (!ArenaSession.IsActive || Settings.UseItemsAnywhere?.Value != true || UseItemsAnywhereCompat.OwnsItemAccess
             || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated
             || ArenaRespawnDriver.IsRespawnInProgress || ArenaRespawnDriver.StandDown || ArenaSpectatorService.IsActive) return false;
         var world = Singleton<GameWorld>.Instance;
@@ -64,17 +66,13 @@ internal static class ArenaBackpackReload
     // NEVER patch a constructed generic query on Mono. Reference-type instantiations
     // share code; Harmony's Magazine trampoline also replaced Ammo/ThrowWeap calls,
     // corrupting the ORIGINAL scan before our postfix could check the arguments.
-    // Instead replace only magazine-query calls inside three non-generic consumers.
-    private static void CollectMagazines(InventoryController controller, IList<Magazine> output, Predicate<Magazine> predicate)
+    // Instead retain the native call in three non-generic consumers and extend
+    // its result. UIA's transpiler still finds its one native call in either order.
+    private static IEnumerable<Magazine> AppendBackpackToResult(IEnumerable<Magazine> native, InventoryController controller, Predicate<Magazine> predicate)
     {
-        controller.GetReachableItemsOfTypeNonAlloc(output, predicate);
+        if (!Wanted(controller)) return native;
+        var output = native.ToList();
         AppendBackpack(controller, output, predicate);
-    }
-
-    private static IEnumerable<Magazine> FindMagazines(InventoryController controller, Predicate<Magazine> predicate)
-    {
-        var output = new List<Magazine>();
-        CollectMagazines(controller, output, predicate);
         return output;
     }
 
@@ -97,22 +95,45 @@ internal static class ArenaBackpackReload
         catch (Exception ex) { Warn(ex); }
     }
 
-    private static IEnumerable<CodeInstruction> ReplaceQuery(IEnumerable<CodeInstruction> instructions, bool nonAlloc)
+    private static IEnumerable<CodeInstruction> ExtendQuery(IEnumerable<CodeInstruction> instructions, ILGenerator generator, bool nonAlloc)
     {
         var source = typeof(InventoryController).GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Single(m => m.Name == (nonAlloc ? nameof(InventoryController.GetReachableItemsOfTypeNonAlloc) : "GetReachableItemsOfType")
                 && m.IsGenericMethodDefinition && m.GetParameters().Length == (nonAlloc ? 2 : 1))
             .MakeGenericMethod(typeof(Magazine));
-        var replacement = typeof(ArenaBackpackReload).GetMethod(nonAlloc ? nameof(CollectMagazines) : nameof(FindMagazines), BindingFlags.Static | BindingFlags.NonPublic);
         var code = instructions.ToList();
         var calls = code.Where(i => (i.opcode == OpCodes.Call || i.opcode == OpCodes.Callvirt)
             && Equals(i.operand, source)).ToArray();
-        if (calls.Length != 1)
-            throw new InvalidOperationException("Expected exactly one native magazine query; found " + calls.Length);
-        // Keep the instruction's labels/exception blocks, and the original stack:
-        // the static helper takes the old instance receiver as its first argument.
-        calls[0].opcode = OpCodes.Call;
-        calls[0].operand = replacement;
+        var foreign = code.Count(i => (i.opcode == OpCodes.Call || i.opcode == OpCodes.Callvirt)
+            && i.operand is MethodInfo method && UseItemsAnywhereCompat.IsMagazineQuery(method, nonAlloc));
+        if (!UseItemsAnywhereQueryPolicy.ShouldAppend(calls.Length, foreign)) return code;
+
+        var receiver = generator.DeclareLocal(typeof(InventoryController));
+        var predicate = generator.DeclareLocal(typeof(Predicate<Magazine>));
+        var output = nonAlloc ? generator.DeclareLocal(typeof(IList<Magazine>)) : null;
+        var before = new List<CodeInstruction> { new CodeInstruction(OpCodes.Stloc, predicate) };
+        if (nonAlloc) before.Add(new CodeInstruction(OpCodes.Stloc, output));
+        before.Add(new CodeInstruction(OpCodes.Stloc, receiver));
+        before.Add(new CodeInstruction(OpCodes.Ldloc, receiver));
+        if (nonAlloc) before.Add(new CodeInstruction(OpCodes.Ldloc, output));
+        before.Add(new CodeInstruction(OpCodes.Ldloc, predicate));
+        var after = new List<CodeInstruction> { new CodeInstruction(OpCodes.Ldloc, receiver) };
+        if (nonAlloc) after.Add(new CodeInstruction(OpCodes.Ldloc, output));
+        after.Add(new CodeInstruction(OpCodes.Ldloc, predicate));
+        after.Add(new CodeInstruction(OpCodes.Call, typeof(ArenaBackpackReload).GetMethod(
+            nonAlloc ? nameof(AppendBackpack) : nameof(AppendBackpackToResult), BindingFlags.Static | BindingFlags.NonPublic)));
+
+        // A branch to the call must still save its arguments. Start blocks stay
+        // before it; end blocks move after the extension, preserving its scope.
+        var call = calls[0];
+        before[0].labels.AddRange(call.labels);
+        call.labels.Clear();
+        before[0].blocks.AddRange(call.blocks.Where(b => b.blockType != ExceptionBlockType.EndExceptionBlock));
+        after[after.Count - 1].blocks.AddRange(call.blocks.Where(b => b.blockType == ExceptionBlockType.EndExceptionBlock));
+        call.blocks.Clear();
+        var index = code.IndexOf(call);
+        code.InsertRange(index, before);
+        code.InsertRange(index + before.Count + 1, after);
         return code;
     }
 
@@ -121,7 +142,7 @@ internal static class ArenaBackpackReload
         protected override MethodBase GetTargetMethod()
             => typeof(FirearmHandsInputTranslator).GetMethod(nameof(FirearmHandsInputTranslator.ReloadExternalMagazine));
         [PatchTranspiler]
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) => ReplaceQuery(instructions, true);
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator) => ExtendQuery(instructions, generator, true);
     }
 
     private sealed class ArenaBackpackReloadSelectorCandidatesPatch : ModulePatch
@@ -129,7 +150,7 @@ internal static class ArenaBackpackReload
         protected override MethodBase GetTargetMethod()
             => typeof(AmmoSelector.CG_FindAmmoForWeapon).GetMethod(nameof(AmmoSelector.CG_FindAmmoForWeapon.method_0));
         [PatchTranspiler]
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) => ReplaceQuery(instructions, false);
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator) => ExtendQuery(instructions, generator, false);
     }
 
     private sealed class ArenaBackpackReloadInventoryCandidatesPatch : ModulePatch
@@ -137,6 +158,6 @@ internal static class ArenaBackpackReload
         protected override MethodBase GetTargetMethod()
             => typeof(ItemUiContext).GetMethod(nameof(ItemUiContext.FindSuitableMagazine));
         [PatchTranspiler]
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) => ReplaceQuery(instructions, false);
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator) => ExtendQuery(instructions, generator, false);
     }
 }

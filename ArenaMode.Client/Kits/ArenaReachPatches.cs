@@ -1,4 +1,5 @@
 using ArenaMode.Config;
+using ArenaMode.Compat;
 using ArenaMode.Session;
 using EFT;
 using EFT.InventoryLogic;
@@ -21,10 +22,9 @@ namespace ArenaMode.Kits;
 /// so the best medical items in the catalogue land in the backpack and become
 /// unreachable — exactly the items the top tiers are paying for.
 ///
-/// The technique is the one UseItemsAnywhere uses: widen the LOCATION test and
-/// leave everything else alone. That mod ships without a licence file, so this
-/// is written from the mechanism rather than from its code, which is the
-/// standing rule for the unlicensed references in this project.
+/// With Use Items Anywhere installed, its configured slots own both answers
+/// and this extension is dormant, independent of postfix order. Without it,
+/// Arena retains its own location extension. No foreign implementation is used.
 ///
 /// Only the location is relaxed. The type filter is copied faithfully from the
 /// method being patched — a weapon, a grenade, a knife, medicine, food, a
@@ -80,7 +80,7 @@ internal static class ArenaReachPatches
     }
 
     private static bool Wanted =>
-        ArenaSession.IsActive && Settings.UseItemsAnywhere.Value;
+        ArenaSession.IsActive && Settings.UseItemsAnywhere.Value && !UseItemsAnywhereCompat.OwnsItemAccess;
 
     /// <summary>
     /// The pick patches gate on the arena alone, not on the setting as well. F12

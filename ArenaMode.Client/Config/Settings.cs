@@ -915,6 +915,7 @@ public static class Settings
             "UseItemsAnywhere",
             true,
             "Let anything worn be used and bound, and reload from magazines directly in the backpack during Arena. " +
+            "When the standalone Use Items Anywhere mod is installed, its configured slots take precedence, including when its features are disabled. " +
             "The bulky medical items go where they FIT — a Grizzly is 2x2 and a Surv12 3x1 — " +
             "so without this the best medicine in the catalogue sits unreachable in the backpack.");
 

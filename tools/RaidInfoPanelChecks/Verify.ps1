@@ -69,6 +69,13 @@ if (!$ProductionOnly) {
     Invoke-PanelFault 'magazine-backpack-hook-ignored' 'MagazineSource' 'MagazineInventoryCounter.cs' `
         'if (ArenaBackpackReload.AppendsBackpackFor(controller))' 'if (true)' `
         "Backpack magazines are not counted while Arena's backpack-reload hook is off expected"
+    Invoke-PanelFault 'magazine-foreign-slots-ignored' 'MagazineSource' 'MagazineInventoryCounter.cs' `
+        'if (UseItemsAnywhereCompat.OwnsItemAccess)' 'if (false)' `
+        'UIA backpack-only slots exclude native rig and pocket magazines expected'
+    Invoke-PanelFault 'magazine-foreign-failure-guessed' 'MagazineSource' 'MagazineInventoryCounter.cs' `
+        'if (!UseItemsAnywhereCompat.TryCollectMagazines(controller, _magazineScratch, magazine => magazine.Count > 0))' `
+        'if (!UseItemsAnywhereCompat.TryCollectMagazines(controller, _magazineScratch, magazine => magazine.Count > 0) && false)' `
+        'Failed foreign candidate query hides the summary rather than guessing native counts'
     Invoke-PanelFault 'magazine-nested-pouch-counted' 'MagazineSource' 'MagazineInventoryCounter.cs' `
         'controller.GetAcceptableItemsNonAlloc(BackpackSlot, _backpackScratch, magazine => magazine.Count > 0);' `
         'controller.GetAcceptableItemsNonAlloc(BackpackSlot, _backpackScratch, magazine => magazine.Count > 0); if (controller.Inventory.Equipment.GetSlot(EquipmentSlot.Backpack).ContainedItem is CompoundItem backpackMutant && backpackMutant.Grids != null) foreach (var backpackGrid in backpackMutant.Grids) foreach (var backpackItem in backpackGrid.Items) if (backpackItem is CompoundItem backpackPouch && backpackPouch.Grids != null) foreach (var pouchGrid in backpackPouch.Grids) foreach (var pouchItem in pouchGrid.Items) if (pouchItem is Magazine pouchMag && pouchMag.Count > 0) _backpackScratch.Add(pouchMag);' `
@@ -149,7 +156,7 @@ if (!$ProductionOnly) {
         'Headwear and TacticalVest each contribute their own soft armor to separate groups releases scratch references'
     # Leave the generated executable compiled from unmodified production after controls.
     Invoke-PanelCheck 'production-after' '' '' ''
-    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 35 rejected source faults)'
+    Write-Output 'ARENA_INFO_PANEL_CHECKS_PASSED (production assertions + 37 rejected source faults)'
 } else {
     Write-Output 'ARENA_INFO_PANEL_PRODUCTION_ONLY_PASSED (negative controls not run)'
 }

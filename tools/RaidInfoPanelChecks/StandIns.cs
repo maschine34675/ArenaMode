@@ -364,7 +364,26 @@ namespace ArenaMode.Kits
     internal static class ArenaBackpackReload
     {
         public static bool AppendsBackpack;
-        internal static bool AppendsBackpackFor(EFT.InventoryLogic.InventoryController controller) => AppendsBackpack;
+        internal static bool AppendsBackpackFor(EFT.InventoryLogic.InventoryController controller) => AppendsBackpack && !Compat.UseItemsAnywhereCompat.OwnsItemAccess;
+    }
+}
+namespace ArenaMode.Compat
+{
+    // External optional-mod boundary only. Its reflection/Harmony composition
+    // runs separately in UseItemsAnywhereChecks; this tests the real HUD reader.
+    internal static class UseItemsAnywhereCompat
+    {
+        internal static bool OwnsItemAccess, FeaturesEnabled = true, QueryAvailable = true;
+        internal static EFT.InventoryLogic.EquipmentSlot[] Slots = { EFT.InventoryLogic.EquipmentSlot.Backpack };
+        internal static bool TryCollectMagazines(EFT.InventoryLogic.InventoryController controller,
+            IList<EFT.InventoryLogic.Magazine> output, Predicate<EFT.InventoryLogic.Magazine> predicate)
+        {
+            if (FeaturesEnabled) controller.GetAcceptableItemsNonAlloc(Slots, output, predicate);
+            else controller.GetReachableItemsOfTypeNonAlloc(output, predicate);
+            // A failed foreign query can already have appended items. The real
+            // counter must hide the result and clear its scratch on this path.
+            return QueryAvailable;
+        }
     }
 }
 namespace ArenaMode.Respawn { internal static class ArenaRespawnDriver { public static bool IsRespawnInProgress; } }

@@ -17,7 +17,7 @@ $work=Join-Path $repo ('artifacts/inventory-extension-checks/'+$Mode+'/'+[guid]:
 $inputs=@{}
 $paths=@($sourcePath,(Join-Path $repo 'ArenaMode.Client/Plugin.cs'),(Join-Path $repo 'ArenaMode.Client/Pickups/ArenaPowerupState.cs'))
 $paths+=@(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object FullName)
-if (!$isAmmo) { $paths+=@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../BackpackReloadChecks') -File | ForEach-Object FullName) }
+if (!$isAmmo) { $paths+=@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../BackpackReloadChecks') -File | ForEach-Object FullName); $paths+=@(Get-ChildItem -LiteralPath (Join-Path $repo 'ArenaMode.Client/Compat/UseItemsAnywhere') -File | ForEach-Object FullName) }
 foreach($path in $paths){$inputs[$path]=(Get-ArenaObservedFileHash -LiteralPath $path).Hash}
 $installed=@{}
 foreach($rel in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll','SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll','BepInEx/core/0Harmony.dll')) {$p=Join-Path $SptPath $rel;$installed[$p]=(Get-ArenaObservedFileHash -LiteralPath $p).Hash}
@@ -48,7 +48,7 @@ try {
         @('predicate-ignored','Backpack, candidates, predicate','Backpack, candidates, null','native predicate respected'),
         @('late-body-recheck-removed','if (!Wanted(controller) || !ReferenceEquals(backpack,','if (!ReferenceEquals(backpack,','predicate body replacement prevents publication'),
         @('generic-detour','typeof(FirearmHandsInputTranslator).GetMethod(nameof(FirearmHandsInputTranslator.ReloadExternalMagazine))','typeof(InventoryController).GetMethod("GetReachableItemsOfTypeNonAlloc").MakeGenericMethod(typeof(Magazine))','never detour shared generic code'),
-        @('query-drift-ignored','if (calls.Length != 1)','if (false)','missing or duplicate query rejected before editing IL')
+        @('query-drift-ignored','if (!UseItemsAnywhereQueryPolicy.ShouldAppend(calls.Length, foreign)) return code;','if (calls.Length != 1) return code;','missing or duplicate query rejected before editing IL')
     )}
     foreach($fault in $faults) {
         if($source.Split(@($fault[1]),[StringSplitOptions]::None).Count -ne 2){throw "Fault anchor not unique: $($fault[0])"}
