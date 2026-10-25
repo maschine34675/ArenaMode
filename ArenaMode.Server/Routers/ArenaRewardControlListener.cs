@@ -3,6 +3,8 @@ using System.Text.Json;
 using ArenaMode.Server.Rewards;
 using ArenaMode.Server.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Servers;
@@ -38,6 +40,15 @@ public sealed class ArenaRewardControlListener(SaveServer saves, ArenaSessionSer
             using (await ArenaRaidStartGate.EnterAsync(id, timeout.Token))
                 reply = RewardRuntimeCoordinator.Current.ExchangeControl(id.ToString(), request,
                     ArenaRewardRouter.CanChange(id, saves, sessions, snapshots, ordinary));
+            if (reply.Status is not null)
+            {
+                try
+                {
+                    reply.Status.AutomaticReturn &= context.RequestServices.GetServices<IHostedService>()
+                        .All(service => ArenaRewardReturnListener.IsKnownHostedService(service.GetType()));
+                }
+                catch { reply.Status.AutomaticReturn = false; }
+            }
             await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), timeout.Token);
         }
         catch (Exception)

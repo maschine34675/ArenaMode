@@ -97,6 +97,11 @@ public sealed class RewardRuntimeTests
         var report = p.Capture();
         p.RestoreAndPublish(report);
         Assert.Single(Directory.GetFiles(Path.Combine(p.Root, "user", "arena-rewards-outbox"), "*.json"));
+        Assert.Equal(1000, p.Coordinator.GetStatus(Fixture.ProfileId).PendingRoubles);
+        Assert.Equal(100, p.Coordinator.GetStatus(Fixture.ProfileId).PendingExperience);
+        // A duplicate native completion must not inflate the presentation totals.
+        p.Coordinator.FinalizePersisted(Fixture.ProfileId, report.NativeEndIdentity, p.Profile);
+        Assert.Equal(1000, p.Coordinator.GetStatus(Fixture.ProfileId).PendingRoubles);
         f.EditProfile(profile => profile["foreignMod"]!["progress"] = 888);
         f.EditProfile(profile => profile["characters"]!["pmc"]!["Info"]!["Experience"] = 190_000);
         var before = f.Profile;
@@ -107,6 +112,25 @@ public sealed class RewardRuntimeTests
         Assert.Equal(888, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
         Assert.Equal(190_100, JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Info"]!["Experience"]!.GetValue<long>());
         Assert.Single(f.Ledger);
+    }
+
+    [Fact]
+    public void PrivateMenuKeepsDurableRewardsVisibleAcrossMultipleMatches()
+    {
+        using var normal = new Fixture();
+        using var arena = new Fixture(enroll: false);
+        File.WriteAllText(arena.ProfilePath, normal.Profile);
+        File.WriteAllText(Path.Combine(arena.Root, "arena-rewards-origin.json"), File.ReadAllText(normal.PathOf("handoff.json")));
+        File.WriteAllText(Path.Combine(arena.Root, "arena-session.json"), JsonSerializer.Serialize(new
+            { schema = 1, profileId = Fixture.ProfileId, sourceRuntime = normal.Root }));
+        arena.RestoreAndPublish(arena.Capture());
+        arena.RestoreAndPublish(arena.Capture(rule: "LocalTarget", target: 1));
+        var status = arena.Coordinator.GetStatus(Fixture.ProfileId);
+        Assert.Equal("pending", status.State);
+        Assert.Equal(12_000, status.PendingRoubles);
+        Assert.Equal(1200, status.PendingExperience);
+        Assert.Equal(2, Directory.GetFiles(Path.Combine(arena.Root, "user", "arena-rewards-outbox"), "*.json").Length);
+        Assert.Empty(normal.Ledger);
     }
 
     [Theory]

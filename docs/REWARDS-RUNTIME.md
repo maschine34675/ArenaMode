@@ -20,8 +20,8 @@ development change after release 0.2.0, not part of that existing download.
   opt-in/restart cycle is unnecessary. Existing explicit OFF choices remain OFF.
   Profiles created or initialized after the server started are eligible at the
   next normal start. Explicit first activation of an unregistered profile still
-  records metadata only and shows the required restart: leave the private session,
-  restart the normal server, then re-enter Arena. Existing enrolled profiles can
+  records metadata only: return to the normal session, then re-enter Arena. The supported
+  local return now performs the necessary normal-server restart automatically. Existing enrolled profiles can
   switch immediately; the normal server must remain running.
 - The server freezes 1,000 RUB + 100 XP per eligible local kill, 10,000 RUB +
   1,000 XP per round win, capped at 200,000 RUB and 20,000 XP per match.
@@ -32,8 +32,15 @@ development change after release 0.2.0, not part of that existing download.
   Gun Game and Zombies currently award kills only, not ladder/wave victories.
 - A normal exit can retain kills from the last unfinished combat round without
   inventing a win. Aborted/no-contest reports receive no payment for the run.
-- Completed results wait for the next **normal SPT server start**. Returning from
-  a private Arena session while that server keeps running does not pay immediately.
+- **RETURN TO NORMAL SESSION** stops the private server, transfers signed results and
+  automatically restarts the supported local normal server when rewards or enrollment
+  are pending. EFT starts only after that server is ready, so RUB mail and PMC XP are
+  available on return. No extra manual restart is needed. With no pending work or
+  rewards OFF, the normal server stays running. Payment itself remains at the guarded
+  **normal SPT server start**. Direct Arena raids without a private session therefore
+  still pay at the next normal server start. Remote/unsupported or refused automatic
+  return paths retain their queued results; the menu reports the applicable path.
+  See [automatic return and its safety limits](REWARDS-RETURN.md).
   RUB is system mail with a 30-day collection window; XP is added directly to
   PMC Experience in the same atomic profile transaction. The mail states that
   XP has already been credited; it has no XP claim event. Level and trader loyalty
@@ -42,6 +49,9 @@ development change after release 0.2.0, not part of that existing download.
 - The menu reports ready, pending, paid or withheld state. Turning rewards off
   stops new participation and defers queued payment; enabling again uses the
   existing profile generation and payment history.
+  After a private match, already published local receipts remain visible as
+  pending until return transfers them. This presentation total is separate from
+  payout authority and cannot issue or duplicate a payment.
 
 ## Capture and authority
 
@@ -94,9 +104,10 @@ Only the normal server writes consent metadata. Both sides keep their existing
 raid/snapshot guards. Every change advances the persisted revision; a stale
 click or request retry cannot overwrite a newer choice, including one made in
 the normal menu. The grant expires after twelve hours, rotates on the next entry,
-and is invalid after a normal-server restart. Recovery order is: return to the
-normal session, restart the normal server after the private server has stopped,
-then re-enter Arena. Restarting the normal server while the private server still
+and is invalid after a normal-server restart. A separate return capability handles
+the supported automatic restart; it never reuses the consent token. If the normal
+server was already restarted manually and the capability became stale, restart it
+after leaving the private session, then re-enter Arena. Restarting the normal server while the private server still
 runs deliberately holds startup enrollment/payment with
 `another-server-or-unknown-process`; a fresh entry alone does not clear that
 startup hold. An unreachable normal server disables changes and new reward capture.

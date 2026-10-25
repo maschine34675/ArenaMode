@@ -77,6 +77,7 @@
     <Compile Include="..\ArenaMode.Session\SessionFileSystem.cs" Link="SessionHelper\SessionFileSystem.cs" />
     <Compile Include="..\ArenaMode.Session\RewardTransfer.cs" Link="SessionHelper\RewardTransfer.cs" />
     <Compile Include="..\ArenaMode.Session\RewardControlTransfer.cs" Link="SessionHelper\RewardControlTransfer.cs" />
+    <Compile Include="..\ArenaMode.Session\RewardReturn.cs" Link="SessionHelper\RewardReturn.cs" />
     <!-- The process side as well (runner, process and socket helpers, log): the stop-server identity checks,
          the listener owner lookup and the leave/recovery path run against real stand-in processes. -->
     <Compile Include="..\ArenaMode.Session\HelperRunner.cs" Link="SessionHelper\HelperRunner.cs" />

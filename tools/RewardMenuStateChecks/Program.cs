@@ -168,11 +168,31 @@ internal static class Program
         poll = Background();
         var privatePending = Ready(enabled: true);
         privatePending.PrivateSession = true;
+        privatePending.AutomaticReturn = true;
         privatePending.Enrolled = false;
         poll.Complete(privatePending);
         PumpUntil(() => ArenaRewardMenuState.CanToggle);
-        Check(ArenaRewardMenuState.Detail.Contains("return, restart") && ArenaRewardMenuState.Detail.Contains("re-enter Arena"),
+        Check(ArenaRewardMenuState.Detail.Contains("return to the normal session") && ArenaRewardMenuState.Detail.Contains("re-enter Arena")
+            && !ArenaRewardMenuState.Detail.Contains("restart the normal SPT server"),
             "First private opt-in did not explain the safe enrollment round trip");
+        poll = Background();
+        privatePending.Enrolled = true;
+        privatePending.Detail = "At the next normal server start: RUB by mail, XP credited directly.";
+        poll.Complete(privatePending);
+        PumpUntil(() => ArenaRewardMenuState.Status.Enrolled);
+        Check(ArenaRewardMenuState.Detail.StartsWith("On return to the normal session"), "Private ready text retained the outdated manual server-start instruction");
+        poll = Background();
+        privatePending.PendingRoubles = 11000;
+        privatePending.PendingExperience = 1100;
+        poll.Complete(privatePending);
+        PumpUntil(() => ArenaRewardMenuState.Status.PendingRoubles == 11000);
+        Check(ArenaRewardMenuState.Detail.Contains("credited when you return"), "Automatic private payout was not explained");
+        poll = Background();
+        privatePending.AutomaticReturn = false;
+        poll.Complete(privatePending);
+        PumpUntil(() => !ArenaRewardMenuState.Status.AutomaticReturn);
+        Check(ArenaRewardMenuState.Detail.Contains("next normal server start") && !ArenaRewardMenuState.Detail.Contains("credited when you return"),
+            "Missing return capability still promised immediate payout");
         poll = Background();
         var stale = Ready(); stale.State = "changed"; stale.Detail = "Changed elsewhere; review the current setting.";
         poll.Complete(stale);

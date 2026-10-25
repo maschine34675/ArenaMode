@@ -203,7 +203,7 @@ namespace ArenaMode.SessionHelper
 
             try
             {
-                StartNormalSession(request);
+                StartNormalSession(request, settleRewards: true);
                 _log.Info("leave finished");
                 return true;
             }
@@ -215,14 +215,16 @@ namespace ArenaMode.SessionHelper
         }
 
         // The steps shared by leave and by the recovery after a failed enter.
-        private void StartNormalSession(HelperRequest request)
+        private void StartNormalSession(HelperRequest request, bool settleRewards = false)
         {
             // Starting the game must not depend on cleaning up the arena server: a pid file that cannot be
             // read or deleted for a moment (a scanner, an editor) would otherwise cost the player the
             // game on leave, and on the recovery after a failed enter as well.
+            bool privateStopped = false;
             try
             {
                 StopResult stopped = StopArenaServer(request.SptRuntimeDir);
+                privateStopped = stopped == StopResult.Stopped || stopped == StopResult.NothingToStop || stopped == StopResult.NotOurs;
                 if (stopped == StopResult.Unverified || stopped == StopResult.StillRunning || stopped == StopResult.OtherInstallation)
                 {
                     _log.Warn("the arena server was not stopped (" + stopped + "); continuing, it listens on its own port");
@@ -234,6 +236,8 @@ namespace ArenaMode.SessionHelper
             }
 
             HelperHttpEndpoint normal = ReadNormalEndpoint(request);
+            if (settleRewards && privateStopped)
+                HelperRewardReturn.TryRestart(_runtimeRoot, request, normal, StartProcess, WaitForServer, Info);
             if (HelperProcesses.CanConnect(normal.ServerHost, normal.ServerPort, 1000))
             {
                 _log.Info("the normal server already listens on " + normal.ServerHost + ":" + normal.ServerPort);

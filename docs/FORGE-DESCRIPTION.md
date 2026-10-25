@@ -245,7 +245,9 @@ default for newly registered profiles (existing OFF choices stay OFF):
 - Per eligible kill: 1,000 RUB + 100 XP; per DM/TDM/Tactical round win:
   10,000 RUB + 1,000 XP; maximum 200,000 RUB + 20,000 XP per match.
 - Gun Game and Zombies currently award kills only; no-contest results do not pay.
-- Paid at the next normal server start: RUB by mail, XP directly to the PMC.
+- **RETURN TO NORMAL SESSION** automatically restarts the supported local server
+  when rewards are pending. On return, RUB is in the mailbox and XP is already credited.
+  Direct Arena play without a private session pays at the next normal server start.
   The mail lists XP already credited; collecting it does not grant XP twice.
 - The Arena map menu controls rewards in either session. Private sessions return
   signed results, without copying their profile back.

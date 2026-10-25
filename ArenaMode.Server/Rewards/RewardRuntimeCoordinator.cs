@@ -18,12 +18,16 @@ internal sealed class RewardRuntimeCoordinator
     private readonly object _sync = new();
     private readonly Dictionary<string, Snapshot> _snapshots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Run> _runs = new(StringComparer.Ordinal);
+    // Presentation only: these receipts are already durable in this private
+    // process's outbox, but the normal server sees them only after return.
+    private readonly Dictionary<string, (long Roubles, long Experience)> _privatePending = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _failures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _startupFailures = new(StringComparer.Ordinal);
     private string? _startupUnavailable;
     private readonly Func<DateTimeOffset> _now;
     private readonly RewardConsentControl _control;
     private readonly RewardPrivateConsent _privateConsent;
+    internal RewardReturnControl ReturnControl { get; }
 
     internal RewardRuntimeCoordinator(string root, Func<DateTimeOffset>? now = null,
         Func<RewardControlGrant, RewardControlRequest, CancellationToken, Task<RewardControlReply>>? controlTransport = null)
@@ -32,6 +36,7 @@ internal sealed class RewardRuntimeCoordinator
         _now = now ?? (() => DateTimeOffset.UtcNow);
         _control = new(_root, _now);
         _privateConsent = new(_root, _now, controlTransport);
+        ReturnControl = new(_root, _now);
     }
 
     internal bool HasCapture(string id)
@@ -59,6 +64,7 @@ internal sealed class RewardRuntimeCoordinator
             var result = new RewardStatusResponse
             {
                 Available = true, PrivateSession = !RewardStartupFiles.MarkerAbsent(_root),
+                AutomaticReturn = ReturnControl.HasGrant(id),
                 RoublesPerKill = Policy.RoublesPerKill, RoublesPerRoundWin = Policy.RoublesPerRoundWin, MaxRoubles = Policy.MaxRoubles,
                 ExperiencePerKill = Policy.ExperiencePerKill, ExperiencePerRoundWin = Policy.ExperiencePerRoundWin, MaxExperience = Policy.MaxExperience
             };
@@ -66,12 +72,14 @@ internal sealed class RewardRuntimeCoordinator
             if (result.PrivateSession && _privateConsent.HasControl)
             {
                 result = _privateConsent.Status();
+                result.AutomaticReturn &= RewardReturnControl.PrivateGrantAvailable(_root, id);
                 result.CanChange &= !_snapshots.ContainsKey(id) && !_runs.ContainsKey(id);
                 if (_runs.TryGetValue(id, out var active))
                 {
                     result.State = "earning";
                     if (active.Final is not null) SetPending(result, Evaluate(active, active.Final));
                 }
+                ApplyPrivatePending(id, result);
                 ApplyFailure(id, result);
                 return result;
             }
@@ -131,6 +139,7 @@ internal sealed class RewardRuntimeCoordinator
                 result.Detail = "Reward state needs review; your profile has not been repaired or replaced.";
                 result.CanChange = false;
             }
+            ApplyPrivatePending(id, result);
             return result;
         }
     }
@@ -139,6 +148,15 @@ internal sealed class RewardRuntimeCoordinator
     {
         status.PendingRoubles = reward.Roubles;
         status.PendingExperience = reward.Experience;
+    }
+
+    private void ApplyPrivatePending(string id, RewardStatusResponse status)
+    {
+        if (!status.PrivateSession || !_privatePending.TryGetValue(id, out var pending)) return;
+        status.PendingRoubles = checked(status.PendingRoubles + pending.Roubles);
+        status.PendingExperience = checked(status.PendingExperience + pending.Experience);
+        if (status.Available && status.Enabled && status.State is "ready" or "paid"
+            && (status.PendingRoubles > 0 || status.PendingExperience > 0)) status.State = "pending";
     }
 
     private void ApplyFailure(string id, RewardStatusResponse result)
@@ -190,7 +208,18 @@ internal sealed class RewardRuntimeCoordinator
         lock (_sync)
         {
             if (!GetStatus(id).CanChange) return new() { Reason = "reward-control-unavailable" };
-            _control.Issue(id, controlId);
+            var grant = _control.Issue(id, controlId);
+            // A separate capability authorizes a graceful local return. Unsupported hosts
+            // retain the existing session/consent flow; this never broadens the consent token.
+            try
+            {
+                if (!ReturnControl.Issue(grant))
+                    ArenaContext.Logger?.Debug("[ArenaMode] Automatic reward return: entry capability unavailable; startup payout remains enabled.");
+            }
+            catch (Exception exception)
+            {
+                ArenaContext.Logger?.Debug($"[ArenaMode] Automatic reward return: entry capability could not be prepared ({exception.GetType().Name}).");
+            }
             return new() { Accepted = true };
         }
     }
@@ -396,6 +425,12 @@ internal sealed class RewardRuntimeCoordinator
                 RewardRuntimeFiles.WriteNew(_root, Path.Combine(directory, run.Id + ".json"), signed);
                 ClosePending(id, run, "restored");
                 _failures.Remove(id);
+                if (privateSession)
+                {
+                    var previous = _privatePending.GetValueOrDefault(id);
+                    _privatePending[id] = (checked(previous.Roubles + evaluation.Roubles),
+                        checked(previous.Experience + evaluation.Experience));
+                }
             }
             catch (Exception e)
             {

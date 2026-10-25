@@ -4,6 +4,13 @@ Status: implementation spec for branch `feature/arena-whitelist-session`. This f
 contract between the five parts below. If an implementation detail has to deviate, change this
 file in the same commit and say why.
 
+2026-10-25 extension: [automatic reward return](REWARDS-RETURN.md) adds a guarded
+normal-server restart to explicit `leave` when enabled rewards/enrollment are pending.
+The original keep-normal-server-running return remains for no-work/OFF/unsupported
+cases. Private stop/receipt transfer precede it; neither the watcher nor failed-enter
+recovery invokes it. The helper now shows a Retry/Cancel dialog only for a paused
+return after EFT has closed, preserving a held server instead of silently losing the UI.
+
 ## 1. Goal and user decisions
 
 Many third-party mods break Arena raids. Per-mod adapters are no longer an option. Arena now

@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-24. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-25. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
@@ -16,14 +16,21 @@ current. User-facing communication is normally German.
   policy must be updated along with the client/server DLLs; restart both to
   refresh the loaded policy and adapter. User policies remain untouched.
 
-- **Optional profile rewards (2026-10-24, development after 0.2.0):** explicit
-  PROFILE REWARDS consent in the full card above Arena's map preview; off by
-  default. Normal-server startup enrolls the selected profile and later pays
-  system mail. Rates: 1,000 RUB/eligible kill, 10,000 RUB/DM-TDM-Tactical round
-  win, 200,000 RUB/match cap; Gun Game/Zombies currently kills only. Runtime
+- **Optional profile rewards (2026-10-25, development after 0.2.0):** explicit
+  PROFILE REWARDS consent in the full card above Arena's map preview; ON by
+  default for fresh eligible profiles, preserving explicit OFF. Normal-server startup enrolls the selected profile and later pays
+  system mail and PMC XP. Rates: 1,000 RUB + 100 XP/eligible kill,
+  10,000 RUB + 1,000 XP/DM-TDM-Tactical round win, capped per match at
+  200,000 RUB and 20,000 XP; Gun Game/Zombies currently kills only. Runtime
   capture is client-observed, server-validated and signed only after exact
   snapshot restoration plus full saved-profile read-back. Private sessions
   return immutable receipts through the helper, never profile copies. New
+  development builds automatically restart the supported local normal server on
+  RETURN when enrollment/payment is pending; see [the return contract](REWARDS-RETURN.md).
+  The [native return report](GPU-REWARD-RETURN-20261025.md) covers the loaded
+  build, real earned receipts, automatic startup payout and cleanup.
+  Native save/readback and request/update quiescence precede shutdown; failures
+  preserve live RAM. No-work/OFF returns keep the normal server running. New
   startup allocations preserve intervening normal progress; existing allocations
   and payment history must never be reset/rebased. Native SPT 4.1.6 idle
   `inraid: {}` and the space before its raid timestamp are intentional formats.

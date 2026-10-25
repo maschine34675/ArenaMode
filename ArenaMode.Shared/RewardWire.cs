@@ -39,6 +39,7 @@ public sealed class RewardStatusResponse
     public bool Enabled { get; set; }
     public bool Enrolled { get; set; }
     public bool PrivateSession { get; set; }
+    public bool AutomaticReturn { get; set; }
     public bool CanChange { get; set; }
     public long ConsentRevision { get; set; }
     public string State { get; set; } = "unavailable";

@@ -1128,6 +1128,7 @@ namespace ArenaMode.SessionHelper
             marker.RewardControlId = request.RewardControlId;
             box.WriteAllText(Path.Combine(tree, ArenaSessionContract.MarkerFileName), marker.ToJson());
             HelperRewardControlTransfer.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
+            HelperRewardReturn.TryCopy(source, request.ProfileId, request.RewardControlId, tree, marker, nowUtc, log);
 
             result.FilesCopied = box.FilesCopied;
             return result;

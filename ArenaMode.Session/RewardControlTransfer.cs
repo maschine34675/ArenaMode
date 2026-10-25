@@ -127,7 +127,7 @@ namespace ArenaMode.SessionHelper
             return value.UtcDateTime;
         }
 
-        private static void RequireMarker(string path, string expected)
+        internal static void RequireMarker(string path, string expected)
         {
             if (!string.Equals(Utf8.GetString(ReadBounded(path)), expected, StringComparison.Ordinal))
                 throw new InvalidDataException();
@@ -143,7 +143,7 @@ namespace ArenaMode.SessionHelper
             return full;
         }
 
-        private static void RequirePlainPath(string path, bool required)
+        internal static void RequirePlainPath(string path, bool required)
         {
             string full;
             if (!HelperPathSafety.TryNormalize(path, out full) || HelperPathSafety.HasParentSegment(path))
@@ -161,7 +161,7 @@ namespace ArenaMode.SessionHelper
             }
         }
 
-        private static byte[] ReadBounded(string path)
+        internal static byte[] ReadBounded(string path)
         {
             RequirePlainPath(path, true);
             if ((File.GetAttributes(path) & FileAttributes.Directory) != 0) throw new InvalidDataException();

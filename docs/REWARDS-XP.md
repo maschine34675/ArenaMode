@@ -9,6 +9,10 @@ currently award kills only, with no inferred ladder/wave victory.
 
 ## Payment and recovery
 
+The supported local **RETURN TO NORMAL SESSION** now performs this server restart
+automatically when payment is pending; see [the return protocol](REWARDS-RETURN.md).
+The atomic payment boundary below is unchanged.
+
 At the next admitted normal server startup, before native profiles are loaded,
 the existing settlement kernel composes one detached document containing:
 

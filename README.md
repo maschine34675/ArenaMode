@@ -233,10 +233,14 @@ rewards in either session. A profile created or initialized after the server has
 already started is registered at the next normal start. Keep the normal server running
 while changing rewards in the separate session. Eligible kills earn **1,000 ₽ + 100 XP**, round wins
 **10,000 ₽ + 1,000 XP**, up to **200,000 ₽ + 20,000 XP per match**. Gun Game and Zombies currently award
-kills only; no-contest results are excluded. At the next normal server start, RUB
-arrives by mail and XP is credited directly to the PMC. The mail lists XP already
+kills only; no-contest results are excluded. **RETURN TO NORMAL SESSION** automatically
+restarts the supported local server when a payout is pending, then opens the normal game:
+RUB arrives by mail and XP is already credited to the PMC. No separate manual restart is needed.
+Direct Arena play without a private session still pays at the next normal server start.
+The mail lists XP already
 credited; collecting it does not grant XP again. Private sessions return signed results, never their
-profile copy. [Details and verification](docs/REWARDS-RUNTIME.md).
+profile copy. Unsupported or unsafe automatic returns retain rewards for the next server start.
+[Details and verification](docs/REWARDS-RUNTIME.md).
 
 ## Controls and configuration
 

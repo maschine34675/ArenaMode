@@ -9,7 +9,9 @@ it does not add a live-profile writer or move this boundary.
 The ordinary server now has a guarded consumer for **already approved** reward
 receipts. The user accepted payout at the next real server start for this first
 version. Returning from the private Arena session while the ordinary server keeps
-running does not trigger payment. No profile reload is forced to simulate a start.
+running did not trigger payment in that first version. The subsequent
+[automatic return](REWARDS-RETURN.md) performs a real, guarded normal-server restart.
+No profile reload is forced to simulate a start.
 
 The [result-validation and approval stage](REWARDS-RESULTS.md) now derives an
 approval from separately trusted run/restoration evidence and a combat report.

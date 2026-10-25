@@ -42,6 +42,12 @@ profile. Optional rewards use startup RUB mail plus an atomic PMC XP delta.
 Read docs/REWARDS-XP.md before changing reward amounts or profile progression:
 old results remain RUB-only, XP fields must preserve legacy serialization, and
 native login owns Level/trader recalculation from the final XP curve.
+Read docs/REWARDS-RETURN.md before changing session return: local automatic payout
+uses a real normal-server restart after private shutdown and signed-result transfer.
+Keep the separate process-bound return capability, request/update drain, native
+save plus full disk/RAM readback, exact process exit and no forced normal-server kill.
+A failed final save retains the quiesced process/RAM for an explicit retry; never
+resume native StartAsync, clear native save hashes or replace its live profiles.
 No Fika dependency. Arena is solo by default; the optional API-validated
 PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
 Zombie squad survival; read docs/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter. The

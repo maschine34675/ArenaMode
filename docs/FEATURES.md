@@ -632,6 +632,9 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   selected normal profile. Arena's map menu shows consent, rates and status in
   a separate card above the map preview.
   Initial registration and subsequent payments happen at normal server startup.
+  Returning from a private Arena session automatically restarts the supported local
+  server when payment or registration is pending, before reopening EFT. No extra
+  manual restart is needed; without pending work the server stays running.
 - Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
   capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only.
   No-contest results do not pay. Normal exits can retain kills from an unfinished

@@ -13,6 +13,8 @@ build/deployment JSON records live here. The automatically discovered
 - [Optional rewards: gameplay capture, private-session transfer and player consent](REWARDS-RUNTIME.md)
 - [XP and other mail rewards: Give-UI/native feasibility](REWARD-XP-FEASIBILITY-20261025.md)
 - [Atomic XP rewards and native progression](REWARDS-XP.md)
+- [Automatic reward settlement when returning to the normal session](REWARDS-RETURN.md)
+- [Automatic return: native mail, XP, pending totals and empty-return checks](GPU-REWARD-RETURN-20261025.md)
 - [XP rewards: private combat, startup payout, level and collection on GPU-2](GPU-REWARD-XP-20261025.md)
 - [Reward card on the Arena map screen: GPU-2 menu checks](GPU-REWARD-MENU-20261024.md)
 - [Private Arena session reward control: GPU-2 checks](GPU-PRIVATE-REWARD-CONSENT-20261025.md)
