@@ -1685,6 +1685,13 @@ public sealed class ArenaSessionHelperProcessTests
             var ex = Assert.Throws<HelperException>(() => runner.WaitForServer("127.0.0.1", port, server, "the test server", false));
             Assert.Contains("could not be verified", ex.Message);
 
+            // The refusing probe leaves connections queued on this synthetic
+            // listener, which has no accept loop. Give the independent positive
+            // owner-unavailable case a fresh socket and a scheduling margin.
+            listener.Stop();
+            listener = OpenListener(IPAddress.Loopback);
+            port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            runner.ServerStartTimeoutSeconds = 5;
             runner.WaitForServer("127.0.0.1", port, server, "the test server", true);
         }
         finally
