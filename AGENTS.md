@@ -7,7 +7,12 @@ Place new documentation and evidence summaries in `docs/`, not beside this file.
 
 Domination (2026-10-26 development) is a constructor variant of independent TDM
 with separate objective policies; read `docs/DOMINATION-PROTOTYPE-20261026.md`.
-V1 is Factory day/night only and requires the registered BigBrain objective layer.
+It requires the registered BigBrain objective layer. Factory day/night uses three
+points; the four ported maps use original CapturePointEntity anchors: Equator and
+Bay5 one each, AirPit and Bowl two each. Read docs/DOMINATION-PORTED-20261026.md.
+Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
+averages two distinct objectives. Ported Domination shares independent TDM's
+team boxes, gate completion, physical roster and spawn-shield ownership.
 Never turn its holding points into kill-based rewards or widen PFT pursuit leases.
 The original TDM kill policy stays separate; all physical roster/respawn boundaries
 remain shared. The September single-control-point proposal is historical.

@@ -42,10 +42,13 @@ internal readonly struct DominationPointState
 /// A neutral point takes CaptureSeconds; an enemy point first neutralizes over
 /// CaptureSeconds, then takes the same time to capture. Empty points retain
 /// partial progress/ownership. Contested or attacked points pay no income.
+/// The constructor freezes the point count for this match; callers may select
+/// a supported authored layout, but never resize the objective set while live.
 /// </summary>
 internal sealed class DominationPolicy
 {
     internal const float MaxStepSeconds = 30f;
+    internal const int MaximumPointCount = 16;
     // Float deltaTime partitioning can leave a nominal second a few nanoseconds
     // short. This tolerance is only numerical; it is never a catch-up interval.
     private const double RoundingTolerance = 0.000001d;
@@ -59,7 +62,7 @@ internal sealed class DominationPolicy
 
     internal DominationPolicy(int pointCount = 3, float captureSeconds = 5f)
     {
-        if (pointCount < 1 || pointCount > 16) throw new ArgumentOutOfRangeException(nameof(pointCount));
+        if (pointCount < 1 || pointCount > MaximumPointCount) throw new ArgumentOutOfRangeException(nameof(pointCount));
         if (!Finite(captureSeconds) || captureSeconds < .1f || captureSeconds > 60f)
             throw new ArgumentOutOfRangeException(nameof(captureSeconds));
         _captureSeconds = captureSeconds;

@@ -14,10 +14,23 @@ namespace ArenaMode.Modes;
 internal sealed class GateCountdownFixture
 {
     private TeamDeathmatchMatchPolicy _rules = new(25, 600);
+    private DominationMatchPolicy _dominationRules = new();
+    private readonly ObjectiveRouteFixture _domination = new();
+    internal bool IsDomination;
+    private bool MatchRulesReady => true;
+    private TdmMatchPhase MatchPhase => IsDomination ? _dominationRules.Phase : _rules.Phase;
+    private int MatchScoreLimit => IsDomination ? _dominationRules.ScoreLimit : _rules.KillLimit;
+    private int MatchTimeLimit => IsDomination ? _dominationRules.TimeLimitSeconds : _rules.TimeLimitSeconds;
     private bool _announcedReady = false;
     private float _gateCountdownEndsAt;
-    internal TdmMatchPhase Phase => _rules.Phase;
-    internal float StartedAt => _rules.StartedAt;
+    internal TdmMatchPhase Phase => MatchPhase;
+    internal float StartedAt => IsDomination ? _dominationRules.StartedAt : _rules.StartedAt;
+    internal int ObjectiveRouteChecks => _domination.Checks;
+    private sealed class ObjectiveRouteFixture
+    {
+        internal int Checks;
+        internal void VerifyTeamPaths() { Checks++; }
+    }
     internal void Tick(bool ready) => TickMatchStart(ready);
 $arenaMethod
 }
@@ -54,7 +67,8 @@ $arenaFaults = @(
     @('outside-corners','RuntimeSource',$arenaRuntime,'&& local.corners.All(p => InsideBooth(p, usec))','&& true','CORNERS:'),
     @('unsurveyed-position','RuntimeSource',$arenaRuntime,'&& (p.Position - position).sqrMagnitude <= .5625f','&& true','CANONICAL:'),
     @('rejected-start-leak','RuntimeSource',$arenaRuntime,'ReleaseGates($"ArenaMode {MapLabel} start not admitted");',';','REJECTED-START:'),
-    @('countdown-before-open','FlowSource',$arenaFlowSource,'&& !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;','&& false) return;','RELEASE:'),
+    @('countdown-before-open','FlowSource',$arenaFlowSource,'if (!Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;','if (false) return;','RELEASE:'),
+    @('objective-path-bypass','FlowSource',$arenaFlowSource,'if (IsDomination) _domination.VerifyTeamPaths();',';','OBJECTIVE-PATH:'),
     @('stop-wrong-profile','RuntimeSource',$arenaRuntime,'&& profileId == _game?.Profile?.Id','&& true','STOP-PROFILE:'),
     @('stop-suppressed','RuntimeSource',$arenaRuntime,'&& (_game.Status == GameStatus.Stopping || _game.Status == GameStatus.Stopped)','&& true','STOP-SUPPRESSED:'),
     @('pause-timeout','RuntimeSource',$arenaRuntime,'Time.time - _openingStartedAt >= _formation.GateOpeningTimeoutSeconds','Time.realtimeSinceStartup - _openingStartedAt >= _formation.GateOpeningTimeoutSeconds','PAUSE:'),

@@ -132,6 +132,7 @@ namespace ArenaMode.Modes
     public class TeamDeathmatchMode
     {
         public bool IsDomination=true,IsSearchActive=true,IsComplete;
+        public int ObjectiveCount=3;
         public HashSet<Player> Owned=[];
         public bool TryClassifyCurrentBody(Player body,out bool friendly){friendly=body.Side==EPlayerSide.Usec;return Owned.Contains(body);}
     }

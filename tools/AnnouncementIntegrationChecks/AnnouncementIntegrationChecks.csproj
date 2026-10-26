@@ -5,6 +5,7 @@
     <AnnouncementSourceRoot Condition="'$(AnnouncementSourceRoot)' == ''">../../ArenaMode.Client</AnnouncementSourceRoot>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(AnnouncementSourceRoot)/Modes/DominationMapLayout.cs" Link="Production/DominationMapLayout.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementSnapshot.cs" Link="Production/Snapshot.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementPolicy.cs" Link="Production/Policy.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementDirector.cs" Link="Production/Director.cs" />

@@ -102,7 +102,7 @@ catch (ArgumentOutOfRangeException) { Check(true, "invalid phase rejected"); }
 // Link and exercise the real runtime partial, with only game objects doubled.
 foreach (bool localUsec in new[] { false, true })
 {
-    FakeHub.Reset(); var mode = new TeamDeathmatchMode(localUsec);
+    FakeHub.Reset(); var mode = TeamDeathmatchMode.Create(localUsec);
     mode.Board.FriendlyKills = 3; mode.Board.OpponentKills = 2;
     var friendly = mode.AddBot(localUsec, "friendly");
     mode.AddBot(!localUsec, "enemy");
@@ -138,37 +138,111 @@ foreach (bool localUsec in new[] { false, true })
     mode.Release(); Check(!mode.HasSession && FakeHub.Handle == 0, "normal runtime release");
 }
 
-FakeHub.Reset(); var endless = new TeamDeathmatchMode(true, 0, 0);
+FakeHub.Reset(); var endless = TeamDeathmatchMode.Create(true, 0, 0);
 endless.Claim(); Check(FakeHub.Clock == (0, 0f), "unlimited assembly hides clock");
 endless.Start(100); endless.Advance(103); endless.Push();
 Check(FakeHub.Clock == (3, 103f), "unlimited match counts from actual release"); endless.Release();
 
 foreach (var condition in new[] { "ended", "native", "fail", "world", "replacement" })
 {
-    FakeHub.Reset(); var mode = new TeamDeathmatchMode(true); mode.Claim();
+    FakeHub.Reset(); var mode = TeamDeathmatchMode.Create(true); mode.Claim();
     mode.FinishOrStop(condition); mode.Push(); mode.Push(); mode.Release();
     Check(!mode.HasSession && FakeHub.Handle == 0 && FakeHub.Releases == 1, "exact lifecycle loss releases once: " + condition);
 }
-FakeHub.Reset(); var brokenScore = new TeamDeathmatchMode(true); brokenScore.Claim();
+FakeHub.Reset(); var brokenScore = TeamDeathmatchMode.Create(true); brokenScore.Claim();
 brokenScore.Board.ThrowRead = true; brokenScore.Board.Version++; brokenScore.Push();
 Check(!brokenScore.HasSession && FakeHub.Releases == 1 && FakeHub.Handle == 0, "score mapping failure releases claim");
 Check(brokenScore.Rules.Phase == TdmMatchPhase.Assembling, "presentation failure cannot fail match rules");
-FakeHub.Reset(); var brokenBody = new TeamDeathmatchMode(true); brokenBody.Claim(); brokenBody.Local.ThrowHealth = true; brokenBody.Push();
+FakeHub.Reset(); var brokenBody = TeamDeathmatchMode.Create(true); brokenBody.Claim(); brokenBody.Local.ThrowHealth = true; brokenBody.Push();
 Check(!brokenBody.HasSession && FakeHub.Releases == 1 && FakeHub.Handle == 0, "physical body read failure releases claim");
-FakeHub.Reset(); var brokenRaid = new TeamDeathmatchMode(true) { ThrowRaidRead = true }; brokenRaid.Claim();
+FakeHub.Reset(); var brokenRaid = TeamDeathmatchMode.Create(true); brokenRaid.ThrowRaidRead = true; brokenRaid.Claim();
 Check(!brokenRaid.HasSession && FakeHub.Claims == 0 && brokenRaid.Rules.Phase == TdmMatchPhase.Assembling,
     "claim preparation failure cannot propagate into match startup");
-FakeHub.Reset(); var nativeStop = new TeamDeathmatchMode(true); nativeStop.Claim();
+FakeHub.Reset(); var nativeStop = TeamDeathmatchMode.Create(true); nativeStop.Claim();
 nativeStop.OnNativePresentationStop(); nativeStop.OnNativePresentationStop();
 Check(!nativeStop.HasSession && FakeHub.Releases == 1 && FakeHub.Handle == 0,
     "native service early return releases once without a mode tick");
 nativeStop.Release(); Check(FakeHub.Releases == 1, "match end after native stop does not release twice");
-FakeHub.Reset(); var first = new TeamDeathmatchMode(true); first.Claim(); string firstOwner = FakeHub.Owner;
-var second = new TeamDeathmatchMode(false); second.Claim();
+FakeHub.Reset(); var first = TeamDeathmatchMode.Create(true); first.Claim(); string firstOwner = FakeHub.Owner;
+var second = TeamDeathmatchMode.Create(false); second.Claim();
 Check(!second.HasSession && FakeHub.Owner == firstOwner, "replacement cannot share previous match handle");
 first.Release(); second.Claim();
 Check(second.HasSession && FakeHub.Owner != firstOwner, "new match uses unique owner");
 int secondHandle = FakeHub.Handle; first.Release();
 Check(FakeHub.Handle == secondHandle, "old mode cleanup cannot release new match"); second.Release();
+
+// Real Domination policy income never advances the independent kill scoreboard.
+// Exercise its actual faction accessors, one/two/three-point maps, both chosen
+// player factions and the complete assembly -> countdown -> result lifecycle.
+foreach (bool localUsec in new[] { false, true })
+foreach (int pointCount in new[] { 1, 2, 3 })
+{
+    FakeHub.Reset();
+    var mode = TeamDeathmatchMode.Create(localUsec, domination: true, points: pointCount);
+    mode.Board.FriendlyKills = 99; mode.Board.OpponentKills = 77;
+    mode.Board.ThrowRead = true;
+    mode.AddBot(localUsec, "dom-friendly"); mode.AddBot(!localUsec, "dom-enemy");
+    mode.Claim();
+    Check(mode.IsDomination && mode.Rules == null && mode.HasSession,
+        "DOM claims using objective rules without a TDM policy");
+    Check(FakeHub.Clock == (1, 600f) && FakeHub.Score.a == 0 && FakeHub.Score.b == 0,
+        "DOM assembly projects objective scores instead of existing kills");
+    Check(FakeHub.Sides == (ArenaTeamPalette.BearRgb, ArenaTeamPalette.UsecRgb, 5)
+        && FakeHub.Score.aliveA == (localUsec ? 1 : 2) && FakeHub.Score.aliveB == (localUsec ? 2 : 1),
+        "DOM faction colors and living roster stay faction-correct");
+    mode.Start(100); mode.Push();
+    Check(FakeHub.Clock == (2, 103f), "DOM countdown uses the current gate deadline");
+    mode.Advance(102, false); mode.Push();
+    Check(FakeHub.Clock == (1, 600f), "DOM readiness loss restores assembly clock");
+    mode.Start(105); mode.Advance(111); mode.Push();
+    Check(FakeHub.Clock == (2, 711f), "DOM live timer starts at actual delayed gate release");
+
+    var usec = new DominationOccupancy[pointCount]; usec[0] = new(1, 0);
+    var bear = new DominationOccupancy[pointCount]; bear[0] = new(0, 1);
+    mode.AdvanceObjectives(116, usec); mode.Push(); // capture; no earlier income
+    mode.AdvanceObjectives(119, usec); mode.Push();
+    Check(FakeHub.Score.a == 0 && FakeHub.Score.b == 3 && mode.Board.Version == 0,
+        "DOM objective income updates without a kill scoreboard version change");
+    int scoreCalls = FakeHub.ScoreCalls;
+    mode.Push(); mode.Push();
+    Check(FakeHub.ScoreCalls == scoreCalls, "DOM unchanged income retains monitor write deduplication");
+    mode.AdvanceObjectives(129, bear); mode.AdvanceObjectives(131, bear); mode.Push();
+    Check(FakeHub.Score.a == 2 && FakeHub.Score.b == 3,
+        "DOM both objective factions project identically for either selected player faction");
+    mode.Board.FriendlyKills = 123; mode.Board.OpponentKills = 456; mode.Board.Version++;
+    mode.AdvanceObjectives(132, bear); mode.Push();
+    Check(FakeHub.Score.a == 3 && FakeHub.Score.b == 3 && mode.Board.TotalReads == 0,
+        "DOM never reads kill totals even when their version changes");
+    mode.Local.HealthController.IsAlive = false; mode.Push();
+    Check(FakeHub.Score.aliveA == 1 && FakeHub.Score.aliveB == 1,
+        "DOM dead local leaves alive counts without losing objective income");
+    mode.AdvanceObjectives(139, bear); mode.Push();
+    Check(mode.HasResult && FakeHub.Score.a == 10 && FakeHub.Score.b == 3 && FakeHub.Clock == (1, 572f),
+        "DOM terminal policy scores and exact finish clock are projected");
+    var final = FakeHub.Score;
+    mode.Board.FriendlyKills = 777; mode.Board.OpponentKills = 999; mode.Board.Version++;
+    mode.AdvanceObjectives(154, usec); mode.Push();
+    Check(mode.HasSession && FakeHub.Score == final && FakeHub.Clock == (1, 572f),
+        "DOM final score and clock remain frozen for the terminal display hold");
+    mode.Release(); Check(FakeHub.Handle == 0, "DOM result release clears owned monitor session");
+}
+
+foreach (bool domination in new[] { false, true })
+{
+    FakeHub.Reset(); var mode = TeamDeathmatchMode.Create(true, domination: domination);
+    mode.ClearRules(); mode.Claim();
+    Check(!mode.HasSession && FakeHub.Claims == 0, "missing active mode policy cannot claim: " + domination);
+}
+foreach (var condition in new[] { "ended", "native", "fail", "world", "replacement" })
+{
+    FakeHub.Reset(); var mode = TeamDeathmatchMode.Create(false, domination: true); mode.Claim();
+    mode.FinishOrStop(condition); mode.Push(); mode.Push();
+    Check(!mode.HasSession && FakeHub.Handle == 0 && FakeHub.Releases == 1,
+        "DOM exact lifecycle loss releases once: " + condition);
+}
+FakeHub.Reset(); var domNativeStop = TeamDeathmatchMode.Create(false, domination: true); domNativeStop.Claim();
+domNativeStop.OnNativePresentationStop(); domNativeStop.OnNativePresentationStop();
+Check(!domNativeStop.HasSession && FakeHub.Releases == 1 && FakeHub.Handle == 0,
+    "DOM native presentation stop releases once without a mode tick");
 
 Console.WriteLine($"TDMMONITORCHECKS_PASSED ({checks} assertions)");

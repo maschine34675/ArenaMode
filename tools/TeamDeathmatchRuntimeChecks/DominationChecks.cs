@@ -16,8 +16,8 @@ internal static partial class Program
                 "DOM exact mode identity and initial readiness");
             Check(raid.Mode.ShouldBlockMatchDamage(raid.Local), "DOM preparation blocks damage");
             raid.Fill();
-            Check(raid.Mode.InitialRosterReady && raid.Mode.IsSearchActive && raid.Mode.MonitorClaims == 0,
-                "DOM releases real roster/countdown without claiming kill monitors");
+            Check(raid.Mode.InitialRosterReady && raid.Mode.IsSearchActive && raid.Mode.MonitorClaims == 1,
+                "DOM releases real roster/countdown and claims objective monitors");
             Check(raid.Mode.TryGetDifficultyClock(out _, out int duration) && duration == 600,
                 "DOM frozen objective horizon independent of TDM F12 limits");
             float start = Time.time;
@@ -69,5 +69,27 @@ internal static partial class Program
         stopped.Step(Time.time + 1);
         Check(DominationObjectiveBridge.Stops > before && !stopped.Mode.IsSearchActive,
             "DOM native stop revokes objectives before body disposal");
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
+        foreach (bool usec in new[] { true, false })
+        {
+            int count = map is "arena_equator" or "arena_bay5" ? 1 : 2;
+            DominationRuntime.Sample = new DominationOccupancy[count];
+            var port = new Raid(usec: usec, size: 2, location: map, domination: true);
+            Check(port.Mode.ObjectiveCount == count, "DOM port constructs its authored objective count: " + map);
+            port.Fill();
+            Check(port.Mode.InitialRosterReady && port.Mode.IsSearchActive && !port.Mode.IsComplete,
+                "DOM port releases the actual independent roster: " + map);
+            float liveAt = Time.time;
+            DominationRuntime.Sample = Enumerable.Repeat(usec ? new DominationOccupancy(1, 0)
+                : new DominationOccupancy(0, 1), count).ToArray();
+            port.Step(liveAt + 5);
+            Check(port.Mode.FriendlyTeamScore == 0, "DOM port cannot score during capture: " + map);
+            port.Step(liveAt + 6);
+            Check(port.Mode.FriendlyTeamScore == count && port.Mode.OpponentTeamScore == 0,
+                "DOM port scores each authored point for selected faction: " + map);
+            port.Mode.OnMatchEnd();
+            Check(!port.Mode.ObjectiveHudVisible, "DOM port releases presentation: " + map);
+        }
+        DominationRuntime.Sample = new DominationOccupancy[3];
     }
 }

@@ -12,6 +12,8 @@ function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[s
     $stage = Join-Path $domEvidence $name
     [void][IO.Directory]::CreateDirectory($stage)
     $build = & dotnet build (Join-Path $PSScriptRoot 'DominationBotChecks.csproj') -c Release --nologo `
+        "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $domRepo 'tools/AirPitChecks/NoDeploy.targets')" `
+        "-p:SPTUserMods=$(Join-Path $domRepo 'artifacts/nodeploy/must-not-exist')" `
         "-p:ClientSourceRoot=$client" "-p:ObjectiveSourceRoot=$compat" "-p:BaseIntermediateOutputPath=$stage/obj/" "-p:OutputPath=$stage/out/" 2>&1 | Out-String
     [IO.File]::WriteAllText((Join-Path $stage 'build.log'),$build)
     if ($LASTEXITCODE -ne 0) { throw "$name did not compile: $build" }
@@ -34,6 +36,9 @@ function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[s
 }
 Invoke-DominationCheck 'production' $domClient $domCompat
 $faults = @(
+    @{Name='fixed-three-points';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount';Replace='points.Count != 3';Reject='authored point count supports current bot assignments: 1'},
+    @{Name='publisher-count-drift';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount || ';Replace='';Reject='publisher count mismatch revokes existing leases'},
+    @{Name='oversized-objective-list';File='DominationObjectiveBridge.cs';Find='|| points.Count > 16';Replace='';Reject='more than sixteen points rejected even when mode agrees'},
     @{Name='stale-bigbrain-action';File='ArenaDominationLayer.cs';Find='|| !ReferenceEquals(_action.Lease, _lease)';Replace='';Reject='planner reassignment ends previous BigBrain action'},
     @{Name='unowned-body';File='DominationObjectiveBridge.cs';Find='&& _match.Mode is TeamDeathmatchMode mode && mode.TryClassifyCurrentBody(body, out _)';Replace='';Reject='foreign live body cannot claim objective'},
     @{Name='tdm-leak';File='DominationObjectiveBridge.cs';Find='mode.IsDomination &&';Replace='';Reject='ordinary TDM excluded'},

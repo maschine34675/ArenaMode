@@ -15,7 +15,7 @@ static class Program
     private static List<BotOwner> _bots;
     private static DominationObjectivePoint[] _points;
     static void Assert(bool value,string name){_checks++;if(!value)throw new Exception("FAIL: "+name);}
-    static void Setup(int count=6)
+    static void Setup(int count=6,int pointCount=3)
     {
         Time.time=10;Time.timeScale=1;NavMesh.Paths=NavMesh.Samples=true;NavMesh.Calls=0;
         ArenaSainMovementHandoff.State=ArenaSainHandoffState.Ready;
@@ -24,7 +24,9 @@ static class Program
         ArenaMode.Pickups.ArenaPickupGeometry.Clear=true;
         _world=new();_game=new(){GameWorld=_world};_match=new();_bots=[];
         Singleton<GameWorld>.Instance=_world;Singleton<AbstractGame>.Instance=_game;ArenaMatchService.Current=_match;
-        _points=[new("A",new(0,0,0),null,false),new("B",new(25,0,0),null,false),new("C",new(50,0,0),null,false)];
+        _match.Mode.ObjectiveCount=pointCount;
+        _points=Enumerable.Range(0,pointCount).Select(i=>new DominationObjectivePoint(
+            ((char)('A'+i)).ToString(),new(i*25,0,0),null,false)).ToArray();
         for(int i=0;i<count;i++)
         {
             var body=new Player(){ProfileId="bot"+i,Side=i%2==0?EPlayerSide.Usec:EPlayerSide.Bear,Position=new(-20,0,-20)};
@@ -116,6 +118,53 @@ static class Program
         Setup();bot=_bots[0];(layer,logic,data)=Action(bot);ArenaSainMovementHandoff.State=ArenaSainHandoffState.WaitingForDeactivation;
         logic.Update(data);for(int i=0;i<5;i++){Time.time++;Tick();logic.Update(data);}
         Assert(!data.Lease.Current&&bot.RouteCalls==0,"handoff wait bounded and no route stolen");
+        PointCountContract();
         Console.WriteLine($"Domination bot checks passed: {_checks} assertions.");
+    }
+
+    static void PointCountContract()
+    {
+        foreach(int count in new[]{1,2,3})
+        {
+            Setup(pointCount:count);
+            Assert(_bots.All(bot=>DominationObjectiveBridge.TryGet(bot,out _)),
+                "authored point count supports current bot assignments: "+count);
+            foreach(var side in new[]{EPlayerSide.Usec,EPlayerSide.Bear})
+                Assert(_bots.Where(b=>b.GetPlayer.Side==side).Select(b=>Lease(b).PointId).Distinct().Count()==count,
+                    "each team distributes over the authored point count: "+count);
+            var original=Lease(_bots[0]);
+            Time.time++;Tick();
+            Assert(ReferenceEquals(original,Lease(_bots[0])),"variable-count assignments remain stable: "+count);
+            _match.Mode.ObjectiveCount=count+1;
+            Tick();
+            Assert(!original.Current&&!DominationObjectiveBridge.TryGet(_bots[0],out _),
+                "publisher count mismatch revokes existing leases");
+            _match.Mode.ObjectiveCount=count;
+            Time.time++;Tick();
+            Assert(DominationObjectiveBridge.TryGet(_bots[0],out _),"matching current publisher can resume after mismatch");
+            original=Lease(_bots[0]);
+            var stalePoints=_points.Take(count-1).ToArray();
+            DominationObjectiveBridge.Update(stalePoints,_bots,true);
+            Assert(!original.Current&&!DominationObjectiveBridge.TryGet(_bots[0],out _),
+                "stale shorter point snapshot cannot retain movement authority");
+        }
+        Setup(pointCount:16);
+        Assert(_bots.All(bot=>DominationObjectiveBridge.TryGet(bot,out _)),"maximum supported count admits current assignments");
+        Setup(pointCount:17);
+        Assert(_bots.All(bot=>!DominationObjectiveBridge.TryGet(bot,out _)),"more than sixteen points rejected even when mode agrees");
+        Setup(pointCount:0);
+        Assert(_bots.All(bot=>!DominationObjectiveBridge.TryGet(bot,out _)),"zero point snapshot grants no assignment");
+        foreach(string defect in new[]{"null","duplicate","empty-id","nonfinite"})
+        {
+            Setup(pointCount:2);var prior=Lease(_bots[0]);
+            var malformed=_points.ToArray();
+            if(defect=="null")malformed=null;
+            else if(defect=="duplicate")malformed[1]=new(malformed[0].Id,malformed[1].Position,null,false);
+            else if(defect=="empty-id")malformed[0]=new("",malformed[0].Position,null,false);
+            else malformed[0]=new("A",new(float.NaN,0,0),null,false);
+            DominationObjectiveBridge.Update(malformed,_bots,true);
+            Assert(!prior.Current&&!DominationObjectiveBridge.TryGet(_bots[0],out _),
+                "malformed publisher revokes previous assignment: "+defect);
+        }
     }
 }

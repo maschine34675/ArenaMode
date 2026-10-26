@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Domination on ported maps (2026-10-26):** Equator/Bay5 each use their
+  original X point; AirPit/Bowl use the two original A/B points. Old MapPort
+  `capture_point` centroids incorrectly average the latter pairs: never restore
+  those as objectives. Factory keeps A/B/C. Full-map independent admission,
+  team boxes/gate completion and post-open routes from both teams are shared
+  with TDM. Objective count is frozen, pickup exclusion covers all points, and
+  MapPort monitors show objective income rather than kill totals. Client,
+  companion and server are deployed together; MapPort/Core unchanged. See
+  [implementation and hashes](DOMINATION-PORTED-20261026.md) and
+  [native evidence and cleanup](GPU-DOMINATION-PORTED-20261026.md).
+
 - **Domination feedback follow-up (2026-10-26):** map display shares one
   eligibility snapshot per refresh while final admission remains fresh. GPU-2's
   matched idle menu samples improved from 14 to 56 average FPS (P95 228.79 to

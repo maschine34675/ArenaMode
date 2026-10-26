@@ -2,6 +2,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $source = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Modes/DominationPolicy.cs')).Path
 $faults = @(
+    @{ Name='empty-point-set'; Find='pointCount < 1'; Replace='pointCount < 0'; Failure='invalid point count' },
+    @{ Name='unbounded-point-set'; Find='pointCount > MaximumPointCount'; Replace='false'; Failure='invalid point count' },
     @{ Name='contested-keeps-scoring'; Find='if (!contested)'; Replace='if (true)'; Failure='contested points pause income' },
     @{ Name='empty-owner-stops-scoring'; Find='Income(point.OwnerUsec.Value, deltaSeconds, ref usecIncome, ref bearIncome);'; Replace='Income(point.OwnerUsec.Value, 0d, ref usecIncome, ref bearIncome);'; Failure='empty owned points earn income' },
     @{ Name='crowd-capture-boost'; Find='point.Progress + direction * deltaSeconds / _captureSeconds'; Replace='point.Progress + direction * deltaSeconds * (current.Usec + current.Bear) / _captureSeconds'; Failure='headcount does not accelerate progress' },
@@ -23,6 +25,10 @@ $faults = @(
 foreach ($fault in $faults) { $fault.Path = $source; $fault.Property = 'PolicySource' }
 $matchSource = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Modes/DominationMatchPolicy.cs')).Path
 $matchFaults = @(
+    @{ Name='ignored-authored-point-count'; Find='_objectives = new DominationPolicy(pointCount);'; Replace='_objectives = new DominationPolicy();'; Failure='match rejects invalid point count through shared policy bound' },
+    @{ Name='forced-three-live-points'; Find='_objectives = new DominationPolicy(pointCount);'; Replace='_objectives = new DominationPolicy(pointCount == 1 ? 3 : pointCount);'; Failure='constructor freezes requested objective count' },
+    @{ Name='single-point-fast-capture'; Find='_objectives = new DominationPolicy(pointCount);'; Replace='_objectives = new DominationPolicy(pointCount, pointCount == 1 ? 1f : 5f);'; Failure='authored counts retain full neutral capture duration' },
+    @{ Name='single-point-tripled-score-limit'; Find='_objectives.AdvanceUntilScoreLimit(duration, occupancy, ScoreLimit)'; Replace='_objectives.AdvanceUntilScoreLimit(duration, occupancy, _objectives.Points.Count == 1 ? ScoreLimit * 3 : ScoreLimit)'; Failure='authored count reaches the unscaled score limit exactly' },
     @{ Name='countdown-released-early'; Find='if (now < _countdownEndsAt) return;'; Replace='if (false) return;'; Failure='countdown does not capture' },
     @{ Name='readiness-loss-ignored'; Find='if (!rosterReady) { Phase = TdmMatchPhase.Assembling; return; }'; Replace='if (false) { Phase = TdmMatchPhase.Assembling; return; }'; Failure='lost readiness cancels countdown' },
     @{ Name='pre-live-time-charged'; Find='_lastAdvancedAt = now;'; Replace='_lastAdvancedAt = _countdownEndsAt;'; Failure='live capture consumes full duration before scoring' },

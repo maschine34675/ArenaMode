@@ -35,7 +35,25 @@ $faults = @(
        Find='"AM TDM " + Guid.NewGuid().ToString("N")'; Replace='"ArenaMode TDM"';
        Failure='replacement cannot share previous match handle' },
     @{ Name='native-stop-presentation-leak'; Path=$runtime; Property='MonitorRuntimeSource';
-       Find='internal void OnNativePresentationStop() => ReleaseMonitors();'; Replace='internal void OnNativePresentationStop() { }';
-       Failure='native service early return releases once without a mode tick' }
+       Find="internal void OnNativePresentationStop()`n    {`n        ReleaseMonitors();`n        ReleaseDomination();`n    }";
+       Replace='internal void OnNativePresentationStop() { ReleaseDomination(); }';
+       Failure='native service early return releases once without a mode tick' },
+    @{ Name='domination-requires-kill-policy'; Path=$runtime; Property='MonitorRuntimeSource';
+       Find='&& MatchRulesReady && _population != null'; Replace='&& _rules != null && _population != null';
+       Failure='DOM claims using objective rules without a TDM policy' },
+    @{ Name='objective-income-cached-by-kills'; Path=$runtime; Property='MonitorRuntimeSource';
+       Find="else if (IsDomination)`n            {";
+       Replace="else if (IsDomination && _monitorScoreVersion != _match.Scoreboard.Version)`n            {`n                _monitorScoreVersion = _match.Scoreboard.Version;";
+       Failure='DOM objective income updates without a kill scoreboard version change' },
+    @{ Name='objective-clock-starts-at-zero'; Path=$runtime; Property='MonitorRuntimeSource';
+       Find='IsDomination ? _dominationRules.StartedAt : _rules.StartedAt';
+       Replace='IsDomination ? 0f : _rules.StartedAt';
+       Failure='DOM live timer starts at actual delayed gate release' },
+    @{ Name='objective-score-uses-friendly-as-bear'; Path=$runtime; Property='MonitorRuntimeSource';
+       Find='bool localUsec = _population.LocalUsec;'; Replace='bool localUsec = !IsDomination && _population.LocalUsec;';
+       Failure='DOM faction colors and living roster stay faction-correct' },
+    @{ Name='final-scores-continue-to-use-scoreboard'; Path=$runtime; Property='MonitorRuntimeSource';
+       Find='_monitorFriendlyScore = FinalFriendlyScore;'; Replace='_monitorFriendlyScore = FriendlyTeamScore;';
+       Failure='result survives full 15 second hold with frozen scores/time' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'TdmMonitorChecks.csproj') -Token 'TDMMONITORCHECKS_PASSED' -Properties @() -Faults $faults

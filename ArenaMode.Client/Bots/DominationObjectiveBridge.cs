@@ -114,7 +114,8 @@ public static class DominationObjectiveBridge
 
     public static void Update(IReadOnlyList<DominationObjectivePoint> points, IReadOnlyList<BotOwner> bots, bool live)
     {
-        if (!live || !Context() || points == null || points.Count != 3 || bots == null)
+        if (!live || !Context() || points == null || _match.Mode is not TeamDeathmatchMode mode
+            || points.Count != mode.ObjectiveCount || points.Count < 1 || points.Count > 16 || bots == null)
         { _live = false; Assignments.Clear(); Rejected.Clear(); Points.Clear(); return; }
         for (int i = 0; i < points.Count; i++)
         {

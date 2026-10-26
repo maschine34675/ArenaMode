@@ -196,6 +196,7 @@ DominationMatchPolicy Live(int score = 200, int time = 600, float start = 3)
 }
 var defaults = new DominationMatchPolicy();
 Need(defaults.ScoreLimit == 200 && defaults.TimeLimitSeconds == 600
+    && defaults.Points.Count == 3
     && defaults.Phase == TdmMatchPhase.Assembling && defaults.Result == TdmMatchResult.None, "objective defaults and initial lifecycle");
 foreach (int invalid in new[] { -1, 1001 })
     Throws<ArgumentOutOfRangeException>(() => new DominationMatchPolicy(invalid), "invalid score limit rejected");
@@ -303,6 +304,8 @@ for (int trial = 0; trial < 100; trial++)
         }
     }
 }
+
+checks += PointCountChecks.Run();
 
 // Keep the established kill-shaped TDM policy linked, independently verifying
 // that Domination has not replaced its limits or original result semantics.

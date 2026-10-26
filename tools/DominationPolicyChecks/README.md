@@ -31,6 +31,18 @@ selected faction maps USEC/BEAR into friendly/opponent results. Terminal state
 does not accept later samples or faction changes. A failed sample does not
 consume the match clock. No native body or roster failure is handled here.
 
+The match constructor accepts optional `pointCount` after the existing score and
+time arguments, defaulting to three. The shared policy retains its fixed 1..16
+point bound; actual map admission chooses the authored supported count (one on
+Equator/Bay5, two on AirPit/Bowl, three on Factory). It cannot change during a
+match. New checks exercise all three authored counts through capture/neutralization, contest, empty
+ownership, fixed collection identity, wrong sample length, both factions, score
+crossings and deadlines. Two-point cases also verify simultaneous scoring ties
+and independent/faction-symmetric contest. Deterministic random one-point matches are compared
+with a three-point match containing two empty neutral points and with finer
+time partitions. Extra mutations reject ignored counts, unbounded/empty sets,
+one-point capture acceleration and a scaled score limit. All prior checks remain.
+
 Tests cover both teams, delayed neutralization, contested/empty states, actual
 post-capture income, float partition boundaries, invalid input atomicity,
 immutable views, exact threshold/deadline clipping, readiness/pause/terminal

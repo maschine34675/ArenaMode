@@ -43,8 +43,11 @@ public sealed partial class TeamDeathmatchMode
     {
         if (!MatchRulesReady || _announcedReady) return;
         var before = MatchPhase;
-        if (ready && before == TdmMatchPhase.Countdown && Time.time >= _gateCountdownEndsAt
-            && !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;
+        if (ready && before == TdmMatchPhase.Countdown && Time.time >= _gateCountdownEndsAt)
+        {
+            if (!Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;
+            if (IsDomination) _domination.VerifyTeamPaths();
+        }
         if (IsDomination) _dominationRules.UpdateStart(Time.time, ready);
         else _rules.Update(Time.time, ready, 0, 0);
         if (before != TdmMatchPhase.Countdown && MatchPhase == TdmMatchPhase.Countdown)

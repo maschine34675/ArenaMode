@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Extend Domination to Equator and Bay5 (one original control point each),
+  AirPit and Bowl (two each). Use the original individual capture anchors,
+  team boxes and gate completion; MapPort monitors show objective scores.
+  Factory retains its three-point layout. [Details](docs/DOMINATION-PORTED-20261026.md).
 - Fix the Arena map-screen stall caused by repeated compatibility checks per
   map row. Final start admission remains fresh; GPU-2's measured idle average
   improves from 14 to 56 FPS. [Measurements](docs/MAP-MENU-PERFORMANCE-20261026.md).

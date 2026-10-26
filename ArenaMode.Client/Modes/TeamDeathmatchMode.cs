@@ -110,7 +110,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         Plugin.ModLogger.LogDebug($"Team Deathmatch: {TeamSize}v{TeamSize}, local {FriendlyFaction}, "
             + $"{TeamSize - 1} friendly / {TeamSize} opposing bot slots; no PFT followers.");
         InitializeDomination();
-        if (!IsDomination) ClaimMonitors();
+        ClaimMonitors();
     }
 
     public void Tick(float deltaTime)

@@ -9,6 +9,12 @@
     <ShieldSource Condition="'$(ShieldSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamDeathmatchMode.SpawnProtection.cs</ShieldSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMode.Domination.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMapLayout.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" />
+    <Compile Include="../TeamDeathmatchRuntimeChecks/DominationStubs.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="Model/Stubs.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/AreaStandIns.cs" Link="Model/AreaStandIns.cs" />
     <Compile Include="$(ModeSource)" Link="Production/TeamDeathmatchMode.cs" />

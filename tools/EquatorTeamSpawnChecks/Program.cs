@@ -14,6 +14,7 @@ internal static class Program
 {
     private static int Checks;
     internal static Catalog.Formation Formation = Catalog.Find("arena_equator");
+    private static string FixtureMode = Catalog.ModeId;
     private static LocalGame Game;
     private static GameWorld World;
     private static BotZone Zone;
@@ -45,8 +46,8 @@ internal static class Program
         Singleton<AbstractGame>.Instance=Game;Singleton<GameWorld>.Instance=World;
         ArenaSession.ExactGame=Game;ArenaSession.ExactWorld=World;ArenaSession.IsActive=false;
         ArenaSession.SelectedTeam=selectedTeam;
-        ArenaSession.ArmedForNextRaid=true;ArenaSession.ArmedMap=Formation.MapId;ArenaSession.ArmedMode=Catalog.ModeId;
-        ArenaSession.ActiveMode=Catalog.ModeId;ArenaSession.Participants=total;ArenaSession.ArmEpoch++;
+        ArenaSession.ArmedForNextRaid=true;ArenaSession.ArmedMap=Formation.MapId;ArenaSession.ArmedMode=FixtureMode;
+        ArenaSession.ActiveMode=FixtureMode;ArenaSession.Participants=total;ArenaSession.ArmEpoch++;
         ArenaServerClient.PendingArmToken=Guid.NewGuid().ToString("N");
         Game.Settings=new(){location=Formation.MapId,serverId="start:"+ArenaServerClient.PendingArmToken};
         Zone=new(){name=Formation.Zone};FindObjectsProxy.Zones=new(){Zone};Collection=new();
@@ -202,11 +203,53 @@ internal static class Program
         Check(stateArgs[1]==null,"LOADING: unconfirmed identity cannot own cleanup");
         Reject(()=>Invoke("RestoreCollection",Collection),"LOADING: bad arm identity cannot restore markers");
     }
+    private static void ExcludedContexts()
+    {
+        // Keep valid ported markers present: a disabled scope must not silently
+        // claim them merely because it recognizes their IDs or the map asset.
+        foreach(var mode in new[]{"tactical","zombie","deathmatch","gungame","unknown"})
+        {
+            Setup(active:false,restore:false);
+            ArenaSession.ArmedMode=mode;ArenaSession.ActiveMode=mode;
+            Check(!Catalog.Applies(Formation.MapId,mode),"EXCLUDED-MODE: catalog excludes "+mode);
+            CheckExcluded("EXCLUDED-MODE: "+mode);
+        }
+        foreach(var map in new[]{"factory4_day","factory4_night","bigmap","unknown"})
+        {
+            Setup(active:false,restore:false);
+            World.LocationId=map;Game.Settings.location=map;ArenaSession.ArmedMap=map;
+            Check(!Catalog.Applies(map,FixtureMode),"EXCLUDED-MAP: catalog excludes "+map);
+            CheckExcluded("EXCLUDED-MAP: "+map);
+        }
+        Setup(active:false,restore:false);ArenaSession.ArmedForNextRaid=false;
+        CheckExcluded("ORDINARY-RAID",activate:false);
+    }
+    private static void CheckExcluded(string label,bool activate=true)
+    {
+        var before=Collection._dictionary.Keys.Select(p=>p.Position).ToArray();
+        object[] state={Game,null};Invoke("BeforeLoad",state);
+        Check(state[1]==null,label+": no loading lease");
+        Invoke("RestoreCollection",Collection);
+        Check(Collection._dictionary.Keys.Select(p=>p.Position).SequenceEqual(before),label+": no loading collection mutation");
+        if(activate){ArenaSession.IsActive=true;ArenaSession.ArmedForNextRaid=false;Game.Status=GameStatus.Started;}
+        Check(!Runtime.IsRequired,label+": no active team-box scope");
+        Runtime.Begin(World,Game);Invoke("RestoreCollection",Collection);
+        Check(Collection._dictionary.Keys.Select(p=>p.Position).SequenceEqual(before),label+": no active collection mutation");
+        Check(!Runtime.TryPlanBot(new[]{Zone},true,true,out _,out _,out _),label+": no bot movement lease");
+        var original=new ArenaMode.Respawn.ArenaSpawnSelector();
+        Check(Runtime.TryPrepareRespawn(Game,original,out var prepared)&&ReferenceEquals(original,prepared),
+            label+": player respawn selector is returned unchanged");
+        var system=new SpawnSystem{_players=World,_spawnPoints=Collection};
+        Check((bool)Initial(ESpawnCategory.Player,EPlayerSide.Usec,"local",system,out var selected)&&selected==null,
+            label+": native initial spawn remains authoritative");
+    }
     private static async Task Main()
     {
         foreach(var map in new[]{"arena_equator","arena_bay5","arena_airpit","arena_bowl"})
+        foreach(var mode in new[]{Catalog.ModeId,"domination"})
         {
-            Formation=Catalog.Find(map);
+            Formation=Catalog.Find(map);FixtureMode=mode;
+            Check(Catalog.Applies(map,mode),"INDEPENDENT-MODE: ported team-box scope "+map+"/"+mode);
             ScopeAndFormation();HeadersAndInitial();ReservationsAndArrival();PlayerHandover();await LoadingFailures();
             foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
             {
@@ -240,6 +283,7 @@ internal static class Program
             var before=Collection._dictionary.Keys.Select(p=>p.Position).ToArray();
             Invoke("RestoreCollection",Collection);
             Check(Collection._dictionary.Keys.Select(p=>p.Position).SequenceEqual(before),"CROSS-MAP: no mismatched collection write");
+            ExcludedContexts();
         }
         Runtime.Shutdown();Console.WriteLine($"EQUATOR_TEAM_SPAWN_CHECKS_PASSED ({Checks} assertions)");
     }

@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Domination on ported maps: original capture points and team boxes](DOMINATION-PORTED-20261026.md)
 - [Domination prototype: three Factory points, team scoring and objective bots](DOMINATION-PROTOTYPE-20261026.md)
 - [Domination follow-up: map-menu performance, pickup separation and ownership rings](DOMINATION-FOLLOWUP-20261026.md)
 

@@ -10,6 +10,8 @@ void Need(bool ok, string detail)
 }
 const string Mode = "domination";
 string Day = ArenaMapCatalog.FactoryDayId, Night = ArenaMapCatalog.FactoryNightId;
+string[] supported = { Day, Night, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId,
+    ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId };
 Need(ArenaPopulationPolicy.Domination == Mode && ArenaModeCatalog.DominationId == Mode,
     "client and server use the same independent Domination identity");
 Need(ArenaModeCatalog.NormalizeId(Mode) == Mode, "Domination never falls back to Deathmatch");
@@ -19,8 +21,14 @@ Need(ArenaModeCatalog.All.Select(m => m.Id).SequenceEqual(new[] {
 var definition = ArenaModeCatalog.All.Single(m => m.Id == Mode);
 Need(definition.Label == "DOMINATION (WIP)" && definition.Description.Contains("200")
     && definition.Description.Contains("10-minute") && definition.Description.Length <= 80
-    && definition.Rules.Length <= 18 && definition.Respawn == "Instant",
-    "native common facts describe the fixed prototype without kill-limit controls");
+    && definition.Description.EndsWith(".", StringComparison.Ordinal)
+    && !definition.Description.Contains("Factory", StringComparison.OrdinalIgnoreCase),
+    "native Domination description keeps score/time limits without a Factory-only claim");
+Need(definition.Rules.Length > 0 && definition.Rules.Length <= 18
+    && definition.Rules.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 3
+    && !definition.Rules.Any(char.IsDigit),
+    "native objective fact fits 18 characters/3 words without a fixed point count: " + definition.Rules);
+Need(definition.Respawn == "Instant", "Domination retains instant respawn in its common facts");
 Need(ArenaModeCatalog.CanSelect(Mode, false) && !ArenaModeCatalog.CanSelect(Mode, true),
     "independent teams do not acquire PFT lifecycle semantics");
 var selected = new ArenaModeSelectionState("deathmatch", false, _ => true);
@@ -30,16 +38,20 @@ Need(selected.TrySelectIndex(dominationIndex) && selected.SelectedMode == Mode,
 selected.Synchronize(Mode, true);
 Need(selected.SelectedMode == "tactical", "inviting a PFT squad repairs the independent mode");
 
-foreach (string map in new[] { Day, Night })
+foreach (string map in supported)
 {
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, Mode, false, out var area, out _)
-        && area == null, "Factory variant admits a full-map objective match: " + map);
-    Need(ArenaAreaSelectionState.Create(map, Mode, false, ArenaAreaCatalog.FullMapId, 5).Available,
-        "the native area model offers Factory: " + map);
+        && area == null, "reviewed map admits a full-map objective match: " + map);
+    Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map.ToUpperInvariant(), Mode.ToUpperInvariant(), false,
+        out _, out _), "case-insensitive map and mode identity remains accepted: " + map);
+    var proposed = ArenaAreaSelectionState.Create(map, Mode, false, ArenaAreaCatalog.FullMapId, 5);
+    Need(proposed.Available && proposed.Options.Count == 1 && proposed.SelectedId == ArenaAreaCatalog.FullMapId,
+        "the native area model offers exactly the reviewed whole map: " + map);
     Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, Mode, true, out _, out _),
-        "server authority refuses PFT even with a valid Factory map");
+        "server authority refuses PFT even with a reviewed map: " + map);
     foreach (string bounded in new[] { ArenaAreaCatalog.FactorySouthId,
-        ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "unknown-area" })
+        ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId,
+        ArenaAreaCatalog.CustomsYardId, "unknown-area" })
         Need(!ArenaAreaCatalog.TryResolve(bounded, map, Mode, false, out _, out _),
             "the prototype never silently repairs an area at arming: " + bounded);
     Need(ArenaPopulationPolicy.SkipsProfilePreload(true, map, Mode, map)
@@ -53,16 +65,18 @@ foreach (string map in new[] { Day, Night })
     foreach (int invalid in new[] { 0, 2, 3, 5, 25 })
         Need(!ArenaParticipantPolicy.TryResolve(map, Mode, false, false, invalid, out _, out _),
             "unequal or out-of-range team count is refused: " + invalid);
-    Need(!ArenaTeamBoxCatalog.Applies(map, Mode),
-        "Factory Domination does not inherit ported-box bot spawn shields");
+    if (map == Day || map == Night)
+        Need(!ArenaTeamBoxCatalog.Applies(map, Mode),
+            "Factory Domination does not inherit ported-box bot spawn shields");
 }
-foreach (string map in ArenaMapCatalog.DefaultClientAllowlist.Split(',').Concat(new[] { "unknown", "", null }))
+foreach (string map in ArenaMapCatalog.DefaultClientAllowlist.Split(',').Concat(new[] {
+    "unknown", "", null, "arena_future", "factory4_evening", "woods", "Sandbox", "Interchange", "ReserveBase" }))
 {
-    if (map == Day || map == Night) continue;
+    if (supported.Contains(map)) continue;
     Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, Mode, false, out _, out var reason)
-        && !string.IsNullOrWhiteSpace(reason), "non-Factory map rejected by shared authority: " + map);
+        && !string.IsNullOrWhiteSpace(reason), "unreviewed objective map rejected by shared authority: " + map);
     Need(!ArenaAreaSelectionState.Create(map, Mode, false, ArenaAreaCatalog.FullMapId, 5).Available,
-        "non-Factory map omitted by native mode-dependent discovery: " + map);
+        "unreviewed objective map omitted by native mode-dependent discovery: " + map);
 }
 Need(ArenaPopulationPolicy.OwnsEntirePopulation(Mode)
     && ArenaPopulationPolicy.IsIndependentTeam(Mode)
@@ -116,8 +130,10 @@ Need(!ArenaTeamSideSelection.SelectedUsec.HasValue
 
 // Source contracts complement the executable shared checks. They explicitly
 // do not claim native UI, Harmony hooks or server reward runtime acceptance.
-string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
-string Read(string path) => File.ReadAllText(Path.Combine(root, path));
+string root = Environment.GetEnvironmentVariable("ARENA_REPO_ROOT")
+    ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+string Read(string path) => File.ReadAllText(path == Environment.GetEnvironmentVariable("ARENA_ADMISSION_OVERRIDE_PATH")
+    ? Environment.GetEnvironmentVariable("ARENA_ADMISSION_OVERRIDE_SOURCE") : Path.Combine(root, path));
 bool Ordered(string source, string first, string second, int start = 0)
 {
     if (start < 0) return false;
@@ -133,9 +149,21 @@ int validate = menu.IndexOf("public static bool TryValidateAndFreezeRequest", St
 Need(menu.Contains("!Bots.DominationObjectiveBridge.Available")
     && Ordered(menu, "reason = ModeAvailabilityRejection", "_freezeRoster?.Invoke", validate),
     "missing objective companion is rejected before roster freeze and token arming");
+Need(Ordered(menu, "var eligibility = CurrentEligibility;", "_freezeRoster?.Invoke", validate),
+    "final validation refreshes eligibility before freezing the roster");
 string nativeStart = Read("ArenaMode.Client/Session/ArenaLocalRaidStartedPatch.cs");
 Need(Ordered(nativeStart, "ArenaMenuSelection.TryValidateAndFreezeRequest", "ArenaServerClient.PostRaidStart"),
     "final availability validation still precedes the first server-arm request");
+string clientArm = Read("ArenaMode.Client/Session/ArenaServerClient.cs");
+int post = clientArm.IndexOf("internal static bool PostRaidStart", StringComparison.Ordinal);
+Need(Ordered(clientArm, "ArenaAreaCatalog.TryResolve(areaId, map, mode, pitFireTeamTeam", "HasPendingArm = true;", post),
+    "shared map guard precedes pending-arm publication and HTTP");
+string server = Read("ArenaMode.Server/Services/ArenaSessionService.cs");
+int arm = server.IndexOf("public string Arm(", StringComparison.Ordinal);
+int prepare = server.IndexOf("public bool BeginArmPreparation(", StringComparison.Ordinal);
+Need(Ordered(server, "ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam", "_sessions[key] = new SessionEntry", arm)
+    && Ordered(server, "ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam", "PublishArmPreparationLocked(", prepare),
+    "server direct and preparation arms retain the shared map guard before session publication");
 string view = Read("ArenaMode.Client/Session/ArenaModeSelectionView.cs");
 Need(!view.Contains("CreatePreviewRow(template, \"DOMINATION\"")
     && view.Contains("CreatePreviewRow(template, \"CAPTURE THE FLAG\"")

@@ -204,6 +204,7 @@ public static class ArenaTeamBoxCatalog
             : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit
             : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl : null;
     public static bool Applies(string? map, string? mode)
-        => string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase) && Find(map) != null;
+        => (string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)) && Find(map) != null;
     public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id);
 }

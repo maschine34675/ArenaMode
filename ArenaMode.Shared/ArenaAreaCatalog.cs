@@ -646,14 +646,19 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // The first objective layout is surveyed only for the two Factory
-        // time variants. Enforce this at arm/ack/start as well as in the menu.
+        // Only Factory and the four imported maps have reviewed objective
+        // layouts. Keep this list explicit: a future port is not automatically
+        // admitted. Enforce it at arm/ack/start as well as in the menu.
         if (string.Equals(mode, ArenaPopulationPolicy.Domination, StringComparison.OrdinalIgnoreCase))
         {
             if (pitFireTeam || id != FullMapId
                 || (!string.Equals(map, ArenaMapCatalog.FactoryDayId, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(map, ArenaMapCatalog.FactoryNightId, StringComparison.OrdinalIgnoreCase)))
-            { reason = "Domination currently requires Factory day/night, whole map, without PitFireTeam."; return false; }
+                    && !string.Equals(map, ArenaMapCatalog.FactoryNightId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.Bay5Id, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.EquatorId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.AirPitId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.BowlId, StringComparison.OrdinalIgnoreCase)))
+            { reason = "Domination requires Factory or a supported Arena port, whole map, without PitFireTeam."; return false; }
             return true;
         }
         // Full maps share the generic native zone/point planner. Bay5 and

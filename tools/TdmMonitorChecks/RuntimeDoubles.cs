@@ -24,6 +24,7 @@ namespace ArenaMode.Effects
 
 namespace EFT
 {
+    public sealed class LocalGame { }
     public enum EBotState { PreActive, Active, Disposed }
     public sealed class Health { public bool IsAlive = true; }
     public sealed class Ai { public BotOwner BotOwner; }
@@ -44,6 +45,7 @@ namespace EFT
     }
     public sealed class GameWorld
     {
+        public string LocationId = "arena_equator";
         public Player MainPlayer;
         public readonly Dictionary<string, Player> Players = new();
         public Player GetAlivePlayerByProfileID(string id) => Players.TryGetValue(id, out var p) ? p : null;
@@ -72,6 +74,7 @@ namespace ArenaMode.Modes
     public sealed partial class TeamDeathmatchMode
     {
         private ArenaMatch _match;
+        private EFT.LocalGame _game;
         private EFT.GameWorld _world;
         private EFT.Player _local;
         private string _localId;
@@ -86,20 +89,25 @@ namespace ArenaMode.Modes
         internal bool ThrowRaidRead;
         internal float Now;
         public int TeamSize => _population.TeamSize;
-        internal bool HasResult => _rules.Phase == TdmMatchPhase.Finished;
-        internal float PlayingElapsed => _rules.Elapsed(Now);
+        internal bool HasResult => MatchPhase == TdmMatchPhase.Finished;
+        internal float PlayingElapsed => IsDomination ? _dominationRules.Elapsed(Now) : _rules.Elapsed(Now);
         private bool IsCurrentRaid() => ThrowRaidRead ? throw new InvalidOperationException("raid unavailable") : CurrentRaid;
         private static bool Alive(EFT.BotOwner bot) => bot != null && bot.GetPlayer?.HealthController?.IsAlive == true;
 
-        internal TeamDeathmatchMode(bool localUsec, int limit = 10, int duration = 600)
+        internal static TeamDeathmatchMode Create(bool localUsec, int limit = 10, int duration = 600,
+            bool domination = false, int points = 3)
         {
-            _localId = "human";
-            _local = new EFT.Player { ProfileId = _localId };
-            _world = new EFT.GameWorld { MainPlayer = _local };
-            _population = new TeamDeathmatchPopulation { LocalUsec = localUsec };
-            _rules = new TeamDeathmatchMatchPolicy(limit, duration);
-            _match = new ArenaMatch { Mode = this };
-            ArenaMatchService.Current = _match;
+            var mode = new TeamDeathmatchMode(domination);
+            mode._localId = "human";
+            mode._local = new EFT.Player { ProfileId = mode._localId };
+            mode._world = new EFT.GameWorld { MainPlayer = mode._local };
+            mode._game = new EFT.LocalGame();
+            mode._population = new TeamDeathmatchPopulation { LocalUsec = localUsec };
+            if (domination) mode._dominationRules = new DominationMatchPolicy(limit, duration, points);
+            else mode._rules = new TeamDeathmatchMatchPolicy(limit, duration);
+            mode._match = new ArenaMatch { Mode = mode };
+            ArenaMatchService.Current = mode._match;
+            return mode;
         }
         internal void Claim() => ClaimMonitors();
         internal void Push() => PushMonitors();
@@ -118,14 +126,24 @@ namespace ArenaMode.Modes
         internal EFT.Player Local => _local;
         internal EFT.GameWorld World => _world;
         internal TeamDeathmatchMatchPolicy Rules => _rules;
+        internal DominationMatchPolicy ObjectiveRules => _dominationRules;
+        internal void ClearRules() { _rules = null; _dominationRules = null; }
+        private void Fail(string reason) => _failure = reason;
         internal void Start(float now)
         {
             Now = now;
-            _rules.Update(now, true, 0, 0);
+            if (IsDomination) _dominationRules.UpdateStart(now, true);
+            else _rules.Update(now, true, 0, 0);
             _gateCountdownEndsAt = now + 3;
         }
         internal void Advance(float now, bool ready = true)
-        { Now = now; _rules.Update(now, ready, Board.FriendlyKills, Board.OpponentKills); }
+        {
+            Now = now;
+            if (IsDomination) _dominationRules.UpdateStart(now, ready);
+            else _rules.Update(now, ready, Board.FriendlyKills, Board.OpponentKills);
+        }
+        internal void AdvanceObjectives(float now, params DominationOccupancy[] occupants)
+        { Now = now; _dominationRules.Advance(now, occupants, _population.LocalUsec); }
         internal EFT.BotOwner AddBot(bool usec, string id, EFT.EBotState state = EFT.EBotState.Active)
         {
             var player = new EFT.Player { ProfileId = id, IsAI = true };
@@ -134,6 +152,40 @@ namespace ArenaMode.Modes
             _bots.Add(bot); _usecById[id] = usec; _world.Players[id] = player;
             return bot;
         }
+    }
+}
+
+// Only Unity/world services used by the linked Domination partial are doubled.
+// Its faction accessors and both actual scoring policies execute unchanged.
+namespace UnityEngine
+{
+    public readonly struct Vector3 { }
+    public static class Time { public static float time; }
+}
+namespace ArenaMode.Bots
+{
+    public static class DominationObjectiveBridge
+    {
+        public static bool Available => true;
+        public static void Begin(ArenaMatch match, EFT.LocalGame game, EFT.GameWorld world) => throw new NotSupportedException();
+        public static void Stop() { }
+    }
+}
+namespace ArenaMode.Modes
+{
+    internal sealed class DominationMapLayout
+    {
+        internal IReadOnlyList<int> Points => new[] { 1, 2, 3 };
+        internal static DominationMapLayout Resolve(string map) => new();
+    }
+    internal sealed class DominationRuntime
+    {
+        internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy policy, EFT.GameWorld world) { }
+        internal string StatusLine => "";
+        internal bool AllowsPickup(UnityEngine.Vector3 floor) => true;
+        internal void Prepare() => throw new NotSupportedException();
+        internal void Tick(EFT.Player local, IReadOnlyList<EFT.BotOwner> bots, bool localUsec, float now) => throw new NotSupportedException();
+        internal void Dispose() { }
     }
 }
 

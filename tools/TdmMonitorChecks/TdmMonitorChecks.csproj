@@ -5,11 +5,15 @@
     <MonitorBinderSource Condition="'$(MonitorBinderSource)' == ''">../../ArenaMode.Client/Compat/ArenaMapPortScoreMonitors.cs</MonitorBinderSource>
     <MonitorMapperSource Condition="'$(MonitorMapperSource)' == ''">../../ArenaMode.Client/Modes/TeamDeathmatchMonitors.cs</MonitorMapperSource>
     <MonitorRuntimeSource Condition="'$(MonitorRuntimeSource)' == ''">../../ArenaMode.Client/Modes/TeamDeathmatchMode.Monitors.cs</MonitorRuntimeSource>
+    <DominationModeSource Condition="'$(DominationModeSource)' == ''">../../ArenaMode.Client/Modes/TeamDeathmatchMode.Domination.cs</DominationModeSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MonitorBinderSource)" Link="Production/ArenaMapPortScoreMonitors.cs" />
     <Compile Include="$(MonitorMapperSource)" Link="Production/TeamDeathmatchMonitors.cs" />
     <Compile Include="$(MonitorRuntimeSource)" Link="Production/TeamDeathmatchMode.Monitors.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+    <Compile Include="$(DominationModeSource)" Link="Production/TeamDeathmatchMode.Domination.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
   </ItemGroup>
 </Project>

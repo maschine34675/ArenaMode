@@ -31,6 +31,7 @@ public sealed partial class TeamDeathmatchMode
     private int MatchCountdownRemaining(float now) => IsDomination
         ? _dominationRules?.CountdownRemaining(now) ?? 0 : _rules?.CountdownRemaining(now) ?? 0;
     internal string ObjectiveStatusLine => _domination?.StatusLine ?? "";
+    internal int ObjectiveCount => _dominationRules?.Points.Count ?? 0;
     internal bool CanPlacePickup(Vector3 floor) => !IsDomination
         || ObjectiveHudVisible && _domination?.AllowsPickup(floor) == true;
     internal bool ObjectiveHudVisible => IsDomination && !_ended && !_nativeStopObserved
@@ -41,7 +42,7 @@ public sealed partial class TeamDeathmatchMode
         if (!IsDomination) return;
         if (!DominationObjectiveBridge.Available)
             throw new InvalidOperationException("Domination requires the registered Arena BigBrain objective layer.");
-        _dominationRules = new DominationMatchPolicy();
+        _dominationRules = new DominationMatchPolicy(pointCount: DominationMapLayout.Resolve(_world.LocationId).Points.Count);
         _domination = new DominationRuntime(this, _dominationRules, _world);
         try
         {

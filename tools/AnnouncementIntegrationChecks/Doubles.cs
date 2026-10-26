@@ -4,7 +4,7 @@ namespace UnityEngine
 {
     internal static class Time { internal static float time; }
     // Position is only passed to the native presentation boundary in this harness.
-    internal struct Vector3 { }
+    internal struct Vector3 { internal Vector3(float x, float y, float z) { } }
 }
 namespace Comfort.Common { internal static class Singleton<T> { internal static T Instance; } }
 namespace EFT
@@ -12,7 +12,7 @@ namespace EFT
     internal class AbstractGame { }
     internal enum GameStatus { Started, Stopped }
     internal class LocalGame : AbstractGame { internal GameStatus Status; }
-    internal class GameWorld { internal Player MainPlayer; }
+    internal class GameWorld { internal Player MainPlayer; internal string LocationId = "factory4_day"; }
     internal class Player { internal Health HealthController = new(); }
     internal class Health { internal bool IsAlive = true; }
 }

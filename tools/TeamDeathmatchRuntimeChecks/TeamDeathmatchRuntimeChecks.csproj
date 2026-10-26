@@ -13,6 +13,7 @@
     <ShieldLeaseSource Condition="'$(ShieldLeaseSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\TeamSpawnProtectionLease.cs</ShieldLeaseSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMapLayout.cs" Link="Production/DominationMapLayout.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMode.Domination.cs" Link="Production/TeamDeathmatchMode.Domination.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />

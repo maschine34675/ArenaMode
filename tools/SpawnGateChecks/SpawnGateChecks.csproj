@@ -8,6 +8,8 @@
     <FlowSource Condition="'$(FlowSource)' == ''">artifacts/Flow.cs</FlowSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" />
     <Compile Remove="artifacts/**" />
     <Compile Include="$(RuntimeSource)" Link="Production/ArenaEquatorTeamSpawns.cs" />
     <Compile Include="$(GateSource)" Link="Production/ArenaMapPortSpawnGates.cs" />

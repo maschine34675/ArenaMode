@@ -155,20 +155,25 @@ internal static class GateProgram
     }
     private static void OpeningAndCountdown()
     {
+        foreach (bool domination in new[] { false, true })
+        {
         Setup(); SealedPaths(); Runtime.Begin(World,Game);
-        var flow=new ArenaMode.Modes.GateCountdownFixture();
+        var flow=new ArenaMode.Modes.GateCountdownFixture { IsDomination = domination };
         flow.Tick(false);Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Assembling&&Gates.Releases==0,"ASSEMBLY: hold while roster incomplete");
         flow.Tick(true);Time.time=2.99f;flow.Tick(true);
         Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown&&Gates.Releases==0,"COUNTDOWN: keep hold for full preparation");
         Time.time=3;flow.Tick(true);
         Check(Gates.Releases==1&&!Gates.Held&&Runtime.GatesOpening,"RELEASE: countdown releases owned gates");
         Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Countdown,"OPEN-WAIT: slide cannot start scoring/time");
+        Check(flow.ObjectiveRouteChecks==0,"OBJECTIVE-WAIT: closed gates cannot validate objective routes");
         Check(!Connected(World.MainPlayer.Position),"POST-RELEASE: partial never valid during slide");
         Time.realtimeSinceStartup=2;Time.time=5;NavMesh.Path=(a,b)=>true;flow.Tick(true);
         Check(flow.Phase==ArenaMode.Modes.TdmMatchPhase.Live&&flow.StartedAt==5,"LIVE: real full paths precede live clock");
+        Check(flow.ObjectiveRouteChecks==(domination?1:0),"OBJECTIVE-PATH: Domination validates both-team routes before live");
         Check(Gates.Releases==1&&!Runtime.GatesOpening,"ONCE: release complete");
         Runtime.PickRespawn(Game,default); Runtime.TryOpenForCombat();
         Check(Gates.Holds==1&&Gates.Releases==1&&!Gates.Held,"RESPAWN: no reclose between lives");
+        }
         Setup();SealedPaths();Check(!Runtime.TryOpenForCombat(),"OPEN: wait for real navigation");
         Time.realtimeSinceStartup=100;bool pausedWait=false;try{pausedWait=!Runtime.TryOpenForCombat();}catch(InvalidOperationException){}
         Check(pausedWait,"PAUSE: animation pause cannot expire the opening watchdog");

@@ -8,7 +8,7 @@ public sealed partial class TeamDeathmatchMode
 {
     private ArenaMapPortScoreMonitors.Session _monitors;
     private int _monitorScoreVersion = -1;
-    private int _monitorFriendlyKills, _monitorOpponentKills;
+    private int _monitorFriendlyScore, _monitorOpponentScore;
 
     // ArenaMatchService stops ticking gameplay as soon as native Stop owns
     // the raid. Presentation cleanup still runs before that early return.
@@ -33,12 +33,13 @@ public sealed partial class TeamDeathmatchMode
         catch (Exception ex)
         {
             ReleaseMonitors();
-            Plugin.ModLogger.LogWarning("Team Deathmatch score monitors unavailable: " + ex.GetBaseException().Message);
+            Plugin.ModLogger.LogWarning((IsDomination ? "Domination" : "Team Deathmatch")
+                + " score monitors unavailable: " + ex.GetBaseException().Message);
         }
     }
 
     private bool CanPresentMonitors()
-        => !_ended && !_nativeStopObserved && _failure == null && _rules != null && _population != null
+        => !_ended && !_nativeStopObserved && _failure == null && MatchRulesReady && _population != null
            && IsCurrentRaid() && ReferenceEquals(ArenaMatchService.Current, _match)
            && ReferenceEquals(_match?.Mode, this);
 
@@ -53,13 +54,21 @@ public sealed partial class TeamDeathmatchMode
             if (!CanPresentMonitors()) { ReleaseMonitors(); return; }
             if (HasResult)
             {
-                _monitorFriendlyKills = _rules.FriendlyKills;
-                _monitorOpponentKills = _rules.OpponentKills;
+                _monitorFriendlyScore = FinalFriendlyScore;
+                _monitorOpponentScore = FinalOpponentScore;
+            }
+            else if (IsDomination)
+            {
+                // Objective income does not change the kill scoreboard version.
+                // These policy counters are constant-time reads; the monitor
+                // session still suppresses unchanged score frames.
+                _monitorFriendlyScore = FriendlyTeamScore;
+                _monitorOpponentScore = OpponentTeamScore;
             }
             else if (_monitorScoreVersion != _match.Scoreboard.Version)
             {
-                _monitorFriendlyKills = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
-                _monitorOpponentKills = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
+                _monitorFriendlyScore = FriendlyTeamScore;
+                _monitorOpponentScore = OpponentTeamScore;
                 _monitorScoreVersion = _match.Scoreboard.Version;
             }
             bool localUsec = _population.LocalUsec;
@@ -67,15 +76,17 @@ public sealed partial class TeamDeathmatchMode
             if (_local != null && !_local.IsAI && _local.ProfileId == _localId
                 && ReferenceEquals(_world.MainPlayer, _local) && _local.HealthController?.IsAlive == true)
                 friendlyAlive++;
-            var frame = TeamDeathmatchMonitors.FrameFor(localUsec, TeamSize, _rules.Phase,
-                _rules.TimeLimitSeconds, _rules.StartedAt, _gateCountdownEndsAt, PlayingElapsed,
-                _monitorFriendlyKills, _monitorOpponentKills, friendlyAlive, CountMonitorBots(!localUsec));
+            var frame = TeamDeathmatchMonitors.FrameFor(localUsec, TeamSize, MatchPhase.Value,
+                MatchTimeLimit, IsDomination ? _dominationRules.StartedAt : _rules.StartedAt,
+                _gateCountdownEndsAt, PlayingElapsed,
+                _monitorFriendlyScore, _monitorOpponentScore, friendlyAlive, CountMonitorBots(!localUsec));
             if (!monitors.Push(frame)) ReleaseMonitors();
         }
         catch (Exception ex)
         {
             ReleaseMonitors();
-            Plugin.ModLogger.LogWarning("Team Deathmatch score monitors stopped: " + ex.GetBaseException().Message);
+            Plugin.ModLogger.LogWarning((IsDomination ? "Domination" : "Team Deathmatch")
+                + " score monitors stopped: " + ex.GetBaseException().Message);
         }
     }
 

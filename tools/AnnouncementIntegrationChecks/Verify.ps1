@@ -4,6 +4,7 @@ $project = Join-Path $PSScriptRoot 'AnnouncementIntegrationChecks.csproj'
 $source = Join-Path $root 'ArenaMode.Client'
 $bound = @('Audio/ArenaAnnouncementSnapshot.cs','Audio/ArenaAnnouncementPolicy.cs','Audio/ArenaAnnouncementDirector.cs','Modes/ArenaAnnouncerCue.cs','Modes/DeathmatchRules.cs','Modes/TeamDeathmatchMatchPolicy.cs','Modes/DominationPolicy.cs','Modes/DominationMatchPolicy.cs','Modes/TeamDeathmatchMode.Domination.cs','Modes/RoundsMode.Announcements.cs','Modes/TeamDeathmatchMode.Announcements.cs','Modes/TacticalMode.Announcements.cs','Modes/GunGameMode.Announcements.cs')
 $hashes = @{}
+$bound += 'Modes/DominationMapLayout.cs'
 foreach ($file in $bound) { $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $source $file)).Hash }
 $scratch = Join-Path $root ('artifacts/announcement-integration/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $scratch -Force | Out-Null

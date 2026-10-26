@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <LayoutSource Condition="'$(LayoutSource)' == ''">../../ArenaMode.Client/Modes/DominationMapLayout.cs</LayoutSource>
+    <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Modes/DominationRuntime.cs</RuntimeSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(LayoutSource)" Link="Production/DominationMapLayout.cs" />
+    <Compile Include="$(RuntimeSource)" Link="Production/DominationRuntime.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaObjectivePickupSpacing.cs" Link="Production/ArenaObjectivePickupSpacing.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+  </ItemGroup>
+</Project>
