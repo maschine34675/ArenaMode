@@ -31,6 +31,11 @@ of solo Arena and not bundled source or binaries.
 
 ## Reviewed baseline
 
+The existing four-machine test setup is inventoried separately in
+[Fika test environment](MULTIPLAYER-ENVIRONMENT-20261026.md). Its corrected VM
+root is `D:\SPT41Fika`; those Fika installations still use SPT 4.1.1. The
+installed 4.1.6 backend below refers to the ordinary development installation.
+
 | Component | Candidate examined | Evidence boundary |
 | --- | --- | --- |
 | ArenaMode source | `86407c0` | Local source; newer development than the published 0.3.0 |
