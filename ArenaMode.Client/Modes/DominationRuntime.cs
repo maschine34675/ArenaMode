@@ -24,7 +24,7 @@ internal sealed class DominationRuntime : IDisposable
     private readonly List<BotOwner> _eligibleBots = new();
     private float _nextTick;
     private string _lastOwnership;
-    private bool _disposed;
+    private bool _disposed, _prepared;
     internal string StatusLine { get; private set; } = "A  NEUTRAL    |    B  NEUTRAL    |    C  NEUTRAL";
 
     internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, GameWorld world)
@@ -53,21 +53,15 @@ internal sealed class DominationRuntime : IDisposable
         // No partial placement: all three paths must pass before a marker is made.
         for (int i = 0; i < _positions.Length; i++)
             _views[i] = new Hud.DominationPointView(((char)('A' + i)).ToString(), _positions[i], Radius);
+        _prepared = true;
         Plugin.ModLogger.LogDebug("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{(char)('A' + i)}={p:F3}")));
         Diagnostics.ArenaLog.Developer("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{(char)('A' + i)}={p:F3}")));
     }
 
-    internal bool IsNearPoint(Vector3 floor)
-    {
-        if (_disposed) return false;
-        foreach (var position in _positions)
-        {
-            var delta = floor - position;
-            if (Math.Abs(delta.y) <= HeightTolerance && delta.x * delta.x + delta.z * delta.z <= Radius * Radius)
-                return true;
-        }
-        return false;
-    }
+    // Prepared once against this world's geometry before pickup initialization.
+    // Keep the same exclusion through ownership changes and player replacements.
+    internal bool AllowsPickup(Vector3 floor) => _prepared && !_disposed
+        && ArenaObjectivePickupSpacing.Allows(floor, _positions, Radius, HeightTolerance);
 
     internal void Tick(Player local, IReadOnlyList<BotOwner> bots, bool localUsec, float now)
     {

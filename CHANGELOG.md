@@ -10,6 +10,14 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Fix the Arena map-screen stall caused by repeated compatibility checks per
+  map row. Final start admission remains fresh; GPU-2's measured idle average
+  improves from 14 to 56 FPS. [Measurements](docs/MAP-MENU-PERFORMANCE-20261026.md).
+- Separate Domination's pickup notifications/effects from its control-point HUD.
+  Keep pickup beacons visible and place/rotate pickups outside control-point
+  space. Use saturated ownership colors for the ground rings separately from
+  the bright HUD palette. [Follow-up](docs/DOMINATION-FOLLOWUP-20261026.md).
+
 - Add DOMINATION (WIP) on Factory day/night: independent USEC/BEAR teams capture
   three points, hold them for score and respawn continuously. Bots receive capture
   and defend assignments while retaining native combat/self-care. BigBrain and

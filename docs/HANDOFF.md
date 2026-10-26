@@ -7,6 +7,20 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Domination feedback follow-up (2026-10-26):** map display shares one
+  eligibility snapshot per refresh while final admission remains fresh. GPU-2's
+  matched idle menu samples improved from 14 to 56 average FPS (P95 228.79 to
+  27.27 ms; not locked 60 FPS). Pickup effects/notices now sit below A/B/C;
+  beacons stay visible and pickup placement/rotation reserves control-point
+  space. Built-in DOM Factory pools add filtered native candidates. Ground
+  rings use a darker world palette separately from the bright HUD colors;
+  native captures confirmed neutral grey, BEAR red and USEC blue. Capture speed
+  remains fixed regardless of allied count. Both client DLLs are deployed;
+  server/Core/maps are unchanged. See [implementation and current hashes](DOMINATION-FOLLOWUP-20261026.md)
+  and [native evidence, log limits and cleanup](GPU-DOMINATION-FOLLOWUP-20261026.md).
+  The original prototype's stopped-host snapshot below is historical; the
+  follow-up restores its own initial running MainMenu/server state.
+
 - **Domination prototype (2026-10-26, development):** `DOMINATION (WIP)` is now
   playable on Factory day/night with independent USEC/BEAR teams, three capture
   points, continuous respawns and fixed 200-point / ten-minute limits. BigBrain

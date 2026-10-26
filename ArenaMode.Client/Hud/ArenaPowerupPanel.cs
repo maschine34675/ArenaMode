@@ -35,7 +35,7 @@ internal sealed class ArenaPowerupPanel
     internal void Tick()
     {
         if (_root == null) return;
-        _rect.anchoredPosition = ScorePanel.Position - new Vector2(0f, ScorePanel.PanelHeight + 16f);
+        _rect.anchoredPosition = ArenaHudStackLayout.PowerupPosition(Modes.ArenaMatchService.Current);
         if (Time.unscaledTime < _next) return;
         _next = Time.unscaledTime + .1f;
         var player = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null;

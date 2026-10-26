@@ -41,7 +41,7 @@ internal static partial class ArenaPickupRuntime
     private static ArenaMatch _match, _disabledMatch;
     private static LocalGame _game;
     private static GameWorld _world;
-    private static ArenaPickupLayout _layout;
+    private static ArenaPickupLayout _layout, _factoryAnchorLayout;
     private static bool _live, _faulted, _placementPending, _builtInLayout;
     private static int _round;
     private static float _nextScan, _placementDeadline, _nextPlacement;
@@ -207,6 +207,14 @@ internal static partial class ArenaPickupRuntime
         }
         else file = ArenaPickupMapLayout.Create(_game, map, area, ArenaPickupSettings.WeaponKit.Value);
         _layout = ArenaPickupLayouts.Select(file, map, area);
+        if (_builtInLayout && _match.Mode is TeamDeathmatchMode teams && teams.IsDomination)
+        {
+            // The majority-network survey deliberately accepts only Factory's
+            // original eight reviewed seeds. Expanded objective-safe placement
+            // candidates must not change that independent navigation authority.
+            _factoryAnchorLayout = ArenaPickupLayouts.Select(ArenaPickupLayouts.Factory(ArenaPickupSettings.WeaponKit.Value), map, area);
+            ArenaPickupMapLayout.ExtendFactoryForObjectives(_game, _layout, teams.CanPlacePickup);
+        }
         var weapons = _layout?.Points.Where(point => point.Kind == ArenaPickupKind.Weapon)
             .Select(point => point.Id + ":" + point.KitId) ?? Enumerable.Empty<string>();
         Plugin.ModLogger.LogDebug($"Arena pickups layout: {map}/{area ?? "full map"}; {_layout?.Points.Count ?? 0} configured points. "
@@ -233,8 +241,10 @@ internal static partial class ArenaPickupRuntime
             {
                 alternatives++; candidates++;
                 var requested = new Vector3(point.X, point.Y, point.Z);
+                if (!ObjectivePlacementAllows(requested, diagnostics)) continue;
                 if (!ArenaPickupGeometry.TryPlacePoint(requested, anchor, _builtInLayout,
                     out var floor, out var reason, out var relocated, diagnostics)) continue;
+                if (!ObjectivePlacementAllows(floor, diagnostics)) continue;
                 // A fixed point recovering on a later attempt must not overlap a
                 // previously placed rotating point. Fixed/fixed authoring stays exact.
                 if (Entries.Any(other => (rotating || other.Rotating) && (other.Floor - floor).sqrMagnitude < 9f))
@@ -263,8 +273,17 @@ internal static partial class ArenaPickupRuntime
     private static bool TryPlacementAnchor(Vector3 localAnchor, out Vector3 anchor)
     {
         anchor = localAnchor;
+        if (_factoryAnchorLayout != null)
+            return ArenaPickupGeometry.TryFactoryAnchor(_factoryAnchorLayout, out anchor);
         return !_builtInLayout || !ArenaPickupGeometry.IsFullFactory(_layout)
             || ArenaPickupGeometry.TryFactoryAnchor(_layout, out anchor);
+    }
+
+    private static bool ObjectivePlacementAllows(Vector3 floor, ArenaPickupGeometry.PlacementDiagnostics diagnostics)
+    {
+        if (!(_match?.Mode is TeamDeathmatchMode teams) || teams.CanPlacePickup(floor)) return true;
+        diagnostics?.Refused("control point or its 2m clearance");
+        return false;
     }
 
     private static bool TryRotate(Entry entry, bool rearming = false)
@@ -282,10 +301,12 @@ internal static partial class ArenaPickupRuntime
         foreach (var point in candidates)
         {
             if (point.X == entry.Definition.X && point.Y == entry.Definition.Y && point.Z == entry.Definition.Z) continue;
+            if (!ObjectivePlacementAllows(new Vector3(point.X, point.Y, point.Z), diagnostics)) continue;
             // Built-in prototypes use the same bounded repair as initial placement.
             // Custom points stay exact; all final floors still pass spacing/path checks.
             if (!ArenaPickupGeometry.TryPlacePoint(new Vector3(point.X, point.Y, point.Z), anchor, _builtInLayout,
                 out var floor, out _, out _, diagnostics)) continue;
+            if (!ObjectivePlacementAllows(floor, diagnostics)) continue;
             if ((floor - entry.Floor).sqrMagnitude < 9f
                 || Entries.Any(other => !ReferenceEquals(other, entry) && (other.Floor - floor).sqrMagnitude < 9f))
             { diagnostics.Refused("reserved pickup position within 3m"); continue; }
@@ -329,10 +350,13 @@ internal static partial class ArenaPickupRuntime
             var reverse = ArenaPickupLayouts.Candidates(partner.Candidates, PositionRandom)
                 .FirstOrDefault(p => SamePosition(p, entry.Definition));
             if (point == null || reverse == null) continue;
+            if (!ObjectivePlacementAllows(new Vector3(point.X, point.Y, point.Z), diagnostics)
+                || !ObjectivePlacementAllows(new Vector3(reverse.X, reverse.Y, reverse.Z), diagnostics)) continue;
             // Recheck the ACTUAL already resolved floors, including bounded repairs
             // made at initial placement. The authored slot association never changes.
             if (!ArenaPickupGeometry.TryPlacePoint(partner.Floor, anchor, false, out var floor, out _, out _, diagnostics)
                 || !ArenaPickupGeometry.TryPlacePoint(entry.Floor, anchor, false, out var reverseFloor, out _, out _, diagnostics)) continue;
+            if (!ObjectivePlacementAllows(floor, diagnostics) || !ObjectivePlacementAllows(reverseFloor, diagnostics)) continue;
             if ((floor - partner.Floor).sqrMagnitude > .0625f || (reverseFloor - entry.Floor).sqrMagnitude > .0625f
                 || (floor - reverseFloor).sqrMagnitude < 9f
                 || Entries.Any(other => !ReferenceEquals(other, entry) && !ReferenceEquals(other, partner)
@@ -604,6 +628,6 @@ internal static partial class ArenaPickupRuntime
     internal static void Reset()
     {
         if (_match != null || _live || Entries.Count != 0) ClearRound();
-        _match = null; _game = null; _world = null; _layout = null; _round = 0; _faulted = false; _builtInLayout = false;
+        _match = null; _game = null; _world = null; _layout = null; _factoryAnchorLayout = null; _round = 0; _faulted = false; _builtInLayout = false;
     }
 }

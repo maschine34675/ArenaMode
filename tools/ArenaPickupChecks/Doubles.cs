@@ -154,7 +154,12 @@ namespace ArenaMode.Modes
     public class ArenaMatch { public object Mode; }
     public class RoundData {public int Number=1;}
     public class RoundsMode {public bool AssistScoringOpen=true,IsComplete;public RoundData Round=new();}
-    public class TeamDeathmatchMode {public bool AssistScoringOpen=true,IsComplete;}
+    public class TeamDeathmatchMode
+    {
+        public bool AssistScoringOpen=true,IsComplete,IsDomination;
+        public Func<UnityEngine.Vector3, bool> PickupPlacement = _ => true;
+        public bool CanPlacePickup(UnityEngine.Vector3 floor) => !IsDomination || PickupPlacement(floor);
+    }
     public class TacticalMode { }
     public class GunGameMode { }
     public static class ArenaMatchService {public static ArenaMatch Current;public static bool TeamStartAbortPending;}

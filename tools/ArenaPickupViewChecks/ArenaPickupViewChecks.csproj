@@ -6,10 +6,13 @@
     <Nullable>disable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ViewSource Condition="'$(ViewSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Pickups\ArenaPickupView.cs</ViewSource>
+    <DominationViewSource Condition="'$(DominationViewSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Hud\DominationPointView.cs</DominationViewSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Doubles.cs" />
+    <Compile Include="DominationRingChecks.cs" />
+    <Compile Include="$(DominationViewSource)" Link="Production/DominationPointView.cs" />
     <!-- The real marker view; Verify.ps1 points ViewSource at mutated temp copies. -->
     <Compile Include="$(ViewSource)" Link="Production/ArenaPickupView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Pickups\ArenaPickupColors.cs" Link="Production/ArenaPickupColors.cs" />

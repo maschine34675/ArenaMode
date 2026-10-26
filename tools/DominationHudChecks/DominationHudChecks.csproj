@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <LayoutSource Condition="'$(LayoutSource)' == ''">../../ArenaMode.Client/Hud/ArenaHudStackLayout.cs</LayoutSource>
+    <ObjectiveSource Condition="'$(ObjectiveSource)' == ''">../../ArenaMode.Client/Hud/DominationPanel.cs</ObjectiveSource>
+    <PowerupSource Condition="'$(PowerupSource)' == ''">../../ArenaMode.Client/Hud/ArenaPowerupPanel.cs</PowerupSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(LayoutSource)" Link="Production/ArenaHudStackLayout.cs" />
+    <Compile Include="$(ObjectiveSource)" Link="Production/DominationPanel.cs" />
+    <Compile Include="$(PowerupSource)" Link="Production/ArenaPowerupPanel.cs" />
+  </ItemGroup>
+</Project>

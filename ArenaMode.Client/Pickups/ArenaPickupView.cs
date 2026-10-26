@@ -135,11 +135,9 @@ internal sealed class ArenaPickupView : IDisposable
         bool visible = state.Phase != ArenaPickupPhase.Retired && camera != null
             && (camera.transform.position - _floor).sqrMagnitude < 6400f;
         _root.SetActive(visible);
-        bool nearObjective = Modes.ArenaMatchService.Current?.Mode is Modes.TeamDeathmatchMode teams
-            && teams.IsNearControlPoint(_floor);
-        // A held control point can contain a rotating pickup. Keep its item,
-        // ring and label, but do not obscure defenders behind the tall beacon.
-        if (_beam != null) _beam.SetActive(available && !nearObjective);
+        // Placement, including repaired floors and rotations, keeps objectives
+        // clear. Every available pickup retains its full depth-tested beacon.
+        if (_beam != null) _beam.SetActive(available);
         if (_symbol != null)
         {
             _symbol.SetActive(available);

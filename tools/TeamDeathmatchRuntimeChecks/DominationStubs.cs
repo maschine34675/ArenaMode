@@ -12,7 +12,7 @@ internal sealed class DominationRuntime : IDisposable
     internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, GameWorld world) => _rules = rules;
     internal string StatusLine => "points";
     internal void Prepare() { }
-    internal bool IsNearPoint(UnityEngine.Vector3 floor) => false;
+    internal bool AllowsPickup(UnityEngine.Vector3 floor) => true;
     internal void Tick(Player local, IReadOnlyList<BotOwner> bots, bool localUsec, float now)
         => _rules.Advance(now, Sample, localUsec);
     public void Dispose() { }

@@ -5,6 +5,7 @@ using EFT.Game.Spawning;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace ArenaMode.Pickups;
 
@@ -28,27 +29,7 @@ internal static class ArenaPickupMapLayout
 
         var contour = ArenaAreaRuntime.CurrentArea;
         if (area != null && (contour == null || contour.Id != area)) return file;
-        var rows = game?.Location?.SpawnPointParams;
-        if (rows == null || rows.Length > 4096) return file;
-        var formation = ArenaTeamBoxCatalog.Find(map);
-        var candidates = new List<ArenaPickupPosition>();
-        foreach (var row in rows)
-        {
-            var p = row.Position;
-            // Bot/BotPmc points avoid Labyrinth's trap-lined player entrances and
-            // Customs player-only edge locations. The Yard's private additions
-            // are legitimate seeds in the exact selected clone, never invented here.
-            if (p == null || string.IsNullOrWhiteSpace(row.Id)
-                || (row.Categories & (ESpawnCategoryMask.Bot | ESpawnCategoryMask.BotPmc)) == 0
-                || !ArenaPickupLayouts.Finite(p.x) || !ArenaPickupLayouts.Finite(p.y) || !ArenaPickupLayouts.Finite(p.z)
-                || Math.Abs(p.x) > 100000 || Math.Abs(p.y) > 100000 || Math.Abs(p.z) > 100000
-                || ArenaBotSpawnPolicy.IsExcludedPoint(map, row.Id)
-                || ArenaBotSpawnPolicy.IsExcludedZone(map, row.BotZoneName)
-                || row.BotZoneName?.IndexOf("snipe", StringComparison.OrdinalIgnoreCase) >= 0
-                || contour != null && (contour.IsExcludedSpawn(row.Id) || !contour.Bounds.Contains(p.x, p.y, p.z, .5f))
-                || formation != null && (formation.Owns(row.Id) || NearBooth(formation, p.x, p.y, p.z))) continue;
-            candidates.Add(new ArenaPickupPosition { X = p.x, Y = p.y, Z = p.z });
-        }
+        var candidates = NativeCandidates(game, map);
         var pool = Spread(candidates);
         if (pool.Count == 0) return file;
         var layout = new ArenaPickupLayout { MapId = map, AreaId = area };
@@ -71,6 +52,69 @@ internal static class ArenaPickupMapLayout
         file.Layouts.Add(layout);
         ArenaPickupLayouts.Validate(file);
         return file;
+    }
+
+    private static List<ArenaPickupPosition> NativeCandidates(LocalGame game, string map)
+    {
+        var candidates = new List<ArenaPickupPosition>();
+        var rows = game?.Location?.SpawnPointParams;
+        if (rows == null || rows.Length > 4096) return candidates;
+        var contour = ArenaAreaRuntime.CurrentArea;
+        var formation = ArenaTeamBoxCatalog.Find(map);
+        foreach (var row in rows)
+        {
+            var p = row.Position;
+            // Bot/BotPmc points avoid Labyrinth's trap-lined player entrances and
+            // Customs player-only edge locations. The Yard's private additions
+            // are legitimate seeds in the exact selected clone, never invented here.
+            if (p == null || string.IsNullOrWhiteSpace(row.Id)
+                || (row.Categories & (ESpawnCategoryMask.Bot | ESpawnCategoryMask.BotPmc)) == 0
+                || !ArenaPickupLayouts.Finite(p.x) || !ArenaPickupLayouts.Finite(p.y) || !ArenaPickupLayouts.Finite(p.z)
+                || Math.Abs(p.x) > 100000 || Math.Abs(p.y) > 100000 || Math.Abs(p.z) > 100000
+                || ArenaBotSpawnPolicy.IsExcludedPoint(map, row.Id)
+                || ArenaBotSpawnPolicy.IsExcludedZone(map, row.BotZoneName)
+                || row.BotZoneName?.IndexOf("snipe", StringComparison.OrdinalIgnoreCase) >= 0
+                || contour != null && (contour.IsExcludedSpawn(row.Id) || !contour.Bounds.Contains(p.x, p.y, p.z, .5f))
+                || formation != null && (formation.Owns(row.Id) || NearBooth(formation, p.x, p.y, p.z))) continue;
+            candidates.Add(new ArenaPickupPosition { X = p.x, Y = p.y, Z = p.z });
+        }
+        return candidates;
+    }
+
+    // DOM reserves three of Factory's eight authored slots. Keep every free
+    // reviewed slot, then add bounded native candidates rather than inventing
+    // offsets or reducing the six pickup types. The caller still validates every
+    // original and repaired floor when placing, rotating or exchanging an entry.
+    internal static void ExtendFactoryForObjectives(LocalGame game, ArenaPickupLayout layout, Func<Vector3, bool> allows)
+    {
+        if (layout == null || layout.AreaId != null || allows == null
+            || (layout.MapId != "factory4_day" && layout.MapId != "factory4_night")) return;
+        var pool = layout.Points.SelectMany(p => new[] { new ArenaPickupPosition { X = p.X, Y = p.Y, Z = p.Z, Yaw = p.Yaw } }
+                .Concat(p.Alternatives ?? Enumerable.Empty<ArenaPickupPosition>()))
+            .GroupBy(p => (p.X, p.Y, p.Z)).Select(g => g.First())
+            .Where(p => allows(new Vector3(p.X, p.Y, p.Z))).Take(MaximumCandidates).ToList();
+        var remaining = NativeCandidates(game, layout.MapId)
+            .Where(p => allows(new Vector3(p.X, p.Y, p.Z)))
+            .GroupBy(p => (p.X, p.Y, p.Z)).Select(g => g.First())
+            .OrderBy(p => p.X).ThenBy(p => p.Z).ThenBy(p => p.Y).ToList();
+        while (remaining.Count > 0 && pool.Count < MaximumCandidates)
+        {
+            var next = pool.Count == 0 ? remaining[0]
+                : remaining.OrderByDescending(p => pool.Min(q => HorizontalSquared(p, q))).First();
+            remaining.Remove(next);
+            if (pool.Any(p => HorizontalSquared(p, next) < 9f)) continue;
+            pool.Add(next);
+        }
+        if (pool.Count == 0) return; // Missing objective authority stays closed at placement.
+        for (int i = 0; i < layout.Points.Count; i++)
+        {
+            var point = layout.Points[i];
+            var initial = pool.FirstOrDefault(p => p.X == point.X && p.Y == point.Y && p.Z == point.Z)
+                ?? pool[i % pool.Count];
+            point.X = initial.X; point.Y = initial.Y; point.Z = initial.Z; point.Yaw = initial.Yaw;
+            point.Alternatives = pool.Where(p => !ReferenceEquals(p, initial))
+                .Select(p => new ArenaPickupPosition { X = p.X, Y = p.Y, Z = p.Z, Yaw = p.Yaw }).ToList();
+        }
     }
 
     private static bool Supports(string map, string area)

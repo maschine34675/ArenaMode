@@ -7,6 +7,7 @@ build/deployment JSON records live here. The automatically discovered
 ## Start here
 
 - [Domination prototype: three Factory points, team scoring and objective bots](DOMINATION-PROTOTYPE-20261026.md)
+- [Domination follow-up: map-menu performance, pickup separation and ownership rings](DOMINATION-FOLLOWUP-20261026.md)
 
 - [Automatic PMC voicelines, rotating TDM voices and bot clothing ownership](PMC-VOICELINES-20261026.md)
 - [Multiplayer with Fika: current source review, architecture and staged proposal](MULTIPLAYER-FIKA-CONCEPT-20261026.md)

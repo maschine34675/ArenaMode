@@ -17,7 +17,7 @@ internal sealed class DominationPanel
         _rect = (RectTransform)_root.transform;
         _rect.SetParent(parent, false);
         _rect.anchorMin = _rect.anchorMax = _rect.pivot = new Vector2(.5f, 1f);
-        _rect.sizeDelta = new Vector2(760f, 52f);
+        _rect.sizeDelta = new Vector2(760f, ArenaHudStackLayout.ObjectiveHeight);
         var image = _root.AddComponent<Image>();
         image.color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .94f);
         image.raycastTarget = false;
@@ -31,10 +31,11 @@ internal sealed class DominationPanel
 
     internal void Tick(ArenaMatch match)
     {
-        bool show = match?.Mode is TeamDeathmatchMode mode && mode.ObjectiveHudVisible && mode.IsSearchActive;
+        if (_root == null) return;
+        bool show = ArenaHudStackLayout.ObjectivesVisible(match);
         _root.SetActive(show);
         if (!show) return;
-        _rect.anchoredPosition = ScorePanel.Position - new Vector2(0, ScorePanel.PanelHeight + 20f);
+        _rect.anchoredPosition = ArenaHudStackLayout.ObjectivePosition;
         _text.text = ((TeamDeathmatchMode)match.Mode).ObjectiveStatusLine;
     }
 }

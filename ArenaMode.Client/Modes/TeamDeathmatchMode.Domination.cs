@@ -31,7 +31,8 @@ public sealed partial class TeamDeathmatchMode
     private int MatchCountdownRemaining(float now) => IsDomination
         ? _dominationRules?.CountdownRemaining(now) ?? 0 : _rules?.CountdownRemaining(now) ?? 0;
     internal string ObjectiveStatusLine => _domination?.StatusLine ?? "";
-    internal bool IsNearControlPoint(Vector3 floor) => ObjectiveHudVisible && _domination?.IsNearPoint(floor) == true;
+    internal bool CanPlacePickup(Vector3 floor) => !IsDomination
+        || ObjectiveHudVisible && _domination?.AllowsPickup(floor) == true;
     internal bool ObjectiveHudVisible => IsDomination && !_ended && !_nativeStopObserved
         && _failure == null && IsCurrentRaid() && ReferenceEquals(ArenaMatchService.Current, _match);
 

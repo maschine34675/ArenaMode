@@ -2,6 +2,8 @@
 
 Status: implemented and deployed as a development prototype; native acceptance
 and its limits are recorded in [the GPU report](GPU-DOMINATION-20261026.md).
+The same-day [feedback follow-up](DOMINATION-FOLLOWUP-20261026.md) supersedes
+the initial presentation behavior and deployed client identities below.
 This replaces the unimplemented
 September single-control-point proposal in `CONTROL-POINT-REVIEW.md`.
 
@@ -42,8 +44,18 @@ A line from centre +0.8m to the actor +0.8m must be unobstructed, preventing cap
 through walls or floors. Only the exact living current local body and owned active
 bot wrappers count. Ground rings and labels use normal scene depth; the HUD shows
 A/B/C ownership, progress and contesting in faction colours. World labels show
-only the point letter. A nearby pickup retains its item, ring and label, but its
-tall beacon is hidden inside the current control-point volume, including preparation.
+only the point letter. The ground ring explicitly uses neutral grey, USEC blue,
+BEAR red or contested yellow. The pickup effect/notice row sits below the objective
+row with a shared layout calculation, including live score-panel offsets.
+
+Pickups retain their tall beacons. Initial, repaired and rotated floors, including
+both sides of a position exchange, must stay more than six horizontal metres from
+each point when their height difference is at most two metres. This reserves the
+capture volume plus clearance; independent floors remain usable. Built-in
+Domination Factory layouts supplement the eight authored seeds with bounded,
+filtered native bot-spawn candidates. The original seeds still determine the
+navigation anchor. Custom layouts are not expanded or rewritten, but must pass
+the same spacing check. See the follow-up for native placement evidence.
 Native stop and match end dispose all objective presentation and authority.
 
 ## Bot authority
@@ -93,7 +105,8 @@ Domination and TDM inventory comparisons were exact; test settings are restored
 and both game/server stopped. See the GPU report for evidence and remaining
 limits; placement balance is still provisional.
 
-Final deployed SHA-256 identities (2026-10-26; no public version bump):
+Initial deployed SHA-256 identities (historical; superseded by the feedback
+follow-up on 2026-10-26; no public version bump):
 
 | Assembly | SHA-256 |
 |---|---|

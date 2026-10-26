@@ -76,7 +76,11 @@ namespace UnityEngine
         public Color startColor, endColor;
         public void SetPosition(int index, Vector3 position) { }
     }
-    public class Shader : Object { public static Shader Find(string name) => new() { name = name }; }
+    public class Shader : Object
+    {
+        public static readonly HashSet<string> Missing = new();
+        public static Shader Find(string name) => Missing.Contains(name) ? null : new() { name = name };
+    }
     public class Material : Object
     {
         public static readonly List<Material> All = new();
@@ -90,6 +94,7 @@ namespace UnityEngine
         public float r = r, g = g, b = b, a = a;
         public static Color white => new(1, 1, 1);
     }
+    public static class ColorUtility { public static string ToHtmlStringRGB(Color c) => "TEST"; }
     public readonly record struct Vector2(float x, float y);
     public readonly record struct Vector3(float x, float y, float z)
     {
@@ -173,6 +178,12 @@ namespace ArenaMode
 namespace ArenaMode.Hud { public static class HudStyle { public static object Font = new(); } }
 namespace ArenaMode.Modes
 {
+    public struct DominationPointState
+    {
+        public bool? OwnerUsec;
+        public bool Contested, UnderAttack;
+        public float CaptureProgress;
+    }
     public class ArenaMatchService
     {
         public static ArenaMatchService Current;
@@ -185,6 +196,14 @@ namespace ArenaMode.Modes
         public UnityEngine.Vector3 LastFloor;
         public bool IsNearControlPoint(UnityEngine.Vector3 floor)
         { LastFloor = floor; return NearControlPoint; }
+    }
+}
+namespace ArenaMode.Effects
+{
+    public static class ArenaTeamPalette
+    {
+        public static UnityEngine.Color UsecUi => new(.5f, .65f, 1f);
+        public static UnityEngine.Color BearUi => new(1f, .42f, .42f);
     }
 }
 namespace ArenaMode.Pickups

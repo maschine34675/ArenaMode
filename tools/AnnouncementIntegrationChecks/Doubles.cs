@@ -94,7 +94,7 @@ namespace ArenaMode.Modes
     {
         internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, EFT.GameWorld world) { }
         internal string StatusLine => "";
-        internal bool IsNearPoint(UnityEngine.Vector3 floor) => false;
+        internal bool AllowsPickup(UnityEngine.Vector3 floor) => true;
         internal void Prepare() { }
         internal void Tick(EFT.Player local, object bots, bool usec, float now) { }
         internal void Dispose() { }

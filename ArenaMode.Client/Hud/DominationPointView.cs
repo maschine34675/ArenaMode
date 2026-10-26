@@ -12,6 +12,8 @@ internal sealed class DominationPointView : IDisposable
     private readonly GameObject _root;
     private readonly Material _material;
     private readonly TextMeshPro _label;
+    private readonly LineRenderer _ring;
+    private readonly bool _vertexTint;
     private readonly string _id;
 
     internal DominationPointView(string id, Vector3 floor, float radius)
@@ -21,12 +23,14 @@ internal sealed class DominationPointView : IDisposable
         _root.transform.position = floor;
         try
         {
-            var shader = Shader.Find("Unlit/Color") ?? Shader.Find("Sprites/Default");
+            var shader = Shader.Find("Sprites/Default");
+            _vertexTint = shader != null;
+            if (shader == null) shader = Shader.Find("Unlit/Color");
             if (shader == null) throw new InvalidOperationException("Domination marker shader unavailable.");
             _material = new Material(shader) { color = Color.white };
-            var ring = _root.AddComponent<LineRenderer>();
+            var ring = _ring = _root.AddComponent<LineRenderer>();
             ring.useWorldSpace = false; ring.loop = true; ring.positionCount = 64;
-            ring.startWidth = ring.endWidth = .07f;
+            ring.startWidth = ring.endWidth = .12f;
             ring.sharedMaterial = _material;
             ring.shadowCastingMode = ShadowCastingMode.Off; ring.receiveShadows = false;
             for (int i = 0; i < 64; i++)
@@ -51,6 +55,13 @@ internal sealed class DominationPointView : IDisposable
         : state.OwnerUsec.HasValue ? (state.OwnerUsec.Value ? Effects.ArenaTeamPalette.UsecUi : Effects.ArenaTeamPalette.BearUi)
         : new Color(.85f, .88f, .9f);
 
+    // World geometry passes through EFT's HDR exposure; the bright pastel HUD
+    // palette clips toward white on Factory even with correct renderer colors.
+    // Keep its low-luminance, saturated world counterpart independent of the UI.
+    internal static Color RingColorFor(DominationPointState state) => state.Contested ? new Color(.25f, .2f, 0f, .9f)
+        : state.OwnerUsec.HasValue ? (state.OwnerUsec.Value ? new Color(0f, .015f, .25f, .9f) : new Color(.25f, 0f, 0f, .9f))
+        : new Color(.08f, .08f, .08f, .9f);
+
     internal static string Describe(string id, DominationPointState state, bool rich)
     {
         string text = id + "  " + (state.Contested ? "CONTESTED" : state.OwnerUsec.HasValue
@@ -66,7 +77,12 @@ internal sealed class DominationPointView : IDisposable
         var camera = CameraManager.Exist ? CameraManager.Instance.Camera : null;
         if (_root == null) return;
         _root.SetActive(camera != null);
-        _material.color = ColorFor(state);
+        var color = RingColorFor(state);
+        // UnitySprites.cginc multiplies vertex tint by material/renderer tint.
+        // Keep the material white for that path; Unlit/Color uses its material
+        // directly. Both endpoints are explicit, not inherited white defaults.
+        _material.color = _vertexTint ? Color.white : color;
+        _ring.startColor = _ring.endColor = color;
         _label.color = ColorFor(state);
         // The HUD owns detailed progress. Keep the world marker compact so a
         // defending bot and nearby pickup labels remain readable at close range.

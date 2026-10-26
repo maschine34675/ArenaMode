@@ -7,7 +7,7 @@ using UnityEngine;
 // the TMP label is created while the marker root is still active (native Awake must have run
 // before the font is configured), the finished marker is hidden until Tick has seen a camera, and
 // a constructor that fails after the active label exists destroys its whole private tree.
-internal static class Program
+internal static partial class Program
 {
     private static int _checks;
 
@@ -21,6 +21,7 @@ internal static class Program
     {
         GameObject.All.Clear();
         Material.All.Clear();
+        Shader.Missing.Clear();
         CameraManager.Instance = null;
         TextMeshPro.FailText = false;
         Time.time = Time.unscaledTime = 0f;
@@ -82,7 +83,7 @@ internal static class Program
             view.Dispose();
         }
 
-        // Only the tall beacon yields near a live control point; pickups remain identifiable.
+        // Objective spacing belongs to placement; every available marker keeps its beam.
         {
             Reset();
             var floor = new Vector3(7, 2, -5);
@@ -101,8 +102,7 @@ internal static class Program
             Check(beacon.activeInHierarchy, "team mode without a nearby objective keeps the beacon");
             mode.NearControlPoint = true;
             Tick(view, ArenaPickupPhase.Available);
-            Check(mode.LastFloor == floor, "objective proximity uses the pickup floor");
-            Check(!beacon.activeInHierarchy, "nearby objective suppresses the tall beacon");
+            Check(beacon.activeInHierarchy, "objective context never suppresses pickup beams");
             Check(symbol.activeInHierarchy && ring.activeInHierarchy && label.activeInHierarchy,
                 "objective overlap preserves pickup symbol ring and label");
             mode.NearControlPoint = false;
@@ -134,6 +134,7 @@ internal static class Program
             Check(!foreign.Destroyed && foreign.layer == 7, "failed constructor leaves unrelated objects alone");
         }
 
+        DominationRings();
         Console.WriteLine($"ARENA_PICKUP_VIEW_BASELINE_PASSED checks={_checks}");
     }
 }
