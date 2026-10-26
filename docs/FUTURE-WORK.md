@@ -294,6 +294,12 @@ acceptance remains open. The remaining variants/announcements above are deferred
 
 ## Private online Arena with an optional Fika integration
 
+**2026-10-26 follow-up:** [Concrete Fika multiplayer concept](MULTIPLAYER-FIKA-CONCEPT-20261026.md)
+reviews Plugin 2.4.6, the current local runtime/profile boundaries, room authority,
+PvP team assumptions, network respawn, rewards and staged two-client acceptance.
+Use that document for the current proposed implementation sequence. The note
+below records the original scope and connectivity goals; neither is runtime acceptance.
+
 Recorded 2026-09-21 at the user's request. **Planning only; no multiplayer
 implementation or compatibility claim.** The goal is an uncomplicated way to
 play Arena with or against friends over the internet, preferably without any
