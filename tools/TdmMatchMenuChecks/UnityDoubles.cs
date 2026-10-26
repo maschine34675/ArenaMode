@@ -37,7 +37,7 @@ namespace UnityEngine
     public readonly record struct Vector2(float x,float y) { public static Vector2 zero=>new(0,0); public static Vector2 one=>new(1,1); }
     public readonly record struct Vector3(float x,float y,float z) { public static Vector3 one=>new(1,1,1); }
     public struct Color(float red,float green,float blue,float alpha)
-    { public float r=red,g=green,b=blue,a=alpha; public static Color white=>new(1,1,1,1); }
+    { public float r=red,g=green,b=blue,a=alpha; public static Color white=>new(1,1,1,1); public static Color clear=>new(0,0,0,0); }
     public class CanvasRenderer:Component{}
     // Native dropdown Animator overwrites text after the clone is activated.
     public class Animator:Component
@@ -121,7 +121,7 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
-    public enum FontStyles { Normal }
+    public enum FontStyles { Normal, Bold }
     public enum TextOverflowModes { Ellipsis }
     public enum TextAlignmentOptions { MidlineLeft, Center, TopLeft }
     public class TMP_Text:UnityEngine.Component

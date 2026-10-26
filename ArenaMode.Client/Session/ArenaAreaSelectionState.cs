@@ -26,8 +26,8 @@ internal sealed class ArenaAreaSelectionState
     private static readonly ArenaAreaOption[] Candidates =
     {
         new(ArenaAreaCatalog.FullMapId, "Whole map"),
-        new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Factory Center"),
-        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side"),
+        new(ArenaAreaCatalog.CustomsFactoryCenterTeamsId, "Industrial Center"),
+        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Industrial Side"),
         new(ArenaAreaCatalog.CustomsYardId, "Customs Yard"),
     };
 
@@ -48,16 +48,16 @@ internal sealed class ArenaAreaSelectionState
         SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
             SelectedArea, areaTeamSize, out var validSize, out _) ? validSize : 0;
         TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? Enumerable.Range(2, SelectedArea.MaxTeamSize - 1).ToArray() : Array.Empty<int>());
-        Summary = selected == null ? "Select a map to choose its area."
+        Summary = selected == null ? "Select a map."
             : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
-            : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "PitFireTeam squad" : "PFT squad vs 5"
+            : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "PitFireTeam squad" : "PitFireTeam squad vs 5"
             : ArenaPopulationPolicy.IsIndependentTeam(mode) ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
             : string.Empty;
         ModeHint = selected == null ? string.Empty
             : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Opposing faction starts"
             : pitFireTeam ? "PitFireTeam squad"
-            : ArenaMapCatalog.IsEquator(map) ? "No Tactical or PFT Zombies: limited space"
+            : ArenaMapCatalog.IsEquator(map) ? "Limited space: no Tactical / squad Zombies"
             : string.Empty;
     }
 

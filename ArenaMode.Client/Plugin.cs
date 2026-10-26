@@ -82,6 +82,7 @@ public class Plugin : BaseUnityPlugin
         Spectator.ArenaSpectatorService.Initialize();
         ArenaLocalRaidStartedPatch.EnablePatch();
         ArenaSideSelectionPatch.Enable();
+        ArenaSessionNavigation.Enable();
         ArenaRaidExit.Enable();
         ArenaExtractionIsolation.Enable();
         ArenaRewardCapture.Enable();
@@ -208,6 +209,7 @@ public class Plugin : BaseUnityPlugin
     private void UpdateRuntime()
     {
         ArenaBigBrainLibrary.Tick();
+        ArenaSessionBanner.Tick();
     }
 
     private void OnDestroy()
@@ -220,6 +222,7 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ShutdownRuntime()
     {
+        ArenaSessionBanner.Shutdown();
         ArenaTarkovaColaCompat.Shutdown();
         ArenaMedicalBodyScope.Shutdown();
         ArenaBigBrainLibrary.Shutdown();

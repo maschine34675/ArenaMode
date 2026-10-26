@@ -21,7 +21,7 @@ internal sealed class ArenaAreaSelectionView
     private const float RowHeight = 28f;
     private const float RowStride = 30f;
     private const int MaxRows = 4;
-    private const string SelectMapPrompt = "Select a map to choose its area.";
+    private const string SelectMapPrompt = "Select a map.";
 
     private sealed class Row
     {
@@ -40,7 +40,7 @@ internal sealed class ArenaAreaSelectionView
     private GameObject _root;
     private Button _template;
     private TMP_Text _typography;
-    private TextMeshProUGUI _summary, _modeHint, _participantValue;
+    private TextMeshProUGUI _heading, _summary, _modeHint, _participantValue;
     private ArenaAreaSelectionState _state;
     private ArenaParticipantSelectionState _participants;
     private Func<string, bool> _onSelected;
@@ -126,6 +126,8 @@ internal sealed class ArenaAreaSelectionView
             }
 
             bool available = state?.Available == true;
+            SetText(_heading, available && state.Options.Count == 1
+                && state.SelectedId == Shared.ArenaAreaCatalog.FullMapId ? "PLAY AREA · WHOLE MAP" : "PLAY AREA");
             for (int index = 0; index < _rows.Count; index++)
             {
                 Row row = _rows[index];
@@ -182,7 +184,7 @@ internal sealed class ArenaAreaSelectionView
         ClearRows(_participantRows);
         _template = null;
         _typography = null;
-        _summary = _modeHint = _participantValue = null;
+        _heading = _summary = _modeHint = _participantValue = null;
         _layoutRows = -1;
         _layoutSizes = -1;
         _layoutParticipants = -1;
@@ -201,8 +203,8 @@ internal sealed class ArenaAreaSelectionView
         background.raycastTarget = false;
         Hud.ArenaUiTheme.Decorate((RectTransform)_root.transform);
 
-        var heading = CreateText("Area heading", "PLAY AREA", 14f, 14f, 22f);
-        heading.color = Dim(_typography, .65f);
+        _heading = CreateText("Area heading", "PLAY AREA", 14f, 14f, 22f);
+        _heading.color = Dim(_typography, .65f);
         _summary = CreateText("Team size", SelectMapPrompt, 17f, RowTop, 40f);
         _modeHint = CreateText("Mode restriction", string.Empty, 14f, 0f, 20f);
         _modeHint.color = Dim(_typography, .75f);

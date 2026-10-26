@@ -112,12 +112,17 @@ internal static class Program
         Assert(NativeHooks.Trace.IndexOf("area-write:" + Full) < NativeHooks.Trace.IndexOf("native-select:" + Day),
             "Factory time-dependent repair precedes native click branch");
         Assert(f.Screen.MaxSelectionDepth == 1, "Factory time repair causes no OnLocationSelected recursion");
+        Assert(f.Screen._conditions._currentPhaseTime.text == "DAY" && f.Screen._conditions._nextPhaseTime.text == "NIGHT",
+            "Arena Factory exposes explicit day/night labels");
 
         ArenaClientConfig.Enabled = map => map != Night;
         f.SettingsOwner.SelectedDateTime = EDateTime.PAST;
         SafeNative(() => f.Screen.OnLocationSelected(f.Screen.Locations[Day]), "disabled night safely resolves to configured day");
         Assert(f.Screen.SelectedLocation?.Id == Day && !f.Screen._conditions.Open,
             "single Factory variant keeps native time controls closed");
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
+        Assert(f.Screen._conditions._currentPhaseTime.text == "15:28" && f.Screen._conditions._nextPhaseTime.text == "03:28",
+            "leaving Factory restores native time labels");
     }
 
     private static void FailedWritesRejectBeforeNonNullBranch()
@@ -285,7 +290,7 @@ internal static class Program
         Updater(f).Tick();
         Assert(f.Screen.SelectedLocation?.Id == Day && Settings.TeamDeathmatchArea.Value == Full,
             "repaired PFT mode can select existing whole-map Factory");
-        Assert(ArenaAreaSelectionView.Last.State.Summary == "PFT squad vs 5"
+        Assert(ArenaAreaSelectionView.Last.State.Summary == "PitFireTeam squad vs 5"
             && ArenaAreaSelectionView.Last.State.ModeHint.Contains("PitFireTeam squad"),
             "PFT area state preserves five opponents and the protected squad hint");
         Assert(f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
@@ -389,7 +394,7 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == Day && f.Screen._readyButton.gameObject.activeSelf,
                 "protected Tactical/Zombie mode switch retains valid map selection");
             Assert(ArenaAreaSelectionView.Last.State.Summary == (mode == ArenaModeCatalog.ZombieId
-                ? "PitFireTeam squad" : "PFT squad vs 5"), "protected mode switch updates roster description");
+                ? "PitFireTeam squad" : "PitFireTeam squad vs 5"), "protected mode switch updates roster description");
         }
         foreach (string mode in new[] { ArenaModeCatalog.DeathmatchId, ArenaModeCatalog.GunGameId,
             ArenaModeCatalog.TeamDeathmatchId })
@@ -512,7 +517,7 @@ internal static class Program
             Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
                 "Equator selects full map through strict admission");
             Updater(f).Tick();
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("No Tactical or PFT Zombies"),
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("no Tactical / squad Zombies"),
                 "Equator area hint names its actual modes");
             foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch", "zombie" })
             {

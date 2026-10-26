@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using EFT.UI.Matchmaker;
+using EFT.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,7 +16,7 @@ namespace ArenaMode.Session;
 /// </summary>
 internal sealed class ArenaNoticeAction
 {
-    internal const string DefaultConfirmLabel = "CLICK AGAIN TO RESTART THE GAME";
+    internal const string DefaultConfirmLabel = "CONFIRM RESTART";
 
     internal ArenaNoticeAction(string label, Action callback, string confirmLabel = DefaultConfirmLabel)
     {
@@ -38,20 +39,23 @@ internal static class ArenaAvailabilityNotice
     private static readonly ConditionalWeakTable<MatchMakerSideSelectionScreen, View> Views = new();
 
     /// <summary>The "ARENA UNAVAILABLE" notice, with an optional two-click action under the text.</summary>
-    internal static void Show(MatchMakerSideSelectionScreen screen, string reason, ArenaNoticeAction action = null)
-        => ShowCore(screen, reason, true, action);
+    internal static void Show(MatchMakerSideSelectionScreen screen, string reason, ArenaNoticeAction action = null,
+        bool compactRestartConflict = false)
+        => ShowCore(screen, reason, true, action, compactRestartConflict);
 
     /// <summary>A neutral information notice (no unavailability heading), with an optional action.</summary>
     internal static void ShowInfo(MatchMakerSideSelectionScreen screen, string text, ArenaNoticeAction action = null)
-        => ShowCore(screen, text, false, action);
+        => ShowCore(screen, text, false, action, false);
 
-    private static void ShowCore(MatchMakerSideSelectionScreen screen, string text, bool unavailable, ArenaNoticeAction action)
+    private static void ShowCore(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
+        ArenaNoticeAction action, bool compactRestartConflict)
     {
-        try { ShowUnsafe(screen, text, unavailable, action); }
+        try { ShowUnsafe(screen, text, unavailable, action, compactRestartConflict); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena availability notice could not be displayed: " + ex.Message); }
     }
 
-    private static void ShowUnsafe(MatchMakerSideSelectionScreen screen, string text, bool unavailable, ArenaNoticeAction action)
+    private static void ShowUnsafe(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
+        ArenaNoticeAction action, bool compactRestartConflict)
     {
         if (screen == null) return;
         if (string.IsNullOrWhiteSpace(text))
@@ -64,7 +68,7 @@ internal static class ArenaAvailabilityNotice
             view = new View(screen);
             Views.Add(screen, view);
         }
-        view.Set(screen, text, unavailable, action);
+        view.Set(screen, text, unavailable, action, compactRestartConflict);
     }
 
     internal static void Hide(MatchMakerSideSelectionScreen screen)
@@ -91,7 +95,7 @@ internal static class ArenaAvailabilityNotice
 
         private static readonly Color UnavailableText = new Color(.95f, .77f, .46f, 1f);
         private static readonly Color InfoText = new Color(.78f, .88f, .95f, 1f);
-        private static readonly Color ButtonIdle = new Color(.20f, .25f, .30f, 1f);
+        private static readonly Color ButtonIdle = new Color(.22f, .48f, .62f, 1f);
         private static readonly Color ButtonArmed = new Color(.72f, .30f, .22f, 1f);
 
         internal readonly GameObject Root;
@@ -101,6 +105,7 @@ internal static class ArenaAvailabilityNotice
         private readonly GameObject _button;
         private readonly Image _buttonImage;
         private readonly TextMeshProUGUI _buttonLabel;
+        private readonly HoverTooltipArea _details;
         private readonly ArenaTwoClickGate _gate = new ArenaTwoClickGate();
         private ArenaNoticeAction _action;
         private bool _shownArmed;
@@ -136,6 +141,12 @@ internal static class ArenaAvailabilityNotice
             _text.enableWordWrapping = true;
             _text.richText = false; // A foreign error must remain literal text.
             _text.raycastTarget = false;
+            if (ItemUiContext.Instance?.Tooltip != null)
+            {
+                label.AddComponent<CanvasGroup>();
+                _details = label.AddComponent<HoverTooltipArea>();
+                _details.enabled = false;
+            }
 
             // The optional action button: bottom centre, only active while an action is set.
             _button = new GameObject("ArenaNoticeAction", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -175,13 +186,25 @@ internal static class ArenaAvailabilityNotice
             _buttonLabel.raycastTarget = false;
         }
 
-        internal void Set(MatchMakerSideSelectionScreen screen, string text, bool unavailable, ArenaNoticeAction action)
+        internal void Set(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
+            ArenaNoticeAction action, bool compactRestartConflict)
         {
             Unavailable = unavailable;
             _action = action;
             _gate.Reset();
             _text.color = unavailable ? UnavailableText : InfoText;
-            _text.text = unavailable ? "ARENA UNAVAILABLE\n" + text : text;
+            string fullText = unavailable ? "ARENA UNAVAILABLE\n" + text : text;
+            bool restartConflict = _details != null && unavailable && compactRestartConflict;
+            bool compact = restartConflict || (_details != null && fullText.Length > 220);
+            _text.text = restartConflict
+                ? "ARENA · Fast combat · Protected gear\nMOD CONFLICT · Restart with filtered mods\nHover for affected mods and details."
+                : compact ? fullText.Substring(0, 196).TrimEnd() + "…\nHover for full details." : fullText;
+            _text.raycastTarget = compact;
+            if (_details != null)
+            {
+                _details.SetMessageText(fullText, rawText: true);
+                _details.enabled = compact;
+            }
             float buttonBlock = action == null ? 0f : ButtonBlock;
             _text.rectTransform.offsetMin = new Vector2(14f, 10f + buttonBlock);
             var rect = (RectTransform)Root.transform;
@@ -216,7 +239,7 @@ internal static class ArenaAvailabilityNotice
         private void Tick()
         {
             if (Root == null || !Root.activeInHierarchy) return;
-            if (_action != null && _shownArmed && !_gate.IsArmed(Time.realtimeSinceStartup))
+            if (_action != null && _shownArmed)
                 UpdateButton(Time.realtimeSinceStartup);
         }
 
@@ -225,7 +248,7 @@ internal static class ArenaAvailabilityNotice
             bool armed = _action != null && _gate.IsArmed(now);
             _shownArmed = armed;
             if (_action == null) return;
-            _buttonLabel.text = armed ? _action.ConfirmLabel : _action.Label;
+            _buttonLabel.text = armed ? _action.ConfirmLabel + " · " + _gate.SecondsRemaining(now) + "s" : _action.Label;
             _buttonImage.color = armed ? ButtonArmed : ButtonIdle;
         }
     }

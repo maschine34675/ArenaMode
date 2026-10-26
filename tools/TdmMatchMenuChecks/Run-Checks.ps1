@@ -111,18 +111,17 @@ $arenaFaults = @(
     @('combat-hud-overwrites-hitmarker', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'entry.Value = requested;', 'entry.Value = requested; if (id == ArenaMutator.ArenaHud) Settings.ShowHitmarker.Value = requested;',
       'ProductionMutatorSelection', 'new mutators preserve the HUD master and all individual HUD preferences'),
-    # Menu polish 2026-10-08, item 2: the legend line and the footer note stay
-    # gone, and the rows keep the reflowed geometry (top 52, 8 px bottom margin).
+    # Category headers stay distinct from controls; no legend/footer prose.
     @('mutators-legend-restored', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
-      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);',
-      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f); Text(_root.transform, typography, "Mutator legend", "Green: ON", 13f, 20f, 44f, 420f, 20f);',
+      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 10f, 420f, 28f);',
+      'Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 10f, 420f, 28f); Text(_root.transform, typography, "Mutator legend", "Green: ON", 13f, 20f, 44f, 420f, 20f);',
       'ProductionMutatorsView', 'mutator panel carries no legend or saved-with-F12 footer'),
-    @('mutator-rows-top', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
-      'private const float RowsTop = 52f, RowsBottomMargin = 8f;', 'private const float RowsTop = 68f, RowsBottomMargin = 8f;',
-      'ProductionMutatorsView', 'both mutator columns start 8 px below the title'),
-    @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
-      '(ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn', '(448f - RowsTop) / rowsPerColumn',
-      'ProductionMutatorsView', 'mutator rows reflow without moving the panel'),
+    @('mutator-rows-top', 'ArenaMode.Client/Session/ArenaMapPanelLayout.cs',
+      'MutatorGroupsTop = 44f, MutatorHeadingHeight = 18f;', 'MutatorGroupsTop = 44f, MutatorHeadingHeight = 0f;',
+      'ProductionMapLayout', 'both mutator columns start below their category heading'),
+    @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMapPanelLayout.cs',
+      'MutatorRowPitch = 40f, MutatorButtonHeight = 22f;', 'MutatorRowPitch = 36f, MutatorButtonHeight = 22f;',
+      'ProductionMapLayout', 'mutator rows reflow without moving the panel'),
     # Menu polish 2026-10-08, items 3+4: RULES is the catalog objective for
     # every mode; the Tactical roster stays out of it (it lives in the row label).
     @('tactical-rules-roster-override', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',

@@ -6,10 +6,23 @@ namespace ArenaMode.Session;
 /// <summary>One right-column geometry for map details, area preview and mutators.</summary>
 internal static class ArenaMapPanelLayout
 {
-    // Twelve mutators per column retain a full 18px description line. Borrow
-    // space from the fixed preview slot, never from native READY navigation.
-    internal const float InfoTop = 168f, InfoHeight = 252f, PreviewHeight = InfoHeight;
-    internal const float MutatorsHeight = 540f;
+    // Category headings borrow 28px from the preview, retaining readable
+    // 22px controls + 18px descriptions and the same bottom edge above READY.
+    internal const float InfoTop = 168f, InfoHeight = 224f, PreviewHeight = InfoHeight;
+    internal const float MutatorsHeight = 568f;
+    internal const float MutatorGroupsTop = 44f, MutatorHeadingHeight = 18f;
+    internal const float MutatorRowPitch = 40f, MutatorButtonHeight = 22f;
+
+    // Four groups: movement/equipment in the left column, combat/feedback in
+    // the right. The second group's position follows the visible first group,
+    // so Fast Bots and Zombie Crowd can share one slot without layout drift.
+    internal static float MutatorCellWidth(float width) => (width - 60f) / 2f;
+    internal static float MutatorGroupLeft(int group, float width)
+        => group < 2 ? 20f : 40f + MutatorCellWidth(width);
+    internal static float MutatorGroupTop(int group, int firstGroupCount)
+        => MutatorGroupsTop + (group % 2 == 0 ? 0f : MutatorHeadingHeight + firstGroupCount * MutatorRowPitch);
+    internal static float MutatorRowTop(int group, int firstGroupCount, int index)
+        => MutatorGroupTop(group, firstGroupCount) + MutatorHeadingHeight + index * MutatorRowPitch;
 
     internal static float Scale(Transform screen)
     {

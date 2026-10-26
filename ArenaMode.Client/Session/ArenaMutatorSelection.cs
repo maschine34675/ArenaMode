@@ -23,7 +23,31 @@ internal sealed class ArenaMutatorSelection
     /// rule: <see cref="Settings.TracerEntry"/> returns no entry elsewhere,
     /// the laser row checks the mode itself).
     /// </summary>
-    internal const string TeamModesOnly = "Requires Team DM, Domination or a PFT squad.";
+    internal const string TeamModesOnly = "Team mode or PitFireTeam required.";
+
+    // Display categories only; enum values, saved preferences and gameplay
+    // dispatch remain unchanged. Keep every control in exactly one group.
+    internal static int Group(ArenaMutator id) => id switch
+    {
+        ArenaMutator.FastMovement or ArenaMutator.DoubleJump or ArenaMutator.Bunnyhop
+            or ArenaMutator.AirControl or ArenaMutator.AirFire or ArenaMutator.AirVault
+            or ArenaMutator.Slide or ArenaMutator.InfiniteStamina or ArenaMutator.NoFallDamage => 0,
+        ArenaMutator.Backpack or ArenaMutator.AutoQuickslots or ArenaMutator.InstantSearch => 1,
+        ArenaMutator.Pickups or ArenaMutator.Akimbo or ArenaMutator.FriendlyFire
+            or ArenaMutator.Molotov or ArenaMutator.FastBots or ArenaMutator.ZombieCrowd => 2,
+        ArenaMutator.Killcam or ArenaMutator.Tracers or ArenaMutator.Lasers
+            or ArenaMutator.Announcer or ArenaMutator.PmcVoice or ArenaMutator.ArenaHud => 3,
+        _ => throw new ArgumentOutOfRangeException(nameof(id))
+    };
+
+    internal string GroupTitle(int group) => group switch
+    {
+        0 => Enabled(ArenaMutator.FastMovement) ? "MOVEMENT · ENHANCED" : "MOVEMENT · STANDARD",
+        1 => "EQUIPMENT",
+        2 => "COMBAT",
+        3 => "FEEDBACK",
+        _ => throw new ArgumentOutOfRangeException(nameof(group))
+    };
 
     internal string Mode { get; private set; }
     private bool _team;
@@ -47,7 +71,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.DoubleJump => "DOUBLE JUMP",
         ArenaMutator.Bunnyhop => "BUNNYHOP",
         ArenaMutator.AirControl => "AIR CONTROL",
-        ArenaMutator.AirFire => "AIRBORNE HIP FIRE",
+        ArenaMutator.AirFire => "AIR HIP FIRE",
         ArenaMutator.AirVault => "AIR VAULT",
         ArenaMutator.Slide => "SLIDE",
         ArenaMutator.InfiniteStamina => "INFINITE STAMINA",
@@ -55,8 +79,8 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Backpack => "BACKPACK ITEMS",
         ArenaMutator.Killcam => "KILLCAM",
         ArenaMutator.Pickups => "PICKUPS",
-        ArenaMutator.Tracers => "COLORED TRACERS",
-        ArenaMutator.Lasers => "TEAM LASER COLORS",
+        ArenaMutator.Tracers => "TEAM TRACERS",
+        ArenaMutator.Lasers => "TEAM LASERS",
         ArenaMutator.Akimbo => "AKIMBO (WIP)",
         ArenaMutator.Announcer => "ANNOUNCER",
         ArenaMutator.PmcVoice => "PMC VOICELINES",
@@ -66,20 +90,20 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.ArenaHud => "ARENA HUD",
         ArenaMutator.Molotov => "MOLOTOV (WIP)",
         ArenaMutator.FastBots => "FAST BOTS",
-        ArenaMutator.ZombieCrowd => "ZOMBIE CROWD",
+        ArenaMutator.ZombieCrowd => "HORDE PRESSURE",
         _ => string.Empty
     };
 
     internal static string Description(ArenaMutator id) => id switch
     {
-        ArenaMutator.FastMovement => "Movement speed and abilities.",
+        ArenaMutator.FastMovement => "Faster, acrobatic movement.",
         ArenaMutator.DoubleJump => "One extra jump in the air.",
         ArenaMutator.Bunnyhop => "Timed hops: up to +25% speed.",
         ArenaMutator.AirControl => "Steer while airborne.",
         ArenaMutator.AirFire => "Hip fire while airborne.",
         ArenaMutator.AirVault => "Climb mid-jump within reach.",
         ArenaMutator.Slide => "Crouch during a sprint.",
-        ArenaMutator.InfiniteStamina => "Unlimited movement/aim stamina.",
+        ArenaMutator.InfiniteStamina => "No movement or aim fatigue.",
         ArenaMutator.NoFallDamage => "Land without taking fall damage.",
         ArenaMutator.Backpack => "Use backpack items/magazines.",
         ArenaMutator.Killcam => "Replay before respawn.",
@@ -93,15 +117,15 @@ internal sealed class ArenaMutatorSelection
         // other mode starts ON.
         // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
-        ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
+        ArenaMutator.Announcer => "Music cues and kill callouts.",
         ArenaMutator.PmcVoice => "Action callouts and team voices.",
         ArenaMutator.FriendlyFire => "Allow damage between teammates.",
-        ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
+        ArenaMutator.AutoQuickslots => "Kit meds use free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",
-        ArenaMutator.ArenaHud => "Killfeed, hits, health and weapons.",
-        ArenaMutator.Molotov => "One extra Molotov; G selects first.",
-        ArenaMutator.FastBots => "Bot speed and movement bonuses.",
-        ArenaMutator.ZombieCrowd => "Harder horde; teleports stragglers.",
+        ArenaMutator.ArenaHud => "Kills, hits, health, weapons.",
+        ArenaMutator.Molotov => "Extra Molotov; G selects first.",
+        ArenaMutator.FastBots => "Faster bot movement.",
+        ArenaMutator.ZombieCrowd => "Moves distant zombies closer.",
         _ => string.Empty
     };
 
@@ -156,7 +180,7 @@ internal sealed class ArenaMutatorSelection
         if (id == ArenaMutator.Molotov)
         {
             if (Mode == ArenaModeCatalog.ZombieId) return "Unavailable in Zombies.";
-            if (!ArenaFireRuntime.BotEscapeAvailable) return "Requires Arena BigBrain companion.";
+            if (!ArenaFireRuntime.BotEscapeAvailable) return "Requires BigBrain support.";
         }
         if (id == ArenaMutator.ArenaHud && Settings.HudEnabled?.Value != true)
             return "Disabled by HUD master in F12.";
@@ -167,7 +191,7 @@ internal sealed class ArenaMutatorSelection
             return "Requires FAST MOVEMENT.";
         if (id == ArenaMutator.Pickups && (_team || (Mode != ArenaModeCatalog.DeathmatchId
             && !Shared.ArenaPopulationPolicy.IsIndependentTeam(Mode))))
-            return "Available in DM, Team DM and Domination.";
+            return "DM, Team DM or Domination only.";
         if (id == ArenaMutator.Lasers && !Shared.ArenaPopulationPolicy.IsIndependentTeam(Mode)
             && !((Mode == ArenaModeCatalog.TacticalId || Mode == ArenaModeCatalog.ZombieId) && _team))
             return TeamModesOnly;

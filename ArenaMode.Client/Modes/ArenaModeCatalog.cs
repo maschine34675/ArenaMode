@@ -24,8 +24,8 @@ namespace ArenaMode.Modes;
 /// at most 18 characters. The view may show "PMC entry gear" (protected 5v5) or
 /// <c>ArenaEquipmentChoice.OwnGearLabel</c> (own gear chosen).</item>
 /// <item><see cref="Description"/>: at most 80 characters, ending with a period,
-/// rendered in a two-line block. Variant-specific wording follows the same
-/// footprint, rather than relying on an allowed row's disabled tooltip.</item>
+/// used by non-native catalog consumers. The map view renders two compact
+/// current-rule lines in that same footprint through ArenaCompactModeRules.</item>
 /// </list>
 /// A word is a whitespace-separated token that contains a letter or digit, so
 /// the slash in "Buy / retain kit" is punctuation, not a word.
@@ -80,8 +80,8 @@ internal static class ArenaModeCatalog
         Array.AsReadOnly(new[]
         {
             new ArenaModeDefinition(GunGameId, "GUN GAME",
-                "Each kill advances your weapon. The ladder repeats.",
-                "Kill to advance", "Instant", "Weapon ladder"),
+                "Endless weapon ladder. Kills advance your assigned weapon.",
+                "Kill to advance", "Instant", "Assigned weapons"),
             new ArenaModeDefinition(DeathmatchId, "DEATHMATCH",
                 "Everyone fights everyone. Set limits to end rounds.",
                 "Most kills", "Instant", "Arena kits"),
@@ -92,10 +92,10 @@ internal static class ArenaModeCatalog
                 "Hold the map's control points. First to 200 wins; 10-minute limit.",
                 "Hold objectives", "Instant", "Arena kits"),
             new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
-                "Eliminate the enemy squad. PitFireTeam supports 1-4 companions.",
+                "Eliminate the enemy squad. PitFireTeam: 1-4 companions from My Squad.",
                 "Round elimination", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES (WIP)",
-                "Ammo refills each wave. Optional PitFireTeam support (1-4 companions).",
+                "One life solo. Gear refills after each cleared wave.",
                 "Survive the waves", "None", "Arena kits"),
         });
 

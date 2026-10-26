@@ -58,6 +58,9 @@ internal sealed class ArenaTwoClickGate
 
     internal bool IsArmed(float now) => now <= _armedUntil;
 
+    internal int SecondsRemaining(float now)
+        => IsArmed(now) ? Math.Max(1, (int)Math.Ceiling(_armedUntil - now)) : 0;
+
     /// <summary>Registers a click; true when it completed the confirmation.</summary>
     internal bool Click(float now)
     {
@@ -179,7 +182,7 @@ internal static class ArenaSessionSwitch
     private const string TokenPrefix = "-token=";
 
     /// <summary>Shown during optional reward preparation and the helper acknowledgement.</summary>
-    internal const string WaitingText = "Preparing the Arena session. The game closes as soon as the helper has taken the switch over.";
+    internal const string WaitingText = "Preparing restart…";
     internal const float RewardPrepareTimeoutSeconds = 5f;
 
     private static bool _requested;

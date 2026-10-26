@@ -23,7 +23,7 @@ internal static partial class Program
         Assert(factory.SelectedId == full && factory.Summary.Contains("7v7"),
             "Retired South resolves to whole Factory without imposing a bounded team size");
         var pftState = ArenaAreaSelectionState.Create(day, "tactical", true, south, 7);
-        Assert(pftState.SelectedId == full && pftState.Summary == "PFT squad vs 5"
+        Assert(pftState.SelectedId == full && pftState.Summary == "PitFireTeam squad vs 5"
             && pftState.ModeHint == "PitFireTeam squad", "PFT area state leaves ally count to the live view and preserves five opponents");
         foreach (string saved in new[] { null, "", full, south, center, contour, "unknown-area" })
         {

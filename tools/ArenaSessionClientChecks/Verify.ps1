@@ -645,8 +645,8 @@ Invoke-Mutant 'notice-rich-text' 'notice' '_text.richText = false;' '_text.richT
 Invoke-Mutant 'notice-button-rich-text' 'notice' '_buttonLabel.richText = false;' '_buttonLabel.richText = true;' `
     'foreign text and the action label stay literal'
 Invoke-Mutant 'notice-single-click' 'notice' 'if (!confirmed) return;' '' 'the action needs two clicks'
-Invoke-Mutant 'notice-confirm-label' 'notice' '"CLICK AGAIN TO RESTART THE GAME"' '"RESTART"' `
-    'the confirmation label is exactly CLICK AGAIN TO RESTART THE GAME'
+Invoke-Mutant 'notice-confirm-label' 'notice' '"CONFIRM RESTART"' '"RESTART"' `
+    'the confirmation label names the restart and shows its remaining seconds'
 Invoke-Mutant 'notice-depends-on-core' 'notice' 'using TMPro;' "using TMPro;`nusing Redeploy.Core;" `
     'the notice stays independent of Core, settings and adapters'
 Invoke-Mutant 'notice-reward-preference-returned' 'notice' 'namespace ArenaMode.Session;' `

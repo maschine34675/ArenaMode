@@ -2,6 +2,7 @@ using ArenaMode.Config;
 using ArenaMode.Modes;
 using Comfort.Common;
 using EFT.UI;
+using EFT.UI.Matchmaker;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -32,6 +33,8 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI _equipment;
     private TextMeshProUGUI _subtitle;
     private TextMeshProUGUI _description;
+    private TextMeshProUGUI _gearProtection;
+    private Transform _screen;
     private ArenaModeSelectionState _selection;
     private readonly ArenaMutatorsView _mutators = new();
     private readonly ArenaRewardConsentView _rewards = new();
@@ -128,12 +131,15 @@ internal sealed class ArenaModeSelectionView
         _root = null;
         _rules = _respawn = _equipment = _subtitle = null;
         _description = null;
+        _gearProtection = null;
+        _screen = null;
         Safe(() => { if (root != null) root.SetActive(false); });
         Safe(() => { if (root != null) UnityEngine.Object.Destroy(root); });
     }
 
     private void Create(Transform screen, Button template, TMP_Text typography)
     {
+        _screen = screen;
         _root = new GameObject("Arena Mode Panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         _root.SetActive(false);
         _root.transform.SetParent(screen, false);
@@ -159,7 +165,7 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < ArenaModeCatalog.All.Count; index++)
             CreateRow(template, typography, index, 84f + index * ModeRowStep);
         // Presentation only: previews never enter the playable catalog or its indices.
-        CreatePreviewRow(template, "CAPTURE THE FLAG", 84f + ArenaModeCatalog.All.Count * ModeRowStep);
+        CreatePreviewRow(template, "CAPTURE THE FLAG · PLANNED", 84f + ArenaModeCatalog.All.Count * ModeRowStep);
 
         CreateRule(274f, typography);
         _description = CreateText("Mode description", typography, string.Empty, 14f, 284f, 42f);
@@ -170,6 +176,10 @@ internal sealed class ArenaModeSelectionView
         _rules = CreateFact("OBJECTIVE", typography, 330f);
         _respawn = CreateFact("RESPAWN", typography, 360f);
         _equipment = CreateFact("EQUIPMENT", typography, 390f);
+        _equipment.rectTransform.sizeDelta = new Vector2(PanelWidth - 142f, 24f);
+        _gearProtection = CreateText("Gear protection", typography,
+            ArenaCompactModeRules.GearProtection, 13f, 416f, 16f);
+        _gearProtection.color = Dim(typography, .75f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
         _tdmSideView.Show(_root.transform, template, typography,
             () => ArenaTdmSideView.ReadNativeSide(screen));
@@ -252,7 +262,7 @@ internal sealed class ArenaModeSelectionView
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
             ?? throw new InvalidOperationException("The native mode-row label is missing.");
         label.text = title;
-        label.fontSize = 19f;
+        label.fontSize = 17f;
         label.enableWordWrapping = false;
         label.overflowMode = TextOverflowModes.Ellipsis;
         label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -317,13 +327,18 @@ internal sealed class ArenaModeSelectionView
         // the selected variant; neither changes the objective's meaning.
         _rules.text = mode.Rules;
         bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
-        _description.text = zombieTeam
-            ? "Fallen allies return; team wipe ends play. All entry gear refills each wave."
-            : mode.Id == ArenaModeCatalog.TacticalId && _selection.TacticalOnly
-                ? "Fallen allies return next round. Equipment choice affects only your PMC."
-            : mode.Id == ArenaModeCatalog.DeathmatchId && !Settings.DeathmatchFreeForAll.Value
-                ? "All opponents hunt you. Set limits to end rounds."
-            : mode.Description;
+        _subtitle.text = ArenaCompactModeRules.CompanionHint(mode.Id, _selection.TacticalOnly,
+            Compat.PitFireTeamCompat.SelectedCompanionCount);
+        _description.text = ArenaCompactModeRules.Describe(mode.Id, _selection.TacticalOnly,
+            Settings.DeathmatchRounds.Value, Settings.DeathmatchKills.Value, Settings.DeathmatchSeconds.Value,
+            Settings.DeathmatchFreeForAll.Value, Settings.TeamDeathmatchKillLimit.Value,
+            Settings.TeamDeathmatchTimeLimitSeconds.Value, Settings.TacticalTeamRoundsToWin.Value,
+            Settings.GetFriendlyFireEnabled(mode.Id, _selection.TacticalOnly), ControlPointCount(mode.Id));
+        if (mode.Id == ArenaModeCatalog.DeathmatchId)
+            _rules.text = ArenaCompactModeRules.DeathmatchObjective(Settings.DeathmatchKills.Value,
+                Settings.DeathmatchSeconds.Value, Settings.DeathmatchFreeForAll.Value);
+        _gearProtection.text = mode.Id == ArenaModeCatalog.DominationId
+            ? "Gear restored · no profile rewards" : ArenaCompactModeRules.GearProtection;
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
@@ -371,6 +386,17 @@ internal sealed class ArenaModeSelectionView
 
     private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);
 
+    private int ControlPointCount(string mode)
+    {
+        if (mode != ArenaModeCatalog.DominationId) return 0;
+        string map = _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id;
+        // No exception-driven polling before a supported map has been selected.
+        if (map == null || !(Shared.ArenaMapCatalog.IsFactoryVariant(map)
+            || Shared.ArenaMapCatalog.IsEquator(map) || Shared.ArenaMapCatalog.IsBay5(map)
+            || Shared.ArenaMapCatalog.IsAirPit(map) || Shared.ArenaMapCatalog.IsBowl(map))) return 0;
+        return DominationMapLayout.Resolve(map).Points.Count;
+    }
+
     private bool CanSelectRow(int index)
         => _selection?.CanSelectIndex(index) == true
            && ArenaMenuSelection.ModeAvailabilityRejection(ArenaModeCatalog.All[index].Id) == null;
@@ -382,7 +408,7 @@ internal sealed class ArenaModeSelectionView
     private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
     {
         var key = CreateText(label + " label", typography, label, 14f, top, 30f);
-        key.rectTransform.sizeDelta = new Vector2(98f, 30f);
+        key.rectTransform.sizeDelta = new Vector2(98f, label == "EQUIPMENT" ? 24f : 30f);
         key.color = Dim(typography, .65f);
         var value = CreateText(label + " value", typography, string.Empty, 17f, top, 30f);
         SetRect(value.rectTransform, 122f, top, PanelWidth - 142f, 30f);

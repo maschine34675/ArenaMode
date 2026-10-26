@@ -988,6 +988,9 @@ internal static partial class Program
         Require(!gate.IsArmed(0f), "A fresh gate is not armed");
         Require(!gate.Click(10f) && gate.IsArmed(10f), "The first click only arms");
         Require(gate.IsArmed(15f) && !gate.IsArmed(15.01f), "The window is five seconds");
+        Require(gate.SecondsRemaining(10f) == 5 && gate.SecondsRemaining(11.2f) == 4
+            && gate.SecondsRemaining(15f) == 1 && gate.SecondsRemaining(15.01f) == 0,
+            "The countdown stays positive for the inclusive confirmation window and disappears after expiry");
         Require(gate.Click(15f) && !gate.IsArmed(15f), "A second click inside the window confirms and disarms");
         Require(!gate.Click(15.1f), "The click after a confirmation starts over");
 

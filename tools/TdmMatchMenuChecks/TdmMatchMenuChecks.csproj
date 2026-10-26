@@ -10,8 +10,11 @@
     <ProductionMutatorSelection Condition="'$(ProductionMutatorSelection)' == ''">../../ArenaMode.Client/Session/ArenaMutatorSelection.cs</ProductionMutatorSelection>
     <ProductionZombieState Condition="'$(ProductionZombieState)' == ''">../../ArenaMode.Client/Session/ArenaZombieRulesState.cs</ProductionZombieState>
     <ProductionZombieView Condition="'$(ProductionZombieView)' == ''">../../ArenaMode.Client/Session/ArenaZombieRulesView.cs</ProductionZombieView>
+    <ProductionMapLayout Condition="'$(ProductionMapLayout)' == ''">../../ArenaMode.Client/Session/ArenaMapPanelLayout.cs</ProductionMapLayout>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaCompactModeRules.cs" Link="Production/ArenaCompactModeRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMapLayout.cs" Link="Production/DominationMapLayout.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaTdmSideView.cs" Link="Production/ArenaTdmSideView.cs" />
     <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/RewardWire.cs" />
@@ -21,7 +24,7 @@
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFireSettings.cs" Link="Production/ArenaFireSettings.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/Fire/ArenaFirePolicy.cs" Link="Production/ArenaFirePolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMolotovItem.cs" Link="Production/ArenaMolotovItem.cs" />
-    <Compile Include="../../ArenaMode.Client/Session/ArenaMapPanelLayout.cs" Link="Production/ArenaMapPanelLayout.cs" />
+    <Compile Include="$(ProductionMapLayout)" Link="Production/ArenaMapPanelLayout.cs" />
     <Compile Include="$(ProductionMutatorsView)" Link="Production/ArenaMutatorsView.cs" />
     <Compile Include="$(ProductionMutatorSelection)" Link="Production/ArenaMutatorSelection.cs" />
     <Compile Include="../../ArenaMode.Client/Pickups/ArenaPickupSettings.cs" Link="Production/ArenaPickupSettings.cs" />

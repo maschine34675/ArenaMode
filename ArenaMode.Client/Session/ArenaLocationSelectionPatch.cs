@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 namespace ArenaMode.Session;
 
@@ -33,6 +34,9 @@ internal static class ArenaLocationSelectionPatch
         public readonly List<(string MapId, ArenaConditionalMapView View)> ConditionalMaps = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
+        public TextMeshProUGUI SelectionHint;
+        private string _invalidMap;
+        private readonly Dictionary<TMP_Text, string> _timeLabels = new();
         // Shared only by native row materialization and one synchronous refresh.
         // Native selection/claim/start callbacks never consume this snapshot.
         public ArenaMapAvailabilitySnapshot Availability;
@@ -45,12 +49,23 @@ internal static class ArenaLocationSelectionPatch
             // Synchronize may repair a saved PFT mode, so inspect strict map
             // eligibility afterwards and share it across every existing row.
             var availability = Availability = new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);
+            var previousMap = screen.SelectedLocation?.Id;
             foreach (var row in ConditionalMaps)
                 row.View.Refresh(ArenaMapCatalog.CanSelectNativeLocation(row.MapId, availability.IsMapDiscoverable),
                     string.Equals(screen.SelectedLocation?.Id, row.MapId, System.StringComparison.OrdinalIgnoreCase));
             var map = screen.SelectedLocation?.Id;
             if (map != null && !availability.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
+            if (previousMap != null && screen.SelectedLocation == null) _invalidMap = previousMap;
+            if (screen.SelectedLocation != null || _invalidMap != null && availability.IsMapDiscoverable(_invalidMap))
+                _invalidMap = null;
+            if (SelectionHint != null)
+            {
+                SelectionHint.text = _invalidMap == null ? string.Empty
+                    : ArenaMapCatalog.IsEquator(_invalidMap) ? "Equator: too small for this mode. Choose a map."
+                    : "Map unavailable in this mode. Choose another.";
+                SelectionHint.gameObject.SetActive(_invalidMap != null);
+            }
             var areas = availability.AreaSelection(screen.SelectedLocation?.Id);
             var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
                 ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
@@ -60,9 +75,55 @@ internal static class ArenaLocationSelectionPatch
             Preview.Refresh(areas);
         }
 
+        public void ShowSelectionHint(Transform parent, TMP_Text typography)
+        {
+            if (typography == null) return;
+            var go = new GameObject("Arena Map Selection Hint", typeof(RectTransform), typeof(TextMeshProUGUI));
+            go.transform.SetParent(parent, false);
+            SelectionHint = go.GetComponent<TextMeshProUGUI>();
+            SelectionHint.font = typography.font;
+            SelectionHint.fontSharedMaterial = typography.fontSharedMaterial;
+            SelectionHint.fontSize = 13f;
+            SelectionHint.color = new Color(.95f, .77f, .46f, 1f);
+            SelectionHint.enableWordWrapping = true;
+            SelectionHint.richText = false;
+            SelectionHint.raycastTarget = false;
+            var rect = SelectionHint.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(56f, -134f);
+            rect.sizeDelta = new Vector2(360f, 30f);
+            go.SetActive(false);
+        }
+
+        public void LabelFactoryTime(MatchMakerSelectionLocationScreen screen)
+        {
+            RestoreTimeLabels();
+            if (!ArenaMapCatalog.IsFactoryVariant(screen.SelectedLocation?.Id) || screen._conditions == null) return;
+            SetTimeLabel(screen._conditions._currentPhaseTime, "DAY");
+            SetTimeLabel(screen._conditions._nextPhaseTime, "NIGHT");
+        }
+
+        private void SetTimeLabel(TMP_Text label, string text)
+        {
+            if (label == null) return;
+            _timeLabels[label] = label.text;
+            label.text = text;
+        }
+
+        public void RestoreTimeLabels()
+        {
+            foreach (var pair in _timeLabels)
+                if (pair.Key != null) pair.Key.text = pair.Value;
+            _timeLabels.Clear();
+        }
+
         public void Restore()
         {
             Generation = null;
+            _invalidMap = null;
+            RestoreTimeLabels();
+            if (SelectionHint != null) UnityEngine.Object.Destroy(SelectionHint.gameObject);
+            SelectionHint = null;
             Availability = null;
             foreach (var presentation in PortedMaps) presentation.Close();
             PortedMaps.Clear();
@@ -114,6 +175,7 @@ internal static class ArenaLocationSelectionPatch
         private static void Prefix(MatchMakerSelectionLocationScreen __instance, RaidSettings raidSettings)
         {
             Restore(__instance);
+            ArenaMenuSelection.ResumeAfterMenu(raidSettings);
             if (!IsArena(__instance))
                 return;
 
@@ -157,6 +219,7 @@ internal static class ArenaLocationSelectionPatch
 
             try
             {
+                state.ShowSelectionHint(__instance.transform, __instance._acceptButton?._headerLabel);
                 var eligibility = ArenaMenuSelection.CurrentModeEligibility;
                 state.Modes.Show(
                     __instance.transform,
@@ -251,6 +314,7 @@ internal static class ArenaLocationSelectionPatch
         [PatchPrefix]
         private static void Prefix(MatchMakerSelectionLocationScreen __instance, ref LocationSettings.Location location)
         {
+            if (States.TryGetValue(__instance, out var state)) state.RestoreTimeLabels();
             if (!IsArena(__instance)) return;
             if (!ArenaMapCatalog.CanSelectNativeLocation(location?.Id, ArenaMenuSelection.IsMapDiscoverable))
             { location = null; return; }
@@ -265,6 +329,7 @@ internal static class ArenaLocationSelectionPatch
         [PatchPostfix]
         private static void Postfix(MatchMakerSelectionLocationScreen __instance)
         {
+            if (IsArena(__instance)) States.GetOrCreateValue(__instance).LabelFactoryTime(__instance);
             if (IsArena(__instance)
                 && ArenaMapCatalog.IsFactoryVariant(__instance.SelectedLocation?.Id)
                 && !ArenaMapCatalog.HasFactoryTimeChoice(

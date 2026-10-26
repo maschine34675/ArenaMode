@@ -41,7 +41,7 @@ internal sealed class ArenaEquipmentChoiceView
             _root = new GameObject("Arena Equipment Choice", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            SetRect((RectTransform)_root.transform, 122f, 390f, Width, 30f);
+            SetRect((RectTransform)_root.transform, 122f, 390f, Width, 24f);
             CreateChoice(template, typography, ownGear: false, index: 0);
             CreateChoice(template, typography, ownGear: true, index: 1);
             Refresh();
@@ -82,7 +82,7 @@ internal sealed class ArenaEquipmentChoiceView
         button.name = "Arena Equipment Choice " + (ownGear ? "OwnGear" : "ArenaKits");
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
-        SetRect((RectTransform)button.transform, index * (width + 4f), 1f, width, 28f);
+        SetRect((RectTransform)button.transform, index * (width + 4f), 0f, width, 24f);
         var layout = button.GetComponent<LayoutElement>();
         if (layout != null) layout.ignoreLayout = true;
         var label = button.GetComponentInChildren<TextMeshProUGUI>(true)
@@ -94,7 +94,7 @@ internal sealed class ArenaEquipmentChoiceView
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.raycastTarget = false;
         Hud.ArenaUiTheme.StyleButton(button, label);
-        SetRect(label.rectTransform, 6f, 0f, width - 10f, 28f);
+        SetRect(label.rectTransform, 6f, 0f, width - 10f, 24f);
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
         {
@@ -107,7 +107,7 @@ internal sealed class ArenaEquipmentChoiceView
         choice.Marker = new GameObject("Selected", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         choice.Marker.transform.SetParent(button.transform, false);
         choice.Marker.transform.SetAsLastSibling();
-        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 28f);
+        SetRect((RectTransform)choice.Marker.transform, 0f, 0f, 3f, 24f);
         var marker = choice.Marker.GetComponent<Image>();
         marker.color = Hud.ArenaUiTheme.Accent;
         marker.raycastTarget = false;

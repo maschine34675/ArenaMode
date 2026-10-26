@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionCompactRules Condition="'$(ProductionCompactRules)' == ''">../../ArenaMode.Client/Session/ArenaCompactModeRules.cs</ProductionCompactRules>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProductionCompactRules)" Link="Production/ArenaCompactModeRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DeathmatchRules.cs" Link="Production/DeathmatchRules.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMapLayout.cs" Link="Production/DominationMapLayout.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
+    <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
+  </ItemGroup>
+</Project>

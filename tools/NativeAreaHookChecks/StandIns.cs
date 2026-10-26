@@ -102,7 +102,9 @@ namespace UnityEngine
         public void SetParent(Transform value, bool worldPositionStays)
         { parent?.Children.Remove(this); parent = value; parent?.Children.Add(this); }
     }
-    public class RectTransform : Transform { }
+    public struct Vector2 { public float x, y; public Vector2(float x, float y) { this.x = x; this.y = y; } }
+    public struct Color { public Color(float r, float g, float b, float a) { } }
+    public class RectTransform : Transform { public Vector2 anchorMin, anchorMax, pivot, anchoredPosition, sizeDelta; }
     public class Sprite { }
     public class GameObject : Object
     {
@@ -113,6 +115,15 @@ namespace UnityEngine
         public bool activeInHierarchy => activeSelf && (transform.parent == null || transform.parent.gameObject.activeInHierarchy);
         public int SetActiveCalls;
         public GameObject(string name) { this.name = name; transform = AddComponent<Transform>(); }
+        public GameObject(string name, params Type[] types)
+        {
+            this.name = name;
+            transform = types.Contains(typeof(RectTransform)) ? AddComponent<RectTransform>() : AddComponent<Transform>();
+            foreach (var type in types.Where(type => !typeof(Transform).IsAssignableFrom(type)))
+                Components.Add((Component)Activator.CreateInstance(type));
+            foreach (var component in Components) component.gameObject = this;
+        }
+        public T GetComponent<T>() where T : Component => Components.OfType<T>().FirstOrDefault();
         public T AddComponent<T>() where T : Component, new()
         { var value = new T { gameObject = this }; Components.Add(value); return value; }
         public void SetActive(bool active)
@@ -131,7 +142,19 @@ namespace UnityEngine
     }
     public static class Time { public static float unscaledTime; }
 }
-namespace TMPro { public class TMP_Text { } }
+namespace TMPro
+{
+    public class TMP_Text : UnityEngine.Component
+    {
+        public string text;
+        public object font, fontSharedMaterial;
+        public float fontSize;
+        public UnityEngine.Color color;
+        public bool enableWordWrapping, richText, raycastTarget;
+        public UnityEngine.RectTransform rectTransform => (UnityEngine.RectTransform)transform;
+    }
+    public class TextMeshProUGUI : TMP_Text { }
+}
 namespace ArenaMode
 {
     public static class Plugin { public static TestLogger ModLogger = new(); }

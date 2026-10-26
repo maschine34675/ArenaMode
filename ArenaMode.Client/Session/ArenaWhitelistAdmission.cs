@@ -56,10 +56,10 @@ namespace ArenaMode.Session;
 internal static class ArenaWhitelistAdmission
 {
     internal const string SessionNoticeText =
-        "ARENA SESSION: only Arena is available. Profile changes in this session are discarded.";
+        "ARENA SESSION · Filtered mods\nStash protected · Optional rewards on return";
 
-    internal const string StartActionLabel = "START ARENA SESSION";
-    internal const string ReturnActionLabel = "RETURN TO NORMAL SESSION";
+    internal const string StartActionLabel = "START ARENA · RESTART";
+    internal const string ReturnActionLabel = "RETURN TO SPT · RESTART";
 
     /// <summary>The longest the main thread waits for the ping when a screen opens.</summary>
     private const int ProbeBudgetMilliseconds = 250;
@@ -556,8 +556,8 @@ internal static class ArenaWhitelistAdmission
                     if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
                 foreach (var unit in plan.ServerUnits)
                     if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
-                outcome.VersionSessionText = "Optional Arena session: restart without mods with unreviewed versions and mods that require them ("
-                    + JoinLimited(names, MaxNamesListed) + "). Your normal installation stays unchanged. Other Arena requirements still apply.";
+                outcome.VersionSessionText = "Also omitted on restart without changing your install: "
+                    + JoinLimited(names, 3) + " + dependents.";
             }
         }
         outcome.SessionImpossibleReason = outcome.SessionImpossibleReason ?? FindSessionObstacle(outcome.AllowedServerMods);

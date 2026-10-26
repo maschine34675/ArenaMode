@@ -12,7 +12,8 @@ internal sealed class ArenaRewardConsentView
     private GameObject _root, _owner;
     private Transform _screen;
     private Button _button;
-    private TMP_Text _label, _detail;
+    private TMP_Text _heading, _label, _detail;
+    private Image _switchTrack, _switchKnob;
 
     internal void Create(Transform screen, GameObject owner, TMP_Text typography)
     {
@@ -27,6 +28,8 @@ internal sealed class ArenaRewardConsentView
             _root.GetComponent<Image>().color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .96f);
             _root.GetComponent<Image>().raycastTarget = false;
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
+            _heading = Text(_root.transform, typography, "Reward heading", 15);
+            _heading.text = "PROFILE REWARDS";
 
             var buttonObject = new GameObject("Reward consent", typeof(RectTransform), typeof(Image), typeof(Button));
             buttonObject.transform.SetParent(_root.transform, false);
@@ -37,6 +40,15 @@ internal sealed class ArenaRewardConsentView
             // StyleButton creates its own tinted surface. The original white
             // Image must not shine through that surface's disabled alpha.
             buttonObject.GetComponent<Image>().color = Color.clear;
+            var track = new GameObject("Reward switch", typeof(RectTransform), typeof(Image));
+            track.transform.SetParent(buttonObject.transform, false);
+            _switchTrack = track.GetComponent<Image>();
+            _switchTrack.raycastTarget = false;
+            Place((RectTransform)track.transform, 62f, 6f, 40f, 16f);
+            var knob = new GameObject("Reward switch handle", typeof(RectTransform), typeof(Image));
+            knob.transform.SetParent(track.transform, false);
+            _switchKnob = knob.GetComponent<Image>();
+            _switchKnob.raycastTarget = false;
             var navigation = _button.navigation;
             navigation.mode = Navigation.Mode.None;
             _button.navigation = navigation;
@@ -68,22 +80,35 @@ internal sealed class ArenaRewardConsentView
         // Use the free header space; map preview, mutators and native navigation stay put.
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen, 40f, 112f);
         float width = ArenaMapPanelLayout.Width(_screen);
-        Place((RectTransform)_button.transform, 12f, 10f, width - 24f, 28f);
-        Place(_label.rectTransform, 8f, 0f, width - 40f, 28f);
+        Place(_heading.rectTransform, 14f, 10f, width - 150f, 28f);
+        Place((RectTransform)_button.transform, width - 126f, 10f, 112f, 28f);
+        Place(_label.rectTransform, 8f, 0f, 46f, 28f);
         Place(_detail.rectTransform, 14f, 44f, width - 28f, 62f);
         if (IsObjectivePrototype)
         {
-            _label.text = "DOMINATION PROTOTYPE — NO REWARDS";
-            _detail.text = "Objective rewards are not available yet. Your ordinary PMC profile is restored after Arena.";
+            _label.text = "N/A";
+            _detail.text = "Domination prototype: no rewards.\nStash and original gear protected.";
             _label.color = ArenaUiTheme.Muted;
             _button.interactable = false;
+            RefreshSwitch(false, false);
             return;
         }
         ArenaRewardMenuState.Refresh();
-        _label.text = ArenaRewardMenuState.Label;
+        _label.text = ArenaRewardMenuState.Busy ? "…"
+            : !ArenaRewardMenuState.Status.Available ? "N/A"
+            : ArenaRewardMenuState.Status.Enabled ? "ON" : "OFF";
         _detail.text = ArenaRewardMenuState.Detail;
         _label.color = ArenaRewardMenuState.Status.Enabled ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
         _button.interactable = ArenaRewardMenuState.CanToggle;
+        RefreshSwitch(ArenaRewardMenuState.Status.Available && ArenaRewardMenuState.Status.Enabled,
+            ArenaRewardMenuState.CanToggle);
+    }
+
+    private void RefreshSwitch(bool enabled, bool canToggle)
+    {
+        _switchTrack.color = enabled ? new Color(.08f, .35f, .20f, 1f) : ArenaUiTheme.Surface;
+        _switchKnob.color = canToggle ? enabled ? ArenaUiTheme.Positive : ArenaUiTheme.Text : ArenaUiTheme.Muted;
+        Place((RectTransform)_switchKnob.transform, enabled ? 25f : 3f, 2f, 12f, 12f);
     }
 
     private static bool IsObjectivePrototype => Config.Settings.GameMode.Value == Modes.ArenaModeCatalog.DominationId;
@@ -96,7 +121,8 @@ internal sealed class ArenaRewardConsentView
         if (_root != null) ArenaRewardMenuState.CancelQueuedToggle();
         if (_button != null) _button.onClick.RemoveAllListeners();
         _button = null;
-        _label = _detail = null;
+        _heading = _label = _detail = null;
+        _switchTrack = _switchKnob = null;
         _owner = null;
         _screen = null;
         var root = _root;

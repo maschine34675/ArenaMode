@@ -219,8 +219,8 @@ internal static class ArenaSideSelectionPatch
     {
         var eligibility = ArenaMenuSelection.CurrentEligibility;
         screen._sideDescriptionText.text = eligibility.IsTeam
-            ? "<nobr>Tactical or Zombies with PitFireTeam.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>"
-            : "<nobr>Solo and team arena combat.</nobr>\n<nobr>Your profile and gear stay untouched.</nobr>";
+            ? "<nobr>PitFireTeam · Tactical / Zombies</nobr>\n<nobr>Stash protected · Optional rewards</nobr>"
+            : "<nobr>Fast arena combat · Kits and respawns</nobr>\n<nobr>Stash protected · Optional rewards</nobr>";
         screen.SetHealthPanelVisibility(false, true);
     }
 
@@ -351,7 +351,7 @@ internal static class ArenaSideSelectionPatch
         else if (warnings != null && ArenaMenuSelection.IsSelected)
             ShowVersionNotes(screen, warnings);
         else
-            ArenaAvailabilityNotice.Show(screen, null);
+            ArenaAvailabilityNotice.ShowInfo(screen, "ARENA · Fast combat · Protected gear\nChoose the middle character to play.");
     }
 
     /// <summary>Arena was just selected: the session note, the whitelist warnings, or nothing.</summary>
@@ -373,7 +373,8 @@ internal static class ArenaSideSelectionPatch
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
         else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())
-            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
+            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen),
+                compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));
         else
             ArenaAvailabilityNotice.Show(screen, text);
     }
@@ -381,7 +382,7 @@ internal static class ArenaSideSelectionPatch
     private static void ShowVersionNotes(MatchMakerSideSelectionScreen screen, string warnings)
     {
         if (ArenaWhitelistAdmission.CanOfferSessionStart(null))
-            ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(warnings, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
+            ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(warnings, "Optional restart. " + ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
         else
             ArenaAvailabilityNotice.ShowInfo(screen, warnings);
     }
@@ -522,6 +523,9 @@ internal static class ArenaSideSelectionPatch
             switch (eftScreenType)
             {
                 case EEftScreenType.MainMenu:
+                    ArenaMenuSelection.EndFlow();
+                    ArenaSession.ClearArmed("left raid setup");
+                    return;
                 case EEftScreenType.Hideout:
                 case EEftScreenType.Inventory:
                 case EEftScreenType.Traders:
@@ -534,7 +538,7 @@ internal static class ArenaSideSelectionPatch
                     return;
             }
 
-            ArenaMenuSelection.EndFlow();
+            ArenaMenuSelection.SuspendForMenu();
             ArenaSession.ClearArmed("left raid setup");
         }
     }

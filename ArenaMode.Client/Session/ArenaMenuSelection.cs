@@ -25,6 +25,7 @@ internal static class ArenaMenuSelection
     private static Action<string> _compatibilityCleanup;
     private static Func<bool> _teamArenaActive;
     private static Func<string> _compatibilityAdmission;
+    private static bool _suspended;
 
     /// <summary>
     /// Adapter-neutral result used by every point in the native flow. State is
@@ -64,6 +65,35 @@ internal static class ArenaMenuSelection
             _modeEligibility = null;
             _freezeRoster = null;
         }
+        else if (_suspended)
+            ResumeAfterMenu(settings);
+    }
+
+    /// <summary>
+    /// A queued menu is a detour, not a new raid flow. Retain only its exact
+    /// settings/controller and original restore values; all admission remains off.
+    /// The caller separately revokes the server arm and any frozen roster.
+    /// </summary>
+    internal static void SuspendForMenu()
+    {
+        if (!IsSelected || _settings == null) return;
+        _suspended = true;
+        IsSelected = false;
+    }
+
+    /// <summary>Only the same native setup may resume, after fresh admission.</summary>
+    internal static bool ResumeAfterMenu(RaidSettings settings)
+    {
+        if (!_suspended) return IsSelectedFor(settings);
+        if (settings == null || !ReferenceEquals(_settings, settings) || !settings.IsPmc
+            || !CurrentModeEligibility.Allowed)
+        {
+            EndFlow();
+            return false;
+        }
+        _suspended = false;
+        IsSelected = true;
+        return true;
     }
 
     /// <summary>
@@ -354,7 +384,7 @@ internal static class ArenaMenuSelection
 
     public static void Clear()
     {
-        if (IsSelected && _settings != null)
+        if ((IsSelected || _suspended) && _settings != null)
         {
             // Only our menu changes are restored. Never alter the shared
             // LocationSettings database or restore anything into a profile.
@@ -365,6 +395,7 @@ internal static class ArenaMenuSelection
         }
 
         IsSelected = false;
+        _suspended = false;
         _previousLocation = null;
     }
 

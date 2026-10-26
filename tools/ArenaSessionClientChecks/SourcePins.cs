@@ -95,7 +95,7 @@ internal static partial class Program
 
         string unavailable = Slice(side, "private static void ShowUnavailable(", "private static string WithWarnings(");
         Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));", StringComparison.Ordinal),
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen), compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
             "START ARENA SESSION belongs to an eligible normal session, RETURN only to an Arena session");
 
         string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static ArenaNoticeAction ReturnAction(");
@@ -134,14 +134,21 @@ internal static partial class Program
             "while the helper has not answered the screen says so and offers no second click");
 
         // ---- notice
+        Require(notice.Contains("bool compactRestartConflict = false)", StringComparison.Ordinal)
+                && notice.Contains("bool restartConflict = _details != null && unavailable && compactRestartConflict;", StringComparison.Ordinal)
+                && !notice.Contains("action?.Label == ArenaWhitelistAdmission.StartActionLabel", StringComparison.Ordinal)
+                && switching.Contains("ArenaAvailabilityNotice.Show(screen, error, retry);", StringComparison.Ordinal)
+                && !switching.Contains("compactRestartConflict:", StringComparison.Ordinal),
+            "restart failures keep their concrete error and never inherit the compact mod-conflict label from their retry action");
         Require(notice.Contains("_text.richText = false;", StringComparison.Ordinal)
                 && notice.Contains("_buttonLabel.richText = false;", StringComparison.Ordinal),
             "foreign text and the action label stay literal");
         Require(Before(notice, "bool confirmed = _gate.Click(now);", "if (!confirmed) return;")
                 && Before(notice, "if (!confirmed) return;", "action.Callback?.Invoke();"),
             "the action needs two clicks: nothing runs before the confirmation");
-        Require(notice.Contains("internal const string DefaultConfirmLabel = \"CLICK AGAIN TO RESTART THE GAME\";", StringComparison.Ordinal),
-            "the confirmation label is exactly CLICK AGAIN TO RESTART THE GAME");
+        Require(notice.Contains("internal const string DefaultConfirmLabel = \"CONFIRM RESTART\";", StringComparison.Ordinal)
+                && notice.Contains("_gate.SecondsRemaining(now)", StringComparison.Ordinal),
+            "the confirmation label names the restart and shows its remaining seconds");
         Require(!notice.Contains("Redeploy", StringComparison.Ordinal) && !notice.Contains("ArenaSettings", StringComparison.Ordinal)
                 && !notice.Contains("PitFireTeam", StringComparison.Ordinal),
             "the notice stays independent of Core, settings and adapters");

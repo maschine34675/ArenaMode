@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Compact menu UX (2026-10-26):** short dynamic mode rules, grouped mutators,
+  visible reward switch, Factory day/night and clearer area/squad labels. A
+  compact session strip keeps return available in menus; trader/inventory
+  detours preserve the validated Arena setup. Restart confirmation counts down.
+  Client and companion deployed; server/Core/maps unchanged. Offline suite:
+  3213 passed, one known integration skip. GPU-2 verified solo/PFT menus, dialog
+  hiding, an Arena raid after both detours and return from Trader. All 228
+  settings and 185 inventory items match the initial state; game/server stopped.
+  See [implementation](COMPACT-UX-20261026.md) and
+  [native evidence and final identities](GPU-COMPACT-UX-20261026.md).
+
 - **Domination on ported maps (2026-10-26):** Equator/Bay5 each use their
   original X point; AirPit/Bowl use the two original A/B points. Old MapPort
   `capture_point` centroids incorrectly average the latter pairs: never restore

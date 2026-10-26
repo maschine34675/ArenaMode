@@ -18,16 +18,13 @@ internal sealed class ArenaMutatorsView
         internal Button Button;
         internal TextMeshProUGUI Label, Status, Description;
         internal Image Marker, Chip;
+        internal HoverTooltipArea Tooltip;
     }
-    // The 30-px title sits at top 14, so the first row starts 8 px below it;
-    // the last row's description ends the same 8 px above the panel bottom.
-    // There is no legend line and no footer note any more (2026-10-08): the
-    // ON/OFF/N/A states explain themselves and the "saved with F12" sentence
-    // was both stale and redundant.
-    private const float RowsTop = 52f, RowsBottomMargin = 8f;
-    private const float ButtonHeight = 22f;
+    private const float ButtonHeight = ArenaMapPanelLayout.MutatorButtonHeight;
     private readonly ArenaMutatorSelection _selection = new();
     private readonly List<Row> _rows = new();
+    private readonly TextMeshProUGUI[] _groups = new TextMeshProUGUI[4];
+    private readonly int[] _groupCounts = new int[4], _groupIndices = new int[4];
     private GameObject _root, _owner;
     private Transform _screen;
     private Action _changed;
@@ -45,7 +42,14 @@ internal sealed class ArenaMutatorsView
             _root.GetComponent<Image>().color = ArenaUiTheme.WithAlpha(ArenaUiTheme.Surface, .96f);
             _root.GetComponent<Image>().raycastTarget = false;
             ArenaUiTheme.Decorate((RectTransform)_root.transform);
-            Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 14f, 420f, 30f);
+            Text(_root.transform, typography, "Title", "MUTATORS", 24f, 20f, 10f, 420f, 28f);
+            for (int group = 0; group < _groups.Length; group++)
+            {
+                _groups[group] = Text(_root.transform, typography, "Mutator group " + group,
+                    _selection.GroupTitle(group), 13f, 20f, 44f, 270f, 18f);
+                _groups[group].fontStyle = FontStyles.Bold;
+                _groups[group].color = ArenaUiTheme.Text;
+            }
             var generation = _root;
             foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
             {
@@ -71,6 +75,11 @@ internal sealed class ArenaMutatorsView
                     Marker = marker.GetComponent<Image>(), Chip = chip.GetComponent<Image>(),
                     Status = Text(go.transform, typography, "Mutator status " + id, "", 14f, 220f, 0f, 52f, 32f),
                     Description = Text(_root.transform, typography, "Mutator detail " + id, "", 13f, 0f, 0f, 272f, 34f) };
+                // Keep the full reason available when a narrow screen truncates
+                // its compact inline line. No unlock call: this tooltip must work
+                // for both enabled and disabled buttons without changing input.
+                if (ItemUiContext.Instance != null)
+                    row.Tooltip = go.AddComponent<HoverTooltipArea>();
                 row.Status.alignment = TextAlignmentOptions.Center;
                 _rows.Add(row);
                 button.onClick.AddListener(() => Toggle(generation, row));
@@ -85,25 +94,34 @@ internal sealed class ArenaMutatorsView
         if (_root == null) return;
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen,
             ArenaMapPanelLayout.MutatorsTop, ArenaMapPanelLayout.MutatorsHeight);
-        float width = ArenaMapPanelLayout.Width(_screen), cell = (width - 60f) / 2f;
-        int count = _rows.FindAll(row => _selection.Visible(row.Id)).Count;
-        int index = 0;
+        float width = ArenaMapPanelLayout.Width(_screen), cell = ArenaMapPanelLayout.MutatorCellWidth(width);
+        Array.Clear(_groupCounts, 0, _groupCounts.Length);
+        Array.Clear(_groupIndices, 0, _groupIndices.Length);
+        foreach (var row in _rows)
+            if (_selection.Visible(row.Id)) _groupCounts[ArenaMutatorSelection.Group(row.Id)]++;
+        for (int group = 0; group < _groups.Length; group++)
+        {
+            string title = _selection.GroupTitle(group);
+            if (_groups[group].text != title) _groups[group].text = title;
+            Rect(_groups[group].rectTransform, ArenaMapPanelLayout.MutatorGroupLeft(group, width),
+                ArenaMapPanelLayout.MutatorGroupTop(group, _groupCounts[group < 2 ? 0 : 2]),
+                cell, ArenaMapPanelLayout.MutatorHeadingHeight);
+        }
         foreach (var row in _rows)
         {
             bool visible = _selection.Visible(row.Id);
             row.Button.gameObject.SetActive(visible);
             row.Description.gameObject.SetActive(visible);
             if (!visible) continue;
-            // Reflow added switches without moving the preview or READY.
-            int rowsPerColumn = (count + 1) / 2;
-            float pitch = (ArenaMapPanelLayout.MutatorsHeight - RowsTop - RowsBottomMargin) / rowsPerColumn;
-            float left = 20f + (index < rowsPerColumn ? 0f : cell + 20f), top = RowsTop + (index % rowsPerColumn) * pitch;
+            int group = ArenaMutatorSelection.Group(row.Id);
+            float left = ArenaMapPanelLayout.MutatorGroupLeft(group, width);
+            float top = ArenaMapPanelLayout.MutatorRowTop(group, _groupCounts[group < 2 ? 0 : 2], _groupIndices[group]++);
             Rect((RectTransform)row.Button.transform, left, top, cell, ButtonHeight);
             Rect(row.Label.rectTransform, 12f, 0f, cell - 74f, ButtonHeight);
             Rect(row.Status.rectTransform, cell - 55f, 0f, 50f, ButtonHeight);
             Rect((RectTransform)row.Chip.transform, cell - 55f, 1f, 50f, 20f);
-            Rect(row.Description.rectTransform, left + 8f, top + ButtonHeight, cell - 16f, pitch - ButtonHeight);
-            index++;
+            Rect(row.Description.rectTransform, left + 8f, top + ButtonHeight, cell - 16f,
+                ArenaMapPanelLayout.MutatorRowPitch - ButtonHeight);
         }
     }
 
@@ -123,7 +141,13 @@ internal sealed class ArenaMutatorsView
             row.Status.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
             row.Marker.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.WithAlpha(ArenaUiTheme.Muted, .35f);
             row.Chip.color = on ? new Color(.08f, .25f, .16f, 1f) : ArenaUiTheme.Surface;
-            row.Description.text = reason ?? ArenaMutatorSelection.Description(row.Id);
+            string detail = reason ?? ArenaMutatorSelection.Description(row.Id);
+            if (row.Description.text != detail)
+            {
+                row.Description.text = detail;
+                row.Tooltip?.SetMessageText(detail, rawText: true);
+            }
+            row.Description.enableWordWrapping = false;
         }
     }
 
@@ -150,6 +174,7 @@ internal sealed class ArenaMutatorsView
     {
         foreach (var row in _rows) if (row.Button != null) row.Button.onClick.RemoveAllListeners();
         _rows.Clear();
+        Array.Clear(_groups, 0, _groups.Length);
         _owner = null; _screen = null; _changed = null;
         _dispatching = false;
         var root = _root; _root = null;

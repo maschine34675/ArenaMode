@@ -62,6 +62,8 @@ namespace EFT.UI
     }
     public sealed class NativeConditions
     {
+        public readonly TMPro.TMP_Text _currentPhaseTime = new() { text = "15:28" };
+        public readonly TMPro.TMP_Text _nextPhaseTime = new() { text = "03:28" };
         public int CloseCalls;
         public bool Open;
         public void Close() { CloseCalls++; Open = false; }

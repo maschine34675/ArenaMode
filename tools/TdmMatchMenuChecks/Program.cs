@@ -208,7 +208,7 @@ void CheckPreviews()
 {
     var previews = Buttons().Where(b => b.name.StartsWith("Arena Preview ")).ToArray();
     Need(previews.Length == 1 && previews.Select(b => b.GetComponentInChildren<TMP_Text>(true).text)
-        .SequenceEqual(new[] { "CAPTURE THE FLAG" }), "Capture the Flag remains the only inert future mode");
+        .SequenceEqual(new[] { "CAPTURE THE FLAG · PLANNED" }), "Capture the Flag remains the only inert future mode");
     string saved = Settings.GameMode.Value;
     int beforeSaves = config.Saves;
     var playable = Buttons().First(b => b.name.StartsWith("Arena Mode "));
@@ -242,7 +242,7 @@ void CheckPreviews()
 CheckPreviews();
 view.Synchronize("domination", false);
 Need(bearChoice.gameObject.activeInHierarchy && !RuleRoot().activeInHierarchy
-    && Label("Mode description").text.Contains("200") && Label("Mode description").text.Contains("10-minute"),
+    && Label("Mode description").text.Contains("200") && Label("Mode description").text.Contains("10 min"),
     "Domination shows side and fixed objective limits without TDM kill controls");
 Need(ReferenceEquals(Settings.FriendlyFireEntry("domination", false), Settings.TeamDeathmatchFriendlyFire)
     && ReferenceEquals(Settings.AnnouncerEntry("domination"), Settings.TeamDeathmatchAnnouncerEnabled)
@@ -315,10 +315,10 @@ Need(((RectTransform)view.Root.transform).sizeDelta.y == 596, "Deathmatch panel 
 Dm(1,20).onClick.Invoke(); Dm(0,3).onClick.Invoke(); Dm(3,1).onClick.Invoke();
 Need(Settings.DeathmatchRounds.Value == 3 && Settings.DeathmatchKills.Value == 20
     && !Settings.DeathmatchFreeForAll.Value && Marked(Dm(0,3)) && Marked(Dm(3,1)), "actual Deathmatch controls persist rules and markers");
-Need(Label("Mode description").text.StartsWith("All opponents hunt you.", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("ALL VS YOU · enemies ignore each other", StringComparison.Ordinal),
     "opponent choice updates the visible Deathmatch description immediately");
 Dm(3,0).onClick.Invoke();
-Need(Label("Mode description").text.StartsWith("Everyone fights everyone.", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("FFA · everyone fights everyone", StringComparison.Ordinal),
     "FFA choice restores the visible Deathmatch description immediately");
 Dm(3,1).onClick.Invoke();
 var frozen = Settings.FreezeDeathmatchRules();
@@ -334,7 +334,7 @@ view.Synchronize("tactical", false);
 // label and the PFT requirement in the 5v5 note.
 Need(Label("OBJECTIVE value").text == "Round elimination" && Label("Mode description").gameObject.activeSelf,
     "solo Tactical RULES shows the objective, not the roster, and keeps the PFT requirement note");
-Need(Label("Mode description").text.Contains("PitFireTeam supports 1-4 companions.", StringComparison.Ordinal),
+Need(Label("Mode heading").text.Contains("PITFIRETEAM / MY SQUAD", StringComparison.Ordinal),
     "solo Tactical visible description names the flexible PFT squad support");
 string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
 Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)",
@@ -342,7 +342,7 @@ Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + 
 view.Synchronize("tactical", true);
 Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 PFT (WIP)",
     "PFT Tactical shows the same objective and the roster in the mode row label");
-Need(Label("Mode description").text.Contains("Fallen allies return next round.", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("Fallen allies return next round", StringComparison.Ordinal),
     "protected Tactical description explains round-delayed restoration");
 for (int companions = 1; companions <= 4; companions++)
 {
@@ -353,12 +353,12 @@ for (int companions = 1; companions <= 4; companions++)
 }
 ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount = 4;
 view.Synchronize("zombie", false);
-Need(Label("Mode description").text.Contains("Ammo refills each wave.", StringComparison.Ordinal)
-    && Label("Mode description").text.Contains("PitFireTeam", StringComparison.Ordinal)
+Need(Label("Mode description").text.Contains("WAVE CLEAR · gear refills", StringComparison.Ordinal)
+    && Label("Mode heading").text.Contains("PITFIRETEAM", StringComparison.Ordinal)
     && Label("RESPAWN value").text == "None", "solo Zombie explains resupply and optional PFT without promising a respawn");
 view.Synchronize("zombie", true);
-Need(Label("Mode description").text.Contains("All entry gear refills each wave.", StringComparison.Ordinal)
-    && Label("Mode description").text.Contains("team wipe", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("WAVE CLEAR · gear + fallen allies return", StringComparison.Ordinal)
+    && Label("Mode description").text.Contains("TEAM WIPE", StringComparison.Ordinal),
     "PFT Zombie resupply note includes the surviving PMC and explains defeat");
 view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
@@ -435,9 +435,9 @@ foreach (bool ownGear in new[] { false, true })
     Need(Label("RESPAWN value").text == "Next wave" && Label("OBJECTIVE value").text == "Survive the waves",
         "protected Zombie explains the cleared-wave return instead of solo terminal death");
     Need(Label("Mode description").gameObject.activeSelf
-        && Label("Mode description").text.Contains("team wipe ends play", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("Fallen allies return", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("All entry gear refills each wave", StringComparison.Ordinal),
+        && Label("Mode description").text.Contains("TEAM WIPE ENDS MATCH", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("fallen allies return", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("WAVE CLEAR · gear", StringComparison.Ordinal),
         "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
             == "ZOMBIES / PFT (WIP)",
@@ -478,8 +478,8 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
             "RESPAWN fact stays inside the known vocabulary: " + scope);
         Need(Label("Mode description").gameObject.activeInHierarchy
                 && Label("Mode description").enableWordWrapping
-                && Label("Mode description").text.Length is > 0 and <= 80
-                && Label("Mode description").text.EndsWith('.'),
+                && Label("Mode description").text.Split('\n').Length == 2
+                && Label("Mode description").text.Split('\n').All(line => line.Length is > 0 and <= ArenaCompactModeRules.MaxLineCharacters),
             "every mode has an actual visible two-line description, not an unavailable tooltip: " + scope);
         foreach (var (name, top) in new[] { ("OBJECTIVE", 330f), ("RESPAWN", 360f), ("EQUIPMENT", 390f) })
             Need(Label(name + " label").rectTransform.anchoredPosition == new Vector2(20f, -top)
@@ -488,6 +488,12 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
         var description = Label("Mode description").rectTransform;
         Need(-description.anchoredPosition.y + description.sizeDelta.y <= 330f,
             "description has its own space above the common facts: " + scope);
+        var protection = Label("Gear protection").rectTransform;
+        Need(Label("Gear protection").gameObject.activeInHierarchy
+            && -protection.anchoredPosition.y >= 414f
+            && -protection.anchoredPosition.y + protection.sizeDelta.y <= 432f
+            && Label("Gear protection").text.Contains("Gear restored"),
+            "gear reassurance fits between equipment and controls without expanding the panel: " + scope);
         foreach (var child in new[] { dmRoot, RuleRoot() }.Where(x => x.activeInHierarchy))
         {
             var childRect = (RectTransform)child.transform;
@@ -517,7 +523,7 @@ Settings.ZombieOwnGear.Value = false;
 view.Synchronize("zombie", false);
 Need(Label("OBJECTIVE value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
     && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, None, Arena kits");
-Need(Label("RESPAWN value").text == "None" && Label("Mode description").text.Contains("Ammo refills each wave.", StringComparison.Ordinal),
+Need(Label("RESPAWN value").text == "None" && Label("Mode description").text.Contains("WAVE CLEAR · gear refills", StringComparison.Ordinal),
     "solo Zombie retains terminal death and describes the between-wave refill");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
@@ -540,11 +546,18 @@ foreach (bool armed in new[] { false, true })
     Need(!Settings.PmcVoiceEnabled.Value, "PMC voice choice respects active and armed locks");
 }
 ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+// The live/armed callback hides the panel; model the next native refresh after
+// returning to the menu before inspecting or clicking visible controls again.
+view.Synchronize("zombie", false);
 MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
-// 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
-// now hides, and every description still fits the one-line description cell.
-Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
-    "ANNOUNCER description names stingers, cues and the on-screen kill callouts");
+// Compact copy still names both audio cues and on-screen kill callouts.
+// Inspect the rendered row and native tooltip, not just the source formatter.
+var announcerDetail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
+    .Single(t => t.name == "Mutator detail " + ArenaMutator.Announcer);
+var announcerTooltip = MutatorButton(ArenaMutator.Announcer).GetComponent<EFT.UI.HoverTooltipArea>();
+Need(announcerDetail.gameObject.activeInHierarchy && announcerDetail.text == "Music cues and kill callouts."
+    && announcerTooltip?.Message == announcerDetail.text && announcerTooltip.RawText,
+    "ANNOUNCER row and tooltip name music cues and on-screen kill callouts");
 foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
     Need(ArenaMutatorSelection.Description(id).Length is > 0 and <= 36,
         "mutator description fits the one-line description cell: " + id);
@@ -559,11 +572,11 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     MutatorButton(ArenaMutator.Akimbo).onClick.Invoke();
 }
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
-Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-440)
-    && mutatorRect.sizeDelta == new Vector2(600,540), "inline panel reserves a fixed thumbnail slot and the original bottom edge");
+Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-412)
+    && mutatorRect.sizeDelta == new Vector2(600,568), "inline panel reserves a fixed thumbnail slot and the original bottom edge");
 // 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
-// The rows start 8 px under the title and the last description ends 8 px above
-// the panel bottom, in two columns of twelve and eleven.
+// Four visible category headers sit above fixed-height rows. The longest
+// column still ends 8 px above the original navigation boundary.
 Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Mutator legend" or "Mutators saved note"
         || t.text.Contains("Saved with F12") || t.text.Contains("Green: ON") || t.text.Contains("Killcam/tracers")),
     "mutator panel carries no legend or saved-with-F12 footer");
@@ -575,22 +588,37 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
-    float pitch = (540f - 52f - 8f) / 12f;
-    Need(mutatorIds.Length == 23 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
-        && Math.Abs(RowTop(mutatorIds[12]) - 52f) < .01f,
-        "both mutator columns start 8 px below the title");
+    float pitch = 40f;
+    Need(mutatorIds.Length == 23 && Math.Abs(RowTop(ArenaMutator.FastMovement) - 62f) < .01f
+        && Math.Abs(RowTop(ArenaMutator.Pickups) - 62f) < .01f,
+        "both mutator columns start below their category heading");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
         "mutator rows reflow without moving the panel");
     Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
     Need(mutatorIds.All(id => Math.Abs(((RectTransform)MutatorButton(id).transform).sizeDelta.y - 22f) < .01f
         && Math.Abs(Detail(id).sizeDelta.y - 18f) < .01f),
         "twenty-three mutators retain 22px buttons and 18px description cells");
-    foreach (var (lastId, bottom) in new[] { (mutatorIds[11], 532f), (mutatorIds[22], 492f) })
+    foreach (var (lastId, bottom) in new[] { (ArenaMutator.InstantSearch, 560f), (ArenaMutator.ArenaHud, 520f) })
     {
         var lastDetail = Detail(lastId);
         Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - bottom) < .01f
             && Math.Abs(lastDetail.sizeDelta.y - (pitch - 22f)) < .01f,
             "each column ends within the panel and fills its row pitch");
+    }
+    var groupLabels = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
+        .Where(t => t.name.StartsWith("Mutator group ")).ToArray();
+    Need(groupLabels.Length == 4 && groupLabels.All(t => t.gameObject.activeInHierarchy),
+        "all four mutator categories are visible without expanding prose");
+    foreach (var header in groupLabels)
+    foreach (ArenaMutator id in mutatorIds)
+    {
+        var rowRect = (RectTransform)MutatorButton(id).transform;
+        var heading = header.rectTransform;
+        bool horizontalGap = heading.anchoredPosition.x >= rowRect.anchoredPosition.x + rowRect.sizeDelta.x
+            || heading.anchoredPosition.x + heading.sizeDelta.x <= rowRect.anchoredPosition.x;
+        bool verticalGap = -heading.anchoredPosition.y + heading.sizeDelta.y <= -rowRect.anchoredPosition.y
+            || -heading.anchoredPosition.y >= -rowRect.anchoredPosition.y + rowRect.sizeDelta.y;
+        Need(horizontalGap || verticalGap, "category heading never overlaps a mutator button");
     }
 }
 // 2026-10-08 menu polish, item 5: colored tracers are team-only, exactly like the
@@ -674,7 +702,7 @@ foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical",
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
-    Need(mutatorRect.anchoredPosition == new Vector2(-56,-440), "mode changes never move the mutator panel");
+    Need(mutatorRect.anchoredPosition == new Vector2(-56,-412), "mode changes never move the mutator panel");
     bool wasEnabled = Settings.GetReplaySeconds(mode) > 0f;
     Need(KillcamButton().interactable && KillcamText() == (wasEnabled ? "KILLCAM: ON" : "KILLCAM: OFF"),
         "per-mode killcam label reflects saved state " + mode);
@@ -973,16 +1001,16 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         "right column stays beyond the central map and time strip");
     foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
     {
+        if (!MutatorButton(id).gameObject.activeInHierarchy) continue;
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
         bool separate = -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
-        // Twelve rows per column retain separate descriptions and an 8-px
-        // bottom margin in the 540-px panel.
-        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 532f + .01f,
+        // Category groups retain separate descriptions and an 8-px bottom margin.
+        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 560f + .01f,
             "all mutator descriptions fit outside their button and inside the panel");
         foreach (ArenaMutator other in Enum.GetValues(typeof(ArenaMutator)))
         {
-            if (other == id) continue;
+            if (other == id || !MutatorButton(other).gameObject.activeInHierarchy) continue;
             var otherRect = (RectTransform)MutatorButton(other).transform;
             bool horizontalGap = detail.anchoredPosition.x >= otherRect.anchoredPosition.x + otherRect.sizeDelta.x
                 || detail.anchoredPosition.x + detail.sizeDelta.x <= otherRect.anchoredPosition.x;
@@ -1199,7 +1227,7 @@ Need(rewardDetail.text == ArenaRewardMenuState.Detail && !rewardDetail.richText 
     "reward card shows literal status without requiring a hover");
 rewardButton.onClick.Invoke();
 Need(ArenaRewardMenuState.Status.Enabled && ArenaRewardMenuState.Toggles == 1, "explicit reward click alone changes consent");
-Need(rewardRoot.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Reward consent label").text.EndsWith("ON"),
+Need(rewardRoot.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Reward consent label").text == "ON",
     "explicit click refreshes the displayed consent state immediately");
 ArenaSession.ArmedForNextRaid = true;
 view.Synchronize("zombie", false);

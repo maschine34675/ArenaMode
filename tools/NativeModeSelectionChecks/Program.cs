@@ -105,7 +105,7 @@ internal static class Program
         Assert(!tactical.Rules.Contains("1v") && !tactical.Rules.Contains("5v5") && !tactical.Rules.Contains("Solo"),
             "mode copy schema: Tactical RULES carries no roster");
         var zombie = ArenaModeCatalog.All.Single(mode => mode.Id == ArenaModeCatalog.ZombieId);
-        Assert(zombie.Description.Contains("Ammo refills each wave.") && zombie.Description.Contains("PitFireTeam")
+        Assert(zombie.Description.Contains("One life solo.") && zombie.Description.Contains("cleared wave")
                && zombie.Respawn == "None", "Zombie catalog explains solo resupply and optional PFT with no solo respawn");
         Assert(tactical.Description.Contains("1-4 companions"), "Tactical catalog no longer requires a full four-companion party");
     }

@@ -9,6 +9,8 @@ namespace EFT.UI.Matchmaker
 {
     public sealed class MatchMakerSelectionLocationScreen : UnityEngine.Component
     {
+        public sealed class Location { public string Id; }
+        public Location SelectedLocation;
         public sealed class SelectionLocationScreenController { public EFT.TeamSession Session = new(); }
     }
 }

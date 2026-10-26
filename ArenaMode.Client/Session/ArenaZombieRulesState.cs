@@ -24,9 +24,9 @@ internal sealed class ArenaZombieRulesState
 
     internal static string Label(ArenaZombieRule rule) => rule switch
     {
-        ArenaZombieRule.MaxAlive => "MAX ALIVE",
-        ArenaZombieRule.WaveStartSize => "WAVE START SIZE",
-        ArenaZombieRule.WaveGrowth => "WAVE GROWTH",
+        ArenaZombieRule.MaxAlive => "ALIVE AT ONCE",
+        ArenaZombieRule.WaveStartSize => "ENEMIES IN WAVE 1",
+        ArenaZombieRule.WaveGrowth => "EXTRA ENEMIES / WAVE",
         _ => string.Empty
     };
 
