@@ -18,6 +18,12 @@ namespace ArenaMode.Pickups
 namespace ArenaMode.Session
 {
     public static class ArenaSession { public static bool IsActive, ArmedForNextRaid; }
+    internal static class ArenaMenuSelection
+    {
+        internal static bool DominationAvailable = true;
+        internal static string ModeAvailabilityRejection(string mode)
+            => mode == "domination" && !DominationAvailable ? "Domination objective companion unavailable." : null;
+    }
 
     // HTTP and persistence belong to the reward integration checks. This seam
     // verifies the real map view's visibility, eligibility and click ownership.

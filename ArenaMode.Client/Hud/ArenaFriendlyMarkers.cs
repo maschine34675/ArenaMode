@@ -116,7 +116,7 @@ internal sealed class ArenaFriendlyMarkers : IDisposable
            && Settings.ShowFriendlyMarkers?.Value == true
            && match?.Mode != null && ReferenceEquals(match, ArenaMatchService.Current)
            && !match.Mode.IsComplete
-           && ((match.Mode is TeamDeathmatchMode && ArenaSession.ActiveMode == "teamdeathmatch")
+           && ((match.Mode is TeamDeathmatchMode && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode))
                || (match.Mode is TacticalMode tactical && tactical.IsTeamArena
                    && ArenaSession.ActiveMode == "tactical")
                || (match.Mode is ZombieMode zombie && zombie.IsTeamArena

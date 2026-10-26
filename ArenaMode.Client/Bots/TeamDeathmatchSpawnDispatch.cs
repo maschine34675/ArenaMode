@@ -16,7 +16,7 @@ internal static class TeamDeathmatchSpawnDispatch
     private static Lease _current;
 
     internal static bool IsActive => ArenaSession.IsActive
-        && string.Equals(ArenaSession.ActiveMode, "teamdeathmatch", StringComparison.Ordinal)
+        && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
         && Singleton<AbstractGame>.Instantiated
         && Singleton<GameWorld>.Instantiated
         && ArenaSession.IsExactActiveRaid(

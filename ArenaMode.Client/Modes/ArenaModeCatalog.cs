@@ -68,6 +68,7 @@ internal static class ArenaModeCatalog
     // ArenaPopulationPolicy would compile and quietly turn both off.
     public const string TacticalId = ArenaPopulationPolicy.Tactical;
     public const string TeamDeathmatchId = ArenaPopulationPolicy.TeamDeathmatch;
+    public const string DominationId = ArenaPopulationPolicy.Domination;
     // Same reasoning as TacticalId/TeamDeathmatchId above: taken from the
     // shared population policy, which this id also controls (Zombie owns its
     // entire population and turns on the native infection event), so a rename
@@ -87,6 +88,9 @@ internal static class ArenaModeCatalog
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
                 "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
+            new ArenaModeDefinition(DominationId, "DOMINATION (WIP)",
+                "Hold three Factory points. First to 200 wins; 10-minute limit.",
+                "Hold three points", "Instant", "Arena kits"),
             new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
                 "Eliminate the enemy squad. PitFireTeam supports 1-4 companions.",
                 "Round elimination", "Next round", "Buy / retain kit"),
@@ -101,7 +105,7 @@ internal static class ArenaModeCatalog
     internal static float ModePanelHeight(string mode) => NormalizeId(mode) switch
     {
         DeathmatchId or ZombieId => 596f,
-        TeamDeathmatchId => 584f,
+        TeamDeathmatchId or DominationId => 584f,
         _ => 530f,
     };
 

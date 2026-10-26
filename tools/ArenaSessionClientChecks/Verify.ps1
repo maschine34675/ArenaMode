@@ -589,8 +589,10 @@ Invoke-Mutant 'switch-main-thread-sleeps' 'switch' `
     'the wait for the helper is a coroutine on the plugin and never blocks the main thread'
 
 # ---- side screen, notice and chain wiring (source pins)
-Invoke-Mutant 'reward-prepare-case-mismatch' 'switch' '[nameof(RewardControlPrepareRequest.ControlId)] = controlId' '["controlId"] = controlId' `
-    'Only the approved control identity travels to the helper'
+Invoke-Mutant 'reward-prepare-case-mismatch' 'switch' 'nameof(RewardControlPrepareRequest.ControlId)' '"controlId"' `
+    'Only approved opaque identities travel to the helper with the required new schema'
+Invoke-Mutant 'entry-prepare-case-mismatch' 'switch' 'nameof(RewardEntryPrepareRequest.SessionId)' '"sessionId"' `
+    'Accepted prepare starts the helper'
 Invoke-Mutant 'side-lock-patch-ungated' 'side' `
     "        if (ArenaSessionMode.IsArenaSession)`n            new ArenaSideSelectionSessionLockPatch().Enable();" `
     '        new ArenaSideSelectionSessionLockPatch().Enable();' `

@@ -48,10 +48,18 @@ internal static class BigBrainRuntime
             || brains.Any(brain => !fireLayer.CustomLayerBrains.Contains(brain)))
             throw new InvalidOperationException("BigBrain did not retain the Arena ground fire escape layer.");
 
-        // Do not advertise any capability until all three actual registrations
+        int dominationLayerId = BrainManager.AddCustomLayer(typeof(ArenaDominationLayer), brains, Library.DominationLayerPriority);
+        if (!BrainManager.CustomLayersReadOnly.TryGetValue(dominationLayerId, out var dominationLayer)
+            || dominationLayer.customLayerType != typeof(ArenaDominationLayer)
+            || dominationLayer.customLayerPriority != Library.DominationLayerPriority
+            || brains.Any(brain => !dominationLayer.CustomLayerBrains.Contains(brain)))
+            throw new InvalidOperationException("BigBrain did not retain the Arena Domination objective layer.");
+
+        // Do not advertise any capability until all four actual registrations
         // passed their retained type/priority/brain checks.
         prunePickups = ArenaPickupObjective.Prune;
-        resetPickups = ArenaPickupObjective.ResetClaims;
+        resetPickups = () => { ArenaPickupObjective.ResetClaims(); Bots.DominationObjectiveBridge.Stop(); };
+        logger.LogDebug($"Arena Domination layer {dominationLayerId} registered at priority {Library.DominationLayerPriority}.");
         logger.LogDebug($"Arena pickup layer {pickupLayerId} registered at priority {Library.PickupLayerPriority}: live Deathmatch/TDM; useful health, shield and damage only.");
         logger.LogDebug($"Arena pursuit layer {layerId} registered for {brains.Count} brains "
             + $"at priority {Library.PursuitLayerPriority} (BigBrain {actualVersion}).");

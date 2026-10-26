@@ -109,6 +109,11 @@ internal static class ArenaMenuSelection
 
     public static bool CompatibilityTeamArenaActive => _teamArenaActive?.Invoke() == true;
 
+    internal static string ModeAvailabilityRejection(string mode)
+        => mode == Modes.ArenaModeCatalog.DominationId && !Bots.DominationObjectiveBridge.Available
+            ? "Domination requires the Arena BigBrain objective companion. Restart after updating the mod."
+            : null;
+
     public static void ClearCompatibilityState(string reason)
         => _compatibilityCleanup?.Invoke(reason);
 
@@ -200,6 +205,7 @@ internal static class ArenaMenuSelection
 
     private static bool IsMapAvailable(string map, Eligibility eligibility)
         => IsMapConfigured(map) && eligibility?.Allowed == true
+           && ModeAvailabilityRejection(Config.Settings.SelectedGameModeId) == null
            && ArenaAreaCatalog.TryResolve(
                Config.Settings.TeamDeathmatchArea?.Value,
                map, Config.Settings.SelectedGameModeId, eligibility.IsTeam, out _, out _);
@@ -207,7 +213,11 @@ internal static class ArenaMenuSelection
     public static ArenaAreaSelectionState AreaSelection(string map)
     {
         var eligibility = CurrentEligibility;
-        return ArenaAreaSelectionState.Create(IsMapConfigured(map) && eligibility.Allowed ? map : null,
+        // Keep entering the Arena picker possible when a saved mode lost its
+        // optional companion. Only that mode's maps/start are blocked, so the
+        // player can select another working format without editing F12.
+        return ArenaAreaSelectionState.Create(IsMapConfigured(map) && eligibility.Allowed
+                && ModeAvailabilityRejection(Config.Settings.SelectedGameModeId) == null ? map : null,
             Config.Settings.SelectedGameModeId, eligibility.IsTeam, Config.Settings.TeamDeathmatchArea?.Value,
             Config.Settings.TeamDeathmatchSize?.Value ?? 5, Config.Settings.AreaTeamSize?.Value ?? 0);
     }
@@ -255,6 +265,10 @@ internal static class ArenaMenuSelection
     /// </summary>
     public static bool TryValidateAndFreezeRequest(LocalRaidSettings settings, out string reason)
     {
+        // Recheck immediately before any roster freeze/server arm. A saved
+        // selection or direct native start cannot bypass the disabled menu row.
+        reason = ModeAvailabilityRejection(Config.Settings.SelectedGameModeId);
+        if (!string.IsNullOrEmpty(reason)) return false;
         var eligibility = CurrentEligibility;
         if (!eligibility.Allowed)
         {

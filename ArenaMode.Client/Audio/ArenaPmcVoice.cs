@@ -166,7 +166,7 @@ internal static class ArenaPmcVoice
 
     private static void PrepareVoice()
     {
-        if (_loadStarted || _match.Mode.Id != ArenaModeCatalog.TeamDeathmatchId) return;
+        if (_loadStarted || !Shared.ArenaPopulationPolicy.IsIndependentTeam(_match.Mode.Id)) return;
         var selected = ArenaSession.TeamDeathmatchLocalSide(_game, _world);
         if (selected != EPlayerSide.Usec && selected != EPlayerSide.Bear) return;
         bool usec = selected == EPlayerSide.Usec;

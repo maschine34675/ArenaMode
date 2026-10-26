@@ -351,6 +351,7 @@ internal static partial class Program
         CheckNativeAreas();
         CheckAreaTeamMenu();
         CheckParticipantNegotiation();
+        CheckDominationAdmission();
         CheckSessionModeCaption();
         CheckMolotovAvailability();
         CheckProtectedEntryAwait();

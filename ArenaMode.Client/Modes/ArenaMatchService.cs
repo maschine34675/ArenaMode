@@ -173,6 +173,7 @@ internal static partial class ArenaMatchService
             // A failed solo Tactical startup must not fall through to the
             // generic raid-start random kit either: it has no buy coordinator.
             if (protectedTeam || Compat.PitFireTeamCompat.HasFrozenTeamRoster
+                || ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Domination
                 || string.Equals(ArenaSession.ActiveMode, Shared.ArenaPopulationPolicy.Tactical,
                     StringComparison.OrdinalIgnoreCase))
                 ScheduleFailedStartAbort(ex.GetBaseException().Message);

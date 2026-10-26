@@ -172,13 +172,13 @@ public static class ArenaSession
         string token;
         if (IsActive)
         {
-            if (ActiveMode != Modes.ArenaModeCatalog.TeamDeathmatchId || !IsExactActiveRaid(game, world)
+            if (!Shared.ArenaPopulationPolicy.IsIndependentTeam(ActiveMode) || !IsExactActiveRaid(game, world)
                 || game.Status != GameStatus.Started) return null;
             token = ArenaServerClient.ActiveArmToken;
         }
         else
         {
-            if (!ArmedForNextRaid || ArmedMode != Modes.ArenaModeCatalog.TeamDeathmatchId
+            if (!ArmedForNextRaid || !Shared.ArenaPopulationPolicy.IsIndependentTeam(ArmedMode)
                 || game.Status != GameStatus.Running
                 || !string.Equals(world.LocationId, ArmedMap, StringComparison.OrdinalIgnoreCase)) return null;
             token = ArenaServerClient.PendingArmToken;
@@ -195,7 +195,7 @@ public static class ArenaSession
     internal static EPlayerSide? TeamDeathmatchBodySide(Player player, LocalGame game, GameWorld world)
     {
         if (player == null) return null;
-        if (player.IsAI || (IsActive ? ActiveMode : ArmedMode) != Modes.ArenaModeCatalog.TeamDeathmatchId)
+        if (player.IsAI || !Shared.ArenaPopulationPolicy.IsIndependentTeam(IsActive ? ActiveMode : ArmedMode))
             return player.Profile?.Info?.Side;
         if (world == null || !ReferenceEquals(world.MainPlayer, player) || player.ProfileId != game?.Profile?.Id
             || player.Profile?.Info?.Side != game.Profile.Info.Side) return null;
@@ -253,7 +253,7 @@ public static class ArenaSession
         DeathmatchSelection = deathmatch;
         ArenaReplaySelection.Capture(Settings.GetReplaySeconds(mode), Spectator.KillcamCompat.CanPlay(out _));
         unchecked { ArmEpoch++; }
-        if (mode == Modes.ArenaModeCatalog.TeamDeathmatchId && nativeSide != EPlayerSide.Usec && nativeSide != EPlayerSide.Bear)
+        if (Shared.ArenaPopulationPolicy.IsIndependentTeam(mode) && nativeSide != EPlayerSide.Usec && nativeSide != EPlayerSide.Bear)
             throw new InvalidOperationException("Team DM requires an unchanged native PMC faction.");
         ArenaTeamSideSelection.Capture(mode, teamSide, nativeSide == EPlayerSide.Usec,
             localProfileId, ArmEpoch, ArenaServerClient.PendingArmToken);

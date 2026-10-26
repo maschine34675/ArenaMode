@@ -33,6 +33,11 @@ namespace ArenaMode
 { public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public const string PluginVersion = "9.8.7"; } }
 namespace ArenaMode.Bots
 {
+    public static class DominationObjectiveBridge
+    {
+        public static bool Available;
+        public static void Stop() { }
+    }
     public static class TeamArenaPursuitLeaseBridge
     {
         public static string Consumer;
@@ -47,6 +52,7 @@ namespace ArenaMode.BigBrainCompat
     public sealed class ArenaPursuitLayer : DrakiaXYZ.BigBrain.Brains.CustomLayer { }
     public sealed class ArenaPickupLayer : DrakiaXYZ.BigBrain.Brains.CustomLayer { }
     public sealed class ArenaFireEscapeLayer : DrakiaXYZ.BigBrain.Brains.CustomLayer { }
+    public sealed class ArenaDominationLayer : DrakiaXYZ.BigBrain.Brains.CustomLayer { }
     internal static class ArenaPickupObjective
     {
         internal static int Prunes, Resets;

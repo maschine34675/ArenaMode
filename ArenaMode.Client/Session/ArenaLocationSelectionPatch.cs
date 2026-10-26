@@ -40,7 +40,7 @@ internal static class ArenaLocationSelectionPatch
             var eligibility = ArenaMenuSelection.CurrentModeEligibility;
             Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
             foreach (var row in ConditionalMaps)
-                row.View.Refresh(ArenaMenuSelection.IsMapDiscoverable(row.MapId),
+                row.View.Refresh(ArenaMapCatalog.CanSelectNativeLocation(row.MapId, ArenaMenuSelection.IsMapDiscoverable),
                     string.Equals(screen.SelectedLocation?.Id, row.MapId, System.StringComparison.OrdinalIgnoreCase));
             var map = screen.SelectedLocation?.Id;
             if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
@@ -324,7 +324,10 @@ internal static class ArenaLocationSelectionPatch
         private static void Postfix(LocationButton __instance, LocationSettings.Location location,
             System.Action<LocationSettings.Location> onSelected)
         {
-            if (!ArenaMapCatalog.RequiresModeFilteredView(location?.Id)
+            // Domination restricts even vanilla maps. Keep a conditional view
+            // for every Arena tile so switching modes restores the same native
+            // row instead of leaving a previously hidden Labs/Factory tile lost.
+            if (!ArenaMapCatalog.IsSupportedMap(location?.Id)
                 || onSelected?.Target is not MatchMakerSelectionLocationScreen screen
                 || onSelected.Method.Name != nameof(MatchMakerSelectionLocationScreen.OnLocationSelected)
                 || onSelected.Method.DeclaringType != typeof(MatchMakerSelectionLocationScreen)
@@ -351,7 +354,7 @@ internal static class ArenaLocationSelectionPatch
                     if (screen != null) screen.OnLocationSelected(null);
                 });
             States.GetOrCreateValue(screen).ConditionalMaps.Add((location.Id, row));
-            row.Refresh(ArenaMenuSelection.IsMapDiscoverable(location.Id),
+            row.Refresh(ArenaMapCatalog.CanSelectNativeLocation(location.Id, ArenaMenuSelection.IsMapDiscoverable),
                 string.Equals(screen.SelectedLocation?.Id, location.Id, System.StringComparison.OrdinalIgnoreCase));
         }
     }

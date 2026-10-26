@@ -127,11 +127,15 @@ public static class Settings
     public static ConfigEntry<bool> TacticalFriendlyFire { get; private set; }
     public static ConfigEntry<bool> ZombieFriendlyFire { get; private set; }
 
-    /// <summary>Menu preference only; damage reads the snapshot taken at arming.</summary>
+    /// <summary>
+    /// Menu preference only; damage reads the snapshot taken at arming.
+    /// Domination V1 deliberately shares Team DM's team, replay and announcer
+    /// preferences; objective limits remain separate fixed match rules.
+    /// </summary>
     internal static ConfigEntry<bool> FriendlyFireEntry(string mode, bool protectedTeam)
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
-            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchFriendlyFire,
+            ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamDeathmatchFriendlyFire,
             ArenaModeCatalog.TacticalId when protectedTeam => TacticalFriendlyFire,
             ArenaModeCatalog.ZombieId when protectedTeam => ZombieFriendlyFire,
             _ => null
@@ -155,7 +159,7 @@ public static class Settings
     internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
-            ArenaModeCatalog.TeamDeathmatchId => TeamTracers,
+            ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamTracers,
             ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers,
             ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers,
             _ => null
@@ -296,7 +300,7 @@ public static class Settings
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
             ArenaModeCatalog.GunGameId => GunGameReplaySeconds,
-            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchReplaySeconds,
+            ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamDeathmatchReplaySeconds,
             ArenaModeCatalog.TacticalId => TacticalReplaySeconds,
             ArenaModeCatalog.ZombieId => ZombieReplaySeconds,
             _ => DeathmatchReplaySeconds,
@@ -338,7 +342,7 @@ public static class Settings
         {
             ArenaModeCatalog.GunGameId => GunGameAnnouncerEnabled,
             ArenaModeCatalog.TacticalId => TacticalAnnouncerEnabled,
-            ArenaModeCatalog.TeamDeathmatchId => TeamDeathmatchAnnouncerEnabled,
+            ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamDeathmatchAnnouncerEnabled,
             ArenaModeCatalog.ZombieId => ZombieAnnouncerEnabled,
             _ => DeathmatchAnnouncerEnabled,
         };
@@ -1170,6 +1174,7 @@ public static class Settings
                 "gungame: climb a ladder of weapons, one rung per kill. " +
                 "tactical: buy a loadout, fight one squad, and sit the round out if you fall. " +
                 "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits. " +
+                "domination: Factory objective prototype; capture three points, first to 200 or 10 minutes. " +
                 "zombie: endless waves of the infected, with instant respawns and Arena kits.",
                 new AcceptableValueList<string>(
                     ArenaModeCatalog.DeathmatchId,
@@ -1178,6 +1183,7 @@ public static class Settings
                     ArenaModeCatalog.GunGameId,
                     ArenaModeCatalog.TacticalId,
                     ArenaModeCatalog.TeamDeathmatchId,
+                    ArenaModeCatalog.DominationId,
                     ArenaModeCatalog.ZombieId)));
 
         TeamDeathmatchArea = config.Bind(

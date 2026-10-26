@@ -19,9 +19,9 @@ internal static partial class Program
     private static void CheckParticipantNegotiation()
     {
         BepInEx.Bootstrap.Chainloader.PluginInfos[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
-        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch" })
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "domination" })
         {
-            string map = mode == "teamdeathmatch" ? ArenaMapCatalog.FactoryDayId : ArenaMapCatalog.EquatorId;
+            string map = ArenaPopulationPolicy.IsIndependentTeam(mode) ? ArenaMapCatalog.FactoryDayId : ArenaMapCatalog.EquatorId;
             ConfigureAreaNegotiation(); Select(map);
             Settings.GameMode.Value = mode; Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
             ArenaParticipantSettings.Override = 8;

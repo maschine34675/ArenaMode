@@ -56,13 +56,13 @@ $cases = @(
     },
     @{
         Name = 'search-phase-admission'; Path = $flow; Property = 'FlowSource';
-        Find = 'internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;';
+        Find = 'internal bool IsSearchActive => IsCurrentMatch() && MatchPhase == TdmMatchPhase.Live;';
         Replace = 'internal bool IsSearchActive => IsCurrentMatch();';
         Failure = 'search admission is disabled while assembling'
     },
     @{
         Name = 'search-read-publishes-result'; Path = $flow; Property = 'FlowSource';
-        Find = 'internal bool IsSearchActive => IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Live;';
+        Find = 'internal bool IsSearchActive => IsCurrentMatch() && MatchPhase == TdmMatchPhase.Live;';
         Replace = 'internal bool IsSearchActive => TryBeginScoredEvent();';
         Failure = 'search phase read does not publish an overdue result or advance lifecycle'
     },
@@ -170,8 +170,8 @@ $cases = @(
     },
     @{
         Name = 'subtick-readiness-loss'; Path = $mode; Property = 'ModeSource';
-        Find = 'if (IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Countdown';
-        Replace = 'if (false && _rules?.Phase == TdmMatchPhase.Countdown';
+        Find = 'if (IsCurrentMatch() && MatchPhase == TdmMatchPhase.Countdown';
+        Replace = 'if (false && MatchPhase == TdmMatchPhase.Countdown';
         Failure = 'short local readiness loss cancels countdown before the roster tick'
     },
     @{
@@ -182,13 +182,13 @@ $cases = @(
     },
     @{
         Name = 'terminal-kill-classification'; Path = $mode; Property = 'ModeSource';
-        Find = 'kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live';
+        Find = 'kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && MatchPhase == TdmMatchPhase.Live';
         Replace = 'kill.ScoreEligible &= !_ended && IsCurrentRaid()';
         Failure = 'terminal delayed kills have neither score nor award eligibility'
     },
     @{
         Name = 'staging-score-admission'; Path = $flow; Property = 'FlowSource';
-        Find = 'return !IsComplete && _rules?.Phase == TdmMatchPhase.Live;'; Replace = 'return !IsComplete;';
+        Find = 'return !IsComplete && MatchPhase == TdmMatchPhase.Live;'; Replace = 'return !IsComplete;';
         Failure = 'preactive full roster cannot release scoring, time or staging damage'
     },
     @{

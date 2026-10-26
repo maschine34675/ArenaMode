@@ -21,7 +21,7 @@ internal static class ArenaTeamPalette
     internal static Color BearUi => FromRgb(BearRgb);
 
     private static bool? LocalUsec => ArenaSession.IsActive
-        && ArenaSession.ActiveMode == Modes.ArenaModeCatalog.TeamDeathmatchId
+        && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
         && Singleton<AbstractGame>.Instantiated && Singleton<GameWorld>.Instantiated
         && ArenaSession.IsExactActiveRaid(Singleton<AbstractGame>.Instance, Singleton<GameWorld>.Instance)
         ? ArenaTeamSideSelection.SelectedUsec : null;

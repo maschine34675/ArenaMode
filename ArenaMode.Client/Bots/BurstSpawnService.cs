@@ -1330,7 +1330,7 @@ internal static class BurstSpawnService
         // This runs before ArenaMatch is constructed. Finite TDM freezes these
         // same settings at OnMatchStart; do not preload its peak difficulty with
         // opening-tier equipment. Its per-wave server batch is request-sized.
-        if (ArenaSession.IsActive && ArenaBotDifficultyClockPatch.IsReady && ArenaSession.ActiveMode == "teamdeathmatch"
+        if (ArenaSession.IsActive && ArenaBotDifficultyClockPatch.IsReady && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
             && Settings.TeamDeathmatchTimeLimitSeconds.Value > 0) return;
         try
         {

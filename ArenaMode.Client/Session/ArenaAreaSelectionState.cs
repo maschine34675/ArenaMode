@@ -52,7 +52,7 @@ internal sealed class ArenaAreaSelectionState
             : HasTeamSizeChoice ? SelectedTeamSize > 0 ? $"{SelectedTeamSize}v{SelectedTeamSize} - opposing team starts" : "Select a supported team size."
             : selected.FixedTeamSize > 0 ? $"{selected.FixedTeamSize}v{selected.FixedTeamSize} - fixed teams"
             : pitFireTeam ? mode == ArenaModeCatalog.ZombieId ? "PitFireTeam squad" : "PFT squad vs 5"
-            : mode == ArenaModeCatalog.TeamDeathmatchId ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
+            : ArenaPopulationPolicy.IsIndependentTeam(mode) ? $"{Math.Max(2, Math.Min(12, teamSize))}v{Math.Max(2, Math.Min(12, teamSize))} - configured teams"
             : string.Empty;
         ModeHint = selected == null ? string.Empty
             : selected.FixedTeamSize > 0 || HasTeamSizeChoice ? "Opposing faction starts"

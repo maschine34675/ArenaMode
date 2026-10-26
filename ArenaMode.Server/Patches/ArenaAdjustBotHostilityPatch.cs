@@ -40,7 +40,7 @@ public sealed class ArenaAdjustBotHostilityPatch : AbstractPatch
             return;
         }
 
-        if (string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
+        if (ArenaPopulationPolicy.IsIndependentTeam(mode))
         {
             ApplyTeamDeathmatch(location);
             ArenaContext.Logger?.Debug("[ArenaMode] Arena hostility applied (USEC vs BEAR teams).");

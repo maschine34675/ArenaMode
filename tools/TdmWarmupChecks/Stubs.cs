@@ -89,6 +89,7 @@ namespace ArenaMode.Combat.Fire { public static class ArenaFireRuntime { public 
 namespace ArenaMode.Session { public static class ArenaRaidExit { public static void Tick() { } } }
 namespace ArenaMode.Hud { public static class ArenaExtractionList { public static void Tick() { } } }
 namespace ArenaMode.Audio { public static class HitmarkerAudioService { public static void Tick() { } } }
+namespace ArenaMode.Audio { public static class ArenaPmcVoice { public static void Tick() { } } }
 namespace ArenaMode.Bots { public static class ArenaBotPatches { public static void TickIndividualGroups() { } } }
 namespace ArenaMode.Combat
 {

@@ -14,13 +14,14 @@ internal static class Program
     {
         ArenaTeamSideSelection.Reset();
         Check(!ArenaTeamSideSelection.SelectedUsec.HasValue, "fresh selection absent");
+        foreach (string mode in new[] { "teamdeathmatch", "domination" })
         foreach (bool native in new[] { true, false })
         foreach (string choice in new[] { "Profile", "USEC", "BEAR" })
         {
             bool expected = choice == "Profile" ? native : choice == "USEC";
             var game = new object();
             var world = new object();
-            ArenaTeamSideSelection.Capture("teamdeathmatch", choice, native, "local", 6, "arm6");
+            ArenaTeamSideSelection.Capture(mode, choice, native, "local", 6, "arm6");
             Check(ArenaTeamSideSelection.SelectedUsec == expected, "choice resolves before loading");
             Check(ArenaTeamSideSelection.NativeUsec == native, "native faction preserved separately");
             Check(!ArenaTeamSideSelection.TryResolve(5, "arm6", new object(), new object(), "local", native, out _), "stale epoch cannot bind");
@@ -48,7 +49,7 @@ internal static class Program
             ArenaTeamSideSelection.Reset();
             Check(!ArenaTeamSideSelection.SelectedUsec.HasValue && !ArenaTeamSideSelection.NativeUsec.HasValue, "reset clears both authorities");
             Check(!ArenaTeamSideSelection.TryResolve(6, "arm6", game, world, "local", native, out _), "old continuation rejected after reset");
-            ArenaTeamSideSelection.Capture("teamdeathmatch", expected ? "BEAR" : "USEC", native, "local", 7, "arm7");
+            ArenaTeamSideSelection.Capture(mode, expected ? "BEAR" : "USEC", native, "local", 7, "arm7");
             Check(!ArenaTeamSideSelection.TryResolve(6, "arm6", game, world, "local", native, out _), "rearm rejects previous token and epoch");
             Check(ArenaTeamSideSelection.TryResolve(7, "arm7", new object(), new object(), "local", native, out selected) && selected == !expected,
                 "new match can choose opposite side");

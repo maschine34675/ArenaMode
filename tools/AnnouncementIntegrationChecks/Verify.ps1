@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $project = Join-Path $PSScriptRoot 'AnnouncementIntegrationChecks.csproj'
 $source = Join-Path $root 'ArenaMode.Client'
-$bound = @('Audio/ArenaAnnouncementSnapshot.cs','Audio/ArenaAnnouncementPolicy.cs','Audio/ArenaAnnouncementDirector.cs','Modes/ArenaAnnouncerCue.cs','Modes/DeathmatchRules.cs','Modes/TeamDeathmatchMatchPolicy.cs','Modes/RoundsMode.Announcements.cs','Modes/TeamDeathmatchMode.Announcements.cs','Modes/TacticalMode.Announcements.cs','Modes/GunGameMode.Announcements.cs')
+$bound = @('Audio/ArenaAnnouncementSnapshot.cs','Audio/ArenaAnnouncementPolicy.cs','Audio/ArenaAnnouncementDirector.cs','Modes/ArenaAnnouncerCue.cs','Modes/DeathmatchRules.cs','Modes/TeamDeathmatchMatchPolicy.cs','Modes/DominationPolicy.cs','Modes/DominationMatchPolicy.cs','Modes/TeamDeathmatchMode.Domination.cs','Modes/RoundsMode.Announcements.cs','Modes/TeamDeathmatchMode.Announcements.cs','Modes/TacticalMode.Announcements.cs','Modes/GunGameMode.Announcements.cs')
 $hashes = @{}
 foreach ($file in $bound) { $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $source $file)).Hash }
 $scratch = Join-Path $root ('artifacts/announcement-integration/' + [Guid]::NewGuid().ToString('N'))
@@ -20,7 +20,9 @@ function Run-Probe([string]$name, [string]$sourceRoot, [string]$expectedFailure)
 }
 Run-Probe 'production' $source ''
 $faults = @(
-    @('points-for-kills','Modes/TeamDeathmatchMode.Announcements.cs','.Kills;','.Score;','TDM uses raw team kills rather than points'),
+    @('points-for-kills','Modes/TeamDeathmatchMode.Domination.cs','.Kills ?? 0;','.Score ?? 0;','TDM uses raw team kills rather than points'),
+    @('objective-points-as-kills','Modes/TeamDeathmatchMode.Announcements.cs','!IsDomination && MatchScoreLimit > 0','MatchScoreLimit > 0','Domination never describes held-objective points as remaining kills'),
+    @('objective-side-inverted','Modes/TeamDeathmatchMode.Domination.cs','_population?.LocalUsec == true','_population?.LocalUsec == false','Domination announces objective lead in the selected faction, not combat kills'),
     @('early-tactical-live','Modes/TacticalMode.Announcements.cs','(_teamArena || _soloCombatReady)','true','Solo Tactical assembly never spends or announces combat time'),
     @('unearned-final-weapon','Modes/GunGameMode.Announcements.cs','!equipping && player?.HealthController?.IsAlive == true','player?.HealthController?.IsAlive == true','Earned but not equipped final weapon stays silent'),
     @('foreign-world','Audio/ArenaAnnouncementDirector.cs','|| !ArenaSession.IsExactActiveRaid(game, world)','|| false','Foreign world cancels and cannot publish progress'),

@@ -42,10 +42,10 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     private Player _creditedGiveUpLife;
     private int _spawnGateEpoch;
 
-    public string Id => ArenaModeCatalog.TeamDeathmatchId;
-    public string DisplayName => "Team Deathmatch";
+    public string Id => IsDomination ? Shared.ArenaPopulationPolicy.Domination : ArenaModeCatalog.TeamDeathmatchId;
+    public string DisplayName => IsDomination ? "Domination" : "Team Deathmatch";
     public bool IsComplete => _failure != null || HasResult;
-    internal bool AssistScoringOpen => !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live;
+    internal bool AssistScoringOpen => !_ended && !IsComplete && IsCurrentRaid() && MatchPhase == TdmMatchPhase.Live;
     public float DeathReplaySeconds => Session.ArenaReplaySelection.Seconds;
     public bool HoldRespawn => Areas.ArenaAreaRuntime.IsPending || HasResult;
     public bool ControlsOwnSpawns => true;
@@ -58,14 +58,14 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         get
         {
-            if (_failure != null) return "TEAM DM stopped — " + _failure;
+            if (_failure != null) return DisplayName + " stopped — " + _failure;
             if (HasResult) return ResultHeading + " — <color=" + ArenaTeamPalette.FriendlyHex + ">"
-                + FriendlyFaction + " " + _rules.FriendlyKills + "</color> : <color=" + ArenaTeamPalette.OpponentHex + ">"
-                + _rules.OpponentKills + " " + OpponentFaction + "</color>";
+                + FriendlyFaction + " " + FinalFriendlyScore + "</color> : <color=" + ArenaTeamPalette.OpponentHex + ">"
+                + FinalOpponentScore + " " + OpponentFaction + "</color>";
             if (Areas.ArenaAreaRuntime.IsPending) return "PREPARING ARENA AREA — checking navigation";
-            if (_match == null) return "TEAM DM";
-            int friendly = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
-            int opponent = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
+            if (_match == null) return DisplayName;
+            int friendly = FriendlyTeamScore;
+            int opponent = OpponentTeamScore;
             string waiting = _reportedStall ? " | spawn delayed" : "";
             return $"{TeamSize}v{TeamSize}  <color={ArenaTeamPalette.FriendlyHex}>{FriendlyFaction} {friendly}</color> : "
                    + $"<color={ArenaTeamPalette.OpponentHex}>{opponent} {OpponentFaction}</color> | {RulesStatus}{waiting}";
@@ -81,8 +81,9 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
         _spawnShieldSeconds = 0f;
-        _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
-            Settings.TeamDeathmatchTimeLimitSeconds.Value);
+        if (!IsDomination)
+            _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
+                Settings.TeamDeathmatchTimeLimitSeconds.Value);
         EPlayerSide? faction = TeamDeathmatchRelations.Faction(_local);
         if (!IsCurrentRaid() || string.IsNullOrEmpty(_localId)
             || !faction.HasValue || Compat.PitFireTeamCompat.HasFrozenTeamRoster)
@@ -108,7 +109,8 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         spawner?.SetMaxBots(2 * TeamSize - 1);
         Plugin.ModLogger.LogDebug($"Team Deathmatch: {TeamSize}v{TeamSize}, local {FriendlyFaction}, "
             + $"{TeamSize - 1} friendly / {TeamSize} opposing bot slots; no PFT followers.");
-        ClaimMonitors();
+        InitializeDomination();
+        if (!IsDomination) ClaimMonitors();
     }
 
     public void Tick(float deltaTime)
@@ -118,7 +120,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         CheckMatchLimits();
         PushMonitors();
         if (HasResult) { TickResult(); return; }
-        if (IsCurrentMatch() && _rules?.Phase == TdmMatchPhase.Countdown
+        if (IsCurrentMatch() && MatchPhase == TdmMatchPhase.Countdown
             && (Areas.ArenaAreaRuntime.IsPending || Respawn.ArenaRespawnDriver.IsRespawnInProgress
                 || Respawn.LiveKitRespawn.IsInitialSwapPending || _local?.HealthController?.IsAlive != true
                 || !ReferenceEquals(_world.MainPlayer, _local))) TickMatchStart(false);
@@ -188,7 +190,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
                 && !Respawn.ArenaRespawnDriver.IsRespawnInProgress
                 && !Respawn.LiveKitRespawn.IsInitialSwapPending;
             TickMatchStart(ready);
-            if (!_announcedReady && _rules.Phase == TdmMatchPhase.Live)
+            if (!_announcedReady && MatchPhase == TdmMatchPhase.Live)
             {
                 _announcedReady = true;
                 Areas.ArenaAreaRuntime.FinishTeamAssembly();
@@ -370,6 +372,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _game == null
             || (_game.Status != GameStatus.Stopping && _game.Status != GameStatus.Stopped)) return false;
         _nativeStopObserved = true;
+        ReleaseDomination();
         ReleaseMonitors();
         ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM native shutdown");
@@ -427,7 +430,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         kill.KillerIsFriendly = Friendly(kill.KillerProfileId);
         kill.VictimIsFriendly = Friendly(kill.VictimProfileId);
-        kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Live
+        kill.ScoreEligible &= !_ended && !IsComplete && IsCurrentRaid() && MatchPhase == TdmMatchPhase.Live
             && kill.KillerIsFriendly.HasValue && kill.VictimIsFriendly.HasValue
             && kill.KillerIsFriendly != kill.VictimIsFriendly;
         kill.AwardEligible &= kill.ScoreEligible;
@@ -440,7 +443,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     public void OnKill(ArenaKill kill) => CheckMatchLimits();
     public void OnLocalDeath()
     {
-        if (IsCurrentRaid() && _rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);
+        if (IsCurrentRaid() && MatchPhase == TdmMatchPhase.Countdown) TickMatchStart(false);
         _nextTick = 0f;
     }
 
@@ -519,7 +522,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     public void OnLocalRespawn(Player player)
     {
         if (_population == null || !IsCurrentRaid()) return;
-        if (_rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);
+        if (MatchPhase == TdmMatchPhase.Countdown) TickMatchStart(false);
         try { if (player != null) Areas.ArenaAreaRuntime.RequirePosition(player.Position); }
         catch (Exception ex)
         { Areas.ArenaAreaRuntime.Abort("replacement body left the verified area: " + ex.Message); return; }
@@ -540,6 +543,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     {
         if (_failure != null || ObserveNativeStop()) return;
         _failure = reason;
+        ReleaseDomination();
         ReleaseMonitors();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM failure");
         string state = DescribeState();
@@ -547,6 +551,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         Plugin.ModLogger.LogError("Team Deathmatch stopped: " + reason + "; " + state);
         if (!HasResult) _match?.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         ArenaToasts.Show("TEAM DM stopped: " + reason);
+        if (IsDomination) ArenaMatchService.ScheduleFailedStartAbort("Domination stopped: " + reason);
     }
 
     private bool Retire(BotOwner bot, string reason)
@@ -574,6 +579,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
 
     public void OnMatchEnd()
     {
+        ReleaseDomination();
         ReleaseMonitors();
         ClearSpawnShields();
         ArenaTeamBoxRuntime.ReleaseGates(_game, _world, _spawnGateEpoch, "ArenaMode Team DM end");

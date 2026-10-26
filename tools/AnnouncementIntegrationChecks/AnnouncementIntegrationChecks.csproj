@@ -11,6 +11,9 @@
     <Compile Include="$(AnnouncementSourceRoot)/Modes/ArenaAnnouncerCue.cs" Link="Production/Cue.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Modes/DeathmatchRules.cs" Link="Production/DeathmatchRules.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamRules.cs" />
+    <Compile Include="$(AnnouncementSourceRoot)/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
+    <Compile Include="$(AnnouncementSourceRoot)/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />
+    <Compile Include="$(AnnouncementSourceRoot)/Modes/TeamDeathmatchMode.Domination.cs" Link="Production/TeamScoreAdapter.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Modes/RoundsMode.Announcements.cs" Link="Production/DeathmatchAdapter.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Modes/TeamDeathmatchMode.Announcements.cs" Link="Production/TeamAdapter.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Modes/TacticalMode.Announcements.cs" Link="Production/TacticalAdapter.cs" />

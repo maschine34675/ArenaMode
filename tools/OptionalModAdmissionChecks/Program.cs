@@ -12,6 +12,7 @@ internal static class Program
         try
         {
             CheckAbsentAndAdapters();
+            CheckAdditionalAdapterContracts();
             CheckTarkovaColaAdmission();
             CheckServerAdmission();
             CheckWhitelistFirst();
@@ -60,6 +61,29 @@ internal static class Program
 
         ArenaServerClient.ServerAdmissionFailure = null;
         Allowed("A successful refreshed server response clears its previous restriction");
+    }
+
+    private static void CheckAdditionalAdapterContracts()
+    {
+        Reset();
+        FastGrenadeThrowCompat.Reason = "Grenade body handoff unavailable";
+        PipPreloadCompat.Reason = "PIP preload ownership unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == FastGrenadeThrowCompat.Reason,
+            "FastGrenadeThrow rejection retains its position ahead of PIP");
+        Require(PipPreloadCompat.Calls == 0 && ArenaTarkovaColaCompat.Calls == 0,
+            "failed grenade contract short-circuits later providers");
+        FastGrenadeThrowCompat.Reason = null;
+        Require(ArenaOptionalMods.GetRejectionReason() == PipPreloadCompat.Reason,
+            "PIP rejection reaches admission unchanged after grenade recovery");
+        Require(ArenaTarkovaColaCompat.Calls == 0,
+            "failed PIP contract short-circuits Tarkova Cola");
+        PipPreloadCompat.Reason = null;
+        Allowed("recovered grenade and PIP adapters are rechecked without stale refusal");
+        Reset();
+        BodyReplacementCompatibility.Reason = "Core unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
+            && FastGrenadeThrowCompat.Calls == 0 && PipPreloadCompat.Calls == 0,
+            "Core refusal remains ahead of both newer adapters");
     }
 
     private static void CheckTarkovaColaAdmission()
@@ -140,6 +164,8 @@ internal static class Program
         BodyReplacementCompatibility.Calls = 0;
         ArenaTarkovaColaCompat.Reason = null;
         ArenaTarkovaColaCompat.Calls = 0;
+        FastGrenadeThrowCompat.Reason = PipPreloadCompat.Reason = null;
+        FastGrenadeThrowCompat.Calls = PipPreloadCompat.Calls = 0;
     }
 
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);

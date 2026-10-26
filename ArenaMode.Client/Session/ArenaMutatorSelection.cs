@@ -23,7 +23,7 @@ internal sealed class ArenaMutatorSelection
     /// rule: <see cref="Settings.TracerEntry"/> returns no entry elsewhere,
     /// the laser row checks the mode itself).
     /// </summary>
-    internal const string TeamModesOnly = "Requires Team DM or a PFT squad.";
+    internal const string TeamModesOnly = "Requires Team DM, Domination or a PFT squad.";
 
     internal string Mode { get; private set; }
     private bool _team;
@@ -83,7 +83,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.NoFallDamage => "Land without taking fall damage.",
         ArenaMutator.Backpack => "Use backpack items/magazines.",
         ArenaMutator.Killcam => "Replay before respawn.",
-        ArenaMutator.Pickups => "DM/Team DM: all Arena maps.",
+        ArenaMutator.Pickups => "DM, Team DM and Domination.",
         ArenaMutator.Tracers => "Team colors for every bullet.",
         ArenaMutator.Lasers => "Team colors; same brightness.",
         ArenaMutator.Akimbo => "Dual pistols; shared magazine.",
@@ -94,7 +94,7 @@ internal sealed class ArenaMutatorSelection
         // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
         ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
-        ArenaMutator.PmcVoice => "Action callouts; Team DM voices.",
+        ArenaMutator.PmcVoice => "Action callouts and team voices.",
         ArenaMutator.FriendlyFire => "Allow damage between teammates.",
         ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",
@@ -166,9 +166,9 @@ internal sealed class ArenaMutatorSelection
             && Settings.MovementEnabled?.Value != true)
             return "Requires FAST MOVEMENT.";
         if (id == ArenaMutator.Pickups && (_team || (Mode != ArenaModeCatalog.DeathmatchId
-            && Mode != ArenaModeCatalog.TeamDeathmatchId)))
-            return "Available in Deathmatch and Team DM.";
-        if (id == ArenaMutator.Lasers && Mode != ArenaModeCatalog.TeamDeathmatchId
+            && !Shared.ArenaPopulationPolicy.IsIndependentTeam(Mode))))
+            return "Available in DM, Team DM and Domination.";
+        if (id == ArenaMutator.Lasers && !Shared.ArenaPopulationPolicy.IsIndependentTeam(Mode)
             && !((Mode == ArenaModeCatalog.TacticalId || Mode == ArenaModeCatalog.ZombieId) && _team))
             return TeamModesOnly;
         return null;

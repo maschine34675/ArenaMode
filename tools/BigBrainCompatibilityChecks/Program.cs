@@ -55,7 +55,7 @@ foreach (var test in new[]
     Check((boundary.MethodImplementationFlags & MethodImplAttributes.NoInlining) != 0, "optional typed boundary cannot inline into bootstrap");
     Call("Start", version, scenario);
     string[] state = (string[])Call("State");
-    Check(state[0] == expectedReady.ToString() && state[2] == state[0] && state[3] == state[0], version + "/" + scenario + " capabilities");
+    Check(state[0] == expectedReady.ToString() && state[2] == state[0] && state[3] == state[0] && state[8] == state[0], version + "/" + scenario + " capabilities including Domination");
     Check(state[1] == expectedReady.ToString(), version + "/" + scenario + " update disabled unless ready");
     Check(state[4] == (expectedReady ? "com.maschine.ArenaMode.BigBrainCompat" : scenario == "foreign-owner" ? "foreign" : "none"), version + "/" + scenario + " exclusive consumer and rollback");
     Check((bool)Call("InitializeAgain") == expectedReady, "repeated initialization retains its outcome");
@@ -74,7 +74,7 @@ foreach (var test in new[]
     Check(state[5] == (expectedReady ? "1" : "0"), "maintenance is active-only and throttled");
     Call("Invoke", "Shutdown");
     state = (string[])Call("State");
-    Check(state[0] == "False" && state[2] == "False" && state[3] == "False", "teardown clears all capabilities");
+    Check(state[0] == "False" && state[2] == "False" && state[3] == "False" && state[8] == "False", "teardown clears all capabilities including Domination");
     Check(state[4] == (scenario == "foreign-owner" ? "foreign" : "none"), "teardown retains foreign ownership");
     Call("Invoke", "Shutdown");
     Check(((string[])Call("State")).SequenceEqual(state), "repeated shutdown is idempotent");

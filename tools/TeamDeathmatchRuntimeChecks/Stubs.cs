@@ -386,12 +386,23 @@ namespace ArenaMode.Modes
     public static class ArenaMatchService
     {
         public static ArenaMatch Current;
+        internal static readonly List<string> Aborts = new();
+        internal static void ScheduleFailedStartAbort(string reason) => Aborts.Add(reason);
         public static ArenaScoreboardActor SnapshotActor(Player player)
             => new(player.ProfileId, player.ProfileId, player.IsAI ? "PMC" : "You", player.HealthController.IsAlive);
     }
 }
 namespace ArenaMode.Bots
 {
+    // Companion ownership is tested in DominationBotChecks; the mode adapter
+    // only consumes this availability and releases it on terminal teardown.
+    public static class DominationObjectiveBridge
+    {
+        public static bool Available = true;
+        internal static int Stops;
+        public static void Begin(ArenaMode.Modes.ArenaMatch match, LocalGame game, GameWorld world) { }
+        public static void Stop() => Stops++;
+    }
     // External geometry result; the linked production mode must await it before
     // scoring/time/announcements. Physical validation has its own runtime harness.
     internal static class ArenaTeamBoxRuntime

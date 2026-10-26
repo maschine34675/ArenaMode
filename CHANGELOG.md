@@ -10,6 +10,12 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Add DOMINATION (WIP) on Factory day/night: independent USEC/BEAR teams capture
+  three points, hold them for score and respawn continuously. Bots receive capture
+  and defend assignments while retaining native combat/self-care. BigBrain and
+  the matching Arena companion are required for this mode. V1 has a 200-point /
+  ten-minute limit and no persistent rewards. [Details](docs/DOMINATION-PROTOTYPE-20261026.md).
+
 - Add the PMC VOICELINES mutator for restrained native action callouts. Team DM
   rotates faction voices between matches, including English BEAR voices, without
   changing saved profiles. Respawns retain the match voice and the announcer

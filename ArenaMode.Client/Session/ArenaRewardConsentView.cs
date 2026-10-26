@@ -34,13 +34,16 @@ internal sealed class ArenaRewardConsentView
             _button.targetGraphic = buttonObject.GetComponent<Image>();
             _label = Text(buttonObject.transform, typography, "Reward consent label", 15);
             ArenaUiTheme.StyleButton(_button, _label);
+            // StyleButton creates its own tinted surface. The original white
+            // Image must not shine through that surface's disabled alpha.
+            buttonObject.GetComponent<Image>().color = Color.clear;
             var navigation = _button.navigation;
             navigation.mode = Navigation.Mode.None;
             _button.navigation = navigation;
             var generation = _root;
             _button.onClick.AddListener(() =>
             {
-                if (!Owns(generation) || !ArenaRewardMenuState.CanToggle) return;
+                if (!Owns(generation) || IsObjectivePrototype || !ArenaRewardMenuState.CanToggle) return;
                 ArenaRewardMenuState.Toggle();
                 Refresh();
             });
@@ -68,12 +71,22 @@ internal sealed class ArenaRewardConsentView
         Place((RectTransform)_button.transform, 12f, 10f, width - 24f, 28f);
         Place(_label.rectTransform, 8f, 0f, width - 40f, 28f);
         Place(_detail.rectTransform, 14f, 44f, width - 28f, 62f);
+        if (IsObjectivePrototype)
+        {
+            _label.text = "DOMINATION PROTOTYPE — NO REWARDS";
+            _detail.text = "Objective rewards are not available yet. Your ordinary PMC profile is restored after Arena.";
+            _label.color = ArenaUiTheme.Muted;
+            _button.interactable = false;
+            return;
+        }
         ArenaRewardMenuState.Refresh();
         _label.text = ArenaRewardMenuState.Label;
         _detail.text = ArenaRewardMenuState.Detail;
         _label.color = ArenaRewardMenuState.Status.Enabled ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
         _button.interactable = ArenaRewardMenuState.CanToggle;
     }
+
+    private static bool IsObjectivePrototype => Config.Settings.GameMode.Value == Modes.ArenaModeCatalog.DominationId;
 
     private bool Owns(GameObject generation) => ReferenceEquals(generation, _root)
         && _root != null && _root.activeInHierarchy && _owner != null && _owner.activeInHierarchy;

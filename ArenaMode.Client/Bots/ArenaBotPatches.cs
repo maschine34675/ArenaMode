@@ -379,7 +379,7 @@ internal static class ArenaBotPatches
             var mode = ArenaSession.IsActive ? ArenaSession.ActiveMode : ArenaSession.ArmedMode;
             if (ArenaSession.Participants.HasValue)
                 cap = ArenaSession.Participants.Value - 1;
-            else if (string.Equals(mode, "teamdeathmatch", System.StringComparison.Ordinal))
+            else if (Shared.ArenaPopulationPolicy.IsIndependentTeam(mode))
             {
                 int teamSize = System.Math.Max(2, System.Math.Min(12, Config.Settings.TeamDeathmatchSize.Value));
                 cap = System.Math.Max(cap, 2 * teamSize - 1);

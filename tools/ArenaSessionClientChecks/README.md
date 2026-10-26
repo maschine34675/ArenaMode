@@ -9,6 +9,8 @@ pwsh -File tools/ArenaSessionClientChecks/Verify.ps1
 
 `Verify.ps1` builds with the no-deploy properties, runs the harness, then runs the fault controls: each
 mutates one production seam in a copy outside the repository and must fail on its named assertion.
+The preparation controls mutate the actual `PrepareOne` DTO field names for both
+reward consent and offline entry; case mismatches must not grant either identity.
 
 What is compiled unchanged from production:
 

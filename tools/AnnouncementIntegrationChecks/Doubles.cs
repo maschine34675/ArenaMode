@@ -1,6 +1,11 @@
 // Native identity and omitted mode internals only. The linked production files
 // perform the actual snapshot conversion, winner-counter queries and dispatch.
-namespace UnityEngine { internal static class Time { internal static float time; } }
+namespace UnityEngine
+{
+    internal static class Time { internal static float time; }
+    // Position is only passed to the native presentation boundary in this harness.
+    internal struct Vector3 { }
+}
 namespace Comfort.Common { internal static class Singleton<T> { internal static T Instance; } }
 namespace EFT
 {
@@ -67,9 +72,32 @@ namespace ArenaMode.Modes
         internal bool _ended, Valid = true;
         internal TeamDeathmatchMatchPolicy _rules;
         internal ArenaMatch _match;
+        private bool _nativeStopObserved;
+        private string _failure;
+        private EFT.GameWorld _world = new();
+        private EFT.LocalGame _game = new();
+        private EFT.Player _local = new();
+        private object _bots;
+        private TeamFixturePopulation _population = new();
         private bool IsCurrentRaid() => Valid;
-        private bool HasResult => _rules.Phase == TdmMatchPhase.Finished;
-        private float PlayingElapsed => _rules.Elapsed(UnityEngine.Time.time);
+        private bool HasResult => MatchPhase == TdmMatchPhase.Finished;
+        private float PlayingElapsed => IsDomination ? _dominationRules.Elapsed(UnityEngine.Time.time) : _rules.Elapsed(UnityEngine.Time.time);
+        private void Fail(string reason) => _failure = reason;
+        internal void PrepareObjectiveFixture(bool usec)
+        { _population.LocalUsec = usec; InitializeDomination(); }
+        internal DominationMatchPolicy ObjectiveRules => _dominationRules;
+    }
+    internal sealed class TeamFixturePopulation { internal bool LocalUsec; }
+    // Native world presentation/movement are outside this announcement harness.
+    // Score and lifecycle adapters above are linked production source.
+    internal sealed class DominationRuntime
+    {
+        internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, EFT.GameWorld world) { }
+        internal string StatusLine => "";
+        internal bool IsNearPoint(UnityEngine.Vector3 floor) => false;
+        internal void Prepare() { }
+        internal void Tick(EFT.Player local, object bots, bool usec, float now) { }
+        internal void Dispose() { }
     }
     public sealed partial class TacticalMode : IArenaMode
     {
@@ -86,5 +114,14 @@ namespace ArenaMode.Modes
         internal bool _givenUp, _preloading, _loadoutDirty;
         internal List<object> _ladder = new();
         internal int _tier, _wins;
+    }
+}
+namespace ArenaMode.Bots
+{
+    internal static class DominationObjectiveBridge
+    {
+        internal static bool Available = true;
+        internal static void Begin(object match, object game, object world) { }
+        internal static void Stop() { }
     }
 }

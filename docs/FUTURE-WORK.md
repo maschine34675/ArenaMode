@@ -226,6 +226,18 @@ short-range avoidance; see [NavMesh Obstacle (Unity 2022.3)](https://docs.unity3
 
 ## More complex objective-based modes
 
+2026-10-26: the user requested the first Domination prototype with bot objective
+steering. The current implementation has three Factory day/night points, independent
+teams, capture/hold income, continuous respawns and a verified BigBrain objective
+layer. See [current scope and acceptance](DOMINATION-PROTOTYPE-20261026.md).
+The older single-point staging below is historical. Remaining work includes
+balancing positions, other maps/areas, configurable match rules and objective-aware
+reward proofs; CTF remains a separate proposal. The first native day match recorded
+28 bounded objective-route rejections (26 incomplete routes, two no-progress
+trips) while still completing through real captures/recaptures. Investigate safer
+per-point approach offsets and actual reachability before expanding maps; preserve
+bounded retries, normal combat handoff and the no-teleport contract.
+
 2026-09-08 follow-up: independent TDM match limits, shared scoring countdown and
 terminal results are implemented in `TDM-MATCH-FLOW-REVIEW.md`; GPU acceptance is
 separate. Respawn line-of-sight fairness, a single control-point prototype and CTF

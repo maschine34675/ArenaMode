@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaConditionalMapView.cs" Link="Production/ArenaConditionalMapView.cs" />
+    <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
+  </ItemGroup>
+</Project>

@@ -39,9 +39,9 @@ internal static class Program
 
     private static void CatalogContract()
     {
-        var expected = new[] { "gungame", "deathmatch", "teamdeathmatch", "tactical", "zombie" };
+        var expected = new[] { "gungame", "deathmatch", "teamdeathmatch", "domination", "tactical", "zombie" };
         Assert(ArenaModeCatalog.All.Select(mode => mode.Id).SequenceEqual(expected),
-            "the picker exposes the five stable registry ids in the intended order");
+            "the picker exposes the six stable registry ids in the intended order");
         Assert(ArenaModeCatalog.All.All(mode => !string.IsNullOrWhiteSpace(mode.Label)
                                                && !string.IsNullOrWhiteSpace(mode.Description)),
             "every selectable mode has a label and description");

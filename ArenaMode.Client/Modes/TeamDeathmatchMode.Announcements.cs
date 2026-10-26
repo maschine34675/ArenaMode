@@ -8,20 +8,20 @@ public sealed partial class TeamDeathmatchMode
 {
     internal ArenaAnnouncementSnapshot AnnouncementSnapshot()
     {
-        if (_ended || _rules == null || !IsCurrentRaid() || _match == null) return default;
-        int friendly = _match.Scoreboard.Totals(ArenaScoreboardSide.Friendly).Kills;
-        int opponent = _match.Scoreboard.Totals(ArenaScoreboardSide.Opponent).Kills;
+        if (_ended || !MatchRulesReady || !IsCurrentRaid() || _match == null) return default;
+        int friendly = FriendlyTeamScore;
+        int opponent = OpponentTeamScore;
         return new ArenaAnnouncementSnapshot
         {
             Active = true, Epoch = 1, Now = Time.time,
-            Preparing = _rules.Phase == TdmMatchPhase.Assembling,
-            Countdown = _rules.Phase == TdmMatchPhase.Countdown ? _rules.CountdownRemaining(Time.time) : null,
-            Live = _rules.Phase == TdmMatchPhase.Live,
-            Terminal = HasResult, Draw = HasResult && _rules.Result == TdmMatchResult.Draw,
-            SecondsRemaining = _rules.TimeLimitSeconds > 0
-                ? Math.Max(0d, _rules.TimeLimitSeconds - PlayingElapsed) : null,
-            KillsRemaining = _rules.KillLimit > 0
-                ? Math.Max(0, _rules.KillLimit - Math.Max(friendly, opponent)) : null,
+            Preparing = MatchPhase == TdmMatchPhase.Assembling,
+            Countdown = MatchPhase == TdmMatchPhase.Countdown ? MatchCountdownRemaining(Time.time) : null,
+            Live = MatchPhase == TdmMatchPhase.Live,
+            Terminal = HasResult, Draw = HasResult && MatchResult == TdmMatchResult.Draw,
+            SecondsRemaining = MatchTimeLimit > 0
+                ? Math.Max(0d, MatchTimeLimit - PlayingElapsed) : null,
+            KillsRemaining = !IsDomination && MatchScoreLimit > 0
+                ? Math.Max(0, MatchScoreLimit - Math.Max(friendly, opponent)) : null,
             Lead = Math.Max(friendly, opponent) > 0 ? friendly.CompareTo(opponent) : null,
         };
     }

@@ -11,7 +11,7 @@ public static class ArenaParticipantPolicy
         => string.Equals(mode, "deathmatch", StringComparison.OrdinalIgnoreCase)
            || string.Equals(mode, "gungame", StringComparison.OrdinalIgnoreCase);
     public static bool IsTeam(string mode)
-        => string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase);
+        => ArenaPopulationPolicy.IsIndependentTeam(mode);
     public static bool IsSelectable(string mode, bool bounded, bool pitFireTeam)
         => !pitFireTeam && (IsSolo(mode) || !bounded && IsTeam(mode));
     public static int MinimumTotal(string mode) => IsTeam(mode) ? 4 : 2;

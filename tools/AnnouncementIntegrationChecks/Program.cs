@@ -149,6 +149,30 @@ try
     tdm._rules.Update(126, false, 6, 6); snapshot = tdm.AnnouncementSnapshot();
     Check(snapshot.Terminal && snapshot.Draw && !snapshot.Live, "TDM actual draw is terminal");
 
+    foreach (bool localUsec in new[] { true, false })
+    {
+        var dominationMatch = new ArenaMatch();
+        var domination = new TeamDeathmatchMode(true) { _match = dominationMatch };
+        dominationMatch.Mode = domination;
+        domination.PrepareObjectiveFixture(localUsec);
+        domination.ObjectiveRules.UpdateStart(0, true);
+        domination.ObjectiveRules.UpdateStart(3, true);
+        var occupants = new[] { new DominationOccupancy(1, 0), new DominationOccupancy(0, 1), new DominationOccupancy(0, 1) };
+        domination.ObjectiveRules.Advance(8, occupants, localUsec);
+        domination.ObjectiveRules.Advance(9, occupants, localUsec);
+        dominationMatch.Scoreboard.Friendly = new() { Kills = 50, Score = 9000 };
+        dominationMatch.Scoreboard.Opponent = new() { Kills = 0, Score = 1 };
+        Time.time = 9;
+        var objective = domination.AnnouncementSnapshot();
+        Check(objective.Live && objective.Lead == (localUsec ? -1 : 1),
+            "Domination announces objective lead in the selected faction, not combat kills");
+        Check(objective.KillsRemaining == null && objective.SecondsRemaining == 594,
+            "Domination never describes held-objective points as remaining kills");
+        domination.ObjectiveRules.Advance(603, occupants, localUsec);
+        Check(domination.AnnouncementSnapshot().Terminal && !domination.AnnouncementSnapshot().Draw,
+            "Domination actual terminal result remains available to announcements");
+    }
+
     var tactical = new TacticalMode { _match = match, _phase = TacticalMode.Phase.Live, RoundNumber = 2, _phaseEndsAt = 60 };
     Check(!tactical.AnnouncementSnapshot().Live && tactical.AnnouncementSnapshot().SecondsRemaining == null, "Solo Tactical assembly never spends or announces combat time");
     tactical._soloCombatReady = true; Time.time = 20;

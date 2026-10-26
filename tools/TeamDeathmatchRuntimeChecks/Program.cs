@@ -21,7 +21,7 @@ internal static partial class Program
     {
         internal readonly LocalGame Game = new();
         internal readonly GameWorld World = new();
-        internal readonly TeamDeathmatchMode Mode = new();
+        internal readonly TeamDeathmatchMode Mode;
         internal readonly ArenaMatch Match;
         internal Player Local => World.MainPlayer;
         internal List<BotOwner> Bots => Game.BotsController.BotSpawner._bots.BotOwners;
@@ -29,8 +29,10 @@ internal static partial class Program
             string mode = "teamdeathmatch", bool pft = false, EPlayerSide? localSide = null,
             bool bounded = false, bool areaPending = false, int? areaSize = null,
             int killLimit = 0, int timeLimit = 0, int? participants = null, float protection = 0f,
-            string location = "factory4_day", EPlayerSide? selectedTeam = null)
+            string location = "factory4_day", EPlayerSide? selectedTeam = null, bool domination = false)
         {
+            Mode = new TeamDeathmatchMode(domination);
+            if (domination) mode = "domination";
             World.LocationId = location;
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaTeamBoxRuntime.Reset();
@@ -782,6 +784,7 @@ internal static partial class Program
         MatchTerminalPopulationAndPresentation();
         MatchTimeLimitAndRuleSnapshot();
         BotSpawnShields();
+        DominationLifecycle();
         Console.WriteLine($"PASS: {_checks} production TDM mode/relations runtime-model checks.");
         Console.WriteLine("ARENA_TDM_RUNTIME_CHECKS_PASSED");
     }

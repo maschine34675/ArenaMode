@@ -52,11 +52,11 @@ internal sealed class ArenaModeSelectionView
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (var index = 0; index < _buttons.Count; index++)
         {
-            var allowed = _selection.CanSelectIndex(index);
+            var allowed = CanSelectRow(index);
             _buttons[index].interactable = allowed;
             var tooltip = _buttons[index].GetComponent<HoverTooltipArea>();
             if (tooltip == null) continue;
-            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical or Zombies.", rawText: true);
+            tooltip.SetMessageText(allowed ? string.Empty : RowRejection(index), rawText: true);
             tooltip.SetUnlockStatus(allowed);
         }
         Refresh();
@@ -160,7 +160,6 @@ internal sealed class ArenaModeSelectionView
             CreateRow(template, typography, index, 84f + index * ModeRowStep);
         // Presentation only: previews never enter the playable catalog or its indices.
         CreatePreviewRow(template, "CAPTURE THE FLAG", 84f + ArenaModeCatalog.All.Count * ModeRowStep);
-        CreatePreviewRow(template, "DOMINATION", 84f + (ArenaModeCatalog.All.Count + 1) * ModeRowStep);
 
         CreateRule(274f, typography);
         _description = CreateText("Mode description", typography, string.Empty, 14f, 284f, 42f);
@@ -202,7 +201,7 @@ internal sealed class ArenaModeSelectionView
         Hud.ArenaUiTheme.StyleButton(button, label);
         SetRect(label.rectTransform, 14f, 0f, PanelWidth - 2f * Inset - 28f, ModeRowHeight);
 
-        var allowed = _selection.CanSelectIndex(index);
+        var allowed = CanSelectRow(index);
         var tooltip = button.GetComponent<HoverTooltipArea>();
         if (tooltip != null)
         {
@@ -210,7 +209,7 @@ internal sealed class ArenaModeSelectionView
             // (true) disables the component (decompile EFT.UI/HoverTooltipArea.cs:
             // 131-135), so an allowed row never receives pointer events and could
             // not show ArenaModeDefinition.Description anyway.
-            tooltip.SetMessageText(allowed ? string.Empty : "Companions require Tactical or Zombies.", rawText: true);
+            tooltip.SetMessageText(allowed ? string.Empty : RowRejection(index), rawText: true);
             tooltip.SetUnlockStatus(allowed);
         }
         button.interactable = allowed;
@@ -282,7 +281,7 @@ internal sealed class ArenaModeSelectionView
 
     private void Select(int index)
     {
-        if (_selection == null) return;
+        if (_selection == null || !CanSelectRow(index)) return;
         try
         {
             if (_selection.TrySelectIndex(index) && Singleton<GUISounds>.Instantiated)
@@ -299,6 +298,17 @@ internal sealed class ArenaModeSelectionView
     private void Refresh()
     {
         if (_selection == null) return;
+        for (int index = 0; index < _buttons.Count; index++)
+        {
+            bool allowed = CanSelectRow(index);
+            _buttons[index].interactable = allowed;
+            var tooltip = _buttons[index].GetComponent<HoverTooltipArea>();
+            if (tooltip != null)
+            {
+                tooltip.SetMessageText(allowed ? string.Empty : RowRejection(index), rawText: true);
+                tooltip.SetUnlockStatus(allowed);
+            }
+        }
         for (var index = 0; index < _markers.Count; index++)
             _markers[index].SetActive(index == _selection.SelectedIndex);
         var mode = _selection.SelectedDefinition;
@@ -360,6 +370,14 @@ internal sealed class ArenaModeSelectionView
     }
 
     private float PanelHeight => ArenaModeCatalog.ModePanelHeight(_selection?.SelectedMode);
+
+    private bool CanSelectRow(int index)
+        => _selection?.CanSelectIndex(index) == true
+           && ArenaMenuSelection.ModeAvailabilityRejection(ArenaModeCatalog.All[index].Id) == null;
+
+    private string RowRejection(int index)
+        => _selection?.CanSelectIndex(index) != true ? "Companions require Tactical or Zombies."
+            : ArenaMenuSelection.ModeAvailabilityRejection(ArenaModeCatalog.All[index].Id);
 
     private TextMeshProUGUI CreateFact(string label, TMP_Text typography, float top)
     {

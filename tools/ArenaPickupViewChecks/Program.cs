@@ -24,6 +24,7 @@ internal static class Program
         CameraManager.Instance = null;
         TextMeshPro.FailText = false;
         Time.time = Time.unscaledTime = 0f;
+        ArenaMode.Modes.ArenaMatchService.Current = null;
     }
 
     private static GameObject Root(string id) => GameObject.All.Single(g => g.name == "Arena pickup marker " + id);
@@ -78,6 +79,37 @@ internal static class Program
             camera.transform.position = new Vector3(0, 0, 5);
             Tick(view, ArenaPickupPhase.Retired);
             Check(!root.activeSelf, "a retired marker stays hidden");
+            view.Dispose();
+        }
+
+        // Only the tall beacon yields near a live control point; pickups remain identifiable.
+        {
+            Reset();
+            var floor = new Vector3(7, 2, -5);
+            var view = new ArenaPickupView(new ArenaPickupPoint { Id = "objective", Kind = ArenaPickupKind.Shield }, floor);
+            var camera = new GameObject("camera").AddComponent<Camera>();
+            CameraManager.Instance = new CameraManager { Camera = camera };
+            var beacon = GameObject.All.Single(g => g.name == "Pickup beacon");
+            var symbol = GameObject.All.Single(g => g.name == "Pickup symbol");
+            var ring = GameObject.All.Single(g => g.name == "Pickup ring");
+            var label = GameObject.All.Single(g => g.name == "Pickup label");
+            Tick(view, ArenaPickupPhase.Available);
+            Check(beacon.activeInHierarchy, "ordinary pickups keep their beacon");
+            var mode = new ArenaMode.Modes.TeamDeathmatchMode();
+            ArenaMode.Modes.ArenaMatchService.Current = new() { Mode = mode };
+            Tick(view, ArenaPickupPhase.Available);
+            Check(beacon.activeInHierarchy, "team mode without a nearby objective keeps the beacon");
+            mode.NearControlPoint = true;
+            Tick(view, ArenaPickupPhase.Available);
+            Check(mode.LastFloor == floor, "objective proximity uses the pickup floor");
+            Check(!beacon.activeInHierarchy, "nearby objective suppresses the tall beacon");
+            Check(symbol.activeInHierarchy && ring.activeInHierarchy && label.activeInHierarchy,
+                "objective overlap preserves pickup symbol ring and label");
+            mode.NearControlPoint = false;
+            Tick(view, ArenaPickupPhase.Available);
+            Check(beacon.activeInHierarchy, "leaving objective context restores the beacon");
+            Tick(view, ArenaPickupPhase.Cooldown);
+            Check(!beacon.activeInHierarchy && !symbol.activeInHierarchy, "unavailable pickup stays hidden outside objectives");
             view.Dispose();
         }
 

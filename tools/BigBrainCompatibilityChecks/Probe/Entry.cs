@@ -46,7 +46,8 @@ public static class Entry
         ArenaMode.Pickups.ArenaPickupRuntime.BotObjectivesAvailable.ToString(),
         ArenaMode.Bots.TeamArenaPursuitLeaseBridge.Consumer ?? "none",
         ArenaPickupObjective.Prunes.ToString(), ArenaPickupObjective.Resets.ToString(),
-        string.Join("\n", _logger.Lines)
+        string.Join("\n", _logger.Lines),
+        ArenaMode.Bots.DominationObjectiveBridge.Available.ToString()
     };
     public static bool IsPlainLibrary() => !typeof(Companion).GetCustomAttributes<BepInPlugin>().Any()
         && !typeof(BaseUnityPlugin).IsAssignableFrom(typeof(Companion))

@@ -23,7 +23,7 @@ $arenaFaults = @(
         'parsed["participants"].Value<int>() == participants.Value','true',
         'tools/NativeMenuChecks','ProductionServerClientSource','missing, mismatched or coerced total'),
     @('lost-count-freeze','ArenaMode.Client/Session/ArenaLocalRaidStartedPatch.cs',
-        'participants, ArenaServerClient.PendingParticipantBosses);','null, false);',
+        'participants, ArenaServerClient.PendingParticipantBosses,','null, false,',
         'tools/NativeMenuChecks','ProductionLocalStartSource','loading edit cannot change frozen'),
     @('live-team-size','ArenaMode.Client/Modes/TeamDeathmatchMode.cs',
         'ArenaSession.Participants.HasValue','false',

@@ -52,7 +52,12 @@ internal static class ArenaRewardCapture
         _delivered = _stopFrozen = _warned = _lastActive = false;
         _lastAt = Time.time; _activeSeconds = 0f;
         PendingDeaths.Clear();
-        if (!_hooksReady || !ArenaSession.IsActive || match == null || string.IsNullOrWhiteSpace(ArenaServerClient.RewardArmToken)) return;
+        // Objective ownership has no server-verifiable reward proof yet. Do not
+        // submit Domination under the kill-based TeamScore contract inherited
+        // by its shared runtime class; existing reward whitelists stay strict.
+        if (!_hooksReady || !ArenaSession.IsActive || match == null
+            || match.Mode.Id == ArenaModeCatalog.DominationId
+            || string.IsNullOrWhiteSpace(ArenaServerClient.RewardArmToken)) return;
         try
         {
             var state = ArenaRewardModeState.Read(match.Mode);

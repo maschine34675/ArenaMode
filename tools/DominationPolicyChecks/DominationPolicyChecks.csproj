@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Modes/DominationPolicy.cs</PolicySource>
+    <MatchSource Condition="'$(MatchSource)' == ''">../../ArenaMode.Client/Modes/DominationMatchPolicy.cs</MatchSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/DominationPolicy.cs" />
+    <Compile Include="$(MatchSource)" Link="Production/DominationMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs" Link="Production/TeamDeathmatchMatchPolicy.cs" />
+  </ItemGroup>
+</Project>

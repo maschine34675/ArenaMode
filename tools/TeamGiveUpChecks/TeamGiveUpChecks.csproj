@@ -13,6 +13,11 @@
     <ScoreboardSource Condition="'$(ScoreboardSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Modes\ArenaScoreboard.cs</ScoreboardSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchMode.Domination.cs" Link="Production/TeamDeathmatchMode.Domination.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../TeamDeathmatchRuntimeChecks/DominationStubs.cs" Link="DominationSceneFixture.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaMatchResult.cs" Link="Production/ArenaMatchResult.cs" />
     <Compile Include="$(GiveUpSource)" Link="Production/ArenaGiveUp.cs" />

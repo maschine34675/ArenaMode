@@ -171,6 +171,22 @@ namespace ArenaMode
     public sealed class Logger { public List<string> Warnings = new(); public void LogWarning(string text) => Warnings.Add(text); }
 }
 namespace ArenaMode.Hud { public static class HudStyle { public static object Font = new(); } }
+namespace ArenaMode.Modes
+{
+    public class ArenaMatchService
+    {
+        public static ArenaMatchService Current;
+        public object Mode;
+    }
+    // Only the mode/geometry query is a boundary; the real pickup view owns all visibility.
+    public class TeamDeathmatchMode
+    {
+        public bool NearControlPoint;
+        public UnityEngine.Vector3 LastFloor;
+        public bool IsNearControlPoint(UnityEngine.Vector3 floor)
+        { LastFloor = floor; return NearControlPoint; }
+    }
+}
 namespace ArenaMode.Pickups
 {
     public enum ArenaPickupKind { DoubleDamage, Shield, Weapon, JumpBoots, InfiniteAmmo, Health }

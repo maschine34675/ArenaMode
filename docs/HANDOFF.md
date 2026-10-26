@@ -7,6 +7,21 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Domination prototype (2026-10-26, development):** `DOMINATION (WIP)` is now
+  playable on Factory day/night with independent USEC/BEAR teams, three capture
+  points, continuous respawns and fixed 200-point / ten-minute limits. BigBrain
+  objective support is required only for this mode; PFT squads and persistent
+  objective rewards are excluded. Capture/hold rules are separate from the
+  unchanged TDM kill policy. Bots distribute capture/defend goals and yield to
+  normal combat/self-care; there is no objective teleport fallback.
+  Client, companion and server are deployed. GPU-2 completed a natural 200:107
+  match, local death/respawn, night capture, wrong-floor rejection, original TDM
+  and ordinary-PMC/native-extraction controls. Arena inventories were exactly
+  restored; settings are restored and game/server stopped. Read
+  [implementation, hashes and remaining work](DOMINATION-PROTOTYPE-20261026.md)
+  and [native evidence and limits](GPU-DOMINATION-20261026.md). Points and approach
+  paths still need gameplay balancing before expanding to other maps.
+
 - **PMC voicelines (2026-10-26, development):** the new default-on mutator adds
   sparse native reload, grenade, empty-weapon and kill callouts. TDM rotates
   faction voices, including English BEAR, once per match and reapplies the same

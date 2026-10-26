@@ -42,8 +42,10 @@ ArenaSession.ActiveMode = "teamdeathmatch";
 ArenaTeamSideSelection.SelectedUsec = null;
 Fallback("TDM without captured side");
 
+foreach (string mode in new[] { "teamdeathmatch", "domination" })
 foreach (bool usec in new[] { true, false, true })
 {
+    ArenaSession.ActiveMode = mode;
     ArenaTeamSideSelection.SelectedUsec = usec;
     Check(ArenaTeamPalette.Friendly == (usec ? ArenaTracerColor.Blue : ArenaTracerColor.Red), "friendly HDR faction");
     Check(ArenaTeamPalette.Opponent == (usec ? ArenaTracerColor.Red : ArenaTracerColor.Blue), "opponent HDR faction");

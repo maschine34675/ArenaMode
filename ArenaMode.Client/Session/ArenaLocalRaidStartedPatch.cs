@@ -120,7 +120,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
             string requestedTeamSide = Settings.TeamDeathmatchSide?.Value;
             string requestedProfileId = __instance.Profile?.Id;
             EPlayerSide? requestedNativeSide = __instance.Profile?.Info?.Side;
-            if (requestedMode == ArenaModeCatalog.TeamDeathmatchId
+            if (Shared.ArenaPopulationPolicy.IsIndependentTeam(requestedMode)
                 && ((requestedNativeSide != EPlayerSide.Usec && requestedNativeSide != EPlayerSide.Bear)
                     || !ArenaTeamSideSelection.TryResolveChoice(requestedTeamSide,
                         requestedNativeSide == EPlayerSide.Usec, out _)))

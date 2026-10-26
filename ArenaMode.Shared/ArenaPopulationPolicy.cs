@@ -31,8 +31,14 @@ namespace ArenaMode.Shared;
 public static class ArenaPopulationPolicy
 {
     public const string TeamDeathmatch = "teamdeathmatch";
+    public const string Domination = "domination";
     public const string Tactical = "tactical";
     public const string Zombie = "zombie";
+
+    /// <summary>Independent faction teams share roster, respawn and virtual-side ownership.</summary>
+    public static bool IsIndependentTeam(string? mode)
+        => string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mode, Domination, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// True when the mode spawns every bot itself and an ambient pump, a
@@ -40,7 +46,7 @@ public static class ArenaPopulationPolicy
     /// </summary>
     public static bool OwnsEntirePopulation(string? mode)
         => string.Equals(mode, Tactical, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase)
+           || IsIndependentTeam(mode)
            || string.Equals(mode, Zombie, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -95,7 +101,7 @@ public static class ArenaPopulationPolicy
            && !string.IsNullOrEmpty(armedMap)
            && !string.IsNullOrEmpty(loadingMap)
            && string.Equals(armedMap, loadingMap, StringComparison.OrdinalIgnoreCase)
-           && string.Equals(armedMode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase);
+           && IsIndependentTeam(armedMode);
 
     /// <summary>
     /// Whether the raid currently loading is the exact Zombie raid armed for it —

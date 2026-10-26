@@ -98,6 +98,11 @@ DLLs are not bundled with Arena, as required by `AGENTS.md`.
 The [version policy and checks](OPTIONAL-MOD-VERSIONS-20261019.md) explain
 minimum versions, warnings and the protection contracts that remain mandatory.
 `ArenaMode.BigBrainCompat` is Arena's own code and is always included.
+
+The Factory Domination prototype additionally requires this library's verified
+objective layer. Missing BigBrain/support locks only Domination in the mode picker;
+other modes retain their existing optional dependency rules. See
+[Domination scope](DOMINATION-PROTOTYPE-20261026.md).
 Since its conversion to a library, this DLL registers neither a BepInEx plugin
 nor its own plugin GUID. Arena explicitly loads it beside the client DLL and
 owns initialization, updates and shutdown. Update both DLLs together, remove

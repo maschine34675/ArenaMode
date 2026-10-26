@@ -86,6 +86,21 @@ internal static class Program
         At(c, 491);
         Check(c.Starts == 3, "new ready raid can warm its own pools");
 
+        c = New("domination");
+        At(c, 1); At(c, 50);
+        Check(c.Starts == 0, "latched Domination also defers optional catalog while no match exists");
+        var objectiveTeam = new TeamDeathmatchMode();
+        ArenaMatchService.Current = new Match { Mode = objectiveTeam };
+        At(c, 60);
+        Check(c.Starts == 0, "Domination assembly does not contend with optional catalog warmup");
+        objectiveTeam.InitialRosterReady = true;
+        ArenaRespawnDriver.IsRespawnInProgress = true;
+        At(c, 61);
+        Check(c.Starts == 0, "Domination player pipeline retains the same warmup hold");
+        ArenaRespawnDriver.IsRespawnInProgress = false;
+        At(c, 62); At(c, 63);
+        Check(c.Starts == 1, "Domination releases optional catalog once the roster and player are ready");
+
         foreach (string mode in new[] { "endless", "rounds", "gungame", "tactical" })
         {
             c = New(mode);

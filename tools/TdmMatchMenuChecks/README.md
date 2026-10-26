@@ -8,8 +8,8 @@ BepInEx and session doubles. It never imports the mod's deploy targets.
 Checks cover the actual 50-kill/600-second defaults and F12 ranges, accepted and
 rejected persistence, independent zero limits, hidden non-TDM/PFT controls,
 live armed/active guards, exact custom F12 labels with no invented selection,
-same-mode refresh, real button callbacks, the unchanged 360x530 panel footprint
-(Deathmatch 360x596), and close/reopen listener ownership. Thirty-two deliberate
+same-mode refresh, real button callbacks, the shared mode panel footprint
+(base 360x530, TDM/Domination 360x584, Deathmatch/Zombie 360x596), and close/reopen listener ownership. Thirty-six deliberate
 source faults must compile and fail their corresponding behavioral assertions.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
@@ -34,12 +34,12 @@ Auto Quickslots and Instant Search write the original `Kits/AutoQuickSlots` and
 `Loot/InstantSearch` preferences. Arena HUD writes the separate
 `HUD/CombatElements` preference; the existing `HUD/Enabled` master stays intact
 and makes the mutator unavailable when disabled. Checks exercise these controls
-in all five modes and solo/PFT variants, preserve individual HUD preferences,
+in all six modes and solo/PFT variants, preserve individual HUD preferences,
 and cover manual saving, independent config reload, F12 refresh, active/armed
 locks and retired callbacks. Five new compiled faults target the three bindings,
 the HUD master restriction and accidental writes to an individual hitmarker choice.
 
-All five modes now display a two-line description, then the common OBJECTIVE,
+All six modes display a two-line description, then the common OBJECTIVE,
 RESPAWN and EQUIPMENT facts. Deathmatch and Team DM no longer hide those facts;
 their compact choice bands follow below. Zombie's equipment selector replaces
 only the equipment value and retains the common label. Descriptions follow
@@ -47,7 +47,7 @@ FFA/all-vs-player, solo/PFT and own-gear state; respawn text follows playable
 Killcam settings without promising a respawn in solo Zombies. Zero kill/time
 limits use `Off` consistently in current-value labels and buttons.
 
-The mode panel still ends at reference Y=698 (Deathmatch Y=764); the area panel
+The mode panel ends at reference Y=698 (TDM/Domination Y=752, Deathmatch/Zombie Y=764); the area panel
 begins twelve pixels below. No rightward/downward extension over native controls
 is added. The harness checks visibility, fixed fact positions, child bounds,
 stale callbacks, immediate FFA description changes and all dynamic variants.
@@ -57,6 +57,13 @@ the existing `HoverTooltipArea.SetMessageText/SetUnlockStatus` contract is reuse
 These checks exercise ownership and layout arithmetic, not Unity rendering,
 native click hit-testing, BepInEx file IO, or the runtime's frozen match policy.
 The text-length assertions are copy budgets, not font metric measurements.
+
+Domination adds a sixth playable row while removing its old inert preview, so
+the seven-row footprint stays unchanged. CTF remains disabled. The real view
+shows Domination's fixed objective limits and faction choice, hides TDM's kill
+controls, shares the independent team preferences and rejects direct selection
+callbacks if the objective companion capability is unavailable. A compiled
+mutation removes this capability lock and must fail the native view assertion.
 
 The dedicated Molotov template constant is linked from Shared, alongside the
 production fire policy that uses it. PFT Zombie description checks follow the

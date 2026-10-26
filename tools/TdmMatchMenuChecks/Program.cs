@@ -180,11 +180,11 @@ GameObject RuleRoot() => view.Root.transform.Children.Single(x => x.name == "Are
 TMP_Text Label(string name) => view.Root.GetComponentsInChildren<TMP_Text>(true).Single(x => x.name == name);
 bool Marked(Button b) => b.transform.Children.Single(x => x.name == "Selected").gameObject.activeSelf;
 Show();
-// 5 modes + 2 inert previews + 9 TDM + 17 Deathmatch
+// 6 modes + 1 inert preview + 9 TDM + 17 Deathmatch
 // + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
 // 2026-10-06 follow-up) is built unconditionally in Create() just like the
 // TDM/Deathmatch rules rows, only its own visibility differs by mode.
-Need(Buttons().Length == 37 && RuleRoot().activeInHierarchy, "five modes, two previews, two faction choices and existing rules exist without a mutators opener");
+Need(Buttons().Length == 37 && RuleRoot().activeInHierarchy, "six modes, one preview, two faction choices and existing rules exist without a mutators opener");
 var usecChoice = Buttons().Single(b => b.name == "Arena Team USEC");
 var bearChoice = Buttons().Single(b => b.name == "Arena Team BEAR");
 Need(usecChoice.GetComponentInChildren<TMP_Text>(true).text == "● USEC", "profile default resolves to visible native faction");
@@ -207,8 +207,8 @@ view.Synchronize("teamdeathmatch", false);
 void CheckPreviews()
 {
     var previews = Buttons().Where(b => b.name.StartsWith("Arena Preview ")).ToArray();
-    Need(previews.Length == 2 && previews.Select(b => b.GetComponentInChildren<TMP_Text>(true).text)
-        .SequenceEqual(new[] { "CAPTURE THE FLAG", "DOMINATION" }), "both future modes are visible in order");
+    Need(previews.Length == 1 && previews.Select(b => b.GetComponentInChildren<TMP_Text>(true).text)
+        .SequenceEqual(new[] { "CAPTURE THE FLAG" }), "Capture the Flag remains the only inert future mode");
     string saved = Settings.GameMode.Value;
     int beforeSaves = config.Saves;
     var playable = Buttons().First(b => b.name.StartsWith("Arena Mode "));
@@ -227,10 +227,11 @@ void CheckPreviews()
         preview.onClick.Invoke();
     }
     Need(Settings.GameMode.Value == saved && config.Saves == beforeSaves, "forced preview dispatch cannot persist a mode");
-    Need(ArenaModeCatalog.All.Count == 5, "future previews never become launchable catalog entries");
+    Need(ArenaModeCatalog.All.Count == 6 && ArenaModeCatalog.All.All(m => m.Id != "capturetheflag"),
+        "Domination is playable while the remaining future preview stays outside the catalog");
     int writes = 0;
     var selection = new ArenaModeSelectionState("deathmatch", false, _ => { writes++; return true; });
-    Need(!selection.TrySelectIndex(5) && !selection.TrySelectIndex(6) && writes == 0,
+    Need(!selection.TrySelectIndex(6) && !selection.TrySelectIndex(7) && writes == 0,
         "preview positions cannot be selected through the real state owner");
     var rows = Buttons().Where(b => b.name.StartsWith("Arena Mode ") || b.name.StartsWith("Arena Preview "))
         .Select(b => (RectTransform)b.transform).OrderBy(r => -r.anchoredPosition.y).ToArray();
@@ -239,6 +240,26 @@ void CheckPreviews()
             ? -rows[i + 1].anchoredPosition.y : 274f), "mode hit areas neither overlap nor cross the facts divider");
 }
 CheckPreviews();
+view.Synchronize("domination", false);
+Need(bearChoice.gameObject.activeInHierarchy && !RuleRoot().activeInHierarchy
+    && Label("Mode description").text.Contains("200") && Label("Mode description").text.Contains("10-minute"),
+    "Domination shows side and fixed objective limits without TDM kill controls");
+Need(ReferenceEquals(Settings.FriendlyFireEntry("domination", false), Settings.TeamDeathmatchFriendlyFire)
+    && ReferenceEquals(Settings.AnnouncerEntry("domination"), Settings.TeamDeathmatchAnnouncerEnabled)
+    && ReferenceEquals(Settings.TracerEntry("domination", false), Settings.TeamTracers),
+    "Domination intentionally shares independent team mutator preferences");
+view.Synchronize("teamdeathmatch", false);
+ArenaMenuSelection.DominationAvailable = false;
+view.Synchronize("teamdeathmatch", false);
+var dominationRow = Buttons().Single(b => b.name == "Arena Mode domination");
+string priorMode = Settings.GameMode.Value;
+int priorSaves = config.Saves;
+dominationRow.onClick.Invoke();
+Need(!dominationRow.interactable && Settings.GameMode.Value == priorMode && config.Saves == priorSaves,
+    "missing objective companion disables Domination even under forced click");
+ArenaMenuSelection.DominationAvailable = true;
+view.Synchronize("teamdeathmatch", false);
+Need(dominationRow.interactable, "restored companion availability refreshes the same mode row");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
 Need(Label("OBJECTIVE label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM retains all common facts above its limit controls");
@@ -796,7 +817,7 @@ float pointBrightness = Settings.VisibleLaserBrightness.Value, beamBrightness = 
 MutatorButton(ArenaMutator.Lasers).onClick.Invoke();
 Need(Settings.VisibleLaserBrightness.Value == pointBrightness && Settings.VisibleLaserBeamBrightness.Value == beamBrightness,
     "laser color toggle does not alter brightness");
-foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
+foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "domination", "zombie" })
 {
     foreach (bool team in mode is "tactical" or "zombie" ? new[] { false, true } : new[] { false })
     {
@@ -815,8 +836,8 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
             Need(entry.Value == before && individualHudBefore.SequenceEqual(individualHudEntries.Select(e => e.Value)),
                 "new mutator roundtrip restores only its own preference: " + id);
         }
-        bool pickupAllowed = mode == "deathmatch" || mode == "teamdeathmatch";
-        bool laserAllowed = mode == "teamdeathmatch" || (mode is "tactical" or "zombie" && team);
+        bool pickupAllowed = mode is "deathmatch" or "teamdeathmatch" or "domination";
+        bool laserAllowed = mode is "teamdeathmatch" or "domination" || (mode is "tactical" or "zombie" && team);
         Need(MutatorButton(ArenaMutator.Pickups).interactable == pickupAllowed, "pickup availability matches runtime modes");
         Need(MutatorButton(ArenaMutator.Lasers).interactable == laserAllowed, "laser availability matches team modes");
         Need(MutatorButton(ArenaMutator.Tracers).interactable == laserAllowed,

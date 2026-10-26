@@ -90,7 +90,7 @@ internal sealed class ArenaTdmSideView
 
     internal void Synchronize(string mode, bool team)
     {
-        _visible = !team && mode == ArenaModeCatalog.TeamDeathmatchId;
+        _visible = !team && Shared.ArenaPopulationPolicy.IsIndependentTeam(mode);
         Refresh();
     }
 

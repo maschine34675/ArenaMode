@@ -646,6 +646,16 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
+        // The first objective layout is surveyed only for the two Factory
+        // time variants. Enforce this at arm/ack/start as well as in the menu.
+        if (string.Equals(mode, ArenaPopulationPolicy.Domination, StringComparison.OrdinalIgnoreCase))
+        {
+            if (pitFireTeam || id != FullMapId
+                || (!string.Equals(map, ArenaMapCatalog.FactoryDayId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.FactoryNightId, StringComparison.OrdinalIgnoreCase)))
+            { reason = "Domination currently requires Factory day/night, whole map, without PitFireTeam."; return false; }
+            return true;
+        }
         // Full maps share the generic native zone/point planner. Bay5 and
         // Equator do not require a surveyed faction-start preset: Tactical
         // asks for one complete opposing squad, independent TDM reserves each

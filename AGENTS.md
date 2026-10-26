@@ -4,6 +4,13 @@ Documentation, reviews, handoffs and historical build/deployment manifests live
 in `docs/`; start with [docs/README.md](docs/README.md). Keep this `AGENTS.md` at
 the repository root for automatic discovery and the offline harness root checks.
 Place new documentation and evidence summaries in `docs/`, not beside this file.
+
+Domination (2026-10-26 development) is a constructor variant of independent TDM
+with separate objective policies; read `docs/DOMINATION-PROTOTYPE-20261026.md`.
+V1 is Factory day/night only and requires the registered BigBrain objective layer.
+Never turn its holding points into kill-based rewards or widen PFT pursuit leases.
+The original TDM kill policy stays separate; all physical roster/respawn boundaries
+remain shared. The September single-control-point proposal is historical.
 The user-facing `CHANGELOG.md` lives at the repository root by explicit request;
 keep its relative documentation links rooted at `docs/`.
 

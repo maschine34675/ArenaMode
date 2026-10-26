@@ -42,7 +42,7 @@ Write-Output 'Rejected mutant: protected-team selection bypasses state guard'
 
 $tdmMutants = @(
     @{ Name = 'FfaTeams'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
-       From = 'if (string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))'; To = 'if (false)';
+       From = 'if (ArenaPopulationPolicy.IsIndependentTeam(mode))'; To = 'if (false)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
     @{ Name = 'SharedChance'; Source = $tdmHostility; Compile = 'Patches\ArenaAdjustBotHostilityPatch.cs';
        From = '.Select(chanced => chanced with { })'; To = '.Select(chanced => chanced)';
@@ -51,7 +51,7 @@ $tdmMutants = @(
        From = '.Where(chanced => !IsPmcRole(chanced.Role))'; To = '.Where(chanced => true)';
        Test = 'BothFactionsOverrideConflictingHostilityWithoutChangingSharedRecords' },
     @{ Name = 'AmbientTeams'; Source = $tdmLocation; Compile = '..\ArenaMode.Shared\ArenaPopulationPolicy.cs';
-       From = '|| string.Equals(mode, TeamDeathmatch, StringComparison.OrdinalIgnoreCase)'; To = '|| false';
+       From = '|| IsIndependentTeam(mode)'; To = '|| false';
        Test = 'TeamDeathmatchSuppressesEveryAmbientSpawnTrack' }
 )
 

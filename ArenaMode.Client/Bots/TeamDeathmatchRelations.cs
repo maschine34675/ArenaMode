@@ -49,7 +49,7 @@ internal static class TeamDeathmatchRelations
         get
         {
             if (!ArenaSession.IsActive
-                || !string.Equals(ArenaSession.ActiveMode, "teamdeathmatch", StringComparison.Ordinal)
+                || !Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
                 || !Singleton<GameWorld>.Instantiated || !Singleton<AbstractGame>.Instantiated)
                 return false;
             var world = Singleton<GameWorld>.Instance;
@@ -208,7 +208,7 @@ internal static class TeamDeathmatchRelations
     {
         var body = owner?.GetPlayer;
         return _world != null && _game?.Status == GameStatus.Started
-            && ArenaSession.IsActive && ArenaSession.ActiveMode == "teamdeathmatch"
+            && ArenaSession.IsActive && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
             && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
             && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
             && ArenaSession.IsExactActiveRaid(_game, _world)
@@ -294,6 +294,9 @@ internal static class TeamDeathmatchRelations
                 if (Faction(ally) == side) _sainRemoveEnemy.Invoke(sain, new object[] { ally.ProfileId });
         }
         if (bot.BotState != EBotState.Active || bot.HealthController?.IsAlive != true) return;
+        // Objectives own travel/defense. Preserve ally cleanup above, but do not
+        // give defenders omniscient target positions that pull them off the point.
+        if (ArenaSession.ActiveMode == Shared.ArenaPopulationPolicy.Domination) return;
         Player nearest = null;
         float nearestDistance = float.MaxValue;
         foreach (var actor in actors)

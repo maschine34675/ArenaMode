@@ -24,7 +24,7 @@ $tdmFaults = @(
     @{ Name='IgnoreReadiness'; Find='|| !team.InitialRosterReady'; Replace='|| false'; Failure='slow TDM assembly never starts optional catalog work' },
     @{ Name='IgnoreRespawn'; Find='|| Respawn.ArenaRespawnDriver.IsRespawnInProgress'; Replace='|| false'; Failure='active player pipeline blocks optional TDM warmup' },
     @{ Name='IgnoreOpeningPool'; Find='|| Kits.KitBundlePreloader.IsPreloading'; Replace='|| false'; Failure='initial kit pool loading blocks optional TDM catalog before pipeline flag' },
-    @{ Name='DisableDeferral'; Find='string.Equals(Session.ArenaSession.ActiveMode, "teamdeathmatch",'; Replace='false && string.Equals(Session.ArenaSession.ActiveMode, "teamdeathmatch",'; Failure='latched TDM with no match does not warm catalog' },
+    @{ Name='DisableDeferral'; Find='Shared.ArenaPopulationPolicy.IsIndependentTeam(Session.ArenaSession.ActiveMode)'; Replace='false && Shared.ArenaPopulationPolicy.IsIndependentTeam(Session.ArenaSession.ActiveMode)'; Failure='latched TDM with no match does not warm catalog' },
     @{ Name='NoRelease'; Find='|| !team.InitialRosterReady'; Replace='|| true'; Failure='ready TDM starts the deferred catalog once without another eight-second delay' },
     @{ Name='MissingOwnership'; Property='PreloaderSource'; Find='_activePoolLoads++;'; Replace='// missing increment'; Failure='opening preload owns active native pool work before pipeline flag' },
     @{ Name='NoLoadRelease'; Property='PreloaderSource'; Find='_activePoolLoads--;'; Replace='_activePoolLoads -= 0;'; Failure='successful native load releases its epoch ownership' },

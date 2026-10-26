@@ -30,7 +30,7 @@ internal static class ArenaTeamSideSelection
     internal static void Capture(string mode, string choice, bool nativeUsec, string profileId, int epoch, string token)
     {
         Reset();
-        if (!string.Equals(mode, "teamdeathmatch", StringComparison.Ordinal)) return;
+        if (!Shared.ArenaPopulationPolicy.IsIndependentTeam(mode)) return;
         if (!TryResolveChoice(choice, nativeUsec, out bool usec)
             || string.IsNullOrEmpty(profileId) || string.IsNullOrEmpty(token))
             throw new InvalidOperationException("The Team DM side or local identity is unavailable.");

@@ -1,5 +1,9 @@
 # Single control point — slice 0 contract
 
+Historical proposal, superseded by the user-requested three-point Domination
+prototype on 2026-10-26. See [current rules and implementation](DOMINATION-PROTOTYPE-20261026.md).
+The text below records the original proposal, not current availability.
+
 Proposed 2026-09-16. **Nothing here is implemented.** This is the frozen scope and
 rule set to work against, written before any code, in the sense of
 `TEAM-DEATHMATCH-PLAN.md`. `FUTURE-WORK.md` already recorded "a single

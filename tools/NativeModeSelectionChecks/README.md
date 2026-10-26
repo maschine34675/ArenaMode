@@ -4,14 +4,14 @@ Run `dotnet run --project tools/NativeModeSelectionChecks -c Release` from the
 repository root. The project links the production mode catalog and selection
 state directly, with no Unity stand-ins or game assembly references.
 
-The checks exercise all five stable mode ids and their selected definitions,
+The checks exercise all six stable mode ids and their selected definitions,
 index bounds, normalization, explicit initial repair, accepted/rejected writes,
 callback exceptions, and the protected Tactical/Zombies PitFireTeam restriction.
 Construction must not write settings. A changed choice becomes selected only
 after its writer accepts it; a current selection does not trigger another write.
 Initial repairs remain retryable after a rejected or throwing writer and become
 idempotent after success. An accepted user choice supersedes a pending initial
-fallback. TEAM DM is independent and cannot be selected in a protected PFT team
+fallback. TEAM DM and DOMINATION are independent and cannot be selected in a protected PFT team
 flow.
 
 This harness does not instantiate the Unity view, inspect source-text fragments,

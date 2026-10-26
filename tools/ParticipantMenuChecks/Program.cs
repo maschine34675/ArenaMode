@@ -41,6 +41,8 @@ internal static class Program
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.EquatorId, "gungame") == 24, "reload preserves Equator override across solo modes");
             Need(ArenaParticipantSettings.Get(Day, "gungame") == 7 && ArenaParticipantSettings.Get(Day, "teamdeathmatch") == 14,
                 "reload preserves separate mode families");
+            Need(ArenaParticipantSettings.Get(Day, "domination") == 14,
+                "Domination intentionally shares the persisted independent team count");
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.FactoryNightId, "deathmatch") == 10, "Factory variants have separate saved owners");
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "deathmatch") == 8, "another map keeps its default");
             Need(ArenaParticipantSettings.Get(ArenaMapCatalog.Bay5Id, "teamdeathmatch") == 20,
@@ -115,13 +117,11 @@ internal static class Program
         void Bounds()
         {
             var panel = (RectTransform)view.Root.transform;
-            // 958: +42 over the pre-Zombie 916 for the fifth mode row, the same
-            // shift AreaTeamMenuChecks applies. UpdateLayout places this panel at
-            // ModePanelTop (168) + ModePanelHeight (Deathmatch 554->596) + 12, so
-            // the ceiling tracks the panel. Measured maximum over this matrix:
-            // 928 (Deathmatch top 776 + 152); the native READY area starts at
-            // Y=984 (MUTATORS-MENU-REVIEW.md), so even the ceiling stays above it.
-            Need(-panel.anchoredPosition.y + panel.sizeDelta.y <= 958, "native participants panel clears bottom controls");
+            // Native READY starts at Y984 (MUTATORS-MENU-REVIEW.md).
+            // The faction chooser moved TDM's top to 764. Customs' largest
+            // existing area panel ends at 982, still before native READY=984.
+            Need(-panel.anchoredPosition.y + panel.sizeDelta.y <= 984,
+                $"native participants panel clears bottom controls (top={-panel.anchoredPosition.y}, height={panel.sizeDelta.y})");
             foreach (var b in Buttons())
             {
                 var r = (RectTransform)b.transform;
@@ -131,7 +131,7 @@ internal static class Program
             }
         }
         foreach (string map in ArenaMapCatalog.DefaultClientAllowlist.Split(','))
-        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "domination", "tactical" })
         {
             var candidate = Area(map, mode);
             for (int count = 2; count <= 24; count++)
@@ -142,7 +142,7 @@ internal static class Program
                 bool expected = candidate.Available && mode != "tactical"
                     && count <= (mode == "teamdeathmatch"
                         && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId || map == ArenaMapCatalog.BowlId) ? 20 : 24)
-                    && (mode != "teamdeathmatch" || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
+                    && (!ArenaParticipantPolicy.IsTeam(mode) || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),
                     "native controls reflect count and format admission");

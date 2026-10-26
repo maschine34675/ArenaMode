@@ -1520,7 +1520,7 @@ public class ArenaSessionService
             if (!_sessions.TryGetValue(sessionId.ToString(), out var entry)
                 || !IsLiveRaid(entry)
                 || entry.ProtectPitFireTeam
-                || !string.Equals(entry.Mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)
+                || !ArenaPopulationPolicy.IsIndependentTeam(entry.Mode)
                 || !string.Equals(entry.Map, location, StringComparison.OrdinalIgnoreCase)
                 || string.IsNullOrEmpty(entry.ArmToken))
                 return false;

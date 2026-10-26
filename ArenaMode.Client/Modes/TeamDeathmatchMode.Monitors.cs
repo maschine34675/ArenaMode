@@ -12,7 +12,11 @@ public sealed partial class TeamDeathmatchMode
 
     // ArenaMatchService stops ticking gameplay as soon as native Stop owns
     // the raid. Presentation cleanup still runs before that early return.
-    internal void OnNativePresentationStop() => ReleaseMonitors();
+    internal void OnNativePresentationStop()
+    {
+        ReleaseMonitors();
+        ReleaseDomination();
+    }
 
     private void ClaimMonitors()
     {

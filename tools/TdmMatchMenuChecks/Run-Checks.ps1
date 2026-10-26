@@ -23,6 +23,9 @@ Write-Output $arenaRun.Output
 # Mutants change isolated compiler inputs only. The test project imports no
 # deployment targets and links actual production Settings/state/view files.
 $arenaFaults = @(
+    @('domination-companion-lock', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      '&& ArenaMenuSelection.ModeAvailabilityRejection(ArenaModeCatalog.All[index].Id) == null;', ';',
+      'ProductionModeView', 'missing objective companion disables Domination even under forced click'),
     @('zombie-state-raid-lock', 'ArenaMode.Client/Session/ArenaZombieRulesState.cs',
       'Visible && !ArenaSession.IsActive && !ArenaSession.ArmedForNextRaid', 'Visible',
       'ProductionZombieState', 'Zombie writes reject armed and active raids'),

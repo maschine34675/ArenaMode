@@ -7,6 +7,7 @@
     <PaletteSource Condition="'$(PaletteSource)' == ''">../../ArenaMode.Client/Effects/ArenaTeamPalette.cs</PaletteSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(PaletteSource)" Link="Production/ArenaTeamPalette.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
   </ItemGroup>

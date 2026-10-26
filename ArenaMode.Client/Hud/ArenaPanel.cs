@@ -343,6 +343,8 @@ internal sealed class ArenaPanel : MonoBehaviour
         {
             ArenaScoreboardTotals friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
             ArenaScoreboardTotals opponent = match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
+            if (teams.IsDomination)
+                GUILayout.Label($"Control points  {teams.FriendlyTeamScore} - {teams.OpponentTeamScore}     {teams.ObjectiveStatusLine}", _statStyle);
             GUILayout.Label($"Kills  {friendly.Kills} - {opponent.Kills}     "
                 + $"Match points  {friendly.Score:n0} - {opponent.Score:n0}", _statStyle);
             DrawStandingsTable(teams.FriendlyFaction + " — YOUR TEAM", _friendlyRows, _friendlyRowStyle);

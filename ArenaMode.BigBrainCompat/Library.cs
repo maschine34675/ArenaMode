@@ -16,6 +16,7 @@ public static class Library
     public const string TestedBigBrainVersion = "1.5.0";
     public const int PursuitLayerPriority = 74;
     public const int PickupLayerPriority = 35;
+    public const int DominationLayerPriority = 75;
 
     private static readonly Version MinimumBigBrainVersion = new(1, 5, 0);
     // PluginVersion is a compile-time constant: the companion still rejects a
@@ -85,6 +86,7 @@ public static class Library
             RuntimeEnabled = true;
             Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = true;
             Pickups.ArenaPickupRuntime.BotObjectivesAvailable = true;
+            Bots.DominationObjectiveBridge.Available = true;
             ModLogger.LogInfo("Arena bot movement support is ready (BigBrain).");
             return true;
         }
@@ -107,6 +109,7 @@ public static class Library
         RuntimeEnabled = false;
         Combat.Fire.ArenaFireRuntime.BotEscapeAvailable = false;
         Pickups.ArenaPickupRuntime.BotObjectivesAvailable = false;
+        Bots.DominationObjectiveBridge.Available = false;
         // Registration can fail after claiming the bridge. Revocation only
         // removes our exact consumer ID, never an unrelated owner's lease.
         Bots.TeamArenaPursuitLeaseBridge.UnregisterConsumer(ConsumerId);
