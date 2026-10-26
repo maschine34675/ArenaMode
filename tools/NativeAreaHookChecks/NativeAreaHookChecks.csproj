@@ -10,6 +10,7 @@
     <ProductionMapCatalogSource Condition="'$(ProductionMapCatalogSource)' == ''">../../ArenaMode.Shared/ArenaMapCatalog.cs</ProductionMapCatalogSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaMapAvailabilitySnapshot.cs" Link="Production/ArenaMapAvailabilitySnapshot.cs" />
     <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />

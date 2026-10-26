@@ -203,7 +203,7 @@ internal static class ArenaMenuSelection
 
     public static bool IsMapAvailable(string map) => IsMapAvailable(map, CurrentEligibility);
 
-    private static bool IsMapAvailable(string map, Eligibility eligibility)
+    internal static bool IsMapAvailable(string map, Eligibility eligibility)
         => IsMapConfigured(map) && eligibility?.Allowed == true
            && ModeAvailabilityRejection(Config.Settings.SelectedGameModeId) == null
            && ArenaAreaCatalog.TryResolve(
@@ -211,8 +211,12 @@ internal static class ArenaMenuSelection
                map, Config.Settings.SelectedGameModeId, eligibility.IsTeam, out _, out _);
 
     public static ArenaAreaSelectionState AreaSelection(string map)
+        => AreaSelection(map, CurrentEligibility);
+
+    // Display passes may share a single freshly captured decision across all
+    // rows. Public click/claim/start entry points still evaluate CurrentEligibility.
+    internal static ArenaAreaSelectionState AreaSelection(string map, Eligibility eligibility)
     {
-        var eligibility = CurrentEligibility;
         // Keep entering the Arena picker possible when a saved mode lost its
         // optional companion. Only that mode's maps/start are blocked, so the
         // player can select another working format without editing F12.
@@ -233,6 +237,14 @@ internal static class ArenaMenuSelection
         var proposal = AreaSelection(map);
         return proposal.Available && Config.Settings.TrySelectArea(proposal.SelectedId)
             && IsMapAvailable(map);
+    }
+
+    internal static bool TryPrepareMapArea(RaidSettings owner, string map, Eligibility eligibility)
+    {
+        if (!IsSelectedFor(owner)) return false;
+        var proposal = AreaSelection(map, eligibility);
+        return proposal.Available && Config.Settings.TrySelectArea(proposal.SelectedId)
+            && IsMapAvailable(map, eligibility);
     }
 
     public static bool TrySelectArea(RaidSettings owner, string map, string areaId)

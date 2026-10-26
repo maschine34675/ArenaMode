@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ProductionLocationPatchSource Condition="'$(ProductionLocationPatchSource)' == ''">../../ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs</ProductionLocationPatchSource>
+    <ProductionMenuSelectionSource Condition="'$(ProductionMenuSelectionSource)' == ''">../../ArenaMode.Client/Session/ArenaMenuSelection.cs</ProductionMenuSelectionSource>
+    <ProductionAreaCatalogSource Condition="'$(ProductionAreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</ProductionAreaCatalogSource>
+    <ProductionMapCatalogSource Condition="'$(ProductionMapCatalogSource)' == ''">../../ArenaMode.Shared/ArenaMapCatalog.cs</ProductionMapCatalogSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Session/ArenaMapAvailabilitySnapshot.cs" Link="Production/ArenaMapAvailabilitySnapshot.cs" />
+    <Compile Include="../NativeAreaHookChecks/StandIns.cs" Link="StandIns.cs" />
+    <Compile Include="../NativeAreaHookChecks/NativeScreen.cs" Link="NativeScreen.cs" />
+    <Compile Include="../NativeAreaHookChecks/DominationStandIn.cs" Link="DominationStandIn.cs" />
+    <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
+    <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaParticipantSelectionState.cs" Link="Production/ArenaParticipantSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
+    <Compile Include="$(ProductionLocationPatchSource)" Link="Production/ArenaLocationSelectionPatch.cs" />
+    <Compile Include="$(ProductionMenuSelectionSource)" Link="Production/ArenaMenuSelection.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaConditionalMapView.cs" Link="Production/ArenaConditionalMapView.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaLocationSelectionView.cs" Link="Production/ArenaLocationSelectionView.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaMapMenuUpdater.cs" Link="Production/ArenaMapMenuUpdater.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
+    <Compile Include="$(ProductionMapCatalogSource)" Link="Production/ArenaMapCatalog.cs" />
+    <Compile Include="$(ProductionAreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
+  </ItemGroup>
+</Project>

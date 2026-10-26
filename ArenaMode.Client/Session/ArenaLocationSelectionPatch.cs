@@ -33,19 +33,25 @@ internal static class ArenaLocationSelectionPatch
         public readonly List<(string MapId, ArenaConditionalMapView View)> ConditionalMaps = new();
         public ArenaMapMenuUpdater Updater;
         public object Generation;
+        // Shared only by native row materialization and one synchronous refresh.
+        // Native selection/claim/start callbacks never consume this snapshot.
+        public ArenaMapAvailabilitySnapshot Availability;
 
         public void Refresh(MatchMakerSelectionLocationScreen screen)
         {
             foreach (var presentation in PortedMaps) presentation.Refresh();
             var eligibility = ArenaMenuSelection.CurrentModeEligibility;
             Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
+            // Synchronize may repair a saved PFT mode, so inspect strict map
+            // eligibility afterwards and share it across every existing row.
+            var availability = Availability = new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);
             foreach (var row in ConditionalMaps)
-                row.View.Refresh(ArenaMapCatalog.CanSelectNativeLocation(row.MapId, ArenaMenuSelection.IsMapDiscoverable),
+                row.View.Refresh(ArenaMapCatalog.CanSelectNativeLocation(row.MapId, availability.IsMapDiscoverable),
                     string.Equals(screen.SelectedLocation?.Id, row.MapId, System.StringComparison.OrdinalIgnoreCase));
             var map = screen.SelectedLocation?.Id;
-            if (map != null && !ArenaMenuSelection.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
+            if (map != null && !availability.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
-            var areas = ArenaMenuSelection.AreaSelection(screen.SelectedLocation?.Id);
+            var areas = availability.AreaSelection(screen.SelectedLocation?.Id);
             var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
                 ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
             Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam, participants);
@@ -57,6 +63,7 @@ internal static class ArenaLocationSelectionPatch
         public void Restore()
         {
             Generation = null;
+            Availability = null;
             foreach (var presentation in PortedMaps) presentation.Close();
             PortedMaps.Clear();
             Preview.Close();
@@ -353,8 +360,10 @@ internal static class ArenaLocationSelectionPatch
                     if (__instance != null) __instance._spawnableToggle.Toggle.IsToggled = false;
                     if (screen != null) screen.OnLocationSelected(null);
                 });
-            States.GetOrCreateValue(screen).ConditionalMaps.Add((location.Id, row));
-            row.Refresh(ArenaMapCatalog.CanSelectNativeLocation(location.Id, ArenaMenuSelection.IsMapDiscoverable),
+            var state = States.GetOrCreateValue(screen);
+            state.ConditionalMaps.Add((location.Id, row));
+            var availability = state.Availability ??= new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);
+            row.Refresh(ArenaMapCatalog.CanSelectNativeLocation(location.Id, availability.IsMapDiscoverable),
                 string.Equals(screen.SelectedLocation?.Id, location.Id, System.StringComparison.OrdinalIgnoreCase));
         }
     }
