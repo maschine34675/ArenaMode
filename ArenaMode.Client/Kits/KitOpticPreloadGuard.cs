@@ -150,7 +150,8 @@ internal static class KitOpticPreloadGuard
                 prefix: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(BeforeOriginal)),
                 finalizer: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(FinishOriginal)));
             Patches.Patch(enable, prefix: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(BeforeEnable)));
-            Patches.Patch(disable, prefix: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(BeforeDisable)));
+            Patches.Patch(disable, prefix: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(BeforeDisable)),
+                finalizer: new HarmonyMethod(typeof(KitOpticPreloadGuard), nameof(FinishDisable)));
             _installed = true;
         }
         catch (Exception ex)
@@ -211,10 +212,21 @@ internal static class KitOpticPreloadGuard
     {
         if (!Gate(loadingScreen: true) || __instance == null) return true;
         if (!Suppressed.TryGetValue(__instance, out var request)) return true;
-        Suppressed.Remove(__instance);
         // RunInitialStageBody deactivates immediately after GetOriginalGameObject
         // returns. Suppress only the counterpart that never published an enable.
         return !request.IsCurrent
             || __instance.GetComponentInParent<WeaponPrefab>(includeInactive: true) != null;
+    }
+
+    // Foreign OnEnable/OnDisable postfixes still run when the native callback is
+    // withheld. Keep the exact role-model marker through those postfixes.
+    internal static bool IsWithheldCallback(OpticSight sight)
+        => sight != null && Suppressed.TryGetValue(sight, out var request) && request.IsCurrent
+           && sight.GetComponentInParent<WeaponPrefab>(includeInactive: true) == null;
+
+    private static Exception FinishDisable(OpticSight __instance, Exception __exception)
+    {
+        if (!ReferenceEquals(__instance, null)) Suppressed.Remove(__instance);
+        return __exception;
     }
 }

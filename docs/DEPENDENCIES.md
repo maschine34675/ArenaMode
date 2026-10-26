@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-As of 2026-10-25. This overview describes the reviewed ArenaMode source revision,
+As of 2026-10-26. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -22,8 +22,10 @@ their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
-The current development build requires **Core 1.0.14**, adding ImpactCue and
-Enemy Markers body/camera handovers for both Arena and standalone Redeploy.
+The current development build requires **Core 1.0.15**. Core 1.0.14 added
+ImpactCue and Enemy Markers body/camera handovers; 1.0.15 adds Quick Cancel,
+PiP Disabler and the bounded Amand camera correction for both drivers.
+These additions are not in the published Arena 0.3.0 / Core 1.0.13 package.
 Keep the newer shared Core when combining these development builds.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
@@ -49,7 +51,8 @@ BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and
 Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
 and Better BepInEx for 0.3.0; current development also includes Use Items Anywhere,
-ImpactCue (client and Web Config server) and Enemy Markers, plus the diagnostic tools
+ImpactCue (client and Web Config server), Enemy Markers, Fast Grenade Throw 2.0.0,
+Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, plus the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
 differing version warns and offers an Arena session that omits it on both sides,
 together with its hard dependents; direct Arena entry still treats the version
@@ -105,6 +108,14 @@ are attempted with a one-time warning; this is not confirmation of full compatib
 
 ## Other explicitly considered combinations
 
+The development whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
+HUD Breakout 1.2.0 and PiP Disabler 2.1.0 after bounded Arena and standalone
+tests. The same final Core passed two additional Factory respawns with Arena
+absent, including a scoped death, old PiP-cache retirement, current-body HUD and
+graphics bindings, native medical cancellation and an RGD throw after respawn.
+See the [remaining-mod report](REMAINING-MOD-COMPAT-20261026.md) for exact
+exercises, source contracts and limitations. Amand remains unlisted.
+
 The [Factory checks from 2026-10-20](GPU-OPTIONAL-COMPAT-20261020.md) supplement
 the offline evidence: SVM's SaveLoot/Ignore behavior and basic CLA
 loading/respawn paths were checked in-game. Some timing/UI and replay edge cases
@@ -150,9 +161,8 @@ native observations below predate that migration; see
   client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
   requirements still apply; the native checks include Continuous Load Ammo 1.2.0.
   See [four-candidate review and verification boundaries](FOUR-MOD-COMPAT-20261025.md)
-  for both additions and the initial exclusions. **Fast Grenade Throw 2.0.0**
-  remains unlisted, not newly default-denied; the subsequent Tarkova Cola
-  integration is described below.
+  for both additions and the initial exclusions. The subsequent Fast Grenade
+  Throw and Tarkova Cola integrations are described below.
 - **Tarkova Cola 2.2.1+:** both client and server are admitted with checked
   lifecycle, storage and achievement-catalog contracts. Arena protects ordinary
   progression and restores foreign state after play. Completed Zombie matches
@@ -189,6 +199,31 @@ native observations below predate that migration; see
   These mods retain their own HUD and marker settings, so overlapping HUDs may
   need configuring in the respective mods. See
   [native tests and limits](ITEMS-HUD-COMPAT-20261025.md).
+- **Fast Grenade Throw 2.0.0:** the development Arena adapter respects the
+  current player's grenade priority within the effective candidate list and
+  blocks direct quick-throw input during Arena input locks/replacement.
+  Native priority Molotov, underhand RGD and inventory-blocked inputs passed.
+  No body adapter is needed; ordinary raids retain FGT's behavior.
+- **Manimal's Quick Cancel 2.0.0:** development Core 1.0.15 retires only the
+  old body's pending medical controllers and rejects their late callbacks.
+  Actual cancellation and firearm recovery after replacement passed; the rare
+  pending-drop/death race is covered offline, not established by that native run.
+- **HUD Breakout 1.2.0:** no new body adapter. Native health, ammunition and
+  grenade displays followed two Arena respawns. Its grenade count uses rig/pockets
+  rather than Arena's expanded backpack reach, and its spectator HUD describes
+  the local player. Shield, assist, damage-number and killfeed semantics remain
+  those of the foreign mod; both HUDs can overlap.
+- **Picture in Picture Disabler 2.1.0:** development Core 1.0.15 bounds optic
+  callbacks and generated mesh caches to their physical player/weapon owners.
+  Arena additionally isolates its cold-kit preloads. Two actual scoped Arena
+  deaths and a newly held scope's rendering passed with Fontaine FOV Fix 4.1.0.
+  Coverage does not extend to every optic, NVG/thermal mode or callback race.
+- **Amand's Graphics 1.8.0:** remains unlisted. The development Core camera
+  handover retained its ON/OFF choice and original scene defaults during Factory
+  respawns. Labyrinth still fails during Amand's own initial activation, before
+  Core replacement: its `!settings` lookup dereferences a missing object.
+  Core refuses an incomplete baseline rather than trying to invent scene defaults.
+  Factory acceptance therefore does not establish Labyrinth compatibility.
 - **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
   Its existing ConfigurationManager dependency must remain installed. Other
   mods' stock F12-window patches may be removed by Better BepInEx itself.
@@ -269,8 +304,8 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.14.
-The 0.3.0 package includes the matching shared-Core fixes; see
+revision is recorded in the package manifest. The current source targets Core 1.0.15.
+The published 0.3.0 package contains Core 1.0.13, not the later development fixes; see
 [release verification](RELEASE-0.3.0.md#build-and-release-verification).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the

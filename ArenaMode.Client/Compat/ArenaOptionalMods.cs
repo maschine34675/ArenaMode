@@ -23,6 +23,9 @@ internal static class ArenaOptionalMods
             return ArenaServerClient.ServerAdmissionFailure;
 
         // Body replacement contracts belong to Core and also protect standalone Redeploy.
-        return BodyReplacementCompatibility.GetRejectionReason() ?? ArenaTarkovaColaCompat.GetRejectionReason();
+        return BodyReplacementCompatibility.GetRejectionReason()
+            ?? FastGrenadeThrowCompat.GetRejectionReason()
+            ?? PipPreloadCompat.GetRejectionReason()
+            ?? ArenaTarkovaColaCompat.GetRejectionReason();
     }
 }

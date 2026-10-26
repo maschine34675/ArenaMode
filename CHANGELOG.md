@@ -13,8 +13,27 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Compose Arena's backpack reload and item-access extension with Use Items Anywhere
   2.1.6. Its configured slots take precedence, and Arena's magazine HUD uses the
   same candidate query as reloading.
-- Update shared Redeploy.Core to 1.0.14 for ImpactCue 2.0.3 telemetry and Enemy
-  Markers 1.4.0 camera handover after player replacement.
+- Update shared Redeploy.Core to 1.0.15. This includes the 1.0.14 ImpactCue 2.0.3
+  telemetry and Enemy Markers 1.4.0 camera/cleanup fixes, tested in Arena and
+  standalone Redeploy. Add the reviewed clients and ImpactCue's Web Config
+  server to the development whitelist.
+- Integrate Fast Grenade Throw 2.0.0 with Arena grenade priority and input locks.
+  Native tests covered priority Molotov, underhand RGD and blocked inventory input.
+- Retire Quick Cancel 2.0.0's old-body pending controllers and PiP Disabler 2.1.0's
+  owned optic caches through shared Core. Isolate Arena's cold-kit optic preloads.
+  Actual cancellation/firearm recovery and two scoped Arena deaths passed;
+  the same final Core also passed two Factory respawns with Arena absent,
+  including a scoped death and cancellation after respawn.
+- Review HUD Breakout 1.2.0 without adding a body adapter. Its health/ammo/grenade
+  values followed two Arena respawns; grenade reach and spectator semantics
+  remain those of the foreign HUD.
+- Add Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0, HUD Breakout 1.2.0 and
+  PiP Disabler 2.1.0 to the development default whitelist after the bounded
+  Arena and standalone checks. No foreign packages are bundled.
+- Repair Amand's Graphics 1.8.0 camera handover in Core, preserving ON/OFF and
+  scene defaults. Keep it unlisted: Labyrinth's initial native activation fails
+  before Core replacement. The successful Factory tests do not resolve that
+  separate map blocker. See [remaining-mod evidence](docs/REMAINING-MOD-COMPAT-20261026.md).
 - Select USEC or BEAR for Team DM in the map menu, including the corresponding
   team starts and respawns. The real PMC faction and equipment stay unchanged.
 - Use consistent USEC blue / BEAR red for Team DM lighting, tracers, lasers and
@@ -51,7 +70,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ### Compatibility and setup
 
-- Require shared Redeploy.Core **1.0.13** for the current source. Its new
+- Bundle and require shared Redeploy.Core **1.0.13** in this release. Its new
   body-replacement fixes cover Fontaine FOV Fix, Manimal Ammo Loading Animations
   and Magazine Check Interrupt; the full standalone Redeploy mod is not required.
 - Preserve Accurate Circular Radar and Simple Crosshair through player/camera

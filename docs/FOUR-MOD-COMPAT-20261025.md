@@ -1,5 +1,9 @@
 # Four compatibility candidates — 2026-10-25
 
+**Follow-up:** Fast Grenade Throw's grenade-priority conflict is addressed in the
+[2026-10-26 review and native tests](REMAINING-MOD-COMPAT-20261026.md).
+The Fast Grenade Throw results below describe the earlier baseline.
+
 Scope: Tarkova-Cola, Fast Grenade Throw, Fontaine's FOV Fix and Manimal's Ammo
 Loading Animations. Native checks use SPT-GPU-1, SPT 4.1.6, Factory daytime and
 protected supplied-kit Deathmatch. GPU-2 is reserved for another session.

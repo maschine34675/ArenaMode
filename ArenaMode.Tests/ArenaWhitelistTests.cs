@@ -397,6 +397,10 @@ public sealed class ArenaWhitelistTests
             ("com.dizzlow.impactcue", "ImpactCue-UI-MOD", ArenaWhitelistTier.Mod, "2.0.3", null),
             ("com.dizzlow.impactcue.webconfig", "ImpactCue Web Config", ArenaWhitelistTier.Mod, null, "2.0.3"),
             ("flir.enemymarkers", "Enemy Markers", ArenaWhitelistTier.Mod, "1.4.0", null),
+            ("com.vultify.fastgrenadethrow", "Fast Grenade Throw", ArenaWhitelistTier.Mod, "2.0.0", null),
+            ("com.manimal.quickcancel", "Manimal's Quick Cancel", ArenaWhitelistTier.Mod, "2.0.0", null),
+            ("com.deadwolf.hudbreakout", "HUD Breakout", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("com.fiodor.pipdisabler", "Picture in Picture Disabler", ArenaWhitelistTier.Mod, "2.1.0", null),
             ("com.terkoiz.freecam", "Freecam", ArenaWhitelistTier.Mod, "1.4.8", null),
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
@@ -487,6 +491,10 @@ public sealed class ArenaWhitelistTests
     [InlineData("com.dizzlow.impactcue", "2.0.3", ArenaWhitelistSide.Client)]
     [InlineData("com.dizzlow.impactcue.webconfig", "2.0.3", ArenaWhitelistSide.Server)]
     [InlineData("flir.enemymarkers", "1.4.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.vultify.fastgrenadethrow", "2.0.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.manimal.quickcancel", "2.0.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.deadwolf.hudbreakout", "1.2.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.fiodor.pipdisabler", "2.1.0", ArenaWhitelistSide.Client)]
     public void ItemAccessAndBodyHudModsKeepExactIdentitiesAndSideSpecificReviews(string guid, string reviewed, ArenaWhitelistSide side)
     {
         string shipped = File.ReadAllText(ShippedDefaultPath);
@@ -563,6 +571,7 @@ public sealed class ArenaWhitelistTests
         "fika.ghostfenixx.svm", "com.agavalda.giveui", "com.lacyway.ch", "com.terkoiz.freecam", "com.tarkin.doordash",
         "com.ozen.continuousloadammo", "com.pein.camerarecoilmod",
         "com.cj.useFromAnywhere", "com.dizzlow.impactcue", "com.dizzlow.impactcue.webconfig", "flir.enemymarkers",
+        "com.vultify.fastgrenadethrow", "com.manimal.quickcancel", "com.deadwolf.hudbreakout", "com.fiodor.pipdisabler",
         "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
         "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
         "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",

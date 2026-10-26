@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion><EnableDefaultCompileItems>false</EnableDefaultCompileItems><AssemblyName>FastGrenadeThrow.NativeCompile</AssemblyName><BaseIntermediateOutputPath>obj-native/</BaseIntermediateOutputPath><BaseOutputPath>bin-native/</BaseOutputPath><AssemblySearchPaths>{HintPathFromItem};{RawFileName};{TargetFrameworkDirectory}</AssemblySearchPaths></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Client/Compat/FastGrenadeThrow/*.cs" />
+    <Compile Include="NativeBoundary.cs" />
+    <Reference Include="Assembly-CSharp"><HintPath>../../../../EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll</HintPath></Reference>
+    <Reference Include="Comfort"><HintPath>../../../../EscapeFromTarkov_Data/Managed/Comfort.dll</HintPath></Reference>
+    <Reference Include="Comfort.Unity"><HintPath>../../../../EscapeFromTarkov_Data/Managed/Comfort.Unity.dll</HintPath></Reference>
+    <Reference Include="UnityEngine"><HintPath>../../../../EscapeFromTarkov_Data/Managed/UnityEngine.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>../../../../EscapeFromTarkov_Data/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
+    <Reference Include="BepInEx"><HintPath>../../../../BepInEx/core/BepInEx.dll</HintPath></Reference>
+    <Reference Include="0Harmony"><HintPath>../../../../BepInEx/core/0Harmony.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

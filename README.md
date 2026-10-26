@@ -4,7 +4,9 @@ Arena matches against AI for **SPT 4.1**. ArenaMode adds an **ARENA** option nex
 to PMC and Scav, with mode, map, equipment and mutator settings in the normal
 raid setup screens. It is a single-player mod; **Fika is not supported**.
 
-Current version: **0.3.0**, with shared **Redeploy.Core 1.0.13**. Get installable ZIPs from
+Latest published version: **0.3.0**, with shared **Redeploy.Core 1.0.13**.
+The current development source uses **Core 1.0.15**; the development additions below are
+not included in the published 0.3.0 ZIP. Get installable ZIPs from
 [GitHub Releases](https://github.com/maschine34675/ArenaMode/releases).
 Tactical, Zombies, Akimbo and Molotov are marked **WIP**.
 
@@ -192,8 +194,8 @@ SPT installation/
 
 `maschine-Redeploy.Core.dll` is a required shared library, not the full Redeploy
 mod. Use the version supplied for the Arena build, keeping only one copy in the
-plugin tree. ArenaMode 0.3.0 requires Core **1.0.13 or newer**;
-published 0.2.1 bundles 1.0.10. If Core is missing,
+plugin tree. Published ArenaMode 0.3.0 requires Core **1.0.13 or newer**;
+current development builds require **1.0.15**, and published 0.2.1 bundles 1.0.10. If Core is missing,
 unreadable or too old, Arena disables its gameplay runtime and shows a reason on
 the character-selection screen; loader details also appear in the client log
 and SPT dependency list. Install the
@@ -298,6 +300,9 @@ when it was written (2026-10-22), each with the version it was reviewed with:
 - additions for 0.3.0: Fontaine FOV Fix, Manimal Ammo Loading Animations,
   Increase Look Direction, Magazine Check Interrupt, Tarkova Cola (client/server),
   Accurate Circular Radar, Simple Crosshair and Better BepInEx;
+- development additions: Use Items Anywhere 2.1.6, ImpactCue 2.0.3 (client and
+  Web Config server), Enemy Markers 1.4.0, Fast Grenade Throw 2.0.0,
+  Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0;
 - Arena's diagnostic tools: UiBridge, ModProfiler, LogTools (and its patcher), ConsoleToMonitor.
 
 The default list also has a **deny list**: ORBIT, Questing Bots, Adaptive Bot Culling,
@@ -483,10 +488,24 @@ unless you allow them in your own whitelist file.
 | **Magazine Check Interrupt** | Tested at **1.1.1**; Core 1.0.12 removes the retired player's floating panel and binds new checks to the replacement player. |
 | **Accurate Circular Radar / Simple Crosshair** | Reviewed at **1.3.4 / 1.4.0**; Core 1.0.13 preserves their HUDs across player/camera replacement. Radar colors indicate faction/role, not Arena team hostility. See [test scope](docs/HUD-MOD-COMPAT-20261025.md). |
 | **Better BepInEx** | Reviewed at **1.0.0**. Uses the existing ConfigurationManager; keep that plugin installed. Its new menu removes other mods' patches on the stock F12 window. |
+| **Use Items Anywhere** | Development, **2.1.6**: its configured slots govern item access and reloading, including disabled features. Arena's magazine HUD uses the same candidate query. The former plugin-load collision is resolved. |
+| **ImpactCue / Enemy Markers** | Development, **2.0.3 / 1.4.0**: Core preserves raid history and bot markers while rebinding telemetry and billboard cameras to the replacement body. Native tests passed in Arena and standalone Redeploy. See [results and limits](docs/ITEMS-HUD-COMPAT-20261025.md). |
+| **Fast Grenade Throw** | Development, **2.0.0**: Arena respects the selected grenade priority and blocks quick throws while Arena input is locked. Native Molotov, underhand RGD and inventory-blocked inputs passed. Ordinary raids retain the mod's behavior. |
+| **Manimal's Quick Cancel** | Development, **2.0.0**: Core removes pending controllers owned by the retired body and rejects their late callbacks. Native cancellation and firearm use after replacement passed; the rare interrupted-drop/death race has offline coverage only. |
+| **HUD Breakout** | Development, **1.2.0**: health, ammunition and grenade values followed two Arena respawns without a new adapter. Its grenade count covers rig/pockets; spectator values still describe the local player. |
+| **Picture in Picture Disabler** | Development, **2.1.0**, tested with FOV Fix **4.1.0**: Core retires owned optic caches and binds the new held scope; Arena isolates its cold-kit optic preloads. Two actual scoped Arena deaths and the replacement scope's rendering passed. |
 | **Recoil Rework Legacy** | **2.0.0+**: transfers recoil/camera components and weapon-controller state across Arena player replacements. Native tests of the former Arena-owned adapter covered supplied kits, repeated deaths, PFT wave refills and firing afterward, plus ordinary raids before and after Arena; the shared Core implementation was validated natively without PFT. |
 
+Fast Grenade Throw, Quick Cancel, HUD Breakout and PiP Disabler are included in
+the development default whitelist after the Arena and standalone checks. With
+Arena absent, two additional Factory respawns passed using the same final Core:
+the scoped first death cleared PiP's old cache, graphics/HUD followed both new
+bodies, and actual medical cancellation and an RGD throw worked after respawn. The
+[remaining-mod report](docs/REMAINING-MOD-COMPAT-20261026.md) records the current
+native evidence and open limits; these rows describe development work.
+
 The general Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
-body-change fixes are provided by Core (since 1.0.9; the 0.3.0 source targets 1.0.13) and also apply to standalone Redeploy.
+body-change fixes are provided by Core (since 1.0.9; current source targets 1.0.15) and also apply to standalone Redeploy.
 Arena retains only its additional medical fallback for Arena bots. The migration
 has offline lifecycle coverage; the older Arena GPU reports do not certify the
 new shared implementation. See [migration and verification scope](docs/SHARED-BODY-COMPAT-20261023.md).
@@ -527,14 +546,18 @@ connection directly in the character menu.
 
 ## Known limitations and reporting problems
 
-- **Use Items Anywhere 2.1.6:** its magazine-query patches conflict with Arena's
-  backpack-reload patches while plugins load. A mutator or later Arena-session
-  filter cannot undo that collision in the already running normal process.
-  Avoid installing this combination until patch ownership is resolved.
-- ImpactCue 2.0.3, Enemy Markers 1.4.0, Amand's Graphics 1.8.0, HUD Breakout 1.2.0,
-  Manimal's Quick Cancel 2.0.0 and Picture in Picture Disabler 2.1.0 remain outside
-  the default whitelist. Some have confirmed body/camera ownership issues;
-  others need native tests. See the [seven-mod review](docs/SEVEN-MOD-COMPAT-20261025.md).
+- **Amand's Graphics 1.8.0 remains unlisted.** Core's development camera handover
+  retained ON/OFF settings across Factory respawns, but Labyrinth failed in the
+  mod's initial scene activation before any Core replacement. Its native lookup
+  of `!settings` dereferences a missing object; Core then refuses to capture an
+  incomplete graphics baseline. This map blocker is not repaired by the camera
+  handover. See [evidence and limits](docs/REMAINING-MOD-COMPAT-20261026.md).
+- Optional HUDs can overlap. HUD Breakout's damage, shield/assist and spectator
+  semantics are not made identical to Arena's HUD by its successful body tests.
+- The published 0.3.0 ZIP predates the Use Items Anywhere, ImpactCue and Enemy
+  Markers corrections above. See the [historical review](docs/SEVEN-MOD-COMPAT-20261025.md)
+  when diagnosing that release, and the [subsequent fixes](docs/ITEMS-HUD-COMPAT-20261025.md)
+  for the current source.
 - Tactical, Zombies, Akimbo and Molotov are unfinished features. Large populations
   depend heavily on the map, hardware and other AI mods; 32 zombies is a default,
   not a performance guarantee.
@@ -565,7 +588,7 @@ The source also requires a sibling [Redeploy](https://github.com/maschine34675/R
 checkout containing
 `Redeploy.Core/`, its `CoreVersion.props`, and `drivers/CoreVersionGate.cs`.
 Use the exact Redeploy commit recorded in the release's `PACKAGE-MANIFEST.json`;
-the current source uses Core 1.0.13. Do not substitute an arbitrary Core DLL for the
+the current source uses Core 1.0.15. Do not substitute an arbitrary Core DLL for the
 source dependency.
 
 **Ordinary builds automatically deploy into the configured SPT installation.**

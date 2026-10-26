@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net472</TargetFramework><LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><SptRoot Condition="'$(SptRoot)' == ''">../../../..</SptRoot><CompatSource Condition="'$(CompatSource)' == ''">../../ArenaMode.Client/Compat/FastGrenadeThrow/*.cs</CompatSource></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs;RuntimeDoubles.cs"/>
+    <Compile Include="$(CompatSource)" Link="Production/%(Filename)%(Extension)"/>
+    <Reference Include="0Harmony"><HintPath>$(SptRoot)/BepInEx/core/0Harmony.dll</HintPath></Reference>
+    <Reference Include="Mono.Cecil"><HintPath>$(SptRoot)/BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+    <Reference Include="MonoMod.RuntimeDetour"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.RuntimeDetour.dll</HintPath></Reference>
+    <Reference Include="MonoMod.Utils"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.Utils.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

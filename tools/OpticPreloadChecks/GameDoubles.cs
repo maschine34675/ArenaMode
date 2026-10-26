@@ -106,11 +106,16 @@ namespace EFT.CameraControl
         }
         public void OnDisable()
         {
-            var args = new Dictionary<string, object> { ["__instance"] = this };
-            if (!HarmonyLib.Harmony.Before(HarmonyLib.AccessTools.DeclaredMethod(typeof(OpticSight), nameof(OnDisable)), args)) return;
-            NativeDisables++;
-            FakeCamera.ReticleClears++;
-            if (ReferenceEquals(FakeCamera.Current, this)) FakeCamera.Current = null;
+            var method = HarmonyLib.AccessTools.DeclaredMethod(typeof(OpticSight), nameof(OnDisable));
+            var args = new Dictionary<string, object> { ["__instance"] = this, ["__exception"] = null };
+            if (HarmonyLib.Harmony.Before(method, args))
+            {
+                NativeDisables++;
+                FakeCamera.ReticleClears++;
+                if (ReferenceEquals(FakeCamera.Current, this)) FakeCamera.Current = null;
+            }
+            var error = HarmonyLib.Harmony.Finish(method, args);
+            if (error != null) throw error;
         }
     }
     public static class FakeCamera

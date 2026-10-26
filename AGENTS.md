@@ -74,9 +74,9 @@ for solo Arena with PFT installed, separately from team roster/kit semantics;
 never wait for async PFT work while holding the profile-boundary writer lock.
 Arena-only optional-mod admission is `ArenaOptionalMods.GetRejectionReason`: the whitelist
 first, then the failure the server reports in its ping, then the remaining adapters. It
-never disables a foreign mod, never touches ordinary PMC/Scav raids and carries no code
-specific to one foreign mod except the explicitly requested Tarkova Cola protection
-adapter (2026-10-25; see docs/TARKOVA-COLA-COMPAT.md). The per-mod refusals of ORBIT, Questing Bots, Adaptive Bot
+never disables a foreign mod or changes ordinary PMC/Scav behavior. Keep only
+explicitly requested integrations, including Tarkova Cola protection
+(2026-10-25; see docs/TARKOVA-COLA-COMPAT.md) and the follow-ups below. The per-mod refusals of ORBIT, Questing Bots, Adaptive Bot
 Culling, ISB Special Forces/Aishi and the adapters for MoreBotsAPI, AI Limit, Looting Bots,
 Remove The Dead, Smoothie, Late To The Party, Classic Movement, StatTrack,
 Deminvincibility, Skills Extended, Pause Continued and EFT Effects Manager / Broken Limbs
@@ -94,6 +94,13 @@ process-identity rules or the request contract the client checks before it quits
 the game. New foreign adapters require an explicit task; Tarkova Cola is the approved
 exception for external progression and protected reward transfer. Never permit its native
 state writes, achievement grants or bottle/grenade refunds during a protected Arena scope.
+The explicitly requested follow-up integrations are documented in
+docs/ITEMS-HUD-COMPAT-20261025.md and docs/REMAINING-MOD-COMPAT-20261026.md:
+Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
+and suppression of PiP callbacks for Arena's withheld kit preloads. General body
+and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.15).
+Amand's Graphics remains unlisted because its initial Labyrinth scene setup
+fails before any Core replacement; Factory camera tests do not remove that limit.
 The user policy file is a combined
 allow/deny list: `"unlisted": "allow"` turns the whitelist into a blacklist. The shipped default file
 allows every installed mod and has its own `deny` list (ORBIT, Questing Bots, Adaptive Bot Culling,

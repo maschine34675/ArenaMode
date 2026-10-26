@@ -1,4 +1,4 @@
-<!-- ArenaMode 0.3.0 description. -->
+<!-- ArenaMode description draft: published 0.3.0 plus explicitly marked development changes. -->
 ## {.tabset}
 
 ### Overview
@@ -106,9 +106,10 @@ the post-raid XP page skipped.
   beside the client DLL; the list is overwritten by updates, your own entries belong in
   `BepInEx/config/com.maschine.ArenaMode.whitelist.json`.
   When updating, preserve custom files and remove duplicate old Arena DLLs.
-- Use the supplied `maschine-Redeploy.Core.dll` (1.0.14 in current development); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (1.0.13 in the published 0.3.0
+  package; 1.0.15 in current development); keep only one copy,
   directly in `BepInEx/plugins/`.
-  Arena requires at least this version and disables itself before initialization
+  Arena requires at least the version its client was built against and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
   The full Redeploy mod is not required.
 - Install optional mods separately, with their own prerequisites.
@@ -139,8 +140,12 @@ UIFixes, WTT-CommonLib and WTT-ContentBackport (with its preloader patcher), SVM
 Continuous Healing, Continuous Load Ammo, Recoil Rework Legacy, Freecam, DoorDash,
 Anvil-WebOverlay, ArmorClassIcon, BetterAmmoLoadingList, BrighterInteriors,
 DevBalaclavaFix, HealingAutoCancel and SmajlecLights. 0.3.0 also lists Fontaine FOV Fix,
-Manimal Ammo Loading Animations, Increase Look Direction, Magazine Check Interrupt
-and Tarkova Cola. It denies ORBIT, Questing Bots,
+Manimal Ammo Loading Animations, Increase Look Direction, Magazine Check Interrupt,
+Tarkova Cola, Accurate Circular Radar, Simple Crosshair and Better BepInEx.
+Current development also lists Use Items Anywhere 2.1.6, ImpactCue 2.0.3 (client
+and Web Config server), Enemy Markers 1.4.0, Fast Grenade Throw 2.0.0,
+Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0.
+It denies ORBIT, Questing Bots,
 Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
 always allowed; a version that differs from the reviewed one only produces a warning.
 Whitelist admission alone does not supply a compatibility adapter. The targeted
@@ -222,11 +227,26 @@ Optional integration targets:
   colors indicate factions and roles, not Arena teams.
 - **Better BepInEx 1.0.0:** alternate F12 menu; keep ConfigurationManager installed.
   Other mods that patch the stock F12 window may lose their changes.
-- **Use Items Anywhere 2.1.6:** its configured slots control item access and
-  reloading when installed. Arena's magazine counter follows the same settings.
-- **ImpactCue 2.0.3 / Enemy Markers 1.4.0:** shared Core keeps telemetry and
+- **Use Items Anywhere 2.1.6 (development):** its configured slots control item
+  access and reloading, including disabled features. Arena's magazine counter
+  follows the same settings; the previous plugin-load collision is resolved.
+- **ImpactCue 2.0.3 / Enemy Markers 1.4.0 (development):** shared Core keeps telemetry and
   existing markers attached to the current player/camera after respawning.
-  Both mods retain their own settings; overlapping HUDs may need configuring.
+  Both passed Arena and standalone Redeploy tests and retain their settings;
+  overlapping HUDs may need configuring.
+- **Fast Grenade Throw 2.0.0 (development):** respects Arena's selected grenade
+  priority and input locks. Priority Molotov, underhand RGD and inventory-blocked
+  input passed native tests. Ordinary raids retain the mod's behavior.
+- **Manimal's Quick Cancel 2.0.0 (development):** Core cleans up pending medical
+  controllers belonging to the retired body. Actual cancellation and firearm
+  recovery after replacement passed; the rare interrupted-drop/death race is
+  covered offline only.
+- **HUD Breakout 1.2.0 (development):** health, ammo and grenade values followed
+  two Arena respawns without a new adapter. Its grenade count still uses
+  rig/pockets, and its spectator display describes the local player.
+- **Picture in Picture Disabler 2.1.0 (development):** Core handles owned optic
+  state/cache retirement; Arena isolates its cold-kit preloads. Two actual scoped
+  Arena deaths and replacement scope rendering passed with FOV Fix 4.1.0.
 - **Recoil Rework Legacy 2.0.0+:** recoil/camera components and weapon state follow
   Arena's replacement player bodies. Original recoil settings and ordinary raids
   are preserved. Supplied kits, repeated respawns, PFT refills and firing
@@ -235,8 +255,16 @@ Optional integration targets:
   camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
-are provided by the bundled Redeploy.Core (1.0.14 in current development; they also apply to standalone Redeploy);
+are provided by the bundled Redeploy.Core (1.0.15 in current development; they also apply to standalone Redeploy);
 Arena keeps only its medical fallback for Arena bots.
+
+The four new development targets (Fast Grenade Throw, Quick Cancel, HUD Breakout
+and PiP Disabler) are included in the development default whitelist. The final
+Core also passed two Factory respawns in standalone Redeploy with Arena absent,
+including a scoped death, HUD continuity, medical cancellation and a grenade throw.
+They are not additions to the already published 0.3.0 package. See the repository's
+[remaining-mod report](https://github.com/maschine34675/ArenaMode/blob/master/docs/REMAINING-MOD-COMPAT-20261026.md)
+for completed tests and limits.
 
 Targeted Factory tests cover SVM's SaveLoot/Ignore raid ends and CLA loading and
 respawns. Specific timing/UI and replay cases remain open; these checks are not
@@ -285,12 +313,14 @@ default for newly registered profiles (existing OFF choices stay OFF):
 
 ### Notes and credits
 
-- Use Items Anywhere 2.1.6 conflicts with Arena's magazine-query patches at
-  plugin startup. Avoid that combination; switching an Arena mutator off does
-  not prevent the patch-installation conflict.
-- ImpactCue, Enemy Markers, Amand's Graphics, HUD Breakout, Manimal's Quick Cancel
-  and Picture in Picture Disabler remain outside the default whitelist. Their
-  review results and outstanding tests are in the repository's seven-mod review.
+- The published 0.3.0 package predates the Use Items Anywhere, ImpactCue and
+  Enemy Markers corrections described above; they are development changes.
+- **Amand's Graphics 1.8.0 remains unlisted.** The camera handover worked on
+  Factory with the mod ON and OFF. On Labyrinth, its own initial activation
+  dereferences a missing `!settings` object before Core attempts replacement.
+  The handover correction does not resolve that separate map blocker.
+- HUD continuity does not align every foreign damage, shield, assist or killfeed
+  rule with Arena. Optional HUDs and sounds can overlap; configure them separately.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults
   are not a performance guarantee.
 - The unsigned session-switch helper has three unresolved VirusTotal detections.
