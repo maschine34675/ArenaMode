@@ -73,6 +73,12 @@ internal static class AnnouncerService
     private const float LoadTimeoutSeconds = 10f;
     private const float ResultCueGapSeconds = 0.1f;
 
+    /// <summary>Native PMC chatter yields to actual or queued Arena announcements.</summary>
+    internal static bool IsPmcVoiceBlocked => _match != null && IsEnabledForLiveMatch()
+        && Settings.AnnouncerVolume.Value > 0f
+        && (Time.realtimeSinceStartup < _calloutBusyUntil
+            || _pendingResultKey != null || _pendingStartKey != null || _pendingCalloutKey != null);
+
     public static void SetPluginDirectory(string pluginDirectory)
     {
         if (string.Equals(_pluginDirectory, pluginDirectory, StringComparison.OrdinalIgnoreCase))

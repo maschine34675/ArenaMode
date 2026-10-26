@@ -1,11 +1,23 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-25. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-26. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **PMC voicelines (2026-10-26, development):** the new default-on mutator adds
+  sparse native reload, grenade, empty-weapon and kill callouts. TDM rotates
+  faction voices, including English BEAR, once per match and reapplies the same
+  voice to replacement bodies. Only the exact speaker changes; saved profiles
+  and ordinary raids are excluded. Announcer and native pain/death speech retain
+  priority. Both client DLLs are deployed, with offline verification and artifact
+  identities in [implementation and acceptance](PMC-VOICELINES-20261026.md).
+  GPU-2 verified all four actions, BEAR rotation including English, USEC, respawn,
+  disable/restoration, announcer priority and ordinary-PMC isolation. Settings
+  are restored and game/server stopped. That document also records current APBS
+  clothing ownership and the remaining native-log/audio-audition limits.
 
 - **Items/HUD compatibility (2026-10-25/26, development):** UIA 2.1.6 owns its
   configured item/reload slots when installed; Arena's query patches and magazine

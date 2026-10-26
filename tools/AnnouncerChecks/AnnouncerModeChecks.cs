@@ -58,8 +58,14 @@ internal static partial class Program
         teamMatch.Callout(label);
         Assert(sounds.PlayRequests.Count == before + 1,
             "A non-Zombie mode still plays with the exact same master switch left on.");
+        Assert(AnnouncerService.IsPmcVoiceBlocked, "An audible announcer cue takes priority over PMC chatter.");
+        float previousVolume = Settings.AnnouncerVolume.Value;
+        Settings.AnnouncerVolume.Value = 0f;
+        Assert(!AnnouncerService.IsPmcVoiceBlocked, "Muted announcer cannot starve PMC chatter.");
+        Settings.AnnouncerVolume.Value = previousVolume;
 
         Settings.AnnouncerEnabled.Value = false;
+        Assert(!AnnouncerService.IsPmcVoiceBlocked, "Disabled announcer cannot starve PMC chatter.");
         teamMatch.Callout(label);
         Assert(sounds.PlayRequests.Count == before + 1,
             "The master switch still gates a mode whose own frozen per-mode value is on.");
@@ -95,6 +101,8 @@ internal static partial class Program
             + "even though that mode's own live default is on.");
 
         ArenaSession.AnnouncerEnabledSelection = true;
+        AnnouncerService.Detach();
+        Assert(!AnnouncerService.IsPmcVoiceBlocked, "Detached announcer cannot hold speech in another raid.");
         AnnouncerService.Attach(new ArenaMatch());
     }
 }

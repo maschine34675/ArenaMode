@@ -11,7 +11,9 @@ asynchronous native load. It controls friendly/enemy relations, team population,
 initial team starts and local respawns, including the ported maps' team boxes and
 Customs area starts. A red or blue selection marker makes the current choice clear.
 
-The real profile faction, appearance, voice and equipment remain unchanged. The
+The real profile faction, appearance, saved voice and equipment remain unchanged.
+The later [PMC voicelines mutator](PMC-VOICELINES-20261026.md) can temporarily
+replace only the live speaker with a rotating faction voice during Team DM. The
 virtual team is bound to the profile ID, native faction, arm token/epoch and exact
 game/world pair. Foreign bodies, stale raids and missing identity are refused. It
 is cleared on cancellation, ordinary raid entry and Arena teardown. Gear selection

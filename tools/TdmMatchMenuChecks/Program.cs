@@ -505,8 +505,21 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 22,
-    "inline panel shows twenty-two switches; Crowd shares the unsupported Fast Bots slot in Zombies");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 23,
+    "inline panel includes PMC voice; Crowd shares the unsupported Fast Bots slot in Zombies");
+Need(Settings.PmcVoiceEnabled.Value && MutatorStatus(ArenaMutator.PmcVoice) == "ON",
+    "automatic PMC voice is enabled by default and visible in the menu");
+MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
+Need(!Settings.PmcVoiceEnabled.Value && MutatorStatus(ArenaMutator.PmcVoice) == "OFF",
+    "PMC voice menu toggle persists the original Audio setting");
+foreach (bool armed in new[] { false, true })
+{
+    ArenaSession.IsActive = !armed; ArenaSession.ArmedForNextRaid = armed;
+    MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
+    Need(!Settings.PmcVoiceEnabled.Value, "PMC voice choice respects active and armed locks");
+}
+ArenaSession.IsActive = ArenaSession.ArmedForNextRaid = false;
+MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
 // 2026-10-08 menu polish, item 1: the ANNOUNCER row names the kill callouts it
 // now hides, and every description still fits the one-line description cell.
 Need(ArenaMutatorSelection.Description(ArenaMutator.Announcer) == "Stingers, cues and kill callouts.",
@@ -525,11 +538,11 @@ foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathm
     MutatorButton(ArenaMutator.Akimbo).onClick.Invoke();
 }
 var mutatorRect = (RectTransform)MutatorsRoot().transform;
-Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-480)
-    && mutatorRect.sizeDelta == new Vector2(600,500), "inline panel always reserves the full thumbnail or Customs preview slot");
+Need(mutatorRect.anchorMax == Vector2.one && mutatorRect.anchoredPosition == new Vector2(-56,-440)
+    && mutatorRect.sizeDelta == new Vector2(600,540), "inline panel reserves a fixed thumbnail slot and the original bottom edge");
 // 2026-10-08 menu polish, item 2: no legend subtitle, no "saved with F12" footer.
 // The rows start 8 px under the title and the last description ends 8 px above
-// the panel bottom, in two columns of ten.
+// the panel bottom, in two columns of twelve and eleven.
 Need(!MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Mutator legend" or "Mutators saved note"
         || t.text.Contains("Saved with F12") || t.text.Contains("Green: ON") || t.text.Contains("Killcam/tracers")),
     "mutator panel carries no legend or saved-with-F12 footer");
@@ -541,22 +554,22 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     float RowTop(ArenaMutator id) => -((RectTransform)MutatorButton(id).transform).anchoredPosition.y;
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
-    float pitch = (500f - 52f - 8f) / 11f;
-    Need(mutatorIds.Length == 22 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
-        && Math.Abs(RowTop(mutatorIds[11]) - 52f) < .01f,
+    float pitch = (540f - 52f - 8f) / 12f;
+    Need(mutatorIds.Length == 23 && Math.Abs(RowTop(mutatorIds[0]) - 52f) < .01f
+        && Math.Abs(RowTop(mutatorIds[12]) - 52f) < .01f,
         "both mutator columns start 8 px below the title");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
         "mutator rows reflow without moving the panel");
     Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
     Need(mutatorIds.All(id => Math.Abs(((RectTransform)MutatorButton(id).transform).sizeDelta.y - 22f) < .01f
         && Math.Abs(Detail(id).sizeDelta.y - 18f) < .01f),
-        "twenty-two mutators retain 22px buttons and 18px description cells");
-    foreach (var lastId in new[] { mutatorIds[10], mutatorIds[21] })
+        "twenty-three mutators retain 22px buttons and 18px description cells");
+    foreach (var (lastId, bottom) in new[] { (mutatorIds[11], 532f), (mutatorIds[22], 492f) })
     {
         var lastDetail = Detail(lastId);
-        Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - 492f) < .01f
+        Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - bottom) < .01f
             && Math.Abs(lastDetail.sizeDelta.y - (pitch - 22f)) < .01f,
-            "last description ends 8 px above the panel bottom and fills the row pitch");
+            "each column ends within the panel and fills its row pitch");
     }
 }
 // 2026-10-08 menu polish, item 5: colored tracers are team-only, exactly like the
@@ -640,7 +653,7 @@ foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical",
 foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical" })
 {
     view.Synchronize(mode, mode == "tactical");
-    Need(mutatorRect.anchoredPosition == new Vector2(-56,-480), "mode changes never move the mutator panel");
+    Need(mutatorRect.anchoredPosition == new Vector2(-56,-440), "mode changes never move the mutator panel");
     bool wasEnabled = Settings.GetReplaySeconds(mode) > 0f;
     Need(KillcamButton().interactable && KillcamText() == (wasEnabled ? "KILLCAM: ON" : "KILLCAM: OFF"),
         "per-mode killcam label reflects saved state " + mode);
@@ -942,9 +955,9 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
         var buttonRect = (RectTransform)MutatorButton(id).transform;
         var detail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator detail " + id).rectTransform;
         bool separate = -detail.anchoredPosition.y >= -buttonRect.anchoredPosition.y + buttonRect.sizeDelta.y;
-        // Eleven rows per column retain separate descriptions and an 8-px
-        // bottom margin in the 500-px panel.
-        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 492f + .01f,
+        // Twelve rows per column retain separate descriptions and an 8-px
+        // bottom margin in the 540-px panel.
+        Need(separate && -detail.anchoredPosition.y + detail.sizeDelta.y <= 532f + .01f,
             "all mutator descriptions fit outside their button and inside the panel");
         foreach (ArenaMutator other in Enum.GetValues(typeof(ArenaMutator)))
         {
@@ -1119,8 +1132,8 @@ foreach (bool team in new[] { false, true })
     Need(MutatorButton(ArenaMutator.ZombieCrowd).gameObject.activeSelf
         && !MutatorButton(ArenaMutator.FastBots).gameObject.activeSelf,
         "Crowd replaces unsupported Fast Bots without adding a visible row");
-    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 22,
-        "Zombie keeps the same twenty-two readable rows");
+    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 23,
+        "Zombie keeps the same twenty-three readable rows");
     bool bots = Settings.BotMovementEnabled.Value;
     Need(MutatorStatus(ArenaMutator.ZombieCrowd) == "OFF", "Crowd starts visibly OFF");
     MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();

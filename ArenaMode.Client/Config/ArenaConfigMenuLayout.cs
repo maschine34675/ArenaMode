@@ -264,6 +264,7 @@ internal static class ArenaConfigMenuLayout
             I("Scale", "Scale (x)"),
             I("PanelOpacity", "Panel Opacity")),
         new Section("Audio", false,
+            I("PmcVoicelines", "Automatic PMC Voicelines"),
             I("HitmarkerSounds", "Hitmarker Sounds"),
             Pct("HitmarkerVolume", "Hitmarker Volume"),
             I("Announcer", "Announcer (All Modes)"),

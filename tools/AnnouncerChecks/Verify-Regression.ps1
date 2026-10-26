@@ -192,7 +192,7 @@ Invoke-NegativeCase 'reserve-root-overwrite' ($catalogSource.Replace('!rootKeys.
 Invoke-NegativeCase 'multi-kill-queue-priority' ($source.Replace(
     '"monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 80,',
     '"monster_kill" or "multi_kill" or "triple_kill" or "double_kill" => 50,')) `
-    'A queued multi-kill replaces a pending spree and drains before it.'
+    'Ultra Kill alias keeps multi-kill queue priority over a later spree.'
 Invoke-NegativeCase 'countdown-backlog' ($source.Replace(
     'Skip(key, "countdown_not_currently_playable");', 'SubmitCallout(key);')) `
     'Busy countdown numbers are dropped instead of replaying after their spoken second.'

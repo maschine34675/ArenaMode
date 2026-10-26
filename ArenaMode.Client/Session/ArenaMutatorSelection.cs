@@ -10,7 +10,7 @@ namespace ArenaMode.Session;
 internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
-    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, FriendlyFire,
+    InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, PmcVoice, FriendlyFire,
     AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots, ZombieCrowd
 }
 
@@ -59,6 +59,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.Lasers => "TEAM LASER COLORS",
         ArenaMutator.Akimbo => "AKIMBO (WIP)",
         ArenaMutator.Announcer => "ANNOUNCER",
+        ArenaMutator.PmcVoice => "PMC VOICELINES",
         ArenaMutator.FriendlyFire => "FRIENDLY FIRE",
         ArenaMutator.AutoQuickslots => "AUTO QUICKSLOTS",
         ArenaMutator.InstantSearch => "INSTANT SEARCH",
@@ -93,6 +94,7 @@ internal sealed class ArenaMutatorSelection
         // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
         ArenaMutator.Announcer => "Stingers, cues and kill callouts.",
+        ArenaMutator.PmcVoice => "Action callouts; Team DM voices.",
         ArenaMutator.FriendlyFire => "Allow damage between teammates.",
         ArenaMutator.AutoQuickslots => "Bind kit meds to free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",
@@ -124,6 +126,7 @@ internal sealed class ArenaMutatorSelection
         // in Enabled()/TryToggle() below — the generic bool-entry path
         // already used for Tracers/Lasers/Akimbo handles it as-is.
         ArenaMutator.Announcer => Settings.AnnouncerEntry(Mode),
+        ArenaMutator.PmcVoice => Settings.PmcVoiceEnabled,
         ArenaMutator.FriendlyFire => Settings.FriendlyFireEntry(Mode, _team),
         ArenaMutator.AutoQuickslots => Settings.AutoQuickSlots,
         ArenaMutator.InstantSearch => Settings.InstantSearch,

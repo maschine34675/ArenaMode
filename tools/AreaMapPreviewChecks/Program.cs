@@ -168,11 +168,11 @@ try
         "Detail view must not overlay neighboring area boundaries.");
     Need(firstRoot.GetComponentsInChildren<TMP_Text>().Any(t=>t.text=="CUSTOMS — Factory Center"),"AREA-TITLE","Selected area title follows the offered selection.");
     var rootRect=(RectTransform)firstRoot.transform;var viewportRect=(RectTransform)viewport.transform;
-    Near(rootRect.rect.width,600,"RESIZE","1920-wide root width");Near(rootRect.rect.height,292,"RESIZE","Compact preview height");
+    Near(rootRect.rect.width,600,"RESIZE","1920-wide root width");Near(rootRect.rect.height,252,"RESIZE","Compact preview height");
     ((RectTransform)screen.transform).sizeDelta=new Vector2(1600,900);preview.Refresh(center);
-    Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,292,"RESIZE","Resized logical root height");
+    Near(rootRect.rect.width,600,"RESIZE","Resized logical root width");Near(rootRect.rect.height,252,"RESIZE","Resized logical root height");
     Near(rootRect.localScale.y,900f/1080f,"RESIZE","Smaller canvas scales complete right column");
-    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,170,"RESIZE","Resized viewport uses removed legend space");
+    Near(viewportRect.rect.width,568,"RESIZE","Resized viewport width");Near(viewportRect.rect.height,130,"RESIZE","Resized viewport leaves readable mutator space");
     var resizedMesh=mapGraphic.SubmitMesh();Need(resizedMesh.Vertices.Count>4&&resizedMesh.Vertices.All(v=>float.IsFinite(v.Position.x)&&float.IsFinite(v.Position.y)),
         "RESIZE","Mesh must recompute against resized UI geometry.");
     preview.Refresh(tactical);

@@ -181,6 +181,11 @@ Its selectable virtual team is frozen in ArenaTeamSideSelection; never mutate
 Profile.Info.Side. Both team-box and bounded-area local spawns/respawns use the
 exact-raid ArenaSession team facade. Read docs/TDM-SIDES-MONITORS-20261025.md before
 changing affiliation, faction colors or optional MapPort screen ownership.
+Automatic local speech and TDM speaker-only voice rotation are documented in
+docs/PMC-VOICELINES-20261026.md. Keep exact current-body/raid guards, announcer
+priority, private bundle ownership and native queued/pain/death speech intact.
+The selected bank remains retained through result holds until native raid end;
+never change saved faction/customization or unload the shared voice loader.
 Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit and Bowl)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read

@@ -98,6 +98,7 @@ public class Plugin : BaseUnityPlugin
         DeathInterception.Register(new ArenaRespawnDriver());
         Combat.CombatPatches.Enable();
         Combat.ArenaDefaultFireMode.Enable();
+        Audio.ArenaPmcVoice.Enable();
         Pickups.ArenaPowerups.Enable();
         Combat.Fire.ArenaFireRuntime.Enable(Config);
         Combat.Fire.ArenaMolotovModel.Enable();
@@ -223,6 +224,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMedicalBodyScope.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();
+        Audio.ArenaPmcVoice.Shutdown();
         PitFireTeamAreaSpawns.Reset();
         Combat.ArenaSkills.Restore();
         Movement.VaultingTuning.Restore();

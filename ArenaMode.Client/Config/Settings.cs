@@ -105,6 +105,7 @@ public static class Settings
     public static ConfigEntry<float> GunGameReplaySeconds { get; private set; }
     public static ConfigEntry<float> TeamDeathmatchReplaySeconds { get; private set; }
     public static ConfigEntry<bool> AnnouncerEnabled { get; private set; }
+    public static ConfigEntry<bool> PmcVoiceEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
     public static ConfigEntry<bool> DeathmatchAnnouncerEnabled { get; private set; }
@@ -1654,6 +1655,11 @@ public static class Settings
         CombineDamageNumbers = config.Bind("HUD", "CombineDamageNumbers", false,
             "Add hits on the same target within 0.25 seconds to one floating number. " +
             "Body and armor damage stay separate. Presentation only; applies immediately.");
+
+        PmcVoiceEnabled = config.Bind("Audio", "PmcVoicelines", true,
+            "Automatic Arena-only PMC callouts for reloads, grenades, empty weapons and occasional kills. " +
+            "The announcer has priority. Team DM chooses a faction voice per match, including English BEAR voices; " +
+            "the voice stays the same across respawns. Other modes keep your chosen voice. Your profile is never changed.");
 
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,

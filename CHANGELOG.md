@@ -10,6 +10,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Add the PMC VOICELINES mutator for restrained native action callouts. Team DM
+  rotates faction voices between matches, including English BEAR voices, without
+  changing saved profiles. Respawns retain the match voice and the announcer
+  takes priority. [Details](docs/PMC-VOICELINES-20261026.md).
+
 - Compose Arena's backpack reload and item-access extension with Use Items Anywhere
   2.1.6. Its configured slots take precedence, and Arena's magazine HUD uses the
   same candidate query as reloading.

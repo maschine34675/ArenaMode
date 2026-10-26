@@ -496,6 +496,11 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
 - Independent announcer and hitmarker volume, each default **0.7**. Announcer
   output bypasses the Interface-volume setting by default, but still respects
   the overall game/listener state. A legacy Interface route remains available.
+- **PMC VOICELINES** adds restrained native reload, grenade, empty-weapon and
+  occasional kill speech. The announcer takes priority. In Team DM, a rotating
+  faction voice (including English BEAR) stays stable through respawns; other
+  modes retain the selected profile voice. Saved customization is unchanged.
+  See [scope and checks](PMC-VOICELINES-20261026.md).
 - Per-mode announcer preferences: default on except Zombies. The switch covers
   announcer stingers/cues and kill-award text, not essential wave/status text.
   The detailed lead/time/limit director serves DM, TDM, Tactical and Gun Game;

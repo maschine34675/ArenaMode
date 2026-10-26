@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [Automatic PMC voicelines, rotating TDM voices and bot clothing ownership](PMC-VOICELINES-20261026.md)
 - [Multiplayer with Fika: current source review, architecture and staged proposal](MULTIPLAYER-FIKA-CONCEPT-20261026.md)
 - [Fika test environment: four-machine inventory and preparation steps](MULTIPLAYER-ENVIRONMENT-20261026.md)
 - [Team DM side selection, faction colors and ArenaMapPort score monitors](TDM-SIDES-MONITORS-20261025.md)

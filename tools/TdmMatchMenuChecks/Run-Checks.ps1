@@ -51,7 +51,8 @@ $arenaFaults = @(
     @('stale-custom-label', 'ArenaMode.Client\Session\ArenaModeSelectionView.cs',
       "// F12 can change a limit without changing the selected mode.`n            Refresh();",
       '// Fault: no same-mode limit refresh.',
-      'ProductionModeView', 'unchanged-mode refresh displays new F12 values'),
+      # Same-mode refresh now first protects the faction-row loading lock.
+      'ProductionModeView', 'loading freezes side selection even under forced click'),
     @('retired-row', 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs',
       '|| !_choices.Contains(choice)', '|| false',
       'ProductionRulesView', 'retired row cannot modify reopened panel'),
@@ -88,7 +89,7 @@ $arenaFaults = @(
       'ProductionMutatorsView', 'retired killcam callback cannot mutate reopened panel'),
     @('mutator-live-lock', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || !Visible(id) || UnavailableReason(id) != null)', 'if (!Visible(id) || UnavailableReason(id) != null)',
-      'ProductionMutatorSelection', 'friendly-fire control cannot change an armed/live match'),
+      'ProductionMutatorSelection', 'PMC voice choice respects active and armed locks'),
     @('mutator-mode-gate', 'ArenaMode.Client/Session/ArenaMutatorSelection.cs',
       'if (Locked || !Visible(id) || UnavailableReason(id) != null)', 'if (Locked || !Visible(id) || (id != ArenaMutator.Pickups && UnavailableReason(id) != null))',
       'ProductionMutatorSelection', 'unavailable pickups preserve preference on direct callback'),
