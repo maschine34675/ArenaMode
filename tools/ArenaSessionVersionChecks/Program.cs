@@ -36,7 +36,8 @@ internal static class Program
             schema = 1,
             mods = new[] {
                 new { guid = Guid, name = "Canonical mod name", kind = "mod", clientVersion = "0.10.3", serverVersion = serverReviewed },
-                new { guid = "tests.other-mod", name = "Other mod", kind = "mod", clientVersion = "0.10.3", serverVersion = "0.10.3" }
+                new { guid = "tests.other-mod", name = "Other mod", kind = "mod", clientVersion = "0.10.3", serverVersion = "0.10.3" },
+                new { guid = "com.tyfon.uifixes", name = "UIFixes", kind = "mod", clientVersion = "6.0.3", serverVersion = "6.0.3" }
             }
         });
         Write(Path.Combine(Paths.PluginPath, ArenaSessionContract.PluginFolderName, ArenaSessionContract.DefaultPolicyFileName), _policy);
@@ -181,18 +182,109 @@ internal static class Program
         Need(!ArenaSessionVersionPlan.TryRead(broken, out _, out _), "malformed inventory rejected");
     }
 
-    private static void CheckOfferAndContract()
+    private static void CheckNewSessionsKeepReviewedVersionDrift()
     {
         Reset();
         Plugin(Guid, "Client Alias", "1.0.0");
         ArenaServerClient.OnRefresh = () => Ping("0.10.3");
         ArenaWhitelistAdmission.PrepareForScreen();
-        Need(ArenaServerClient.RefreshCalls == 1 && ArenaWhitelistAdmission.GetRejectionReason() == null, "version-only offer refreshes ping without refusal");
-        Need(ArenaWhitelistAdmission.CanOfferSessionStart(null), "version-only offer available");
-        Need(!ArenaWhitelistAdmission.CanOfferSessionStart("changed API contract") && ArenaWhitelistAdmission.CanOfferVersionSessionStart(),
-            "other eligibility refusal keeps explicit optional version session available");
-        Need(ArenaWhitelistAdmission.VersionSessionText.Contains("Client Alias") && ArenaWhitelistAdmission.VersionSessionText.Contains("restart without"), "offer explains omitted mods");
-        Need(ArenaWhitelistAdmission.TryPrepareSessionStart(out var hash, out var mods, out var plan, out _), "strict switch can be prepared");
+        Need(ArenaServerClient.RefreshCalls == 1 && ArenaWhitelistAdmission.GetRejectionReason() == null, "version notes refresh ping without refusal");
+        Need(!ArenaWhitelistAdmission.CanOfferSessionStart(null), "version drift alone does not offer a filtering restart");
+        Need(!ArenaWhitelistAdmission.CanOfferSessionStart("changed API contract"), "version drift cannot offer a bypass for an API refusal");
+        Need(ArenaWhitelistAdmission.TryPrepareSessionStart(out var hash, out var mods, out var plan, out _), "normal policy session can be prepared");
+        Need(plan == null && hash == Policy().Hash && mods.Count == 2 && mods.Any(x => x.Guid == Guid),
+            "client version drift retains matching server counterpart and ordinary policy hash");
+
+        foreach (string installed in new[] { "6.0.4", "6.0.2" })
+        {
+            Reset();
+            Plugin("com.tyfon.uifixes", "UIFixes", installed);
+            Plugin("tests.other-mod", "Depends on UIFixes", "0.10.3");
+            Chainloader.PluginInfos["tests.other-mod"].Dependencies = new[] {
+                new BepInDependency { DependencyGUID = "com.tyfon.uifixes", Flags = BepInDependency.DependencyFlags.HardDependency }
+            };
+            Plugin("tests.unknown", "Unknown plugin", "1.0.0");
+            Ping();
+            ArenaServerClient.ServerMods = new[] {
+                Mod(ArenaSessionContract.ArenaPluginGuid, "Arena", "0.2.0"),
+                Mod("com.tyfon.uifixes", "UIFixes", installed),
+                new ArenaServerModInfo("tests.other-mod", "Depends on UIFixes", "0.10.3",
+                    Unit("tests.other-mod", "0.10.3").File, new[] { "com.tyfon.uifixes" }),
+                Mod("tests.unknown", "Unknown server mod", "1.0.0")
+            };
+            ArenaServerClient.PingGeneration++;
+            string rejection = ArenaWhitelistAdmission.GetRejectionReason();
+            Need(rejection != null && ArenaWhitelistAdmission.CanOfferSessionStart(rejection), "unknown identities still require a filtered session");
+            Need(ArenaWhitelistAdmission.WarningLine.Contains("UIFixes: version " + installed + " differs from reviewed 6.0.3"),
+                "UIFixes version drift remains a visible advisory");
+            Need(ArenaWhitelistAdmission.TryPrepareSessionStart(out hash, out mods, out plan, out _)
+                && plan == null && hash == Policy().Hash, "new session never adds version exclusions");
+            Need(mods.Count == 3 && mods.Any(x => x.Guid == "com.tyfon.uifixes") && mods.Any(x => x.Guid == "tests.other-mod")
+                && mods.All(x => x.Guid != "tests.unknown"), "private server retains drifted UIFixes and dependent while excluding unknown mod");
+            var request = new ArenaSessionRequest {
+                Direction = "enter", GamePid = 12345, GameExe = Paths.ExecutablePath, GameDir = Paths.GameRootPath,
+                SptRuntimeDir = Path.Combine(Paths.GameRootPath, "SPT_Runtime"), ProfileId = "123456789012345678901234",
+                PolicyHash = hash, ServerMods = mods, VersionPlan = plan,
+                GameArgs = new List<string> { "-config={\"BackendUrl\":\"https://127.0.0.1:6969\"}" }
+            };
+            Need(HelperRequest.TryParse(ArenaSessionSwitch.BuildRequestJson(request), "enter", out var parsed, out _)
+                && parsed.VersionPlan == null && parsed.ServerMods.Any(x => x.Guid == "com.tyfon.uifixes"),
+                "session helper receives UIFixes without a version-filtered plan");
+            var policy = Policy();
+            // Gate inventory comes from the same BepInPlugin metadata as the loaded process.
+            // Unit() deliberately names other fixtures by GUID; using it for UIFixes here
+            // would let GUID/version dedup retain that synthetic alias instead of "UIFixes".
+            var clientUnits = new[] {
+                new ArenaSessionUnit("com.tyfon.uifixes", "UIFixes", installed,
+                    Chainloader.PluginInfos["com.tyfon.uifixes"].Location, null),
+                Unit("tests.other-mod", "0.10.3", "com.tyfon.uifixes"), Unit("tests.unknown", "1.0.0")
+            };
+            var decision = ArenaWhitelistDecision.Evaluate(policy, ArenaWhitelistSide.Client, clientUnits);
+            Need(decision.Allowed.Count == 2 && decision.Allowed.Any(x => x.Guid == "com.tyfon.uifixes")
+                && decision.Excluded.Single().Guid == "tests.unknown", "private gate retains drifted UIFixes and dependent while excluding unknown mod");
+            var report = ArenaGateReport.FromDecision(policy, decision, Array.Empty<string>());
+            ArenaSessionMode.Initialize(new[] { Paths.ExecutablePath, "-arena-session" }, report.ToJson());
+            Chainloader.PluginInfos.Remove("tests.unknown");
+            ArenaServerClient.IsArenaInstance = true;
+            ArenaServerClient.PolicyHash = policy.Hash;
+            ArenaServerClient.ServerMods = ArenaServerClient.ServerMods.Where(x => x.Guid != "tests.unknown").ToArray();
+            ArenaServerClient.PingGeneration++;
+            string privateRejection = ArenaWhitelistAdmission.GetRejectionReason();
+            string privateWarnings = ArenaWhitelistAdmission.WarningLine;
+            Need(privateRejection == null && privateWarnings?.Contains("UIFixes: version " + installed) == true,
+                "loaded private session admits drifted UIFixes with advisory intact"
+                + " (rejection=" + (privateRejection ?? "none") + "; notes=" + (privateWarnings ?? "none") + ")");
+        }
+
+        Reset(); Ping("1.0.0");
+        Need(ArenaWhitelistAdmission.GetRejectionReason() == null && !ArenaWhitelistAdmission.CanOfferSessionStart(null), "server-only drift stays advisory without optional filtering restart");
+        Reset(); Plugin(Guid, "Client Alias", "0.10.3"); Ping("0.10.3");
+        Need(!ArenaWhitelistAdmission.CanOfferSessionStart(null), "reviewed versions do not offer version-only restart");
+        Reset(); Plugin(Guid, "Client Alias", "1.0.0"); Plugin("com.fika.core", "Fika", "1.0.0"); Ping();
+        Need(!ArenaWhitelistAdmission.CanOfferSessionStart(ArenaWhitelistAdmission.GetRejectionReason()), "Fika has no filtered session bypass");
+        Reset(); Plugin(Guid, "Client Alias", "1.0.0"); Ping();
+        Plugin(ArenaSessionContract.ArenaPluginGuid, "Arena", "0.2.0");
+        Chainloader.PluginInfos[ArenaSessionContract.ArenaPluginGuid].Dependencies = new[] {
+            new BepInDependency { DependencyGUID = Guid, Flags = BepInDependency.DependencyFlags.HardDependency }
+        };
+        ArenaServerClient.PingGeneration++;
+        Need(ArenaWhitelistAdmission.GetRejectionReason() == null
+            && ArenaWhitelistAdmission.TryPrepareSessionStart(out _, out mods, out plan, out _) && plan == null
+            && mods.Any(x => x.Guid == Guid), "required Arena dependency with version drift remains available");
+    }
+
+    // Older running sessions/markers still require the exact historical plan. New sessions no
+    // longer create it, but dropping its validation would silently reinterpret a live session.
+    private static void CheckLegacyPlanContract()
+    {
+        Reset();
+        var policy = Policy();
+        var client = new[] { Unit(Guid, "1.0.0"), Unit(ArenaSessionContract.ArenaPluginGuid, "0.2.0") };
+        var server = new[] { Unit(Guid, "0.10.3"), Unit(ArenaSessionContract.ArenaPluginGuid, "0.2.0") };
+        var plan = ArenaSessionVersionPlan.Create(policy, client, server);
+        Need(plan.TryApply(policy, out var legacyPolicy, out _), "legacy plan fixture validates");
+        var hash = plan.PolicyHash;
+        var mods = ArenaWhitelistDecision.Evaluate(legacyPolicy, ArenaWhitelistSide.Server, server).Allowed;
         Need(plan != null && hash == plan.PolicyHash && mods.Count == 1 && mods[0].Guid == ArenaSessionContract.ArenaPluginGuid,
             "client-only drift removes matching server version from request");
         var request = new ArenaSessionRequest {
@@ -218,7 +310,6 @@ internal static class Program
         Need(File.ReadAllText(policyFile) == before, "session operations do not modify source policy");
         Need(HelperCommandLine.TryRewriteGameArguments(new[] { request.GameArgs[0], "-arena-session", ArenaSessionContract.VersionPlanFlag + hash }, false, 6969, out var args, out _)
             && args.All(x => !x.StartsWith("-arena-")), "return removes all session restriction flags");
-        var policy = Policy();
         Need(plan.TryApply(policy, out var effective, out _), "gate fixture effective policy");
         var decision = ArenaWhitelistDecision.Evaluate(effective, ArenaWhitelistSide.Client, plan.ClientUnits);
         var report = ArenaGateReport.FromDecision(effective, decision, Array.Empty<string>());
@@ -251,20 +342,6 @@ internal static class Program
         Need(!ArenaSessionVersionPlan.TryReadMarker(markerPath, hash, Path.Combine(_root, "other"), out _, out _), "foreign installation marker refused");
         Write(markerPath, "{}");
         Need(!ArenaSessionVersionPlan.TryReadMarker(markerPath, hash, request.SptRuntimeDir, out _, out _), "missing marker plan refused");
-        Reset(); Ping("1.0.0");
-        Need(ArenaWhitelistAdmission.GetRejectionReason() == null && ArenaWhitelistAdmission.CanOfferSessionStart(null), "server-only drift offers optional session");
-        Reset(); Plugin(Guid, "Client Alias", "0.10.3"); Ping("0.10.3");
-        Need(!ArenaWhitelistAdmission.CanOfferSessionStart(null), "reviewed versions do not offer version-only restart");
-        Reset(); Plugin(Guid, "Client Alias", "1.0.0"); Plugin("com.fika.core", "Fika", "1.0.0"); Ping();
-        Need(!ArenaWhitelistAdmission.CanOfferVersionSessionStart(), "Fika has no optional filtered session");
-        Reset(); Plugin(Guid, "Client Alias", "1.0.0"); Ping();
-        Plugin(ArenaSessionContract.ArenaPluginGuid, "Arena", "0.2.0");
-        Chainloader.PluginInfos[ArenaSessionContract.ArenaPluginGuid].Dependencies = new[] {
-            new BepInDependency { DependencyGUID = Guid, Flags = BepInDependency.DependencyFlags.HardDependency }
-        };
-        ArenaServerClient.PingGeneration++;
-        Need(ArenaWhitelistAdmission.GetRejectionReason() == null && !ArenaWhitelistAdmission.CanOfferVersionSessionStart(),
-            "mandatory dependency prevents only optional switch, direct play unchanged");
     }
 
     private static int Main()
@@ -279,7 +356,8 @@ internal static class Program
             Paths.PatcherPluginPath = Path.Combine(Paths.GameRootPath, "BepInEx", "patchers");
             CheckNotes();
             CheckPlan();
-            CheckOfferAndContract();
+            CheckNewSessionsKeepReviewedVersionDrift();
+            CheckLegacyPlanContract();
             Console.WriteLine($"ARENA_SESSION_VERSION_BASELINE_PASSED ({_checks} assertions)");
             return 0;
         }

@@ -40,6 +40,8 @@ if ($baseline.Exit -ne 0 -or $baseline.Text -notmatch 'ARENA_SESSION_VERSION_BAS
 Write-Output $baseline.Text
 Mutant 'duplicate-version-notes' 'AdmissionSource' 'if (!identities.Add(identity)) continue;' 'identities.Add(identity);' 'client/server alias dedup'
 Mutant 'collapse-distinct-guids' 'DecisionSource' '(Guid ?? string.Empty).Trim().ToLowerInvariant() + "|" + VersionIdentity(Installed)' 'VersionIdentity(Installed)' 'distinct GUIDs retained'
+Mutant 'restore-automatic-version-filter' 'AdmissionSource' 'policyHash = outcome.Policy.Hash;' 'versionPlan = ArenaSessionVersionPlan.Create(outcome.Policy, ClientUnits(), ServerUnits(ArenaServerClient.ServerMods)); policyHash = versionPlan.PolicyHash;' 'client version drift retains matching server counterpart and ordinary policy hash'
+Mutant 'drop-drifted-server-mod' 'AdmissionSource' 'serverMods = new List<ArenaSessionUnit>(outcome.AllowedServerMods);' 'serverMods = outcome.AllowedServerMods.FindAll(unit => !ArenaWhitelistPolicy.VersionDiffers(unit.Version, outcome.Policy.ReviewedVersion(unit.Guid, ArenaWhitelistSide.Server)));' 'private server retains drifted UIFixes and dependent while excluding unknown mod'
 Mutant 'drop-server-drift' 'ContractSource' 'AddDrift(policy, ArenaWhitelistSide.Server, plan.ServerUnits, omitted);' '' 'server-only drift excludes both sides'
 Mutant 'drop-dependant-closure' 'ContractSource' 'changed = AddDependants(policy, plan.ClientUnits, omitted);' 'changed = false;' 'client drift and cross-side dependant closure'
 Mutant 'accept-changed-policy' 'ContractSource' 'if (!string.Equals(BasePolicyHash, policy.Hash, StringComparison.Ordinal))' 'if (false)' 'tampered base policy identity refused'
@@ -49,4 +51,4 @@ Mutant 'old-gate-accepted' 'ModeSource' '(_versionPlanHash != null || parsed.Ver
 foreach ($path in $sources.Values) {
     if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) { throw "Production input changed during verification: $path" }
 }
-Write-Output 'ARENA_SESSION_VERSION_CHECKS_PASSED (8 rejected mutants; linked production behavior)'
+Write-Output 'ARENA_SESSION_VERSION_CHECKS_PASSED (10 rejected mutants; linked production behavior)'

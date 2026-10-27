@@ -239,7 +239,7 @@ Invoke-Mutant 'admission-missing-policy-fails-open' 'admission' `
 Invoke-Mutant 'admission-offer-for-any-reason' 'admission' `
     'string.Equals(reason, outcome.Reason, StringComparison.Ordinal)' 'true' `
     'The action belongs to the whitelist refusal only'
-Invoke-Mutant 'admission-policy-hash-dropped' 'admission' 'policyHash = versionPlan?.PolicyHash ?? outcome.Policy.Hash;' 'policyHash = string.Empty;' `
+Invoke-Mutant 'admission-policy-hash-dropped' 'admission' 'policyHash = outcome.Policy.Hash;' 'policyHash = string.Empty;' `
     'The request carries the effective policy'
 Invoke-Mutant 'admission-all-server-mods-allowed' 'admission' `
     'outcome.AllowedServerMods.AddRange(server.Allowed);' 'outcome.AllowedServerMods.AddRange(ServerUnits(serverMods));' `
@@ -619,7 +619,7 @@ Invoke-Mutant 'side-select-skips-whitelist' 'side' `
     '' `
     'a click re-checks the whitelist with the fresh ping before it selects Arena'
 Invoke-Mutant 'side-start-action-for-any-refusal' 'side' `
-    'else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())' 'else if (true)' `
+    'else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))' 'else if (true)' `
     'START ARENA SESSION belongs to an eligible normal session'
 Invoke-Mutant 'side-warnings-always-shown' 'side' `
     'else if (warnings != null && ArenaMenuSelection.IsSelected)' 'else if (warnings != null)' `

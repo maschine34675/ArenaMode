@@ -372,8 +372,8 @@ internal static class ArenaSideSelectionPatch
         string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);
         if (ArenaSessionMode.IsArenaSession)
             ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
-        else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart())
-            ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen),
+        else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))
+            ArenaAvailabilityNotice.Show(screen, text, StartAction(screen),
                 compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));
         else
             ArenaAvailabilityNotice.Show(screen, text);
@@ -381,10 +381,7 @@ internal static class ArenaSideSelectionPatch
 
     private static void ShowVersionNotes(MatchMakerSideSelectionScreen screen, string warnings)
     {
-        if (ArenaWhitelistAdmission.CanOfferSessionStart(null))
-            ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(warnings, "Optional restart. " + ArenaWhitelistAdmission.VersionSessionText), StartAction(screen));
-        else
-            ArenaAvailabilityNotice.ShowInfo(screen, warnings);
+        ArenaAvailabilityNotice.ShowInfo(screen, warnings);
     }
 
     private static string WithWarnings(string text, string warnings)

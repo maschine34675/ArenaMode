@@ -95,7 +95,7 @@ internal static partial class Program
 
         string unavailable = Slice(side, "private static void ShowUnavailable(", "private static string WithWarnings(");
         Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason) || ArenaWhitelistAdmission.CanOfferVersionSessionStart()) ArenaAvailabilityNotice.Show(screen, WithWarnings(text, ArenaWhitelistAdmission.VersionSessionText), StartAction(screen), compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen), compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
             "START ARENA SESSION belongs to an eligible normal session, RETURN only to an Arena session");
 
         string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static ArenaNoticeAction ReturnAction(");

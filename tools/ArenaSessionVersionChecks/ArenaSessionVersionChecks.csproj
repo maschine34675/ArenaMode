@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ArenaSessionClientChecks/StandIns.cs" Link="Fixtures/StandIns.cs" />
+    <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/RewardWire.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaMiniJson.cs" Link="Production/ArenaMiniJson.cs" />
     <Compile Include="../../ArenaMode.Shared/Session/ArenaWhitelistPolicy.cs" Link="Production/ArenaWhitelistPolicy.cs" />
     <Compile Include="$(DecisionSource)" Link="Production/ArenaWhitelistDecision.cs" />

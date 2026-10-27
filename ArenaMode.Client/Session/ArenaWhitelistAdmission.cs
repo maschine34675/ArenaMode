@@ -86,7 +86,7 @@ internal static class ArenaWhitelistAdmission
         /// <summary>The individual warnings behind <see cref="WarningLine"/>, for the log.</summary>
         internal List<string> Notes = new List<string>();
 
-        /// <summary>A whitelist refusal or version deviation has a usable optional session.</summary>
+        /// <summary>A whitelist refusal has a usable filtered session.</summary>
         internal bool CanStartSession;
 
         /// <summary>The server and the helper could start a session, whether or not anything is excluded.</summary>
@@ -96,8 +96,6 @@ internal static class ArenaWhitelistAdmission
         internal string SessionImpossibleReason;
 
         internal ArenaWhitelistPolicy Policy;
-        internal ArenaSessionVersionPlan VersionPlan;
-        internal string VersionSessionText;
 
         /// <summary>The server mods the Arena session server may load (folder in <c>File</c>).</summary>
         internal List<ArenaSessionUnit> AllowedServerMods = new List<ArenaSessionUnit>();
@@ -140,8 +138,8 @@ internal static class ArenaWhitelistAdmission
     }
 
     /// <summary>
-    /// True when <paramref name="reason"/> matches the current whitelist refusal (null for the
-    /// version-only offer) and a session can be started. Never throws.
+    /// True when <paramref name="reason"/> matches the current whitelist refusal
+    /// and a session can be started. Version warnings alone never require a restart.
     /// </summary>
     internal static bool CanOfferSessionStart(string reason)
     {
@@ -151,17 +149,6 @@ internal static class ArenaWhitelistAdmission
             return outcome.CanStartSession
                 && string.Equals(reason, outcome.Reason, StringComparison.Ordinal);
         }
-        catch (Exception) { return false; }
-    }
-
-    internal static string VersionSessionText
-    {
-        get { try { return Current().VersionSessionText; } catch (Exception) { return null; } }
-    }
-
-    internal static bool CanOfferVersionSessionStart()
-    {
-        try { var outcome = Current(); return outcome.VersionPlan != null && outcome.SessionPossible; }
         catch (Exception) { return false; }
     }
 
@@ -223,8 +210,10 @@ internal static class ArenaWhitelistAdmission
             return false;
         }
 
-        versionPlan = outcome.VersionPlan;
-        policyHash = versionPlan?.PolicyHash ?? outcome.Policy.Hash;
+        // Reviewed versions are advisory for new sessions, exactly as in direct Arena admission.
+        // Keep the out parameter for the request/legacy marker contract, but never create new
+        // version exclusions: the gate still filters identities and real adapters check their APIs.
+        policyHash = outcome.Policy.Hash;
         serverMods = new List<ArenaSessionUnit>(outcome.AllowedServerMods);
         return true;
     }
@@ -540,29 +529,9 @@ internal static class ArenaWhitelistAdmission
 
         outcome.Notes = notes;
         outcome.WarningLine = FormatNotes(notes);
-        if (server != null)
-        {
-            ArenaSessionVersionPlan plan = null;
-            try { plan = ArenaSessionVersionPlan.Create(policy, clientUnits, ServerUnits(serverMods)); }
-            catch (InvalidOperationException ex) { outcome.SessionImpossibleReason = ex.Message; }
-            if (plan != null && plan.ExcludedGuids.Count > 0)
-            {
-                outcome.VersionPlan = plan;
-                var effective = policy.WithSessionExclusions(plan.ExcludedGuids);
-                outcome.AllowedServerMods = ArenaWhitelistDecision.Evaluate(effective, ArenaWhitelistSide.Server, ServerUnits(serverMods)).Allowed;
-                var names = new List<string>();
-                var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var unit in plan.ClientUnits)
-                    if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
-                foreach (var unit in plan.ServerUnits)
-                    if (effective.IsDeniedForSession(unit.Guid) && named.Add(unit.Guid)) names.Add(unit.DisplayName);
-                outcome.VersionSessionText = "Also omitted on restart without changing your install: "
-                    + JoinLimited(names, 3) + " + dependents.";
-            }
-        }
-        outcome.SessionImpossibleReason = outcome.SessionImpossibleReason ?? FindSessionObstacle(outcome.AllowedServerMods);
+        outcome.SessionImpossibleReason = FindSessionObstacle(outcome.AllowedServerMods);
         outcome.SessionPossible = outcome.SessionImpossibleReason == null;
-        outcome.CanStartSession = outcome.SessionPossible && (outcome.VersionPlan != null || denied.Count > 0 || unlisted.Count > 0);
+        outcome.CanStartSession = outcome.SessionPossible && (denied.Count > 0 || unlisted.Count > 0);
         if (denied.Count == 0 && unlisted.Count == 0) return;
 
         outcome.CanStartSession = outcome.SessionPossible;

@@ -127,10 +127,13 @@ needs one (directly or through other units, client and server) is excluded with 
 platform/Arena units are the only exception. Never turn that back into a pull-in with a warning. The refusal names denied mods ("Blocked for Arena") apart from unlisted ones.
 The user's testing override is that blacklist file and no second mechanism; keep it visible (the decision's one
 `policy override` warning per side, the gate summary suffix, `unlistedAllowed`; spec section 3).
-The optional version-filtered restart is specified in docs/PITFIRETEAM-1.0.0-20261024.md.
-It omits both sides of each differing GUID and hard dependents without editing
-policy files; direct play still treats version differences as advisory. Preserve
-the strict request/marker/process-flag agreement and old-helper refusal.
+Reviewed-version differences are advisory in direct play and new private sessions
+(user decision, 2026-10-27; docs/MOD-VERSION-FOLLOWUP-20261027.md). Attempt recognized
+mods such as UIFixes despite version drift; retain identity/deny/dependency checks
+and actual adapter/profile-protection requirements. Never automatically create a
+version-exclusion plan for a new session. The version-filtered restart described
+in docs/PITFIRETEAM-1.0.0-20261024.md is historical. Preserve strict legacy
+request/marker/process-flag agreement and old-helper refusal for existing plans.
 The private tree's copy of SPT's core config always switches `fixes.removeModItemsFromProfile` and
 `removeInvalidTradersFromProfile` on (SPT ships them off): a profile copy holding items, suits or trader records of a mod
 the session leaves out is otherwise marked invalid and the session cannot start (0.2.1; spec section 6). Never drop that,
