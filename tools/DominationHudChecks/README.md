@@ -1,19 +1,20 @@
-# Domination HUD stacking checks
+# Integrated Domination score checks
 
 Run `pwsh -NoProfile -File tools/DominationHudChecks/Verify.ps1` from the repo.
-The harness links the production layout, objective panel and powerup panel;
-only Unity/TMP, the score anchor, match flags and pickup data are doubles. It
+The harness links the production score panel, objective row, layout and powerup panel;
+only Unity/TMP, config, match flags/score data and pickup data are doubles. It
 does not import mod projects or deployment targets.
 
-The objective row keeps its existing position below the score. Its shared
-52-unit height is also used to create the view. Effects and pickup notices move
-below that actual row with a 16-unit gap while the row is visible; every other
-mode/phase retains the old score-bottom plus 16-unit anchor. Positions refresh
-before the existing powerup-text throttle. Tests inspect the created views,
-their rendered height inputs, parent visibility, offsets, notices, multi-effect
-height, phase/current-match changes, hidden/restored HUD and actor replacement.
+The 36-unit objective row is a child of the actual score view with no independent
+background. The one score surface grows from 84 to 120 units only while objectives
+are visible. Effects and pickup notices follow that complete height with a 16-unit
+gap; every other mode/phase retains the original score size and pickup position.
+Geometry and row visibility refresh before score/powerup text throttles. Tests
+inspect the created hierarchy, surfaces, one-to-three-point text, actual height
+inputs, offsets, notices, phase/current-match changes, hidden/restored HUD and actor replacement.
 Mutation checks must fail named behavioral assertions, including reintroducing
-the original overlap and delaying layout until the text refresh.
+the original overlap, restoring a separate card, detaching the row, failing to
+extend the shared surface, and delaying layout until the text refresh.
 
 The doubles do not establish native text metrics, screen clipping under extreme
 user offsets or actual Unity rendering. Native screenshot acceptance is separate.

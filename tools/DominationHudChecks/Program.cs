@@ -1,4 +1,5 @@
 using ArenaMode.Hud;
+using ArenaMode.Config;
 using ArenaMode.Modes;
 using ArenaMode.Pickups;
 using Comfort.Common;
@@ -9,12 +10,19 @@ using UnityEngine;
 int checks = 0;
 void Need(bool value, string reason) { checks++; if (!value) throw new Exception("FAIL: " + reason); }
 void Near(float value, float expected, string reason) => Need(Math.Abs(value - expected) < .001f, reason);
+void SetScorePosition(float x, float y)
+{
+    Settings.ScorePanelOffsetX.Value = x;
+    Settings.ScorePanelOffsetY.Value = -y - ScorePanel.TopOffset;
+}
 var canvas = new GameObject("HUD canvas");
-var objective = new DominationPanel();
+var score = new ScorePanel();
 var powerups = new ArenaPowerupPanel();
-objective.Tick(null); powerups.Tick();
-objective.Create(canvas.transform); powerups.Create(canvas.transform);
-var objectiveRoot = GameObject.All.Single(x => x.name == "ArenaDominationPanel");
+score.Tick(null); powerups.Tick();
+score.Create(canvas.transform); powerups.Create(canvas.transform);
+var scoreRoot = GameObject.All.Single(x => x.name == "ArenaScorePanel");
+var scoreRect = scoreRoot.transform;
+var objectiveRoot = GameObject.All.Single(x => x.name == "ArenaControlPointRow");
 var powerupRoot = GameObject.All.Single(x => x.name == "ArenaPowerupPanel");
 var objectiveRect = objectiveRoot.transform;
 var powerupRect = powerupRoot.transform;
@@ -26,17 +34,28 @@ var mode = new TeamDeathmatchMode { ObjectiveHudVisible = true, IsSearchActive =
 var match = new ArenaMatch { Mode = mode };
 ArenaMatchService.Current = match;
 Need(!objectiveRoot.activeSelf && !powerupRoot.activeSelf, "construction does not publish either panel");
+Need(ReferenceEquals(objectiveRect.parent, scoreRect), "control points belong to the main score panel");
+Need(objectiveRoot.GetComponent<UnityEngine.UI.Image>() == null
+    && !GameObject.All.Any(x => x.name == "ArenaDominationPanel"), "control points have no independent panel surface");
+Need(GameObject.All.Count(x => x.name == "Score surface") == 1, "score and objectives use one shared score surface");
 Need(objectiveRect.pivot.y == 1 && powerupRect.pivot.y == 1,
     "both panels grow downward from their shared top anchor");
 Near(objectiveRect.sizeDelta.y, ArenaHudStackLayout.ObjectiveHeight,
     "objective reserves the same height that its actual view draws");
+Near(objectiveRect.sizeDelta.y, 36f, "integrated objective row stays compact");
+foreach (var line in new[] { "X  NEUTRAL 99%", "A  USEC !     B  CONTESTED", "A  NEUTRAL 99%     B  BEAR 99%     C  CONTESTED" })
+{
+    mode.ObjectiveStatusLine = line;
+    score.Tick(match);
+    Need(objectiveText.text == line, "one to three point states retain ownership, contest and capture progress");
+}
 
 foreach (float x in new[] { -320f, 0f, 147.5f })
 foreach (float y in new[] { -40f, -100f, -275.25f })
 foreach (int count in new[] { 0, 1, 2, 4 })
 foreach (bool notice in new[] { false, true })
 {
-    ScorePanel.Position = new(x, y);
+    SetScorePosition(x, y);
     Time.unscaledTime += 1;
     ArenaPowerups.State = new()
     {
@@ -47,14 +66,18 @@ foreach (bool notice in new[] { false, true })
     ArenaPickupRuntime.NoticeUntil = notice ? Time.unscaledTime + 1 : 0;
     // Deliberately tick powerups first: stacking must not depend on a stale
     // activeSelf left by the previous objective render.
-    powerups.Tick(); objective.Tick(match);
+    powerups.Tick(); score.Tick(match);
     Need(objectiveRoot.activeSelf, "live objective stays visible");
     Need(powerupRoot.activeSelf == (count > 0 || notice), "effects and notice retain their existing visibility");
-    Near(objectiveRect.anchoredPosition.x, x, "objective tracks score X offset");
+    Near(scoreRect.anchoredPosition.x, x, "score parent tracks X offset");
+    Near(objectiveRect.anchoredPosition.x, 0, "objective stays centered inside its score parent");
     Near(powerupRect.anchoredPosition.x, x, "powerups track score X offset");
-    Near(objectiveRect.anchoredPosition.y, y - ScorePanel.PanelHeight - 20,
-        "objective retains original score gap and follows Y offset");
-    Near(objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - powerupRect.anchoredPosition.y, 16,
+    Near(scoreRect.anchoredPosition.y, y, "score parent tracks Y offset");
+    Near(objectiveRect.anchoredPosition.y, -ScorePanel.PanelHeight,
+        "objective follows score text without an external gap");
+    Near(scoreRect.sizeDelta.y, ScorePanel.PanelHeight + objectiveRect.sizeDelta.y,
+        "shared score background includes the complete objective row");
+    Near(scoreRect.anchoredPosition.y + objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - powerupRect.anchoredPosition.y, 16,
         "powerups are below actual objective bottom with a visible gap");
     Near(powerupRect.sizeDelta.y, count > 2 ? 78 : 52, "multi-effect height is retained");
     Need(objectiveText.text == mode.ObjectiveStatusLine, "objective status text remains intact");
@@ -65,12 +88,12 @@ foreach (bool notice in new[] { false, true })
 Time.unscaledTime += 1;
 ArenaPowerups.State = new() { ShieldSeconds = 10, ShieldPoints = 220 };
 ArenaPickupRuntime.NoticeUntil = 0;
-powerups.Tick(); objective.Tick(match);
+powerups.Tick(); score.Tick(match);
 string previousText = powerupText.text;
-ScorePanel.Position = new(32, -187);
+SetScorePosition(32, -187);
 Time.unscaledTime += .01f;
-powerups.Tick(); objective.Tick(match);
-Near(powerupRect.anchoredPosition.y, objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16,
+powerups.Tick(); score.Tick(match);
+Near(powerupRect.anchoredPosition.y, scoreRect.anchoredPosition.y + objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16,
     "offset refresh precedes throttled powerup text");
 Near(powerupRect.anchoredPosition.x, 32, "throttled panel still follows X offset");
 Need(powerupText.text == previousText, "layout update does not resample or replace effect text");
@@ -79,50 +102,52 @@ foreach (bool contextVisible in new[] { false, true })
 foreach (bool live in new[] { false, true })
 {
     mode.ObjectiveHudVisible = contextVisible; mode.IsSearchActive = live;
-    powerups.Tick(); objective.Tick(match);
+    powerups.Tick(); score.Tick(match);
     bool shown = contextVisible && live;
     Need(objectiveRoot.activeSelf == shown, "objective visibility requires current context and live phase");
-    float expected = shown ? objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16
+    float expected = shown ? scoreRect.anchoredPosition.y + objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16
         : ScorePanel.Position.y - ScorePanel.PanelHeight - 16;
     Near(powerupRect.anchoredPosition.y, expected, "hidden objective releases reserved row immediately");
+    Near(scoreRect.sizeDelta.y, shown ? 120f : 84f, "shared background changes before throttled score text");
 }
 
 // Every other mode and a detached/foreign match keep the old powerup anchor.
-foreach (object ordinary in new object[] { new object(), new TeamDeathmatchMode { IsSearchActive = true }, null })
+foreach (ModeBase ordinary in new ModeBase[] { new ModeBase(), new TeamDeathmatchMode { IsSearchActive = true }, new ZombieMode(), new TacticalMode(), null })
 {
     var otherMatch = new ArenaMatch { Mode = ordinary };
     ArenaMatchService.Current = otherMatch;
-    powerups.Tick(); objective.Tick(otherMatch);
+    powerups.Tick(); score.Tick(otherMatch);
     Need(!objectiveRoot.activeSelf, "ordinary mode has no objective row");
+    Near(scoreRect.sizeDelta.y, 84f, "other modes retain the original score panel height");
     Near(powerupRect.anchoredPosition.y, ScorePanel.Position.y - ScorePanel.PanelHeight - 16,
         "ordinary mode preserves original powerup placement");
 }
 ArenaMatchService.Current = new ArenaMatch { Mode = mode };
 mode.ObjectiveHudVisible = mode.IsSearchActive = true;
-objective.Tick(match);
+score.Tick(match);
 Need(!objectiveRoot.activeSelf, "foreign match cannot publish another match objective row");
 ArenaMatchService.Current = null;
-powerups.Tick(); objective.Tick(null);
+powerups.Tick(); score.Tick(null);
 Need(!objectiveRoot.activeSelf, "detached match hides objective row");
 Near(powerupRect.anchoredPosition.y, ScorePanel.Position.y - ScorePanel.PanelHeight - 16,
     "detached match retains legacy powerup anchor without a stale gap");
 
 ArenaMatchService.Current = match;
 canvas.SetActive(false);
-ScorePanel.Position = new(-75, -90);
-powerups.Tick(); objective.Tick(match);
+SetScorePosition(-75, -90);
+powerups.Tick(); score.Tick(match);
 Need(!objectiveRoot.activeInHierarchy && !powerupRoot.activeInHierarchy, "hidden HUD hides both stacked rows");
 canvas.SetActive(true);
-powerups.Tick(); objective.Tick(match);
+powerups.Tick(); score.Tick(match);
 Need(objectiveRoot.activeInHierarchy && powerupRoot.activeInHierarchy, "restoring HUD restores both rows");
-Near(powerupRect.anchoredPosition.y, objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16,
+Near(powerupRect.anchoredPosition.y, scoreRect.anchoredPosition.y + objectiveRect.anchoredPosition.y - objectiveRect.sizeDelta.y - 16,
     "restored HUD uses current stack without overlap");
 Near(powerupRect.anchoredPosition.x, -75, "restored HUD uses current horizontal offset");
 
 Time.unscaledTime += 1; ArenaPickupRuntime.Live = false;
-powerups.Tick(); objective.Tick(match);
+powerups.Tick(); score.Tick(match);
 Need(!powerupRoot.activeSelf && objectiveRoot.activeSelf, "dead actor hides effects without hiding team objectives");
 Time.unscaledTime += 1; ArenaPickupRuntime.Live = true;
-powerups.Tick(); objective.Tick(match);
+powerups.Tick(); score.Tick(match);
 Need(powerupRoot.activeSelf && objectiveRoot.activeSelf, "replacement actor restores effect panel in objective stack");
 Console.WriteLine($"DOMINATION_HUD_CHECKS_PASSED ({checks} assertions)");

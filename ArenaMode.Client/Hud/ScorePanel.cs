@@ -23,6 +23,7 @@ internal sealed class ScorePanel
     private TextMeshProUGUI _comparisonLine;
     private TextMeshProUGUI _rivalScore;
     private UnityEngine.UI.Image _teamRule;
+    private readonly DominationPanel _objectives = new();
     private float _nextRefreshAt;
     private int _assistPoints;
     private float _assistUntil;
@@ -86,17 +87,24 @@ internal sealed class ScorePanel
             rect.anchoredPosition = new Vector2(0f, -62f);
             rect.sizeDelta = new Vector2(0f, 19f);
         }
+        // Objectives share this surface and lifetime; there is no second HUD card.
+        _objectives.Create(_root);
     }
 
     public void Tick(ArenaMatch match)
     {
-        if (_root == null || match == null)
+        if (_root == null)
             return;
 
         // Position responds independently of the slower score/text refresh.
         var position = Position;
         if (_root.anchoredPosition != position)
             _root.anchoredPosition = position;
+
+        var size = new Vector2(760f, ArenaHudStackLayout.ScoreHeight(match));
+        if (_root.sizeDelta != size) _root.sizeDelta = size;
+        _objectives.Tick(match);
+        if (match == null) return;
 
         if (Time.unscaledTime < _nextRefreshAt)
             return;

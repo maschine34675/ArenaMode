@@ -1,5 +1,6 @@
-// External Unity/TMP, match-state, score-anchor and pickup-state boundaries.
-// The three layout/view files are compiled unchanged; no rendering is claimed.
+// External Unity/TMP, config, match-state and pickup-state boundaries.
+// Actual score, objective, powerup and shared-layout sources are linked.
+// Geometry is modeled; native font rendering is not claimed.
 namespace UnityEngine
 {
     public class Component
@@ -41,15 +42,26 @@ namespace UnityEngine
     public class RectTransform : Transform
     {
         public Vector2 anchorMin, anchorMax, pivot, sizeDelta, anchoredPosition, offsetMin, offsetMax;
+        public Rect rect => new(sizeDelta.x + (parent is RectTransform p ? p.rect.width * (anchorMax.x - anchorMin.x) : 0), sizeDelta.y);
     }
+    public readonly record struct Rect(float width, float height);
     public readonly record struct Vector2(float x, float y)
     {
         public static Vector2 zero => new(0, 0);
         public static Vector2 one => new(1, 1);
         public static Vector2 operator -(Vector2 a, Vector2 b) => new(a.x - b.x, a.y - b.y);
     }
-    public readonly record struct Color(float r, float g, float b, float a = 1);
-    public static class Mathf { public static int CeilToInt(float value) => (int)Math.Ceiling(value); }
+    public readonly record struct Color(float r, float g, float b, float a = 1)
+    { public static Color clear => new(0, 0, 0, 0); }
+    public readonly record struct Color32(byte r, byte g, byte b, byte a)
+    { public static implicit operator Color(Color32 c) => new(c.r / 255f, c.g / 255f, c.b / 255f, c.a / 255f); }
+    public static class Mathf
+    {
+        public const float Infinity = float.PositiveInfinity;
+        public static float Max(float a, float b) => Math.Max(a, b);
+        public static float Min(float a, float b) => Math.Min(a, b);
+        public static int CeilToInt(float value) => (int)Math.Ceiling(value);
+    }
     public static class Time { public static float unscaledTime; }
 }
 namespace UnityEngine.UI
@@ -58,12 +70,19 @@ namespace UnityEngine.UI
 }
 namespace TMPro
 {
-    public enum TextAlignmentOptions { Center }
+    public enum TextAlignmentOptions { Center, Top, TopLeft }
+    public enum TextOverflowModes { Ellipsis }
     public class TextMeshProUGUI : UnityEngine.Component
     {
         public string text;
-        public bool enableWordWrapping;
+        public bool enableWordWrapping, enableAutoSizing, richText;
+        public float fontSizeMin, fontSizeMax;
+        public UnityEngine.Color color;
+        public TextAlignmentOptions alignment;
+        public TextOverflowModes overflowMode;
         public UnityEngine.RectTransform rectTransform => gameObject.transform;
+        public UnityEngine.Vector2 GetPreferredValues(string value, float width, float height)
+            => new((value?.Length ?? 0) * 8f, 19f);
     }
 }
 namespace Comfort.Common
@@ -78,13 +97,42 @@ namespace EFT
 }
 namespace ArenaMode.Modes
 {
-    internal sealed class ArenaMatch { internal object Mode; }
+    internal sealed class ArenaMatch
+    {
+        internal ModeBase Mode;
+        internal int Kills, Deaths, Assists, Score, Streak, BestStreak;
+        internal float Elapsed;
+        internal ArenaScoreboard Scoreboard;
+    }
     internal static class ArenaMatchService { internal static ArenaMatch Current; }
-    internal sealed class TeamDeathmatchMode
+    internal class ModeBase { internal string HudStatusLine; }
+    internal sealed class TeamDeathmatchMode : ModeBase
     {
         internal bool ObjectiveHudVisible, IsSearchActive;
+        internal float PlayingElapsed;
         internal string ObjectiveStatusLine = "A USEC | B CONTESTED | C BEAR";
     }
+    internal sealed class ZombieMode : ModeBase { }
+    internal sealed class TacticalMode : ModeBase { internal bool IsTeamArena; }
+    internal enum ArenaScoreboardSide { Friendly, Opponent }
+    internal sealed class ArenaScoreboardEntry { internal int Score; internal string DisplayName; }
+    internal sealed class ArenaScoreboard
+    {
+        internal ArenaScoreboardEntry Totals(ArenaScoreboardSide side) => new();
+        internal ArenaScoreboardEntry Leader(ArenaScoreboardSide side) => null;
+    }
+}
+namespace ArenaMode.Config
+{
+    internal sealed class Entry<T> { internal T Value; }
+    internal static class Settings
+    {
+        internal static Entry<float> ScorePanelOffsetX = new(), ScorePanelOffsetY = new();
+    }
+}
+namespace ArenaMode.Effects
+{
+    internal static class ArenaTeamPalette { internal static UnityEngine.Color FriendlyUi = new(0, 0, 1); }
 }
 namespace ArenaMode.Pickups
 {
@@ -105,18 +153,22 @@ namespace ArenaMode.Pickups
 }
 namespace ArenaMode.Hud
 {
-    // Score offsets are supplied at the public layout anchor; the production
-    // ScorePanel/config implementation is intentionally not replicated here.
-    internal static class ScorePanel
-    {
-        internal const float PanelHeight = 84f;
-        internal static UnityEngine.Vector2 Position = new(0, -100);
-    }
     internal static class ArenaUiTheme
     {
         internal static readonly UnityEngine.Color Surface = new(0, 0, 0);
+        internal static readonly UnityEngine.Color Muted = new(.5f, .5f, .5f);
         internal static UnityEngine.Color WithAlpha(UnityEngine.Color color, float alpha) => new(color.r, color.g, color.b, alpha);
         internal static void Decorate(UnityEngine.RectTransform parent) { }
+        internal static UnityEngine.UI.Image Fill(UnityEngine.RectTransform parent, string name, UnityEngine.Color color)
+        {
+            var go = new UnityEngine.GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.anchorMax = UnityEngine.Vector2.one;
+            var image = go.AddComponent<UnityEngine.UI.Image>();
+            image.color = color; return image;
+        }
+        internal static UnityEngine.UI.Image Rule(UnityEngine.RectTransform parent, string name, UnityEngine.Color color,
+            float top = 0, float inset = 0, float thickness = 1) => Fill(parent, name, color);
     }
     internal static class HudStyle
     {
