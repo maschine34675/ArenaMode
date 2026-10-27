@@ -41,9 +41,9 @@ internal static class ArenaSessionBanner
             _nextRefresh = now + .1f;
             var screen = EftScreenManager.Instance.CurrentScreenController?.ScreenType ?? EEftScreenType.None;
             bool privateSession = ArenaSessionMode.IsArenaSession;
-            bool visible = !RaidWorldActive() && !ArenaSession.IsActive
+            bool visible = privateSession && !RaidWorldActive() && !ArenaSession.IsActive
                 && !PitFireTeamCompat.IsSquadManagementScreen && !ModalOpen()
-                && (privateSession ? IsMenu(screen) : screen == EEftScreenType.MainMenu);
+                && IsMenu(screen);
             if (!visible)
             {
                 if (_root != null && _root.activeSelf) _root.SetActive(false);
@@ -60,11 +60,8 @@ internal static class ArenaSessionBanner
             }
             _lastScreen = screen;
             _root.SetActive(true);
-            string status = privateSession
-                ? "ARENA SESSION · FILTERED MODS\nChanges reset · Rewards optional"
-                : "ARENA · FAST COMBAT · PROTECTED GEAR\nEscape from Tarkov → Arena";
+            const string status = "ARENA SESSION · FILTERED MODS\nChanges reset · Rewards optional";
             if (_status.text != status) _status.text = status;
-            _action.gameObject.SetActive(privateSession);
             _action.interactable = !ArenaSessionSwitch.HelperPending && ProfileId() != null;
             int seconds = Confirmation.SecondsRemaining(now);
             string actionText = ArenaSessionSwitch.HelperPending ? "PREPARING RESTART…"

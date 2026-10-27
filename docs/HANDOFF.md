@@ -1,11 +1,25 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-26. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-27. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **UX follow-up (2026-10-27):** the session strip now appears only in private
+  Arena sessions. New sessions attempt recognized mods despite reviewed-version
+  drift; identity, deny, dependency and real API/protection checks remain intact.
+  GPU-2 loaded UIFixes 6.0.4; normal/private taskbars both measure y=1053, removing
+  the former three-pixel difference. Domination points share the score surface;
+  Factory verified three readable points, live ownership/progress and protected
+  return from Trader. Both client DLLs deployed; server/Core unchanged. Suite:
+  3213 passed/one known integration skip; all affected harnesses passed. All 228
+  settings and 185 inventory items restored; game/server stopped. A native
+  SmokeGrenade teardown exception is recorded separately in the
+  [acceptance and evidence](UX-FOLLOWUP-20261027.md). The two recurring startup
+  warnings are persistent cases in separate profiles, diagnosed without data
+  repair: [reward evidence](REWARD-STARTUP-DIAGNOSIS-20261027.md).
 
 - **Compact menu UX (2026-10-26):** short dynamic mode rules, grouped mutators,
   visible reward switch, Factory day/night and clearer area/squad labels. A
