@@ -6,6 +6,9 @@ using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Servers;
 using SPTarkov.Server.Core.Services.Bot;
 using SPTarkov.Server.Core.Services.Profile;
+using SPTarkov.Server.Core.Utils;
+using SPTarkov.Server.Core.Models.Eft.Profile;
+using ArenaMode.Server.Rewards;
 
 namespace ArenaMode.Server.Services;
 
@@ -25,6 +28,8 @@ public sealed class ArenaProtectedRaidEndService(
     RagfairConfig ragfairConfig,
     HideoutConfig hideoutConfig,
     ArenaSessionService sessions,
+    ProfileSnapshotService snapshots,
+    JsonUtil json,
     ISptLogger<ArenaProtectedRaidEndService> logger)
 {
     private static readonly TimeSpan ProtectedEndTimeout = TimeSpan.FromMinutes(2);
@@ -70,13 +75,12 @@ public sealed class ArenaProtectedRaidEndService(
 
             // The native end is already committed at this point. A client
             // disconnect may cancel only that caller's wait, never this shared
-            // persistence transaction. The internal deadline faults/cancels a
-            // genuinely stuck task so the next exact retry can start afresh.
+            // persistence transaction. Native SaveProfileAsync advances its
+            // hash before writing: once begun, await it without aborting the
+            // write. An exact retry continues waiting for the same Task.
             using var transactionTimeout = new CancellationTokenSource(
                 ProtectedEndTimeout);
-            await saveServer.SaveProfileAsync(
-                sessionId,
-                transactionTimeout.Token);
+            await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
             await backupService.InitializeAsync(transactionTimeout.Token);
 
             if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity,
@@ -91,10 +95,11 @@ public sealed class ArenaProtectedRaidEndService(
                         "Arena native-end transaction lost its exact session identity");
                 }
             }
+            snapshots.CompleteRestoredPersistence(sessionId);
 
             logger.Info(
                 $"[ArenaMode] Protected Arena end completed for session {sessionId}; " +
-                "ordinary post-raid processing was skipped and the snapshot was persisted.");
+                "ordinary post-raid processing was skipped; rewards are verified separately.");
         }
         catch (Exception ex)
         {
@@ -123,9 +128,37 @@ public sealed class ArenaProtectedRaidEndService(
     {
         using var transactionTimeout = new CancellationTokenSource(
             ProtectedEndTimeout);
-        await saveServer.SaveProfileAsync(
-            sessionId,
-            transactionTimeout.Token);
+        await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
         ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
+        snapshots.CompleteRestoredPersistence(sessionId);
+    }
+
+    private Task SaveRestoredProfileAsync(MongoId sessionId, CancellationToken ct)
+        => SaveAndConfirmRestoredAsync(snapshots, sessionId, token => saveServer.SaveProfileAsync(sessionId, token),
+            profile => json.Serialize(profile) ?? throw new InvalidOperationException("Could not serialize restored profile."),
+            () => ReadPersistedProfile(sessionId), ct);
+
+    internal static async Task SaveAndConfirmRestoredAsync(ProfileSnapshotService snapshots, MongoId sessionId,
+        Func<CancellationToken, Task> save, Func<SptProfile, string> serialize, Func<string> readDisk, CancellationToken ct)
+    {
+        if (!snapshots.HasPendingPersistence(sessionId))
+            throw new InvalidOperationException("Arena restored-profile persistence witness is unavailable");
+        await Routers.ArenaRewardReturnListener.SaveWithoutAborting(save, ct);
+        // Native save can skip after caching a hash for a prior failed write.
+        // This must gate native-end completion even with rewards disabled.
+        snapshots.RequireRestoredPersistence(sessionId, readDisk(), serialize);
+    }
+
+    private static string ReadPersistedProfile(MongoId sessionId)
+    {
+        var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
+        var id = sessionId.ToString();
+        if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-id");
+        var path = Path.Combine(root, "user", "profiles", id + ".json");
+        RewardStartupFiles.RequireLocalPath(root, path);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length is <= 0 or > 64 * 1024 * 1024) throw new RewardDataException("profile-too-large");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

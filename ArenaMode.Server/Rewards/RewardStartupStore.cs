@@ -35,6 +35,11 @@ internal sealed class RewardStartupStore(
             // Also verifies enrollment, unknown/duplicate fields and invalid flag.
             var ledger = RewardProfileDocument.ReadLedger(profile.Json, binding, _limits);
             RewardStartupFiles.RequireCleanProfile(profile.Json, binding);
+            if (lease.ReadRecoveryClosures(profile.Json).ClosesClaim(_approval.Claim))
+            {
+                lease.RecoveryOnly = true;
+                return ValueTask.FromResult<IRewardSettlementLease?>(lease);
+            }
             if (profile.Revision != _approval.CleanProfileRevision)
             {
                 // This exception ONLY confirms a prior write. It can never mint a
@@ -53,7 +58,7 @@ internal sealed class RewardStartupStore(
         catch { Interlocked.Exchange(ref _leased, 0); throw; }
     }
 
-    private sealed class Lease(RewardStartupStore store) : IRewardSettlementLease
+    private sealed class Lease(RewardStartupStore store) : IRewardSettlementLease, IRewardRecoveryLease
     {
         private bool _disposed;
         internal bool RecoveryOnly { get; set; }
@@ -74,6 +79,8 @@ internal sealed class RewardStartupStore(
             Require(JournalPath);
             return File.ReadAllText(JournalPath);
         }
+        public RewardRecoveryClosureSet ReadRecoveryClosures(string profileJson)
+            => RewardRecovery.ReadClosures(store._window.Root, store._enrollment.Binding.ProfileId, profileJson);
         public void WriteJournal(string json)
         {
             Require(JournalPath);

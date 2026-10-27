@@ -9,6 +9,50 @@ namespace ArenaMode.Tests;
 // installed Cola assembly, private-session profile or running server is used.
 public sealed class RewardColaJournalTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConfirmedOldRubXpClosureCannotBlockRecoveryOfANewerPaidColaTransaction(bool interruptedNativeCommit)
+    {
+        using var f = new Fixture();
+        string original = f.Profile;
+        var oldClaim = f.Claim with { RunId = "44444444444444444444444444444444", Cola = null };
+        var oldApproval = f.Approval with { Claim = oldClaim };
+        Assert.Equal(RewardSettlementStatus.Paid, (await new RewardSettlementCore(
+            new RewardStartupStore(f.Window, f.Enrollment, oldApproval, new())).SettleAsync(oldClaim)).Status);
+        File.WriteAllText(f.ProfilePath, original);
+        var oldEntry = Assert.Single(f.Journal.Entries);
+        var decisions = Path.Combine(f.RewardDirectory, "decisions");
+        Directory.CreateDirectory(decisions);
+        RewardRuntimeFiles.WriteNew(f.Root, Path.Combine(decisions, oldClaim.RunId + ".json"),
+            new RewardApprovalDecision(1, f.Binding, oldClaim.RunId, oldClaim.Sequence,
+                RewardIdentity.Hash(RewardRuntimeFiles.Json(oldApproval)),
+                new RewardEvaluation(RewardEvaluationStatus.Eligible, "synthetic-approved", 0, 0, oldClaim.Roubles, oldClaim.Experience), oldApproval));
+        var review = RewardRecovery.Preview(f.Root, f.Binding.ProfileId);
+        Assert.True(review.CanClose, review.Detail);
+        Assert.True(RewardRecovery.Request(f.Root, f.Binding.ProfileId, review.ReviewId).Accepted);
+        RewardRecovery.ProcessAtStartup(f.Window, f.Binding.ProfileId);
+
+        var nextClaim = f.Claim with { Sequence = 2 };
+        var nextApproval = f.Approval with { Claim = nextClaim, CleanProfileRevision = RewardIdentity.Hash(f.Profile) };
+        var plan = RewardColaJournal.Prepare(f.Window, f.Enrollment, nextApproval, f.Resolve)!;
+        Assert.Equal(RewardSettlementStatus.Paid, (await new RewardSettlementCore(
+            new RewardStartupStore(f.Window, f.Enrollment, nextApproval, new())).SettleAsync(nextClaim)).Status);
+        Assert.False(File.Exists(f.DonePath));
+        if (interruptedNativeCommit)
+            f.WriteJournal(f.Journal with { Entries = f.Journal.Entries.Select(e => e.Payment.ReceiptKey == nextClaim.Key
+                ? e with { Phase = RewardJournalPhase.Attempting } : e).ToArray() });
+        var native = f.Profile;
+        await f.Recover();
+        Assert.Equal(plan.AfterJson, f.Foreign);
+        Assert.Equal(native, f.Profile);
+        Assert.Equal(oldEntry, f.Journal.Entries[0]);
+        Assert.Equal(nextClaim.Key, Assert.Single(f.Ledger).ReceiptKey);
+        await f.Recover();
+        Assert.Equal(native, f.Profile);
+        Assert.Equal(plan.AfterJson, f.Foreign);
+    }
+
     [Fact]
     public async Task PreparedIntentIsInertAndNativePaymentPrecedesCompanionProgress()
     {

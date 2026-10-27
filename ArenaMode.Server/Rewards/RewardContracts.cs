@@ -74,7 +74,7 @@ internal sealed record RewardProfileSnapshot(string Json)
     public string Revision => RewardIdentity.Hash(Json);
 }
 
-internal enum RewardSettlementStatus { Paid, AlreadyPaid, Deferred, Rejected, Quarantined }
+internal enum RewardSettlementStatus { Paid, AlreadyPaid, Deferred, Rejected, Quarantined, ClosedWithoutPayment }
 internal sealed record RewardSettlementResult(RewardSettlementStatus Status, string Reason, string? MessageId = null);
 
 internal interface IRewardSettlementStore

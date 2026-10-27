@@ -27,6 +27,58 @@ internal static class RewardRuntimeInbox
         return receipt;
     }
 
+    // Validate the COMPLETE retained transport inventory before checkpoint
+    // publication can add a canonical receipt, and again before an inbox batch
+    // can allocate/pay its first entry. A bad later file must not be discovered
+    // only after an earlier, otherwise valid receipt has already changed XP/mail.
+    // Missing native payment evidence is deliberately left to recovery/settlement;
+    // this read-only preflight cannot repair or waive an unsettled old claim.
+    internal static void Preflight(string root, string id)
+    {
+        var directory = RewardRuntimeFiles.DirectoryFor(root, id);
+        var paths = ReadPaths(root, Path.Combine(directory, "inbox"));
+        if (paths.Length == 0) return;
+        var enrollmentPath = Path.Combine(directory, "enrollment.json");
+        RewardStartupFiles.RequireLocalPath(root, enrollmentPath);
+        var enrollment = RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384);
+        var origin = RewardRuntimeFiles.ReadHandoff(root, Path.Combine(directory, "handoff.json"));
+        if (enrollment.Schema != 1 || enrollment.Binding is null || enrollment.Binding.ProfileId != id
+            || !Path.IsPathFullyQualified(enrollment.RuntimeRoot) || !RewardRuntimeFiles.SameRoot(enrollment.RuntimeRoot, root)
+            || origin.Binding != enrollment.Binding || !RewardRuntimeFiles.SameRoot(origin.RuntimeRoot, root))
+            throw new RewardDataException("runtime-inbox-origin-mismatch");
+        enrollment.Binding.Validate();
+        foreach (var path in paths)
+        {
+            var earned = ReadReceipt(root, directory, origin, path);
+            var fingerprint = RewardIdentity.Hash(RewardRuntimeFiles.Json(earned));
+            var run = earned.Evidence.Authorization.RunId;
+            var allocation = ReadAllocationIfPresent(root, Path.Combine(directory, "allocations"), Path.GetFileName(path));
+            if (allocation is not null) RequireAllocationSource(allocation, earned, fingerprint);
+            var importedPath = Path.Combine(directory, "imported", run + ".json");
+            if (!RewardRuntimeFiles.Exists(root, importedPath)) continue;
+            var imported = RewardStartupFiles.Read<RewardImported>(importedPath, 16384);
+            if (imported.Schema != 1 || imported.RunId != run || imported.SourceFingerprint != fingerprint
+                || allocation is null || imported.Sequence != allocation.Candidate.Authorization.Sequence)
+                throw new RewardDataException("reward-import-history-conflict");
+        }
+    }
+
+    private static string[] ReadPaths(string root, string inbox)
+    {
+        if (!RewardRuntimeFiles.Exists(root, inbox)) return [];
+        var paths = Directory.EnumerateFileSystemEntries(inbox)
+            .Where(p => !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(p), "\\A\\.arena-reward-[a-f0-9]{32}\\.tmp\\z"))
+            .Take(4097).ToArray();
+        if (paths.Length > 4096) throw new RewardDataException("reward-inbox-capacity");
+        foreach (var path in paths)
+        {
+            RewardStartupFiles.RequireLocalPath(root, path);
+            if (!RewardIdentity.IsGuid(Path.GetFileNameWithoutExtension(path)) || Path.GetExtension(path) != ".json"
+                || Directory.Exists(path)) throw new RewardDataException("unexpected-reward-inbox-file");
+        }
+        return paths;
+    }
+
     internal static async Task<RewardStartupOutcome?> ProcessAsync(RewardStartupWindow window, RewardStartupEnrollment enrollment,
         CancellationToken token, Func<Task<RewardStartupOutcome>> settleCurrent)
     {
@@ -35,19 +87,15 @@ internal static class RewardRuntimeInbox
         var id = enrollment.Binding.ProfileId;
         var directory = RewardRuntimeFiles.DirectoryFor(root, id);
         var inbox = Path.Combine(directory, "inbox");
+        Preflight(root, id);
         var origin = RewardRuntimeFiles.ReadHandoff(root, Path.Combine(directory, "handoff.json"));
         if (origin.Binding != enrollment.Binding || !RewardRuntimeFiles.SameRoot(origin.RuntimeRoot, root) || !origin.Enabled)
             throw new RewardDataException("runtime-inbox-origin-mismatch");
-        RequireNoPendingSnapshots(root, id, directory, origin);
-        RequireNoPendingRuns(root, id, directory, origin);
+        var closures = RewardRecovery.ReadClosures(root, id, RewardRecoveryEvidence.ReadProfile(root, id));
+        RequireNoPendingSnapshots(root, id, directory, origin, closures);
+        RequireNoPendingRuns(root, id, directory, origin, closures);
         if (!RewardRuntimeFiles.Exists(root, inbox)) return null;
-        var paths = Directory.EnumerateFileSystemEntries(inbox)
-            .Where(p => !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(p), "\\A\\.arena-reward-[a-f0-9]{32}\\.tmp\\z"))
-            .Take(4097).ToArray();
-        if (paths.Length > 4096) throw new RewardDataException("reward-inbox-capacity");
-        foreach (var path in paths)
-            if (!RewardIdentity.IsGuid(Path.GetFileNameWithoutExtension(path)) || Path.GetExtension(path) != ".json")
-                throw new RewardDataException("unexpected-reward-inbox-file");
+        var paths = ReadPaths(root, inbox);
         var allocations = Path.Combine(directory, "allocations");
         var imported = Path.Combine(directory, "imported");
         RewardRuntimeFiles.EnsureDirectory(root, allocations);
@@ -60,6 +108,7 @@ internal static class RewardRuntimeInbox
         RewardStartupOutcome? last = null;
         long paid = 0;
         long experiencePaid = 0;
+        bool closed = false;
         foreach (var item in ordered)
         {
             token.ThrowIfCancellationRequested();
@@ -70,6 +119,15 @@ internal static class RewardRuntimeInbox
             var runId = earned.Evidence.Authorization.RunId;
             var importedPath = Path.Combine(imported, runId + ".json");
             var allocation = item.Allocation;
+            if (allocation is not null) RequireAllocationSource(allocation, earned, fingerprint);
+            if (closures.ClosesReceipt(earned.Evidence) || allocation is not null && closures.ClosesReceipt(allocation.Candidate))
+            {
+                // Keep the signed late source and every historical allocation /
+                // import byte intact. The durable decision is the terminal record;
+                // no new payment allocation or imported-as-paid marker is made.
+                closed = true;
+                continue;
+            }
             if (RewardRuntimeFiles.Exists(root, importedPath))
             {
                 var complete = RewardStartupFiles.Read<RewardImported>(importedPath, 16384);
@@ -120,6 +178,7 @@ internal static class RewardRuntimeInbox
             else return last;
         }
         if (paid > 0) return new(id, new(RewardSettlementStatus.Paid, "queued-rewards-delivered", last?.Result.MessageId), paid, experiencePaid);
+        if (closed && last is null) return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
         return last ?? (ordered.Length > 0 ? Outcome(RewardSettlementStatus.AlreadyPaid, "reward-inbox-already-imported") : null);
 
         RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), 0);
@@ -131,7 +190,7 @@ internal static class RewardRuntimeInbox
         return RewardRuntimeFiles.Exists(root, path) ? RewardStartupFiles.Read<RewardAllocation>(path) : null;
     }
 
-    private static void RequireAllocationSource(RewardAllocation allocation, RewardEarnedReceipt source, string fingerprint)
+    internal static void RequireAllocationSource(RewardAllocation allocation, RewardEarnedReceipt source, string fingerprint)
     {
         if (allocation.Schema != 1 || allocation.SourceFingerprint != fingerprint || allocation.Candidate?.Authorization is null
             || allocation.Candidate.Restoration is null) throw new RewardDataException("reward-allocation-source-mismatch");
@@ -185,7 +244,7 @@ internal static class RewardRuntimeInbox
             throw new RewardDataException("reward-import-not-settled");
     }
 
-    private static void RequireNoPendingRuns(string root, string id, string authorityDirectory, RewardHandoff origin)
+    private static void RequireNoPendingRuns(string root, string id, string authorityDirectory, RewardHandoff origin, RewardRecoveryClosureSet closures)
     {
         var directory = Path.Combine(root, "user", "arena-reward-runs", id);
         if (!RewardRuntimeFiles.Exists(root, directory)) return;
@@ -203,6 +262,7 @@ internal static class RewardRuntimeInbox
                 || Path.GetFileName(path) != runId + ".json") throw new RewardDataException("reward-pending-state-invalid");
             if (!value.TryGetProperty("state", out var state) || state.GetString() is not ("restored" or "discarded" or "unrewarded-restored"))
             {
+                if (closures.ClosesRun(runId!, armToken!)) continue;
                 // Crash between immutable receipt publication and the terminal
                 // marker may use that same signed, positively restored receipt.
                 // Mere absence of a RAM snapshot still never clears a pending run.
@@ -215,7 +275,7 @@ internal static class RewardRuntimeInbox
         }
     }
 
-    private static void RequireNoPendingSnapshots(string root, string id, string authorityDirectory, RewardHandoff origin)
+    private static void RequireNoPendingSnapshots(string root, string id, string authorityDirectory, RewardHandoff origin, RewardRecoveryClosureSet closures)
     {
         var directory = Path.Combine(root, "user", "arena-reward-snapshots", id);
         if (!RewardRuntimeFiles.Exists(root, directory)) return;
@@ -229,6 +289,7 @@ internal static class RewardRuntimeInbox
                 throw new RewardDataException("reward-snapshot-guard-invalid");
             if (guard.State is "restored" or "cancelled-before-start") continue;
             if (guard.State != "pending") throw new RewardDataException("reward-snapshot-guard-invalid");
+            if (closures.ClosesSnapshot(guard.Generation)) continue;
             // The only recovery evidence is the immutable signed receipt made
             // after that exact snapshot's positive durable restoration.
             var inbox = Path.Combine(authorityDirectory, "inbox");

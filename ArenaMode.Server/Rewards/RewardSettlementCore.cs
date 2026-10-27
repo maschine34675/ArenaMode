@@ -61,6 +61,7 @@ internal sealed class RewardSettlementCore
         var ledger = RewardProfileDocument.ReadLedger(profile.Json, claim.Binding, _limits)
             .ToDictionary(p => p.ReceiptKey, StringComparer.Ordinal);
         var journal = ParseJournal(lease.ReadJournal(), claim.Binding, _limits);
+        var closures = (lease as IRewardRecoveryLease)?.ReadRecoveryClosures(profile.Json) ?? RewardRecoveryClosureSet.Empty;
 
         // Check the complete history, not just the requested receipt: an older
         // restored profile must not evade detection by submitting a fresh run ID.
@@ -85,6 +86,7 @@ internal sealed class RewardSettlementCore
             }
             else
             {
+                if (closures.ClosesPayment(entry)) continue;
                 if (entry.Phase != RewardJournalPhase.Prepared)
                     return Result(RewardSettlementStatus.Quarantined, "commit-state-ambiguous-or-rolled-back");
                 if (entry.BeforeRevision != profile.Revision || pending is not null)
@@ -97,6 +99,9 @@ internal sealed class RewardSettlementCore
         if (existing is not null && (existing.Payment.Fingerprint != claim.Fingerprint || existing.Payment.Roubles != claim.Roubles
             || existing.Payment.Experience != claim.Experience || !RewardColaProfile.MatchesClaim(existing.Payment.Cola, claim.Cola)))
             return Result(RewardSettlementStatus.Quarantined, "receipt-content-conflict");
+
+        if (closures.ClosesClaim(claim))
+            return Result(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
 
         if (!recovered.SequenceEqual(journal.Entries))
         {

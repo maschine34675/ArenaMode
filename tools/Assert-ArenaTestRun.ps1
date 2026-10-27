@@ -6,6 +6,7 @@
 # then call Assert-ArenaTestRun with the TRX the test run wrote.
 $ArenaKnownSkipReasons = @(
     'Set ARENA_APBS_TEST_ROOT*',
+    'Set SPT_REWARD_RECOVERY_BASELINE*',
     'creating a symbolic link needs a privilege*'
 )
 

@@ -40,6 +40,12 @@ internal static class RewardStartupProcessor
             // Finish an already committed payment's companion write even if the
             // player has since opted out. This path cannot create a new payment.
             await RewardColaJournal.RecoverAsync(window, id, cancellationToken);
+            if (includeRuntimeInbox)
+            {
+                RewardRuntimeInbox.Preflight(window.Root, id);
+                RewardRestorationCheckpoint.RecoverAtStartup(window, id);
+                RewardRecovery.ProcessAtStartup(window, id);
+            }
             if (applyDefault) RewardStartupDefaults.EnableIfNew(window, id);
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);
             var enrollmentPath = Path.Combine(directory, "enrollment.json");
@@ -75,6 +81,14 @@ internal static class RewardStartupProcessor
                 && !RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "approved.json")))
                 return Outcome(RewardSettlementStatus.Deferred, "rewards-enrolled-no-pending-result");
 
+            var closures = RewardRecovery.ReadClosures(window.Root, id, RewardRecoveryEvidence.ReadProfile(window.Root, id));
+            var candidatePath = Path.Combine(directory, "candidate.json");
+            if (RewardRuntimeFiles.Exists(window.Root, candidatePath))
+            {
+                var candidate = RewardStartupFiles.Read<RewardApprovalCandidate>(candidatePath);
+                RewardRuntimeFiles.RequireProof(candidate);
+                if (closures.ClosesReceipt(candidate)) return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
+            }
             var evaluation = RewardApprovalProducer.PrepareIfPresent(window, enrollment);
             if (evaluation is { Status: RewardEvaluationStatus.Rejected })
                 return Outcome(RewardSettlementStatus.Rejected, evaluation.Reason);
@@ -91,6 +105,7 @@ internal static class RewardStartupProcessor
                 return Outcome(RewardSettlementStatus.Deferred, "profile-restoration-not-approved");
             var limits = new RewardLimits();
             approval.Claim.Validate(limits);
+            if (closures.ClosesClaim(approval.Claim)) return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
             roubles = approval.Claim.Roubles;
             experience = approval.Claim.Experience;
             var store = new RewardStartupStore(window, enrollment, approval, limits);

@@ -51,6 +51,16 @@ internal static partial class RewardOfflineSession
                     if (Hash(ReadLease(lease.PrivateRoot, Path.Combine(lease.PrivateRoot, LeaseFile))) != Hash(lease))
                         throw new RewardDataException("offline-private-lease-changed");
                     state = ReadState(lease); // missing after activation must never restore an old ON choice
+                    // The exact private process has exited and its original
+                    // ownership/marker are verified. Finish only independently
+                    // proven reward publication before freezing the receipt list;
+                    // never append to an already immutable closed session.
+                    if (lease.Authority is { } authority)
+                        RewardRestorationCheckpoint.RecoverPrivateStopped(lease.PrivateRoot, lease.ProfileId, authority);
+                    // The next helper run may rebuild this private tree. Keep
+                    // unresolved guards and checkpoint evidence as well as the
+                    // proven receipts before allowing ownership retirement.
+                    RewardRestorationCheckpoint.ArchivePrivateEvidence(lease.PrivateRoot, root, lease.ProfileId);
                     receipts = Published(lease).Select(path => ReceiptReference(lease, path)).OrderBy(r => r.RunId, StringComparer.Ordinal).ToArray();
                 }
                 else

@@ -29,6 +29,9 @@ public class ProfileSnapshotService(
         BindingFlags.Instance | BindingFlags.NonPublic);
 
     private readonly Dictionary<string, SptProfile> _snapshots = new();
+    // Detached expected state survives the in-memory swap until native disk
+    // readback succeeds. It is independent from optional reward observers.
+    private readonly Dictionary<string, SptProfile> _pendingPersistence = new();
     private readonly Lock _lock = new();
 
     // Observers receive the actual cloned/restored object, never a client result.
@@ -58,6 +61,11 @@ public class ProfileSnapshotService(
 
             lock (_lock)
             {
+                if (_pendingPersistence.ContainsKey(sessionId.ToString()))
+                {
+                    logger.Warning("[ArenaMode] Restored profile persistence is still pending; refusing a new Arena snapshot.");
+                    return false;
+                }
                 _snapshots[sessionId.ToString()] = clone;
                 Notify(() => SnapshotTaken?.Invoke(sessionId, clone));
             }
@@ -96,6 +104,8 @@ public class ProfileSnapshotService(
             {
                 if (!TryGetProfileStore(out var profiles))
                     throw new InvalidOperationException("SaveServer profile-store contract is unavailable");
+                var expected = cloner.Clone(snapshot)
+                    ?? throw new InvalidOperationException("Restored profile verification clone is unavailable");
 
                 // SPT's public DeleteProfileById/AddProfile pair is two separate
                 // operations and AddProfile hides a failed TryAdd. Replace the
@@ -115,6 +125,7 @@ public class ProfileSnapshotService(
                         "SaveServer profile changed concurrently; Arena snapshot was not consumed");
                 }
 
+                _pendingPersistence[key] = expected;
                 _snapshots.Remove(key);
                 Notify(() => SnapshotRestored?.Invoke(sessionId, snapshot));
                 logger.Info($"[ArenaMode] Profile snapshot restored for session {sessionId}.");
@@ -128,6 +139,31 @@ public class ProfileSnapshotService(
                 return false;
             }
         }
+    }
+
+    internal bool HasPendingPersistence(MongoId sessionId)
+    {
+        lock (_lock) return _pendingPersistence.ContainsKey(sessionId.ToString());
+    }
+
+    internal void RequireRestoredPersistence(MongoId sessionId, string disk, Func<SptProfile, string> serialize)
+    {
+        lock (_lock)
+        {
+            if (!_pendingPersistence.TryGetValue(sessionId.ToString(), out var expected))
+                throw new InvalidOperationException("Arena restored-profile persistence witness is unavailable");
+            var restored = saveServer.GetProfile(sessionId);
+            Routers.ArenaRewardReturnListener.RequireSavedProfile(serialize(expected), disk, serialize(restored));
+            // A transient optional metadata failure at the actual swap can be
+            // retried now, while the independent full native witness is still
+            // present. This does not infer a restore from empty reward RAM.
+            Notify(() => SnapshotRestored?.Invoke(sessionId, restored));
+        }
+    }
+
+    internal void CompleteRestoredPersistence(MongoId sessionId)
+    {
+        lock (_lock) _pendingPersistence.Remove(sessionId.ToString());
     }
 
     private bool TryGetProfileStore(

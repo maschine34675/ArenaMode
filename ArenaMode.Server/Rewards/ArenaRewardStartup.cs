@@ -74,7 +74,7 @@ public sealed class ArenaRewardStartup(
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
                     logger.Info($"[ArenaMode] Arena reward: {outcome.Roubles} RUB delivered by mail; {outcome.Experience} XP credited.");
                 else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected)
-                    logger.Warning($"[ArenaMode] Arena reward withheld ({outcome.Result.Reason}); no profile repair was attempted.");
+                    logger.Warning($"[ArenaMode] Arena reward withheld for profile {outcome.ProfileId} ({outcome.Result.Reason}); no profile progress was replaced.");
                 else
                     logger.Debug($"[ArenaMode] Startup reward: {outcome.Result.Status} ({outcome.Result.Reason}).");
             }

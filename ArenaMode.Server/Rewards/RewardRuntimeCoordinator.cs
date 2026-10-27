@@ -101,6 +101,8 @@ internal sealed class RewardRuntimeCoordinator
                 if (!result.PrivateSession && result.Enrolled)
                 {
                     var directory = RewardRuntimeFiles.DirectoryFor(_root, id);
+                    var profile = RewardRecoveryEvidence.ReadProfile(_root, id);
+                    var closures = RewardRecovery.ReadClosures(_root, id, profile);
                     var inbox = Path.Combine(directory, "inbox");
                     if (RewardRuntimeFiles.Exists(_root, inbox))
                     {
@@ -113,6 +115,15 @@ internal sealed class RewardRuntimeCoordinator
                             var imported = Path.Combine(directory, "imported", name + ".json");
                             if (RewardRuntimeFiles.Exists(_root, imported)) continue;
                             var earned = RewardRuntimeInbox.ReadReceipt(_root, directory, authority!, path);
+                            var allocationPath = Path.Combine(directory, "allocations", name + ".json");
+                            RewardAllocation? allocation = null;
+                            if (RewardRuntimeFiles.Exists(_root, allocationPath))
+                            {
+                                allocation = RewardStartupFiles.Read<RewardAllocation>(allocationPath);
+                                RewardRuntimeInbox.RequireAllocationSource(allocation, earned, RewardIdentity.Hash(RewardRuntimeFiles.Json(earned)));
+                            }
+                            if (closures.ClosesReceipt(earned.Evidence)
+                                || allocation is not null && closures.ClosesReceipt(allocation.Candidate)) continue;
                             var reward = RewardResultValidator.Evaluate(earned.Evidence.Authorization, earned.Evidence.Report);
                             result.PendingRoubles = checked(result.PendingRoubles + reward.Roubles);
                             result.PendingExperience = checked(result.PendingExperience + reward.Experience);
@@ -125,8 +136,10 @@ internal sealed class RewardRuntimeCoordinator
                     {
                         var ack = RewardStartupFiles.Read<RewardStartupAcknowledgement>(acknowledgement, 16384);
                         var journal = RewardSettlementCore.ParseJournal(File.ReadAllText(Path.Combine(directory, "journal.json")), authority!.Binding, new());
+                        var ledger = RewardProfileDocument.ReadLedger(profile, authority.Binding, new());
                         var payment = journal.Entries.SingleOrDefault(e => e.Payment.ReceiptKey == ack.ReceiptKey
-                            && e.Payment.Fingerprint == ack.Fingerprint && e.Phase == RewardJournalPhase.Committed)?.Payment;
+                            && e.Payment.Fingerprint == ack.Fingerprint && e.Phase == RewardJournalPhase.Committed
+                            && !closures.ClosesPayment(e) && ledger.Contains(e.Payment))?.Payment;
                         result.LastPaidRoubles = payment?.Roubles ?? 0;
                         result.LastPaidExperience = payment?.Experience ?? 0;
                         result.LastPaidCola = payment?.Cola is not null;
@@ -256,11 +269,16 @@ internal sealed class RewardRuntimeCoordinator
     {
         lock (_sync)
         {
+            // The native snapshot service has already taken a NEW clone. Even
+            // if serialization/authority/storage fails below, an older reward
+            // generation must never authorize this new raid from retained RAM.
+            if (_snapshots.Remove(id) | _runs.Remove(id))
+                _failures[id] = "reward-previous-generation-unresolved";
             var authority = Authority(id, required: false);
             if (authority is null) return;
-            if (_snapshots.ContainsKey(id)) throw new RewardDataException("reward-snapshot-already-active");
             var generation = Guid.NewGuid().ToString("N");
-            var snapshot = new Snapshot(serialize(), generation, authority.Binding);
+            var snapshot = new Snapshot(serialize(), generation, authority);
+            RewardRestorationCheckpoint.Create(_root, id, generation, authority, snapshot.Json);
             var path = SnapshotPath(id, generation);
             RewardRuntimeFiles.EnsureDirectory(_root, Path.GetDirectoryName(path)!);
             RewardRuntimeFiles.WriteNew(_root, path, new RewardSnapshotGuard(1, generation, "pending"));
@@ -317,6 +335,7 @@ internal sealed class RewardRuntimeCoordinator
                     rule, request.TimeLimitMilliseconds, request.KillTarget, authority, snapshot, _now(), RewardRuntimeFiles.Json(request));
                 var pending = PendingPath(id, run.Id);
                 RewardRuntimeFiles.EnsureDirectory(_root, Path.GetDirectoryName(pending)!);
+                RewardRestorationCheckpoint.BindRun(_root, id, snapshot.Generation, run.Id, expectedArm, expectedNativeEnd);
                 RewardRuntimeFiles.WriteNew(_root, pending, new RewardRuntimePending(1, expectedArm, run.Id));
                 _runs.Add(id, run);
                 return new() { Accepted = true, RunId = run.Id };
@@ -366,6 +385,9 @@ internal sealed class RewardRuntimeCoordinator
                 var evaluation = RewardResultValidator.Evaluate(candidate.Authorization, candidate.Report);
                 if (evaluation.Status == RewardEvaluationStatus.Rejected && (request.Final || evaluation.Reason != "unfinished-round"))
                     throw new RewardDataException(evaluation.Reason);
+                // Acknowledging a final result promises it survives lost RAM.
+                // This provisional record contains no restoration assertion.
+                if (request.Final) RewardRestorationCheckpoint.CaptureFinal(_root, id, run.Snapshot.Generation, candidate);
                 run.Last = JsonSerializer.Deserialize<RewardCaptureRequest>(json, RewardSettlementCore.JournalJson)!;
                 if (request.Final) { run.Final = run.Last; run.Cola = cola; }
                 return new() { Accepted = true, Revision = request.Revision };
@@ -383,24 +405,29 @@ internal sealed class RewardRuntimeCoordinator
         lock (_sync)
         {
             if (!_snapshots.TryGetValue(id, out var snapshot)) return;
-            if (!RewardRuntimeFiles.SameProfile(snapshot.Json, serialize())) throw new RewardDataException("reward-restored-snapshot-mismatch");
+            var restored = serialize();
+            RewardRestorationCheckpoint.ObserveRestored(_root, id, snapshot.Generation, restored);
+            if (!RewardRuntimeFiles.SameProfile(snapshot.Json, restored)) throw new RewardDataException("reward-restored-snapshot-mismatch");
             snapshot.Restored = true;
         }
     }
 
-    // Recovery of a failed start or stale protected snapshot is not a completed
-    // match. Close only after the same positive restore/durable read-back chain,
-    // and never publish a result from this path.
+    // Recovery cannot invent a completed match. A failed start with no final
+    // report closes without reward, after positive restore/durable readback.
+    // A stale snapshot can still own an already accepted final report: preserve
+    // that exact result and its normal startup-only payment path.
     internal void RecoverPersisted(string id, string persistedJson)
     {
         lock (_sync)
         {
             if (!_snapshots.TryGetValue(id, out var snapshot)) return;
-            if (!snapshot.Restored || !RewardRuntimeFiles.SameProfile(snapshot.Json, persistedJson))
+            if (!snapshot.Restored)
                 throw new RewardDataException("reward-recovery-restoration-unproven");
-            RewardStartupFiles.RequireCleanProfile(persistedJson, snapshot.Binding);
-            CloseSnapshot(id, snapshot, "restored");
-            if (_runs.Remove(id, out var run)) ClosePending(id, run, "unrewarded-restored");
+            RewardRestorationCheckpoint.Persisted(_root, id, snapshot.Generation, persistedJson);
+            if (!RewardRuntimeFiles.SameProfile(snapshot.Json, persistedJson))
+                throw new RewardDataException("reward-recovery-restoration-unproven");
+            RewardRestorationCheckpoint.Complete(_root, id, snapshot.Generation, snapshot.Authority);
+            _runs.Remove(id);
             _snapshots.Remove(id);
         }
     }
@@ -410,29 +437,18 @@ internal sealed class RewardRuntimeCoordinator
         lock (_sync)
         {
             if (!_runs.TryGetValue(id, out var run)) { RecoverPersisted(id, persistedJson); return; }
-            var restored = false;
             try
             {
-                if (run.NativeEnd != nativeEndIdentity || !run.Snapshot.Restored
-                    || !RewardRuntimeFiles.SameProfile(run.Snapshot.Json, persistedJson))
+                if (run.NativeEnd != nativeEndIdentity || !run.Snapshot.Restored)
                     throw new RewardDataException("reward-durable-restoration-unproven");
-                RewardStartupFiles.RequireCleanProfile(persistedJson, run.Authority.Binding);
-                restored = true;
-                CloseSnapshot(id, run.Snapshot, "restored");
+                RewardRestorationCheckpoint.Persisted(_root, id, run.Snapshot.Generation, persistedJson);
+                if (!RewardRuntimeFiles.SameProfile(run.Snapshot.Json, persistedJson))
+                    throw new RewardDataException("reward-durable-restoration-unproven");
+                var evaluation = RewardRestorationCheckpoint.Complete(_root, id, run.Snapshot.Generation, run.Authority);
                 if (run.Final is null) throw new RewardDataException("reward-final-report-missing");
-                var evidence = BuildEvidence(run, run.Final, RewardIdentity.Hash(persistedJson));
-                RewardRuntimeFiles.RequireProof(evidence);
-                var evaluation = RewardResultValidator.Evaluate(evidence.Authorization, evidence.Report);
-                if (evaluation.Status == RewardEvaluationStatus.Rejected) throw new RewardDataException(evaluation.Reason);
-                var signed = RewardRuntimeFiles.Sign(run.Authority, new(1, run.Authority.DelegationId, evidence));
                 var privateSession = !RewardStartupFiles.MarkerAbsent(_root);
-                var directory = privateSession ? Path.Combine(_root, "user", "arena-rewards-outbox")
-                    : Path.Combine(RewardRuntimeFiles.DirectoryFor(_root, id), "inbox");
-                RewardRuntimeFiles.EnsureDirectory(_root, directory);
-                RewardRuntimeFiles.WriteNew(_root, Path.Combine(directory, run.Id + ".json"), signed);
-                if (evaluation.Status == RewardEvaluationStatus.Eligible)
+                if (evaluation!.Status == RewardEvaluationStatus.Eligible)
                     Compat.ArenaTarkovaColaState.Published(id, run.ArmToken, run.Cola);
-                ClosePending(id, run, "restored");
                 _failures.Remove(id);
                 if (privateSession)
                 {
@@ -445,10 +461,9 @@ internal sealed class RewardRuntimeCoordinator
             catch (Exception e)
             {
                 _failures[id] = e is RewardDataException ? e.Message : "reward-storage-unavailable";
-                // A captured but unpaid result is independent from full-profile
-                // recovery. A positively clean end can retire its reward scope;
-                // an unproven end remains pending durably and blocks startup pay.
-                if (restored) ClosePending(id, run, "unrewarded-restored");
+                // The durable provisional result/proof survives this failure.
+                // Startup retries publication; it never converts storage failure
+                // into an automatic waiver of an already accepted final result.
                 throw;
             }
             finally
@@ -506,14 +521,6 @@ internal sealed class RewardRuntimeCoordinator
     private string SnapshotPath(string id, string generation) => Path.Combine(_root, "user", "arena-reward-snapshots", id, generation + ".json");
     private void CloseSnapshot(string id, Snapshot snapshot, string state) => RewardRuntimeFiles.Write(_root,
         SnapshotPath(id, snapshot.Generation), new RewardSnapshotGuard(1, snapshot.Generation, state));
-    private void ClosePending(string id, Run run, string state)
-    {
-        var path = PendingPath(id, run.Id);
-        // A durable terminal marker keeps audit evidence instead of erasing a
-        // pending run on an ambiguous process crash.
-        RewardRuntimeFiles.Write(_root, path, new { schema = 1, armToken = run.ArmToken, runId = run.Id, state });
-    }
-
     private static RewardEvaluation Evaluate(Run run, RewardCaptureRequest report)
     {
         var evidence = BuildEvidence(run, report, RewardIdentity.Hash(run.Snapshot.Json));
@@ -578,11 +585,12 @@ internal sealed class RewardRuntimeCoordinator
         _ => false
     };
 
-    private sealed class Snapshot(string json, string generation, RewardBinding binding)
+    private sealed class Snapshot(string json, string generation, RewardHandoff authority)
     {
         internal string Json { get; } = json;
         internal string Generation { get; } = generation;
-        internal RewardBinding Binding { get; } = binding;
+        internal RewardHandoff Authority { get; } = authority;
+        internal RewardBinding Binding => Authority.Binding;
         internal bool Restored { get; set; }
     }
     private sealed class Run(string id, string armToken, string nativeEnd, string localId, string mode, RewardRoundRule rule,

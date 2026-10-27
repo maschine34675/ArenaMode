@@ -215,11 +215,16 @@ internal static class RewardColaJournal
                 && (!doneRuns.Contains(p.Approval.Claim.RunId)
                     || !nativeEntries.TryGetValue(p.Approval.Claim.Key, out var entry)
                     || entry.Phase != RewardJournalPhase.Committed));
+            // An independently confirmed old RUB/XP closure stays terminal
+            // during recovery of a newer Cola transaction. Never exempt Cola
+            // payments themselves or a merely queued recovery request.
+            var closures = incompleteCola ? RewardRecovery.ReadClosures(window.Root, id, profile) : RewardRecoveryClosureSet.Empty;
             foreach (var payment in ledger.Where(p => incompleteCola || p.Cola is not null))
                 if (!nativeEntries.TryGetValue(payment.ReceiptKey, out var entry) || entry.Payment != payment)
                     throw new RewardDataException("cola-native-history-disagrees");
             foreach (var entry in journal.Entries.Where(e => incompleteCola || e.Payment.Cola is not null))
-                if (entry.Phase != RewardJournalPhase.Prepared && !payments.ContainsKey(entry.Payment.ReceiptKey))
+                if (entry.Phase != RewardJournalPhase.Prepared && !payments.ContainsKey(entry.Payment.ReceiptKey)
+                    && !(entry.Payment.Cola is null && closures.ClosesPayment(entry)))
                     throw new RewardDataException("cola-native-payment-ambiguous-or-rolled-back");
             foreach (var payment in ledger.Where(p => p.Cola is not null))
                 if (!plans.TryGetValue(payment.ReceiptKey, out var plan) || payment.Fingerprint != plan.Approval.Claim.Fingerprint)
@@ -413,10 +418,12 @@ internal static class RewardColaJournal
             return lease is null ? null : new ConfirmationOnlyLease(lease);
         }
     }
-    private sealed class ConfirmationOnlyLease(IRewardSettlementLease inner) : IRewardSettlementLease
+    private sealed class ConfirmationOnlyLease(IRewardSettlementLease inner) : IRewardSettlementLease, IRewardRecoveryLease
     {
         public RewardProfileSnapshot ReadProfile() => inner.ReadProfile();
         public string ReadJournal() => inner.ReadJournal();
+        public RewardRecoveryClosureSet ReadRecoveryClosures(string profileJson)
+            => inner is IRewardRecoveryLease recovery ? recovery.ReadRecoveryClosures(profileJson) : RewardRecoveryClosureSet.Empty;
         public void WriteJournal(string json) => inner.WriteJournal(json);
         public bool TryWriteProfile(string expectedRevision, string json) => throw new RewardDataException("cola-recovery-cannot-pay");
         public void Dispose() => inner.Dispose();

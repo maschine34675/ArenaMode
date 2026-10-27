@@ -36,7 +36,13 @@ candidate envelope from a client. Never infer
 restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
 Reward work does not relax Arena's full-profile restoration protection. Read
-docs/ARENA-OFFLINE-SESSION-20261025.md before changing session ownership: schema 3
+docs/REWARD-RECOVERY-ENGINE-20261027.md and docs/REWARD-RESTORATION-20261027.md
+before changing recovery. Explicit old-case closure is startup-only metadata,
+never a payment or restoration proof. Preserve its original evidence, exact
+profile acknowledgement and permanent replay rejection. Full native restore
+readback is mandatory even with rewards OFF; private checkpoint publication and
+archival precede immutable offline closure and tree retirement.
+Read docs/ARENA-OFFLINE-SESSION-20261025.md before changing session ownership: schema 3
 stops the ordinary server before copy, holds its lifetime lock privately, uses
 signed local consent and recovers only before normal profile loading. Missing
 activated evidence must never fall back to legacy authority or restore old ON.

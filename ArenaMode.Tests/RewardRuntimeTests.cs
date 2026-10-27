@@ -615,12 +615,36 @@ public sealed class RewardRuntimeTests
     {
         using var f = new Fixture();
         f.RestoreAndPublish(f.Capture());
-        var report = f.Capture();
+        // A failed start has no accepted final match. A completed final belongs
+        // to stale-result recovery and must not be silently discarded here.
+        var report = f.Capture(final: false);
         Assert.Throws<RewardDataException>(() => f.Coordinator.RecoverPersisted(Fixture.ProfileId, f.Profile));
         f.Coordinator.ObserveRestored(Fixture.ProfileId, f.Profile);
         f.Coordinator.RecoverPersisted(Fixture.ProfileId, f.Profile);
         Assert.False(File.Exists(f.PathOf("inbox/" + report.RunId + ".json")));
         Assert.Equal(1000, (await f.Process()).Roubles);
+    }
+
+    [Fact]
+    public async Task StaleSnapshotRecoveryPreservesAnAlreadyAcceptedFinalForStartupPayment()
+    {
+        using var f = new Fixture();
+        var report = f.Capture();
+        var before = f.Profile;
+        Assert.Throws<RewardDataException>(() => f.Coordinator.RecoverPersisted(Fixture.ProfileId, f.Profile));
+        f.Coordinator.ObserveRestored(Fixture.ProfileId, f.Profile);
+        f.Coordinator.RecoverPersisted(Fixture.ProfileId, f.Profile);
+        Assert.Equal(before, f.Profile);
+        Assert.True(File.Exists(f.PathOf("inbox/" + report.RunId + ".json")));
+        Assert.False(f.Coordinator.HasCapture(Fixture.ProfileId));
+        var result = await f.Process();
+        Assert.Equal(RewardSettlementStatus.Paid, result.Result.Status);
+        Assert.Equal(1000, result.Roubles);
+        Assert.Equal(100, result.Experience);
+        Assert.Single(f.Ledger);
+        var paid = f.Profile;
+        Assert.Equal(RewardSettlementStatus.AlreadyPaid, (await f.Process()).Result.Status);
+        Assert.Equal(paid, f.Profile);
     }
 
     [Fact]
@@ -689,6 +713,10 @@ public sealed class RewardRuntimeTests
         } };
         string oldJson = RewardRuntimeFiles.Json(old);
         Assert.DoesNotContain("experience", oldJson, StringComparison.OrdinalIgnoreCase);
+        // A genuine arena-v1 receipt predates restoration checkpoints. Keeping
+        // this fixture's new arena-v2 checkpoint while rewriting its receipt
+        // would test a conflicting immutable history, not legacy compatibility.
+        f.RemoveCheckpointForLegacyFixture(current.Evidence.Authorization.RestorationId);
         File.WriteAllText(path, RewardRuntimeFiles.Json(RewardRuntimeFiles.Sign(authority, old)));
         var first = await f.Process();
         Assert.Equal(RewardSettlementStatus.Paid, first.Result.Status);
@@ -782,6 +810,17 @@ public sealed class RewardRuntimeTests
             var node = JsonNode.Parse(Profile)!;
             change(node);
             File.WriteAllText(ProfilePath, node.ToJsonString());
+        }
+
+        internal void RemoveCheckpointForLegacyFixture(string generation)
+        {
+            var parent = Path.GetFullPath(Path.Combine(Root, "user", "arena-reward-checkpoints", ProfileId));
+            var directory = Path.GetFullPath(RewardRestorationCheckpoint.DirectoryFor(Root, ProfileId, generation));
+            if (!RewardIdentity.IsGuid(generation) || Path.GetDirectoryName(directory) != parent
+                || Path.GetDirectoryName(Path.GetFullPath(Root)) != Path.GetFullPath(Path.Combine(Path.GetTempPath(), "ArenaMode.RewardRuntime.Tests"))
+                || File.ReadAllText(Path.Combine(Root, ".owner")) != "synthetic-reward-runtime")
+                throw new InvalidOperationException("Not an owned synthetic checkpoint.");
+            Directory.Delete(directory, recursive: true);
         }
 
         public void Dispose()

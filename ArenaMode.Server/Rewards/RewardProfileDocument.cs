@@ -38,6 +38,55 @@ internal static class RewardProfileDocument
         return ReadLedger(Parse(profileJson), binding, limits);
     }
 
+    internal static IReadOnlyList<RewardRecoveryMarker> ReadRecoveryMarkers(string profileJson, RewardBinding binding)
+    {
+        var profile = Parse(profileJson);
+        _ = ReadLedger(profile, binding, new());
+        return ReadRecoveryMarkers(RequireObject(profile[ExtensionKey]));
+    }
+
+    internal static string RecoveryFingerprint(string profileJson, RewardBinding binding)
+    {
+        var profile = Parse(profileJson);
+        _ = ReadLedger(profile, binding, new());
+        return RewardIdentity.Hash(profile[ExtensionKey]!.ToJsonString());
+    }
+
+    internal static string ApplyRecoveryMarker(string profileJson, RewardBinding binding, RewardRecoveryMarker marker)
+    {
+        var profile = Parse(profileJson);
+        _ = ReadLedger(profile, binding, new());
+        var extension = RequireObject(profile[ExtensionKey]);
+        var previous = ReadRecoveryMarkers(extension);
+        if (!RewardIdentity.IsHex(marker.ReviewId, 64) || !RewardIdentity.IsHex(marker.RequestFingerprint, 64)
+            || previous.Any(m => m.ReviewId == marker.ReviewId) || previous.Count >= 64)
+            throw new RewardDataException("recovery-marker-conflict-or-capacity");
+        if (!extension.ContainsKey("recoveries")) extension["recoveries"] = new JsonArray();
+        ((JsonArray)extension["recoveries"]!).Add(new JsonObject
+        {
+            ["reviewId"] = marker.ReviewId, ["requestFingerprint"] = marker.RequestFingerprint
+        });
+        return profile.ToJsonString();
+    }
+
+    private static IReadOnlyList<RewardRecoveryMarker> ReadRecoveryMarkers(JsonObject extension)
+    {
+        if (!extension.ContainsKey("recoveries")) return [];
+        var markers = RequireArray(extension["recoveries"]);
+        if (markers.Count > 64) throw new RewardDataException("recovery-marker-capacity");
+        var result = new List<RewardRecoveryMarker>();
+        foreach (var node in markers)
+        {
+            var value = RequireObject(node);
+            RequireFields(value, "reviewId", "requestFingerprint");
+            var marker = new RewardRecoveryMarker(String(value["reviewId"]), String(value["requestFingerprint"]));
+            if (!RewardIdentity.IsHex(marker.ReviewId, 64) || !RewardIdentity.IsHex(marker.RequestFingerprint, 64)
+                || result.Any(m => m.ReviewId == marker.ReviewId)) throw new RewardDataException("invalid-recovery-marker");
+            result.Add(marker);
+        }
+        return result;
+    }
+
     internal static string Apply(string profileJson, RewardClaim claim, RewardPayment payment, RewardLimits limits)
     {
         limits.Validate();
@@ -118,9 +167,11 @@ internal static class RewardProfileDocument
     {
         ValidateProfile(profile, binding);
         var extension = RequireObject(profile[ExtensionKey]);
-        RequireFields(extension, "schema", "binding", "payments");
+        RequireFields(extension, extension.ContainsKey("recoveries")
+            ? ["schema", "binding", "payments", "recoveries"] : ["schema", "binding", "payments"]);
         if (Integer(extension["schema"]) != 1 || ReadBinding(extension["binding"]) != binding)
             throw new RewardDataException("reward-enrollment-mismatch");
+        _ = ReadRecoveryMarkers(extension);
         var payments = RequireArray(extension["payments"]);
         if (payments.Count > limits.MaxReceipts)
             throw new RewardDataException("reward-ledger-too-large");

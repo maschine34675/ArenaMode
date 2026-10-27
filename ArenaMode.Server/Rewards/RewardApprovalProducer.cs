@@ -47,7 +47,7 @@ internal static class RewardApprovalProducer
             Directory.CreateDirectory(decisions);
             RewardStartupFiles.RequireLocalPath(window.Root, decisions);
         }
-        var history = ReadDecisions(window, enrollment.Binding, decisions);
+        var history = ReadDecisions(window.Root, enrollment.Binding, decisions);
         var decisionPath = Path.Combine(decisions, run.RunId + ".json");
         var existingDecision = Exists(window.Root, decisionPath);
         if (existingDecision)
@@ -68,6 +68,8 @@ internal static class RewardApprovalProducer
         var ledger = RewardProfileDocument.ReadLedger(profile.Json, run.Binding, new());
         var journalJson = File.ReadAllText(journalPath);
         var journal = RewardSettlementCore.ParseJournal(journalJson, run.Binding, new());
+        var closures = RewardRecovery.ReadClosures(window.Root, run.Binding.ProfileId, profile.Json);
+        if (closures.ClosesReceipt(candidate)) throw new RewardDataException("result-closed-without-payment");
         // Switching into the producer protocol cannot infer missing decisions
         // from a populated payment journal, even when only the newest was lost.
         foreach (var entry in journal.Entries)
@@ -80,11 +82,11 @@ internal static class RewardApprovalProducer
         var payment = journal.Entries.SingleOrDefault(e => e.Payment.ReceiptKey == key);
         if (payment is not null && !existingDecision)
             throw new RewardDataException("payment-without-result-decision");
-        RequireHistory(ledger, journal, approval);
+        RequireHistory(ledger, journal, approval, closures);
         foreach (var priorDecision in history.Where(d => d.RunId != run.RunId && d.Approval is not null))
         {
             var priorClaim = priorDecision.Approval!.Claim;
-            if (!journal.Entries.Any(e => e.Phase == RewardJournalPhase.Committed && ledger.Contains(e.Payment)
+            if (!journal.Entries.Any(e => e.Phase == RewardJournalPhase.Committed && (ledger.Contains(e.Payment) || closures.ClosesPayment(e))
                 && e.Payment.ReceiptKey == priorClaim.Key && e.Payment.Fingerprint == priorClaim.Fingerprint
                 && e.Payment.Roubles == priorClaim.Roubles && e.Payment.Experience == priorClaim.Experience
                 && e.BeforeRevision == priorDecision.Approval.CleanProfileRevision))
@@ -117,7 +119,7 @@ internal static class RewardApprovalProducer
                     throw new RewardDataException("prior-approval-invalid");
                 previousApproval.Claim.Validate(new());
                 var prior = journal.Entries.SingleOrDefault(e => e.Payment.ReceiptKey == previousApproval.Claim.Key);
-                if (prior is null || prior.Phase != RewardJournalPhase.Committed || !ledger.Contains(prior.Payment)
+                if (prior is null || prior.Phase != RewardJournalPhase.Committed || !(ledger.Contains(prior.Payment) || closures.ClosesPayment(prior))
                     || prior.Payment.Fingerprint != previousApproval.Claim.Fingerprint
                     || prior.Payment.Roubles != previousApproval.Claim.Roubles
                     || prior.Payment.Experience != previousApproval.Claim.Experience
@@ -166,12 +168,14 @@ internal static class RewardApprovalProducer
             throw new RewardDataException("restoration-evidence-mismatch");
     }
 
-    private static void RequireHistory(IReadOnlyList<RewardPayment> ledger, RewardJournal journal, RewardStartupApproval? current)
+    private static void RequireHistory(IReadOnlyList<RewardPayment> ledger, RewardJournal journal, RewardStartupApproval? current,
+        RewardRecoveryClosureSet closures)
     {
         if (ledger.Any(p => !journal.Entries.Any(e => e.Payment == p))) throw new RewardDataException("approval-ledger-diverged");
         foreach (var entry in journal.Entries)
         {
             if (entry.Phase == RewardJournalPhase.Committed && ledger.Contains(entry.Payment)) continue;
+            if (closures.ClosesPayment(entry)) continue;
             // Only the identical already-approved claim can finish its interrupted
             // transaction. Unrelated pending writes must be resolved first.
             if (current is null || entry.Payment.ReceiptKey != current.Claim.Key
@@ -184,7 +188,7 @@ internal static class RewardApprovalProducer
         }
     }
 
-    private static IReadOnlyList<RewardApprovalDecision> ReadDecisions(RewardStartupWindow window, RewardBinding binding, string directory)
+    internal static IReadOnlyList<RewardApprovalDecision> ReadDecisions(string root, RewardBinding binding, string directory)
     {
         // A crash before atomic rename leaves an unpublished staged file. It is
         // never authority or a gap; ignore only our exact sibling-temp naming.
@@ -195,7 +199,7 @@ internal static class RewardApprovalProducer
         var history = new List<RewardApprovalDecision>();
         foreach (var path in paths)
         {
-            RewardStartupFiles.RequireLocalPath(window.Root, path);
+            RewardStartupFiles.RequireLocalPath(root, path);
             var value = RewardStartupFiles.Read<RewardApprovalDecision>(path, RewardStartupFiles.MaxApprovalBytes);
             if (value.Schema != 1 || value.Binding != binding || !RewardIdentity.IsGuid(value.RunId)
                 || Path.GetFileName(path) != value.RunId + ".json" || value.Sequence is < 1 or > 4096

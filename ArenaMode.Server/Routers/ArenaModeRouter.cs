@@ -409,7 +409,7 @@ public sealed class ArenaModeRouter : StaticRouter
                     });
                 }
 
-                if (!Snapshots.RestoreSnapshot(sessionId))
+                if (!Snapshots.HasPendingPersistence(sessionId) && !Snapshots.RestoreSnapshot(sessionId))
                 {
                     return Json(new
                     {
@@ -429,10 +429,13 @@ public sealed class ArenaModeRouter : StaticRouter
                 }
                 catch (Exception ex)
                 {
-                    // The in-memory profile and the still-clean pre-raid disk
-                    // profile are both safe; report the persistence warning and
-                    // still enter the bounded PFT finalization window below.
                     _logger.Error($"[ArenaMode] Failed to persist restored profile after local-start failure: {ex}");
+                    return Json(new
+                    {
+                        disarmed = false,
+                        state = ArenaSessionState.RecoveringStartFailure.ToString(),
+                        reason = "Restored Arena profile could not be verified on disk; retry retained",
+                    });
                 }
 
                 // The server raid-start already published InRaid, so PFT follower
@@ -576,10 +579,10 @@ public sealed class ArenaModeRouter : StaticRouter
         // post-raid restore (client crash mid-raid). The disk profile is clean
         // (post-raid processing was skipped), but the in-memory profile may carry
         // raid-start mutations — restore before doing anything else.
-        if (Snapshots.HasSnapshot(sessionId))
+        if (Snapshots.HasSnapshot(sessionId) || Snapshots.HasPendingPersistence(sessionId))
         {
             _logger.Warning("[ArenaMode] Stale snapshot from a previous arena raid found — restoring first.");
-            if (!Snapshots.RestoreSnapshot(sessionId))
+            if (!Snapshots.HasPendingPersistence(sessionId) && !Snapshots.RestoreSnapshot(sessionId))
             {
                 return Json(new
                 {
@@ -589,8 +592,7 @@ public sealed class ArenaModeRouter : StaticRouter
                 });
             }
 
-            await _saveServer.SaveProfileAsync(sessionId, ct);
-            ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
+            await ArenaContext.ProtectedRaidEnd!.PersistRestoredProfileAfterFailedStartAsync(sessionId);
             Sessions.MarkIdle(sessionId);
         }
 
