@@ -44,6 +44,10 @@ never a payment or restoration proof. Preserve exact case acknowledgement and
 permanent replay rejection. Full native restore
 readback is mandatory even with rewards OFF; private checkpoint publication and
 archival precede immutable offline closure and tree retirement.
+Native end and failed/stale-start recovery must drain native update callbacks
+before the actual profile swap. Use the protected end service's owned persistence
+window through save/readback/completion; never restore directly in a router or
+resume the session-return owner's update hold. Read docs/RAID-END-PERSISTENCE-20261027.md.
 Read docs/ARENA-OFFLINE-SESSION-20261025.md before changing session ownership: schema 3
 stops the ordinary server before copy, holds its lifetime lock privately, uses
 signed local consent and recovers only before normal profile loading. Missing

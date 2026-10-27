@@ -107,17 +107,14 @@ public sealed class ArenaPostRaidPmcSkipPatch : AbstractPatch
                     return false;
 
                 case ArenaLocalRaidEndDisposition.FirstArenaEnd:
-                    if (!ArenaNativeEndAdmission.TryClaimAndRestore(
+                    if (!ArenaNativeEndAdmission.TryClaim(
                             sessions,
-                            snapshots,
                             sessionId,
                             nativeEndIdentity))
                     {
-                        // Claim-first: a failed restore aborts FinalizingEnd so
-                        // the snapshot and InRaid retry stay intact. No ordinary
-                        // post-raid save is allowed.
+                        // The service drains background writers before restoring.
                         __result = Task.FromException(new InvalidOperationException(
-                            "Arena could not claim and restore its protected profile snapshot; local-end remains retryable"));
+                            "Arena could not claim its protected profile snapshot; local-end remains retryable"));
                         return false;
                     }
 

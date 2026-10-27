@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ArenaMode.Server.Services;
+using ArenaMode.Server.Rewards;
 using ArenaMode.Server.Compat;
 using ArenaMode.Server.Patches;
 using ArenaMode.Shared;
@@ -395,35 +396,8 @@ public sealed class ArenaModeRouter : StaticRouter
 
                 try
                 {
-                    ArenaContext.ProtectedRaidEnd.ResetNonProfileLifecycle();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(
-                        $"[ArenaMode] Failed-start lifecycle cleanup failed before snapshot restore: {ex}");
-                    return Json(new
-                    {
-                        disarmed = false,
-                        state = ArenaSessionState.RecoveringStartFailure.ToString(),
-                        reason = "Arena start failed and its server lifecycle cleanup remains retryable",
-                    });
-                }
-
-                if (!Snapshots.HasPendingPersistence(sessionId) && !Snapshots.RestoreSnapshot(sessionId))
-                {
-                    return Json(new
-                    {
-                        disarmed = false,
-                        state = ArenaSessionState.RecoveringStartFailure.ToString(),
-                        reason = "Arena start failed but its profile snapshot could not be restored",
-                    });
-                }
-
-                try
-                {
-                    // Recovery is committed once the exact task has settled and
-                    // the snapshot swap succeeds. Do not let a lost HTTP reply
-                    // cancel persistence and strand RecoveringStartFailure.
+                    // The service drains updates before the snapshot swap.
+                    // A lost HTTP reply cannot cancel committed persistence.
                     await ArenaContext.ProtectedRaidEnd
                         .PersistRestoredProfileAfterFailedStartAsync(sessionId);
                 }
@@ -469,6 +443,9 @@ public sealed class ArenaModeRouter : StaticRouter
     {
         if (Sessions == null || Snapshots == null)
             return Json(new { armed = false, reason = "mod not initialized" });
+
+        if (!RewardReturnQuiescence.Enabled)
+            return Json(new { armed = false, reason = "Arena profile protection unavailable" });
 
         if (!Protocol.IsLifecycleRequestId(request.RequestId ?? string.Empty))
         {
@@ -582,16 +559,6 @@ public sealed class ArenaModeRouter : StaticRouter
         if (Snapshots.HasSnapshot(sessionId) || Snapshots.HasPendingPersistence(sessionId))
         {
             _logger.Warning("[ArenaMode] Stale snapshot from a previous arena raid found — restoring first.");
-            if (!Snapshots.HasPendingPersistence(sessionId) && !Snapshots.RestoreSnapshot(sessionId))
-            {
-                return Json(new
-                {
-                    armed = false,
-                    state = ArenaSessionState.Idle.ToString(),
-                    reason = "stale Arena profile snapshot could not be restored; retry retained",
-                });
-            }
-
             await ArenaContext.ProtectedRaidEnd!.PersistRestoredProfileAfterFailedStartAsync(sessionId);
             Sessions.MarkIdle(sessionId);
         }
@@ -786,9 +753,8 @@ public sealed class ArenaModeRouter : StaticRouter
                         request.ArmToken,
                         out string? crashRecoveryIdentity))
                 {
-                    if (!ArenaNativeEndAdmission.TryClaimAndRestore(
+                    if (!ArenaNativeEndAdmission.TryClaim(
                             Sessions,
-                            Snapshots,
                             sessionId,
                             crashRecoveryIdentity))
                     {
@@ -797,7 +763,7 @@ public sealed class ArenaModeRouter : StaticRouter
                             restored = false,
                             completed = false,
                             state = Sessions.GetStatus(sessionId).state.ToString(),
-                            reason = "crashed Arena end could not be claimed and restored",
+                            reason = "crashed Arena end could not be claimed",
                         });
                     }
 

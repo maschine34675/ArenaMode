@@ -1405,17 +1405,18 @@ internal static class Program
                && protectedEnd.Contains("RunIntervalValues.OutOfRaid", StringComparison.Ordinal)
                && protectedEnd.Contains("CompleteNativeEndFinalization", StringComparison.Ordinal)
                && router.Contains("GetOrStart(sessionId, finalizingIdentity!)", StringComparison.Ordinal)
-               && router.Contains("ResetNonProfileLifecycle", StringComparison.Ordinal)
+               && protectedEnd.Contains("ResetNonProfileLifecycle", StringComparison.Ordinal)
                && router.Contains("PersistRestoredProfileAfterFailedStartAsync", StringComparison.Ordinal)
                && matchService.Contains("_teamStartAbortCommitted", StringComparison.Ordinal)
                && serverClient.Contains("HasPendingEnd", StringComparison.Ordinal)
                && serverClient.Contains("completed", StringComparison.Ordinal),
             "native local-end is an exact-id serialized transaction with cancellation-independent persistence, recovery and retained acknowledgement");
-        Assert(nativeEndAdmission.IndexOf("BeginNativeEndFinalization", StringComparison.Ordinal)
-               < nativeEndAdmission.IndexOf("RestoreSnapshot", StringComparison.Ordinal)
-               && nativeEndAdmission.Contains("AbortNativeEndFinalization", StringComparison.Ordinal)
-               && postRaid.Contains("ArenaNativeEndAdmission.TryClaimAndRestore", StringComparison.Ordinal)
-               && router.Contains("ArenaNativeEndAdmission.TryClaimAndRestore", StringComparison.Ordinal)
+        Assert(nativeEndAdmission.Contains("BeginNativeEndFinalization", StringComparison.Ordinal)
+               && !nativeEndAdmission.Contains("RestoreSnapshot", StringComparison.Ordinal)
+               && protectedEnd.Contains("AbortNativeEndFinalization", StringComparison.Ordinal)
+               && protectedEnd.Contains("_persistence.RunAsync", StringComparison.Ordinal)
+               && postRaid.Contains("ArenaNativeEndAdmission.TryClaim", StringComparison.Ordinal)
+               && router.Contains("ArenaNativeEndAdmission.TryClaim", StringComparison.Ordinal)
                && sessionService.Contains("AbortNativeEndFinalization", StringComparison.Ordinal)
                && Regex.IsMatch(
                    protocol,

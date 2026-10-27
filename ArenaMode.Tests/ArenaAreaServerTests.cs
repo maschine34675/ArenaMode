@@ -34,6 +34,9 @@ public sealed partial class ArenaAreaServerTests : IDisposable
     private readonly ArenaSessionService? _oldSessions = ArenaContext.Sessions;
     private readonly ProfileSnapshotService? _oldSnapshots = ArenaContext.Snapshots;
     private readonly ArenaModeConfig _oldConfig = ArenaContext.Config;
+    private readonly bool _oldUpdateGate = ArenaMode.Server.Rewards.RewardReturnQuiescence.Enabled;
+    private static readonly PropertyInfo UpdateGateEnabled = typeof(ArenaMode.Server.Rewards.RewardReturnQuiescence)
+        .GetProperty("Enabled", BindingFlags.Static | BindingFlags.NonPublic)!;
     private readonly object? _oldRouter = RouterInstance.GetValue(null);
     private static readonly FieldInfo RouterInstance = typeof(ArenaModeRouter).GetField(
         "Instance", BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -41,6 +44,7 @@ public sealed partial class ArenaAreaServerTests : IDisposable
 
     public ArenaAreaServerTests()
     {
+        UpdateGateEnabled.SetValue(null, true);
         ArenaContext.Config = new ArenaModeConfig
         {
             Maps = new(StringComparer.OrdinalIgnoreCase)
@@ -54,10 +58,25 @@ public sealed partial class ArenaAreaServerTests : IDisposable
 
     public void Dispose()
     {
+        UpdateGateEnabled.SetValue(null, _oldUpdateGate);
         ArenaContext.Sessions = _oldSessions;
         ArenaContext.Snapshots = _oldSnapshots;
         ArenaContext.Config = _oldConfig;
         RouterInstance.SetValue(null, _oldRouter);
+    }
+
+    [Fact]
+    public async Task MissingNativeUpdateProtectionRejectsArenaBeforeConsumingTheSnapshot()
+    {
+        var router = RouterWithSnapshot();
+        UpdateGateEnabled.SetValue(null, false);
+        using var response = JsonDocument.Parse(await InvokeStart(router, new ArenaRaidStartRequest
+        {
+            RequestId = Token, Map = Map, Mode = Mode,
+        }));
+        Assert.False(response.RootElement.GetProperty("armed").GetBoolean());
+        Assert.Equal("Arena profile protection unavailable", response.RootElement.GetProperty("reason").GetString());
+        Assert.True(ArenaContext.Snapshots!.HasSnapshot(Session));
     }
 
     [Theory]

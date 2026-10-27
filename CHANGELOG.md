@@ -10,6 +10,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Fix Arena round-end stalls caused by concurrent hideout updates during profile
+  restoration. Background updates resume after complete save verification.
+  [Details](docs/RAID-END-PERSISTENCE-20261027.md).
 - Automatically discard uncertain old rewards at normal server startup. No
   repair dialog or player action; profile progress stays intact.
   [Details](docs/REWARD-DISCARD-20261027.md).

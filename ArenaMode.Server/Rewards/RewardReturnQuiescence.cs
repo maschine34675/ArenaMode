@@ -13,15 +13,16 @@ internal sealed class RewardReturnRequestGate
     private readonly object _sync = new();
     private int _active;
     private bool _held;
+    private int _scopedHolds;
     private TaskCompletionSource _drained = Completed();
-    internal bool Held { get { lock (_sync) return _held; } }
+    internal bool Held { get { lock (_sync) return _held || _scopedHolds != 0; } }
     internal int Active { get { lock (_sync) return _active; } }
 
     internal IDisposable? TryEnter()
     {
         lock (_sync)
         {
-            if (_held) return null;
+            if (_held || _scopedHolds != 0) return null;
             if (_active++ == 0) _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
             return new Lease(this);
         }
@@ -35,6 +36,25 @@ internal sealed class RewardReturnRequestGate
         }
     }
     internal void Resume() { lock (_sync) _held = false; }
+    // The server-return owner and individual restore transactions must never
+    // release each other's hold. A cancelled drain removes only its own hold.
+    internal async Task<IDisposable> HoldAndDrainAsync(CancellationToken ct)
+    {
+        Task drain;
+        lock (_sync) { _scopedHolds++; drain = _drained.Task; }
+        var hold = new Hold(this);
+        try { await drain.WaitAsync(ct).ConfigureAwait(false); return hold; }
+        catch { hold.Dispose(); throw; }
+    }
+    private sealed class Hold(RewardReturnRequestGate owner) : IDisposable
+    {
+        private int _disposed;
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            lock (owner._sync) owner._scopedHolds--;
+        }
+    }
     private void Leave()
     {
         lock (_sync) if (--_active == 0) _drained.TrySetResult();

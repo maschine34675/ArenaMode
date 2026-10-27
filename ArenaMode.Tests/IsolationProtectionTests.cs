@@ -88,8 +88,8 @@ public sealed class IsolationProtectionTests
     {
         InArenaRaid(liveSaveServer: true, (sessions, snapshots, nativeEnd) =>
         {
-            Assert.False(ArenaNativeEndAdmission.TryClaimAndRestore(
-                sessions, snapshots, Session, "factory.Pmc isolation|arenamode:deadbeefdeadbeefdeadbeefdeadbeef"));
+            Assert.False(ArenaNativeEndAdmission.TryClaim(
+                sessions, Session, "factory.Pmc isolation|arenamode:deadbeefdeadbeefdeadbeefdeadbeef"));
             Assert.True(snapshots.HasSnapshot(Session));
             Assert.Equal(ArenaSessionState.InRaid, sessions.GetStatus(Session).state);
             Assert.Equal(ArenaLocalRaidEndDisposition.FirstArenaEnd,
@@ -102,7 +102,9 @@ public sealed class IsolationProtectionTests
     {
         InArenaRaid(liveSaveServer: false, (sessions, snapshots, nativeEnd) =>
         {
-            Assert.False(ArenaNativeEndAdmission.TryClaimAndRestore(sessions, snapshots, Session, nativeEnd));
+            Assert.True(ArenaNativeEndAdmission.TryClaim(sessions, Session, nativeEnd));
+            Assert.False(snapshots.RestoreSnapshot(Session));
+            sessions.AbortNativeEndFinalization(Session, nativeEnd);
             Assert.True(snapshots.HasSnapshot(Session));
             Assert.Equal(ArenaSessionState.InRaid, sessions.GetStatus(Session).state);
             Assert.Equal(ArenaLocalRaidEndDisposition.FirstArenaEnd,
@@ -111,11 +113,13 @@ public sealed class IsolationProtectionTests
     }
 
     [Fact]
-    public void SuccessfulClaimRestoresThenLetsOrdinaryStartFollow()
+    public void SuccessfulClaimRetainsSnapshotUntilTheProtectedServiceRestores()
     {
         InArenaRaid(liveSaveServer: true, (sessions, snapshots, nativeEnd) =>
         {
-            Assert.True(ArenaNativeEndAdmission.TryClaimAndRestore(sessions, snapshots, Session, nativeEnd));
+            Assert.True(ArenaNativeEndAdmission.TryClaim(sessions, Session, nativeEnd));
+            Assert.True(snapshots.HasSnapshot(Session));
+            Assert.True(snapshots.RestoreSnapshot(Session));
             Assert.False(snapshots.HasSnapshot(Session));
             Assert.Equal(ArenaSessionState.FinalizingEnd, sessions.GetStatus(Session).state);
             Assert.True(sessions.CompleteNativeEndFinalization(Session, nativeEnd));
@@ -128,11 +132,12 @@ public sealed class IsolationProtectionTests
     {
         string admission = File.ReadAllText(Path.Combine(
             RepoFiles.Root, "ArenaMode.Server", "Services", "ArenaNativeEndAdmission.cs"));
-        Assert.True(admission.IndexOf("BeginNativeEndFinalization", StringComparison.Ordinal)
-                    < admission.IndexOf("RestoreSnapshot", StringComparison.Ordinal));
-        Assert.Contains("AbortNativeEndFinalization", admission, StringComparison.Ordinal);
-        Assert.True(admission.IndexOf("RestoreSnapshot", StringComparison.Ordinal)
-                    < admission.IndexOf("AbortNativeEndFinalization", StringComparison.Ordinal));
+        Assert.Contains("BeginNativeEndFinalization", admission, StringComparison.Ordinal);
+        Assert.DoesNotContain("RestoreSnapshot", admission, StringComparison.Ordinal);
+        string service = File.ReadAllText(Path.Combine(RepoFiles.Root,
+            "ArenaMode.Server", "Services", "ArenaProtectedRaidEndService.cs"));
+        Assert.Contains("AbortNativeEndFinalization", service, StringComparison.Ordinal);
+        Assert.Contains("_persistence.RunAsync", service, StringComparison.Ordinal);
     }
 
     private static void InArenaRaid(

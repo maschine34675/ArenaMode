@@ -38,6 +38,7 @@ public sealed class ArenaProtectedRaidEndService(
 
     private readonly Dictionary<string, PendingEnd> _pending = new();
     private readonly Lock _lock = new();
+    private readonly ArenaProfilePersistenceWindow _persistence = new(RewardReturnQuiescence.Updates);
 
     public Task GetOrStart(
         MongoId sessionId,
@@ -69,10 +70,6 @@ public sealed class ArenaProtectedRaidEndService(
     {
         try
         {
-            // These are the non-profile lifecycle effects from SPT's ordinary
-            // EndLocalRaidAsync that must still happen after Arena skips it.
-            ResetNonProfileLifecycle();
-
             // The native end is already committed at this point. A client
             // disconnect may cancel only that caller's wait, never this shared
             // persistence transaction. Native SaveProfileAsync advances its
@@ -80,22 +77,24 @@ public sealed class ArenaProtectedRaidEndService(
             // write. An exact retry continues waiting for the same Task.
             using var transactionTimeout = new CancellationTokenSource(
                 ProtectedEndTimeout);
-            await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
-            await backupService.InitializeAsync(transactionTimeout.Token);
-
-            if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity,
-                    () => ArenaRewardLifecycle.Persisted(sessionId, nativeEndIdentity)))
+            await RestoreAndPersistAsync(sessionId, async () =>
             {
-                // Another exact retry may already have closed the same
-                // transaction. Its completed tombstone is equivalent success.
-                if (sessions.ClassifyLocalRaidEnd(sessionId, nativeEndIdentity)
-                    != ArenaLocalRaidEndDisposition.CompletedArenaEndRetry)
+                // Background callbacks are drained before the actual swap,
+                // including when the out-of-raid update interval is restored.
+                ResetNonProfileLifecycle();
+                await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
+                await backupService.InitializeAsync(transactionTimeout.Token);
+
+                if (!sessions.CompleteNativeEndFinalization(sessionId, nativeEndIdentity,
+                        () => ArenaRewardLifecycle.Persisted(sessionId, nativeEndIdentity)))
                 {
-                    throw new InvalidOperationException(
-                        "Arena native-end transaction lost its exact session identity");
+                    if (sessions.ClassifyLocalRaidEnd(sessionId, nativeEndIdentity)
+                        != ArenaLocalRaidEndDisposition.CompletedArenaEndRetry)
+                        throw new InvalidOperationException(
+                            "Arena native-end transaction lost its exact session identity");
                 }
-            }
-            snapshots.CompleteRestoredPersistence(sessionId);
+                snapshots.CompleteRestoredPersistence(sessionId);
+            }, transactionTimeout.Token);
 
             logger.Info(
                 $"[ArenaMode] Protected Arena end completed for session {sessionId}; " +
@@ -103,6 +102,10 @@ public sealed class ArenaProtectedRaidEndService(
         }
         catch (Exception ex)
         {
+            // A pre-swap failure still owns its original snapshot. Restore
+            // failure returns to the original exact end admission for retry.
+            if (!snapshots.HasPendingPersistence(sessionId))
+                sessions.AbortNativeEndFinalization(sessionId, nativeEndIdentity);
             // FinalizingEnd remains protected. EFT's identical native retry will
             // create a fresh task after this one faults and retry persistence.
             logger.Error(
@@ -128,9 +131,21 @@ public sealed class ArenaProtectedRaidEndService(
     {
         using var transactionTimeout = new CancellationTokenSource(
             ProtectedEndTimeout);
-        await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
-        ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
-        snapshots.CompleteRestoredPersistence(sessionId);
+        await RestoreAndPersistAsync(sessionId, async () =>
+        {
+            ResetNonProfileLifecycle();
+            await SaveRestoredProfileAsync(sessionId, transactionTimeout.Token);
+            ArenaRewardLifecycle.Persisted(sessionId, string.Empty, recoveryOnly: true);
+            snapshots.CompleteRestoredPersistence(sessionId);
+        }, transactionTimeout.Token);
+    }
+
+    private Task RestoreAndPersistAsync(MongoId sessionId, Func<Task> persist, CancellationToken ct)
+    {
+        if (!RewardReturnQuiescence.Enabled)
+            throw new InvalidOperationException("Arena background profile protection is unavailable");
+        return _persistence.RunAsync(sessionId.ToString(), () => snapshots.HasPendingPersistence(sessionId),
+            () => snapshots.RestoreSnapshot(sessionId), persist, ct);
     }
 
     private Task SaveRestoredProfileAsync(MongoId sessionId, CancellationToken ct)
