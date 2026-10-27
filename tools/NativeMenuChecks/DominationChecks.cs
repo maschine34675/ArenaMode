@@ -4,14 +4,6 @@ using ArenaMode.Shared;
 using SPT.Common.Http;
 using System.Linq;
 
-namespace ArenaMode.Bots
-{
-    internal static class DominationObjectiveBridge
-    {
-        internal static bool Available = true;
-    }
-}
-
 internal static partial class Program
 {
     private static void CheckDominationAdmission()

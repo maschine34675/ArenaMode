@@ -10,6 +10,14 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Resolve old Arena reward conflicts from a compact review in the Arena entry
+  or reward card. Explicit confirmation closes only those cases without another
+  payout at the next normal server start; profile progress and original evidence
+  remain intact. [Recovery](docs/REWARD-RECOVERY-UX-20261027.md).
+- Retain durable restoration evidence across interrupted sessions and verify
+  the complete saved profile before releasing a protected raid, including when
+  rewards are OFF. [Persistence](docs/REWARD-RESTORATION-20261027.md).
+
 - Extend Domination to Equator and Bay5 (one original control point each),
   AirPit and Bowl (two each). Use the original individual capture anchors,
   team boxes and gate completion; MapPort monitors show objective scores.

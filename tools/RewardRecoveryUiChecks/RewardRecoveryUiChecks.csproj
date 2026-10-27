@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RecoveryFlowSource Condition="'$(RecoveryFlowSource)' == ''">../../ArenaMode.Client/Session/ArenaRewardRecoveryFlow.cs</RecoveryFlowSource>
+    <RecoveryTextSource Condition="'$(RecoveryTextSource)' == ''">../../ArenaMode.Client/Session/ArenaRewardRecoveryText.cs</RecoveryTextSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(RecoveryFlowSource)" Link="Production/ArenaRewardRecoveryFlow.cs" />
+    <Compile Include="$(RecoveryTextSource)" Link="Production/ArenaRewardRecoveryText.cs" />
+    <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="Production/RewardWire.cs" />
+  </ItemGroup>
+</Project>

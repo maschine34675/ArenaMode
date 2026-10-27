@@ -17,6 +17,7 @@
     <Compile Include="../NativeMenuChecks/StandIns.cs" Link="StandIns.cs" />
     <Compile Include="../NativeMenuChecks/ColaArmChecks.cs" Link="ColaArmChecks.cs" />
     <Compile Include="../NativeMenuChecks/AreaStandIns.cs" Link="AreaStandIns.cs" />
+    <Compile Include="../NativeMenuChecks/DominationBridgeStandIn.cs" Link="DominationBridgeStandIn.cs" />
     <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
@@ -30,6 +31,7 @@
     <Compile Include="$(ProductionConditionalMapSource)" Link="Production/ArenaConditionalMapView.cs" />
     <Compile Include="$(ProductionServerClientSource)" Link="Production/ArenaServerClient.cs" />
     <Compile Include="$(ProductionLocalStartSource)" Link="Production/ArenaLocalRaidStartedPatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
     <Compile Include="$(ProductionSessionModeCaptionSource)" Link="Production/ArenaSessionModeCaption.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
