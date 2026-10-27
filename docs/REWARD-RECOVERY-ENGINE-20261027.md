@@ -40,3 +40,7 @@ New unrelated runs retain their normal validation and can pay. New unresolved ge
 The two optional real-data cases use `SPT_REWARD_RECOVERY_BASELINE` pointing to the private baseline directory with `local/` and `gpu2/`. Each test copies only the selected profile and its Arena namespaces into an owned temporary root. Only copied enrollment/handoff/delegation root paths are relocated; signed receipt payloads, keys, allocation, result and payment evidence remain exact. Tests assert the original copied case bytes and unrelated profile fields survive closure, then verify a fresh reward and replay. Omission is an explicit skipped test, never a silent pass. The task verification runner supplies the baseline and requires zero skips for this family.
 
 Four implementation passes: authority/schema scope; durable-write/crash transitions; kernel/inbox/producer replay exceptions; preservation and future-operation behavior. Builds, test execution, independent review, deployment and native acceptance are owned by the integrating root task and are recorded separately; source implementation alone is not native acceptance.
+
+The root run passed all 37 engine checks, including both real isolated baselines.
+See [integration acceptance](REWARD-RECOVERY-ACCEPTANCE-20261027.md) for the full
+regression, deployed builds, native lifecycle and unchanged original claims.

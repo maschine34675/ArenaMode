@@ -2,7 +2,7 @@
 
 Implementation for leaf 1.2 of `.unlazy/reward-recovery-20261027/PLAN.md`.
 Builds, executable tests, deployment and native acceptance are root-owned and
-must be reported separately. This document does not claim those checks passed.
+reported separately in [integration acceptance](REWARD-RECOVERY-ACCEPTANCE-20261027.md).
 
 ## Native profile safety
 
@@ -99,7 +99,7 @@ archive conflict, invalid native startup windows and private publication retries
 failed write plus cached no-op retries with/without reward observers, independent
 positive full readback, and live mutation against the detached expected clone.
 
-Root should run the no-deploy verification runner with its existing safe targets
-and `RewardRestorationCheckpointTests|RewardLifecycleTests|RewardRuntimeTests`, then
-the full reward and native isolation suites. In-game/native restart acceptance is
-separate from these generated temporary-fixture checks.
+Root passed 148 restoration/lifecycle/runtime tests with the no-deploy runner,
+then the full regression. Native Factory exit and private-to-normal return also
+produced and archived all six checkpoint records. In-game/native acceptance
+remains distinct from the temporary-fixture checks; see the linked report.

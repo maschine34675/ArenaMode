@@ -43,11 +43,12 @@ private/blocked/queued cases, login/profile changes, late replies, uncertain POS
 reconciliation, clean-profile visibility and bounded text. Six deliberate source
 faults must fail the corresponding assertions.
 
-No build, test, deployment or native acceptance is claimed by this implementation
-note. The root verification run records those results separately. Native checks
-must confirm the side-choice/card geometry, modal buttons and keyboard input,
-whitelist-blocked reachability, and absence from main/trader/inventory screens.
-Do not confirm a real profile's old-case waiver merely to test this UI.
+The root verification passed the linked UI checks and all six fault controls.
+GPU2 confirmed side-choice/card geometry, modal buttons and keyboard dismissal,
+whitelist-blocked reachability, and absence from normal main/trader/inventory
+screens. No real profile waiver was submitted. Build, deployment, full regression
+and the native lifecycle evidence are recorded separately in
+[integration acceptance](REWARD-RECOVERY-ACCEPTANCE-20261027.md).
 
 Implementation review passes: API/lifecycle, profile/consent boundaries,
 asynchronous failures, and adversarial state transitions. These are source review,
