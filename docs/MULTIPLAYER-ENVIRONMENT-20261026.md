@@ -111,3 +111,37 @@ selected hashes, sanitized configuration fields, bounded process checks and
 official release/source inspection. No credentials or profile contents are
 included. This audit changed documentation only: no build, deployment, live
 connection test or multiplayer raid was performed.
+
+## Tool deployment — 2026-10-27
+
+After the user cleaned the installations and deferred SPT/Fika updates, the
+requested diagnostic tools were installed in the four Fika trees above:
+
+| Target | LogTools | UiBridge |
+| --- | --- | --- |
+| SPT-VM, `D:\SPT41Fika` | 1.8.0, patcher and companion plugin | Not installed |
+| SPT-GPU-1, `C:\SPTDevFika` | 1.8.0, patcher and companion plugin | 0.9.6, enabled/configured |
+| SPT-GPU-2, `C:\SPTDevFika` | 1.8.0, patcher and companion plugin | 0.9.6, enabled/configured |
+| MASCHINE11, `Z:\` share | 1.8.0, patcher and companion plugin | Not installed |
+
+Payload: `BepInEx/patchers/maschine-LogTools.dll`,
+`BepInEx/plugins/maschine-LogTools.Plugin.dll`, and on GPU clients only
+`BepInEx/plugins/maschine-UiBridge.dll`. Existing Release artifacts were reused
+from clean LogTools `ac0b9fdb` and UiBridge `baca6c6`; they match the normal
+development installation. All ten destination DLLs passed independent SHA-256
+readback. All four existing `BepInEx/config/maschine-LogTools.cfg` files retain
+their original hashes; new LogTools keys will use defaults until first startup.
+
+Both new UiBridge configurations use their host's LAN address, port 38765 and
+the existing MCP authentication and client allowlist. Fika gets separate
+`C:\Temp\uibridge-fika-host\state` and `captures` directories. The existing
+MCP endpoints can reach the Fika client when it owns that port; the ordinary
+and Fika game cannot both serve that endpoint simultaneously. gpu-run's normal
+installation/start targets were not changed; its shared-backend Fika start
+support remains pending.
+
+Old LogTools DLLs/configurations and the exact deployment manifest are retained
+locally under ignored `artifacts/fika-tool-deploy-20261027/77266ec716b8462cbdcfad527a2ebd18/`.
+No processes were started or stopped. Exclusive access to the old DLLs was
+verified before replacement. This is verified deployment on disk, not loaded
+runtime or native Fika acceptance; a new game process must load the tools.
