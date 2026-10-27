@@ -204,6 +204,8 @@ public static class Settings
     public static ConfigEntry<string> TeamDeathmatchSide { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchKillLimit { get; private set; }
     public static ConfigEntry<int> TeamDeathmatchTimeLimitSeconds { get; private set; }
+    public static ConfigEntry<int> DominationScoreLimit { get; private set; }
+    public static ConfigEntry<int> DominationTimeLimitSeconds { get; private set; }
     public static ConfigEntry<int> ZombieMaxAlive { get; private set; }
     public static ConfigEntry<int> ZombieWaveStartSize { get; private set; }
     public static ConfigEntry<int> ZombieWaveGrowth { get; private set; }
@@ -491,6 +493,12 @@ public static class Settings
 
     internal static bool TrySelectTeamDeathmatchTimeLimit(int value)
         => TrySelectTeamDeathmatchLimit(TeamDeathmatchTimeLimitSeconds, value, 7200, "time limit");
+
+    internal static bool TrySelectDominationScoreLimit(int value)
+        => TrySelectTeamDeathmatchLimit(DominationScoreLimit, value, 1000, "Domination score limit");
+
+    internal static bool TrySelectDominationTimeLimit(int value)
+        => TrySelectTeamDeathmatchLimit(DominationTimeLimitSeconds, value, 7200, "Domination time limit");
 
     private static bool TrySelectTeamDeathmatchLimit(ConfigEntry<int> entry, int value, int maximum, string label)
     {
@@ -1174,7 +1182,7 @@ public static class Settings
                 "gungame: climb a ladder of weapons, one rung per kill. " +
                 "tactical: buy a loadout, fight one squad, and sit the round out if you fall. " +
                 "teamdeathmatch: equal USEC and BEAR teams with instant respawns and Arena kits. " +
-                "domination: Factory objective prototype; capture three points, first to 200 or 10 minutes. " +
+                "domination: capture and hold the map's control points; configurable score and time limits. " +
                 "zombie: endless waves of the infected, with instant respawns and Arena kits.",
                 new AcceptableValueList<string>(
                     ArenaModeCatalog.DeathmatchId,
@@ -1229,6 +1237,13 @@ public static class Settings
         TeamDeathmatchTimeLimitSeconds = config.Bind("Team Deathmatch", "TimeLimitSeconds", 600,
             new ConfigDescription("Independent Team Deathmatch duration after both teams are ready and the countdown ends (0 = unlimited). " +
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
+                new AcceptableValueRange<int>(0, 7200)));
+
+        DominationScoreLimit = config.Bind("Domination", "ScoreLimit", 200,
+            new ConfigDescription("Team points needed to win (0 = unlimited). Frozen at match start.",
+                new AcceptableValueRange<int>(0, 1000)));
+        DominationTimeLimitSeconds = config.Bind("Domination", "TimeLimitSeconds", 600,
+            new ConfigDescription("Match duration in seconds (0 = unlimited). Highest score wins; equal scores draw. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 7200)));
 
         ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 32,

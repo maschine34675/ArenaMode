@@ -15,7 +15,7 @@ internal static class ArenaCompactModeRules
 
     internal static string Describe(string mode, bool team, int rounds, int kills, int seconds,
         bool freeForAll, int teamKills, int teamSeconds, int tacticalWins,
-        bool friendlyFire, int controlPoints)
+        bool friendlyFire, int controlPoints, int dominationPoints = 200, int dominationSeconds = 600)
     {
         switch (ArenaModeCatalog.NormalizeId(mode))
         {
@@ -33,7 +33,8 @@ internal static class ArenaCompactModeRules
             case ArenaModeCatalog.DominationId:
                 return (controlPoints > 0 ? "HOLD " + controlPoints + (controlPoints == 1 ? " POINT" : " POINTS") + " · earn team score"
                     : "HOLD POINTS · select a map")
-                    + "\nMATCH END · 200 points / 10 min";
+                    + "\n" + (dominationPoints == 0 && dominationSeconds == 0 ? "ENDLESS · no automatic match end"
+                        : "MATCH END · first active limit");
             case ArenaModeCatalog.TacticalId:
                 return team ? "FIRST TO " + Math.Max(1, Math.Min(9, tacticalWins)) + " WINS · death = spectate\nFallen allies return next round"
                     : "ENDLESS ROUNDS · death / timeout loses\nARENA CASH · buy / keep surviving kit";

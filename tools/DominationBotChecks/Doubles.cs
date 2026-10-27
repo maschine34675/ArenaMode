@@ -33,9 +33,11 @@ namespace UnityEngine.AI
         public const int AllAreas=-1;
         public static bool Samples=true, Paths=true;
         public static int Calls;
-        public static bool SamplePosition(Vector3 p,out NavMeshHit hit,float distance,int areas) { hit=new(){position=p};return Samples; }
+        public static Func<Vector3, Vector3> Projection = p => p;
+        public static Func<Vector3, bool> Reachable = _ => true;
+        public static bool SamplePosition(Vector3 p,out NavMeshHit hit,float distance,int areas) { hit=new(){position=Projection(p)};return Samples; }
         public static bool CalculatePath(Vector3 a,Vector3 b,int areas,NavMeshPath path)
-        { Calls++;path.status=Paths?NavMeshPathStatus.PathComplete:NavMeshPathStatus.PathPartial;path.corners=[a,b];return true; }
+        { Calls++;path.status=Paths && Reachable(b)?NavMeshPathStatus.PathComplete:NavMeshPathStatus.PathPartial;path.corners=[a,b];return true; }
     }
 }
 namespace Comfort.Common { public static class Singleton<T> where T:class {public static T Instance;public static bool Instantiated=>Instance!=null;} }

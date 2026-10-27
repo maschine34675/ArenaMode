@@ -10,6 +10,11 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Improve Domination bot approaches, vary Factory's three control points each
+  match, and add separate point/time limit controls. Show Day/Night for Equator
+  and remove the redundant character-selection notice.
+  [Details](docs/DOMINATION-OPTIONS-ROUTES-20261027.md).
+
 - Fix Arena round-end stalls caused by concurrent hideout updates during profile
   restoration. Background updates resume after complete save verification.
   [Details](docs/RAID-END-PERSISTENCE-20261027.md).

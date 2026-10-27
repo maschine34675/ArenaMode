@@ -16,9 +16,10 @@ public sealed class ArenaDominationLogic : CustomLogic
     private Player _body;
     private BotMoverState _state;
     private AbstractBotPath _path;
-    private Vector3 _destination, _progressPosition;
+    private Vector3 _destination, _ownedDestination, _progressPosition;
     private float _refreshAt, _progressAt, _remaining, _startedAt, _handoffAt;
     private bool _ownsMovement, _inDoor, _holding, _warned;
+    private int _nextApproach;
 
     public ArenaDominationLogic(BotOwner bot) : base(bot) { _move = new ObjectiveMove(bot); }
 
@@ -42,13 +43,9 @@ public sealed class ArenaDominationLogic : CustomLogic
                 _action.OwnsMovement = true;
                 _startedAt = _progressAt = Time.time; _progressPosition = BotOwner.Position; _remaining = float.MaxValue;
                 _destination = lease.Destination;
+                _nextApproach = 0;
                 _holding = lease.Inside(BotOwner.Position);
-                if (!_holding && !AcquireRoute())
-                {
-                    // One alternative on the opposite side, not unlimited scene searches or center stacking.
-                    _destination = lease.Center * 2f - lease.Destination;
-                    if (!AcquireRoute()) { Fail("no complete objective route"); return; }
-                }
+                if (!_holding && !TryNextApproach()) { Fail("no complete objective route"); return; }
                 _refreshAt = Time.time + 1f;
                 if (Diagnostics.ArenaLog.DeveloperEnabled)
                     Diagnostics.ArenaLog.Developer($"Arena Domination {(_holding ? "holding" : "moving")}: bot={BotOwner.ProfileId}; point={lease.PointId}; destination={_destination}.");
@@ -58,7 +55,7 @@ public sealed class ArenaDominationLogic : CustomLogic
                 if (lease.Inside(BotOwner.Position))
                 { BotOwner.Sprint(false); BotOwner.LookData.SetLookPointByHearing(); return; }
                 _holding = false; _startedAt = _progressAt = Time.time; _remaining = float.MaxValue;
-                if (!AcquireRoute()) { Fail("return to point refused"); return; }
+                if (!AcquireRoute() && !TryNextApproach()) { Fail("return to point refused"); return; }
             }
             _move.UpdateNodeByBrain(null);
             bool inDoor = _move.HandlingDoor || BotOwner.Mover.CurrentState == EBotMoverState.NearDoor;
@@ -72,7 +69,7 @@ public sealed class ArenaDominationLogic : CustomLogic
             if (_inDoor)
             {
                 _inDoor = false; _progressPosition = BotOwner.Position; _progressAt = Time.time;
-                if (BotOwner.Mover.CurrentState != EBotMoverState.Default || !AcquireRoute())
+                if (BotOwner.Mover.CurrentState != EBotMoverState.Default || (!AcquireRoute() && !TryNextApproach()))
                 { Fail("door return route refused"); return; }
             }
             if (lease.Inside(BotOwner.Position) && (BotOwner.Position - _destination).sqrMagnitude <= 1f)
@@ -85,12 +82,16 @@ public sealed class ArenaDominationLogic : CustomLogic
             float distance = BotOwner.Mover.DistDestination;
             if (_remaining - distance >= .4f && (BotOwner.Position - _progressPosition).sqrMagnitude >= .04f)
             { _remaining = distance; _progressAt = Time.time; _progressPosition = BotOwner.Position; }
-            if (Time.time - _progressAt > 4f || Time.time - _startedAt > 60f)
-            { Fail("objective travel made no progress"); return; }
+            if (Time.time - _startedAt > 60f) { Fail("objective trip timed out"); return; }
+            if (Time.time - _progressAt > 4f)
+            {
+                if (!TryNextApproach()) { Fail("objective travel made no progress"); return; }
+                _progressAt = Time.time; _progressPosition = BotOwner.Position; _remaining = float.MaxValue;
+            }
             if (Time.time >= _refreshAt)
             {
                 _refreshAt = Time.time + 1f;
-                if (!AcquireRoute()) Fail("objective route refresh refused");
+                if (!AcquireRoute() && !TryNextApproach()) Fail("objective route refresh refused");
             }
         }
         catch (Exception ex)
@@ -100,9 +101,22 @@ public sealed class ArenaDominationLogic : CustomLogic
         }
     }
 
+    private bool TryNextApproach()
+    {
+        while (_lease?.Current == true && _nextApproach < DominationObjectiveLease.ApproachCount)
+        {
+            var candidate = _lease.Approach(_nextApproach++);
+            if (!ArenaDominationRuntime.TryApproach(_lease, candidate, out var destination)) continue;
+            _destination = destination;
+            if (AcquireRoute()) return true;
+        }
+        return false;
+    }
+
     private bool AcquireRoute()
     {
-        if (_lease?.Current != true || !ArenaDominationRuntime.RouteAllowed(BotOwner.Position, _destination)) return false;
+        if (_lease?.Current != true || !_lease.Inside(_destination)
+            || !ArenaDominationRuntime.RouteAllowed(BotOwner.Position, _destination)) return false;
         var result = BotOwner.GoToPoint(_destination, slowAtTheEnd: true, reachDist: .45f,
             getUpWithCheck: false, mustHaveWay: false, onlyShortTrie: true);
         if (result == NavMeshPathStatus.PathComplete && BotOwner.Mover.TargetPoint is Vector3 target
@@ -110,6 +124,7 @@ public sealed class ArenaDominationLogic : CustomLogic
             && ArenaDominationRuntime.CornersAllowed(BotOwner.Position, BotOwner.Mover.GetCornersFromIndex(0)))
         {
             _state = BotOwner.Mover._moverStateMachine.DefaultMoverState; _path = _state.PathController.CurPath;
+            _ownedDestination = _destination;
             return _path != null;
         }
         BotOwner.Mover.Stop(); return false;
@@ -128,7 +143,7 @@ public sealed class ArenaDominationLogic : CustomLogic
     {
         if (_state == null || (!ReferenceEquals(_state.PathController.CurPath, _path) && _state.PathController.CurPath != null)) return false;
         _state.PathController.Stop(); _path = null;
-        if (_state.LastTargetPoint is Vector3 point && (point - _destination).sqrMagnitude <= .1225f) _state.LastTargetPoint = null;
+        if (_state.LastTargetPoint is Vector3 point && (point - _ownedDestination).sqrMagnitude <= .1225f) _state.LastTargetPoint = null;
         return true;
     }
 

@@ -98,7 +98,8 @@ internal static class ArenaLocationSelectionPatch
         public void LabelFactoryTime(MatchMakerSelectionLocationScreen screen)
         {
             RestoreTimeLabels();
-            if (!ArenaMapCatalog.IsFactoryVariant(screen.SelectedLocation?.Id) || screen._conditions == null) return;
+            if ((!ArenaMapCatalog.IsFactoryVariant(screen.SelectedLocation?.Id)
+                && !ArenaMapCatalog.IsEquator(screen.SelectedLocation?.Id)) || screen._conditions == null) return;
             SetTimeLabel(screen._conditions._currentPhaseTime, "DAY");
             SetTimeLabel(screen._conditions._nextPhaseTime, "NIGHT");
         }

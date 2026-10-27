@@ -15,6 +15,8 @@ internal sealed class DominationRuntime : IDisposable
 {
     internal const float Radius = 4f;
     internal const float HeightTolerance = 1f;
+    private static readonly System.Random LayoutRandom = new();
+    private static Vector3[] _previousFactory;
     private readonly TeamDeathmatchMode _mode;
     private readonly DominationMatchPolicy _rules;
     private readonly GameWorld _world;
@@ -60,7 +62,23 @@ internal sealed class DominationRuntime : IDisposable
                 ?? throw new InvalidOperationException("Domination team formation unavailable.");
             anchor = new Vector3(formation.Destination.X, formation.Destination.Y, formation.Destination.Z);
         }
-        for (int i = 0; i < _layout.Points.Count; i++)
+        if (_layout.Factory)
+        {
+            var candidates = ArenaPickupLayouts.Select(ArenaPickupLayouts.Factory("domination-survey"), _world.LocationId, null)
+                .Points.SelectMany(p => new[] { new Vector3(p.X, p.Y, p.Z) }
+                    .Concat((p.Alternatives ?? new List<ArenaPickupPosition>()).Select(a => new Vector3(a.X, a.Y, a.Z))))
+                .GroupBy(p => (p.x, p.y, p.z)).Select(g => g.First()).ToArray();
+            if (candidates.Length > 8) throw new InvalidOperationException("Factory objective pool exceeds its bounded survey.");
+            var floors = new List<Vector3>();
+            foreach (var candidate in candidates)
+                if (ArenaPickupGeometry.TryPlacePoint(candidate, anchor, true, out var floor, out _, out _)
+                    && ConnectedBothWays(floor, anchor)
+                    && !floors.Any(p => Math.Abs(p.x - floor.x) < .5f && Math.Abs(p.y - floor.y) < .5f && Math.Abs(p.z - floor.z) < .5f))
+                    floors.Add(floor);
+            var selected = DominationMapLayout.SelectFactory(floors, LayoutRandom, _previousFactory);
+            Array.Copy(selected, _positions, selected.Length);
+        }
+        else for (int i = 0; i < _layout.Points.Count; i++)
         {
             var point = _layout.Points[i];
             if (!ArenaPickupGeometry.TryPlacePoint(point.Position, anchor, _layout.Factory, out var floor, out var reason, out _)
@@ -71,6 +89,7 @@ internal sealed class DominationRuntime : IDisposable
         // No partial placement: every path must pass before a marker is made.
         for (int i = 0; i < _positions.Length; i++)
             _views[i] = new Hud.DominationPointView(_layout.Points[i].Id, _positions[i], Radius);
+        if (_layout.Factory) _previousFactory = (Vector3[])_positions.Clone();
         _prepared = true;
         Plugin.ModLogger.LogDebug("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));
         Diagnostics.ArenaLog.Developer("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));

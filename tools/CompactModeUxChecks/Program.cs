@@ -65,6 +65,12 @@ foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator"
 }
 Need(!Text("domination").Contains("HOLD 3") && Text("domination").Contains("select a map"),
     "unselected Domination map does not invent an objective count");
+foreach(var (points,seconds) in new[]{(0,0),(100,0),(0,300),(500,1200)})
+{
+    string description=ArenaCompactModeRules.Describe("domination",false,0,0,0,true,50,600,3,true,3,points,seconds);
+    Need(description.Contains("ENDLESS")== (points==0&&seconds==0)
+        && !description.Contains("200 points"),"Domination summary follows configured active limits without stale defaults");
+}
 Need(ArenaCompactModeRules.CompanionHint("tactical", false, 0).Contains("PITFIRETEAM / MY SQUAD")
     && ArenaCompactModeRules.CompanionHint("zombie", true, 1) == "PITFIRETEAM · 1 FROM MY SQUAD",
     "companion source is explicit without a PFT abbreviation");

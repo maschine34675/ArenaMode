@@ -57,11 +57,6 @@ namespace ArenaMode.Modes
 namespace ArenaMode.Areas { internal static class ArenaAreaRuntime { internal static object CurrentArea; } }
 namespace ArenaMode.Pickups
 {
-    internal static class ArenaPickupLayouts
-    {
-        internal static object Factory(string kit) => kit;
-        internal static object Select(object file, string map, object area) => file;
-    }
     internal static class ArenaPickupGeometry
     {
         internal static bool FactoryOk = true;

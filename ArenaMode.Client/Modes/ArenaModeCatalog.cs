@@ -89,7 +89,7 @@ internal static class ArenaModeCatalog
                 "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
             new ArenaModeDefinition(DominationId, "DOMINATION (WIP)",
-                "Hold the map's control points. First to 200 wins; 10-minute limit.",
+                "Hold control points to earn team score. Choose the match limits below.",
                 "Hold objectives", "Instant", "Arena kits"),
             new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
                 "Eliminate the enemy squad. PitFireTeam: 1-4 companions from My Squad.",

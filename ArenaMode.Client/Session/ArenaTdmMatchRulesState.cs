@@ -9,25 +9,31 @@ namespace ArenaMode.Session;
 internal sealed class ArenaTdmMatchRulesState
 {
     internal static readonly IReadOnlyList<int> KillOptions = Array.AsReadOnly(new[] { 0, 25, 50, 100 });
+    internal static readonly IReadOnlyList<int> PointOptions = Array.AsReadOnly(new[] { 0, 100, 200, 300, 500 });
     internal static readonly IReadOnlyList<int> TimeOptions = Array.AsReadOnly(new[] { 0, 300, 600, 900, 1200 });
     private readonly Func<int> _getKills, _getSeconds;
     private readonly Func<int, bool> _setKills, _setSeconds;
     private readonly Func<bool> _raidLocked;
     private string _mode;
     private bool _tacticalOnly;
+    internal bool Domination { get; }
+    internal IReadOnlyList<int> ScoreOptions => Domination ? PointOptions : KillOptions;
+    internal string ScoreHeading => Domination ? "POINT LIMIT" : "TEAM KILLS";
+    internal string ModeName => Domination ? "Domination" : "TDM";
 
     internal ArenaTdmMatchRulesState(Func<int> getKills, Func<int> getSeconds,
-        Func<int, bool> setKills, Func<int, bool> setSeconds, Func<bool> raidLocked)
+        Func<int, bool> setKills, Func<int, bool> setSeconds, Func<bool> raidLocked, bool domination = false)
     {
         _getKills = getKills ?? throw new ArgumentNullException(nameof(getKills));
         _getSeconds = getSeconds ?? throw new ArgumentNullException(nameof(getSeconds));
         _setKills = setKills ?? throw new ArgumentNullException(nameof(setKills));
         _setSeconds = setSeconds ?? throw new ArgumentNullException(nameof(setSeconds));
         _raidLocked = raidLocked ?? throw new ArgumentNullException(nameof(raidLocked));
+        Domination = domination;
     }
 
     internal bool Visible => !_tacticalOnly
-        && string.Equals(_mode, ArenaModeCatalog.TeamDeathmatchId, StringComparison.OrdinalIgnoreCase);
+        && string.Equals(_mode, Domination ? ArenaModeCatalog.DominationId : ArenaModeCatalog.TeamDeathmatchId, StringComparison.OrdinalIgnoreCase);
     internal bool Editable => Visible && !_raidLocked();
     internal int KillLimit => _getKills();
     internal int TimeLimitSeconds => _getSeconds();
@@ -38,7 +44,7 @@ internal sealed class ArenaTdmMatchRulesState
     { _mode = mode; _tacticalOnly = tacticalOnly; }
 
     internal bool TrySelectKills(int value)
-        => Editable && Contains(KillOptions, value) && _setKills(value) && KillLimit == value;
+        => Editable && Contains(ScoreOptions, value) && _setKills(value) && KillLimit == value;
 
     internal bool TrySelectTime(int seconds)
         => Editable && Contains(TimeOptions, seconds) && _setSeconds(seconds) && TimeLimitSeconds == seconds;

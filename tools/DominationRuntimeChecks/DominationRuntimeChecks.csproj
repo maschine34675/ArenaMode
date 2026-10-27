@@ -6,6 +6,8 @@
     <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Modes/DominationRuntime.cs</RuntimeSource>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaPickupLayout.cs" Link="Production/ArenaPickupLayout.cs" />
     <Compile Include="$(LayoutSource)" Link="Production/DominationMapLayout.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/DominationRuntime.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />

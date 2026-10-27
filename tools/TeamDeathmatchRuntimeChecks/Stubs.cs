@@ -296,6 +296,8 @@ namespace ArenaMode.Config
         internal static readonly Entry<int> TeamDeathmatchSize = new(5);
         internal static readonly Entry<int> TeamDeathmatchKillLimit = new(0);
         internal static readonly Entry<int> TeamDeathmatchTimeLimitSeconds = new(0);
+        internal static readonly Entry<int> DominationScoreLimit = new(200);
+        internal static readonly Entry<int> DominationTimeLimitSeconds = new(600);
         internal static readonly Entry<bool> NoCorpseLooting = new(true);
     }
 }

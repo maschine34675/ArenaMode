@@ -44,6 +44,19 @@ public sealed class DominationObjectiveLease
     public string PointId { get; }
     public Vector3 Center { get; }
     public Vector3 Destination { get; }
+    public const int ApproachCount = 13;
+    public Vector3 Approach(int index)
+    {
+        if (index < 0 || index >= ApproachCount) throw new ArgumentOutOfRangeException(nameof(index));
+        if (index == ApproachCount - 1) return Center;
+        var offset = Destination - Center;
+        // Try the preferred body-specific direction, then the rest of a bounded
+        // ring and a shorter inner ring. Only the companion may authorize a route.
+        double angle = index < 8 ? index * Math.PI / 4d : (index - 8) * Math.PI / 2d;
+        float scale = index < 8 ? 1f : .45f;
+        return Center + new Vector3((float)(offset.x * Math.Cos(angle) - offset.z * Math.Sin(angle)) * scale,
+            0f, (float)(offset.x * Math.Sin(angle) + offset.z * Math.Cos(angle)) * scale);
+    }
     public bool Usec { get; }
     public int Generation { get; }
     internal float AssignedAt { get; }

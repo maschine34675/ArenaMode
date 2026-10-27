@@ -184,7 +184,7 @@ Show();
 // + 2 equipment-choice buttons; the equipment-choice row (item 1 of the
 // 2026-10-06 follow-up) is built unconditionally in Create() just like the
 // TDM/Deathmatch rules rows, only its own visibility differs by mode.
-Need(Buttons().Length == 37 && RuleRoot().activeInHierarchy, "six modes, one preview, two faction choices and existing rules exist without a mutators opener");
+Need(Buttons().Length == 47 && RuleRoot().activeInHierarchy, "six modes, one preview, two faction choices and existing rules exist without a mutators opener");
 var usecChoice = Buttons().Single(b => b.name == "Arena Team USEC");
 var bearChoice = Buttons().Single(b => b.name == "Arena Team BEAR");
 Need(usecChoice.GetComponentInChildren<TMP_Text>(true).text == "● USEC", "profile default resolves to visible native faction");
@@ -242,13 +242,41 @@ void CheckPreviews()
 CheckPreviews();
 view.Synchronize("domination", false);
 Need(bearChoice.gameObject.activeInHierarchy && !RuleRoot().activeInHierarchy
-    && Label("Mode description").text.Contains("200") && Label("Mode description").text.Contains("10 min"),
-    "Domination shows side and fixed objective limits without TDM kill controls");
+    && Label("Domination point limit").text == "POINT LIMIT: 200"
+    && Label("Domination time limit").text == "TIME LIMIT: 10 min",
+    "Domination shows side and selectable objective limits without TDM kill controls");
+Button DomPoints(int value) => Buttons().Single(b=>b.name=="Arena Domination Points "+value);
+Button DomTime(int value) => Buttons().Single(b=>b.name=="Arena Domination Seconds "+value);
+foreach(int value in new[]{0,100,200,300,500})
+{
+    DomPoints(value).onClick.Invoke();
+    Need(Settings.DominationScoreLimit.Value==value&&Marked(DomPoints(value)),"Domination point presets persist and mark actual choice");
+}
+foreach(int value in new[]{0,300,600,900,1200})
+{
+    DomTime(value).onClick.Invoke();
+    Need(Settings.DominationTimeLimitSeconds.Value==value&&Marked(DomTime(value)),"Domination time presets persist and mark actual choice");
+}
+Need(Settings.TeamDeathmatchKillLimit.Value==50&&Settings.TeamDeathmatchTimeLimitSeconds.Value==600,
+    "Domination choices do not modify independent TDM preferences");
+ArenaSession.ArmedForNextRaid=true;view.Synchronize("domination",false);
+DomPoints(100).onClick.Invoke();DomTime(300).onClick.Invoke();
+Need(Settings.DominationScoreLimit.Value==500&&Settings.DominationTimeLimitSeconds.Value==1200&&!DomPoints(100).interactable,
+    "armed raid locks Domination even under forced click");
+ArenaSession.ArmedForNextRaid=false;
+Settings.DominationScoreLimit.Value=77;Settings.DominationTimeLimitSeconds.Value=75;
+view.Synchronize("domination",false);
+Need(Label("Domination point limit").text.EndsWith("77")&&Label("Domination time limit").text.EndsWith("1:15")
+    && !Marked(DomPoints(200)),"Domination shows exact nonpreset F12 values without inventing preset");
+Settings.DominationScoreLimit.Value=200;Settings.DominationTimeLimitSeconds.Value=600;
 Need(ReferenceEquals(Settings.FriendlyFireEntry("domination", false), Settings.TeamDeathmatchFriendlyFire)
     && ReferenceEquals(Settings.AnnouncerEntry("domination"), Settings.TeamDeathmatchAnnouncerEnabled)
     && ReferenceEquals(Settings.TracerEntry("domination", false), Settings.TeamTracers),
     "Domination intentionally shares independent team mutator preferences");
 view.Synchronize("teamdeathmatch", false);
+DomPoints(100).onClick.Invoke();DomTime(300).onClick.Invoke();
+Need(Settings.DominationScoreLimit.Value==200&&Settings.DominationTimeLimitSeconds.Value==600,
+    "hidden Domination listeners cannot change another mode");
 ArenaMenuSelection.DominationAvailable = false;
 view.Synchronize("teamdeathmatch", false);
 var dominationRow = Buttons().Single(b => b.name == "Arena Mode domination");

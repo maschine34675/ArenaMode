@@ -18,6 +18,7 @@ static class Program
     static void Setup(int count=6,int pointCount=3)
     {
         Time.time=10;Time.timeScale=1;NavMesh.Paths=NavMesh.Samples=true;NavMesh.Calls=0;
+        NavMesh.Projection=p=>p;NavMesh.Reachable=_=>true;
         ArenaSainMovementHandoff.State=ArenaSainHandoffState.Ready;
         Library.RuntimeEnabled=true;ArenaMode.Session.ArenaSession.Exact=true;TeamDeathmatchRelations.Enabled=true;
         ArenaMode.Movement.ArenaBotMovementSain.Allowed=true;ArenaMode.Areas.ArenaAreaRuntime.CurrentArea=null;
@@ -94,13 +95,16 @@ static class Program
         Assert(bot.Mover._moverStateMachine.DefaultMoverState.PathController.CurPath==null,"cleanup clears suspended own path");
         Assert(bot.Mover._moverStateMachine.DefaultMoverState.LastTargetPoint==null,"cleanup clears exact native return target");
         Setup();bot=_bots[0];(layer,logic,data)=Action(bot);bot.NativeDirectPathFails=true;logic.Update(data);
-        Assert(bot.CoverFallbackCalls==0&&bot.TeleportFallbackCalls==0,"no cover reconstruction or teleport fallback");Assert(bot.RouteCalls==2,"bounded two native attempts");
+        Assert(bot.CoverFallbackCalls==0&&bot.TeleportFallbackCalls==0,"no cover reconstruction or teleport fallback");Assert(bot.RouteCalls==13,"bounded native approach attempts");
         Assert(!data.Lease.Current,"failed native path rejects assignment");
         Setup();bot=_bots[0];(layer,logic,data)=Action(bot);NavMesh.Paths=false;logic.Update(data);
-        Assert(bot.RouteCalls==0&&NavMesh.Calls==2,"partial preflight denied with bounded attempts");
+        Assert(bot.RouteCalls==0&&NavMesh.Calls==13,"partial preflight denied with bounded attempts");
         Setup();bot=_bots[0];(layer,logic,data)=Action(bot);logic.Update(data);
         for(int i=0;i<6;i++){Time.time++;Tick();logic.Update(data);}
-        Assert(!data.Lease.Current,"stuck travel rejects goal");
+        Assert(data.Lease.Current&&bot.RouteCalls>2,"stuck travel tries another bounded approach");
+        for(int i=0;i<56;i++){Time.time++;Tick();logic.Update(data);}
+        Assert(!data.Lease.Current,"stuck retries retain the total travel deadline");
+        ApproachChecks();
         Setup();bot=_bots[0];first=Lease(bot);bot.GetPlayer.Position=first.Center;(layer,logic,data)=Action(bot);logic.Update(data);
         for(int i=0;i<30;i++){Time.time++;Tick();logic.Update(data);}
         Assert(data.Lease.Current&&layer.IsActive()&&!layer.IsCurrentActionEnding(),"stationary defender keeps hold beyond pickup timeout");
@@ -120,6 +124,39 @@ static class Program
         Assert(!data.Lease.Current&&bot.RouteCalls==0,"handoff wait bounded and no route stolen");
         PointCountContract();
         Console.WriteLine($"Domination bot checks passed: {_checks} assertions.");
+    }
+
+    static void ApproachChecks()
+    {
+        Setup();var cleanupBot=_bots[0];var (_,cleanupLogic,cleanupData)=Action(cleanupBot);
+        cleanupLogic.Update(cleanupData);NavMesh.Paths=false;
+        Time.time++;Tick();cleanupLogic.Update(cleanupData);
+        var abandoned=cleanupBot.Mover._moverStateMachine.DefaultMoverState;
+        Assert(!cleanupData.Lease.Current&&abandoned.PathController.CurPath==null&&abandoned.LastTargetPoint==null,
+            "failed alternate preflights clear the original owned return target");
+        Setup();var bot=_bots[0];var (layer,logic,data)=Action(bot);
+        NavMesh.Reachable=p=>(p-data.Lease.Center).sqrMagnitude<.01f;
+        logic.Update(data);
+        Assert(data.Lease.Current&&bot.RouteCalls==1&&NavMesh.Calls==13,
+            "blocked ring offsets fall back to a reachable center");
+        Assert((bot.Mover.TargetPoint.Value-data.Lease.Center).sqrMagnitude<.01f,"center fallback passed to native mover");
+        Setup();bot=_bots[0];(layer,logic,data)=Action(bot);
+        NavMesh.Reachable=p=>(p-data.Lease.Approach(2)).sqrMagnitude<.01f;
+        logic.Update(data);
+        Assert(bot.RouteCalls==1&&NavMesh.Calls==3,"third reachable approach rescues blocked preferred offsets");
+        Setup();bot=_bots[0];(layer,logic,data)=Action(bot);
+        ArenaMode.Pickups.ArenaPickupGeometry.Clear=false;logic.Update(data);
+        Assert(bot.RouteCalls==0&&!data.Lease.Current,"capture-obscured approaches never acquire native movement");
+        Setup();bot=_bots[0];(layer,logic,data)=Action(bot);
+        NavMesh.Projection=p=>p+new Vector3(0,.6f,0);
+        Assert(!ArenaDominationRuntime.TryApproach(data.Lease,data.Lease.Destination,out _),
+            "approach projection cannot change floor");
+        logic.Update(data);
+        Assert(bot.RouteCalls==0&&!data.Lease.Current,"approach projection cannot change floor");
+        Setup();bot=_bots[0];(layer,logic,data)=Action(bot);
+        NavMesh.Projection=p=>new Vector3(p.x,.1f,p.z);logic.Update(data);
+        Assert(bot.RouteCalls==1&&Math.Abs(bot.Mover.TargetPoint.Value.y-.1f)<.001f,
+            "native movement receives the projected capture-valid floor");
     }
 
     static void PointCountContract()

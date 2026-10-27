@@ -4,6 +4,12 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $layout = Join-Path $root 'ArenaMode.Client/Modes/DominationMapLayout.cs'
 $runtime = Join-Path $root 'ArenaMode.Client/Modes/DominationRuntime.cs'
 $faults = @(
+    @{ Name='factory-overlapping-points'; Path=$layout; Property='LayoutSource';
+       Find='>= FactoryMinimumSeparation * FactoryMinimumSeparation'; Replace='>= 0';
+       Failure='Factory objectives keep twelve metres horizontal separation' },
+    @{ Name='factory-repeat-layout'; Path=$layout; Property='LayoutSource';
+       Find='choices.RemoveAll(choice => SameSet(choice, previous));'; Replace='choices.RemoveAll(choice => false);';
+       Failure='Factory avoids repeating the previous physical triple' },
     @{ Name='bowl-legacy-centroid'; Path=$layout; Property='LayoutSource';
        Find='new Point("A", -20.51f, 0f, -37.12f)'; Replace='new Point("A", -1.76f, -.05f, -33.92f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },

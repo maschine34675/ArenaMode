@@ -36,7 +36,7 @@ public sealed partial class TeamDeathmatchMode
         : Math.Max(0, (int)Math.Ceiling(TeamDeathmatchMatchPolicy.ResultSeconds - (Time.unscaledTime - _resultDisplayAt)));
     private string RulesStatus => MatchPhase == TdmMatchPhase.Assembling ? "ASSEMBLING TEAMS"
         : MatchPhase == TdmMatchPhase.Countdown ? "START IN " + MatchCountdownRemaining(Time.time)
-        : (MatchScoreLimit > 0 ? "First to " + MatchScoreLimit + (IsDomination ? " points" : "") : "No kill limit")
+        : (MatchScoreLimit > 0 ? "First to " + MatchScoreLimit + (IsDomination ? " points" : "") : IsDomination ? "No point limit" : "No kill limit")
           + (MatchTimeLimit > 0 ? $" | {Math.Max(0, (int)Math.Ceiling(MatchTimeLimit - PlayingElapsed)) / 60:00}:{Math.Max(0, (int)Math.Ceiling(MatchTimeLimit - PlayingElapsed)) % 60:00} left" : " | No time limit");
 
     private void TickMatchStart(bool ready)

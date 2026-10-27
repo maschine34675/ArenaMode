@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Domination routes/options (2026-10-27):** capture-valid alternative bot
+  approaches, exact owned-path cleanup, per-match Factory triples from the eight
+  original surveyed seeds (12m separation), and independent point/time limits
+  (defaults 200/600; zero disables a limit). Equator uses DAY/NIGHT; generic side
+  notice removed. Compact controls retain the existing panel size. Unit suite:
+  3308 passed/three known skips; focused/mutation checks and both builds passed.
+  GPU-2 verified different Factory triples, score and time ends, bot arrival at
+  all points, exact protected profile restoration and ordinary PMC menus.
+  A restarted third match verified final disabled-point-limit wording.
+  Both client DLLs deployed; see [evidence and limits](DOMINATION-OPTIONS-ROUTES-20261027.md).
+
 - **Bot speech and combat tempo (2026-10-27):** Normal PMC combat taunts have an
   exact-live Arena exception without shared SAIN writes or PFT interference.
   Combat-strafe floor is 0.85; independent TDM/Domination search arguments cap

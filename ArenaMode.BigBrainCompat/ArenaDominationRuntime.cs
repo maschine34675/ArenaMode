@@ -40,6 +40,18 @@ internal static class ArenaDominationRuntime
         catch { return false; }
     }
 
+    internal static bool TryApproach(DominationObjectiveLease lease, Vector3 candidate, out Vector3 destination)
+    {
+        destination = default;
+        if (lease?.Current != true
+            || !NavMesh.SamplePosition(candidate, out var hit, .75f, NavMesh.AllAreas)
+            || Math.Abs(hit.position.y - candidate.y) > .5f
+            || (hit.position - candidate).sqrMagnitude > .75f * .75f
+            || !lease.Inside(hit.position)) return false;
+        destination = hit.position;
+        return true;
+    }
+
     internal static bool RouteAllowed(Vector3 from, Vector3 destination)
     {
         if (!NavMesh.SamplePosition(from, out var start, .75f, NavMesh.AllAreas)

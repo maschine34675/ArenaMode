@@ -42,7 +42,8 @@ public sealed partial class TeamDeathmatchMode
         if (!IsDomination) return;
         if (!DominationObjectiveBridge.Available)
             throw new InvalidOperationException("Domination requires the registered Arena BigBrain objective layer.");
-        _dominationRules = new DominationMatchPolicy(pointCount: DominationMapLayout.Resolve(_world.LocationId).Points.Count);
+        _dominationRules = new DominationMatchPolicy(Config.Settings.DominationScoreLimit.Value,
+            Config.Settings.DominationTimeLimitSeconds.Value, DominationMapLayout.Resolve(_world.LocationId).Points.Count);
         _domination = new DominationRuntime(this, _dominationRules, _world);
         try
         {

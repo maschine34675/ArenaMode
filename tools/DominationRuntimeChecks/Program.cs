@@ -47,8 +47,9 @@ var cases = new Dictionary<string, (string Id, Vector3 Position)[]>
         ("C", new Vector3(-20.756f, .166f, 22.769f)) }
 };
 cases["factory4_night"] = cases["factory4_day"];
-foreach (var (map, expected) in cases)
+foreach (var (map, authored) in cases)
 {
+    var expected = authored;
     Reset();
     bool factory = map.StartsWith("factory");
     var layout = DominationMapLayout.Resolve(map);
@@ -62,6 +63,7 @@ foreach (var (map, expected) in cases)
     Need(!runtime.AllowsPickup(new(1000,0,1000)), "unprepared layout cannot authorize pickup space");
     Refuses(runtime.VerifyTeamPaths, "team routes require preparation first");
     runtime.Prepare();
+    if (factory) expected = DominationPointView.Created.Select(v => (v.Id, v.Floor)).ToArray();
     Need(DominationPointView.Created.Count == expected.Length, "preparation creates exactly the authored marker count");
     Need(ArenaPickupGeometry.FactoryCalls == (factory ? 1 : 0), "only Factory uses the reviewed Factory navigation authority");
     Need(ArenaPickupGeometry.Placements.All(p => p.AllowNearby == factory), "ports forbid nearby relocation while Factory retains it");
@@ -70,9 +72,9 @@ foreach (var (map, expected) in cases)
     for (int index = 0; index < expected.Length; index++)
     {
         var point = expected[index]; var view = DominationPointView.Created[index];
-        Need(layout.Points[index].Id == point.Id && Same(layout.Points[index].Position, point.Position),
+        Need(layout.Points[index].Id == point.Id && (factory || Same(layout.Points[index].Position, point.Position)),
             "individual source anchors and labels are preserved instead of aggregate centroids");
-        Need(Same(ArenaPickupGeometry.Placements[index].Requested, point.Position) && Same(view.Floor, point.Position)
+        Need((factory || Same(ArenaPickupGeometry.Placements[index].Requested, point.Position)) && Same(view.Floor, point.Position)
             && view.Id == point.Id && view.Radius == 4f, "runtime uses the individual fixed anchor and its original label");
         Need(NavMesh.Routes.Any(r => Same(r.From, point.Position) && Same(r.To, anchor))
             && NavMesh.Routes.Any(r => Same(r.From, anchor) && Same(r.To, point.Position)),
@@ -140,7 +142,7 @@ Need(DominationPointView.Created.Count == 0, "constructor mismatch never allocat
 
 // Even the last failing point must produce no partial presentation. Test real
 // runtime ordering against controlled native floor/path responses.
-foreach (var (map, expected) in cases)
+foreach (var (map, expected) in cases.Where(c => !c.Key.StartsWith("factory")))
 foreach (string fault in new[] { "floor", "sample", "height", "path-false", "path-partial", "return-false", "return-partial" })
 {
     Reset(); var (runtime, _, _) = Create(map); var last = expected.Last().Position;
@@ -169,6 +171,45 @@ ArenaPickupGeometry.Place = (point, nearby) => (nearby, point + new Vector3(.1f,
 factoryRepair.Prepare();
 Need(DominationPointView.Created.Count == 3, "Factory retains its existing bounded placement repair");
 factoryRepair.Dispose();
+// Randomization chooses only scene-verified final floors. Bad candidates are
+// skipped, never used as an excuse to weaken the existing path proof.
+foreach (bool day in new[] { true, false })
+{
+    Reset();
+    ArenaPickupGeometry.Place = (point, _) => (point.z < 0, point + new Vector3(.1f,0,0));
+    var varied = Create(day ? "factory4_day" : "factory4_night");
+    varied.Runtime.Prepare();
+    Need(DominationPointView.Created.Count == 3 && DominationPointView.Created.All(v => v.Floor.z < 0),
+        "Factory picks only surviving surveyed floors");
+    var before = DominationPointView.Created.Select(v => v.Floor).ToArray();
+    varied.Rules.UpdateStart(0,true);varied.Rules.UpdateStart(3,true);
+    varied.Runtime.Tick(new Player(), new List<BotOwner>(), true, 8);
+    varied.Runtime.Tick(new Player(), new List<BotOwner>(), true, 9);
+    Need(DominationPointView.Created.Select(v => v.Floor).SequenceEqual(before), "Factory points stay fixed across body replacements and ticks");
+    varied.Runtime.Dispose();
+}
+Reset();ArenaPickupGeometry.Place = (point, _) => (false, point);
+Refuses(Create("factory4_day").Runtime.Prepare, "Factory refuses an unsurveyable candidate pool");
+Need(DominationPointView.Created.Count == 0, "Factory failed pool leaves no partial markers");
+var pool = new[] { new Vector3(0,0,0),new Vector3(20,0,0),new Vector3(0,0,20),new Vector3(20,0,20),new Vector3(1,0,0) };
+var repeatedSeed = DominationMapLayout.SelectFactory(pool,new Random(7),null);
+var nextSameSeed = DominationMapLayout.SelectFactory(pool,new Random(7),repeatedSeed);
+Need(!nextSameSeed.All(p=>repeatedSeed.Contains(p)), "Factory avoids repeating the previous physical triple");
+Vector3[] previous = null;
+var draws = new HashSet<string>();
+for (int seed=0;seed<50;seed++)
+{
+    var selected = DominationMapLayout.SelectFactory(pool,new Random(seed),previous);
+    Need(selected.Length==3&&selected.All(p=>pool.Contains(p)), "Factory triple consists of surveyed inputs only");
+    for(int a=0;a<3;a++)for(int b=a+1;b<3;b++)
+        Need(Math.Pow(selected[a].x-selected[b].x,2)+Math.Pow(selected[a].z-selected[b].z,2)>=144,
+            "Factory objectives keep twelve metres horizontal separation");
+    Need(previous==null||!selected.All(p=>previous.Contains(p)), "Factory avoids repeating the previous physical triple");
+    draws.Add(string.Join("|",selected.Select(p=>p.ToString())));previous=selected;
+}
+Need(draws.Count>1,"Factory selection varies across match seeds");
+Refuses(()=>DominationMapLayout.SelectFactory(new[]{pool[0],pool[4],new Vector3(2,0,0)},new Random(1),null),
+    "Factory refuses overlapping objectives instead of reducing separation");
 Reset(); ArenaPickupGeometry.FactoryOk = false;
 Refuses(Create("factory4_night").Runtime.Prepare, "Factory still requires its surveyed main network");
 Need(DominationPointView.Created.Count == 0, "missing Factory network cannot create markers");

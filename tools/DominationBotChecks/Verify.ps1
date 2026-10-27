@@ -36,6 +36,10 @@ function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[s
 }
 Invoke-DominationCheck 'production' $domClient $domCompat
 $faults = @(
+    @{Name='stale-return-target';File='ArenaDominationLogic.cs';Find='(point - _ownedDestination).sqrMagnitude';Replace='(point - _destination).sqrMagnitude';Reject='failed alternate preflights clear the original owned return target'},
+    @{Name='no-center-fallback';File='DominationObjectiveBridge.cs';Find='if (index == ApproachCount - 1) return Center;';Replace='if (index == ApproachCount - 1) return Destination;';Reject='blocked ring offsets fall back to a reachable center'},
+    @{Name='unsafe-approach-projection';File='ArenaDominationRuntime.cs';Find='|| Math.Abs(hit.position.y - candidate.y) > .5f';Replace='';Reject='approach projection cannot change floor'},
+    @{Name='unprojected-move';File='ArenaDominationRuntime.cs';Find='destination = hit.position;';Replace='destination = candidate;';Reject='native movement receives the projected capture-valid floor'},
     @{Name='fixed-three-points';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount';Replace='points.Count != 3';Reject='authored point count supports current bot assignments: 1'},
     @{Name='publisher-count-drift';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount || ';Replace='';Reject='publisher count mismatch revokes existing leases'},
     @{Name='oversized-objective-list';File='DominationObjectiveBridge.cs';Find='|| points.Count > 16';Replace='';Reject='more than sixteen points rejected even when mode agrees'},
@@ -50,7 +54,7 @@ $faults = @(
     @{Name='cover-fallback';File='ArenaDominationLogic.cs';Find='onlyShortTrie: true';Replace='onlyShortTrie: false';Reject='no cover reconstruction or teleport fallback'},
     @{Name='teleport-fallback';File='ArenaDominationLogic.cs';Find='mustHaveWay: false';Replace='mustHaveWay: true';Reject='no cover reconstruction or teleport fallback'},
     @{Name='foreign-route-cleanup';File='ArenaDominationLogic.cs';Find='(!ReferenceEquals(_state.PathController.CurPath, _path) && _state.PathController.CurPath != null)';Replace='false';Reject='cleanup preserves newer path'},
-    @{Name='defender-travel-timeout';File='ArenaDominationLogic.cs';Find='if (lease.Inside(BotOwner.Position))';Replace='if (false)';Reject='stationary defender keeps hold beyond pickup timeout'}
+    @{Name='defender-travel-timeout';File='ArenaDominationLogic.cs';Find='if (lease.Inside(BotOwner.Position))';Replace='if (false)';Reject='holding does not churn routes'}
 )
 foreach ($fault in $faults) {
     $sourceRoot = Join-Path $domEvidence ($fault.Name+'/source')

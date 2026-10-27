@@ -351,7 +351,7 @@ internal static class ArenaSideSelectionPatch
         else if (warnings != null && ArenaMenuSelection.IsSelected)
             ShowVersionNotes(screen, warnings);
         else
-            ArenaAvailabilityNotice.ShowInfo(screen, "ARENA · Fast combat · Protected gear\nChoose the middle character to play.");
+            ArenaAvailabilityNotice.Hide(screen);
     }
 
     /// <summary>Arena was just selected: the session note, the whitelist warnings, or nothing.</summary>

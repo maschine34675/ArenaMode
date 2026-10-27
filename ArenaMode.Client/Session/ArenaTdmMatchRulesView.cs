@@ -33,13 +33,13 @@ internal sealed class ArenaTdmMatchRulesView
         _state = state;
         try
         {
-            _root = new GameObject("Arena TDM Match Rules", typeof(RectTransform));
+            _root = new GameObject("Arena " + _state.ModeName + " Match Rules", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
             SetRect((RectTransform)_root.transform, 20f, 432f, Width, 78f);
-            _kills = CreateText("TDM kill limit", typography, 0f);
-            _time = CreateText("TDM time limit", typography, 39f);
-            foreach (int value in ArenaTdmMatchRulesState.KillOptions)
+            _kills = CreateText(_state.Domination ? "Domination point limit" : "TDM kill limit", typography, 0f);
+            _time = CreateText(_state.Domination ? "Domination time limit" : "TDM time limit", typography, 39f);
+            foreach (int value in _state.ScoreOptions)
                 CreateChoice(template, typography, value, false);
             foreach (int value in ArenaTdmMatchRulesState.TimeOptions)
                 CreateChoice(template, typography, value, true);
@@ -52,7 +52,7 @@ internal sealed class ArenaTdmMatchRulesView
     {
         if (_root == null || _state == null) return;
         _root.SetActive(_state.Visible);
-        _kills.text = "TEAM KILLS: " + _state.KillLabel;
+        _kills.text = _state.ScoreHeading + ": " + _state.KillLabel;
         _time.text = "TIME LIMIT: " + _state.TimeLabel;
         foreach (var choice in _choices)
         {
@@ -76,13 +76,13 @@ internal sealed class ArenaTdmMatchRulesView
 
     private void CreateChoice(Button template, TMP_Text typography, int value, bool time)
     {
-        int count = time ? ArenaTdmMatchRulesState.TimeOptions.Count : ArenaTdmMatchRulesState.KillOptions.Count;
-        int index = time ? _choices.Count - ArenaTdmMatchRulesState.KillOptions.Count : _choices.Count;
+        int count = time ? ArenaTdmMatchRulesState.TimeOptions.Count : _state.ScoreOptions.Count;
+        int index = time ? _choices.Count - _state.ScoreOptions.Count : _choices.Count;
         float width = (Width - (count - 1) * 4f) / count;
         var button = UnityEngine.Object.Instantiate(template, _root.transform, false);
         var choice = new Choice { Button = button, Value = value, Time = time };
         _choices.Add(choice);
-        button.name = "Arena TDM " + (time ? "Seconds " : "Kills ") + value;
+        button.name = "Arena " + _state.ModeName + " " + (time ? "Seconds " : _state.Domination ? "Points " : "Kills ") + value;
         button.onClick = new Button.ButtonClickedEvent();
         button.transform.localScale = Vector3.one;
         SetRect((RectTransform)button.transform, index * (width + 4f), time ? 55f : 16f, width, 22f);
@@ -102,7 +102,7 @@ internal sealed class ArenaTdmMatchRulesView
         if (tooltip != null)
         {
             tooltip.SetMessageText(time ? ArenaTdmMatchRulesState.FormatTime(value)
-                : ArenaTdmMatchRulesState.FormatKills(value) + " team kills", rawText: true);
+                : ArenaTdmMatchRulesState.FormatKills(value) + (_state.Domination ? " team points" : " team kills"), rawText: true);
             tooltip.SetUnlockStatus(true);
         }
         var navigation = button.navigation;

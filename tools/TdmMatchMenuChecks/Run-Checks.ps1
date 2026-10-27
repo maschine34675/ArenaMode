@@ -40,7 +40,7 @@ $arenaFaults = @(
       'internal bool Visible => !_tacticalOnly', 'internal bool Visible => true',
       'ProductionRulesState', 'PFT cannot expose independent TDM rules'),
     @('unexpected-preset', 'ArenaMode.Client\Session\ArenaTdmMatchRulesState.cs',
-      'Editable && Contains(KillOptions, value)', 'Editable',
+      'Editable && Contains(ScoreOptions, value)', 'Editable',
       'ProductionRulesState', 'menu admits only explicit kill presets'),
     @('live-state-lock', 'ArenaMode.Client\Session\ArenaTdmMatchRulesState.cs',
       'Visible && !_raidLocked()', 'Visible',

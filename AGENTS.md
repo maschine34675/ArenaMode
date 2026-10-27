@@ -8,7 +8,13 @@ Place new documentation and evidence summaries in `docs/`, not beside this file.
 Domination (2026-10-26 development) is a constructor variant of independent TDM
 with separate objective policies; read `docs/DOMINATION-PROTOTYPE-20261026.md`.
 It requires the registered BigBrain objective layer. Factory day/night uses three
-points; the four ported maps use original CapturePointEntity anchors: Equator and
+per-match randomly selected, scene-verified points from its original eight-seed
+pool, with 12m horizontal separation; the independent original navigation anchor
+must not depend on the selected triple. Read docs/DOMINATION-OPTIONS-ROUTES-20261027.md.
+Domination owns separate score/time preferences, frozen at match start. Bot
+approaches must be capture-valid and fully reachable; keep the last successfully
+owned route destination separate from any failed alternative for exact cleanup.
+The four ported maps use original CapturePointEntity anchors: Equator and
 Bay5 one each, AirPit and Bowl two each. Read docs/DOMINATION-PORTED-20261026.md.
 Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
 averages two distinct objectives. Ported Domination shares independent TDM's

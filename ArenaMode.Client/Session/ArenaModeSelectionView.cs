@@ -23,6 +23,8 @@ internal sealed class ArenaModeSelectionView
     private readonly ArenaTdmMatchRulesView _tdmRulesView = new();
     private readonly ArenaTdmSideView _tdmSideView = new();
     private ArenaTdmMatchRulesState _tdmRules;
+    private readonly ArenaTdmMatchRulesView _dominationRulesView = new();
+    private ArenaTdmMatchRulesState _dominationRules;
     private readonly ArenaDeathmatchRulesView _dmRulesView = new();
     private ArenaDeathmatchRulesState _dmRules;
     private readonly ArenaEquipmentChoiceView _equipmentChoiceView = new();
@@ -82,6 +84,12 @@ internal sealed class ArenaModeSelectionView
             Settings.TrySelectTeamDeathmatchKillLimit,
             Settings.TrySelectTeamDeathmatchTimeLimit,
             () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
+        _dominationRules = new ArenaTdmMatchRulesState(
+            () => Settings.DominationScoreLimit?.Value ?? -1,
+            () => Settings.DominationTimeLimitSeconds?.Value ?? -1,
+            Settings.TrySelectDominationScoreLimit,
+            Settings.TrySelectDominationTimeLimit,
+            () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid, domination: true);
         _dmRules = new ArenaDeathmatchRulesState(row => row switch {
             0 => Settings.DeathmatchRounds.Value, 1 => Settings.DeathmatchKills.Value,
             2 => Settings.DeathmatchSeconds.Value, _ => Settings.DeathmatchFreeForAll.Value ? 0 : 1 },
@@ -114,10 +122,12 @@ internal sealed class ArenaModeSelectionView
         // Each clone has a fresh event; no callback or popup belongs to another screen.
         _selection = null;
         _tdmRules = null;
+        _dominationRules = null;
         _dmRules = null;
         _equipmentChoice = null;
         Safe(_dmRulesView.Close);
         Safe(_tdmRulesView.Close);
+        Safe(_dominationRulesView.Close);
         Safe(_tdmSideView.Close);
         Safe(_equipmentChoiceView.Close);
         Safe(_zombieRules.Close);
@@ -181,6 +191,7 @@ internal sealed class ArenaModeSelectionView
             ArenaCompactModeRules.GearProtection, 13f, 416f, 16f);
         _gearProtection.color = Dim(typography, .75f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
+        _dominationRulesView.Show(_root.transform, template, typography, _dominationRules);
         _tdmSideView.Show(_root.transform, template, typography,
             () => ArenaTdmSideView.ReadNativeSide(screen));
         _dmRulesView.Show(_root.transform, template, typography, _dmRules, Refresh);
@@ -333,7 +344,8 @@ internal sealed class ArenaModeSelectionView
             Settings.DeathmatchRounds.Value, Settings.DeathmatchKills.Value, Settings.DeathmatchSeconds.Value,
             Settings.DeathmatchFreeForAll.Value, Settings.TeamDeathmatchKillLimit.Value,
             Settings.TeamDeathmatchTimeLimitSeconds.Value, Settings.TacticalTeamRoundsToWin.Value,
-            Settings.GetFriendlyFireEnabled(mode.Id, _selection.TacticalOnly), ControlPointCount(mode.Id));
+            Settings.GetFriendlyFireEnabled(mode.Id, _selection.TacticalOnly), ControlPointCount(mode.Id),
+            Settings.DominationScoreLimit.Value, Settings.DominationTimeLimitSeconds.Value);
         if (mode.Id == ArenaModeCatalog.DeathmatchId)
             _rules.text = ArenaCompactModeRules.DeathmatchObjective(Settings.DeathmatchKills.Value,
                 Settings.DeathmatchSeconds.Value, Settings.DeathmatchFreeForAll.Value);
@@ -372,6 +384,7 @@ internal sealed class ArenaModeSelectionView
     {
         if (_selection == null || _tdmRules == null) return;
         _tdmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
+        _dominationRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _dmRules.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _equipmentChoice.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         // The equipment selector occupies only the value column. Its label is
@@ -379,6 +392,7 @@ internal sealed class ArenaModeSelectionView
         _equipment.gameObject.SetActive(!_equipmentChoice.Visible);
         _dmRulesView.Refresh();
         _tdmRulesView.Refresh();
+        _dominationRulesView.Refresh();
         _tdmSideView.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);
         _equipmentChoiceView.Refresh();
         _zombieRules.Synchronize(_selection.SelectedMode);

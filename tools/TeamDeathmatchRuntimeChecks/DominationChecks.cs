@@ -91,5 +91,28 @@ internal static partial class Program
             Check(!port.Mode.ObjectiveHudVisible, "DOM port releases presentation: " + map);
         }
         DominationRuntime.Sample = new DominationOccupancy[3];
+        foreach(var limits in new[]{(Score:12,Seconds:0),(Score:0,Seconds:8),(Score:0,Seconds:0)})
+        {
+            ArenaMode.Config.Settings.DominationScoreLimit.Value=limits.Score;
+            ArenaMode.Config.Settings.DominationTimeLimitSeconds.Value=limits.Seconds;
+            DominationRuntime.Sample=new DominationOccupancy[3];
+            var configured=new Raid(size:2,domination:true);
+            configured.Fill();
+            Check(configured.Mode.HudStatusLine.Contains(limits.Score > 0 ? "First to 12 points" : "No point limit")
+                && !configured.Mode.HudStatusLine.Contains("No kill limit"),
+                "DOM HUD uses point wording with enabled and disabled limits");
+            float start=Time.time;
+            ArenaMode.Config.Settings.DominationScoreLimit.Value=200;
+            ArenaMode.Config.Settings.DominationTimeLimitSeconds.Value=600;
+            DominationRuntime.Sample=Enumerable.Repeat(new DominationOccupancy(0,1),3).ToArray();
+            for(int i=1;i<=10;i++)configured.Step(start+i);
+            Check(configured.Mode.HasResult==(limits.Score>0||limits.Seconds>0),
+                "DOM freezes configured limits and independently supports either limit or endless play");
+            if(limits.Score>0)Check(configured.Mode.OpponentTeamScore==12||configured.Mode.FriendlyTeamScore==12,
+                "DOM configured point target ends at its exact value");
+            if(limits.Seconds>0)Check(configured.Mode.ResultDetail.Contains("Time limit"),"DOM configured time limit ends the match");
+            configured.Mode.OnMatchEnd();
+        }
+        DominationRuntime.Sample = new DominationOccupancy[3];
     }
 }

@@ -516,6 +516,16 @@ internal static class Program
             SafeNative(() => row._spawnableToggle.Toggle.IsToggled = true, "Equator click preserves native selection order");
             Assert(f.Screen.SelectedLocation?.Id == equator && ArenaMenuSelection.IsMapAvailable(equator),
                 "Equator selects full map through strict admission");
+            Assert(f.Screen._conditions._currentPhaseTime.text == "DAY" && f.Screen._conditions._nextPhaseTime.text == "NIGHT",
+                "Arena Equator exposes explicit day/night labels");
+            f.Screen.UpdateSelectedTime(EDateTime.PAST);
+            Assert(f.Screen.SelectedLocation?.Id == equator && f.SettingsOwner.SelectedDateTime == EDateTime.PAST,
+                "Equator night keeps its own map identity and native phase");
+            f.Screen.OnLocationSelected(f.Screen.Locations[ArenaMapCatalog.Bay5Id]);
+            Assert(f.Screen._conditions._currentPhaseTime.text == "15:28" && f.Screen._conditions._nextPhaseTime.text == "03:28",
+                "leaving Equator restores ordinary clock labels");
+            f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
+            f.Screen.UpdateSelectedTime(EDateTime.CURR);
             Updater(f).Tick();
             Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("no Tactical / squad Zombies"),
                 "Equator area hint names its actual modes");
