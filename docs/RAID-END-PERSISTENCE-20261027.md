@@ -33,7 +33,33 @@ Deterministic tests include the old timestamp-only failure as a positive control
 an already-running writer, blocked subsequent writers, native nested profile
 serialization, optional reward failure, native write failure/cached no-op/retry,
 caller cancellation, overlapping holds and actual foreign mutation refusal.
-The focused suite, full regression and PitFireTeam lifecycle harness passed.
-Independent review found no blocking defect.
+The focused suite passed 467 tests. Full regression passed 3,308 tests; three
+environment-gated cases were skipped (two private reward-baseline fixtures and
+the installed APBS pipeline). The PitFireTeam lifecycle harness passed 381
+assertions. Independent review found no blocking defect.
 
-Native acceptance and deployment evidence will be recorded after the playtest.
+## Native acceptance
+
+Server build `4b81372` succeeded with zero errors and three existing warnings.
+Only the server DLL was deployed locally and to GPU-2, with verified equal hashes.
+Before testing, 384 profile/reward files per installation and the old DLL/config
+were copied and verified into private ignored evidence storage.
+
+The affected original profile completed **two Domination matches on Air Pit**
+through the 200-point rule, in the same ordinary server/game process. Both reached
+ExitStatus and then MainMenu. Native end request/response times were 342 ms and
+367 ms; neither request retried. Both ends logged successful protected completion.
+Both native end backups exactly match their entire captured checkpoint profile
+fingerprints. PMC/scav inventories, quests, skills and PMC XP stayed unchanged;
+the advancing hideout timestamp before the second snapshot proves updates resumed.
+All 228 Arena configuration entries remained unchanged.
+
+The repeat-run script initially assumed Backspace ends a match. In this mode it
+gives up one life, so that script's exit wait timed out without a native end request.
+The same second match was then allowed to finish normally; the successful end and
+complete data proof above are separate evidence, not a passing claim for that step.
+
+Evidence is under `artifacts/raid-end-persistence-20261027/`, including both native
+end requests, complete-profile proof summaries, configuration comparison and the
+original failed shortcut report. Private profiles/keys must not be published.
+The game and server were stopped gracefully after the final menu verification.
