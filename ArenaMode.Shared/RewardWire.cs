@@ -9,8 +9,6 @@ public static class RewardWire
     public const int Schema = 1;
     public const string StatusRoute = "/arenamode/rewards/status";
     public const string ConsentRoute = "/arenamode/rewards/consent";
-    public const string RecoveryStatusRoute = "/arenamode/rewards/recovery/status";
-    public const string RecoveryRequestRoute = "/arenamode/rewards/recovery/request";
     public const string PrepareControlRoute = "/arenamode/rewards/control/prepare";
     public const string PrepareEntryRoute = "/arenamode/session/prepare";
     public const string BeginRoute = "/arenamode/rewards/begin";
@@ -45,41 +43,6 @@ public class RewardConsentRequest
 {
     public bool Enabled { get; set; }
     public long? Revision { get; set; }
-}
-
-// The client confirms only a server-issued review identity. No paths, payout
-// amounts, profile replacement or restoration assertions cross this boundary.
-public class RewardRecoveryRequest
-{
-    public string ReviewId { get; set; } = "";
-    public bool ConfirmWithoutPayment { get; set; }
-}
-
-public sealed class RewardRecoveryCaseSummary
-{
-    public string Kind { get; set; } = "";
-    public string ShortId { get; set; } = "";
-    public bool AmountKnown { get; set; }
-    public long Roubles { get; set; }
-    public long Experience { get; set; }
-}
-
-public sealed class RewardRecoveryStatusResponse
-{
-    public bool Available { get; set; }
-    public bool CanClose { get; set; }
-    public bool Queued { get; set; }
-    public bool RequiresNormalSession { get; set; }
-    public string ReviewId { get; set; } = "";
-    public string Detail { get; set; } = "";
-    public List<RewardRecoveryCaseSummary> Cases { get; set; } = new List<RewardRecoveryCaseSummary>();
-}
-
-public sealed class RewardRecoveryResponse
-{
-    public bool Accepted { get; set; }
-    public string Reason { get; set; } = "";
-    public RewardRecoveryStatusResponse Status { get; set; } = new RewardRecoveryStatusResponse();
 }
 
 public sealed class RewardStatusResponse

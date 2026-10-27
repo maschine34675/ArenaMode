@@ -264,7 +264,7 @@ internal static class ArenaRewardCapture
                 ArenaRewardMenuState.CaptureProblem = "Last Arena match: no rewards (no contest or incomplete combat evidence).";
             if (!_delivered) Warn("the final result was not accepted (" + (reply?.Reason ?? "no response") + ")", null);
         }
-        catch (Exception e) { Warn("the final result could not be sent; profile restoration continues", e); }
+        catch (Exception e) { Warn("the final reward result could not be sent", e); }
     }
 
     internal static void OnRaidEnded()
@@ -284,7 +284,7 @@ internal static class ArenaRewardCapture
     {
         if (_warned) return;
         _warned = true;
-        ArenaRewardMenuState.CaptureProblem = "Last Arena match: rewards withheld because result capture was incomplete.";
+        ArenaRewardMenuState.CaptureProblem = "No reward for the last match.";
         Plugin.ModLogger.LogWarning("Arena rewards: " + reason + (error == null ? "." : " (" + error.GetBaseException().Message + ")."));
     }
 

@@ -14,7 +14,6 @@ internal sealed class ArenaRewardConsentView
     private Button _button;
     private TMP_Text _heading, _label, _detail;
     private Image _switchTrack, _switchKnob;
-    private ArenaRewardRecoveryView _recovery;
 
     internal void Create(Transform screen, GameObject owner, TMP_Text typography)
     {
@@ -64,7 +63,6 @@ internal sealed class ArenaRewardConsentView
             _detail.alignment = TextAlignmentOptions.TopLeft;
             _detail.enableWordWrapping = true;
             _detail.richText = false;
-            _recovery = ArenaRewardRecoveryView.CreateCard(_root.transform, owner, typography);
             ArenaRewardMenuState.Refresh(force: true);
         }
         catch (Exception e)
@@ -82,7 +80,7 @@ internal sealed class ArenaRewardConsentView
         // Use the free header space; map preview, mutators and native navigation stay put.
         ArenaMapPanelLayout.Place((RectTransform)_root.transform, _screen, 40f, 112f);
         float width = ArenaMapPanelLayout.Width(_screen);
-        Place(_heading.rectTransform, 14f, 10f, width - 320f, 28f);
+        Place(_heading.rectTransform, 14f, 10f, width - 150f, 28f);
         Place((RectTransform)_button.transform, width - 126f, 10f, 112f, 28f);
         Place(_label.rectTransform, 8f, 0f, 46f, 28f);
         Place(_detail.rectTransform, 14f, 44f, width - 28f, 62f);
@@ -120,8 +118,6 @@ internal sealed class ArenaRewardConsentView
 
     internal void Close()
     {
-        if (_recovery != null) _recovery.Close();
-        _recovery = null;
         if (_root != null) ArenaRewardMenuState.CancelQueuedToggle();
         if (_button != null) _button.onClick.RemoveAllListeners();
         _button = null;

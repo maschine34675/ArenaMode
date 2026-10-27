@@ -1,4 +1,3 @@
-using ArenaMode.Shared;
 using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
@@ -6,9 +5,31 @@ namespace ArenaMode.Server.Rewards;
 internal static class RewardRecovery
 {
     // Tests inject a crash AFTER a durable boundary; production never sets this.
-    internal static Action<string>? Checkpoint { get; set; }
+    private static readonly AsyncLocal<Action<string>?> InjectedCheckpoint = new();
+    internal static Action<string>? Checkpoint { get => InjectedCheckpoint.Value; set => InjectedCheckpoint.Value = value; }
     internal sealed record Attempt(string Directory, RewardRecoveryRequestRecord Request,
         RewardRecoveryPlan? Plan, RewardRecoveryCompletion? Completion);
+
+    // Optional rewards must not leave the player with a repair task. At the
+    // unloaded ordinary-startup boundary, discard exact unsupported old claims
+    // while retaining their identity so they cannot be paid again later.
+    internal static void DiscardUncertainAtStartup(RewardStartupWindow window, string id)
+    {
+        window.RequireOpen();
+        var enrollmentPath = Path.Combine(RewardRuntimeFiles.DirectoryFor(window.Root, id), "enrollment.json");
+        if (!RewardRuntimeFiles.Exists(window.Root, enrollmentPath))
+            return;
+        // Pre-runtime approved imports have no runtime run/checkpoint history.
+        // Their existing settlement/retry protocol remains authoritative.
+        if (!RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384).RuntimeManaged) return;
+        // Resume a previous write first, including requests from the short-lived
+        // manual-review version. A stale plan is retired without replacing progress.
+        ProcessAtStartup(window, id);
+        var review = RewardRecoveryEvidence.Review(window.Root, id);
+        if (review.Cases.Count == 0) return;
+        Queue(window.Root, id, review);
+        ProcessAtStartup(window, id);
+    }
 
     internal static RewardRecoveryStatusResponse Preview(string root, string id)
     {
@@ -45,19 +66,24 @@ internal static class RewardRecovery
             if (!RewardIdentity.IsHex(reviewId, 64)) throw new RewardDataException("recovery-review-invalid");
             var review = RewardRecoveryEvidence.Review(root, id);
             if (Hash(review) != reviewId || review.Cases.Count == 0) throw new RewardDataException("recovery-review-stale");
-            var attempts = ReadAttempts(root, id);
-            if (attempts.Any(a => a.Completion is null && a.Request.ReviewId != reviewId)) throw new RewardDataException("recovery-request-pending");
-            if (attempts.Count >= RewardRecoveryEvidence.Capacity && !attempts.Any(a => a.Request.ReviewId == reviewId))
-                throw new RewardDataException("recovery-attempt-capacity");
-            var directory = Path.Combine(DirectoryFor(root, id), reviewId);
-            RewardRuntimeFiles.EnsureDirectory(root, directory);
-            var request = new RewardRecoveryRequestRecord(1, reviewId, review);
-            RewardRuntimeFiles.WriteNew(root, Path.Combine(directory, "request.json"), request);
-            Checkpoint?.Invoke("request");
+            Queue(root, id, review);
             return new() { Accepted = true, Reason = "recovery-queued", Status = Preview(root, id) };
         }
         catch (Exception e) when (Expected(e))
         { return new() { Reason = Reason(e), Status = Preview(root, id) }; }
+    }
+
+    private static void Queue(string root, string id, RewardRecoveryReview review)
+    {
+        var reviewId = Hash(review);
+        var attempts = ReadAttempts(root, id);
+        if (attempts.Any(a => a.Completion is null && a.Request.ReviewId != reviewId)) throw new RewardDataException("recovery-request-pending");
+        if (attempts.Count >= RewardRecoveryEvidence.Capacity && !attempts.Any(a => a.Request.ReviewId == reviewId))
+            throw new RewardDataException("recovery-attempt-capacity");
+        var directory = Path.Combine(DirectoryFor(root, id), reviewId);
+        RewardRuntimeFiles.EnsureDirectory(root, directory);
+        RewardRuntimeFiles.WriteNew(root, Path.Combine(directory, "request.json"), new RewardRecoveryRequestRecord(1, reviewId, review));
+        Checkpoint?.Invoke("request");
     }
 
     internal static void ProcessAtStartup(RewardStartupWindow window, string id)

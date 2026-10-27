@@ -151,7 +151,7 @@ internal sealed class RewardRuntimeCoordinator
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or RewardDataException or JsonException or FormatException)
             {
                 result.State = "withheld";
-                result.Detail = "Reward state needs review; your profile has not been repaired or replaced.";
+                result.Detail = "Rewards are temporarily unavailable.";
                 result.CanChange = false;
             }
             ApplyPrivatePending(id, result);
@@ -181,7 +181,7 @@ internal sealed class RewardRuntimeCoordinator
         string? failure = _failures.GetValueOrDefault(id) ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
         if (failure is null) return;
         result.State = "withheld";
-        result.Detail = "A reward result was withheld (" + failure + "); profile restoration remains protected.";
+        result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : "Rewards are temporarily unavailable.";
     }
 
     internal RewardStatusResponse SetConsent(string id, bool enabled)

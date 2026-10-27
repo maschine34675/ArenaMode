@@ -1,5 +1,9 @@
 # Compact reward recovery
 
+**Historical and removed:** the user replaced this manual workflow later on
+2026-10-27. The controls, dialog and HTTP routes below no longer exist. Uncertain
+old rewards are [discarded automatically](REWARD-DISCARD-20261027.md).
+
 The player can close uncertain old Arena reward cases without deleting a profile.
 The server keeps the evidence. Closing these cases authorizes **no further payout**
 for them; it does not claim that a restore or payment succeeded.

@@ -44,7 +44,10 @@ internal static class RewardStartupProcessor
             {
                 RewardRuntimeInbox.Preflight(window.Root, id);
                 RewardRestorationCheckpoint.RecoverAtStartup(window, id);
-                RewardRecovery.ProcessAtStartup(window, id);
+                RewardRecovery.DiscardUncertainAtStartup(window, id);
+                // A stale pre-upgrade discard request may have shielded a now
+                // proven checkpoint on the first pass. Finish it this startup.
+                RewardRestorationCheckpoint.RecoverAtStartup(window, id);
             }
             if (applyDefault) RewardStartupDefaults.EnableIfNew(window, id);
             var directory = Path.Combine(window.Root, RewardStartupFiles.RelativeDirectory, id);

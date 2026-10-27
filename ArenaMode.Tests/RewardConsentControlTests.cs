@@ -503,7 +503,7 @@ public sealed class RewardConsentControlTests
         Assert.Throws<RewardDataException>(() => p.FinalizePersisted(Fixture.Id, report.NativeEndIdentity, f.PrivateProfile));
         await p.RefreshPrivateConsentAsync(Fixture.Id);
         Assert.Equal("withheld", p.GetStatus(Fixture.Id).State);
-        Assert.Contains("reward-durable-restoration-unproven", p.GetStatus(Fixture.Id).Detail);
+        Assert.Equal("No reward for the last match.", p.GetStatus(Fixture.Id).Detail);
     }
 
     [Fact]

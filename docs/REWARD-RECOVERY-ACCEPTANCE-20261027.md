@@ -1,5 +1,9 @@
 # Reward recovery acceptance — 2026-10-27
 
+Historical acceptance of the manual workflow. The subsequent user-requested
+[automatic discard](REWARD-DISCARD-20261027.md) replaces its UI/confirmation
+behavior; its test/deployment evidence is recorded separately.
+
 Implemented in `a9aed4e` (durable recovery and restoration) and `5105a08`
 (compact player review). Existing profiles do not need deletion. Positively proven
 restoration can finish automatically; uncertain old reward cases require an

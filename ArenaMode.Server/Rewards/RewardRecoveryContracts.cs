@@ -1,5 +1,31 @@
 namespace ArenaMode.Server.Rewards;
 
+// Internal diagnostics and migration tests only; no client recovery protocol.
+internal sealed class RewardRecoveryCaseSummary
+{
+    public string Kind { get; set; } = "";
+    public string ShortId { get; set; } = "";
+    public bool AmountKnown { get; set; }
+    public long Roubles { get; set; }
+    public long Experience { get; set; }
+}
+internal sealed class RewardRecoveryStatusResponse
+{
+    public bool Available { get; set; }
+    public bool CanClose { get; set; }
+    public bool Queued { get; set; }
+    public bool RequiresNormalSession { get; set; }
+    public string ReviewId { get; set; } = "";
+    public string Detail { get; set; } = "";
+    public List<RewardRecoveryCaseSummary> Cases { get; set; } = [];
+}
+internal sealed class RewardRecoveryResponse
+{
+    public bool Accepted { get; set; }
+    public string Reason { get; set; } = "";
+    public RewardRecoveryStatusResponse Status { get; set; } = new();
+}
+
 // A closure is an explicit refusal to pay an old operation again. It is never
 // a payment, a reconstruction of missing history, or proof of restoration.
 internal sealed record RewardRecoveryEvidenceFile(string RelativePath, string Sha256);

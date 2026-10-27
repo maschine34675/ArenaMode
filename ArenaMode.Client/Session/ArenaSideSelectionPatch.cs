@@ -45,7 +45,6 @@ internal static class ArenaSideSelectionPatch
         {
             Preview.ArenaPreviewFlow.Reset();
             ArenaAvailabilityNotice.Hide(__instance);
-            ArenaRewardRecoveryView.HideSide(__instance);
             ArenaSideSelectionLayout.Restore(__instance);
             if (PitFireTeamCompat.IsSquadManagementScreen)
             {
@@ -86,8 +85,6 @@ internal static class ArenaSideSelectionPatch
                     Controller(__instance), allowPendingModeSelection: true);
                 ArenaSideSelectionView.Show(__instance.transform, arena, eligibility.Allowed);
                 ArenaSideSelectionLayout.Apply(__instance, Controller(__instance)?.Session.Profile);
-                // Recovery stays reachable here even when admission disables the Arena choice.
-                ArenaRewardRecoveryView.ShowSide(__instance);
                 // Arena session: ARENA preselected, PMC and Scav locked. Any other session: unchanged.
                 eligibility = PrepareArenaSession(__instance, eligibility);
                 ShowNotice(__instance, eligibility);
@@ -107,7 +104,6 @@ internal static class ArenaSideSelectionPatch
             }
             catch (Exception ex)
             {
-                ArenaRewardRecoveryView.HideSide(__instance);
                 ArenaMenuSelection.Clear();
                 ArenaSideSelectionLayout.Restore(__instance);
                 ArenaSideSelectionView.Hide(__instance.transform, __instance._randomButton);
@@ -126,7 +122,6 @@ internal static class ArenaSideSelectionPatch
             ArenaMenuSelection.RestoringSideScreen = false;
             if (__exception != null)
             {
-                ArenaRewardRecoveryView.HideSide(__instance);
                 ArenaSideSelectionLayout.Restore(__instance);
                 ArenaMenuSelection.EndFlow();
             }
@@ -143,7 +138,6 @@ internal static class ArenaSideSelectionPatch
         private static void Prefix(MatchMakerSideSelectionScreen __instance)
         {
             ArenaAvailabilityNotice.Hide(__instance);
-            ArenaRewardRecoveryView.HideSide(__instance);
             try { Preview.ArenaPreviewFlow.KeepFromSide(__instance, Controller(__instance)?.RaidSettings); }
             catch (Exception ex)
             {

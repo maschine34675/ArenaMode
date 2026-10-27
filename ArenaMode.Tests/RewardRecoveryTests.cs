@@ -7,6 +7,66 @@ namespace ArenaMode.Tests;
 
 public sealed class RewardRecoveryTests
 {
+    [Fact]
+    public async Task StartupDiscardsUnprovenOldRewardsWithoutPlayerActionAndNewRewardsPay()
+    {
+        using var f = new Fixture();
+        var old = f.LegacyPending();
+        f.Edit(p => p["foreignMod"]!["progress"] = 731);
+        var before = f.Profile;
+        var source = f.SourceBytes();
+        Assert.False(Directory.Exists(f.PathOf("recovery")));
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        AssertOnlyMarkerAdded(before, f.Profile);
+        f.AssertSources(source);
+        var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+        Assert.True(closures.ClosesSnapshot(old.Generation));
+        Assert.True(closures.ClosesRun(old.Run, old.Arm));
+        Assert.Empty(f.Ledger);
+        var discarded = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        Assert.Equal(discarded, f.Profile);
+        f.CaptureAndPublish();
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Single(f.Ledger);
+        Assert.Equal(731, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
+    }
+
+    [Theory]
+    [InlineData("plan")]
+    [InlineData("profile")]
+    public async Task AutomaticDiscardResumesAfterCrashAndInterveningNormalProgress(string boundary)
+    {
+        using var f = new Fixture();
+        var old = f.LegacyPending();
+        RewardRecovery.Checkpoint = step => { if (step == boundary) throw new IOException("interrupted startup"); };
+        try { Assert.Equal("startup-storage-unavailable", (await f.Process()).Result.Reason); }
+        finally { RewardRecovery.Checkpoint = null; }
+        f.Edit(p => p["foreignMod"]!["progress"] = 823);
+        var before = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        AssertOnlyMarkerAdded(before, f.Profile);
+        Assert.True(RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile).ClosesSnapshot(old.Generation));
+        Assert.Equal(823, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
+        Assert.Empty(f.Ledger);
+    }
+
+    [Fact]
+    public async Task AutomaticDiscardReacknowledgesOldDecisionAfterProfileBackupRollback()
+    {
+        using var f = new Fixture();
+        var old = f.LegacyPending();
+        var before = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        File.WriteAllText(f.ProfilePath, before);
+        f.Edit(p => p["foreignMod"]!["progress"] = 919);
+        var current = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        AssertOnlyMarkerAdded(current, f.Profile);
+        Assert.True(RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile).ClosesSnapshot(old.Generation));
+        Assert.Empty(f.Ledger);
+    }
+
     [Theory]
     [InlineData("filename")]
     [InlineData("signature")]
@@ -78,7 +138,7 @@ public sealed class RewardRecoveryTests
     }
 
     [Fact]
-    public async Task CommittedPaymentMissingFromLedgerIsWaivedWithoutFalsePaymentAndNextResultPays()
+    public async Task CommittedPaymentMissingFromLedgerIsAutomaticallyDiscardedAndNextResultPays()
     {
         using var f = new Fixture();
         var original = f.Profile;
@@ -88,7 +148,6 @@ public sealed class RewardRecoveryTests
         var journal = f.Read<RewardJournal>("journal.json");
         File.WriteAllText(f.ProfilePath, original);
         f.Edit(p => p["foreignMod"]!["progress"] = 444);
-        Assert.Equal("reward-import-not-settled", (await f.Process()).Result.Reason);
         var source = f.SourceBytes();
         var review = RewardRecovery.Preview(f.Root, f.Id);
         Assert.True(review.CanClose, review.Detail);
@@ -96,7 +155,7 @@ public sealed class RewardRecoveryTests
         Assert.Equal("payment", item.Kind);
         Assert.Equal(1000, item.Roubles);
         Assert.Equal(100, item.Experience);
-        f.QueueAndClose(review.ReviewId);
+        Assert.Equal(RewardSettlementStatus.ClosedWithoutPayment, (await f.Process()).Result.Status);
         f.AssertSources(source);
         Assert.Empty(f.Ledger);
         var profile = f.Profile;
@@ -121,7 +180,7 @@ public sealed class RewardRecoveryTests
     }
 
     [Fact]
-    public async Task ExplicitClosureDoesNotChangeRewardsOff()
+    public async Task AutomaticDiscardDoesNotChangeRewardsOff()
     {
         using var f = new Fixture();
         f.LegacyPending();
@@ -130,7 +189,6 @@ public sealed class RewardRecoveryTests
         var handoff = File.ReadAllBytes(f.PathOf("handoff.json"));
         var review = RewardRecovery.Preview(f.Root, f.Id);
         Assert.True(review.CanClose, review.Detail);
-        Assert.True(RewardRecovery.Request(f.Root, f.Id, review.ReviewId).Accepted);
         Assert.Equal("rewards-not-enabled", (await f.Process()).Result.Reason);
         Assert.Single(RewardProfileDocument.ReadRecoveryMarkers(f.Profile, f.Binding));
         Assert.Equal(consent, File.ReadAllBytes(f.PathOf("consent.json")));
@@ -157,8 +215,7 @@ public sealed class RewardRecoveryTests
         RewardRecovery.Checkpoint = step => { if (!hit && step == point) { hit = true; throw new IOException("injected crash"); } };
         try
         {
-            _ = RewardRecovery.Request(f.Root, f.Id, review.ReviewId);
-            if (point != "request") Assert.Throws<IOException>(() => RewardRecovery.ProcessAtStartup(f.Window, f.Id));
+            Assert.Throws<IOException>(() => RewardRecovery.DiscardUncertainAtStartup(f.Window, f.Id));
         }
         finally { RewardRecovery.Checkpoint = null; }
         Assert.True(hit);
@@ -328,6 +385,52 @@ public sealed class RewardRecoveryTests
         Assert.True(JsonNode.Parse(File.ReadAllText(f.RunPath(run)))!["state"] is not null);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LaterDurableProofSupersedesOnlyAnUnappliedDiscard(bool markerApplied)
+    {
+        using var f = new Fixture();
+        var run = f.CaptureAndPublish();
+        var inbox = f.PathOf("inbox/" + run + ".json");
+        var receipt = RewardRuntimeFiles.Verify(f.Read<RewardHandoff>("handoff.json"),
+            RewardStartupFiles.Read<RewardSignedReceipt>(inbox));
+        var authorization = receipt.Evidence.Authorization;
+        var directory = RewardRestorationCheckpoint.DirectoryFor(f.Root, f.Id, authorization.RestorationId);
+        var proofPath = Path.Combine(directory, "persisted.json");
+        var proof = File.ReadAllBytes(proofPath);
+        File.Delete(proofPath);
+        File.Delete(inbox);
+        File.Delete(Path.Combine(directory, "complete.json"));
+        f.WriteAt(f.SnapshotPath(authorization.RestorationId), new RewardSnapshotGuard(1, authorization.RestorationId, "pending"));
+        f.WriteAt(f.RunPath(run), new RewardRuntimePending(1, authorization.ArmToken, run));
+        f.Queue();
+        if (markerApplied)
+        {
+            RewardRecovery.Checkpoint = step => { if (step == "profile") throw new IOException("interrupted acknowledgement"); };
+            try { Assert.Throws<IOException>(() => RewardRecovery.ProcessAtStartup(f.Window, f.Id)); }
+            finally { RewardRecovery.Checkpoint = null; }
+        }
+        var guard = File.ReadAllBytes(f.SnapshotPath(authorization.RestorationId));
+        File.WriteAllBytes(proofPath, proof);
+        var result = await f.Process();
+        if (markerApplied)
+        {
+            Assert.NotEqual(RewardSettlementStatus.Quarantined, result.Result.Status);
+            Assert.Empty(f.Ledger);
+            Assert.False(File.Exists(inbox));
+            Assert.Equal(guard, File.ReadAllBytes(f.SnapshotPath(authorization.RestorationId)));
+            Assert.True(RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile).ClosesSnapshot(authorization.RestorationId));
+        }
+        else
+        {
+            Assert.Equal(RewardSettlementStatus.Paid, result.Result.Status);
+            Assert.Single(f.Ledger);
+            Assert.Equal("stale", Assert.Single(RewardRecovery.ReadAttempts(f.Root, f.Id)).Completion!.State);
+            Assert.Empty(RewardProfileDocument.ReadRecoveryMarkers(f.Profile, f.Binding));
+        }
+    }
+
     [Fact]
     public void ChangedConflictMakesQueuedReviewStaleAndRequiresAnotherConfirmation()
     {
@@ -358,15 +461,18 @@ public sealed class RewardRecoveryTests
     }
 
     [Fact]
-    public async Task ClosureDoesNotHideAnotherPendingGeneration()
+    public async Task AnotherPendingGenerationGetsItsOwnAutomaticDiscardDecision()
     {
         using var f = new Fixture();
-        f.LegacyPending();
+        var first = f.LegacyPending();
         f.QueueAndClose();
-        f.LegacyPending();
+        var second = f.LegacyPending();
         var result = await f.Process();
-        Assert.Equal(RewardSettlementStatus.Quarantined, result.Result.Status);
-        Assert.Equal("reward-snapshot-restoration-unresolved", result.Result.Reason);
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, result.Result.Status);
+        Assert.Equal(2, RewardRecovery.ReadAttempts(f.Root, f.Id).Count);
+        var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+        Assert.True(closures.ClosesSnapshot(first.Generation));
+        Assert.True(closures.ClosesSnapshot(second.Generation));
         Assert.Empty(f.Ledger);
     }
 
@@ -436,6 +542,7 @@ public sealed class RewardRecoveryTests
         var preview = RewardRecovery.Preview(f.Root, f.Id);
         Assert.False(preview.CanClose);
         Assert.False(RewardRecovery.Request(f.Root, f.Id, new string('a', 64)).Accepted);
+        Assert.ThrowsAny<Exception>(() => RewardRecovery.DiscardUncertainAtStartup(f.Window, f.Id));
         Assert.Equal(before, f.Profile);
         Assert.False(Directory.Exists(f.PathOf("recovery")));
     }
@@ -449,8 +556,10 @@ public sealed class RewardRecoveryTests
         var before = f.Profile;
         using var loaded = new RewardStartupWindow(f.Root, () => false);
         Assert.Throws<RewardDataException>(() => RewardRecovery.ProcessAtStartup(loaded, f.Id));
+        Assert.Throws<RewardDataException>(() => RewardRecovery.DiscardUncertainAtStartup(loaded, f.Id));
         f.Window.Dispose();
         Assert.Throws<RewardDataException>(() => RewardRecovery.ProcessAtStartup(f.Window, f.Id));
+        Assert.Throws<RewardDataException>(() => RewardRecovery.DiscardUncertainAtStartup(f.Window, f.Id));
         Assert.Equal(before, f.Profile);
     }
 
@@ -475,7 +584,7 @@ public sealed class RewardRecoveryTests
             Assert.Equal(2000, Assert.Single(review.Cases).Roubles);
             Assert.Equal(200, Assert.Single(review.Cases).Experience);
         }
-        f.QueueAndClose(review.ReviewId);
+        RewardRecovery.DiscardUncertainAtStartup(f.Window, f.Id);
         AssertOnlyMarkerAdded(before, f.Profile);
         Assert.Equal(originalPayments, f.Ledger);
         f.AssertSources(sources);
@@ -513,7 +622,7 @@ public sealed class RewardRecoveryTests
         Assert.Equal(after, f.Profile);
     }
 
-    private static void AssertOnlyMarkerAdded(string before, string after)
+    internal static void AssertOnlyMarkerAdded(string before, string after)
     {
         var a = JsonNode.Parse(before)!;
         var b = JsonNode.Parse(after)!;

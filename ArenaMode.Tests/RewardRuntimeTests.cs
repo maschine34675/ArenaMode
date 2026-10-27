@@ -262,16 +262,19 @@ public sealed class RewardRuntimeTests
     }
 
     [Fact]
-    public async Task PendingOrdinaryRunBlocksPayoutAfterCrash()
+    public async Task PendingOrdinaryRunIsDiscardedWithoutBlockingEarlierValidReward()
     {
         using var f = new Fixture();
-        f.RestoreAndPublish(f.Capture());
+        var earlier = f.Capture();
+        f.RestoreAndPublish(earlier);
         _ = f.BeginReport(); // No positive end proof for this next run.
         var before = f.Profile;
         var result = await f.Process();
-        Assert.Equal("reward-snapshot-restoration-unresolved", result.Result.Reason);
-        Assert.Equal(before, f.Profile);
-        Assert.Empty(f.Ledger);
+        Assert.Equal(RewardSettlementStatus.Paid, result.Result.Status);
+        Assert.StartsWith(earlier.RunId + ":", Assert.Single(f.Ledger).ReceiptKey);
+        Assert.Equal(1000, result.Roubles);
+        Assert.Equal(JsonNode.Parse(before)!["characters"]!["pmc"]!["Inventory"]?.ToJsonString(),
+            JsonNode.Parse(f.Profile)!["characters"]!["pmc"]!["Inventory"]?.ToJsonString());
     }
 
     [Fact]
@@ -502,14 +505,15 @@ public sealed class RewardRuntimeTests
     }
 
     [Fact]
-    public async Task MissingInboxCannotBypassUnresolvedOrdinaryRun()
+    public async Task UnprovenRunWithoutInboxIsDiscardedWithoutPayment()
     {
         using var f = new Fixture();
         _ = f.BeginReport();
         Assert.False(Directory.Exists(f.PathOf("inbox")));
         var before = f.Profile;
-        Assert.Equal("reward-snapshot-restoration-unresolved", (await f.Process()).Result.Reason);
-        Assert.Equal(before, f.Profile);
+        Assert.Equal("rewards-enrolled-no-pending-result", (await f.Process()).Result.Reason);
+        RewardRecoveryTests.AssertOnlyMarkerAdded(before, f.Profile);
+        Assert.Empty(f.Ledger);
     }
 
     [Fact]
@@ -542,30 +546,36 @@ public sealed class RewardRuntimeTests
     }
 
     [Fact]
-    public async Task CrashBeforeClientBeginStillBlocksEarlierPayout()
+    public async Task CrashBeforeClientBeginDiscardsOnlyTheUnprovenSnapshot()
     {
         using var f = new Fixture();
         f.RestoreAndPublish(f.Capture());
         f.Coordinator.ObserveSnapshot(Fixture.ProfileId, f.Profile);
         var before = f.Profile;
-        Assert.Equal("reward-snapshot-restoration-unresolved", (await f.Process()).Result.Reason);
-        Assert.Equal(before, f.Profile);
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Single(f.Ledger);
+        Assert.Single(RewardRecovery.ReadAttempts(f.Root, Fixture.ProfileId));
     }
 
     [Fact]
-    public async Task StartupRefusalRemainsVisibleInPlayerStatus()
+    public async Task UnknownRewardStateUsesNeutralPlayerTextWithoutProfileChanges()
     {
         using var f = new Fixture();
         f.RestoreAndPublish(f.Capture());
         f.Coordinator.ObserveSnapshot(Fixture.ProfileId, f.Profile);
+        var pending = Directory.GetFiles(Path.Combine(f.Root, "user", "arena-reward-snapshots", Fixture.ProfileId))
+            .Single(path => File.ReadAllText(path).Contains("pending"));
+        var invalid = JsonNode.Parse(File.ReadAllText(pending))!;
+        invalid["schema"] = 99;
+        File.WriteAllText(pending, invalid.ToJsonString());
         var before = f.Profile;
         var outcome = await f.Process();
-        Assert.Equal("reward-snapshot-restoration-unresolved", outcome.Result.Reason);
+        Assert.Equal(RewardSettlementStatus.Quarantined, outcome.Result.Status);
         // A restarted coordinator has no in-memory match failure to rely on.
         var restarted = new RewardRuntimeCoordinator(f.Root);
         restarted.ObserveStartupOutcome(outcome);
         Assert.Equal("withheld", restarted.GetStatus(Fixture.ProfileId).State);
-        Assert.Contains(outcome.Result.Reason, restarted.GetStatus(Fixture.ProfileId).Detail);
+        Assert.Equal("Rewards are temporarily unavailable.", restarted.GetStatus(Fixture.ProfileId).Detail);
         Assert.Equal(before, f.Profile);
     }
 
@@ -577,7 +587,7 @@ public sealed class RewardRuntimeTests
         f.Coordinator.ObserveStartupUnavailable("unreviewed-native-startup-version");
         var status = f.Coordinator.GetStatus(Fixture.ProfileId);
         Assert.Equal("withheld", status.State);
-        Assert.Contains("unreviewed-native-startup-version", status.Detail);
+        Assert.Equal("Rewards are temporarily unavailable.", status.Detail);
         Assert.False(status.Enrolled);
         Assert.Equal(before, f.Profile);
     }
@@ -653,9 +663,13 @@ public sealed class RewardRuntimeTests
         using var f = new Fixture();
         f.RestoreAndPublish(f.Capture());
         _ = f.BeginReport();
+        var guardRoot = Path.Combine(f.Root, "user", "arena-reward-snapshots", Fixture.ProfileId);
+        var guards = Directory.GetFiles(guardRoot).ToDictionary(path => path, File.ReadAllText);
         f.Coordinator.DiscardSnapshot(Fixture.ProfileId);
-        Assert.Equal("reward-snapshot-restoration-unresolved", (await f.Process()).Result.Reason);
-        Assert.Empty(f.Ledger);
+        foreach (var guard in guards) Assert.Equal(guard.Value, File.ReadAllText(guard.Key));
+        Assert.Empty(f.Ledger); // A live generic discard cannot manufacture an end.
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Single(f.Ledger); // Only the earlier, proven reward pays at startup.
     }
 
     [Fact]

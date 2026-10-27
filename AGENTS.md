@@ -37,9 +37,11 @@ restoration from empty RAM state, replace a live profile for payout, bypass the
 startup coordination gate, or use a client-supplied amount as payout authority.
 Reward work does not relax Arena's full-profile restoration protection. Read
 docs/REWARD-RECOVERY-ENGINE-20261027.md and docs/REWARD-RESTORATION-20261027.md
-before changing recovery. Explicit old-case closure is startup-only metadata,
-never a payment or restoration proof. Preserve its original evidence, exact
-profile acknowledgement and permanent replay rejection. Full native restore
+before changing recovery. The user replaced explicit review with automatic
+discard on 2026-10-27; read docs/REWARD-DISCARD-20261027.md. No recovery UI or
+client approval route remains. Old-case closure is startup-only metadata,
+never a payment or restoration proof. Preserve exact case acknowledgement and
+permanent replay rejection. Full native restore
 readback is mandatory even with rewards OFF; private checkpoint publication and
 archival precede immutable offline closure and tree retirement.
 Read docs/ARENA-OFFLINE-SESSION-20261025.md before changing session ownership: schema 3

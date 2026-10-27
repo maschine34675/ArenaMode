@@ -1,10 +1,10 @@
 # Reward recovery engine — 2026-10-27
 
-The player can explicitly close an uncertain old Arena operation **without another payment**. The current native profile remains authoritative. This is neither profile restoration nor a reconstruction of a lost payment. Rewards opt-in is unchanged.
+Uncertain old Arena operations are discarded automatically **without another payment** at normal server startup. The current native profile remains authoritative. This is neither profile restoration nor a reconstruction of a lost payment. Rewards opt-in is unchanged. The [automatic policy](REWARD-DISCARD-20261027.md) supersedes the manual workflow originally implemented on this date.
 
 ## Authority and scope
 
-The normal-server API obtains a read-only review for the authenticated profile. The request contains only its 64-character review hash and explicit confirmation. The engine accepts pending schema-1 snapshot/run guards and exact committed RUB/XP journal entries absent from the profile ledger. It validates the complete result-decision sequence and payment history before offering closure. Unknown schemas, mismatched history, linked paths, true offline ownership recovery, and unresolved Cola transactions remain blocked.
+Only the ordinary startup processor creates a case-specific discard decision. No recovery HTTP routes or player confirmation remain. The engine accepts pending schema-1 snapshot/run guards and exact committed RUB/XP journal entries absent from the profile ledger. It validates their result-decision sequence and payment history before closure. Unknown schemas, mismatched history, linked paths, true offline ownership recovery, and unresolved Cola transactions are not treated as disposable old claims.
 
 The review binds installation/profile/epoch, the Arena profile extension, prior recovery outcomes, exact affected journal entries, and hashes of original guard/run/receipt/allocation/import/decision/checkpoint files. Unrelated profile progression and autosave fields do not invalidate the displayed review. A change to affected evidence or Arena metadata does. Scans and responses are bounded; one review contains at most 64 cases and a profile retains at most 64 recovery attempts.
 
@@ -14,16 +14,16 @@ Original journal, receipt, decision, imported, snapshot and run bytes remain unc
 
 `recovery/<review-id>/` retains immutable records:
 
-1. `request.json`: the exact confirmed review, written by the normal-server route without a profile edit.
+1. `request.json`: the exact server-owned discard decision, written at startup without a profile edit. The record remains compatible with pending requests from the former manual workflow.
 2. `before-profile.json`: the entire current profile at the native pre-load boundary, retained for audit only.
 3. `plan.json`: request fingerprint and whole-profile before/after hashes. The after document differs only by the recovery marker.
 4. `completion.json`: either `closed-without-payment` after durable profile readback, or `stale` when another review is necessary.
 
-The startup processor first finishes actual Cola recovery, then reconciles positive restoration checkpoints, then executes queued recovery before the rewards-OFF early return. Actual offline ownership recovery precedes this callback. The route never writes a live profile.
+The startup processor first finishes actual Cola recovery, then reconciles positive restoration checkpoints, then resumes interrupted discard work and automatically closes remaining supported uncertain cases before the rewards-OFF early return. Actual offline ownership recovery precedes this callback. No live profile is written.
 
 A crash before profile replacement retries the same exact plan. A later normal save before replacement makes that plan stale; it cannot replace or rebase onto the newer profile. A crash after marker replacement can finish acknowledgement if the complete owned extension is unchanged, even if unrelated native progression has since changed. That path writes no profile. Every durable boundary has a test injection point.
 
-A completed sidecar whose marker disappeared after a profile backup rollback is not auto-acknowledged. It requires a fresh explicit review, including when that backup happens to contain the originally missing paid ledger entry. A later confirmed decision may cover the identical old cases while preserving every prior record. Changed original source bytes fail closed rather than becoming a generic new reset opportunity.
+A completed sidecar whose marker disappeared after a profile backup rollback is revalidated through a fresh server-owned decision, including when that backup contains the originally missing paid ledger entry. That decision may cover the identical old cases while preserving prior records. Changed original source bytes fail closed rather than becoming a generic reset opportunity.
 
 ## Permanent rejection and future rewards
 
