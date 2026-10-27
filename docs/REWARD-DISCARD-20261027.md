@@ -34,4 +34,28 @@ test now verifies those routes are absent. Independent review found no remaining
 blocking issue. The original fixtures were updated to assert the new discard
 policy while preserving actual restoration and foreign-transaction checks.
 
-Build/deployment and native acceptance are recorded after the installation check.
+Release builds of the client, server and BigBrain companion succeeded. Only those
+three DLLs from commit `4478b6c` were deployed locally and to GPU-2, with matching
+SHA-256 hashes. In both normal and private Arena processes, source build, installed
+files and loaded assembly identities matched. Assets and configuration were not
+deployed.
+
+Native acceptance on GPU-2 completed a normal startup, Arena menu entry, return
+to SPT and a second normal startup. Both known original problems were closed
+automatically: two closure records contain three exact case entries. Neither
+discarded claim was paid. Two separate valid claims were processed normally,
+totalling 10,000 RUB and 1,000 XP; the second startup paid nothing again. The old
+warning messages were absent. Arena menus expose no recovery controls, and the
+normal main menu has no Arena strip or reward UI.
+
+Read-only audits of both synchronized ordinary installations verified the exact
+closures, retained original evidence/history, unchanged consent, and unchanged
+PMC/Scav inventories, quests, skills and foreign mod data. The XP delta matches
+the valid payments; native timestamp/level/trader recalculation is excluded from
+that comparison. All 228 Arena configuration values and 185 reported inventory
+items also match the prior native acceptance capture. This pass exercised menu
+entry/return and startup, not another combat raid.
+
+Private backup, deployment, audit and UI evidence is retained under
+`artifacts/reward-discard-20261027/` and must not be published. Game and servers
+were stopped again after verification; no second instance remained.
