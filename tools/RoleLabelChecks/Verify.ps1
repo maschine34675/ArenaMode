@@ -48,6 +48,7 @@ try {
     Test-Mutant 'human-scav-treated-as-pmc' 'info.Side == EPlayerSide.Usec || info.Side == EPlayerSide.Bear' 'true' 'human Scav stays Scav label'
     Test-Mutant 'faction-labels-swapped' 'humanSide.Value == EPlayerSide.Usec' 'humanSide.Value == EPlayerSide.Bear' 'local USEC with native default role label'
     Test-Mutant 'human-requires-bot-settings' 'info == null || player.IsAI' 'info == null || player.IsAI || info.Settings == null' 'human PMC without bot settings Usec label'
+    Test-Mutant 'round-faction-ignored' 'Bots.TeamDeathmatchRelations.Faction(player) ?? ' '' 'selected round side Usec label'
 }
 finally {
     Assert-Production

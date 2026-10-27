@@ -7,6 +7,15 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Killfeed round side (2026-10-27):** human faction labels now use the exact
+  body's frozen TDM/Domination affiliation, with native fallback. No saved side
+  or scoring changes. Unit suite 3308 passed/three skips; focused and mutation
+  checks plus both builds passed. Fresh GPU1 Factory Domination verified local
+  kills, give-up, respawn kills and enemy-caused local death as BEAR from a USEC
+  profile. Four-minute end and full protected profile readback passed; all 238
+  settings retained. Both client DLLs deployed, GPU1 stopped, concurrent GPU2
+  session undisturbed. See [evidence and hashes](KILLFEED-ROUND-FACTION-20261027.md).
+
 - **Domination routes/options (2026-10-27):** capture-valid alternative bot
   approaches, exact owned-path cleanup, per-match Factory triples from the eight
   original surveyed seeds (12m separation), and independent point/time limits

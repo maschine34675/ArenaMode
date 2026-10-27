@@ -33,6 +33,23 @@ namespace EFT.BinarySerialization
     public sealed class GenerateBinarySerializationAttribute : Attribute { }
 }
 
+namespace ArenaMode.Bots
+{
+    // The actual raid/body affiliation boundary is exercised by
+    // TeamDeathmatchRuntimeChecks; this supplies its result to the classifier.
+    internal static class TeamDeathmatchRelations
+    {
+        internal static readonly Dictionary<EFT.IPlayer, EFT.EPlayerSide> Sides = new();
+        internal static EFT.EPlayerSide? Faction(EFT.IPlayer player)
+            => player != null && Sides.TryGetValue(player, out var side) ? side : null;
+    }
+}
+
+namespace ArenaMode.Effects
+{
+    internal static class ArenaTracerPatches { internal static void ResetDiagnostics() { } }
+}
+
 // RoleClassifier.Label calls the native WildSpawnTypeExtension.IsInfected
 // (global namespace, $(NativeSourceRoot)/WildSpawnTypeExtension.cs:540). That
 // native file cannot be linked like the enum contracts above: it drags in

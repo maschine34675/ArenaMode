@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Show the selected round faction in the killfeed for Team DM and Domination,
+  including deaths and respawns, without changing the saved profile faction.
+  [Details](docs/KILLFEED-ROUND-FACTION-20261027.md).
+
 - Improve Domination bot approaches, vary Factory's three control points each
   match, and add separate point/time limit controls. Show Day/Night for Equator
   and remove the redundant character-selection notice.

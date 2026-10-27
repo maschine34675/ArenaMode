@@ -12,6 +12,9 @@
     <Compile Include="../../ArenaMode.Client/Combat/ScoreRules.cs" Link="Production/ScoreRules.cs" />
     <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaScoreboard.cs" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../../ArenaMode.Client/Hud/KillfeedText.cs" Link="Production/KillfeedText.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaUncreditedDeath.cs" Link="Production/ArenaUncreditedDeath.cs" />
+    <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerTeams.cs" Link="Production/ArenaTracerTeams.cs" />
     <!-- Compile native enum/default contracts, without loading EFT/Unity binaries. -->
     <Compile Include="$(NativeSourceRoot)/EFT/EPlayerSide.cs" Link="Native/EPlayerSide.cs" />
     <Compile Include="$(NativeSourceRoot)/EFT/WildSpawnType.cs" Link="Native/WildSpawnType.cs" />

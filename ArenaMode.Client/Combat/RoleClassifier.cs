@@ -4,7 +4,8 @@ namespace ArenaMode.Combat;
 
 /// <summary>
 /// WildSpawnType → score bucket + short killfeed label. Condensed from the
-/// proven AutoIFF switch (same author); human PMCs use their profile faction,
+/// proven AutoIFF switch (same author); human PMCs use their round affiliation
+/// when registered in independent team play, otherwise their profile faction,
 /// while AI keeps its explicit spawn role (including raiders, rogues and bosses).
 /// Buckets are deliberately coarse — labels carry the flavor.
 /// </summary>
@@ -60,7 +61,9 @@ internal static class RoleClassifier
 
     public static string Label(IPlayer player)
     {
-        var humanSide = HumanPmcSide(player);
+        // Capture the exact body's frozen round side, including posthumous
+        // projectiles. The native profile faction deliberately stays unchanged.
+        var humanSide = Bots.TeamDeathmatchRelations.Faction(player) ?? HumanPmcSide(player);
         if (humanSide.HasValue)
             return humanSide.Value == EPlayerSide.Usec ? "USEC" : "BEAR";
 

@@ -113,4 +113,41 @@ Equal(usec.Profile.Info.Side, EPlayerSide.Usec, "classifier never changes factio
 Equal(usec.Profile.Info.Settings.Role, WildSpawnType.assault, "classifier never rewrites profile bot settings");
 Equal(RoleClassifier.DisplayName(usec), "Test actor", "display name remains unchanged");
 Equal(RoleClassifier.DisplayName(null), "?", "missing display name remains safe");
+
+foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+{
+    var selected = native == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;
+    var label = selected == EPlayerSide.Usec ? "USEC" : "BEAR";
+    var local = Player(false, native);
+    ArenaMode.Bots.TeamDeathmatchRelations.Sides[local] = selected;
+    Check(local, ArenaRole.Pmc, label, "selected round side " + native);
+    foreach (bool localAttacker in new[] { true, false })
+    {
+        var kill = new ArenaKill
+        {
+            KillerName = localAttacker ? "Local" : "Opponent",
+            VictimName = localAttacker ? "Opponent" : "Local",
+            KillerRoleLabel = localAttacker ? RoleClassifier.Label(local) : "OTHER",
+            VictimRoleLabel = localAttacker ? "OTHER" : RoleClassifier.Label(local),
+        };
+        var line = ArenaMode.Hud.KillfeedText.Format(kill, "#0000FF", "#FF0000");
+        Equal(line.Contains(localAttacker ? label + " ➔ OTHER" : "OTHER ➔ " + label), true,
+            "killfeed captured round faction " + native + "/" + localAttacker);
+        ArenaMode.Bots.TeamDeathmatchRelations.Sides.Remove(local);
+        Equal(ArenaMode.Hud.KillfeedText.Format(kill, "#0000FF", "#FF0000"), line,
+            "captured label remains stable after affiliation cleanup");
+        ArenaMode.Bots.TeamDeathmatchRelations.Sides[local] = selected;
+    }
+    var death = new ArenaUncreditedDeath { VictimName = "Local", VictimRoleLabel = RoleClassifier.Label(local), DamageKind = "GiveUp" };
+    Equal(ArenaMode.Hud.KillfeedText.FormatUncreditedDeath(death, "#0000FF", "#FF0000").Contains(label + " · GAVE UP"), true,
+        "uncredited death captures selected faction " + native);
+    var replacement = Player(false, native);
+    ArenaMode.Bots.TeamDeathmatchRelations.Sides[replacement] = selected;
+    Check(replacement, ArenaRole.Pmc, label, "replacement round side " + native);
+    Equal(RoleClassifier.Label(local), label, "old body keeps captured round side " + native);
+    Equal(local.Profile.Info.Side, native, "selected label preserves native profile faction " + native);
+    Equal(local.Profile.Info.Settings.Role, WildSpawnType.assault, "selected label preserves native role " + native);
+    ArenaMode.Bots.TeamDeathmatchRelations.Sides.Clear();
+    Check(local, ArenaRole.Pmc, native == EPlayerSide.Usec ? "USEC" : "BEAR", "ordinary fallback after round " + native);
+}
 Console.WriteLine($"ARENA_ROLE_LABEL_CONTRACTS_PASSED: {assertions} assertions");
