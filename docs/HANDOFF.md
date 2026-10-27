@@ -7,6 +7,16 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Bot speech and combat tempo (2026-10-27):** Normal PMC combat taunts have an
+  exact-live Arena exception without shared SAIN writes or PFT interference.
+  Combat-strafe floor is 0.85; independent TDM/Domination search arguments cap
+  at 3 seconds. No general speed or speech timer/chance changes. Both client
+  DLLs deployed; unit suite 3298 passed/three known skips, targeted checks 501
+  assertions/26 rejected mutants. GPU2 confirmed TDM/DOM tempo and ordinary
+  PMC pass-through. Fresh SAIN bots already retain private CanTaunt=true despite
+  shared Normal=false, so the new false-to-true branch is harness-covered but
+  was not triggered natively. See [implementation, evidence and limits](BOT-TALK-TEMPO-20261027.md).
+
 - **UX follow-up (2026-10-27):** the session strip now appears only in private
   Arena sessions. New sessions attempt recognized mods despite reviewed-version
   drift; identity, deny, dependency and real API/protection checks remain intact.

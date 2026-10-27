@@ -316,6 +316,10 @@ ground-proximity ray alone or cancel every ordinary native Fall limit.
 Bot locomotion has independent Arena-only walk/sprint controls. Read
 docs/BOT-MOVEMENT-REVIEW.md before changing the native motion/cap bracket or SAIN door
 guard; preserve exact live body identity, native collision and finalizer cleanup.
+The 2026-10-27 bot speech/tempo follow-up is documented in
+docs/BOT-TALK-TEMPO-20261027.md: Normal combat-taunt eligibility is a scoped
+operand override, never a shared SAIN preset write; combat strafe floors at 0.85
+and independent TDM/Domination search delay inputs cap at three seconds.
 Normalized movement targets alone do not provide the displacement bonus.
 Customs offers three unified surveyed areas: Factory Center, Factory Side and
 Customs Yard, available in every Arena mode; whole Customs is rejected in Arena.

@@ -122,7 +122,7 @@ internal static class Program
         RejectAll("dead enemy", r => r.Target.HealthController.IsAlive = false);
         RejectAll("replaced enemy", r => r.World.Alive[r.Target.ProfileId] = new());
         foreach (var mode in new Mode[] { new RoundsMode(), new TacticalMode(), new TeamDeathmatchMode(), new GunGameMode() })
-        { var r = new Rig(); ArenaMatchService.Current.Mode = mode; Check(r.Sprint() && r.Strafe() == .7f, "supported live mode " + mode.GetType().Name); }
+        { var r = new Rig(); ArenaMatchService.Current.Mode = mode; Check(r.Sprint() && r.Strafe() == .85f, "supported live mode " + mode.GetType().Name); }
     }
     private sealed class ExternalAction : SAIN.Layers.IBotAction { }
     private static void Search()
@@ -174,10 +174,13 @@ internal static class Program
     }
     private static void Strafe()
     {
-        var r = new Rig(); Check(r.Strafe() == .7f && r.Bot.Info.FileSettings.Move.STRAFE_SPEED == .4f, "strafe floor without preset mutation");
-        r.Owner.Memory.IsUnderFire = true; Check(r.Strafe() == .7f, "combat under fire still strafes");
-        foreach (float x in new[] { 0, -1, .7f, .9f, 1f, float.NaN, float.PositiveInfinity })
+        var r = new Rig(); Check(r.Strafe() == .85f && r.Bot.Info.FileSettings.Move.STRAFE_SPEED == .4f, "strafe floor without preset mutation");
+        r.Owner.Memory.IsUnderFire = true; Check(r.Strafe() == .85f, "combat under fire still strafes");
+        foreach (float x in new[] { float.Epsilon, .69f, .7f, .8f, float.BitDecrement(.85f) })
+            Check(r.Strafe(x) == .85f, "subfloor strafe raised across old boundary");
+        foreach (float x in new[] { 0, -1, .85f, float.BitIncrement(.85f), .9f, 1f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
             Check(r.Strafe(x).Equals(x), "native exceptional or higher strafe preserved");
+        Check(r.Bot.Info.FileSettings.Move.STRAFE_SPEED == .4f, "all strafe inputs leave preset unchanged");
         var original = Harmony.Il();
         var il = ((IEnumerable<CodeInstruction>)Call("StrafeTranspiler", original)).ToList();
         Check(il.Count == original.Count + 3 && ReferenceEquals(il[0], original[0]) && (float)il[0].operand == .9f

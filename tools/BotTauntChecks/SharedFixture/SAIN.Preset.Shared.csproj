@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>SAIN.Preset.Shared</AssemblyName><AssemblyVersion>4.5.1.0</AssemblyVersion>
+  </PropertyGroup>
+</Project>

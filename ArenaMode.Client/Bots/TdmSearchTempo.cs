@@ -18,7 +18,7 @@ namespace ArenaMode.Bots;
 /// </summary>
 internal static class TdmSearchTempo
 {
-    private const float MaximumDelay = 5f;
+    private const float MaximumDelay = 3f;
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".TdmSearchTempo");
     private static bool _ready, _failed;
     private static Type _botType;
@@ -36,7 +36,7 @@ internal static class TdmSearchTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogDebug($"Arena TDM: SAIN {assembly.GetName().Version} search delay argument capped at 5s for live adopted opponents; native decisions retained.");
+            Plugin.ModLogger.LogDebug($"Arena TDM: SAIN {assembly.GetName().Version} search delay argument capped at 3s for live adopted opponents; native decisions retained.");
         }
         catch (Exception ex)
         {

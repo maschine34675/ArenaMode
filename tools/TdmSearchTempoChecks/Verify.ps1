@@ -32,6 +32,7 @@ function Test-Mutant([string]$Name, [string]$Before, [string]$After, [string]$As
 try {
     Assert-Production 'production-before'
     Test-Mutant 'delay-unchanged' '__1 = MaximumDelay;' '__1 = original;' 'both search arguments capped'
+    Test-Mutant 'old-five-second-cap' 'private const float MaximumDelay = 3f;' 'private const float MaximumDelay = 5f;' 'both search arguments capped'
     Test-Mutant 'short-delay-increased' '__1 <= MaximumDelay' '__1 < 0' 'short or invalid delay preserved'
     Test-Mutant 'phase-ignored' 'mode.IsSearchActive' 'true' 'reject not live'
     Test-Mutant 'pft-ignored' '!PitFireTeamCompat.HasFrozenTeamRoster' 'true' 'reject PFT roster'

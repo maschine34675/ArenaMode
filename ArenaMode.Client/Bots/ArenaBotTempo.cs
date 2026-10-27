@@ -69,7 +69,7 @@ internal static class ArenaBotTempo
         {
             Bind(assembly);
             _ready = true;
-            Plugin.ModLogger.LogDebug($"Arena bot tempo ready (SAIN {assembly.GetName().Version}): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.7; native actions and collision retained.");
+            Plugin.ModLogger.LogDebug($"Arena bot tempo ready (SAIN {assembly.GetName().Version}): completed-reload wait tail 0.5s, safe search sprint, combat strafe floor 0.85; native actions and collision retained.");
         }
         catch (Exception ex) { Patches.UnpatchSelf(); Warn(ex); }
     }
@@ -319,12 +319,12 @@ internal static class ArenaBotTempo
     }
     private static float StrafeSpeed(float native, object dogFight, object enemy)
     {
-        if (!Finite(native) || native <= 0f || native >= 0.7f) return native;
+        if (!Finite(native) || native <= 0f || native >= 0.85f) return native;
         try
         {
             if (!CanAct(dogFight, enemy, false, out var bot, out _) || !ReferenceEquals(_dogFight.Get(bot), dogFight)) return native;
             Record(1);
-            return 0.7f;
+            return 0.85f;
         }
         catch (Exception ex) { Warn(ex); return native; }
     }

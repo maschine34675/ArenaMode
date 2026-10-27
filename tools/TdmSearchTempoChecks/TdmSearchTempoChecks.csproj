@@ -6,6 +6,7 @@
     <TempoSource Condition="'$(TempoSource)' == ''">$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Bots\TdmSearchTempo.cs</TempoSource>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/ArenaSainVersion.cs" Link="Production/ArenaSainVersion.cs" />
     <Compile Include="$(TempoSource)" Link="Production/TdmSearchTempo.cs" />
     <Compile Include="..\..\ArenaMode.Client\Bots\TdmSearchAwareness.cs" Link="Production/TdmSearchAwareness.cs" />

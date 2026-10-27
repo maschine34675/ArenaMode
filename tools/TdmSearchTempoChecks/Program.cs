@@ -20,21 +20,22 @@ static class Program
     { checks++; if (!value) throw new Exception("ASSERT: " + name); }
     sealed record Case(GameWorld World, AbstractGame Game, BotOwner Owner, Player Target,
         BotComponent Bot, Enemy Enemy, SearchDecider Decider, TeamDeathmatchMode Mode);
-    static Case Fresh()
+    static Case Fresh(string modeId = "teamdeathmatch", EPlayerSide side = EPlayerSide.Usec)
     {
         TeamDeathmatchRelations.Reset(); Time.time = 1;
-        var world = new GameWorld(); var game = new AbstractGame();
+        var world = new GameWorld(); var game = new LocalGame();
         Singleton<GameWorld>.Instance = world; Singleton<AbstractGame>.Instance = game;
         ArenaSession.Game = game; ArenaSession.World = world;
-        ArenaSession.IsActive = true; ArenaSession.ActiveMode = "teamdeathmatch";
+        ArenaSession.IsActive = true; ArenaSession.ActiveMode = modeId;
         ArenaRespawnDriver.StandDown = false; PitFireTeamCompat.HasFrozenTeamRoster = false;
         var player = new Player { ProfileId = "private-bot", IsAI = true };
-        player.Profile.Info.Side = EPlayerSide.Usec; player.Profile.Info.Settings.Role = WildSpawnType.pmcUSEC;
-        var target = new Player { ProfileId = "private-target" }; target.Profile.Info.Side = EPlayerSide.Bear;
+        player.Profile.Info.Side = side; player.Profile.Info.Settings.Role = side == EPlayerSide.Usec ? WildSpawnType.pmcUSEC : WildSpawnType.pmcBEAR;
+        var target = new Player { ProfileId = "private-target" };
+        target.Profile.Info.Side = side == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;
         world.MainPlayer = target; world.Players[player.ProfileId] = player; world.Players[target.ProfileId] = target;
         var owner = new BotOwner { GetPlayer = player }; player.AIData.BotOwner = owner;
         owner.Memory = new BotMemory { _owner = owner };
-        owner.BotsGroup = new BotsGroup { BotGame = game, _initialBot = owner, Side = EPlayerSide.Usec, InitialBotType = WildSpawnType.pmcUSEC };
+        owner.BotsGroup = new BotsGroup { BotGame = game, _initialBot = owner, Side = side, InitialBotType = player.Profile.Info.Settings.Role };
         owner.BotsGroup.Members.Add(owner);
         var bot = new BotComponent { BotOwner = owner, Player = player, EnemyController = new EnemyController { Owner = owner } };
         owner.Component = bot;
@@ -65,19 +66,32 @@ static class Program
         Harmony.ThrowOnMethod = null; TdmSearchTempo.Enable();
         Check(Harmony.Hooks.Count(h => h.Id.EndsWith(".TdmSearchTempo")) == 2, "both actual predicates hooked");
         var c = Fresh();
-        Check(Call(c) == 5 && Call(c, 99, "ShallContinueSearch") == 5, "both search arguments capped");
+        Check(Call(c) == 3 && Call(c, 99, "ShallContinueSearch") == 3, "both search arguments capped");
         Check(c.Bot.Info.TimeBeforeSearch == 60 && !c.Enemy.Heard && !c.Enemy.Seen
             && c.Owner.Memory.GoalEnemy == null, "stored timers contacts and goal untouched");
-        foreach (float value in new[] { 0, -1, 2, 5, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
-            Check(Call(c, value).Equals(value), "short or invalid delay preserved");
+        foreach (string predicate in new[] { "shallBeginSearch", "ShallContinueSearch" })
+        {
+            foreach (float value in new[] { float.BitIncrement(3f), 4, 5, 6, float.MaxValue })
+                Check(Call(c, value, predicate) == 3, "both predicates cap arguments above three seconds");
+            foreach (float value in new[] { 0, -1, 2, float.BitDecrement(3f), 3, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
+                Check(Call(c, value, predicate).Equals(value), "short or invalid delay preserved");
+        }
         Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("[dev] Arena TDM search tempo:")) == 1, "tempo diagnostics throttled");
         Time.time += 30; Call(c);
         Check(Plugin.ModLogger.Lines.Count(l => l.StartsWith("[dev] Arena TDM search tempo:")) == 2, "tempo diagnostics resume");
         Check(!Plugin.ModLogger.Lines.Any(l => l.Contains("private-")), "no profile ids logged");
+        foreach (string modeId in new[] { "teamdeathmatch", "domination" })
+            foreach (EPlayerSide side in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+            {
+                c = Fresh(modeId, side);
+                Check(Call(c) == 3 && Call(c, 4, "ShallContinueSearch") == 3,
+                    "both factions and independent team modes use three-second cap");
+            }
         var rejected = new Dictionary<string, Action<Case>>
         {
             ["normal raid"] = c => ArenaSession.IsActive = false,
             ["other mode"] = c => ArenaSession.ActiveMode = "tactical",
+            ["zombie mode"] = c => ArenaSession.ActiveMode = "zombie",
             ["not live"] = c => c.Mode.IsSearchActive = false,
             ["foreign match"] = c => ArenaMatchService.Current = new Match(),
             ["stand down"] = c => ArenaRespawnDriver.StandDown = true,
@@ -109,7 +123,7 @@ static class Program
         c = Fresh(); c.World.MainPlayer = null;
         c.Target.IsAI = true; c.Target.Profile.Info.Settings.Role = WildSpawnType.pmcBEAR;
         c.Target.AIData.BotOwner = new BotOwner { GetPlayer = c.Target };
-        Check(Call(c) == 5, "bot search continues without local player");
+        Check(Call(c) == 3, "bot search continues without local player");
         TdmSearchTempo.Shutdown();
         Check(!Harmony.Hooks.Any(h => h.Id.EndsWith(".TdmSearchTempo")), "shutdown removes own hooks");
         Console.WriteLine($"TDM_SEARCH_TEMPO_CONTRACTS_PASSED: {checks} assertions; linked production hooks and native pair guards, no AI simulation.");

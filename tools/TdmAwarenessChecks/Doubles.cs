@@ -152,7 +152,7 @@ namespace ArenaMode
 }
 namespace ArenaMode.Session
 {
-    internal static class ArenaSession
+    internal static partial class ArenaSession
     {
         internal static bool IsActive;
         internal static string ActiveMode;
