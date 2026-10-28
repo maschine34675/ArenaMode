@@ -7,6 +7,24 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Direct-start acceptance and fixes (2026-10-28):** two-host native testing
+  covered full Factory DM/Domination rounds with consent ON/OFF, A/B/A profiles,
+  longer server idle, duplicate starts, EXIT/crash restart and both Windows
+  elevation directions. No round-end hang. A late valid restoration after an
+  old reward discard blocked new rewards; `6f154cd` accepts only the proven
+  transition and preserves rejection of the old claim. Two native DM wins paid
+  22,000 RUB/2,200 XP once; another startup left the whole profile unchanged.
+  Mixed elevation failures were reproduced in both directions; `c6db9c3` uses
+  limited process queries without treating unreadable writers as absent.
+  Final suite: 3364 passed/two explicit environment skips; shipping Framework
+  checks 11 passed. See [full evidence, final hashes and limits](DIRECT-START-NATIVE-20261028.md).
+  **Sync remains paused on all three installations:** after the native tests,
+  host2's divergent profile replaced host1's earned test state. Inventory,
+  quests and skills were unchanged; 22,000 RUB/2,200 XP from the tests were lost.
+  Both exact states are retained. Do not resume the divergent writable copies
+  together; the earlier payout/restart evidence does not describe the current
+  overwritten profile.
+
 - **Independent faction voice (2026-10-28):** TDM/Domination keep the selected
   faction voice with PMC VOICELINES off; the switch controls only extra Arena
   comments. Native/manual phrases, saved profile identity and ordinary PMC remain
