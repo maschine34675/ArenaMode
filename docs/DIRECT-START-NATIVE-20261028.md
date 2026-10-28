@@ -91,12 +91,14 @@ device ID, and all three current copies matched that replacement byte-for-byte.
 The complete comparison found seven changed paths: XP, derived level, two native
 timestamps, the reward dialogue and two payment entries. Inventory, quests,
 skills and unrelated mod data were unchanged. The lost amounts are only the
-2,200 XP and 22,000 RUB earned in these tests. The good profile remains exactly
-preserved in three conflict backups; it was not copied over the current profile.
+2,200 XP and 22,000 RUB earned in these tests. At the acceptance checkpoint, the
+good profile was exactly preserved in three conflict backups; it was not copied
+over the current profile. The later deletion request is recorded below.
 
-Synchronization is now deliberately paused on both GPU hosts and the local
-installation, as the user authorized when another host interferes. Do not resume
-these divergent writable copies together. This is an observed multi-writer
+At the acceptance checkpoint, synchronization was deliberately paused on both
+GPU hosts and the local installation, as the user authorized when another host
+interferes. The user subsequently requested cleanup and resumption, recorded
+below. This is an observed multi-writer
 limitation, not evidence that an Arena return failed to restore its snapshot.
 
 Twenty-two additional Syncthing conflict copies inside reward metadata caused
@@ -153,14 +155,35 @@ is disk-only; native evidence comes from the two GPU hosts.
 Both hosts' original temporary settings and helper session state were restored;
 host1's 220 backed-up configuration values were independently rechecked and
 original reward consent is ON. The writable crash fixture is retained for
-inspection. Synchronization remains paused because of the measured interference
-above. On each installation, the 22 conflict metadata copies and the one known
-conflict DLL are retained in an archive outside the synchronized tree. Archive
+inspection. At that checkpoint, synchronization remained paused because of the
+measured interference above. On each installation, the 22 conflict metadata
+copies and the one known conflict DLL were retained in an archive outside the
+synchronized tree. Archive
 operations left all 608 canonical metadata files and three profiles unchanged;
 the later normal startup's single acknowledgement is accounted for above. The
 parent independently read back all three archives and final binary hashes.
 The earned profile backups were retained in place. No original profile was
 manually restored and the discarded test claims were not paid again.
+
+## User-requested cleanup and resumption
+
+The user subsequently explicitly requested deletion of conflict copies and
+resumption of synchronization, followed by merging and deleting the branch and
+pushing the result. With all game/server/helper processes stopped, exactly 993
+recognized conflict files were deleted from the active installations and the
+three named temporary conflict archives: 354 locally, 285 on host1 and 354 on
+host2. Individual path/hash manifests were recorded first; canonical profiles
+and installed binaries remained unchanged during deletion. The rest of each
+active installation contained no additional conflict files. Captured historical
+test evidence under `artifacts/` was preserved.
+
+SPT41 synchronization was resumed locally at 18:10:41 UTC, on host1 at 18:11:36
+UTC and on host2 at 18:11:52 UTC. Follow-up evidence is in
+`artifacts/sync-merge-20261028/`. A subsequent direct comparison found all three
+canonical profile files byte-identical across the installations and no new
+active conflict files. This change supersedes the earlier paused
+disposition; it does not restore the lost test rewards or establish safe
+concurrent profile writes.
 
 Multiple installations under one Windows user still share the helper session
 directory. Switching to the isolated fixture required archiving the positively

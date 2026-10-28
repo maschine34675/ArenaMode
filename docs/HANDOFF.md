@@ -18,12 +18,14 @@ current. User-facing communication is normally German.
   limited process queries without treating unreadable writers as absent.
   Final suite: 3364 passed/two explicit environment skips; shipping Framework
   checks 11 passed. See [full evidence, final hashes and limits](DIRECT-START-NATIVE-20261028.md).
-  **Sync remains paused on all three installations:** after the native tests,
+  **Sync resumed after the user's cleanup instruction:** after the native tests,
   host2's divergent profile replaced host1's earned test state. Inventory,
   quests and skills were unchanged; 22,000 RUB/2,200 XP from the tests were lost.
-  Both exact states are retained. Do not resume the divergent writable copies
-  together; the earlier payout/restart evidence does not describe the current
-  overwritten profile.
+  Captured test evidence retains both exact states. The user then requested
+  deletion of the active conflict copies and the copies in temporary archives and
+  resumption of synchronization on all three installations. No profile was
+  manually restored. The earlier payout/restart evidence does not describe the
+  overwritten profile; avoid simultaneous writes to synchronized profiles.
 
 - **Independent faction voice (2026-10-28):** TDM/Domination keep the selected
   faction voice with PMC VOICELINES off; the switch controls only extra Arena
