@@ -759,32 +759,15 @@ internal static class ArenaSessionSwitch
     {
         helperPid = 0;
         error = null;
-        var startInfo = new System.Diagnostics.ProcessStartInfo
+        int? exitCode;
+        helperPid = ArenaHelperProcess.Start(helper, new[] { direction, "--request", requestPath },
+            Path.GetDirectoryName(helper), out exitCode);
+        // A running process is not acceptance: the existing acknowledgement must still arrive before EFT exits.
+        if (exitCode.HasValue)
         {
-            FileName = helper,
-            Arguments = direction + " --request \"" + requestPath + "\"",
-            WorkingDirectory = Path.GetDirectoryName(helper),
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-
-        using (var process = System.Diagnostics.Process.Start(startInfo))
-        {
-            if (process == null)
-            {
-                error = "The Arena session helper could not be started.";
-                return false;
-            }
-
-            helperPid = process.Id;
-            // The helper waits for this process to exit, so a helper that is already gone failed. One that is
-            // still running has not necessarily taken the request over: that is the acknowledgement's job.
-            if (process.HasExited)
-            {
-                error = "The Arena session helper stopped right after starting (exit code "
-                    + process.ExitCode + "). See " + (ArenaSessionContract.GetHelperLogPath() ?? "its log") + ".";
-                return false;
-            }
+            error = "The Arena session helper stopped right after starting (exit code "
+                + exitCode.Value + "). See " + (ArenaSessionContract.GetHelperLogPath() ?? "its log") + ".";
+            return false;
         }
 
         return true;

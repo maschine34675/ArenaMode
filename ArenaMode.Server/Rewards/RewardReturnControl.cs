@@ -13,7 +13,9 @@ internal sealed record RewardReturnGrant(int Schema, string ControlId, string Pr
     int ServerPid, DateTimeOffset ServerStartedUtc, string[] ServerArguments);
 internal sealed record RewardReturnRequest(int Schema, string ControlId, string Token, string OperationId,
     int HelperPid, DateTimeOffset HelperStartedUtc);
-internal sealed record RewardReturnReply(bool Accepted, string Reason, bool Held = false);
+internal sealed record RewardReturnReply(bool Accepted, string Reason, bool Held = false,
+    bool CanResumeNormal = false, string? Stage = null, string? Detail = null,
+    int ActiveRequests = 0, int ActiveUpdates = 0);
 internal sealed record RewardReturnProcess(int Pid, DateTimeOffset StartedUtc, string[] Arguments);
 
 /// <summary>Process-local authority for one idle, local server return. Never pays or replaces a profile.</summary>

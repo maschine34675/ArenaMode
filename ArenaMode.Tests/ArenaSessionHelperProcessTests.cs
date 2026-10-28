@@ -1469,8 +1469,10 @@ public sealed class ArenaSessionHelperProcessTests
         Assert.False(started.HasExited);
     }
 
-    [SkippableFact]
-    public void AnEnterWhoseServerCannotBeRegisteredEndsItAndBringsTheNormalSessionBack()
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnEnterWhoseServerCannotBeRegisteredEndsItAndBringsTheNormalSessionBack(bool gameExitsImmediately)
     {
         SkipUnlessWindows();
         using var area = new Area();
@@ -1491,6 +1493,9 @@ public sealed class ArenaSessionHelperProcessTests
             HelperRunner runner = area.Runner(root);
             runner.FileRetryAttempts = 2;
             runner.FileRetryDelayMilliseconds = 10;
+            var notices = new List<string>();
+            runner.FailureNotice = notices.Add;
+            runner.GameStartCheckMilliseconds = 500;
             var starts = new List<(string Exe, string Arguments)>();
             Process? server = null;
             FileStream? pidLock = null;
@@ -1506,6 +1511,11 @@ public sealed class ArenaSessionHelperProcessTests
                     pidLock = new FileStream(HelperServerTree.GetPidFilePath(root), FileMode.Create, FileAccess.ReadWrite, FileShare.None);
                 }
 
+                if (starts.Count == 2 && gameExitsImmediately)
+                {
+                    _ = Task.Run(async () => { await Task.Delay(50); if (!process.HasExited) process.Kill(); });
+                    return process; // retain the Process.Start handle so ExitCode remains available
+                }
                 return Process.GetProcessById(process.Id);
             };
 
@@ -1534,7 +1544,13 @@ public sealed class ArenaSessionHelperProcessTests
             Assert.Contains("server prepatch folders (user\\patchers): 1 (com.maschine.ArenaMode)", log); // the count of the copied folders is logged
             Assert.Contains("enter failed: the arena server", log);
             Assert.Contains("started but server.pid could not be written", log);
-            Assert.Contains("recovery finished", log);
+            Assert.True(log.Contains("recovery finished"), log);
+            if (gameExitsImmediately)
+            {
+                Assert.Contains("Arena startup could not finish", Assert.Single(notices));
+                Assert.DoesNotContain("has been reopened", notices[0]);
+            }
+            else Assert.Empty(notices); // a hidden desktop dialog must not block the recovered game
         }
         finally
         {

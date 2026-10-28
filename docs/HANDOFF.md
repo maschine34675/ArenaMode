@@ -1,11 +1,24 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-27. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-28. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Session restart hardening (2026-10-28):** client starts the helper without
+  inherited handles; server reports failed drain/save stage and permits normal
+  reopening only after a safe pre-stop rejection. Helper rechecks original
+  process/port/lease identity and starts only EFT. Successful recovery has no
+  modal notice; failure notices come after lock release. Unit suite 3323 passed,
+  four environment skips; client/helper/launcher checks and mutations passed.
+  GPU1 reproduced the 45-second HTTP drain refusal with an external notifier
+  socket, verified automatic normal restart with the same server and no private
+  copy, then completed ordinary-to-private-to-ordinary switching. Profile changed
+  only in two normal timestamps; all 238 settings retained. Four Arena binaries
+  deployed; GPU1 stopped and temporary policy removed. See
+  [diagnosis, evidence and exact hashes](ENTRY-RESTART-HARDENING-20261028.md).
 
 - **Killfeed round side (2026-10-27):** human faction labels now use the exact
   body's frozen TDM/Domination affiliation, with native fallback. No saved side

@@ -85,6 +85,12 @@ continues through the unchanged approval and permanent-payment journal.
 - A failed private startup can return through the proven lease. The helper releases
   the startup lock before starting normal SPT. Listening alone does not prove successful
   recovery: the immutable closure and retired active pointer are required too.
+- Before native updates are stopped, a refused entry may explicitly authorize
+  reopening EFT against the same normal server. The helper verifies its original
+  PID/start time/image and sole local listener again, and refuses any active or
+  Ready lease. No private profile copy or server restart occurs on this path.
+  Missing/held/unknown replies never authorize it. The helper is started without
+  inherited EFT handles; see [restart hardening](ENTRY-RESTART-HARDENING-20261028.md).
 - If a new Build fails before replacing the previous private tree, recovery can
   ignore that predecessor's state only with matching original/private leases,
   roots and marker, a valid completed closure, its exact signed final state and

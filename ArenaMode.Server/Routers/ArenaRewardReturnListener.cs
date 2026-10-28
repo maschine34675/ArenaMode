@@ -102,6 +102,9 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 }, operationTimeout.Token);
 
             if (!reply.Accepted && !reply.Held) Release();
+            reply = reply with { CanResumeNormal = entering && reply.CanResumeNormal
+                && !RewardReturnQuiescence.Requests.Held && !RewardReturnQuiescence.Updates.Held
+                && !lifetime.ApplicationStopping.IsCancellationRequested && !lifetime.ApplicationStopped.IsCancellationRequested };
             if (reply.Accepted)
             {
                 if (entering)

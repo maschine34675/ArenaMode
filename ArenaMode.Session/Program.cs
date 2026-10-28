@@ -10,8 +10,8 @@ namespace ArenaMode.SessionHelper
 {
     /// <summary>
     /// maschine-ArenaMode.Session.exe: switches the game between the normal session and an Arena
-    /// session (docs/ARENA-SESSION-20261021.md, section 6). A GUI-subsystem executable, so it never
-    /// shows a console window or any other UI; everything it does goes to
+    /// session (docs/ARENA-SESSION-20261021.md, section 6). A GUI-subsystem executable, so it
+    /// shows no console window; failed transitions can show a short notice or Retry/Cancel. Details go to
     /// <c>%LOCALAPPDATA%\maschine-ArenaMode\session\helper.log</c>. Exit code 0 means success,
     /// 1 failure. One instance at a time (named mutex); <c>status</c> only reads and so does not
     /// take the mutex. <c>enter</c> and <c>leave</c> write <c>&lt;request file&gt;.accepted</c> once they have the
@@ -33,11 +33,14 @@ namespace ArenaMode.SessionHelper
         [DllImport("kernel32.dll")]
         private static extern uint SetErrorMode(uint mode);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBox(IntPtr window, string text, string caption, uint flags);
+
         private static HelperLog _log;
 
         private static int Main(string[] args)
         {
-            // No crash dialogs: a failed helper must not put anything on screen.
+            // Suppress OS crash/file-error dialogs; transition failures have their own concise notice.
             SetErrorMode(SemFailCriticalErrors | SemNoGpFaultErrorBox | SemNoOpenFileErrorBox);
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
@@ -68,6 +71,10 @@ namespace ArenaMode.SessionHelper
             string version = GetVersion();
             _log.Info("maschine-ArenaMode.Session " + version + ": " + command.Name);
             var runner = new HelperRunner(root, _log, version);
+            // Defer notices until Execute has released the session mutex and startup lock.
+            // A desktop window must never prevent the next session attempt.
+            string failureNotice = null;
+            runner.FailureNotice = message => failureNotice = message;
 
             // The mutex is named for the user (HelperMutex); without a SID nothing is touched.
             string mutexName;
@@ -82,7 +89,9 @@ namespace ArenaMode.SessionHelper
             }
 
             // The order of the steps (stale acknowledgement, mutex, request, acknowledgement, command) is HelperHost's.
-            return new HelperHost(runner, _log, mutexName, HelperConsole.WriteLine).Execute(command);
+            int result = new HelperHost(runner, _log, mutexName, HelperConsole.WriteLine).Execute(command);
+            if (failureNotice != null) MessageBox(IntPtr.Zero, failureNotice, "ArenaMode - session switch", 0x50030);
+            return result;
         }
 
         private static string GetVersion()

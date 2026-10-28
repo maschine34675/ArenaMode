@@ -19,5 +19,6 @@
     <Compile Include="$(ModeSource)" Link="Production/ArenaSessionMode.cs" />
     <Compile Include="$(AdmissionSource)" Link="Production/ArenaWhitelistAdmission.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaSessionSwitch.cs" Link="Production/ArenaSessionSwitch.cs" />
+    <Compile Include="../../ArenaMode.Client/Session/ArenaHelperProcess.cs" Link="Production/ArenaHelperProcess.cs" />
   </ItemGroup>
 </Project>
