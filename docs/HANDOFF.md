@@ -7,6 +7,17 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Direct Arena start (2026-10-28):** installed Session.exe opens a compact
+  profile picker, remembers the selection and can create a desktop shortcut;
+  `start --profile <id>` selects explicitly. Local normal SPT is started/reused
+  only for fresh schema-3 preparation, then stops before the private copy. No
+  normal EFT launch is required. Final GPU2 cold start and two warm starts,
+  including returns, passed. Profile differences were two native timestamps;
+  all 238 Arena settings retained. One older normal process refused entry twice;
+  cause unproven, fixed non-secret Debug reason codes now cover that boundary.
+  Helper/server deployed locally and on GPU2; test host stopped, Syncthing
+  resumed. See [usage, checks and exact hashes](DIRECT-START-20261028.md).
+
 - **Session restart hardening (2026-10-28):** client starts the helper without
   inherited handles; server reports failed drain/save stage and permits normal
   reopening only after a safe pre-stop rejection. Helper rechecks original

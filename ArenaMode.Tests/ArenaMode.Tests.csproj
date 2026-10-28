@@ -84,6 +84,7 @@
     <!-- The process side as well (runner, process and socket helpers, log): the stop-server identity checks,
          the listener owner lookup and the leave/recovery path run against real stand-in processes. -->
     <Compile Include="..\ArenaMode.Session\HelperRunner.cs" Link="SessionHelper\HelperRunner.cs" />
+    <Compile Include="..\ArenaMode.Session\HelperDirectStart.cs" Link="SessionHelper\HelperDirectStart.cs" />
     <Compile Include="..\ArenaMode.Session\HelperProcesses.cs" Link="SessionHelper\HelperProcesses.cs" />
     <Compile Include="..\ArenaMode.Session\HelperLog.cs" Link="SessionHelper\HelperLog.cs" />
     <!-- The order of the steps of one run (stale acknowledgement, mutex, request, acknowledgement, command). -->

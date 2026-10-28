@@ -29,22 +29,22 @@ public sealed class RewardEntryControlTests
     }
 
     [Theory]
-    [InlineData("schema")]
-    [InlineData("session")]
-    [InlineData("operation")]
-    [InlineData("token")]
-    [InlineData("token-format")]
-    [InlineData("helper-pid")]
-    [InlineData("helper-start")]
-    [InlineData("private-root")]
-    [InlineData("relative-root")]
-    [InlineData("port-low")]
-    [InlineData("port-high")]
-    [InlineData("marker-format")]
-    [InlineData("marker-stale")]
-    [InlineData("marker-future")]
-    [InlineData("profile")]
-    public void InvalidEntryCannotReserveTheShutdown(string mutation)
+    [InlineData("schema", "request-schema")]
+    [InlineData("session", "grant-session-mismatch")]
+    [InlineData("operation", "operation-format")]
+    [InlineData("token", "grant-secret-mismatch")]
+    [InlineData("token-format", "grant-secret-mismatch")]
+    [InlineData("helper-pid", "helper-identity-mismatch")]
+    [InlineData("helper-start", "helper-identity-mismatch")]
+    [InlineData("private-root", "private-root-mismatch")]
+    [InlineData("relative-root", "private-root-relative")]
+    [InlineData("port-low", "private-port")]
+    [InlineData("port-high", "private-port")]
+    [InlineData("marker-format", "marker-time-format")]
+    [InlineData("marker-stale", "marker-time-before-grant")]
+    [InlineData("marker-future", "marker-time-in-future")]
+    [InlineData("profile", "grant-not-in-memory")]
+    public void InvalidEntryCannotReserveTheShutdown(string mutation, string expectedRefusal)
     {
         using var f = new Fixture();
         var good = f.Request(f.Issue());
@@ -66,19 +66,22 @@ public sealed class RewardEntryControlTests
             "marker-future" => good with { MarkerCreatedUtc = f.Now.AddMinutes(2).ToString("O") },
             _ => good
         };
-        Assert.False(f.Control.Authorize(mutation == "profile" ? new string('b', 24) : Fixture.Id, bad, out _));
-        Assert.True(f.Accept(good));
+        Assert.False(f.Control.Authorize(mutation == "profile" ? new string('b', 24) : Fixture.Id, bad, out var grant, out var refusal));
+        Assert.Null(grant);
+        Assert.Equal(expectedRefusal, refusal);
+        Assert.True(f.Control.Authorize(Fixture.Id, good, out _, out refusal));
+        Assert.Null(refusal);
     }
 
     [Theory]
-    [InlineData("expiry")]
-    [InlineData("clock")]
-    [InlineData("pid")]
-    [InlineData("start")]
-    [InlineData("arguments")]
-    [InlineData("absent")]
-    [InlineData("private")]
-    public void ChangedProcessOrAuthorityCannotStopTheServer(string mutation)
+    [InlineData("expiry", "grant-expired")]
+    [InlineData("clock", "grant-issued-in-future")]
+    [InlineData("pid", "server-pid-mismatch")]
+    [InlineData("start", "server-start-mismatch")]
+    [InlineData("arguments", "server-arguments-mismatch")]
+    [InlineData("absent", "server-identity-unavailable")]
+    [InlineData("private", "source-marker-present")]
+    public void ChangedProcessOrAuthorityCannotStopTheServer(string mutation, string expectedRefusal)
     {
         using var f = new Fixture();
         var request = f.Request(f.Issue());
@@ -92,7 +95,9 @@ public sealed class RewardEntryControlTests
             case "absent": f.ProcessAvailable = false; break;
             case "private": File.WriteAllText(Path.Combine(f.Root, "arena-session.json"), "{}"); break;
         }
-        Assert.False(f.Accept(request));
+        Assert.False(f.Control.Authorize(Fixture.Id, request, out var grant, out var refusal));
+        Assert.Null(grant);
+        Assert.Equal(expectedRefusal, refusal);
         Assert.Equal("--test", f.Read().ServerArguments[0]);
     }
 

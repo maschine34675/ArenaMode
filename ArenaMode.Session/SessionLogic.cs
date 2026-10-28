@@ -166,6 +166,7 @@ namespace ArenaMode.SessionHelper
     /// </summary>
     public sealed class HelperCommand
     {
+        public const string Start = "start";
         public const string Enter = "enter";
         public const string Leave = "leave";
         public const string StopServer = "stop-server";
@@ -178,6 +179,7 @@ namespace ArenaMode.SessionHelper
 
         /// <summary>The value of <c>--request</c> (enter, leave) or of <c>--file</c> (watch); null for the commands that take none.</summary>
         public string RequestPath { get; private set; }
+        public string ProfileId { get; private set; }
 
         public bool NeedsRequest
         {
@@ -190,11 +192,19 @@ namespace ArenaMode.SessionHelper
             error = null;
             if (args == null || args.Length == 0)
             {
-                error = "no command given (expected enter, leave, stop-server, watch or status)";
-                return false;
+                command = new HelperCommand { Name = Start };
+                return true;
             }
 
             string name = (args[0] ?? string.Empty).Trim().ToLowerInvariant();
+            if (name == Start)
+            {
+                if (args.Length == 1) { command = new HelperCommand { Name = Start }; return true; }
+                if (args.Length == 3 && args[1] == "--profile" && HelperRequest.IsValidProfileId(args[2]))
+                { command = new HelperCommand { Name = Start, ProfileId = args[2].ToLowerInvariant() }; return true; }
+                error = "expected start [--profile <profile id>]";
+                return false;
+            }
             if (name != Enter && name != Leave && name != StopServer && name != Status && name != Watch)
             {
                 error = "unknown command '" + args[0] + "'";
@@ -563,6 +573,19 @@ namespace ArenaMode.SessionHelper
         /// </summary>
         public static bool TryParse(string json, string expectedDirection, out HelperRequest request, out string error)
         {
+            return TryParseCore(json, expectedDirection, false, out request, out error);
+        }
+
+        // Only an in-process cold-start builder may omit the old game. The on-disk
+        // client request contract still requires a positive PID and an acknowledgement.
+        internal static bool TryParseDirectStart(string json, out HelperRequest request, out string error)
+        {
+            return TryParseCore(json, ArenaSessionContract.DirectionEnter, true, out request, out error);
+        }
+
+        private static bool TryParseCore(string json, string expectedDirection, bool directStart,
+            out HelperRequest request, out string error)
+        {
             request = null;
             object root;
             if (!ArenaMiniJson.TryParse(json, out root, out error))
@@ -579,6 +602,8 @@ namespace ArenaMode.SessionHelper
             }
 
             int schema = ArenaMiniJson.GetInt(obj, "schema", -1);
+            if (directStart && schema != ArenaSessionContract.OfflineRequestSchema)
+            { error = "direct start requires offline session ownership"; return false; }
             if (schema != SupportedSchema && schema != ArenaSessionContract.VersionPlanRequestSchema
                 && schema != ArenaSessionContract.OfflineRequestSchema)
             {
@@ -602,7 +627,7 @@ namespace ArenaMode.SessionHelper
             var parsed = new HelperRequest { Schema = schema, Direction = direction };
 
             parsed.GamePid = ArenaMiniJson.GetInt(obj, "gamePid", 0);
-            if (parsed.GamePid <= 0)
+            if (directStart ? parsed.GamePid != 0 : parsed.GamePid <= 0)
             {
                 error = "gamePid must be a positive integer";
                 return false;

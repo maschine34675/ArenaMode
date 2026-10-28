@@ -85,6 +85,7 @@ namespace ArenaMode.SessionHelper
 
         // Program supplies the visible desktop notice. Tests capture it without opening a window.
         public Action<string> FailureNotice = _ => { };
+        public Func<string, bool> DirectStart = _ => false;
 
         // True once a game process exists; a recovery must never start another one.
         private bool _gameStarted;
@@ -123,8 +124,22 @@ namespace ArenaMode.SessionHelper
 
         public bool Enter(HelperRequest request)
         {
+            return EnterCore(request, false);
+        }
+
+        internal bool EnterDirect(HelperRequest request)
+        {
+            if (request.Schema != ArenaSessionContract.OfflineRequestSchema || !request.IsEnter || request.GamePid != 0)
+                throw new HelperException("Direct start requires a fresh offline session.");
+            RequireNoRunningGame(request.GameExe);
+            ValidateOfflineRequest(request);
+            return EnterCore(request, true);
+        }
+
+        private bool EnterCore(HelperRequest request, bool directStart)
+        {
             _log.Info("enter: " + request.ServerMods.Count + " server mods, policy " + (request.PolicyHash ?? "(none)"));
-            if (!AwaitGame(request)) return false;
+            if (!directStart && !AwaitGame(request)) return false;
 
             _gameStarted = false;
             _normalGameReopened = false;
@@ -153,6 +168,7 @@ namespace ArenaMode.SessionHelper
                 DateTime created = DateTime.UtcNow;
                 if (request.Schema == ArenaSessionContract.OfflineRequestSchema)
                 {
+                    if (directStart) RequireNoRunningGame(request.GameExe);
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
                     offline = HelperOfflineSession.Entry.Open(request, HelperServerTree.GetTreePath(_runtimeRoot), normal, created, port);
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
@@ -200,6 +216,7 @@ namespace ArenaMode.SessionHelper
                 }
 
                 if (request.VersionPlan != null) arguments.Add(ArenaSessionContract.VersionPlanFlag + request.VersionPlan.PolicyHash);
+                if (directStart) RequireNoRunningGame(request.GameExe);
                 StartGame(request, arguments, true);
                 StartWatchdog(request);
                 _log.Info("enter finished");
@@ -214,14 +231,14 @@ namespace ArenaMode.SessionHelper
                 if (!_gameStarted)
                 {
                     if (request.Schema != ArenaSessionContract.OfflineRequestSchema) RecoverNormalSession(request);
-                    else if (offline != null && offline.CanResumeNormal)
+                    else if (offline != null && offline.CanResumeNormal && !directStart)
                     {
                         try { ResumeExistingNormalSession(request, offline); }
                         catch (Exception recovery) { LogFailure("normal session could not be reopened", recovery); }
                     }
                     else if (offline != null && offline.ReadyStopped)
                     {
-                        try { StartOfflineNormalSession(request, offline.Lease, offline); }
+                        try { StartOfflineNormalSession(request, offline.Lease, offline, !directStart); }
                         catch (Exception recovery) { LogFailure("Offline Arena recovery paused; start normal SPT after resolving its server log", recovery); }
                     }
                     // Held/unknown native-save failures never enter legacy fallback.
@@ -345,7 +362,7 @@ namespace ArenaMode.SessionHelper
             StartGame(request, arguments);
         }
 
-        private void StartOfflineNormalSession(HelperRequest request, HelperOfflineSession.Lease lease, HelperOfflineSession.Entry entry)
+        private void StartOfflineNormalSession(HelperRequest request, HelperOfflineSession.Lease lease, HelperOfflineSession.Entry entry, bool startGame = true)
         {
             // A failed Build can have no marker yet; its original Ready lease still
             // provides the only return authority. No legacy grant/port fallback.
@@ -364,6 +381,7 @@ namespace ArenaMode.SessionHelper
             }
             HelperHttpEndpoint normal = ReadNormalEndpoint(request);
             HelperOfflineSession.StartNormal(lease, normal, StartProcess, WaitForServer, Info);
+            if (!startGame) return;
             List<string> arguments; string error;
             if (!HelperCommandLine.TryRewriteGameArguments(request.GameArgs, false, normal.BackendPort, out arguments, out error))
                 throw new HelperException("cannot build the game arguments: " + error);

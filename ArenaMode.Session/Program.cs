@@ -18,6 +18,7 @@ namespace ArenaMode.SessionHelper
     /// mutex and a valid request, before they wait for the game (see <see cref="HelperHost"/>).
     ///
     /// <code>
+    /// maschine-ArenaMode.Session.exe [start [--profile &lt;id&gt;]]
     /// maschine-ArenaMode.Session.exe enter --request &lt;file&gt;
     /// maschine-ArenaMode.Session.exe leave --request &lt;file&gt;
     /// maschine-ArenaMode.Session.exe stop-server
@@ -38,6 +39,7 @@ namespace ArenaMode.SessionHelper
 
         private static HelperLog _log;
 
+        [STAThread]
         private static int Main(string[] args)
         {
             // Suppress OS crash/file-error dialogs; transition failures have their own concise notice.
@@ -75,6 +77,16 @@ namespace ArenaMode.SessionHelper
             // A desktop window must never prevent the next session attempt.
             string failureNotice = null;
             runner.FailureNotice = message => failureNotice = message;
+            runner.DirectStart = profile =>
+            {
+                try { return HelperStartWindow.Run(new HelperDirectStart(Assembly.GetExecutingAssembly().Location, root, _log, runner), profile); }
+                catch (Exception ex)
+                {
+                    _log.Error("direct start unavailable: " + ex.Message);
+                    failureNotice = ex is HelperException ? ex.Message : "Arena could not start. Check helper.log.";
+                    return false;
+                }
+            };
 
             // The mutex is named for the user (HelperMutex); without a SID nothing is touched.
             string mutexName;

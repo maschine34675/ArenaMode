@@ -37,36 +37,53 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
         bool authorized = false;
         bool reserved = false;
         string stage = "admission";
+        string refusal = "admission-failed";
         try
         {
-            if (!RewardReturnQuiescence.Enabled || context.Request.Method != "POST"
-                || context.Connection.RemoteIpAddress is not { } ip || !IPAddress.IsLoopback(ip)
-                || context.Request.ContentLength > RewardConsentTransport.MaxBytes
-                || !saves.ProfileExists(id)) throw new RewardDataException("return-unavailable");
+            if (!RewardReturnQuiescence.Enabled) throw Refused("native-gates-disabled");
+            if (context.Request.Method != "POST") throw Refused("request-method");
+            if (context.Connection.RemoteIpAddress is not { } ip || !IPAddress.IsLoopback(ip))
+                throw Refused("request-not-loopback");
+            if (context.Request.ContentLength > RewardConsentTransport.MaxBytes) throw Refused("request-content-length");
+            if (!saves.ProfileExists(id)) throw Refused("profile-not-loaded");
+            stage = "read-request";
+            refusal = "request-body-read-failed";
             using var readTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             readTimeout.CancelAfter(TimeSpan.FromSeconds(4));
             string body = await RewardConsentTransport.ReadBoundedAsync(context.Request.Body, readTimeout.Token);
+            stage = "parse-request";
+            refusal = "request-json-invalid";
             using var document = JsonDocument.Parse(body);
+            refusal = "request-properties-invalid";
             RewardStartupFiles.RejectDuplicateProperties(document.RootElement);
+            stage = "resolve-control";
+            refusal = "runtime-control-unavailable";
             var control = RewardRuntimeCoordinator.Current.ReturnControl;
+            stage = "deserialize-request";
+            refusal = entering ? "entry-request-invalid" : "return-request-invalid";
             if (entering)
             {
                 entryRequest = document.RootElement.Deserialize<RewardEntryRequest>(RewardSettlementCore.JournalJson)
-                    ?? throw new RewardDataException("entry-empty-request");
+                    ?? throw Refused("entry-empty-request");
+                stage = "authorize-request";
+                refusal = "entry-authorization-failed";
                 if (!RewardEntryControl.Current.Authorize(id.ToString(), entryRequest, out entryGrant))
-                    throw new RewardDataException("entry-not-authorized");
+                    throw Refused("entry-not-authorized");
             }
             else
             {
                 request = document.RootElement.Deserialize<RewardReturnRequest>(RewardSettlementCore.JournalJson)
-                    ?? throw new RewardDataException("return-empty-request");
-                if (!control.Authorize(id.ToString(), request)) throw new RewardDataException("return-not-authorized");
+                    ?? throw Refused("return-empty-request");
+                stage = "authorize-request";
+                refusal = "return-authorization-failed";
+                if (!control.Authorize(id.ToString(), request)) throw Refused("return-not-authorized");
             }
             authorized = true;
             if (!_reservation.Reserve(entering, id.ToString(), (object?)entryRequest ?? request!))
-                throw new RewardDataException("shutdown-operation-busy");
+                throw Refused("shutdown-operation-busy");
             reserved = true;
             stage = "native-lifecycle";
+            refusal = "native-lifecycle-failed";
             if (!entering && !RewardReturnQuiescence.Sequence.UpdatesStopped
                 && !NeedsStartup(RewardRuntimeCoordinator.Current.GetStatus(id.ToString())))
             {
@@ -78,15 +95,16 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             var lifetime = context.RequestServices.GetRequiredService<IHostApplicationLifetime>();
             var hostedServices = context.RequestServices.GetServices<IHostedService>().ToArray();
             if (hostedServices.Any(service => !IsKnownHostedService(service.GetType())))
-                throw new RewardDataException("return-unreviewed-background-service");
+                throw Refused("return-unreviewed-background-service");
             var updates = hostedServices.OfType<SPTStartupHostedService>().Single();
             if (lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested)
-                throw new RewardDataException("return-server-already-stopping");
+                throw Refused("return-server-already-stopping");
 
             // A dropped HTTP client cannot cancel a half-stopped server. The operation has its own
             // bound and reports a held state if a stopped update loop cannot safely be followed by exit.
             using var operationTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             stage = "save-and-drain";
+            refusal = "save-and-drain-failed";
             var reply = await RewardReturnQuiescence.Sequence.PrepareAsync(
                 () => (entering ? RewardEntryControl.Current.Authorize(id.ToString(), entryRequest!, out _)
                     : control.Authorize(id.ToString(), request!)) && IsIdle(),
@@ -95,10 +113,10 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 {
                     await updates.StopAsync(ct);
                     if (updates.ExecuteTask is not { IsCompleted: true })
-                        throw new RewardDataException("return-update-loop-still-running");
+                        throw Refused("return-update-loop-still-running");
                     // A fault is not proof of a healthy completed update. Native graceful cancellation
                     // is caught inside ExecuteAsync, so a faulted task refuses automatic shutdown.
-                    if (updates.ExecuteTask.IsFaulted) throw new RewardDataException("return-update-loop-faulted");
+                    if (updates.ExecuteTask.IsFaulted) throw Refused("return-update-loop-faulted");
                 }, operationTimeout.Token);
 
             if (!reply.Accepted && !reply.Held) Release();
@@ -110,6 +128,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 if (entering)
                 {
                     stage = "publish-entry-proof";
+                    refusal = "entry-proof-publication-failed";
                     // Durable proof is mandatory even when the HTTP reply is lost. A process exit
                     // alone could also be a crash before its final native save finished.
                     RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!);
@@ -130,15 +149,20 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             }
             else if (reply.Held)
                 ArenaContext.Logger?.Warning("[ArenaMode] Session switch paused: the local server retained its profiles in memory because a safe final save could not be confirmed. Do not close it; retry the session switch.");
+            stage = "write-response";
+            refusal = "response-write-failed";
             await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), CancellationToken.None);
         }
         catch (Exception exception)
         {
             bool held = ReturnHeld(RewardReturnQuiescence.Sequence, RewardReturnQuiescence.Requests);
-            if (authorized)
-                ArenaContext.Logger?.Debug($"[ArenaMode] Session shutdown refused at {stage}: "
-                    + (exception is RewardDataException ? exception.Message : exception.GetType().Name)
-                    + $"; held={held}.");
+            // Before authorization, only fixed local codes are safe to log. Keep the
+            // existing native-save diagnostics once the local capability was verified.
+            string diagnostic = authorized
+                ? exception is RewardDataException ? exception.Message : exception.GetType().Name
+                : refusal;
+            try { ArenaContext.Logger?.Debug($"[ArenaMode] Session shutdown refused at {stage}: {diagnostic}; authorized={authorized}; held={held}."); }
+            catch { } // Diagnostics must not change the response or held-state handling.
             if (authorized && !held) Release();
             if (!context.Response.HasStarted)
             {
@@ -146,6 +170,12 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 await context.Response.WriteAsync(RewardRuntimeFiles.Json(new RewardReturnReply(false,
                     held ? "return-held-preserving-profile" : "return-unavailable", held)), CancellationToken.None);
             }
+        }
+
+        RewardDataException Refused(string reason)
+        {
+            refusal = reason;
+            return new RewardDataException(reason);
         }
 
         void Release()

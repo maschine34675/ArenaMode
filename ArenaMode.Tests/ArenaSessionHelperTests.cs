@@ -159,7 +159,6 @@ public sealed class ArenaSessionHelperTests
 
     public static IEnumerable<object[]> BadCommandLines()
     {
-        yield return new object[] { Array.Empty<string>(), "no command" };
         yield return new object[] { new[] { "restart" }, "unknown command" };
         yield return new object[] { new[] { "enter" }, "--request" };
         yield return new object[] { new[] { "enter", "--request" }, "needs a file" };

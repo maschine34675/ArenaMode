@@ -6,6 +6,11 @@ behavior for supported local sessions.
 
 ## Player flow
 
+The installed Session.exe also opens a compact profile picker and starts Arena
+without opening normal EFT first. It starts/reuses the local normal server for
+fresh preparation and then follows the same schema-3 handover below. See
+[direct start](DIRECT-START-20261028.md).
+
 1. START ARENA SESSION prepares a fresh entry operation independently of rewards.
 2. After EFT exits, the ordinary server drains its requests and update callbacks,
    saves every loaded profile and verifies disk against RAM. It publishes durable
@@ -101,9 +106,11 @@ continues through the unchanged approval and permanent-payment journal.
   never be silently replaced by the original ON state.
 - A private tree with unclosed ownership or undelivered results is retained, even
   when there are zero payable rewards. Only ordinary startup closes its ownership.
-- Older, remote or unsupported installations which never issue an offline entry
+- Older local installations which never issue an offline entry
   capability retain the schema 1/2 live-server compatibility path. Its consent relay
-  and return capabilities are documented in REWARDS-RUNTIME/RETURN.
+  and return capabilities are documented in REWARDS-RUNTIME/RETURN. The current
+  client blocks automatic session switching against remote servers; the desktop
+  direct starter requires local schema-3 support and never falls back to schema 1/2.
 
 Local process/file locks do not coordinate independent machines that synchronize
 profile directories. Native save/read-back still refuses conflicting external writes.

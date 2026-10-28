@@ -203,6 +203,7 @@ namespace ArenaMode.SessionHelper
 
         private bool Run(HelperCommand command, string requestPath)
         {
+            if (command.Name == HelperCommand.Start) return _runner.DirectStart(command.ProfileId);
             if (command.Name == HelperCommand.StopServer) return _runner.StopServerCommand();
 
             // The stamp of the file is taken before it is read: a request that is replaced in between then differs
