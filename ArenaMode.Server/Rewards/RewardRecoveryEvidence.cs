@@ -148,10 +148,12 @@ internal static class RewardRecoveryEvidence
         return result.OrderBy(e => e.RelativePath, StringComparer.Ordinal).ToArray();
     }
 
-    internal static void RequireEvidence(string root, RewardBinding binding, RewardRecoveryCase item, RewardJournal journal)
+    internal static void RequireEvidence(string root, RewardBinding binding, RewardRecoveryCase item, RewardJournal journal,
+        bool allowProvenTerminalTransition = false)
     {
         if (item is null || item.Evidence is null || item.Evidence.Count > 128 || item.Evidence.Select(e => e.RelativePath).Distinct(StringComparer.Ordinal).Count() != item.Evidence.Count)
             throw new RewardDataException("recovery-evidence-invalid");
+        string? transitionedPrimary = null;
         if (item.Kind == "payment")
         {
             if (item.Payment is null || item.Payment.Payment is null || item.Id != item.Payment.Payment.ReceiptKey || item.ArmToken is not null
@@ -166,7 +168,18 @@ internal static class RewardRecoveryEvidence
             var primary = $"user/arena-reward-{(item.Kind == "snapshot" ? "snapshots" : "runs")}/{binding.ProfileId}/{item.Id}.json";
             if (!item.Evidence.Any(e => e.RelativePath == primary)) throw new RewardDataException("recovery-case-primary-missing");
             var primaryPath = Path.Combine(root, primary.Replace('/', Path.DirectorySeparatorChar));
-            if (item.Kind == "snapshot")
+            var originalPrimary = item.Evidence.Single(e => e.RelativePath == primary);
+            if (FileEvidence(root, primaryPath) != originalPrimary)
+            {
+                // A completed discard remains permanent even if another host
+                // subsequently supplies the exact operation's valid restore.
+                // This exception grants no payout or profile-write authority.
+                if (!allowProvenTerminalTransition
+                    || !ProvesTerminalTransition(root, binding, item, primaryPath, originalPrimary.Sha256))
+                    throw new RewardDataException("recovery-source-evidence-changed");
+                transitionedPrimary = primary;
+            }
+            else if (item.Kind == "snapshot")
             {
                 var guard = RewardStartupFiles.Read<RewardSnapshotGuard>(primaryPath, 1024);
                 if (guard.Schema != 1 || guard.Generation != item.Id || guard.State != "pending") throw new RewardDataException("recovery-snapshot-evidence-changed");
@@ -184,9 +197,29 @@ internal static class RewardRecoveryEvidence
                 || file.RelativePath.Contains('\\') || file.RelativePath.Split('/').Any(p => p is "" or "." or "..")
                 || !AllowedEvidence(binding.ProfileId, item, file.RelativePath)) throw new RewardDataException("recovery-evidence-path-invalid");
             var path = Path.Combine(root, file.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            if (FileEvidence(root, path) != file) throw new RewardDataException("recovery-source-evidence-changed");
+            if (file.RelativePath != transitionedPrimary && FileEvidence(root, path) != file)
+                throw new RewardDataException("recovery-source-evidence-changed");
         }
     }
+
+    private static bool ProvesTerminalTransition(string root, RewardBinding binding, RewardRecoveryCase item,
+        string path, string originalHash)
+    {
+        if (item.Kind == "snapshot")
+        {
+            var guard = RewardStartupFiles.Read<RewardSnapshotGuard>(path, 1024);
+            return guard.Schema == 1 && guard.Generation == item.Id && guard.State == "restored"
+                && RewardIdentity.Hash(RewardRuntimeFiles.Json(guard with { State = "pending" })) == originalHash
+                && RewardRestorationCheckpoint.HasDurableProof(root, binding.ProfileId, item.Id);
+        }
+        var run = RewardStartupFiles.Read<RecoveryTerminalRun>(path, 1024);
+        return run.Schema == 1 && run.RunId == item.Id && run.ArmToken == item.ArmToken
+            && run.State is "restored" or "unrewarded-restored"
+            && RewardIdentity.Hash(RewardRuntimeFiles.Json(new RewardRuntimePending(1, run.ArmToken, run.RunId))) == originalHash
+            && RewardRestorationCheckpoint.HasDurableRunProof(root, binding.ProfileId, run.RunId, run.ArmToken);
+    }
+
+    private sealed record RecoveryTerminalRun(int Schema, string ArmToken, string RunId, string State);
 
     private static bool AllowedEvidence(string id, RewardRecoveryCase item, string path)
     {

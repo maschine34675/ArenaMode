@@ -33,6 +33,32 @@ Checkpoint publication uses a separate `ReadCheckpointClosures` query because it
 
 New unrelated runs retain their normal validation and can pay. New unresolved generations and changed unrelated journal history remain errors. Exact historical exceptions do not waive a genuine Cola transaction or profile ownership recovery.
 
+### Late restoration after a completed discard (2026-10-28)
+
+The two-host direct-start tests exposed an older completed discard whose exact
+run later acquired valid restoration proof. Its pending guards had legitimately
+become terminal, and the ordinary profile had also lost the old discard marker.
+Strictly requiring the original pending file shape blocked unrelated new rewards
+with `invalid-startup-state`. The recorded timing is consistent with historical
+cross-host synchronization, but does not establish which process wrote the files.
+
+Completed decisions now accept only an independently proven terminal transition:
+reconstructing the original pending guard must reproduce its recorded byte hash;
+the binding, generation/run/arm identities, full checkpoint proof, signed result
+and applicable offline closure must validate. Every other recorded source hash
+must remain unchanged. New discard requests retain strict evidence validation.
+The existing automatic marker reacknowledgement can use this exception only for
+an exact case already covered by a fully validated completed decision, including
+its immutable before-profile and plan. It writes only the existing discard marker
+at ordinary pre-load startup. The old claim remains permanently unpaid.
+
+Synthetic regression covers new rewards, replay, lost markers, invalid evidence
+and interruptions after marker write, readback and completion. An isolated copy
+of the actual failing host data delivered only the new 11,000 RUB/1,100 XP claim,
+kept all 59 checkpoint/run/snapshot files unchanged, and made no profile change
+on a second startup. See [native test results](DIRECT-START-NATIVE-20261028.md)
+for deployment, actual-game verification and precise limits.
+
 ## Verification inventory
 
 `RewardRecoveryTests` covers read-only preview, stable review after native progress, immutable source retention, explicit OFF preservation, future payment after legacy and missing-ledger cases, all six durable crash boundaries, post-crash normal saves, lost markers with and without returned paid ledger, stale reviews, changed original evidence/payment amounts, unrelated pending generations, late signed receipts, unknown schemas, true recovery barriers, and closed/native-loaded startup windows.

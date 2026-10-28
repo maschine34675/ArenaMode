@@ -146,7 +146,18 @@ internal static class RewardRecovery
                 Complete(root, attempt with { Plan = plan }, "stale", Hash(plan));
                 continue;
             }
-            foreach (var item in request.Review.Cases) RewardRecoveryEvidence.RequireEvidence(root, enrollment.Binding, item, journal);
+            var previouslyClosed = ReadAttempts(root, id)
+                .Where(a => a.Completion?.State == "closed-without-payment")
+                .SelectMany(a => a.Request.Review.Cases).Select(Hash).ToHashSet(StringComparer.Ordinal);
+            if (request.Review.Cases.Any(c => previouslyClosed.Contains(Hash(c))))
+                // A backup rollback may lose an old discard marker after its
+                // operation gained valid terminal proof. Validate the original
+                // completed decisions against the pre-write profile before
+                // permitting the same narrowly proven transition on reack.
+                _ = ReadClosures(root, id, before, allowUnacknowledged: true);
+            foreach (var item in request.Review.Cases)
+                RewardRecoveryEvidence.RequireEvidence(root, enrollment.Binding, item, journal,
+                    allowProvenTerminalTransition: previouslyClosed.Contains(Hash(item)));
             // Even a prepared plan cannot close a newly introduced unrelated
             // conflict. Revalidate its original review using the untouched base.
             if (RewardIdentity.Hash(current) == plan.BeforeRevision)
@@ -210,7 +221,8 @@ internal static class RewardRecovery
                 || RewardIdentity.Hash(RewardProfileDocument.ApplyRecoveryMarker(original, binding,
                     new(request.ReviewId, plan.RequestFingerprint))) != plan.AfterRevision)
                 throw new RewardDataException("recovery-confirmation-base-invalid");
-            foreach (var item in request.Review.Cases) RewardRecoveryEvidence.RequireEvidence(root, binding, item, journal);
+            foreach (var item in request.Review.Cases)
+                RewardRecoveryEvidence.RequireEvidence(root, binding, item, journal, allowProvenTerminalTransition: true);
             if (marker is null) missing.AddRange(request.Review.Cases);
             else
             {
@@ -243,7 +255,8 @@ internal static class RewardRecovery
         {
             if (attempt.Request.Review.Binding != enrollment.Binding) throw new RewardDataException("recovery-binding-changed");
             if (attempt.Completion?.State == "closed-without-payment")
-                foreach (var item in attempt.Request.Review.Cases) RewardRecoveryEvidence.RequireEvidence(root, enrollment.Binding, item, journal);
+                foreach (var item in attempt.Request.Review.Cases)
+                    RewardRecoveryEvidence.RequireEvidence(root, enrollment.Binding, item, journal, allowProvenTerminalTransition: true);
             cases.AddRange(attempt.Request.Review.Cases);
         }
         return new(enrollment.Binding, cases);
