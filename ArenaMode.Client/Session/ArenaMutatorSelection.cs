@@ -118,7 +118,7 @@ internal sealed class ArenaMutatorSelection
         // Stingers, round cues AND the HUD's kill/award callouts ("DOUBLE
         // KILL"); the "WAVE n" / grenade-taunt text is not announcer output.
         ArenaMutator.Announcer => "Music cues and kill callouts.",
-        ArenaMutator.PmcVoice => "Action callouts and team voices.",
+        ArenaMutator.PmcVoice => "Automatic action callouts.",
         ArenaMutator.FriendlyFire => "Allow damage between teammates.",
         ArenaMutator.AutoQuickslots => "Kit meds use free quickslots.",
         ArenaMutator.InstantSearch => "Search containers instantly.",

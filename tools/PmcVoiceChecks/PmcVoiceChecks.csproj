@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="$(VoiceSource)" Link="Production/ArenaPmcVoice.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaPmcVoicePolicy.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
   </ItemGroup>
 </Project>

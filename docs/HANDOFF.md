@@ -7,6 +7,18 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Independent faction voice (2026-10-28):** TDM/Domination keep the selected
+  faction voice with PMC VOICELINES off; the switch controls only extra Arena
+  comments. Native/manual phrases, saved profile identity and ordinary PMC remain
+  intact. Unit suite 3348 passed/three environment skips; voice checks 126
+  assertions/16 rejected mutants and independent review passed. Both client DLLs
+  deployed; GPU1 verified both modes/both factions, OFF actions, ON positive
+  control, OFF respawn and
+  original Usec_3 in an ordinary PMC raid. All 230 observed settings restored;
+  GPU1 game/server stopped. GPU2's concurrent test was left untouched.
+  The specific Berserk trigger was not reproduced; the shared faction speaker
+  and native manual/injury clips were. See [evidence and hashes](FACTION-VOICE-20261028.md).
+
 - **Direct Arena start (2026-10-28):** installed Session.exe opens a compact
   profile picker, remembers the selection and can create a desktop shortcut;
   `start --profile <id>` selects explicitly. Local normal SPT is started/reused

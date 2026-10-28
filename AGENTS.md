@@ -219,6 +219,9 @@ docs/PMC-VOICELINES-20261026.md. Keep exact current-body/raid guards, announcer
 priority, private bundle ownership and native queued/pain/death speech intact.
 The selected bank remains retained through result holds until native raid end;
 never change saved faction/customization or unload the shared voice loader.
+Since 2026-10-28, TDM/Domination faction identity is independent of the automatic
+PMC-comment switch; OFF must retain the faction bank and suppress only Arena's
+own cues. See docs/FACTION-VOICE-20261028.md for lifecycle and acceptance evidence.
 Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit and Bowl)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read

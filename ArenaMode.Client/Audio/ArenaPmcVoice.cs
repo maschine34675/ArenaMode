@@ -112,7 +112,15 @@ internal static class ArenaPmcVoice
     private static bool Current(out Player player)
     {
         player = null;
-        if (Settings.PmcVoiceEnabled?.Value != true || !CurrentRaid(out var game, out var world, out var match)
+        return Settings.PmcVoiceEnabled?.Value == true && CurrentBody(out player);
+    }
+
+    // Team identity belongs to the match, independently of optional commentary.
+    // Native/manual phrases use this same speaker and its retained faction bank.
+    private static bool CurrentBody(out Player player)
+    {
+        player = null;
+        if (!CurrentRaid(out var game, out var world, out var match)
             || !ReferenceEquals(_match, match) || !ReferenceEquals(_game, game) || !ReferenceEquals(_world, world)
             || !ReferenceEquals(ArenaMatchService.Current, match) || match.Mode.IsComplete
             || _epoch != ArenaSession.ArmEpoch || ArenaRespawnDriver.StandDown
@@ -138,11 +146,7 @@ internal static class ArenaPmcVoice
                 _match = match; _game = game; _world = world; _epoch = ArenaSession.ArmEpoch;
                 _match.OnKill += OnKill;
             }
-            if (Settings.PmcVoiceEnabled?.Value != true)
-            {
-                CancelOwnedSpeech(); RestoreSpeaker(); ClearBody(); return;
-            }
-            if (!Current(out var body)) { ClearBody(); RestoreSpeaker(); return; }
+            if (!CurrentBody(out var body)) { ClearBody(); RestoreSpeaker(); return; }
             if (!ReferenceEquals(_observedBody, body))
             {
                 RestoreSpeaker(); ClearBody(); _observedBody = body;
@@ -150,16 +154,19 @@ internal static class ArenaPmcVoice
             else if (_lease != null && !ReferenceEquals(_lease.Speaker, body.Speaker)) RestoreSpeaker();
             PrepareVoice();
             ApplyVoice(body);
-            if (AnnouncerService.IsPmcVoiceBlocked) { CancelOwnedSpeech(); ClearCue(); }
 
             var hands = body.HandsController as Player.FirearmController;
             bool reloading = hands != null && ReferenceEquals(hands._player, body) && hands.IsInReloadOperation();
+            bool commentary = Settings.PmcVoiceEnabled?.Value == true;
+            if (!commentary || AnnouncerService.IsPmcVoiceBlocked) { CancelOwnedSpeech(); ClearCue(); }
             // Native queries cover magazine, internal, revolver and UIFixes'
             // individual insert/remove operations without patching generic calls.
-            if (reloading && (!ReferenceEquals(hands, _hands) || !_wasReloading))
+            if (commentary && reloading && (!ReferenceEquals(hands, _hands) || !_wasReloading))
                 Queue(body, EPhraseTrigger.OnWeaponReload);
+            // Observe while disabled too: enabling comments must not replay a
+            // reload that already started while the player chose silence.
             _hands = hands; _wasReloading = reloading;
-            Pump(body);
+            if (commentary) Pump(body);
         }
         catch (Exception ex) { Warn("tick skipped", ex); ClearCue(); }
     }
