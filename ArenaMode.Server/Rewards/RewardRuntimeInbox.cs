@@ -27,6 +27,21 @@ internal static class RewardRuntimeInbox
         return receipt;
     }
 
+    // A validated discard rejects this delegation even when old signed files
+    // reappear later. Keep them as evidence without poisoning unrelated rewards.
+    internal static RewardEarnedReceipt? ReadRetainedReceipt(string root, string directory, RewardHandoff origin, string path)
+    {
+        try { return ReadReceipt(root, directory, origin, path); }
+        catch (RewardOfflineDiscardedException)
+        {
+            string file = Path.GetFileName(path);
+            if (RewardRuntimeFiles.Exists(root, Path.Combine(directory, "allocations", file))
+                || RewardRuntimeFiles.Exists(root, Path.Combine(directory, "imported", file)))
+                throw new RewardDataException("offline-discard-payment-history-conflict");
+            return null;
+        }
+    }
+
     // Validate the COMPLETE retained transport inventory before checkpoint
     // publication can add a canonical receipt, and again before an inbox batch
     // can allocate/pay its first entry. A bad later file must not be discovered
@@ -49,7 +64,8 @@ internal static class RewardRuntimeInbox
         enrollment.Binding.Validate();
         foreach (var path in paths)
         {
-            var earned = ReadReceipt(root, directory, origin, path);
+            var earned = ReadRetainedReceipt(root, directory, origin, path);
+            if (earned is null) continue;
             var fingerprint = RewardIdentity.Hash(RewardRuntimeFiles.Json(earned));
             var run = earned.Evidence.Authorization.RunId;
             var allocation = ReadAllocationIfPresent(root, Path.Combine(directory, "allocations"), Path.GetFileName(path));
@@ -114,7 +130,8 @@ internal static class RewardRuntimeInbox
             token.ThrowIfCancellationRequested();
             window.RequireOpen();
             if (!RewardEnrollment.WantsRewards(root, id)) return Outcome(RewardSettlementStatus.Deferred, "rewards-not-enabled");
-            var earned = ReadReceipt(root, directory, origin, item.Path);
+            var earned = ReadRetainedReceipt(root, directory, origin, item.Path);
+            if (earned is null) { closed = true; continue; }
             var fingerprint = RewardIdentity.Hash(RewardRuntimeFiles.Json(earned));
             var runId = earned.Evidence.Authorization.RunId;
             var importedPath = Path.Combine(imported, runId + ".json");
@@ -296,7 +313,7 @@ internal static class RewardRuntimeInbox
             var recovered = false;
             if (RewardRuntimeFiles.Exists(root, inbox))
                 foreach (var receiptPath in Directory.EnumerateFiles(inbox, "*.json").Take(4096))
-                    if (ReadReceipt(root, authorityDirectory, origin, receiptPath).Evidence.Restoration.RestorationId == guard.Generation)
+                    if (ReadRetainedReceipt(root, authorityDirectory, origin, receiptPath)?.Evidence.Restoration.RestorationId == guard.Generation)
                     { recovered = true; break; }
             if (!recovered) throw new RewardDataException("reward-snapshot-restoration-unresolved");
         }

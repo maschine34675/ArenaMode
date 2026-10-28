@@ -428,9 +428,21 @@ namespace ArenaMode.SessionHelper
             FileStream startup = null;
             if (!offlineStartupHeld && HelperOfflineSession.HasOfflineTree(tree))
             {
-                var lease = HelperOfflineSession.ReadPrivate(tree);
+                var lease = HelperOfflineSession.ReadBoundPrivate(tree);
                 if (callerRuntime != null && !HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return StopResult.OtherInstallation;
                 startup = HelperOfflineSession.AcquireStartup(lease.Source);
+                try
+                {
+                    // A stopped tree with missing disposable marker/state must
+                    // still reach normal startup, which alone may discard it.
+                    HelperOfflineSession.RequirePrivateAbsent(lease);
+                    startup.Dispose();
+                    return StopResult.NothingToStop;
+                }
+                catch (HelperException) { }
+                catch { startup.Dispose(); throw; }
+                try { HelperOfflineSession.ReadPrivate(tree); }
+                catch { startup.Dispose(); throw; }
             }
             try { return StopArenaServerCore(callerRuntime); }
             finally { if (startup != null) startup.Dispose(); }

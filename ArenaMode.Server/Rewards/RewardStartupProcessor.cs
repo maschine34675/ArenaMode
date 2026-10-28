@@ -90,7 +90,9 @@ internal static class RewardStartupProcessor
             {
                 var candidate = RewardStartupFiles.Read<RewardApprovalCandidate>(candidatePath);
                 RewardRuntimeFiles.RequireProof(candidate);
-                if (closures.ClosesReceipt(candidate)) return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
+                if (closures.ClosesReceipt(candidate)
+                    || RewardRestorationCheckpoint.IsDiscardedRun(window.Root, candidate.Authorization.Binding, candidate.Authorization.RunId))
+                    return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
             }
             var evaluation = RewardApprovalProducer.PrepareIfPresent(window, enrollment);
             if (evaluation is { Status: RewardEvaluationStatus.Rejected })
@@ -108,7 +110,9 @@ internal static class RewardStartupProcessor
                 return Outcome(RewardSettlementStatus.Deferred, "profile-restoration-not-approved");
             var limits = new RewardLimits();
             approval.Claim.Validate(limits);
-            if (closures.ClosesClaim(approval.Claim)) return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
+            if (closures.ClosesClaim(approval.Claim)
+                || RewardRestorationCheckpoint.IsDiscardedRun(window.Root, approval.Claim.Binding, approval.Claim.RunId))
+                return Outcome(RewardSettlementStatus.ClosedWithoutPayment, "reward-closed-without-payment");
             roubles = approval.Claim.Roubles;
             experience = approval.Claim.Experience;
             var store = new RewardStartupStore(window, enrollment, approval, limits);

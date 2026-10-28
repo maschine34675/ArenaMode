@@ -952,8 +952,8 @@ namespace ArenaMode.SessionHelper
 
             // This guard also covers callers other than HelperRunner. Results must have been
             // durably returned by the stopped-server path before any old user data is removed.
-            HelperOfflineSession.RequireClosedBeforeRebuild(root);
-            HelperRewardTransfer.RequireDrainedBeforeRebuild(root);
+            if (!HelperOfflineSession.RequireClosedBeforeRebuild(root))
+                HelperRewardTransfer.RequireDrainedBeforeRebuild(root);
             PrepareTree(box, tree, binaries);
 
             // The server binaries: the files the exe, its dll and deps.json need, beside the exe.

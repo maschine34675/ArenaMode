@@ -3,6 +3,10 @@
 The user replaced the manual recovery workflow on 2026-10-27: an uncertain small
 reward should be dropped, not become a player-facing profile repair task.
 
+For lost disposable private-session data, the later
+[startup recovery](OFFLINE-STARTUP-RECOVERY-20261028.md) adds a separate durable
+session discard after verified process exit. It never restores an original profile.
+
 - Normal server startup automatically discards old unproven snapshot/run rewards
   and a committed RUB/XP claim missing from the current profile's payment list.
 - Valid restoration proofs and healthy rewards retain their normal processing.

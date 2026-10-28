@@ -4,7 +4,7 @@ internal static partial class RewardOfflineSession
 {
     // Caller owns original .startup.lock and .server.lock, before native profiles load.
     // This also handles a dead helper/private process; no timestamp can waive either lock.
-    internal static void RecoverBeforeStartup(RewardStartupWindow window, Action<string>? checkpoint = null)
+    internal static void RecoverBeforeStartup(RewardStartupWindow window, Action<string>? checkpoint = null, Action? discarded = null)
     {
         window.RequireOpen();
         string root = window.Root;
@@ -22,14 +22,16 @@ internal static partial class RewardOfflineSession
             if (reference.Activated && !hasActivation) throw new RewardDataException("offline-activation-proof-missing");
             if (hasActivation)
             {
-                var activation = RewardStartupFiles.Read<RewardOfflineActivation>(activationProof, 4096);
-                if (activation.Schema != 1 || activation.SessionId != lease.SessionId || activation.LeaseHash != Hash(lease)
-                    || activation.PrivatePid <= 0 || activation.PrivateStartedUtc == default)
-                    throw new RewardDataException("offline-activation-invalid");
+                var activation = ReadActivation(root, lease);
                 // DI disposal can release a lifetime handle before the last native
                 // shutdown callbacks exit. The helper's exit check is also required
                 // for a manual normal startup recovering this record.
                 if (ProcessStillAlive(activation)) throw new RewardDataException("offline-private-process-still-running");
+            }
+            if (ReadDiscard(root, lease) is not null)
+            {
+                DiscardStopped(window, lease, reference, checkpoint, discarded);
+                return;
             }
             string closurePath = Path.Combine(directory, "closed.json");
             RewardOfflineClosure closure;
@@ -43,14 +45,18 @@ internal static partial class RewardOfflineSession
                 RewardOfflineReceipt[] receipts;
                 if (activated)
                 {
-                    var activation = RewardStartupFiles.Read<RewardOfflineActivation>(activationPath, 4096);
-                    if (activation.Schema != 1 || activation.SessionId != lease.SessionId || activation.LeaseHash != Hash(lease)
-                        || activation.PrivatePid <= 0 || activation.PrivateStartedUtc == default)
-                        throw new RewardDataException("offline-activation-invalid");
-                    ValidateMarker(lease.PrivateRoot, lease);
-                    if (Hash(ReadLease(lease.PrivateRoot, Path.Combine(lease.PrivateRoot, LeaseFile))) != Hash(lease))
-                        throw new RewardDataException("offline-private-lease-changed");
-                    state = ReadState(lease); // missing after activation must never restore an old ON choice
+                    try
+                    {
+                        ValidateMarker(lease.PrivateRoot, lease);
+                        if (Hash(ReadLease(lease.PrivateRoot, Path.Combine(lease.PrivateRoot, LeaseFile))) != Hash(lease))
+                            throw new RewardDataException("offline-private-lease-changed");
+                        state = ReadState(lease);
+                    }
+                    catch (Exception exception) when (LostPrivateState(exception))
+                    {
+                        DiscardStopped(window, lease, reference, checkpoint, discarded);
+                        return;
+                    }
                     // The exact private process has exited and its original
                     // ownership/marker are verified. Finish only independently
                     // proven reward publication before freezing the receipt list;
@@ -146,6 +152,8 @@ internal static partial class RewardOfflineSession
             || !RewardRuntimeFiles.SameRoot(previous.PrivateRoot, current.PrivateRoot)
             || Hash(ReadLease(current.RuntimeRoot, LeasePath(current.RuntimeRoot, previous.SessionId))) != Hash(previous))
             throw new RewardDataException("offline-initialization-proof-incomplete");
+        if (ReadDiscard(current.RuntimeRoot, previous) is { } discard
+            && DiscardCompleted(current.RuntimeRoot, previous, discard)) return;
         ValidateMarker(current.PrivateRoot, previous);
         var closure = ReadClosure(current.RuntimeRoot, previous);
         string path = Path.Combine(SessionDirectory(current.RuntimeRoot, previous.SessionId), "completion.json");
@@ -185,6 +193,11 @@ internal static partial class RewardOfflineSession
             var lease = ReadLease(root, path);
             if (lease.SessionId != Path.GetFileName(entry) || !RewardRuntimeFiles.SameRoot(root, lease.RuntimeRoot))
                 throw new RewardDataException("offline-history-binding-mismatch");
+            if (ReadDiscard(root, lease) is { } discard)
+            {
+                if (!DiscardCompleted(root, lease, discard)) pending.Add(lease);
+                continue;
+            }
             string completionPath = Path.Combine(entry, "completion.json");
             bool hasClosure = RewardRuntimeFiles.Exists(root, Path.Combine(entry, "closed.json"));
             if (hasClosure)
@@ -218,6 +231,8 @@ internal static partial class RewardOfflineSession
 
     private static bool ProcessStillAlive(RewardOfflineActivation activation)
     {
+        if (OperatingSystem.IsWindows())
+            return RewardHelperProcessIdentity.StillRunning(activation.PrivatePid, activation.PrivateStartedUtc);
         try
         {
             using var process = System.Diagnostics.Process.GetProcessById(activation.PrivatePid);
@@ -298,6 +313,7 @@ internal static partial class RewardOfflineSession
         if (reference.LeaseHash != Hash(lease) || lease.Authority?.DelegationId != signed.DelegationId
             || authority.OfflineSessionId != lease.SessionId)
             throw new RewardDataException("offline-receipt-authority-mismatch");
+        if (IsDiscarded(root, authority)) throw new RewardOfflineDiscardedException();
         var closure = ReadClosure(root, lease);
         var expected = closure.Receipts.SingleOrDefault(r => r.RunId == runId);
         if (expected is null || expected.Fingerprint != RewardIdentity.Hash(RewardRuntimeFiles.Json(signed)))

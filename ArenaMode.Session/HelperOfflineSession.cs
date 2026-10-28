@@ -288,10 +288,34 @@ namespace ArenaMode.SessionHelper
             return lease;
         }
 
+        internal static Lease ReadBoundPrivate(string tree)
+        {
+            string path = Path.Combine(tree, LeaseFile);
+            HelperRewardControlTransfer.RequirePlainPath(path, false);
+            Lease lease;
+            try { lease = ParseLease(Read(path)); }
+            catch (FileNotFoundException) { return ReadMarkerBoundPrivate(tree); }
+            catch (HelperException) { return ReadMarkerBoundPrivate(tree); }
+            catch (FormatException) { return ReadMarkerBoundPrivate(tree); }
+            catch (DecoderFallbackException) { return ReadMarkerBoundPrivate(tree); }
+            if (!HelperPathSafety.PathsEqual(lease.Private, tree) || !Same(lease.Bytes, ReadOriginal(lease.Source, lease.SessionId).Bytes)) throw Refused();
+            return lease;
+        }
+
+        private static Lease ReadMarkerBoundPrivate(string tree)
+        {
+            HelperMarker marker; string error;
+            if (!HelperMarker.TryParse(Utf8.GetString(Read(Path.Combine(tree, ArenaSessionContract.MarkerFileName))), out marker, out error)
+                || marker == null || !Hex(marker.OfflineSessionId, 32)) throw Refused();
+            var lease = ReadOriginal(marker.SourceRuntime, marker.OfflineSessionId);
+            if (!HelperPathSafety.PathsEqual(lease.Private, tree)) throw Refused();
+            RequireMarker(lease, marker);
+            return lease;
+        }
+
         internal static Lease ReadPrivate(string tree, HelperRequest request = null)
         {
-            var lease = ParseLease(Read(Path.Combine(tree, LeaseFile)));
-            if (!HelperPathSafety.PathsEqual(lease.Private, tree) || !Same(lease.Bytes, ReadOriginal(lease.Source, lease.SessionId).Bytes)) throw Refused();
+            var lease = ReadBoundPrivate(tree);
             HelperMarker marker; string error;
             if (!HelperMarker.TryParse(Utf8.GetString(Read(Path.Combine(tree, ArenaSessionContract.MarkerFileName))), out marker, out error)) throw Refused();
             RequireMarker(lease, marker);
@@ -336,7 +360,8 @@ namespace ArenaMode.SessionHelper
         {
             var reference = Reference(Read(ActivePath(lease.Source)));
             if (Int(reference, "schema") != 1 || Text(reference, "sessionId") != lease.SessionId
-                || Text(reference, "leaseHash") != lease.Hash || Exists(Path.Combine(SessionDirectory(lease), "closed.json"))) throw Refused();
+                || Text(reference, "leaseHash") != lease.Hash || Exists(Path.Combine(SessionDirectory(lease), "closed.json"))
+                || Exists(Path.Combine(SessionDirectory(lease), "discarded.json"))) throw Refused();
         }
 
         internal static void ValidateActivation(byte[] bytes, Lease lease, int pid, DateTime started)
@@ -349,31 +374,69 @@ namespace ArenaMode.SessionHelper
 
         internal static bool RequireClosed(Lease lease)
         {
+            if (IsDiscarded(lease)) { RequireRetired(lease); return false; }
             byte[] closureBytes = Read(Path.Combine(SessionDirectory(lease), "closed.json"), 524288);
             var closure = Parse(closureBytes, 6);
             if (Int(closure, "schema") != 1 || Text(closure, "sessionId") != lease.SessionId || Text(closure, "leaseHash") != lease.Hash) throw Refused();
             var completion = Parse(Read(Path.Combine(SessionDirectory(lease), "completion.json")), 3);
             if (Int(completion, "schema") != 1 || Text(completion, "sessionId") != lease.SessionId
                 || Text(completion, "closureHash") != Hash(closureBytes)) throw Refused();
+            RequireRetired(lease);
+            return Bool(closure, "activated");
+        }
+
+        private static void RequireRetired(Lease lease)
+        {
             // A newer session may already have a Ready pointer when the old tree is rebuilt.
             if (Exists(ActivePath(lease.Source)))
             {
                 var active = Reference(Read(ActivePath(lease.Source)));
                 if (Text(active, "sessionId") == lease.SessionId) throw Refused();
             }
-            return Bool(closure, "activated");
         }
 
-        internal static void RequireClosedBeforeRebuild(string runtimeRoot)
+        internal static bool IsDiscarded(Lease lease)
+        {
+            string directory = SessionDirectory(lease);
+            string path = Path.Combine(directory, "discarded.json");
+            if (!Exists(path)) return false;
+            byte[] bytes = Read(path, 8192);
+            var record = Parse(bytes, 6);
+            var before = ArenaMiniJson.AsObject(record["before"]);
+            var after = ArenaMiniJson.AsObject(record["after"]);
+            var activationBytes = Read(Path.Combine(directory, "activation.json"));
+            var activation = Parse(activationBytes, 5);
+            ValidateActivation(activationBytes, lease, Int(activation, "privatePid"), Utc(activation, "privateStartedUtc"));
+            if (Int(record, "schema") != 1 || Text(record, "sessionId") != lease.SessionId || Text(record, "leaseHash") != lease.Hash
+                || Text(record, "activationHash") != Hash(activationBytes) || Int(activation, "privatePid") <= 0
+                || Utc(activation, "privateStartedUtc") == default(DateTime)
+                || before == null || after == null || before.Count != 3 || after.Count != 3
+                || Int(before, "schema") != 1 || Int(after, "schema") != 1 || Bool(after, "enabled")
+                || Exists(Path.Combine(directory, "closed.json")) || Exists(Path.Combine(directory, "completion.json"))) throw Refused();
+            Bool(before, "enabled");
+            decimal revision, next;
+            if (!decimal.TryParse(Convert.ToString(before["revision"], CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out revision)
+                || !decimal.TryParse(Convert.ToString(after["revision"], CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out next)
+                || revision < 0 || revision >= long.MaxValue || next != revision + 1) throw Refused();
+            var completion = Parse(Read(Path.Combine(directory, "discard-completion.json")), 3);
+            if (Int(completion, "schema") != 1 || Text(completion, "sessionId") != lease.SessionId
+                || Text(completion, "discardHash") != Hash(bytes)) throw Refused();
+            return true;
+        }
+
+        // True means a positively retired disposable tree; its old outbox is
+        // deliberately not transferred. The normal tree sandbox still owns deletion.
+        internal static bool RequireClosedBeforeRebuild(string runtimeRoot)
         {
             string tree = HelperServerTree.GetTreePath(runtimeRoot);
-            if (!HasOfflineTree(tree)) return;
-            var lease = ParseLease(Read(Path.Combine(tree, LeaseFile)));
-            if (!HelperPathSafety.PathsEqual(lease.Private, tree) || !Same(lease.Bytes, ReadOriginal(lease.Source, lease.SessionId).Bytes)) throw Refused();
+            if (!HasOfflineTree(tree)) return false;
+            var lease = ReadBoundPrivate(tree);
             bool activated = RequireClosed(lease);
+            if (IsDiscarded(lease)) { RequirePrivateAbsent(lease); return true; }
             // A stopped, never-activated failed Build may not yet have a marker.
             if (activated || Exists(Path.Combine(tree, ArenaSessionContract.MarkerFileName))) ReadPrivate(tree);
             HelperRewardTransfer.RequireDrainedBeforeRebuild(runtimeRoot);
+            return false;
         }
 
         internal static void RequirePrivateAbsent(Lease lease)

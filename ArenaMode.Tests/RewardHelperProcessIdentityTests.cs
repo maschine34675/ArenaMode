@@ -24,6 +24,9 @@ public sealed class RewardHelperProcessIdentityTests
         using var opened = HelperProcesses.TryOpen(current.Id);
         Assert.NotNull(opened);
         Assert.Null(HelperProcesses.TryOpen(int.MaxValue));
+        Assert.True(RewardHelperProcessIdentity.StillRunning(current.Id, started));
+        Assert.False(RewardHelperProcessIdentity.StillRunning(current.Id, started.AddTicks(1)));
+        Assert.False(RewardHelperProcessIdentity.StillRunning(int.MaxValue, started));
     }
 
     [SkippableFact]
@@ -41,5 +44,6 @@ public sealed class RewardHelperProcessIdentityTests
         Assert.False(RewardHelperProcessIdentity.Matches(child.Id, started, child.StartInfo.FileName));
         Assert.True(HelperProcesses.HasExited(child));
         Assert.Null(HelperProcesses.TryOpen(child.Id));
+        Assert.False(RewardHelperProcessIdentity.StillRunning(child.Id, started));
     }
 }

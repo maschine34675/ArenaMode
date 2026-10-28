@@ -169,7 +169,10 @@ internal static class RewardRestorationCheckpoint
             // handoff is allowed only when its exact delegation still matches.
             if (!RewardRuntimeFiles.Exists(window.Root, handoff))
                 handoff = Path.Combine(RewardRuntimeFiles.DirectoryFor(window.Root, id), "handoff.json");
-            Recover(window.Root, id, directory, RewardRuntimeFiles.ReadHandoff(window.Root, handoff), profile);
+            var authority = RewardRuntimeFiles.ReadHandoff(window.Root, handoff);
+            RequireAuthority(checkpoint, authority);
+            if (RewardOfflineSession.IsDiscarded(window.Root, authority)) continue;
+            Recover(window.Root, id, directory, authority, profile);
         }
     }
 
@@ -206,6 +209,28 @@ internal static class RewardRestorationCheckpoint
     internal static bool HasDurableProof(string root, string id, string generation)
         => HasDurableProof(root, id, generation, out _);
 
+    // Negative authority only. An old candidate/approval must not bypass the
+    // inbox's discarded-delegation check after its signed receipt disappears.
+    internal static bool IsDiscardedRun(string root, RewardBinding binding, string runId)
+    {
+        foreach (string directory in Directories(root, binding.ProfileId))
+        {
+            if (!Exists(root, directory, "run.json")) continue;
+            var run = Read<RewardCheckpointRun>(root, directory, "run.json");
+            ValidateRun(run);
+            if (run.RunId != runId) continue;
+            var checkpoint = ReadCheckpoint(root, directory, binding.ProfileId, Path.GetFileName(directory));
+            if (checkpoint.Binding != binding) throw new RewardDataException("offline-discard-run-binding-mismatch");
+            string rewards = RewardRuntimeFiles.DirectoryFor(root, binding.ProfileId);
+            string handoff = Path.Combine(rewards, "delegations", checkpoint.DelegationId + ".json");
+            if (!RewardRuntimeFiles.Exists(root, handoff)) handoff = Path.Combine(rewards, "handoff.json");
+            var authority = RewardRuntimeFiles.ReadHandoff(root, handoff);
+            RequireAuthority(checkpoint, authority);
+            if (RewardOfflineSession.IsDiscarded(root, authority)) return true;
+        }
+        return false;
+    }
+
     internal static bool HasDurableRunProof(string root, string id, string runId, string armToken)
     {
         foreach (var directory in Directories(root, id))
@@ -234,6 +259,7 @@ internal static class RewardRestorationCheckpoint
             if (!authority.Enabled || !RewardRuntimeFiles.SameRoot(authority.RuntimeRoot, root)
                 || RewardEnrollment.Read(root, id).Binding != authority.Binding) return false;
             RequireAuthority(checkpoint, authority);
+            if (RewardOfflineSession.IsDiscarded(root, authority)) return false;
             var candidateRun = Exists(root, directory, "run.json") ? Read<RewardCheckpointRun>(root, directory, "run.json") : null;
             var guard = ReadGuard(root, Path.Combine(root, "user", "arena-reward-snapshots", id, generation + ".json"), generation);
             if (guard.State is not ("pending" or "restored")) return false;

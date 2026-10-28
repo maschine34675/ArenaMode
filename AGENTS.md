@@ -50,6 +50,10 @@ never a payment or restoration proof. Preserve exact case acknowledgement and
 permanent replay rejection. Full native restore
 readback is mandatory even with rewards OFF; private checkpoint publication and
 archival precede immutable offline closure and tree retirement.
+The separate stopped-session discard in docs/OFFLINE-STARTUP-RECOVERY-20261028.md
+handles lost disposable marker/lease/state before closure. It requires intact
+ordinary ownership and positive private-process exit, preserves the ordinary
+profile and sets unknown consent OFF. Never invent closure/restoration proof.
 Native end and failed/stale-start recovery must drain native update callbacks
 before the actual profile swap. Use the protected end service's owned persistence
 window through save/readback/completion; never restore directly in a router or

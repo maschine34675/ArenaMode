@@ -6,7 +6,7 @@ using Xunit;
 
 namespace ArenaMode.Tests;
 
-public sealed class RewardOfflineSessionTests
+public sealed partial class RewardOfflineSessionTests
 {
     [Fact]
     public void ReadyIsImmutableAndDoesNotChangeTheOriginalProfileOrReceiptAuthority()
@@ -216,8 +216,10 @@ public sealed class RewardOfflineSessionTests
             File.WriteAllText(path, value.ToJsonString());
         }
         string before = f.Profile;
-        Assert.Throws<RewardOfflineException>(() => f.Recover());
-        Assert.True(RewardOfflineSession.HasActive(f.Root));
+        f.Recover();
+        Assert.False(RewardOfflineSession.HasActive(f.Root));
+        Assert.False(RewardEnrollment.WantsRewards(f.Root, Fixture.Id));
+        Assert.NotNull(RewardOfflineSession.ReadDiscard(f.Root, f.Lease));
         Assert.Equal(before, f.Profile);
     }
 

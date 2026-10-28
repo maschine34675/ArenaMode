@@ -12,6 +12,32 @@ internal static class RewardHelperProcessIdentity
     private const uint Synchronize = 0x00100000;
     private const uint WaitTimeout = 258;
 
+    // Unlike authentication, an unreadable process is not a negative result:
+    // recovery may proceed only after positive exit or PID-reuse evidence.
+    internal static bool StillRunning(int pid, DateTimeOffset startedUtc)
+    {
+        if (pid <= 0) throw new ArgumentOutOfRangeException(nameof(pid));
+        using var process = OpenProcess(QueryLimitedInformation | Synchronize, false, pid);
+        if (process.IsInvalid)
+        {
+            int error = Marshal.GetLastWin32Error();
+            if (error == 87) return false; // ERROR_INVALID_PARAMETER: PID does not exist
+            throw new System.ComponentModel.Win32Exception(error);
+        }
+        if (!Alive()) return false;
+        if (!GetProcessTimes(process, out long created, out _, out _, out _))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        return DateTime.FromFileTimeUtc(created) == startedUtc.UtcDateTime && Alive();
+
+        bool Alive()
+        {
+            uint result = WaitForSingleObject(process, 0);
+            if (result == 0) return false;
+            if (result == WaitTimeout) return true;
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        }
+    }
+
     internal static bool Matches(int pid, DateTimeOffset startedUtc, string expectedImage)
     {
         if (!OperatingSystem.IsWindows() || pid <= 0) return false;

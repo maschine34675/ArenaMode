@@ -53,7 +53,8 @@ public sealed class ArenaRewardStartup(
             // Outside the reward-only catch: continuing would load normal profiles
             // while a private process owns the original runtime or recovery is unknown.
             using var recovery = new RewardStartupWindow(root, () => saves.GetProfiles().Count == 0);
-            RewardOfflineSession.RecoverBeforeStartup(recovery);
+            RewardOfflineSession.RecoverBeforeStartup(recovery, discarded: () =>
+                logger.Info("[ArenaMode] Old Arena session discarded; rewards set to OFF. Normal SPT will start."));
         }
         try
         {
