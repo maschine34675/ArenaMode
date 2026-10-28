@@ -299,7 +299,7 @@ namespace ArenaMode.SessionHelper
             try
             {
                 foreach (Process game in games)
-                    if (!game.HasExited) throw new HelperException("An EFT process is already running; no second game was started.");
+                    if (!HelperProcesses.HasExited(game)) throw new HelperException("An EFT process is already running; no second game was started.");
             }
             finally { foreach (Process game in games) game.Dispose(); }
         }
@@ -469,7 +469,7 @@ namespace ArenaMode.SessionHelper
             {
                 foreach (Process process in candidates)
                 {
-                    if (process.HasExited) continue;
+                    if (HelperProcesses.HasExited(process)) continue;
                     string image = HelperProcesses.GetImagePath(process);
                     if (image == null || HelperProcesses.SameFileSystemObject(image, expected))
                         throw new HelperException("Arena reward results remain in the private session: its server could still be running.");
@@ -1206,7 +1206,7 @@ namespace ArenaMode.SessionHelper
             {
                 // First: a server that has exited can no longer be the one that answers, whatever else holds
                 // the port by now.
-                if (server != null && server.HasExited)
+                if (server != null && HelperProcesses.HasExited(server))
                 {
                     throw new HelperException(what + " exited with code " + server.ExitCode + " before it opened port " + port
                         + (blocker == null ? string.Empty : " (" + blocker + ")"));

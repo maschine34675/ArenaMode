@@ -40,6 +40,22 @@ try {
     Assert ((Get-FileHash (Join-Path $folder 'ArenaMode.lnk')).Hash -eq $before) 'foreign-shortcut-preserved'
     $again = $ui.GetMethod('CreateShortcut',$flags).Invoke($null,[object[]]@([string]$Exe, [string]$folder, [string]$folder))
     Assert ($again -eq $path) 'own-shortcut-reused'
+    $processes = $assembly.GetType('ArenaMode.SessionHelper.HelperProcesses', $true)
+    $hasExited = $processes.GetMethod('HasExited', $flags)
+    $tryOpen = $processes.GetMethod('TryOpen', $flags)
+    $current = [Diagnostics.Process]::GetCurrentProcess()
+    try { Assert (-not $hasExited.Invoke($null, [object[]]@($current))) 'limited-query-live-process' }
+    finally { $current.Dispose() }
+    Assert ($null -eq $tryOpen.Invoke($null, [object[]]@([int]::MaxValue))) 'limited-query-absent-process'
+    $childInfo = New-Object Diagnostics.ProcessStartInfo
+    $childInfo.FileName = Join-Path $env:SystemRoot 'System32\cmd.exe'
+    $childInfo.Arguments = '/c exit 259'
+    $childInfo.UseShellExecute = $false
+    $childInfo.CreateNoWindow = $true
+    $child = [Diagnostics.Process]::Start($childInfo)
+    try {
+        Assert ($child.WaitForExit(10000) -and $child.ExitCode -eq 259 -and $hasExited.Invoke($null, [object[]]@($child))) 'limited-query-exited-259'
+    } finally { $child.Dispose() }
     foreach ($com in @($link,$foreign,$shell)) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($com) }
     Write-Output 'DIRECT_START_FRAMEWORK_PASSED'
 } finally {

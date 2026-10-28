@@ -179,9 +179,7 @@ internal sealed class RewardReturnControl
             string installation = Path.GetDirectoryName(root)!;
             string expected = Path.Combine(installation, "BepInEx", "plugins", "maschine-ArenaMode", "maschine-ArenaMode.Session.exe");
             RewardStartupFiles.RequireLocalPath(installation, expected);
-            using var helper = Process.GetProcessById(request.HelperPid);
-            return !helper.HasExited && helper.StartTime.ToUniversalTime() == request.HelperStartedUtc.UtcDateTime
-                && string.Equals(helper.MainModule?.FileName, expected, StringComparison.OrdinalIgnoreCase);
+            return RewardHelperProcessIdentity.Matches(request.HelperPid, request.HelperStartedUtc, expected);
         }
         catch { return false; }
     }

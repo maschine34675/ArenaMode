@@ -205,7 +205,7 @@ namespace ArenaMode.SessionHelper
             {
                 foreach (Process candidate in candidates)
                 {
-                    if (candidate.HasExited) continue;
+                    if (HelperProcesses.HasExited(candidate)) continue;
                     string image = HelperProcesses.GetImagePath(candidate);
                     if (image == null || !HelperProcesses.SameFileSystemObject(image, executable))
                         throw new HelperException("Another SPT server is running or cannot be identified. Close it before starting Arena.");
@@ -221,7 +221,7 @@ namespace ArenaMode.SessionHelper
         private void RequireServer(Process server, DateTime started, HelperHttpEndpoint endpoint)
         {
             DateTime actual;
-            if (server.HasExited || !HelperProcesses.TryGetStartTimeUtc(server, out actual) || actual != started
+            if (HelperProcesses.HasExited(server) || !HelperProcesses.TryGetStartTimeUtc(server, out actual) || actual != started
                 || !HelperProcesses.SameFileSystemObject(HelperProcesses.GetImagePath(server), Path.Combine(Runtime, HelperLayout.ServerExeName)))
                 throw new HelperException("The original SPT server is no longer running.");
             var ids = _runner.ListenerLookup(endpoint.ServerPort, IPAddress.Parse(endpoint.ServerHost));

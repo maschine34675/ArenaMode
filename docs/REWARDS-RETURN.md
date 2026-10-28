@@ -88,6 +88,40 @@ history remain the only payout path.
 The request gate is inert outside this authenticated transition. No normal PMC/Scav
 rule, reward amount, OFF preference or profile-restoration boundary was changed.
 
+## Mixed Windows integrity levels (2026-10-28)
+
+Native testing reproduced an immediate `helper-identity-mismatch` when normal SPT
+ran at Medium integrity and the helper ran elevated, under the same Windows user
+and session. The server refused before quiescence or profile copying. A Medium
+diagnostic process could read the helper's limited process information, while the
+older managed process getters failed with access denied. That diagnostic used
+.NET Framework; the server's first failing individual getter was not logged.
+
+The server now opens one process handle with limited query and synchronization
+rights. On that same handle it checks exact creation time, exact installed image
+path and a nonsignaled live process before and after the read. It requests no
+process-memory access, adjusts no privileges and has no permissive fallback.
+Self-PID rejection, local-path/reparse validation and capability authentication
+are unchanged. A terminated process cannot pass merely by using exit code 259.
+
+The reverse combination also reproduced a refusal: a Medium helper could not
+inspect an elevated normal server. The shipping .NET Framework `HasExited`
+implementation requests `QUERY_INFORMATION | SYNCHRONIZE`. All twelve helper
+liveness sites now use the limited-query equivalent, retaining explicit grant
+start-time, image and listener comparisons. `TryOpen` distinguishes a missing or
+positively exited process from an unreadable process: access/query failures
+propagate and cannot authorize deleting ownership evidence or copying a profile.
+The native wait itself already requires only synchronization rights and remains
+unchanged. Eleven shipping-framework checks cover the picker/shortcut contracts
+plus live, missing and exit-code-259 process observations.
+
+The native APIs document these rights: [image path](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamea),
+[creation time](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes)
+and [process wait](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject).
+See the [two-host native report](DIRECT-START-NATIVE-20261028.md) for actual token
+combinations, final build identity and entry/return outcomes. This reproduction
+does not retrospectively prove the cause of the earlier uninstrumented errors.
+
 ## Verification
 
 Focused synthetic tests cover capability tampering/expiry/replay, separate secrets,

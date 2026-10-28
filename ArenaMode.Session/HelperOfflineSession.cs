@@ -384,7 +384,7 @@ namespace ArenaMode.SessionHelper
             {
                 foreach (Process candidate in candidates)
                 {
-                    if (candidate.HasExited) continue;
+                    if (HelperProcesses.HasExited(candidate)) continue;
                     string image = HelperProcesses.GetImagePath(candidate);
                     if (image == null || HelperProcesses.SameFileSystemObject(image, expected)) throw Refused();
                 }
@@ -466,14 +466,14 @@ namespace ArenaMode.SessionHelper
         private static void RequireProcess(Process process, int pid, DateTime started, string image)
         {
             DateTime actual;
-            if (process == null || process.Id != pid || process.HasExited || !HelperProcesses.TryGetStartTimeUtc(process, out actual)
+            if (process == null || process.Id != pid || HelperProcesses.HasExited(process) || !HelperProcesses.TryGetStartTimeUtc(process, out actual)
                 || actual != started || !HelperProcesses.SameFileSystemObject(HelperProcesses.GetImagePath(process), image)) throw Refused();
         }
         private static void RequireGone(int pid, DateTime started, string image)
         {
             using (Process process = HelperProcesses.TryOpen(pid))
             {
-                if (process == null || process.HasExited) return;
+                if (process == null || HelperProcesses.HasExited(process)) return;
                 DateTime actual;
                 if (!HelperProcesses.TryGetStartTimeUtc(process, out actual)) throw Refused();
                 if (actual == started) throw Refused(); // PID reuse is harmless only with a different start time.
