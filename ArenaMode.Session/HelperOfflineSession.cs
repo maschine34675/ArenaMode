@@ -50,6 +50,7 @@ namespace ArenaMode.SessionHelper
             internal DateTime HelperStarted;
             internal FileStream Startup;
             internal bool ReadyStopped;
+            internal bool CanResumeNormal;
 
             internal static Entry Open(HelperRequest request, string tree, HelperHttpEndpoint normal, DateTime created, int port)
             {
@@ -72,10 +73,12 @@ namespace ArenaMode.SessionHelper
                     RequireProcess(server, Grant.ServerPid, Grant.ServerStarted, Path.Combine(Grant.Source, HelperLayout.ServerExeName));
                     RequireListener(server, normal.ServerHost, normal.ServerPort);
                     log("Saving and stopping normal SPT before the Arena profile is copied.");
-                    CompleteStop(() => Send(this), () => RequireReady(), milliseconds => server.WaitForExit(milliseconds),
+                    CanResumeNormal = CompleteStop(() => Send(this), () => RequireReady(), milliseconds => server.WaitForExit(milliseconds),
                         () => MessageBox(IntPtr.Zero,
-                            "Normal SPT has not confirmed a safe save and shutdown. Keep its server open. Retry the same operation, or cancel and review the server log. No profile will be copied or replaced to force entry.",
-                            "ArenaMode - entry paused", 0x35) == 4, log);
+                            "Arena is waiting for SPT to finish saving.\n\nKeep the server open. Retry, or cancel and check helper.log.",
+                            "ArenaMode - entry paused", 0x50035) == 4, log);
+                    if (CanResumeNormal)
+                        throw new HelperException("Arena entry was declined; the normal server confirmed it can continue.");
                     ReadyStopped = true;
                 }
             }
@@ -86,6 +89,19 @@ namespace ArenaMode.SessionHelper
                 RequireEntryBinding(lease, Grant, Private, MarkerCreated, Port, Operation, HelperPid, HelperStarted);
                 RequireActive(lease);
                 Lease = lease;
+            }
+
+            internal void RequireNormalAvailable(HelperHttpEndpoint normal)
+            {
+                if (!CanResumeNormal || ReadyStopped || Lease != null) throw Refused();
+                using (Process server = HelperProcesses.TryOpen(Grant.ServerPid))
+                {
+                    RequireProcess(server, Grant.ServerPid, Grant.ServerStarted, Path.Combine(Grant.Source, HelperLayout.ServerExeName));
+                    RequireListener(server, normal.ServerHost, normal.ServerPort);
+                }
+                // A refused transition must not have published or activated a private session.
+                if (Exists(ActivePath(Grant.Source))
+                    || Exists(Path.Combine(Grant.Source, "user", "arena-rewards", "offline-sessions", Grant.SessionId, "lease.json"))) throw Refused();
             }
 
             internal void RequireBuild(HelperRequest request, string tree, int port, DateTime created)
@@ -128,26 +144,76 @@ namespace ArenaMode.SessionHelper
 
         // Exit after an HTTP loss is insufficient: final native readback must have
         // published matching immutable Ready evidence. A held process is never killed.
-        internal static void CompleteStop(Func<Dictionary<string, object>> send, Action requireReady,
+        // True means an explicit safe refusal, not permission to build/copy. False means Ready + exit.
+        internal static bool CompleteStop(Func<Dictionary<string, object>> send, Action requireReady,
             Func<int, bool> awaitExit, Func<bool> retry, Action<string> log)
         {
             while (true)
             {
                 Dictionary<string, object> reply = null;
-                try { reply = send(); }
-                catch (Exception) { }
+                try
+                {
+                    reply = send();
+                    if (reply != null) { Bool(reply, "accepted"); Bool(reply, "held"); }
+                }
+                catch (Exception ex)
+                {
+                    reply = null;
+                    log("Arena entry reply could not be confirmed (" + TransportFailure(ex) + ").");
+                }
                 if (reply != null && !Bool(reply, "accepted") && !Bool(reply, "held"))
+                {
+                    log("Arena entry declined: " + DescribeReply(reply));
+                    if (AllowsNormalResume(reply)) return true;
                     throw new HelperException("Normal SPT refused Arena entry; no profile was copied.");
+                }
                 try
                 {
                     requireReady();
-                    if (awaitExit(reply != null && Bool(reply, "accepted") ? 60000 : 3000)) return;
+                    if (awaitExit(reply != null && Bool(reply, "accepted") ? 60000 : 3000)) return false;
                 }
                 catch (Exception) { }
                 log("Arena entry paused; preserving the original server and saved handoff evidence.");
                 if (!retry()) throw new HelperException("Arena entry paused. The original server was not force-closed and no profile was copied.");
             }
         }
+
+        internal static bool AllowsNormalResume(Dictionary<string, object> reply)
+        {
+            object accepted, held, resume, reason;
+            return reply != null && reply.TryGetValue("accepted", out accepted) && accepted is bool && !(bool)accepted
+                && reply.TryGetValue("held", out held) && held is bool && !(bool)held
+                && reply.TryGetValue("canResumeNormal", out resume) && resume is bool && (bool)resume
+                && reply.TryGetValue("reason", out reason) && reason is string && (string)reason == "return-not-ready";
+        }
+
+        internal static string DescribeReply(Dictionary<string, object> reply)
+        {
+            string stage = ArenaMiniJson.GetString(reply, "stage");
+            switch (stage)
+            {
+                case "http-drain": case "update-drain": case "idle": case "preflight-save":
+                case "stop-updates": case "final-save": break;
+                default: stage = "unknown-stage"; break;
+            }
+            string detail = ArenaMiniJson.GetString(reply, "detail");
+            switch (detail)
+            {
+                case "OperationCanceledException": case "TaskCanceledException": case "TimeoutException": detail = "timeout"; break;
+                case "IOException": case "UnauthorizedAccessException": detail = "file-access"; break;
+                case "return-session-not-idle": detail = "session-busy"; break;
+                case "return-profile-save-not-confirmed": detail = "save-not-confirmed"; break;
+                default: detail = "see-server-log"; break;
+            }
+            int requests = ArenaMiniJson.GetInt(reply, "activeRequests", -1);
+            int updates = ArenaMiniJson.GetInt(reply, "activeUpdates", -1);
+            return stage + "/" + detail + "; active requests=" + Count(requests) + "; active updates=" + Count(updates)
+                + "; normal resume=" + AllowsNormalResume(reply);
+        }
+
+        private static string Count(int value) => value >= 0 && value <= 1000000 ? value.ToString(CultureInfo.InvariantCulture) : "unknown";
+        private static string TransportFailure(Exception ex) => ex is WebException web ? web.Status.ToString()
+            : ex is IOException ? "file-or-network-io" : "invalid-or-unavailable-response";
 
         internal static Grant ReadGrant(HelperRequest request, HelperHttpEndpoint normal, DateTime now)
         {
@@ -318,7 +384,7 @@ namespace ArenaMode.SessionHelper
             {
                 foreach (Process candidate in candidates)
                 {
-                    if (candidate.HasExited) continue;
+                    if (HelperProcesses.HasExited(candidate)) continue;
                     string image = HelperProcesses.GetImagePath(candidate);
                     if (image == null || HelperProcesses.SameFileSystemObject(image, expected)) throw Refused();
                 }
@@ -400,14 +466,14 @@ namespace ArenaMode.SessionHelper
         private static void RequireProcess(Process process, int pid, DateTime started, string image)
         {
             DateTime actual;
-            if (process == null || process.Id != pid || process.HasExited || !HelperProcesses.TryGetStartTimeUtc(process, out actual)
+            if (process == null || process.Id != pid || HelperProcesses.HasExited(process) || !HelperProcesses.TryGetStartTimeUtc(process, out actual)
                 || actual != started || !HelperProcesses.SameFileSystemObject(HelperProcesses.GetImagePath(process), image)) throw Refused();
         }
         private static void RequireGone(int pid, DateTime started, string image)
         {
             using (Process process = HelperProcesses.TryOpen(pid))
             {
-                if (process == null || process.HasExited) return;
+                if (process == null || HelperProcesses.HasExited(process)) return;
                 DateTime actual;
                 if (!HelperProcesses.TryGetStartTimeUtc(process, out actual)) throw Refused();
                 if (actual == started) throw Refused(); // PID reuse is harmless only with a different start time.

@@ -25,6 +25,7 @@ $paths = [ordered]@{
     mode      = Join-Path $repo 'ArenaMode.Client\Session\ArenaSessionMode.cs'
     admission = Join-Path $repo 'ArenaMode.Client\Session\ArenaWhitelistAdmission.cs'
     switch    = Join-Path $repo 'ArenaMode.Client\Session\ArenaSessionSwitch.cs'
+    launcher  = Join-Path $repo 'ArenaMode.Client\Session\ArenaHelperProcess.cs'
     side      = Join-Path $repo 'ArenaMode.Client\Session\ArenaSideSelectionPatch.cs'
     notice    = Join-Path $repo 'ArenaMode.Client\Session\ArenaAvailabilityNotice.cs'
     optional  = Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'
@@ -35,6 +36,7 @@ $channel = @{
     mode      = @{ Property = 'ProductionModeSource' }
     admission = @{ Property = 'ProductionAdmissionSource' }
     switch    = @{ Property = 'ProductionSwitchSource'; Variable = 'ARENA_SESSION_SWITCH_SOURCE' }
+    launcher  = @{ Variable = 'ARENA_HELPER_PROCESS_SOURCE' }
     side      = @{ Variable = 'ARENA_SESSION_SIDE_SOURCE' }
     notice    = @{ Variable = 'ARENA_SESSION_NOTICE_SOURCE' }
     optional  = @{ Variable = 'ARENA_SESSION_OPTIONAL_SOURCE' }
@@ -484,9 +486,9 @@ Invoke-Mutant 'switch-policy-hash-not-sent' 'switch' 'request.PolicyHash = polic
 Invoke-Mutant 'switch-incomplete-mods-kept' 'switch' `
     'if (unit == null || string.IsNullOrEmpty(unit.Guid) || string.IsNullOrEmpty(unit.File)) continue;' 'if (unit == null) continue;' `
     'The request file has the documented keys in the documented order; incomplete mods are left out'
-Invoke-Mutant 'switch-helper-unverified' 'switch' 'if (process.HasExited)' 'if (false)' `
+Invoke-Mutant 'switch-helper-unverified' 'switch' 'if (exitCode.HasValue)' 'if (false)' `
     'the real launcher verifies the helper process and shows no window'
-Invoke-Mutant 'switch-helper-window' 'switch' 'CreateNoWindow = true,' 'CreateNoWindow = false,' `
+Invoke-Mutant 'switch-helper-window' 'launcher' '0x08000000 /* CREATE_NO_WINDOW */' '0 /* visible window */' `
     'the real launcher verifies the helper process and shows no window'
 
 # ---- the helper's acknowledgement (spec sections 6 and 7): the game quits only after it, never blocks, and stays on a failure

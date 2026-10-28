@@ -14,6 +14,13 @@ announcer arbitration, native queued/pain speech, pooled source ownership and
 reentrant speech callbacks. Result holds keep voice assets until the actual raid
 ends because a native death clip can still use the target bank.
 
+Faction identity is tested with comments OFF before entry for Team DM and
+Domination, both sides; OFF during asset loading, live toggles, native/manual
+playing and queued speech, disabled action hooks before a toggle between frames,
+disabled reload transitions and body replacements all retain the appropriate
+voice without generating Arena comments. The harness links the real shared
+mode policy. Other modes and ordinary raids retain their original voice.
+
 Native contract inspected against this installation's `../_decompiled/`:
 
 - `EFT/Player.cs`: `FirearmController.IsInReloadOperation` includes base reload,

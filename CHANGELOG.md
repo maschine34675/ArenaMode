@@ -10,6 +10,15 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Start Arena directly from the installed Session.exe, without opening normal EFT
+  first. Choose a profile, remember the last choice, or create a desktop shortcut.
+  [Details](docs/DIRECT-START-20261028.md).
+
+- Harden session restarts: the helper no longer inherits open game connections.
+  If Arena entry is safely refused, reopen normal SPT. Show a short notice if
+  recovery also fails, and record the failed shutdown stage in the logs.
+  [Details](docs/ENTRY-RESTART-HARDENING-20261028.md).
+
 - Show the selected round faction in the killfeed for Team DM and Domination,
   including deaths and respawns, without changing the saved profile faction.
   [Details](docs/KILLFEED-ROUND-FACTION-20261027.md).

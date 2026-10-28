@@ -55,6 +55,8 @@
 
   <!-- Linked source shared with the gate, client, server and tests (no dependencies of its own). -->
   <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />

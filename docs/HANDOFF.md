@@ -1,11 +1,67 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-27. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-28. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Direct-start acceptance and fixes (2026-10-28):** two-host native testing
+  covered full Factory DM/Domination rounds with consent ON/OFF, A/B/A profiles,
+  longer server idle, duplicate starts, EXIT/crash restart and both Windows
+  elevation directions. No round-end hang. A late valid restoration after an
+  old reward discard blocked new rewards; `6f154cd` accepts only the proven
+  transition and preserves rejection of the old claim. Two native DM wins paid
+  22,000 RUB/2,200 XP once; another startup left the whole profile unchanged.
+  Mixed elevation failures were reproduced in both directions; `c6db9c3` uses
+  limited process queries without treating unreadable writers as absent.
+  Final suite: 3364 passed/two explicit environment skips; shipping Framework
+  checks 11 passed. See [full evidence, final hashes and limits](DIRECT-START-NATIVE-20261028.md).
+  **Sync resumed after the user's cleanup instruction:** after the native tests,
+  host2's divergent profile replaced host1's earned test state. Inventory,
+  quests and skills were unchanged; 22,000 RUB/2,200 XP from the tests were lost.
+  Captured test evidence retains both exact states. The user then requested
+  deletion of the active conflict copies and the copies in temporary archives and
+  resumption of synchronization on all three installations. No profile was
+  manually restored. The earlier payout/restart evidence does not describe the
+  overwritten profile; avoid simultaneous writes to synchronized profiles.
+
+- **Independent faction voice (2026-10-28):** TDM/Domination keep the selected
+  faction voice with PMC VOICELINES off; the switch controls only extra Arena
+  comments. Native/manual phrases, saved profile identity and ordinary PMC remain
+  intact. Unit suite 3348 passed/three environment skips; voice checks 126
+  assertions/16 rejected mutants and independent review passed. Both client DLLs
+  deployed; GPU1 verified both modes/both factions, OFF actions, ON positive
+  control, OFF respawn and
+  original Usec_3 in an ordinary PMC raid. All 230 observed settings restored;
+  GPU1 game/server stopped. GPU2's concurrent test was left untouched.
+  The specific Berserk trigger was not reproduced; the shared faction speaker
+  and native manual/injury clips were. See [evidence and hashes](FACTION-VOICE-20261028.md).
+
+- **Direct Arena start (2026-10-28):** installed Session.exe opens a compact
+  profile picker, remembers the selection and can create a desktop shortcut;
+  `start --profile <id>` selects explicitly. Local normal SPT is started/reused
+  only for fresh schema-3 preparation, then stops before the private copy. No
+  normal EFT launch is required. Final GPU2 cold start and two warm starts,
+  including returns, passed. Profile differences were two native timestamps;
+  all 238 Arena settings retained. One older normal process refused entry twice;
+  cause unproven, fixed non-secret Debug reason codes now cover that boundary.
+  Helper/server deployed locally and on GPU2; test host stopped, Syncthing
+  resumed. See [usage, checks and exact hashes](DIRECT-START-20261028.md).
+
+- **Session restart hardening (2026-10-28):** client starts the helper without
+  inherited handles; server reports failed drain/save stage and permits normal
+  reopening only after a safe pre-stop rejection. Helper rechecks original
+  process/port/lease identity and starts only EFT. Successful recovery has no
+  modal notice; failure notices come after lock release. Unit suite 3323 passed,
+  four environment skips; client/helper/launcher checks and mutations passed.
+  GPU1 reproduced the 45-second HTTP drain refusal with an external notifier
+  socket, verified automatic normal restart with the same server and no private
+  copy, then completed ordinary-to-private-to-ordinary switching. Profile changed
+  only in two normal timestamps; all 238 settings retained. Four Arena binaries
+  deployed; GPU1 stopped and temporary policy removed. See
+  [diagnosis, evidence and exact hashes](ENTRY-RESTART-HARDENING-20261028.md).
 
 - **Killfeed round side (2026-10-27):** human faction labels now use the exact
   body's frozen TDM/Domination affiliation, with native fallback. No saved side

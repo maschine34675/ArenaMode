@@ -7,6 +7,112 @@ namespace ArenaMode.Tests;
 
 public sealed class RewardRecoveryTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProvenLateRestorationKeepsCompletedDiscardAndAllowsNewRewardsOnlyOnce(bool lostMarker)
+    {
+        using var f = new Fixture();
+        var oldRun = f.CaptureAndPublish(() => f.QueueAndClose());
+        if (lostMarker)
+            f.Edit(p =>
+            {
+                p[RewardProfileDocument.ExtensionKey]!.AsObject().Remove("recoveries");
+                p["foreignMod"]!["progress"] = 927;
+            });
+        var before = f.Profile;
+        var originals = f.SourceBytes();
+        Assert.Equal(RewardSettlementStatus.ClosedWithoutPayment, (await f.Process()).Result.Status);
+        if (lostMarker) AssertOnlyMarkerAdded(before, f.Profile);
+        else Assert.Equal(before, f.Profile);
+        Assert.Empty(f.Ledger);
+        Assert.False(File.Exists(f.PathOf("allocations/" + oldRun + ".json")));
+        Assert.False(File.Exists(f.PathOf("imported/" + oldRun + ".json")));
+        f.AssertSources(originals);
+        var newRun = f.CaptureAndPublish();
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.StartsWith(newRun + ":", Assert.Single(f.Ledger).ReceiptKey);
+        var paid = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Equal(paid, f.Profile);
+        Assert.Single(f.Ledger);
+        if (lostMarker) Assert.Equal(927, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
+        f.AssertSources(originals.Where(p => p.Key.Contains("arena-reward-checkpoints")
+            || p.Key.Contains("arena-reward-snapshots") || p.Key.Contains("arena-reward-runs")
+            || Path.GetFileName(p.Key) == oldRun + ".json").ToDictionary(p => p.Key, p => p.Value));
+    }
+
+    [Theory]
+    [InlineData("profile")]
+    [InlineData("readback")]
+    [InlineData("completion")]
+    public async Task ProvenLateRestorationReacknowledgementResumesAfterInterruptedCommit(string boundary)
+    {
+        using var f = new Fixture();
+        var oldRun = f.CaptureAndPublish(() => f.QueueAndClose());
+        f.Edit(p => p[RewardProfileDocument.ExtensionKey]!.AsObject().Remove("recoveries"));
+        RewardRecovery.Checkpoint = step => { if (step == boundary) throw new IOException("interrupted reacknowledgement"); };
+        try { Assert.Equal("startup-storage-unavailable", (await f.Process()).Result.Reason); }
+        finally { RewardRecovery.Checkpoint = null; }
+        Assert.Equal(RewardSettlementStatus.ClosedWithoutPayment, (await f.Process()).Result.Status);
+        Assert.Empty(f.Ledger);
+        var newRun = f.CaptureAndPublish();
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.StartsWith(newRun + ":", Assert.Single(f.Ledger).ReceiptKey);
+        var paid = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Equal(paid, f.Profile);
+        Assert.DoesNotContain(f.Ledger, p => p.ReceiptKey.StartsWith(oldRun + ":", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("missing-proof")]
+    [InlineData("changed-proof")]
+    [InlineData("changed-original-checkpoint")]
+    [InlineData("changed-arm")]
+    [InlineData("unexpected-run-field")]
+    [InlineData("unsupported-run-state")]
+    [InlineData("unsupported-snapshot-state")]
+    [InlineData("lost-marker-invalid-completion")]
+    public async Task CompletedDiscardDoesNotAcceptUnprovenOrChangedTerminalEvidence(string corruption)
+    {
+        using var f = new Fixture();
+        var run = f.CaptureAndPublish(() => f.QueueAndClose());
+        var checkpoint = Assert.Single(Directory.GetDirectories(Path.Combine(f.Root, "user", "arena-reward-checkpoints", f.Id)));
+        var generation = Path.GetFileName(checkpoint);
+        switch (corruption)
+        {
+            case "missing-proof": File.Delete(Path.Combine(checkpoint, "persisted.json")); break;
+            case "changed-proof":
+                File.WriteAllText(Path.Combine(checkpoint, "persisted.json"), "{}"); break;
+            case "changed-original-checkpoint":
+                File.AppendAllText(Path.Combine(checkpoint, "checkpoint.json"), " "); break;
+            case "changed-arm":
+            case "unexpected-run-field":
+            case "unsupported-run-state":
+                var terminal = JsonNode.Parse(File.ReadAllText(f.RunPath(run)))!;
+                if (corruption == "changed-arm") terminal["armToken"] = Guid.NewGuid().ToString("N");
+                if (corruption == "unexpected-run-field") terminal["future"] = true;
+                if (corruption == "unsupported-run-state") terminal["state"] = "discarded";
+                File.WriteAllText(f.RunPath(run), terminal.ToJsonString());
+                break;
+            case "unsupported-snapshot-state":
+                f.WriteAt(f.SnapshotPath(generation), new RewardSnapshotGuard(1, generation, "cancelled-before-start")); break;
+            case "lost-marker-invalid-completion":
+                f.Edit(p => p[RewardProfileDocument.ExtensionKey]!.AsObject().Remove("recoveries"));
+                var decision = Assert.Single(Directory.GetDirectories(f.PathOf("recovery")));
+                var completion = JsonNode.Parse(File.ReadAllText(Path.Combine(decision, "completion.json")))!;
+                completion["planFingerprint"] = new string('a', 64);
+                File.WriteAllText(Path.Combine(decision, "completion.json"), completion.ToJsonString());
+                break;
+        }
+        var before = f.Profile;
+        Assert.Equal(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        Assert.Equal(before, f.Profile);
+        Assert.Empty(f.Ledger);
+        Assert.False(File.Exists(f.PathOf("allocations/" + run + ".json")));
+    }
+
     [Fact]
     public async Task StartupDiscardsUnprovenOldRewardsWithoutPlayerActionAndNewRewardsPay()
     {
@@ -737,14 +843,18 @@ public sealed class RewardRecoveryTests
             RewardRecovery.ProcessAtStartup(Window, Id);
             return reviewId;
         }
-        internal string CaptureAndPublish()
+        internal string CaptureAndPublish(Action? whilePending = null)
         {
-            Coordinator.ObserveSnapshot(Id, Profile);
+            var capturedProfile = Profile;
+            Coordinator.ObserveSnapshot(Id, capturedProfile);
             var arm = Guid.NewGuid().ToString("N");
             var native = Protocol.BuildNativeEndIdentity("factory4_day.Pmc " + _now.ToUnixTimeSeconds(), arm);
             var begin = Coordinator.Begin(Id, arm, native, LocalId, "deathmatch", false, false,
                 new() { ArmToken = arm, NativeEndIdentity = native, Mode = "deathmatch", Rule = "KillsOnly" });
             Assert.True(begin.Accepted, begin.Reason);
+            // Models an independent ordinary host closing the pending copy
+            // while this private capture still owns its original snapshot.
+            whilePending?.Invoke();
             _now = _now.AddSeconds(10);
             var report = new RewardCaptureRequest
             {
@@ -756,8 +866,8 @@ public sealed class RewardRecoveryTests
             };
             var captured = Coordinator.Capture(Id, report);
             Assert.True(captured.Accepted, captured.Reason);
-            Coordinator.ObserveRestored(Id, Profile);
-            Coordinator.FinalizePersisted(Id, native, Profile);
+            Coordinator.ObserveRestored(Id, capturedProfile);
+            Coordinator.FinalizePersisted(Id, native, capturedProfile);
             return begin.RunId;
         }
         internal void Edit(Action<JsonNode> change)

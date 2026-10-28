@@ -22,6 +22,14 @@ namespace ArenaMode.SessionHelper
     internal static class HelperProcesses
     {
         private const uint ProcessQueryLimitedInformation = 0x1000;
+        private const uint ProcessSynchronize = 0x00100000;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetProcessTimes(IntPtr process, out long creation, out long exit, out long kernel, out long user);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr OpenProcess(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, int processId);
@@ -91,7 +99,7 @@ namespace ArenaMode.SessionHelper
                 bool keep = false;
                 try
                 {
-                    if (!candidate.HasExited)
+                    if (!HasExited(candidate))
                     {
                         string image = GetImagePath(candidate);
                         keep = image != null && SameFileSystemObject(image, exe);
@@ -112,29 +120,52 @@ namespace ArenaMode.SessionHelper
         /// <summary>The running process with this id, or null when there is none (or it has exited).</summary>
         public static Process TryOpen(int processId)
         {
+            Process process;
+            try { process = Process.GetProcessById(processId); }
+            catch (ArgumentException) { return null; }
             try
             {
-                Process process = Process.GetProcessById(processId);
-                if (process.HasExited)
-                {
-                    process.Dispose();
-                    return null;
-                }
+                if (!HasExited(process)) return process;
+                process.Dispose();
+                return null;
+            }
+            catch
+            {
+                process.Dispose();
+                // An unreadable writer is not an absent writer. Callers must
+                // retain ownership/pid evidence and refuse copy or restart.
+                throw;
+            }
+        }
 
-                return process;
-            }
-            catch (ArgumentException)
+        /// <summary>Bounded liveness query across UAC levels. Unknown access throws, never means exited.</summary>
+        public static bool HasExited(Process process)
+        {
+            IntPtr handle = OpenProcess(ProcessQueryLimitedInformation | ProcessSynchronize, false, process.Id);
+            if (handle == IntPtr.Zero)
             {
-                return null;
+                int error = Marshal.GetLastWin32Error();
+                if (error == 87) return true; // The positively identified PID no longer exists.
+                throw new Win32Exception(error);
             }
-            catch (InvalidOperationException)
+            try
             {
-                return null;
+                uint wait = WaitForSingleObject(handle, 0);
+                if (wait == 0) return true;
+                if (wait != 258) throw new Win32Exception(Marshal.GetLastWin32Error());
+                long created, exited, kernel, user;
+                if (!GetProcessTimes(handle, out created, out exited, out kernel, out user))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                // Process.Start retains its original handle. If its PID was
+                // recycled, the replacement cannot make that object live again.
+                // Grant-bound callers additionally check their frozen start time.
+                if (DateTime.FromFileTimeUtc(created) != process.StartTime.ToUniversalTime()) return true;
+                wait = WaitForSingleObject(handle, 0);
+                if (wait == 0) return true;
+                if (wait == 258) return false;
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
-            catch (Win32Exception)
-            {
-                return null;
-            }
+            finally { CloseHandle(handle); }
         }
 
         /// <summary>

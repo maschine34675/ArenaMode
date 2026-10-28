@@ -14,6 +14,10 @@ $faults = @(
     @{ Name='forgotten-token'; Path=$voice; Property='VoiceSource'; Find='try { token?.Release(); }'; Replace='try { }'; Failure='raid end restores voice and releases token once' },
     @{ Name='stranded-loading'; Path=$voice; Property='VoiceSource'; Find='cancelled?.TrySetResult(true);'; Replace='// no load cancellation'; Failure='pending load released at teardown before completion' },
     @{ Name='reentrant-clip-claimed'; Path=$voice; Property='VoiceSource'; Find='|| emitted == null || !ReferenceEquals(speaker.Clip, emitted)'; Replace=''; Failure='reentrant native clip never claimed' },
-    @{ Name='cooldown-removed'; Path=$policy; Property='PolicySource'; Find='now - lastSpoke >= CooldownSeconds'; Replace='true'; Failure='cooldown suppresses empty-gun followup' }
+    @{ Name='cooldown-removed'; Path=$policy; Property='PolicySource'; Find='now - lastSpoke >= CooldownSeconds'; Replace='true'; Failure='cooldown suppresses empty-gun followup' },
+    @{ Name='toggle-gates-identity'; Path=$voice; Property='VoiceSource'; Find='if (!CurrentBody(out var body))'; Replace='if (!Current(out var body))'; Failure='disable retains faction speaker' },
+    @{ Name='disabled-action-hooks'; Path=$voice; Property='VoiceSource'; Find='return Settings.PmcVoiceEnabled?.Value == true && CurrentBody(out player);'; Replace='return CurrentBody(out player);'; Failure='disabled hook cannot queue before enabling dry' },
+    @{ Name='disabled-reload-cue'; Path=$voice; Property='VoiceSource'; Find='if (commentary && reloading &&'; Replace='if (reloading &&'; Failure='reenabling cannot replay disabled reload' },
+    @{ Name='disabled-queue-survives'; Path=$voice; Property='VoiceSource'; Find='if (!commentary || AnnouncerService.IsPmcVoiceBlocked)'; Replace='if (AnnouncerService.IsPmcVoiceBlocked)'; Failure='disable cancels owned clip only and retains voice' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'PmcVoiceChecks.csproj') -Token 'PMC_VOICE_CHECKS_PASSED' -Properties @() -Faults $faults

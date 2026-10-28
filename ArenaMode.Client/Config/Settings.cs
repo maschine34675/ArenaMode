@@ -1679,8 +1679,8 @@ public static class Settings
 
         PmcVoiceEnabled = config.Bind("Audio", "PmcVoicelines", true,
             "Automatic Arena-only PMC callouts for reloads, grenades, empty weapons and occasional kills. " +
-            "The announcer has priority. Team DM chooses a faction voice per match, including English BEAR voices; " +
-            "the voice stays the same across respawns. Other modes keep your chosen voice. Your profile is never changed.");
+            "The announcer has priority. Independently of this switch, Team DM and Domination keep a faction voice " +
+            "per match, including English BEAR voices, across respawns. Other modes keep your chosen voice. Your profile is never changed.");
 
         HitmarkerSounds = config.Bind(
             "Audio", "HitmarkerSounds", true,

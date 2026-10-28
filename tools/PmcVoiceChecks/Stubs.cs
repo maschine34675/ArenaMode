@@ -18,7 +18,7 @@ namespace UnityEngine
     public static class Time { public static float time; }
     public static class Random { public static int Value; public static int Range(int a, int b) => Math.Clamp(Value, a, b - 1); }
 }
-public enum EPhraseTrigger { None, PhraseNone, OnWeaponReload, OnGrenade, OnOutOfAmmo, EnemyDown, OnDeath, OnBeingHurt }
+public enum EPhraseTrigger { None, PhraseNone, OnWeaponReload, OnGrenade, OnOutOfAmmo, EnemyDown, OnDeath, OnBeingHurt, OnFight }
 [Flags] public enum ETagStatus { Healthy = 1, Combat = 2, Usec = 4, Bear = 8 }
 public class TaggedClip { public UnityEngine.AudioClip Clip = new(); public float Length = 1f; }
 public class TagBank { public EPhraseTrigger Trigger; }
@@ -50,7 +50,7 @@ namespace Diz.Resources
         public readonly List<Diz.DependencyManager.DependencyGraph<IEasyBundle>.Token> Tokens = new();
         public bool CompleteImmediately = true, Missing;
         public static Voice MakeVoice() => new() { Banks = new[] { EPhraseTrigger.OnWeaponReload, EPhraseTrigger.OnGrenade,
-            EPhraseTrigger.OnOutOfAmmo, EPhraseTrigger.EnemyDown, EPhraseTrigger.OnDeath, EPhraseTrigger.OnBeingHurt }
+            EPhraseTrigger.OnOutOfAmmo, EPhraseTrigger.EnemyDown, EPhraseTrigger.OnDeath, EPhraseTrigger.OnBeingHurt, EPhraseTrigger.OnFight }
             .Select(x => new TagBank { Trigger = x }).ToArray() };
         public Diz.DependencyManager.DependencyGraph<IEasyBundle>.Token Retain(string[] paths)
         {

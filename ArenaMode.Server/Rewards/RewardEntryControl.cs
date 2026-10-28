@@ -104,34 +104,61 @@ internal sealed class RewardEntryControl
     }
 
     internal bool Authorize(string profileId, RewardEntryRequest request, out RewardEntryGrant? grant)
+        => Authorize(profileId, request, out grant, out _);
+
+    internal bool Authorize(string profileId, RewardEntryRequest request, out RewardEntryGrant? grant, out string? refusal)
     {
         lock (_sync)
         {
             grant = null;
+            refusal = null;
             bool continuing = _operation is { } active && active.Profile == profileId && active.Request == request;
-            if (!RewardStartupFiles.MarkerAbsent(_root) || request.Schema != 1
-                || !RewardIdentity.IsGuid(request.SessionId) || !RewardIdentity.IsGuid(request.OperationId)
-                || request.HelperPid <= 0 || request.Port is < ArenaSessionContract.ArenaPort or > ArenaSessionContract.FallbackPortLast
-                || !DateTimeOffset.TryParseExact(request.MarkerCreatedUtc, "O", CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind, out var markerTime)
-                || !_grants.TryGetValue(profileId, out var candidate) || candidate.SessionId != request.SessionId
-                || !continuing && (candidate.ExpiresUtc <= _now() || candidate.IssuedUtc > _now()
-                    || markerTime < candidate.IssuedUtc.AddMinutes(-1) || markerTime > _now().AddMinutes(1))
-                || !SecretEquals(candidate.Token, request.Token)) return false;
+            if (!RewardStartupFiles.MarkerAbsent(_root)) return Refuse("source-marker-present", out refusal);
+            if (request.Schema != 1) return Refuse("request-schema", out refusal);
+            if (!RewardIdentity.IsGuid(request.SessionId)) return Refuse("session-format", out refusal);
+            if (!RewardIdentity.IsGuid(request.OperationId)) return Refuse("operation-format", out refusal);
+            if (request.HelperPid <= 0) return Refuse("helper-pid-format", out refusal);
+            if (request.Port is < ArenaSessionContract.ArenaPort or > ArenaSessionContract.FallbackPortLast)
+                return Refuse("private-port", out refusal);
+            if (!DateTimeOffset.TryParseExact(request.MarkerCreatedUtc, "O", CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind, out var markerTime)) return Refuse("marker-time-format", out refusal);
+            if (!_grants.TryGetValue(profileId, out var candidate)) return Refuse("grant-not-in-memory", out refusal);
+            if (candidate.SessionId != request.SessionId) return Refuse("grant-session-mismatch", out refusal);
+            if (!continuing)
+            {
+                if (candidate.ExpiresUtc <= _now()) return Refuse("grant-expired", out refusal);
+                if (candidate.IssuedUtc > _now()) return Refuse("grant-issued-in-future", out refusal);
+                if (markerTime < candidate.IssuedUtc.AddMinutes(-1)) return Refuse("marker-time-before-grant", out refusal);
+                if (markerTime > _now().AddMinutes(1)) return Refuse("marker-time-in-future", out refusal);
+            }
+            if (!SecretEquals(candidate.Token, request.Token)) return Refuse("grant-secret-mismatch", out refusal);
             try
             {
-                if (!Path.IsPathFullyQualified(request.PrivateRoot)
-                    || !RewardRuntimeFiles.SameRoot(request.PrivateRoot, _privateRoot())) return false;
+                if (!Path.IsPathFullyQualified(request.PrivateRoot)) return Refuse("private-root-relative", out refusal);
+                if (!RewardRuntimeFiles.SameRoot(request.PrivateRoot, _privateRoot())) return Refuse("private-root-mismatch", out refusal);
             }
-            catch { return false; }
+            catch { return Refuse("private-root-unavailable", out refusal); }
             var process = _process();
-            if (process is null || process.Pid != candidate.ServerPid || process.StartedUtc != candidate.ServerStartedUtc
-                || !process.Arguments.SequenceEqual(candidate.ServerArguments) || !_helper(request)) return false;
-            if (_operation is { } prior && (prior.Profile != profileId || prior.Request != request)) return false;
+            if (process is null) return Refuse("server-identity-unavailable", out refusal);
+            if (process.Pid != candidate.ServerPid) return Refuse("server-pid-mismatch", out refusal);
+            if (process.StartedUtc != candidate.ServerStartedUtc) return Refuse("server-start-mismatch", out refusal);
+            if (!process.Arguments.SequenceEqual(candidate.ServerArguments)) return Refuse("server-arguments-mismatch", out refusal);
+            if (!_helper(request)) return Refuse("helper-identity-mismatch", out refusal);
+            if (_operation is { } prior && (prior.Profile != profileId || prior.Request != request))
+                return Refuse("operation-already-owned", out refusal);
             _operation = (profileId, request);
             grant = candidate;
             return true;
         }
+    }
+
+    private static bool Refuse(string reason, out string? refusal)
+    {
+        // Only fixed reason codes reach the local log; never capability or process values.
+        refusal = reason;
+        try { ArenaContext.Logger?.Debug("[ArenaMode] Arena entry authorization refused: " + reason + "."); }
+        catch { } // Diagnostics must not change the authentication result.
+        return false;
     }
 
     internal void ReleaseBeforeQuiescence(string profileId, RewardEntryRequest request)

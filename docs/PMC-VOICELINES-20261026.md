@@ -1,6 +1,7 @@
 # Automatic PMC voicelines and faction voices
 
-Date: 2026-10-26. Development change after 0.3.0; verification recorded below.
+Date: 2026-10-26, updated 2026-10-28. Development change after 0.3.0;
+verification recorded below.
 
 ## Behavior
 
@@ -13,14 +14,24 @@ has a 40% chance and a brief delay; active or pending audible announcer cues tak
 priority. Muting the announcer does not starve PMC speech. Native speech follows
 EFT's speech/audio routing, independently of Arena's announcer volume.
 
-Independent Team DM rotates among the selected faction's voice banks: USEC
+Independent Team DM and Domination rotate among the selected faction's voice banks: USEC
 `Usec_1` through `Usec_6`; BEAR `Bear_1`, `Bear_1_Eng`, `Bear_2`, `Bear_2_Eng`,
 `Bear_3`. Both Russian and English BEAR voices are intentional. The first choice
 is randomized, subsequent matches cycle through that faction's choices for this
 game process. One choice stays stable across all bodies in the match. Other
-Arena modes keep the player's chosen voice. Disabling this mutator also restores
-the original current speaker; the saved profile faction and customization are
-never changed. Appearance and equipment are unchanged.
+Arena modes keep the player's chosen voice. Since 2026-10-28 the faction voice is
+independent of this mutator: switching comments off cancels only Arena's owned
+automatic speech and pending cues. Native/manual speech, including the native
+Berserk combat call, uses the assigned faction bank. Toggling does not rotate or
+reload that bank, and a respawn keeps the same match voice even with comments off.
+The original speaker is restored at body retirement/native raid end under the
+existing ownership checks; the saved profile faction and customization are never
+changed. Appearance and equipment are unchanged.
+
+The native Berserk call itself is unchanged: elite Stress Resistance can trigger
+it at low health, including through Arena's MaxSkills boost. The commentary switch
+does not suppress native health effects or manually requested phrases. An action
+that started while comments were off is not replayed when they are enabled.
 
 The menu retains its bottom edge above native navigation. Its map preview is
 40px shorter to preserve readable descriptions with the added mutator.
@@ -75,6 +86,10 @@ released appearance hook; Arena's `ArenaTeamDeathmatchArmbandPatch` and
 `ApbsBotTierCompatibility`. No APBS code was copied.
 
 ## Verification
+
+The 2026-10-26 acceptance below records the original coupled switch behavior.
+The 2026-10-28 follow-up separates identity from automatic commentary; see
+[faction voice verification](FACTION-VOICE-20261028.md) for its current evidence.
 
 The final Release build succeeded against the installed EFT/SPT assemblies;
 the build retains four existing CS8632 nullable-annotation warnings. No server,

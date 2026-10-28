@@ -206,6 +206,19 @@ internal static class RewardRestorationCheckpoint
     internal static bool HasDurableProof(string root, string id, string generation)
         => HasDurableProof(root, id, generation, out _);
 
+    internal static bool HasDurableRunProof(string root, string id, string runId, string armToken)
+    {
+        foreach (var directory in Directories(root, id))
+        {
+            if (!Exists(root, directory, "run.json")) continue;
+            var run = Read<RewardCheckpointRun>(root, directory, "run.json");
+            if (run.RunId == runId && run.ArmToken == armToken
+                && HasDurableProof(root, id, Path.GetFileName(directory), out var proven)
+                && proven == run) return true;
+        }
+        return false;
+    }
+
     internal static bool HasDurableProof(string root, string id, string generation, out RewardCheckpointRun? run)
     {
         run = null;

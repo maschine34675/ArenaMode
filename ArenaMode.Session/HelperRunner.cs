@@ -83,8 +83,13 @@ namespace ArenaMode.SessionHelper
         // helper that acknowledged late must not switch the session when the player closes the game by hand.
         public Func<bool> RequestStillStands;
 
+        // Program supplies the visible desktop notice. Tests capture it without opening a window.
+        public Action<string> FailureNotice = _ => { };
+        public Func<string, bool> DirectStart = _ => false;
+
         // True once a game process exists; a recovery must never start another one.
         private bool _gameStarted;
+        private bool _normalGameReopened;
 
         // The Arena game of this watchdog run (the watch command opened it by pid, or a test harness set it): what
         // WaitForArenaGameExit waits for. Null when the game is already gone.
@@ -119,10 +124,25 @@ namespace ArenaMode.SessionHelper
 
         public bool Enter(HelperRequest request)
         {
+            return EnterCore(request, false);
+        }
+
+        internal bool EnterDirect(HelperRequest request)
+        {
+            if (request.Schema != ArenaSessionContract.OfflineRequestSchema || !request.IsEnter || request.GamePid != 0)
+                throw new HelperException("Direct start requires a fresh offline session.");
+            RequireNoRunningGame(request.GameExe);
+            ValidateOfflineRequest(request);
+            return EnterCore(request, true);
+        }
+
+        private bool EnterCore(HelperRequest request, bool directStart)
+        {
             _log.Info("enter: " + request.ServerMods.Count + " server mods, policy " + (request.PolicyHash ?? "(none)"));
-            if (!AwaitGame(request)) return false;
+            if (!directStart && !AwaitGame(request)) return false;
 
             _gameStarted = false;
+            _normalGameReopened = false;
             HelperOfflineSession.Entry offline = null;
             try
             {
@@ -148,6 +168,7 @@ namespace ArenaMode.SessionHelper
                 DateTime created = DateTime.UtcNow;
                 if (request.Schema == ArenaSessionContract.OfflineRequestSchema)
                 {
+                    if (directStart) RequireNoRunningGame(request.GameExe);
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
                     offline = HelperOfflineSession.Entry.Open(request, HelperServerTree.GetTreePath(_runtimeRoot), normal, created, port);
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
@@ -195,6 +216,7 @@ namespace ArenaMode.SessionHelper
                 }
 
                 if (request.VersionPlan != null) arguments.Add(ArenaSessionContract.VersionPlanFlag + request.VersionPlan.PolicyHash);
+                if (directStart) RequireNoRunningGame(request.GameExe);
                 StartGame(request, arguments, true);
                 StartWatchdog(request);
                 _log.Info("enter finished");
@@ -209,13 +231,22 @@ namespace ArenaMode.SessionHelper
                 if (!_gameStarted)
                 {
                     if (request.Schema != ArenaSessionContract.OfflineRequestSchema) RecoverNormalSession(request);
+                    else if (offline != null && offline.CanResumeNormal && !directStart)
+                    {
+                        try { ResumeExistingNormalSession(request, offline); }
+                        catch (Exception recovery) { LogFailure("normal session could not be reopened", recovery); }
+                    }
                     else if (offline != null && offline.ReadyStopped)
                     {
-                        try { StartOfflineNormalSession(request, offline.Lease, offline); }
+                        try { StartOfflineNormalSession(request, offline.Lease, offline, !directStart); }
                         catch (Exception recovery) { LogFailure("Offline Arena recovery paused; start normal SPT after resolving its server log", recovery); }
                     }
                     // Held/unknown native-save failures never enter legacy fallback.
                 }
+                // A successful normal relaunch needs no modal desktop acknowledgement. EFT can cover
+                // a topmost dialog while it initializes; that must not block another session attempt.
+                if (!_normalGameReopened)
+                    NotifyFailure("Arena startup could not finish. Keep the SPT server open and check the logs below.");
                 return false;
             }
             finally { if (offline != null) offline.Dispose(); }
@@ -237,8 +268,40 @@ namespace ArenaMode.SessionHelper
             catch (Exception ex)
             {
                 LogFailure("leave failed", ex);
+                NotifyFailure("SPT could not be reopened. Keep the server open and check the logs below.");
                 return false;
             }
+        }
+
+        internal void ResumeExistingNormalSession(HelperRequest request, HelperOfflineSession.Entry entry)
+        {
+            if (_gameStarted || request.Schema != ArenaSessionContract.OfflineRequestSchema || !request.IsEnter
+                || entry == null || entry.Grant == null || entry.Grant.SessionId != request.OfflineSessionId
+                || entry.Grant.ProfileId != request.ProfileId
+                || !HelperPathSafety.PathsEqual(entry.Grant.Source, request.SptRuntimeDir))
+                throw new HelperException("The original normal session could not be verified; no game was started.");
+            HelperHttpEndpoint normal = ReadNormalEndpoint(request);
+            entry.RequireNormalAvailable(normal);
+            List<string> arguments; string error;
+            if (!HelperCommandLine.TryRewriteGameArguments(request.GameArgs, false, normal.BackendPort, out arguments, out error))
+                throw new HelperException("cannot build the normal game arguments: " + error);
+            // Never revive/restart a server here, or borrow authority from an older private tree.
+            entry.Dispose();
+            entry.RequireNormalAvailable(normal);
+            RequireNoRunningGame(request.GameExe);
+            _log.Warn("Arena entry declined safely; reopening EFT against the unchanged normal SPT server.");
+            StartGame(request, arguments);
+        }
+
+        internal static void RequireNoRunningGame(string executable)
+        {
+            Process[] games = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(executable));
+            try
+            {
+                foreach (Process game in games)
+                    if (!HelperProcesses.HasExited(game)) throw new HelperException("An EFT process is already running; no second game was started.");
+            }
+            finally { foreach (Process game in games) game.Dispose(); }
         }
 
         // The steps shared by leave and by the recovery after a failed enter.
@@ -299,7 +362,7 @@ namespace ArenaMode.SessionHelper
             StartGame(request, arguments);
         }
 
-        private void StartOfflineNormalSession(HelperRequest request, HelperOfflineSession.Lease lease, HelperOfflineSession.Entry entry)
+        private void StartOfflineNormalSession(HelperRequest request, HelperOfflineSession.Lease lease, HelperOfflineSession.Entry entry, bool startGame = true)
         {
             // A failed Build can have no marker yet; its original Ready lease still
             // provides the only return authority. No legacy grant/port fallback.
@@ -318,6 +381,7 @@ namespace ArenaMode.SessionHelper
             }
             HelperHttpEndpoint normal = ReadNormalEndpoint(request);
             HelperOfflineSession.StartNormal(lease, normal, StartProcess, WaitForServer, Info);
+            if (!startGame) return;
             List<string> arguments; string error;
             if (!HelperCommandLine.TryRewriteGameArguments(request.GameArgs, false, normal.BackendPort, out arguments, out error))
                 throw new HelperException("cannot build the game arguments: " + error);
@@ -405,7 +469,7 @@ namespace ArenaMode.SessionHelper
             {
                 foreach (Process process in candidates)
                 {
-                    if (process.HasExited) continue;
+                    if (HelperProcesses.HasExited(process)) continue;
                     string image = HelperProcesses.GetImagePath(process);
                     if (image == null || HelperProcesses.SameFileSystemObject(image, expected))
                         throw new HelperException("Arena reward results remain in the private session: its server could still be running.");
@@ -874,6 +938,12 @@ namespace ArenaMode.SessionHelper
             else _log.Error(what + ": " + ex);
         }
 
+        internal void NotifyFailure(string message)
+        {
+            try { FailureNotice(message + "\n\nDetails: " + Path.Combine(_runtimeRoot, ArenaSessionContract.HelperLogFileName)); }
+            catch (Exception ex) { _log.Warn("the session failure notice could not be shown (" + ex.GetType().Name + ")"); }
+        }
+
         private HelperMarker ReadMarker()
         {
             string path = HelperServerTree.GetMarkerPath(_runtimeRoot);
@@ -930,6 +1000,7 @@ namespace ArenaMode.SessionHelper
                     return false;
                 default:
                     _log.Error("the game (pid " + request.GamePid + ") did not exit within " + GameExitTimeoutSeconds + " s; nothing was changed and the game was not touched");
+                    NotifyFailure("SPT is still closing. No second game was started.");
                     return false;
             }
         }
@@ -1135,7 +1206,7 @@ namespace ArenaMode.SessionHelper
             {
                 // First: a server that has exited can no longer be the one that answers, whatever else holds
                 // the port by now.
-                if (server != null && server.HasExited)
+                if (server != null && HelperProcesses.HasExited(server))
                 {
                     throw new HelperException(what + " exited with code " + server.ExitCode + " before it opened port " + port
                         + (blocker == null ? string.Empty : " (" + blocker + ")"));
@@ -1241,6 +1312,7 @@ namespace ArenaMode.SessionHelper
                 {
                     _log.Warn("the game exited " + (GameStartCheckMilliseconds / 1000.0).ToString("0.#") + " s after the start with code " + game.ExitCode);
                 }
+                else if (!keepForWatch) _normalGameReopened = true;
 
                 if (keepForWatch)
                 {

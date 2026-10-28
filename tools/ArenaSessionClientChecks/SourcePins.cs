@@ -176,8 +176,10 @@ internal static partial class Program
                 && Before(request, "ValidateHelperRequest(requestJson, direction, out error)", "WriteRequestFile(requestPath, requestJson);")
                 && request.Contains("HelperRequest.TryParse(requestJson, direction, out _, out string refusal)", StringComparison.Ordinal),
             "the helper's own parser checks the request text before the file is written, the helper started or the game quit");
-        Require(switchCode.Contains("if (process == null)", StringComparison.Ordinal) && switchCode.Contains("if (process.HasExited)", StringComparison.Ordinal)
-                && switchCode.Contains("UseShellExecute = false", StringComparison.Ordinal) && switchCode.Contains("CreateNoWindow = true", StringComparison.Ordinal),
+        string launcher = Code("ARENA_HELPER_PROCESS_SOURCE", "ArenaMode.Client", "Session", "ArenaHelperProcess.cs");
+        Require(switchCode.Contains("helperPid = ArenaHelperProcess.Start(helper,", StringComparison.Ordinal)
+                && switchCode.Contains("if (exitCode.HasValue)", StringComparison.Ordinal)
+                && launcher.Contains("IntPtr.Zero, IntPtr.Zero, false, 0x08000000", StringComparison.Ordinal),
             "the real launcher verifies the helper process and shows no window");
         Require(Regex.Matches(switchCode, @"Application\.Quit\(\)").Count == 0 && switchCode.Contains("QuitGame = Application.Quit;", StringComparison.Ordinal),
             "the game quits through the one Application.Quit seam");

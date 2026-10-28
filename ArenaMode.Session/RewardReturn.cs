@@ -146,7 +146,7 @@ namespace ArenaMode.SessionHelper
             {
                 string exe = Path.Combine(grant.RuntimeRoot, HelperLayout.ServerExeName);
                 DateTime started;
-                if (server.HasExited || !HelperProcesses.TryGetStartTimeUtc(server, out started) || started != grant.ServerStartedUtc
+                if (HelperProcesses.HasExited(server) || !HelperProcesses.TryGetStartTimeUtc(server, out started) || started != grant.ServerStartedUtc
                     || !HelperProcesses.SameFileSystemObject(HelperProcesses.GetImagePath(server), exe)) return false;
                 IPAddress reached;
                 if (!HelperProcesses.CanConnect(normal.ServerHost, normal.ServerPort, 1000, out reached) || !IPAddress.IsLoopback(reached)) return false;
@@ -210,7 +210,7 @@ namespace ArenaMode.SessionHelper
                     try
                     {
                         if (!awaitOriginalExit()) throw new HelperException("The normal server is still stopping. It was not force-closed.");
-                        if (replacement == null || replacement.HasExited)
+                        if (replacement == null || HelperProcesses.HasExited(replacement))
                         {
                             if (!portFree()) throw new HelperException("Another process is using the normal server port.");
                             if (replacement != null) replacement.Dispose();
