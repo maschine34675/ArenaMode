@@ -97,7 +97,10 @@ does not prove an all-writer lock for arbitrary mod threads. The following still
 applies before enabling runtime rewards or a future live-server adapter:
 
 - Explicit opt-in and enrollment of the ordinary profile; trustworthy origin and
-  epoch binding, including wipe/import and private-session copies.
+  epoch binding, including wipe/import and private-session copies. A wiped,
+  restored or moved profile whose old records hold nothing unsettled is archived and
+  enrolled again with a fresh epoch; otherwise it stays quarantined
+  ([Lost reward authority](REWARDS-RUNTIME.md)).
 - Ordinary server only, no active ordinary/Arena raid, protected full-profile
   restoration durably finished, no stale pending end transaction.
 - A common boundary for native autosaves, profile mutations, mailbox/attachment

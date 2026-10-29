@@ -71,9 +71,13 @@ consumer callback and is acquired **before** peer checks or reward refusal. Anot
 participating startup waits until the current settlement ends before it may
 continue toward native profile loading. Cancellation propagates; if coordination
 is still unavailable after two minutes, this startup aborts instead of loading
-profiles concurrently. A path/permission failure at this coordination boundary
-also aborts startup. This exceptional behavior protects integrity; it is not the
-ordinary response to an invalid receipt.
+profiles concurrently. Only genuine contention (a held lock, a live private owner)
+aborts startup. A reward folder that cannot be used at all (the SPT folder or a parent
+is a link, access denied, path unavailable) leaves no peer that could be holding
+anything: startup then skips every reward step, writes nothing, logs one Warning and
+loads profiles normally. This exceptional behavior protects integrity; it is not the
+ordinary response to an invalid receipt. See "Lost reward authority" in
+[REWARDS-RUNTIME.md](REWARDS-RUNTIME.md).
 
 `.server.lock` remains open for the admitted server's lifetime and excludes a
 second cooperating payout owner. Receipt refusal, malformed profile metadata or

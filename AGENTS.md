@@ -91,7 +91,9 @@ old results remain RUB-only, XP fields must preserve legacy serialization, and
 native login owns Level/trader recalculation from the final XP curve.
 Read docs/REWARDS-RETURN.md before changing session return: local automatic payout
 uses normal-server startup after private shutdown and signed-result transfer.
-Schema 3 reuses the same native drain/save proof at entry, independently of rewards.
+Schema 3 reuses the same native drain/save proof at entry, independently of rewards:
+a lost or mismatching reward authority yields a lease without authority and never
+leaves the stopped normal server paused (docs/REWARDS-RUNTIME.md, "Lost reward authority").
 Keep the separate process-bound return capability, request/update drain, native
 save plus full disk/RAM readback, exact process exit and no forced normal-server kill.
 A failed final save retains the quiesced process/RAM for an explicit retry; never

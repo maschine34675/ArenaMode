@@ -63,7 +63,15 @@ internal static class RewardEnrollment
         }
         RewardRuntimeFiles.Write(root, Path.Combine(directory, "consent.json"), after);
         if (after.Enabled && RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json")))
-            PublishHandoff(root, directory, Read(root, id));
+        {
+            // An enrollment that does not match this installation any more (moved or copied install) was
+            // quarantined at startup and the session ran without authority. The acknowledged choice is
+            // already stored above; refusing to re-publish a handoff for a dead enrollment must not stop
+            // the normal server from starting after the session.
+            try { PublishHandoff(root, directory, Read(root, id)); }
+            catch (RewardDataException e) when (e.Message is "runtime-enrollment-origin-mismatch" or "handoff-enrollment-conflict")
+            { ArenaContext.Logger?.Debug("[ArenaMode] Reward handoff not re-published after the private session: " + e.Message + "."); }
+        }
     }
 
     internal static RewardStartupEnrollment Read(string root, string id)

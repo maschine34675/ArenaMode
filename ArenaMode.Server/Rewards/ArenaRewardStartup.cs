@@ -29,26 +29,18 @@ public sealed class ArenaRewardStartup(
     {
         if (Interlocked.Exchange(ref _entered, 1) != 0) return;
         var root = RewardStartupFiles.Canonical(Directory.GetCurrentDirectory());
-        // Offline private ownership must precede every native profile load. It
-        // intentionally bypasses the ordinary payout/enrollment startup path.
-        if (RewardOfflineSession.Requested(root))
+        var admission = await AdmitAsync(root, cancellationToken);
+        _offlineOwner = admission.Owner;
+        _lifetimeLock = admission.Lifetime;
+        if (admission.Unusable is { } unusable)
         {
-            _offlineOwner = RewardOfflineSession.StartPrivate(root);
+            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(unusable);
+            logger.Warning($"[ArenaMode] Profile rewards are unavailable: {DescribeUnusable(unusable)} "
+                + "Rewards stay off and nothing was written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
             return;
         }
-        // Bootstrap only the ordinary metadata directory, not a profile or
-        // enrollment. New installs must join the same coordination gate before
-        // admission; missing state must not bypass it while a peer is writing.
-        if (!RewardStartupDefaults.PrepareDirectory(root)) return;
-        // Every participating startup must wait BEFORE checking peers/refusing
-        // rewards. Otherwise a second server could continue into native load while
-        // the first is committing. Failure/cancellation here intentionally aborts
-        // this startup; it is not swallowed by the reward-only refusal below.
-        using var startupGate = await RewardStartupLifetimeLock.AcquireStartupAsync(root, cancellationToken);
-        // The handle is authoritative even if ownership metadata is lost. Never
-        // downgrade a busy runtime to "rewards unavailable, load profiles anyway".
-        try { _lifetimeLock = RewardStartupLifetimeLock.Acquire(root); }
-        catch (Exception exception) { throw new RewardOfflineException("Another SPT or Arena session owns this installation. Stop or return from that session before starting normal SPT.", exception); }
+        if (!admission.Proceed) return;
+        using var startupGate = admission.Gate;
         {
             // Outside the reward-only catch: continuing would load normal profiles
             // while a private process owns the original runtime or recovery is unknown.
@@ -72,6 +64,7 @@ public sealed class ArenaRewardStartup(
             foreach (var outcome in await RewardStartupProcessor.ProcessAsync(window, cancellationToken))
             {
                 RewardRuntimeCoordinator.Current.ObserveStartupOutcome(outcome);
+                LogAuthority(outcome);
                 if (outcome.Result.Status == RewardSettlementStatus.Paid)
                     logger.Info($"[ArenaMode] Arena reward: {outcome.Roubles} RUB delivered by mail; {outcome.Experience} XP credited.");
                 else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected)
@@ -96,6 +89,107 @@ public sealed class ArenaRewardStartup(
     }
 
     internal sealed record StartupCallback(Type Parent, Type Contract, int Priority);
+
+    /// <summary>Proceed false with nothing else set: a private start or a bootstrap that declined; Unusable: skip rewards.</summary>
+    internal sealed record StartupAdmission(bool Proceed, RewardOfflinePrivate? Owner = null,
+        RewardStartupLifetimeLock? Gate = null, RewardStartupLifetimeLock? Lifetime = null, string? Unusable = null);
+
+    // The ownership steps that must precede native profile loading. A genuine contention (a held .startup.lock
+    // beyond two minutes, a held .server.lock, a live private owner, cancellation) throws and stops this
+    // startup; a reward folder that merely cannot be used does not (see UnusableStorage).
+    internal static async Task<StartupAdmission> AdmitAsync(string root, CancellationToken cancellationToken)
+    {
+        RewardStartupLifetimeLock? gate = null, lifetime = null;
+        try
+        {
+            // Offline private ownership must precede every native profile load. It
+            // intentionally bypasses the ordinary payout/enrollment startup path.
+            if (RewardOfflineSession.Requested(root)) return new(false, Owner: RewardOfflineSession.StartPrivate(root));
+            // Bootstrap only the ordinary metadata directory, not a profile or
+            // enrollment. New installs must join the same coordination gate before
+            // admission; missing state must not bypass it while a peer is writing.
+            if (!RewardStartupDefaults.PrepareDirectory(root)) return new(false);
+            // Every participating startup must wait BEFORE checking peers/refusing
+            // rewards. Otherwise a second server could continue into native load while
+            // the first is committing.
+            gate = await RewardStartupLifetimeLock.AcquireStartupAsync(root, cancellationToken);
+            // The handle is authoritative even if ownership metadata is lost. Never
+            // downgrade a busy runtime to "rewards unavailable, load profiles anyway".
+            try { lifetime = RewardStartupLifetimeLock.Acquire(root); }
+            catch (IOException exception) when (RewardStartupLifetimeLock.IsContention(exception))
+            { throw new RewardOfflineException("Another SPT or Arena session owns this installation. Stop or return from that session before starting normal SPT.", exception); }
+            return new(true, Gate: gate, Lifetime: lifetime);
+        }
+        catch (Exception exception) when (UnusableStorage(exception, root) is { } unusable)
+        {
+            // No process owns anything here: the reward folder simply cannot be used (the SPT folder or one of
+            // its parents is a link, access is denied, the path is unavailable). That is a reason to do no
+            // reward work at all, not a reason to keep SPT itself from starting. Nothing was written.
+            gate?.Dispose();
+            lifetime?.Dispose();
+            return new(false, Unusable: unusable);
+        }
+        catch
+        {
+            gate?.Dispose();
+            lifetime?.Dispose();
+            throw;
+        }
+    }
+
+    // The reward folder is unusable for a reason that has nothing to do with another process owning it.
+    // Returns the coordinator reason, or null when the failure is contention/ownership (fatal by design),
+    // a private-session start (its ownership cannot be skipped), or something else entirely.
+    internal static string? UnusableStorage(Exception exception, string root)
+    {
+        string? reason = exception switch
+        {
+            RewardDataException { Message: "reward-root-is-linked" or "reward-path-is-linked" or "reward-path-outside-root" } => "reward-storage-linked",
+            UnauthorizedAccessException => "reward-storage-access-denied",
+            IOException io when !RewardStartupLifetimeLock.IsContention(io) => "reward-storage-unavailable",
+            _ => null
+        };
+        return reason is not null && !LooksPrivate(root) ? reason : null;
+    }
+
+    private static string DescribeUnusable(string reason) => reason switch
+    {
+        "reward-storage-linked" => "the SPT folder, one of its parent folders or the reward folder is a link (junction, symbolic link, mount point or cloud placeholder). Start SPT from the real folder path to use rewards.",
+        "reward-storage-access-denied" => "SPT may not read or write its user/arena-rewards folder. Give the account running SPT full access to it to use rewards.",
+        _ => "the user/arena-rewards folder could not be reached (path or disk error)."
+    };
+
+    // A private Arena server owns the original runtime's lifetime lock; skipping that is never an option.
+    private static bool LooksPrivate(string root)
+    {
+        try
+        {
+            foreach (var name in new[] { "arena-session.json", RewardOfflineSession.LeaseFile })
+            {
+                try { _ = File.GetAttributes(Path.Combine(root, name)); return true; }
+                catch (FileNotFoundException) { }
+                catch (DirectoryNotFoundException) { }
+            }
+            return false;
+        }
+        catch { return true; }
+    }
+
+    private void LogAuthority(RewardStartupOutcome outcome)
+    {
+        if (outcome.Authority is not { } notice) return;
+        string cause = notice.Trigger switch
+        {
+            "profile-reward-block-missing" => "the profile lost its reward ledger (profile wipe, restored backup or editor)",
+            "install-root-changed" => "the installation was moved or copied",
+            _ => notice.Trigger
+        };
+        if (notice.Recovered)
+            logger.Info($"[ArenaMode] Profile {outcome.ProfileId}: {cause}, and no reward was unsettled, so its old reward records were archived at {notice.Archive} and rewards were enrolled again. Your rewards setting was kept.");
+        else
+            logger.Warning($"[ArenaMode] Profile {outcome.ProfileId}: rewards stay off, because {cause} and {notice.Detail}. "
+                + "Nothing is paid and nothing is deleted. Arena sessions still work. Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+    }
 
     internal static string? GetAdmissionFailure(Version? version, string? entryName, string root, string applicationRoot,
         int loadedProfiles, IEnumerable<StartupCallback> callbacks, bool conflictingServer)

@@ -48,7 +48,9 @@ internal sealed class RewardRuntimeCoordinator
     {
         lock (_sync)
         {
-            if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
+            if (outcome.Authority is { Recovered: false } lost)
+                _startupFailures[outcome.ProfileId] = lost.Reason;
+            else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
                 || outcome.Result.Reason == "startup-storage-unavailable")
                 _startupFailures[outcome.ProfileId] = outcome.Result.Reason;
         }
@@ -151,7 +153,7 @@ internal sealed class RewardRuntimeCoordinator
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or RewardDataException or JsonException or FormatException)
             {
                 result.State = "withheld";
-                result.Detail = "Rewards are temporarily unavailable.";
+                result.Detail = UnavailableDetail(id);
                 result.CanChange = false;
             }
             ApplyPrivatePending(id, result);
@@ -181,8 +183,15 @@ internal sealed class RewardRuntimeCoordinator
         string? failure = _failures.GetValueOrDefault(id) ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
         if (failure is null) return;
         result.State = "withheld";
-        result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : "Rewards are temporarily unavailable.";
+        result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : UnavailableDetail(id);
     }
+
+    // "Temporarily" is wrong for a profile whose reward records no longer belong to it or to this
+    // installation: waiting does not help, and the server log names the remedy.
+    private string UnavailableDetail(string id)
+        => _startupFailures.GetValueOrDefault(id)?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true
+            ? "Rewards are off for this profile: its reward records no longer match it or this installation. See the server log."
+            : "Rewards are temporarily unavailable.";
 
     internal RewardStatusResponse SetConsent(string id, bool enabled)
     {

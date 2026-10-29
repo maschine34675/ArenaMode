@@ -12,6 +12,10 @@ fresh preparation and then follows the same schema-3 handover below. See
 [direct start](DIRECT-START-20261028.md).
 
 1. START ARENA SESSION prepares a fresh entry operation independently of rewards.
+   Rewards never gate it: a profile whose reward authority was lost (wipe, restored
+   backup, moved install) enters with a lease WITHOUT authority, and a failure that is
+   left after the ordinary server has stopped its update loop ends in the same graceful
+   shutdown instead of a paused server ([Lost reward authority](REWARDS-RUNTIME.md)).
 2. After EFT exits, the ordinary server drains its requests and update callbacks,
    saves every loaded profile and verifies disk against RAM. It publishes durable
    completion evidence, then shuts down gracefully.
