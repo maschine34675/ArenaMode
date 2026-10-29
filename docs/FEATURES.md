@@ -112,7 +112,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
   ownership rings and one integrated score/objective HUD. Ported-map monitors
-  display objective scores. Profile rewards are currently excluded.
+  (ArenaMapPort 0.4.0 or newer, not yet published) display objective scores. Profile rewards are currently excluded.
 
 Sources: [routes and options](DOMINATION-OPTIONS-ROUTES-20261027.md),
 [ported anchors](DOMINATION-PORTED-20261026.md),
@@ -127,7 +127,9 @@ Sources: [routes and options](DOMINATION-OPTIONS-ROUTES-20261027.md),
   Arena lighting, friendly markers, killfeed and score accents. Other modes keep
   their configured colors.
 - ArenaMapPort score monitors show **BEAR left / USEC right**, with matching
-  score colors, alive counts and match clock. The integration is optional.
+  score colors, alive counts and match clock. The integration is optional and needs
+  ArenaMapPort 0.4.0 or newer (not yet published); with the public 0.3.0 no
+  monitors appear and everything else works.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
   Bay5, Air Pit and Bowl Team DM**, where initial and replacement bots use fixed team
@@ -677,7 +679,7 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   Helper lifecycle/failure logs remain visible; routine link detail is opt-in
   through `ARENAMODE_SESSION_DEBUG=1`.
 
-- Optional **PROFILE REWARDS**, on by default for newly registered profiles, preserving existing OFF choices for the
+- Optional **PROFILE REWARDS**, on by default for every profile not yet registered, including existing ones, preserving existing OFF choices for the
   selected normal profile. Arena's map menu shows consent, rates and status in
   a separate card above the map preview.
   Initial registration and subsequent payments happen at normal server startup.
@@ -782,7 +784,8 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
   without a dedicated adapter; its own grenade/spectator semantics remain.
 - Reviewed-version drift is advisory in direct play and new private sessions,
   including UIFixes. Actual identity, deny/dependency and protection/API checks
-  still decide admission. The whitelist records ArenaMapPort 0.4.0 and Redeploy 1.1.0.
+  still decide admission. The whitelist records ArenaMapPort 0.4.0 (not yet published; the public
+  0.3.0 then only produces a version advisory) and Redeploy 1.1.0.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**

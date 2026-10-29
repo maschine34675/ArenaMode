@@ -28,8 +28,13 @@ internal static partial class Program
                 "missing Domination companion still permits entering Arena to choose another mode");
             Assert(!ArenaMenuSelection.IsMapDiscoverable(ArenaMapCatalog.FactoryDayId)
                 && !ArenaMenuSelection.TryValidateAndFreezeRequest(Request(), out string reason)
-                && reason.Contains("objective companion"),
-                "missing Domination companion blocks map readiness and final freeze with a reason");
+                && reason == "Domination needs BigBrain 1.5.0 or newer (separate download).",
+                "missing Domination companion blocks map readiness and final freeze with a reason naming BigBrain");
+            plugins["xyz.drakia.bigbrain"] = new object();
+            Assert(ArenaMenuSelection.ModeAvailabilityRejection("domination") is string loaded
+                && loaded.StartsWith("Domination needs BigBrain 1.5.0 or newer") && loaded.Contains("see the BepInEx log"),
+                "BigBrain present but companion inactive points at the log");
+            plugins.Remove("xyz.drakia.bigbrain");
             Assert(!Start(Request(), out var stopped) && stopped.IsFaulted
                 && RequestHandler.StartCount == announced && !ArenaSession.ArmedForNextRaid,
                 "missing Domination companion rejects native start before any server snapshot arm");

@@ -28,7 +28,9 @@ follow your selection; your saved PMC faction stays unchanged.
   Gun Game, Deathmatch, Team DM, Tactical and Zombies.
 - [ArenaMapPort](https://github.com/maschine34675/ArenaMapPort/releases/latest)
   adds Equator, Bay5, Air Pit and Bowl. It requires your own supported Arena
-  installation. Equator excludes Tactical and PitFireTeam Zombies.
+  installation. Equator excludes Tactical and PitFireTeam Zombies. Team DM and
+  Domination score/timer monitors need ArenaMapPort 0.4.0 or newer (not yet
+  published); the public 0.3.0 works without monitors.
 - Domination supports Factory day/night and all four ported maps. Factory picks
   three separated points each match; Equator/Bay5 use one original point each,
   Air Pit/Bowl two. Labs, Labyrinth and Customs do not offer Domination.
@@ -115,8 +117,11 @@ Arena restores your entry profile after each protected raid. Temporary kits,
 loot and ordinary raid progression are discarded. Use the supported raid exit
 or session return controls.
 
-Optional **PROFILE REWARDS** default on for eligible newly registered profiles;
-existing OFF choices stay off. Eligible kills award **1,000 RUB + 100 PMC XP**;
+Optional **PROFILE REWARDS** are on by default for every profile that is not yet
+registered, including existing ones; existing OFF choices stay off. At the next
+normal server start ArenaMode.Server adds a small data block to the profile file.
+It credits RUB mail and PMC XP only after Arena matches. Switch it off with the
+rewards card in the Arena map menu. Eligible kills award **1,000 RUB + 100 PMC XP**;
 DM/TDM/Tactical wins add **10,000 RUB + 1,000 XP**, capped at **200,000 RUB +
 20,000 XP per match**. Gun Game/Zombies award kills only. Domination currently
 has no persistent rewards. Private-session return processes accepted rewards
@@ -142,7 +147,8 @@ full Tactical match, Gun Game ladder or long Zombie session.
 A single native BotFirstAid exception occurred at one round end without a hang;
 its exact cause remains unresolved and it did not recur in the final check.
 Ported-map missing Books impact sounds and intermittent audio noise are recorded
-in ArenaMapPort's limits. WIP features remain WIP. See the release page for
+in the limits of ArenaMapPort 0.4.0 (not yet published, so those notes are not
+public yet). WIP features remain WIP. See the release page for
 final package hashes and any hash-specific scanner results; older scans do not
 describe new binaries.
 

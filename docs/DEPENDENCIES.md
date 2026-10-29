@@ -57,7 +57,8 @@ UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it w
 differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
-ArenaMapPort 0.4.0 and Redeploy 1.1.0 on both sides. User policy is preserved.
+ArenaMapPort 0.4.0 (not yet published; the public 0.3.0 works, without score monitors,
+and shows a version advisory) and Redeploy 1.1.0 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -86,7 +87,7 @@ and is therefore also admitted if installed, but was not part of those checks. S
 | Mod/component | Reviewed contract | Purpose / behavior without it |
 |---|---|---|
 | SAIN | 4.5.1 or newer; reviewed at that version, newer versions warn | Personalities, search speed, movement and lifecycle safeguards. Native AI is used without SAIN. |
-| BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
+| BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Domination (required: without BigBrain and the companion only Domination is locked), directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
 | PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0. Current whitelist review: 1.0.0. Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator remains excluded from both PFT variants. |
 | APBS | Metadata version 2.4.1 or newer; reviewed at that version, newer versions warn | Bot equipment/progression. Without APBS, native SPT generation is used; a missing/old version or invalid API contract leaves APBS's own level selection in place with a warning. |
 | ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer | Bay5, Equator, Air Pit and Bowl. Independent Team DM uses their team starts; Bowl supports 2v2–10v10 from its east/west boxes. Other Bowl modes use generic spawns. Not required for ordinary SPT maps. |
