@@ -140,9 +140,15 @@ internal static class ArenaMenuSelection
     public static bool CompatibilityTeamArenaActive => _teamArenaActive?.Invoke() == true;
 
     internal static string ModeAvailabilityRejection(string mode)
-        => mode == Modes.ArenaModeCatalog.DominationId && !Bots.DominationObjectiveBridge.Available
-            ? "Domination requires the Arena BigBrain objective companion. Restart after updating the mod."
-            : null;
+    {
+        if (mode != Modes.ArenaModeCatalog.DominationId || Bots.DominationObjectiveBridge.Available) return null;
+        const string need = "Domination needs BigBrain 1.5.0 or newer (separate download).";
+        // The companion DLL always ships; with BigBrain loaded the cause is a too old
+        // version or a failed registration, which the BepInEx log names.
+        return BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("xyz.drakia.bigbrain")
+            ? need + " BigBrain is loaded, but Arena's companion did not start; see the BepInEx log."
+            : need;
+    }
 
     public static void ClearCompatibilityState(string reason)
         => _compatibilityCleanup?.Invoke(reason);

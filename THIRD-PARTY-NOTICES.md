@@ -1,6 +1,7 @@
 # ArenaMode: licenses, sources and credits
 
-Current-tree inventory, checked **2026-10-16**. This document distinguishes
+Current-tree inventory, checked **2026-10-29** (the diff since the v0.4.0 tag adds no third-party
+code or assets). This document distinguishes
 ArenaMode's code license from separately licensed assets. It does not relicense
 earlier Git revisions, screenshots or game content, and is not a statement that
 the entire repository history is ready for publication.
@@ -39,10 +40,10 @@ the entire repository history is ready for publication.
 **MIT — Copyright (c) 2026 maschine.** The full, unchanged text is identical to
 the project [LICENSE](LICENSE). This includes the shared Core library and the
 linked `drivers/CoreVersionGate.cs` source from the separate Redeploy project.
-The current Arena source references Core **1.0.10**; use the exact matching
-source/build when packaging. The complete Redeploy mod is not an Arena
-dependency. Public availability of matching Core source is a release requirement,
-not established by this notice.
+The package ships Core **1.0.18** (identical to the copy in Redeploy 1.1.1;
+source at https://github.com/maschine34675/Redeploy/tree/v1.1.1). The exact Core
+commit is recorded in `PACKAGE-MANIFEST.json`. The complete Redeploy mod is not an
+Arena dependency.
 
 ### Own integrations and behavioral references
 

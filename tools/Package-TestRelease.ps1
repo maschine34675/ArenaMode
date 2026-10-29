@@ -276,6 +276,11 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
 8. Recognized versions differing from the reviewed whitelist are attempted in
    direct play and new private sessions. Version advisories do not exclude them;
    identity, deny/dependency and mandatory protection/API checks still apply.
+9. Profile rewards: at the next normal server start ArenaMode.Server enrolls every
+   profile that is not yet registered, including existing ones, for optional PROFILE
+   REWARDS (default ON). It adds a small data block to the profile file and credits
+   RUB mail and PMC XP only after Arena matches. Switch it off with the rewards card
+   in the Arena map menu; back up the profile first (step 1).
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.

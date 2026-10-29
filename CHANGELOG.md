@@ -18,7 +18,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   and Bay5 use one original point each; Air Pit and Bowl use two. Bot approaches
   must be capture-valid and reachable. Domination does not award profile rewards.
 - Integrate objective status into the main score panel, improve ownership rings
-  and keep pickups clear of objectives. ArenaMapPort monitors display scores.
+  and keep pickups clear of objectives. ArenaMapPort monitors display scores
+  (ArenaMapPort 0.4.0 or newer, not yet published; 0.3.0 works without monitors).
 - Choose USEC or BEAR for Team DM/Domination; team colors and killfeed follow
   the selected side through death/respawn without changing the saved PMC faction.
 - Add optional native PMC action voicelines and rotating TDM faction voices.

@@ -141,7 +141,7 @@ The explicitly requested follow-up integrations are documented in
 docs/ITEMS-HUD-COMPAT-20261025.md and docs/REMAINING-MOD-COMPAT-20261026.md:
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
-and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.15).
+and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.18).
 Amand's Graphics remains unlisted because its initial Labyrinth scene setup
 fails before any Core replacement; Factory camera tests do not remove that limit.
 The user policy file is a combined
@@ -522,8 +522,9 @@ test above was verified that way — reintroduce the comma and three tests go re
 ## Non-negotiable
 
 1. **The profile is sacred.** An arena raid must cost and gain nothing through its
-   raid-result merge. Explicitly opted-in RUB mail at a later normal server start
-   is a separate, journaled exception (REWARDS-RUNTIME.md). Two layers
+   raid-result merge. Default-ON RUB mail and PMC XP (the user may switch
+   them off), journaled and paid at a later normal server start, are a separate,
+   documented exception (REWARDS-RUNTIME.md). Two layers
    protect it: an exact-ID `EndLocalRaidAsync` prefix that replaces the complete native
    post-raid pipeline, and a snapshot/restore around the raid. Never weaken either.
 2. **Normal raids must be bit-identical.** Every patch starts with an
@@ -924,7 +925,7 @@ with your explanation, the explanation is wrong; measure before you theorise aga
 
 Core admission: both clients fail closed before runtime initialization when the loaded
 Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.13, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+1.0.18, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 Build/deploy/release share tools/Arena-NoticeLayout.ps1: notices and embedded map
 provenance go under docs/licenses; preserve unknown user files during migration.

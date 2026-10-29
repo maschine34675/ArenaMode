@@ -137,7 +137,7 @@ longer exist; the whitelist replaced them.
 - [First local test release ZIP (superseded layout)](TEST-RELEASE-20261017.md)
 - [Player README and source-build instructions](../README.md)
 - [Complete implemented feature inventory and mutator list](FEATURES.md)
-- [Forge description — seven tabs, ready for the editor](FORGE-DESCRIPTION.md)
+- [Forge description — eight tabs, draft of 0.4.1](FORGE-DESCRIPTION.md)
 - [Licenses, asset sources and redistribution boundaries](../THIRD-PARTY-NOTICES.md)
 - [Current handoff and test status](HANDOFF.md)
 - [AirPit map admission and saved-map migration](AIRPIT-INTEGRATION-20261017.md)
