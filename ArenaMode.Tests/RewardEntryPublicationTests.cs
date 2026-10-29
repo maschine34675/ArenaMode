@@ -199,5 +199,7 @@ public sealed class RewardEntryPublicationTests
         // The refusal before the pause releases what it reserved, and answers with the decline that lets the helper resume.
         string branch = source.Substring(declined - 400, 700);
         Assert.Contains("Release();", branch);
+        // The cause the preflight already named is not logged a second time after the stop: the callback must go through the helper.
+        Assert.Contains("if (ReportsAfterStop(preflightUnavailable, reason)) WarnAuthorityUnavailable(", source);
     }
 }

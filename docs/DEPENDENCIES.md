@@ -116,7 +116,7 @@ are attempted with a one-time warning; this is not confirmation of full compatib
 
 ## Other explicitly considered combinations
 
-The 0.4.0 whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
+The current whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
 HUD Breakout 1.2.0 and PiP Disabler 2.1.0 after bounded Arena and standalone
 tests. The same final Core passed two additional Factory respawns with Arena
 absent, including a scoped death, old PiP-cache retirement, current-body HUD and

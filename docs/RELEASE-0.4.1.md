@@ -5,7 +5,7 @@
 
 ## Fixed
 
-- **Wiped, restored or moved profiles:** START ARENA SESSION no longer closes
+- **Wiped profiles, pre-enrollment backups, moved installations:** START ARENA SESSION no longer closes
   EFT and leaves the normal SPT server paused when a profile's reward data no
   longer matches its reward folder. The session then runs without rewards. At
   the next normal start the old reward folder is renamed to `.archived-...`
@@ -17,8 +17,9 @@
 - **Several SPT installations:** a finished Arena session of one installation
   no longer blocks Arena sessions of another with a false "still running"
   message. A refused enter reopens the normal game and says why.
-- **Shared Core 1.0.18:** Recoil Rework Legacy and Fontaine FOV Fix now work with
-  Redeploy's Continue as Scav. Arena respawns are unchanged. The whitelist records
+- **Shared Core 1.0.18:** Recoil Rework Legacy and Fontaine FOV Fix are handed
+  over to Redeploy's Continue as Scav body like an ordinary respawn. Arena
+  respawns are unchanged. The whitelist records
   Redeploy 1.1.1.
 
 See the [versioned changelog](https://github.com/maschine34675/ArenaMode/blob/v0.4.1/CHANGELOG.md#041---2026-10-29) for the full list.

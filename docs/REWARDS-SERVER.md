@@ -71,8 +71,8 @@ consumer callback and is acquired **before** peer checks or reward refusal. Anot
 participating startup waits until the current settlement ends before it may
 continue toward native profile loading. Cancellation propagates; if coordination
 is still unavailable after two minutes, this startup aborts instead of loading
-profiles concurrently. Only genuine contention (a held lock, a live private owner)
-aborts startup. A reward folder that cannot be used at all (the SPT folder or a parent
+profiles concurrently. Only genuine contention (a held lock, a live private owner) or an
+unresolved Arena session record aborts startup. A reward folder that cannot be used at all (the SPT folder or a parent
 is a link, access denied, path unavailable) leaves no peer that could be holding
 anything it knows of: startup then skips every reward step, writes no reward data,
 logs one Warning and loads profiles normally. This exceptional behavior protects integrity; it is not the

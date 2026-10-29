@@ -87,7 +87,7 @@ No default is applied by a live route or a private server.
 
 The shared coordination path stays fail-closed for real contention only: a
 `.startup.lock` that is still busy after two minutes, a held `.server.lock`, a live
-private owner and cancellation stop startup, because another process may still own
+private owner, a recorded Arena session that cannot be resolved and cancellation stop startup, because another process may still own
 settlement and native profile loading would race it. A reward folder that merely
 cannot be used does not: when the SPT folder or one of its parents is a link
 (junction, symbolic link, mount point, cloud placeholder), when access is denied or

@@ -14,13 +14,14 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
 
 ### Profile rewards and server startup
 
-- A wiped, restored, hand-edited or moved profile no longer breaks Arena entry.
+- A wiped or hand-edited profile, a backup restored from before rewards were
+  enrolled, or a moved or copied installation no longer breaks Arena entry.
   In 0.4.0, START ARENA SESSION closed EFT and left the normal SPT server paused
   when the profile's reward data no longer matched its reward folder. Entry now
   checks reward authority before the normal server pauses. Such a session runs
   without rewards, and a Warning names the profile and the remedy.
 - At the next normal start, the old reward folder of such a profile is renamed
-  to `<profile>.archived-<time>-<id>` (never deleted) and the profile is enrolled
+  to `<profileId>.archived-<UTC yyyyMMddTHHmmssZ>-<8 hex>` (never deleted) and the profile is enrolled
   again, provided nothing in its records is unsettled. The reward choice is kept;
   an opt-out stays off. For a moved install the old ledger block is saved in the
   archive and then removed from the profile; payments already made stay in its
@@ -29,8 +30,8 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
 - SPT no longer refuses to start when the SPT folder or a parent folder is a
   junction, symbolic link or mount point, or when the reward folder cannot be
   used. ArenaMode then skips rewards for that start, writes no reward data and
-  logs one Warning. Only genuine contention (a held lock or a running private
-  session) still stops SPT.
+  logs one Warning. A held lock, a running private session or an unresolved
+  Arena session record still stops SPT.
 - A file error that can clear on its own (another program holding the profile,
   access denied) while the entry reads the reward data declines the entry before
   the normal server pauses; the helper reopens the normal game, and the next
@@ -49,8 +50,9 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
 - A finished Arena session of one SPT installation no longer blocks Arena
   sessions of another installation of the same Windows user with a false
   "still running" message. Only a server actually running from the other
-  installation's session blocks. An unclosed session there is refused before
-  the normal server is touched, with a message naming the other installation.
+  installation's session, or a session there that is not closed, blocks; an
+  unclosed session is refused before the normal server is touched, with a
+  message naming the other installation.
 - When an enter fails before the private session opens, the normal game reopens
   and the helper says why Arena did not start.
 - Limit: if the other installation was deleted while its session was still open,
@@ -60,8 +62,9 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
 ### Compatibility
 
 - Bundle shared Redeploy.Core **1.0.18**, identical to Redeploy **1.1.1**'s
-  Core. It fixes Recoil Rework Legacy and Fontaine FOV Fix with Redeploy's
-  Continue as Scav; Arena respawns behave as with 1.0.17.
+  Core. It hands Recoil Rework Legacy and Fontaine FOV Fix over to Redeploy's
+  Continue as Scav body like an ordinary respawn; Arena respawns behave as with
+  1.0.17.
 - The whitelist records Redeploy **1.1.1**; Redeploy 1.1.0 still loads with a
   version advisory.
 

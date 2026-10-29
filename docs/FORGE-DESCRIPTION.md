@@ -314,7 +314,8 @@ registered, including existing ones** (existing OFF choices stay OFF). At the ne
 normal server start ArenaMode.Server adds a small data block to the profile file;
 RUB mail and PMC XP are credited only after Arena matches. Switch rewards off with
 the rewards card in the Arena map menu. Back up your profile first. After a profile
-wipe, a restored backup or a moved install, the old reward folder
+wipe, a backup restored from before rewards were enrolled or a moved or copied
+install, the old reward folder
 (`user/arena-rewards/<profile>`) is renamed to `.archived-...` (never deleted) and your
 reward choice is kept.
 
@@ -353,7 +354,7 @@ reward choice is kept.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults
   are not a performance guarantee.
 - The unsigned `maschine-ArenaMode.Session.exe` (session switching and direct start)
-  has a few unresolved generic VirusTotal detections (three on 0.4.0). Source review
+  has a few unresolved generic VirusTotal detections (see the release page for the current count). Source review
   and a separate Defender scan found no concrete malicious behavior, but these are not
   confirmed false positives. Exact reports and hashes are in the GitHub release;
   an antivirus block can prevent session switching and direct start.
