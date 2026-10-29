@@ -74,9 +74,9 @@ public sealed class ArenaRewardStartup(
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (RewardColaRecoveryException)
+        catch (RewardColaRecoveryException e)
         {
-            logger.Error("[ArenaMode] A paid Tarkova Cola reward needs companion-file recovery. Startup stopped to preserve both profiles; restore access to the recorded files and retry. Do not delete the reward journal.");
+            logger.Error(DescribeColaStop(e));
             throw;
         }
         catch (Exception e)
@@ -86,6 +86,15 @@ public sealed class ArenaRewardStartup(
             RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(reason);
             logger.Warning($"[ArenaMode] Startup rewards unavailable ({reason}); profiles will load normally.");
         }
+    }
+
+    // The exception's own reason is written for the player (no stack, no path); a wrapped failure adds only its
+    // reason code or type name, like the generic handler below.
+    internal static string DescribeColaStop(RewardColaRecoveryException e)
+    {
+        string cause = e.InnerException is null ? "" : $" ({(e.InnerException is RewardDataException ? e.InnerException.Message : e.InnerException.GetType().Name)})";
+        return $"[ArenaMode] Startup stopped to keep the profiles and the Tarkova Cola reward files as they are: {e.Message}{cause} "
+            + "Do not delete or move the reward journal or the Cola plan files. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.";
     }
 
     internal sealed record StartupCallback(Type Parent, Type Contract, int Priority);

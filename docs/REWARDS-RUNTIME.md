@@ -175,7 +175,7 @@ only the ledger block is replaced). Crash safety: the choice is staged first
 rename before anything reads the missing directory as a new profile.
 
 Unsettled means: any journal entry not committed or carrying Tarkova Cola
-progression; a received receipt or allocation without its `imported` marker; an
+progression or a `cola-plans` folder (the Tarkova Cola history is never archived); a received receipt or allocation without its `imported` marker; an
 approval, candidate or decision not matched by a committed journal entry; a pending
 recovery request; an unresolved Arena run or restoration; an active offline session;
 an unrecognised file; a moved install whose ledger and journal disagree. A record
@@ -203,11 +203,53 @@ off sees the ordinary "Optional profile rewards are off." in the menu while old
 records stay unsettled (the Warning is still logged at every start); "records no
 longer match" appears once they switch rewards on.
 
+**Tarkova Cola history and a lost block.** The Cola companion recovery
+(`RewardColaJournal.RecoverAsync`, next in every profile's pass) used to read the
+native ledger and, with the block gone, stopped the whole server (a wiped profile
+that held paid Cola progress then blocked SPT on every machine sharing it).
+Now it first asks the same question as the startup recovery
+(`RewardAuthorityRecovery.LostRewardBlock`: `info.id` still matches and the profile
+root has no `com.maschine.ArenaMode.rewards` member, decided on the JSON text
+without building native objects). A profile like that cannot be a half-written
+payment, because every payment writes a whole profile that carries the block
+before and after; and the native side of each recorded payment went with the wipe,
+so nothing native can be confirmed or finished. Two outcomes:
+
+- The companion side is complete (every plan in `cola-plans` is readable and has
+  its matching `.done.json`, no completion record without a plan, no temporary or
+  unknown file, every attempted Cola payment of the journal committed with its
+  plan). `RecoverAsync` returns without writing anything: no Cola progress, no
+  payment, no file changed or moved. The profile stays quarantined (a Cola
+  progression is unsettled), startup goes on, the profiles load, and the one
+  Warning above says the reward records hold Tarkova Cola history that stays
+  unchanged and rewards stay off. The same holds for a deleted profile file whose
+  Cola plans remain. The check reads the plans without the installation root
+  (the reward folder synchronises between installations); it never locates or
+  touches the Tarkova Cola mod's own files.
+- The companion side is not complete (a plan without its completion record, a
+  temporary or unknown file, an unreadable plan or journal, a Cola payment the
+  journal records as not committed). Startup stops, because a half-finished
+  companion write could leave the Cola files inconsistent and nothing native is
+  left to finish it from. The Error names the actual cause and the remedy the code
+  supports: restore the profile file from a backup taken after that reward
+  (SPT keeps backups in `user/profiles/backups`); with that profile the ordinary
+  recovery completes the transaction at the next start. A file that was only
+  locked clears by starting again. Do not delete or move the journal or the plan
+  files.
+
+With the block present nothing changed: the ordinary recovery runs exactly as
+before.
+
 Manual remedy for an unsettled profile: start the installation at the root recorded
 in `enrollment.json` once, so its pending rewards are delivered, and move it again;
 or, accepting the loss of those unpaid rewards, stop the server and rename
 `user/arena-rewards/<profileId>` aside (a profile that still carries the ledger block
 also needs that block removed from its file, which is why this is a last resort).
+For a wiped profile whose Tarkova Cola history is complete, the same last resort
+starts the reward ledger afresh: the Cola progress belongs to the Tarkova Cola mod
+(`user/mods`, not the reward folder) and the transactions are already finished, so
+only the audit trail (journal, plans) is set aside. Do it only with the server
+stopped, and never while a Cola reward is unfinished.
 
 ### Private-session consent
 

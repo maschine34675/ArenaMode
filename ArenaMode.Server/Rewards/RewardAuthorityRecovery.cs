@@ -38,6 +38,7 @@ internal static class RewardAuthorityRecovery
 {
     internal const string ReasonPrefix = "authority-lost-";
     internal const string ArchivedLedgerFile = "lost-ledger-extension.json";
+    internal const string ColaHistoryFolder = "cola-plans";
     private static readonly Regex TemporaryName = new("\\A\\.arena-reward-[a-f0-9]{32}\\.tmp\\z", RegexOptions.CultureInvariant);
     private static readonly HashSet<string> KnownEntries = new(StringComparer.Ordinal)
     {
@@ -82,11 +83,16 @@ internal static class RewardAuthorityRecovery
             RewardStartupFiles.RequireLocalPath(root, profilePath);
             if (!File.Exists(profilePath)) return null;
             profile = File.ReadAllText(profilePath);
-            using (var document = JsonDocument.Parse(profile)) RewardStartupFiles.RejectDuplicateProperties(document.RootElement);
+            bool infoMatches, lostBlock;
+            using (var document = JsonDocument.Parse(profile))
+            {
+                RewardStartupFiles.RejectDuplicateProperties(document.RootElement);
+                infoMatches = InfoIdMatches(document.RootElement, id);
+                lostBlock = LostRewardBlock(document.RootElement, id);
+            }
             profileObject = JsonNode.Parse(profile) as JsonObject ?? throw new RewardDataException("invalid-profile");
             // "info.id still matches": the profile is the very one this authority was created for.
-            if (profileObject["info"] is not JsonObject info || info["id"]?.GetValue<string>() != id) return null;
-            bool lostBlock = !profileObject.ContainsKey(RewardProfileDocument.ExtensionKey);
+            if (!infoMatches) return null;
             bool movedRoot = !Path.IsPathFullyQualified(enrollment.RuntimeRoot)
                 || !string.Equals(RewardStartupFiles.Canonical(enrollment.RuntimeRoot), root, RewardStartupFiles.PathComparison);
             if (!lostBlock && !movedRoot) return null;
@@ -156,6 +162,32 @@ internal static class RewardAuthorityRecovery
 
     private static RewardAuthorityNotice Unresolved(string trigger, string detail) => new(false, trigger, detail, null);
 
+    /// <summary>The profile's <c>info.id</c> is the profile this authority was created for.</summary>
+    internal static bool InfoIdMatches(JsonElement profile, string id)
+        => profile.ValueKind == JsonValueKind.Object
+            && profile.TryGetProperty("info", out var info) && info.ValueKind == JsonValueKind.Object
+            && info.TryGetProperty("id", out var value) && value.ValueKind == JsonValueKind.String && value.GetString() == id;
+
+    /// <summary>
+    /// The profile lost its extension block (SPT's wipe, a restored pre-enrollment backup, an editor) while
+    /// <c>info.id</c> still matches. Decided on the JSON text alone, without building native objects. The one
+    /// definition shared by the startup recovery and by the Tarkova Cola companion recovery, so both agree.
+    /// </summary>
+    internal static bool LostRewardBlock(JsonElement profile, string id)
+        => InfoIdMatches(profile, id) && !profile.TryGetProperty(RewardProfileDocument.ExtensionKey, out _);
+
+    /// <summary>The text form for callers that hold the profile as a string; damaged JSON is never "lost".</summary>
+    internal static bool LostRewardBlock(string profileJson, string id)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(profileJson);
+            RewardStartupFiles.RejectDuplicateProperties(document.RootElement);
+            return LostRewardBlock(document.RootElement, id);
+        }
+        catch (Exception e) when (e is JsonException or RewardDataException) { return false; }
+    }
+
     // A crash after the archive rename: the live directory is missing and only the staged choice remains.
     // Without finishing, the missing directory would read as a new profile and default to ON.
     private static void CompleteInterrupted(string root, string id, string directory)
@@ -192,6 +224,8 @@ internal static class RewardAuthorityRecovery
         {
             string name = Path.GetFileName(path);
             if (TemporaryName.IsMatch(name)) continue;
+            // The Tarkova Cola companion history is never archived: say what it is instead of calling it unknown.
+            if (name == ColaHistoryFolder) return "its reward records hold Tarkova Cola history (" + name + "), which stays unchanged";
             if (!KnownEntries.Contains(name)) return "unrecognised entry '" + name + "'";
         }
 
@@ -201,7 +235,7 @@ internal static class RewardAuthorityRecovery
         foreach (var entry in journal.Entries)
         {
             if (entry.Phase != RewardJournalPhase.Committed) return "payment " + entry.Payment.ReceiptKey + " is not committed";
-            if (entry.Payment.Cola is not null) return "payment " + entry.Payment.ReceiptKey + " carries Tarkova Cola progression";
+            if (entry.Payment.Cola is not null) return "payment " + entry.Payment.ReceiptKey + " carries Tarkova Cola progression, which stays unchanged";
         }
         // A moved install still holds the ledger: it must be exactly the journal. A ledger BEHIND the journal
         // is a restored older backup; the settlement core keeps refusing that one.

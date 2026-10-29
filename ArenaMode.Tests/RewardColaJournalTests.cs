@@ -669,6 +669,235 @@ public sealed class RewardColaJournalTests
         Assert.Equal(foreign, f.Foreign);
     }
 
+    // ---- lost reward authority (profile wipe / deleted profile): docs/REWARDS-RUNTIME.md, "Lost reward authority" ----
+
+    private static SortedDictionary<string, string> Tree(string root)
+    {
+        var result = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            result[Path.GetRelativePath(root, file)] = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(file)));
+        return result;
+    }
+
+    // A paid, fully completed Cola transaction; the SPT launcher then wipes the profile (same info.id, no reward block).
+    private static (Fixture f, RewardColaPlan plan) CompletedThenWiped(bool consent, bool enabled)
+    {
+        var f = new Fixture();
+        var plan = f.Prepare();
+        f.Pay().AsTask().GetAwaiter().GetResult();
+        f.Complete(plan);
+        Assert.True(File.Exists(f.DonePath));
+        f.EnrollRuntimeManaged(consent, enabled);
+        f.Wipe();
+        return (f, plan);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task WipedProfileWithCompleteColaHistoryDoesNotStopStartupAndChangesNothing(bool consent, bool enabled)
+    {
+        var (f, _) = CompletedThenWiped(consent, enabled);
+        using var _f = f;
+        var tree = Tree(f.Root);
+
+        Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
+        Assert.Equal(tree, Tree(f.Root));
+
+        // The same pass startup runs for every profile, default-on included: no exception, no payment, no write.
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        Assert.Equal(0, outcome.Roubles);
+        Assert.Equal(tree, Tree(f.Root));
+        // Exactly one notice says why: the lost block, with the Cola history kept (an unresolved authority is the quarantine).
+        var notice = Assert.IsType<RewardAuthorityNotice>(outcome.Authority);
+        Assert.False(notice.Recovered);
+        Assert.Equal("profile-reward-block-missing", notice.Trigger);
+        Assert.Contains("Tarkova Cola", notice.Detail);
+        Assert.Null(notice.Archive);
+
+        // And the whole folder pass, as ArenaRewardStartup runs it.
+        var all = await RewardStartupProcessor.ProcessAsync(f.Window, CancellationToken.None);
+        Assert.Equal(f.Binding.ProfileId, Assert.Single(all).ProfileId);
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    [Fact]
+    public async Task WipedProfileOnAnInstallWithAnotherRootStillNeedsNoRootToShowTheHistoryComplete()
+    {
+        // The reward folder synchronises between installations: the enrollment names the root that created it.
+        var (f, _) = CompletedThenWiped(consent: true, enabled: false);
+        using var _f = f;
+        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = Path.Combine(Path.GetTempPath(), "ArenaMode.Moved.From", Guid.NewGuid().ToString("N")), RuntimeManaged = true });
+        var tree = Tree(f.Root);
+        Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        Assert.Equal("profile-reward-block-missing", outcome.Authority!.Trigger);
+        Assert.Equal(tree, Tree(f.Root));
+        // An incomplete companion side still stops, root or not.
+        File.Delete(f.DonePath);
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+    }
+
+    [Fact]
+    public async Task DeletedProfileWithCompleteColaPlansDoesNotStopStartupAndChangesNothing()
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.Complete(plan);
+        File.Delete(f.ProfilePath);
+        var tree = Tree(f.Root);
+
+        Assert.Equal(RewardColaRecoveryResult.KeptProfileMissing, await f.Recover());
+        Assert.Equal(tree, Tree(f.Root));
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None);
+        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        Assert.Equal(tree, Tree(f.Root));
+        Assert.False(File.Exists(f.ProfilePath));
+    }
+
+    [Theory]
+    [InlineData("plan-without-done", "has no completion record")]
+    [InlineData("temporary-file", "temporary file")]
+    [InlineData("unknown-file", "unknown file")]
+    [InlineData("unreadable-plan", "cannot be read")]
+    [InlineData("done-without-plan", "has no Cola plan")]
+    [InlineData("done-differs", "does not match its plan")]
+    [InlineData("uncommitted-journal-entry", "not committed")]
+    [InlineData("plan-folder-gone", "not committed or has no matching Cola plan")]
+    [InlineData("journal-missing", "reward journal is missing")]
+    [InlineData("enrollment-missing", "enrollment is missing")]
+    public async Task WipedProfileWithIncompleteColaSideStillStopsStartupWithTheRealCause(string gap, string expected)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        if (gap != "plan-without-done") f.Complete(plan);
+        switch (gap)
+        {
+            case "plan-without-done": break;
+            case "temporary-file": File.WriteAllText(Path.Combine(f.PlanDirectory, ".arena-reward-44444444444444444444444444444444.tmp"), "x"); break;
+            case "unknown-file": File.WriteAllText(Path.Combine(f.PlanDirectory, "notes.txt"), "x"); break;
+            case "unreadable-plan": File.WriteAllText(f.PlanPath, "{"); break;
+            case "done-without-plan": File.Delete(f.PlanPath); break;
+            case "done-differs": File.WriteAllText(f.DonePath, File.ReadAllText(f.DonePath).Replace(plan.Approval.Claim.Fingerprint, new string('0', 64), StringComparison.Ordinal)); break;
+            case "uncommitted-journal-entry": f.SetJournalPhase(RewardJournalPhase.Attempting); break;
+            case "plan-folder-gone": File.Delete(f.PlanPath); File.Delete(f.DonePath); Directory.Delete(f.PlanDirectory); break;
+            case "journal-missing": File.Delete(f.JournalPath); break;
+            case "enrollment-missing": File.Delete(f.EnrollmentPath); break;
+            default: throw new ArgumentOutOfRangeException(nameof(gap));
+        }
+        f.Wipe();
+        var tree = Tree(f.Root);
+
+        var stop = await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        Assert.Contains("lost its ArenaMode reward block", stop.Message);
+        Assert.Contains(expected, stop.Message);
+        Assert.Contains("backup taken after that reward", stop.Message);
+        Assert.DoesNotContain("expected-object", stop.Message);
+        Assert.Equal(tree, Tree(f.Root));
+        // The same stop through the startup pass (this is the fatal outcome, deliberately).
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() =>
+            RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None));
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    [Theory]
+    [InlineData("plan-without-done", "has no completion record")]
+    [InlineData("unknown-file", "unknown file")]
+    [InlineData("journal-missing", "reward journal is missing")]
+    public async Task DeletedProfileWithIncompleteColaSideStillStopsStartupWithTheRealCause(string gap, string expected)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        if (gap != "plan-without-done") f.Complete(plan);
+        if (gap == "unknown-file") File.WriteAllText(Path.Combine(f.PlanDirectory, "notes.txt"), "x");
+        if (gap == "journal-missing") File.Delete(f.JournalPath);
+        File.Delete(f.ProfilePath);
+        var tree = Tree(f.Root);
+        var stop = await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        Assert.Contains("profile file is missing", stop.Message);
+        Assert.Contains(expected, stop.Message);
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    [Fact]
+    public async Task OnlyTheSameProfilesLostBlockCountsAsLostAuthority()
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.Complete(plan);
+        string intact = f.Profile;
+
+        // Block present: the ordinary recovery runs and a complete history stays a no-op, bit for bit.
+        Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+        Assert.Equal(intact, f.Profile);
+
+        // Another profile's file (info.id differs) without the block, a block that is not an object: current behaviour.
+        var other = JsonNode.Parse(intact)!.AsObject();
+        other["info"]!["id"] = "ffffffffffffffffffffffff";
+        other.Remove(RewardProfileDocument.ExtensionKey);
+        File.WriteAllText(f.ProfilePath, other.ToJsonString());
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        var nullBlock = JsonNode.Parse(intact)!.AsObject();
+        nullBlock[RewardProfileDocument.ExtensionKey] = null;
+        File.WriteAllText(f.ProfilePath, nullBlock.ToJsonString());
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        var noInfo = JsonNode.Parse(intact)!.AsObject();
+        noInfo.Remove("info");
+        noInfo.Remove(RewardProfileDocument.ExtensionKey);
+        File.WriteAllText(f.ProfilePath, noInfo.ToJsonString());
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+
+        // The authority recovery and the Cola recovery share one definition of "lost".
+        foreach (var (text, lost) in new[] { (intact, false), (other.ToJsonString(), false), (nullBlock.ToJsonString(), false), (noInfo.ToJsonString(), false) })
+            Assert.Equal(lost, RewardAuthorityRecovery.LostRewardBlock(text, f.Binding.ProfileId));
+        File.WriteAllText(f.ProfilePath, intact);
+        f.Wipe();
+        Assert.True(RewardAuthorityRecovery.LostRewardBlock(f.Profile, f.Binding.ProfileId));
+        Assert.False(RewardAuthorityRecovery.LostRewardBlock(f.Profile, "ffffffffffffffffffffffff"));
+        Assert.False(RewardAuthorityRecovery.LostRewardBlock("{", f.Binding.ProfileId));
+    }
+
+    [Fact]
+    public async Task ReconcileAndColaRecoveryAgreeOnWhatALostBlockIs()
+    {
+        var (f, _) = CompletedThenWiped(consent: true, enabled: true);
+        using var _f = f;
+        Assert.Equal("profile-reward-block-missing", RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!.Trigger);
+        Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
+        // A profile of another id is nobody's lost authority: Reconcile stays out, the Cola recovery keeps stopping.
+        var other = JsonNode.Parse(f.Profile)!.AsObject();
+        other["info"]!["id"] = "ffffffffffffffffffffffff";
+        File.WriteAllText(f.ProfilePath, other.ToJsonString());
+        Assert.Null(RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId));
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+    }
+
+    [Fact]
+    public async Task StopMessageNamesTheRealCauseInsteadOfFileAccess()
+    {
+        using var f = new Fixture();
+        f.Prepare();
+        await f.Pay();
+        f.Wipe();
+        var stop = await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        string log = ArenaRewardStartup.DescribeColaStop(stop);
+        Assert.Contains("lost its ArenaMode reward block", log);
+        Assert.Contains("has no completion record", log);
+        Assert.Contains("backup", log);
+        Assert.DoesNotContain("restore access", log);
+        Assert.DoesNotContain("   at ", log);
+        // A wrapped failure adds its reason code, never a stack.
+        var wrapped = new RewardColaRecoveryException("Tarkova Cola reward history needs recovery.", new RewardDataException("expected-object"));
+        Assert.Contains("(expected-object)", ArenaRewardStartup.DescribeColaStop(wrapped));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private static readonly string FixtureParent = Path.Combine(Path.GetTempPath(), "ArenaMode.ColaJournal.Tests");
@@ -716,10 +945,23 @@ public sealed class RewardColaJournalTests
             Window = new(Root, () => Unloaded);
         }
 
+        // What the SPT launcher's profile wipe leaves: the same profile (info.id) without the reward block.
+        internal void Wipe()
+        {
+            var profile = JsonNode.Parse(Profile)!.AsObject();
+            Assert.True(profile.Remove(RewardProfileDocument.ExtensionKey));
+            File.WriteAllText(ProfilePath, profile.ToJsonString());
+        }
+        // The runtime-managed enrollment of a default-on player, with or without its consent file.
+        internal void EnrollRuntimeManaged(bool consent, bool enabled)
+        {
+            WriteEnrollment(Enrollment with { RuntimeManaged = true });
+            if (consent) File.WriteAllText(Path.Combine(RewardDirectory, "consent.json"), Json(new RewardConsent(1, enabled, 1)));
+        }
         internal string Resolve(string _) => ForeignFolder;
         internal RewardColaPlan Prepare() => RewardColaJournal.Prepare(Window, Enrollment, Approval, Resolve)!;
         internal void Complete(RewardColaPlan plan) => RewardColaJournal.Complete(Window, Enrollment, plan, Resolve);
-        internal Task Recover() => RewardColaJournal.RecoverAsync(Window, Binding.ProfileId, CancellationToken.None, Resolve);
+        internal Task<RewardColaRecoveryResult> Recover() => RewardColaJournal.RecoverAsync(Window, Binding.ProfileId, CancellationToken.None, Resolve);
         internal ValueTask<RewardSettlementResult> Pay() => new RewardSettlementCore(
             new RewardStartupStore(Window, Enrollment, Approval, new())).SettleAsync(Claim);
         internal RewardColaPlan ReadPlan() => RewardStartupFiles.Read<RewardColaPlan>(PlanPath, 2_500_000);
