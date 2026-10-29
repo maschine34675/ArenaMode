@@ -61,3 +61,31 @@ delete its private session folder named in the message by hand. All limits of
 [0.4.0](https://github.com/maschine34675/ArenaMode/blob/v0.4.1/docs/RELEASE-0.4.0.md#validation-and-remaining-limits)
 still apply: Domination, Tactical, Zombies, Akimbo and Molotov remain WIP,
 Domination has no profile rewards, and Fika is unsupported.
+
+## Native release check
+
+On a GPU test host (SPT 4.1.6) with these exact binaries loaded: a profile that had
+been wiped in the SPT launcher after Arena had paid Tarkova Cola progress no longer
+stopped SPT; one Warning named it, and the profile and all 185 of its reward files
+stayed byte-identical. A direct start of an Arena session with that profile ran
+without rewards as intended, and RETURN TO SPT restarted the normal game. With
+Redeploy 1.1.1 and Recoil Rework Legacy 2.0.0, Continue as Scav kept the Scav alive
+through extraction. Arena matches, the several-installations case and an unusable
+reward folder were not run natively.
+
+## Package checks
+
+Built from `2a4438c973e611a3b4458c3d7919c9728d15bf7c`. ZIP SHA-256: `ec29f941e5d29a82a35f1a5317a6c68931a8534e251d26886787d5cb312e591f` (3,859,686 bytes). The package manifest records Core 1.0.18 from Redeploy `232af19`; the bundled Core is byte-identical to the one in Redeploy 1.1.1. Package contents, paths, hashes, defaults, notice links and audio provenance passed the package verifier.
+
+Fresh checks: 3,517 passed, with four explicit environment-dependent skips. Credential scanning found no credentials in the release source or payload.
+
+VirusTotal results below apply to these exact binaries (29 October 2026). The five DLLs had no malicious or suspicious labels. The unsigned helper `maschine-ArenaMode.Session.exe` has **4 malicious labels** (VirIT `Trojan.Win32.MSIL_Heur.A`, Elastic `malicious (moderate confidence)`, APEX `Malicious`, McAfeeD `ti!51BD61743D01`), 67 undetected and 4 unsupported engines. A separate Microsoft Defender scan found no threats. These findings are unresolved; they are not established false positives. No antivirus protection needs to be disabled.
+
+| File | SHA-256 / scan |
+|---|---|
+| `maschine-ArenaMode.Gate.dll` | [d368a6d09451…](https://www.virustotal.com/gui/file/d368a6d094519ddfd220450857d0305cd35b5355a1c8c1381a2a715702dc3a4d) |
+| `maschine-ArenaMode.BigBrainCompat.dll` | [163e287df9bf…](https://www.virustotal.com/gui/file/163e287df9bf66b7dabe47da22ab8a54a93d3e9c80ce90928eb81f5e4a3ed1b0) |
+| `maschine-ArenaMode.Client.dll` | [69083e467bda…](https://www.virustotal.com/gui/file/69083e467bda31ac2606e4a8ed7193b7b16e8ab71113056df07c4092240ae7bc) |
+| `maschine-ArenaMode.Session.exe` | [51bd61743d01…](https://www.virustotal.com/gui/file/51bd61743d013218b860f33e84b14daa231797106812d791d41f0a7be31cdd1c) |
+| `maschine-Redeploy.Core.dll` | [98620898b6a7…](https://www.virustotal.com/gui/file/98620898b6a7cdbdc4802681f3ad39dbecb4eacec515fb2013d379d872a8faaf) |
+| `maschine-ArenaMode.Server.dll` | [0eb1d3ae6441…](https://www.virustotal.com/gui/file/0eb1d3ae64414d220aae65b9a0d725b9bc6b61bdcf390814e400caf8021445a7) |

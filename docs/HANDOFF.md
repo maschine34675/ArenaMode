@@ -1,15 +1,25 @@
 # ArenaMode working handoff
 
-## Release preparation — ArenaMode 0.4.1, 2026-10-29
+## Published 2026-10-29 — ArenaMode 0.4.1
 
-Hotfix for 0.4.0: lost reward authority (wiped, restored, edited or moved profiles)
-no longer breaks Arena entry or normal startup, an unusable reward folder skips
-rewards instead of stopping SPT, and a finished Arena session of another SPT
-installation no longer blocks this one. Public client/server/gate/helper versions
-are 0.4.1; the bundled Core is 1.0.18, byte-identical to Redeploy 1.1.1, and the
-whitelist records Redeploy 1.1.1. See [release notes](RELEASE-0.4.1.md) and the
-[changelog](../CHANGELOG.md#041---2026-10-29). Package and native evidence are
-added here once the release is published.
+Hotfix for 0.4.0: lost reward authority (wiped, restored, edited or moved profiles,
+including Tarkova Cola reward history) no longer breaks Arena entry or normal startup,
+an unusable reward folder skips rewards instead of stopping SPT, and a finished Arena
+session of another SPT installation no longer blocks this one. Versions 0.4.1, Core 1.0.18,
+whitelist Redeploy 1.1.1; [changelog](../CHANGELOG.md#041---2026-10-29).
+
+[GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.1) is public,
+latest and not a prerelease. Tag/build source: `2a4438c973e611a3b4458c3d7919c9728d15bf7c`.
+`ArenaMode-0.4.1.zip` is 3,859,686 bytes; SHA-256
+`ec29f941e5d29a82a35f1a5317a6c68931a8534e251d26886787d5cb312e591f`. ZIP and checksum were
+downloaded back and matched the GitHub digests and local bytes. Shared Core 1.0.18 is
+byte-identical to Redeploy 1.1.1's copy. Fresh checks: 3,517 passed, four environment skips.
+The unsigned helper has four unresolved generic VirusTotal labels; Defender found no threats.
+One native GPU-2 cycle with the exact binaries passed: startup with a launcher-wiped profile
+that held Tarkova Cola reward history (this defect was found by that cycle and fixed in
+`3466c452`/`2a4438c9`), a direct-start Arena session without rewards and its return, and
+Redeploy's Continue as Scav with Recoil Rework Legacy. The v0.4.0 release page now names 0.4.1
+as its successor. See [the release notes](RELEASE-0.4.1.md).
 
 ## Published 2026-10-29 — ArenaMode 0.4.0
 
