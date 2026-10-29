@@ -2,7 +2,8 @@ using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
 
-internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementResult Result, long Roubles, long Experience = 0);
+internal sealed record RewardStartupOutcome(string ProfileId, RewardSettlementResult Result, long Roubles, long Experience = 0,
+    RewardAuthorityNotice? Authority = null);
 
 internal static class RewardStartupProcessor
 {
@@ -32,11 +33,16 @@ internal static class RewardStartupProcessor
     {
         long roubles = 0;
         long experience = 0;
+        RewardAuthorityNotice? authority = null;
         try
         {
             if (cancellationToken.IsCancellationRequested) return Outcome(RewardSettlementStatus.Deferred, "cancelled");
             window.RequireOpen();
             if (!RewardIdentity.IsHex(id, 24)) throw new RewardDataException("invalid-profile-directory");
+            // An enrollment the profile or the install location no longer backs is settled FIRST: every later
+            // step reads the ledger inside the profile and would only report it as damaged. A nested pass
+            // (includeRuntimeInbox false) belongs to a top-level call that already did this.
+            if (includeRuntimeInbox) authority = RewardAuthorityRecovery.Reconcile(window, id);
             // Finish an already committed payment's companion write even if the
             // player has since opted out. This path cannot create a new payment.
             await RewardColaJournal.RecoverAsync(window, id, cancellationToken);
@@ -78,7 +84,7 @@ internal static class RewardStartupProcessor
             {
                 var queued = await RewardRuntimeInbox.ProcessAsync(window, enrollment, cancellationToken,
                     () => ProcessProfileAsync(window, id, cancellationToken, includeRuntimeInbox: false));
-                if (queued is not null) return queued;
+                if (queued is not null) return queued with { Authority = authority };
             }
             if (hasRuntimeConsent && !RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "candidate.json"))
                 && !RewardRuntimeFiles.Exists(window.Root, Path.Combine(directory, "approved.json")))
@@ -128,7 +134,7 @@ internal static class RewardStartupProcessor
                 RewardStartupFiles.WriteAtomic(window.Root, path, json);
                 if (File.ReadAllText(path) != json) throw new IOException("Reward acknowledgement was not durable.");
             }
-            return new(id, result, roubles, experience);
+            return new(id, result, roubles, experience, authority);
         }
         catch (FileNotFoundException) { return Outcome(RewardSettlementStatus.Quarantined, "enrolled-state-missing"); }
         catch (DirectoryNotFoundException) { return Outcome(RewardSettlementStatus.Quarantined, "enrolled-state-missing"); }
@@ -140,6 +146,6 @@ internal static class RewardStartupProcessor
         catch (FormatException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
         catch (ArgumentException) { return Outcome(RewardSettlementStatus.Quarantined, "invalid-startup-state"); }
 
-        RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), roubles, experience);
+        RewardStartupOutcome Outcome(RewardSettlementStatus status, string reason) => new(id, new(status, reason), roubles, experience, authority);
     }
 }

@@ -33,6 +33,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
         RewardReturnRequest? request = null;
         RewardEntryRequest? entryRequest = null;
         RewardEntryGrant? entryGrant = null;
+        RewardReturnReply reply;
         bool entering = context.Request.Path == RewardEntryControl.Route;
         bool authorized = false;
         bool reserved = false;
@@ -100,12 +101,55 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             if (lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested)
                 throw Refused("return-server-already-stopping");
 
+            // Registers the graceful exit once the reply has been written. Used by every outcome of a stop
+            // that got past the point of no return (see RewardEntryPublication).
+            void ScheduleShutdown(bool succeeded) => context.Response.OnCompleted(() =>
+            {
+                if (Interlocked.Exchange(ref _shutdownRequested, 1) == 0)
+                {
+                    ArenaContext.Logger?.Info(!succeeded
+                        ? "[ArenaMode] The normal server is stopping; no Arena session was started."
+                        : entering
+                            ? "[ArenaMode] Starting a private Arena session; the normal server has saved and will stop."
+                            : "[ArenaMode] Returning to the normal session; restarting the local server to deliver Arena rewards.");
+                    lifetime.StopApplication();
+                }
+                return Task.CompletedTask;
+            });
+
+            if (entering && !RewardReturnQuiescence.Sequence.UpdatesStopped)
+            {
+                // Everything the proof publication could refuse is decided NOW, while pausing is still undoable.
+                // A damaged reward authority is no reason to refuse (the session simply runs without rewards);
+                // anything else declines the entry and the helper reopens the normal session.
+                stage = "entry-preflight";
+                refusal = "entry-preflight-failed";
+                string? unavailable;
+                try { unavailable = RewardOfflineSession.PreflightReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!); }
+                catch (Exception preflight)
+                {
+                    string why = preflight is RewardDataException ? preflight.Message : preflight.GetType().Name;
+                    ArenaContext.Logger?.Warning($"[ArenaMode] Arena session entry declined before the server was paused ({why}); the normal session continues untouched.");
+                    Release();
+                    reply = RewardEntryPublication.Declined(why,
+                        !lifetime.ApplicationStopping.IsCancellationRequested && !lifetime.ApplicationStopped.IsCancellationRequested);
+                    stage = "write-response";
+                    refusal = "response-write-failed";
+                    await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), CancellationToken.None);
+                    return;
+                }
+                if (unavailable is not null)
+                    ArenaContext.Logger?.Warning($"[ArenaMode] Profile rewards are unavailable for this Arena session (profile {id}): "
+                        + $"the reward records do not match this installation or profile ({unavailable}). The session starts normally without rewards. "
+                        + "Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+            }
+
             // A dropped HTTP client cannot cancel a half-stopped server. The operation has its own
             // bound and reports a held state if a stopped update loop cannot safely be followed by exit.
             using var operationTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             stage = "save-and-drain";
             refusal = "save-and-drain-failed";
-            var reply = await RewardReturnQuiescence.Sequence.PrepareAsync(
+            reply = await RewardReturnQuiescence.Sequence.PrepareAsync(
                 () => (entering ? RewardEntryControl.Current.Authorize(id.ToString(), entryRequest!, out _)
                     : control.Authorize(id.ToString(), request!)) && IsIdle(),
                 SaveAndVerify,
@@ -123,6 +167,8 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             reply = reply with { CanResumeNormal = entering && reply.CanResumeNormal
                 && !RewardReturnQuiescence.Requests.Held && !RewardReturnQuiescence.Updates.Held
                 && !lifetime.ApplicationStopping.IsCancellationRequested && !lifetime.ApplicationStopped.IsCancellationRequested };
+            // Register the exit after durable save proof, before writing the acknowledgement. The helper
+            // also pins the old process and waits for its actual exit before starting a successor.
             if (reply.Accepted)
             {
                 if (entering)
@@ -130,22 +176,14 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     stage = "publish-entry-proof";
                     refusal = "entry-proof-publication-failed";
                     // Durable proof is mandatory even when the HTTP reply is lost. A process exit
-                    // alone could also be a crash before its final native save finished.
-                    RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!);
+                    // alone could also be a crash before its final native save finished. The native
+                    // update loop is stopped for good by now, so a failure here must still end in the
+                    // graceful exit (RewardEntryPublication), never in a paused server without one.
+                    reply = await RewardEntryPublication.PublishAsync(
+                        () => RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!),
+                        reply, ScheduleShutdown, message => ArenaContext.Logger?.Warning("[ArenaMode] " + message));
                 }
-                // Register after durable save proof, before writing the acknowledgement. The helper
-                // also pins the old process and waits for its actual exit before starting a successor.
-                context.Response.OnCompleted(() =>
-                {
-                    if (Interlocked.Exchange(ref _shutdownRequested, 1) == 0)
-                    {
-                        ArenaContext.Logger?.Info(entering
-                            ? "[ArenaMode] Starting a private Arena session; the normal server has saved and will stop."
-                            : "[ArenaMode] Returning to the normal session; restarting the local server to deliver Arena rewards.");
-                        lifetime.StopApplication();
-                    }
-                    return Task.CompletedTask;
-                });
+                else ScheduleShutdown(true);
             }
             else if (reply.Held)
                 ArenaContext.Logger?.Warning("[ArenaMode] Session switch paused: the local server retained its profiles in memory because a safe final save could not be confirmed. Do not close it; retry the session switch.");

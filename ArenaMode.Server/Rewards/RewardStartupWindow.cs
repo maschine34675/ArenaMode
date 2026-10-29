@@ -22,6 +22,15 @@ internal sealed class RewardStartupLifetimeLock : IDisposable
     private readonly FileStream _stream;
     private RewardStartupLifetimeLock(FileStream stream) => _stream = stream;
 
+    /// <summary>
+    /// True when the file is held by someone else. Only that is the genuine contention these locks exist for;
+    /// a missing folder, a too-long path or a disk fault is an unusable location (see ArenaRewardStartup).
+    /// </summary>
+    internal static bool IsContention(IOException exception) =>
+        exception is not (FileNotFoundException or DirectoryNotFoundException or PathTooLongException
+            or DriveNotFoundException or EndOfStreamException)
+        && (!OperatingSystem.IsWindows() || (exception.HResult & 0xFFFF) is 32 or 33); // sharing / lock violation
+
     internal static RewardStartupLifetimeLock Acquire(string root)
     {
         var path = Path.Combine(root, RewardStartupFiles.RelativeDirectory, ".server.lock");
@@ -40,9 +49,9 @@ internal sealed class RewardStartupLifetimeLock : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             try { return new(new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)); }
-            catch (IOException) when (stopwatch.Elapsed < (maximumWait ?? TimeSpan.FromMinutes(2)))
+            catch (IOException e) when (IsContention(e) && stopwatch.Elapsed < (maximumWait ?? TimeSpan.FromMinutes(2)))
             { await Task.Delay(25, cancellationToken); }
-            catch (IOException e)
+            catch (IOException e) when (IsContention(e))
             {
                 // Continuing would let this server load profiles while the other
                 // process is still settling them. This one exceptional startup

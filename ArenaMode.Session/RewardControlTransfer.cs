@@ -147,15 +147,20 @@ namespace ArenaMode.SessionHelper
         {
             string full;
             if (!HelperPathSafety.TryNormalize(path, out full) || HelperPathSafety.HasParentSegment(path))
-                throw new InvalidDataException();
+                throw new InvalidDataException("The path '" + path + "' is not a plain absolute Windows path.");
             for (string current = full; current != null; current = HelperPathSafety.GetParent(current))
             {
                 FileAttributes attributes;
                 if (HelperFileSystem.TryGetAttributes(current, out attributes))
                 {
-                    if ((attributes & FileAttributes.ReparsePoint) != 0
-                        || !HelperPathSafety.PathsEqual(current, full) && (attributes & FileAttributes.Directory) == 0)
-                        throw new InvalidDataException();
+                    // The default InvalidDataException text ("Found invalid data while decoding.") reached the
+                    // helper log and told nobody which folder was meant. Name the link; the refusal stays.
+                    if ((attributes & FileAttributes.ReparsePoint) != 0)
+                        throw new InvalidDataException("Arena sessions cannot run through a link: '" + current
+                            + "' is a link (junction, symbolic link, mount point or cloud placeholder). Start SPT and Arena from the real folder path "
+                            + "or move the installation to a normal folder.");
+                    if (!HelperPathSafety.PathsEqual(current, full) && (attributes & FileAttributes.Directory) == 0)
+                        throw new InvalidDataException("'" + current + "' is a file, but a folder was expected on the path '" + full + "'.");
                 }
                 else if (required && HelperPathSafety.PathsEqual(current, full)) throw new FileNotFoundException();
             }

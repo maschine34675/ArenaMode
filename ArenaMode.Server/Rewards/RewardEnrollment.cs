@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
 
@@ -63,7 +64,25 @@ internal static class RewardEnrollment
         }
         RewardRuntimeFiles.Write(root, Path.Combine(directory, "consent.json"), after);
         if (after.Enabled && RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json")))
-            PublishHandoff(root, directory, Read(root, id));
+        {
+            // An enrollment that does not match this installation any more (moved or copied install) or
+            // cannot be read at all (damaged, oversized) was quarantined at startup and the session ran
+            // without authority (the same classes ReadEntryAuthority lets through). The acknowledged choice
+            // is already stored above; refusing to re-publish a handoff for a dead enrollment must not stop
+            // the normal server from starting after the session.
+            RewardStartupEnrollment enrollment;
+            try { enrollment = Read(root, id); }
+            catch (Exception e) when (e is RewardDataException or JsonException or FormatException or ArgumentException
+                or InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                ArenaContext.Logger?.Debug("[ArenaMode] Reward handoff not re-published after the private session: enrollment unusable ("
+                    + (e is RewardDataException ? e.Message : e.GetType().Name) + ").");
+                return;
+            }
+            try { PublishHandoff(root, directory, enrollment); }
+            catch (RewardDataException e) when (e.Message is "runtime-enrollment-origin-mismatch" or "handoff-enrollment-conflict")
+            { ArenaContext.Logger?.Debug("[ArenaMode] Reward handoff not re-published after the private session: " + e.Message + "."); }
+        }
     }
 
     internal static RewardStartupEnrollment Read(string root, string id)

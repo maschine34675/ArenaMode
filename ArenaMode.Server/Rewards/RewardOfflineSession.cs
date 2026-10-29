@@ -58,15 +58,58 @@ internal static partial class RewardOfflineSession
         lock (Sync) return CreateReadyCore(root, grant, request);
     }
 
+    // Everything CreateReady can refuse, without a single write. The shutdown listener runs it BEFORE
+    // the native stop sequence pauses requests and stops the (non-resumable) update loop, so a
+    // deterministic refusal declines the entry while the normal server is still fully alive. Returns why
+    // the profile's reward authority is unusable (the lease then carries none), or null.
+    internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request)
+    {
+        lock (Sync)
+        {
+            BuildReady(RewardStartupFiles.Canonical(root), grant, request, out _, out string? unavailable);
+            return unavailable;
+        }
+    }
+
     private static RewardOfflineLease CreateReadyCore(string root, RewardEntryGrant grant, RewardEntryRequest request)
     {
         root = RewardStartupFiles.Canonical(root);
+        var lease = BuildReady(root, grant, request, out bool published, out _);
+        if (!published)
+        {
+            RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
+            RewardRuntimeFiles.WriteNew(root, LeasePath(root, grant.SessionId), lease);
+        }
+        var reference = new RewardOfflineReference(1, lease.SessionId, Hash(lease));
+        if (lease.Authority is { } delegated)
+        {
+            string directory = RewardRuntimeFiles.DirectoryFor(root, lease.ProfileId);
+            string delegates = Path.Combine(directory, "delegations");
+            RewardRuntimeFiles.EnsureDirectory(root, delegates);
+            RewardRuntimeFiles.WriteNew(root, Path.Combine(delegates, delegated.DelegationId + ".json"), delegated);
+            string index = Path.Combine(directory, "offline-delegations");
+            RewardRuntimeFiles.EnsureDirectory(root, index);
+            RewardRuntimeFiles.WriteNew(root, Path.Combine(index, delegated.DelegationId + ".json"), reference);
+        }
+        RewardRuntimeFiles.WriteNew(root, ActivePath(root), reference);
+        return lease;
+    }
+
+    // The lease an entry would publish, or the one already published for an identical retry. Pure reads.
+    // The reward authority is deliberately NOT a precondition of Arena entry: an enrollment that no longer
+    // matches this installation or whose ledger left the profile (wipe, restored backup, moved or copied
+    // install, editor) yields a lease WITHOUT authority, exactly like a profile that never enrolled.
+    private static RewardOfflineLease BuildReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
+        out bool published, out string? authorityUnavailable)
+    {
+        authorityUnavailable = null;
         if (!RewardStartupFiles.MarkerAbsent(root) || grant.Schema != 1 || grant.Purpose != RewardEntryControl.Purpose
             || request.Schema != 1 || request.SessionId != grant.SessionId || request.Token != grant.Token
             || !RewardRuntimeFiles.SameRoot(root, grant.RuntimeRoot)) throw new RewardDataException("offline-entry-mismatch");
         var path = LeasePath(root, grant.SessionId);
         RewardOfflineLease lease;
-        if (RewardRuntimeFiles.Exists(root, path))
+        published = RewardRuntimeFiles.Exists(root, path);
+        if (published)
         {
             lease = ReadLease(root, path);
             if (lease.ProfileId != grant.ProfileId || lease.EntryOperationId != request.OperationId
@@ -83,42 +126,42 @@ internal static partial class RewardOfflineSession
         else
         {
             if (HasActive(root)) throw new RewardDataException("offline-session-already-active");
+            // The player's own choice stays a precondition: the return path rewrites it and refuses to go on
+            // over a damaged file. Refusing here, before the stop sequence, leaves the normal session untouched.
             var consent = RewardEnrollment.ReadConsent(root, grant.ProfileId);
-            var directory = RewardRuntimeFiles.DirectoryFor(root, grant.ProfileId);
-            RewardHandoff? authority = null;
-            if (RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json")))
-            {
-                if (!RewardRuntimeFiles.Exists(root, Path.Combine(directory, "consent.json")))
-                    throw new RewardDataException("offline-existing-consent-missing");
-                var enrollment = RewardEnrollment.Read(root, grant.ProfileId);
-                // Read-only validation of the existing ledger; never enroll here.
-                string profilePath = Path.Combine(root, "user", "profiles", grant.ProfileId + ".json");
-                RewardStartupFiles.RequireLocalPath(root, profilePath);
-                _ = RewardProfileDocument.ReadLedger(File.ReadAllText(profilePath), enrollment.Binding, new());
-                authority = new(1, true, root, enrollment.Binding, Guid.NewGuid().ToString("N"), Secret(), grant.SessionId);
-            }
+            var authority = ReadEntryAuthority(root, grant, out authorityUnavailable);
             lease = new(1, grant.SessionId, grant.ProfileId, root, RewardStartupFiles.Canonical(request.PrivateRoot),
                 request.MarkerCreatedUtc, request.Port, consent.Revision, consent.Enabled, authority, Secret(),
                 grant.ServerPid, grant.ServerStartedUtc, grant.ServerArguments.ToArray(), request.OperationId,
                 request.HelperPid, request.HelperStartedUtc);
-            Validate(lease);
-            RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
-            RewardRuntimeFiles.WriteNew(root, path, lease);
         }
         Validate(lease);
-        var reference = new RewardOfflineReference(1, lease.SessionId, Hash(lease));
-        if (lease.Authority is { } delegated)
-        {
-            string directory = RewardRuntimeFiles.DirectoryFor(root, lease.ProfileId);
-            string delegates = Path.Combine(directory, "delegations");
-            RewardRuntimeFiles.EnsureDirectory(root, delegates);
-            RewardRuntimeFiles.WriteNew(root, Path.Combine(delegates, delegated.DelegationId + ".json"), delegated);
-            string index = Path.Combine(directory, "offline-delegations");
-            RewardRuntimeFiles.EnsureDirectory(root, index);
-            RewardRuntimeFiles.WriteNew(root, Path.Combine(index, delegated.DelegationId + ".json"), reference);
-        }
-        RewardRuntimeFiles.WriteNew(root, ActivePath(root), reference);
         return lease;
+    }
+
+    // Read-only validation of an existing enrollment and ledger; never enrolls. Any failure to read or match
+    // them means "no authority for this session" and names the cause for the server log.
+    private static RewardHandoff? ReadEntryAuthority(string root, RewardEntryGrant grant, out string? unavailable)
+    {
+        unavailable = null;
+        var directory = RewardRuntimeFiles.DirectoryFor(root, grant.ProfileId);
+        try
+        {
+            if (!RewardRuntimeFiles.Exists(root, Path.Combine(directory, "enrollment.json"))) return null;
+            if (!RewardRuntimeFiles.Exists(root, Path.Combine(directory, "consent.json")))
+                throw new RewardDataException("offline-existing-consent-missing");
+            var enrollment = RewardEnrollment.Read(root, grant.ProfileId);
+            string profilePath = Path.Combine(root, "user", "profiles", grant.ProfileId + ".json");
+            RewardStartupFiles.RequireLocalPath(root, profilePath);
+            _ = RewardProfileDocument.ReadLedger(File.ReadAllText(profilePath), enrollment.Binding, new());
+            return new(1, true, root, enrollment.Binding, Guid.NewGuid().ToString("N"), Secret(), grant.SessionId);
+        }
+        catch (Exception e) when (e is RewardDataException or JsonException or FormatException or ArgumentException
+            or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            unavailable = e is RewardDataException ? e.Message : e.GetType().Name;
+            return null;
+        }
     }
 
     internal static RewardOfflinePrivate? Owner(string root)

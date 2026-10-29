@@ -85,10 +85,99 @@ missing or malformed old consent/history is never repaired by the default.
 Explicit OFF, enrollment identities, journals and prior payments remain intact.
 No default is applied by a live route or a private server.
 
-The shared coordination path remains fail-closed: a path/link/permission failure
-before admission can stop startup rather than allow native profile loading while
-another process may still own settlement. Other refused reward cases continue
-through the existing reward-only failure reporting.
+The shared coordination path stays fail-closed for real contention only: a
+`.startup.lock` that is still busy after two minutes, a held `.server.lock`, a live
+private owner and cancellation stop startup, because another process may still own
+settlement and native profile loading would race it. A reward folder that merely
+cannot be used does not: when the SPT folder or one of its parents is a link
+(junction, symbolic link, mount point, cloud placeholder), when access is denied or
+the path is unavailable, nothing else can be holding the lock either (any peer hits
+the same failure). Startup then does no reward work at all, writes nothing, logs one
+Warning that rewards are unavailable and why, and SPT starts normally; the menu shows
+"Rewards are off: this installation's reward folder cannot be used. See the server
+log." (a refusal that a restart may clear keeps "temporarily unavailable"). Only a held lock counts as contention (a
+sharing or lock violation, `RewardStartupLifetimeLock.IsContention`); a missing
+folder, a too-long path or a disk fault is an unusable location. A private Arena
+tree (session marker or lease file present) is never skipped, because it owns the
+original runtime's lifetime lock. Other refused reward cases continue through the
+existing reward-only failure reporting.
+
+### Lost reward authority
+
+The ledger lives in the profile (`com.maschine.ArenaMode.rewards`), its authority
+beside it in `user/arena-rewards/<profileId>/`, bound to the installation root. The
+two can part: SPT's profile wipe builds a new profile (same `info.id`, no extension
+block), a restored pre-enrollment backup or an editor drops the block, and a moved or
+copied install keeps an enrollment for the old root. Rewards for that profile cannot
+be paid then. What must NOT happen is the rest of the product breaking with them.
+
+**Arena entry never depends on reward authority.** Before the native stop sequence
+pauses anything, the shutdown listener runs `RewardOfflineSession.PreflightReady`:
+everything publication would refuse, without a write. A missing or mismatching
+enrollment, an unreadable ledger or a missing consent file is not a refusal; the
+session lease is then published WITHOUT authority, exactly like a never-enrolled
+profile, and a Warning names the profile and the cause. Anything else deterministic
+(`offline-entry-mismatch`, a still-active session, an unreadable `consent.json`,
+which the return path would refuse to go on over) declines the entry while the
+normal server is still alive: reply `return-not-ready` with `canResumeNormal`, and
+the helper reopens the normal session. On return, `ApplyOfflineConsent` stores the
+acknowledged choice and skips re-publishing a handoff for an enrollment that no
+longer matches this root or cannot be read at all (damaged, oversized: the same
+classes entry lets through), instead of stopping normal startup. Both ends are
+equally tolerant on purpose: an entry that starts a session without authority must
+not leave behind a return that wedges every later normal start.
+
+**A failure after the stop sequence ends in the graceful shutdown.** Once the update
+loop is stopped (native `StopAsync` cannot be undone) and requests are held, the
+normal server can never serve again. If the entry proof then cannot be written
+(`RewardEntryPublication`: three attempts for transient file errors), the server
+logs a Warning and registers the same `StopApplication` the success path uses, and
+replies `accepted:false, held:false, entry-proof-unpublished`. The helper reports a
+declined entry and copies nothing (`held:true` would keep its Retry/Cancel dialog
+open against a server that is about to exit). No profile data is lost: the final
+save was verified before this point. Start SPT again normally.
+
+**Startup recovery** (`RewardAuthorityRecovery`, first step of every profile's
+startup pass, inside the admitted pre-load window). It acts on an enrolled profile
+when the profile file lost the extension block while `info.id` still matches, or the
+enrollment's `RuntimeRoot` no longer equals the current root (moved or copied
+install). If NOTHING in the old directory is unsettled, it archives the directory by
+rename (`<profileId>.archived-<utc>-<id>`, never deleted; the profile-keyed run,
+snapshot and checkpoint evidence goes along as `evidence/`), carries the player's
+consent choice over unchanged (an opted-out player stays opted out, revision kept)
+and lets the ordinary enrollment create a fresh epoch in the same pass. For a moved
+install the old ledger block is first copied to `lost-ledger-extension.json` in the
+archive and then removed from the profile (its payments stay in the profile's mail;
+only the ledger block is replaced). Crash safety: the choice is staged first
+(`<profileId>.reenroll-<id>`), and the next startup finishes an interrupted second
+rename before anything reads the missing directory as a new profile.
+
+Unsettled means: any journal entry not committed or carrying Tarkova Cola
+progression; a received receipt or allocation without its `imported` marker; an
+approval, candidate or decision not matched by a committed journal entry; a pending
+recovery request; an unresolved Arena run or restoration; an active offline session;
+an unrecognised file; a moved install whose ledger and journal disagree. A record
+that a validated recovery closure (the automatic discard of an uncertain session, or
+a confirmed recovery request) ended WITHOUT payment is settled, because the settlement
+code leaves its files unmarked on purpose: that covers a pending run or restoration,
+a retained receipt (verified with the key of its own old delegation first), a
+candidate and a decision. Closures are read only for the moved-install trigger (the
+profile still holds the markers); a profile that lost its ledger block lost the
+markers too, so nothing counts as closed there. A closure that cannot be proven
+under the new root (a late restoration needs delegations that still name the old
+root) cannot be read and keeps the profile unsettled: fail toward no payment. Then
+nothing changes: the quarantine stays, no payment is possible, and the Warning
+carries the cause. A fresh epoch makes every receipt and key of the old one
+unusable, so neither a copy of the install nor a restored backup can be paid twice;
+a profile whose ledger is an older revision of the same epoch (a backup behind the
+journal), or that carries another epoch's block, is not recovered and keeps going
+through the settlement core's divergence checks.
+
+Manual remedy for an unsettled profile: start the installation at the root recorded
+in `enrollment.json` once, so its pending rewards are delivered, and move it again;
+or, accepting the loss of those unpaid rewards, stop the server and rename
+`user/arena-rewards/<profileId>` aside (a profile that still carries the ledger block
+also needs that block removed from its file, which is why this is a last resort).
 
 ### Private-session consent
 

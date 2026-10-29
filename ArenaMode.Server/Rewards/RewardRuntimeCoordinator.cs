@@ -24,6 +24,7 @@ internal sealed class RewardRuntimeCoordinator
     private readonly Dictionary<string, string> _failures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _startupFailures = new(StringComparer.Ordinal);
     private string? _startupUnavailable;
+    private bool _storageUnusable;
     private readonly Func<DateTimeOffset> _now;
     private readonly RewardConsentControl _control;
     private readonly RewardPrivateConsent _privateConsent;
@@ -48,14 +49,18 @@ internal sealed class RewardRuntimeCoordinator
     {
         lock (_sync)
         {
-            if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
+            if (outcome.Authority is { Recovered: false } lost)
+                _startupFailures[outcome.ProfileId] = lost.Reason;
+            else if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
                 || outcome.Result.Reason == "startup-storage-unavailable")
                 _startupFailures[outcome.ProfileId] = outcome.Result.Reason;
         }
     }
 
-    internal void ObserveStartupUnavailable(string reason)
-    { lock (_sync) _startupUnavailable = reason; }
+    // storageUnusable: the reward folder cannot be used at all (permanent until the install is fixed),
+    // as opposed to a refusal that a restart may clear.
+    internal void ObserveStartupUnavailable(string reason, bool storageUnusable = false)
+    { lock (_sync) { _startupUnavailable = reason; _storageUnusable = storageUnusable; } }
 
     internal RewardStatusResponse GetStatus(string id)
     {
@@ -151,7 +156,7 @@ internal sealed class RewardRuntimeCoordinator
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or RewardDataException or JsonException or FormatException)
             {
                 result.State = "withheld";
-                result.Detail = "Rewards are temporarily unavailable.";
+                result.Detail = UnavailableDetail(id);
                 result.CanChange = false;
             }
             ApplyPrivatePending(id, result);
@@ -181,8 +186,18 @@ internal sealed class RewardRuntimeCoordinator
         string? failure = _failures.GetValueOrDefault(id) ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
         if (failure is null) return;
         result.State = "withheld";
-        result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : "Rewards are temporarily unavailable.";
+        result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : UnavailableDetail(id);
     }
+
+    // "Temporarily" is wrong for a profile whose reward records no longer belong to it or to this
+    // installation: waiting does not help, and the server log names the remedy.
+    // The same holds when the reward folder itself cannot be used (a linked SPT folder, denied access).
+    private string UnavailableDetail(string id)
+        => _startupFailures.GetValueOrDefault(id)?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true
+            ? "Rewards are off for this profile: its reward records no longer match it or this installation. See the server log."
+            : _storageUnusable && !_startupFailures.ContainsKey(id)
+                ? "Rewards are off: this installation's reward folder cannot be used. See the server log."
+                : "Rewards are temporarily unavailable.";
 
     internal RewardStatusResponse SetConsent(string id, bool enabled)
     {
