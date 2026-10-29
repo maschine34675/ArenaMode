@@ -729,7 +729,7 @@ public sealed class RewardColaJournalTests
         // The reward folder synchronises between installations: the enrollment names the root that created it.
         var (f, _) = CompletedThenWiped(consent: true, enabled: false);
         using var _f = f;
-        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = Path.Combine(Path.GetTempPath(), "ArenaMode.Moved.From", Guid.NewGuid().ToString("N")), RuntimeManaged = true });
+        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
         var tree = Tree(f.Root);
         Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
         var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
@@ -755,37 +755,50 @@ public sealed class RewardColaJournalTests
         Assert.Equal(tree, Tree(f.Root));
         var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None);
         Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        // A deleted profile file has no authority to report: no notice, so no Warning (the documentation says so).
+        Assert.Null(outcome.Authority);
         Assert.Equal(tree, Tree(f.Root));
         Assert.False(File.Exists(f.ProfilePath));
     }
 
+    // A gap in the companion side. A profile backup finishes only an UNFINISHED transaction; damage in the reward
+    // records themselves is not repaired by one, and the message must not promise it (restoreProfile false).
     [Theory]
-    [InlineData("plan-without-done", "has no completion record")]
-    [InlineData("temporary-file", "temporary file")]
-    [InlineData("unknown-file", "unknown file")]
-    [InlineData("unreadable-plan", "cannot be read")]
-    [InlineData("done-without-plan", "has no Cola plan")]
-    [InlineData("done-differs", "does not match its plan")]
-    [InlineData("uncommitted-journal-entry", "not committed")]
-    [InlineData("plan-folder-gone", "not committed or has no matching Cola plan")]
-    [InlineData("journal-missing", "reward journal is missing")]
-    [InlineData("enrollment-missing", "enrollment is missing")]
-    public async Task WipedProfileWithIncompleteColaSideStillStopsStartupWithTheRealCause(string gap, string expected)
+    [InlineData("plan-without-done", "has no completion record", true)]
+    [InlineData("attempting-without-done", "has no completion record", true)]
+    [InlineData("uncommitted-journal-entry", "that is not committed", true)]
+    [InlineData("unknown-file", "unknown file", false)]
+    [InlineData("unreadable-plan", "cannot be read", false)]
+    [InlineData("plan-run-id-differs-from-file-name", "contradicts the other plans", false)]
+    [InlineData("done-without-plan", "has no Cola plan", false)]
+    [InlineData("done-differs", "does not match its plan", false)]
+    [InlineData("plan-folder-gone", "that has no Cola plan", false)]
+    [InlineData("journal-fingerprint-differs", "does not match its Cola plan", false)]
+    [InlineData("journal-missing", "reward journal is missing", false)]
+    [InlineData("enrollment-missing", "enrollment is missing", false)]
+    public async Task WipedProfileWithIncompleteColaSideStillStopsStartupWithTheRealCause(string gap, string expected, bool restoreProfile)
     {
         using var f = new Fixture();
         var plan = f.Prepare();
         await f.Pay();
-        if (gap != "plan-without-done") f.Complete(plan);
+        if (gap is not ("plan-without-done" or "attempting-without-done")) f.Complete(plan);
         switch (gap)
         {
             case "plan-without-done": break;
-            case "temporary-file": File.WriteAllText(Path.Combine(f.PlanDirectory, ".arena-reward-44444444444444444444444444444444.tmp"), "x"); break;
+            case "attempting-without-done": f.SetJournalPhase(RewardJournalPhase.Attempting); break;
             case "unknown-file": File.WriteAllText(Path.Combine(f.PlanDirectory, "notes.txt"), "x"); break;
             case "unreadable-plan": File.WriteAllText(f.PlanPath, "{"); break;
+            case "plan-run-id-differs-from-file-name":
+                File.Move(f.PlanPath, Path.Combine(f.PlanDirectory, "44444444444444444444444444444444.json"));
+                File.Move(f.DonePath, Path.Combine(f.PlanDirectory, "44444444444444444444444444444444.done.json"));
+                break;
             case "done-without-plan": File.Delete(f.PlanPath); break;
             case "done-differs": File.WriteAllText(f.DonePath, File.ReadAllText(f.DonePath).Replace(plan.Approval.Claim.Fingerprint, new string('0', 64), StringComparison.Ordinal)); break;
             case "uncommitted-journal-entry": f.SetJournalPhase(RewardJournalPhase.Attempting); break;
             case "plan-folder-gone": File.Delete(f.PlanPath); File.Delete(f.DonePath); Directory.Delete(f.PlanDirectory); break;
+            case "journal-fingerprint-differs":
+                f.WriteJournal(f.Journal with { Entries = f.Journal.Entries.Select(e => e with { Payment = e.Payment with { Fingerprint = new string('0', 64) } }).ToArray() });
+                break;
             case "journal-missing": File.Delete(f.JournalPath); break;
             case "enrollment-missing": File.Delete(f.EnrollmentPath); break;
             default: throw new ArgumentOutOfRangeException(nameof(gap));
@@ -796,13 +809,132 @@ public sealed class RewardColaJournalTests
         var stop = await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
         Assert.Contains("lost its ArenaMode reward block", stop.Message);
         Assert.Contains(expected, stop.Message);
-        Assert.Contains("backup taken after that reward", stop.Message);
+        if (restoreProfile) Assert.Contains("backup taken after that reward", stop.Message);
+        else
+        {
+            Assert.Contains("A profile backup does not repair this", stop.Message);
+            Assert.DoesNotContain("backup taken after that reward", stop.Message);
+        }
         Assert.DoesNotContain("expected-object", stop.Message);
         Assert.Equal(tree, Tree(f.Root));
         // The same stop through the startup pass (this is the fatal outcome, deliberately).
         await Assert.ThrowsAsync<RewardColaRecoveryException>(() =>
             RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None));
         Assert.Equal(tree, Tree(f.Root));
+    }
+
+    // Inert leftovers are no reason to stop SPT: a plan whose journal entry is absent or only Prepared never reached
+    // a native write (the ordinary recovery skips it too), a stray temporary file never became a plan or a record.
+    [Theory]
+    [InlineData("prepared-plan-without-journal-entry", false)]
+    [InlineData("prepared-plan-with-prepared-journal-entry", false)]
+    [InlineData("temporary-file-beside-complete-history", false)]
+    [InlineData("prepared-plan-without-journal-entry", true)]
+    [InlineData("temporary-file-beside-complete-history", true)]
+    public async Task InertLeftoversDoNotStopStartupAfterAWipeOrOnAMovedInstall(string state, bool movedInstall)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        switch (state)
+        {
+            case "prepared-plan-without-journal-entry": break;
+            case "prepared-plan-with-prepared-journal-entry":
+                await f.Pay();
+                f.SetJournalPhase(RewardJournalPhase.Prepared);
+                break;
+            case "temporary-file-beside-complete-history":
+                await f.Pay();
+                f.Complete(plan);
+                File.WriteAllText(Path.Combine(f.PlanDirectory, ".arena-reward-44444444444444444444444444444444.tmp"), "x");
+                break;
+            default: throw new ArgumentOutOfRangeException(nameof(state));
+        }
+        f.EnrollRuntimeManaged(consent: true, enabled: true);
+        if (movedInstall) f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
+        else f.Wipe();
+        var tree = Tree(f.Root);
+
+        Assert.Equal(movedInstall ? RewardColaRecoveryResult.KeptInstallRootChanged : RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        Assert.Equal(0, outcome.Roubles);
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    // The same stop as for a wipe, but the Cola files are not complete: with a moved install the remedy is the
+    // original installation, never "restore a profile backup" (the profile is intact).
+    [Theory]
+    [InlineData("plan-without-done", "has no completion record", "Start SPT once from the installation that created these reward records")]
+    [InlineData("unknown-file", "unknown file", "A profile backup does not repair this")]
+    public async Task MovedInstallWithIncompleteColaSideStillStopsStartupWithTheRealCause(string gap, string expected, string remedy)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        if (gap == "unknown-file") { f.Complete(plan); File.WriteAllText(Path.Combine(f.PlanDirectory, "notes.txt"), "x"); }
+        f.EnrollRuntimeManaged(consent: true, enabled: true);
+        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
+        var tree = Tree(f.Root);
+
+        var stop = await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        Assert.Contains("another installation root", stop.Message);
+        Assert.Contains(expected, stop.Message);
+        Assert.Contains(remedy, stop.Message);
+        Assert.DoesNotContain("cola-plan-authority-invalid", stop.Message);
+        Assert.Equal(tree, Tree(f.Root));
+        await Assert.ThrowsAsync<RewardColaRecoveryException>(() =>
+            RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None));
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    // docs/REWARDS-RUNTIME.md, "Lost reward authority": a moved or copied install is the same family as the wipe. The
+    // profile still carries the block and the reward folder (synchronised between machines) names another root, so
+    // the ordinary recovery would reject the first plan as not bound to this installation and stop startup for good.
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public async Task MovedInstallWithCompleteColaHistoryDoesNotStopStartupAndChangesNothing(bool consent, bool enabled, bool runtimeManaged)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.Complete(plan);
+        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = runtimeManaged });
+        if (consent) File.WriteAllText(Path.Combine(f.RewardDirectory, "consent.json"), JsonSerializer.Serialize(new RewardConsent(1, enabled, 1), RewardSettlementCore.JournalJson));
+        string profile = f.Profile, foreign = f.Foreign;
+        var tree = Tree(f.Root);
+
+        Assert.Equal(RewardColaRecoveryResult.KeptInstallRootChanged, await f.Recover());
+        Assert.Equal(tree, Tree(f.Root));
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
+        Assert.Equal(0, outcome.Roubles);
+        // Exactly one notice says why, whichever of the two recoveries reports it.
+        var notice = Assert.IsType<RewardAuthorityNotice>(outcome.Authority);
+        Assert.False(notice.Recovered);
+        Assert.Equal("install-root-changed", notice.Trigger);
+        Assert.Contains("Tarkova Cola", notice.Detail);
+        Assert.Null(notice.Archive);
+        Assert.Equal(profile, f.Profile);
+        Assert.Equal(foreign, f.Foreign);
+        Assert.Equal(tree, Tree(f.Root));
+        var all = await RewardStartupProcessor.ProcessAsync(f.Window, CancellationToken.None);
+        Assert.Equal(f.Binding.ProfileId, Assert.Single(all).ProfileId);
+        Assert.Equal(tree, Tree(f.Root));
+    }
+
+    [Fact]
+    public async Task MovedInstallStillLetsTheSameRootFinishItsOwnUnfinishedTransaction()
+    {
+        // The root check must not widen: on the installation the records name, nothing changed.
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.EnrollRuntimeManaged(consent: true, enabled: true);
+        Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+        Assert.Equal(plan.AfterJson, f.Foreign);
+        Assert.True(File.Exists(f.DonePath));
     }
 
     [Theory]
@@ -898,10 +1030,22 @@ public sealed class RewardColaJournalTests
         Assert.Contains("(expected-object)", ArenaRewardStartup.DescribeColaStop(wrapped));
     }
 
+    [Fact]
+    public void StopMessageReadsAsSentencesForBareCodesAndWrappedFailures()
+    {
+        const string tail = ". Do not delete or move the reward journal";
+        Assert.Contains("cola-paid-plan-missing" + tail, ArenaRewardStartup.DescribeColaStop(new RewardColaRecoveryException("cola-paid-plan-missing")));
+        Assert.Contains("transaction files (expected-object)" + tail, ArenaRewardStartup.DescribeColaStop(
+            new RewardColaRecoveryException("Tarkova Cola reward history needs recovery; retain the transaction files.", new RewardDataException("expected-object"))));
+        Assert.DoesNotContain("..", ArenaRewardStartup.DescribeColaStop(new RewardColaRecoveryException("A sentence.")));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private static readonly string FixtureParent = Path.Combine(Path.GetTempPath(), "ArenaMode.ColaJournal.Tests");
         internal string Root { get; } = Path.Combine(FixtureParent, Guid.NewGuid().ToString("N"));
+        // The root another installation recorded in the synchronised reward folder.
+        internal string ForeignRoot => Path.Combine(Path.GetTempPath(), "ArenaMode.Moved.From", Guid.NewGuid().ToString("N"));
         internal RewardBinding Binding { get; } = new("11111111111111111111111111111111", "0123456789abcdef01234567", "22222222222222222222222222222222");
         internal RewardClaim Claim { get; }
         internal RewardStartupEnrollment Enrollment { get; }

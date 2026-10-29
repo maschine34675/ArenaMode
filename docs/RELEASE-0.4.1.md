@@ -11,11 +11,12 @@
   the next normal start the old reward folder is renamed to `.archived-...`
   (never deleted) and the profile is enrolled again if nothing in it is
   unsettled; your reward choice is kept.
-- **Wiped profile with Tarkova Cola history:** SPT no longer refuses to start
-  (on every machine sharing the profile) after a profile wipe when the Cola
-  reward history is complete; rewards stay off for that profile and nothing is
-  changed or deleted. An unfinished Cola reward still stops startup, now with the
-  real cause and the remedy.
+- **Wiped or moved profile with Tarkova Cola history:** SPT no longer refuses to
+  start (on every machine sharing the profile) after a profile wipe, a deleted
+  profile file or a move or copy of the installation when the Cola reward history
+  is complete; rewards stay off for that profile and nothing is changed or
+  deleted. An unfinished Cola reward or an unreadable Cola file still stops
+  startup, now with the real cause and the remedy that fits it.
 - **Unusable reward folder:** SPT starts normally when its folder or a parent
   folder is a junction, symbolic link or mount point, or when the reward folder
   cannot be used. Rewards are skipped for that start, with one Warning.

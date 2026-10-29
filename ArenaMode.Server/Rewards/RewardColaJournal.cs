@@ -18,11 +18,12 @@ internal sealed class RewardColaRecoveryException(string reason, Exception? inne
     : Exception(reason, inner);
 
 /// <summary>
-/// What <see cref="RewardColaJournal.RecoverAsync"/> concluded. The two Kept values mean: the native side of the
-/// Cola payments is gone (profile wiped or deleted), the companion side is complete, nothing was written and
-/// nothing is left to finish; the profile stays quarantined by the authority recovery.
+/// What <see cref="RewardColaJournal.RecoverAsync"/> concluded. The Kept values mean: this installation holds no
+/// authority over the native side of the Cola payments (profile wiped or deleted, or the reward records belong to
+/// another installation root), the companion side is complete, nothing was written and nothing is left to finish;
+/// the profile stays quarantined by the authority recovery.
 /// </summary>
-internal enum RewardColaRecoveryResult { Nothing, KeptProfileLostRewardBlock, KeptProfileMissing }
+internal enum RewardColaRecoveryResult { Nothing, KeptProfileLostRewardBlock, KeptProfileMissing, KeptInstallRootChanged }
 
 internal static class RewardColaJournal
 {
@@ -131,7 +132,8 @@ internal static class RewardColaJournal
     // every recorded payment is gone with it, so nothing native can be confirmed or finished any more. When
     // the companion side is complete too there is nothing to do: the call returns without a write and the
     // authority recovery keeps the profile quarantined. When it is not complete it stops startup (see
-    // RequireCompleteCompanionSide).
+    // RequireCompleteCompanionSide). A moved or copied install (the enrollment names another root, so every plan
+    // fails the root-bound authority check) is decided the same way, after the enrollment is read.
     internal static async Task<RewardColaRecoveryResult> RecoverAsync(RewardStartupWindow window, string id,
         CancellationToken cancellationToken, Func<string, string>? folderResolver = null)
     {
@@ -156,7 +158,7 @@ internal static class RewardColaJournal
         {
             if (!hasPlans) return RewardColaRecoveryResult.Nothing;
             // The profile file is gone while Cola plans remain: no native payment can be confirmed or finished.
-            RequireCompleteCompanionSide(window, id, "The profile file is missing", cancellationToken);
+            RequireCompleteCompanionSide(window, id, "The profile file is missing", Lost.Profile, cancellationToken);
             return RewardColaRecoveryResult.KeptProfileMissing;
         }
         // No Cola history means this component adds no new failure mode to fresh
@@ -182,7 +184,7 @@ internal static class RewardColaJournal
             // one this authority was created for) there is no ledger to read: decide on the companion side alone.
             if (!hasCola && RewardAuthorityRecovery.LostRewardBlock(profile, id))
             {
-                RequireCompleteCompanionSide(window, id, "The profile lost its ArenaMode reward block (profile wipe, restored backup or editor)", cancellationToken);
+                RequireCompleteCompanionSide(window, id, "The profile lost its ArenaMode reward block (profile wipe, restored backup or editor)", Lost.Profile, cancellationToken);
                 return RewardColaRecoveryResult.KeptProfileLostRewardBlock;
             }
             var enrollmentPath = Path.Combine(RewardRuntimeFiles.DirectoryFor(window.Root, id), "enrollment.json");
@@ -190,6 +192,18 @@ internal static class RewardColaJournal
             var enrollment = RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384);
             if (enrollment.Binding is null || enrollment.Binding.ProfileId != id) throw new RewardDataException("cola-enrollment-mismatch");
             enrollment.Binding.Validate();
+            // A moved or copied install: the reward folder synchronises between machines and the enrollment names
+            // the root that created it. Every payment, plan and completion record is bound to that root, so this
+            // installation can neither confirm nor finish anything (the ordinary path would reject the first plan
+            // as cola-plan-authority-invalid and stop startup for good). Same decision as for a lost block: when
+            // the companion side is complete there is nothing to finish, nothing is written and the authority
+            // recovery keeps the profile quarantined; otherwise startup stops with the real cause.
+            if (string.IsNullOrWhiteSpace(enrollment.RuntimeRoot) || !Path.IsPathFullyQualified(enrollment.RuntimeRoot)
+                || !RewardRuntimeFiles.SameRoot(window.Root, enrollment.RuntimeRoot))
+            {
+                RequireCompleteCompanionSide(window, id, "The reward records belong to another installation root (moved or copied install)", Lost.Root, cancellationToken);
+                return RewardColaRecoveryResult.KeptInstallRootChanged;
+            }
             var ledger = RewardProfileDocument.ReadLedger(profile, enrollment.Binding, new());
             RewardStartupFiles.RequireLocalPath(window.Root, journalPath);
             var journal = RewardSettlementCore.ParseJournal(journalText ?? throw new RewardDataException("cola-native-journal-missing"), enrollment.Binding, new());
@@ -313,29 +327,43 @@ internal static class RewardColaJournal
         return RewardColaRecoveryResult.Nothing;
     }
 
+    // Why this installation holds no authority over the native side of the Cola payments.
+    private enum Lost { Profile, Root }
+
+    // One gap found by the completeness check. RestoreRecords: the damage is in the reward records themselves, so a
+    // profile backup cannot repair it (the ordinary recovery would stop on the same file); otherwise the transaction
+    // is unfinished and the original native profile (or the original installation) is what finishes it.
+    private sealed record Gap(string Text, bool RestoreRecords);
+    private static Gap Unfinished(string text) => new(text, false);
+    private static Gap Damaged(string text) => new(text, true);
+
     // The companion side is complete when nothing in it could still be finished or is unreadable: every plan
-    // validates and has its own completion record, no completion record lacks its plan, no temporary or
-    // unknown file lies in the plan folder, and every attempted Cola payment of the native journal is committed
-    // with its plan. Reads only (the Tarkova Cola mod's own files are not touched or even located). Returns null
-    // when complete, otherwise a short statement of the first gap; a failure to read is reported as a gap too.
-    private static string? CompanionGap(RewardStartupWindow window, string id, CancellationToken cancellationToken)
+    // validates, every plan the journal shows as possibly paid has its own completion record, no completion
+    // record lacks its plan, no unknown file lies in the plan folder, and every attempted Cola payment of the
+    // native journal is committed with its plan. A plan without a completion record is inert when the journal has
+    // no entry for it or only a Prepared one: no native write ever started, which the journal proves without the
+    // profile (the ordinary recovery skips such a plan too). A stray temporary file is inert as well (the
+    // ordinary recovery ignores it): it is an unfinished write that never became a plan or a record. Reads only
+    // (the Tarkova Cola mod's own files are not touched or even located). Returns null when complete, otherwise
+    // the first gap; a failure to read is reported as a gap too.
+    private static Gap? CompanionGap(RewardStartupWindow window, string id, CancellationToken cancellationToken)
     {
         var rewardDirectory = RewardRuntimeFiles.DirectoryFor(window.Root, id);
         var enrollmentPath = Path.Combine(rewardDirectory, "enrollment.json");
-        if (!RewardRuntimeFiles.Exists(window.Root, enrollmentPath)) return "the reward enrollment is missing";
+        if (!RewardRuntimeFiles.Exists(window.Root, enrollmentPath)) return Damaged("the reward enrollment is missing");
         RewardStartupFiles.RequireLocalPath(window.Root, enrollmentPath);
         var enrollment = RewardStartupFiles.Read<RewardStartupEnrollment>(enrollmentPath, 16384);
-        if (enrollment.Binding is null || enrollment.Binding.ProfileId != id) return "the reward enrollment does not belong to this profile";
+        if (enrollment.Binding is null || enrollment.Binding.ProfileId != id) return Damaged("the reward enrollment does not belong to this profile");
         enrollment.Binding.Validate();
         var journalPath = Path.Combine(rewardDirectory, "journal.json");
-        if (!RewardRuntimeFiles.Exists(window.Root, journalPath)) return "the reward journal is missing";
+        if (!RewardRuntimeFiles.Exists(window.Root, journalPath)) return Damaged("the reward journal is missing");
         RewardStartupFiles.RequireLocalPath(window.Root, journalPath);
         var journal = RewardSettlementCore.ParseJournal(ReadBounded(journalPath, 4_194_304), enrollment.Binding, new());
 
         var directory = DirectoryFor(window.Root, id);
         var paths = RewardRuntimeFiles.Exists(window.Root, directory)
             ? Directory.EnumerateFileSystemEntries(directory).Take(MaxPlans * 3 + 1).ToArray() : [];
-        if (paths.Length > MaxPlans * 3) return "the Cola plan folder holds too many files";
+        if (paths.Length > MaxPlans * 3) return Damaged("the Cola plan folder holds too many files");
         var plans = new Dictionary<string, RewardColaPlan>(StringComparer.Ordinal);
         var planRuns = new HashSet<string>(StringComparer.Ordinal);
         var doneRuns = new HashSet<string>(StringComparer.Ordinal);
@@ -345,59 +373,78 @@ internal static class RewardColaJournal
             RewardStartupFiles.RequireLocalPath(window.Root, path);
             var name = Path.GetFileName(path);
             if (DoneName.IsMatch(name)) { doneRuns.Add(name[..32]); continue; }
-            if (TemporaryName.IsMatch(name)) return "an unfinished temporary file lies in the Cola plan folder";
-            if (!PlanName.IsMatch(name)) return "an unknown file lies in the Cola plan folder";
+            if (TemporaryName.IsMatch(name)) continue;
+            if (!PlanName.IsMatch(name)) return Damaged("an unknown file lies in the Cola plan folder");
             var run = name[..32];
             RewardColaPlan plan;
             try { plan = ReadPlan(window, enrollment, path, rootBound: false); }
             catch (Exception e) when (e is not OperationCanceledException)
-            { return "Cola plan " + run + " cannot be read (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"; }
+            { return Damaged("Cola plan " + run + " cannot be read (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"); }
             if (plan.Approval.Claim.RunId != run || !plans.TryAdd(plan.Approval.Claim.Key, plan))
-                return "Cola plan " + run + " contradicts the other plans";
+                return Damaged("Cola plan " + run + " contradicts the other plans");
             planRuns.Add(run);
         }
+        var inert = new HashSet<string>(StringComparer.Ordinal);
         foreach (var run in planRuns.Order(StringComparer.Ordinal))
-            if (!doneRuns.Contains(run)) return "Cola plan " + run + " has no completion record";
+        {
+            if (doneRuns.Contains(run)) continue;
+            var plan = plans.Values.Single(p => p.Approval.Claim.RunId == run);
+            if (journal.Entries.All(e => e.Payment.ReceiptKey != plan.Approval.Claim.Key || e.Phase == RewardJournalPhase.Prepared))
+            { inert.Add(run); continue; }
+            return Unfinished("Cola plan " + run + " has no completion record");
+        }
         foreach (var run in doneRuns.Order(StringComparer.Ordinal))
-            if (!planRuns.Contains(run)) return "the completion record " + run + " has no Cola plan";
+            if (!planRuns.Contains(run)) return Damaged("the completion record " + run + " has no Cola plan");
         foreach (var plan in plans.Values.OrderBy(p => p.Approval.Claim.RunId, StringComparer.Ordinal))
         {
             var run = plan.Approval.Claim.RunId;
+            if (inert.Contains(run)) continue;
             try
             {
                 if (RewardStartupFiles.Read<RewardColaDone>(DonePath(directory, run), 16384) != DoneFor(plan))
-                    return "the completion record of Cola plan " + run + " does not match its plan";
+                    return Damaged("the completion record of Cola plan " + run + " does not match its plan");
             }
             catch (Exception e) when (e is not OperationCanceledException)
-            { return "the completion record of Cola plan " + run + " cannot be read (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"; }
+            { return Damaged("the completion record of Cola plan " + run + " cannot be read (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"); }
         }
-        // A paid Cola reward the plan folder cannot account for, or one whose native commit was never confirmed.
+        // A paid Cola reward whose native commit was never confirmed, or one the plan folder cannot account for.
         foreach (var entry in journal.Entries.Where(e => e.Payment.Cola is not null && e.Phase != RewardJournalPhase.Prepared))
-            if (entry.Phase != RewardJournalPhase.Committed || !plans.TryGetValue(entry.Payment.ReceiptKey, out var plan)
-                || plan.Approval.Claim.Fingerprint != entry.Payment.Fingerprint)
-                return "the reward journal records a Tarkova Cola reward (" + entry.Payment.ReceiptKey.Split(':')[0]
-                    + ") that is not committed or has no matching Cola plan";
+        {
+            string reward = entry.Payment.ReceiptKey.Split(':')[0];
+            if (entry.Phase != RewardJournalPhase.Committed)
+                return Unfinished("the reward journal records a Tarkova Cola reward (" + reward + ") that is not committed");
+            if (!plans.TryGetValue(entry.Payment.ReceiptKey, out var plan))
+                return Damaged("the reward journal records a Tarkova Cola reward (" + reward + ") that has no Cola plan");
+            if (plan.Approval.Claim.Fingerprint != entry.Payment.Fingerprint)
+                return Damaged("the reward journal records a Tarkova Cola reward (" + reward + ") that does not match its Cola plan");
+        }
         return null;
     }
 
-    // Used where the native side is gone (profile wipe, restored backup, editor, deleted profile file). Returns when
-    // the companion side is complete; otherwise stops startup with the real cause and the remedy the code supports:
-    // only the original profile (a backup taken after the reward) lets the half-finished transaction be completed.
-    // Nothing here deletes or moves reward data.
-    private static void RequireCompleteCompanionSide(RewardStartupWindow window, string id, string situation, CancellationToken cancellationToken)
+    // Used where this installation holds no authority over the native side (profile wipe, restored backup, editor,
+    // deleted profile file, moved or copied install). Returns when the companion side is complete; otherwise stops
+    // startup with the real cause and the remedy that is true for it. Nothing here deletes or moves reward data.
+    private static void RequireCompleteCompanionSide(RewardStartupWindow window, string id, string situation, Lost lost,
+        CancellationToken cancellationToken)
     {
-        string? gap;
+        Gap? gap;
         Exception? inner = null;
         try { gap = CompanionGap(window, id, cancellationToken); }
         catch (Exception e) when (e is not OperationCanceledException)
         {
             inner = e;
-            gap = "the Tarkova Cola reward files could not be checked (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")";
+            gap = Damaged("the Tarkova Cola reward files could not be checked (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")");
         }
         if (gap is null) return;
-        throw new RewardColaRecoveryException(situation + " while Tarkova Cola reward files remain that cannot be shown to be complete: " + gap
-            + ". Without the original profile it can be neither finished nor checked. Restore the profile file from a backup taken after that reward"
-            + " (SPT keeps backups in user/profiles/backups) and start SPT again; if only a file was locked, starting again is enough.", inner);
+        string remedy = gap.RestoreRecords
+            ? "A profile backup does not repair this: restore the reward records of this profile (user/arena-rewards/" + id
+                + ") from a backup or from an installation that still has them intact"
+            : lost == Lost.Root
+                ? "Start SPT once from the installation that created these reward records, so that the unfinished transaction is completed there"
+                : "Restore the profile file from a backup taken after that reward (by default SPT keeps backups in user/profiles/backups;"
+                    + " SPT_Data/configs/backup.json names the folder)";
+        throw new RewardColaRecoveryException(situation + " while Tarkova Cola reward files remain that cannot be shown to be complete: " + gap.Text
+            + ". " + remedy + ", then start SPT again; if only a file was locked, starting again is enough.", inner);
     }
 
     // rootBound false is only for the read-only completeness check of a plan whose native side is gone: the plans

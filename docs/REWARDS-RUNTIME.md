@@ -175,7 +175,8 @@ only the ledger block is replaced). Crash safety: the choice is staged first
 rename before anything reads the missing directory as a new profile.
 
 Unsettled means: any journal entry not committed or carrying Tarkova Cola
-progression or a `cola-plans` folder (the Tarkova Cola history is never archived); a received receipt or allocation without its `imported` marker; an
+progression, or a `cola-plans` folder (the Tarkova Cola history is never
+archived); a received receipt or allocation without its `imported` marker; an
 approval, candidate or decision not matched by a committed journal entry; a pending
 recovery request; an unresolved Arena run or restoration; an active offline session;
 an unrecognised file; a moved install whose ledger and journal disagree. A record
@@ -203,42 +204,60 @@ off sees the ordinary "Optional profile rewards are off." in the menu while old
 records stay unsettled (the Warning is still logged at every start); "records no
 longer match" appears once they switch rewards on.
 
-**Tarkova Cola history and a lost block.** The Cola companion recovery
+**Tarkova Cola history and lost authority.** The Cola companion recovery
 (`RewardColaJournal.RecoverAsync`, next in every profile's pass) used to read the
 native ledger and, with the block gone, stopped the whole server (a wiped profile
-that held paid Cola progress then blocked SPT on every machine sharing it).
-Now it first asks the same question as the startup recovery
+that held paid Cola progress then blocked SPT on every machine sharing it). A
+moved or copied install did the same: the synchronised reward folder names the
+root that created it, every plan is bound to that root, and the first plan was
+rejected as not belonging to this installation. Now it first asks the same
+question as the startup recovery
 (`RewardAuthorityRecovery.LostRewardBlock`: `info.id` still matches and the profile
 root has no `com.maschine.ArenaMode.rewards` member, decided on the JSON text
-without building native objects). A profile like that cannot be a half-written
-payment, because every payment writes a whole profile that carries the block
-before and after; and the native side of each recorded payment went with the wipe,
-so nothing native can be confirmed or finished. Two outcomes:
+without building native objects), and, with the block present, whether the
+enrollment's `RuntimeRoot` is this installation's root. A profile without the block
+cannot be a half-written payment, because every payment writes a whole profile that
+carries the block before and after; and the native side of each recorded payment
+went with the wipe, so nothing native can be confirmed or finished. On a moved
+install the records belong to the other root, which alone can finish them. Two
+outcomes:
 
-- The companion side is complete (every plan in `cola-plans` is readable and has
-  its matching `.done.json`, no completion record without a plan, no temporary or
-  unknown file, every attempted Cola payment of the journal committed with its
-  plan). `RecoverAsync` returns without writing anything: no Cola progress, no
-  payment, no file changed or moved. The profile stays quarantined (a Cola
-  progression is unsettled), startup goes on, the profiles load, and the one
-  Warning above says the reward records hold Tarkova Cola history that stays
-  unchanged and rewards stay off. The same holds for a deleted profile file whose
-  Cola plans remain. The check reads the plans without the installation root
-  (the reward folder synchronises between installations); it never locates or
-  touches the Tarkova Cola mod's own files.
-- The companion side is not complete (a plan without its completion record, a
-  temporary or unknown file, an unreadable plan or journal, a Cola payment the
-  journal records as not committed). Startup stops, because a half-finished
-  companion write could leave the Cola files inconsistent and nothing native is
-  left to finish it from. The Error names the actual cause and the remedy the code
-  supports: restore the profile file from a backup taken after that reward
-  (SPT keeps backups in `user/profiles/backups`); with that profile the ordinary
-  recovery completes the transaction at the next start. A file that was only
-  locked clears by starting again. Do not delete or move the journal or the plan
+- The companion side is complete: every plan in `cola-plans` is readable and, when
+  the journal records its reward as possibly paid (an entry that is not merely
+  Prepared), has its matching `.done.json`; no completion record lacks a plan; no
+  unknown file lies in the folder; every attempted Cola payment of the journal is
+  committed with a matching plan. A plan the journal does not know, or knows only
+  as Prepared, never reached a native write and is inert, like a stray temporary
+  file (the ordinary recovery skips both as well). `RecoverAsync` returns without
+  writing anything: no Cola progress, no payment, no file changed or moved. The
+  profile stays quarantined (a Cola progression is unsettled), startup goes on,
+  the profiles load, and for a wiped profile or a moved install the one Warning
+  above says the reward records hold Tarkova Cola history that stays unchanged and
+  rewards stay off. A deleted profile file whose Cola plans remain is treated the
+  same, but has no authority to report and logs at Debug level only. The check
+  reads the plans without the installation root (the reward folder synchronises
+  between installations); it never locates or touches the Tarkova Cola mod's own
   files.
+- The companion side is not complete. Startup stops, because a half-finished
+  companion write could leave the Cola files inconsistent and nothing here can
+  finish it. The Error names the actual cause and the remedy that is true for it:
+  - A possibly paid plan has no completion record, or the journal records a Cola
+    payment as not committed (an unfinished transaction): restore the profile file
+    from a backup taken after that reward (by default SPT keeps backups in
+    `user/profiles/backups`; `SPT_Data/configs/backup.json` names the folder), and
+    the ordinary recovery completes the transaction at the next start. On a moved
+    install start the installation that created the records once instead.
+  - Damaged reward records (an unreadable plan, journal or enrollment, an unknown
+    file, a completion record that does not match its plan, a plan or payment
+    without its counterpart): a profile backup does not repair these, because the
+    ordinary recovery stops on the same file. Restore
+    `user/arena-rewards/<profileId>` from a backup or from an installation that
+    still has it intact.
+  A file that was only locked clears by starting again. Do not delete or move the
+  journal or the plan files.
 
-With the block present nothing changed: the ordinary recovery runs exactly as
-before.
+With the block present and the root unchanged nothing changed: the ordinary
+recovery runs exactly as before.
 
 Manual remedy for an unsettled profile: start the installation at the root recorded
 in `enrollment.json` once, so its pending rewards are delivered, and move it again;
@@ -248,8 +267,15 @@ also needs that block removed from its file, which is why this is a last resort)
 For a wiped profile whose Tarkova Cola history is complete, the same last resort
 starts the reward ledger afresh: the Cola progress belongs to the Tarkova Cola mod
 (`user/mods`, not the reward folder) and the transactions are already finished, so
-only the audit trail (journal, plans) is set aside. Do it only with the server
-stopped, and never while a Cola reward is unfinished.
+only the audit trail (journal, plans) is lost to the live folder. The rename sets
+the WHOLE folder aside, though, not just that trail: the player's reward choice
+(`consent.json`) and the enrollment go with it. The next start finds a profile with
+no reward folder, treats it as new and enrolls it with the default, rewards ON, so a
+player who had switched rewards off must switch them off again (the automatic
+archive carries the choice over; a manual rename does not). Do it only with the
+server stopped, and never while a Cola reward is unfinished. This is the one
+exception to "do not move the journal or the plan files" above, and it is a
+last resort.
 
 ### Private-session consent
 

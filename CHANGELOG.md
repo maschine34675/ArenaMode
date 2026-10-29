@@ -27,14 +27,20 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
   archive and then removed from the profile; payments already made stay in its
   mail. Records that are not settled keep the profile quarantined, reported as a
   Warning and in the menu.
-- A wiped profile (or a deleted profile file) whose Tarkova Cola reward history
-  is complete no longer stops SPT at startup on every machine that shares the
-  profile. In 0.4.0 the server died with "needs companion-file recovery" because
-  the wiped profile no longer held the ledger it had to compare against. Startup
-  now continues, the profile stays withheld from rewards, one Warning says why,
-  and no reward or Tarkova Cola file is changed. If a Cola reward was still being
-  completed when the block was lost, startup still stops, now with the real cause
-  and the remedy (restore a profile backup taken after that reward).
+- A wiped profile, a deleted profile file or a moved or copied installation whose
+  Tarkova Cola reward history is complete no longer stops SPT at startup on every
+  machine that shares the profile. In 0.4.0 the server died with "needs
+  companion-file recovery" because the wiped profile no longer held the ledger it
+  had to compare against (a moved installation, because the reward folder is
+  bound to the old installation root). Startup now continues, the profile stays
+  withheld from rewards and no reward or Tarkova Cola file is changed. For a
+  wiped profile or a moved installation one Warning says why; a deleted profile
+  file is logged at Debug level only. A Cola plan that was prepared but never paid
+  and a stray temporary file in the plan folder do not stop startup. If a Cola
+  reward was still being completed, or a file cannot be read, startup still
+  stops, now with the real cause and the remedy that fits: a profile backup taken
+  after that reward for a reward still being completed, the original
+  installation for a moved one, a copy of the reward records for damaged ones.
 - SPT no longer refuses to start when the SPT folder or a parent folder is a
   junction, symbolic link or mount point, or when the reward folder cannot be
   used. ArenaMode then skips rewards for that start, writes no reward data and

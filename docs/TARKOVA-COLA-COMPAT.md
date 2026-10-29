@@ -63,18 +63,23 @@ paid transfer even after opt-out, but cannot issue a new payment while OFF. A
 conflicting companion file after native payment stops startup for recovery; it
 never overwrites intervening progress or rolls the PMC profile back. Keep the
 normal profile, Cola profile and reward metadata together; do not delete journals
-to resolve such a refusal.
+to resolve such a refusal. Before payment, missing mods or incompatible state
+withhold the reward rather than modifying a live profile.
 
 If the normal profile loses its ArenaMode reward block (SPT's profile wipe, a
-restored older backup, an editor) or its file is deleted, nothing native is left to
-confirm or finish. When every Cola plan already has its completion record and no
-temporary or unknown file lies beside them, startup continues without writing
-anything: the Cola progress stays as it is, the profile gets no further rewards,
-and one Warning says so. When a plan has no completion record (or a file cannot be
-read), startup still stops, now naming that cause; restore a profile backup taken
-after that reward and start again. See
-[Lost reward authority](REWARDS-RUNTIME.md#lost-reward-authority). Before payment, missing mods or incompatible state
-withhold the reward rather than modifying a live profile.
+restored older backup, an editor), its file is deleted, or the installation was
+moved or copied (the synchronised reward folder names the old installation root),
+nothing native can be confirmed or finished here. When every Cola plan that may
+have been paid already has its completion record and no unknown file lies beside
+them, startup continues without writing anything: the Cola progress stays as it
+is and the profile gets no further rewards. A wipe or a moved installation is
+reported by one Warning; a deleted profile file is logged at Debug level only.
+When a paid plan has no completion record, startup still stops, now naming that
+cause: restore a profile backup taken after that reward (wipe, deleted file) or
+start the installation that created the records (moved install), then start
+again. A file that cannot be read or a damaged record needs a copy of the
+reward records instead; a profile backup does not repair it. See
+[Lost reward authority](REWARDS-RUNTIME.md#lost-reward-authority).
 
 ## Verification
 

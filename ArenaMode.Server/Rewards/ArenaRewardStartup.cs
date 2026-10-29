@@ -93,7 +93,9 @@ public sealed class ArenaRewardStartup(
     internal static string DescribeColaStop(RewardColaRecoveryException e)
     {
         string cause = e.InnerException is null ? "" : $" ({(e.InnerException is RewardDataException ? e.InnerException.Message : e.InnerException.GetType().Name)})";
-        return $"[ArenaMode] Startup stopped to keep the profiles and the Tarkova Cola reward files as they are: {e.Message}{cause} "
+        // Older reasons are bare codes or a sentence with its own full stop: one sentence end, the cause before it.
+        string reason = e.Message.TrimEnd().TrimEnd('.');
+        return $"[ArenaMode] Startup stopped to keep the profiles and the Tarkova Cola reward files as they are: {reason}{cause}. "
             + "Do not delete or move the reward journal or the Cola plan files. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.";
     }
 
