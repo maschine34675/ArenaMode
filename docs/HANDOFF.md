@@ -14,6 +14,13 @@ current. User-facing communication is normally German.
   passed; 219 configs restored, original profiles retained with only two native
   timestamp updates. Both client DLLs installed locally/GPU-1; GPU-2's concurrent
   compatibility test was left running. See [evidence and scope](UX-SIMPLIFICATION-20261029.md).
+  Follow-up restores a short character description, narrows the conflict box,
+  returns version notes to its tooltip and fixes the mode-description baseline.
+  New configurations start with TDM; saved choices remain. Current candidate uses
+  Core 1.0.17; 3,394 unit tests and focused menu/session checks passed. GPU-1
+  confirms the rendered changes, a two-minute TDM match and normal session return.
+  Follow-up cleanup restored 220 configs and resumed synchronization; current
+  candidate DLLs are installed locally/GPU-1.
 
 - **Lost private session recovery (2026-10-29):** `967b675f` server and shipping
   helper installed locally and on GPU-2. Native isolated tests passed for a

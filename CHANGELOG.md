@@ -11,8 +11,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 ## Unreleased
 
 - Simplify Arena menus: short mode descriptions, one session-return button,
-  and mutator help on hover. Keep unavailable-option reasons visible and log
-  advisory mod-version notes without covering the character preview.
+  and mutator help on hover. Keep a short character description, size the mod
+  conflict box to its text, and include version advisories in its tooltip.
+  Keep mode descriptions vertically stable and select Team DM for new installs;
+  existing saved mode choices are preserved.
 
 - Recover normal SPT startup when a stopped Arena session has lost its private
   data. Discard its old rewards automatically and preserve the normal profile.

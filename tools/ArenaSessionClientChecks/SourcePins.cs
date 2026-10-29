@@ -95,7 +95,7 @@ internal static partial class Program
 
         string unavailable = Slice(side, "private static void ShowUnavailable(", "private static ArenaNoticeAction StartAction(");
         Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text);", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen), compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen), tooltipNotes: ArenaWhitelistAdmission.WarningLine, compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
             "START ARENA SESSION belongs to an eligible normal session; the private return stays in the banner");
         Require(unavailable.Contains("string text = reason;", StringComparison.Ordinal),
             "blocking refusal preserves its concrete reason");
@@ -116,7 +116,7 @@ internal static partial class Program
             "only a real refusal overlays character selection");
         string selectedNotice = Slice(side, "private static void ShowSelectedNotice(", "private static void ShowUnavailable(");
         Require(selectedNotice.Contains("ArenaAvailabilityNotice.Hide(screen);", StringComparison.Ordinal)
-                && !side.Contains("ArenaWhitelistAdmission.WarningLine", StringComparison.Ordinal),
+                && !selectedNotice.Contains("ArenaAvailabilityNotice.Show", StringComparison.Ordinal),
             "an admitted Arena selection stays unobstructed by advisory notes");
 
         string switching = Slice(side, "private static void SwitchSession(", "private static void EnsureCompatibleMode(");

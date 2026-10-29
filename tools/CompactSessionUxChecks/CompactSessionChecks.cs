@@ -114,7 +114,9 @@ internal static class CompactSessionChecks
             Check(notice.Contains("_details != null && unavailable && compactRestartConflict")
                 && side.Contains("compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason)")
                 && notice.Contains("MOD CONFLICT · Restart with filtered mods\\nHover for affected mods and details.")
-                && notice.Contains("_details.SetMessageText(fullText, rawText: true);"),
+                && notice.Contains("_details.SetMessageText(tooltipText, rawText: true);")
+                && side.Contains("tooltipNotes: ArenaWhitelistAdmission.WarningLine")
+                && notice.Contains("fullText + \"\\n\\n\" + tooltipNotes"),
                 "a restartable mod conflict uses two concise lines and keeps the complete reason in its tooltip");
             int failureStart = side.IndexOf("private static void ShowSwitchFailure(", StringComparison.Ordinal);
             int failureEnd = side.IndexOf("private static void EnsureCompatibleMode(", failureStart, StringComparison.Ordinal);

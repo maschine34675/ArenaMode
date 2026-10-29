@@ -81,3 +81,53 @@ and helper/session evidence are not part of Git.
 The preceding recovery branch was merged into `master`, deleted locally (no
 remote branch existed), and pushed as `5164732b`. This UI work is on the separate
 `codex/ux-menu-20261029` branch.
+
+## Character and mode follow-up
+
+The user's follow-up restores a short two-line character description: choose a
+mode, with original gear restored after the match. The native text object stays
+available for ordinary PMC/Scav descriptions. A restartable mod-conflict notice
+now measures its visible text and both action labels, including confirmation,
+instead of always occupying 440 px. Versions differing from reviewed baselines
+are appended only to its existing tooltip; admission and restart rules are unchanged.
+
+Mode descriptions use `TopLeft`. The previous `MidlineLeft` aligned the visible
+glyph bounds of both lines, so a descender in Domination's second line moved the
+identical first line too. Only the description changes alignment. Fresh configs
+default to `teamdeathmatch`; saved modes and legacy Endless/Rounds migration remain.
+
+Follow-up verification is in ignored `artifacts/ux-menu-followup-20261029/`:
+
+- Shipping client/companion build against released Redeploy.Core 1.0.17; four
+  existing nullable-context warnings. Unit suite: 3,394 passed, three existing
+  environment skips. All three affected harnesses pass, including 2,670 mode
+  assertions and 26 session UI negative controls.
+- GPU-1 loads the exact candidate DLLs. The real conflict box measures 354 px,
+  and its hover shows CompatibilityHighlighter plus ArenaMapPort 0.4.0/0.3.0
+  and UIFixes 6.0.4/6.0.3 version notes. The short character description renders.
+- With the saved GameMode entry absent, native BepInEx creates TDM as the default.
+  TDM and Domination retain the same rectangle; the first-line glyph mask is
+  identical (351 pixels, bounds x77–196/y455–464). A two-pixel shifted negative
+  control overlaps only 21.5%, confirming this checks rendered text position.
+- Factory TDM 5v5 ended at its 120-second limit, BEAR won 5:2. Native raid
+  results and the private menu were reached, then RETURN TO SPT opened a new
+  normal game process without the Arena strip. The transient custom victory
+  overlay was not captured; the result is confirmed by the client log and
+  native ExitStatus screen.
+- Both DLLs installed locally/GPU-1. All 220 original configs restored, test
+  processes stopped, private session closed and synchronization resumed.
+  All 63 original profile/backup files retained; only the played profile's two
+  native health/hideout timestamps changed. SPT's backup retention pruned twelve
+  old backup files during repeated starts; those backup files alone were copied
+  back from the test backup. No active profile was overwritten.
+
+Before testing, GPU-1 had a synchronized stopped GPU-2 session pointer. Both
+hosts had no game/server/helper processes. Normal server startup automatically
+discarded that old session and continued; no session metadata was manually removed.
+
+Follow-up candidate hashes (base commit `517ca1db` plus this diff):
+
+| Payload | SHA-256 |
+|---|---|
+| Client | `43B9B367CC2FD74932B84FC3E42E5611ED330F0A66DAB28A66BFD53A01A85873` |
+| BigBrainCompat | `C937A9112F53D1B2907403EAC572A665E0B74A7B049AA617F1EAE4515796A56F` |

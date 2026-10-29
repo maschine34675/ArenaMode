@@ -40,22 +40,22 @@ internal static class ArenaAvailabilityNotice
 
     /// <summary>The "ARENA UNAVAILABLE" notice, with an optional two-click action under the text.</summary>
     internal static void Show(MatchMakerSideSelectionScreen screen, string reason, ArenaNoticeAction action = null,
-        bool compactRestartConflict = false)
-        => ShowCore(screen, reason, true, action, compactRestartConflict);
+        string tooltipNotes = null, bool compactRestartConflict = false)
+        => ShowCore(screen, reason, true, action, tooltipNotes, compactRestartConflict);
 
     /// <summary>A neutral information notice (no unavailability heading), with an optional action.</summary>
     internal static void ShowInfo(MatchMakerSideSelectionScreen screen, string text, ArenaNoticeAction action = null)
-        => ShowCore(screen, text, false, action, false);
+        => ShowCore(screen, text, false, action, null, false);
 
     private static void ShowCore(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
-        ArenaNoticeAction action, bool compactRestartConflict)
+        ArenaNoticeAction action, string tooltipNotes, bool compactRestartConflict)
     {
-        try { ShowUnsafe(screen, text, unavailable, action, compactRestartConflict); }
+        try { ShowUnsafe(screen, text, unavailable, action, tooltipNotes, compactRestartConflict); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena availability notice could not be displayed: " + ex.Message); }
     }
 
     private static void ShowUnsafe(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
-        ArenaNoticeAction action, bool compactRestartConflict)
+        ArenaNoticeAction action, string tooltipNotes, bool compactRestartConflict)
     {
         if (screen == null) return;
         if (string.IsNullOrWhiteSpace(text))
@@ -68,7 +68,7 @@ internal static class ArenaAvailabilityNotice
             view = new View(screen);
             Views.Add(screen, view);
         }
-        view.Set(screen, text, unavailable, action, compactRestartConflict);
+        view.Set(screen, text, unavailable, action, tooltipNotes, compactRestartConflict);
     }
 
     internal static void Hide(MatchMakerSideSelectionScreen screen)
@@ -187,28 +187,43 @@ internal static class ArenaAvailabilityNotice
         }
 
         internal void Set(MatchMakerSideSelectionScreen screen, string text, bool unavailable,
-            ArenaNoticeAction action, bool compactRestartConflict)
+            ArenaNoticeAction action, string tooltipNotes, bool compactRestartConflict)
         {
             Unavailable = unavailable;
             _action = action;
             _gate.Reset();
             _text.color = unavailable ? UnavailableText : InfoText;
             string fullText = unavailable ? "ARENA UNAVAILABLE\n" + text : text;
+            string tooltipText = string.IsNullOrWhiteSpace(tooltipNotes) ? fullText : fullText + "\n\n" + tooltipNotes;
             bool restartConflict = _details != null && unavailable && compactRestartConflict;
             bool compact = restartConflict || (_details != null && fullText.Length > 220);
             _text.text = restartConflict
                 ? "MOD CONFLICT · Restart with filtered mods\nHover for affected mods and details."
                 : compact ? fullText.Substring(0, 196).TrimEnd() + "…\nHover for full details." : fullText;
-            _text.raycastTarget = compact;
+            bool hasDetails = compact || !string.IsNullOrWhiteSpace(tooltipNotes);
+            _text.raycastTarget = _details != null && hasDetails;
             if (_details != null)
             {
-                _details.SetMessageText(fullText, rawText: true);
-                _details.enabled = compact;
+                _details.SetMessageText(tooltipText, rawText: true);
+                _details.enabled = hasDetails;
             }
             float buttonBlock = action == null ? 0f : ButtonBlock;
             _text.rectTransform.offsetMin = new Vector2(14f, 10f + buttonBlock);
             var rect = (RectTransform)Root.transform;
-            rect.sizeDelta = new Vector2(Width, _text.GetPreferredValues(_text.text, Width - 28f, 0f).y + 24f + buttonBlock);
+            float width = Width;
+            if (restartConflict)
+            {
+                // Measure both button states so confirming never resizes the panel.
+                float buttonWidth = action == null ? 0f : Mathf.Max(
+                    _buttonLabel.GetPreferredValues(action.Label, float.PositiveInfinity, 0f).x,
+                    _buttonLabel.GetPreferredValues(action.ConfirmLabel + " · 5s", float.PositiveInfinity, 0f).x) + 16f;
+                width = Mathf.Min(Width, Mathf.Ceil(Mathf.Max(buttonWidth,
+                    _text.GetPreferredValues(_text.text, float.PositiveInfinity, 0f).x) + 28f));
+                ((RectTransform)_button.transform).sizeDelta = new Vector2(width - 28f, ButtonHeight);
+            }
+            else
+                ((RectTransform)_button.transform).sizeDelta = new Vector2(330f, ButtonHeight);
+            rect.sizeDelta = new Vector2(width, _text.GetPreferredValues(_text.text, width - 28f, 0f).y + 24f + buttonBlock);
             _button.SetActive(action != null);
             UpdateButton(Time.realtimeSinceStartup);
             Root.GetComponent<ArenaAvailabilityNoticeAnchor>().Place();

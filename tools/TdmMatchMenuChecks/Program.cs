@@ -39,6 +39,7 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
     Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
+Need(Settings.GameMode.Value == "teamdeathmatch", "a new configuration starts with TDM");
 Need(!Settings.ZombieCrowdEnabled.Value, "new configurations opt out of the harder crowd behavior");
 Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value == 50
     && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
@@ -513,6 +514,9 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
                 && Label(name + " value").rectTransform.anchoredPosition == new Vector2(122f, -top),
                 "common fact positions do not jump between modes: " + scope + " " + name);
         var description = Label("Mode description").rectTransform;
+        Need(Label("Mode description").alignment == TextAlignmentOptions.TopLeft
+            && description.anchoredPosition == new Vector2(20f, -284f) && description.sizeDelta.y == 42f,
+            "description anchors its first line independently of second-line glyphs: " + scope);
         Need(-description.anchoredPosition.y + description.sizeDelta.y <= 330f,
             "description has its own space above the common facts: " + scope);
         Need(!view.Root.GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Gear protection" or "OBJECTIVE label" or "OBJECTIVE value"),
@@ -1146,6 +1150,15 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
 }
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");
+foreach (string savedMode in new[] { "deathmatch", "gungame", "tactical", "zombie", "teamdeathmatch", "domination" })
+foreach (bool migrated in new[] { false, true })
+{
+    var savedConfig = new ConfigFile();
+    savedConfig.Stored["Match/GameMode"] = savedMode;
+    savedConfig.Stored["Deathmatch/LegacyRulesMigrated"] = migrated;
+    Settings.Init(savedConfig);
+    Need(Settings.GameMode.Value == savedMode, "saved mode survives the new-installation TDM default: " + savedMode);
+}
 foreach (string legacy in new[] { "endless", "rounds" })
 {
     var oldConfig = new ConfigFile();

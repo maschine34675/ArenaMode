@@ -216,9 +216,8 @@ internal static class ArenaSideSelectionPatch
 
     private static void SetDescription(MatchMakerSideSelectionScreen screen)
     {
-        // The next screen explains the selected mode. Keep the native text object
-        // alive so selecting PMC/Scav can write its ordinary description again.
-        screen._sideDescriptionText.text = string.Empty;
+        // Keep the native object so PMC/Scav can restore their ordinary description.
+        screen._sideDescriptionText.text = "Choose a mode and enter the arena.\nYour original gear is restored after the match.";
         screen.SetHealthPanelVisibility(false, true);
     }
 
@@ -353,6 +352,7 @@ internal static class ArenaSideSelectionPatch
             ArenaAvailabilityNotice.Show(screen, text);
         else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))
             ArenaAvailabilityNotice.Show(screen, text, StartAction(screen),
+                tooltipNotes: ArenaWhitelistAdmission.WarningLine,
                 compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));
         else
             ArenaAvailabilityNotice.Show(screen, text);

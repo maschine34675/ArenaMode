@@ -176,6 +176,7 @@ internal sealed class ArenaModeSelectionView
 
         CreateRule(274f, typography);
         _description = CreateText("Mode description", typography, string.Empty, 14f, 284f, 42f);
+        _description.alignment = TextAlignmentOptions.TopLeft;
         _description.enableWordWrapping = true;
         _description.color = Dim(typography, .75f);
         _mutators.Create(screen, _root, typography, Refresh);
