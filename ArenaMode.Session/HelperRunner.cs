@@ -257,10 +257,11 @@ namespace ArenaMode.SessionHelper
                     }
                     // Held/unknown native-save failures never enter legacy fallback.
                 }
-                // A successful normal relaunch needs no modal desktop acknowledgement. EFT can cover
-                // a topmost dialog while it initializes; that must not block another session attempt.
-                if (!_normalGameReopened)
-                    NotifyFailure("Arena startup could not finish. Keep the SPT server open and check the logs below.");
+                // A relaunch that restores the unchanged declined-entry session needs no modal desktop acknowledgement: EFT
+                // can cover a topmost dialog while it initializes, and that must not block another session attempt.
+                // A reopen after an entry refused before the normal server was touched deliberately tells the player why
+                // (above); this final notice is only for the cases where nothing was reopened.
+                if (!_normalGameReopened) NotifyFailure(EnterFailureNotice(ex));
                 return false;
             }
             finally { if (offline != null) offline.Dispose(); }
@@ -1042,6 +1043,11 @@ namespace ArenaMode.SessionHelper
             if (ex is HelperException) _log.Error(what + ": " + ex.Message);
             else _log.Error(what + ": " + ex);
         }
+
+        // The server that stopped itself after a failed entry proof is the one case where "keep the server open" is wrong.
+        internal static string EnterFailureNotice(Exception ex)
+            => ex is HelperOfflineSession.ServerStoppingException ? ex.Message
+                : "Arena startup could not finish. Keep the SPT server open and check the logs below.";
 
         internal void NotifyFailure(string message)
         {

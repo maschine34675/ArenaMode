@@ -36,7 +36,7 @@ public sealed class ArenaRewardStartup(
         {
             RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(unusable, storageUnusable: true);
             logger.Warning($"[ArenaMode] Profile rewards are unavailable: {DescribeUnusable(unusable)} "
-                + "Rewards stay off and nothing was written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+                + "Rewards stay off and no reward data is written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
             return;
         }
         if (!admission.Proceed) return;
@@ -122,9 +122,10 @@ public sealed class ArenaRewardStartup(
         }
         catch (Exception exception) when (UnusableStorage(exception, root) is { } unusable)
         {
-            // No process owns anything here: the reward folder simply cannot be used (the SPT folder or one of
-            // its parents is a link, access is denied, the path is unavailable). That is a reason to do no
-            // reward work at all, not a reason to keep SPT itself from starting. Nothing was written.
+            // No process we know of owns anything here: the reward folder simply cannot be used (the SPT folder or
+            // one of its parents is a link, access is denied, the path is unavailable). That is a reason to do no
+            // reward work at all, not a reason to keep SPT itself from starting. No reward data was written (the
+            // metadata folder or a lock file may have been created before a later step failed).
             gate?.Dispose();
             lifetime?.Dispose();
             return new(false, Unusable: unusable);
@@ -159,8 +160,10 @@ public sealed class ArenaRewardStartup(
         _ => "the user/arena-rewards folder could not be reached (path or disk error)."
     };
 
-    // A private Arena server owns the original runtime's lifetime lock; skipping that is never an option.
-    private static bool LooksPrivate(string root)
+    // A private Arena server owns the original runtime's lifetime lock; skipping that is never an option. The
+    // active-session pointer is looked up WITHOUT the link refusal on purpose: when this path is a link to an
+    // install that a private session runs from (reached by another spelling), the pointer is visible through it.
+    internal static bool LooksPrivate(string root)
     {
         try
         {
@@ -170,6 +173,9 @@ public sealed class ArenaRewardStartup(
                 catch (FileNotFoundException) { }
                 catch (DirectoryNotFoundException) { }
             }
+            // Unreadable here is the very case this check lets through (access denied to the reward folder).
+            try { _ = File.GetAttributes(RewardOfflineSession.ActivePath(root)); return true; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
             return false;
         }
         catch { return true; }
@@ -178,17 +184,32 @@ public sealed class ArenaRewardStartup(
     private void LogAuthority(RewardStartupOutcome outcome)
     {
         if (outcome.Authority is not { } notice) return;
-        string cause = notice.Trigger switch
-        {
-            "profile-reward-block-missing" => "the profile lost its reward ledger (profile wipe, restored backup or editor)",
-            "install-root-changed" => "the installation was moved or copied",
-            _ => notice.Trigger
-        };
+        string cause = DescribeCause(notice.Trigger);
         if (notice.Recovered)
-            logger.Info($"[ArenaMode] Profile {outcome.ProfileId}: {cause}, and no reward was unsettled, so its old reward records were archived at {notice.Archive} and rewards were enrolled again. Your rewards setting was kept.");
+            logger.Info(DescribeRecovered(outcome, cause, notice));
         else
             logger.Warning($"[ArenaMode] Profile {outcome.ProfileId}: rewards stay off, because {cause} and {notice.Detail}. "
                 + "Nothing is paid and nothing is deleted. Arena sessions still work. Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+    }
+
+    private static string DescribeCause(string trigger) => trigger switch
+    {
+        "profile-reward-block-missing" => "the profile lost its reward ledger (profile wipe, restored backup or editor)",
+        "install-root-changed" => "the installation was moved or copied",
+        _ => trigger
+    };
+
+    // The archive is done when this is logged, the enrollment that follows in the same pass may still have failed
+    // (for example on a freshly wiped profile that is not yet confirmed clean) or may not apply (rewards switched off).
+    internal static string DescribeRecovered(RewardStartupOutcome outcome, string cause, RewardAuthorityNotice notice)
+    {
+        string head = $"[ArenaMode] Profile {outcome.ProfileId}: {cause}, and no reward was unsettled, so its old reward records were archived at {notice.Archive}";
+        if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
+            || outcome.Result.Reason == "startup-storage-unavailable")
+            return head + $". Enrolling again did not succeed in this start ({outcome.Result.Reason}); it follows at the next successful start. Your rewards setting was kept.";
+        if (outcome.Result.Reason == "rewards-not-enabled")
+            return head + ". Rewards are switched off, so nothing was enrolled; your rewards setting was kept and switching them on enrolls with a fresh start.";
+        return head + " and rewards were enrolled again. Your rewards setting was kept.";
     }
 
     internal static string? GetAdmissionFailure(Version? version, string? entryName, string root, string applicationRoot,

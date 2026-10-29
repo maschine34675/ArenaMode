@@ -185,6 +185,10 @@ internal sealed class RewardRuntimeCoordinator
     {
         string? failure = _failures.GetValueOrDefault(id) ?? _startupFailures.GetValueOrDefault(id) ?? _startupUnavailable;
         if (failure is null) return;
+        // A player who switched rewards off has nothing withheld; "records no longer match" is only news once they
+        // switch them on again (the server log carries the Warning at every start either way).
+        if (!result.Enabled && !_failures.ContainsKey(id) && !result.PrivateSession
+            && failure.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal)) return;
         result.State = "withheld";
         result.Detail = _failures.ContainsKey(id) ? "No reward for the last match." : UnavailableDetail(id);
     }

@@ -117,6 +117,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 return Task.CompletedTask;
             });
 
+            string? preflightUnavailable = null;
             if (entering && !RewardReturnQuiescence.Sequence.UpdatesStopped)
             {
                 // Everything the proof publication could refuse is decided NOW, while pausing is still undoable.
@@ -124,8 +125,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 // anything else declines the entry and the helper reopens the normal session.
                 stage = "entry-preflight";
                 refusal = "entry-preflight-failed";
-                string? unavailable;
-                try { unavailable = RewardOfflineSession.PreflightReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!); }
+                try { preflightUnavailable = RewardOfflineSession.PreflightReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!); }
                 catch (Exception preflight)
                 {
                     string why = preflight is RewardDataException ? preflight.Message : preflight.GetType().Name;
@@ -138,10 +138,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), CancellationToken.None);
                     return;
                 }
-                if (unavailable is not null)
-                    ArenaContext.Logger?.Warning($"[ArenaMode] Profile rewards are unavailable for this Arena session (profile {id}): "
-                        + $"the reward records do not match this installation or profile ({unavailable}). The session starts normally without rewards. "
-                        + "Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
+                if (preflightUnavailable is not null) WarnAuthorityUnavailable(id.ToString(), preflightUnavailable);
             }
 
             // A dropped HTTP client cannot cancel a half-stopped server. The operation has its own
@@ -180,7 +177,9 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     // update loop is stopped for good by now, so a failure here must still end in the
                     // graceful exit (RewardEntryPublication), never in a paused server without one.
                     reply = await RewardEntryPublication.PublishAsync(
-                        () => RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!),
+                        // A read error that only shows up now (the preflight read was fine or differed) is reported here, once.
+                        () => RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!,
+                            reason => { if (reason != preflightUnavailable) WarnAuthorityUnavailable(id.ToString(), reason); }),
                         reply, ScheduleShutdown, message => ArenaContext.Logger?.Warning("[ArenaMode] " + message));
                 }
                 else ScheduleShutdown(true);
@@ -223,6 +222,11 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             if (reserved) _reservation.Release(entering, id.ToString(), (object?)entryRequest ?? request!);
         }
     }
+
+    private static void WarnAuthorityUnavailable(string profile, string reason)
+        => ArenaContext.Logger?.Warning($"[ArenaMode] Profile rewards are unavailable for this Arena session (profile {profile}): "
+            + $"the reward records do not match this installation or profile ({reason}). The session starts normally without rewards. "
+            + "Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
 
     private bool IsIdle()
     {

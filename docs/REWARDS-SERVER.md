@@ -74,8 +74,8 @@ is still unavailable after two minutes, this startup aborts instead of loading
 profiles concurrently. Only genuine contention (a held lock, a live private owner)
 aborts startup. A reward folder that cannot be used at all (the SPT folder or a parent
 is a link, access denied, path unavailable) leaves no peer that could be holding
-anything: startup then skips every reward step, writes nothing, logs one Warning and
-loads profiles normally. This exceptional behavior protects integrity; it is not the
+anything it knows of: startup then skips every reward step, writes no reward data,
+logs one Warning and loads profiles normally. This exceptional behavior protects integrity; it is not the
 ordinary response to an invalid receipt. See "Lost reward authority" in
 [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md).
 

@@ -23,6 +23,21 @@ namespace ArenaMode.SessionHelper
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBox(IntPtr window, string text, string caption, uint flags);
 
+        /// <summary>
+        /// The normal server could not publish the Arena entry proof after it had stopped its update loop, so it
+        /// is shutting down on its own and cannot serve again. The message is shown to the player as it is.
+        /// </summary>
+        internal sealed class ServerStoppingException : HelperException
+        {
+            internal const string Reason = "entry-proof-unpublished";
+
+            internal ServerStoppingException() : base(
+                "The SPT server saved your profile and is shutting down because Arena entry could not be prepared (see its log). "
+                + "Arena was not started and nothing was copied. Start SPT again to continue.")
+            {
+            }
+        }
+
         internal sealed class Grant
         {
             internal string SessionId, ProfileId, Token, Source, Pin;
@@ -172,6 +187,7 @@ namespace ArenaMode.SessionHelper
                 {
                     log("Arena entry declined: " + DescribeReply(reply));
                     if (AllowsNormalResume(reply)) return true;
+                    if (ArenaMiniJson.GetString(reply, "reason") == ServerStoppingException.Reason) throw new ServerStoppingException();
                     throw new HelperException("Normal SPT refused Arena entry; no profile was copied.");
                 }
                 try
@@ -200,7 +216,7 @@ namespace ArenaMode.SessionHelper
             switch (stage)
             {
                 case "http-drain": case "update-drain": case "idle": case "preflight-save":
-                case "stop-updates": case "final-save": break;
+                case "stop-updates": case "final-save": case "entry-preflight": break;
                 default: stage = "unknown-stage"; break;
             }
             string detail = ArenaMiniJson.GetString(reply, "detail");

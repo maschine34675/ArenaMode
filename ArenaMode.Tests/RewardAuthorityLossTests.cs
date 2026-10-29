@@ -249,15 +249,28 @@ public sealed partial class RewardOfflineSessionTests
         Assert.True(JsonNode.DeepEquals(before, after));
     }
 
+    // One case per way the old records can still be unsettled; the second argument names the guard that must
+    // answer, so a case cannot be satisfied by a different guard when one of them is removed.
     [Theory]
-    [InlineData("uncommitted-payment")]
-    [InlineData("unimported-receipt")]
-    [InlineData("pending-run")]
-    [InlineData("unrecognised-file")]
-    public async Task UnsettledRecordsKeepTheQuarantineAndChangeNothing(string variant)
+    [InlineData("uncommitted-payment", "is not committed")]
+    [InlineData("unimported-receipt", "is not imported yet")]
+    [InlineData("pending-run", "run is unresolved")]
+    [InlineData("unrecognised-file", "unrecognised entry")]
+    [InlineData("active-session", "still recorded as active")]
+    [InlineData("journal-missing", "journal is missing")]
+    [InlineData("cola-progression", "Tarkova Cola progression")]
+    [InlineData("approved-not-journaled", "approved reward is not paid yet")]
+    [InlineData("candidate-not-imported", "candidate is not imported yet")]
+    [InlineData("decision-not-journaled", "decision is not paid yet")]
+    [InlineData("recovery-pending", "recovery request is pending")]
+    [InlineData("snapshot-pending", "restoration is unresolved")]
+    public async Task UnsettledRecordsKeepTheQuarantineAndChangeNothing(string variant, string guard)
     {
         using var f = new Fixture();
         var binding = f.Original.Binding;
+        string newRun = Guid.NewGuid().ToString("N");
+        RewardClaim claim = new(binding, newRun, 1, 1000, "arena-v2");
+        string snapshots = Path.Combine(f.Root, "user", "arena-reward-snapshots", Fixture.Id);
         switch (variant)
         {
             case "uncommitted-payment":
@@ -266,9 +279,61 @@ public sealed partial class RewardOfflineSessionTests
                 File.WriteAllText(f.Metadata("journal.json"), RewardRuntimeFiles.Json(new RewardJournal(1, binding,
                     [new RewardJournalEntry(payment, RewardJournalPhase.Attempting, new string('b', 64))])));
                 break;
+            case "cola-progression":
+                // Committed, but the external progression it carries is not something an archive may abandon.
+                string colaKey = Guid.NewGuid().ToString("N") + ":1";
+                var colaPayment = new RewardPayment(colaKey, new string('a', 64), 0, RewardIdentity.MessageId(binding, colaKey), 1_700_000_000,
+                    Cola: RewardColaProfile.Resolve(f.Profile, RewardColaDelta.Capture("{}", "{\"xp\":{\"speedcola\":3},\"ach\":{\"a_first\":true}}")));
+                File.WriteAllText(f.Metadata("journal.json"), RewardRuntimeFiles.Json(new RewardJournal(1, binding,
+                    [new RewardJournalEntry(colaPayment, RewardJournalPhase.Committed, new string('b', 64))])));
+                break;
+            case "journal-missing":
+                Assert.True(File.Exists(f.Metadata("journal.json")));
+                File.Delete(f.Metadata("journal.json"));
+                break;
+            case "active-session":
+                f.Ready(); // lease published and the active pointer written: a private session may be running
+                Assert.True(RewardOfflineSession.HasActive(f.Root));
+                break;
             case "unimported-receipt":
                 Directory.CreateDirectory(f.Metadata("inbox"));
-                File.WriteAllText(f.Metadata("inbox/" + Guid.NewGuid().ToString("N") + ".json"), "{}");
+                // Readable, but from no delegation this directory knows: nothing proves it closed, so it is still owed.
+                File.WriteAllText(f.Metadata("inbox/" + Guid.NewGuid().ToString("N") + ".json"),
+                    RewardRuntimeFiles.Json(new RewardSignedReceipt(1, "not-a-delegation", "payload", "signature")));
+                break;
+            case "approved-not-journaled":
+                File.WriteAllText(f.Metadata("approved.json"), RewardRuntimeFiles.Json(
+                    new RewardStartupApproval(1, RewardStartupApprovalState.RestoredAndApproved, claim, new string('d', 64))));
+                break;
+            case "candidate-not-imported":
+                string hash = new string('e', 64);
+                File.WriteAllText(f.Metadata("candidate.json"), RewardRuntimeFiles.Json(new RewardApprovalCandidate(1,
+                    new RewardRunAuthorization(1, binding, newRun, 1, newRun, newRun, newRun, "aaaaaaaaaaaaaaaaaaaaaaaa", "deathmatch", hash,
+                        RewardRuntimeCoordinator.Policy, [], null),
+                    new RewardMatchReport(1, newRun, newRun, newRun, default, []),
+                    new RewardRestorationEvidence(1, binding, newRun, newRun, newRun, newRun, RewardRestorationState.Persisted, hash, hash))));
+                break;
+            case "decision-not-journaled":
+                Directory.CreateDirectory(f.Metadata("decisions"));
+                File.WriteAllText(f.Metadata("decisions/" + newRun + ".json"), RewardRuntimeFiles.Json(new RewardApprovalDecision(1, binding, newRun, 1,
+                    new string('c', 64), new RewardEvaluation(RewardEvaluationStatus.Eligible, "eligible", 1, 0, 1000),
+                    new RewardStartupApproval(1, RewardStartupApprovalState.RestoredAndApproved, claim, new string('d', 64)))));
+                break;
+            case "recovery-pending":
+                // A queued request to close an uncertain session; only startup completes it.
+                Directory.CreateDirectory(snapshots);
+                string queuedGeneration = Guid.NewGuid().ToString("N");
+                File.WriteAllText(Path.Combine(snapshots, queuedGeneration + ".json"),
+                    RewardRuntimeFiles.Json(new RewardSnapshotGuard(1, queuedGeneration, "pending")));
+                var review = RewardRecovery.Preview(f.Root, Fixture.Id);
+                Assert.True(review.CanClose, review.Detail);
+                Assert.True(RewardRecovery.Request(f.Root, Fixture.Id, review.ReviewId).Accepted);
+                break;
+            case "snapshot-pending":
+                Directory.CreateDirectory(snapshots);
+                string generation = Guid.NewGuid().ToString("N");
+                File.WriteAllText(Path.Combine(snapshots, generation + ".json"),
+                    RewardRuntimeFiles.Json(new RewardSnapshotGuard(1, generation, "pending")));
                 break;
             case "pending-run":
                 string runs = Path.Combine(f.Root, "user", "arena-reward-runs", Fixture.Id);
@@ -280,14 +345,22 @@ public sealed partial class RewardOfflineSessionTests
             case "unrecognised-file":
                 File.WriteAllText(f.Metadata("notes.txt"), "kept by the player");
                 break;
+            default: throw new ArgumentOutOfRangeException(nameof(variant));
         }
         Wipe(f);
         var tree = Tree(f.Root);
 
-        var outcome = await f.Pay();
+        RewardStartupOutcome outcome;
+        if (variant == "cola-progression")
+        {
+            // The Cola companion recovery that runs after this step stops startup on purpose; the decision is the step under test.
+            using var window = new RewardStartupWindow(f.Root, () => true);
+            outcome = new(Fixture.Id, new(RewardSettlementStatus.Quarantined, "quarantined"), 0, 0, RewardAuthorityRecovery.Reconcile(window, Fixture.Id));
+        }
+        else outcome = await f.Pay();
 
-        Assert.False(outcome.Authority!.Recovered);
-        Assert.False(string.IsNullOrEmpty(outcome.Authority.Detail));
+        Assert.False(outcome.Authority!.Recovered, outcome.Authority.Detail);
+        Assert.Contains(guard, outcome.Authority.Detail);
         Assert.Equal(RewardSettlementStatus.Quarantined, outcome.Result.Status);
         Assert.Equal(tree, Tree(f.Root)); // not one byte of the old records or the profile moved
         Assert.Empty(Archives(f));
@@ -379,6 +452,57 @@ public sealed partial class RewardOfflineSessionTests
         Assert.Equal(consent, RewardEnrollment.ReadConsent(f.Root, Fixture.Id));
         Assert.False(Directory.Exists(directory + ".reenroll-" + suffix));
         Assert.True(Directory.Exists(directory + ".archived-" + suffix));
+    }
+
+    [Fact]
+    public async Task AnOptedOutPlayerWithUnsettledOldRecordsIsNotToldThatRewardsAreWithheld()
+    {
+        using var f = new Fixture();
+        RewardEnrollment.SetConsent(f.Root, Fixture.Id, false);
+        File.WriteAllText(f.Metadata("notes.txt"), "kept by the player");
+        Wipe(f);
+        var outcome = await f.Pay();
+        Assert.False(outcome.Authority!.Recovered);
+
+        var coordinator = new RewardRuntimeCoordinator(f.Root);
+        coordinator.ObserveStartupOutcome(outcome);
+        var off = coordinator.GetStatus(Fixture.Id);
+        Assert.Equal("disabled", off.State);
+        Assert.Equal("Optional profile rewards are off.", off.Detail);
+    }
+
+    [Fact]
+    public void ATransientFileErrorIsDeclinedBeforeTheStopAndNeverCostsTheLeaseAfterIt()
+    {
+        using var f = new Fixture();
+        var reasons = new List<string>();
+        using (new FileStream(f.ProfilePath, FileMode.Open, FileAccess.Read, FileShare.None)) // a scanner holding a healthy profile
+        {
+            // Nothing is paused yet: the entry is declined (the listener answers canResumeNormal) and nothing is written.
+            Assert.ThrowsAny<IOException>(() => RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request));
+            Assert.False(Directory.Exists(RewardOfflineSession.SessionDirectory(f.Root, f.Grant.SessionId)));
+            Assert.False(RewardOfflineSession.HasActive(f.Root));
+
+            // After the stop the server cannot resume: the session starts without authority, and says why.
+            var lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add);
+            Assert.Null(lease.Authority);
+            Assert.Equal(["IOException"], reasons);
+        }
+        // An identical retry finds the published lease and has nothing new to report.
+        Assert.Null(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add).Authority);
+        Assert.Single(reasons);
+    }
+
+    [Fact]
+    public void ADeterministicAuthorityErrorStillStartsTheSessionWithoutAuthorityAndNamesTheCause()
+    {
+        using var f = new Fixture();
+        Wipe(f);
+        var reasons = new List<string>();
+        string? why = RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request);
+        Assert.False(string.IsNullOrEmpty(why));
+        Assert.Null(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add).Authority);
+        Assert.Equal([why!], reasons);
     }
 
     [Fact]

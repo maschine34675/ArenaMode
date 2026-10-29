@@ -96,6 +96,42 @@ public sealed class RewardStartupAdmissionTests : IDisposable
     }
 
     [Fact]
+    public async Task AnActivePrivateSessionBehindALinkIsNotSkippedEither()
+    {
+        // Another spelling of an install that a private session runs from: the pointer is visible through the link.
+        Directory.CreateDirectory(Path.Combine(Real, "user", "arena-rewards"));
+        File.WriteAllText(RewardOfflineSession.ActivePath(Real), "{}");
+        Directory.CreateSymbolicLink(Alias, Real);
+        await Assert.ThrowsAsync<RewardDataException>(() => ArenaRewardStartup.AdmitAsync(RewardStartupFiles.Canonical(Alias), CancellationToken.None));
+    }
+
+    [Fact]
+    public void AnUnreadableRewardFolderIsNotMistakenForAnActivePrivateSession()
+    {
+        // The pointer lives inside the folder that is unusable; failing to look must not turn "skip" back into "stop".
+        File.WriteAllText(Path.Combine(Real, "user"), "not a folder");
+        string root = RewardStartupFiles.Canonical(Real);
+        Assert.False(ArenaRewardStartup.LooksPrivate(root));
+        Assert.Equal("reward-storage-access-denied", ArenaRewardStartup.UnusableStorage(new UnauthorizedAccessException(), root));
+    }
+
+    [Theory]
+    [InlineData("Deferred", "rewards-enrolled-no-pending-result", "and rewards were enrolled again")]
+    [InlineData("Quarantined", "profile-not-confirmed-clean", "did not succeed")]
+    [InlineData("Rejected", "invalid-claim", "did not succeed")]
+    [InlineData("Deferred", "startup-storage-unavailable", "did not succeed")]
+    [InlineData("Deferred", "rewards-not-enabled", "nothing was enrolled")]
+    public void TheRecoveredLogLineOnlyClaimsEnrollmentThatHappened(string status, string reason, string expected)
+    {
+        var notice = new RewardAuthorityNotice(true, "profile-reward-block-missing", "", "user/arena-rewards/x.archived-y");
+        var outcome = new RewardStartupOutcome("0123456789abcdef01234567", new(Enum.Parse<RewardSettlementStatus>(status), reason), 0, 0, notice);
+        string text = ArenaRewardStartup.DescribeRecovered(outcome, "the profile lost its reward ledger", notice);
+        Assert.Contains(expected, text);
+        Assert.Contains("x.archived-y", text);
+        if (expected != "and rewards were enrolled again") Assert.DoesNotContain("were enrolled again", text);
+    }
+
+    [Fact]
     public void OnlyUnusableStorageIsSkippedNeverContentionOrOwnership()
     {
         string root = RewardStartupFiles.Canonical(Real);

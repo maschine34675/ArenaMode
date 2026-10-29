@@ -51,30 +51,39 @@ internal static partial class RewardOfflineSession
 
     // Called only by the authenticated, quiesced entry operation. Immutable retry
     // evidence binds the same helper operation, not merely a reused session ID.
-    internal static RewardOfflineLease CreateReady(string root, RewardEntryGrant grant, RewardEntryRequest request)
+    // onAuthorityUnavailable receives the fixed-vocabulary reason when the lease is published WITHOUT authority
+    // (the read that PreflightReady already made can fail differently once the server is stopped).
+    internal static RewardOfflineLease CreateReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
+        Action<string>? onAuthorityUnavailable = null)
     {
         // The shutdown sequence's semaphore does not cover publication. Identical
         // HTTP retries must not race two different random delegations into the lease.
-        lock (Sync) return CreateReadyCore(root, grant, request);
+        lock (Sync) return CreateReadyCore(root, grant, request, onAuthorityUnavailable);
     }
 
     // Everything CreateReady can refuse, without a single write. The shutdown listener runs it BEFORE
     // the native stop sequence pauses requests and stops the (non-resumable) update loop, so a
     // deterministic refusal declines the entry while the normal server is still fully alive. Returns why
-    // the profile's reward authority is unusable (the lease then carries none), or null.
+    // the profile's reward authority is unusable (the lease then carries none), or null. A transient file error
+    // (sharing violation, access denied) while reading that authority is not "unusable": nothing is paused yet,
+    // so it throws and the entry is declined while the normal server is still alive.
     internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request)
     {
         lock (Sync)
         {
-            BuildReady(RewardStartupFiles.Canonical(root), grant, request, out _, out string? unavailable);
+            BuildReady(RewardStartupFiles.Canonical(root), grant, request, preflight: true, out _, out string? unavailable);
             return unavailable;
         }
     }
 
-    private static RewardOfflineLease CreateReadyCore(string root, RewardEntryGrant grant, RewardEntryRequest request)
+    private static RewardOfflineLease CreateReadyCore(string root, RewardEntryGrant grant, RewardEntryRequest request,
+        Action<string>? onAuthorityUnavailable)
     {
         root = RewardStartupFiles.Canonical(root);
-        var lease = BuildReady(root, grant, request, out bool published, out _);
+        var lease = BuildReady(root, grant, request, preflight: false, out bool published, out string? unavailable);
+        // The server cannot resume any more here, so a read error that did not show up at preflight still
+        // starts the session without authority (fail toward no payment); it must not do so silently.
+        if (unavailable is not null) onAuthorityUnavailable?.Invoke(unavailable);
         if (!published)
         {
             RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
@@ -100,7 +109,7 @@ internal static partial class RewardOfflineSession
     // matches this installation or whose ledger left the profile (wipe, restored backup, moved or copied
     // install, editor) yields a lease WITHOUT authority, exactly like a profile that never enrolled.
     private static RewardOfflineLease BuildReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        out bool published, out string? authorityUnavailable)
+        bool preflight, out bool published, out string? authorityUnavailable)
     {
         authorityUnavailable = null;
         if (!RewardStartupFiles.MarkerAbsent(root) || grant.Schema != 1 || grant.Purpose != RewardEntryControl.Purpose
@@ -129,7 +138,7 @@ internal static partial class RewardOfflineSession
             // The player's own choice stays a precondition: the return path rewrites it and refuses to go on
             // over a damaged file. Refusing here, before the stop sequence, leaves the normal session untouched.
             var consent = RewardEnrollment.ReadConsent(root, grant.ProfileId);
-            var authority = ReadEntryAuthority(root, grant, out authorityUnavailable);
+            var authority = ReadEntryAuthority(root, grant, preflight, out authorityUnavailable);
             lease = new(1, grant.SessionId, grant.ProfileId, root, RewardStartupFiles.Canonical(request.PrivateRoot),
                 request.MarkerCreatedUtc, request.Port, consent.Revision, consent.Enabled, authority, Secret(),
                 grant.ServerPid, grant.ServerStartedUtc, grant.ServerArguments.ToArray(), request.OperationId,
@@ -140,8 +149,11 @@ internal static partial class RewardOfflineSession
     }
 
     // Read-only validation of an existing enrollment and ledger; never enrolls. Any failure to read or match
-    // them means "no authority for this session" and names the cause for the server log.
-    private static RewardHandoff? ReadEntryAuthority(string root, RewardEntryGrant grant, out string? unavailable)
+    // them means "no authority for this session" and names the cause for the server log. Only the file errors that
+    // may clear on their own (IOException, UnauthorizedAccessException) are different before the stop: the
+    // preflight lets them propagate, because a scanner holding a healthy enrollment for a moment is no reason to
+    // cost the player the session's rewards when the entry can still be declined and retried.
+    private static RewardHandoff? ReadEntryAuthority(string root, RewardEntryGrant grant, bool preflight, out string? unavailable)
     {
         unavailable = null;
         var directory = RewardRuntimeFiles.DirectoryFor(root, grant.ProfileId);
@@ -159,6 +171,7 @@ internal static partial class RewardOfflineSession
         catch (Exception e) when (e is RewardDataException or JsonException or FormatException or ArgumentException
             or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
+            if (preflight && e is IOException or UnauthorizedAccessException) throw;
             unavailable = e is RewardDataException ? e.Message : e.GetType().Name;
             return null;
         }

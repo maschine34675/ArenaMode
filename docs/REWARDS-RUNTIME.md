@@ -91,16 +91,24 @@ private owner and cancellation stop startup, because another process may still o
 settlement and native profile loading would race it. A reward folder that merely
 cannot be used does not: when the SPT folder or one of its parents is a link
 (junction, symbolic link, mount point, cloud placeholder), when access is denied or
-the path is unavailable, nothing else can be holding the lock either (any peer hits
-the same failure). Startup then does no reward work at all, writes nothing, logs one
-Warning that rewards are unavailable and why, and SPT starts normally; the menu shows
-"Rewards are off: this installation's reward folder cannot be used. See the server
-log." (a refusal that a restart may clear keeps "temporarily unavailable"). Only a held lock counts as contention (a
+the path is unavailable, a process that reaches the install by the same path hits the
+same failure and cannot be holding the lock either. Startup then does no reward work
+at all, writes no reward data (an empty metadata folder or lock file may have been
+created before a later step failed), logs one Warning that rewards are unavailable and
+why, and SPT starts normally; the menu shows "Rewards are off: this installation's
+reward folder cannot be used. See the server log." (a refusal that a restart may clear
+keeps "temporarily unavailable"). Only a held lock counts as contention (a
 sharing or lock violation, `RewardStartupLifetimeLock.IsContention`); a missing
 folder, a too-long path or a disk fault is an unusable location. A private Arena
-tree (session marker or lease file present) is never skipped, because it owns the
-original runtime's lifetime lock. Other refused reward cases continue through the
-existing reward-only failure reporting.
+tree (session marker, lease file or active-session pointer present) is never skipped,
+because it owns the original runtime's lifetime lock; the pointer
+(`user/arena-rewards/offline-active.json`) is looked up without the link refusal, so
+an install that a private session runs from stays protected when SPT is started
+through a link to it. Residual case: a second NORMAL server started through a linked
+spelling of an install that another normal server already runs from is no longer
+stopped by the reward lock (SPT's own port check still applies); the old behaviour
+refused that start. Other refused reward cases continue through the existing
+reward-only failure reporting.
 
 ### Lost reward authority
 
@@ -119,8 +127,14 @@ session lease is then published WITHOUT authority, exactly like a never-enrolled
 profile, and a Warning names the profile and the cause. Anything else deterministic
 (`offline-entry-mismatch`, a still-active session, an unreadable `consent.json`,
 which the return path would refuse to go on over) declines the entry while the
-normal server is still alive: reply `return-not-ready` with `canResumeNormal`, and
-the helper reopens the normal session. On return, `ApplyOfflineConsent` stores the
+normal server is still alive: reply `return-not-ready` with `canResumeNormal`
+(stage `entry-preflight`, which the helper names in its log), and the helper reopens
+the normal session. A file error that may clear on its own while the authority is
+read (a scanner holding `enrollment.json` or the profile: `IOException`,
+`UnauthorizedAccessException`) is treated the same way before the stop, instead of
+costing the session its rewards. The same read after the stop cannot decline any
+more: the session then starts without authority, and the Warning names the cause
+(the cause is logged once, at the preflight when that already saw it). On return, `ApplyOfflineConsent` stores the
 acknowledged choice and skips re-publishing a handoff for an enrollment that no
 longer matches this root or cannot be read at all (damaged, oversized: the same
 classes entry lets through), instead of stopping normal startup. Both ends are
@@ -134,8 +148,13 @@ normal server can never serve again. If the entry proof then cannot be written
 logs a Warning and registers the same `StopApplication` the success path uses, and
 replies `accepted:false, held:false, entry-proof-unpublished`. The helper reports a
 declined entry and copies nothing (`held:true` would keep its Retry/Cancel dialog
-open against a server that is about to exit). No profile data is lost: the final
-save was verified before this point. Start SPT again normally.
+open against a server that is about to exit). It recognises the reason and tells the
+player that the SPT server saved the profile and is shutting down because Arena entry
+could not be prepared, and that SPT must be started again; it does not ask to keep the
+server open. It does not try to reopen a normal session: the server is exiting, holds
+no lease and has no proof to resume from, so a restart would be a second server start
+without recovery state. No profile data is lost: the final save was verified before
+this point. Start SPT again normally.
 
 **Startup recovery** (`RewardAuthorityRecovery`, first step of every profile's
 startup pass, inside the admitted pre-load window). It acts on an enrolled profile
@@ -172,6 +191,14 @@ unusable, so neither a copy of the install nor a restored backup can be paid twi
 a profile whose ledger is an older revision of the same epoch (a backup behind the
 journal), or that carries another epoch's block, is not recovered and keeps going
 through the settlement core's divergence checks.
+
+The Info line that reports a recovery says the old records were archived; it claims
+that rewards were enrolled again only when the same startup pass really did so,
+otherwise it says that enrollment follows at the next successful start (or that
+rewards are switched off and nothing was enrolled). A player who switched rewards
+off sees the ordinary "Optional profile rewards are off." in the menu while old
+records stay unsettled (the Warning is still logged at every start); "records no
+longer match" appears once they switch rewards on.
 
 Manual remedy for an unsettled profile: start the installation at the root recorded
 in `enrollment.json` once, so its pending rewards are delivered, and move it again;

@@ -154,6 +154,62 @@ public sealed class RewardRecoveryTests
         Assert.Single(Directory.GetDirectories(Path.GetDirectoryName(Path.GetDirectoryName(f.PathOf("enrollment.json")))!, "*.archived-*"));
     }
 
+    // The closure set is non-empty in all three: what it ended is settled, anything else it does not name is not.
+    [Fact]
+    public async Task AClosureThatNamesOtherRecordsDoesNotSettleARetainedReceiptItDoesNotName()
+    {
+        using var f = new Fixture();
+        string first = f.CaptureAndPublish(() => f.QueueAndClose());
+        Assert.Equal(RewardSettlementStatus.ClosedWithoutPayment, (await f.Process()).Result.Status);
+        string directory = Path.GetDirectoryName(f.PathOf("enrollment.json"))!;
+        var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+
+        string other = f.PathOf("inbox/" + f.CaptureAndPublish() + ".json");
+        Assert.True(File.Exists(other));
+        Assert.False(RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "inbox", other, closures));
+
+        // The allocation form carries its candidate in the clear: the closed receipt's is settled, the other one's is not.
+        RewardApprovalCandidate Candidate(string receipt)
+        {
+            var signed = RewardStartupFiles.Read<RewardSignedReceipt>(receipt, RewardRuntimeFiles.MaxReceiptBytes);
+            var authority = RewardRuntimeFiles.ReadHandoff(f.Root, Path.Combine(directory, "delegations", signed.DelegationId + ".json"));
+            return RewardRuntimeFiles.Verify(authority, signed).Evidence;
+        }
+        string Allocation(string receipt)
+        {
+            string path = Path.Combine(f.Root, Guid.NewGuid().ToString("N") + ".json");
+            File.WriteAllText(path, RewardRuntimeFiles.Json(new RewardAllocation(1, new string('a', 64), Candidate(receipt))));
+            return path;
+        }
+        string closed = f.PathOf("inbox/" + first + ".json");
+        Assert.True(RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "allocations", Allocation(closed), closures));
+        Assert.False(RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "allocations", Allocation(other), closures));
+    }
+
+    [Theory]
+    [InlineData("restoration", "restoration is unresolved")]
+    [InlineData("run", "run is unresolved")]
+    public async Task AClosureThatNamesOtherRecordsDoesNotSettleARunOrRestorationItDoesNotName(string kind, string guard)
+    {
+        using var f = new Fixture();
+        f.LegacyPending();
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status); // the automatic discard closes this one
+        var old = f.Binding;
+        // Another uncertain record appears afterwards; no closure names it.
+        string generation = Guid.NewGuid().ToString("N"), run = Guid.NewGuid().ToString("N");
+        if (kind == "restoration") f.WriteAt(f.SnapshotPath(generation), new RewardSnapshotGuard(1, generation, "pending"));
+        else f.WriteAt(f.RunPath(run), new RewardRuntimePending(1, Guid.NewGuid().ToString("N"), run));
+        f.Write("enrollment.json", f.Read<RewardStartupEnrollment>("enrollment.json")
+            with { RuntimeRoot = Path.Combine(Path.GetTempPath(), "ArenaMode.Moved.From", Guid.NewGuid().ToString("N")) });
+
+        var outcome = await f.Process();
+
+        Assert.False(outcome.Authority!.Recovered);
+        Assert.Contains(guard, outcome.Authority.Detail);
+        Assert.Equal(old, f.Binding);
+        Assert.Empty(Directory.GetDirectories(Path.GetDirectoryName(Path.GetDirectoryName(f.PathOf("enrollment.json")))!, "*.archived-*"));
+    }
+
     [Fact]
     public async Task StartupDiscardsUnprovenOldRewardsWithoutPlayerActionAndNewRewardsPay()
     {

@@ -29,7 +29,7 @@ namespace ArenaMode.SessionHelper
     /// An expected failure of the helper. The message is written to <c>helper.log</c> as it is, so it
     /// names the problem and the path.
     /// </summary>
-    public sealed class HelperException : Exception
+    public class HelperException : Exception
     {
         public HelperException(string message) : base(message)
         {
