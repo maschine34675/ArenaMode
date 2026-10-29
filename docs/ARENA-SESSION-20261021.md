@@ -576,8 +576,9 @@ beside the request (`request.json.accepted` for `request.json`):
 
 `enter`:
 1. Wait until `gamePid` has exited (max 120 s; on timeout log and exit 1, never kill the game).
-2. Stop a previous arena server of this tree (see `stop-server`). If it belongs to another
-   installation the enter fails (step 6 applies).
+2. Stop a previous arena server of this tree (see `stop-server`). If a server of another
+   installation is proven to run from this tree the enter fails (step 6 applies); a finished
+   session of another installation does not block, an unclosed one is refused at the closure check.
 3. Materialise `<root>\server` (always under the runtime root; refuse any other path; never
    recurse into a reparse point when deleting; delete junctions as links):
    - Server binaries, so that the arena server runs from the tree and `AppContext.BaseDirectory`

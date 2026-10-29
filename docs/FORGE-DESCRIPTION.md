@@ -313,7 +313,10 @@ Optional profile rewards are **on by default for every profile that is not yet
 registered, including existing ones** (existing OFF choices stay OFF). At the next
 normal server start ArenaMode.Server adds a small data block to the profile file;
 RUB mail and PMC XP are credited only after Arena matches. Switch rewards off with
-the rewards card in the Arena map menu. Back up your profile first.
+the rewards card in the Arena map menu. Back up your profile first. After a profile
+wipe, a restored backup or a moved install, the old reward folder
+(`user/arena-rewards/<profile>`) is renamed to `.archived-...` (never deleted) and your
+reward choice is kept.
 
 - Domination currently has no profile rewards.
 

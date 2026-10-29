@@ -179,7 +179,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     reply = await RewardEntryPublication.PublishAsync(
                         // A read error that only shows up now (the preflight read was fine or differed) is reported here, once.
                         () => RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!,
-                            reason => { if (reason != preflightUnavailable) WarnAuthorityUnavailable(id.ToString(), reason); }),
+                            reason => { if (ReportsAfterStop(preflightUnavailable, reason)) WarnAuthorityUnavailable(id.ToString(), reason); }),
                         reply, ScheduleShutdown, message => ArenaContext.Logger?.Warning("[ArenaMode] " + message));
                 }
                 else ScheduleShutdown(true);
@@ -223,9 +223,12 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
         }
     }
 
+    // The cause is logged once: a reason the preflight already named is not repeated after the stop.
+    internal static bool ReportsAfterStop(string? preflightReason, string reason) => reason != preflightReason;
+
     private static void WarnAuthorityUnavailable(string profile, string reason)
         => ArenaContext.Logger?.Warning($"[ArenaMode] Profile rewards are unavailable for this Arena session (profile {profile}): "
-            + $"the reward records do not match this installation or profile ({reason}). The session starts normally without rewards. "
+            + $"the reward records do not match this installation or profile ({reason}). The session lease carries no reward authority, so it runs without rewards. "
             + "Remedy: docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
 
     private bool IsIdle()

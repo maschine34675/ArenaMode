@@ -216,7 +216,7 @@ namespace ArenaMode.SessionHelper
             switch (stage)
             {
                 case "http-drain": case "update-drain": case "idle": case "preflight-save":
-                case "stop-updates": case "final-save": case "entry-preflight": break;
+                case "stop-updates": case "final-save": case "entry-preflight": case "publish-entry-proof": break;
                 default: stage = "unknown-stage"; break;
             }
             string detail = ArenaMiniJson.GetString(reply, "detail");

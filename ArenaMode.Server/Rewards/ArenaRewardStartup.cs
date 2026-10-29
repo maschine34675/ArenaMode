@@ -163,18 +163,20 @@ public sealed class ArenaRewardStartup(
     // A private Arena server owns the original runtime's lifetime lock; skipping that is never an option. The
     // active-session pointer is looked up WITHOUT the link refusal on purpose: when this path is a link to an
     // install that a private session runs from (reached by another spelling), the pointer is visible through it.
-    internal static bool LooksPrivate(string root)
+    // `attributes` is the file-system probe; tests substitute it because Windows cannot be made to deny an attribute query.
+    internal static bool LooksPrivate(string root, Func<string, FileAttributes>? attributes = null)
     {
+        attributes ??= File.GetAttributes;
         try
         {
             foreach (var name in new[] { "arena-session.json", RewardOfflineSession.LeaseFile })
             {
-                try { _ = File.GetAttributes(Path.Combine(root, name)); return true; }
+                try { _ = attributes(Path.Combine(root, name)); return true; }
                 catch (FileNotFoundException) { }
                 catch (DirectoryNotFoundException) { }
             }
             // Unreadable here is the very case this check lets through (access denied to the reward folder).
-            try { _ = File.GetAttributes(RewardOfflineSession.ActivePath(root)); return true; }
+            try { _ = attributes(RewardOfflineSession.ActivePath(root)); return true; }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
             return false;
         }

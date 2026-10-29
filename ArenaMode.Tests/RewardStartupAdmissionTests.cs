@@ -115,6 +115,21 @@ public sealed class RewardStartupAdmissionTests : IDisposable
         Assert.Equal("reward-storage-access-denied", ArenaRewardStartup.UnusableStorage(new UnauthorizedAccessException(), root));
     }
 
+    [Fact]
+    public void AnAccessDeniedActivePointerIsNotMistakenForAnActivePrivateSession()
+    {
+        // The UnauthorizedAccessException half of the probe (Windows cannot be made to deny an attribute query for real).
+        string root = RewardStartupFiles.Canonical(Real);
+        string active = RewardOfflineSession.ActivePath(root);
+        FileAttributes Probe(string path)
+            => string.Equals(path, active, StringComparison.OrdinalIgnoreCase) ? throw new UnauthorizedAccessException() : throw new FileNotFoundException();
+        Assert.False(ArenaRewardStartup.LooksPrivate(root, Probe));
+        // An unexpected failure on the other markers still counts as private (fail toward not skipping), as does a readable pointer.
+        Assert.True(ArenaRewardStartup.LooksPrivate(root, _ => throw new InvalidOperationException()));
+        Assert.True(ArenaRewardStartup.LooksPrivate(root, path => string.Equals(path, active, StringComparison.OrdinalIgnoreCase)
+            ? FileAttributes.Normal : throw new FileNotFoundException()));
+    }
+
     [Theory]
     [InlineData("Deferred", "rewards-enrolled-no-pending-result", "and rewards were enrolled again")]
     [InlineData("Quarantined", "profile-not-confirmed-clean", "did not succeed")]

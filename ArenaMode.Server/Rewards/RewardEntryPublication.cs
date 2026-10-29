@@ -50,7 +50,7 @@ internal static class RewardEntryPublication
                 + "stopped its update loop, so it cannot resume and is shutting down now. No profile data is lost; start SPT again normally.");
             // Accepted=false/Held=false: the helper reports a declined entry and copies nothing. Held=true would
             // keep it in its Retry/Cancel loop against a server that is about to exit.
-            return new(false, "entry-proof-unpublished", false);
+            return new(false, "entry-proof-unpublished", false, Stage: "publish-entry-proof", Detail: reason);
         }
         finally { shutdown(published); }
     }

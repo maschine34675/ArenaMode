@@ -130,9 +130,11 @@ which the return path would refuse to go on over) declines the entry while the
 normal server is still alive: reply `return-not-ready` with `canResumeNormal`
 (stage `entry-preflight`, which the helper names in its log), and the helper reopens
 the normal session. A file error that may clear on its own while the authority is
-read (a scanner holding `enrollment.json` or the profile: `IOException`,
-`UnauthorizedAccessException`) is treated the same way before the stop, instead of
-costing the session its rewards. The same read after the stop cannot decline any
+read (a scanner holding `enrollment.json` or the profile: a sharing or lock
+`IOException`, `UnauthorizedAccessException`) is treated the same way before the stop,
+instead of costing the session its rewards. A file or folder that is simply missing
+(`FileNotFoundException`, `DirectoryNotFoundException`, a path that cannot open) is
+not: nothing would recreate it, so it stays "no authority for this session". The same read after the stop cannot decline any
 more: the session then starts without authority, and the Warning names the cause
 (the cause is logged once, at the preflight when that already saw it). On return, `ApplyOfflineConsent` stores the
 acknowledged choice and skips re-publishing a handoff for an enrollment that no
@@ -146,7 +148,8 @@ loop is stopped (native `StopAsync` cannot be undone) and requests are held, the
 normal server can never serve again. If the entry proof then cannot be written
 (`RewardEntryPublication`: three attempts for transient file errors), the server
 logs a Warning and registers the same `StopApplication` the success path uses, and
-replies `accepted:false, held:false, entry-proof-unpublished`. The helper reports a
+replies `accepted:false, held:false, entry-proof-unpublished` (stage
+`publish-entry-proof`, which the helper names in its log). The helper reports a
 declined entry and copies nothing (`held:true` would keep its Retry/Cancel dialog
 open against a server that is about to exit). It recognises the reason and tells the
 player that the SPT server saved the profile and is shutting down because Arena entry

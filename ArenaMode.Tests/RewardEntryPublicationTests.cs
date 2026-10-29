@@ -114,6 +114,24 @@ public sealed class RewardEntryPublicationTests
     }
 
     [Fact]
+    public async Task TheHelperKnowsTheStageOfAnUnpublishedEntryProof()
+    {
+        var reply = await new Probe().Run(() => throw new IOException("disk"));
+        string text = HelperOfflineSession.DescribeReply(Wire(reply));
+        Assert.StartsWith("publish-entry-proof/file-access", text);
+        Assert.DoesNotContain("unknown-stage", text);
+        Assert.Contains("normal resume=False", text);
+    }
+
+    [Fact]
+    public void ACauseThatThePreflightAlreadyNamedIsNotLoggedAgainAfterTheStop()
+    {
+        Assert.False(ArenaRewardReturnListener.ReportsAfterStop("IOException", "IOException"));
+        Assert.True(ArenaRewardReturnListener.ReportsAfterStop("IOException", "offline-existing-consent-missing"));
+        Assert.True(ArenaRewardReturnListener.ReportsAfterStop(null, "IOException"));
+    }
+
+    [Fact]
     public async Task AFailedPublicationEndsTheHelpersWaitInsteadOfOfferingRetryAgainstADyingServer()
     {
         var reply = await new Probe().Run(() => throw new IOException("disk"));

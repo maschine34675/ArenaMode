@@ -130,7 +130,9 @@ RUB arrives by mail; XP is already credited and is not granted again on collecti
 
 Uncertain old reward records are automatically discarded during normal startup.
 This does not reset the normal profile. Recovery also handles stopped sessions
-whose disposable data went missing. [Reward details](docs/REWARDS-RUNTIME.md) ·
+whose disposable data went missing. After a profile wipe, a restored backup or a moved
+install, the old reward folder (`user/arena-rewards/<profile>`) is renamed to `.archived-...`,
+never deleted, and your reward choice is kept. [Reward details](docs/REWARDS-RUNTIME.md) ·
 [Stopped-session recovery](docs/OFFLINE-STARTUP-RECOVERY-20261028.md).
 
 Tarkova Cola **2.2.1+**, installed on both sides, can additionally transfer eligible

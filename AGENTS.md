@@ -79,6 +79,11 @@ Fresh, initialized normal profiles default ON at admitted startup. Preserve
 every existing OFF choice, and never infer a fresh profile from missing consent
 inside an existing reward directory or from a profile carrying reward history.
 Private sessions and already-loaded profiles must never bootstrap enrollment.
+The one profile write besides enrollment is the startup authority recovery
+(`RewardAuthorityRecovery`, first step of the admitted pre-load pass): only when nothing
+is unsettled, it archives the reward directory by rename (never deletes), carries the
+consent choice over unchanged and never pays an uncertain record. See
+docs/REWARDS-RUNTIME.md, 'Lost reward authority'.
 The server owns currency values; physical combat remains client-observed. New receipt
 allocations may bind the latest clean ordinary profile at startup, preserving
 intervening ordinary progress; an existing allocation/approval must never be rebased.

@@ -280,7 +280,9 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    profile that is not yet registered, including existing ones, for optional PROFILE
    REWARDS (default ON). It adds a small data block to the profile file and credits
    RUB mail and PMC XP only after Arena matches. Switch it off with the rewards card
-   in the Arena map menu; back up the profile first (step 1).
+   in the Arena map menu; back up the profile first (step 1). After a profile wipe,
+   a restored backup or a moved install, the old user/arena-rewards/<profile> folder
+   is renamed to .archived-... (never deleted) and your reward choice is kept.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.

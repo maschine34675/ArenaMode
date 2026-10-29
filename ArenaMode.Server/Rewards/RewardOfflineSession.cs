@@ -81,13 +81,15 @@ internal static partial class RewardOfflineSession
     {
         root = RewardStartupFiles.Canonical(root);
         var lease = BuildReady(root, grant, request, preflight: false, out bool published, out string? unavailable);
-        // The server cannot resume any more here, so a read error that did not show up at preflight still
-        // starts the session without authority (fail toward no payment); it must not do so silently.
-        if (unavailable is not null) onAuthorityUnavailable?.Invoke(unavailable);
         if (!published)
         {
             RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
             RewardRuntimeFiles.WriteNew(root, LeasePath(root, grant.SessionId), lease);
+            // The server cannot resume any more here, so a read error that did not show up at preflight still
+            // starts the session without authority (fail toward no payment); it must not do so silently. Reported
+            // once the lease exists: a retry then finds it published, so the cause is neither lost nor repeated,
+            // and nothing is claimed for a lease that could not be written.
+            if (unavailable is not null) onAuthorityUnavailable?.Invoke(unavailable);
         }
         var reference = new RewardOfflineReference(1, lease.SessionId, Hash(lease));
         if (lease.Authority is { } delegated)
@@ -171,11 +173,17 @@ internal static partial class RewardOfflineSession
         catch (Exception e) when (e is RewardDataException or JsonException or FormatException or ArgumentException
             or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            if (preflight && e is IOException or UnauthorizedAccessException) throw;
+            if (preflight && MayClearOnItsOwn(e)) throw;
             unavailable = e is RewardDataException ? e.Message : e.GetType().Name;
             return null;
         }
     }
+
+    // A sharing violation or an access problem may be a scanner holding the file for a moment. A file or folder
+    // that is simply not there (or a path that can never open) stays "no authority for this session": declining
+    // would repeat on every attempt, because nothing recreates it before the stop.
+    private static bool MayClearOnItsOwn(Exception e) => e is UnauthorizedAccessException
+        || (e is IOException && e is not (FileNotFoundException or DirectoryNotFoundException or PathTooLongException or DriveNotFoundException));
 
     internal static RewardOfflinePrivate? Owner(string root)
     { lock (Sync) return Owners.GetValueOrDefault(RewardStartupFiles.Canonical(root)); }

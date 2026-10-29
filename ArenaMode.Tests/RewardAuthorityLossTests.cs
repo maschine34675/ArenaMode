@@ -493,6 +493,43 @@ public sealed partial class RewardOfflineSessionTests
         Assert.Single(reasons);
     }
 
+    [Theory]
+    [InlineData("profile-file")]
+    [InlineData("profile-folder")]
+    public void AMissingProfileFileIsNoAuthorityNotADeclinedEntry(string missing)
+    {
+        // Nothing recreates it before the stop, so declining would repeat on every attempt and lock the player out of Arena.
+        using var f = new Fixture();
+        if (missing == "profile-file") File.Delete(f.ProfilePath);
+        else Directory.Delete(Path.GetDirectoryName(f.ProfilePath)!, recursive: true);
+        var reasons = new List<string>();
+        string? why = RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request);
+        Assert.False(string.IsNullOrEmpty(why));
+        Assert.Null(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add).Authority);
+        Assert.Equal([why!], reasons);
+    }
+
+    [Fact]
+    public void TheAuthorityWarningWaitsForTheLeaseAndIsNotRepeatedByARetry()
+    {
+        using var f = new Fixture();
+        var reasons = new List<string>();
+        string sessionDirectory = RewardOfflineSession.SessionDirectory(f.Root, f.Grant.SessionId);
+        using (new FileStream(f.ProfilePath, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            // The lease cannot be written (a file sits where its folder belongs): no session starts, so nothing is claimed.
+            Directory.CreateDirectory(Path.GetDirectoryName(sessionDirectory)!);
+            File.WriteAllText(sessionDirectory, "in the way");
+            Assert.ThrowsAny<Exception>(() => RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add));
+            Assert.Empty(reasons);
+            File.Delete(sessionDirectory);
+            Assert.Null(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add).Authority);
+            Assert.Equal(["IOException"], reasons);
+        }
+        Assert.Null(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, reasons.Add).Authority);
+        Assert.Single(reasons);
+    }
+
     [Fact]
     public void ADeterministicAuthorityErrorStillStartsTheSessionWithoutAuthorityAndNamesTheCause()
     {
