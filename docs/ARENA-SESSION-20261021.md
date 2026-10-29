@@ -29,17 +29,13 @@ runs only with **whitelisted** mods:
   mods ArenaMode already refused by code before the whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling,
   ISB Special Forces and Aishi. Their code-level refusals were removed on 2026-10-22 (user decision, last entry
   of section 11): the deny list alone refuses them.
-- A whitelisted mod whose installed version differs from the reviewed version produces a
-  **warning** for direct Arena entry, not a version-only block. Since 2026-10-24,
-  that warning also offers an optional Arena session that omits differing mods
-  on both sides by GUID, plus their hard dependents. The user explicitly chose
-  omission for this restart; the normal installation and policy files stay unchanged.
-  The offer also remains available when a separate adapter refusal prevents direct entry.
-  See [the extension contract and verification](PITFIRETEAM-1.0.0-20261024.md).
-  Strict enter requests use schema 2 (old helpers must refuse); their temporary
-  plan is checked before acknowledgement and tree construction, then pinned by
-  the process flag, marker, gate report and server policy hash. Legacy requests
-  without a version plan retain schema 1.
+- Recognized versions differing from the reviewed version are advisory in both
+  direct play and new private sessions (user decision, 2026-10-27). They are still
+  attempted; no new version-exclusion plan is created. Identity, deny/dependency
+  and protection/API checks remain mandatory. See [current version policy](MOD-VERSION-FOLLOWUP-20261027.md).
+  The 2026-10-24 version-filtered restart is historical. Existing schema-2 plans
+  retain strict request/process-flag/marker agreement and old-helper refusal;
+  compatibility with those saved plans does not restore automatic exclusion.
 - The user may turn the whitelist into a blacklist (`"unlisted": "allow"` in the user file, decision
   2026-10-21, section 3): everything that neither the user file nor the default file denies is then allowed.
   The shipped default is always a whitelist.
@@ -85,9 +81,9 @@ warning, and a mod that exists on one side only simply is not installed on the o
 | | ABPS (`com.acidphantasm.botplacementsystem`) | 2.1.0 | 2.1.0 |
 | | BigBrain (`xyz.drakia.bigbrain`) | 1.5.0 | - |
 | | Waypoints (`xyz.drakia.waypoints`) | 1.9.0 | - |
-| mod, own | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.3.0 | 0.3.0 |
+| mod, own | ArenaMapPort (`com.maschine.ArenaMapPort`) | 0.4.0 | 0.4.0 |
 | | Killcam (`com.maschine.Killcam`) | 1.0.1 | - |
-| | Redeploy (`com.maschine.Redeploy`) | 1.0.2 | 1.0.2 |
+| | Redeploy (`com.maschine.Redeploy`) | 1.1.0 | 1.1.0 |
 | | AutoCorpseSearch (`com.maschine.AutoCorpseSearch`) | 2.2.0 | - |
 | | DefaultAutoFireMode (`com.maschine.DefaultAutoFireMode`) | 2.0.0 | - |
 | | DualSideDoorBreach (`com.maschine.DualSideDoorBreach`) | 2.0.2 | - |

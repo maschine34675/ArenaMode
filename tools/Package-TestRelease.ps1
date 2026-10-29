@@ -252,7 +252,7 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    BigBrain 1.5.0 is the tested
    baseline. Newer versions are allowed with a warning, not certified compatible;
    older versions are not enabled. Bot pickup pursuit, post-death pursuit and
-   Molotov support require its usable integration. BigBrain and its own
+   Molotov and Domination require its usable integration. BigBrain and its own
    prerequisites are NOT included.
 5. Start server and game, select ARENA. Optional maps/PFT/SAIN/APBS/replays
    must be installed separately. Fika is unsupported.
@@ -269,6 +269,13 @@ Requires SPT 4.1.x (native tests have used 4.1.6).
    never shipped or overwritten (an allow entry there lifts a default deny). The session
    needs the SPT_Runtime folder next to the game. All three files are built from the
    same source revision as the Arena DLLs.
+7. To start without opening normal EFT, run the installed Session.exe and choose
+   a profile. Its picker can create a desktop shortcut. A brief normal-server
+   bootstrap before the private server is expected for profile preparation.
+   Direct start manages a local SPT installation, not a remote server host.
+8. Recognized versions differing from the reviewed whitelist are attempted in
+   direct play and new private sessions. Version advisories do not exclude them;
+   identity, deny/dependency and mandatory protection/API checks still apply.
 
 Documentation, licenses and PACKAGE-MANIFEST.json are in
 BepInEx/plugins/maschine-ArenaMode/docs, with asset notices under docs/licenses.

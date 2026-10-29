@@ -7,6 +7,12 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Release 0.4.0 preparation (2026-10-29):** public client/server/gate/helper
+  versions are 0.4.0. The shipped policy records ArenaMapPort 0.4.0 and Redeploy
+  1.1.0, with the separately versioned Core 1.0.17 shared by both packages.
+  Current README, feature inventory, dependencies and versioned changelog are
+  reconciled. [Release notes](RELEASE-0.4.0.md) distinguish the preceding native
+  sweep from the final stamped binaries; publication evidence follows separately.
 - **Mixed pre-release checks (2026-10-29):** both GPU hosts exercised all six Arena
   modes, all four ported maps and standalone PMC/own-Scav flows. Corrected the
   Rewards-OFF missing-snapshot warning; helper link details now require an
