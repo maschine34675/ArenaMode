@@ -26,9 +26,16 @@ namespace ArenaMode.SessionHelper
         private readonly string _path;
         private readonly string _fullPath;
         private readonly int _processId;
+        private readonly bool _debugEnabled;
 
         public HelperLog(string path)
+            : this(path, Environment.GetEnvironmentVariable("ARENAMODE_SESSION_DEBUG") == "1")
         {
+        }
+
+        internal HelperLog(string path, bool debugEnabled)
+        {
+            _debugEnabled = debugEnabled;
             _path = path;
             _fullPath = FullPathOf(path);
             using (Process current = Process.GetCurrentProcess())
@@ -53,6 +60,11 @@ namespace ArenaMode.SessionHelper
         public void Info(string message)
         {
             Write("INFO", message);
+        }
+
+        public void Debug(string message)
+        {
+            if (_debugEnabled) Write("DEBUG", message);
         }
 
         public void Warn(string message)

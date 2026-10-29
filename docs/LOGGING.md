@@ -63,6 +63,12 @@ For developers:
 - Keep the loaded client **build/MVID** in the startup Info line. It identifies
   the actual module even if a DLL on disk was replaced during a running game.
 
+The standalone session helper keeps lifecycle summaries, retries and failures in
+`helper.log`. Per-link filesystem cleanup is Debug and off by default. To collect
+it for a helper run, launch with `ARENAMODE_SESSION_DEBUG=1` in its environment;
+the watchdog inherits that setting. This does not change copy/delete safety,
+profile handling or the game's separate DeveloperMode setting.
+
 The cleanup reviewed all client, server and companion log emitters. Historical
 Info call-site counts are not a promise about total lines per raid: other mods,
 Unity and server request middleware retain their own logging policies.

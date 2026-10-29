@@ -174,7 +174,7 @@ namespace ArenaMode.SessionHelper
                     if (RequestStillStands != null && !RequestStillStands()) throw new HelperException("The Arena entry request was withdrawn.");
                     offline.StopNormal(normal, Info);
                 }
-                HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, created, Info, offline);
+                HelperTreeResult tree = HelperServerTree.Build(request, port, _runtimeRoot, _version, created, Info, offline, _log.Debug);
                 _log.Info("server tree ready at " + tree.TreePath + ": " + tree.Junctions.Count + " junctions, " + tree.Mods.Count + " server mods, "
                     + "server prepatch folders (user\\patchers): " + tree.Patchers.Count + (tree.Patchers.Count == 0 ? string.Empty : " (" + string.Join(", ", tree.Patchers.ToArray()) + ")")
                     + ", " + tree.FilesCopied + " files copied, server binaries " + tree.ServerFilesCopied + " copied and " + tree.ServerFilesUnchanged + " unchanged");
@@ -499,7 +499,7 @@ namespace ArenaMode.SessionHelper
             string pidPath = HelperServerTree.GetPidFilePath(_runtimeRoot);
             if (!File.Exists(pidPath)) return StopResult.NothingToStop;
 
-            var box = new HelperSandbox(_runtimeRoot, Info);
+            var box = new HelperSandbox(_runtimeRoot, Info, _log.Debug);
             int pid;
             if (!HelperPidFile.TryParsePid(HelperFileSystem.ReadAllTextShared(pidPath), out pid))
             {
@@ -733,7 +733,7 @@ namespace ArenaMode.SessionHelper
                 if (!StartWatchdogAfterEnter) return;
 
                 string path = Path.Combine(_runtimeRoot, HelperLayout.WatchFileName);
-                var box = new HelperSandbox(_runtimeRoot, Info) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
+                var box = new HelperSandbox(_runtimeRoot, Info, _log.Debug) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
                 box.WriteAllText(path, watch.ToJson());
                 string exe = typeof(HelperRunner).Assembly.Location;
                 using (Process watchdog = StartProcess(exe, HelperCommandLine.BuildCommandLine(new List<string> { HelperCommand.Watch, "--file", path }), _runtimeRoot))
@@ -1081,7 +1081,7 @@ namespace ArenaMode.SessionHelper
 
             // Everything the registration needs exists before the process does, so that writing server.pid is
             // the very next thing that happens once Process.Start returns.
-            var box = new HelperSandbox(_runtimeRoot, Info) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
+            var box = new HelperSandbox(_runtimeRoot, Info, _log.Debug) { RetryAttempts = FileRetryAttempts, RetryDelayMilliseconds = FileRetryDelayMilliseconds };
             string pidPath = HelperServerTree.GetPidFilePath(_runtimeRoot);
 
             // The port was probed when it was chosen, before the tree was built, which takes seconds. The probe repeated

@@ -306,8 +306,14 @@ namespace ArenaMode.SessionHelper
 
         private readonly string _root;
         private readonly Action<string> _log;
+        private readonly Action<string> _detail;
 
         public HelperSandbox(string root, Action<string> log)
+            : this(root, log, log)
+        {
+        }
+
+        public HelperSandbox(string root, Action<string> log, Action<string> detail)
         {
             string normalised;
             if (!HelperPathSafety.TryNormalize(root, out normalised) || normalised.Length <= 3)
@@ -317,6 +323,7 @@ namespace ArenaMode.SessionHelper
 
             _root = normalised;
             _log = log ?? (message => { });
+            _detail = detail ?? (message => { });
             RetryAttempts = 6;
             RetryDelayMilliseconds = 200;
         }
@@ -642,7 +649,7 @@ namespace ArenaMode.SessionHelper
             FileAttributes existing;
             if (HelperFileSystem.TryGetAttributes(destination, out existing) && HelperPathSafety.IsReparsePoint(existing))
             {
-                _log("'" + destination + "' is a link: removing the link itself (never its target) before writing the file");
+                _detail("'" + destination + "' is a link: removing the link itself (never its target) before writing the file");
                 DeleteEntry(destination, 0);
             }
         }
@@ -692,7 +699,7 @@ namespace ArenaMode.SessionHelper
 
             if (HelperPathSafety.IsReparsePoint(attributes))
             {
-                _log("removing the link '" + path + "' without entering it");
+                _detail("removing the link '" + path + "' without entering it");
                 Retry("remove link " + path, delegate
                 {
                     ClearReadOnly(path, attributes);
@@ -909,7 +916,7 @@ namespace ArenaMode.SessionHelper
         }
 
         internal static HelperTreeResult Build(HelperRequest request, int arenaPort, string runtimeRoot, string helperVersion,
-            DateTime nowUtc, Action<string> log, HelperOfflineSession.Entry offline)
+            DateTime nowUtc, Action<string> log, HelperOfflineSession.Entry offline, Action<string> detail = null)
         {
             if (request == null) throw new ArgumentNullException("request");
             if (!request.IsEnter) throw new HelperException("only an 'enter' request builds the server tree");
@@ -922,7 +929,7 @@ namespace ArenaMode.SessionHelper
             if (!HelperPathSafety.TryNormalize(runtimeRoot, out root)) throw new HelperException("the runtime root is not usable: " + runtimeRoot);
             if (!Directory.Exists(root)) Directory.CreateDirectory(root);
 
-            var box = new HelperSandbox(root, log);
+            var box = new HelperSandbox(root, log, detail);
             string source = request.SptRuntimeDir;
             string tree = GetTreePath(root);
             var result = new HelperTreeResult { TreePath = tree, Port = arenaPort };

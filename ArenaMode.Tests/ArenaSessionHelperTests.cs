@@ -2372,7 +2372,8 @@ public sealed class ArenaSessionHelperTests
         Directory.CreateDirectory(area.At("root"));
         CreateFileLinkOrSkip(area.At("root", "server.pid"), target);
         CreateFileLinkOrSkip(area.At("root", "dangling.txt"), area.At("outside", "missing.txt")); // nothing at the end of this one
-        var box = area.Sandbox(area.At("root"));
+        var detail = new List<string>();
+        var box = new HelperSandbox(area.At("root"), area.Log.Add, detail.Add);
 
         box.WriteAllText(area.At("root", "server.pid"), "4242");
         box.WriteAllText(area.At("root", "dangling.txt"), "written");
@@ -2383,7 +2384,8 @@ public sealed class ArenaSessionHelperTests
         Assert.False(HelperFileSystem.IsReparsePoint(area.At("root", "dangling.txt")));
         Assert.Equal("4242", File.ReadAllText(area.At("root", "server.pid")));
         Assert.Equal("written", File.ReadAllText(area.At("root", "dangling.txt")));
-        Assert.Equal(2, area.Log.Count(line => line.Contains("is a link: removing the link itself")));
+        Assert.Equal(2, detail.Count(line => line.Contains("is a link: removing the link itself")));
+        Assert.Empty(area.Log); // routine cleanup never reaches the normal/retry sink
     }
 
     [SkippableFact]
@@ -2531,6 +2533,28 @@ public sealed class ArenaSessionHelperTests
     }
 
     // ------------------------------------------------------------------ helper.log
+
+    [SkippableFact]
+    public void HelperDebugIsOptInWhileNormalEventsRemainVisible()
+    {
+        SkipUnlessWindows();
+        using var area = new TempArea();
+        string path = area.At("session", "helper.log");
+        var quiet = new HelperLog(path, false);
+        quiet.Debug("routine link cleanup");
+        Assert.False(File.Exists(path));
+        quiet.Info("session ready");
+        quiet.Warn("copy retry");
+        quiet.Error("copy failed");
+        new HelperLog(path, true).Debug("developer cleanup detail");
+
+        var lines = File.ReadAllLines(path);
+        Assert.Equal(4, lines.Length);
+        Assert.EndsWith(" INFO session ready", lines[0]);
+        Assert.EndsWith(" WARN copy retry", lines[1]);
+        Assert.EndsWith(" ERROR copy failed", lines[2]);
+        Assert.EndsWith(" DEBUG developer cleanup detail", lines[3]);
+    }
 
     [SkippableFact]
     public void TheLogAppendsOneLineAfterTheOtherWithoutAMark()

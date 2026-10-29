@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Mixed pre-release checks (2026-10-29):** both GPU hosts exercised all six Arena
+  modes, all four ported maps and standalone PMC/own-Scav flows. Corrected the
+  Rewards-OFF missing-snapshot warning; helper link details now require an
+  explicit debug environment flag. Redeploy routine logs and MapPort's diagnostic
+  readback/later collision lifetime were narrowed in their repositories. Exact
+  candidates, native scope and remaining bot-medical/audio findings are in
+  [the release sweep](RELEASE-SWEEP-20261029.md).
+
 - **Concise menu UX (2026-10-29):** recovery merged/pushed as `5164732b`; UI work
   on `codex/ux-menu-20261029`. Removed repeated character/version notices,
   objective/protection rows and inline mutator explanations; one private-session

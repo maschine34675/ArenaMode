@@ -322,7 +322,13 @@ internal sealed class RewardRuntimeCoordinator
                     || rule is RewardRoundRule.LocalTarget or RewardRoundRule.FreeForAllScore or RewardRoundRule.TeamScore
                         && request.KillTarget == 0 && request.TimeLimitMilliseconds == 0)
                     throw new RewardDataException("reward-begin-mismatch");
-                if (!_snapshots.TryGetValue(id, out var snapshot)) throw new RewardDataException("reward-snapshot-not-observed");
+                if (!_snapshots.TryGetValue(id, out var snapshot))
+                {
+                    // Disabled/un-enrolled rewards intentionally do not create a reward snapshot.
+                    // Distinguish that ordinary opt-out from lost evidence for an authorized run.
+                    _ = Authority(id, required: true);
+                    throw new RewardDataException("reward-snapshot-not-observed");
+                }
                 if (_runs.TryGetValue(id, out var prior))
                 {
                     if (prior.ArmToken != expectedArm || prior.NativeEnd != expectedNativeEnd || prior.BeginJson != RewardRuntimeFiles.Json(request))
