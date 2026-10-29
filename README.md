@@ -150,4 +150,3 @@ describe new binaries.
 
 Code is MIT. Audio, artwork and bundled notices have their own terms; retain
 `docs/licenses/` with the installed package. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-

@@ -1,5 +1,24 @@
 # ArenaMode working handoff
 
+## Published 2026-10-29 — ArenaMode 0.4.0
+
+[GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.0) is public,
+latest and not a prerelease. Tag/build source: `578f6fa3b1f9786db483f63a4a6a72fddfbaddbc`.
+`ArenaMode-0.4.0.zip` is 3,844,012 bytes; SHA-256
+`1450fbe64ab53deb3e75395cf502d6fbf77681bb855900b27af0b880fe7d2d78`.
+ZIP plus checksum were downloaded back and matched the uploaded GitHub digests and local bytes.
+Shared Core 1.0.17 is byte-identical to Redeploy 1.1.0's copy. Fresh Arena checks:
+3,398 passed, three explicit environment skips; final installed-PFT contract check passed separately.
+The final unsigned helper has three unresolved VirusTotal labels; Defender found no threats.
+Exact reports and known gameplay limits are in [the release notes](RELEASE-0.4.0.md).
+
+Redeploy 1.1.0 is published too. **ArenaMapPort 0.4.0 publication was postponed by the user**:
+its version/docs/five-part local package are prepared, with no remote release or v0.4.0 tag.
+Its reviewed 0.4.0 whitelist entry remains advisory; the public download link uses latest.
+This release step did not deploy new binaries or alter live settings/synchronization.
+Native sweep evidence remains tied to its earlier loaded binaries. Subsequent documentation
+commits record publication without moving the verified source tags or changing uploaded packages.
+
 Snapshot: 2026-10-29. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
