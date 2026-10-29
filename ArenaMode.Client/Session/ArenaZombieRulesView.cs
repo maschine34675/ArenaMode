@@ -26,7 +26,7 @@ internal sealed class ArenaZombieRulesView
         Close();
         _root = new GameObject("Arena Zombie Rules", typeof(RectTransform));
         _root.transform.SetParent(parent, false);
-        Rect((RectTransform)_root.transform, 20f, 432f, 320f, 150f);
+        Rect((RectTransform)_root.transform, 20f, 396f, 320f, 150f);
         _root.SetActive(false);
         try
         {

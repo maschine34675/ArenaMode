@@ -124,9 +124,8 @@ internal static class ArenaWhitelistAdmission
 
     /// <summary>
     /// The notes of the last evaluation, or null: the policy-override notes first, then reviewed-version
-    /// differences and pulled-in dependencies. The Arena menu shows them as the second notice line (with
-    /// a refusal, or as an information notice once ARENA is selected) and the Arena session notice
-    /// carries them. Never throws.
+    /// differences and pulled-in dependencies. Current() logs these advisory notes once;
+    /// they do not obstruct character selection. Never throws.
     /// </summary>
     internal static string WarningLine
     {

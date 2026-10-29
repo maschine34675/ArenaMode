@@ -15,7 +15,6 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
 
     private RectTransform _wrapper;
     private Vector3 _originalPosition;
-    private GameObject _caption;
     private Transform _pmcColumn;
     private Transform _scavColumn;
     private Vector3 _pmcPosition;
@@ -86,32 +85,7 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
         _originalPosition = wrapper.localPosition;
         wrapper.localPosition += new Vector3(0f, pmcCenter.y - arenaCenter.y, 0f);
 
-        // Keep AlphaBlocker's single child intact. Anchor the display-only caption
-        // to the actual toggle spawner so deferred native text sizing cannot move
-        // it sideways. Ignore layout to avoid changing the native toggle's size.
-        _caption = new GameObject("ArenaChoiceCaption", typeof(RectTransform), typeof(LayoutElement));
-        _caption.SetActive(false);
-        _caption.GetComponent<LayoutElement>().ignoreLayout = true;
-        var rect = (RectTransform)_caption.transform;
-        rect.SetParent(arena.transform, false);
-        rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0f);
-        rect.pivot = new Vector2(.5f, 1f);
-        rect.sizeDelta = new Vector2(220f, 18f);
-        rect.anchoredPosition = new Vector2(0f, -2f);
 
-        var caption = _caption.AddComponent<TextMeshProUGUI>();
-        caption.font = pmcLabel.font;
-        caption.fontSharedMaterial = pmcLabel.fontSharedMaterial;
-        caption.fontSize = 12f;
-        caption.fontStyle = FontStyles.Normal;
-        // The toggle's current label tint depends on hover/selection. Use the
-        // stable native description tint for this always-neutral subheading.
-        caption.color = Hud.ArenaUiTheme.Muted;
-        caption.alignment = TextAlignmentOptions.Center;
-        caption.enableWordWrapping = false;
-        caption.raycastTarget = false;
-        caption.text = "SEPARATE MATCH";
-        _caption.SetActive(true);
     }
 
     private void AddPreview(MatchMakerSideSelectionScreen screen, Profile profile)
@@ -215,13 +189,7 @@ internal sealed class ArenaSideSelectionLayout : IDisposable
         _preview = null;
 
         Safe(() => { if (_wrapper != null) _wrapper.localPosition = _originalPosition; });
-        if (_caption != null)
-        {
-            Safe(() => _caption.SetActive(false));
-            Safe(() => UnityEngine.Object.Destroy(_caption));
-        }
         _wrapper = null;
-        _caption = null;
     }
 
     private void RestoreColumns()

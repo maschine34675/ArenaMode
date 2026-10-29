@@ -113,9 +113,9 @@ internal static class CompactSessionChecks
             string notice = Read("ArenaAvailabilityNotice.cs");
             Check(notice.Contains("_details != null && unavailable && compactRestartConflict")
                 && side.Contains("compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason)")
-                && notice.Contains("ARENA · Fast combat · Protected gear\\nMOD CONFLICT · Restart with filtered mods\\nHover for affected mods and details.")
+                && notice.Contains("MOD CONFLICT · Restart with filtered mods\\nHover for affected mods and details.")
                 && notice.Contains("_details.SetMessageText(fullText, rawText: true);"),
-                "a restartable mod conflict uses three concise lines and keeps the complete reason in its tooltip");
+                "a restartable mod conflict uses two concise lines and keeps the complete reason in its tooltip");
             int failureStart = side.IndexOf("private static void ShowSwitchFailure(", StringComparison.Ordinal);
             int failureEnd = side.IndexOf("private static void EnsureCompatibleMode(", failureStart, StringComparison.Ordinal);
             string failure = side.Substring(failureStart, failureEnd - failureStart);

@@ -1,3 +1,4 @@
+param([ValidateSet('All','Ui')][string]$Stage = 'All')
 $ErrorActionPreference = 'Stop'
 if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
     $PSNativeCommandUseErrorActionPreference = $false
@@ -75,6 +76,7 @@ function Invoke-Harness([string]$name, [hashtable]$extraProperties, [hashtable]$
 
 $script:mutants = 0
 function Invoke-Mutant([string]$name, [string]$kind, [string]$from, [string]$to, [string]$expected) {
+    if ($Stage -eq 'Ui' -and $kind -notin @('side','notice','optional')) { return }
     $source = $sources[$kind]
     $count = ($source.Split([string[]]@($from), [StringSplitOptions]::None)).Count - 1
     if ($count -ne 1) { throw "Expected exactly one mutation site for $name; found $count." }
@@ -448,13 +450,12 @@ Invoke-Mutant 'admission-override-notes-sorted' 'admission' `
 Invoke-Mutant 'admission-override-note-twice' 'admission' `
     'else if (!policyOverrides.Contains(note)) policyOverrides.Add(note);' 'else policyOverrides.Add(note);' `
     'Formatting duplicate policy-override notes keeps one notice'
-Invoke-Mutant 'side-refusal-without-notes' 'side' `
-    'string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);' 'string text = reason;' `
-    'a refusal carries the whitelist notes, the policy override included, as its second line'
-Invoke-Mutant 'side-selected-notice-without-notes' 'side' `
-    "        else if (warnings != null)`n            ShowVersionNotes(screen, warnings);" `
-    "        else if (false)`n            ShowVersionNotes(screen, warnings);" `
-    'an Arena click shows the whitelist notes, the policy override included, as an information notice'
+Invoke-Mutant 'side-refusal-without-reason' 'side' `
+    'string text = reason;' 'string text = string.Empty;' `
+    'blocking refusal preserves its concrete reason'
+Invoke-Mutant 'side-advisory-overlay' 'side' `
+    "        else`n            ArenaAvailabilityNotice.Hide(screen);" "        else`n            ArenaAvailabilityNotice.ShowInfo(screen, ArenaWhitelistAdmission.WarningLine);" `
+    'only a real refusal overlays character selection'
 
 # ---- session switch
 Invoke-Mutant 'switch-quit-before-launch' 'switch' `
@@ -623,16 +624,16 @@ Invoke-Mutant 'side-select-skips-whitelist' 'side' `
 Invoke-Mutant 'side-start-action-for-any-refusal' 'side' `
     'else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))' 'else if (true)' `
     'START ARENA SESSION belongs to an eligible normal session'
-Invoke-Mutant 'side-warnings-always-shown' 'side' `
-    'else if (warnings != null && ArenaMenuSelection.IsSelected)' 'else if (warnings != null)' `
-    'whitelist warnings show only once ARENA is selected'
+Invoke-Mutant 'side-blocking-error-hidden' 'side' `
+    "        else`n            ArenaAvailabilityNotice.Show(screen, text);" "        else`n            ArenaAvailabilityNotice.Hide(screen);" `
+    'non-restartable normal-session refusals stay visible'
 Invoke-Mutant 'side-pmc-fallback-in-session' 'side' `
     "                if (!ArenaSessionMode.IsArenaSession)`n                    __instance._pmcButton.IsToggled = true;`n                else`n                    SetNextAvailable(__instance, false);" `
     '                __instance._pmcButton.IsToggled = true;' `
     'a failed Arena click falls back to PMC outside an Arena session only'
 Invoke-Mutant 'side-start-direction-wrong' 'side' `
     '() => SwitchSession(screen, ArenaSessionContract.DirectionEnter)' '() => SwitchSession(screen, ArenaSessionContract.DirectionLeave)' `
-    'the actions request the matching direction'
+    'the character notice owns entry only'
 Invoke-Mutant 'side-profile-not-passed' 'side' 'try { profileId = Controller(screen)?.Session?.Profile?.Id; }' 'try { }' `
     'the confirmed action passes the logged-in profile'
 Invoke-Mutant 'side-late-failure-ignored' 'side' `
@@ -663,4 +664,4 @@ foreach ($key in $paths.Keys) {
         throw "Mutation verification changed $($paths[$key])"
     }
 }
-Write-Output "ARENA_SESSION_CLIENT_VERIFIED ($($script:mutants) mutants rejected on their named assertion; evidence: $scratch)"
+Write-Output "ARENA_SESSION_CLIENT_VERIFIED ($Stage; $($script:mutants) mutants rejected on their named assertion; evidence: $scratch)"

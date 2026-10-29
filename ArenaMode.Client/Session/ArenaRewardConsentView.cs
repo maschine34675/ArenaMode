@@ -87,7 +87,7 @@ internal sealed class ArenaRewardConsentView
         if (IsObjectivePrototype)
         {
             _label.text = "N/A";
-            _detail.text = "Domination prototype: no rewards.\nStash and original gear protected.";
+            _detail.text = "No profile rewards in Domination.";
             _label.color = ArenaUiTheme.Muted;
             _button.interactable = false;
             RefreshSwitch(false, false);

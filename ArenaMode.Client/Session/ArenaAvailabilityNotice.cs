@@ -197,7 +197,7 @@ internal static class ArenaAvailabilityNotice
             bool restartConflict = _details != null && unavailable && compactRestartConflict;
             bool compact = restartConflict || (_details != null && fullText.Length > 220);
             _text.text = restartConflict
-                ? "ARENA · Fast combat · Protected gear\nMOD CONFLICT · Restart with filtered mods\nHover for affected mods and details."
+                ? "MOD CONFLICT · Restart with filtered mods\nHover for affected mods and details."
                 : compact ? fullText.Substring(0, 196).TrimEnd() + "…\nHover for full details." : fullText;
             _text.raycastTarget = compact;
             if (_details != null)

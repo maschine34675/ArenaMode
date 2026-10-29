@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Simplify Arena menus: short mode descriptions, one session-return button,
+  and mutator help on hover. Keep unavailable-option reasons visible and log
+  advisory mod-version notes without covering the character preview.
+
 - Recover normal SPT startup when a stopped Arena session has lost its private
   data. Discard its old rewards automatically and preserve the normal profile.
   [Details](docs/OFFLINE-STARTUP-RECOVERY-20261028.md).

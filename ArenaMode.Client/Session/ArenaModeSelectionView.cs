@@ -30,12 +30,10 @@ internal sealed class ArenaModeSelectionView
     private readonly ArenaEquipmentChoiceView _equipmentChoiceView = new();
     private ArenaEquipmentChoiceState _equipmentChoice;
     private GameObject _root;
-    private TextMeshProUGUI _rules;
     private TextMeshProUGUI _respawn;
     private TextMeshProUGUI _equipment;
     private TextMeshProUGUI _subtitle;
     private TextMeshProUGUI _description;
-    private TextMeshProUGUI _gearProtection;
     private Transform _screen;
     private ArenaModeSelectionState _selection;
     private readonly ArenaMutatorsView _mutators = new();
@@ -139,9 +137,8 @@ internal sealed class ArenaModeSelectionView
         _markers.Clear();
         var root = _root;
         _root = null;
-        _rules = _respawn = _equipment = _subtitle = null;
+        _respawn = _equipment = _subtitle = null;
         _description = null;
-        _gearProtection = null;
         _screen = null;
         Safe(() => { if (root != null) root.SetActive(false); });
         Safe(() => { if (root != null) UnityEngine.Object.Destroy(root); });
@@ -183,13 +180,9 @@ internal sealed class ArenaModeSelectionView
         _description.color = Dim(typography, .75f);
         _mutators.Create(screen, _root, typography, Refresh);
         _rewards.Create(screen, _root, typography);
-        _rules = CreateFact("OBJECTIVE", typography, 330f);
-        _respawn = CreateFact("RESPAWN", typography, 360f);
-        _equipment = CreateFact("EQUIPMENT", typography, 390f);
+        _respawn = CreateFact("RESPAWN", typography, 330f);
+        _equipment = CreateFact("EQUIPMENT", typography, 360f);
         _equipment.rectTransform.sizeDelta = new Vector2(PanelWidth - 142f, 24f);
-        _gearProtection = CreateText("Gear protection", typography,
-            ArenaCompactModeRules.GearProtection, 13f, 416f, 16f);
-        _gearProtection.color = Dim(typography, .75f);
         _tdmRulesView.Show(_root.transform, template, typography, _tdmRules);
         _dominationRulesView.Show(_root.transform, template, typography, _dominationRules);
         _tdmSideView.Show(_root.transform, template, typography,
@@ -333,10 +326,7 @@ internal sealed class ArenaModeSelectionView
         for (var index = 0; index < _markers.Count; index++)
             _markers[index].SetActive(index == _selection.SelectedIndex);
         var mode = _selection.SelectedDefinition;
-        // Never hide these common facts behind a mode's limit controls. The
-        // roster belongs in the mode label, and the short description explains
-        // the selected variant; neither changes the objective's meaning.
-        _rules.text = mode.Rules;
+        // Purpose belongs in the description; respawn and equipment each have one row.
         bool zombieTeam = _selection.TacticalOnly && mode.Id == ArenaModeCatalog.ZombieId;
         _subtitle.text = ArenaCompactModeRules.CompanionHint(mode.Id, _selection.TacticalOnly,
             Compat.PitFireTeamCompat.SelectedCompanionCount);
@@ -346,11 +336,6 @@ internal sealed class ArenaModeSelectionView
             Settings.TeamDeathmatchTimeLimitSeconds.Value, Settings.TacticalTeamRoundsToWin.Value,
             Settings.GetFriendlyFireEnabled(mode.Id, _selection.TacticalOnly), ControlPointCount(mode.Id),
             Settings.DominationScoreLimit.Value, Settings.DominationTimeLimitSeconds.Value);
-        if (mode.Id == ArenaModeCatalog.DeathmatchId)
-            _rules.text = ArenaCompactModeRules.DeathmatchObjective(Settings.DeathmatchKills.Value,
-                Settings.DeathmatchSeconds.Value, Settings.DeathmatchFreeForAll.Value);
-        _gearProtection.text = mode.Id == ArenaModeCatalog.DominationId
-            ? "Gear restored · no profile rewards" : ArenaCompactModeRules.GearProtection;
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)

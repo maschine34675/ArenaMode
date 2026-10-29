@@ -39,15 +39,15 @@ and cover manual saving, independent config reload, F12 refresh, active/armed
 locks and retired callbacks. Five new compiled faults target the three bindings,
 the HUD master restriction and accidental writes to an individual hitmarker choice.
 
-All six modes display a two-line description, then the common OBJECTIVE,
-RESPAWN and EQUIPMENT facts. Deathmatch and Team DM no longer hide those facts;
+All six modes display a two-line description, then the common RESPAWN and
+EQUIPMENT facts. The objective is explained once in the description. Deathmatch and Team DM keep those facts;
 their compact choice bands follow below. Zombie's equipment selector replaces
 only the equipment value and retains the common label. Descriptions follow
 FFA/all-vs-player, solo/PFT and own-gear state; respawn text follows playable
 Killcam settings without promising a respawn in solo Zombies. Zero kill/time
 limits use `Off` consistently in current-value labels and buttons.
 
-The mode panel ends at reference Y=698 (TDM/Domination Y=752, Deathmatch/Zombie Y=764); the area panel
+The mode panel ends at reference Y=662 (TDM/Domination Y=716, Deathmatch/Zombie Y=728); the area panel
 begins twelve pixels below. No rightward/downward extension over native controls
 is added. The harness checks visibility, fixed fact positions, child bounds,
 stale callbacks, immediate FFA description changes and all dynamic variants.

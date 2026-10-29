@@ -88,9 +88,9 @@ ArenaSession.IsActive = false;
 Settings.MovementEnabled.Value = false;
 Need(selection.UnavailableReason(ArenaMutator.DoubleJump) != null && !selection.TryToggle(ArenaMutator.DoubleJump),
     "Disabled movement parent does not change its saved child preference.");
-Need(selection.GroupTitle(0).Contains("STANDARD"), "Movement heading reflects the current parent state.");
+Need(selection.GroupTitle(0) == "MOVEMENT", "Movement heading avoids duplicating its parent toggle.");
 Settings.MovementEnabled.Value = true;
-Need(selection.GroupTitle(0).Contains("ENHANCED"), "Enabled movement is identified without a prose block.");
+Need(selection.GroupTitle(0) == "MOVEMENT", "Enabled movement retains the stable category name.");
 Need(!selection.TryToggle(ArenaMutator.ZombieCrowd), "Hidden horde control cannot be toggled in another mode.");
 Need(!selection.TryToggle(ArenaMutator.FriendlyFire), "Solo modes do not acquire a team-only setting.");
 Need(ArenaMutatorSelection.TeamModesOnly.Contains("PitFireTeam") && !ArenaMutatorSelection.TeamModesOnly.Contains("PFT"),

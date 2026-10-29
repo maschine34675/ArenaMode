@@ -19,6 +19,7 @@ internal sealed class ArenaMutatorsView
         internal TextMeshProUGUI Label, Status, Description;
         internal Image Marker, Chip;
         internal HoverTooltipArea Tooltip;
+        internal string TooltipText;
     }
     private const float ButtonHeight = ArenaMapPanelLayout.MutatorButtonHeight;
     private readonly ArenaMutatorSelection _selection = new();
@@ -141,11 +142,16 @@ internal sealed class ArenaMutatorsView
             row.Status.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.Muted;
             row.Marker.color = on ? ArenaUiTheme.Positive : ArenaUiTheme.WithAlpha(ArenaUiTheme.Muted, .35f);
             row.Chip.color = on ? new Color(.08f, .25f, .16f, 1f) : ArenaUiTheme.Surface;
-            string detail = reason ?? ArenaMutatorSelection.Description(row.Id);
-            if (row.Description.text != detail)
+            // Available controls need only their title and state. Keep reasons
+            // visible for N/A, with full help on hover in either state.
+            string detail = reason ?? string.Empty;
+            if (row.Description.text != detail) row.Description.text = detail;
+            row.Description.gameObject.SetActive(_selection.Visible(row.Id) && reason != null);
+            string help = reason ?? ArenaMutatorSelection.Description(row.Id);
+            if (row.TooltipText != help)
             {
-                row.Description.text = detail;
-                row.Tooltip?.SetMessageText(detail, rawText: true);
+                row.TooltipText = help;
+                row.Tooltip?.SetMessageText(help, rawText: true);
             }
             row.Description.enableWordWrapping = false;
         }

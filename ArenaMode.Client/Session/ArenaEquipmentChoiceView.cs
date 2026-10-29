@@ -41,7 +41,7 @@ internal sealed class ArenaEquipmentChoiceView
             _root = new GameObject("Arena Equipment Choice", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            SetRect((RectTransform)_root.transform, 122f, 390f, Width, 24f);
+            SetRect((RectTransform)_root.transform, 122f, 360f, Width, 24f);
             CreateChoice(template, typography, ownGear: false, index: 0);
             CreateChoice(template, typography, ownGear: true, index: 1);
             Refresh();

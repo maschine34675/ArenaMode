@@ -7,6 +7,14 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Concise menu UX (2026-10-29):** recovery merged/pushed as `5164732b`; UI work
+  on `codex/ux-menu-20261029`. Removed repeated character/version notices,
+  objective/protection rows and inline mutator explanations; one private-session
+  return action remains. Native GPU-1 menus, Factory DM end and normal restart
+  passed; 219 configs restored, original profiles retained with only two native
+  timestamp updates. Both client DLLs installed locally/GPU-1; GPU-2's concurrent
+  compatibility test was left running. See [evidence and scope](UX-SIMPLIFICATION-20261029.md).
+
 - **Lost private session recovery (2026-10-29):** `967b675f` server and shipping
   helper installed locally and on GPU-2. Native isolated tests passed for a
   missing private directory, repeated ordinary startup, missing private marker,
