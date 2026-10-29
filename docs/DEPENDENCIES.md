@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-As of 2026-10-26. This overview describes the reviewed ArenaMode source revision,
+As of 2026-10-29, ArenaMode 0.4.0. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -12,21 +12,21 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.3.0 requires **1.0.13**; Arena 0.2.0/0.2.1 bundled 1.0.10. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.0 bundles/requires **1.0.17**, shared byte-for-byte with Redeploy 1.1.0. Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
 The hard Core dependency comes from the assembly reference and `RedeployCore.Init`.
-The development additions for FOV Fix and Manimal require **Core 1.0.11**;
+FOV Fix and Manimal support was introduced in **Core 1.0.11**;
 their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
-The current development build requires **Core 1.0.15**. Core 1.0.14 added
-ImpactCue and Enemy Markers body/camera handovers; 1.0.15 adds Quick Cancel,
-PiP Disabler and the bounded Amand camera correction for both drivers.
-These additions are not in the published Arena 0.3.0 / Core 1.0.13 package.
-Keep the newer shared Core when combining these development builds.
+The current package requires **Core 1.0.17**. Core 1.0.14 added ImpactCue and
+Enemy Markers handovers; 1.0.15 added Quick Cancel, PiP Disabler and the bounded
+Amand camera correction. Core 1.0.16/1.0.17 also support Redeploy's own-Scav
+continuation. Core keeps its independent version line; the public Redeploy
+client/server release is 1.1.0. Keep one copy of the shared library.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -50,13 +50,14 @@ Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
-and Better BepInEx for 0.3.0; current development also includes Use Items Anywhere,
+and Better BepInEx, plus Use Items Anywhere,
 ImpactCue (client and Web Config server), Enemy Markers, Fast Grenade Throw 2.0.0,
 Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, plus the diagnostic tools
 UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it was reviewed with; a
-differing version warns and offers an Arena session that omits it on both sides,
-together with its hard dependents; direct Arena entry still treats the version
-difference as advisory). This temporary selection never edits the user policy.
+differing recognized version remains advisory in direct play and new private
+sessions). Versions are still attempted, including UIFixes; actual identity,
+dependency and protection/API requirements remain mandatory. The list records
+ArenaMapPort 0.4.0 and Redeploy 1.1.0 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -99,10 +100,10 @@ The [version policy and checks](OPTIONAL-MOD-VERSIONS-20261019.md) explain
 minimum versions, warnings and the protection contracts that remain mandatory.
 `ArenaMode.BigBrainCompat` is Arena's own code and is always included.
 
-The Factory Domination prototype additionally requires this library's verified
+Domination on Factory and the four ported maps requires this library's verified
 objective layer. Missing BigBrain/support locks only Domination in the mode picker;
 other modes retain their existing optional dependency rules. See
-[Domination scope](DOMINATION-PROTOTYPE-20261026.md).
+[Domination options and scope](DOMINATION-OPTIONS-ROUTES-20261027.md).
 Since its conversion to a library, this DLL registers neither a BepInEx plugin
 nor its own plugin GUID. Arena explicitly loads it beside the client DLL and
 owns initialization, updates and shutdown. Update both DLLs together, remove
@@ -113,7 +114,7 @@ are attempted with a one-time warning; this is not confirmation of full compatib
 
 ## Other explicitly considered combinations
 
-The development whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
+The 0.4.0 whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
 HUD Breakout 1.2.0 and PiP Disabler 2.1.0 after bounded Arena and standalone
 tests. The same final Core passed two additional Factory respawns with Arena
 absent, including a scoped death, old PiP-cache retirement, current-body HUD and
@@ -204,12 +205,12 @@ native observations below predate that migration; see
   These mods retain their own HUD and marker settings, so overlapping HUDs may
   need configuring in the respective mods. See
   [native tests and limits](ITEMS-HUD-COMPAT-20261025.md).
-- **Fast Grenade Throw 2.0.0:** the development Arena adapter respects the
+- **Fast Grenade Throw 2.0.0:** the Arena adapter respects the
   current player's grenade priority within the effective candidate list and
   blocks direct quick-throw input during Arena input locks/replacement.
   Native priority Molotov, underhand RGD and inventory-blocked inputs passed.
   No body adapter is needed; ordinary raids retain FGT's behavior.
-- **Manimal's Quick Cancel 2.0.0:** development Core 1.0.15 retires only the
+- **Manimal's Quick Cancel 2.0.0:** Core (since 1.0.15) retires only the
   old body's pending medical controllers and rejects their late callbacks.
   Actual cancellation and firearm recovery after replacement passed; the rare
   pending-drop/death race is covered offline, not established by that native run.
@@ -218,12 +219,12 @@ native observations below predate that migration; see
   rather than Arena's expanded backpack reach, and its spectator HUD describes
   the local player. Shield, assist, damage-number and killfeed semantics remain
   those of the foreign mod; both HUDs can overlap.
-- **Picture in Picture Disabler 2.1.0:** development Core 1.0.15 bounds optic
+- **Picture in Picture Disabler 2.1.0:** Core (since 1.0.15) bounds optic
   callbacks and generated mesh caches to their physical player/weapon owners.
   Arena additionally isolates its cold-kit preloads. Two actual scoped Arena
   deaths and a newly held scope's rendering passed with Fontaine FOV Fix 4.1.0.
   Coverage does not extend to every optic, NVG/thermal mode or callback race.
-- **Amand's Graphics 1.8.0:** remains unlisted. The development Core camera
+- **Amand's Graphics 1.8.0:** remains unlisted. The Core camera
   handover retained its ON/OFF choice and original scene defaults during Factory
   respawns. Labyrinth still fails during Amand's own initial activation, before
   Core replacement: its `!settings` lookup dereferences a missing object.
@@ -309,9 +310,9 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. The current source targets Core 1.0.15.
-The published 0.3.0 package contains Core 1.0.13, not the later development fixes; see
-[release verification](RELEASE-0.3.0.md#build-and-release-verification).
+revision is recorded in the package manifest. ArenaMode 0.4.0 bundles Core
+1.0.17, identical to the library in Redeploy 1.1.0. See
+[release notes](RELEASE-0.4.0.md) and [native coverage](RELEASE-SWEEP-20261029.md).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

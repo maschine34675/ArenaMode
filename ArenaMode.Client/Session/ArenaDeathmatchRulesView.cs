@@ -42,7 +42,7 @@ internal sealed class ArenaDeathmatchRulesView
             _root.transform.SetParent(parent, false);
             // Mode descriptions and all three common facts remain visible
             // above the controls, without extending the accepted panel height.
-            SetRect((RectTransform)_root.transform, 20f, 432f, Width, 156f);
+            SetRect((RectTransform)_root.transform, 20f, 396f, Width, 156f);
             for (int row = 0; row < 4; row++)
             {
                 _labels.Add(CreateText("Deathmatch rule " + row, typography, row * RowHeight));

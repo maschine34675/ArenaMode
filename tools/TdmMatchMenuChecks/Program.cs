@@ -39,6 +39,7 @@ foreach (var foreground in new[] { ArenaMode.Hud.ArenaUiTheme.Text, ArenaMode.Hu
     Need((Luminance(foreground) + .05f) / (Luminance(ArenaMode.Hud.ArenaUiTheme.Raised) + .05f) >= 4.5f,
         "primary and secondary typography remain legible on the raised surface");
 Settings.Init(config);
+Need(Settings.GameMode.Value == "teamdeathmatch", "a new configuration starts with TDM");
 Need(!Settings.ZombieCrowdEnabled.Value, "new configurations opt out of the harder crowd behavior");
 Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value == 50
     && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
@@ -289,7 +290,7 @@ ArenaMenuSelection.DominationAvailable = true;
 view.Synchronize("teamdeathmatch", false);
 Need(dominationRow.interactable, "restored companion availability refreshes the same mode row");
 Need(Marked(KillButton(50)) && Marked(TimeButton(600)), "persisted defaults own markers");
-Need(Label("OBJECTIVE label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
+Need(Label("RESPAWN label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf,
     "TDM retains all common facts above its limit controls");
 var panel = (RectTransform)view.Root.transform;
 // 530/-168: the non-Deathmatch panel height and top offset, both +42 over
@@ -297,10 +298,10 @@ var panel = (RectTransform)view.Root.transform;
 // ModePanelHeight/ModePanelTop and ArenaModeSelectionView.Create's own
 // "every top offset below is +42" comment).
 Need(panel.sizeDelta == new Vector2(360, ArenaModeCatalog.ModePanelHeight("teamdeathmatch"))
-    && panel.sizeDelta.y == 584 && panel.anchoredPosition == new Vector2(56, -168),
+    && panel.sizeDelta.y == 548 && panel.anchoredPosition == new Vector2(56, -168),
     "mode and area panels share the same height including the faction row");
 var ruleRect = (RectTransform)RuleRoot().transform;
-Need(-ruleRect.anchoredPosition.y >= 432 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 530,
+Need(-ruleRect.anchoredPosition.y >= 396 && -ruleRect.anchoredPosition.y + ruleRect.sizeDelta.y <= 494,
     "rules remain below heading and inside original mode panel");
 foreach (var button in Buttons().Where(x => x.name.StartsWith("Arena TDM")))
 {
@@ -328,25 +329,25 @@ Need(!KillButton(50).interactable && Settings.TeamDeathmatchKillLimit.Value == 2
 ArenaSession.ArmedForNextRaid = false;
 view.Synchronize("gungame", false);
 KillButton(50).onClick.Invoke();
-Need(!RuleRoot().activeSelf && Label("OBJECTIVE label").gameObject.activeSelf
+Need(!RuleRoot().activeSelf && Label("RESPAWN label").gameObject.activeSelf
     && Settings.TeamDeathmatchKillLimit.Value == 25, "other mode restores facts and rejects hidden rule events");
 view.Synchronize("tactical", true);
 CheckPreviews();
-Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 530
+Need(!RuleRoot().activeSelf && ((RectTransform)view.Root.transform).sizeDelta.y == 494
     && Label("EQUIPMENT value").text == "PMC entry gear", "PFT layout and entry equipment preserved");
 view.Synchronize("deathmatch", false);
 var dmRoot = view.Root.transform.Children.Single(x => x.name == "Arena Deathmatch Match Rules").gameObject;
 Button Dm(int row, int value) => Buttons().Single(x => x.name == "Arena Deathmatch " + row + " " + value);
-Need(dmRoot.activeSelf && !RuleRoot().activeSelf && Label("OBJECTIVE label").gameObject.activeSelf,
+Need(dmRoot.activeSelf && !RuleRoot().activeSelf && Label("RESPAWN label").gameObject.activeSelf,
     "Deathmatch retains common facts above its own controls");
-Need(((RectTransform)view.Root.transform).sizeDelta.y == 596, "Deathmatch panel contains all four rule rows");
+Need(((RectTransform)view.Root.transform).sizeDelta.y == 560, "Deathmatch panel contains all four rule rows");
 Dm(1,20).onClick.Invoke(); Dm(0,3).onClick.Invoke(); Dm(3,1).onClick.Invoke();
 Need(Settings.DeathmatchRounds.Value == 3 && Settings.DeathmatchKills.Value == 20
     && !Settings.DeathmatchFreeForAll.Value && Marked(Dm(0,3)) && Marked(Dm(3,1)), "actual Deathmatch controls persist rules and markers");
-Need(Label("Mode description").text.Contains("ALL VS YOU · enemies ignore each other", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("Enemies only target you.", StringComparison.Ordinal),
     "opponent choice updates the visible Deathmatch description immediately");
 Dm(3,0).onClick.Invoke();
-Need(Label("Mode description").text.Contains("FFA · everyone fights everyone", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("Everyone fights everyone.", StringComparison.Ordinal),
     "FFA choice restores the visible Deathmatch description immediately");
 Dm(3,1).onClick.Invoke();
 var frozen = Settings.FreezeDeathmatchRules();
@@ -360,17 +361,17 @@ view.Synchronize("tactical", false);
 // 2026-10-08 menu polish: RULES is the objective for every mode ("Round
 // elimination"), no longer the roster. The roster stays visible in the row
 // label and the PFT requirement in the 5v5 note.
-Need(Label("OBJECTIVE value").text == "Round elimination" && Label("Mode description").gameObject.activeSelf,
+Need(Label("Mode description").text.Contains("Eliminate the enemy squad") && Label("Mode description").gameObject.activeSelf,
     "solo Tactical RULES shows the objective, not the roster, and keeps the PFT requirement note");
-Need(Label("Mode heading").text.Contains("PITFIRETEAM / MY SQUAD", StringComparison.Ordinal),
+Need(Label("Mode heading").text == "GAME MODE",
     "solo Tactical visible description names the flexible PFT squad support");
 string TacticalRowLabel() => Buttons().Single(x => x.name == "Arena Mode tactical").GetComponentInChildren<TextMeshProUGUI>(true).text;
 Need(TacticalRowLabel() == "TACTICAL / 1v" + Settings.TacticalSquadSize.Value + " (WIP)",
     "solo Tactical roster stays in the mode row label");
 view.Synchronize("tactical", true);
-Need(Label("OBJECTIVE value").text == "Round elimination" && TacticalRowLabel() == "TACTICAL / 5v5 PFT (WIP)",
+Need(Label("Mode description").text.Contains("round wins") && TacticalRowLabel() == "TACTICAL / 5v5 PFT (WIP)",
     "PFT Tactical shows the same objective and the roster in the mode row label");
-Need(Label("Mode description").text.Contains("Fallen allies return next round", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("On death, spectate until next round", StringComparison.Ordinal),
     "protected Tactical description explains round-delayed restoration");
 for (int companions = 1; companions <= 4; companions++)
 {
@@ -381,12 +382,12 @@ for (int companions = 1; companions <= 4; companions++)
 }
 ArenaMode.Compat.PitFireTeamCompat.SelectedCompanionCount = 4;
 view.Synchronize("zombie", false);
-Need(Label("Mode description").text.Contains("WAVE CLEAR · gear refills", StringComparison.Ordinal)
-    && Label("Mode heading").text.Contains("PITFIRETEAM", StringComparison.Ordinal)
+Need(Label("Mode description").text.Contains("Gear refills after each cleared wave", StringComparison.Ordinal)
+    && Label("Mode heading").text == "GAME MODE"
     && Label("RESPAWN value").text == "None", "solo Zombie explains resupply and optional PFT without promising a respawn");
 view.Synchronize("zombie", true);
-Need(Label("Mode description").text.Contains("WAVE CLEAR · gear + fallen allies return", StringComparison.Ordinal)
-    && Label("Mode description").text.Contains("TEAM WIPE", StringComparison.Ordinal),
+Need(Label("Mode description").text.Contains("Gear refills after each cleared wave", StringComparison.Ordinal)
+    && Label("Mode description").text.Contains("Team wipe", StringComparison.Ordinal),
     "PFT Zombie resupply note includes the surviving PMC and explains defeat");
 view.Synchronize("tactical", false);
 var dmRetired = Dm(0,5).onClick.Snapshot();
@@ -460,12 +461,11 @@ foreach (bool ownGear in new[] { false, true })
     Need(!EquipmentChoiceRoot().activeSelf && Label("EQUIPMENT value").gameObject.activeSelf
         && Label("EQUIPMENT value").text == "PMC entry gear",
         "protected Zombie hides kit choices and displays entry gear independently of the solo preference");
-    Need(Label("RESPAWN value").text == "Next wave" && Label("OBJECTIVE value").text == "Survive the waves",
+    Need(Label("RESPAWN value").text == "Next wave",
         "protected Zombie explains the cleared-wave return instead of solo terminal death");
     Need(Label("Mode description").gameObject.activeSelf
-        && Label("Mode description").text.Contains("TEAM WIPE ENDS MATCH", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("fallen allies return", StringComparison.Ordinal)
-        && Label("Mode description").text.Contains("WAVE CLEAR · gear", StringComparison.Ordinal),
+        && Label("Mode description").text.Contains("Team wipe ends the match", StringComparison.Ordinal)
+        && Label("Mode description").text.Contains("Gear refills", StringComparison.Ordinal),
         "protected Zombie states elimination and cleared-wave restoration semantics");
     Need(Buttons().Single(x => x.name == "Arena Mode zombie").GetComponentInChildren<TextMeshProUGUI>(true).text
             == "ZOMBIES / PFT (WIP)",
@@ -490,7 +490,7 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
         Settings.ZombieOwnGear.Value = ownGear;
         view.Synchronize(schemaMode, schemaTeam);
         string scope = schemaMode + (schemaTeam ? " (PFT)" : "") + (ownGear ? " own gear" : "");
-        foreach (string fact in new[] { "OBJECTIVE", "RESPAWN", "EQUIPMENT" })
+        foreach (string fact in new[] { "RESPAWN", "EQUIPMENT" })
         {
             Need(Label(fact + " label").gameObject.activeInHierarchy,
                 "common fact labels are visible for every mode: " + scope + " " + fact);
@@ -509,23 +509,22 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
                 && Label("Mode description").text.Split('\n').Length == 2
                 && Label("Mode description").text.Split('\n').All(line => line.Length is > 0 and <= ArenaCompactModeRules.MaxLineCharacters),
             "every mode has an actual visible two-line description, not an unavailable tooltip: " + scope);
-        foreach (var (name, top) in new[] { ("OBJECTIVE", 330f), ("RESPAWN", 360f), ("EQUIPMENT", 390f) })
+        foreach (var (name, top) in new[] { ("RESPAWN", 330f), ("EQUIPMENT", 360f) })
             Need(Label(name + " label").rectTransform.anchoredPosition == new Vector2(20f, -top)
                 && Label(name + " value").rectTransform.anchoredPosition == new Vector2(122f, -top),
                 "common fact positions do not jump between modes: " + scope + " " + name);
         var description = Label("Mode description").rectTransform;
+        Need(Label("Mode description").alignment == TextAlignmentOptions.TopLeft
+            && description.anchoredPosition == new Vector2(20f, -284f) && description.sizeDelta.y == 42f,
+            "description anchors its first line independently of second-line glyphs: " + scope);
         Need(-description.anchoredPosition.y + description.sizeDelta.y <= 330f,
             "description has its own space above the common facts: " + scope);
-        var protection = Label("Gear protection").rectTransform;
-        Need(Label("Gear protection").gameObject.activeInHierarchy
-            && -protection.anchoredPosition.y >= 414f
-            && -protection.anchoredPosition.y + protection.sizeDelta.y <= 432f
-            && Label("Gear protection").text.Contains("Gear restored"),
-            "gear reassurance fits between equipment and controls without expanding the panel: " + scope);
+        Need(!view.Root.GetComponentsInChildren<TMP_Text>(true).Any(t => t.name is "Gear protection" or "OBJECTIVE label" or "OBJECTIVE value"),
+            "objective and protection are not repeated below the description: " + scope);
         foreach (var child in new[] { dmRoot, RuleRoot() }.Where(x => x.activeInHierarchy))
         {
             var childRect = (RectTransform)child.transform;
-            Need(-childRect.anchoredPosition.y >= 420f
+            Need(-childRect.anchoredPosition.y >= 396f
                     && -childRect.anchoredPosition.y + childRect.sizeDelta.y <= ((RectTransform)view.Root.transform).sizeDelta.y,
                 "limit controls are below all common facts and inside the panel: " + scope);
             foreach (var button in child.GetComponentsInChildren<Button>(false))
@@ -549,9 +548,9 @@ foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungam
 }
 Settings.ZombieOwnGear.Value = false;
 view.Synchronize("zombie", false);
-Need(Label("OBJECTIVE value").text == "Survive the waves" && Label("RESPAWN value").text == "None"
+Need(Label("Mode description").text.Contains("Survive escalating waves") && Label("RESPAWN value").text == "None"
     && Label("EQUIPMENT value").text == "Arena kits", "Zombie facts fit the box: objective, None, Arena kits");
-Need(Label("RESPAWN value").text == "None" && Label("Mode description").text.Contains("WAVE CLEAR · gear refills", StringComparison.Ordinal),
+Need(Label("RESPAWN value").text == "None" && Label("Mode description").text.Contains("Gear refills after each cleared wave", StringComparison.Ordinal),
     "solo Zombie retains terminal death and describes the between-wave refill");
 var staleMode = Buttons().Single(x => x.name == "Arena Mode gungame").onClick.Snapshot();
 Button MutatorButton(ArenaMutator id) => screen.GetComponentsInChildren<Button>(true).Single(x => x.name == "Arena Mutator " + id);
@@ -583,9 +582,9 @@ MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
 var announcerDetail = MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
     .Single(t => t.name == "Mutator detail " + ArenaMutator.Announcer);
 var announcerTooltip = MutatorButton(ArenaMutator.Announcer).GetComponent<EFT.UI.HoverTooltipArea>();
-Need(announcerDetail.gameObject.activeInHierarchy && announcerDetail.text == "Music cues and kill callouts."
-    && announcerTooltip?.Message == announcerDetail.text && announcerTooltip.RawText,
-    "ANNOUNCER row and tooltip name music cues and on-screen kill callouts");
+Need(!announcerDetail.gameObject.activeInHierarchy && announcerDetail.text == string.Empty
+    && announcerTooltip?.Message == "Music cues and kill callouts." && announcerTooltip.RawText,
+    "ANNOUNCER help remains in the tooltip without repeating an inline description");
 foreach (ArenaMutator id in Enum.GetValues(typeof(ArenaMutator)))
     Need(ArenaMutatorSelection.Description(id).Length is > 0 and <= 36,
         "mutator description fits the one-line description cell: " + id);
@@ -702,6 +701,9 @@ foreach (var (soloMode, soloTeam) in new[] { ("deathmatch", false), ("gungame", 
     Need(MutatorDetail(ArenaMutator.Tracers) == ArenaMutatorSelection.TeamModesOnly
         && MutatorDetail(ArenaMutator.Tracers) == MutatorDetail(ArenaMutator.Lasers),
         "colored tracers give the lasers' team-only reason: " + soloMode);
+    Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(false).Any(t => t.name == "Mutator detail " + ArenaMutator.Tracers)
+        && MutatorButton(ArenaMutator.Tracers).GetComponent<EFT.UI.HoverTooltipArea>().Message == ArenaMutatorSelection.TeamModesOnly,
+        "N/A reason is visible inline and on hover for the same row");
     MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
     Need(Settings.TeamTracers.Value && MutatorStatus(ArenaMutator.Tracers) == "N/A",
         "unavailable tracers preserve the team preference on direct callback: " + soloMode);
@@ -711,7 +713,8 @@ foreach (var (teamMode, team) in new[] { ("teamdeathmatch", false), ("tactical",
     Settings.TeamTracers.Value = true;
     view.Synchronize(teamMode, team);
     Need(MutatorStatus(ArenaMutator.Tracers) == "ON" && MutatorButton(ArenaMutator.Tracers).interactable
-        && MutatorDetail(ArenaMutator.Tracers) == "Team colors for every bullet.",
+        && MutatorDetail(ArenaMutator.Tracers) == string.Empty
+        && MutatorButton(ArenaMutator.Tracers).GetComponent<EFT.UI.HoverTooltipArea>().Message == "Team colors for every bullet.",
         "colored tracers are available and ON by default in team modes: " + teamMode);
     MutatorButton(ArenaMutator.Tracers).onClick.Invoke();
     Need(!Settings.TeamTracers.Value && MutatorStatus(ArenaMutator.Tracers) == "OFF",
@@ -1090,7 +1093,7 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
     foreach (bool team in new[] { false, true })
     {
         view.Synchronize("zombie", team);
-        Need(ZombieRoot().activeInHierarchy && ((RectTransform)view.Root.transform).sizeDelta.y == 596,
+        Need(ZombieRoot().activeInHierarchy && ((RectTransform)view.Root.transform).sizeDelta.y == 560,
             "Zombie sliders fit their mode panel in solo and PFT");
         foreach (var (rule, entry, minimum, maximum) in zombieEntries)
         {
@@ -1147,6 +1150,15 @@ foreach (var size in new[] { new Vector2(1920,1080), new Vector2(1600,900), new 
 }
 view.Close();
 Need(view.Root == null && screen.transform.Children.Count == 0, "close destroys all owned view roots");
+foreach (string savedMode in new[] { "deathmatch", "gungame", "tactical", "zombie", "teamdeathmatch", "domination" })
+foreach (bool migrated in new[] { false, true })
+{
+    var savedConfig = new ConfigFile();
+    savedConfig.Stored["Match/GameMode"] = savedMode;
+    savedConfig.Stored["Deathmatch/LegacyRulesMigrated"] = migrated;
+    Settings.Init(savedConfig);
+    Need(Settings.GameMode.Value == savedMode, "saved mode survives the new-installation TDM default: " + savedMode);
+}
 foreach (string legacy in new[] { "endless", "rounds" })
 {
     var oldConfig = new ConfigFile();

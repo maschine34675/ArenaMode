@@ -60,7 +60,7 @@ internal static class ArenaSessionBanner
             }
             _lastScreen = screen;
             _root.SetActive(true);
-            const string status = "ARENA SESSION · FILTERED MODS\nChanges reset · Rewards optional";
+            const string status = "ARENA SESSION · FILTERED MODS";
             if (_status.text != status) _status.text = status;
             _action.interactable = !ArenaSessionSwitch.HelperPending && ProfileId() != null;
             int seconds = Confirmation.SecondsRemaining(now);

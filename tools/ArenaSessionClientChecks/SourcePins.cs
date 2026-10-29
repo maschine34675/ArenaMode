@@ -93,36 +93,31 @@ internal static partial class Program
         Require(prefix.Contains("if (!ArenaSessionMode.IsArenaSession) __instance._pmcButton.IsToggled = true;", StringComparison.Ordinal),
             "a failed Arena click falls back to PMC outside an Arena session only");
 
-        string unavailable = Slice(side, "private static void ShowUnavailable(", "private static string WithWarnings(");
-        Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));", StringComparison.Ordinal)
-                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen), compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
-            "START ARENA SESSION belongs to an eligible normal session, RETURN only to an Arena session");
-
-        string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static ArenaNoticeAction ReturnAction(");
-        string back = Slice(side, "private static ArenaNoticeAction ReturnAction(", "private static void SwitchSession(");
+        string unavailable = Slice(side, "private static void ShowUnavailable(", "private static ArenaNoticeAction StartAction(");
+        Require(unavailable.Contains("if (ArenaSessionMode.IsArenaSession) ArenaAvailabilityNotice.Show(screen, text);", StringComparison.Ordinal)
+                && unavailable.Contains("else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason)) ArenaAvailabilityNotice.Show(screen, text, StartAction(screen), tooltipNotes: ArenaWhitelistAdmission.WarningLine, compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));", StringComparison.Ordinal),
+            "START ARENA SESSION belongs to an eligible normal session; the private return stays in the banner");
+        Require(unavailable.Contains("string text = reason;", StringComparison.Ordinal),
+            "blocking refusal preserves its concrete reason");
+        Require(unavailable.Contains("else ArenaAvailabilityNotice.Show(screen, text);", StringComparison.Ordinal),
+            "non-restartable normal-session refusals stay visible");
+        string start = Slice(side, "private static ArenaNoticeAction StartAction(", "private static void SwitchSession(");
         Require(start.Contains("ArenaWhitelistAdmission.StartActionLabel", StringComparison.Ordinal)
                 && start.Contains("ArenaSessionContract.DirectionEnter", StringComparison.Ordinal)
-                && back.Contains("ArenaWhitelistAdmission.ReturnActionLabel", StringComparison.Ordinal)
-                && back.Contains("ArenaSessionContract.DirectionLeave", StringComparison.Ordinal),
-            "the actions request the matching direction");
+                && !side.Contains("ReturnAction(screen)", StringComparison.Ordinal),
+            "the character notice owns entry only, without a second return action");
         Require(!side.Contains("ArenaRewardMenuState", StringComparison.Ordinal)
                 && !notice.Contains("ArenaNoticeOption", StringComparison.Ordinal)
                 && !notice.Contains("ArenaNoticePreference", StringComparison.Ordinal),
             "reward controls belong to the Arena map menu, never the incompatible-mod notice");
-
         string notices = Slice(side, "private static void ShowNotice(", "private static void ShowSelectedNotice(");
-        Require(notices.Contains("ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), back);", StringComparison.Ordinal)
-                && notices.Contains("else if (warnings != null && ArenaMenuSelection.IsSelected) ShowVersionNotes(screen, warnings);", StringComparison.Ordinal),
-            "the session notice always shows in a session; whitelist warnings show only once ARENA is selected");
-
-        // The policy-override note travels with the whitelist notes: a refusal shows them as its second line, and
-        // an Arena click (ARENA selectable, nothing refused) shows them as an information notice.
-        Require(unavailable.Contains("string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);", StringComparison.Ordinal),
-            "a refusal carries the whitelist notes, the policy override included, as its second line");
+        Require(notices.Contains("if (!eligibility.Allowed) ShowUnavailable(screen, eligibility.Reason);", StringComparison.Ordinal)
+                && notices.Contains("else ArenaAvailabilityNotice.Hide(screen);", StringComparison.Ordinal),
+            "only a real refusal overlays character selection");
         string selectedNotice = Slice(side, "private static void ShowSelectedNotice(", "private static void ShowUnavailable(");
-        Require(selectedNotice.Contains("string warnings = ArenaWhitelistAdmission.WarningLine;", StringComparison.Ordinal)
-                && selectedNotice.Contains("else if (warnings != null) ShowVersionNotes(screen, warnings);", StringComparison.Ordinal),
-            "an Arena click shows the whitelist notes, the policy override included, as an information notice");
+        Require(selectedNotice.Contains("ArenaAvailabilityNotice.Hide(screen);", StringComparison.Ordinal)
+                && !selectedNotice.Contains("ArenaAvailabilityNotice.Show", StringComparison.Ordinal),
+            "an admitted Arena selection stays unobstructed by advisory notes");
 
         string switching = Slice(side, "private static void SwitchSession(", "private static void EnsureCompatibleMode(");
         Require(switching.Contains("Controller(screen)?.Session?.Profile?.Id", StringComparison.Ordinal)

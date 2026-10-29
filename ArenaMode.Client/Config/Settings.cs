@@ -1175,7 +1175,7 @@ public static class Settings
         GameMode = config.Bind(
             "Match",
             "GameMode",
-            ArenaModeCatalog.DeathmatchId,
+            ArenaModeCatalog.TeamDeathmatchId,
             new ConfigDescription(
                 "Arena game mode selected on the native map screen or in F12. " +
                 "deathmatch: individual kills with optional finite or endless rounds. " +

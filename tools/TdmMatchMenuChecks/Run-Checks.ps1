@@ -67,7 +67,7 @@ $arenaFaults = @(
       'ProductionModeView', 'retired mode row cannot modify reopened panel'),
     @('panel-growth' , 'ArenaMode.Client\Session\ArenaTdmMatchRulesView.cs',
       # Controls must fit below the common facts inside the unchanged panel.
-      '20f, 432f, Width, 78f', '20f, 432f, Width, 240f',
+      '20f, 396f, Width, 78f', '20f, 396f, Width, 240f',
       'ProductionRulesView', 'rules remain below heading and inside original mode panel'),
     @('hidden-common-facts', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
       '_equipment.gameObject.SetActive(!_equipmentChoice.Visible);',
@@ -122,12 +122,14 @@ $arenaFaults = @(
     @('mutator-rows-pitch', 'ArenaMode.Client/Session/ArenaMapPanelLayout.cs',
       'MutatorRowPitch = 40f, MutatorButtonHeight = 22f;', 'MutatorRowPitch = 36f, MutatorButtonHeight = 22f;',
       'ProductionMapLayout', 'mutator rows reflow without moving the panel'),
-    # Menu polish 2026-10-08, items 3+4: RULES is the catalog objective for
-    # every mode; the Tactical roster stays out of it (it lives in the row label).
-    @('tactical-rules-roster-override', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
-      '_rules.text = mode.Rules;',
-      '_rules.text = mode.Id == ArenaModeCatalog.TacticalId ? "1v" + Settings.TacticalSquadSize.Value + " / Solo" : mode.Rules;',
-      'ProductionModeView', 'solo Tactical RULES shows the objective, not the roster'),
+    @('redundant-objective-restored', 'ArenaMode.Client/Session/ArenaModeSelectionView.cs',
+      '_respawn = CreateFact("RESPAWN", typography, 330f);',
+      '_respawn = CreateFact("RESPAWN", typography, 330f); CreateFact("OBJECTIVE", typography, 330f);',
+      'ProductionModeView', 'objective and protection are not repeated below the description'),
+    @('unavailable-reason-hidden', 'ArenaMode.Client/Session/ArenaMutatorsView.cs',
+      'row.Description.gameObject.SetActive(_selection.Visible(row.Id) && reason != null);',
+      'row.Description.gameObject.SetActive(false);',
+      'ProductionMutatorsView', 'N/A reason is visible inline and on hover'),
     # Menu polish 2026-10-08, item 5: colored tracers are team-only like the lasers.
     @('tracer-entry-solo-leak', 'ArenaMode.Client/Config/Settings.cs',
       "ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers,`n            _ => null",

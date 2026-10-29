@@ -15,7 +15,7 @@ continuous.StartRound(0);
 continuous.RecordKill(1, "you", "You", "enemy");
 continuous.Tick(100000);
 Need(continuous.Phase == DeathmatchPhase.Live && continuous.RoundOutcome == DeathmatchOutcome.None
-    && Text("deathmatch").Contains("no round winner"), "continuous DM has no winner and is labelled honestly");
+    && Text("deathmatch").Contains("No round winner"), "continuous DM has no winner and is labelled honestly");
 foreach (int rounds in new[] { 0, 1 })
 {
     var limited = new DeathmatchRules(new DeathmatchOptions(rounds, 1, 30, true, 3, true), "you", "You");
@@ -23,10 +23,10 @@ foreach (int rounds in new[] { 0, 1 })
     limited.RecordKill(1, "you", "You", "enemy");
     Need(limited.Phase == (rounds == 0 ? DeathmatchPhase.Intermission : DeathmatchPhase.Finished)
         && Text("deathmatch", rounds: rounds, kills: 1, seconds: 30)
-            .Contains(rounds == 0 ? "ENDLESS ROUNDS" : "1 ROUND"),
+            .Contains("Most kills wins the round."),
         "finite and unlimited round series follow the actual DM lifecycle");
 }
-Need(Text("deathmatch", ffa: false).Contains("enemies ignore each other")
+Need(Text("deathmatch", ffa: false).Contains("Enemies only target you.")
     && ArenaCompactModeRules.DeathmatchObjective(10, 60, false) == "Reach kill target"
     && ArenaCompactModeRules.DeathmatchObjective(0, 60, false) == "Survive timer",
     "all-vs-player copy separates target and survival outcomes");
@@ -40,40 +40,38 @@ foreach (var (kills, seconds) in new[] { (0, 0), (1, 0), (0, 5), (1, 5) })
     match.Update(0, true, 0, 0); match.Update(3, true, 0, 0);
     match.Update(10, true, 1, 0);
     bool endless = match.Phase == TdmMatchPhase.Live;
-    Need(Text("teamdeathmatch", teamKills: kills, teamSeconds: seconds).Contains("ENDLESS") == endless,
+    Need(Text("teamdeathmatch", teamKills: kills, teamSeconds: seconds).Contains("No match end without limits.") == endless,
         "TDM end text follows active kill and time limits independently");
 }
-Need(Text("teamdeathmatch", ff: true).EndsWith("ON") && Text("teamdeathmatch", ff: false).EndsWith("OFF"),
-    "friendly-fire summary reads the current preference");
-Need(Text("gungame").Contains("ENDLESS") && Text("gungame").Contains("assigned weapon"),
-    "Gun Game explicitly assigns weapons and repeats endlessly");
-Need(Text("tactical").Contains("death / timeout loses") && Text("tactical").Contains("ARENA CASH")
-    && Text("tactical").Contains("keep surviving kit"), "solo Tactical explains loss and private buying without promising a finite match");
-Need(Text("tactical", team: true, wins: 7).Contains("FIRST TO 7 WINS")
-    && Text("tactical", team: true).Contains("spectate") && !Text("tactical", team: true).Contains("ARENA CASH"),
+Need(Text("teamdeathmatch", ff: true) == Text("teamdeathmatch", ff: false),
+    "friendly-fire state belongs to its control, not the mode description");
+Need(Text("gungame").Contains("Kills advance your weapon") && Text("gungame").Contains("ladder repeats"),
+    "Gun Game explains weapon progression and its repeating ladder");
+Need(Text("tactical").Contains("death / timeout loses") && Text("tactical").Contains("Eliminate the enemy squad"),
+    "solo Tactical explains elimination and loss without promising a finite match");
+Need(Text("tactical", team: true, wins: 7).Contains("First to 7 round wins")
+    && Text("tactical", team: true).Contains("spectate until next round"),
     "PFT Tactical explains its distinct match and death behavior");
-Need(Text("zombie").Contains("ONE LIFE") && Text("zombie").Contains("death ends match")
-    && !Text("zombie").Contains("fallen allies"), "solo Zombies clearly has one terminal life");
-Need(Text("zombie", team: true).Contains("TEAM WIPE ENDS MATCH")
-    && Text("zombie", team: true).Contains("fallen allies return")
-    && Text("zombie", team: true).Contains("WAVE CLEAR"), "PFT Zombies never promises first-death termination");
+Need(Text("zombie").Contains("Survive escalating waves") && Text("zombie").Contains("Gear refills"),
+    "solo Zombies explains waves and resupply; the respawn row owns its life rule");
+Need(Text("zombie", team: true).Contains("Team wipe ends the match")
+    && Text("zombie", team: true).Contains("each cleared wave"), "PFT Zombies never promises first-death termination");
 foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
 {
     int actualPoints = DominationMapLayout.Resolve(map).Points.Count;
-    Need(Text("domination", points: actualPoints).Contains("HOLD " + actualPoints + " POINT"),
+    Need(Text("domination", points: actualPoints).Contains("Hold " + actualPoints + " point"),
         "Domination copy uses the actual map objective count: " + map);
 }
-Need(!Text("domination").Contains("HOLD 3") && Text("domination").Contains("select a map"),
+Need(!Text("domination").Contains("Hold 3") && Text("domination").Contains("Hold points to earn team score"),
     "unselected Domination map does not invent an objective count");
 foreach(var (points,seconds) in new[]{(0,0),(100,0),(0,300),(500,1200)})
 {
     string description=ArenaCompactModeRules.Describe("domination",false,0,0,0,true,50,600,3,true,3,points,seconds);
-    Need(description.Contains("ENDLESS")== (points==0&&seconds==0)
-        && !description.Contains("200 points"),"Domination summary follows configured active limits without stale defaults");
+    Need(description == Text("domination", points: 3),"Domination purpose does not duplicate the selected limit controls");
 }
-Need(ArenaCompactModeRules.CompanionHint("tactical", false, 0).Contains("PITFIRETEAM / MY SQUAD")
-    && ArenaCompactModeRules.CompanionHint("zombie", true, 1) == "PITFIRETEAM · 1 FROM MY SQUAD",
-    "companion source is explicit without a PFT abbreviation");
+Need(ArenaCompactModeRules.CompanionHint("tactical", false, 0) == "GAME MODE"
+    && ArenaCompactModeRules.CompanionHint("zombie", true, 1) == "GAME MODE / PITFIRETEAM",
+    "companion heading appears only for an actual squad");
 
 // Bound every active variant and supported numerical extreme to the two-line
 // slot. A deliberately overlong positive fixture proves the oracle can fail.

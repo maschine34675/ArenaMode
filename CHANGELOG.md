@@ -8,95 +8,58 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## Unreleased
+## [0.4.0] - 2026-10-29
 
-- Recover normal SPT startup when a stopped Arena session has lost its private
-  data. Discard its old rewards automatically and preserve the normal profile.
-  [Details](docs/OFFLINE-STARTUP-RECOVERY-20261028.md).
+### Domination and teams
 
-- Start Arena directly from the installed Session.exe, without opening normal EFT
-  first. Choose a profile, remember the last choice, or create a desktop shortcut.
-  [Details](docs/DIRECT-START-20261028.md).
+- Add Domination (WIP), with continuous USEC/BEAR respawns, bot capture/defence
+  assignments and configurable point/time limits. BigBrain is required.
+- Factory day/night chooses three separated control points each match. Equator
+  and Bay5 use one original point each; Air Pit and Bowl use two. Bot approaches
+  must be capture-valid and reachable. Domination does not award profile rewards.
+- Integrate objective status into the main score panel, improve ownership rings
+  and keep pickups clear of objectives. ArenaMapPort monitors display scores.
+- Choose USEC or BEAR for Team DM/Domination; team colors and killfeed follow
+  the selected side through death/respawn without changing the saved PMC faction.
+- Add optional native PMC action voicelines and rotating TDM faction voices.
+  Disable accidental native extractions during Arena matches.
 
-- Harden session restarts: the helper no longer inherits open game connections.
-  If Arena entry is safely refused, reopen normal SPT. Show a short notice if
-  recovery also fails, and record the failed shutdown stage in the logs.
-  [Details](docs/ENTRY-RESTART-HARDENING-20261028.md).
+### Sessions and profile handling
 
-- Show the selected round faction in the killfeed for Team DM and Domination,
-  including deaths and respawns, without changing the saved profile faction.
-  [Details](docs/KILLFEED-ROUND-FACTION-20261027.md).
+- Start directly from Session.exe, select/remember a profile or create a desktop
+  shortcut, without opening normal EFT first.
+- Harden restart acknowledgement, process isolation and return to normal SPT
+  after safely refused entry. Failed shutdown stages remain visible in logs.
+- Fix round-end stalls from concurrent hideout updates during restoration;
+  verify the complete saved profile before releasing the protected end.
+- Automatically discard uncertain old rewards and recover normal startup after
+  stopped sessions lose disposable data, preserving normal-profile progress.
+- Remove the false missing-snapshot warning when rewards are switched off.
 
-- Improve Domination bot approaches, vary Factory's three control points each
-  match, and add separate point/time limit controls. Show Day/Night for Equator
-  and remove the redundant character-selection notice.
-  [Details](docs/DOMINATION-OPTIONS-ROUTES-20261027.md).
+### Menus and logging
 
-- Fix Arena round-end stalls caused by concurrent hideout updates during profile
-  restoration. Background updates resume after complete save verification.
-  [Details](docs/RAID-END-PERSISTENCE-20261027.md).
-- Automatically discard uncertain old rewards at normal server startup. No
-  repair dialog or player action; profile progress stays intact.
-  [Details](docs/REWARD-DISCARD-20261027.md).
-- Retain durable restoration evidence across interrupted sessions and verify
-  the complete saved profile before releasing a protected raid, including when
-  rewards are OFF. [Persistence](docs/REWARD-RESTORATION-20261027.md).
+- Shorten mode/mutator copy, keep one session-return control and put details in
+  tooltips. Preserve a short character description and stable mode-text alignment.
+- Default new installations to Team DM. Show Day/Night for Factory and Equator;
+  keep the session indicator and HUD within their Arena contexts.
+- Avoid repeated map-row compatibility scans that stalled the map menu.
+- Move routine helper link cleanup to opt-in debug output; preserve lifecycle,
+  retry and failure messages.
 
-- Extend Domination to Equator and Bay5 (one original control point each),
-  AirPit and Bowl (two each). Use the original individual capture anchors,
-  team boxes and gate completion; MapPort monitors show objective scores.
-  Factory retains its three-point layout. [Details](docs/DOMINATION-PORTED-20261026.md).
-- Fix the Arena map-screen stall caused by repeated compatibility checks per
-  map row. Final start admission remains fresh; GPU-2's measured idle average
-  improves from 14 to 56 FPS. [Measurements](docs/MAP-MENU-PERFORMANCE-20261026.md).
-- Separate Domination's pickup notifications/effects from its control-point HUD.
-  Keep pickup beacons visible and place/rotate pickups outside control-point
-  space. Use saturated ownership colors for the ground rings separately from
-  the bright HUD palette. [Follow-up](docs/DOMINATION-FOLLOWUP-20261026.md).
+### Compatibility
 
-- Add DOMINATION (WIP) on Factory day/night: independent USEC/BEAR teams capture
-  three points, hold them for score and respawn continuously. Bots receive capture
-  and defend assignments while retaining native combat/self-care. BigBrain and
-  the matching Arena companion are required for this mode. V1 has a 200-point /
-  ten-minute limit and no persistent rewards. [Details](docs/DOMINATION-PROTOTYPE-20261026.md).
+- Bundle shared Redeploy.Core **1.0.17**, identical to Redeploy **1.1.0**'s Core.
+  Includes ImpactCue/Enemy Markers, Quick Cancel and PiP body/camera fixes.
+- Compose Use Items Anywhere access/reload settings and Fast Grenade Throw
+  priority/input locks. Review HUD Breakout without adding an unnecessary adapter.
+- Add the reviewed mods to the default whitelist; record ArenaMapPort **0.4.0**
+  and Redeploy **1.1.0**. Recognized version differences remain advisory in both
+  direct Arena play and new private sessions, including UIFixes.
+- Keep identity, deny/dependency and protection/API checks. Amand's Graphics
+  remains unlisted because its separate Labyrinth setup problem is unresolved.
 
-- Add the PMC VOICELINES mutator for restrained native action callouts. Team DM
-  rotates faction voices between matches, including English BEAR voices, without
-  changing saved profiles. Respawns retain the match voice and the announcer
-  takes priority. [Details](docs/PMC-VOICELINES-20261026.md).
-
-- Compose Arena's backpack reload and item-access extension with Use Items Anywhere
-  2.1.6. Its configured slots take precedence, and Arena's magazine HUD uses the
-  same candidate query as reloading.
-- Update shared Redeploy.Core to 1.0.15. This includes the 1.0.14 ImpactCue 2.0.3
-  telemetry and Enemy Markers 1.4.0 camera/cleanup fixes, tested in Arena and
-  standalone Redeploy. Add the reviewed clients and ImpactCue's Web Config
-  server to the development whitelist.
-- Integrate Fast Grenade Throw 2.0.0 with Arena grenade priority and input locks.
-  Native tests covered priority Molotov, underhand RGD and blocked inventory input.
-- Retire Quick Cancel 2.0.0's old-body pending controllers and PiP Disabler 2.1.0's
-  owned optic caches through shared Core. Isolate Arena's cold-kit optic preloads.
-  Actual cancellation/firearm recovery and two scoped Arena deaths passed;
-  the same final Core also passed two Factory respawns with Arena absent,
-  including a scoped death and cancellation after respawn.
-- Review HUD Breakout 1.2.0 without adding a body adapter. Its health/ammo/grenade
-  values followed two Arena respawns; grenade reach and spectator semantics
-  remain those of the foreign HUD.
-- Add Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0, HUD Breakout 1.2.0 and
-  PiP Disabler 2.1.0 to the development default whitelist after the bounded
-  Arena and standalone checks. No foreign packages are bundled.
-- Repair Amand's Graphics 1.8.0 camera handover in Core, preserving ON/OFF and
-  scene defaults. Keep it unlisted: Labyrinth's initial native activation fails
-  before Core replacement. The successful Factory tests do not resolve that
-  separate map blocker. See [remaining-mod evidence](docs/REMAINING-MOD-COMPAT-20261026.md).
-- Select USEC or BEAR for Team DM in the map menu, including the corresponding
-  team starts and respawns. The real PMC faction and equipment stay unchanged.
-- Use consistent USEC blue / BEAR red for Team DM lighting, tracers, lasers and
-  team HUD accents. Connect ArenaMapPort score monitors to faction scores,
-  living players and the match clock.
-- Disable native extractions in every Arena mode/map, preventing accidental
-  raid endings in team boxes. Ordinary raids and leaving Arena through Esc
-  retain their existing behavior.
+See [release notes](docs/RELEASE-0.4.0.md), [dependencies](docs/DEPENDENCIES.md)
+and the [native test report](docs/RELEASE-SWEEP-20261029.md) for scope and limits.
 
 ## [0.3.0] - 2026-10-25
 

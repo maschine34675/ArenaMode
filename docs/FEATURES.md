@@ -1,14 +1,13 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-10-25** for **0.3.0**, including
-profile rewards, private-session ownership and current compatibility additions.
-The earlier 0.2.1 release does not include these additions. This lists the implemented
-behavior, including smaller changes accumulated during development. It is not
+Source inventory updated **2026-10-29** for **0.4.0**, including Domination,
+direct session start, profile recovery and the current compatibility additions.
+This lists implemented behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
 in-game test. Defaults below are code defaults; existing saved settings can
 differ. Features apply to Arena unless an explicit exception is described.
 
-For installation and controls, see the [README](../README.md). For exact optional
+For installation and configuration, see the [README](../README.md). For exact optional
 mod versions, see [Dependencies](DEPENDENCIES.md). Asset rights are separate from
 features and are recorded in [Third-party notices](../THIRD-PARTY-NOTICES.md).
 
@@ -37,10 +36,11 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   not a promise of the exact randomly drawn kit. The redundant map-screen avatar
   is hidden. Preview lifetime handling avoids the earlier model jitter and
   leftover equipment appearing in later inventory previews.
-- Mode order: **Gun Game, Deathmatch, Team DM, Tactical (WIP), Zombies (WIP)**.
-  Mode descriptions use a common objective/respawn/equipment scheme.
-  **Capture the Flag** and **Domination** appear below as gray, disabled previews;
-  they are not playable or saved as selected modes.
+- Playable modes: **Gun Game, Deathmatch, Team DM, Domination (WIP),
+  Tactical (WIP), Zombies (WIP)**. New installations default to Team DM;
+  existing choices are preserved. Short descriptions keep stable vertical
+  alignment; details and mutator help use tooltips. Capture the Flag remains
+  a disabled preview. Domination is selectable when its BigBrain support is ready.
 - Native map filtering, mode-specific equipment choices, participant/team-size
   controls, time choices and match rules in the map-selection screen.
 - Own gear versus Arena kits is offered for solo Zombies and PFT Tactical.
@@ -53,7 +53,8 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   highlighted; thumbnails remain visible without the long vanilla description.
 - Bay5, Equator, Air Pit and Bowl have gold labels without the old `Arena:` prefix and their
   own positions on the map overview. Bay5 supports its native time choices;
-  Equator's night selection is presented with its rainy weather.
+  Factory and Equator use Day/Night labels; Equator's night phase retains
+  its rainy weather.
 - Mutators are embedded directly in the screen, with active/inactive colors
   and explanations when a feature cannot be used. They are locked once the
   raid is armed or active; unavailable settings do not silently enable a mod.
@@ -98,6 +99,24 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Arena-kit respawns, round intermissions and a configurable total population.
   Round changes can reissue equipment or only heal in place, depending on the
   advanced round-respawn preference.
+
+### Domination (WIP)
+
+- USEC/BEAR teams capture and hold points; kills do not replace objective score.
+  Players respawn continuously and bots receive capture/defend assignments while
+  retaining native combat and self-care. Requires BigBrain and Arena's companion.
+- Factory day/night chooses three points per match from eight surveyed seeds,
+  separated by at least 12 horizontal metres. Equator and Bay5 use one original
+  anchor each; Air Pit and Bowl use two. Other maps do not offer this mode.
+- Separate score/time controls default to 200 points and ten minutes. Either
+  limit can be disabled; both off permit continuous play. Rules freeze at start.
+- Capture-valid, reachable bot approaches, pickups clear of objectives,
+  ownership rings and one integrated score/objective HUD. Ported-map monitors
+  display objective scores. Profile rewards are currently excluded.
+
+Sources: [routes and options](DOMINATION-OPTIONS-ROUTES-20261027.md),
+[ported anchors](DOMINATION-PORTED-20261026.md),
+[native sweep](RELEASE-SWEEP-20261029.md).
 
 ### Team Deathmatch
 
@@ -550,9 +569,10 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
 
 ## 10. Maps, areas and environment
 
-- Factory **day/night**, Labs and Labyrinth support all five modes.
+- Factory **day/night** supports all six modes. Labs and Labyrinth support
+  Gun Game, Deathmatch, Team DM, Tactical and Zombies; Domination is unavailable.
 - Customs uses three refined polygon areas: **Factory Center, Factory Side,
-  Customs Yard**. All five modes can select them; whole-map Customs and retired
+  Customs Yard**. The five non-Domination modes can select them; whole-map Customs and retired
   rectangular/test presets are not current menu choices.
 - Polygons have **no upper or lower height cap**. Physical boundaries keep the
   player inside; spawn/path validation keeps Arena bots within the contour.
@@ -566,7 +586,7 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
   and leaving through Esc still end the raid; ordinary PMC/Scav raids retain
   normal transit and extraction behavior.
 - Optional ArenaMapPort maps: **Bay5**, **Air Pit** and **Bowl** support all modes; **Equator** supports
-  Gun Game, DM, TDM and solo Zombies, but no Tactical or PFT Zombies, even with
+  Gun Game, DM, TDM, Domination and solo Zombies, but no Tactical or PFT Zombies, even with
   fewer companions. ArenaMode does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
@@ -646,6 +666,17 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
 
 ## 12. Profile protection, stability and performance
 
+- Session.exe can start Arena directly, with profile selection, remembered choice
+  and a desktop shortcut. Local normal SPT prepares/saves the profile before the
+  private session starts; no normal EFT launch is required.
+- Native update callbacks drain before profile restoration and saved readback,
+  preventing the observed round-end hang. Missing disposable data after a stopped
+  session can be discarded safely during ordinary startup. Uncertain old rewards
+  are discarded automatically; ordinary profile progress is preserved.
+- Rewards OFF is an ordinary opt-out, without a missing-snapshot warning.
+  Helper lifecycle/failure logs remain visible; routine link detail is opt-in
+  through `ARENAMODE_SESSION_DEBUG=1`.
+
 - Optional **PROFILE REWARDS**, on by default for newly registered profiles, preserving existing OFF choices for the
   selected normal profile. Arena's map menu shows consent, rates and status in
   a separate card above the map preview.
@@ -657,7 +688,7 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   applied before startup payouts. Concurrent normal startup is refused while
   the private session owns the original installation.
 - Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
-  capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only.
+  capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only; Domination is excluded.
   No-contest results do not pay. Normal exits can retain kills from an unfinished
   round without granting a win. RUB arrives as system mail; XP is credited directly
   at normal server startup and listed in the mail, with the same duplicate protection.
@@ -737,11 +768,21 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
   Interrupt panel fixes across body replacement. Increase Look Direction needs
   no dedicated adapter; FOV Fix's angle controls armed free-look when both are
   installed. Auto Shoulder Swap 1.1.1 remains outside the default list.
-- The bundled Core 1.0.13 additionally transfers Accurate Circular Radar and
+- Core (since 1.0.13) additionally transfers Accurate Circular Radar and
   Simple Crosshair to the current player/camera and protects them from late
   old-body callbacks. Reviewed versions are 1.3.4 and 1.4.0. Better BepInEx 1.0.0
   is also admitted and keeps its stock ConfigurationManager dependency. Radar
   colors represent its faction/role rules, not Arena team hostility.
+- The bundled **Core 1.0.17** also includes ImpactCue/Enemy Markers telemetry and
+  camera handovers, Quick Cancel old-body cleanup and PiP optic-cache ownership.
+  It is the same library shipped with standalone Redeploy 1.1.0.
+- Use Items Anywhere's configured access/reload slots take precedence; Arena's
+  magazine HUD uses the same query. Fast Grenade Throw keeps its selected grenade
+  priority and respects Arena input locks. HUD Breakout follows the current body
+  without a dedicated adapter; its own grenade/spectator semantics remain.
+- Reviewed-version drift is advisory in direct play and new private sessions,
+  including UIFixes. Actual identity, deny/dependency and protection/API checks
+  still decide admission. The whitelist records ArenaMapPort 0.4.0 and Redeploy 1.1.0.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**
@@ -798,9 +839,10 @@ Source: [mutator selection policy](../ArenaMode.Client/Session/ArenaMutatorSelec
   describes implemented behavior, not a new certification of every scenario.
 - M60 spare boxes and some large kit medical supplies still have recorded
   placement limits. See the [known follow-ups](FUTURE-WORK.md).
-- No network multiplayer/Fika support, Capture the Flag, Domination, King of the
-  Hill or persistent online leaderboard is implemented. The disabled mode
-  previews and reserved flag recordings do not make those modes playable.
+- No network multiplayer/Fika support, Capture the Flag, King of the Hill or
+  persistent online leaderboard is implemented. Disabled previews and reserved
+  flag recordings do not make those modes playable. Domination is implemented
+  with the WIP scope documented above.
 - Difficulty-menu unification, more pickup layouts and general AI/navigation
   improvements remain follow-up work; native bots do not gain player vaulting
   or guaranteed pathfinding through every obstacle.

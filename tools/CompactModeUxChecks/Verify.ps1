@@ -20,9 +20,9 @@ function Invoke-Check([string]$Name, [string]$Source = '') {
 $baseline = Invoke-Check 'baseline'
 if ($baseline.Code -ne 0 -or !$baseline.Output.Contains('COMPACT_MODE_UX_CHECKS_PASSED')) { throw $baseline.Output }
 $faults = @(
-    @('continuous-winner', 'string ending = kills == 0 && seconds == 0 ?', 'string ending = false ?', 'continuous DM has no winner'),
-    @('squad-one-life', 'return team ? "TEAM WIPE ENDS MATCH', 'return false ? "TEAM WIPE ENDS MATCH', 'PFT Zombies never promises'),
-    @('fixed-three-points', '"HOLD " + controlPoints +', '"HOLD " + 3 +', 'Domination copy uses the actual map objective count')
+    @('continuous-winner', 'string objective = kills == 0 && seconds == 0 ?', 'string objective = false ?', 'continuous DM has no winner'),
+    @('squad-one-life', 'return (team ? "Team wipe ends the match.', 'return (false ? "Team wipe ends the match.', 'PFT Zombies never promises'),
+    @('fixed-three-points', '? controlPoints +', '? 3 +', 'Domination copy uses the actual map objective count')
 )
 foreach ($fault in $faults) {
     if ([regex]::Matches($arenaSource, [regex]::Escape($fault[1])).Count -ne 1) { throw "Ambiguous mutant: $($fault[0])" }

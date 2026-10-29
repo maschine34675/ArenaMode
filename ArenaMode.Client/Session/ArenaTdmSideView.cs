@@ -37,7 +37,7 @@ internal sealed class ArenaTdmSideView
         _nativeSide = nativeSide;
         _root = new GameObject("Arena TDM Team Choice", typeof(RectTransform));
         _root.transform.SetParent(parent, false);
-        Rect((RectTransform)_root.transform, 20f, 522f, 320f, 48f);
+        Rect((RectTransform)_root.transform, 20f, 486f, 320f, 48f);
         var headingObject = new GameObject("Your Team", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
         headingObject.transform.SetParent(_root.transform, false);
         var heading = headingObject.GetComponent<TextMeshProUGUI>();

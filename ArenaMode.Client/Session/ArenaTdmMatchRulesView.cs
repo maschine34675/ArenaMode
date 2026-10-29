@@ -36,7 +36,7 @@ internal sealed class ArenaTdmMatchRulesView
             _root = new GameObject("Arena " + _state.ModeName + " Match Rules", typeof(RectTransform));
             _root.SetActive(false);
             _root.transform.SetParent(parent, false);
-            SetRect((RectTransform)_root.transform, 20f, 432f, Width, 78f);
+            SetRect((RectTransform)_root.transform, 20f, 396f, Width, 78f);
             _kills = CreateText(_state.Domination ? "Domination point limit" : "TDM kill limit", typography, 0f);
             _time = CreateText(_state.Domination ? "Domination time limit" : "TDM time limit", typography, 39f);
             foreach (int value in _state.ScoreOptions)

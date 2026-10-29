@@ -9,7 +9,7 @@ namespace ArenaMode.Modes;
 ///
 /// ONE VISIBLE COPY SCHEMA for every mode (2026-10-09), so the three mode facts
 /// read alike and have a short copy budget for their 218 px value column at
-/// 17 pt. Native font fit is verified separately. The screen shows OBJECTIVE,
+/// 17 pt. Native font fit is verified separately. The description explains the objective; the screen shows
 /// RESPAWN and EQUIPMENT after the description; choices sit below these facts.
 /// tools/NativeModeSelectionChecks enforces it for every entry in
 /// <see cref="ArenaModeCatalog.All"/>, and tools/TdmMatchMenuChecks enforces
@@ -104,9 +104,9 @@ internal static class ArenaModeCatalog
     // below this one, including all four Customs choices at a 1080-unit height.
     internal static float ModePanelHeight(string mode) => NormalizeId(mode) switch
     {
-        DeathmatchId or ZombieId => 596f,
-        TeamDeathmatchId or DominationId => 584f,
-        _ => 530f,
+        DeathmatchId or ZombieId => 560f,
+        TeamDeathmatchId or DominationId => 548f,
+        _ => 494f,
     };
 
     public static IReadOnlyList<ArenaModeDefinition> All => Definitions;

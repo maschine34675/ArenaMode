@@ -682,6 +682,28 @@ public sealed class RewardRuntimeTests
     }
 
     [Theory]
+    [InlineData("disabled")]
+    [InlineData("awaiting-enrollment")]
+    [InlineData("revoked")]
+    public void RewardsWithoutAuthorityAreAnOrdinaryOptOutNotAMissingSnapshot(string state)
+    {
+        using var f = new Fixture(enroll: state == "revoked");
+        if (state == "awaiting-enrollment") f.Coordinator.SetConsent(Fixture.ProfileId, true);
+        if (state == "revoked") f.Coordinator.SetConsent(Fixture.ProfileId, false);
+        string before = f.Profile;
+        f.Coordinator.ObserveSnapshot(Fixture.ProfileId, () => throw new InvalidOperationException("must-not-serialize"));
+        var arm = Guid.NewGuid().ToString("N");
+        var native = Protocol.BuildNativeEndIdentity("native-opt-out", arm);
+        var result = f.Coordinator.Begin(Fixture.ProfileId, arm, native, "aaaaaaaaaaaaaaaaaaaaaaaa", "deathmatch", false, false,
+            new() { ArmToken = arm, NativeEndIdentity = native, Mode = "deathmatch", Rule = "KillsOnly" });
+        Assert.False(result.Accepted);
+        Assert.Equal("rewards-not-enabled-or-enrolled", result.Reason);
+        Assert.False(f.Coordinator.HasCapture(Fixture.ProfileId));
+        Assert.Equal(before, f.Profile);
+        Assert.False(Directory.Exists(Path.Combine(f.Root, "user", "arena-reward-runs")));
+    }
+
+    [Theory]
     [InlineData("zombie", true)]
     [InlineData("zombies", false)]
     public void NativeZombieIdIsValidatedBeforeInternalNormalization(string requestedMode, bool accepted)

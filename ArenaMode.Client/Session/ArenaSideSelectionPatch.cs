@@ -169,8 +169,7 @@ internal static class ArenaSideSelectionPatch
             if (side != ESideType.Random)
             {
                 ArenaMenuSelection.Clear();
-                // A whitelist-warning note belongs to the ARENA choice; an "unavailable" notice stays,
-                // and so does an Arena session's own notice (it carries the way back).
+                // An unavailable notice stays; ordinary character descriptions remain native.
                 if (!ArenaSessionMode.IsArenaSession)
                     ArenaAvailabilityNotice.HideInfo(__instance);
                 return;
@@ -217,10 +216,8 @@ internal static class ArenaSideSelectionPatch
 
     private static void SetDescription(MatchMakerSideSelectionScreen screen)
     {
-        var eligibility = ArenaMenuSelection.CurrentEligibility;
-        screen._sideDescriptionText.text = eligibility.IsTeam
-            ? "<nobr>PitFireTeam · Tactical / Zombies</nobr>\n<nobr>Stash protected · Optional rewards</nobr>"
-            : "<nobr>Fast arena combat · Kits and respawns</nobr>\n<nobr>Stash protected · Optional rewards</nobr>";
+        // Keep the native object so PMC/Scav can restore their ordinary description.
+        screen._sideDescriptionText.text = "Choose a mode and enter the arena.\nYour original gear is restored after the match.";
         screen.SetHealthPanelVisibility(false, true);
     }
 
@@ -332,68 +329,38 @@ internal static class ArenaSideSelectionPatch
             screen._nextButton.Interactable = available;
     }
 
-    /// <summary>The notice for the screen as shown: refusal, session note, or the whitelist warnings.</summary>
+    /// <summary>Only actionable refusals need a character-screen overlay.</summary>
     private static void ShowNotice(MatchMakerSideSelectionScreen screen, ArenaMenuSelection.Eligibility eligibility)
     {
-        string warnings = ArenaWhitelistAdmission.WarningLine;
-        if (ArenaSessionMode.IsArenaSession)
-        {
-            var back = ReturnAction(screen);
-            if (eligibility.Allowed)
-                ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), back);
-            else
-                ArenaAvailabilityNotice.Show(screen, WithWarnings(eligibility.Reason, warnings), back);
-            return;
-        }
-
         if (!eligibility.Allowed)
             ShowUnavailable(screen, eligibility.Reason);
-        else if (warnings != null && ArenaMenuSelection.IsSelected)
-            ShowVersionNotes(screen, warnings);
         else
             ArenaAvailabilityNotice.Hide(screen);
     }
 
-    /// <summary>Arena was just selected: the session note, the whitelist warnings, or nothing.</summary>
+    /// <summary>Admission notes are logged; the session strip owns the return action.</summary>
     private static void ShowSelectedNotice(MatchMakerSideSelectionScreen screen)
     {
-        string warnings = ArenaWhitelistAdmission.WarningLine;
-        if (ArenaSessionMode.IsArenaSession)
-            ArenaAvailabilityNotice.ShowInfo(screen, WithWarnings(ArenaWhitelistAdmission.SessionNoticeText, warnings), ReturnAction(screen));
-        else if (warnings != null)
-            ShowVersionNotes(screen, warnings);
-        else
-            ArenaAvailabilityNotice.Hide(screen);
+        ArenaAvailabilityNotice.Hide(screen);
     }
 
     /// <summary>An "unavailable" notice; a whitelist refusal that can start an Arena session gets the action.</summary>
     private static void ShowUnavailable(MatchMakerSideSelectionScreen screen, string reason)
     {
-        string text = WithWarnings(reason, ArenaWhitelistAdmission.WarningLine);
+        string text = reason;
         if (ArenaSessionMode.IsArenaSession)
-            ArenaAvailabilityNotice.Show(screen, text, ReturnAction(screen));
+            ArenaAvailabilityNotice.Show(screen, text);
         else if (ArenaWhitelistAdmission.CanOfferSessionStart(reason))
             ArenaAvailabilityNotice.Show(screen, text, StartAction(screen),
+                tooltipNotes: ArenaWhitelistAdmission.WarningLine,
                 compactRestartConflict: ArenaWhitelistAdmission.CanOfferSessionStart(reason));
         else
             ArenaAvailabilityNotice.Show(screen, text);
     }
 
-    private static void ShowVersionNotes(MatchMakerSideSelectionScreen screen, string warnings)
-    {
-        ArenaAvailabilityNotice.ShowInfo(screen, warnings);
-    }
-
-    private static string WithWarnings(string text, string warnings)
-        => string.IsNullOrEmpty(warnings) ? text : text + "\n" + warnings;
-
     private static ArenaNoticeAction StartAction(MatchMakerSideSelectionScreen screen)
         => new ArenaNoticeAction(ArenaWhitelistAdmission.StartActionLabel,
             () => SwitchSession(screen, ArenaSessionContract.DirectionEnter));
-
-    private static ArenaNoticeAction ReturnAction(MatchMakerSideSelectionScreen screen)
-        => new ArenaNoticeAction(ArenaWhitelistAdmission.ReturnActionLabel,
-            () => SwitchSession(screen, ArenaSessionContract.DirectionLeave));
 
     /// <summary>
     /// The confirmed action: restart the game into (or out of) an Arena session. The request starts the
@@ -420,9 +387,8 @@ internal static class ArenaSideSelectionPatch
 
     private static void ShowSwitchFailure(MatchMakerSideSelectionScreen screen, string direction, string error)
     {
-        var retry = direction == ArenaSessionContract.DirectionEnter
-            ? StartAction(screen)
-            : ReturnAction(screen);
+        // Return failures can be retried from the strip; never add a second return button.
+        var retry = direction == ArenaSessionContract.DirectionEnter ? StartAction(screen) : null;
         ArenaAvailabilityNotice.Show(screen, error, retry);
         try { NotificationManager.DisplayWarningNotification(error); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning("Arena session failure notification could not be shown: " + ex.Message); }

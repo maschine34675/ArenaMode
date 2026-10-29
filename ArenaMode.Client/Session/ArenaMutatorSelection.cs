@@ -42,10 +42,10 @@ internal sealed class ArenaMutatorSelection
 
     internal string GroupTitle(int group) => group switch
     {
-        0 => Enabled(ArenaMutator.FastMovement) ? "MOVEMENT · ENHANCED" : "MOVEMENT · STANDARD",
-        1 => "EQUIPMENT",
+        0 => "MOVEMENT",
+        1 => "INVENTORY",
         2 => "COMBAT",
-        3 => "FEEDBACK",
+        3 => "HUD & AUDIO",
         _ => throw new ArgumentOutOfRangeException(nameof(group))
     };
 

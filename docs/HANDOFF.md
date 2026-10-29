@@ -7,6 +7,35 @@ current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
 
+- **Release 0.4.0 preparation (2026-10-29):** public client/server/gate/helper
+  versions are 0.4.0. The shipped policy records ArenaMapPort 0.4.0 and Redeploy
+  1.1.0, with the separately versioned Core 1.0.17 shared by both packages.
+  Current README, feature inventory, dependencies and versioned changelog are
+  reconciled. [Release notes](RELEASE-0.4.0.md) distinguish the preceding native
+  sweep from the final stamped binaries; publication evidence follows separately.
+- **Mixed pre-release checks (2026-10-29):** both GPU hosts exercised all six Arena
+  modes, all four ported maps and standalone PMC/own-Scav flows. Corrected the
+  Rewards-OFF missing-snapshot warning; helper link details now require an
+  explicit debug environment flag. Redeploy routine logs and MapPort's diagnostic
+  readback/later collision lifetime were narrowed in their repositories. Exact
+  candidates, native scope and remaining bot-medical/audio findings are in
+  [the release sweep](RELEASE-SWEEP-20261029.md).
+
+- **Concise menu UX (2026-10-29):** recovery merged/pushed as `5164732b`; UI work
+  on `codex/ux-menu-20261029`. Removed repeated character/version notices,
+  objective/protection rows and inline mutator explanations; one private-session
+  return action remains. Native GPU-1 menus, Factory DM end and normal restart
+  passed; 219 configs restored, original profiles retained with only two native
+  timestamp updates. Both client DLLs installed locally/GPU-1; GPU-2's concurrent
+  compatibility test was left running. See [evidence and scope](UX-SIMPLIFICATION-20261029.md).
+  Follow-up restores a short character description, narrows the conflict box,
+  returns version notes to its tooltip and fixes the mode-description baseline.
+  New configurations start with TDM; saved choices remain. Current candidate uses
+  Core 1.0.17; 3,394 unit tests and focused menu/session checks passed. GPU-1
+  confirms the rendered changes, a two-minute TDM match and normal session return.
+  Follow-up cleanup restored 220 configs and resumed synchronization; current
+  candidate DLLs are installed locally/GPU-1.
+
 - **Lost private session recovery (2026-10-29):** `967b675f` server and shipping
   helper installed locally and on GPU-2. Native isolated tests passed for a
   missing private directory, repeated ordinary startup, missing private marker,
