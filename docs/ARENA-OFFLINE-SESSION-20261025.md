@@ -116,7 +116,8 @@ continues through the unchanged approval and permanent-payment journal.
   with a message that names the other installation; nothing is rebuilt over it.
 - When an entry fails before the normal server was asked to stop (before the entry capability is opened), the
   helper reopens EFT against the unchanged normal server, with the same proof as for a declined entry, and the
-  notice says why Arena did not start. A direct start launches no game of its own in that case.
+  notice says why Arena did not start (a failure that is not a plain refusal, such as session records that
+  are gone, points to `helper.log`). A direct start launches no game of its own in that case.
 - Older local installations which never issue an offline entry
   capability retain the schema 1/2 live-server compatibility path. Its consent relay
   and return capabilities are documented in REWARDS-RUNTIME/RETURN. The current

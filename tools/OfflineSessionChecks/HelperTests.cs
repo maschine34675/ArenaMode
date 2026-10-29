@@ -541,6 +541,9 @@ public sealed class OfflineSessionHelperTests
         Assert.Contains("cannot be read", refused.Message);
         Assert.Contains(area.Tree, refused.Message);
         Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
+        // stop-server (no caller) reads the owner's records too; with no server running it has nothing to stop and must not throw.
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(null!));
+        Assert.True(Directory.Exists(area.Tree));
     }
 
     [SkippableFact]
@@ -580,13 +583,18 @@ public sealed class OfflineSessionHelperTests
         Assert.DoesNotContain("is running", runner.DescribeStopRefusal(StopResult.Unverified));
     }
 
-    [SkippableFact]
-    public void AnEnterRefusedBeforeTheNormalServerIsTouchedReopensTheNormalGameAndSaysWhy()
+    // ownRecordsWiped: the installation that enters is the one that owns the kept tree, but its session records are gone, so
+    // the refusal is a file error and not a HelperException; the player still has to be told why the game restarted.
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnEnterRefusedBeforeTheNormalServerIsTouchedReopensTheNormalGameAndSaysWhy(bool ownRecordsWiped)
     {
         Skip.IfNot(OperatingSystem.IsWindows(), "real server stand-in");
         using var area = new Area();
-        area.Active(true); // installation A left a session that is not closed
-        string installB = OtherInstallation(area);
+        if (!ownRecordsWiped) area.Active(true); // installation A left a session that is not closed
+        else Directory.Delete(area.SessionDirectory, true);
+        string installB = ownRecordsWiped ? area.Source : OtherInstallation(area);
         string sessionB = Guid.NewGuid().ToString("N");
         var probe = new TcpListener(IPAddress.Loopback, 0);
         probe.Start(); int port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
@@ -649,13 +657,17 @@ public sealed class OfflineSessionHelperTests
             Assert.False(normal.HasExited); // the normal server was never stopped
             Assert.NotNull(notice);
             Assert.Contains("SPT was reopened unchanged", notice);
-            Assert.Contains(area.Source, notice);
-            Assert.Contains("has not been closed", notice);
             Assert.DoesNotContain("Keep the SPT server open", notice);
             Assert.DoesNotContain("running", notice);
-            Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree)); // A's unclosed session is exactly as it was
-            Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source)));
-            Assert.False(File.Exists(HelperOfflineSession.ActivePath(installB)));
+            Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree)); // A's session is exactly as it was
+            if (ownRecordsWiped) Assert.Contains("helper.log", notice);
+            else
+            {
+                Assert.Contains(area.Source, notice);
+                Assert.Contains("has not been closed", notice);
+                Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source)));
+                Assert.False(File.Exists(HelperOfflineSession.ActivePath(installB)));
+            }
         }
         finally
         {

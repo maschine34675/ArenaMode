@@ -798,6 +798,8 @@ stop step, before the caller's normal server is touched. A process named `SPT.Se
 read is not taken for the other installation's server (it would otherwise block every Arena start while any
 unreadable server of another Windows user runs); an unclosed session is refused at the closure check anyway.
 Messages claim a running server only after that proof: `Unverified` and `StillRunning` have their own wording.
+`stop-server` (no caller) reads the owner's records too: when the owning installation has vanished and no process runs
+from the tree it answers `NothingToStop` instead of failing with a file error.
 
 An arena server that no `server.pid` names (the helper that started it was killed before it wrote the file, or the
 file was lost) is found by its image, when no registered server was stopped (no pid file, a pid that is not

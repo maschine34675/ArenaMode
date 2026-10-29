@@ -244,9 +244,12 @@ namespace ArenaMode.SessionHelper
                         try
                         {
                             ReopenUntouchedNormalGame(request);
-                            if (_normalGameReopened && ex is HelperException)
+                            if (_normalGameReopened)
                             {
-                                NotifyFailure("Arena did not start; SPT was reopened unchanged.\n\n" + ex.Message);
+                                // A HelperException carries the reason in words; anything else (a records file that is gone)
+                                // is only in helper.log, but the player still learns why the game restarted.
+                                NotifyFailure("Arena did not start; SPT was reopened unchanged.\n\n"
+                                    + (ex is HelperException ? ex.Message : "See helper.log for the reason."));
                                 return false;
                             }
                         }
@@ -455,7 +458,16 @@ namespace ArenaMode.SessionHelper
                 // installation meeting it proves nothing: only a server that runs from it is in the way.
                 string recorded = callerRuntime == null ? null : HelperOfflineSession.PeekSource(tree);
                 if (recorded != null && !HelperPathSafety.PathsEqual(callerRuntime, recorded)) return StopForeignOfflineTree(tree, recorded);
-                var lease = HelperOfflineSession.ReadBoundPrivate(tree);
+                HelperOfflineSession.Lease lease;
+                try { lease = HelperOfflineSession.ReadBoundPrivate(tree); }
+                catch (Exception ex) when (callerRuntime == null && (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                    && HelperOfflineSession.ProbePrivateServer(tree) == HelperOfflineSession.PrivateServer.Absent)
+                {
+                    // stop-server for a tree whose owning installation vanished: its records cannot be read, but no server runs from
+                    // the tree, so there is nothing to stop. (Whether the tree may be replaced is the rebuild guard's question.)
+                    _log.Info("stop-server: the records of the session owner cannot be read and no arena server runs from " + tree + "; nothing to stop");
+                    return StopResult.NothingToStop;
+                }
                 if (callerRuntime != null && !HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return StopForeignOfflineTree(tree, lease.Source);
                 startup = HelperOfflineSession.AcquireStartup(lease.Source);
                 try

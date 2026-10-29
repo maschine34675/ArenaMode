@@ -186,4 +186,21 @@ public sealed class ArenaDirectStartTests : IDisposable
         }
         finally { process.Kill(); process.WaitForExit(5000); }
     }
+
+    // Run needs a live normal server, a pinned certificate and the server's routes, so it has no unit seam. The refusal of a
+    // session of another installation that is not closed must still come before the normal server is looked up and before
+    // the /prepare call changes its state (C4); the order is pinned on the source.
+    [Fact]
+    public void ForeignSessionIsRefusedBeforeTheNormalServerIsTouched()
+    {
+        string source = File.ReadAllText(Path.Combine(RepoFiles.Root, "ArenaMode.Session", "HelperDirectStart.cs")).Replace("\r\n", "\n");
+        int run = source.IndexOf("internal bool Run(string profileId)", StringComparison.Ordinal);
+        int stop = source.IndexOf("_runner.StopArenaServer(Runtime)", run, StringComparison.Ordinal);
+        int describe = source.IndexOf("_runner.DescribeStopRefusal(stopped)", run, StringComparison.Ordinal);
+        int closed = source.IndexOf("_runner.RequireForeignSessionClosed(Runtime);", run, StringComparison.Ordinal);
+        int normal = source.IndexOf("GetNormalServer(endpoint)", run, StringComparison.Ordinal);
+        int prepare = source.IndexOf("/arenamode/session/prepare", run, StringComparison.Ordinal);
+        Assert.True(run > 0 && stop > run && stop < describe && describe < closed, "the stop step, its refusal, then the closure check");
+        Assert.True(closed < normal && normal < prepare, "the closure check precedes the normal server and the prepare call");
+    }
 }
