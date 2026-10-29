@@ -30,6 +30,8 @@ internal static class RewardApprovalProducer
         var run = candidate.Authorization;
         RewardResultValidator.ValidateAuthorization(run);
         if (run.Binding != enrollment.Binding) throw new RewardDataException("candidate-binding-mismatch");
+        if (RewardRestorationCheckpoint.IsDiscardedRun(window.Root, run.Binding, run.RunId))
+            throw new RewardDataException("offline-session-discarded");
         RequireRestoration(candidate);
         var evaluation = RewardResultValidator.Evaluate(run, candidate.Report);
         RewardStartupApproval? approval = evaluation.Status == RewardEvaluationStatus.Eligible

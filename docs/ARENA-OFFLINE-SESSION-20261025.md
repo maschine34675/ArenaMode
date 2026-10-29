@@ -101,11 +101,14 @@ continues through the unchanged approval and permanent-payment journal.
   roots and marker, a valid completed closure, its exact signed final state and
   an empty outbox. The new session keeps its own initial consent and no results;
   mixed or incomplete old/new evidence remains fatal.
-- Missing/malformed activated state, conflicting choices, multiple unclosed sessions
-  or mismatched process identities stop recovery. An acknowledged OFF choice must
-  never be silently replaced by the original ON state.
-- A private tree with unclosed ownership or undelivered results is retained, even
-  when there are zero payable rewards. Only ordinary startup closes its ownership.
+- Missing/malformed private state after a positively stopped activated session
+  now uses [automatic discard](OFFLINE-STARTUP-RECOVERY-20261028.md), before any
+  closure exists. Unknown consent becomes OFF. Missing activation, conflicting
+  ordinary authority, multiple unclosed sessions or unknown/live processes remain
+  refused. An acknowledged OFF choice never reverts to the original ON state.
+- A private tree with unclosed ownership or undelivered results is retained unless
+  ordinary startup has durably discarded that exact stopped session. Only ordinary
+  startup closes or discards its ownership.
 - Older local installations which never issue an offline entry
   capability retain the schema 1/2 live-server compatibility path. Its consent relay
   and return capabilities are documented in REWARDS-RUNTIME/RETURN. The current

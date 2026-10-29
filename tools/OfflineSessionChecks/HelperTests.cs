@@ -58,6 +58,16 @@ public sealed class OfflineSessionHelperTests
             if (completed) File.WriteAllBytes(Path.Combine(SessionDirectory, "completion.json"), Bytes(new
                 { schema = 1, sessionId = Session, closureHash = HelperOfflineSession.Hash(closure) }));
         }
+        internal void Discard(bool complete = true)
+        {
+            var activation = new RewardOfflineActivation(1, Session, RewardOfflineSession.Hash(Lease), int.MaxValue - 2, Now);
+            File.WriteAllBytes(Path.Combine(SessionDirectory, "activation.json"), Bytes(activation));
+            var discard = new RewardOfflineDiscard(1, Session, RewardOfflineSession.Hash(Lease), HelperOfflineSession.Hash(Bytes(activation)),
+                new(1, Lease.Enabled, 3), new(1, false, 4));
+            File.WriteAllBytes(Path.Combine(SessionDirectory, "discarded.json"), Bytes(discard));
+            if (complete) File.WriteAllBytes(Path.Combine(SessionDirectory, "discard-completion.json"),
+                Bytes(new RewardOfflineDiscardCompletion(1, Session, HelperOfflineSession.Hash(Bytes(discard)))));
+        }
         public void Dispose() { if (Directory.Exists(Root)) Directory.Delete(Root, true); }
     }
 
@@ -248,6 +258,73 @@ public sealed class OfflineSessionHelperTests
         Assert.ThrowsAny<Exception>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime));
         File.Delete(HelperOfflineSession.ActivePath(area.Source));
         HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DiscardedTreeCanBeRebuiltWithoutItsMarkerOrOldOutboxTransfer(bool missingMarker)
+    {
+        using var area = new Area(marker: !missingMarker);
+        string outbox = Path.Combine(area.Tree, "user", HelperRewardTransfer.OutboxFolderName);
+        Directory.CreateDirectory(outbox);
+        File.WriteAllText(Path.Combine(outbox, new string('a', 32) + ".json"), "discarded-result");
+        area.Discard();
+        var lease = HelperOfflineSession.ReadBoundPrivate(area.Tree);
+        Assert.True(HelperOfflineSession.IsDiscarded(lease));
+        Assert.False(HelperOfflineSession.RequireClosed(lease));
+        Assert.True(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime));
+        Assert.True(File.Exists(Path.Combine(outbox, new string('a', 32) + ".json")));
+        area.Active(true);
+        Assert.ThrowsAny<Exception>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime));
+        Assert.ThrowsAny<Exception>(() => HelperOfflineSession.RequireActive(lease));
+    }
+
+    [Theory]
+    [InlineData("incomplete")]
+    [InlineData("wrong-hash")]
+    [InlineData("foreign-lease")]
+    [InlineData("closure")]
+    public void DiscardedTreeRequiresExactDurableAbandonment(string broken)
+    {
+        using var area = new Area();
+        area.Discard(complete: broken != "incomplete");
+        if (broken == "wrong-hash") File.WriteAllBytes(Path.Combine(area.SessionDirectory, "discard-completion.json"),
+            Bytes(new RewardOfflineDiscardCompletion(1, Session, new string('f', 64))));
+        if (broken == "foreign-lease") File.WriteAllBytes(Path.Combine(area.Tree, HelperOfflineSession.LeaseFile), Bytes(area.Lease with { Port = 6971 }));
+        if (broken == "closure") area.Close();
+        Assert.ThrowsAny<Exception>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime));
+    }
+
+    [Theory]
+    [InlineData("absent")]
+    [InlineData("json")]
+    [InlineData("base64")]
+    [InlineData("utf8")]
+    public void DiscardedTreeWithLostLeaseUsesTheExactIntactMarker(string damage)
+    {
+        using var area = new Area();
+        area.Discard();
+        string path = Path.Combine(area.Tree, HelperOfflineSession.LeaseFile);
+        if (damage == "json") File.WriteAllText(path, "{");
+        else if (damage == "base64") File.WriteAllBytes(path, Bytes(area.Lease with { ControlKey = "not-base64" }));
+        else if (damage == "utf8") File.WriteAllBytes(path, [0xff, 0xff]);
+        else File.Delete(path);
+        Assert.True(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime));
+        File.Delete(Path.Combine(area.Tree, ArenaSessionContract.MarkerFileName));
+        Assert.ThrowsAny<Exception>(() => HelperOfflineSession.ReadBoundPrivate(area.Tree));
+    }
+
+    [Fact]
+    public void StoppedTreeWithLostMarkerCanReachNormalStartupThroughDirectStartCleanup()
+    {
+        using var area = new Area(marker: false);
+        area.Active(true);
+        var log = new HelperLog(Path.Combine(area.Runtime, "helper.log"));
+        var runner = new HelperRunner(area.Runtime, log, "test");
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(area.Source));
+        Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source)));
+        Assert.False(File.Exists(Path.Combine(area.SessionDirectory, "discarded.json")));
     }
 
     [Fact]

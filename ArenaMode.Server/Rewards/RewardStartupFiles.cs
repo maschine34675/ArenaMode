@@ -56,8 +56,13 @@ internal static class RewardStartupFiles
         if (Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, PathComparison))
             throw new RewardDataException("reward-path-outside-root");
         var current = new DirectoryInfo(root);
+        var ancestors = new Stack<DirectoryInfo>();
         for (var ancestor = current; ancestor is not null; ancestor = ancestor.Parent)
-            if ((ancestor.Attributes & FileAttributes.ReparsePoint) != 0)
+            ancestors.Push(ancestor);
+        // Check existing parents first: a missing child below a junction is
+        // still a linked path, not permission to discard unavailable state.
+        foreach (var ancestor in ancestors)
+            if ((File.GetAttributes(ancestor.FullName) & FileAttributes.ReparsePoint) != 0)
                 throw new RewardDataException("reward-root-is-linked");
         var full = root;
         var parts = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

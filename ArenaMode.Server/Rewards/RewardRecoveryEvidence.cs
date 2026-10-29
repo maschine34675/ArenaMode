@@ -56,7 +56,8 @@ internal static class RewardRecoveryEvidence
             var origin = RewardRuntimeFiles.ReadHandoff(root, Path.Combine(directory, "handoff.json"));
             if (origin.Binding != binding || !RewardRuntimeFiles.SameRoot(origin.RuntimeRoot, root))
                 throw new RewardDataException("recovery-receipt-origin-invalid");
-            foreach (var path in Files(root, inbox, 4096)) receipts.Add((RewardRuntimeInbox.ReadReceipt(root, directory, origin, path), path));
+            foreach (var path in Files(root, inbox, 4096))
+                if (RewardRuntimeInbox.ReadRetainedReceipt(root, directory, origin, path) is { } receipt) receipts.Add((receipt, path));
         }
         var cases = new List<RewardRecoveryCase>();
         var provenRuns = new HashSet<(string Run, string Arm)>();

@@ -30,6 +30,8 @@ internal sealed class RewardStartupStore(
                 throw new RewardDataException("startup-approval-invalid");
             binding.Validate();
             _approval.Claim.Validate(_limits);
+            if (RewardRestorationCheckpoint.IsDiscardedRun(_window.Root, binding, _approval.Claim.RunId))
+                throw new RewardDataException("offline-session-discarded");
             var lease = new Lease(this);
             var profile = lease.ReadProfile();
             // Also verifies enrollment, unknown/duplicate fields and invalid flag.

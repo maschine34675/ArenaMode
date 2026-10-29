@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Recover normal SPT startup when a stopped Arena session has lost its private
+  data. Discard its old rewards automatically and preserve the normal profile.
+  [Details](docs/OFFLINE-STARTUP-RECOVERY-20261028.md).
+
 - Start Arena directly from the installed Session.exe, without opening normal EFT
   first. Choose a profile, remember the last choice, or create a desktop shortcut.
   [Details](docs/DIRECT-START-20261028.md).

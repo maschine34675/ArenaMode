@@ -76,7 +76,8 @@ internal static partial class RewardOfflineSession
                 || !RewardRuntimeFiles.SameRoot(lease.PrivateRoot, request.PrivateRoot)
                 || lease.MarkerCreatedUtc != request.MarkerCreatedUtc || lease.Port != request.Port)
                 throw new RewardDataException("offline-entry-replay");
-            if (RewardRuntimeFiles.Exists(root, Path.Combine(SessionDirectory(root, lease.SessionId), "closed.json")))
+            if (ReadDiscard(root, lease) is not null
+                || RewardRuntimeFiles.Exists(root, Path.Combine(SessionDirectory(root, lease.SessionId), "closed.json")))
                 throw new RewardDataException("offline-entry-closed");
         }
         else
@@ -166,6 +167,7 @@ internal static partial class RewardOfflineSession
         var active = ReadReference(lease.RuntimeRoot, ActivePath(lease.RuntimeRoot));
         var original = ReadLease(lease.RuntimeRoot, LeasePath(lease.RuntimeRoot, lease.SessionId));
         if (active.SessionId != lease.SessionId || active.LeaseHash != Hash(lease) || Hash(original) != Hash(lease)
+            || ReadDiscard(lease.RuntimeRoot, lease) is not null
             || RewardRuntimeFiles.Exists(lease.RuntimeRoot, Path.Combine(SessionDirectory(lease.RuntimeRoot, lease.SessionId), "closed.json")))
             throw new RewardDataException("offline-authority-changed-or-closed");
     }
