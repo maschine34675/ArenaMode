@@ -1,11 +1,22 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-28. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
+Snapshot: 2026-10-29. Read [AGENTS.md](../AGENTS.md) first. This is a compact handoff, not the
 conversation transcript or a live synchronization channel. Verify current files,
 commit IDs, installed artifacts and logs before treating a recorded result as
 current. User-facing communication is normally German.
 
 ## Baseline and responsibilities
+
+- **Lost private session recovery (2026-10-29):** `967b675f` server and shipping
+  helper installed locally and on GPU-2. Native isolated tests passed for a
+  missing private directory, repeated ordinary startup, missing private marker,
+  helper rebuild, a complete Factory Deathmatch and return to normal SPT/EFT.
+  Both fault cases preserved the whole ordinary profile; healthy return changed
+  only two native timestamps. All four acceptance gates passed. GPU-2's original
+  session state and 719 ordinary files were preserved, its test processes stopped,
+  and local/GPU-2 synchronization restored. GPU-1 became busy in another session
+  and was not stopped or directly deployed by this task. See
+  [candidate hashes, native evidence and limits](OFFLINE-STARTUP-NATIVE-20261029.md).
 
 - **Direct-start acceptance and fixes (2026-10-28):** two-host native testing
   covered full Factory DM/Domination rounds with consent ON/OFF, A/B/A profiles,

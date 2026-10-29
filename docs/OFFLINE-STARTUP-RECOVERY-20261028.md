@@ -74,3 +74,8 @@ These are fixture/native-API checks, not a new full game session or GPU deployme
 Installed binaries, ordinary profiles and Syncthing settings were not changed.
 Deploy the server and helper together; older helpers do not understand the new
 terminal discard records.
+
+Installed and native-tested on 2026-10-29: missing private directory, repeated
+normal startup, missing marker, helper rebuild, a complete Factory round and
+return to normal SPT passed. See [candidate hashes, profile preservation,
+cleanup and exact limits](OFFLINE-STARTUP-NATIVE-20261029.md).
