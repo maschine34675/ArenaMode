@@ -1,11 +1,11 @@
 # ArenaMode
 
-**0.4.0 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
+**0.4.1 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
 equipment kits and six modes. Select **ARENA** beside PMC and Scav. Single-player;
 **Fika is not supported**.
 
-[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.0) ·
-[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.4.0.md) ·
+[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.1) ·
+[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.4.1.md) ·
 [Full feature inventory](docs/FEATURES.md)
 
 ## Modes
@@ -57,10 +57,10 @@ match HUD and session indicators stay within their own Arena contexts.
 ## Install or update
 
 1. Close EFT and SPT. Back up your profile and customized Arena files.
-2. Extract **ArenaMode-0.4.0.zip** into the SPT installation root, merging
+2. Extract **ArenaMode-0.4.1.zip** into the SPT installation root, merging
    `BepInEx/` and `SPT_Runtime/`.
-3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.17**. This shared
-   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.0
+3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.18**. This shared
+   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.1
    ships the same Core. Never replace a newer Core with an older copy.
 4. Start SPT and EFT, then select **ARENA**, or use the direct start below.
 

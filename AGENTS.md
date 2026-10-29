@@ -30,11 +30,12 @@ reserved for player-relevant events; routine technical details use Debug and
 expensive probes require Diagnostics/DeveloperMode. Never gate gameplay cleanup,
 protection warnings or the independent LogDamageExceptions safety alarm.
 
-Release 0.4.0 (2026-10-29) uses shared Redeploy.Core 1.0.17, with the same binary
-as Redeploy 1.1.0. Current user docs and whitelist use ArenaMapPort 0.4.0 and
-Redeploy 1.1.0. Older dated Core minimum/version-filtered-session statements
-below are historical; the 2026-10-27 advisory-version decision remains current.
-Read docs/RELEASE-0.4.0.md and the source-bound publication record for release
+Release 0.4.1 (2026-10-29, hotfix for 0.4.0) uses shared Redeploy.Core 1.0.18,
+with the same binary as Redeploy 1.1.1; 0.4.0 used Core 1.0.17 with Redeploy
+1.1.0. Current user docs and whitelist use ArenaMapPort 0.4.0 and Redeploy 1.1.1.
+Older dated Core minimum/version-filtered-session statements below are
+historical; the 2026-10-27 advisory-version decision remains current. Read
+docs/RELEASE-0.4.1.md and the source-bound publication record for release
 identity; do not infer native testing of rebuilt hashes from the earlier sweep.
 
 Before changing reward persistence, read [docs/REWARDS-CORE.md](docs/REWARDS-CORE.md)

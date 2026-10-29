@@ -35,7 +35,7 @@
     <SPTModType>Helper</SPTModType>
     <ArenaRepoRoot>$(MSBuildThisFileDirectory)..\</ArenaRepoRoot>
     <SPTPath>$(MSBuildThisFileDirectory)..\..\..</SPTPath>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <Nullable>disable</Nullable>

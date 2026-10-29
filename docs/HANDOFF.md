@@ -1,5 +1,16 @@
 # ArenaMode working handoff
 
+## Release preparation — ArenaMode 0.4.1, 2026-10-29
+
+Hotfix for 0.4.0: lost reward authority (wiped, restored, edited or moved profiles)
+no longer breaks Arena entry or normal startup, an unusable reward folder skips
+rewards instead of stopping SPT, and a finished Arena session of another SPT
+installation no longer blocks this one. Public client/server/gate/helper versions
+are 0.4.1; the bundled Core is 1.0.18, byte-identical to Redeploy 1.1.1, and the
+whitelist records Redeploy 1.1.1. See [release notes](RELEASE-0.4.1.md) and the
+[changelog](../CHANGELOG.md#041---2026-10-29). Package and native evidence are
+added here once the release is published.
+
 ## Published 2026-10-29 — ArenaMode 0.4.0
 
 [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.0) is public,

@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-As of 2026-10-29, ArenaMode 0.4.0. This overview describes the reviewed ArenaMode source revision,
+As of 2026-10-29, ArenaMode 0.4.1. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.0 bundles/requires **1.0.17**, shared byte-for-byte with Redeploy 1.1.0. Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.1 bundles/requires **1.0.18**, shared byte-for-byte with Redeploy 1.1.1. Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -22,11 +22,12 @@ their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
-The current package requires **Core 1.0.17**. Core 1.0.14 added ImpactCue and
+The current package requires **Core 1.0.18**. Core 1.0.14 added ImpactCue and
 Enemy Markers handovers; 1.0.15 added Quick Cancel, PiP Disabler and the bounded
 Amand camera correction. Core 1.0.16/1.0.17 also support Redeploy's own-Scav
-continuation. Core keeps its independent version line; the public Redeploy
-client/server release is 1.1.0. Keep one copy of the shared library.
+continuation, and 1.0.18 hands Recoil Rework Legacy and FOV Fix over to that
+Scav body; Arena respawns behave as with 1.0.17. Core keeps its independent
+version line; the public Redeploy client/server release is 1.1.1. Keep one copy of the shared library.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -58,7 +59,7 @@ differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
 ArenaMapPort 0.4.0 (not yet published; the public 0.3.0 works, without score monitors,
-and shows a version advisory) and Redeploy 1.1.0 on both sides. User policy is preserved.
+and shows a version advisory) and Redeploy 1.1.1 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -311,9 +312,9 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. ArenaMode 0.4.0 bundles Core
-1.0.17, identical to the library in Redeploy 1.1.0. See
-[release notes](RELEASE-0.4.0.md) and [native coverage](RELEASE-SWEEP-20261029.md).
+revision is recorded in the package manifest. ArenaMode 0.4.1 bundles Core
+1.0.18, identical to the library in Redeploy 1.1.1. See
+[release notes](RELEASE-0.4.1.md) and [native coverage](RELEASE-SWEEP-20261029.md).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

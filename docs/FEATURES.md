@@ -1,6 +1,6 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-10-29** for **0.4.0**, including Domination,
+Source inventory updated **2026-10-29** for **0.4.1**, including Domination,
 direct session start, profile recovery and the current compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
@@ -775,9 +775,9 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
   old-body callbacks. Reviewed versions are 1.3.4 and 1.4.0. Better BepInEx 1.0.0
   is also admitted and keeps its stock ConfigurationManager dependency. Radar
   colors represent its faction/role rules, not Arena team hostility.
-- The bundled **Core 1.0.17** also includes ImpactCue/Enemy Markers telemetry and
+- The bundled **Core 1.0.18** also includes ImpactCue/Enemy Markers telemetry and
   camera handovers, Quick Cancel old-body cleanup and PiP optic-cache ownership.
-  It is the same library shipped with standalone Redeploy 1.1.0.
+  It is the same library shipped with standalone Redeploy 1.1.1.
 - Use Items Anywhere's configured access/reload slots take precedence; Arena's
   magazine HUD uses the same query. Fast Grenade Throw keeps its selected grenade
   priority and respects Arena input locks. HUD Breakout follows the current body
@@ -785,7 +785,7 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
 - Reviewed-version drift is advisory in direct play and new private sessions,
   including UIFixes. Actual identity, deny/dependency and protection/API checks
   still decide admission. The whitelist records ArenaMapPort 0.4.0 (not yet published; the public
-  0.3.0 then only produces a version advisory) and Redeploy 1.1.0.
+  0.3.0 then only produces a version advisory) and Redeploy 1.1.1.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate
   reference mods. **Fika remains explicitly unsupported.**

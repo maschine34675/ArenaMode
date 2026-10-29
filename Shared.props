@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <ArenaRepoRoot>$(MSBuildThisFileDirectory)</ArenaRepoRoot>
     <!-- Game binaries + BepInEx (EscapeFromTarkov.exe, Managed/, BepInEx/) -->
     <SPTPath>$(MSBuildThisFileDirectory)..\..</SPTPath>

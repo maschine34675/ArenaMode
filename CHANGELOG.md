@@ -8,6 +8,71 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## [0.4.1] - 2026-10-29
+
+Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.0).
+
+### Profile rewards and server startup
+
+- A wiped, restored, hand-edited or moved profile no longer breaks Arena entry.
+  In 0.4.0, START ARENA SESSION closed EFT and left the normal SPT server paused
+  when the profile's reward data no longer matched its reward folder. Entry now
+  checks reward authority before the normal server pauses. Such a session runs
+  without rewards, and a Warning names the profile and the remedy.
+- At the next normal start, the old reward folder of such a profile is renamed
+  to `<profile>.archived-<time>-<id>` (never deleted) and the profile is enrolled
+  again, provided nothing in its records is unsettled. The reward choice is kept;
+  an opt-out stays off. For a moved install the old ledger block is saved in the
+  archive and then removed from the profile; payments already made stay in its
+  mail. Records that are not settled keep the profile quarantined, reported as a
+  Warning and in the menu.
+- SPT no longer refuses to start when the SPT folder or a parent folder is a
+  junction, symbolic link or mount point, or when the reward folder cannot be
+  used. ArenaMode then skips rewards for that start, writes no reward data and
+  logs one Warning. Only genuine contention (a held lock or a running private
+  session) still stops SPT.
+- A file error that can clear on its own (another program holding the profile,
+  access denied) while the entry reads the reward data declines the entry before
+  the normal server pauses; the helper reopens the normal game, and the next
+  attempt can succeed. A missing profile file starts the session without rewards.
+- If the entry proof cannot be written after the normal server paused, the
+  server saves, shuts down and tells the helper, which asks you to start SPT
+  again, instead of waiting on a server that stays paused.
+- Returning from a session no longer stops normal startup over a damaged or
+  oversized `enrollment.json`.
+- The menu says "Rewards are off" with a pointer to the server log for a reward
+  folder that cannot be used. With rewards switched off, you see the ordinary
+  "rewards are off" text while old records stay unsettled.
+
+### Sessions with several SPT installations
+
+- A finished Arena session of one SPT installation no longer blocks Arena
+  sessions of another installation of the same Windows user with a false
+  "still running" message. Only a server actually running from the other
+  installation's session blocks. An unclosed session there is refused before
+  the normal server is touched, with a message naming the other installation.
+- When an enter fails before the private session opens, the normal game reopens
+  and the helper says why Arena did not start.
+- Limit: if the other installation was deleted while its session was still open,
+  the message names that installation's private session folder, which you delete
+  by hand. Arena results that were never returned from it are lost with it.
+
+### Compatibility
+
+- Bundle shared Redeploy.Core **1.0.18**, identical to Redeploy **1.1.1**'s
+  Core. It fixes Recoil Rework Legacy and Fontaine FOV Fix with Redeploy's
+  Continue as Scav; Arena respawns behave as with 1.0.17.
+- The whitelist records Redeploy **1.1.1**; Redeploy 1.1.0 still loads with a
+  version advisory.
+
+### Documentation
+
+- README, INSTALL.txt and the release notes state that profile rewards are on by
+  default and that the server adds a small data block to each profile file at
+  the next normal start; switch rewards off in the Arena map menu.
+- Statements that need ArenaMapPort 0.4.0 say that it is not yet published. The
+  Domination tooltip names its BigBrain requirement.
+
 ## [0.4.0] - 2026-10-29
 
 ### Domination and teams

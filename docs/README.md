@@ -6,6 +6,7 @@ build/deployment JSON records live here. The automatically discovered
 
 ## Start here
 
+- [ArenaMode 0.4.1 release notes](RELEASE-0.4.1.md) (hotfix for 0.4.0)
 - [ArenaMode 0.4.0 release notes](RELEASE-0.4.0.md)
 - [Two-host native pre-release checks and remaining findings](RELEASE-SWEEP-20261029.md)
 - [Concise Arena menus: implementation and native acceptance](UX-SIMPLIFICATION-20261029.md)
