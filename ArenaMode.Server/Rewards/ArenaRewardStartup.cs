@@ -34,7 +34,7 @@ public sealed class ArenaRewardStartup(
         _lifetimeLock = admission.Lifetime;
         if (admission.Unusable is { } unusable)
         {
-            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(unusable);
+            RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(unusable, storageUnusable: true);
             logger.Warning($"[ArenaMode] Profile rewards are unavailable: {DescribeUnusable(unusable)} "
                 + "Rewards stay off and nothing was written; Arena itself and normal raids are unaffected. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.");
             return;

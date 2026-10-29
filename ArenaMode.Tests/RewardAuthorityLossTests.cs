@@ -49,6 +49,7 @@ public sealed partial class RewardOfflineSessionTests
             case "moved-install": MoveInstall(f); break;
             case "consent-file-gone": File.Delete(f.Metadata("consent.json")); break;
             case "damaged-enrollment": File.WriteAllText(f.Metadata("enrollment.json"), "{"); break;
+            case "oversized-enrollment": File.WriteAllText(f.Metadata("enrollment.json"), "{\"pad\":\"" + new string('x', 20000) + "\"}"); break;
             default: throw new ArgumentOutOfRangeException(nameof(variant));
         }
     }
@@ -60,6 +61,7 @@ public sealed partial class RewardOfflineSessionTests
     [InlineData("moved-install")]
     [InlineData("consent-file-gone")]
     [InlineData("damaged-enrollment")]
+    [InlineData("oversized-enrollment")]
     public void EntryDoesNotDependOnTheRewardAuthority(string variant)
     {
         using var f = new Fixture();
@@ -121,6 +123,8 @@ public sealed partial class RewardOfflineSessionTests
     [Theory]
     [InlineData("wiped-profile")]
     [InlineData("moved-install")]
+    [InlineData("damaged-enrollment")]
+    [InlineData("oversized-enrollment")]
     public void ReturningFromASessionThatRanWithoutAuthorityDoesNotStopTheNormalServer(string variant)
     {
         using var f = new Fixture();
@@ -148,7 +152,7 @@ public sealed partial class RewardOfflineSessionTests
 
         var outcome = await f.Pay();
 
-        Assert.True(outcome.Authority!.Recovered);
+        Assert.True(outcome.Authority!.Recovered, outcome.Authority.Detail);
         Assert.Equal("profile-reward-block-missing", outcome.Authority.Trigger);
         Assert.Equal("rewards-enrolled-no-pending-result", outcome.Result.Reason);
         var fresh = RewardEnrollment.Read(f.Root, Fixture.Id).Binding;
@@ -206,7 +210,7 @@ public sealed partial class RewardOfflineSessionTests
 
         var outcome = await f.Pay();
 
-        Assert.True(outcome.Authority!.Recovered);
+        Assert.True(outcome.Authority!.Recovered, outcome.Authority.Detail);
         Assert.Equal("rewards-not-enabled", outcome.Result.Reason);
         Assert.Equal(consent, RewardEnrollment.ReadConsent(f.Root, Fixture.Id));
         Assert.False(File.Exists(f.Metadata("enrollment.json")));
@@ -230,7 +234,7 @@ public sealed partial class RewardOfflineSessionTests
 
         var outcome = await f.Pay();
 
-        Assert.True(outcome.Authority!.Recovered);
+        Assert.True(outcome.Authority!.Recovered, outcome.Authority.Detail);
         Assert.Equal("install-root-changed", outcome.Authority.Trigger);
         var fresh = RewardEnrollment.Read(f.Root, Fixture.Id);
         Assert.NotEqual(old.Epoch, fresh.Binding.Epoch);
@@ -294,6 +298,23 @@ public sealed partial class RewardOfflineSessionTests
         Assert.Equal("withheld", status.State);
         Assert.Contains("no longer match", status.Detail);
         Assert.DoesNotContain("temporarily", status.Detail);
+    }
+
+    [Fact]
+    public void AnUnusableRewardFolderIsReportedInTheMenuAsOffNotAsTemporary()
+    {
+        using var f = new Fixture();
+        var unusable = new RewardRuntimeCoordinator(f.Root);
+        unusable.ObserveStartupUnavailable("reward-storage-linked", storageUnusable: true);
+        var status = unusable.GetStatus(Fixture.Id);
+        Assert.Equal("withheld", status.State);
+        Assert.Contains("cannot be used", status.Detail);
+        Assert.Contains("server log", status.Detail);
+        Assert.DoesNotContain("temporarily", status.Detail);
+        // A refusal that a restart may clear keeps the old wording.
+        var transient = new RewardRuntimeCoordinator(f.Root);
+        transient.ObserveStartupUnavailable("some-refusal");
+        Assert.Equal("Rewards are temporarily unavailable.", transient.GetStatus(Fixture.Id).Detail);
     }
 
     [Fact]

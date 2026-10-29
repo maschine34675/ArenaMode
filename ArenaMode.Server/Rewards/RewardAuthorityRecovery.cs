@@ -24,7 +24,7 @@ internal sealed record RewardAuthorityNotice(bool Recovered, string Trigger, str
 /// stayed dead until the reward directory was removed by hand.
 ///
 /// Recovery is deliberately narrow. It acts only when NOTHING is unsettled in the old directory: every
-/// journal entry committed, every received receipt imported, no pending run or restoration, no external
+/// journal entry committed, every received receipt imported (or closed without payment by a recovery closure), no pending run or restoration, no external
 /// (Tarkova Cola) progression, nothing unrecognised. Then the old directory is ARCHIVED by rename (never
 /// deleted), the player's consent choice is carried over unchanged, and the ordinary enrollment path
 /// creates a fresh epoch. A fresh epoch makes every receipt and key of the old one unusable, so nothing
@@ -209,15 +209,26 @@ internal static class RewardAuthorityRecovery
             || ledger.Any(p => !journal.Entries.Any(e => e.Payment == p))))
             return "the profile's ledger and the journal disagree";
 
+        // A receipt or decision that a validated recovery closure ended WITHOUT payment is terminal: the
+        // settlement code leaves its files unmarked on purpose, so "not imported / not paid" alone would
+        // keep such a profile in quarantine forever. Read only when something needs it. A closure that cannot
+        // be read or does not match the evidence throws and counts as unsettled (a moved install whose
+        // delegations still name the old root cannot prove a late restoration). A lost acknowledgement
+        // marker is allowed: the decision was taken, and archiving pays nothing. Without the ledger block
+        // (ledger null) the markers are gone with it and nothing counts as closed.
+        var lazyClosures = new Lazy<RewardRecoveryClosureSet>(() => ledger is null ? RewardRecoveryClosureSet.Empty
+            : RewardRecovery.ReadClosures(root, id, RewardRecoveryEvidence.ReadProfile(root, id), allowUnacknowledged: true));
         bool Imported(string name) => RewardRuntimeFiles.Exists(root, Path.Combine(directory, "imported", name));
-        bool Journaled(RewardClaim claim) => journal.Entries.Any(e => e.Payment.ReceiptKey == claim.Key && e.Payment.Fingerprint == claim.Fingerprint);
+        bool Journaled(RewardClaim claim) => journal.Entries.Any(e => e.Payment.ReceiptKey == claim.Key && e.Payment.Fingerprint == claim.Fingerprint)
+            || lazyClosures.Value.ClosesClaim(claim);
 
         foreach (var folder in new[] { "inbox", "allocations" })
         {
             var path = Path.Combine(directory, folder);
             if (!RewardRuntimeFiles.Exists(root, path)) continue;
             foreach (var file in RewardRecoveryEvidence.Files(root, path, 4096))
-                if (!Imported(Path.GetFileName(file))) return "a received reward (" + folder + "/" + Path.GetFileName(file) + ") is not imported yet";
+                if (!Imported(Path.GetFileName(file)) && !ClosedWithoutPayment(root, directory, folder, file, lazyClosures.Value))
+                    return "a received reward (" + folder + "/" + Path.GetFileName(file) + ") is not imported yet";
         }
         var approvedPath = Path.Combine(directory, "approved.json");
         if (RewardRuntimeFiles.Exists(root, approvedPath))
@@ -229,7 +240,8 @@ internal static class RewardAuthorityRecovery
         if (RewardRuntimeFiles.Exists(root, candidatePath))
         {
             var candidate = RewardStartupFiles.Read<RewardApprovalCandidate>(candidatePath);
-            if (candidate.Authorization is null || !Imported(candidate.Authorization.RunId + ".json")) return "a reward candidate is not imported yet";
+            if (candidate.Authorization is null
+                || !Imported(candidate.Authorization.RunId + ".json") && !lazyClosures.Value.ClosesReceipt(candidate)) return "a reward candidate is not imported yet";
         }
         var decisions = Path.Combine(directory, "decisions");
         if (RewardRuntimeFiles.Exists(root, decisions))
@@ -241,13 +253,31 @@ internal static class RewardAuthorityRecovery
         // Uncertain Arena runs and restorations are kept in profile-keyed folders OUTSIDE the directory.
         var snapshots = Path.Combine(root, "user", "arena-reward-snapshots", id);
         foreach (var file in RewardRecoveryEvidence.Files(root, snapshots, 4096))
-            if (RewardStartupFiles.Read<RewardSnapshotGuard>(file, 1024).State == "pending") return "an Arena restoration is unresolved";
+        {
+            var guard = RewardStartupFiles.Read<RewardSnapshotGuard>(file, 1024);
+            if (guard.State == "pending" && !lazyClosures.Value.ClosesSnapshot(guard.Generation)) return "an Arena restoration is unresolved";
+        }
         var runs = Path.Combine(root, "user", "arena-reward-runs", id);
         foreach (var file in RewardRecoveryEvidence.Files(root, runs, 4096))
         {
             using var document = JsonDocument.Parse(File.ReadAllText(file));
-            if (!document.RootElement.TryGetProperty("state", out _)) return "an Arena run is unresolved";
+            if (document.RootElement.TryGetProperty("state", out _)) continue;
+            // A pending run that a recovery closure ended without payment is settled (its file stays as evidence).
+            var pending = RewardStartupFiles.Read<RewardRuntimePending>(file, 1024);
+            if (!lazyClosures.Value.ClosesRun(pending.RunId, pending.ArmToken)) return "an Arena run is unresolved";
         }
         return null;
+    }
+
+    // The inbox receipt is verified with the key of its own (old) delegation before its evidence is trusted;
+    // an allocation carries its candidate in the clear. Either one counts only when a recovery closure names it.
+    internal static bool ClosedWithoutPayment(string root, string directory, string folder, string file, RewardRecoveryClosureSet closures)
+    {
+        if (folder == "allocations")
+            return RewardStartupFiles.Read<RewardAllocation>(file).Candidate is { } candidate && closures.ClosesReceipt(candidate);
+        var signed = RewardStartupFiles.Read<RewardSignedReceipt>(file, RewardRuntimeFiles.MaxReceiptBytes);
+        if (!RewardIdentity.IsGuid(signed.DelegationId)) return false;
+        var authority = RewardRuntimeFiles.ReadHandoff(root, Path.Combine(directory, "delegations", signed.DelegationId + ".json"));
+        return closures.ClosesReceipt(RewardRuntimeFiles.Verify(authority, signed).Evidence);
     }
 }

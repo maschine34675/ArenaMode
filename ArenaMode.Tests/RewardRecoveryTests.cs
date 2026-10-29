@@ -113,6 +113,47 @@ public sealed class RewardRecoveryTests
         Assert.False(File.Exists(f.PathOf("allocations/" + run + ".json")));
     }
 
+    // Authority recovery (docs/REWARDS-RUNTIME.md, "Lost reward authority") archives only a settled history. A
+    // receipt, run or restoration that a recovery closure ended WITHOUT payment is settled although the
+    // settlement code leaves its files unmarked on purpose.
+    [Fact]
+    public async Task ARetainedReceiptThatARecoveryClosureEndedWithoutPaymentCountsAsSettled()
+    {
+        using var f = new Fixture();
+        var run = f.CaptureAndPublish(() => f.QueueAndClose());
+        Assert.Equal(RewardSettlementStatus.ClosedWithoutPayment, (await f.Process()).Result.Status);
+        string receipt = f.PathOf("inbox/" + run + ".json"), directory = Path.GetDirectoryName(f.PathOf("enrollment.json"))!;
+        Assert.True(File.Exists(receipt));
+        Assert.False(File.Exists(f.PathOf("imported/" + run + ".json")));
+
+        var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+        Assert.True(RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "inbox", receipt, closures));
+        // Without that closure the very same file is an unsettled received reward.
+        Assert.False(RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "inbox", receipt, RewardRecoveryClosureSet.Empty));
+        // A signature that does not verify is never trusted for "closed".
+        var signed = RewardStartupFiles.Read<RewardSignedReceipt>(receipt, RewardRuntimeFiles.MaxReceiptBytes);
+        string forged = Path.Combine(f.Root, "forged.json");
+        File.WriteAllText(forged, RewardRuntimeFiles.Json(signed with { Signature = new string('a', 64) }));
+        Assert.Throws<RewardDataException>(() => RewardAuthorityRecovery.ClosedWithoutPayment(f.Root, directory, "inbox", forged, closures));
+    }
+
+    [Fact]
+    public async Task AutomaticallyDiscardedRunsDoNotKeepAMovedInstallInQuarantine()
+    {
+        using var f = new Fixture();
+        f.LegacyPending();
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        var old = f.Binding;
+        f.Write("enrollment.json", f.Read<RewardStartupEnrollment>("enrollment.json")
+            with { RuntimeRoot = Path.Combine(Path.GetTempPath(), "ArenaMode.Moved.From", Guid.NewGuid().ToString("N")) });
+
+        var outcome = await f.Process();
+
+        Assert.True(outcome.Authority!.Recovered, outcome.Authority.Detail);
+        Assert.NotEqual(old.Epoch, f.Binding.Epoch);
+        Assert.Single(Directory.GetDirectories(Path.GetDirectoryName(Path.GetDirectoryName(f.PathOf("enrollment.json")))!, "*.archived-*"));
+    }
+
     [Fact]
     public async Task StartupDiscardsUnprovenOldRewardsWithoutPlayerActionAndNewRewardsPay()
     {

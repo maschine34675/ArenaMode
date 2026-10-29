@@ -94,7 +94,8 @@ cannot be used does not: when the SPT folder or one of its parents is a link
 the path is unavailable, nothing else can be holding the lock either (any peer hits
 the same failure). Startup then does no reward work at all, writes nothing, logs one
 Warning that rewards are unavailable and why, and SPT starts normally; the menu shows
-"Rewards are off ... See the server log." Only a held lock counts as contention (a
+"Rewards are off: this installation's reward folder cannot be used. See the server
+log." (a refusal that a restart may clear keeps "temporarily unavailable"). Only a held lock counts as contention (a
 sharing or lock violation, `RewardStartupLifetimeLock.IsContention`); a missing
 folder, a too-long path or a disk fault is an unusable location. A private Arena
 tree (session marker or lease file present) is never skipped, because it owns the
@@ -121,7 +122,10 @@ which the return path would refuse to go on over) declines the entry while the
 normal server is still alive: reply `return-not-ready` with `canResumeNormal`, and
 the helper reopens the normal session. On return, `ApplyOfflineConsent` stores the
 acknowledged choice and skips re-publishing a handoff for an enrollment that no
-longer matches this root, instead of stopping normal startup.
+longer matches this root or cannot be read at all (damaged, oversized: the same
+classes entry lets through), instead of stopping normal startup. Both ends are
+equally tolerant on purpose: an entry that starts a session without authority must
+not leave behind a return that wedges every later normal start.
 
 **A failure after the stop sequence ends in the graceful shutdown.** Once the update
 loop is stopped (native `StopAsync` cannot be undone) and requests are held, the
@@ -152,7 +156,16 @@ Unsettled means: any journal entry not committed or carrying Tarkova Cola
 progression; a received receipt or allocation without its `imported` marker; an
 approval, candidate or decision not matched by a committed journal entry; a pending
 recovery request; an unresolved Arena run or restoration; an active offline session;
-an unrecognised file; a moved install whose ledger and journal disagree. Then
+an unrecognised file; a moved install whose ledger and journal disagree. A record
+that a validated recovery closure (the automatic discard of an uncertain session, or
+a confirmed recovery request) ended WITHOUT payment is settled, because the settlement
+code leaves its files unmarked on purpose: that covers a pending run or restoration,
+a retained receipt (verified with the key of its own old delegation first), a
+candidate and a decision. Closures are read only for the moved-install trigger (the
+profile still holds the markers); a profile that lost its ledger block lost the
+markers too, so nothing counts as closed there. A closure that cannot be proven
+under the new root (a late restoration needs delegations that still name the old
+root) cannot be read and keeps the profile unsettled: fail toward no payment. Then
 nothing changes: the quarantine stays, no payment is possible, and the Warning
 carries the cause. A fresh epoch makes every receipt and key of the old one
 unusable, so neither a copy of the install nor a restored backup can be paid twice;
