@@ -19,11 +19,11 @@ Need(ArenaModeCatalog.All.Select(m => m.Id).SequenceEqual(new[] {
     "gungame", "deathmatch", "teamdeathmatch", "domination", "tactical", "zombie" }),
     "six playable rows preserve the existing mode order around the new team mode");
 var definition = ArenaModeCatalog.All.Single(m => m.Id == Mode);
-Need(definition.Label == "DOMINATION (WIP)" && definition.Description.Contains("200")
-    && definition.Description.Contains("10-minute") && definition.Description.Length <= 80
+Need(definition.Label == "DOMINATION (WIP)" && definition.Description.Length <= 80
     && definition.Description.EndsWith(".", StringComparison.Ordinal)
+    && definition.Description.Contains("Choose the match limits", StringComparison.Ordinal)
     && !definition.Description.Contains("Factory", StringComparison.OrdinalIgnoreCase),
-    "native Domination description keeps score/time limits without a Factory-only claim");
+    "native Domination description points at the limit controls without a Factory-only claim");
 Need(definition.Rules.Length > 0 && definition.Rules.Length <= 18
     && definition.Rules.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 3
     && !definition.Rules.Any(char.IsDigit),
@@ -146,7 +146,7 @@ Need(Ordered(reward, "match.Mode.Id == ArenaModeCatalog.DominationId", "new Rewa
     "Domination reward opt-out precedes creating or posting a kill-based reward begin");
 string menu = Read("ArenaMode.Client/Session/ArenaMenuSelection.cs");
 int validate = menu.IndexOf("public static bool TryValidateAndFreezeRequest", StringComparison.Ordinal);
-Need(menu.Contains("!Bots.DominationObjectiveBridge.Available")
+Need(menu.Contains("Bots.DominationObjectiveBridge.Available) return null;")
     && Ordered(menu, "reason = ModeAvailabilityRejection", "_freezeRoster?.Invoke", validate),
     "missing objective companion is rejected before roster freeze and token arming");
 Need(Ordered(menu, "var eligibility = CurrentEligibility;", "_freezeRoster?.Invoke", validate),
@@ -166,7 +166,7 @@ Need(Ordered(server, "ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPi
     "server direct and preparation arms retain the shared map guard before session publication");
 string view = Read("ArenaMode.Client/Session/ArenaModeSelectionView.cs");
 Need(!view.Contains("CreatePreviewRow(template, \"DOMINATION\"")
-    && view.Contains("CreatePreviewRow(template, \"CAPTURE THE FLAG\"")
+    && view.Contains("CreatePreviewRow(template, \"CAPTURE THE FLAG")
     && view.Contains("if (_selection == null || !CanSelectRow(index)) return;"),
     "Domination row is playable with an explicit dependency lock; CTF remains a preview");
 Console.WriteLine($"Domination admission: {checks} checks passed.");

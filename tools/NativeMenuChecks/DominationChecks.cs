@@ -108,6 +108,7 @@ internal static partial class Program
             ArenaClientConfig.Enabled = originalEnabled;
             if (hadMapPort) plugins[ArenaMapCatalog.ArenaMapPortPluginId] = originalMapPort;
             else plugins.Remove(ArenaMapCatalog.ArenaMapPortPluginId);
+            plugins.Remove("xyz.drakia.bigbrain");
             ConfigureAreaNegotiation();
         }
     }

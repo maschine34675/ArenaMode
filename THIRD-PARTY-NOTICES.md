@@ -1,7 +1,7 @@
 # ArenaMode: licenses, sources and credits
 
-Current-tree inventory, checked **2026-10-29** (no third-party code or assets were added since the
-previous check of 2026-10-16). This document distinguishes
+Current-tree inventory, checked **2026-10-29** (the diff since the v0.4.0 tag adds no third-party
+code or assets). This document distinguishes
 ArenaMode's code license from separately licensed assets. It does not relicense
 earlier Git revisions, screenshots or game content, and is not a statement that
 the entire repository history is ready for publication.
