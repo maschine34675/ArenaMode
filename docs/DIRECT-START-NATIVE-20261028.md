@@ -186,8 +186,11 @@ disposition; it does not restore the lost test rewards or establish safe
 concurrent profile writes.
 
 Multiple installations under one Windows user still share the helper session
-directory. Switching to the isolated fixture required archiving the positively
-closed original session and restoring it afterward; this is not a supported
-ordinary multi-installation switching flow. No production path was weakened to
-make that fixture start. Remote servers, multiplayer, real power loss, arbitrary
+directory. At the time of this acceptance, switching to the isolated fixture
+required archiving the positively closed original session and restoring it
+afterward. That limit was a defect and is fixed in ArenaMode 0.4.1: a closed
+session of another installation no longer blocks, and a session that is not
+closed is refused with a message naming its installation (see
+[offline transfer](ARENA-OFFLINE-SESSION-20261025.md)). No production path was
+weakened to make that fixture start. Remote servers, multiplayer, real power loss, arbitrary
 third-party writers and all ported maps are outside this acceptance.

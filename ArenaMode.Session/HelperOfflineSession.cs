@@ -66,6 +66,13 @@ namespace ArenaMode.SessionHelper
                 return entry;
             }
 
+            // For a failure before Open: the normal server was never asked to stop, so nothing is held and the entry only
+            // carries the grant that RequireNormalAvailable and ResumeExistingNormalSession verify against the live server.
+            internal static Entry Untouched(HelperRequest request, HelperHttpEndpoint normal)
+            {
+                return new Entry { Grant = ReadGrant(request, normal, DateTime.UtcNow), CanResumeNormal = true };
+            }
+
             internal void StopNormal(HelperHttpEndpoint normal, Action<string> log)
             {
                 using (Process server = HelperProcesses.TryOpen(Grant.ServerPid))
@@ -426,33 +433,120 @@ namespace ArenaMode.SessionHelper
 
         // True means a positively retired disposable tree; its old outbox is
         // deliberately not transferred. The normal tree sandbox still owns deletion.
-        internal static bool RequireClosedBeforeRebuild(string runtimeRoot)
+        // callerRuntime names the installation that wants to rebuild. When the kept tree belongs to another one, a
+        // refusal says so (whose session, what to do) instead of the bare proof failure; the refusal itself is unchanged.
+        internal static bool RequireClosedBeforeRebuild(string runtimeRoot, string callerRuntime = null)
         {
             string tree = HelperServerTree.GetTreePath(runtimeRoot);
             if (!HasOfflineTree(tree)) return false;
-            var lease = ReadBoundPrivate(tree);
-            bool activated = RequireClosed(lease);
-            if (IsDiscarded(lease)) { RequirePrivateAbsent(lease); return true; }
-            // A stopped, never-activated failed Build may not yet have a marker.
-            if (activated || Exists(Path.Combine(tree, ArenaSessionContract.MarkerFileName))) ReadPrivate(tree);
-            HelperRewardTransfer.RequireDrainedBeforeRebuild(runtimeRoot);
+            string foreign = ForeignSource(tree, callerRuntime);
+            try
+            {
+                var lease = ReadBoundPrivate(tree);
+                bool activated = RequireClosed(lease);
+                if (IsDiscarded(lease)) { RequirePrivateAbsent(lease); return true; }
+                // A stopped, never-activated failed Build may not yet have a marker.
+                if (activated || Exists(Path.Combine(tree, ArenaSessionContract.MarkerFileName))) ReadPrivate(tree);
+            }
+            catch (Exception ex) when (foreign != null)
+            {
+                throw new HelperException(ForeignSessionRefusal(foreign, tree, ex), ex);
+            }
+            try { HelperRewardTransfer.RequireDrainedBeforeRebuild(runtimeRoot); }
+            catch (HelperException ex) when (foreign != null)
+            {
+                throw new HelperException(ex.Message + " The session belongs to the SPT installation at " + foreign
+                    + "; return to the normal session there first.", ex);
+            }
             return false;
         }
 
         internal static void RequirePrivateAbsent(Lease lease)
         {
-            string expected = Path.Combine(lease.Private, HelperLayout.ServerExeName);
+            if (ProbePrivateServer(lease.Private) != PrivateServer.Absent) throw Refused();
+        }
+
+        internal enum PrivateServer
+        {
+            /// <summary>No process runs from the tree's server exe.</summary>
+            Absent,
+
+            /// <summary>A process whose image is the tree's server exe is alive: positive proof of a running private server.</summary>
+            Running,
+
+            /// <summary>A process of that name is alive whose image cannot be read, so it is neither proven nor excluded.</summary>
+            Unknown,
+        }
+
+        internal static PrivateServer ProbePrivateServer(string tree)
+        {
+            string expected = Path.Combine(tree, HelperLayout.ServerExeName);
             var candidates = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(expected));
             try
             {
+                PrivateServer state = PrivateServer.Absent;
                 foreach (Process candidate in candidates)
                 {
                     if (HelperProcesses.HasExited(candidate)) continue;
                     string image = HelperProcesses.GetImagePath(candidate);
-                    if (image == null || HelperProcesses.SameFileSystemObject(image, expected)) throw Refused();
+                    if (image == null) state = PrivateServer.Unknown;
+                    else if (HelperProcesses.SameFileSystemObject(image, expected)) return PrivateServer.Running;
                 }
+                return state;
             }
             finally { foreach (Process candidate in candidates) candidate.Dispose(); }
+        }
+
+        /// <summary>
+        /// The installation a kept tree records as its owner, read without proving anything (tree lease, else marker);
+        /// null when neither names one. Only for deciding whose tree this is and for messages: an owner read this way
+        /// never authorizes a stop, a kill or a rebuild.
+        /// </summary>
+        internal static string PeekSource(string tree)
+        {
+            try { return ParseLease(Read(Path.Combine(tree, LeaseFile))).Source; }
+            catch (Exception) { }
+            try
+            {
+                HelperMarker marker; string error;
+                if (HelperMarker.TryParse(Utf8.GetString(Read(Path.Combine(tree, ArenaSessionContract.MarkerFileName))), out marker, out error)
+                    && marker != null && !string.IsNullOrEmpty(marker.SourceRuntime)) return marker.SourceRuntime;
+            }
+            catch (Exception) { }
+            return null;
+        }
+
+        private static string ForeignSource(string tree, string callerRuntime)
+        {
+            if (callerRuntime == null) return null;
+            string recorded = PeekSource(tree);
+            return recorded != null && !HelperPathSafety.PathsEqual(callerRuntime, recorded) ? recorded : null;
+        }
+
+        /// <summary>
+        /// Refuses an entry early, before the caller's normal server is touched, when the kept tree belongs to another
+        /// installation whose session is not closed. Does nothing for the caller's own tree or an empty one.
+        /// </summary>
+        internal static void RequireForeignSessionClosed(string runtimeRoot, string callerRuntime)
+        {
+            if (!HasOfflineTree(HelperServerTree.GetTreePath(runtimeRoot)) || ForeignSource(HelperServerTree.GetTreePath(runtimeRoot), callerRuntime) == null) return;
+            RequireClosedBeforeRebuild(runtimeRoot, callerRuntime);
+        }
+
+        internal static string ForeignSessionRefusal(string foreign, string tree, Exception reason)
+        {
+            // A session that is merely not closed has its records; a missing closed.json is the normal sign of that and says nothing
+            // about the installation. Only a vanished installation or a wiped records folder cannot be read at all.
+            bool unreadable = !Directory.Exists(Path.Combine(foreign, "user", "arena-rewards", "offline-sessions"));
+            string detail = reason == null || string.IsNullOrEmpty(reason.Message) ? string.Empty : " (" + reason.Message + ")";
+            if (unreadable)
+                return "The last Arena session belongs to the SPT installation at " + foreign + ", whose session records cannot be read"
+                    + " (it was moved, deleted or is offline)" + detail + ". Make it available again and finish the session there. If it is gone for good,"
+                    + " the private session folder " + tree + " can be deleted by hand; Arena results of that session that were never returned are lost with it."
+                    + " Nothing was changed.";
+            return "The last Arena session belongs to the SPT installation at " + foreign + " and has not been closed there, or its records cannot be verified"
+                + detail + ". Start that installation's SPT and return to the normal session there (or finish its Arena session), then start Arena here again."
+                + " Nothing was changed.";
         }
 
         internal static void StartNormal(Lease lease, HelperHttpEndpoint normal,
