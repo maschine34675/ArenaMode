@@ -16,7 +16,8 @@
   objective HUD and Team DM as the default for new installations.
 - **Compatibility:** shared Core 1.0.17, updated body/camera integrations and
   reviewed whitelist entries for ArenaMapPort 0.4.0 and Redeploy 1.1.0.
-  Recognized version differences remain advisory, including UIFixes.
+  Recognized version differences remain advisory, including UIFixes. ArenaMapPort
+  0.4.0 was reviewed as a local candidate; its separate release is postponed.
 - **Quieter logs:** routine session link cleanup is opt-in debug output;
   reward opt-out no longer produces a missing-snapshot warning.
 
@@ -59,3 +60,4 @@ Release-asset hashes and any hash-specific scanner results belong to the actual
 published bytes. The old 0.3.0 helper's scanner results are historical and must
 not be represented as a scan of this build. The helper is unsigned; no antivirus
 setting needs to be disabled for installation.
+

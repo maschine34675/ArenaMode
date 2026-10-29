@@ -26,7 +26,7 @@ follow your selection; your saved PMC faction stays unchanged.
 
 - Factory day/night, Labs, Labyrinth and three bounded Customs areas support
   Gun Game, Deathmatch, Team DM, Tactical and Zombies.
-- [ArenaMapPort 0.4.0](https://github.com/maschine34675/ArenaMapPort/releases/tag/v0.4.0)
+- [ArenaMapPort](https://github.com/maschine34675/ArenaMapPort/releases/latest)
   adds Equator, Bay5, Air Pit and Bowl. It requires your own supported Arena
   installation. Equator excludes Tactical and PitFireTeam Zombies.
 - Domination supports Factory day/night and all four ported maps. Factory picks
@@ -150,3 +150,4 @@ describe new binaries.
 
 Code is MIT. Audio, artwork and bundled notices have their own terms; retain
 `docs/licenses/` with the installed package. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
