@@ -149,17 +149,13 @@ namespace ArenaMode.SessionHelper
                 HelperHttpEndpoint normal = ReadNormalEndpoint(request);
 
                 StopResult stopped = StopArenaServer(request.SptRuntimeDir);
-                if (stopped == StopResult.OtherInstallation)
-                {
-                    // Its tree is the one Build would delete next and its port the one it would reuse.
-                    throw new HelperException("the arena server of another SPT installation is running, so this installation cannot start its own "
-                        + "(the session folder is shared by all installations of this Windows user); close that game or run stop-server");
-                }
+                // OtherInstallation: its tree is the one Build would delete next and its port the one it would reuse.
+                if (stopped == StopResult.OtherInstallation || stopped == StopResult.Unverified || stopped == StopResult.StillRunning)
+                    throw new HelperException(DescribeStopRefusal(stopped));
 
-                if (stopped == StopResult.Unverified || stopped == StopResult.StillRunning)
-                {
-                    throw new HelperException("the previous arena server could not be stopped (" + stopped + ")");
-                }
+                // A finished session of another installation does not block (nothing runs); one that is not closed
+                // is refused here, while the normal server of this installation is still untouched.
+                if (request.Schema == ArenaSessionContract.OfflineRequestSchema) RequireForeignSessionClosed(request.SptRuntimeDir);
 
                 int port = HelperPorts.PickArenaPort(candidate => ProbePort(normal.ServerHost, candidate), normal.ServerPort);
                 if (port < 0) throw new HelperException("no free port between " + ArenaSessionContract.ArenaPort + " and " + ArenaSessionContract.FallbackPortLast);
@@ -241,6 +237,24 @@ namespace ArenaMode.SessionHelper
                         try { StartOfflineNormalSession(request, offline.Lease, offline, !directStart); }
                         catch (Exception recovery) { LogFailure("Offline Arena recovery paused; start normal SPT after resolving its server log", recovery); }
                     }
+                    else if (offline == null && !directStart && !RequestWithdrawn())
+                    {
+                        // Failed before Entry.Open: the normal server was never asked to stop, so only the game is
+                        // missing. Reopen it against that server, as the declined-entry branch does, and say why.
+                        try
+                        {
+                            ReopenUntouchedNormalGame(request);
+                            if (_normalGameReopened)
+                            {
+                                // A HelperException carries the reason in words; anything else (a records file that is gone)
+                                // is only in helper.log, but the player still learns why the game restarted.
+                                NotifyFailure("Arena did not start; SPT was reopened unchanged.\n\n"
+                                    + (ex is HelperException ? ex.Message : "See helper.log for the reason."));
+                                return false;
+                            }
+                        }
+                        catch (Exception recovery) { LogFailure("normal session could not be reopened", recovery); }
+                    }
                     // Held/unknown native-save failures never enter legacy fallback.
                 }
                 // A successful normal relaunch needs no modal desktop acknowledgement. EFT can cover
@@ -271,6 +285,17 @@ namespace ArenaMode.SessionHelper
                 NotifyFailure("SPT could not be reopened. Keep the server open and check the logs below.");
                 return false;
             }
+        }
+
+        // An enter that failed before the normal server was asked to stop (Entry.Open not reached): the game is gone,
+        // the server is as it was. The same proof as for a declined entry applies (pid, start time, image, sole listener,
+        // no active or Ready lease); without it no game is started.
+        internal void ReopenUntouchedNormalGame(HelperRequest request)
+        {
+            if (_gameStarted || request.Schema != ArenaSessionContract.OfflineRequestSchema || !request.IsEnter)
+                throw new HelperException("The original normal session could not be verified; no game was started.");
+            using (HelperOfflineSession.Entry entry = HelperOfflineSession.Entry.Untouched(request, ReadNormalEndpoint(request)))
+                ResumeExistingNormalSession(request, entry);
         }
 
         internal void ResumeExistingNormalSession(HelperRequest request, HelperOfflineSession.Entry entry)
@@ -424,12 +449,26 @@ namespace ArenaMode.SessionHelper
         /// Null for the <c>stop-server</c> command, which stops whichever server was recorded.</param>
         public StopResult StopArenaServer(string callerRuntime, bool offlineStartupHeld = false)
         {
+            ForeignRuntime = null;
             string tree = HelperServerTree.GetTreePath(_runtimeRoot);
             FileStream startup = null;
             if (!offlineStartupHeld && HelperOfflineSession.HasOfflineTree(tree))
             {
-                var lease = HelperOfflineSession.ReadBoundPrivate(tree);
-                if (callerRuntime != null && !HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return StopResult.OtherInstallation;
+                // The kept tree stays with the installation that built it after its session is over, so another
+                // installation meeting it proves nothing: only a server that runs from it is in the way.
+                string recorded = callerRuntime == null ? null : HelperOfflineSession.PeekSource(tree);
+                if (recorded != null && !HelperPathSafety.PathsEqual(callerRuntime, recorded)) return StopForeignOfflineTree(tree, recorded);
+                HelperOfflineSession.Lease lease;
+                try { lease = HelperOfflineSession.ReadBoundPrivate(tree); }
+                catch (Exception ex) when (callerRuntime == null && (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+                    && HelperOfflineSession.ProbePrivateServer(tree) == HelperOfflineSession.PrivateServer.Absent)
+                {
+                    // stop-server for a tree whose owning installation vanished: its records cannot be read, but no server runs from
+                    // the tree, so there is nothing to stop. (Whether the tree may be replaced is the rebuild guard's question.)
+                    _log.Info("stop-server: the records of the session owner cannot be read and no arena server runs from " + tree + "; nothing to stop");
+                    return StopResult.NothingToStop;
+                }
+                if (callerRuntime != null && !HelperPathSafety.PathsEqual(callerRuntime, lease.Source)) return StopForeignOfflineTree(tree, lease.Source);
                 startup = HelperOfflineSession.AcquireStartup(lease.Source);
                 try
                 {
@@ -446,6 +485,58 @@ namespace ArenaMode.SessionHelper
             }
             try { return StopArenaServerCore(callerRuntime); }
             finally { if (startup != null) startup.Dispose(); }
+        }
+
+        // The kept offline tree belongs to another installation. It is never stopped from here. OtherInstallation needs
+        // proof, a live process whose image is the tree's own server exe; without one nothing is in the way, and whether
+        // the other installation's session may be replaced is for the rebuild's closure guard to say, not for a guess here.
+        private StopResult StopForeignOfflineTree(string tree, string owner)
+        {
+            switch (HelperOfflineSession.ProbePrivateServer(tree))
+            {
+                case HelperOfflineSession.PrivateServer.Running:
+                    ForeignRuntime = owner;
+                    _log.Warn("an arena server runs from " + tree + " for the SPT installation at " + owner + "; leaving it alone");
+                    return StopResult.OtherInstallation;
+                case HelperOfflineSession.PrivateServer.Unknown:
+                    _log.Warn("a process named " + HelperLayout.ServerExeName + " whose image cannot be read may be the arena server of the SPT installation at "
+                        + owner + "; not treated as one (a session that is not closed is refused at the rebuild)");
+                    return StopResult.NothingToStop;
+                default:
+                    _log.Info("the session folder was last used by the SPT installation at " + owner + "; no arena server runs from it");
+                    return StopResult.NothingToStop;
+            }
+        }
+
+        /// <summary>
+        /// The installation whose arena server the last <see cref="StopArenaServer"/> left alone
+        /// (<see cref="StopResult.OtherInstallation"/>); null when there was none or it is not known.
+        /// </summary>
+        internal string ForeignRuntime { get; private set; }
+
+        /// <summary>
+        /// Refuses before anything is changed when the session folder still holds an Arena session of another
+        /// installation that is not closed (its unreturned results must survive). A closed one does not block.
+        /// </summary>
+        internal void RequireForeignSessionClosed(string callerRuntime)
+        {
+            HelperOfflineSession.RequireForeignSessionClosed(_runtimeRoot, callerRuntime);
+        }
+
+        /// <summary>The text for a start that stopped on <paramref name="stopped"/>; claims a running server only when it was proven.</summary>
+        internal string DescribeStopRefusal(StopResult stopped)
+        {
+            switch (stopped)
+            {
+                case StopResult.OtherInstallation:
+                    return "The Arena server of another SPT installation" + (ForeignRuntime == null ? string.Empty : " (" + ForeignRuntime + ")")
+                        + " is running, so this installation cannot start Arena (all installations of this Windows user share one session folder)."
+                        + " Close that game or run stop-server.";
+                case StopResult.StillRunning:
+                    return "The previous Arena server did not end when it was asked to. Check helper.log.";
+                default:
+                    return "The previous Arena server could not be verified (" + stopped + "). Check helper.log.";
+            }
         }
 
         private StopResult StopArenaServerCore(string callerRuntime)
@@ -567,6 +658,7 @@ namespace ArenaMode.SessionHelper
                 {
                     _log.Warn("the arena server (pid " + pid + ") belongs to the SPT installation at " + marker.SourceRuntime
                         + ", not to " + callerRuntime + "; leaving it alone");
+                    ForeignRuntime = marker.SourceRuntime;
                     return StopResult.OtherInstallation;
                 }
 
@@ -634,6 +726,7 @@ namespace ArenaMode.SessionHelper
                 {
                     _log.Warn("the arena server (" + named + ") belongs to the SPT installation at " + marker.SourceRuntime
                         + ", not to " + callerRuntime + "; leaving it alone");
+                    ForeignRuntime = marker.SourceRuntime;
                     return StopResult.OtherInstallation;
                 }
 

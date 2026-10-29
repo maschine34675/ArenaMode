@@ -135,7 +135,9 @@ namespace ArenaMode.SessionHelper
                 // Retire that verified private writer before normal startup recovers it.
                 StopResult stopped = _runner.StopArenaServer(Runtime);
                 if (stopped == StopResult.OtherInstallation || stopped == StopResult.Unverified || stopped == StopResult.StillRunning)
-                    throw new HelperException("The previous Arena server is still running or could not be verified. Check helper.log.");
+                    throw new HelperException(_runner.DescribeStopRefusal(stopped));
+                // A finished session of another installation does not block; an unclosed one is refused before preparation.
+                _runner.RequireForeignSessionClosed(Runtime);
                 using (Process server = GetNormalServer(endpoint))
                 {
                     DateTime started;

@@ -33,6 +33,11 @@ server processes, occupied ports and changed mod policy refuse the start.
 Recognized mod version differences remain advisory. No legacy authority fallback
 or private-profile copy-back is introduced.
 
+Installations of one Windows user share the helper's session folder. A finished Arena session of another
+installation does not block the start; one that is not closed there is refused before preparation, naming that
+installation, and nothing is rebuilt over its unreturned results. Only a running Arena server of another
+installation is reported as running.
+
 The picker stays responsive while preparation runs. It cannot start a second
 handover or close mid-transfer. Failure notices appear after helper locks are
 released. A refused direct start does not unexpectedly launch normal EFT.

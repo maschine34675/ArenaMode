@@ -779,6 +779,28 @@ a SUBST drive gives one file several spellings). A pid that fails these checks i
 is left alone (a reused pid also loses its `server.pid`). `enter` and `leave` additionally leave a
 server alone whose `sourceRuntime` is not their own `sptRuntimeDir`.
 
+The session folder, and so the kept offline (schema 3) tree, is shared by every installation of a Windows
+user, and the tree stays with the installation that built it after its session is over. Another installation
+meeting it therefore proves nothing: for a tree whose recorded owner is not the caller, `OtherInstallation` is
+returned only when a process whose image is the tree's own `SPT.Server.exe` is alive (`helper.log`: `an arena
+server runs from <tree> for the SPT installation at <owner>; leaving it alone`; the refusal names that
+installation). Without such a process the result is `NothingToStop` (`the session folder was last used by the SPT
+installation at <owner>; no arena server runs from it`), and the rebuild's own closure guard
+(`HelperOfflineSession.RequireClosedBeforeRebuild`, called with the caller's runtime) decides about the tree: a
+closed and completed session of the other installation is replaced, while a session that is not closed (or whose
+records cannot be verified) is refused with `The last Arena session belongs to the SPT installation at <path> and
+has not been closed there ...`, naming that path and what to do (return to the normal session there, or finish
+its Arena session); a vanished or wiped installation is named as unreadable instead, with the private session
+folder to delete by hand if it is gone for good (Arena results never returned from it are lost with it, so nothing is
+deleted on a guess). Unreturned results of the other installation are never rebuilt over: a closed session whose
+outbox still holds results is refused as well. `enter` and the direct start run that closure check right after the
+stop step, before the caller's normal server is touched. A process named `SPT.Server.exe` whose image cannot be
+read is not taken for the other installation's server (it would otherwise block every Arena start while any
+unreadable server of another Windows user runs); an unclosed session is refused at the closure check anyway.
+Messages claim a running server only after that proof: `Unverified` and `StillRunning` have their own wording.
+`stop-server` (no caller) reads the owner's records too: when the owning installation has vanished and no process runs
+from the tree it answers `NothingToStop` instead of failing with a file error.
+
 An arena server that no `server.pid` names (the helper that started it was killed before it wrote the file, or the
 file was lost) is found by its image, when no registered server was stopped (no pid file, a pid that is not
 running, a pid of another program): a running process whose image is the same file as `<root>\server\SPT.Server.exe`

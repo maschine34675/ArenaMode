@@ -454,6 +454,238 @@ public sealed class OfflineSessionHelperTests
         Assert.Equal(2, starts); Assert.Equal(2, waits);
     }
 
+    // ---- several installations of one Windows user share the kept tree (C4) ----
+
+    private static HelperRunner RunnerFor(Area area) => new(area.Runtime, new HelperLog(Path.Combine(area.Runtime, "helper.log")), "test")
+    {
+        GameSettleMilliseconds = 10, GameStartCheckMilliseconds = 100, ServerSettleMilliseconds = 10, StartWatchdogAfterEnter = false,
+    };
+    private static string OtherInstallation(Area area)
+    {
+        string other = Path.Combine(area.Root, "installB");
+        Directory.CreateDirectory(other);
+        return other;
+    }
+
+    [Fact]
+    public void ClosedSessionOfAnotherInstallationDoesNotBlock()
+    {
+        using var area = new Area();
+        area.Close(); // closed and completed, no active pointer: the original installation is done with it
+        string other = OtherInstallation(area);
+        HelperRunner runner = RunnerFor(area);
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(other));
+        Assert.Null(runner.ForeignRuntime);
+        runner.RequireForeignSessionClosed(other);
+        Assert.False(HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other));
+        Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree)); // the stop step decides nothing about the tree
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(null!)); // stop-server
+    }
+
+    [Fact]
+    public void UnclosedSessionOfAnotherInstallationStillRefusesTheRebuildWithTheAccurateMessage()
+    {
+        using var area = new Area();
+        area.Active(true); // the session of installation A was never closed: its results are not returned yet
+        string other = OtherInstallation(area);
+        HelperRunner runner = RunnerFor(area);
+        // No server runs, so the stop step proves nothing against the caller; the closure guard speaks.
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(other));
+        foreach (Action refuse in new Action[]
+        {
+            () => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other),
+            () => runner.RequireForeignSessionClosed(other),
+        })
+        {
+            var refused = Assert.Throws<HelperException>(refuse);
+            Assert.Contains(area.Source, refused.Message);
+            Assert.Contains("has not been closed", refused.Message);
+            Assert.Contains("return to the normal session there", refused.Message);
+            Assert.DoesNotContain("running", refused.Message);
+            Assert.DoesNotContain("cannot be read", refused.Message);
+        }
+        Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source)));
+        Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree));
+        // The owner is not asked to prove anything it did not need to: its own rebuild keeps the plain refusal.
+        runner.RequireForeignSessionClosed(area.Source);
+        Assert.DoesNotContain("belongs to the SPT installation", Assert.ThrowsAny<Exception>(
+            () => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, area.Source)).Message);
+    }
+
+    [Fact]
+    public void ResultsOfAClosedForeignSessionThatWereNeverReturnedStillRefuseTheRebuild()
+    {
+        using var area = new Area();
+        area.Close();
+        string outbox = Path.Combine(area.Tree, "user", HelperRewardTransfer.OutboxFolderName);
+        Directory.CreateDirectory(outbox);
+        File.WriteAllText(Path.Combine(outbox, new string('a', 32) + ".json"), "unreturned-result");
+        string other = OtherInstallation(area);
+        var refused = Assert.Throws<HelperException>(() => HelperOfflineSession.RequireClosedBeforeRebuild(area.Runtime, other));
+        Assert.Contains("results have not been returned", refused.Message);
+        Assert.Contains(area.Source, refused.Message);
+        Assert.True(File.Exists(Path.Combine(outbox, new string('a', 32) + ".json")));
+    }
+
+    [Fact]
+    public void ForeignSessionOfAVanishedInstallationIsRefusedWithAnExplanationNotAFileError()
+    {
+        using var area = new Area();
+        area.Close();
+        string other = OtherInstallation(area);
+        Directory.Delete(area.Source, true); // installation A was deleted or moved after its session closed
+        HelperRunner runner = RunnerFor(area);
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(other));
+        var refused = Assert.Throws<HelperException>(() => runner.RequireForeignSessionClosed(other));
+        Assert.Contains(area.Source, refused.Message);
+        Assert.Contains("cannot be read", refused.Message);
+        Assert.Contains(area.Tree, refused.Message);
+        Assert.True(Directory.Exists(area.Tree)); // nothing was deleted on a guess
+        // stop-server (no caller) reads the owner's records too; with no server running it has nothing to stop and must not throw.
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(null!));
+        Assert.True(Directory.Exists(area.Tree));
+    }
+
+    [SkippableFact]
+    public void LiveServerOfAnotherInstallationStillYieldsOtherInstallation()
+    {
+        Skip.IfNot(OperatingSystem.IsWindows(), "real process image");
+        using var area = new Area();
+        area.Active(true);
+        string exe = Path.Combine(area.Tree, HelperLayout.ServerExeName);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), exe);
+        string other = OtherInstallation(area);
+        HelperRunner runner = RunnerFor(area);
+        using Process server = Process.Start(new ProcessStartInfo(exe, "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
+        try
+        {
+            Assert.Equal(StopResult.OtherInstallation, runner.StopArenaServer(other));
+            Assert.Equal(area.Source, runner.ForeignRuntime);
+            Assert.False(server.HasExited);
+            string message = runner.DescribeStopRefusal(StopResult.OtherInstallation);
+            Assert.Contains(area.Source, message);
+            Assert.Contains("is running", message);
+            Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree));
+        }
+        finally { try { server.Kill(); server.WaitForExit(5000); } catch (Exception) { } }
+        // Without the process the same call proves nothing any more.
+        Assert.Equal(StopResult.NothingToStop, runner.StopArenaServer(other));
+        Assert.Null(runner.ForeignRuntime);
+    }
+
+    [Fact]
+    public void OnlyAProvenLiveServerIsDescribedAsRunning()
+    {
+        using var area = new Area();
+        HelperRunner runner = RunnerFor(area);
+        foreach (StopResult result in new[] { StopResult.Unverified, StopResult.StillRunning })
+            Assert.DoesNotContain("another SPT installation", runner.DescribeStopRefusal(result));
+        Assert.DoesNotContain("is running", runner.DescribeStopRefusal(StopResult.Unverified));
+    }
+
+    // ownRecordsWiped: the installation that enters is the one that owns the kept tree, but its session records are gone, so
+    // the refusal is a file error and not a HelperException; the player still has to be told why the game restarted.
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnEnterRefusedBeforeTheNormalServerIsTouchedReopensTheNormalGameAndSaysWhy(bool ownRecordsWiped)
+    {
+        Skip.IfNot(OperatingSystem.IsWindows(), "real server stand-in");
+        using var area = new Area();
+        if (!ownRecordsWiped) area.Active(true); // installation A left a session that is not closed
+        else Directory.Delete(area.SessionDirectory, true);
+        string installB = ownRecordsWiped ? area.Source : OtherInstallation(area);
+        string sessionB = Guid.NewGuid().ToString("N");
+        var probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start(); int port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
+        string configs = Path.Combine(installB, "SPT_Data", "configs");
+        Directory.CreateDirectory(configs);
+        File.WriteAllText(Path.Combine(configs, HelperLayout.HttpJsonFileName),
+            "{ \"ip\": \"127.0.0.1\", \"port\": " + port + ", \"backendIp\": \"127.0.0.1\", \"backendPort\": " + port + " }");
+        // The normal server of B: a process whose image is B\SPT.Server.exe and which is the sole listener on its port.
+        string serverExe = Path.Combine(installB, HelperLayout.ServerExeName);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"), serverExe);
+        // Not named EscapeFromTarkov.exe: the process tests of this project keep stand-ins of that name alive, and the helper
+        // refuses to start a game while a process of the game's name runs.
+        string gameExe = Path.Combine(installB, "ArenaC4Game.exe");
+        File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), gameExe);
+        using Process normal = Process.Start(new ProcessStartInfo(serverExe,
+            "-NoProfile -NonInteractive -Command \"$l=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback," + port + ");$l.Start();Start-Sleep 120\"")
+            { UseShellExecute = false, CreateNoWindow = true })!;
+        var games = new List<int>(); // the runner disposes the Process objects it is handed, so remember the ids
+        try
+        {
+            var clock = Stopwatch.StartNew();
+            while (!HelperProcesses.CanConnect("127.0.0.1", port, 500))
+                Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), "the stand-in server did not listen");
+            Assert.True(HelperProcesses.TryGetStartTimeUtc(normal, out DateTime started));
+            var grant = new RewardEntryGrant(1, "arena-entry", sessionB, Profile, Convert.ToBase64String(new byte[32]), installB,
+                "https://127.0.0.1:" + port, new string('a', 64), new DateTimeOffset(DateTime.UtcNow), new DateTimeOffset(DateTime.UtcNow.AddMinutes(5)),
+                normal.Id, new DateTimeOffset(started, TimeSpan.Zero), ["--normal-arg"]);
+            string grantDirectory = Path.Combine(installB, "user", "arena-rewards", Profile);
+            Directory.CreateDirectory(grantDirectory);
+            File.WriteAllBytes(Path.Combine(grantDirectory, "entry.json"), Bytes(grant));
+            var request = new HelperRequest
+            {
+                Schema = 3, Direction = "enter", GamePid = FinishedProcessId(), GameDir = installB, GameExe = gameExe,
+                GameArgs = ["-token=" + Profile, "-config={'BackendUrl':'https://127.0.0.1:6969','Version':'live','MatchingVersion':'live'}", "-force-gfx-jobs"],
+                ProfileId = Profile, OfflineSessionId = sessionB, SptRuntimeDir = installB,
+                ServerMods = [new HelperServerMod { Guid = "com.maschine.ArenaMode", Folder = Path.Combine(installB, "user", "mods", "ArenaMode") }],
+            };
+            var starts = new List<string>();
+            string notice = null;
+            HelperRunner runner = RunnerFor(area);
+            runner.FailureNotice = message => notice = message;
+            runner.ProcessStarter = (exe, arguments, working) =>
+            {
+                starts.Add(exe + " " + arguments);
+                Process game = Process.Start(new ProcessStartInfo(exe, "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true })!;
+                games.Add(game.Id);
+                return game;
+            };
+
+            // Without the early refusal the helper would go on to ask this stand-in to stop and then wait on a desktop
+            // prompt; the bound turns that into a failure instead of a hung run.
+            Task<bool> entering = Task.Run(() => runner.Enter(request));
+            Assert.True(entering.Wait(TimeSpan.FromSeconds(45)), "the enter went on to stop the normal server instead of refusing first");
+            Assert.False(entering.Result); // the Arena entry itself is refused
+
+            Assert.Single(starts); // the normal game came back, once, against the untouched normal server
+            Assert.StartsWith(gameExe, starts[0]);
+            Assert.Contains(":" + port.ToString(System.Globalization.CultureInfo.InvariantCulture), starts[0]); // BackendUrl routed back to B's server
+            Assert.DoesNotContain("-arena-session", starts[0]);
+            Assert.False(normal.HasExited); // the normal server was never stopped
+            Assert.NotNull(notice);
+            Assert.Contains("SPT was reopened unchanged", notice);
+            Assert.DoesNotContain("Keep the SPT server open", notice);
+            Assert.DoesNotContain("running", notice);
+            Assert.True(HelperOfflineSession.HasOfflineTree(area.Tree)); // A's session is exactly as it was
+            if (ownRecordsWiped) Assert.Contains("helper.log", notice);
+            else
+            {
+                Assert.Contains(area.Source, notice);
+                Assert.Contains("has not been closed", notice);
+                Assert.True(File.Exists(HelperOfflineSession.ActivePath(area.Source)));
+                Assert.False(File.Exists(HelperOfflineSession.ActivePath(installB)));
+            }
+        }
+        finally
+        {
+            foreach (int id in games)
+            {
+                try { using Process game = Process.GetProcessById(id); game.Kill(); game.WaitForExit(5000); } catch (Exception) { }
+            }
+            try { normal.Kill(); normal.WaitForExit(5000); } catch (Exception) { }
+        }
+    }
+
+    private static int FinishedProcessId()
+    {
+        using Process finished = Process.Start(new ProcessStartInfo("cmd.exe", "/c exit") { UseShellExecute = false, CreateNoWindow = true })!;
+        Assert.True(finished.WaitForExit(10000));
+        return finished.Id;
+    }
+
     private static Dictionary<string, object> Reply(bool accepted, bool held) => new() { ["accepted"] = accepted, ["held"] = held, ["reason"] = "test" };
     private static HelperOfflineSession.Entry EntryFor(Area area) => new()
     {
