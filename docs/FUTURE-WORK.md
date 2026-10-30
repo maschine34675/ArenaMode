@@ -20,10 +20,10 @@ The later Factory transit/kit tests also recorded one `BotFirstAid` completion
 null reference during protected exit (19:57:56), through
 `MedsInHandsOperation.Finish` / health effect updates. Reproduce and identify
 the invalid bot/medical owner before changing any callbacks. Attribution is
-unproven; [evidence and context](TRANSITS-GUNGAME-AMMO-20261024.md#log-findings-separately-scoped).
+unproven; [evidence and context](reviews/TRANSITS-GUNGAME-AMMO-20261024.md#log-findings-separately-scoped).
 
 The gate-completion integration passed. Preserve these unrelated observations
-for focused follow-up; see [native evidence](GPU-SPAWN-GATE-COMPLETION-20261024.md#logs-separate-findings):
+for focused follow-up; see [native evidence](reports/2026-10/GPU-SPAWN-GATE-COMPLETION-20261024.md#logs-separate-findings):
 
 - Reproduce temporary SD mod.2 kit reconstruction after inventory-open/leave
   with UIFixes grid reordering on/off. Surv12 and PP19 magazine grid-index errors
@@ -41,7 +41,7 @@ for focused follow-up; see [native evidence](GPU-SPAWN-GATE-COMPLETION-20261024.
   equipment; an Enforcer respawn also lacked a compatible 2x2 cell for its Grizzly.
   Reproduce the actual kit/rung combinations and improve supply placement without
   evicting player/protected items. Do not suppress the warning as a fix.
-  [Evidence and attribution](LOG-REVIEW-20261015-EVENING.md).
+  [Evidence and attribution](reports/2026-10/LOG-REVIEW-20261015-EVENING.md).
 
 ## Zombie follow-ups from the 2026-10-09 performance test
 
@@ -144,12 +144,12 @@ server `Patches/ArenaBotTierScalePatch.cs` and `Services/ArenaSessionService.cs`
 User question: mark an area visibly in-game, prevent the player from crossing its
 boundary, and restrict bots to the same area. Implementation was authorized on
 2026-09-07; the first opt-in prototype is now Factory South v1 for independent
-TDM 2v2. See [BOUNDED-AREA-REVIEW.md](BOUNDED-AREA-REVIEW.md). Source/build tests
+TDM 2v2. See [BOUNDED-AREA-REVIEW.md](reviews/BOUNDED-AREA-REVIEW.md). Source/build tests
 are separate from user GPU evidence. The user subsequently confirmed a visible,
 impassable grid, contained player/bot spawns and bots staying inside without
 observed stalls. Escape/re-entry and teardown into full-map/ordinary raids still
 need explicit confirmation. A first Customs Factory Center 2v2 candidate now
-follows in [CUSTOMS-AREA-REVIEW.md](CUSTOMS-AREA-REVIEW.md). The user subsequently
+follows in [CUSTOMS-AREA-REVIEW.md](reports/2026-09/CUSTOMS-AREA-REVIEW.md). The user subsequently
 reported that Customs also works overall without problems, while its boundaries
 should eventually be refined manually. Keep that contour polish as a separate
 scene-guided task, including renewed spawn/connectivity validation and a new
@@ -229,7 +229,7 @@ short-range avoidance; see [NavMesh Obstacle (Unity 2022.3)](https://docs.unity3
 2026-10-26: the user requested the first Domination prototype with bot objective
 steering. The current implementation has three Factory day/night points, independent
 teams, capture/hold income, continuous respawns and a verified BigBrain objective
-layer. See [current scope and acceptance](DOMINATION-PROTOTYPE-20261026.md).
+layer. See [current scope and acceptance](reviews/DOMINATION-PROTOTYPE-20261026.md).
 The older single-point staging below is historical. Remaining work includes
 balancing positions, other maps/areas, configurable match rules and objective-aware
 reward proofs; CTF remains a separate proposal. The first native day match recorded
@@ -306,7 +306,7 @@ acceptance remains open. The remaining variants/announcements above are deferred
 
 ## Private online Arena with an optional Fika integration
 
-**2026-10-26 follow-up:** [Concrete Fika multiplayer concept](MULTIPLAYER-FIKA-CONCEPT-20261026.md)
+**2026-10-26 follow-up:** [Concrete Fika multiplayer concept](reports/2026-10/MULTIPLAYER-FIKA-CONCEPT-20261026.md)
 reviews Plugin 2.4.6, the current local runtime/profile boundaries, room authority,
 PvP team assumptions, network respawn, rewards and staged two-client acceptance.
 Use that document for the current proposed implementation sequence. The note

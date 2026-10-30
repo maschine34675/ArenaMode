@@ -80,10 +80,10 @@ Evidence and limits:
 
 - [Arena session: specification, acceptance runs and change log](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
-  and [of 2026-10-23](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)
-- [Bowl team boxes](BOWL-TEAM-BOXES-20261023.md), [GPU results](GPU-BOWL-TEAM-BOXES-20261023.md),
-  [spawn-gate completion and DynamicMaps](GPU-SPAWN-GATE-COMPLETION-20261024.md)
-- [Shared body-replacement adapters in Redeploy.Core](SHARED-BODY-COMPAT-20261023.md)
+  and [of 2026-10-23](reports/2026-10/ARENA-SESSION-REVIEW-RESPONSE-20261023.md)
+- [Bowl team boxes](reviews/BOWL-TEAM-BOXES-20261023.md), [GPU results](reports/2026-10/GPU-BOWL-TEAM-BOXES-20261023.md),
+  [spawn-gate completion and DynamicMaps](reports/2026-10/GPU-SPAWN-GATE-COMPLETION-20261024.md)
+- [Shared body-replacement adapters in Redeploy.Core](reviews/SHARED-BODY-COMPAT-20261023.md)
 - [Dependencies and compatibility](DEPENDENCIES.md)
 
 ## Updating

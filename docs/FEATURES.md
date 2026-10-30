@@ -114,9 +114,9 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   ownership rings and one integrated score/objective HUD. Ported-map monitors
   (ArenaMapPort 0.4.0 or newer, not yet published) display objective scores. Profile rewards are currently excluded.
 
-Sources: [routes and options](DOMINATION-OPTIONS-ROUTES-20261027.md),
-[ported anchors](DOMINATION-PORTED-20261026.md),
-[native sweep](RELEASE-SWEEP-20261029.md).
+Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
+[ported anchors](reviews/DOMINATION-PORTED-20261026.md),
+[native sweep](reports/2026-10/RELEASE-SWEEP-20261029.md).
 
 ### Team Deathmatch
 
@@ -200,10 +200,10 @@ Sources: [routes and options](DOMINATION-OPTIONS-ROUTES-20261027.md),
   infected is reduced without removing their combat AI.
 
 Sources: [mode implementations](../ArenaMode.Client/Modes),
-[Deathmatch rules](DEATHMATCH-MODE-REVIEW.md),
-[TDM match flow](TDM-MATCH-FLOW-REVIEW.md),
-[variable PFT squads](PFT-SQUAD-SIZE-REVIEW.md),
-[Zombie countdown/refill](ZOMBIE-WAVE-REFILL-20261015.md).
+[Deathmatch rules](reviews/DEATHMATCH-MODE-REVIEW.md),
+[TDM match flow](reviews/TDM-MATCH-FLOW-REVIEW.md),
+[variable PFT squads](reviews/PFT-SQUAD-SIZE-REVIEW.md),
+[Zombie countdown/refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md).
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** in even steps, or **4–20 on Equator Team DM**. Defaults are Equator 4,
@@ -243,9 +243,9 @@ already initialized vault-reach geometry changes on the next body. Collision,
 obstacle reach and weapon-operation rules still matter.
 
 Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
-[surgical walking](SURGICAL-WALK-REVIEW.md),
-[air movement](AIR-MOVEMENT-REVIEW.md), [bunnyhop](BUNNYHOP-REVIEW.md),
-[reload handling](RELOAD-HANDLING-REVIEW.md),
+[surgical walking](reviews/SURGICAL-WALK-REVIEW.md),
+[air movement](reviews/AIR-MOVEMENT-REVIEW.md), [bunnyhop](reviews/BUNNYHOP-REVIEW.md),
+[reload handling](reviews/RELOAD-HANDLING-REVIEW.md),
 [movement implementation](../ArenaMode.Client/Movement).
 
 ## 4. Equipment, inventory, medicine and combat
@@ -337,10 +337,10 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
 
 Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
 [weapon variants](../ArenaMode.Server/Services/ArenaWeaponVariants.cs),
-[backpack reload](BACKPACK-RELOAD-REVIEW.md),
-[default fire mode](DEFAULT-FIRE-MODE-REVIEW.md),
+[backpack reload](reviews/BACKPACK-RELOAD-REVIEW.md),
+[default fire mode](reviews/DEFAULT-FIRE-MODE-REVIEW.md),
 [skills](../ArenaMode.Client/Combat/ArenaSkills.cs),
-[Akimbo](AKIMBO-REVIEW.md), [Molotov integration](MOLOTOV-NATIVE-INTEGRATION-20261015.md).
+[Akimbo](reviews/AKIMBO-REVIEW.md), [Molotov integration](reviews/MOLOTOV-NATIVE-INTEGRATION-20261015.md).
 
 ## 5. Pickups and powerups
 
@@ -386,8 +386,8 @@ area, Equator, Bay5, AirPit and Bowl. Gun Game, Tactical/PFT and Zombies do not 
   segmented contour, each with its own lifetime. The view remains independent of
   the HUD switch and disappears when its effect or body ends.
 
-Sources: [pickup system](PICKUPS-REVIEW.md),
-[all-map layouts](ALL-MAP-PICKUPS-20261017.md),
+Sources: [pickup system](reviews/PICKUPS-REVIEW.md),
+[all-map layouts](reviews/ALL-MAP-PICKUPS-20261017.md),
 [current layouts](../ArenaMode.Client/Pickups/ArenaPickupLayout.cs),
 [pickup implementations](../ArenaMode.Client/Pickups).
 
@@ -412,10 +412,10 @@ Sources: [pickup system](PICKUPS-REVIEW.md),
 - Solo modes retain native tracer behavior and do not offer team colors or
   friendly-fire controls as if an allied team existed.
 
-Sources: [friendly fire](FRIENDLY-FIRE-REVIEW.md),
+Sources: [friendly fire](reviews/FRIENDLY-FIRE-REVIEW.md),
 [armbands](../ArenaMode.Server/Services/TeamDeathmatchArmbandPolicy.cs),
 [friendly markers](../ArenaMode.Client/Hud/ArenaFriendlyMarkers.cs),
-[laser brightness](LASER-BRIGHTNESS-REVIEW.md), [beam brightness](LASER-BEAM-REVIEW.md),
+[laser brightness](reviews/LASER-BRIGHTNESS-REVIEW.md), [beam brightness](reviews/LASER-BEAM-REVIEW.md),
 [effects implementation](../ArenaMode.Client/Effects).
 
 ## 7. Scoreboard, HUD and feedback
@@ -466,10 +466,10 @@ Sources: [friendly fire](FRIENDLY-FIRE-REVIEW.md),
   extraction is disabled. The combat overlay hides behind native inventory/menus.
 
 Sources: [HUD implementation](../ArenaMode.Client/Hud),
-[HUD mutators](HUD-MUTATORS-REVIEW.md),
-[info panels](RAID-INFO-PANELS-REVIEW.md),
+[HUD mutators](reviews/HUD-MUTATORS-REVIEW.md),
+[info panels](reviews/RAID-INFO-PANELS-REVIEW.md),
 [progress notifications](../ArenaMode.Client/Notifications/ArenaProgressNotifications.cs),
-[UI artwork](WEAPON-RENDERS-20261016.md).
+[UI artwork](reviews/WEAPON-RENDERS-20261016.md).
 
 ### Points and assists
 
@@ -484,7 +484,7 @@ Sources: [HUD implementation](../ArenaMode.Client/Hud),
 - No persistent cross-match/global leaderboard is implemented.
 
 Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
-[assist settlement](ASSIST-SCORING-REVIEW.md),
+[assist settlement](reviews/ASSIST-SCORING-REVIEW.md),
 [scoreboard](../ArenaMode.Client/Modes/ArenaScoreboard.cs).
 
 ## 8. Announcer and sound
@@ -521,7 +521,7 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
   occasional kill speech. The announcer takes priority. In Team DM, a rotating
   faction voice (including English BEAR) stays stable through respawns; other
   modes retain the selected profile voice. Saved customization is unchanged.
-  See [scope and checks](PMC-VOICELINES-20261026.md).
+  See [scope and checks](reviews/PMC-VOICELINES-20261026.md).
 - Per-mode announcer preferences: default on except Zombies. The switch covers
   announcer stingers/cues and kill-award text, not essential wave/status text.
   The detailed lead/time/limit director serves DM, TDM, Tactical and Gun Game;
@@ -564,9 +564,9 @@ Sources: [cue catalog](../ArenaMode.Client/Audio/AnnouncerCueCatalog.cs),
   lost-items warning is hidden and the XP-gain page is skipped; required native
   result completion and profile refresh still run.
 
-Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
+Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
 [spectator implementation](../ArenaMode.Client/Spectator),
-[post-raid screens](POSTRAID-PAGES-REVIEW.md),
+[post-raid screens](reviews/POSTRAID-PAGES-REVIEW.md),
 [protected exit](../ArenaMode.Client/Session/ArenaRaidExit.cs).
 
 ## 10. Maps, areas and environment
@@ -614,13 +614,13 @@ Sources: [replay selection](KILLCAM-MODES-REVIEW.md),
   Blackout/Going Dark can suppress this layer by default to avoid competition.
 
 Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
-[all-mode Customs handling](CUSTOMS-ALL-MODES-REVIEW.md),
-[grid visibility](AREA-GRID-VISIBILITY-REVIEW.md),
-[Factory exclusions](FACTORY-SPAWNS-REVIEW.md), [Labs exclusions](LABS-SPAWN-REVIEW.md),
+[all-mode Customs handling](reviews/CUSTOMS-ALL-MODES-REVIEW.md),
+[grid visibility](reviews/AREA-GRID-VISIBILITY-REVIEW.md),
+[Factory exclusions](reviews/FACTORY-SPAWNS-REVIEW.md), [Labs exclusions](reviews/LABS-SPAWN-REVIEW.md),
 [Labyrinth access](../ArenaMode.Client/Session/ArenaLabyrinthAccess.cs),
-[trap handling](LABYRINTH-SPAWN-TRAPS-REVIEW.md),
+[trap handling](reviews/LABYRINTH-SPAWN-TRAPS-REVIEW.md),
 [exit timing](../ArenaMode.Server/Services/ArenaLocationMutator.cs),
-[lighting](MAP-LIGHTING-20261017.md).
+[lighting](reviews/MAP-LIGHTING-20261017.md).
 
 ## 11. Bot behavior and difficulty
 
@@ -658,12 +658,12 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   by the older pressure-floor settings. No single unified difficulty slider is
   implemented yet.
 
-Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
+Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 [agility](../ArenaMode.Client/Movement/ArenaBotAgility.cs),
 [pressure](../ArenaMode.Client/Bots/ArenaPressure.cs),
 [duration policy](../ArenaMode.Shared/ArenaDifficultyClock.cs),
-[population ownership](SOLO-POPULATION-REVIEW.md),
-[APBS integration](APBS-COMPATIBILITY-REVIEW.md),
+[population ownership](reviews/SOLO-POPULATION-REVIEW.md),
+[APBS integration](reviews/APBS-COMPATIBILITY-REVIEW.md),
 [bot implementation](../ArenaMode.Client/Bots).
 
 ## 12. Profile protection, stability and performance
@@ -745,13 +745,13 @@ Sources: [bot movement](BOT-MOVEMENT-REVIEW.md),
   repeated RequestHandler request/success spam. Real failures remain visible.
 
 Sources: [protection services](../ArenaMode.Server/Services),
-[protected consumption](TEAM-LOADOUT-CONSUMPTION-REVIEW.md),
-[corpse cleanup](CORPSE-CLEANUP-REVIEW.md),
-[DynamicMaps cleanup](DYNAMICMAPS-CORPSE-REVIEW.md),
-[heap threshold](GC-THRESHOLD-REVIEW.md),
-[pool prewarm](POOL-PREWARM-REVIEW.md), [logging policy](LOGGING.md).
-See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
-[Zombie body-culling checks](ZOMBIE-BODY-CULLING-20261017.md).
+[protected consumption](reviews/TEAM-LOADOUT-CONSUMPTION-REVIEW.md),
+[corpse cleanup](reviews/CORPSE-CLEANUP-REVIEW.md),
+[DynamicMaps cleanup](reviews/DYNAMICMAPS-CORPSE-REVIEW.md),
+[heap threshold](reviews/GC-THRESHOLD-REVIEW.md),
+[pool prewarm](reviews/POOL-PREWARM-REVIEW.md), [logging policy](LOGGING.md).
+See also [profile construction](reviews/PROFILE-BUILD-BUDGET-20261017.md) and
+[Zombie body-culling checks](reviews/ZOMBIE-BODY-CULLING-20261017.md).
 
 ## 13. Configuration, integrations and authoring tools
 
@@ -800,7 +800,7 @@ See also [profile construction](PROFILE-BUILD-BUDGET-20261017.md) and
 Sources: [dependencies](DEPENDENCIES.md),
 [server config page](../ArenaMode.Server/Web/Pages/ArenaConfig.razor),
 [settings sync](../ArenaMode.Client/Config/SettingsSync.cs),
-[polygon drafting](POLYGON-AREA-REVIEW.md),
+[polygon drafting](reviews/POLYGON-AREA-REVIEW.md),
 [pickup capture](../ArenaMode.Client/Pickups/ArenaPickupSettings.cs).
 
 ## 14. Complete map-screen mutator list

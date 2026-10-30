@@ -104,7 +104,7 @@ harness passed 91 assertions and rejected all eleven compiled negative controls,
 including incorrect Cola profile, mode, epoch and failed-arm cleanup. Separate
 reward transfer, control transfer, menu state and client capture harnesses also
 passed. Native results and test-mod cleanup are recorded in
-[the GPU test record](GPU-TARKOVA-COLA-20261025.md).
+[the GPU test record](reports/2026-10/GPU-TARKOVA-COLA-20261025.md).
 
 The coordinated ordinary-server startup paid the three genuine retained test
 results exactly once: 4,000 RUB and 400 PMC XP for four kills, plus 40,000 RUB and

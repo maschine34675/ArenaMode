@@ -86,4 +86,4 @@ simultaneous spawn/shield/damage geometry, frame following, exact expiry, immedi
 depletion, disabled-body hide/reappear, death, recycled registration, body-health
 replacement, round/reset disposal and missing-shader failure isolation. These
 cannot certify actual shader output, native Unity object lifetime or DLSS output.
-The native GPU seams are listed in `docs/POWERUP-INDICATORS-20261018.md`.
+The native GPU seams are listed in `docs/reviews/POWERUP-INDICATORS-20261018.md`.

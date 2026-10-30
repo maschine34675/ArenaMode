@@ -17,8 +17,8 @@ failures and off/on toggles. The preloader and native inventory remain boundary
 doubles; the real native call path is documented in the supply review.
 No installed files are changed. Logs and mutant builds go to ignored `artifacts`.
 Physics geometry, animator, Harmony dispatch, audio and actual bot movement still
-require native acceptance; see `docs/MOLOTOV-SUPPLY-20261015.md` and the historical
-`docs/MOLOTOV-PROTOTYPE-REVIEW.md`.
+require native acceptance; see `docs/reviews/MOLOTOV-SUPPLY-20261015.md` and the historical
+`docs/reviews/MOLOTOV-PROTOTYPE-REVIEW.md`.
 
 The second reuses the established no-deploy client/companion build, validates
 installed client/server/core/companion hashes before/after, and emits a source

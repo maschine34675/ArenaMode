@@ -41,7 +41,7 @@ Native Factory Deathmatch and ordinary-PMC checks covered Looting Bots 1.8.0,
 Remove The Dead 4.1.3 and Smoothie 1.0.8. The pickup correction was checked in
 the game at commit `2624bef`, before the release-only version/documentation
 change. The detailed scope is in
-[the native compatibility report](GPU-OPTIONAL-COMPAT-20261019.md).
+[the native compatibility report](reports/2026-10/GPU-OPTIONAL-COMPAT-20261019.md).
 
 MoreBotsAPI, AI Limit and Black Division have not received native acceptance
 in this test series. Black Division is not blocked, but is not certified

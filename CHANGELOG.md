@@ -142,7 +142,7 @@ Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4
   remains unlisted because its separate Labyrinth setup problem is unresolved.
 
 See [release notes](docs/RELEASE-0.4.0.md), [dependencies](docs/DEPENDENCIES.md)
-and the [native test report](docs/RELEASE-SWEEP-20261029.md) for scope and limits.
+and the [native test report](docs/reports/2026-10/RELEASE-SWEEP-20261029.md) for scope and limits.
 
 ## [0.3.0] - 2026-10-25
 
@@ -288,8 +288,8 @@ and the [native test report](docs/RELEASE-SWEEP-20261029.md) for scope and limit
   verification.
 
 Details: [Arena sessions](docs/ARENA-SESSION-20261021.md),
-[Bowl team boxes](docs/BOWL-TEAM-BOXES-20261023.md),
-[shared body-replacement fixes](docs/SHARED-BODY-COMPAT-20261023.md).
+[Bowl team boxes](docs/reviews/BOWL-TEAM-BOXES-20261023.md),
+[shared body-replacement fixes](docs/reviews/SHARED-BODY-COMPAT-20261023.md).
 
 [Release notes and verification limits](docs/RELEASE-0.2.0.md).
 

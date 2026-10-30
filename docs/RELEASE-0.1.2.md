@@ -49,10 +49,10 @@ The version-only release build is not another native gameplay test.
 
 Detailed evidence and remaining gaps:
 
-- [Healing and loot](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md)
-- [Movement and statistics](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md)
-- [Ammo, health and SVM native checks](GPU-OPTIONAL-COMPAT-20261020.md)
-- [Arena availability and Adaptive Bot Culling](ARENA-AVAILABILITY-20261020.md)
+- [Healing and loot](reviews/HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md)
+- [Movement and statistics](reports/2026-10/MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md)
+- [Ammo, health and SVM native checks](reports/2026-10/GPU-OPTIONAL-COMPAT-20261020.md)
+- [Arena availability and Adaptive Bot Culling](reviews/ARENA-AVAILABILITY-20261020.md)
 
 This is not certification of every option or mod combination. Pending magazine
 work during a living body replacement, some narrow asynchronous timing windows,

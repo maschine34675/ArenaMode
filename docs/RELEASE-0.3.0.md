@@ -5,7 +5,7 @@ These notes describe changes since the actual `v0.2.1` tag, including work
 which was already in development while the 0.2.1 hotfix was published.
 
 Final package hashes, native checks and the session helper's three unresolved
-VirusTotal detections are recorded in [release verification](RELEASE-VERIFICATION-20261025.md).
+VirusTotal detections are recorded in [release verification](reports/2026-10/RELEASE-VERIFICATION-20261025.md).
 
 ## Changes
 
@@ -60,7 +60,7 @@ at plugin startup, including in the normal process. A disabled mutator or later
 private-session filter does not resolve that overlap. ImpactCue, Enemy Markers,
 Amand's Graphics, HUD Breakout, Manimal's Quick Cancel and Picture in Picture
 Disabler also remain outside the default whitelist pending the fixes/tests
-described in [the seven-mod review](SEVEN-MOD-COMPAT-20261025.md).
+described in [the seven-mod review](reports/2026-10/SEVEN-MOD-COMPAT-20261025.md).
 
 Close EFT and both normal/private SPT sessions before replacing files. Merge the
 release's `BepInEx` and `SPT_Runtime` folders into the SPT root. Update the client,
@@ -92,13 +92,13 @@ profile is never written over the normal profile.
   274 tests and coordinator mutation checks also passed. This HUD matrix did
   not include a new standalone Redeploy raid or PFT.
 
-See [session verification](GPU-OFFLINE-SESSION-20261025.md),
-[XP verification](GPU-REWARD-XP-20261025.md),
-[Tarkova Cola verification](GPU-TARKOVA-COLA-20261025.md),
-[PFT 1.0 review](PITFIRETEAM-1.0.0-20261024.md),
-[FOV/Manimal review](FOUR-MOD-COMPAT-20261025.md) and
-[input-mod review](INPUT-MOD-COMPAT-20261025.md), and
-[HUD review](HUD-MOD-COMPAT-20261025.md).
+See [session verification](reports/2026-10/GPU-OFFLINE-SESSION-20261025.md),
+[XP verification](reports/2026-10/GPU-REWARD-XP-20261025.md),
+[Tarkova Cola verification](reports/2026-10/GPU-TARKOVA-COLA-20261025.md),
+[PFT 1.0 review](reviews/PITFIRETEAM-1.0.0-20261024.md),
+[FOV/Manimal review](reports/2026-10/FOUR-MOD-COMPAT-20261025.md) and
+[input-mod review](reports/2026-10/INPUT-MOD-COMPAT-20261025.md), and
+[HUD review](reviews/HUD-MOD-COMPAT-20261025.md).
 
 No new functional release blocker was found in these sources and reports.
 Fika, distributed ownership across simultaneously running mirrored hosts, native

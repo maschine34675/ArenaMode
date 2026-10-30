@@ -5,7 +5,7 @@ contract between the five parts below. If an implementation detail has to deviat
 file in the same commit and say why.
 
 2026-10-25 extensions: [automatic reward return](REWARDS-RETURN.md) supplies the
-native save/drain adapter. [Offline Arena sessions](ARENA-OFFLINE-SESSION-20261025.md)
+native save/drain adapter. [Offline Arena sessions](reviews/ARENA-OFFLINE-SESSION-20261025.md)
 now use it to stop the ordinary server before copying the profile, including OFF
 and no-result sessions. Schema 3 pins that lifecycle and private consent authority;
 return starts normal SPT for recovery/payment before EFT. Schema 1/2 retain the
@@ -32,7 +32,7 @@ runs only with **whitelisted** mods:
 - Recognized versions differing from the reviewed version are advisory in both
   direct play and new private sessions (user decision, 2026-10-27). They are still
   attempted; no new version-exclusion plan is created. Identity, deny/dependency
-  and protection/API checks remain mandatory. See [current version policy](MOD-VERSION-FOLLOWUP-20261027.md).
+  and protection/API checks remain mandatory. See [current version policy](reviews/MOD-VERSION-FOLLOWUP-20261027.md).
   The 2026-10-24 version-filtered restart is historical. Existing schema-2 plans
   retain strict request/process-flag/marker agreement and old-helper refusal;
   compatibility with those saved plans does not restore automatic exclusion.
@@ -119,7 +119,7 @@ Continuous Load Ammo and Recoil Rework Legacy were added after the shared-Core
 GPU checks on 2026-10-23; ContinuousHealing was already listed. Recoil's server
 package uses the same GUID and is therefore also admitted if installed, but was
 not tested; the entry records only the reviewed client version.
-See [the bounded native results](SHARED-BODY-COMPAT-20261023.md).
+See [the bounded native results](reviews/SHARED-BODY-COMPAT-20261023.md).
 
 Tarkova Cola was added on 2026-10-25 with an explicitly requested external-state
 protection and Zombie-reward adapter. See [its scope](TARKOVA-COLA-COMPAT.md).
@@ -1456,7 +1456,7 @@ Sections 5 to 8 above describe the implementation, not the first draft. What cha
   start a watchdog (the test assembly is not the helper's exe). SPT-GPU-2 ran the three variants of item 13 the
   same day (section 10, fourth run).
 - Sections 4, 5, 6, 7 and 9 (2026-10-23, external review,
-  [ARENA-SESSION-REVIEW-RESPONSE-20261023.md](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)). Three findings of a second
+  [ARENA-SESSION-REVIEW-RESPONSE-20261023.md](reports/2026-10/ARENA-SESSION-REVIEW-RESPONSE-20261023.md)). Three findings of a second
   Codex review at `c021c0d`, all three corrected. (1) The tree's copy of `backup.json` kept the runtime's backup
   `directory`; an absolute one, or one that climbs out of the tree, put the disposable profile's backups into the
   normal server's pool, where SPT's retention deletes the normal server's backups and a restore may pick an arena

@@ -89,4 +89,4 @@ Installed-game acceptance on GPU-2 passed: one private DM kill and win delivered
 1,100 XP and 11,000 RUB, native login advanced level 2 to 3, mail collection added
 only RUB, and a second server restart paid nothing again. The three existing
 pre-update RUB-only histories remained unchanged. See
-[native acceptance and deployment](GPU-REWARD-XP-20261025.md).
+[native acceptance and deployment](reports/2026-10/GPU-REWARD-XP-20261025.md).

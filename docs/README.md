@@ -1,195 +1,538 @@
 # ArenaMode documentation
 
-Working notes, feature reviews, GPU test instructions/results and historical
-build/deployment JSON records live here. The automatically discovered
-[agent instructions](../AGENTS.md) remain at the repository root.
+Working notes, feature contracts, dated reports and native-test evidence live here. The automatically
+discovered [agent instructions](../AGENTS.md) stay at the repository root; the player-facing
+[README](../README.md), [CHANGELOG](../CHANGELOG.md) and [THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES.md) too.
 
-## Start here
+## Layout
 
-- [ArenaMode 0.4.1 release notes](RELEASE-0.4.1.md) (hotfix for 0.4.0)
-- [ArenaMode 0.4.0 release notes](RELEASE-0.4.0.md)
-- [Two-host native pre-release checks and remaining findings](RELEASE-SWEEP-20261029.md)
-- [Concise Arena menus: implementation and native acceptance](UX-SIMPLIFICATION-20261029.md)
-- [Menu copy on SPT-GPU-1: repeated session, reward and mode lines](UX-REVIEW-20261029.md)
-- [Menu UX on SPT-GPU-2: session lockout, mode copy and the trader detour](UX-REVIEW-20261026.md)
-- [Domination on ported maps: original capture points and team boxes](DOMINATION-PORTED-20261026.md)
-- [Domination prototype: three Factory points, team scoring and objective bots](DOMINATION-PROTOTYPE-20261026.md)
-- [Domination follow-up: map-menu performance, pickup separation and ownership rings](DOMINATION-FOLLOWUP-20261026.md)
+| Folder | Holds |
+|---|---|
+| `docs/` (this folder) | Living references that are updated in place: handoff, area rules, traps, feature inventory, dependencies, release notes, reward specifications, and the Arena session specification with its two dated companions that source code cites by path. |
+| `docs/reviews/` | Feature contracts and implementation reviews: how a shipped feature works and what must be preserved when changing it. Read the relevant one before changing an area; [AREA-RULES.md](AREA-RULES.md) names them per area. |
+| `docs/reports/<YYYY-MM>/` | Dated records: GPU/native test results and instructions, audits, surveys, release sweeps, build and deployment manifests, investigations, review responses. Evidence for the build and scenario they name, not proof about the current build. |
+| `docs/evidence/` | Screenshots and captured files that the reports link to. New evidence goes to the gitignored `artifacts/` folder; only its summary belongs in a report. |
+| `docs/handoff-archive/` | The earlier handoff and `AGENTS.md` as they stood on 2026-10-29, complete; only links and document paths were rewritten for the new layout. |
 
-- [Automatic PMC voicelines, rotating TDM voices and bot clothing ownership](PMC-VOICELINES-20261026.md)
-- [Multiplayer with Fika: current source review, architecture and staged proposal](MULTIPLAYER-FIKA-CONCEPT-20261026.md)
-- [Fika test environment: four-machine inventory and preparation steps](MULTIPLAYER-ENVIRONMENT-20261026.md)
-- [Team DM side selection, faction colors and ArenaMapPort score monitors](TDM-SIDES-MONITORS-20261025.md)
-- [Changelog since 0.1.0](../CHANGELOG.md)
-- [0.3.0 release notes and verification](RELEASE-0.3.0.md)
-- [Published 0.3.0 / Redeploy 1.0.2 packages: versions, tests, scans and download verification](RELEASE-VERIFICATION-20261025.md)
-- [Seven further mod reviews: confirmed conflicts and pending tests](SEVEN-MOD-COMPAT-20261025.md)
-- [Radar, Simple Crosshair and Better BepInEx: shared Core fixes and GPU-2 checks](HUD-MOD-COMPAT-20261025.md)
-- [RUB reward settlement core and synthetic profile tests](REWARDS-CORE.md)
-- [Protected ordinary-server reward startup consumer](REWARDS-SERVER.md)
-- [Server result validation and durable payout approvals](REWARDS-RESULTS.md)
-- [Optional rewards: gameplay capture, private-session transfer and player consent](REWARDS-RUNTIME.md)
-- [XP and other mail rewards: Give-UI/native feasibility](REWARD-XP-FEASIBILITY-20261025.md)
-- [Atomic XP rewards and native progression](REWARDS-XP.md)
-- [Automatic reward settlement when returning to the normal session](REWARDS-RETURN.md)
-- [Stopping the normal server during private Arena: ownership, consent and recovery](ARENA-OFFLINE-SESSION-20261025.md)
-- [Normal startup after lost private Arena data](OFFLINE-STARTUP-RECOVERY-20261028.md)
-- [Offline Arena session: GPU-2 switches, reward control and one-time payment](GPU-OFFLINE-SESSION-20261025.md)
-- [Tarkova Cola: protected gameplay, Zombie progression and achievement payout](TARKOVA-COLA-COMPAT.md)
-- [Automatic return: native mail, XP, pending totals and empty-return checks](GPU-REWARD-RETURN-20261025.md)
-- [XP rewards: private combat, startup payout, level and collection on GPU-2](GPU-REWARD-XP-20261025.md)
-- [Reward card on the Arena map screen: GPU-2 menu checks](GPU-REWARD-MENU-20261024.md)
-- [Private Arena session reward control: GPU-2 checks](GPU-PRIVATE-REWARD-CONSENT-20261025.md)
-- [Arena transits, first three Gun Game stages and reduced ammunition: GPU-2 checks](TRANSITS-GUNGAME-AMMO-20261024.md)
-- [PitFireTeam 1.0.0 and version-filtered Arena sessions](PITFIRETEAM-1.0.0-20261024.md)
-- [Spawn-gate completion: MapPort contract and verification status](SPAWN-GATE-COMPLETION-20261024.md)
-- [Spawn-gate completion and refreshed DynamicMaps: GPU-2 results](GPU-SPAWN-GATE-COMPLETION-20261024.md)
-- [Bowl original Team DM boxes and gate opening](BOWL-TEAM-BOXES-20261023.md)
-- [Bowl team boxes: GPU-2 native results and delivery](GPU-BOWL-TEAM-BOXES-20261023.md)
-- [Bowl map admission, migration and generic spawns](BOWL-INTEGRATION-20261023.md)
+Marks in the lists below: *(superseded)* means a newer document replaces this one; *(history)* means, in a review, that the code it describes was removed or replaced and, in a report, that the record describes a past build or run only.
 
-Reviews, contracts and test results of the adapters and per-mod refusals removed on
-2026-10-22 (MoreBotsAPI, AI Limit, Looting Bots, Remove The Dead, Smoothie, Late To
-The Party, Classic Movement, StatTrack, Deminvincibility, Skills Extended, Pause
-Continued, EFT Effects Manager / Broken Limbs, and the code-level refusals of ORBIT,
-Questing Bots, Adaptive Bot Culling, ISB Special Forces/Aishi) are kept as dated
-records, marked "history" below. The code and the offline harnesses they describe no
-longer exist; the whitelist replaced them.
+## Living references
 
-- [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
+- [Working handoff: versions, installed state, open work, how to continue](HANDOFF.md)
+- [Area rules: per-area constraints and the reviews to read before changing an area](AREA-RULES.md)
+- [Traps: the pitfalls that recur, with symptom, cause and remedy](TRAPS.md)
+- [Complete implemented feature inventory and mutator list](FEATURES.md)
+- [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
+- [Maps and modes: current admission matrix (as of 2026-10-17)](MAP-MODE-COMPATIBILITY.md)
+- [Logging levels and developer diagnostics](LOGGING.md)
+- [Deferred Arena design work](FUTURE-WORK.md)
+- [Forge description, eight tabs (draft of 0.4.1)](FORGE-DESCRIPTION.md)
+
+### Specifications and contracts
+
 - [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
+- [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
-- [Arena session: answer to the external review of 2026-10-23](ARENA-SESSION-REVIEW-RESPONSE-20261023.md)
-- [Arena session: solution, deployment and packaging](ARENA-SESSION-DEPLOY-20261021.md)
+- [Tarkova Cola: protected gameplay, Zombie progression and achievement payout](TARKOVA-COLA-COMPAT.md)
+
+### Rewards
+
+- [RUB reward settlement core and synthetic profile tests](REWARDS-CORE.md)
+- [Server result validation and durable payout approvals](REWARDS-RESULTS.md)
+- [Automatic reward settlement when returning to the normal session](REWARDS-RETURN.md)
+- [Optional rewards: gameplay capture, private-session transfer and player consent](REWARDS-RUNTIME.md)
+- [Protected ordinary-server reward startup consumer](REWARDS-SERVER.md)
+- [Atomic XP rewards and native progression](REWARDS-XP.md)
+
+### Release notes
+
+- [ArenaMode 0.4.1 release notes (hotfix for 0.4.0)](RELEASE-0.4.1.md)
+- [ArenaMode 0.4.0 release notes](RELEASE-0.4.0.md)
+- [0.3.0 release notes and verification](RELEASE-0.3.0.md)
 - [Release 0.2.1: the Arena session with content mods left out](RELEASE-0.2.1.md)
 - [Release 0.2.0: Arena sessions and the whitelist, Bowl, shared Core 1.0.10](RELEASE-0.2.0.md)
-- [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
-- [ISB Special Forces/Aishi: interim Arena-only admission](ISB-ADMISSION-20261020.md) (history: adapter removed 2026-10-22)
-- [First candidate batch: integration, offline results and pending native tests](COMPAT-FIRST-INTEGRATION-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
-- [Pause Continued: Arena-only activation suppression](PAUSE-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
-- [EFT Effects Manager / Broken Limbs: body and skill ownership](EFFECTS-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
-- [Candidate compatibility: native GPU tests and cleanup](GPU-COMPAT-SECOND-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
-- [Skills Extended: scoped XP and external receipt protection](SKILLS-EXTENDED-COMPAT-20261020.md) (history: adapter removed 2026-10-22)
-- [Shared body-replacement adapters in Redeploy.Core 1.0.9](SHARED-BODY-COMPAT-20261023.md)
-- [Recoil Rework Legacy: published lifecycle conflict review](RECOIL-REWORK-REVIEW-20261020.md)
-- [Recoil Rework Legacy: scoped body/component handoff](RECOIL-REWORK-COMPAT-20261020.md)
-- [Additional compatibility candidates: skills, health, ISB, pause, doors and stances](COMPATIBILITY-CANDIDATES-20261020.md) (history: the per-mod adapters it describes were removed on 2026-10-22)
-- [Forge top 200: compatibility candidates, pinned sources and review limits](COMPATIBILITY-SURVEY-20261019.md)
-- [Arena-only optional AI-mod admission](OPTIONAL-MOD-ADMISSION-20261019.md) (history: adapter removed 2026-10-22)
-- [MoreBotsAPI spawn, relationship and revenge isolation](MOREBOTS-COMPATIBILITY-20261019.md) (history: adapter removed 2026-10-22)
-- [AI Limit: exact Arena-world component pause](AI-LIMIT-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Looting Bots: scoped autonomous-looting pause](LOOTING-BOTS-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Remove The Dead: retained corpses and pickup protection](REMOVE-THE-DEAD-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Smoothie: moving pickup markers and optional GC policy](SMOOTHIE-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Continuous Healing: native bot healing and retired-body isolation](CONTINUOUS-HEALING-COMPAT-20261019.md)
-- [Late To The Party: exact weapon-pickup source protection](LATE-TO-THE-PARTY-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Health and loot compatibility: combined implementation and verification](HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md) (history: partly about adapters removed on 2026-10-22)
-- [GPU2 healing, pickup protection and ordinary-raid controls](GPU-HEALTH-LOOT-COMPAT-20261019.md) (history: partly about adapters removed on 2026-10-22)
-- [Classic Movement: exact Arena movement-state ownership](CLASSIC-MOVEMENT-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [StatTrack: Arena statistics and body-lifecycle isolation](STATTRACK-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Movement and statistics compatibility: integration and verification](MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md) (history: adapter removed 2026-10-22)
-- [GPU2 movement/statistics initial checks and lifecycle interruption](GPU-MOVEMENT-STATS-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Continuous Load Ammo: body changes and delayed completion](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md)
-- [SVM: protected and ordinary raid-end transactions](SVM-COMPAT-20261019.md)
-- [Deminvincibility: exact Arena-local damage and death](DEMINVINCIBILITY-COMPAT-20261019.md) (history: adapter removed 2026-10-22)
-- [Ammo, raid end and health: integration and native followup](AMMO-RAID-HEALTH-COMPAT-20261020.md) (history: partly about adapters removed on 2026-10-22)
-- [GPU2 lifecycle retest, ammo/health/SVM checks and terminal-exit correction](GPU-OPTIONAL-COMPAT-20261020.md) (history: partly about adapters removed on 2026-10-22; the kept adapters are Continuous Healing, Continuous Load Ammo, Recoil Rework Legacy, PitFireTeam, DynamicMaps, SVM and APBS)
-- [Combined optional-mod integration and verification](OPTIONAL-COMPAT-INTEGRATION-20261019.md) (history: partly about adapters removed on 2026-10-22)
-- [Native optional-mod startup and pending gameplay matrix](GPU-OPTIONAL-COMPAT-20261019.md) (history: partly about adapters removed on 2026-10-22)
-- [Isolation and profile review, 2026-10-19](ISOLATION-REVIEW-20261019.md)
-- [Bot spawn shields only for ported-map Team DM boxes](BOT-SPAWN-SHIELD-SCOPE-20261019.md)
-- [Depth-occluded bot effect contours](BOT-EFFECT-OUTLINES-20261019.md)
-- [GPU2 bot contours, cover, DLSS and spawn-shield controls](GPU-BOT-EFFECTS-20261019.md)
+- [Release 0.1.3: compatibility changes and verification boundaries](RELEASE-0.1.3.md)
+- [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
+- [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-- [Optional mod minimum versions and forward admission](OPTIONAL-MOD-VERSIONS-20261019.md)
+## Feature reviews and contracts (196)
 
-- [Native model repair: integration, ownership and verification](MODEL-REPAIR-INTEGRATION-20261019.md)
-- [Cold PMC/PFT model-fault controls and exact restoration](GPU-MODEL-CONTROLS-20261019.md)
-- [GPU2 model repair: actual replays, PFT rebind and preserved data](GPU-MODEL-FIXES-20261019.md)
+Sorted by file name.
 
-- [Model preview ownership and PitFireTeam lifecycle investigation](MODEL-PREVIEW-INVESTIGATION-20261019.md)
-- [Native animation fault attribution and diagnostic limits](MODEL-ANIMATION-INVESTIGATION-20261019.md)
-- [Model asset, pooled equipment and Killcam clone investigation](MODEL-POOL-INVESTIGATION-20261019.md)
+- [Local Arena air control: WASD steering during jumps and falls](reviews/AIR-CONTROL-REVIEW.md)
+- [Landing recovery, weapon handling and airborne mantle/vault](reviews/AIR-MOVEMENT-REVIEW.md)
+- [AirPit map admission and saved-map migration](reviews/AIRPIT-INTEGRATION-20261017.md)
+- [AirPit original team boxes: MapPort 0.2.2, independent TDM, GPU1 acceptance](reviews/AIRPIT-TEAM-BOXES-REVIEW.md)
+- [Automatic Akimbo aiming lasers](reviews/AKIMBO-LASER-20261018.md)
+- [Akimbo persistent pistol mutator: shot, ammo and replica contract](reviews/AKIMBO-REVIEW.md)
+- [All-map pickup layouts and longer beams](reviews/ALL-MAP-PICKUPS-20261017.md)
+- [Continuous Load Ammo, SVM and Deminvincibility: integration and native followup](reviews/AMMO-RAID-HEALTH-COMPAT-20261020.md)
+- [WARLORD awards and playback rules (First Blood, Headshot, Payback, Last Man)](reviews/ANNOUNCER-AWARDS-REVIEW.md)
+- [Additional announcer cues: trigger contract and award priority](reviews/ANNOUNCER-EXPANSION-REVIEW.md)
+- [Announcer preparation voice lifetime: AdvanceStatus cancellation policy and DM epoch](reviews/ANNOUNCER-PREPARE-REVIEW.md)
+- [Announcer silence: diagnosis and clip-cache recovery in AnnouncerService](reviews/ANNOUNCER-REVIEW.md)
+- [APBS 2.4.1 compatibility: level-range ownership, forward admission and TDM acceptance](reviews/APBS-COMPATIBILITY-REVIEW.md)
+- [Team-start contour connectivity graph: bidirectional path tree and placement helper](reviews/AREA-CONNECTIVITY-REVIEW.md)
+- [Area enclosure grid proximity fade: per-side alpha, ownership and safety](reviews/AREA-GRID-VISIBILITY-REVIEW.md)
+- [Native Customs area map preview: projection, artwork licence, lifecycle and GPU r1/r2](reviews/AREA-MAP-PREVIEW-REVIEW.md)
+- [Area team-size picker and the frozen areaTeamSize transport contract](reviews/AREA-TEAM-MENU-REVIEW.md)
+- [Area team runtime review: reservations, arrival validation and respawn leases](reviews/AREA-TEAM-RUNTIME-REVIEW.md)
+- [Area team setup server review: areaTeamSize validation and start-capacity checks](reviews/AREA-TEAM-SERVER-REVIEW.md)
+- [Customs team starts and selectable 2v2-5v5 team sizes](reviews/AREA-TEAM-SETUP-REVIEW.md) *(superseded)*
+- [Arena availability notice, Core-free startup path and the removed Adaptive Bot Culling refusal](reviews/ARENA-AVAILABILITY-20261020.md)
+- [Arena bleeding damage multiplier: admission scope and ApplyDamage contract](reviews/ARENA-BLEEDING-REVIEW.md)
+- [Arena lighting director: owned light, phase effects and external-mod suppression](reviews/ARENA-LIGHTING-REVIEW.md)
+- [Stopping the normal server during private Arena: ownership, consent and recovery](reviews/ARENA-OFFLINE-SESSION-20261025.md)
+- [Arena panel close input: keep shooting blocked until a released-pointer delivery](reviews/ARENA-PANEL-INPUT-REVIEW.md)
+- [Arena character preview through native raid setup and its lifecycle correction](reviews/ARENA-PREVIEW-REVIEW.md)
+- [Arena raid leave without the item-loss confirmation](reviews/ARENA-RAID-EXIT-REVIEW.md)
+- [Arena session: solution, deployment and packaging](reviews/ARENA-SESSION-DEPLOY-20261021.md)
+- [Killfeed and scoreboard graphics from extracted EFT images (replaced 2026-10-16)](reviews/ARENA-UI-ASSETS-REVIEW.md) *(superseded)*
+- [Match-local damage assists: rules, native HP capture and lifecycle](reviews/ASSIST-SCORING-REVIEW.md)
+- [Audio folders and consolidated package notices](reviews/AUDIO-LAYOUT-20261018.md)
+- [Arena reload from a backpack: Mono-safe non-generic magazine scan](reviews/BACKPACK-RELOAD-REVIEW.md)
+- [Bay5 map admission, per-map availability and revision-2 saved-map migration](reviews/BAY5-MAP-REVIEW.md) *(superseded)*
+- [Bay5 original TeamFight boxes for independent Team DM](reviews/BAY5-TEAM-BOXES-REVIEW.md)
+- [Arena-owned BigBrain library and Redeploy server boundary](reviews/BIGBRAIN-LIBRARY-20261018.md)
+- [Retired player body: bleeding registration cleanup (ArenaRetiredBodyEffects)](reviews/BLEEDING-NRE-REVIEW.md)
+- [Bot agility and reduced weight inertia (ArenaBotAgility)](reviews/BOT-AGILITY-REVIEW.md)
+- [Depth-occluded bot effect contours (spawn, shield, double damage)](reviews/BOT-EFFECT-OUTLINES-20261019.md)
+- [Arena bot locomotion speed: walk/sprint displacement bonus and SAIN door guard](reviews/BOT-MOVEMENT-REVIEW.md)
+- [Bot spawn shields only for ported-map Team DM boxes](reviews/BOT-SPAWN-SHIELD-SCOPE-20261019.md)
+- [Bot combat speech and tempo: scoped taunt override, strafe floor, search-delay cap](reviews/BOT-TALK-TEMPO-20261027.md)
+- [Arena bot combat tempo: search wait, search sprint and combat strafing (ArenaBotTempo)](reviews/BOT-TEMPO-REVIEW.md)
+- [Retired bot weapon callback safeguard (ArenaWeaponCallbackSafety)](reviews/BOT-WEAPON-CALLBACK-REVIEW.md)
+- [Bounded Team Deathmatch prototype (Factory South v1)](reviews/BOUNDED-AREA-REVIEW.md) *(superseded)*
+- [Bowl map admission, migration and generic spawns](reviews/BOWL-INTEGRATION-20261023.md)
+- [Bowl original Team DM boxes and gate opening](reviews/BOWL-TEAM-BOXES-20261023.md)
+- [Timed Arena Bunnyhop contract](reviews/BUNNYHOP-REVIEW.md)
+- [Optional burst damage numbers (HUD / CombineDamageNumbers)](reviews/BURST-DAMAGE-REVIEW.md)
+- [Arena character selection by clicking the model](reviews/CHARACTER-MODEL-CLICK-REVIEW.md)
+- [Arena character preview: third posed menu figure with fixed loadout](reviews/CHARACTER-PREVIEW-REVIEW.md)
+- [Native character selection row alignment (initial review)](reviews/CHARACTER-SELECTION-REVIEW.md) *(superseded)*
+- [Same-bullet Collateral announcement](reviews/COLLATERAL-ANNOUNCEMENT-20261018.md)
+- [F12 settings menu: names, order, advanced developer tools](reviews/CONFIG-MENU-20261018.md)
+- [Continuous Healing: native bot healing and retired-body isolation](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md) *(superseded)*
+- [Continuous Load Ammo: body changes and delayed completion](reviews/CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md) *(superseded)*
+- [Corpse cleanup: paired native notifications, corpse release and own-corpse release](reviews/CORPSE-CLEANUP-REVIEW.md)
+- [Customs: bounded areas in every Arena mode](reviews/CUSTOMS-ALL-MODES-REVIEW.md)
+- [Customs contours and unified selection: polygon-v2 wire IDs, starts and provenance](reviews/CUSTOMS-AREAS-REVIEW.md)
+- [Surveyed Customs contour (polygon v1): side-only walls, spawn policy and corner carvers](reviews/CUSTOMS-CONTOUR-REVIEW.md) *(superseded)*
+- [Individual Deathmatch FFA groups: native group registry boundaries and offline harness](reviews/DEATHMATCH-GROUPS-REVIEW.md)
+- [Deathmatch hostility negotiation: frozen request contract and relationship rewriting](reviews/DEATHMATCH-HOSTILITY-REVIEW.md)
+- [Unified Deathmatch menu and lifecycle integration](reviews/DEATHMATCH-MENU-REVIEW.md)
+- [Unified Deathmatch rules and runtime](reviews/DEATHMATCH-MODE-REVIEW.md)
+- [Arena default full-auto fire mode: contract, native seam and verification](reviews/DEFAULT-FIRE-MODE-REVIEW.md)
+- [Direct Arena start: Session.exe picker, handover contract and checks](reviews/DIRECT-START-20261028.md)
+- [Domination follow-up: map-menu performance, pickup separation and ownership rings](reviews/DOMINATION-FOLLOWUP-20261026.md)
+- [Domination monitor projection review (MapPort score monitors)](reviews/DOMINATION-MONITOR-REVIEW-20261026.md)
+- [Domination: bot routes, separate score/time limits and varied Factory points](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md)
+- [Domination on ported maps: original capture points and team boxes](reviews/DOMINATION-PORTED-20261026.md)
+- [Domination prototype: three Factory points, team scoring and objective bots](reviews/DOMINATION-PROTOTYPE-20261026.md)
+- [Domination control points inside the main score panel](reviews/DOMINATION-SCORE-20261027.md)
+- [Arena double jump and deliberate ledge jump](reviews/DOUBLE-JUMP-REVIEW.md)
+- [Match-duration difficulty curve and request-scope cache boundary](reviews/DURATION-DIFFICULTY-REVIEW.md)
+- [Arena corpse markers in optional DynamicMaps](reviews/DYNAMICMAPS-CORPSE-REVIEW.md)
+- [Arena entry restart hardening: helper launch, drain refusal and normal-EFT recovery](reviews/ENTRY-RESTART-HARDENING-20261028.md)
+- [Optional Equator map integration: admission, migration and GPU acceptance](reviews/EQUATOR-MAP-REVIEW.md) *(superseded)*
+- [Equator original spawn gates and preparation safety](reviews/EQUATOR-SPAWN-GATES-20261017.md)
+- [Equator Team Deathmatch team boxes: formation, ownership and failure behavior](reviews/EQUATOR-TEAM-SPAWNS-REVIEW.md)
+- [Faction voice independent of automatic PMC comments](reviews/FACTION-VOICE-20261028.md)
+- [Factory pickup connectivity independent of player entry](reviews/FACTORY-PICKUP-ANCHOR-20261018.md)
+- [Factory courtyard spawn exclusion (original single-marker record)](reviews/FACTORY-SPAWN-REVIEW.md) *(superseded)*
+- [Factory day/night team-spawn exclusions (ten courtyard and underground markers)](reviews/FACTORY-SPAWNS-REVIEW.md)
+- [Failed-start intro/exit ordering and the terminal result exit lease](reviews/FAILED-START-INTRO-REVIEW.md)
+- [Team friendly fire: frozen decision, physical ownership and delayed projectiles](reviews/FRIENDLY-FIRE-REVIEW.md)
+- [Friendly markers: native output projection with DLSS](reviews/FRIENDLY-MARKERS-REVIEW.md)
+- [Arena GC threshold: design, measurements and offline checks](reviews/GC-THRESHOLD-REVIEW.md)
+- [GPU acceptance lifecycle compatibility: grass motion vectors and PFT MenuScreen warmup](reviews/GPU-ACCEPTANCE-COMPAT-REVIEW.md)
+- [Grenade pick after widened reach: defect, fix and acceptance steps](reviews/GRENADE-PICK-REVIEW.md)
+- [Health and loot compatibility: combined implementation and verification](reviews/HEALTH-LOOT-COMPAT-INTEGRATION-20261019.md) *(history)*
+- [Hitmarker sounds: behavior, asset/runtime boundary and review evidence](reviews/HITMARKER-AUDIO-REVIEW.md)
+- [Kill skull above crosshair, map-screen preview suspension and bleed-out death icon](reviews/HUD-BLEED-POLISH-REVIEW.md)
+- [Radar, Simple Crosshair and Better BepInEx: shared Core fixes and GPU-2 checks](reviews/HUD-MOD-COMPAT-20261025.md)
+- [HUD and utility mutators: ARENA HUD, auto quickslots and instant search switches](reviews/HUD-MUTATORS-REVIEW.md)
+- [Use Items Anywhere and shared HUD compatibility (ImpactCue, Enemy Markers)](reviews/ITEMS-HUD-COMPAT-20261025.md)
+- [Kill confirmation with the Arena skull: signal source, eligibility and lifetime](reviews/KILL-SKULL-REVIEW.md)
+- [Killcam per Arena mode: frozen selection, camera ownership and respawn hold](reviews/KILLCAM-MODES-REVIEW.md)
+- [Kit polish: front armor class display and optional RGD-5 grenade supplies](reviews/KIT-POLISH-REVIEW.md)
+- [Arena Labs: excluding extraction-gate bot spawns and five-opponent point planning](reviews/LABS-SPAWN-REVIEW.md)
+- [Labyrinth center alarm: Arena-only suppression and installed scene contract](reviews/LABYRINTH-ALARM-REVIEW.md)
+- [Labyrinth entrance traps and toxic pool: Arena-only native disable states](reviews/LABYRINTH-SPAWN-TRAPS-REVIEW.md)
+- [Visible laser beam brightness: shader diagnosis and separate beam control](reviews/LASER-BEAM-REVIEW.md)
+- [Laser brightness minimum and protected Tactical team colors (BrightLasers coexistence)](reviews/LASER-BRIGHTNESS-REVIEW.md)
+- [Magazine handling speed: behavior, SPT 4.1 patch path and verification boundary](reviews/MAGAZINE-HANDLING-REVIEW.md)
+- [All-map phase lighting and one-second deploy countdown](reviews/MAP-LIGHTING-20261017.md)
+- [Map admission and concrete blockers (original map/mode access review)](reviews/MAP-MODE-ACCESS-REVIEW.md) *(superseded)*
+- [Map menu: Molotov, mode order and Zombie sliders (2026-10-12)](reviews/MENU-MUTATORS-ZOMBIE-REVIEW.md)
+- [Deviating mod versions in Arena: advisory, no version-exclusion plan](reviews/MOD-VERSION-FOLLOWUP-20261027.md)
+- [Mode descriptions and visible rule schema](reviews/MODE-COPY-SCHEMA-REVIEW.md) *(superseded)*
+- [Disabled Capture the Flag and Domination previews](reviews/MODE-PREVIEWS-20261018.md)
+- [Arena mode sidebar: native row ownership and compact copy](reviews/MODE-SIDEBAR-REVIEW.md)
+- [Native fault identity and utility context repair](reviews/MODEL-DIAGNOSTIC-REPAIR-20261019.md)
+- [Dedicated Molotov: combat and lifecycle review](reviews/MOLOTOV-COMBAT-REVIEW.md)
+- [Dedicated Molotov: private template registration and kit supplies](reviews/MOLOTOV-ITEM-REVIEW.md)
+- [Dedicated Molotov bottle model: visual ownership, pool restoration and icon path](reviews/MOLOTOV-MODEL-REVIEW.md)
+- [Dedicated Molotov integration](reviews/MOLOTOV-NATIVE-INTEGRATION-20261015.md)
+- [Dedicated Molotov presentation: bottle, layered fire view and synthesized audio](reviews/MOLOTOV-PRESENTATION-REVIEW.md)
+- [Arena incendiary prototype review (September 30 original)](reviews/MOLOTOV-PROTOTYPE-REVIEW.md) *(superseded)*
+- [Additional Molotov supply](reviews/MOLOTOV-SUPPLY-20261015.md)
+- [Map-screen mutators menu: switches, dependencies, N/A rules and later addenda](reviews/MUTATORS-MENU-REVIEW.md)
+- [Native Arena play-area picker: contract, native ordering and verification](reviews/NATIVE-AREA-MENU-REVIEW.md)
+- [Native menu resume: released-pointer input drain on SetIgnoreInput true-to-false](reviews/NATIVE-MENU-INPUT-REVIEW.md)
+- [Native Arena menu settings: dropdown history, own-gear preview rule and ARENA ZONE label](reviews/NATIVE-MENU-REVIEW.md)
+- [Bounded native-model fault diagnostics: hook inventory, ownership and limits](reviews/NATIVE-MODEL-DIAGNOSTICS-20261018.md)
+- [Native-stop roster guard: caller review of follower discovery, match tick and scoreboard](reviews/NATIVE-STOP-FOLLOWUP-20261018.md)
+- [Normal startup after lost private Arena data: discard boundary, replay and verification](reviews/OFFLINE-STARTUP-RECOVERY-20261028.md)
+- [Empty scope-ring reflex paths: generator rule for ring sockets and mutation checks](reviews/OPTIC-MOUNT-REVIEW.md)
+- [Scoped optic pool preload safeguard (KitOpticPreloadGuard): ownership and checks](reviews/OPTIC-PRELOAD-REVIEW.md)
+- [Optional mod minimum versions and forward admission (SAIN, PFT, APBS, DynamicMaps)](reviews/OPTIONAL-MOD-VERSIONS-20261019.md)
+- [Per-map participant selection: native menu preference and view contract](reviews/PARTICIPANT-MENU-REVIEW.md)
+- [Fixed participant count: server contract, raid clone and release](reviews/PARTICIPANT-SERVER-REVIEW.md)
+- [Per-map participant count: menu, formats, population, bosses and pending play test](reviews/PARTICIPANTS-REVIEW.md)
+- [Protected Tactical pursuit goal handoff and diagnostics](reviews/PFT-GOAL-HANDOFF-REVIEW.md)
+- [Protected PFT startup on ported maps and bounded Customs](reviews/PFT-PORTED-MAPS-REVIEW.md)
+- [Variable protected PitFireTeam squads (frozen roster contract)](reviews/PFT-SQUAD-SIZE-REVIEW.md)
+- [PFT Tactical: own gear or a supplied PMC kit](reviews/PFT-TACTICAL-KITS-20261018.md)
+- [Health pickups and bot pickup objectives](reviews/PICKUP-OBJECTIVES-REVIEW.md)
+- [Arena pickups: powerups, weapon pickups and per-map placement contract](reviews/PICKUPS-REVIEW.md)
+- [PitFireTeam 1.0.0 persistence protection and version-filtered Arena sessions](reviews/PITFIRETEAM-1.0.0-20261024.md)
+- [Automatic PMC voicelines, rotating TDM voices and bot clothing ownership](reviews/PMC-VOICELINES-20261026.md)
+- [Polygon areas and scene capture (area outline survey helper)](reviews/POLYGON-AREA-REVIEW.md)
+- [Arena pool-prewarm clamp (PoolPrewarmKeepIdle): design, Harmony recipe, measurements](reviews/POOL-PREWARM-REVIEW.md)
+- [Protected PFT combat on coverless ported maps (Bay5/Equator)](reviews/PORTED-COVER-REVIEW.md)
+- [Arena post-raid warning and experience page: identity capture and navigation](reviews/POSTRAID-PAGES-REVIEW.md)
+- [Bot Shield and Double Damage indicators](reviews/POWERUP-INDICATORS-20261018.md) *(superseded)*
+- [Preset description regression: VestTemplate null plate array in KitSummary](reviews/PRESET-DESCRIPTION-REVIEW.md)
+- [Bot-profile batches built under a per-frame budget (ProfileBuildBudgetMs)](reviews/PROFILE-BUILD-BUDGET-20261017.md)
+- [Arena raid-end persistence: update hold through restore, save and verify](reviews/RAID-END-PERSISTENCE-20261027.md)
+- [Raid info panels: weapon, status and grenade HUD absorbed into ArenaMode](reviews/RAID-INFO-PANELS-REVIEW.md)
+- [Arena visibility, notifications and Labyrinth access (markers, banner, popups)](reviews/RAID-POLISH-REVIEW.md)
+- [Recoil Rework Legacy: scoped body/component handoff](reviews/RECOIL-REWORK-COMPAT-20261020.md) *(superseded)*
+- [Recoil Rework Legacy: published lifecycle conflict review](reviews/RECOIL-REWORK-REVIEW-20261020.md)
+- [Arena firearm reload handling: speed policy, native reload families and diagnostics](reviews/RELOAD-HANDLING-REVIEW.md)
+- [Remaining optional-mod compatibility: Fast Grenade Throw, Quick Cancel, HUD Breakout, PiP, Amand](reviews/REMAINING-MOD-COMPAT-20261026.md)
+- [Automatic discard of uncertain old reward claims at normal server startup](reviews/REWARD-DISCARD-20261027.md)
+- [Reward recovery engine: durable closure of uncertain claims and permanent replay rejection](reviews/REWARD-RECOVERY-ENGINE-20261027.md)
+- [Durable restoration checkpoints, native full readback and private-session archiving](reviews/REWARD-RESTORATION-20261027.md)
+- [Reward runtime integration: independent source review and corrections](reviews/REWARDS-RUNTIME-REVIEW-20261024.md)
+- [Human PMC scoreboard role correction from profile faction](reviews/ROLE-LABEL-REVIEW.md)
+- [Arena scoreboard (F9): identity, scoring and lifecycle rules](reviews/SCOREBOARD-REVIEW.md)
+- [Own-grenade text taunt and announcer delivery](reviews/SELF-GRENADE-TAUNT-REVIEW.md)
+- [Quiet successful client-settings polls: server adapter contract and checks](reviews/SETTINGS-POLL-LOGGING-20261018.md)
+- [Shared body-replacement adapters in Redeploy.Core 1.0.9](reviews/SHARED-BODY-COMPAT-20261023.md)
+- [Shot-time announcer awards (AIRBORNE, NO SCOPE): behavior and checks](reviews/SHOT-AWARDS-REVIEW.md)
+- [Bounded solo population: reservation, capacity and Labyrinth bosses](reviews/SOLO-POPULATION-REVIEW.md)
+- [Solo Tactical opponent-start timing and lease contract](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md)
+- [Spawn-gate completion: MapPort GatesOpen contract and verification status](reviews/SPAWN-GATE-COMPLETION-20261024.md)
+- [Slow walking during surgical treatment and leg splinting](reviews/SURGICAL-WALK-REVIEW.md)
+- [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
+- [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)
+- [Solo Tactical purchase, readiness, countdown and Escape menus](reviews/TACTICAL-START-POLISH-REVIEW.md)
+- [Independent TDM search awareness: guarded SAIN hearing cue](reviews/TDM-AWARENESS-REVIEW.md)
+- [Team DM bot spawn shields: damage authority and first-attack release](reviews/TDM-BOT-SPAWN-SHIELD-20261017.md)
+- [Independent Team DM match flow: limits, countdown, results and exit](reviews/TDM-MATCH-FLOW-REVIEW.md)
+- [TDM bot preparation and submission ownership (request phases, watchdog)](reviews/TDM-PREPARATION-REVIEW.md)
+- [Independent TDM search tempo: SAIN search-argument cap and mover diagnostics](reviews/TDM-SEARCH-TEMPO-REVIEW.md)
+- [Team DM side selection, faction colors and ArenaMapPort score monitors](reviews/TDM-SIDES-MONITORS-20261025.md)
+- [Independent Team Deathmatch: selection, scoring, factions, lasers, give-up, friendly fire](reviews/TEAM-DEATHMATCH-REVIEW.md)
+- [Protected container consumption during 5v5 restore](reviews/TEAM-LOADOUT-CONSUMPTION-REVIEW.md)
+- [Arena transits, first three Gun Game stages and reduced ammunition: GPU-2 checks](reviews/TRANSITS-GUNGAME-AMMO-20261024.md)
+- [Original categorical UI artwork: scope, sources, packaging and validation](reviews/UI-ARTWORK-REPLACEMENT-20261016.md) *(superseded)*
+- [Four credited game-icons.net HUD symbols: sources, CC BY 3.0 notices and checks](reviews/UI-GAME-ICONS-20261016.md)
+- [Own deaths in the killfeed: ArenaUncreditedDeathPatch contract and checks](reviews/UNCREDITED-DEATH-REVIEW.md)
+- [Unified build/deploy and the maschine-ArenaMode plugin folder (partly superseded)](reviews/UNIFIED-DEPLOY-20261017.md) *(superseded)*
+- [Unified Arena look: ArenaUiTheme design, lifetime and input rules](reviews/UNIFIED-UI-REVIEW.md)
+- [Realistic generated weapon-category pictures](reviews/WEAPON-RENDERS-20261016.md)
+- [Arena weapon variants: automatic attachment generation, validation and lifecycle](reviews/WEAPON-VARIANTS-REVIEW.md)
+- [Zombie body culling and bot hot-path switches (four performance toggles)](reviews/ZOMBIE-BODY-CULLING-20261017.md)
+- [Optional Zombie Crowd: behaviour, OFF semantics and ownership](reviews/ZOMBIE-CROWD-REVIEW.md)
+- [Zombie kit prewarming: capped optional preload and unchanged required work](reviews/ZOMBIE-KIT-WARMUP-REVIEW.md)
+- [Zombie Mode: architecture, native melee suppression, waves, own gear and performance](reviews/ZOMBIE-MODE-REVIEW.md)
+- [Bounded Zombie AI work reduction: hearing and social-search prefixes](reviews/ZOMBIE-PERFORMANCE-REVIEW.md)
+- [Zombie PFT prefix fast path](reviews/ZOMBIE-PFT-PERFORMANCE-REVIEW.md)
+- [Protected Zombie squad survival with PitFireTeam: lifecycle contract](reviews/ZOMBIE-PITFIRETEAM-REVIEW.md)
+- [Zombie repetitive voice budget: adapter contract and playback observation](reviews/ZOMBIE-VOICE-BUDGET-REVIEW.md)
+- [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
+- [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-- [F12 settings menu: names, order, advanced developer tools](CONFIG-MENU-20261018.md)
-- [Audio folders and consolidated package notices](AUDIO-LAYOUT-20261018.md)
-- [Killcam rename, config migration and native replay/respawn acceptance](KILLCAM-RENAME-20261018.md)
-- [Implemented log-audit recommendations](LOG-FOLLOWUP-20261018.md)
-- [GPU2 log-follow-up regression and restoration](GPU-LOG-FOLLOWUP-20261018.md)
-- [Bounded native-model fault diagnostics](NATIVE-MODEL-DIAGNOSTICS-20261018.md)
-- [Representative GPU2 gameplay and merged-log audit](GPU-LOG-AUDIT-20261018.md)
-- [ArenaMode, Redeploy and KillcamReplay log attribution](LOG-SOURCE-AUDIT-20261018.md)
-- [PFT Tactical: own gear or a supplied PMC kit](PFT-TACTICAL-KITS-20261018.md)
-- [Native PFT Tactical kit checks on GPU2](GPU-PFT-TACTICAL-KITS-20261018.md)
-- [Arena-owned BigBrain library and Redeploy server boundary](BIGBRAIN-LIBRARY-20261018.md)
-- [GPU2 powerup indicators, Akimbo lasers and mode-preview acceptance](GPU-FEEDBACK-20261018.md)
-- [Automatic Akimbo aiming lasers](AKIMBO-LASER-20261018.md)
-- [Bot Shield and Double Damage indicators](POWERUP-INDICATORS-20261018.md)
-- [Same-bullet Collateral announcement](COLLATERAL-ANNOUNCEMENT-20261018.md)
-- [Disabled Capture the Flag and Domination previews](MODE-PREVIEWS-20261018.md)
-- [GPU2 map-feature tests and rendering follow-up](GPU-MAP-FEATURES-20261017.md)
-- [All-map lighting and one-second deploy countdown](MAP-LIGHTING-20261017.md)
-- [All-map pickup layouts and longer beams](ALL-MAP-PICKUPS-20261017.md)
-- [Factory pickup connectivity independent of player entry](FACTORY-PICKUP-ANCHOR-20261018.md)
-- [Visible Team DM bot spawn protection](TDM-BOT-SPAWN-SHIELD-20261017.md)
-- [Unified build/deploy and maschine-ArenaMode folder](UNIFIED-DEPLOY-20261017.md) (partly superseded by AUDIO-LAYOUT-20261018 and ARENA-SESSION-DEPLOY-20261021; the layout is v6 now)
+## Reports (262)
 
-- [Test package layout of 2026-10-17 (historical v2) and optional BigBrain loading](package-layout-20261017.md)
-- [First local test release ZIP (superseded layout)](TEST-RELEASE-20261017.md)
-- [Player README and source-build instructions](../README.md)
-- [Complete implemented feature inventory and mutator list](FEATURES.md)
-- [Forge description — eight tabs, draft of 0.4.1](FORGE-DESCRIPTION.md)
-- [Licenses, asset sources and redistribution boundaries](../THIRD-PARTY-NOTICES.md)
-- [Current handoff and test status](HANDOFF.md)
-- [AirPit map admission and saved-map migration](AIRPIT-INTEGRATION-20261017.md)
-- [Equator original spawn gates and preparation safety](EQUATOR-SPAWN-GATES-20261017.md)
-- [Bot-profile batches built under a per-frame budget (ProfileBuildBudgetMs)](PROFILE-BUILD-BUDGET-20261017.md)
-- [Zombie body culling and bot hot-path switches (four performance toggles)](ZOMBIE-BODY-CULLING-20261017.md)
-- [Zombie performance levers, assessment after two control raids](ZOMBIE-PERFORMANCE-IDEAS-20261017.md)
-- [AirPit and Equator GPU acceptance, deployment and recovery audit](GPU-AIRPIT-EQUATOR-20261017.md)
-- [Realistic generated weapon-category pictures](WEAPON-RENDERS-20261016.md)
-- [Four credited game-icons.net HUD symbols](UI-GAME-ICONS-20261016.md)
-- [Original categorical UI artwork and validation](UI-ARTWORK-REPLACEMENT-20261016.md)
-- [Native Factory verification of the new UI artwork](GPU-UI-ARTWORK-20261016.md)
-- [Confirmed unused-code cleanup and final validation](DEAD-CODE-CLEANUP-20261016.md)
-- [Earlier UI artwork research and native weapon-icon feasibility](UI-ASSET-REPLACEMENT-REVIEW-20261016.md)
-- [Announcer assets and retained license notices](ASSET-MAINTENANCE-20261016.md)
-- [Unused-code audit and cleanup candidates](DEAD-CODE-REVIEW-20261016.md)
-- [Logging levels and developer diagnostics](LOGGING.md)
-- [Latest player-session log review](LOG-REVIEW-20261015-EVENING.md)
-- [Zombie opening countdown and protected gear refill](ZOMBIE-WAVE-REFILL-20261015.md)
-- [Dedicated Molotov integration](MOLOTOV-NATIVE-INTEGRATION-20261015.md)
-- [Additional Molotov supply](MOLOTOV-SUPPLY-20261015.md)
-- [Native acceptance of the October 15 follow-ups](GPU-FOLLOWUPS-20261015.md)
-- [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
-- [Future work](FUTURE-WORK.md)
-- [Variable protected PitFireTeam squads](PFT-SQUAD-SIZE-REVIEW.md)
-- [Map/mode compatibility](MAP-MODE-COMPATIBILITY.md)
-- [Repository cleanup and recovery archive](GIT-CLEANUP-20261011.md)
-- [Gitleaks findings and local-backup precautions](GITLEAKS-20261011.md)
+Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
-## Finding a record
+### 2026-10
 
-- `*-REVIEW.md`: feature contracts, implementation rationale and test limitations.
-- `GPU-*-TEST-INSTRUCTIONS*.md`: instructions for a specific test/build.
-- `GPU-*-RESULTS*.md` and `GPU-*-TEST-RESULTS*.md`: dated native-test evidence.
-- `*-DEPLOYMENT-*.json` and `*-BUILD.json`: historical artifact versions/hashes.
-- `*-GATES.md`, `*-PLAN.md` and `GATES.md`: recorded acceptance/planning notes.
+- [AI Limit: exact Arena-world component pause](reports/2026-10/AI-LIMIT-COMPAT-20261019.md) *(history)*
+- [AirPit team boxes: acceptance gate ledger G1-G5 (GPU1)](reports/2026-10/AIRPIT-TEAM-BOXES-GATES.md) *(history)*
+- [Arena session: answer to the external review of 2026-10-23](reports/2026-10/ARENA-SESSION-REVIEW-RESPONSE-20261023.md) *(history)*
+- [Gear inventory: WTT-Armory 3.0.0 planned additions, raw data (JSON, not installed)](reports/2026-10/gear-inventory-20261026/ARMORY.json)
+- [Gear inventory: WTT-Armory 3.0.0 planned additions (not installed)](reports/2026-10/gear-inventory-20261026/ARMORY.md)
+- [Announcer assets and retained license notices](reports/2026-10/ASSET-MAINTENANCE-20261016.md) *(superseded)*
+- [Gates and evidence for the Arena-owned optional BigBrain library](reports/2026-10/BIGBRAIN-LIBRARY-GATES.md) *(history)*
+- [Bot Healing Fixes 1.0.0: late healing callback review and non-admission decision](reports/2026-10/BOT-HEALING-FIXES-REVIEW-20261025.md)
+- [Bunnyhop GPU build deployment manifest (client hashes, 2026-10-05)](reports/2026-10/BUNNYHOP-DEPLOYMENT-20261005.json) *(history)*
+- [Classic Movement: exact Arena movement-state ownership](reports/2026-10/CLASSIC-MOVEMENT-COMPAT-20261019.md) *(history)*
+- [Compact menu UX (2026-10-26): implementation and offline/native verification record](reports/2026-10/COMPACT-UX-20261026.md) *(superseded)*
+- [First candidate compatibility batch: integration, offline results, pending native tests](reports/2026-10/COMPAT-FIRST-INTEGRATION-20261020.md) *(history)*
+- [Additional compatibility candidates: skills, health, ISB, pause, doors and stances](reports/2026-10/COMPATIBILITY-CANDIDATES-20261020.md) *(history)*
+- [Forge top 200: compatibility candidates, pinned sources and review limits](reports/2026-10/COMPATIBILITY-SURVEY-20261019.md) *(history)*
+- [Confirmed unused-code cleanup and final validation](reports/2026-10/DEAD-CODE-CLEANUP-20261016.md) *(history)*
+- [Unused-code audit and cleanup candidates](reports/2026-10/DEAD-CODE-REVIEW-20261016.md) *(superseded)*
+- [Deminvincibility: exact Arena-local damage and death](reports/2026-10/DEMINVINCIBILITY-COMPAT-20261019.md) *(history)*
+- [Direct start: two-host native acceptance summary](reports/2026-10/DIRECT-START-NATIVE-20261028.md)
+- [Direct start: native host1 match, reward and return acceptance](reports/2026-10/DIRECT-START-NATIVE-HOST1-20261028.md)
+- [Direct start: native host2 lifecycle, crash and mixed-elevation checks](reports/2026-10/DIRECT-START-NATIVE-HOST2-20261028.md)
+- [EFT Effects Manager / Broken Limbs: body and skill ownership](reports/2026-10/EFFECTS-COMPAT-20261020.md) *(history)*
+- [Arena follow-ups of 2026-10-08 evening: commits, verification and artifact identity](reports/2026-10/FOLLOWUPS-20261008.md) *(superseded)*
+- [Forge top 200 compatibility survey: per-mod findings and recommendations (JSON)](reports/2026-10/compatibility/forge-top200-20261019.json)
+- [Forge top 200 API snapshot: query URLs, page hashes and frozen download counts (JSON)](reports/2026-10/compatibility/forge-top200-snapshot-20261019.json)
+- [Four compatibility candidates: Tarkova-Cola, Fast Grenade Throw, FOV Fix, Manimal (2026-10-25)](reports/2026-10/FOUR-MOD-COMPAT-20261025.md) *(superseded)*
+- [Equator PFT restriction and Friendly Fire: pending native-test status (2026-10-09)](reports/2026-10/FRIENDLY-FIRE-TEST-STATUS-20261009.md) *(superseded)*
+- [Gear inventory generator (read-only survey script, pinned source fingerprint)](reports/2026-10/gear-inventory-20261026/generate.py)
+- [Repository consolidation and recovery archive (2026-10-11)](reports/2026-10/GIT-CLEANUP-20261011.md) *(history)*
+- [Gitleaks findings and local-backup precautions](reports/2026-10/GITLEAKS-20261011.md) *(history)*
+- [AirPit and Equator gates: GPU-2 delivery, native checks and recovery audit](reports/2026-10/GPU-AIRPIT-EQUATOR-20261017.md) *(history)*
+- [Alternating Akimbo and pickup audio: GPU-2 results (2026-10-07)](reports/2026-10/GPU-AKIMBO-ALTERNATING-RESULTS-20261007.md)
+- [Akimbo independent presentation and doubled cadence: GPU-2 results (2026-10-08)](reports/2026-10/GPU-AKIMBO-ANIMATION-RESULTS-20261008.md)
+- [Akimbo mutator: GPU-2 results of the simultaneous-fire design (2026-10-05)](reports/2026-10/GPU-AKIMBO-MUTATOR-RESULTS-20261005.md) *(superseded)*
+- [Akimbo simultaneous-fire pistol prototype: GPU-2 native test results](reports/2026-10/GPU-AKIMBO-RESULTS-20261005.md) *(superseded)*
+- [Default fire mode and vest icon: GPU-2 native results (M4A1/SVDS)](reports/2026-10/GPU-AUTO-FIRE-VEST-RESULTS-20261011.md)
+- [GPU2 bot contours, cover, DLSS and spawn-shield controls](reports/2026-10/GPU-BOT-EFFECTS-20261019.md)
+- [Bowl team boxes: GPU-2 native results and delivery](reports/2026-10/GPU-BOWL-TEAM-BOXES-20261023.md)
+- [Bunnyhop GPU-2 measurement data, 2026-10-05](reports/2026-10/GPU-BUNNYHOP-RESULTS-20261005.json)
+- [Bunnyhop native results on GPU-2, 2026-10-05](reports/2026-10/GPU-BUNNYHOP-RESULTS-20261005.md)
+- [Compact Arena UX: GPU-2 native evidence, 2026-10-26](reports/2026-10/GPU-COMPACT-UX-20261026.md)
+- [Candidate compatibility: native GPU tests and cleanup](reports/2026-10/GPU-COMPAT-SECOND-20261020.md) *(history)*
+- [Domination native acceptance on Factory day and night (26 Oct 2026)](reports/2026-10/GPU-DOMINATION-20261026.md) *(superseded)*
+- [Domination follow-up native acceptance: pickup placement, HUD and ring colors](reports/2026-10/GPU-DOMINATION-FOLLOWUP-20261026.md)
+- [Ported-map Domination native acceptance: Equator, Bay5, AirPit, Bowl](reports/2026-10/GPU-DOMINATION-PORTED-20261026.md)
+- [Equator Team DM faction boxes: GPU2 native results](reports/2026-10/GPU-EQUATOR-TEAM-SPAWNS-RESULTS-20261011.md)
+- [Factory pickup anchor: native GPU2 regression results](reports/2026-10/GPU-FACTORY-PICKUP-ANCHOR-20261018.md)
+- [GPU2 powerup indicators, Akimbo lasers and mode-preview acceptance](reports/2026-10/GPU-FEEDBACK-20261018.md)
+- [Native acceptance of the October 15 follow-ups](reports/2026-10/GPU-FOLLOWUPS-20261015.md)
+- [GPU-2 follow-up test of 8 Oct 2026: previews, Akimbo and connection findings](reports/2026-10/GPU-FOLLOWUPS-RESULTS-20261008.md) *(history)*
+- [Friendly Fire GPU2 native verification (menus and raid controls, HP decrease unproven)](reports/2026-10/GPU-FRIENDLY-FIRE-RESULTS-20261011.md)
+- [GPU2 healing, pickup protection and ordinary-raid controls](reports/2026-10/GPU-HEALTH-LOOT-COMPAT-20261019.md) *(history)*
+- [SPT-GPU-1: map button hit areas and self-death killfeed, native check](reports/2026-10/GPU-HITAREAS-SELF-DEATHS-RESULTS-20261001.md) *(history)*
+- [HUD/utility mutators and Stahlhelm: GPU2 results](reports/2026-10/GPU-HUD-MUTATORS-RESULTS-20261011.md)
+- [Representative GPU2 gameplay and merged-log audit](reports/2026-10/GPU-LOG-AUDIT-20261018.md) *(history)*
+- [GPU2 log-follow-up regression and restoration](reports/2026-10/GPU-LOG-FOLLOWUP-20261018.md)
+- [Native logging check: DeveloperMode OFF/ON/OFF on Factory TDM and Zombies](reports/2026-10/GPU-LOGGING-TEST-20261015.md)
+- [GPU2 map-feature tests and rendering follow-up](reports/2026-10/GPU-MAP-FEATURES-20261017.md)
+- [Menu polish on GPU2: announcer, mutator panel, mode facts, ARENA ZONE caption (2026-10-08)](reports/2026-10/GPU-MENU-POLISH-RESULTS-20261008.md) *(superseded)*
+- [Arena menu polish: native GPU result for mode order, mutators and Zombie sliders (2026-10-12)](reports/2026-10/GPU-MENU-POLISH-RESULTS-20261012.md) *(history)*
+- [Unified mode rules and expanded map access: GPU2 results (2026-10-09)](reports/2026-10/GPU-MODE-COPY-MAP-ACCESS-RESULTS-20261009.md) *(superseded)*
+- [Cold PMC/PFT model-fault controls and exact restoration](reports/2026-10/GPU-MODEL-CONTROLS-20261019.md)
+- [GPU2 model repair: actual replays, PFT rebind and preserved data](reports/2026-10/GPU-MODEL-FIXES-20261019.md)
+- [Dedicated Molotov: native integration acceptance on GPU2 (2026-10-15)](reports/2026-10/GPU-MOLOTOV-INTEGRATION-20261015.md)
+- [Dedicated Molotov native acceptance with r1-r3 history and open gates (2026-10-12)](reports/2026-10/GPU-MOLOTOV-ITEM-RESULTS-20261012.md)
+- [Molotov fire visuals: native review of V2 (rejected) and V3 (limited acceptance)](reports/2026-10/GPU-MOLOTOV-VISUALS-RESULTS-20261012.md)
+- [Movement master switch, Bunnyhop default on and help text: GPU2 results (2026-10-05)](reports/2026-10/GPU-MOVEMENT-MASTER-RESULTS-20261005.md)
+- [GPU2 movement/statistics initial checks and lifecycle interruption](reports/2026-10/GPU-MOVEMENT-STATS-COMPAT-20261019.md) *(history)*
+- [Mutators, time selection and weather: GPU-2 menu acceptance, 3 Oct 2026](reports/2026-10/GPU-MUTATORS-MAP-OPTIONS-RESULTS-20261003.md) *(history)*
+- [Offline Arena session: GPU-2 switches, reward control and one-time payment](reports/2026-10/GPU-OFFLINE-SESSION-20261025.md)
+- [Native optional-mod startup and pending gameplay matrix](reports/2026-10/GPU-OPTIONAL-COMPAT-20261019.md) *(history)*
+- [GPU2 lifecycle retest, ammo/health/SVM checks and terminal-exit correction](reports/2026-10/GPU-OPTIONAL-COMPAT-20261020.md) *(history)*
+- [PFT ported-map startup and all-mode Customs: GPU2 native results](reports/2026-10/GPU-PFT-PORTED-CUSTOMS-RESULTS-20261009.md)
+- [Variable PFT squad and Zombie defaults: native menu check on GPU1](reports/2026-10/GPU-PFT-SQUAD-MENU-RESULTS-20261013.md) *(history)*
+- [Native acceptance instructions: smaller protected PFT squads](reports/2026-10/GPU-PFT-SQUAD-TEST-INSTRUCTIONS-20261013.md) *(history)*
+- [Native PFT Tactical kit checks on GPU2](reports/2026-10/GPU-PFT-TACTICAL-KITS-20261018.md)
+- [Private Arena session reward control: GPU-2 checks](reports/2026-10/GPU-PRIVATE-REWARD-CONSENT-20261025.md) *(superseded)*
+- [Reward card on the Arena map screen: GPU-2 menu checks](reports/2026-10/GPU-REWARD-MENU-20261024.md)
+- [Automatic reward return: native mail, XP and empty-return checks on GPU2](reports/2026-10/GPU-REWARD-RETURN-20261025.md) *(superseded)*
+- [XP rewards: private combat, startup payout, level and collection on GPU-2](reports/2026-10/GPU-REWARD-XP-20261025.md)
+- [Reward runtime native acceptance: consent, capture, receipt return, mail claim](reports/2026-10/GPU-REWARDS-RUNTIME-20261024.md)
+- [Solo Zombie survival and Factory courtyard exclusion: GPU2 native results](reports/2026-10/GPU-SOLO-ZOMBIE-FACTORY-RESULTS-20261009.md)
+- [Spawn-gate completion and refreshed DynamicMaps: GPU-2 results](reports/2026-10/GPU-SPAWN-GATE-COMPLETION-20261024.md)
+- [Solo tracer and surgical walking: native GPU-2 acceptance](reports/2026-10/GPU-SURGICAL-WALK-RESULTS-20261003.md)
+- [Tarkova Cola compatibility: native GPU-2 test record](reports/2026-10/GPU-TARKOVA-COLA-20261025.md)
+- [Native Factory verification of the new UI artwork](reports/2026-10/GPU-UI-ARTWORK-20261016.md)
+- [Zombie population cap: MaxAlive measurements on SPT-GPU-2 (recommendation 24)](reports/2026-10/GPU-ZOMBIE-PERFORMANCE-20261013.md) *(history)*
+- [Bounded Zombie performance changes: offline and native GPU2 comparison](reports/2026-10/GPU-ZOMBIE-PERFORMANCE-RESULTS-20261009.md)
+- [Zombie PFT map selection and wave smoke test](reports/2026-10/GPU-ZOMBIE-PFT-MENU-RESULTS-20261009.md)
+- [Zombie prototype: GPU-2 raids, melee fix, watchdog and early measurements](reports/2026-10/GPU-ZOMBIE-PROTOTYPE-RESULTS-20261006.md) *(history)*
+- [Zombie crowd review and GPU2 comparison with the 13 October measurement](reports/2026-10/GPU-ZOMBIE-REVIEW-20261014.md) *(superseded)*
+- [Zombie voice budget and PFT fast path: native GPU2 evidence](reports/2026-10/GPU-ZOMBIE-VOICE-PFT-RESULTS-20261009.md)
+- [Zombie wave ownership and retreat cost: GPU2 results](reports/2026-10/GPU-ZOMBIE-WAVE-RETREAT-RESULTS-20261009.md)
+- [Hit areas and self-deaths: client deployment manifest (2026-10-01)](reports/2026-10/HITAREAS-SELF-DEATHS-DEPLOYMENT-20261001.json) *(history)*
+- [Auto Shoulder Swap, Increase Look Direction and Magazine Check Interrupt: input-mod review and GPU-1 tests](reports/2026-10/INPUT-MOD-COMPAT-20261025.md)
+- [Gear inventory: installed SPT + WTT gear data with classification reasons (JSON)](reports/2026-10/gear-inventory-20261026/inventory.json)
+- [ISB Special Forces/Aishi: interim Arena-only admission](reports/2026-10/ISB-ADMISSION-20261020.md) *(history)*
+- [Isolation and profile review, 2026-10-19](reports/2026-10/ISOLATION-REVIEW-20261019.md)
+- [Gear inventory: full item list with IDs, pools and WTT marking](reports/2026-10/gear-inventory-20261026/ITEMS.md)
+- [Killcam rename, config migration and native replay/respawn acceptance](reports/2026-10/KILLCAM-RENAME-20261018.md) *(history)*
+- [Killfeed round faction: verification, installed hashes and native acceptance (2026-10-27)](reports/2026-10/KILLFEED-ROUND-FACTION-20261027.md)
+- [Late To The Party: exact weapon-pickup source protection (adapter removed)](reports/2026-10/LATE-TO-THE-PARTY-COMPAT-20261019.md) *(history)*
+- [Implemented log-audit recommendations (Arena, Redeploy Core 1.0.8, Killcam)](reports/2026-10/LOG-FOLLOWUP-20261018.md)
+- [Player log review of the 15 October evening session (MASCHINE11)](reports/2026-10/LOG-REVIEW-20261015-EVENING.md) *(history)*
+- [ArenaMode, Redeploy and KillcamReplay log attribution (source and GPU2 samples)](reports/2026-10/LOG-SOURCE-AUDIT-20261018.md) *(history)*
+- [Client logging audit: severity contract and remaining Info inventory (baseline 9f29f49)](reports/2026-10/LOGGING-CLIENT-AUDIT-20261015.md) *(superseded)*
+- [Runtime warning/error audit of four 15 October client and server logs](reports/2026-10/LOGGING-ERROR-AUDIT-20261015.md) *(history)*
+- [Logging cleanup: harness compatibility audit (72 of 75 pass, 3 baseline gaps)](reports/2026-10/LOGGING-HARNESS-AUDIT-20261015.md) *(history)*
+- [Server and BigBrain companion logging audit: Info/Debug call-site classification](reports/2026-10/LOGGING-SERVER-AUDIT-20261015.md) *(history)*
+- [Looting Bots: scoped autonomous-looting pause](reports/2026-10/LOOTING-BOTS-COMPAT-20261019.md) *(history)*
+- [Arena map-menu performance: GPU-2 before/after FPS measurement (Domination follow-up)](reports/2026-10/MAP-MENU-PERFORMANCE-20261026.md)
+- [Native animation fault attribution and diagnostic limits](reports/2026-10/MODEL-ANIMATION-INVESTIGATION-20261019.md)
+- [Model asset, pooled equipment and Killcam clone investigation](reports/2026-10/MODEL-POOL-INVESTIGATION-20261019.md)
+- [Model preview ownership and PitFireTeam lifecycle investigation](reports/2026-10/MODEL-PREVIEW-INVESTIGATION-20261019.md)
+- [Native model repair: integration, ownership and verification](reports/2026-10/MODEL-REPAIR-INTEGRATION-20261019.md)
+- [Molotov item branch deployment manifest (2026-10-12)](reports/2026-10/MOLOTOV-ITEM-DEPLOYMENT-20261012.json) *(history)*
+- [Molotov fire visuals deployment manifest (2026-10-12)](reports/2026-10/MOLOTOV-VISUALS-DEPLOYMENT-20261012.json) *(history)*
+- [MoreBotsAPI spawn, relationship and revenge isolation](reports/2026-10/MOREBOTS-COMPATIBILITY-20261019.md) *(history)*
+- [Movement and statistics compatibility: integration and verification](reports/2026-10/MOVEMENT-STATS-COMPAT-INTEGRATION-20261019.md) *(history)*
+- [Fika test environment: four-machine inventory and preparation steps](reports/2026-10/MULTIPLAYER-ENVIRONMENT-20261026.md)
+- [Multiplayer with Fika: current source review, architecture and staged proposal](reports/2026-10/MULTIPLAYER-FIKA-CONCEPT-20261026.md)
+- [Mutators and map-options client deployment manifest, 2026-10-03 (host 2 delivery)](reports/2026-10/MUTATORS-MAP-OPTIONS-DEPLOYMENT-20261003.json) *(history)*
+- [Offline startup recovery: installed hashes and GPU-2 native verification](reports/2026-10/OFFLINE-STARTUP-NATIVE-20261029.md)
+- [Combined optional-mod adapters (Looting Bots, RTD, Smoothie): integration and verification](reports/2026-10/OPTIONAL-COMPAT-INTEGRATION-20261019.md) *(history)*
+- [Arena-only optional AI-mod admission (MoreBotsAPI, AI Limit, Questing Bots, ORBIT)](reports/2026-10/OPTIONAL-MOD-ADMISSION-20261019.md) *(history)*
+- [Test package layout v2 (historical) and optional BigBrain loading evidence](reports/2026-10/package-layout-20261017.md) *(superseded)*
+- [Pause Continued: Arena-only activation suppression](reports/2026-10/PAUSE-COMPAT-20261020.md) *(history)*
+- [Preview harness fixture repair and full UI verification (2026-10-18)](reports/2026-10/PREVIEW-HARNESS-FOLLOWUP-20261018.md) *(history)*
+- [Two-host native pre-release checks and remaining findings](reports/2026-10/RELEASE-SWEEP-20261029.md)
+- [0.3.0 / Redeploy 1.0.2 package versions, tests, scans and download verification](reports/2026-10/RELEASE-VERIFICATION-20261025.md) *(history)*
+- [Remove The Dead: retained corpses and pickup protection (adapter removed)](reports/2026-10/REMOVE-THE-DEAD-COMPAT-20261019.md) *(history)*
+- [Gear inventory: West/NATO vs East-bloc gear pools for USEC/BEAR kits](reports/2026-10/gear-inventory-20261026/REPORT.md)
+- [Reward recovery integration acceptance: tests, deployment and GPU-2 native run](reports/2026-10/REWARD-RECOVERY-ACCEPTANCE-20261027.md) *(superseded)*
+- [Compact reward recovery UI (removed manual Resolve Rewards workflow)](reports/2026-10/REWARD-RECOVERY-UX-20261027.md) *(history)*
+- [Recurring reward startup warnings: read-only diagnosis of two profiles](reports/2026-10/REWARD-STARTUP-DIAGNOSIS-20261027.md) *(superseded)*
+- [XP and other mail rewards: Give-UI/native feasibility investigation](reports/2026-10/REWARD-XP-FEASIBILITY-20261025.md) *(history)*
+- [Seven further mod reviews: confirmed conflicts and pending tests](reports/2026-10/SEVEN-MOD-COMPAT-20261025.md) *(superseded)*
+- [Skills Extended: scoped XP and external receipt protection](reports/2026-10/SKILLS-EXTENDED-COMPAT-20261020.md) *(history)*
+- [Smoothie: moving pickup markers and optional GC policy](reports/2026-10/SMOOTHIE-COMPAT-20261019.md) *(history)*
+- [StatTrack: Arena statistics and body-lifecycle isolation](reports/2026-10/STATTRACK-COMPAT-20261019.md) *(history)*
+- [Surgical walk client deployment manifest (GPU2, 2026-10-03)](reports/2026-10/SURGICAL-WALK-DEPLOYMENT-20261003.json) *(history)*
+- [First local test release ZIP, 2026-10-17 (superseded layout)](reports/2026-10/TEST-RELEASE-20261017.md) *(superseded)*
+- [Thumbnail generation record: prompts, references and export hashes (2026-10-18)](reports/2026-10/THUMBNAIL-20261018.json)
+- [Earlier UI artwork research and native weapon-icon feasibility (2026-10-16)](reports/2026-10/UI-ASSET-REPLACEMENT-REVIEW-20261016.md) *(superseded)*
+- [Arena UX corrections of 2026-10-27 with GPU-2 acceptance evidence](reports/2026-10/UX-FOLLOWUP-20261027.md) *(history)*
+- [Menu UX on SPT-GPU-2: session lockout, mode copy and the trader detour](reports/2026-10/UX-REVIEW-20261026.md) *(history)*
+- [Menu copy on SPT-GPU-1: repeated session, reward and mode lines](reports/2026-10/UX-REVIEW-20261029.md) *(history)*
+- [Concise Arena menus: implementation and native acceptance](reports/2026-10/UX-SIMPLIFICATION-20261029.md)
+- [Worktree cleanup: removed branches and archived local evidence](reports/2026-10/WORKTREE-CLEANUP-20261025.md) *(history)*
+- [Zombie Crowd corrections: changes, offline validation and native acceptance](reports/2026-10/ZOMBIE-CROWD-FIXES-20261014.md)
+- [Zombie performance levers: assessment after two control raids](reports/2026-10/ZOMBIE-PERFORMANCE-IDEAS-20261017.md)
+- [Zombie retreat-planning (BotDogFight) assessment and measured decision](reports/2026-10/ZOMBIE-RETREAT-REVIEW.md)
+- [Zombie mode: SAIN global pair-data analysis (no safe seam found)](reports/2026-10/ZOMBIE-SAIN-GLOBAL-REVIEW.md)
 
-These are dated records, not automatic proof that the current build passed a
-scenario. Check the cited source commit, installed artifact hashes and stated
-limitations before carrying a result forward.
+### 2026-09
 
-## Path convention
+- [SAIN 4.5.1 and PitFireTeam 0.10.1 update impact assessment](reports/2026-09/AI-UPDATE-REVIEW-2026-09-05.md) *(superseded)*
+- [Announcer deployment manifest 2026-09-14 (source commit, hashes, targets)](reports/2026-09/ANNOUNCER-DEPLOYMENT-20260914.json) *(history)*
+- [Announcer expansion staging build record 2026-09-14](reports/2026-09/ANNOUNCER-EXPANSION-BUILD.json) *(history)*
+- [Announcer and pickup follow-up deployment manifest 2026-09-19](reports/2026-09/ANNOUNCER-PICKUP-FOLLOWUP-DEPLOYMENT-20260919.json) *(history)*
+- [Announcer preparation-voice fix: staged build and deployment manifest (2026-09-19)](reports/2026-09/ANNOUNCER-PREPARE-DEPLOYMENT-20260919.json) *(history)*
+- [Customs team start survey: database candidates per contour (2026-09-08)](reports/2026-09/AREA-TEAM-SPAWN-SURVEY.md) *(superseded)*
+- [Deployment manifest: Arena UI assets client DLL, 2026-09-29](reports/2026-09/ARENA-UI-ASSETS-DEPLOYMENT-20260929.json) *(history)*
+- [Deployment manifest: damage assists build, 2026-09-14](reports/2026-09/ASSIST-DEPLOYMENT-20260914.json) *(history)*
+- [TDM retest child ledger: search awareness gates](reports/2026-09/ledgers/TdmRetestChecks/awareness.md) *(history)*
+- [Deployment manifest and loaded-client record: backpack reload, 2026-09-21](reports/2026-09/BACKPACK-RELOAD-DEPLOYMENT-20260921.json) *(history)*
+- [Barbed-wire feed client DLL deployment manifest, 2026-09-30](reports/2026-09/BARBED-FEED-DEPLOYMENT-20260930.json) *(history)*
+- [Bot agility client DLL deployment manifest, 2026-09-28](reports/2026-09/BOT-AGILITY-DEPLOYMENT-20260928.json) *(history)*
+- [Bot locomotion speed deployment and validation manifest, 2026-09-15](reports/2026-09/BOT-MOVEMENT-DEPLOYMENT-20260915.json) *(history)*
+- [Bot combat tempo client DLL deployment manifest, 2026-09-28](reports/2026-09/BOT-TEMPO-DEPLOYMENT-20260928.json) *(history)*
+- [Burst damage and Killcam client deployment manifest (2026-09-30)](reports/2026-09/BURST-KILLCAM-DEPLOYMENT-20260930.json) *(history)*
+- [Movement pause after climbing: native obstacle-lock investigation](reports/2026-09/CLIMB-RECOVERY-INVESTIGATION.md) *(history)*
+- [Single control point: slice 0 proposal (superseded by the Domination prototype)](reports/2026-09/CONTROL-POINT-REVIEW.md) *(superseded)*
+- [First bounded Customs area: fixed 2v2 factory-center prototype and playtest](reports/2026-09/CUSTOMS-AREA-REVIEW.md) *(superseded)*
+- [Customs areas refresh: deployment manifest with artifact hashes (2026-09-28)](reports/2026-09/CUSTOMS-AREAS-DEPLOYMENT-20260928.json) *(history)*
+- [Deathmatch GPU r3 triage: duplicate result banner, retired pickup callbacks, SAIN OnDisable](reports/2026-09/DEATHMATCH-R3-REVIEW.md)
+- [Defaults client deployment manifest, 30 Sep 2026](reports/2026-09/DEFAULTS-DEPLOYMENT-20260930.json) *(history)*
+- [TDM GPU retest follow-up: parent integration gate ledger](reports/2026-09/ledgers/TdmRetestChecks/GATES.md) *(history)*
+- [GPU team-start follow-up: acceptance gate ledger](reports/2026-09/ledgers/TeamStartAcceptanceChecks/GATES.md) *(history)*
+- [Native GPU acceptance 2026-09-08: Customs contour team starts failed](reports/2026-09/GPU-ACCEPTANCE-2026-09-08.md) *(history)*
+- [Area map preview r1: build and installed-file hash binding (JSON)](reports/2026-09/GPU-AREA-MAP-PREVIEW-r1-BUILD.json) *(superseded)*
+- [Area map preview r2: build and installed-file hash binding (JSON)](reports/2026-09/GPU-AREA-MAP-PREVIEW-r2-BUILD.json) *(history)*
+- [Customs area map preview r1: GPU menu test instructions and build binding](reports/2026-09/GPU-AREA-MAP-PREVIEW-TEST-INSTRUCTIONS-r1.md) *(superseded)*
+- [Customs area map preview r2: GPU menu retest instructions and build binding](reports/2026-09/GPU-AREA-MAP-PREVIEW-TEST-INSTRUCTIONS-r2.md) *(history)*
+- [Customs area map preview r1: GPU test FAIL at Factory East selection](reports/2026-09/GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r1.md) *(superseded)*
+- [Customs area map preview r2: GPU menu test PASS for cases 1-7](reports/2026-09/GPU-AREA-MAP-PREVIEW-TEST-RESULTS-r2.md) *(history)*
+- [Arena polish r1: build and installed-file hash binding (JSON)](reports/2026-09/GPU-ARENA-POLISH-r1-BUILD.json) *(history)*
+- [Arena polish r1: GPU checks for area catalogue, Tactical startup and killfeed offsets](reports/2026-09/GPU-ARENA-POLISH-TEST-INSTRUCTIONS-r1.md) *(history)*
+- [Arena refinements r1: GPU acceptance checklist for the first staged client](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r1.md) *(superseded)*
+- [Arena refinements r2: GPU acceptance checklist for the r4-client build](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r2.md) *(superseded)*
+- [Arena refinements r3: GPU acceptance checklist with raid and time budget](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r3.md) *(superseded)*
+- [Arena refinements r4: GPU checklist for air control and the open refinements](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-INSTRUCTIONS-r4.md) *(history)*
+- [Arena refinements r3: GPU overall stop on a bot weapon-selector NRE](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-RESULTS-r3.md) *(history)*
+- [Arena refinements and air control r4: GPU preflight blocked by hash drift](reports/2026-09/GPU-ARENA-REFINEMENTS-TEST-RESULTS-r4.md) *(history)*
+- [Backpack reload Mono fix: GPU acceptance results, 2026-09-21](reports/2026-09/GPU-BACKPACK-RELOAD-RESULTS-2026-09-21.md)
+- [Deathmatch menu and Arena character: GPU test instructions r1](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r1.md) *(superseded)*
+- [Deathmatch menu and Arena character: GPU test instructions r2](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r2.md) *(superseded)*
+- [Preview lifecycle and Deathmatch: GPU retest instructions r3](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r3.md) *(superseded)*
+- [Deathmatch result and bot exit: GPU retest instructions r4](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r4.md) *(superseded)*
+- [F9-close input and Deathmatch exit: GPU retest instructions r5](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r5.md) *(superseded)*
+- [Native menu return and bot weapon swap: GPU retest instructions r6](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-INSTRUCTIONS-r6.md) *(history)*
+- [Deathmatch menu and Arena character: GPU results r1 (stopped at 'Five modes' text)](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r1.md) *(history)*
+- [Deathmatch menu and Arena character: GPU results r2 (preview detach errors)](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r2.md) *(history)*
+- [Preview lifecycle and Deathmatch: GPU results r3 (C2 exit exceptions)](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r3.md) *(history)*
+- [Deathmatch menu/exit r4 GPU acceptance: FAIL, F9 close click fired a shot](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r4.md) *(superseded)*
+- [Deathmatch F9-close and exit r5 GPU results: limited pass, two raids](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r5.md) *(history)*
+- [Deathmatch r6 GPU run blocked at preflight by hash mismatch](reports/2026-09/GPU-DEATHMATCH-MENU-TEST-RESULTS-r6.md) *(history)*
+- [Native inline-mutator menu check on SPT-GPU-1 (30 Sep 2026)](reports/2026-09/GPU-INLINE-MUTATORS-RESULTS-20260930.md) *(history)*
+- [Kill skull and killfeed: autonomous native GPU test results (2026-09-29)](reports/2026-09/GPU-KILL-SKULL-RESULTS-20260929.md)
+- [Map thumbnail and marker revision: delivery state and pending native test sequence](reports/2026-09/GPU-MAP-PRESENTATION-TEST-20260930.md) *(history)*
+- [Incendiary grenade prototype: first native GPU test (2026-09-30)](reports/2026-09/GPU-MOLOTOV-RESULTS-20260930.md) *(superseded)*
+- [Native mutators menu check on GPU host 1, 30 Sep 2026](reports/2026-09/GPU-MUTATORS-RESULTS-20260930.md) *(superseded)*
+- [GPU panels retest r3: blocked before game start by a client hash mismatch](reports/2026-09/GPU-PANELS-R3-RESULTS-2026-09-11.md) *(history)*
+- [GPU panels retest r4: menu hiding, panel return, ammo and quickslot spacing](reports/2026-09/GPU-PANELS-R4-RESULTS-2026-09-11.md) *(history)*
+- [GPU panels retest r5: complete killfeed entries](reports/2026-09/GPU-PANELS-R5-RESULTS-2026-09-11.md) *(history)*
+- [GPU panels retest r6: killfeed distance and team colors](reports/2026-09/GPU-PANELS-R6-RESULTS-2026-09-11.md) *(history)*
+- [GPU panels retest r2: panels visible, inventory overlap still failing](reports/2026-09/GPU-PANELS-RETEST-RESULTS-2026-09-11.md) *(superseded)*
+- [GPU panels test instructions (final version: killfeed distance and team colors, job r6)](reports/2026-09/GPU-PANELS-TEST-INSTRUCTIONS.md) *(history)*
+- [GPU acceptance of Arena panels and native UI: first run rejected](reports/2026-09/GPU-PANELS-TEST-RESULTS-2026-09-11.md) *(superseded)*
+- [GPU job r1: Respawn-engine stage 0 retest instructions](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r1.md) *(history)*
+- [GPU job r2: Respawn-engine stage 0 continuation after the r1 stop](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r2.md) *(history)*
+- [GPU job r3: Respawn-engine stage 0 retest with gesture shutdown build](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r3.md) *(history)*
+- [GPU job r4: open respawn stage 0 cases from r3, same build](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-INSTRUCTIONS-r4.md) *(history)*
+- [Respawn-engine stage 0 r1: full stop in raid A (12.09.2026)](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-RESULTS-r1.md) *(history)*
+- [Respawn-engine stage 0 r2: GPU result of 13.09.2026, overall stop](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-RESULTS-r2.md) *(history)*
+- [Respawn-engine stage 0 r3: GPU results of 13.09.2026, no full acceptance](reports/2026-09/GPU-RESPAWN-STAGE0-TEST-RESULTS-r3.md) *(history)*
+- [Native GPU retest of 2026-09-08 (team sizes 2v2-5v5)](reports/2026-09/GPU-RETEST-2026-09-08.md) *(history)*
+- [Unified Arena UI: GPU visual check and retest (2026-09-22)](reports/2026-09/GPU-UNIFIED-UI-RESULTS-2026-09-22.md) *(history)*
+- [Health pickups: client and BigBrainCompat deployment manifest (2026-09-23)](reports/2026-09/HEALTH-PICKUPS-DEPLOYMENT-20260923.json) *(history)*
+- [Deployment manifest: HUD bleed polish client build (2026-09-29)](reports/2026-09/HUD-BLEED-POLISH-DEPLOYMENT-20260929.json) *(history)*
+- [Deployment manifest: inline mutators client build (2026-09-30)](reports/2026-09/INLINE-MUTATORS-DEPLOYMENT-20260930.json) *(history)*
+- [Deployment manifest: timed Jump Boots and isolated M60 pickup (2026-09-19)](reports/2026-09/JUMP-BOOTS-M60-DEPLOYMENT-20260919.json) *(history)*
+- [Deployment manifest: kill skull client build on both GPU hosts (2026-09-29)](reports/2026-09/KILL-SKULL-DEPLOYMENT-20260929.json) *(history)*
+- [Development announcer recordings from the elevenlabs.io free plan (trial)](reports/2026-09/LOCAL-ANNOUNCER-TRIAL.md) *(superseded)*
+- [Labyrinth long-raid review: measured per-mod frame cost (2026-09-16)](reports/2026-09/LONG-RAID-REVIEW-2026-09-16.md) *(history)*
+- [Map presentation client deployment manifest (2026-09-30)](reports/2026-09/MAP-PRESENTATION-DEPLOYMENT-20260930.json) *(history)*
+- [Molotov prototype deployment manifest (2026-09-30)](reports/2026-09/MOLOTOV-DEPLOYMENT-20260930.json) *(history)*
+- [Mutators menu client deployment manifest, 2026-09-30 (hashes, backups, not GPU-tested)](reports/2026-09/MUTATORS-DEPLOYMENT-20260930.json) *(history)*
+- [Offline harness repairs after Redeploy stage 0 (PFT, team expansion, give-up checks)](reports/2026-09/OFFLINE-HARNESS-REPAIR-2026-09-12.md) *(history)*
+- [Deployment manifest: per-map participant count build (2026-09-21)](reports/2026-09/PARTICIPANTS-DEPLOYMENT-20260921.json) *(history)*
+- [Deployment manifest: pickups, infinite ammo and backpack build (2026-09-21)](reports/2026-09/PICKUP-AMMO-BACKPACK-DEPLOYMENT-20260921.json) *(history)*
+- [Deployment record: pickup placement client build (2026-09-26)](reports/2026-09/PICKUP-PLACEMENT-DEPLOYMENT-20260926.json) *(history)*
+- [Deployment manifest: pickup refinements build (2026-09-15)](reports/2026-09/PICKUP-REFINEMENTS-DEPLOYMENT-20260915.json) *(history)*
+- [Deployment manifest: initial pickups prototype build (2026-09-15)](reports/2026-09/PICKUPS-DEPLOYMENT-20260915.json) *(history)*
+- [PitFireTeam one-round compatibility gates (initial milestones)](reports/2026-09/PITFIRETEAM-GATES.md) *(superseded)*
+- [PitFireTeam M2/M3 live log review (Labs Tactical 5v5, 2026-09-01)](reports/2026-09/PITFIRETEAM-LIVE-LOG-REVIEW-2026-09-01.md) *(history)*
+- [PitFireTeam protected multi-round 5v5 gates (offline R1-R5, live M7-M13)](reports/2026-09/PITFIRETEAM-MULTIROUND-GATES.md)
+- [Arena polish changes and bleeding NRE log diagnosis (2026-09-06)](reports/2026-09/POLISH-NRE-REVIEW.md) *(history)*
+- [Deployment manifest: post-raid warning and experience page (2026-09-15)](reports/2026-09/POSTRAID-PAGES-DEPLOYMENT-20260915.json) *(history)*
+- [TDM retest child ledger: preparation ownership gates](reports/2026-09/ledgers/TdmRetestChecks/preparation.md) *(history)*
+- [Preset description and optic mount fixes: integrated verification (2026-09-06)](reports/2026-09/PRESET-OPTICS-REVIEW.md) *(history)*
+- [Post-match Item Overlook contamination investigation and read-only preview diagnostics](reports/2026-09/PREVIEW-DIAGNOSTICS-REVIEW.md)
+- [TDM GPU retest follow-up: evidence ledger guide](reports/2026-09/ledgers/TdmRetestChecks/README.md) *(history)*
+- [Score/health client deployment manifest, 2026-09-26](reports/2026-09/SCORE-HEALTH-DEPLOYMENT-20260926.json) *(history)*
+- [Shot-award staged client build record, 2026-09-14](reports/2026-09/SHOT-AWARDS-BUILD.json) *(history)*
+- [TDM GPU retest follow-up and offline delivery record (2026-09-08)](reports/2026-09/TDM-RETEST-FOLLOWUP.md) *(history)*
+- [Team deathmatch contract and owner plan, revision 1](reports/2026-09/TEAM-DEATHMATCH-PLAN.md) *(superseded)*
+- [Native GPU team-start follow-up: marker requirements, merges and delivery (2026-09-08)](reports/2026-09/TEAM-START-ACCEPTANCE-REVIEW.md) *(history)*
+- [Maintenance of stale team test harnesses after the Killcam regression run](reports/2026-09/TEST-HARNESS-MAINTENANCE-20260930.md) *(history)*
+- [Trickshot/airtime announcer deployment manifest (2026-09-14)](reports/2026-09/TRICKSHOT-AIRTIME-DEPLOYMENT-20260914.json) *(history)*
+- [UI interactions deployment manifest (2026-09-15)](reports/2026-09/UI-INTERACTIONS-DEPLOYMENT-20260915.json) *(history)*
+- [Unified UI client deployment manifest with bounded native check (2026-09-22)](reports/2026-09/UNIFIED-UI-DEPLOYMENT-20260922.json) *(history)*
+- [Weapon pickup diagnostics client deployment manifest (2026-09-23)](reports/2026-09/WEAPON-PICKUP-DIAGNOSTICS-DEPLOYMENT-20260923.json) *(history)*
+- [Weapon pickup examination client deployment manifest (2026-09-23)](reports/2026-09/WEAPON-PICKUP-EXAMINATION-DEPLOYMENT-20260923.json) *(history)*
+- [Weapon variants and visible lasers: combined verification and deployment record](reports/2026-09/WEAPONS-LASERS-REVIEW.md) *(history)*
 
-Actual Markdown links are relative to the document containing them. Commands,
-source/asset paths and artifact paths in prose or code blocks remain relative to
-the **repository root**, unless the document explicitly says otherwise. Run the
-recorded commands from that root, not from `docs/`.
+### 2026-08
 
-The documentation move did not rewrite historical absolute paths, artifact
-contents, recorded hashes or original test results. References to removed
-worktrees can be recovered using the archive described in the cleanup record.
-New reports and review documents should be added here rather than to the root.
+- [Native Arena raid selection acceptance gates G1-G14 (with two follow-ups)](reports/2026-08/GATES.md) *(history)*
 
-- [AirPit original team boxes](AIRPIT-TEAM-BOXES-REVIEW.md): MapPort 0.2.2, independent TDM, GPU1 acceptance.
+## Conventions
+
+- Markdown links are relative to the document that contains them. Commands, source and artifact paths in prose stay relative to the **repository root**; run recorded commands from there.
+- New review or contract documents go to `docs/reviews/`, new dated reports to `docs/reports/<YYYY-MM>/`, and get a line in this index. Screenshots and logs stay under the gitignored `artifacts/`; a report quotes what matters.
+- Reports before 2026-10-30 keep their original wording, including links into `artifacts/` folders that are not part of the repository.

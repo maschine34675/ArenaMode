@@ -44,12 +44,12 @@ failed-replacement recovery, Tactical PFT or full Recoil camera/ADS/Akimbo behav
 Server-only ISB admission has offline checks. The version-only release build is
 not another native gameplay test. Full evidence and limits:
 
-- [Combined native checks and test-mod cleanup](GPU-COMPAT-SECOND-20261020.md)
-- [Skills Extended](SKILLS-EXTENDED-COMPAT-20261020.md)
-- [Recoil Rework Legacy](RECOIL-REWORK-COMPAT-20261020.md)
-- [Pause Continued](PAUSE-COMPAT-20261020.md)
-- [Effects Manager / Broken Limbs](EFFECTS-COMPAT-20261020.md)
-- [ISB admission](ISB-ADMISSION-20261020.md)
+- [Combined native checks and test-mod cleanup](reports/2026-10/GPU-COMPAT-SECOND-20261020.md)
+- [Skills Extended](reports/2026-10/SKILLS-EXTENDED-COMPAT-20261020.md)
+- [Recoil Rework Legacy](reviews/RECOIL-REWORK-COMPAT-20261020.md)
+- [Pause Continued](reports/2026-10/PAUSE-COMPAT-20261020.md)
+- [Effects Manager / Broken Limbs](reports/2026-10/EFFECTS-COMPAT-20261020.md)
+- [ISB admission](reports/2026-10/ISB-ADMISSION-20261020.md)
 
 Skills Extended adds its own persisted skill entries outside Arena. Removing
 that mod/prepatcher can leave profiles that the unextended server cannot read.

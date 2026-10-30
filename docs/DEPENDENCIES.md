@@ -35,7 +35,7 @@ Core does not require `Redeploy.Server`. The standalone Redeploy client queries
 its `/redeploy/ping` route; Core makes no such server requests. Arena's server
 handles its own protected raid ending and profile restoration. Neither
 Redeploy.Client nor Redeploy.Server therefore belongs in the Arena package.
-See [source review and library conversion](BIGBRAIN-LIBRARY-20261018.md).
+See [source review and library conversion](reviews/BIGBRAIN-LIBRARY-20261018.md).
 
 Sources: `ArenaMode.Client/Plugin.cs`, `ArenaMode.Client/ArenaMode.Client.csproj`,
 `ArenaMode.Server/ModMetadata.cs`, `../Redeploy/Redeploy.Core/CoreVersion.props`.
@@ -98,14 +98,14 @@ and is therefore also admitted if installed, but was not part of those checks. S
 
 Optional mods retain their own prerequisites. Third-party SAIN/APBS/PFT/BigBrain
 DLLs are not bundled with Arena, as required by `AGENTS.md`.
-The [version policy and checks](OPTIONAL-MOD-VERSIONS-20261019.md) explain
+The [version policy and checks](reviews/OPTIONAL-MOD-VERSIONS-20261019.md) explain
 minimum versions, warnings and the protection contracts that remain mandatory.
 `ArenaMode.BigBrainCompat` is Arena's own code and is always included.
 
 Domination on Factory and the four ported maps requires this library's verified
 objective layer. Missing BigBrain/support locks only Domination in the mode picker;
 other modes retain their existing optional dependency rules. See
-[Domination options and scope](DOMINATION-OPTIONS-ROUTES-20261027.md).
+[Domination options and scope](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md).
 Since its conversion to a library, this DLL registers neither a BepInEx plugin
 nor its own plugin GUID. Arena explicitly loads it beside the client DLL and
 owns initialization, updates and shutdown. Update both DLLs together, remove
@@ -121,10 +121,10 @@ HUD Breakout 1.2.0 and PiP Disabler 2.1.0 after bounded Arena and standalone
 tests. The same final Core passed two additional Factory respawns with Arena
 absent, including a scoped death, old PiP-cache retirement, current-body HUD and
 graphics bindings, native medical cancellation and an RGD throw after respawn.
-See the [remaining-mod report](REMAINING-MOD-COMPAT-20261026.md) for exact
+See the [remaining-mod report](reviews/REMAINING-MOD-COMPAT-20261026.md) for exact
 exercises, source contracts and limitations. Amand remains unlisted.
 
-The [Factory checks from 2026-10-20](GPU-OPTIONAL-COMPAT-20261020.md) supplement
+The [Factory checks from 2026-10-20](reports/2026-10/GPU-OPTIONAL-COMPAT-20261020.md) supplement
 the offline evidence: SVM's SaveLoot/Ignore behavior and basic CLA
 loading/respawn paths were checked in-game. Some timing/UI and replay edge cases
 remain untested. This does not certify every map, version or mod combination; the
@@ -135,7 +135,7 @@ The following Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing
 contracts are implemented by Redeploy.Core since 1.0.9 (0.2.0 ships 1.0.10), also for standalone Redeploy.
 Arena supplies only its explicit additional medical scope for Arena bots. The
 native observations below predate that migration; see
-[shared implementation and new verification boundaries](SHARED-BODY-COMPAT-20261023.md).
+[shared implementation and new verification boundaries](reviews/SHARED-BODY-COMPAT-20261023.md).
 
 - **Recoil Rework Legacy 2.0.0+:** the two foreign recoil/camera singleton
   components are transferred across Arena player replacements without destroying
@@ -145,21 +145,21 @@ native observations below predate that migration; see
   are unchanged. Native tests covered supplied kits, two death respawns, living
   and dead PFT wave refills, actual firing afterward and ordinary raids before
   and after Arena. Recovery failures, Akimbo and the full camera/perk matrix
-  remain untested. See [adapter and remaining checks](RECOIL-REWORK-COMPAT-20261020.md).
+  remain untested. See [adapter and remaining checks](reviews/RECOIL-REWORK-COMPAT-20261020.md).
 - **Continuous Load Ammo 1.2.0+:** loading controllers are rebound when Arena
   replaces the player body. Cleanup and delayed completion from the old body
   must not unlock or finish work on the replacement body or a newer loading
   operation. Normal loading, cancellation and saved settings remain intact.
-  See [loading controllers and verification limits](CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md).
+  See [loading controllers and verification limits](reviews/CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md).
 - **SVM 2.2.3+:** SaveLoot/Ignore shortcuts cannot bypass Arena's protected
   raid ending. Ordinary raids retain SVM's rules; other balance settings are
   not reset. The adapter also checks the actual patch order of the outer
   raid-end callback.
-  See [raid-end contract and verification limits](SVM-COMPAT-20261019.md).
+  See [raid-end contract and verification limits](reviews/SVM-COMPAT-20261019.md).
 - **Continuous Healing 1.6.3+:** player-specific healing continuation and
   cancellation are isolated from Arena bots and retired player bodies. The
   current living player retains Continuous Healing; ordinary raids are unchanged.
-  See [healing operations and verification limits](CONTINUOUS-HEALING-COMPAT-20261019.md).
+  See [healing operations and verification limits](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md).
 - **UIFixes:** the alternative R-key reload path is covered; installed version 6.0.3.
 - **Fontaine FOV Fix 4.1.0+:** Core 1.0.11 transfers the persistent camera controller
   to the replacement body and fences retired-body aim/weapon callbacks. Reviewed
@@ -168,7 +168,7 @@ native observations below predate that migration; see
   player sessions and fences delayed animation/controller/loading work. Reviewed
   client/server whitelist version: 2.0.0. WTT CommonLib and the mod's own dependency
   requirements still apply; the native checks include Continuous Load Ammo 1.2.0.
-  See [four-candidate review and verification boundaries](FOUR-MOD-COMPAT-20261025.md)
+  See [four-candidate review and verification boundaries](reports/2026-10/FOUR-MOD-COMPAT-20261025.md)
   for both additions and the initial exclusions. The subsequent Fast Grenade
   Throw and Tarkova Cola integrations are described below.
 - **Tarkova Cola 2.2.1+:** both client and server are admitted with checked
@@ -192,7 +192,7 @@ native observations below predate that migration; see
 - **Auto Shoulder Swap 1.1.1:** not whitelisted after a native knife/left-lean
   test reproduced an upstream `CurrentScope` error. Normal firearm lean works,
   including after respawn. No new global deny or ordinary-raid behavior change.
-  See [three input-mod tests and limitations](INPUT-MOD-COMPAT-20261025.md).
+  See [three input-mod tests and limitations](reports/2026-10/INPUT-MOD-COMPAT-20261025.md).
 - **Accurate Circular Radar 1.3.4 / Simple Crosshair 1.4.0:** Core 1.0.13
   preserves their HUDs and rebinds physical player/camera references. Late old
   bodies cannot remove the replacement crosshair. Radar colors remain faction
@@ -206,7 +206,7 @@ native observations below predate that migration; see
   and bot markers are retained; local replacement bodies receive no enemy marker.
   These mods retain their own HUD and marker settings, so overlapping HUDs may
   need configuring in the respective mods. See
-  [native tests and limits](ITEMS-HUD-COMPAT-20261025.md).
+  [native tests and limits](reviews/ITEMS-HUD-COMPAT-20261025.md).
 - **Fast Grenade Throw 2.0.0:** the Arena adapter respects the
   current player's grenade priority within the effective candidate list and
   blocks direct quick-throw input during Arena input locks/replacement.
@@ -235,7 +235,7 @@ native observations below predate that migration; see
 - **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
   Its existing ConfigurationManager dependency must remain installed. Other
   mods' stock F12-window patches may be removed by Better BepInEx itself.
-  See [reviewed artifacts and native test scope](HUD-MOD-COMPAT-20261025.md).
+  See [reviewed artifacts and native test scope](reviews/HUD-MOD-COMPAT-20261025.md).
 - **AutoCorpseSearch:** Arena's search yields when the standalone mod is loaded.
 - **NotificationFilter:** Arena also suppresses replacement quest popups without
   changing the mod's global configuration.
@@ -256,9 +256,9 @@ native observations below predate that migration; see
   are not covered by the ordinary SPT profile snapshot, Aishi has item-dependent
   death prevention, and Adaptive Bot Culling pauses culled bots and changes death
   animations. Ordinary PMC/Scav raids remain unchanged. The historical reviews:
-  [Arena admission](OPTIONAL-MOD-ADMISSION-20261019.md),
-  [Adaptive Bot Culling](ARENA-AVAILABILITY-20261020.md),
-  [ISB admission](ISB-ADMISSION-20261020.md).
+  [Arena admission](reports/2026-10/OPTIONAL-MOD-ADMISSION-20261019.md),
+  [Adaptive Bot Culling](reviews/ARENA-AVAILABILITY-20261020.md),
+  [ISB admission](reports/2026-10/ISB-ADMISSION-20261020.md).
 - **Removed adapters (2026-10-22):** MoreBotsAPI, AI Limit, Looting Bots, Remove The
   Dead, Smoothie, Late To The Party, Classic Movement, StatTrack, Deminvincibility,
   Skills Extended, Pause Continued and EFT Effects Manager / Broken Limbs Don't Heal.
@@ -314,7 +314,7 @@ Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
 revision is recorded in the package manifest. ArenaMode 0.4.1 bundles Core
 1.0.18, identical to the library in Redeploy 1.1.1. See
-[release notes](RELEASE-0.4.1.md) and [native coverage](RELEASE-SWEEP-20261029.md).
+[release notes](RELEASE-0.4.1.md) and [native coverage](reports/2026-10/RELEASE-SWEEP-20261029.md).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

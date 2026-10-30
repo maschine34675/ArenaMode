@@ -93,7 +93,7 @@ profile and choose **START ARENA**. The picker can create a desktop shortcut.
 A brief normal-server start followed by the private-server start is expected:
 normal SPT prepares and saves the profile before transfer, even with rewards off.
 The direct helper requires the local SPT installation; it does not manage a
-server running on another machine. [Direct-start details](docs/DIRECT-START-20261028.md).
+server running on another machine. [Direct-start details](docs/reviews/DIRECT-START-20261028.md).
 
 The shipped `arena-whitelist.json` records reviewed mods and versions. Recognized
 versions that differ are still attempted in direct play and new private sessions;
@@ -133,7 +133,7 @@ This does not reset the normal profile. Recovery also handles stopped sessions
 whose disposable data went missing. After a profile wipe, a backup restored from before rewards
 were enrolled or a moved or copied install, the old reward folder (`user/arena-rewards/<profile>`) is renamed to `.archived-...`,
 never deleted, and your reward choice is kept. [Reward details](docs/REWARDS-RUNTIME.md) ·
-[Stopped-session recovery](docs/OFFLINE-STARTUP-RECOVERY-20261028.md).
+[Stopped-session recovery](docs/reviews/OFFLINE-STARTUP-RECOVERY-20261028.md).
 
 Tarkova Cola **2.2.1+**, installed on both sides, can additionally transfer eligible
 Zombie progress and newly earned achievements through the same reward switch.
@@ -141,7 +141,7 @@ Zombie progress and newly earned achievements through the same reward switch.
 
 ## Verification and known limits
 
-The [29 October native sweep](docs/RELEASE-SWEEP-20261029.md) exercised all six
+The [29 October native sweep](docs/reports/2026-10/RELEASE-SWEEP-20261029.md) exercised all six
 modes, all four ported maps, direct entry/return and standalone Redeploy on two
 hosts. It covers representative short scenarios, not every mod combination,
 full Tactical match, Gun Game ladder or long Zombie session.

@@ -36,10 +36,10 @@ Core timing uses its own ordinary Info lines; Arena's other detailed probes
 retain the `[dev]` prefix.
 
 Native model faults receive bounded object/body context only in an admitted
-Arena world. See [the exact hooks and limits](NATIVE-MODEL-DIAGNOSTICS-20261018.md).
+Arena world. See [the exact hooks and limits](reviews/NATIVE-MODEL-DIAGNOSTICS-20261018.md).
 Original native errors remain unchanged. The server independently omits only
 successful exact settings GET request lines; failures and other routes keep
-their diagnostics ([scope and checks](SETTINGS-POLL-LOGGING-20261018.md)).
+their diagnostics ([scope and checks](reviews/SETTINGS-POLL-LOGGING-20261018.md)).
 
 A BepInEx installation configured with disk/console `LogLevels = All` still
 records Debug messages. This cleanup does not change that global setting or
@@ -75,11 +75,11 @@ Unity and server request middleware retain their own logging policies.
 
 Implementation and evidence:
 
-- [Client inventory and exceptions](LOGGING-CLIENT-AUDIT-20261015.md)
-- [Server/companion inventory and warning routing](LOGGING-SERVER-AUDIT-20261015.md)
-- [Existing log errors and attribution](LOGGING-ERROR-AUDIT-20261015.md)
-- [Harness integration](LOGGING-HARNESS-AUDIT-20261015.md)
-- [Fresh GPU2 test](GPU-LOGGING-TEST-20261015.md)
+- [Client inventory and exceptions](reports/2026-10/LOGGING-CLIENT-AUDIT-20261015.md)
+- [Server/companion inventory and warning routing](reports/2026-10/LOGGING-SERVER-AUDIT-20261015.md)
+- [Existing log errors and attribution](reports/2026-10/LOGGING-ERROR-AUDIT-20261015.md)
+- [Harness integration](reports/2026-10/LOGGING-HARNESS-AUDIT-20261015.md)
+- [Fresh GPU2 test](reports/2026-10/GPU-LOGGING-TEST-20261015.md)
 
 Reproduce the dedicated routing check with
 `pwsh -File tools/LoggingChecks/Verify.ps1`. It uses the real installed BepInEx

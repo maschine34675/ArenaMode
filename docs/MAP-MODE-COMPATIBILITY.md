@@ -20,12 +20,12 @@ werden durch diese Änderung nicht freigegeben.
 Für ganze Karten verwenden die Modi überwiegend die bestehenden generischen
 Spawnpunkte. Ausnahme: Equator-Team-DM nutzt die ursprünglichen Nord-/Süd-Teamboxen
 mit eigenen Arena-Markern für Einstieg und Respawns; siehe
-[Equator-Teamstarts](EQUATOR-TEAM-SPAWNS-REVIEW.md). Auf den übrigen ganzen Karten
+[Equator-Teamstarts](reviews/EQUATOR-TEAM-SPAWNS-REVIEW.md). Auf den übrigen ganzen Karten
 braucht Team DM keine vermessenen Fraktionsstarts wie die begrenzten Areale.
 Mit aktueller ArenaMapPort-Version bleiben Equators originale Türen während
 Vorbereitung und Countdown geschlossen. Der Kampf beginnt erst nach Öffnung
 und erfolgreicher Wegeprüfung; bei laufenden Respawns bleiben die Türen offen.
-Siehe [Spawn-Tore und Vorbereitungsschutz](EQUATOR-SPAWN-GATES-20261017.md).
+Siehe [Spawn-Tore und Vorbereitungsschutz](reviews/EQUATOR-SPAWN-GATES-20261017.md).
 Bay5 hat auch abseits der Spielerstarts genügend Punkte für den Fünfertrupp.
 Equator hat zwar genügend Punkte am ursprünglichen Spielereinstieg, aber nur vier
 mindestens 25 m entfernte Botpunkte vom Atrium (0, 0.2, 2). Ein überlebender
@@ -66,7 +66,7 @@ Listen und ausdrücklich entfernte oder deaktivierte Karten bleiben erhalten.
 Die ursprüngliche nördliche Air-Pit-Teambox liegt außerhalb der aktuellen
 Navigationsfläche und wird nicht als fester Teamstart übernommen. Team DM und
 Tactical verwenden hier zunächst die allgemeinen Spawnverfahren. Die Freigabe
-umfasst kein neues Pickup-Layout; siehe [Air-Pit-Integration](AIRPIT-INTEGRATION-20261017.md).
+umfasst kein neues Pickup-Layout; siehe [Air-Pit-Integration](reviews/AIRPIT-INTEGRATION-20261017.md).
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

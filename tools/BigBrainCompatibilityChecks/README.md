@@ -46,7 +46,7 @@ are replaced by these tests; their existing behavioral harnesses remain relevant
 The installed BepInEx chainloader was independently inspected: discovery reads
 Cecil metadata and ignores static types as plugin entries. The main client's
 Start runs after BepInEx assigns its plugin instance and BigBrain patches Awake.
-See the [dated results](../../docs/BIGBRAIN-LIBRARY-20261018.md).
+See the [dated results](../../docs/reviews/BIGBRAIN-LIBRARY-20261018.md).
 
 These are CoreCLR isolation and source-contract checks, **not native Unity/Mono
 startup acceptance** or certification of a future BigBrain release. Future

@@ -27,7 +27,7 @@ boundary. It does not import foreign/private profiles or permit live payment.
   records metadata only: return to the normal session, then re-enter Arena. The supported
   local return starts the normal server automatically. Existing enrolled profiles can
   switch immediately even while the normal server is stopped: new local schema-3
-  sessions use [signed private consent](ARENA-OFFLINE-SESSION-20261025.md).
+  sessions use [signed private consent](reviews/ARENA-OFFLINE-SESSION-20261025.md).
 - The server freezes 1,000 RUB + 100 XP per eligible local kill, 10,000 RUB +
   1,000 XP per round win, capped at 200,000 RUB and 20,000 XP per match.
   These are the user's selected starting values (`arena-v2`).
@@ -281,7 +281,7 @@ last resort.
 
 New schema-3 local sessions use the separate entry capability, exclusive original
 runtime ownership and signed private consent described in
-[the offline-session contract](ARENA-OFFLINE-SESSION-20261025.md). They do not contact
+[the offline-session contract](reviews/ARENA-OFFLINE-SESSION-20261025.md). They do not contact
 the stopped normal server. Ordinary startup recovers the final revision before payout.
 The rest of this subsection documents the retained schema-1/2 live-server relay:
 
@@ -447,7 +447,7 @@ the complete named inventory was then verified across isolated compiler runs.
 The native test exposed and fixed the prepare request's initially lower-case
 field name; the added mutation check rejects that regression.
 Native acceptance is recorded separately in
-[GPU-PRIVATE-REWARD-CONSENT-20261025.md](GPU-PRIVATE-REWARD-CONSENT-20261025.md).
+[GPU-PRIVATE-REWARD-CONSENT-20261025.md](reports/2026-10/GPU-PRIVATE-REWARD-CONSENT-20261025.md).
 
 ### Previous verification (2026-10-24)
 
@@ -463,7 +463,7 @@ Native acceptance is recorded separately in
   faults, covering the card's placement, ownership and raid lock as well as the
   existing mode controls. These tests compile production sources with external
   Unity/HTTP stand-ins; they do not establish native rendering acceptance.
-  [The separate GPU-2 menu test](GPU-REWARD-MENU-20261024.md) confirms native
+  [The separate GPU-2 menu test](reports/2026-10/GPU-REWARD-MENU-20261024.md) confirms native
   placement, map selection, return/reopen and isolation from the ordinary PMC
   menu. Status samples spanning 49 seconds retained their text and enabled state;
   the blocked-entry fallback itself was checked offline, not by changing GPU policy.
@@ -482,7 +482,7 @@ Native acceptance is recorded separately in
   and native session-identity corrections, using the final reward rates.
   Tactical polish passed 74 assertions and four historical/injected
   fault checks; the solo spawn checks passed 57 assertions and five mutations.
-- [Independent integration review](REWARDS-RUNTIME-REVIEW-20261024.md) records the
+- [Independent integration review](reviews/REWARDS-RUNTIME-REVIEW-20261024.md) records the
   TDM give-up, Tactical cleanup/timing and startup-status findings and corrections.
 - On SPT-GPU-2, real Factory Deathmatch victories on the ordinary and private
   servers each earned 11,000 RUB from one local kill and one round win. The
@@ -492,5 +492,5 @@ Native acceptance is recorded separately in
   created no new reward or attachment. This is bounded DM acceptance, not a
   native certification of every mode, PFT outcome or crash-recovery branch.
 - Native gameplay results and final regression evidence are recorded separately
-  in the [GPU test report](GPU-REWARDS-RUNTIME-20261024.md); offline checks alone
+  in the [GPU test report](reports/2026-10/GPU-REWARDS-RUNTIME-20261024.md); offline checks alone
   do not establish gameplay acceptance.

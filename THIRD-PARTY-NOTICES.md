@@ -128,7 +128,7 @@ and M4 rifles framed by a laurel wreath in graphite, ivory and ochre. It was
 made with OpenAI's image tool by reworking the project's previous realistic
 thumbnail, which used the earlier thumbnail and generated assault-rifle artwork
 as references. It is not a photograph or an extracted game asset.
-The [generation record](docs/THUMBNAIL-20261018.json) contains the prompts,
+The [generation record](docs/reports/2026-10/THUMBNAIL-20261018.json) contains the prompts,
 revision history and source/export hashes. It is offered under the project
 MIT license to the extent copyright or related rights apply to the contributors' work.
 
@@ -139,7 +139,7 @@ MIT license to the extent copyright or related rights apply. Native game hand ri
 animations and prefab references are used from the installed game, not offered
 as redistributed game assets. No downloaded Molotov recording or asset from
 Sage's mod is included; see the
-[presentation provenance](docs/MOLOTOV-PRESENTATION-REVIEW.md).
+[presentation provenance](docs/reviews/MOLOTOV-PRESENTATION-REVIEW.md).
 
 ## Audio
 

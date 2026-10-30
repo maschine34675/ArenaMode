@@ -1,7 +1,7 @@
 # Automatic rewards on return — 2026-10-25
 
 Development change after 0.2.0. **Current local entry/return is extended by
-[offline Arena sessions](ARENA-OFFLINE-SESSION-20261025.md): the ordinary server
+[offline Arena sessions](reviews/ARENA-OFFLINE-SESSION-20261025.md): the ordinary server
 now saves and stops before copying the Arena profile, stays stopped during play,
 and starts on return.** The save/drain safeguards below are reused at entry.
 The flow and native evidence below describe the preceding implementation, retained
@@ -118,7 +118,7 @@ plus live, missing and exit-code-259 process observations.
 The native APIs document these rights: [image path](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamea),
 [creation time](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes)
 and [process wait](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject).
-See the [two-host native report](DIRECT-START-NATIVE-20261028.md) for actual token
+See the [two-host native report](reports/2026-10/DIRECT-START-NATIVE-20261028.md) for actual token
 combinations, final build identity and entry/return outcomes. This reproduction
 does not retrospectively prove the cause of the earlier uninstrumented errors.
 
@@ -128,7 +128,7 @@ Focused synthetic tests cover capability tampering/expiry/replay, separate secre
 private marker binding, request draining, native-loop completion, failed saves and
 readback mismatches, refusal/resume, held retry, no-work decisions and helper restart
 ordering without duplicate replacement processes. Native acceptance and earlier
-failed attempts are recorded in [the GPU report](GPU-REWARD-RETURN-20261025.md).
+failed attempts are recorded in [the GPU report](reports/2026-10/GPU-REWARD-RETURN-20261025.md).
 The accepted native test returned two genuine matches through the button alone:
 two collectible mails totaling 22,000 RUB and 2,200 PMC XP were present when normal
 EFT opened. A second return without a match kept the normal server process and

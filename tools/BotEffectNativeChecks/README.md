@@ -119,7 +119,7 @@ Inspect full/partial cover in those frames; do not infer occlusion from linecast
 counts, a zero ring count or projected bounds. Projection metadata is normalized
 camera-space; validate the displayed position when DLSS changes the viewport.
 Natural gameplay positive controls and the native test matrix live in
-`docs/GPU-BOT-EFFECTS-20261019.md`.
+`docs/reports/2026-10/GPU-BOT-EFFECTS-20261019.md`.
 
 ## Cleanup
 
