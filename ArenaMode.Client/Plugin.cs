@@ -68,6 +68,8 @@ public class Plugin : BaseUnityPlugin
         ArenaMedicalBodyScope.Initialize();
         ArenaTarkovaColaCompat.Initialize();
         ArenaMenuSelection.RegisterCompatibilityAdmission(ArenaOptionalMods.GetRejectionReason);
+        // The map-screen refresh probe measures only while DeveloperMode is on.
+        ArenaMenuSelection.CallTiming.Enabled = () => Settings.DeveloperMode?.Value == true;
         ArenaMenuSelection.RegisterCompatibilityCleanup(PitFireTeamCompat.Clear);
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 

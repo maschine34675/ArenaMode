@@ -86,3 +86,13 @@ Reproduce the dedicated routing check with
 logger plus production `ArenaLog` source and rejects broken opt-in guards. The
 server unit suite also tests routine ladder output separately from malformed
 draws, prohibited-ammunition fallback and attachment failures.
+
+## Map-screen refresh probe (DeveloperMode)
+
+While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five
+seconds at Info `[dev] Arena map menu refresh: N ticks in 5 s, max M ms; avg/max per
+section (ms): ported, modeEligibility, modes, eligibility, rows, prepare, areas, info,
+preview; compat …; pft …`: the sections of one `ArenaLocationSelectionPatch` refresh tick
+and the call timers of `ArenaMenuSelection.CallTiming` (the optional-mod admission and the
+PitFireTeam roster decision). Nothing is measured while the mode is off. Added 31.10.2026
+to attribute the screen's frame-time spikes (see HANDOFF, "Arena map screen frame drops").

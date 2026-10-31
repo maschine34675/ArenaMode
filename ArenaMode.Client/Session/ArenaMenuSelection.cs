@@ -125,15 +125,80 @@ internal static class ArenaMenuSelection
     public static void RegisterCompatibilityAdmission(Func<string> admission)
         => _compatibilityAdmission = admission;
 
+    /// <summary>
+    /// DeveloperMode-only call-time accumulator (count, average, maximum in ms) for one code
+    /// path; the map-screen refresh probe (ArenaLocationSelectionPatch.RefreshTiming) prints
+    /// and resets it every five seconds. Begin returns 0 while the mode is off and End ignores
+    /// a 0 start, so an instrumented path pays one setting read when nothing is measured.
+    /// Nested here, gated by a delegate the plugin installs (Enabled), and registering
+    /// every instance, so that harnesses linking this file compile without extra links
+    /// and the probe reports all timers without naming their owners.
+    /// </summary>
+    internal sealed class CallTiming
+    {
+        private static readonly double TicksToMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        private static readonly System.Collections.Generic.List<CallTiming> All = new();
+        /// <summary>Installed by Plugin: DeveloperMode on. Null (harnesses, early start) means off.</summary>
+        internal static Func<bool> Enabled;
+        private readonly string _name;
+        private int _count;
+        private double _sum, _max;
+
+        internal CallTiming(string name) { _name = name; lock (All) All.Add(this); }
+
+        internal static bool IsEnabled => Enabled?.Invoke() == true;
+
+        internal static long Begin()
+            => IsEnabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+
+        /// <summary>Every timer that measured something since the last report, joined with "; ", then reset.</summary>
+        internal static string ReportAllAndReset()
+        {
+            var parts = new System.Text.StringBuilder();
+            lock (All)
+                foreach (var timer in All)
+                {
+                    string text = timer.ReportAndReset();
+                    if (text.Length == 0) continue;
+                    parts.Append(parts.Length == 0 ? string.Empty : "; ").Append(text);
+                }
+            return parts.ToString();
+        }
+
+        internal void End(long started)
+        {
+            if (started == 0) return;
+            double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * TicksToMs;
+            _count++;
+            _sum += ms;
+            if (ms > _max) _max = ms;
+        }
+
+        /// <summary>"name n calls avg a/max m" and reset; empty when nothing was measured.</summary>
+        internal string ReportAndReset()
+        {
+            if (_count == 0) return string.Empty;
+            string text = $"{_name} {_count} calls avg {_sum / _count:F1}/max {_max:F1}";
+            _count = 0; _sum = 0; _max = 0;
+            return text;
+        }
+    }
+
+    // The two per-refresh costs of the map screen, measured in DeveloperMode only.
+    internal static readonly CallTiming CompatibilityTiming = new("compat");
+    internal static readonly CallTiming RosterTiming = new("pft");
+
     public static string CompatibilityRejection
     {
         get
         {
+            long started = CallTiming.Begin();
             try { return _compatibilityAdmission?.Invoke(); }
             catch (Exception)
             {
                 return "Arena could not verify optional-mod compatibility. Restart the game and check the log.";
             }
+            finally { CompatibilityTiming.End(started); }
         }
     }
 

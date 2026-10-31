@@ -41,18 +41,31 @@ internal static class ArenaLocationSelectionPatch
         // Native selection/claim/start callbacks never consume this snapshot.
         public ArenaMapAvailabilitySnapshot Availability;
 
+        // DeveloperMode-only timing of one refresh, reported every five seconds as the
+        // average and maximum per section. Nothing is measured when the mode is off.
+        // Added 31.10.2026 to attribute the map-screen frame-time spikes that ModProfiler
+        // pins on ArenaMapMenuUpdater.Update (110-210 ms per tick on GPU-2).
+        private readonly RefreshTiming _timing = new();
+
         public void Refresh(MatchMakerSelectionLocationScreen screen)
         {
+            var timing = ArenaMenuSelection.CallTiming.IsEnabled ? _timing : null;
+            timing?.Begin();
             foreach (var presentation in PortedMaps) presentation.Refresh();
+            timing?.Mark("ported");
             var eligibility = ArenaMenuSelection.CurrentModeEligibility;
+            timing?.Mark("modeEligibility");
             Modes.Synchronize(Settings.GameMode?.Value, eligibility.Allowed && eligibility.IsTeam);
+            timing?.Mark("modes");
             // Synchronize may repair a saved PFT mode, so inspect strict map
             // eligibility afterwards and share it across every existing row.
             var availability = Availability = new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);
+            timing?.Mark("eligibility");
             var previousMap = screen.SelectedLocation?.Id;
             foreach (var row in ConditionalMaps)
                 row.View.Refresh(ArenaMapCatalog.CanSelectNativeLocation(row.MapId, availability.IsMapDiscoverable),
                     string.Equals(screen.SelectedLocation?.Id, row.MapId, System.StringComparison.OrdinalIgnoreCase));
+            timing?.Mark("rows");
             var map = screen.SelectedLocation?.Id;
             if (map != null && !availability.TryPrepareMapArea(Controller(screen)?.RaidSettings, map))
                 screen.OnLocationSelected(null);
@@ -66,13 +79,63 @@ internal static class ArenaLocationSelectionPatch
                     : "Map unavailable in this mode. Choose another.";
                 SelectionHint.gameObject.SetActive(_invalidMap != null);
             }
+            timing?.Mark("prepare");
             var areas = availability.AreaSelection(screen.SelectedLocation?.Id);
             var participants = ArenaParticipantSelectionState.Create(areas, eligibility.IsTeam,
                 ArenaParticipantSettings.Get(areas.MapId, areas.ModeId));
             Areas.Refresh(areas, eligibility.Allowed && eligibility.IsTeam, participants);
+            timing?.Mark("areas");
             Info.Refresh(ArenaPortedMapPresentation.DisplayName(screen.SelectedLocation?.Id,
                 screen.SelectedLocation?.LocalizedName), screen._infoPanel?._banner?.sprite);
+            timing?.Mark("info");
             Preview.Refresh(areas);
+            timing?.Mark("preview");
+            timing?.End();
+        }
+
+        private sealed class RefreshTiming
+        {
+            private static readonly double TicksToMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            private readonly List<string> _order = new();
+            private readonly Dictionary<string, double> _sum = new(), _max = new();
+            private long _start, _last, _windowStart;
+            private int _ticks;
+            private double _maxTotal;
+
+            public void Begin()
+            {
+                _start = _last = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (_windowStart == 0) _windowStart = _start;
+            }
+
+            public void Mark(string section)
+            {
+                long now = System.Diagnostics.Stopwatch.GetTimestamp();
+                double ms = (now - _last) * TicksToMs;
+                _last = now;
+                if (!_sum.ContainsKey(section)) { _order.Add(section); _sum[section] = 0; _max[section] = 0; }
+                _sum[section] += ms;
+                if (ms > _max[section]) _max[section] = ms;
+            }
+
+            public void End()
+            {
+                long now = System.Diagnostics.Stopwatch.GetTimestamp();
+                double total = (now - _start) * TicksToMs;
+                _ticks++;
+                if (total > _maxTotal) _maxTotal = total;
+                if ((now - _windowStart) * TicksToMs < 5000) return;
+                var parts = new System.Text.StringBuilder();
+                foreach (var section in _order)
+                    parts.Append(parts.Length == 0 ? string.Empty : ", ")
+                        .Append(section).Append(' ').Append((_sum[section] / _ticks).ToString("F1"))
+                        .Append('/').Append(_max[section].ToString("F1"));
+                // Info on purpose, like ArenaLog.Developer: DeveloperMode alone must make the probe visible.
+                Plugin.ModLogger.LogInfo($"[dev] Arena map menu refresh: {_ticks} ticks in 5 s, max {_maxTotal:F1} ms; avg/max per section (ms): {parts}; "
+                    + ArenaMenuSelection.CallTiming.ReportAllAndReset() + ".");
+                _sum.Clear(); _max.Clear(); _order.Clear();
+                _ticks = 0; _maxTotal = 0; _windowStart = now;
+            }
         }
 
         public void ShowSelectionHint(Transform parent, TMP_Text typography)

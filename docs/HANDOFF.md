@@ -50,6 +50,24 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Arena map screen frame drops (2026-10-31, cause found, fix open):** on the Arena
+SelectLocation screen GPU-2 drops from 60 to 48 FPS with one 45-130 ms frame every 0.2 s
+(the user's PC far worse). Measured with `uibridge_status perfSeconds`, a ModProfiler
+headless capture and a DeveloperMode timing probe (now in `ArenaLocationSelectionPatch`,
+`[dev] Arena map menu refresh: …` every 5 s): the whole cost is
+`ArenaMenuSelection.CompatibilityRejection`, evaluated four times per refresh tick
+(mode and strict eligibility, each directly and again inside `EvaluateEligibility`), about
+12 ms each. Inside it, every adapter of an optional mod that is NOT installed calls
+`Clear()`/`ClearBinding()` → `Harmony.UnpatchSelf()`, which walks all ~1,270 patched
+methods of the process with `GetPatchInfo` allocations (~2 ms and ~10 MB per walk):
+`QuickCancelCompat`, `PipDisablerCompat`, `QuestTrackerCompat`, `AudioIndicatorsCompat`
+(Redeploy.Core; the last two since `d9a1108`, 29.10.) and `FastGrenadeThrowCompat`
+(ArenaMode). UI, TMP, previews, PitFireTeam roster: under 0.3 ms per tick. Fix plan: a
+`_patched` guard before every `UnpatchSelf()` in those `Clear` paths (Core needs a release
+together with ArenaMode), one admission verdict per refresh tick shared by both
+eligibilities (click, claim and start stay fresh), optionally a slower admission poll.
+Evidence: `artifacts/iceberg-20261031/gpu/menu-perf/` (findings.md, profiler export).
+
 **Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not pushed):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
 Domination A/B/C, docs) plus the review-fix commit `2709476d`; see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
@@ -65,8 +83,9 @@ it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only 
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
 Iceberg in an ArenaMode release before MapPort publishes it. **The installed binaries on
-all Syncthing hosts are now the development build `0.4.1+a6ed8d93` of this branch** (client,
-companion, server, Gate, Session), not the 0.4.1 release; Redeploy.Core stays the released
+all Syncthing hosts are now the development build of `master` (`a6ed8d93` plus the
+map-screen timing probe commit of 31.10. evening)** (client, companion, server, Gate,
+Session), not the 0.4.1 release; Redeploy.Core stays the released
 `1.0.18+232af19` bytes (the rebuild writes different bytes under the same version, so the
 release Core from `Redeploy/artifacts/publish-111/.../stage` is copied back after every
 build). The ArenaMode cfg migrated to revision 5 with `arena_iceberg` in `General/Maps`.

@@ -415,9 +415,11 @@ internal static class ArenaSideSelectionPatch
         var rejection = ArenaMenuSelection.CompatibilityRejection;
         if (!string.IsNullOrEmpty(rejection))
             return new ArenaMenuSelection.Eligibility(false, false, rejection);
+        long started = ArenaMenuSelection.CallTiming.Begin();
         var decision = PitFireTeamCompat.EvaluateSelection(
             controller?.MatchmakerPlayersController, controller?.RaidSettings,
             allowPendingModeSelection);
+        ArenaMenuSelection.RosterTiming.End(started);
         return new ArenaMenuSelection.Eligibility(
             decision.Allowed, decision.IsTeam, decision.Reason, decision);
     }
