@@ -82,16 +82,17 @@ internal sealed class DominationMapLayout
     // Iceberg level376 (Arena_Sanatorium_CheckPoint_DesignStuff): the CheckPoint
     // CAPTURE_POINT/CAPTURE_POINT_LIGHT_02_A/B/C roots from iceberg.modes.json, the
     // same per-light source whose roots equal the CapturePointEntity anchors on the
-    // other ports; the sidecar's centroid is null and would be meaningless. These are
-    // trigger centres, not floors: A (y 3.9, in the pool) lies .5 m below the basin
-    // floor (4.40) and 1.1 m below the deck and Arena NavMesh (about 5.0); B lies .4 m
-    // below its floor. Do not lift them, add a relocation or loosen
-    // ArenaPickupGeometry.TryFloor: the unchanged native projection (SamplePosition
-    // .75 m, |dy| <= .5, support ray, clearance) decides on the host, and a refused
-    // point aborts the protected match instead of moving the objective.
+    // other ports; the sidecar's centroid is null and would be meaningless. X/Z are the
+    // light roots; the heights are the Arena NavMesh floors measured on GPU-2 on
+    // 31.10.2026 with UiBridge teleport dry runs (snap 0.0 m at these values). The roots'
+    // own heights (A 3.9 in the pool basin, B 2.69, C 2.85) lie .6/.44/.3 m below those
+    // floors, and the unchanged native projection (SamplePosition .75 m, |dy| <= .5,
+    // support ray, clearance) refused A on the host ("no nearby floor on the navigation
+    // mesh"), which aborted the protected match. Do not move X/Z, add a relocation or
+    // loosen ArenaPickupGeometry.TryFloor: a refused point must keep aborting the match.
     private static readonly DominationMapLayout Iceberg = new(false,
-        new Point("A", 16.77f, 3.9f, -91.39f), new Point("B", 10.614f, 2.69f, -77.727f),
-        new Point("C", 21.91f, 2.85f, -47.3f));
+        new Point("A", 16.77f, 4.5f, -91.39f), new Point("B", 10.614f, 3.13f, -77.727f),
+        new Point("C", 21.91f, 3.15f, -47.3f));
 
     internal static DominationMapLayout Resolve(string map) => map?.ToLowerInvariant() switch
     {

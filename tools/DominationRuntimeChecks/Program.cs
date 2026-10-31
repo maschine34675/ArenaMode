@@ -44,8 +44,8 @@ var cases = new Dictionary<string, (string Id, Vector3 Position)[]>
     ["arena_airpit"] = new[] { ("A", new Vector3(18.96f, -.1f, -1.24f)), ("B", new Vector3(-45.38f, 0f, 3.82f)) },
     ["arena_bowl"] = new[] { ("A", new Vector3(-20.51f, 0f, -37.12f)), ("B", new Vector3(16.99f, -.1f, -30.72f)) },
     // Iceberg: authored trigger centres (A in the pool, .5 m below the basin floor), never lifted.
-    ["arena_iceberg"] = new[] { ("A", new Vector3(16.77f, 3.9f, -91.39f)), ("B", new Vector3(10.614f, 2.69f, -77.727f)),
-        ("C", new Vector3(21.91f, 2.85f, -47.3f)) },
+    ["arena_iceberg"] = new[] { ("A", new Vector3(16.77f, 4.5f, -91.39f)), ("B", new Vector3(10.614f, 3.13f, -77.727f)),
+        ("C", new Vector3(21.91f, 3.15f, -47.3f)) },
     ["factory4_day"] = new[] { ("A", new Vector3(-5.89f, .08f, -27.46f)), ("B", new Vector3(-6.77f, .17f, 10.01f)),
         ("C", new Vector3(-20.756f, .166f, 22.769f)) }
 };

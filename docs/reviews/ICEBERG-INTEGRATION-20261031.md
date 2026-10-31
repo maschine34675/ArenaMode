@@ -116,8 +116,12 @@ and the 20-participant cap follow from `ArenaTeamBoxCatalog.Applies`.
 
 Commit `9f3cb3b3`.
 
-`DominationMapLayout` row Iceberg: A (16.77, 3.9, -91.39), B (10.614, 2.69,
--77.727), C (21.91, 2.85, -47.3), from the `CAPTURE_POINT/CAPTURE_POINT_LIGHT_02_A/B/C`
+`DominationMapLayout` row Iceberg: A (16.77, 4.5, -91.39), B (10.614, 3.13,
+-77.727), C (21.91, 3.15, -47.3): X/Z from the `CAPTURE_POINT/CAPTURE_POINT_LIGHT_02_A/B/C`
+roots, heights set to the Arena NavMesh floors measured on GPU-2 on 31.10. (teleport dry
+runs snap 0.0 m there; the roots' own heights 3.9/2.69/2.85 lie .6/.44/.3 m below, and
+the first native Domination start refused A with "no nearby floor on the navigation
+mesh" and aborted the protected match). The roots come from the
 roots of the sidecar (scene `Arena_Sanatorium_CheckPoint_DesignStuff`, level376), the
 same per-light source whose roots equal the CapturePointEntity anchors on the released
 ports. The sidecar's `capture_point` centroid is null and is not used. Iceberg is the
@@ -198,7 +202,7 @@ real-baseline cases). Before: 3,521 / 3,518 / 3 at `master` `54c464a1`.
 | CompactModeUxChecks | 317 assertions ("Hold 3 point" on Iceberg), 3 controls |
 | ArenaExtractionChecks | 135 assertions, 12 source faults |
 | DominationAdmissionChecks | 172 checks, 10 compiled mutants (reject-arena_iceberg; allow-unreviewed on the Iceberg clause), 4 wiring controls |
-| DominationRuntimeChecks | 597 assertions, 13 source faults (new: iceberg-lifted-trigger) |
+| DominationRuntimeChecks | 597 assertions, 13 source faults (new: iceberg-pool-height) |
 | TeamDeathmatchRuntimeChecks | 539 checks (Iceberg Domination with three points) |
 
 A no-deploy Release build of `ArenaMode.sln` had 0 errors and the 4 known nullable
