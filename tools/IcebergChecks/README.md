@@ -1,3 +1,9 @@
+# IcebergChecks
+
+`Verify.ps1` runs the Iceberg integration checks against the installed ArenaMapPort data
+(`user/mods/ArenaMapPort/db/arena_iceberg/base.json`, 4 Player and 9 Bot rows), the filtered
+Iceberg xunit classes and the PFT compiled faults; it fails loudly when the installed MapPort
+build ships no `arena_iceberg`. Contract: `docs/reviews/ICEBERG-INTEGRATION-20261031.md`.
 
 ## Native scenarios (gpu-run)
 
