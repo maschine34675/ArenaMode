@@ -39,9 +39,13 @@ internal sealed class ArenaPortedMapPresentation
             _name = DisplayName(id, header.text),
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
-            // AirPit/Bowl/Iceberg retain the native MapPort position, including later updates.
-            _reposition = ArenaMapCatalog.IsBay5(id) || ArenaMapCatalog.IsEquator(id),
-            _target = ArenaMapCatalog.IsBay5(id) ? new Vector2(.47f, .82f) : new Vector2(.70f, .29f)
+            // Iceberg: MapPort's native marker lies under the Arena mode panel in the Arena flow
+            // (host screenshot 31.10.2026 showed only "BERG" right of the panel), so the Arena flow
+            // moves it north-west of the lake; the PMC flow keeps MapPort's placement (Close restores).
+            // AirPit/Bowl retain the native MapPort position, including later updates.
+            _reposition = ArenaMapCatalog.IsBay5(id) || ArenaMapCatalog.IsEquator(id) || ArenaMapCatalog.IsIceberg(id),
+            _target = ArenaMapCatalog.IsBay5(id) ? new Vector2(.47f, .82f)
+                : ArenaMapCatalog.IsIceberg(id) ? new Vector2(.31f, .09f) : new Vector2(.70f, .29f)
         };
         try
         {
