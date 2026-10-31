@@ -27,6 +27,8 @@ internal static class FastGrenadeThrowCompat
     private static MethodInfo _find, _throw;
     private static string _failure, _warning;
     private static bool _newerWarned;
+    // Whether Patches may hold a patch: set before the first Patch call, cleared after UnpatchSelf.
+    private static bool _patched;
 
     internal static string GetRejectionReason()
     {
@@ -50,6 +52,10 @@ internal static class FastGrenadeThrowCompat
                 throw new InvalidOperationException("plugin identity or metadata changed");
             _find = Method(type, "FindGrenade", typeof(ThrowWeap), typeof(Player));
             _throw = Method(type, "TryQuickThrow", typeof(void), typeof(Player), typeof(bool));
+            // Raised BEFORE the first of the two Patch calls, not after both: if the second one
+            // throws, the catch's Clear() must still remove the first, or the next bind would add a
+            // second AfterFind and VerifyHooks would refuse the mod for the rest of the process.
+            _patched = true;
             Patches.Patch(_find, postfix: new HarmonyMethod(typeof(FastGrenadeThrowCompat), nameof(AfterFind)) { priority = Priority.Last });
             Patches.Patch(_throw, prefix: new HarmonyMethod(typeof(FastGrenadeThrowCompat), nameof(BeforeThrow)) { priority = Priority.First });
             _instance = info.Instance; _version = version;
@@ -93,7 +99,13 @@ internal static class FastGrenadeThrowCompat
     }
     private static void Clear()
     {
-        Patches.UnpatchSelf(); _instance = null; _version = null; _find = _throw = null;
+        // ArenaOptionalMods polls this from the Arena map screen (once per 0.2 s display pass), and
+        // without Fast Grenade Throw installed every poll ends here. HarmonyX's UnpatchSelf walks every
+        // patched method of the process (about 1,270, 2 ms and 10 MB per walk on GPU-2, 2026-10-31),
+        // so unpatch only while this instance may hold patches; the flag is lowered after UnpatchSelf
+        // returned, so a throwing unpatch is retried on the next call as before.
+        if (_patched) { Patches.UnpatchSelf(); _patched = false; }
+        _instance = null; _version = null; _find = _throw = null;
     }
     private static bool CurrentPlayer(Player player)
     {

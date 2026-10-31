@@ -14,6 +14,11 @@ internal static class PipPreloadCompat
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".PipPreload");
     private static object _installed;
     private static MethodInfo[] _methods;
+    // Whether Patches may hold a patch: set before the Patch calls, cleared after UnpatchSelf.
+    // An absent PiP Disabler returns before either UnpatchSelf; an installed one whose contract
+    // does not resolve used to unpatch twice per admission poll (rebind and catch) although
+    // nothing was patched, and HarmonyX's UnpatchSelf walks every patched method of the process.
+    private static bool _patched;
 
     internal static string GetRejectionReason()
     {
@@ -23,7 +28,7 @@ internal static class PipPreloadCompat
             if (info?.Instance == null) throw new InvalidOperationException("plugin has not finished loading");
             if (!ReferenceEquals(_installed, info.Instance))
             {
-                Patches.UnpatchSelf();
+                Unpatch();
                 _installed = null;
                 var scope = info.Instance.GetType().Assembly.GetType("PiPDisabler.ScopeLifecycle", true);
                 _methods = new[]
@@ -32,6 +37,7 @@ internal static class PipPreloadCompat
                     Find(scope, "OnOpticDisabled", typeof(OpticSight)),
                     Find(scope, "RestoreBypassedOpticState", typeof(OpticSight), typeof(string), typeof(bool))
                 };
+                _patched = true;
                 foreach (var method in _methods)
                     Patches.Patch(method, prefix: new HarmonyMethod(typeof(PipPreloadCompat), nameof(BeforeCallback)) { priority = Priority.First });
                 _installed = info.Instance;
@@ -43,10 +49,17 @@ internal static class PipPreloadCompat
         }
         catch (Exception ex)
         {
-            Patches.UnpatchSelf();
+            Unpatch();
             _installed = null;
             return "PiP Disabler Arena preload integration is unavailable: " + ex.GetBaseException().Message + ".";
         }
+    }
+
+    private static void Unpatch()
+    {
+        if (!_patched) return;
+        Patches.UnpatchSelf();
+        _patched = false;
     }
 
     private static MethodInfo Find(Type type, string name, params Type[] args)

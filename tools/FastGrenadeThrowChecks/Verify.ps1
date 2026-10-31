@@ -20,7 +20,9 @@ if (-not $SkipMutants) {
         @{ Name='ignore-arena-scope'; Before='if (!ArenaSession.IsActive || !CurrentPlayer(__0)) return;'; After='if (!CurrentPlayer(__0)) return;'; Expected='ordinary raid preserves foreign behavior' },
         @{ Name='ignore-slot-policy'; Before='candidates.Any(item => ReferenceEquals(item, selected))'; After='true'; Expected='invalid priority leaves foreign result: excluded' },
         @{ Name='bypass-input-lock'; Before='&& !ArenaInputBlocker.Blocked'; After=''; Expected='blocked transition cannot enter foreign throw' },
-        @{ Name='accept-old-body'; Before='return CurrentPlayer(__0) &&'; After='return true &&'; Expected='blocked transition cannot enter foreign throw' }
+        @{ Name='accept-old-body'; Before='return CurrentPlayer(__0) &&'; After='return true &&'; Expected='blocked transition cannot enter foreign throw' },
+        @{ Name='absent-plugin-unpatches'; Before='if (_patched) { Patches.UnpatchSelf(); _patched = false; }'; After='Patches.UnpatchSelf(); _patched = false;'; Expected="absent plugin polls never walk Harmony's patch table" },
+        @{ Name='flag-never-raised'; Before='            _patched = true;'; After=''; Expected='a bound adapter still unbinds itself once its hooks were removed' }
     )
     foreach ($mutant in $mutants) {
         if (-not $source.Contains($mutant.Before)) { throw ('Mutation anchor missing: ' + $mutant.Name) }

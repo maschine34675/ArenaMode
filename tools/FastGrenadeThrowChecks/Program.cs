@@ -10,6 +10,21 @@ using EFT;
 using EFT.InventoryLogic;
 using HarmonyLib;
 
+// Counts HarmonyX patch-table walks: in the installed HarmonyX 2.9 UnpatchSelf() calls the static
+// UnpatchID(Id), which visits every patched method of the process (older builds: UnpatchAll(Id)).
+// The Arena map screen polls admission every 0.2 s, so an absent or refused Fast Grenade Throw must
+// not reach it on a poll (2026-10-31 GPU-2 frame drops). WalkProbe is the positive control.
+internal static class UnpatchWalks
+{
+    internal static int Count;
+    private static void Prefix() => Count++;
+    internal static void Install()
+        => new Harmony("arena.checks.fastgrenade.unpatch-walks").Patch(
+            AccessTools.Method(typeof(Harmony), "UnpatchID", new[] { typeof(string) })
+                ?? AccessTools.Method(typeof(Harmony), nameof(Harmony.UnpatchAll), new[] { typeof(string) }),
+            prefix: new HarmonyMethod(typeof(UnpatchWalks), nameof(Prefix)));
+}
+
 internal static class Program
 {
     private static int _checks;
@@ -29,6 +44,7 @@ internal static class Program
         var runtime = type.CreateType(); _throw = runtime.GetMethod("TryQuickThrow", BindingFlags.Static | BindingFlags.NonPublic);
         Chainloader.PluginInfos[FastGrenadeThrowCompat.PluginGuid] = new PluginInfo { Instance = (BaseUnityPlugin)Activator.CreateInstance(runtime), Metadata = runtime.GetCustomAttribute<BepInPlugin>() };
     }
+    private static int WalkProbe() { new Harmony("arena.checks.fastgrenade.walk-probe").UnpatchSelf(); return UnpatchWalks.Count; }
     private static void Invoke(Player player, bool low = false) => _throw.Invoke(null, new object[] { player, low });
     private static void Published(string path)
     {
@@ -51,9 +67,19 @@ internal static class Program
         {
             string mode = args.Length == 0 ? "normal" : args[0];
             if (mode == "published") { Published(args[1]); Console.WriteLine("PASS released metadata " + _checks); return 0; }
-            Check(FastGrenadeThrowCompat.GetRejectionReason() == null, "absent plugin no-op");
+            UnpatchWalks.Install();
+            int walks = UnpatchWalks.Count;
+            Check(WalkProbe() == walks + 1, "walk counter sees UnpatchSelf");
+            walks = UnpatchWalks.Count;
+            for (int poll = 0; poll < 5; poll++) Check(FastGrenadeThrowCompat.GetRejectionReason() == null, "absent plugin no-op");
+            Check(UnpatchWalks.Count == walks, "absent plugin polls never walk Harmony's patch table");
             Build(mode); var issue = FastGrenadeThrowCompat.GetRejectionReason();
-            if (mode == "drift" || mode == "older") { Check(issue != null, "unsupported contract rejected"); Check(FastGrenadeThrowCompat.GetRejectionReason() == issue && ArenaMode.Plugin.ModLogger.Warnings == 1, "bounded contract warning"); Console.WriteLine("PASS " + mode + " " + _checks); return 0; }
+            if (mode == "drift" || mode == "older")
+            {
+                Check(issue != null, "unsupported contract rejected"); Check(FastGrenadeThrowCompat.GetRejectionReason() == issue && ArenaMode.Plugin.ModLogger.Warnings == 1, "bounded contract warning");
+                Check(UnpatchWalks.Count == walks, "refused contract polls never walk Harmony's patch table");
+                Console.WriteLine("PASS " + mode + " " + _checks); return 0;
+            }
             Check(issue == null, "contract admitted");
             Check(ArenaMode.Plugin.ModLogger.Warnings == (mode == "newer" ? 1 : 0), "forward gate bounded warning");
             var player = new Player(); var rgd = new ThrowWeap { Id = "rgd" }; var molotov = new ThrowWeap { Id = "molotov" };
@@ -77,8 +103,13 @@ internal static class Program
             foreach (var gate in gates) { gate(true); int before = ForeignCalls.Throws; Invoke(player); Check(ForeignCalls.Throws == before, "blocked transition cannot enter foreign throw"); ArenaSession.IsActive = false; Invoke(player); Check(ForeignCalls.Throws == before + 1, "same guard does not change ordinary raid"); ArenaSession.IsActive = true; gate(false); }
             int count = ForeignCalls.Throws; Invoke(new Player()); Check(ForeignCalls.Throws == count, "old physical body denied even in same raid");
             Invoke(player); Check(ForeignCalls.Throws == count + 1 && ReferenceEquals(ForeignCalls.Last, molotov), "live body recovers without foreign flag mutation");
+            walks = UnpatchWalks.Count;
             new Harmony("com.maschine.ArenaMode.FastGrenadeThrowCompat").UnpatchSelf(); Check(FastGrenadeThrowCompat.GetRejectionReason() != null, "removed hooks refuse admission");
+            Check(UnpatchWalks.Count == walks + 2, "a bound adapter still unbinds itself once its hooks were removed");
             Chainloader.PluginInfos.Clear(); Check(FastGrenadeThrowCompat.GetRejectionReason() == null, "removed optional plugin no-op");
+            walks = UnpatchWalks.Count;
+            for (int poll = 0; poll < 5; poll++) FastGrenadeThrowCompat.GetRejectionReason();
+            Check(UnpatchWalks.Count == walks, "absent plugin polls never walk Harmony's patch table after unbinding");
             Console.WriteLine("PASS " + mode + " " + _checks); return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
