@@ -55,7 +55,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (197)
+## Feature reviews and contracts (198)
 
 Sorted by file name.
 
@@ -164,6 +164,7 @@ Sorted by file name.
 - [Laser brightness minimum and protected Tactical team colors (BrightLasers coexistence)](reviews/LASER-BRIGHTNESS-REVIEW.md)
 - [Magazine handling speed: behavior, SPT 4.1 patch path and verification boundary](reviews/MAGAZINE-HANDLING-REVIEW.md)
 - [All-map phase lighting and one-second deploy countdown](reviews/MAP-LIGHTING-20261017.md)
+- [Arena map screen: one admission verdict per display pass, absent adapters never unpatch per check](reviews/MAP-MENU-ADMISSION-20261031.md)
 - [Map admission and concrete blockers (original map/mode access review)](reviews/MAP-MODE-ACCESS-REVIEW.md) *(superseded)*
 - [Map menu: Molotov, mode order and Zombie sliders (2026-10-12)](reviews/MENU-MUTATORS-ZOMBIE-REVIEW.md)
 - [Deviating mod versions in Arena: advisory, no version-exclusion plan](reviews/MOD-VERSION-FOLLOWUP-20261027.md)

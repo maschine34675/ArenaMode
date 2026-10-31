@@ -1,5 +1,7 @@
 # Arena map-menu performance — 2026-10-26
 
+> Follow-up (2026-10-31): the screen regressed again once Core 1.0.17 added two more adapters that unpatched on every check; the fix (one admission verdict per display pass, absent adapters no longer unpatch per check) is in [MAP-MENU-ADMISSION-20261031.md](../../reviews/MAP-MENU-ADMISSION-20261031.md). The figures below are unchanged.
+
 The Domination follow-up fixes repeated compatibility inspection while drawing
 the Arena map selection. The user reported approximately 2 FPS. On GPU-2 the
 reproduced idle baseline averaged 14 FPS; this is not a measurement of the exact

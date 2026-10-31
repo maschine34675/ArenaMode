@@ -26,6 +26,13 @@ published one yet (the published 0.4.0 has no Iceberg). Without it the map is no
   [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#domination-commit-c)
 - Documentation for the Iceberg integration, its migration and its native-test
   boundary. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#not-claimed)
+- Fixed the Arena map screen stuttering: it dropped to about 48 FPS with one long frame
+  every 0.2 s, because each refresh checked optional-mod compatibility four times and
+  every check of a mod that is not installed rescanned all patched game methods. The
+  screen now checks once per refresh, the adapters of absent mods no longer rescan, and
+  clicks, the claim and the raid start still check fresh. **Requires Redeploy.Core
+  1.0.19**; an ArenaMode built from this source refuses Core 1.0.18. Not yet measured in
+  the game. [Details](docs/reviews/MAP-MENU-ADMISSION-20261031.md)
 
 ## [0.4.1] - 2026-10-29
 

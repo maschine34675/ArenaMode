@@ -50,23 +50,28 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Arena map screen frame drops (2026-10-31, cause found, fix open):** on the Arena
-SelectLocation screen GPU-2 drops from 60 to 48 FPS with one 45-130 ms frame every 0.2 s
-(the user's PC far worse). Measured with `uibridge_status perfSeconds`, a ModProfiler
-headless capture and a DeveloperMode timing probe (now in `ArenaLocationSelectionPatch`,
-`[dev] Arena map menu refresh: …` every 5 s): the whole cost is
-`ArenaMenuSelection.CompatibilityRejection`, evaluated four times per refresh tick
-(mode and strict eligibility, each directly and again inside `EvaluateEligibility`), about
-12 ms each. Inside it, every adapter of an optional mod that is NOT installed calls
-`Clear()`/`ClearBinding()` → `Harmony.UnpatchSelf()`, which walks all ~1,270 patched
-methods of the process with `GetPatchInfo` allocations (~2 ms and ~10 MB per walk):
-`QuickCancelCompat`, `PipDisablerCompat`, `QuestTrackerCompat`, `AudioIndicatorsCompat`
-(Redeploy.Core; the last two since `d9a1108`, 29.10.) and `FastGrenadeThrowCompat`
-(ArenaMode). UI, TMP, previews, PitFireTeam roster: under 0.3 ms per tick. Fix plan: a
-`_patched` guard before every `UnpatchSelf()` in those `Clear` paths (Core needs a release
-together with ArenaMode), one admission verdict per refresh tick shared by both
-eligibilities (click, claim and start stay fresh), optionally a slower admission poll.
-Evidence: `artifacts/iceberg-20261031/gpu/menu-perf/` (findings.md, profiler export).
+**Arena map screen frame drops (2026-10-31, fixed on two unmerged branches, native
+measurement pending):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS
+with one 45-130 ms frame every 0.2 s (the user's PC far worse). Measured with
+`uibridge_status perfSeconds`, a ModProfiler headless capture and the DeveloperMode timing
+probe (`ArenaLocationSelectionPatch`, `[dev] Arena map menu refresh: …` every 5 s):
+`ArenaMenuSelection.CompatibilityRejection` ran four times per refresh tick at about 12 ms
+each, because every adapter of an optional mod that is NOT installed called
+`Harmony.UnpatchSelf()` on every check (HarmonyX walks all ~1,270 patched methods, ~2 ms and
+~10 MB per walk). Fix, not merged, not pushed, not built for the game, not deployed:
+Redeploy `fix/absent-adapter-unpatch` `51ac95c` (**Core 1.0.19**: Quick Cancel, PiP
+Disabler, Quest Tracker, Audio Indicators and Healing Autocancel unpatch only while they
+hold patches, pinned by `Redeploy.Tests/AdapterUnpatchGuardTests`) and ArenaMode
+`fix/map-screen-admission` `af444148` (Fast Grenade Throw and PiP preload guards) plus
+`0e85df4d` (one admission verdict per display pass, opened only around
+`ScreenState.Refresh`; clicks, setters, claim, freeze and start stay fresh;
+DominationMenuPerformanceChecks pins one check per idle refresh, four before). An ArenaMode
+built from that branch stamps and refuses anything older than Core 1.0.19: merge, build and
+ship both branches together. Pending: the native GPU-2 measurement (FPS, and the probe line,
+which should read about one `compat` call per tick plus `compat reused` three per tick) and
+an independent review. Contract and test results:
+[MAP-MENU-ADMISSION-20261031.md](reviews/MAP-MENU-ADMISSION-20261031.md); cause evidence:
+`artifacts/iceberg-20261031/gpu/menu-perf/` (findings.md, profiler export).
 
 **Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not pushed):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
@@ -128,7 +133,7 @@ Known and small (from the 0.4.1/1.1.1 release review and the 2026-10-30 audit):
   (lines 69 and 71) names `plugins\ArenaMode\AreaDrafts`, the export goes to
   `plugins/maschine-ArenaMode/AreaDrafts`; MODE-SIDEBAR-REVIEW.md says five modes, the
   catalogue has six; SHARED-BODY-COMPAT-20261023.md says "requires Core 1.0.10" (current
-  minimum 1.0.18); `tools/NativeMenuChecks/StandIns.cs` counts `LogDebug` as Info, so its
+  source minimum 1.0.19, release 0.4.1 1.0.18); `tools/NativeMenuChecks/StandIns.cs` counts `LogDebug` as Info, so its
   "logs Info, not a warning" assertion cannot tell the two apart.
   [MAP-MODE-COMPATIBILITY.md](MAP-MODE-COMPATIBILITY.md) gained Bowl, Iceberg and the
   Domination column on 2026-10-31; its prose is still mostly the 2026-10-17 state.

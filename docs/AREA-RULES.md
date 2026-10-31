@@ -256,6 +256,13 @@ process-lifetime admission provider across menu cleanup; do not replace it with 
 BepInEx incompatibility declarations or user-config edits. Keep the rejected-Core notice
 path free of Core-dependent types, exclude PFT's My Squad screen, and never replace final
 admission with UI (docs/reviews/ARENA-AVAILABILITY-20261020.md, historical for its mod checks).
+The map screen evaluates that admission once per display pass (`ArenaMenuSelection.BeginDisplayPass`,
+opened only around `ScreenState.Refresh`); outside a pass nothing is memoised, so clicks, selection
+setters, the claim, the roster freeze and the raid start stay fresh, and a pass never wraps a path
+that persists a user's selection, claims, freezes or starts. An adapter whose optional mod is absent
+must return without `Harmony.UnpatchSelf()`, which walks every patched method of the process: guard
+it with a flag raised before the first `Patch` (Core 1.0.19, `FastGrenadeThrowCompat`). See
+docs/reviews/MAP-MENU-ADMISSION-20261031.md.
 
 Read docs/ARENA-SESSION-20261021.md before changing the policy, the gate's install timing (`Finish`, never `Initialize`), the helper's process-identity rules or the request contract the client checks before it quits
 the game. New foreign adapters require an explicit task; Tarkova Cola is the approved
@@ -265,7 +272,7 @@ The explicitly requested follow-up integrations are documented in
 docs/reviews/ITEMS-HUD-COMPAT-20261025.md and docs/reviews/REMAINING-MOD-COMPAT-20261026.md:
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
-and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.18).
+and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.19).
 Amand's Graphics remains unlisted because its initial Labyrinth scene setup
 fails before any Core replacement; Factory camera tests do not remove that limit.
 
@@ -1418,7 +1425,7 @@ separate optic-icon and SAIN unload NREs do not establish a mantle connection.
 
 Core admission: both clients fail closed before runtime initialization when the loaded
 Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.18, stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+1.0.19 in the source, 1.0.18 in the 0.4.1 release; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 
 ### From the handoff (snapshot of 2026-10-29)

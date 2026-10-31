@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.1 bundles/requires **1.0.18**, shared byte-for-byte with Redeploy 1.1.1. Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.1 bundles/requires **1.0.18**, shared byte-for-byte with Redeploy 1.1.1; the current source requires **1.0.19** (unreleased, see below). Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -22,11 +22,15 @@ their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
-The current package requires **Core 1.0.18**. Core 1.0.14 added ImpactCue and
+The 0.4.1 package requires **Core 1.0.18**. Core 1.0.14 added ImpactCue and
 Enemy Markers handovers; 1.0.15 added Quick Cancel, PiP Disabler and the bounded
 Amand camera correction. Core 1.0.16/1.0.17 also support Redeploy's own-Scav
 continuation, and 1.0.18 hands Recoil Rework Legacy and FOV Fix over to that
-Scav body; Arena respawns behave as with 1.0.17. Core keeps its independent
+Scav body; Arena respawns behave as with 1.0.17. The current source (branch
+`fix/map-screen-admission`, 2026-10-31, unreleased) requires **Core 1.0.19**: optional-mod
+adapters of absent mods no longer unpatch on every admission check
+([map-screen admission](reviews/MAP-MENU-ADMISSION-20261031.md)); a client built from it
+refuses Core 1.0.18, so the two ship together. Core keeps its independent
 version line; the public Redeploy client/server release is 1.1.1. Keep one copy of the shared library.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
