@@ -14,6 +14,21 @@ internal static class Program
     private static void Need(bool value, string message)
     { _checks++; if (!value) throw new InvalidOperationException("ASSERT: " + message); }
 
+    // Every admission read, split into real evaluations (the provider runs, the DeveloperMode compat
+    // timer counts it) and reads a display pass answered from its first verdict. TotalCalls is
+    // cumulative, so the probe's five-second report cannot reset a reading in between.
+    private readonly record struct Reads(int Admission, int Timer, int Reused, int Strict, int Mode, int EligibilityReused)
+    {
+        public static Reads Now() => new(_compatibilityReads, ArenaMenuSelection.CompatibilityTiming.TotalCalls,
+            ArenaMenuSelection.CompatibilityReuseTiming.TotalCalls, _strictReads, _modeReads,
+            ArenaMenuSelection.EligibilityReuseTiming.TotalCalls);
+        public static Reads operator -(Reads a, Reads b) => new(a.Admission - b.Admission, a.Timer - b.Timer,
+            a.Reused - b.Reused, a.Strict - b.Strict, a.Mode - b.Mode, a.EligibilityReused - b.EligibilityReused);
+    }
+
+    private static bool AnyRowVisible(MatchMakerSelectionLocationScreen screen)
+        => screen.Buttons.Any(row => row.gameObject.activeSelf);
+
     private static ArenaMenuSelection.Eligibility Inspect(bool mode)
     {
         if (mode) _modeReads++; else _strictReads++;
@@ -26,6 +41,8 @@ internal static class Program
 
     private static void Main()
     {
+        // The DeveloperMode probe's counters double as the pass's reuse counters here.
+        ArenaMenuSelection.CallTiming.Enabled = () => true;
         ArenaLocationSelectionPatch.Enable();
         BepInEx.Bootstrap.Chainloader.PluginInfos[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
         ArenaMenuSelection.RegisterCompatibilityAdmission(() => { _compatibilityReads++; return _refusal; });
@@ -45,18 +62,41 @@ internal static class Program
         ArenaMenuSelection.Select();
         screen.ShowInternal(settings);
         var updater = screen.GetComponentsInChildren<ArenaMapMenuUpdater>(true).Single();
+        // Show ended with a refresh, i.e. a display pass. A native click after it is outside any
+        // pass and must evaluate admission again rather than reuse that refresh's verdict.
         int before = _compatibilityReads;
-        updater.Tick();
-        int perRefresh = _compatibilityReads - before;
-        Console.WriteLine($"MENU_PERFORMANCE_OBSERVED: rows={screen.Buttons.Count}, compatibility checks per idle refresh={perRefresh}");
-        Need(perRefresh <= 4, "one display pass evaluates each eligibility source once, not once per map");
-        Need(_strictReads > 0 && _modeReads > 0, "strict and roster-only mode eligibility remain distinct");
-        for (int i = 0; i < 20; i++) updater.Tick();
-        Need(_compatibilityReads - before <= 84, "idle compatibility work is bounded independently of map count");
         screen.OnLocationSelected(screen.Locations[ArenaMapCatalog.FactoryDayId]);
-        before = _compatibilityReads;
+        Need(_compatibilityReads > before && screen.SelectedLocation?.Id == ArenaMapCatalog.FactoryDayId,
+            "a native click after a display pass evaluates admission fresh");
+        screen.OnLocationSelected(null);
+        // Each pass takes its own verdict: a refusal that arrives between two refreshes is shown by
+        // the next one, and lifting it is shown by the one after.
+        Need(AnyRowVisible(screen), "allowed admission shows the Arena rows");
+        _refusal = "contract refused between two refreshes";
         updater.Tick();
-        Need(_compatibilityReads - before <= 4, "selected-map repair and rendering share display eligibility");
+        Need(!AnyRowVisible(screen), "a refusal that arrives between two refreshes reaches the next display pass");
+        _refusal = null;
+        updater.Tick();
+        Need(AnyRowVisible(screen), "a lifted refusal reaches the next display pass");
+        var start = Reads.Now();
+        updater.Tick();
+        var idle = Reads.Now() - start;
+        Console.WriteLine($"MENU_PERFORMANCE_OBSERVED: rows={screen.Buttons.Count}, compatibility checks per idle refresh={idle.Admission} "
+            + $"(compat timer {idle.Timer}, reads answered by the display pass {idle.Reused}; 4 per refresh without the pass), "
+            + $"strict={idle.Strict}, mode={idle.Mode}, eligibility reads answered by the pass={idle.EligibilityReused}");
+        Need(idle.Admission == 1 && idle.Timer == 1, "one display pass evaluates optional-mod admission exactly once");
+        Need(idle.Strict <= 1 && idle.Mode <= 1 && idle.EligibilityReused == 0,
+            "one display pass evaluates each eligibility source once, not once per map");
+        Need(_strictReads > 0 && _modeReads > 0, "strict and roster-only mode eligibility remain distinct");
+        start = Reads.Now();
+        for (int i = 0; i < 20; i++) updater.Tick();
+        Need((Reads.Now() - start).Admission == 20, "idle compatibility work is one check per refresh, independent of map count");
+        screen.OnLocationSelected(screen.Locations[ArenaMapCatalog.FactoryDayId]);
+        start = Reads.Now();
+        updater.Tick();
+        var selected = Reads.Now() - start;
+        Need(selected.Admission == 1 && selected.Strict <= 1 && selected.Mode <= 1 && selected.EligibilityReused == 0,
+            "selected-map repair and rendering share display eligibility");
         var request = new LocalRaidSettings { location = ArenaMapCatalog.FactoryDayId, playerSide = ESideType.Pmc,
             transitionType = ELocationTransition.Common };
         Need(ArenaMenuSelection.TryValidateAndFreezeRequest(request, out _) && _freezes == 1,

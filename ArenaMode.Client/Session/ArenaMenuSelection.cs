@@ -27,6 +27,13 @@ internal static class ArenaMenuSelection
     private static Func<string> _compatibilityAdmission;
     private static bool _suspended;
 
+    // Display pass state (BeginDisplayPass). Main thread only; the verdicts live exactly as long as
+    // the outermost pass of the thread that opened it.
+    private static int _displayPassDepth, _displayPassThread;
+    private static bool _passHasCompatibility;
+    private static string _passCompatibility, _passEligibilityMode, _passModeEligibilityMode;
+    private static Eligibility _passEligibility, _passModeEligibility;
+
     /// <summary>
     /// Adapter-neutral result used by every point in the native flow. State is
     /// an opaque discovery snapshot; ArenaMenuSelection never needs to load the
@@ -64,6 +71,7 @@ internal static class ArenaMenuSelection
             _eligibility = null;
             _modeEligibility = null;
             _freezeRoster = null;
+            ForgetDisplayPassVerdicts();
         }
         else if (_suspended)
             ResumeAfterMenu(settings);
@@ -107,6 +115,8 @@ internal static class ArenaMenuSelection
         _eligibility = eligibility;
         _modeEligibility = modeEligibility;
         _freezeRoster = freezeRoster;
+        // A verdict of the old providers must not answer for the new ones, even inside a pass.
+        ForgetDisplayPassVerdicts();
     }
 
     /// <summary>
@@ -123,7 +133,61 @@ internal static class ArenaMenuSelection
     // Process lifetime, not screen lifetime: stale selections must be checked
     // again at claim/start, and EndFlow must not drop optional-mod protection.
     public static void RegisterCompatibilityAdmission(Func<string> admission)
-        => _compatibilityAdmission = admission;
+    {
+        _compatibilityAdmission = admission;
+        ForgetDisplayPassVerdicts();
+    }
+
+    /// <summary>
+    /// Opens one synchronous display pass (2026-10-31). While it is open, CompatibilityRejection,
+    /// CurrentEligibility and CurrentModeEligibility each evaluate on first use and answer every
+    /// later read of the same pass from that verdict. The map screen's refresh, driven every 0.2 s,
+    /// read the optional-mod admission four times (each eligibility directly and again inside the
+    /// side screen's provider), and every read walked all optional-mod adapters: about 12 ms each
+    /// on GPU-2, a 45-130 ms frame per tick.
+    /// <para>Outside a pass nothing is memoised: every native click, the claim, the selection
+    /// setters, the final roster freeze and the raid start evaluate fresh. That keeps the 26.10
+    /// contract of ArenaMapAvailabilitySnapshot ("one synchronous display pass, not an admission
+    /// cache"). A pass may wrap synchronous display-only work, never a path that persists a user's
+    /// selection, claims, freezes or starts. Open it with <c>using</c> so it ends in a finally; a
+    /// nested pass shares the outer verdicts and they are dropped when the outermost one ends.
+    /// Another thread neither consumes nor fills them, and a pass begun there is a no-op.</para>
+    /// </summary>
+    internal static IDisposable BeginDisplayPass()
+    {
+        int thread = Environment.CurrentManagedThreadId;
+        if (_displayPassDepth > 0 && thread != _displayPassThread) return NoDisplayPass.Instance;
+        if (_displayPassDepth++ == 0) _displayPassThread = thread;
+        return new DisplayPass();
+    }
+
+    private static bool InDisplayPass
+        => _displayPassDepth > 0 && Environment.CurrentManagedThreadId == _displayPassThread;
+
+    private static void ForgetDisplayPassVerdicts()
+    {
+        _passHasCompatibility = false;
+        _passCompatibility = _passEligibilityMode = _passModeEligibilityMode = null;
+        _passEligibility = _passModeEligibility = null;
+    }
+
+    private sealed class DisplayPass : IDisposable
+    {
+        private bool _ended;
+
+        public void Dispose()
+        {
+            if (_ended) return;
+            _ended = true;
+            if (--_displayPassDepth == 0) ForgetDisplayPassVerdicts();
+        }
+    }
+
+    private sealed class NoDisplayPass : IDisposable
+    {
+        internal static readonly NoDisplayPass Instance = new();
+        public void Dispose() { }
+    }
 
     /// <summary>
     /// DeveloperMode-only call-time accumulator (count, average, maximum in ms) for one code
@@ -141,7 +205,7 @@ internal static class ArenaMenuSelection
         /// <summary>Installed by Plugin: DeveloperMode on. Null (harnesses, early start) means off.</summary>
         internal static Func<bool> Enabled;
         private readonly string _name;
-        private int _count;
+        private int _count, _total;
         private double _sum, _max;
 
         internal CallTiming(string name) { _name = name; lock (All) All.Add(this); }
@@ -170,9 +234,14 @@ internal static class ArenaMenuSelection
             if (started == 0) return;
             double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * TicksToMs;
             _count++;
+            _total++;
             _sum += ms;
             if (ms > _max) _max = ms;
         }
+
+        /// <summary>Every call measured since start, never reset by the probe's report (harnesses
+        /// read it with Enabled set, so a five-second report cannot fall between two readings).</summary>
+        internal int TotalCalls => _total;
 
         /// <summary>"name n calls avg a/max m" and reset; empty when nothing was measured.</summary>
         internal string ReportAndReset()
@@ -184,21 +253,33 @@ internal static class ArenaMenuSelection
         }
     }
 
-    // The two per-refresh costs of the map screen, measured in DeveloperMode only.
+    // The two per-refresh costs of the map screen, measured in DeveloperMode only. "compat" counts
+    // real evaluations only (one per display pass); the two "reused" timers count the reads a display
+    // pass answered from its first verdict, so the probe line shows what the pass absorbed.
     internal static readonly CallTiming CompatibilityTiming = new("compat");
     internal static readonly CallTiming RosterTiming = new("pft");
+    internal static readonly CallTiming CompatibilityReuseTiming = new("compat reused");
+    internal static readonly CallTiming EligibilityReuseTiming = new("eligibility reused");
 
     public static string CompatibilityRejection
     {
         get
         {
+            if (_passHasCompatibility && InDisplayPass)
+            {
+                CompatibilityReuseTiming.End(CallTiming.Begin());
+                return _passCompatibility;
+            }
+            string rejection;
             long started = CallTiming.Begin();
-            try { return _compatibilityAdmission?.Invoke(); }
+            try { rejection = _compatibilityAdmission?.Invoke(); }
             catch (Exception)
             {
-                return "Arena could not verify optional-mod compatibility. Restart the game and check the log.";
+                rejection = "Arena could not verify optional-mod compatibility. Restart the game and check the log.";
             }
             finally { CompatibilityTiming.End(started); }
+            if (InDisplayPass) { _passCompatibility = rejection; _passHasCompatibility = true; }
+            return rejection;
         }
     }
 
@@ -237,28 +318,45 @@ internal static class ArenaMenuSelection
     public static bool IsSelectedFor(RaidSettings settings)
         => IsSelected && settings != null && ReferenceEquals(_settings, settings) && settings.IsPmc;
 
+    // Inside a display pass the strict and the roster-only verdicts are kept per selected mode:
+    // ScreenState.Refresh repairs a saved PFT mode between its two reads (Modes.Synchronize) and the
+    // strict PFT policy depends on that mode, so a repair inside the pass is seen by the next read.
+    // Compatibility does not depend on the mode and is kept for the whole pass.
     public static Eligibility CurrentEligibility
     {
         get
         {
-            try
+            string mode = InDisplayPass ? Config.Settings.SelectedGameModeId : null;
+            if (mode != null && _passEligibility != null && _passEligibilityMode == mode)
             {
-                var rejection = CompatibilityRejection;
-                if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
-                if (_eligibility != null)
-                    return _eligibility() ?? new Eligibility(false, false,
-                        "Arena could not inspect the current raid group.");
+                EligibilityReuseTiming.End(CallTiming.Begin());
+                return _passEligibility;
+            }
+            var eligibility = EvaluateEligibility();
+            if (mode != null && InDisplayPass) { _passEligibility = eligibility; _passEligibilityMode = mode; }
+            return eligibility;
+        }
+    }
 
-                return _canStart?.Invoke() == false
-                    ? new Eligibility(false, false, "Arena is available for solo play only.")
-                    : new Eligibility(true, false, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                Plugin.ModLogger?.LogWarning($"Arena eligibility check failed: {ex.Message}");
-                return new Eligibility(false, false,
+    private static Eligibility EvaluateEligibility()
+    {
+        try
+        {
+            var rejection = CompatibilityRejection;
+            if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
+            if (_eligibility != null)
+                return _eligibility() ?? new Eligibility(false, false,
                     "Arena could not inspect the current raid group.");
-            }
+
+            return _canStart?.Invoke() == false
+                ? new Eligibility(false, false, "Arena is available for solo play only.")
+                : new Eligibility(true, false, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger?.LogWarning($"Arena eligibility check failed: {ex.Message}");
+            return new Eligibility(false, false,
+                "Arena could not inspect the current raid group.");
         }
     }
 
@@ -272,18 +370,31 @@ internal static class ArenaMenuSelection
         get
         {
             if (_modeEligibility == null) return CurrentEligibility;
-            try
+            string mode = InDisplayPass ? Config.Settings.SelectedGameModeId : null;
+            if (mode != null && _passModeEligibility != null && _passModeEligibilityMode == mode)
             {
-                var rejection = CompatibilityRejection;
-                if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
-                return _modeEligibility() ?? new Eligibility(false, false,
-                    "Arena could not inspect the current raid group.");
+                EligibilityReuseTiming.End(CallTiming.Begin());
+                return _passModeEligibility;
             }
-            catch (Exception ex)
-            {
-                Plugin.ModLogger?.LogWarning($"Arena mode eligibility check failed: {ex.Message}");
-                return new Eligibility(false, false, "Arena could not inspect the current raid group.");
-            }
+            var eligibility = EvaluateModeEligibility();
+            if (mode != null && InDisplayPass) { _passModeEligibility = eligibility; _passModeEligibilityMode = mode; }
+            return eligibility;
+        }
+    }
+
+    private static Eligibility EvaluateModeEligibility()
+    {
+        try
+        {
+            var rejection = CompatibilityRejection;
+            if (!string.IsNullOrEmpty(rejection)) return new Eligibility(false, false, rejection);
+            return _modeEligibility() ?? new Eligibility(false, false,
+                "Arena could not inspect the current raid group.");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger?.LogWarning($"Arena mode eligibility check failed: {ex.Message}");
+            return new Eligibility(false, false, "Arena could not inspect the current raid group.");
         }
     }
 
@@ -479,5 +590,6 @@ internal static class ArenaMenuSelection
         _eligibility = null;
         _modeEligibility = null;
         _freezeRoster = null;
+        ForgetDisplayPassVerdicts();
     }
 }

@@ -12,9 +12,19 @@ production cache.
 
 It verifies bounded idle and selected-map work, separate strict and roster-only
 eligibility, fresh click/claim/final freeze after an external refusal, mode-switch
-visibility restoration, close cleanup and rejection of retired callbacks. Four
-compiled source-copy mutations prove the cost limits, snapshot replacement and
-final-freshness assertions can fail. No production source is rewritten, no mod
+visibility restoration, close cleanup and rejection of retired callbacks.
+
+Since 2026-10-31 every refresh is one display pass (`ArenaMenuSelection.BeginDisplayPass`,
+docs/reviews/MAP-MENU-ADMISSION-20261031.md): the harness pins exactly one optional-mod
+admission per idle refresh (four before the pass), counted both at the provider and by the
+DeveloperMode compat timer, and reads the probe's cumulative "reused" counters to prove that
+rows and the selected-map repair still go through the snapshot instead of asking
+ArenaMenuSelection again. A native click right after a pass evaluates admission fresh, and a
+refusal arriving between two refreshes is shown by the next one. Seven compiled source-copy
+mutations prove the cost limits, snapshot replacement, final freshness and the pass boundary
+(a pass that never ends, verdicts that survive the pass, a refresh without a pass) can fail;
+the older snapshot-survives-refresh mutation is now caught by the refusal-between-refreshes
+check, before the Domination-to-TDM row check it used to reach. No production source is rewritten, no mod
 build/deployment targets run, and the wrapper also supplies no-deploy properties.
 
 This measures deterministic call counts, not actual frame time. Core/Harmony

@@ -47,7 +47,24 @@ internal static class ArenaLocationSelectionPatch
         // pins on ArenaMapMenuUpdater.Update (110-210 ms per tick on GPU-2).
         private readonly RefreshTiming _timing = new();
 
+        /// <summary>
+        /// One refresh is one display pass (ArenaMenuSelection.BeginDisplayPass, 2026-10-31): the
+        /// optional-mod admission and each eligibility provider run once, however often the
+        /// refresh and the side screen's providers read them. Everything inside is the synchronous
+        /// display work the 26.10 snapshot already shared one verdict across: row visibility, the
+        /// selected map's area preparation through the snapshot, the existing display repairs of a
+        /// saved mode (Modes.Synchronize) and area (TryPrepareMapArea), and the deselection of a map
+        /// that became unavailable, whose native prefixes see a null map and so cannot depend on the
+        /// verdict. No click, claim, freeze or start runs inside it; those arrive later from native
+        /// UI events, outside any pass, and evaluate fresh.
+        /// </summary>
         public void Refresh(MatchMakerSelectionLocationScreen screen)
+        {
+            using (ArenaMenuSelection.BeginDisplayPass())
+                RefreshInPass(screen);
+        }
+
+        private void RefreshInPass(MatchMakerSelectionLocationScreen screen)
         {
             var timing = ArenaMenuSelection.CallTiming.IsEnabled ? _timing : null;
             timing?.Begin();
@@ -284,6 +301,15 @@ internal static class ArenaLocationSelectionPatch
             try
             {
                 state.ShowSelectionHint(__instance.transform, __instance._acceptButton?._headerLabel);
+                // Show is deliberately not a display pass; only the Refresh that ends this block is.
+                // The prefix resumes a suspended flow (ResumeAfterMenu: fresh admission by contract)
+                // and repairs the remembered map through the selection path, vanilla ShowInternal
+                // assigns the remembered selection through the setter prefix, Modes.Show commits a
+                // mode repair, and Areas.Show installs the click callbacks. Rows already share one
+                // snapshot (state.Availability), so a pass here would save one read per screen open
+                // while widening it over a mode commit. Show pays this read, the snapshot's and the
+                // refresh pass's, once per open; each is cheap since Core 1.0.19's adapters stopped
+                // unpatching per check.
                 var eligibility = ArenaMenuSelection.CurrentModeEligibility;
                 state.Modes.Show(
                     __instance.transform,

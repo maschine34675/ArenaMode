@@ -37,11 +37,24 @@ $cases = @(
     @{ Name='snapshot-survives-refresh'; Property='ProductionLocationPatchSource';
        From='var availability = Availability = new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);';
        To='var availability = Availability ??= new ArenaMapAvailabilitySnapshot(ArenaMenuSelection.CurrentEligibility);';
-       Assertion='Domination to TDM restores existing Customs row' },
+       # Since 2026-10-31 the earlier refusal-between-refreshes check catches this before the mode switch.
+       Assertion='a refusal that arrives between two refreshes reaches the next display pass' },
     @{ Name='final-start-trusts-old-display'; Property='ProductionMenuSelectionSource';
        From='var eligibility = CurrentEligibility;';
        To='var eligibility = new Eligibility(true, false, string.Empty);';
-       Assertion='final start rechecks compatibility immediately instead of trusting the display snapshot' }
+       Assertion='final start rechecks compatibility immediately instead of trusting the display snapshot' },
+    @{ Name='display-pass-never-ends'; Property='ProductionLocationPatchSource';
+       From='using (ArenaMenuSelection.BeginDisplayPass())';
+       To='ArenaMenuSelection.BeginDisplayPass();';
+       Assertion='a native click after a display pass evaluates admission fresh' },
+    @{ Name='verdict-survives-pass'; Property='ProductionMenuSelectionSource';
+       From='if (--_displayPassDepth == 0) ForgetDisplayPassVerdicts();';
+       To='--_displayPassDepth;';
+       Assertion='a refusal that arrives between two refreshes reaches the next display pass' },
+    @{ Name='refresh-without-display-pass'; Property='ProductionLocationPatchSource';
+       From='using (ArenaMenuSelection.BeginDisplayPass())';
+       To='';
+       Assertion='one display pass evaluates optional-mod admission exactly once' }
 )
 foreach ($case in $cases) {
     $source = [IO.File]::ReadAllText($sources[$case.Property])
@@ -60,4 +73,4 @@ foreach ($key in $sources.Keys) {
         throw "A production source changed during the check: $($sources[$key])"
     }
 }
-Write-Output "DOMINATION_MENU_PERFORMANCE_VERIFIED: 4 behavioral mutants; evidence $evidence"
+Write-Output "DOMINATION_MENU_PERFORMANCE_VERIFIED: $($cases.Count) behavioral mutants; evidence $evidence"
