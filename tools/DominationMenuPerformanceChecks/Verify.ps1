@@ -54,7 +54,16 @@ $cases = @(
     @{ Name='refresh-without-display-pass'; Property='ProductionLocationPatchSource';
        From='using (ArenaMenuSelection.BeginDisplayPass())';
        To='';
-       Assertion='one display pass evaluates optional-mod admission exactly once' }
+       Assertion='one display pass evaluates optional-mod admission exactly once' },
+    # A pass that ends only when the refresh returns (no finally): a throwing refresh leaves it open.
+    @{ Name='display-pass-without-finally'; Property='ProductionLocationPatchSource';
+       From='using (ArenaMenuSelection.BeginDisplayPass())';
+       To='for (var pass = ArenaMenuSelection.BeginDisplayPass(); pass != null; pass.Dispose(), pass = null)';
+       Assertion='a native click after a refresh that threw evaluates admission fresh' },
+    @{ Name='inner-pass-end-drops-verdicts'; Property='ProductionMenuSelectionSource';
+       From='if (--_displayPassDepth == 0) ForgetDisplayPassVerdicts();';
+       To='--_displayPassDepth; ForgetDisplayPassVerdicts();';
+       Assertion='a nested display pass keeps the outer verdict and only the outermost end drops it' }
 )
 foreach ($case in $cases) {
     $source = [IO.File]::ReadAllText($sources[$case.Property])

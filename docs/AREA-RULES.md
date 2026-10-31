@@ -258,9 +258,12 @@ path free of Core-dependent types, exclude PFT's My Squad screen, and never repl
 admission with UI (docs/reviews/ARENA-AVAILABILITY-20261020.md, historical for its mod checks).
 The map screen evaluates that admission once per display pass (`ArenaMenuSelection.BeginDisplayPass`,
 opened only around `ScreenState.Refresh`); outside a pass nothing is memoised, so clicks, selection
-setters, the claim, the roster freeze and the raid start stay fresh, and a pass never wraps a path
-that persists a user's selection, claims, freezes or starts. An adapter whose optional mod is absent
-must return without `Harmony.UnpatchSelf()`, which walks every patched method of the process: guard
+setters, the claim, the roster freeze and the raid start stay fresh. A pass never wraps a click, claim,
+roster freeze or raid start; the only writes inside a pass are the existing display repairs of
+`ScreenState.Refresh` (saved-mode repair in `Modes.Synchronize`, area repair of `TryPrepareMapArea`,
+deselection of a map that became invalid). Refresh made them before the pass existed: the last two on
+the shared 26.10 snapshot, the mode repair on its own mode read. An adapter whose optional mod is
+absent must return without `Harmony.UnpatchSelf()`, which walks every patched method of the process: guard
 it with a flag raised before the first `Patch` (Core 1.0.19, `FastGrenadeThrowCompat`). See
 docs/reviews/MAP-MENU-ADMISSION-20261031.md.
 

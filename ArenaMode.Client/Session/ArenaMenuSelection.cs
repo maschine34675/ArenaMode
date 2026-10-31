@@ -148,9 +148,13 @@ internal static class ArenaMenuSelection
     /// <para>Outside a pass nothing is memoised: every native click, the claim, the selection
     /// setters, the final roster freeze and the raid start evaluate fresh. That keeps the 26.10
     /// contract of ArenaMapAvailabilitySnapshot ("one synchronous display pass, not an admission
-    /// cache"). A pass may wrap synchronous display-only work, never a path that persists a user's
-    /// selection, claims, freezes or starts. Open it with <c>using</c> so it ends in a finally; a
-    /// nested pass shares the outer verdicts and they are dropped when the outermost one ends.
+    /// cache"). A pass may wrap synchronous display work, never a click, claim, roster freeze or raid
+    /// start. The only writes inside a pass are the existing display repairs of ScreenState.Refresh
+    /// (the saved-mode repair in Modes.Synchronize, the area repair of TryPrepareMapArea and the
+    /// deselection of a map that became invalid). Refresh made them before the pass existed: the
+    /// last two on the shared 26.10 snapshot, the mode repair on its own mode read. Open it with
+    /// <c>using</c> so it ends in a finally; a nested pass shares the outer verdicts and they are
+    /// dropped when the outermost one ends.
     /// Another thread neither consumes nor fills them, and a pass begun there is a no-op.</para>
     /// </summary>
     internal static IDisposable BeginDisplayPass()

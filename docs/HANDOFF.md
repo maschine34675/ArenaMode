@@ -33,7 +33,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
-  differently stamped binaries; say so in the next handoff.
+  differently stamped binaries; say so in the next handoff. Since 31.10. ArenaMode and
+  Redeploy.Core are such builds (see the Iceberg entry under Open work).
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history. Since 0.4.1 SPT starts with one
   Warning and that profile's rewards stay off ([REWARDS-RUNTIME.md](REWARDS-RUNTIME.md),
@@ -58,7 +59,9 @@ probe (`ArenaLocationSelectionPatch`, `[dev] Arena map menu refresh: …` every 
 `ArenaMenuSelection.CompatibilityRejection` ran four times per refresh tick at about 12 ms
 each, because every adapter of an optional mod that is NOT installed called
 `Harmony.UnpatchSelf()` on every check (HarmonyX walks all ~1,270 patched methods, ~2 ms and
-~10 MB per walk). Fix, not merged, not pushed, not built for the game, not deployed:
+~10 MB per walk). Fix, not merged, not pushed; built and deployed by the orchestrator to all
+Syncthing hosts on 31.10. evening for the native measurement (ArenaMode `0.4.1+60795208`,
+Core `1.0.19+51ac95c`, see the Iceberg entry):
 Redeploy `fix/absent-adapter-unpatch` `51ac95c` (**Core 1.0.19**: Quick Cancel, PiP
 Disabler, Quest Tracker, Audio Indicators and Healing Autocancel unpatch only while they
 hold patches, pinned by `Redeploy.Tests/AdapterUnpatchGuardTests`) and ArenaMode
@@ -67,9 +70,12 @@ hold patches, pinned by `Redeploy.Tests/AdapterUnpatchGuardTests`) and ArenaMode
 `ScreenState.Refresh`; clicks, setters, claim, freeze and start stay fresh;
 DominationMenuPerformanceChecks pins one check per idle refresh, four before). An ArenaMode
 built from that branch stamps and refuses anything older than Core 1.0.19: merge, build and
-ship both branches together. Pending: the native GPU-2 measurement (FPS, and the probe line,
-which should read about one `compat` call per tick plus `compat reused` three per tick) and
-an independent review. Contract and test results:
+ship both branches together. Three reviews found no blocker; their minor findings (contract
+wording, Show-time read counts, a throwing-refresh and nesting check, a tighter Redeploy
+oracle, PiP preload and second-`Patch` failure checks, handoff wording) were applied on both
+branches after the deployed commits. Pending: the native GPU-2 measurement (FPS, and the
+probe line, which should read about one `compat` call per tick plus `compat reused` three per
+tick). Contract and test results:
 [MAP-MENU-ADMISSION-20261031.md](reviews/MAP-MENU-ADMISSION-20261031.md); cause evidence:
 `artifacts/iceberg-20261031/gpu/menu-perf/` (findings.md, profiler export).
 
@@ -88,12 +94,17 @@ it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only 
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
 Iceberg in an ArenaMode release before MapPort publishes it. **The installed binaries on
-all Syncthing hosts are now the development build of `master` (`a6ed8d93` plus the
-map-screen timing probe commit of 31.10. evening)** (client, companion, server, Gate,
-Session), not the 0.4.1 release; Redeploy.Core stays the released
-`1.0.18+232af19` bytes (the rebuild writes different bytes under the same version, so the
-release Core from `Redeploy/artifacts/publish-111/.../stage` is copied back after every
-build). The ArenaMode cfg migrated to revision 5 with `arena_iceberg` in `General/Maps`.
+all Syncthing hosts are the orchestrator's build of 31.10. evening for the native map-screen
+measurement: ArenaMode `0.4.1+60795208` (`fix/map-screen-admission`) with Redeploy.Core
+`1.0.19+51ac95c` (`fix/absent-adapter-unpatch`)**, neither the 0.4.1 release nor `master`
+(before that: the development build of `master`, `a6ed8d93` plus the timing probe, with the
+released Core). Builds of `master` before the merge stamp Core 1.0.18 and keep the released
+`1.0.18+232af19` bytes: the rebuild writes different bytes under the same version, so the
+release Core from `Redeploy/artifacts/publish-111/.../stage` is copied back after every such
+build. Builds of `fix/map-screen-admission` (and of `master` once it is merged) stamp 1.0.19 and
+refuse Core 1.0.18: they ship with the freshly built Core 1.0.19 from
+`fix/absent-adapter-unpatch`, never with the copied-back release bytes. The ArenaMode cfg
+migrated to revision 5 with `arena_iceberg` in `General/Maps`.
 
 - **Installed MapPort data is a harness dependency.** `tools/ArenaPickupChecks` reads every
   installed ported map, Iceberg included, and fails loudly without

@@ -307,9 +307,14 @@ internal static class ArenaLocationSelectionPatch
                 // assigns the remembered selection through the setter prefix, Modes.Show commits a
                 // mode repair, and Areas.Show installs the click callbacks. Rows already share one
                 // snapshot (state.Availability), so a pass here would save one read per screen open
-                // while widening it over a mode commit. Show pays this read, the snapshot's and the
-                // refresh pass's, once per open; each is cheap since Core 1.0.19's adapters stopped
-                // unpatching per check.
+                // while widening it over a mode commit. Outside any pass, one open with a remembered
+                // map makes about eight strict reads (two in the prefix's map repair, about five in
+                // the OnLocationSelected and SelectedLocation setter prefixes vanilla runs, one for
+                // the row snapshot, more for a Labyrinth row) plus this mode read, and each of them
+                // evaluates the optional-mod admission twice (directly and in the side screen's
+                // provider); the refresh pass then adds one evaluation. What that costs with Core
+                // 1.0.19, whose absent adapters no longer unpatch per check, is still to be measured
+                // natively.
                 var eligibility = ArenaMenuSelection.CurrentModeEligibility;
                 state.Modes.Show(
                     __instance.transform,

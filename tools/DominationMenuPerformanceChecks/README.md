@@ -20,9 +20,13 @@ admission per idle refresh (four before the pass), counted both at the provider 
 DeveloperMode compat timer, and reads the probe's cumulative "reused" counters to prove that
 rows and the selected-map repair still go through the snapshot instead of asking
 ArenaMenuSelection again. A native click right after a pass evaluates admission fresh, and a
-refusal arriving between two refreshes is shown by the next one. Seven compiled source-copy
-mutations prove the cost limits, snapshot replacement, final freshness and the pass boundary
-(a pass that never ends, verdicts that survive the pass, a refresh without a pass) can fail;
+refusal arriving between two refreshes is shown by the next one. A refresh that throws (a
+drifted row whose GameObject is gone) still ends its pass: the next native click evaluates
+fresh and the next refresh is one pass again. A nested pass keeps the outer verdict; only the
+outermost end drops it. Nine compiled source-copy mutations prove the cost limits, snapshot
+replacement, final freshness and the pass boundary (a pass that never ends, verdicts that
+survive the pass, a refresh without a pass, a pass without a finally, an inner pass whose end
+drops the outer verdicts) can fail;
 the older snapshot-survives-refresh mutation is now caught by the refusal-between-refreshes
 check, before the Domination-to-TDM row check it used to reach. No production source is rewritten, no mod
 build/deployment targets run, and the wrapper also supplies no-deploy properties.

@@ -3,7 +3,10 @@
 Date: 2026-10-31. ArenaMode branch `fix/map-screen-admission` from `master` `5203083c`
 (commits `af444148` adapter guards, `0e85df4d` display pass); Redeploy branch
 `fix/absent-adapter-unpatch` from `main` `70bceb1` (commit `51ac95c`, Redeploy.Core
-**1.0.19**). Neither branch is merged, pushed, built for the game or deployed. This
+**1.0.19**). Neither branch is merged or pushed. On 31.10. evening the orchestrator built
+`60795208` and `51ac95c` and deployed ArenaMode `0.4.1+60795208` with Core `1.0.19+51ac95c`
+to all Syncthing hosts for the native measurement; the review follow-up (below) came after
+that build and changes comments, documents and harnesses only. This
 supersedes nothing: the [26.10 snapshot](../reports/2026-10/MAP-MENU-PERFORMANCE-20261026.md)
 still shares one verdict across the rows of a refresh; this contract makes the refresh
 itself evaluate admission once and stops the optional-mod adapters from making each
@@ -59,8 +62,12 @@ Build 0.4.1+`a6ed8d93` plus the DeveloperMode timing probe (`5203083c`), recorde
   (`TryValidateAndFreezeRequest`) and the raid start (`ArenaLocalRaidStartedPatch`) all
   evaluate fresh. That is the 26.10 rule of `ArenaMapAvailabilitySnapshot`: "one synchronous
   display pass, not an admission cache".
-- A pass may wrap synchronous display-only work, never a path that persists a user's
-  selection, claims, freezes or starts.
+- A pass may wrap synchronous display work, never a click, claim, roster freeze or raid
+  start. The only writes inside a pass are the existing display repairs of `Refresh`: the
+  saved-mode repair (`Modes.Synchronize`), the area repair of `TryPrepareMapArea` and the
+  deselection of a map that became invalid. `Refresh` made them before the pass existed (the
+  last two on the shared 26.10 snapshot, the mode repair on its own mode read); the pass adds
+  no write.
 
 **Where the pass is.** `ScreenState.Refresh` (`ArenaLocationSelectionPatch.cs`), and nothing
 else. A refresh runs from the 0.2 s updater, at the end of the Show postfix, and after an
@@ -77,9 +84,13 @@ suspended flow (`ResumeAfterMenu`, a fresh admission by contract) and repairs th
 remembered map through the selection path; vanilla `ShowInternal` assigns the remembered
 selection through the setter prefix; `Modes.Show` commits a mode repair; `Areas.Show`
 installs the click callbacks. Native row materialisation already shares one snapshot
-(`state.Availability`). Show therefore pays its own few reads once per screen open, each
-cheap once the adapters stop unpatching; a pass there would save one read per open while
-widening it over a mode commit.
+(`state.Availability`). Show therefore pays its own reads once per screen open, outside any
+pass: with a remembered map about eight strict reads (two in the prefix's map repair, about
+five in the `OnLocationSelected` and `SelectedLocation` setter prefixes vanilla runs, one for
+the row snapshot, more for a Labyrinth row) plus the postfix's mode read, each evaluating
+the admission twice (directly and in the side screen's provider), then one evaluation in the
+refresh pass. What that costs with Core 1.0.19 is to be measured natively. A pass there would
+save one read per open while widening it over a mode commit.
 
 ### Absent adapters never unpatch per poll
 
@@ -126,15 +137,30 @@ counter that the five-second report does not reset, for harnesses.
   external refusal (unchanged). Seven mutants must fail: the four of 26.10 (rows re-check,
   selected map re-checks, snapshot survives the refresh, final start trusts the display)
   and three new ones: a pass that never ends (`using` dropped), verdicts that survive the
-  end of a pass (the forget dropped from `Dispose`) and a refresh without a pass.
+  end of a pass (the forget dropped from `Dispose`) and a refresh without a pass. Since the
+  review follow-up: a refresh that throws inside the pass (a drifted row whose GameObject is
+  gone) still ends it, so the next native click evaluates fresh and the next refresh is one
+  pass again; a nested pass keeps the outer verdict and only the outermost end drops it.
+  Two more mutants must fail: a pass without a finally (`for` instead of `using`) and an
+  inner pass whose end drops the outer verdicts.
 - `tools/FastGrenadeThrowChecks`: a prefix on HarmonyX's own `UnpatchID(string)` counts
   patch-table walks with a positive control; absent-plugin and refused-contract polls cause
   none, and a bound adapter whose hooks were removed still unbinds itself once. Two new
-  mutants (the unconditional unpatch of 1.0.18, the flag never raised) must fail.
+  mutants (the unconditional unpatch of ArenaMode 0.4.1, `master` `5203083c`; the flag never
+  raised) must fail. Since the review follow-up (below) it also makes the second `Patch`
+  call throw (a one-shot prefix on Harmony's `Patch`): the next bind must be admitted, and
+  the failed one unpatches exactly once. It links `PipPreloadCompat`: an installed PiP
+  Disabler whose `ScopeLifecycle` does not resolve is refused on three polls without a walk.
+  Two more mutants (flag raised only after the second `Patch`; PiP unpatching without its
+  flag) must fail.
 - `Redeploy.Tests/AdapterUnpatchGuardTests` (Redeploy): a Roslyn source contract over all
   sixteen Core adapters that own a Harmony instance, because they cannot load outside the
   game. It names the files and proves per file that removing the guard, the set or the
-  clear fails it.
+  clear fails it. Since the review follow-up the set must be an unconditional `F = true;`
+  statement of a block that encloses the `Patch` statement (or the helper call that
+  patches), after the method's last return before it; a theory with inline samples proves
+  that a flag raised in the absent branch, before the absent branch's return, under a
+  condition of its own or inside a lambda is rejected.
 
 ## Verification runs (2026-10-31, development machine, no deployment)
 
@@ -187,6 +213,42 @@ Compile only: two scratch projects outside both repositories compiled the Redepl
 sources and the ArenaMode.Client sources (against that Core and copies of the game DLLs in
 the checkouts' `bin` folders) with 0 errors. No repository project was built for the game.
 
+## Review follow-up (2026-10-31 evening)
+
+Three reviews found no blocker. Their minor findings, applied on both branches after the
+orchestrator's build of `60795208`/`51ac95c` (comments, documents and harnesses only, no
+runtime change):
+
+- The pass rule above and in `ArenaMenuSelection.BeginDisplayPass` and docs/AREA-RULES.md
+  said a pass never wraps a path that persists a user's selection; `Refresh` does wrap the
+  existing display repairs. They now name those writes instead.
+- The Show postfix comment counted three Show-time reads and called each cheap under Core
+  1.0.19; it now gives the counts above and leaves the cost to the native measurement.
+- `DominationMenuPerformanceChecks`: a throwing refresh and nested passes (above), two
+  mutants. `FastGrenadeThrowChecks`: the second-`Patch` failure and the PiP refused-contract
+  polling (above), two mutants. `AdapterUnpatchGuardTests` (Redeploy `3c41bd6`): the set must
+  lie on the path to the `Patch` (above).
+- docs/HANDOFF.md: the Core copy-back rule is limited to builds of `master` before the merge,
+  and the installed state names the orchestrator's deployment.
+
+Runs (development machine, no deployment), ArenaMode
+`pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -SkipUnitTests -Harness
+DominationMenuPerformanceChecks,FastGrenadeThrowChecks`:
+`ARENA_VERIFICATION_SUMMARY passed=2 failed=0 seconds=77`, live install hashes unchanged.
+DominationMenuPerformanceChecks 22 assertions, 9 of 9 mutants rejected
+(`display-pass-without-finally` by "a native click after a refresh that threw evaluates
+admission fresh", `inner-pass-end-drops-verdicts` by "a nested display pass keeps the outer
+verdict and only the outermost end drops it"); its count line is unchanged:
+`MENU_PERFORMANCE_OBSERVED: rows=8, compatibility checks per idle refresh=1 (compat timer 1,
+reads answered by the display pass 3; 4 per refresh without the pass), strict=1, mode=1,
+eligibility reads answered by the pass=0`. FastGrenadeThrowChecks: native compile; normal and
+newer 53, drift and older 15 checks; 8 of 8 mutants rejected (`flag-raised-after-second-patch`
+by "the bind after a failed second Patch is admitted (the half-applied set was unpatched)",
+`pip-refused-contract-unpatches` by "refused PiP Disabler contract polls never walk Harmony's
+patch table"). Redeploy `Redeploy.Tests` with the switches of its AGENTS.md: 593 total, 592
+passed, 1 skipped (Redeploy.Client not built), 0 failed; `CoreVersionTests` are green against
+the 1.0.19 build in `Redeploy.Core/bin/Debug` (`bin/Release` still holds 1.0.18).
+
 ## Not claimed
 
 - No native measurement. Frame times on GPU-2 and the probe line with these branches are
@@ -194,9 +256,9 @@ the checkouts' `bin` folders) with 0 errors. No repository project was built for
   latest native state. The harness counts calls, not milliseconds.
 - What one compatibility check costs with Core 1.0.19 is not measured. Installed optional
   mods still verify their hooks with `Harmony.GetPatchInfo` per hooked method on each check.
-- Nothing was built for the game or deployed: the installed binaries on all Syncthing hosts
-  are still the development build of `master` with the probe, and Core is still the released
-  `1.0.18+232af19`.
+- This change built nothing for the game and deployed nothing. The deployment of
+  ArenaMode `0.4.1+60795208` with Core `1.0.19+51ac95c` on 31.10. evening was the
+  orchestrator's, for the native measurement; the follow-up commits are not in it.
 - The Show-time reads were not reduced beyond what the adapter guards give.
-- No GPU run or raid was part of this change, and the adversarial review was the
-  implementing agent's own; an independent review is still open.
+- No GPU run or raid was part of this change. Three reviews found no blocker; their minor
+  findings are the follow-up below.

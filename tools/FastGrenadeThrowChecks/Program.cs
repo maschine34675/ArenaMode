@@ -25,8 +25,41 @@ internal static class UnpatchWalks
             prefix: new HarmonyMethod(typeof(UnpatchWalks), nameof(Prefix)));
 }
 
+// Makes the next HarmonyX Patch call on one target throw before it changes anything, so the second
+// of the adapter's two Patch calls can fail without touching production code.
+internal static class PatchFailure
+{
+    internal static MethodBase Target;
+    internal const string Message = "injected failure of the second Patch call";
+    private static void Prefix(object[] __args)
+    {
+        if (Target == null || __args[0] is not MethodBase original
+            || original.DeclaringType != Target.DeclaringType || original.Name != Target.Name) return;
+        Target = null;
+        throw new InvalidOperationException(Message);
+    }
+    internal static void Install()
+    {
+        var harmony = new Harmony("arena.checks.fastgrenade.patch-failure");
+        foreach (var patch in typeof(Harmony).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                     .Where(m => m.Name == nameof(Harmony.Patch) && m.GetParameters().FirstOrDefault()?.ParameterType == typeof(MethodBase)))
+            harmony.Patch(patch, prefix: new HarmonyMethod(typeof(PatchFailure), nameof(Prefix)));
+    }
+}
+
 internal static class Program
 {
+    private const string PipGuid = "com.fiodor.pipdisabler";
+    // PiP Disabler is installed, but its ScopeLifecycle no longer has the callbacks Arena guards:
+    // PipPreloadCompat refuses on every poll, and before 2026-10-31 it unpatched twice per poll
+    // (rebind and catch) with nothing patched.
+    private static void BuildUnresolvedPip()
+    {
+        var module = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("PiPDisabler"), AssemblyBuilderAccess.Run).DefineDynamicModule("pip");
+        module.DefineType("PiPDisabler.ScopeLifecycle", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed).CreateType();
+        var plugin = module.DefineType("PiPDisabler.Plugin", TypeAttributes.Public, typeof(BaseUnityPlugin)).CreateType();
+        Chainloader.PluginInfos[PipGuid] = new PluginInfo { Instance = (BaseUnityPlugin)Activator.CreateInstance(plugin) };
+    }
     private static int _checks;
     private static void Check(bool value, string why) { if (!value) throw new Exception(why); _checks++; }
     private static MethodInfo _throw;
@@ -73,7 +106,15 @@ internal static class Program
             walks = UnpatchWalks.Count;
             for (int poll = 0; poll < 5; poll++) Check(FastGrenadeThrowCompat.GetRejectionReason() == null, "absent plugin no-op");
             Check(UnpatchWalks.Count == walks, "absent plugin polls never walk Harmony's patch table");
-            Build(mode); var issue = FastGrenadeThrowCompat.GetRejectionReason();
+            BuildUnresolvedPip();
+            for (int poll = 0; poll < 3; poll++)
+                Check(PipPreloadCompat.GetRejectionReason()?.StartsWith("PiP Disabler Arena preload integration is unavailable: ") == true,
+                    "unresolved PiP Disabler contract refused");
+            Check(UnpatchWalks.Count == walks, "refused PiP Disabler contract polls never walk Harmony's patch table");
+            Chainloader.PluginInfos.Remove(PipGuid);
+            Check(PipPreloadCompat.GetRejectionReason() == null && UnpatchWalks.Count == walks, "absent PiP Disabler no-op");
+            Build(mode); var installed = Chainloader.PluginInfos[FastGrenadeThrowCompat.PluginGuid];
+            var issue = FastGrenadeThrowCompat.GetRejectionReason();
             if (mode == "drift" || mode == "older")
             {
                 Check(issue != null, "unsupported contract rejected"); Check(FastGrenadeThrowCompat.GetRejectionReason() == issue && ArenaMode.Plugin.ModLogger.Warnings == 1, "bounded contract warning");
@@ -110,6 +151,17 @@ internal static class Program
             walks = UnpatchWalks.Count;
             for (int poll = 0; poll < 5; poll++) FastGrenadeThrowCompat.GetRejectionReason();
             Check(UnpatchWalks.Count == walks, "absent plugin polls never walk Harmony's patch table after unbinding");
+            // The second Patch call fails: the flag was raised before the first one, so the catch's
+            // Clear() removes the half-applied set and the next bind is admitted instead of finding a
+            // second AfterFind and refusing the mod for the rest of the process.
+            PatchFailure.Install();
+            Chainloader.PluginInfos[FastGrenadeThrowCompat.PluginGuid] = installed;
+            PatchFailure.Target = _throw;
+            walks = UnpatchWalks.Count;
+            issue = FastGrenadeThrowCompat.GetRejectionReason();
+            Check(issue != null && issue.Contains(PatchFailure.Message) && PatchFailure.Target == null, "a failing second Patch refuses that bind");
+            Check(FastGrenadeThrowCompat.GetRejectionReason() == null, "the bind after a failed second Patch is admitted (the half-applied set was unpatched)");
+            Check(UnpatchWalks.Count == walks + 1, "the failed bind unpatched its first Patch exactly once");
             Console.WriteLine("PASS " + mode + " " + _checks); return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

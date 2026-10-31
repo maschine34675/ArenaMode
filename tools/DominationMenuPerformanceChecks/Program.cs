@@ -91,6 +91,45 @@ internal static class Program
         start = Reads.Now();
         for (int i = 0; i < 20; i++) updater.Tick();
         Need((Reads.Now() - start).Admission == 20, "idle compatibility work is one check per refresh, independent of map count");
+        // A refresh that throws still ends its pass (using, so a finally): a drifted native row whose
+        // GameObject is gone throws inside Refresh when the refusal hides it, after the rows before it
+        // were hidden. The next native click must evaluate admission fresh, and once the row is back
+        // the next refresh is one pass again and shows the hidden rows again.
+        int visibleRows = screen.Buttons.Count(row => row.gameObject.activeSelf);
+        var drifted = screen.Buttons.Last(row => row.gameObject.activeSelf && ArenaMapCatalog.IsSupportedMap(row.Location.Id)).gameObject;
+        drifted.Destroyed = true;
+        _refusal = "refusal that hides a drifted row";
+        Exception thrown = null;
+        try { updater.Tick(); } catch (InvalidOperationException ex) { thrown = ex; }
+        Need(drifted.activeSelf && thrown?.Message.StartsWith("Changed destroyed view") == true,
+            "a drifted row view throws inside the refresh");
+        drifted.Destroyed = false;
+        _refusal = null;
+        before = _compatibilityReads;
+        screen.OnLocationSelected(screen.Locations[ArenaMapCatalog.FactoryDayId]);
+        Need(_compatibilityReads > before && screen.SelectedLocation?.Id == ArenaMapCatalog.FactoryDayId,
+            "a native click after a refresh that threw evaluates admission fresh");
+        screen.OnLocationSelected(null);
+        start = Reads.Now();
+        updater.Tick();
+        var recovered = Reads.Now() - start;
+        Need(recovered.Admission == 1 && recovered.Timer == 1
+             && screen.Buttons.Count(row => row.gameObject.activeSelf) == visibleRows,
+            "the refresh after one that threw is one display pass again and restores the rows");
+        // Passes nest by depth: an inner pass shares the outer verdict and its end does not drop it;
+        // only the end of the outermost pass does, so the next read outside evaluates again.
+        before = _compatibilityReads;
+        int insideOuter;
+        using (ArenaMenuSelection.BeginDisplayPass())
+        {
+            _ = ArenaMenuSelection.CompatibilityRejection;
+            using (ArenaMenuSelection.BeginDisplayPass()) _ = ArenaMenuSelection.CompatibilityRejection;
+            _ = ArenaMenuSelection.CompatibilityRejection;
+            insideOuter = _compatibilityReads - before;
+        }
+        _ = ArenaMenuSelection.CompatibilityRejection;
+        Need(insideOuter == 1 && _compatibilityReads - before == 2,
+            "a nested display pass keeps the outer verdict and only the outermost end drops it");
         screen.OnLocationSelected(screen.Locations[ArenaMapCatalog.FactoryDayId]);
         start = Reads.Now();
         updater.Tick();

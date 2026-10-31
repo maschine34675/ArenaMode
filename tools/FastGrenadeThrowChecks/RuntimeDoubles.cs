@@ -13,7 +13,10 @@ namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static 
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool IsRespawnInProgress, StandDown; } }
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
 namespace ArenaMode.Combat { public static class WeaponSwapService { public static bool IsSwapping; } }
-namespace ArenaMode { public static class Plugin { public static Logger ModLogger = new(); } public class Logger { public int Warnings; public void LogWarning(string message) { Warnings++; Console.WriteLine(message); } public void LogDebug(string message) { } } }
+namespace ArenaMode { public static class Plugin { public const string PluginGuid = "com.maschine.ArenaMode"; public static Logger ModLogger = new(); } public class Logger { public int Warnings; public void LogWarning(string message) { Warnings++; Console.WriteLine(message); } public void LogDebug(string message) { } } }
+// PipPreloadCompat (linked since 2026-10-31) only names these; the refused-contract case never calls them.
+namespace EFT.CameraControl { public class OpticSight { } }
+namespace ArenaMode.Kits { public static class KitOpticPreloadGuard { public static bool IsWithheldCallback(EFT.CameraControl.OpticSight optic) => false; } }
 namespace EFT.InventoryLogic
 {
     public class ThrowWeap { public string Id; public object CurrentAddress = new(); public bool Examined = true; }
