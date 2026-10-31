@@ -51,17 +51,17 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Arena map screen frame drops (2026-10-31, fixed on two unmerged branches, native
-measurement pending):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS
+**Arena map screen frame drops (2026-10-31, fixed, measured on GPU-2, merged into
+ArenaMode `master` and Redeploy `main` on 31.10. evening, not pushed, not released):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS
 with one 45-130 ms frame every 0.2 s (the user's PC far worse). Measured with
 `uibridge_status perfSeconds`, a ModProfiler headless capture and the DeveloperMode timing
 probe (`ArenaLocationSelectionPatch`, `[dev] Arena map menu refresh: …` every 5 s):
 `ArenaMenuSelection.CompatibilityRejection` ran four times per refresh tick at about 12 ms
 each, because every adapter of an optional mod that is NOT installed called
 `Harmony.UnpatchSelf()` on every check (HarmonyX walks all ~1,270 patched methods, ~2 ms and
-~10 MB per walk). Fix, not merged, not pushed; built and deployed by the orchestrator to all
-Syncthing hosts on 31.10. evening for the native measurement (ArenaMode `0.4.1+60795208`,
-Core `1.0.19+51ac95c`, see the Iceberg entry):
+~10 MB per walk). Fix, built and deployed to all Syncthing hosts on 31.10. evening (first for the
+measurement as ArenaMode `0.4.1+60795208` with Core `1.0.19+51ac95c`, then from the merged
+heads; see the Iceberg entry):
 Redeploy `fix/absent-adapter-unpatch` `51ac95c` (**Core 1.0.19**: Quick Cancel, PiP
 Disabler, Quest Tracker, Audio Indicators and Healing Autocancel unpatch only while they
 hold patches, pinned by `Redeploy.Tests/AdapterUnpatchGuardTests`) and ArenaMode
@@ -73,11 +73,15 @@ built from that branch stamps and refuses anything older than Core 1.0.19: merge
 ship both branches together. Three reviews found no blocker; their minor findings (contract
 wording, Show-time read counts, a throwing-refresh and nesting check, a tighter Redeploy
 oracle, PiP preload and second-`Patch` failure checks, handoff wording) were applied on both
-branches after the deployed commits. Pending: the native GPU-2 measurement (FPS, and the
-probe line, which should read about one `compat` call per tick plus `compat reused` three per
-tick). Contract and test results:
-[MAP-MENU-ADMISSION-20261031.md](reviews/MAP-MENU-ADMISSION-20261031.md); cause evidence:
-`artifacts/iceberg-20261031/gpu/menu-perf/` (findings.md, profiler export).
+branches after the deployed commits. Measured after the fix on GPU-2: 60.0 FPS with P95 16.67 ms and maximum
+16.7 ms with and without a selected map, refresh tick at most 0.6 ms, exactly one `compat`
+evaluation per tick at 0.1 ms (three reads answered by the pass), clicks 0.1-0.8 ms per
+evaluation, a Domination raid on Iceberg started and left normally; before: 48 FPS, P95
+45 ms, maximum 76-130 ms. Report with both measurements:
+[MAP-MENU-PERFORMANCE-20261031.md](reports/2026-10/MAP-MENU-PERFORMANCE-20261031.md);
+contract and test results: [MAP-MENU-ADMISSION-20261031.md](reviews/MAP-MENU-ADMISSION-20261031.md);
+cause evidence: `artifacts/iceberg-20261031/gpu/menu-perf/`. Release note: the next
+ArenaMode release must ship with a Redeploy release that carries Core 1.0.19.
 
 **Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not pushed):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,

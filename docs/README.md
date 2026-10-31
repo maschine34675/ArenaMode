@@ -258,7 +258,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (263)
+## Reports (264)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -375,6 +375,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [Server and BigBrain companion logging audit: Info/Debug call-site classification](reports/2026-10/LOGGING-SERVER-AUDIT-20261015.md) *(history)*
 - [Looting Bots: scoped autonomous-looting pause](reports/2026-10/LOOTING-BOTS-COMPAT-20261019.md) *(history)*
 - [Arena map-menu performance: GPU-2 before/after FPS measurement (Domination follow-up)](reports/2026-10/MAP-MENU-PERFORMANCE-20261026.md)
+- [Arena map-menu performance, second round: absent-adapter unpatching and one admission per display pass (GPU-2 before/after)](reports/2026-10/MAP-MENU-PERFORMANCE-20261031.md)
 - [Native animation fault attribution and diagnostic limits](reports/2026-10/MODEL-ANIMATION-INVESTIGATION-20261019.md)
 - [Model asset, pooled equipment and Killcam clone investigation](reports/2026-10/MODEL-POOL-INVESTIGATION-20261019.md)
 - [Model preview ownership and PitFireTeam lifecycle investigation](reports/2026-10/MODEL-PREVIEW-INVESTIGATION-20261019.md)
