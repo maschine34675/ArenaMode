@@ -64,6 +64,7 @@ public sealed class BowlMapTests
         Assert.Equal("my-zone", saved["maps"]![ArenaMapCatalog.BowlId]!["spawnZones"]!.GetValue<string>());
         Assert.Equal("invalid", saved["optionalMapsRevision"]!.GetValue<string>());
         Assert.Null(saved["maps"]![ArenaMapCatalog.AirPitId]);
+        Assert.Null(saved["maps"]![ArenaMapCatalog.IcebergId]);
     }
 
     [Theory]

@@ -12,6 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
+    <!-- ArenaTeamPalette asks the shared policy whether the active mode is an independent team (since bdd679ec). -->
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(ProductionPolicySource)" Link="Production/ArenaLightingPolicy.cs" />
     <Compile Include="$(ProductionDirectorSource)" Link="Production/ArenaLightingDirector.cs" />
     <Compile Include="$(ProductionPaletteSource)" Link="Production/ArenaTracerColor.cs" />

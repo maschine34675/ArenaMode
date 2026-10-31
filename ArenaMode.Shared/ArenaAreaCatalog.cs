@@ -682,6 +682,14 @@ public static class ArenaAreaCatalog
         if (ArenaMapCatalog.IsEquator(map!)
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
+        // Same criterion on Iceberg (installed ArenaMapPort data, 2026-10-30): of its
+        // nine Bot/BotPmc markers a surviving leader on about 48 m² of the centre
+        // (within x -12.6..12.5, z -71.9..-58.8) has only four beyond the 25 m floor. The
+        // team boxes do not change that: Tactical uses the generic markers. Solo
+        // and PFT Zombies stay admitted; the map is not compact.
+        if (ArenaMapCatalog.IsIceberg(map!)
+            && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
+        { reason = "Iceberg has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
         // Solo survival remains supported; the compact map does not have enough
         // room for the protected five-player squad and its infected wave together.
         if (pitFireTeam && ArenaMapCatalog.IsEquator(map!)

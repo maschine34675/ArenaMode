@@ -59,7 +59,7 @@ Check(Harmony.Registered.Any(p => p.target.DeclaringType == typeof(SecretExfiltr
 Check(Harmony.Registered.All(p => p.target.Name != "Stop"), "general native Stop is never patched");
 ArenaExtractionIsolation.Enable(); Check(Harmony.Registered.Count == 3, "Enable is idempotent");
 
-foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth", "bigmap", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
+foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth", "bigmap", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg" })
 {
     f = Setup(map: mapName);
     foreach (var point in new ExfiltrationPoint[] { f.regular, f.scav, f.secret })

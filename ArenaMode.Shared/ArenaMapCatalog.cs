@@ -18,8 +18,12 @@ public static class ArenaMapCatalog
     public const string Bay5Id = "arena_bay5";
     public const string AirPitId = "arena_airpit";
     public const string BowlId = "arena_bowl";
+    // Detected by the presence of an enabled live location with this exact ID,
+    // never by the ArenaMapPort version: the feature build that ships it and the
+    // published 0.4.0 without it carry the same version string.
+    public const string IcebergId = "arena_iceberg";
     public const string ArenaMapPortPluginId = "com.maschine.ArenaMapPort";
-    public const int OptionalMapsRevision = 4;
+    public const int OptionalMapsRevision = 5;
 
     public const string LegacyDefaultClientAllowlist =
         FactoryDayId + "," + LabyrinthId + "," + LaboratoryId;
@@ -32,7 +36,8 @@ public static class ArenaMapCatalog
     public const string EquatorDefaultClientAllowlist = NativeDefaultClientAllowlist + "," + EquatorId;
     public const string Bay5DefaultClientAllowlist = EquatorDefaultClientAllowlist + "," + Bay5Id;
     public const string AirPitDefaultClientAllowlist = Bay5DefaultClientAllowlist + "," + AirPitId;
-    public const string DefaultClientAllowlist = AirPitDefaultClientAllowlist + "," + BowlId;
+    public const string BowlDefaultClientAllowlist = AirPitDefaultClientAllowlist + "," + BowlId;
+    public const string DefaultClientAllowlist = BowlDefaultClientAllowlist + "," + IcebergId;
 
     public static bool IsSupportedMap(string locationId)
         => string.Equals(locationId, FactoryDayId, StringComparison.OrdinalIgnoreCase)
@@ -54,10 +59,14 @@ public static class ArenaMapCatalog
     public static bool IsBowl(string locationId)
         => string.Equals(locationId, BowlId, StringComparison.OrdinalIgnoreCase);
 
+    public static bool IsIceberg(string locationId)
+        => string.Equals(locationId, IcebergId, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Explicit canonical lookup; unknown names return empty, never another map's ID.</summary>
     public static string CanonicalOptionalMapId(string locationId)
         => IsEquator(locationId) ? EquatorId : IsBay5(locationId) ? Bay5Id
-            : IsAirPit(locationId) ? AirPitId : IsBowl(locationId) ? BowlId : string.Empty;
+            : IsAirPit(locationId) ? AirPitId : IsBowl(locationId) ? BowlId
+            : IsIceberg(locationId) ? IcebergId : string.Empty;
 
     public static bool IsOptionalMap(string locationId) => CanonicalOptionalMapId(locationId).Length != 0;
 
@@ -93,14 +102,18 @@ public static class ArenaMapCatalog
         => UpgradeOptionalClientAllowlist(allowlist, 0, false);
 
     /// <summary>
-    /// Revision 4 extends the exact AirPit default. Earlier revisions keep their own
-    /// cutoffs: an Equator-only list at revision 2 means Bay5 was removed, and
-    /// must not acquire Bay5, AirPit or Bowl. The old boolean likewise protects
-    /// an intentional Equator removal that resembles a pre-Equator default.
+    /// Revision 5 extends the exact Bowl default with Iceberg. Earlier revisions keep
+    /// their own cutoffs: the AirPit default gains Bowl and Iceberg only below
+    /// revision 4, because at revision 4 a Bowl-less AirPit list means Bowl was
+    /// removed, and must acquire neither. Likewise an Equator-only list at
+    /// revision 2 means Bay5 was removed, and must not acquire Bay5, AirPit, Bowl
+    /// or Iceberg. The old boolean protects an intentional Equator removal that
+    /// resembles a pre-Equator default.
     /// </summary>
     public static string UpgradeOptionalClientAllowlist(string allowlist, int revision, bool equatorMigrationRecorded)
         => revision < OptionalMapsRevision
-           && (string.Equals(allowlist, AirPitDefaultClientAllowlist, StringComparison.Ordinal)
+           && (string.Equals(allowlist, BowlDefaultClientAllowlist, StringComparison.Ordinal)
+               || revision < 4 && string.Equals(allowlist, AirPitDefaultClientAllowlist, StringComparison.Ordinal)
                || revision < 3 && string.Equals(allowlist, Bay5DefaultClientAllowlist, StringComparison.Ordinal)
                || revision < 2 && string.Equals(allowlist, EquatorDefaultClientAllowlist, StringComparison.Ordinal)
                || revision <= 0 && !equatorMigrationRecorded
@@ -120,7 +133,8 @@ public static class ArenaMapCatalog
                || isAvailable(EquatorId)
                || isAvailable(Bay5Id)
                || isAvailable(AirPitId)
-               || isAvailable(BowlId));
+               || isAvailable(BowlId)
+               || isAvailable(IcebergId));
 
     /// <summary>
     /// EFT represents both Factory variants with the day tile. Keep the night

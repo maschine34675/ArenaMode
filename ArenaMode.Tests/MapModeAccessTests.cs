@@ -10,10 +10,23 @@ public sealed class MapModeAccessTests
 {
     public static IEnumerable<object[]> SupportedCases()
     {
-        foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId })
+        foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
+                     ArenaMapCatalog.IcebergId })
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
-            if (!(map == ArenaMapCatalog.EquatorId && mode == "tactical"))
+            if (!((map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.IcebergId) && mode == "tactical"))
                 yield return [map, mode];
+    }
+
+    [Fact]
+    public void IcebergTacticalIsExcludedFromTheSupportedPairs()
+    {
+        var pairs = SupportedCases().Select(c => ((string)c[0], (string)c[1])).ToArray();
+        Assert.DoesNotContain((ArenaMapCatalog.IcebergId, "tactical"), pairs);
+        Assert.Contains((ArenaMapCatalog.IcebergId, "zombie"), pairs);
+        Assert.Contains((ArenaMapCatalog.IcebergId, "teamdeathmatch"), pairs);
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "tactical", false, out _, out _));
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "tactical", true, out _, out _));
+        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "zombie", true, out _, out _));
     }
 
     [Theory]

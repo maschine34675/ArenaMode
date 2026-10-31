@@ -31,7 +31,9 @@ var rootRect=(RectTransform)view.Root.transform;
 // layout (three area rows + four size buttons = 214 high) now ends at
 // 924; the measured native READY area starts at Y=984
 // (MUTATORS-MENU-REVIEW.md), so even the ceiling stays above it.
-Need(-rootRect.anchoredPosition.y>=764&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=984,
+// 728: 517ca1db shortened the Team DM/Domination mode panel 584 -> 548, so the
+// panel now starts at 168 + 548 + 12; the 764 floor had not followed it.
+Need(-rootRect.anchoredPosition.y>=728&&-rootRect.anchoredPosition.y+rootRect.sizeDelta.y<=984,
     "largest supported panel remains below mode panel and above native bottom controls");
 foreach(var button in Buttons())
 {
@@ -71,14 +73,15 @@ view.Refresh(State(ArenaAreaCatalog.FullMapId,map:ArenaMapCatalog.FactoryDayId),
 Need(Buttons().Length==1,"whole map Factory is its only supported area choice");
 view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "deathmatch", false,
     ArenaAreaCatalog.FullMapId, 5), false);
-// 776 = ModePanelTop (168) + the Deathmatch ModePanelHeight (554->596, +42
-// for the fifth mode row) + 12; was 734 pre-Zombie.
-Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 776,
+// 740 = ModePanelTop (168) + the Deathmatch ModePanelHeight (596->560 in
+// 517ca1db) + 12; was 776 before that and 734 pre-Zombie.
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 740,
     "Deathmatch area panel clears four rules rows with twelve pixel gap");
 view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.FactoryDayId, "gungame", false,
     ArenaAreaCatalog.FullMapId, 5), false);
-// 710: the non-Deathmatch top derived at the first bound above (was 668).
-Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 710,
+// 674 = 168 + the Gun Game/Tactical ModePanelHeight (530->494 in 517ca1db) + 12
+// (was 710, and 668 pre-Zombie).
+Need(-((RectTransform)view.Root.transform).anchoredPosition.y == 674,
     "same-area mode change updates layout cache and restores compact position");
 foreach(string mode in new[]{"zombie","tactical","zombie"})
 {
@@ -88,7 +91,7 @@ foreach(string mode in new[]{"zombie","tactical","zombie"})
     var summary=view.Root.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true).Single(label=>label.name=="Team size");
     Need(summary.text==(mode=="zombie"?"5-player squad":"5v5 - PitFireTeam"),
         "rendered protected squad summary follows cooperative or opposing-team mode");
-    Need(-((RectTransform)view.Root.transform).anchoredPosition.y == (mode == "zombie" ? 776 : 710),
+    Need(-((RectTransform)view.Root.transform).anchoredPosition.y == (mode == "zombie" ? 740 : 674),
         "protected Zombie area choices clear all three wave sliders");
 }
 for(int companions=1;companions<=4;companions++)
@@ -119,7 +122,7 @@ foreach(bool team in new[]{false,true})
 {
     view.Refresh(ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId,"zombie",team,teams,5),team);
     var zombieAreaRect=(RectTransform)view.Root.transform;
-    Need(-zombieAreaRect.anchoredPosition.y==776 && -zombieAreaRect.anchoredPosition.y+zombieAreaRect.sizeDelta.y<=980,
+    Need(-zombieAreaRect.anchoredPosition.y==740 && -zombieAreaRect.anchoredPosition.y+zombieAreaRect.sizeDelta.y<=980,
         "solo and PFT Customs Zombie areas fit between wave sliders and READY");
 }
 view.Close();

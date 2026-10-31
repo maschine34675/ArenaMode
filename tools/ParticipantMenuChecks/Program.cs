@@ -25,6 +25,7 @@ internal static class Program
             var config = new ConfigFile(path, false) { SaveOnConfigSet = autoSave };
             ArenaParticipantSettings.Init(config);
             foreach (var pair in new[] { (ArenaMapCatalog.EquatorId, 4), (ArenaMapCatalog.Bay5Id, 8), (ArenaMapCatalog.AirPitId, 8), (ArenaMapCatalog.BowlId, 8),
+                (ArenaMapCatalog.IcebergId, 8),
                 (Day, 10), (ArenaMapCatalog.FactoryNightId, 10), (ArenaMapCatalog.LaboratoryId, 16), (ArenaMapCatalog.LabyrinthId, 8) })
             {
                 Need(ArenaParticipantSettings.Get(pair.Item1, "deathmatch") == pair.Item2, "map-specific default");
@@ -139,8 +140,10 @@ internal static class Program
                 var selection = ArenaParticipantSelectionState.Create(candidate, false, count);
                 view.Refresh(candidate, false, selection);
                 Bounds();
+                // Independent oracle (not the catalog): since Domination joined the
+                // team boxes (fb587a6b) both team modes cap at 10v10 on the box maps.
                 bool expected = candidate.Available && mode != "tactical"
-                    && count <= (mode == "teamdeathmatch"
+                    && count <= ((mode == "teamdeathmatch" || mode == "domination")
                         && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId || map == ArenaMapCatalog.BowlId) ? 20 : 24)
                     && (!ArenaParticipantPolicy.IsTeam(mode) || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");

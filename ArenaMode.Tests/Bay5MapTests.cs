@@ -124,6 +124,8 @@ public sealed partial class ArenaAreaServerTests
     [InlineData(ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId)]
     [InlineData(ArenaMapCatalog.BowlId, ArenaMapCatalog.AirPitId)]
     [InlineData(ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId)]
+    [InlineData(ArenaMapCatalog.IcebergId, ArenaMapCatalog.BowlId)]
+    [InlineData(ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId)]
     public void OptionalTransportViewChecksEachLocationFreshAndNeverBorrowsAvailability(string present, string absent)
     {
         var oldLookup = ArenaOptionalMapPolicy.FindLocation;
@@ -138,7 +140,8 @@ public sealed partial class ArenaAreaServerTests
             using var first = JsonDocument.Parse(ArenaOptionalMapPolicy.ClientConfigJson(config));
             Assert.True(first.RootElement.GetProperty("maps").TryGetProperty(present, out _));
             Assert.False(first.RootElement.GetProperty("maps").TryGetProperty(absent, out _));
-            Assert.Equal(new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId }, calls);
+            Assert.Equal(new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
+                ArenaMapCatalog.IcebergId }, calls);
             Assert.True(ArenaOptionalMapPolicy.IsAvailable(present.ToUpperInvariant()));
             Assert.Equal(before, JsonSerializer.Serialize(config));
             Assert.Equal(locationBefore, JsonSerializer.Serialize(location));

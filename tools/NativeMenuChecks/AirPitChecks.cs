@@ -5,7 +5,9 @@ using SPT.Common.Http;
 
 internal static partial class Program
 {
-    private static void CheckPortedMapAdmission(string map, string excludedAllowlist)
+    // tactical=false: the map's shared resolver refuses both Tactical formats
+    // (Iceberg, like Equator, lacks five distant bot markers from its centre).
+    private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool tactical = true)
     {
         var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
         var previousAllowlist = Settings.Allowlist;
@@ -17,6 +19,7 @@ internal static partial class Program
             foreach (bool present in new[] { false, true })
             foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical", "zombie" })
             {
+                bool admitted = present && (tactical || mode != "tactical");
                 ConfigureAreaNegotiation();
                 if (present) plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
                 else plugins.Remove(ArenaMapCatalog.ArenaMapPortPluginId);
@@ -26,31 +29,34 @@ internal static partial class Program
                 Select(map);
                 Assert(ArenaMenuSelection.HasConfiguredMap(false) == present,
                     map + ": DISCOVERY: optional plugin required for a single imported map picker");
-                Assert(ArenaMenuSelection.IsMapAvailable(map) == present,
-                    map + ": AVAILABILITY: optional plugin and all generic modes");
+                Assert(ArenaMenuSelection.IsMapAvailable(map) == admitted,
+                    map + ": AVAILABILITY: optional plugin and all generic modes" + (tactical ? "" : " except Tactical"));
                 int before = RequestHandler.StartCount;
                 bool accepted = Start(Request(map: map), out var task);
-                Assert(accepted == present, map + ": START: actual local-start prefix respects optional presence");
-                Assert(RequestHandler.StartCount == before + (present ? 1 : 0),
-                    map + ": HTTP: unavailable map never requests a profile snapshot");
-                Assert(present ? task == null && ArenaSession.ArmedForNextRaid
+                Assert(accepted == admitted, map + ": START: actual local-start prefix respects optional presence and mode admission");
+                Assert(RequestHandler.StartCount == before + (admitted ? 1 : 0),
+                    map + ": HTTP: unavailable map or refused mode never requests a profile snapshot");
+                Assert(admitted ? task == null && ArenaSession.ArmedForNextRaid
                     : task.IsFaulted && !ArenaSession.ArmedForNextRaid,
                     map + ": ARM: only acknowledged installed-map start publishes an arm");
             }
             plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
             foreach (string mode in new[] { "tactical", "zombie" })
             {
+                bool admitted = tactical || mode != "tactical";
                 ConfigureAreaNegotiation();
                 Settings.GameMode.Value = mode;
                 Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
                 ArenaMenuSelection.ConfigureEligibility(() => new(true, true, ""), _ => string.Empty);
                 ArenaMenuSelection.RegisterTeamArenaQuery(() => true);
                 Select(map);
-                Assert(ArenaMenuSelection.HasConfiguredMap(true) && ArenaMenuSelection.IsMapAvailable(map),
+                Assert(ArenaMenuSelection.HasConfiguredMap(true) && ArenaMenuSelection.IsMapAvailable(map) == admitted,
                     map + ": PFT: protected map discovery and final mode admission");
                 int before = RequestHandler.StartCount;
-                Assert(Start(Request(map: map), out var task) && task == null
-                    && RequestHandler.StartCount == before + 1 && ArenaSession.ArmedForNextRaid,
+                bool accepted = Start(Request(map: map), out var task);
+                Assert(admitted
+                    ? accepted && task == null && RequestHandler.StartCount == before + 1 && ArenaSession.ArmedForNextRaid
+                    : !accepted && task.IsFaulted && RequestHandler.StartCount == before && !ArenaSession.ArmedForNextRaid,
                     map + ": PFT-START: actual protected local-start negotiation");
             }
             ConfigureAreaNegotiation();

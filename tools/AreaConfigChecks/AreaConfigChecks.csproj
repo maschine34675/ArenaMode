@@ -17,6 +17,8 @@
     <Compile Include="$(SettingsSource)" Link="Production/Settings.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
+    <!-- Settings.cs binds the Team DM side through these choices since 1c86b9c5; plain C#, no Unity. -->
+    <Compile Include="../../ArenaMode.Client/Session/ArenaTeamSideSelection.cs" Link="Production/ArenaTeamSideSelection.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />

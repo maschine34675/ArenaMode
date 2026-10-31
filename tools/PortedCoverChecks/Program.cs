@@ -49,7 +49,7 @@ static class Program
         Check(harmony.Hooks.Count==2&&harmony.Hooks[0].Target.Name=="GetCoverPointMain2"&&harmony.Hooks[1].Target.Name=="GoToPosition","NATIVE-BINDING");
         Check(harmony.Hooks.All(x=>x.Priority==Priority.Last),"HARMONY-PRIORITY");
         SourceContracts();
-        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT","arena_bowl","ARENA_BOWL"})
+        foreach(var map in new[]{"arena_bay5","arena_equator","arena_airpit","ARENA_AIRPIT","arena_bowl","ARENA_BOWL","arena_iceberg","ARENA_ICEBERG"})
         foreach(var mode in new[]{"tactical","zombie"})
         {
             Fresh();world.LocationId=map;ArenaSession.ActiveMode=mode;
@@ -69,7 +69,7 @@ static class Program
         Excluded(()=>PitFireTeamCompat.IsFinalizing=true,"finalizing");
         Excluded(()=>ArenaSession.Exact=false,"wrong exact raid");
         foreach(var mode in new[]{"deathmatch","gungame","teamdeathmatch",null})Excluded(()=>ArenaSession.ActiveMode=mode,"mode "+mode);
-        foreach(var map in new[]{"bigmap","factory4_day","arena_bay50","arena_airpit_extra","arena_bowl_extra",null})Excluded(()=>world.LocationId=map,"map "+map);
+        foreach(var map in new[]{"bigmap","factory4_day","arena_bay50","arena_airpit_extra","arena_bowl_extra","arena_iceberg_extra",null})Excluded(()=>world.LocationId=map,"map "+map);
         foreach(var status in new[]{GameStatus.Running,GameStatus.Stopping,GameStatus.Stopped})Excluded(()=>game.Status=status,"status "+status);
         Excluded(()=>Singleton<AbstractGame>.Instance=null,"no game");
         Excluded(()=>Singleton<AbstractGame>.Instance=new AbstractGame(),"not local game");
@@ -138,7 +138,14 @@ static class Program
         Check(text.Contains("[CanBeNull]\n\tpublic CustomNavigationPoint GetCoverPointMain2".Replace("\n",Environment.NewLine))||text.Contains("[CanBeNull]\n\tpublic CustomNavigationPoint GetCoverPointMain2"),"NATIVE-COVER-NULL-CONTRACT");
         string cover=Method(text,"public CustomNavigationPoint GetCoverPointMain2(");
         Check(cover.Contains("_finderByGraph.GetCover(data)")&&cover.Contains("voxelSafe.PointStartSearch.GetById(data.Bot.Id)"),"NATIVE-NODE-DEPENDENCY");
-        string pft=System.IO.Path.Combine(directory.FullName,"artifacts/zombie-voice-pft-20261009/sain-analysis/pft-installed/pitTeam.Utils/Covers.cs");
+        // The decompile of the installed PFT lives under ignored artifacts/ and does not
+        // survive a cleanup; ARENA_PFT_INSTALLED_SOURCE names a fresh decompile root
+        // instead. Either way the installed contract must be read: no silent skip.
+        string pftRoot=Environment.GetEnvironmentVariable("ARENA_PFT_INSTALLED_SOURCE");
+        string pft=string.IsNullOrEmpty(pftRoot)
+            ?System.IO.Path.Combine(directory.FullName,"artifacts/zombie-voice-pft-20261009/sain-analysis/pft-installed/pitTeam.Utils/Covers.cs")
+            :System.IO.Path.Combine(pftRoot,"pitTeam.Utils/Covers.cs");
+        if(!File.Exists(pft))throw new FileNotFoundException("Decompiled installed PitFireTeam source missing (set ARENA_PFT_INSTALLED_SOURCE to an ilspycmd -p output of pitFireTeam.dll): "+pft);
         string candidates=Method(File.ReadAllText(pft),"private static List<CustomNavigationPoint> GetVanillaBackedCandidates(");
         Check(candidates.Contains("GetCoverPointMain(data, checkCurrent: false)")&&candidates.Contains("if (primary != null"),"INSTALLED-PFT-ACCEPTS-EMPTY-COVER");
     }

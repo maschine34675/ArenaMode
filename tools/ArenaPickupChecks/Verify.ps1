@@ -22,7 +22,8 @@ foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Clien
     'SPT_Runtime/SPT_Data/database/locations/factory4_day/base.json','SPT_Runtime/SPT_Data/database/locations/factory4_night/base.json',
     'SPT_Runtime/SPT_Data/database/locations/laboratory/base.json','SPT_Runtime/SPT_Data/database/locations/labyrinth/base.json',
     'SPT_Runtime/SPT_Data/database/locations/bigmap/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_equator/base.json',
-    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bay5/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_airpit/base.json')) {
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bay5/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_airpit/base.json',
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json')) {
     $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {

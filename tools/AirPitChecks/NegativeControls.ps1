@@ -21,7 +21,17 @@ foreach ($fault in @(
     @{ Name = 'BowlMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_bowl", StringComparison.OrdinalIgnoreCase)'; After = '';
-       Failure = 'EMPTY-COVER arena_bowltactical' }
+       Failure = 'EMPTY-COVER arena_bowltactical' },
+    # Tactical is refused on Iceberg by the shared resolver, but the adapters are
+    # scoped by map, not mode: their own fixtures still reach tactical first.
+    @{ Name = 'IcebergMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
+       Property = 'PortedSource'; Harness = 'PftPortedMapChecks';
+       Before = '&& !string.Equals(map, "arena_iceberg", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'arena_iceberg/tactical/False' },
+    @{ Name = 'IcebergMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
+       Property = 'CombatSource'; Harness = 'PortedCoverChecks';
+       Before = '&& !string.Equals(world.LocationId, "arena_iceberg", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'EMPTY-COVER arena_icebergtactical' }
 )) {
     $source = [IO.File]::ReadAllText((Join-Path $arenaRepo $fault.File))
     if (!$source.Contains($fault.Before)) { throw "Missing fault anchor: $($fault.Name)" }

@@ -181,6 +181,8 @@ public static class ConfigStore
                 && ExactMapSet(ArenaMapCatalog.Bay5DefaultClientAllowlist);
             bool airPitDefault = revision < 4
                 && ExactMapSet(ArenaMapCatalog.AirPitDefaultClientAllowlist);
+            bool bowlDefault = revision < 5
+                && ExactMapSet(ArenaMapCatalog.BowlDefaultClientAllowlist);
 
             // Detached defaults retain per-map field repair for existing entries,
             // including explicitly disabled or customized optional entries.
@@ -193,6 +195,11 @@ public static class ConfigStore
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.AirPitId);
             if (!maps.ContainsKey(ArenaMapCatalog.BowlId) && !nativeDefault && !equatorDefault && !bay5Default && !airPitDefault)
                 defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.BowlId);
+            // Revision 4 without Bowl is an intentional Bowl removal, not an old
+            // AirPit default: such a list gains neither Bowl nor Iceberg.
+            if (!maps.ContainsKey(ArenaMapCatalog.IcebergId) && !nativeDefault && !equatorDefault && !bay5Default && !airPitDefault
+                && !bowlDefault)
+                defaults["maps"]!.AsObject().Remove(ArenaMapCatalog.IcebergId);
             if (revision < ArenaMapCatalog.OptionalMapsRevision)
             {
                 root["optionalMapsRevision"] = ArenaMapCatalog.OptionalMapsRevision;

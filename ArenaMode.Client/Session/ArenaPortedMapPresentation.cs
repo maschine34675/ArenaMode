@@ -24,7 +24,8 @@ internal sealed class ArenaPortedMapPresentation
 
     internal static string DisplayName(string id, string fallback)
         => ArenaMapCatalog.IsBay5(id) ? "BAY 5" : ArenaMapCatalog.IsEquator(id) ? "EQUATOR"
-            : ArenaMapCatalog.IsAirPit(id) ? "AIR PIT" : ArenaMapCatalog.IsBowl(id) ? "BOWL" : fallback;
+            : ArenaMapCatalog.IsAirPit(id) ? "AIR PIT" : ArenaMapCatalog.IsBowl(id) ? "BOWL"
+            : ArenaMapCatalog.IsIceberg(id) ? "ICEBERG" : fallback;
 
     internal static ArenaPortedMapPresentation Create(string id, RectTransform rect,
         TMP_Text header, TMP_Text size, Func<bool> selected)
@@ -38,7 +39,7 @@ internal sealed class ArenaPortedMapPresentation
             _name = DisplayName(id, header.text),
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
-            // AirPit/Bowl retain the native MapPort position, including later updates.
+            // AirPit/Bowl/Iceberg retain the native MapPort position, including later updates.
             _reposition = ArenaMapCatalog.IsBay5(id) || ArenaMapCatalog.IsEquator(id),
             _target = ArenaMapCatalog.IsBay5(id) ? new Vector2(.47f, .82f) : new Vector2(.70f, .29f)
         };

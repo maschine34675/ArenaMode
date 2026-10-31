@@ -10,7 +10,7 @@ using UnityEngine;
 namespace ArenaMode.Compat;
 
 /// <summary>
-/// PFT resolves spawn core metadata through the nearest cover. Bay5/Equator/AirPit/Bowl
+/// PFT resolves spawn core metadata through the nearest cover. Bay5/Equator/AirPit/Bowl/Iceberg
 /// have real core points but no baked covers. Resolve the existing core directly
 /// in the exact protected Arena raid; do not invent a cover or move any spawn.
 /// </summary>
@@ -61,7 +61,8 @@ internal static class PitFireTeamPortedMapSpawns
         if (!string.Equals(map, "arena_bay5", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(map, "arena_equator", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(map, "arena_airpit", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(map, "arena_bowl", StringComparison.OrdinalIgnoreCase)) return false;
+            && !string.Equals(map, "arena_bowl", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(map, "arena_iceberg", StringComparison.OrdinalIgnoreCase)) return false;
         string mode;
         if (ArenaSession.IsActive)
         {

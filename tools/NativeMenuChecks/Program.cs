@@ -344,6 +344,8 @@ internal static partial class Program
         CheckEquatorPftAdmission();
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.AirPitId, ArenaMode.Shared.ArenaMapCatalog.Bay5DefaultClientAllowlist);
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.BowlId, ArenaMode.Shared.ArenaMapCatalog.AirPitDefaultClientAllowlist);
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.IcebergId, ArenaMode.Shared.ArenaMapCatalog.BowlDefaultClientAllowlist,
+            tactical: false);
         CheckEquatorBoxHookAdmission();
         CheckDeathmatchNegotiation();
         CheckCustomsNegotiation();
