@@ -51,8 +51,8 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   supported modes; Tactical displays the actual party size, such as 3v5 PFT.
 - Customs area selection includes a map preview with the actual polygon
   highlighted; thumbnails remain visible without the long vanilla description.
-- Bay5, Equator, Air Pit and Bowl have gold labels without the old `Arena:` prefix and their
-  own positions on the map overview. Bay5 supports its native time choices;
+- Bay5, Equator, Air Pit, Bowl and Iceberg have gold labels without the old `Arena:` prefix and their
+  own positions on the map overview (Air Pit, Bowl and Iceberg keep ArenaMapPort's native position). Bay5 supports its native time choices;
   Factory and Equator use Day/Night labels; Equator's night phase retains
   its rainy weather.
 - Mutators are embedded directly in the screen, with active/inactive colors
@@ -107,7 +107,8 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   retaining native combat and self-care. Requires BigBrain and Arena's companion.
 - Factory day/night chooses three points per match from eight surveyed seeds,
   separated by at least 12 horizontal metres. Equator and Bay5 use one original
-  anchor each; Air Pit and Bowl use two. Other maps do not offer this mode.
+  anchor each; Air Pit and Bowl use two, Iceberg three (A/B/C, the authored trigger
+  centres). Other maps do not offer this mode.
 - Separate score/time controls default to 200 points and ten minutes. Either
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
@@ -132,7 +133,7 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   monitors appear and everything else works.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
-  Bay5, Air Pit and Bowl Team DM**, where initial and replacement bots use fixed team
+  Bay5, Air Pit, Bowl and Iceberg Team DM and Domination**, where initial and replacement bots use fixed team
   boxes. Other maps do not grant bot spawn protection; player protection is
   unchanged. The configured duration defaults to **4 seconds** and starts in live
   combat when the bot is active. Firing, throwing a grenade or dealing outgoing
@@ -206,8 +207,9 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 [Zombie countdown/refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md).
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
-DM** in even steps, or **4–20 on Equator Team DM**. Defaults are Equator 4,
-Bay5 8, Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
+DM** in even steps, or **4–20 in Team DM and Domination on the team-box maps** (Equator,
+Bay5, Air Pit, Bowl, Iceberg). Defaults are Equator 4, Bay5, Air Pit, Bowl and Iceberg 8,
+Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
 defaults to 2v2. These are menu defaults, not hardware performance guarantees.
 
 ## 3. Player movement and handling
@@ -346,7 +348,7 @@ Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
 
 Built-in layouts cover **every supported Arena map**, only in **Deathmatch and
 independent Team DM**: Factory day/night, Labs, Labyrinth, the selected Customs
-area, Equator, Bay5, AirPit and Bowl. Gun Game, Tactical/PFT and Zombies do not use them.
+area, Equator, Bay5, AirPit, Bowl and Iceberg. Gun Game, Tactical/PFT and Zombies do not use them.
 
 | Pickup | Effect |
 |---|---|
@@ -589,7 +591,10 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   normal transit and extraction behavior.
 - Optional ArenaMapPort maps: **Bay5**, **Air Pit** and **Bowl** support all modes; **Equator** supports
   Gun Game, DM, TDM, Domination and solo Zombies, but no Tactical or PFT Zombies, even with
-  fewer companions. ArenaMode does not ship or install those maps itself.
+  fewer companions. **Iceberg** supports Gun Game, DM, TDM, Domination and solo and PFT
+  Zombies, but no Tactical (solo or PFT): its centre leaves only four distant bot markers. Iceberg
+  needs an ArenaMapPort build that ships it (today only the unreleased `feature/iceberg` build
+  0.4.0+32fda33). ArenaMode does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
 - Factory day and night exclude the known unsafe courtyard/underground bot

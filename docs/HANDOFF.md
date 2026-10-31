@@ -52,6 +52,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Iceberg (2026-10-31, branch `feature/iceberg`, not merged, not pushed):** `arena_iceberg` is
+integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
+Domination A/B/C, docs); see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
+Offline checks only: the **native GPU test is pending** (pockets 4v4/10v10, gate hold and
+release, Bear house (12) clearance, Domination A in the pool and B, PFT Zombies, pickups).
+It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unreleased MapPort
+`feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
+none and carries the same version string, so ArenaMode detects the map by presence (live
+location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
+Iceberg in an ArenaMode release before MapPort publishes it. Nothing was deployed: the
+installed binaries are still the 0.4.1 release. Harness rot found on the way: AreaConfigChecks,
+ArenaLightingChecks, PortedCoverChecks (the PFT decompile under `artifacts/` is gone; set
+`ARENA_PFT_INSTALLED_SOURCE` to an `ilspycmd -p` output of the installed `pitFireTeam.dll`),
+ParticipantMenuChecks' Domination oracle and AreaTeamMenuChecks' layout literals were repaired on
+that branch; `tools/ArenaLabyrinthAccessChecks` still does not compile (`ArenaMenuSelection.cs`
+needs `Bots`), unrelated to Iceberg.
+
 Known and small (from the 0.4.1/1.1.1 release review and the 2026-10-30 audit):
 
 - Three `ModulePatch` subclasses break the naming scheme: `StopPatch`, `GameEndPatch`,
@@ -70,9 +87,9 @@ Known and small (from the 0.4.1/1.1.1 release review and the 2026-10-30 audit):
   `plugins/maschine-ArenaMode/AreaDrafts`; MODE-SIDEBAR-REVIEW.md says five modes, the
   catalogue has six; SHARED-BODY-COMPAT-20261023.md says "requires Core 1.0.10" (current
   minimum 1.0.18); `tools/NativeMenuChecks/StandIns.cs` counts `LogDebug` as Info, so its
-  "logs Info, not a warning" assertion cannot tell the two apart;
-  [MAP-MODE-COMPATIBILITY.md](MAP-MODE-COMPATIBILITY.md) (2026-10-17) predates Bowl and
-  Domination.
+  "logs Info, not a warning" assertion cannot tell the two apart.
+  [MAP-MODE-COMPATIBILITY.md](MAP-MODE-COMPATIBILITY.md) gained Bowl, Iceberg and the
+  Domination column on 2026-10-31; its prose is still mostly the 2026-10-17 state.
 
 Unresolved native observations:
 

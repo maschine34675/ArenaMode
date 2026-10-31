@@ -55,7 +55,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (196)
+## Feature reviews and contracts (197)
 
 Sorted by file name.
 
@@ -152,6 +152,7 @@ Sorted by file name.
 - [Kill skull above crosshair, map-screen preview suspension and bleed-out death icon](reviews/HUD-BLEED-POLISH-REVIEW.md)
 - [Radar, Simple Crosshair and Better BepInEx: shared Core fixes and GPU-2 checks](reviews/HUD-MOD-COMPAT-20261025.md)
 - [HUD and utility mutators: ARENA HUD, auto quickslots and instant search switches](reviews/HUD-MUTATORS-REVIEW.md)
+- [Iceberg map admission, CheckPoint team boxes and Domination (native test pending)](reviews/ICEBERG-INTEGRATION-20261031.md)
 - [Use Items Anywhere and shared HUD compatibility (ImpactCue, Enemy Markers)](reviews/ITEMS-HUD-COMPAT-20261025.md)
 - [Kill confirmation with the Arena skull: signal source, eligibility and lifetime](reviews/KILL-SKULL-REVIEW.md)
 - [Killcam per Arena mode: frozen selection, camera ownership and respawn hold](reviews/KILLCAM-MODES-REVIEW.md)

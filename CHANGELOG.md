@@ -8,6 +8,25 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## Unreleased
+
+Iceberg requires an ArenaMapPort build that ships `arena_iceberg`; ArenaMapPort has not
+published one yet (the published 0.4.0 has no Iceberg). Without it the map is not offered.
+
+- Added optional **Iceberg** support through ArenaMapPort in Gun Game, Deathmatch,
+  Team DM and solo and PitFireTeam Zombies, with the gold map label, lighting and pickup
+  placement and eight participants by default. Tactical (solo and PitFireTeam) is not
+  offered on Iceberg: its centre leaves too few distant bot spawn points for five
+  opponents. Existing custom map allowlists are preserved; the exact previous default
+  list gains Iceberg once. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md)
+- Team DM on Iceberg uses the original USEC west / BEAR east pockets for 2v2–10v10;
+  combat waits for the spawn gates to open, and the gates stay open for respawns.
+  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#team-boxes-commit-b)
+- Domination on Iceberg with three original points (A/B/C) in the same pockets.
+  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#domination-commit-c)
+- Documentation for the Iceberg integration, its migration and its native-test
+  boundary. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#not-claimed)
+
 ## [0.4.1] - 2026-10-29
 
 Hotfix for [v0.4.0](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.0).

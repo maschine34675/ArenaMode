@@ -407,10 +407,14 @@ must not depend on the selected triple. Read docs/reviews/DOMINATION-OPTIONS-ROU
 Domination owns separate score/time preferences, frozen at match start. Bot
 approaches must be capture-valid and fully reachable; keep the last successfully
 owned route destination separate from any failed alternative for exact cleanup.
-The four ported maps use original CapturePointEntity anchors: Equator and
-Bay5 one each, AirPit and Bowl two each. Read docs/reviews/DOMINATION-PORTED-20261026.md.
+The five ported maps use original anchors: Equator and Bay5 one each, AirPit and
+Bowl two each (CapturePointEntity), Iceberg three, A/B/C. Read docs/reviews/DOMINATION-PORTED-20261026.md.
 Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
-averages two distinct objectives. Ported Domination shares independent TDM's
+averages two distinct objectives (Iceberg's is null). Iceberg's A/B/C are the
+CheckPoint CAPTURE_POINT_LIGHT_02 trigger centres; A (in the pool) and B lie .5 m
+and .4 m below their floors. Never lift them, add a relocation or loosen the
+shared projection to make them pass: the native check decides, and a refused
+point aborts the match. See docs/reviews/ICEBERG-INTEGRATION-20261031.md. Ported Domination shares independent TDM's
 team boxes, gate completion, physical roster and spawn-shield ownership.
 Never turn its holding points into kill-based rewards or widen PFT pursuit leases.
 The original TDM kill policy stays separate; all physical roster/respawn boundaries
@@ -575,6 +579,13 @@ Playtest: solo Tactical, RandomKit on, survive round 1 without buying; round 2 m
 
 Equator remains unavailable for Tactical and is also excluded from PFT Zombies
 because the five-person squad obstructs itself; solo Zombies stays supported.
+Iceberg is unavailable for Tactical, solo and PFT, for Equator's other reason: from
+about 48 m² of its centre only four of its nine bot markers lie beyond the 25 m
+floor. Solo and PFT Zombies stay supported. The block sits in the shared resolver
+next to Equator's; do not remove it to claim the map fully accepted. Iceberg needs an
+ArenaMapPort build that ships it (the unreleased feature/iceberg, 0.4.0+32fda33);
+detect it by the live location, never by the MapPort version. See
+docs/reviews/ICEBERG-INTEGRATION-20261031.md.
 Air Pit is an optional full map for all current modes, using its existing safe
 generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
 Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
@@ -640,7 +651,7 @@ Area selection shares the existing F12 `ExperimentalArea` setting. Map/time/mode
 
 ## Spawns, team boxes and spawn gates
 
-Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit and Bowl)
+Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl and Iceberg)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read
 docs/reviews/BOT-SPAWN-SHIELD-SCOPE-20261019.md and docs/reviews/TDM-BOT-SPAWN-SHIELD-20261017.md
@@ -661,7 +672,23 @@ twenty-second watchdog remains. Never use IsHeld=false or elapsed time alone as
 proof of open navigation. Other modes use generic spawns and no hold. Read
 docs/reviews/BOWL-TEAM-BOXES-20261023.md and docs/reviews/SPAWN-GATE-COMPLETION-20261024.md; revision-4
 migration is documented in docs/reviews/BOWL-INTEGRATION-20261023.md.
-Independent Equator, Bay5, AirPit and Bowl Team DM use their original team boxes for initial
+
+**Iceberg team boxes** (the paragraph starts with the Iceberg map admission):
+
+Iceberg is optional in Gun Game, DM, Team DM, Domination and solo/PFT Zombies, not
+Tactical (default eight for DM/Gun Game/TDM). Independent TDM and Domination use its
+CheckPoint pockets, USEC west / BEAR east, with twenty private markers. The box
+interiors are not the authored SPAWN_BOUNDs, which reach past the closed gates:
+each world-aligned box ends .35 m short of its gate plane, the USEC box runs north to
+the rotating CheckPoint gate and the BEAR box height is cut to -.4..5 m. Keep that
+clipping: an interior that reaches past a closed gate would excuse a held path or a
+pickup seed outside it. Gate opening has no Iceberg case (no legacy minimum, the
+ordinary ten-second watchdog): every build that ships Iceberg has GatesOpen. Donor
+and outside destination is the installed arena_iceberg-bot-core-01. Revision-5
+migration, the box derivation and the native-test boundary are in
+docs/reviews/ICEBERG-INTEGRATION-20261031.md.
+
+Independent Equator, Bay5, AirPit, Bowl and Iceberg Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
 docs/reviews/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact
@@ -737,7 +764,7 @@ Bot pickup objectives (BigBrain companion): before changing them read PICKUP-OBJ
 
 *(handoff lines 2914-2917)*
 
-Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4; Bay5/AirPit/Bowl 8; Labs 16; Labyrinth 8; Factory and others 10.
+Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4; Bay5/AirPit/Bowl/Iceberg 8; Labs 16; Labyrinth 8; Factory and others 10.
 
 *(handoff lines 2966-2969)*
 

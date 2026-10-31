@@ -31,9 +31,15 @@ follow your selection; your saved PMC faction stays unchanged.
   installation. Equator excludes Tactical and PitFireTeam Zombies. Team DM and
   Domination score/timer monitors need ArenaMapPort 0.4.0 or newer (not yet
   published); the public 0.3.0 works without monitors.
-- Domination supports Factory day/night and all four ported maps. Factory picks
+- Iceberg (in development, not released): needs an ArenaMapPort build that
+  ships `arena_iceberg`. Today that is only the unreleased `feature/iceberg` build
+  0.4.0+32fda33; the published 0.4.0 has no Iceberg, and without it Arena does
+  not offer the map. Iceberg excludes Tactical (solo and PitFireTeam); its Team
+  DM and Domination use the original USEC west / BEAR east pockets.
+- Domination supports Factory day/night and all five ported maps. Factory picks
   three separated points each match; Equator/Bay5 use one original point each,
-  Air Pit/Bowl two. Labs, Labyrinth and Customs do not offer Domination.
+  Air Pit/Bowl two and Iceberg three (A/B/C). Labs, Labyrinth and Customs do not
+  offer Domination.
 
 ## Features
 
