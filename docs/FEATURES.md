@@ -52,7 +52,7 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
 - Customs area selection includes a map preview with the actual polygon
   highlighted; thumbnails remain visible without the long vanilla description.
 - Bay5, Equator, Air Pit, Bowl and Iceberg have gold labels without the old `Arena:` prefix and their
-  own positions on the map overview (Air Pit, Bowl and Iceberg keep ArenaMapPort's native position). Bay5 supports its native time choices;
+  own positions on the map overview (Air Pit, Bowl and Iceberg keep ArenaMapPort's native position; since ArenaMapPort 0.3.0 its map-position integration keeps every optional marker at MapPort's native position, and Iceberg's sits under the Arena mode panel until MapPort moves it). Bay5 supports its native time choices;
   Factory and Equator use Day/Night labels; Equator's night phase retains
   its rainy weather.
 - Mutators are embedded directly in the screen, with active/inactive colors

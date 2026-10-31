@@ -34,7 +34,8 @@ Commit `21abac26`.
 - Discovery: `ArenaOptionalMapPolicy` queries the live database for the exact ID on
   every client-settings request; a missing, disabled or wrong-ID location is dropped
   only from the detached client view.
-- Presentation: gold **ICEBERG** label, MapPort's native position, thumbnail and
+- Presentation: gold **ICEBERG** label, MapPort's native position (which sits under the
+  Arena mode panel in the Arena flow, see "Not claimed"), thumbnail and
   time choice are kept (AirPit/Bowl behaviour, not the Bay5/Equator override).
 - Pickups (built only from the current raid's Bot/BotPmc rows), phase lighting and
   both PFT coverless adapters (spawn core and combat) accept the exact ID. Iceberg
@@ -292,6 +293,12 @@ IcebergTeamBoxChecks' full suite.
   the 2.5 s drive with an Arena hold (MapPort's own raids never held the gates);
   10v10 occupancy; the nine-candidate pickup pool in Domination (cores 03, 04 and 09
   sit next to B, C and A).
+- **Marker position.** Iceberg's overview marker (MapPort's `RelativeMapPos`) lies under
+  the Arena mode panel in the Arena flow: on GPU-2 (31.10.) only "BERG" showed right of the
+  panel, the tile's click point (425, 315) is just clear of it. ArenaMode cannot move it:
+  MapPort's `ArenaModeMapPositionIntegration` restores the native anchor after
+  `ArenaPortedMapPresentation.Create` (an attempted Arena-flow anchor `.31/.09` had no
+  effect and was reverted). Moving the marker east is a MapPort data change.
 - PFT Zombies on Iceberg; the monitors (four of six holders show a face; only the
   clock is visible on Iceberg).
 - MapPort release: Iceberg must not be announced in an ArenaMode release before an

@@ -55,7 +55,9 @@ integrated like Bowl in four commits (admission with Tactical refused, CheckPoin
 Domination A/B/C, docs) plus the review-fix commit `2709476d`; see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
 Offline checks only: the **native GPU test is pending** (pockets 4v4/10v10, gate hold and
 release, Bear house (12) clearance, Domination A in the pool and B, PFT Zombies, pickups).
-It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unreleased MapPort
+MapPort follow-up: Iceberg's overview marker sits under the Arena mode panel in the Arena
+flow (MapPort's position integration overrides ArenaMode's anchors, so only MapPort can move
+it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unreleased MapPort
 `feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce

@@ -40,6 +40,12 @@ internal sealed class ArenaPortedMapPresentation
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
             // AirPit/Bowl/Iceberg retain the native MapPort position, including later updates.
+            // With ArenaMapPort installed this target is moot for every optional map: its
+            // ArenaModeMapPositionIntegration (since MapPort 0.3.0, 18.10.2026) overwrites
+            // _target with the native anchor after Create and refreshes, so the marker sits
+            // where MapPort's RelativeMapPos puts it. Iceberg's native marker lies under the
+            // Arena mode panel (GPU-2, 31.10.2026: only "BERG" visible, click point just right
+            // of the panel); moving it is a MapPort data change, not an ArenaMode one.
             _reposition = ArenaMapCatalog.IsBay5(id) || ArenaMapCatalog.IsEquator(id),
             _target = ArenaMapCatalog.IsBay5(id) ? new Vector2(.47f, .82f) : new Vector2(.70f, .29f)
         };
