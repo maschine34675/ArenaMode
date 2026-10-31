@@ -175,6 +175,27 @@ public sealed class IcebergMapTests
         }
     }
 
+    [Theory]
+    [InlineData("arena_iceberg")]
+    [InlineData("ARENA_ICEBERG")]
+    public void IcebergAdmitsWholeMapDominationWithoutPitFireTeamOrAreas(string map)
+    {
+        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "domination", false, out var area, out var reason));
+        Assert.Null(area); Assert.Null(reason);
+        Assert.True(ArenaAreaCatalog.TryResolve(null, map, "DOMINATION", false, out _, out _));
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "domination", true, out _, out reason));
+        Assert.Equal("Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.", reason);
+        foreach (string bounded in new[] { ArenaAreaCatalog.CustomsYardId, "unknown-area" })
+            Assert.False(ArenaAreaCatalog.TryResolve(bounded, map, "domination", false, out _, out _));
+        Assert.True(ArenaTeamBoxCatalog.Applies(map, "domination"));
+        Assert.Equal(20, ArenaParticipantPolicy.MaximumFor(map, "domination"));
+        Assert.True(ArenaParticipantPolicy.TryResolve(map, "domination", false, false, 20, out var count, out _));
+        Assert.Equal(20, count);
+        foreach (int invalid in new[] { 3, 22, 24 })
+            Assert.False(ArenaParticipantPolicy.TryResolve(map, "domination", false, false, invalid, out _, out _));
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, "arena_iceberg_extra", "domination", false, out _, out _));
+    }
+
     [Fact]
     public void ServerDefaultMapSetEqualsTheClientDefault()
     {

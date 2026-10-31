@@ -198,6 +198,21 @@ public sealed class IcebergTeamSpawnTests
         Assert.Equal(sourceBefore, JsonSerializer.Serialize(original));
     }
 
+    [Fact]
+    public void DominationUsesTheSameTwentyPrivateRecords()
+    {
+        var map = Map();
+        string sourceBefore = JsonSerializer.Serialize(map);
+        var clone = JsonSerializer.Deserialize<LocationBase>(sourceBefore)!;
+        ArenaLocationMutator.Mutate(clone, new(), new(), "domination", participants: 8);
+        ArenaLocationMutator.ValidateParticipantPopulation(clone, "arena_iceberg", "domination", 8);
+        Assert.Equal(22, clone.SpawnPointParams!.Count());
+        Assert.Equal(ArenaTeamBoxCatalog.Iceberg.Points.Select(p => p.Id).OrderBy(id => id, StringComparer.Ordinal),
+            clone.SpawnPointParams!.Where(p => ArenaTeamBoxCatalog.Iceberg.Owns(p.Id)).Select(p => p.Id!)
+                .OrderBy(id => id, StringComparer.Ordinal));
+        Assert.Equal(sourceBefore, JsonSerializer.Serialize(map));
+    }
+
     [Theory]
     [InlineData("missing")] [InlineData("unknown")] [InlineData("duplicate")]
     [InlineData("position-x")] [InlineData("position-y")] [InlineData("position-z")]

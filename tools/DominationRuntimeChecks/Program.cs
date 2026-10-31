@@ -43,6 +43,9 @@ var cases = new Dictionary<string, (string Id, Vector3 Position)[]>
     ["arena_bay5"] = new[] { ("X", new Vector3(91.26f, -4.366f, 29.44f)) },
     ["arena_airpit"] = new[] { ("A", new Vector3(18.96f, -.1f, -1.24f)), ("B", new Vector3(-45.38f, 0f, 3.82f)) },
     ["arena_bowl"] = new[] { ("A", new Vector3(-20.51f, 0f, -37.12f)), ("B", new Vector3(16.99f, -.1f, -30.72f)) },
+    // Iceberg: authored trigger centres (A in the pool, .5 m below the basin floor), never lifted.
+    ["arena_iceberg"] = new[] { ("A", new Vector3(16.77f, 3.9f, -91.39f)), ("B", new Vector3(10.614f, 2.69f, -77.727f)),
+        ("C", new Vector3(21.91f, 2.85f, -47.3f)) },
     ["factory4_day"] = new[] { ("A", new Vector3(-5.89f, .08f, -27.46f)), ("B", new Vector3(-6.77f, .17f, 10.01f)),
         ("C", new Vector3(-20.756f, .166f, 22.769f)) }
 };
@@ -158,7 +161,7 @@ foreach (string fault in new[] { "floor", "sample", "height", "path-false", "pat
         "failed final point leaves no partial markers or pickup authority");
     runtime.Dispose();
 }
-foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
+foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg" })
 {
     Reset(); var (runtime, _, _) = Create(map);
     ArenaPickupGeometry.Place = (point, nearby) => (nearby, point + new Vector3(1,0,0));

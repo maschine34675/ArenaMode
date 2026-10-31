@@ -393,7 +393,8 @@ internal sealed class ArenaModeSelectionView
         // No exception-driven polling before a supported map has been selected.
         if (map == null || !(Shared.ArenaMapCatalog.IsFactoryVariant(map)
             || Shared.ArenaMapCatalog.IsEquator(map) || Shared.ArenaMapCatalog.IsBay5(map)
-            || Shared.ArenaMapCatalog.IsAirPit(map) || Shared.ArenaMapCatalog.IsBowl(map))) return 0;
+            || Shared.ArenaMapCatalog.IsAirPit(map) || Shared.ArenaMapCatalog.IsBowl(map)
+            || Shared.ArenaMapCatalog.IsIceberg(map))) return 0;
         return DominationMapLayout.Resolve(map).Points.Count;
     }
 

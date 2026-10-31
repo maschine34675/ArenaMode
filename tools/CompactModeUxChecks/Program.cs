@@ -56,7 +56,7 @@ Need(Text("zombie").Contains("Survive escalating waves") && Text("zombie").Conta
     "solo Zombies explains waves and resupply; the respawn row owns its life rule");
 Need(Text("zombie", team: true).Contains("Team wipe ends the match")
     && Text("zombie", team: true).Contains("each cleared wave"), "PFT Zombies never promises first-death termination");
-foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl" })
+foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg" })
 {
     int actualPoints = DominationMapLayout.Resolve(map).Points.Count;
     Need(Text("domination", points: actualPoints).Contains("Hold " + actualPoints + " point"),

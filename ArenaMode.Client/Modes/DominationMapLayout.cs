@@ -78,6 +78,19 @@ internal sealed class DominationMapLayout
     // level48/2580 (A, west), /2603 (B, east): not the centroid under the Mi-26.
     private static readonly DominationMapLayout Bowl = new(false,
         new Point("A", -20.51f, 0f, -37.12f), new Point("B", 16.99f, -.1f, -30.72f));
+    // Iceberg level376 (Arena_Sanatorium_CheckPoint_DesignStuff): the CheckPoint
+    // CAPTURE_POINT/CAPTURE_POINT_LIGHT_02_A/B/C roots from iceberg.modes.json, the
+    // same per-light source whose roots equal the CapturePointEntity anchors on the
+    // other ports; the sidecar's centroid is null and would be meaningless. These are
+    // trigger centres, not floors: A (y 3.9, in the pool) lies .5 m below the basin
+    // floor (4.40) and 1.1 m below the deck and Arena NavMesh (about 5.0); B lies .4 m
+    // below its floor. Do not lift them, add a relocation or loosen
+    // ArenaPickupGeometry.TryFloor: the unchanged native projection (SamplePosition
+    // .75 m, |dy| <= .5, support ray, clearance) decides on the host, and a refused
+    // point aborts the protected match instead of moving the objective.
+    private static readonly DominationMapLayout Iceberg = new(false,
+        new Point("A", 16.77f, 3.9f, -91.39f), new Point("B", 10.614f, 2.69f, -77.727f),
+        new Point("C", 21.91f, 2.85f, -47.3f));
 
     internal static DominationMapLayout Resolve(string map) => map?.ToLowerInvariant() switch
     {
@@ -86,6 +99,7 @@ internal sealed class DominationMapLayout
         "arena_bay5" => Bay5,
         "arena_airpit" => AirPit,
         "arena_bowl" => Bowl,
+        "arena_iceberg" => Iceberg,
         _ => throw new InvalidOperationException("No fixed Domination layout exists for this map.")
     };
 }

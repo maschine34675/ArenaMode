@@ -13,6 +13,9 @@ $faults = @(
     @{ Name='bowl-legacy-centroid'; Path=$layout; Property='LayoutSource';
        Find='new Point("A", -20.51f, 0f, -37.12f)'; Replace='new Point("A", -1.76f, -.05f, -33.92f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
+    @{ Name='iceberg-lifted-trigger'; Path=$layout; Property='LayoutSource';
+       Find='new Point("A", 16.77f, 3.9f, -91.39f)'; Replace='new Point("A", 16.77f, 4.4f, -91.39f)';
+       Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
     @{ Name='one-point-renamed'; Path=$layout; Property='LayoutSource';
        Find='new Point("X", 1.28f, .25f, 4.22f)'; Replace='new Point("A", 1.28f, .25f, 4.22f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },

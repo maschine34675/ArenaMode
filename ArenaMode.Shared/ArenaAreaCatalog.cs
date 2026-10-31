@@ -646,7 +646,7 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // Only Factory and the four imported maps have reviewed objective
+        // Only Factory and the five imported maps have reviewed objective
         // layouts. Keep this list explicit: a future port is not automatically
         // admitted. Enforce it at arm/ack/start as well as in the menu.
         if (string.Equals(mode, ArenaPopulationPolicy.Domination, StringComparison.OrdinalIgnoreCase))
@@ -657,7 +657,8 @@ public static class ArenaAreaCatalog
                     && !string.Equals(map, ArenaMapCatalog.Bay5Id, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.EquatorId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.AirPitId, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(map, ArenaMapCatalog.BowlId, StringComparison.OrdinalIgnoreCase)))
+                    && !string.Equals(map, ArenaMapCatalog.BowlId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.IcebergId, StringComparison.OrdinalIgnoreCase)))
             { reason = "Domination requires Factory or a supported Arena port, whole map, without PitFireTeam."; return false; }
             return true;
         }

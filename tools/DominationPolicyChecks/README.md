@@ -34,7 +34,7 @@ consume the match clock. No native body or roster failure is handled here.
 The match constructor accepts optional `pointCount` after the existing score and
 time arguments, defaulting to three. The shared policy retains its fixed 1..16
 point bound; actual map admission chooses the authored supported count (one on
-Equator/Bay5, two on AirPit/Bowl, three on Factory). It cannot change during a
+Equator/Bay5, two on AirPit/Bowl, three on Factory and Iceberg). It cannot change during a
 match. New checks exercise all three authored counts through capture/neutralization, contest, empty
 ownership, fixed collection identity, wrong sample length, both factions, score
 crossings and deadlines. Two-point cases also verify simultaneous scoring ties
