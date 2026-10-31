@@ -52,7 +52,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 **Iceberg (2026-10-31, branch `feature/iceberg`, not merged, not pushed):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
-Domination A/B/C, docs); see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
+Domination A/B/C, docs) plus the review-fix commit `2709476d`; see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
 Offline checks only: the **native GPU test is pending** (pockets 4v4/10v10, gate hold and
 release, Bear house (12) clearance, Domination A in the pool and B, PFT Zombies, pickups).
 It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unreleased MapPort

@@ -145,8 +145,14 @@ static class Program
         const string pftFile="pitTeam.Utils/Covers.cs";
         string pftRoot=Environment.GetEnvironmentVariable("ARENA_PFT_INSTALLED_SOURCE");
         var pftCandidates=new List<string>();
-        if(!string.IsNullOrEmpty(pftRoot))pftCandidates.Add(System.IO.Path.Combine(pftRoot,pftFile));
-        pftCandidates.Add(System.IO.Path.Combine(directory.FullName,"artifacts/pft-installed",pftFile));
+        // A set variable names the root to read; a missing file there is an error, never a fallback.
+        if(!string.IsNullOrEmpty(pftRoot)){
+            string named=System.IO.Path.Combine(pftRoot,pftFile);
+            if(!File.Exists(named))throw new FileNotFoundException("ARENA_PFT_INSTALLED_SOURCE is set but "+named+" does not exist;"
+                +" unset it to read artifacts/pft-installed or decompile into that root with tools/Decompile-PitFireTeam.ps1.");
+            pftCandidates.Add(named);
+        }
+        else pftCandidates.Add(System.IO.Path.Combine(directory.FullName,"artifacts/pft-installed",pftFile));
         string pft=pftCandidates.FirstOrDefault(File.Exists);
         if(pft==null)throw new FileNotFoundException("Decompiled installed PitFireTeam source missing; run pwsh -NoProfile -File tools/Decompile-PitFireTeam.ps1"
             +" (or set ARENA_PFT_INSTALLED_SOURCE to an ilspycmd -p output of pitFireTeam.dll). Looked for: "+string.Join(", ",pftCandidates));

@@ -225,7 +225,7 @@ literals predated `517ca1db`. `tools/ArenaLabyrinthAccessChecks` did not compile
 
 ### Review-fix round
 
-Three independent reviews of `21abac26..d16a3a94` found no blocker and twelve minor
+Three independent reviews of commits A-D (`54c464a1..d16a3a94`) found no blocker and twelve minor
 findings. The fixes below are offline only; nothing was deployed.
 
 - **Menu hint.** `tools/AreaConfigChecks` asserts the Zombies map hints with literal texts:
