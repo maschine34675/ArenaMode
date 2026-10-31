@@ -152,7 +152,7 @@ Sorted by file name.
 - [Kill skull above crosshair, map-screen preview suspension and bleed-out death icon](reviews/HUD-BLEED-POLISH-REVIEW.md)
 - [Radar, Simple Crosshair and Better BepInEx: shared Core fixes and GPU-2 checks](reviews/HUD-MOD-COMPAT-20261025.md)
 - [HUD and utility mutators: ARENA HUD, auto quickslots and instant search switches](reviews/HUD-MUTATORS-REVIEW.md)
-- [Iceberg map admission, CheckPoint team boxes and Domination (native test pending)](reviews/ICEBERG-INTEGRATION-20261031.md)
+- [Iceberg map admission, CheckPoint team boxes and Domination (GPU-2 cycle 31.10.)](reviews/ICEBERG-INTEGRATION-20261031.md)
 - [Use Items Anywhere and shared HUD compatibility (ImpactCue, Enemy Markers)](reviews/ITEMS-HUD-COMPAT-20261025.md)
 - [Kill confirmation with the Arena skull: signal source, eligibility and lifetime](reviews/KILL-SKULL-REVIEW.md)
 - [Killcam per Arena mode: frozen selection, camera ownership and respawn hold](reviews/KILLCAM-MODES-REVIEW.md)
@@ -257,7 +257,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (262)
+## Reports (263)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -314,6 +314,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [GPU-2 follow-up test of 8 Oct 2026: previews, Akimbo and connection findings](reports/2026-10/GPU-FOLLOWUPS-RESULTS-20261008.md) *(history)*
 - [Friendly Fire GPU2 native verification (menus and raid controls, HP decrease unproven)](reports/2026-10/GPU-FRIENDLY-FIRE-RESULTS-20261011.md)
 - [GPU2 healing, pickup protection and ordinary-raid controls](reports/2026-10/GPU-HEALTH-LOOT-COMPAT-20261019.md) *(history)*
+- [Iceberg native acceptance on GPU-2: Domination, Team DM, Deathmatch and PMC control](reports/2026-10/GPU-ICEBERG-20261031.md)
 - [SPT-GPU-1: map button hit areas and self-death killfeed, native check](reports/2026-10/GPU-HITAREAS-SELF-DEATHS-RESULTS-20261001.md) *(history)*
 - [HUD/utility mutators and Stahlhelm: GPU2 results](reports/2026-10/GPU-HUD-MUTATORS-RESULTS-20261011.md)
 - [Representative GPU2 gameplay and merged-log audit](reports/2026-10/GPU-LOG-AUDIT-20261018.md) *(history)*

@@ -1,0 +1,20 @@
+{
+  "name": "iceberg-pmc",
+  "description": "Ordinary PMC raid on Iceberg as the isolation control: no Team DM, Domination or pickup lines, player alive, no errors.",
+  "host": "host2",
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "pmc", "map": "iceberg", "bots": "low", "timeoutSeconds": 480 },
+    { "step": "sleep", "name": "settle", "seconds": 15 },
+    { "step": "player", "name": "player" },
+    { "step": "bots", "name": "bots", "aliveOnly": true, "onFail": "continue" },
+    { "step": "expect", "what": "logAbsent", "contains": "Team DM", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "Domination", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "Arena pickup", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "team-box", "sinceStep": "raid" },
+    { "step": "still", "name": "still", "id": "pmc-ingame" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}

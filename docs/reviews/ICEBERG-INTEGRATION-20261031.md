@@ -287,24 +287,34 @@ ARENA_VERIFICATION_SUMMARY passed=2 failed=0 seconds=310
 `Run-ArenaVerification.ps1` has no test filter; the Iceberg test classes ran inside
 IcebergTeamBoxChecks' full suite.
 
+## Native results (31.10.2026)
+
+The GPU-2 cycle is recorded in
+[GPU-ICEBERG-20261031.md](../reports/2026-10/GPU-ICEBERG-20261031.md). In short:
+the first Domination start refused point A ("no nearby floor on the navigation
+mesh") and ended the raid protected after one second, exactly as the projection rule
+intends; teleport dry runs put the Arena NavMesh floors at 4.5 / 3.13 / 3.15 for
+the authored X/Z, the heights were set to those floors (`a6ed8d93`), and with that
+build Domination 4v4 (points verified, gates open 3 s after release, objective
+routes verified, ownership on all three points, BEAR 200:105 after 161 s), Team DM
+4v4 and 10v10 (formation ready, all twenty paths revalidated, both pockets
+occupied, respawns at east-01 and east-08 = Bear house (12)), Deathmatch 8 and an
+ordinary PMC raid passed; Tactical is not offered in the menu. Open: PFT Zombies on
+Iceberg and the monitors were not run; the ICEBERG overview marker sits half under
+the Arena mode panel (MapPort's position).
+
 ## Not claimed
 
-- **No native run.** Nothing here was played on a GPU host; the orchestrator runs
-  the native test afterwards. Open host questions: whether the projection finds A
-  (pool basin) and B; whether `Bear house (12)`, 0.53 m from the tunnel wall in
-  MapPort's offline model, passes `FloorAndClear`; whether `bot-core-01` reaches all
-  twenty pocket points and A/B/C in both directions; gate hold/release, carvers and
-  the 2.5 s drive with an Arena hold (MapPort's own raids never held the gates);
-  10v10 occupancy; the nine-candidate pickup pool in Domination (cores 03, 04 and 09
-  sit next to B, C and A).
+- **Not run natively:** PFT Zombies on Iceberg; the monitors (four of six holders
+  show a face; only the clock is visible on Iceberg); daytime, weather and
+  performance; long sessions and balance (Domination reached 200 points in 2:41
+  with the default income).
 - **Marker position.** Iceberg's overview marker (MapPort's `RelativeMapPos`) lies under
   the Arena mode panel in the Arena flow: on GPU-2 (31.10.) only "BERG" showed right of the
   panel, the tile's click point (425, 315) is just clear of it. ArenaMode cannot move it:
   MapPort's `ArenaModeMapPositionIntegration` restores the native anchor after
   `ArenaPortedMapPresentation.Create` (an attempted Arena-flow anchor `.31/.09` had no
   effect and was reverted). Moving the marker east is a MapPort data change.
-- PFT Zombies on Iceberg; the monitors (four of six holders show a face; only the
-  clock is visible on Iceberg).
 - MapPort release: Iceberg must not be announced in an ArenaMode release before an
   ArenaMapPort release ships it; the whitelist, DEPENDENCIES, FEATURES, README and
   FORGE text move together when it does.

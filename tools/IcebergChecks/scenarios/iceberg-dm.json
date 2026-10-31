@@ -1,0 +1,21 @@
+{
+  "name": "iceberg-dm",
+  "description": "Iceberg Deathmatch with the default 8 participants: generic admission (no team boxes), bots alive, in-game still, no errors.",
+  "host": "host2",
+  "parameters": { "participants": { "default": 8 } },
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "deathmatch", "map": "ICEBERG", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
+    { "step": "sleep", "name": "settle", "seconds": 25 },
+    { "step": "player", "name": "player" },
+    { "step": "bots", "name": "bots", "aliveOnly": true, "minCount": 4, "onFail": "continue" },
+    { "step": "expect", "what": "logAbsent", "contains": "Team DM formation ready", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "team-box capacity", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "Domination points", "sinceStep": "raid" },
+    { "step": "still", "name": "still", "id": "dm-ingame" },
+    { "step": "screenshot", "name": "desktop", "id": "dm-desktop" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}

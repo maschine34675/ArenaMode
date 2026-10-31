@@ -1,0 +1,31 @@
+{
+  "name": "iceberg-tdm",
+  "description": "Iceberg Team Deathmatch in the original team pockets: formation ready, gates held then opened with all twenty paths revalidated, both factions alive, objective routes from the field, player death and respawn into the pocket.",
+  "host": "host2",
+  "parameters": {
+    "participants": { "default": 8 },
+    "formationLine": { "default": "Team DM formation ready: 4v4" }
+  },
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "teamdeathmatch", "map": "ICEBERG", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
+    { "step": "expect", "name": "formation", "what": "log", "contains": { "$ref": "/parameters/formationLine" }, "sinceStep": "raid", "withinSeconds": 60 },
+    { "step": "expect", "name": "gates-open", "what": "log", "contains": "Team DM gates open: all twenty formation paths revalidated", "sinceStep": "raid", "withinSeconds": 150 },
+    { "step": "still", "name": "still-open", "id": "tdm-gates-open" },
+    { "step": "bots", "name": "usec", "contains": "usec", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "bots", "name": "bear", "contains": "bear", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "sleep", "name": "settle", "seconds": 20 },
+    { "step": "bots", "name": "all-bots", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "player", "name": "player-before" },
+    { "step": "teleport", "name": "routes", "dryRun": true, "path": true, "expect": "any", "points": [ [16.77, 3.9, -91.39], [10.614, 2.69, -77.727], [21.91, 2.85, -47.3] ], "onFail": "continue" },
+    { "step": "hook", "name": "kill", "action": "kill" },
+    { "step": "wait", "name": "dead", "lifeEvent": "death", "timeoutSeconds": 30, "onFail": "continue" },
+    { "step": "wait", "name": "respawned", "alive": true, "timeoutSeconds": 90 },
+    { "step": "expect", "name": "respawn-log", "what": "log", "contains": "team player respawn", "sinceStep": "kill", "withinSeconds": 30, "onFail": "continue" },
+    { "step": "player", "name": "player-after" },
+    { "step": "still", "name": "still-respawn", "id": "tdm-after-respawn" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}

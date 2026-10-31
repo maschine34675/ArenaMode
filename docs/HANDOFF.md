@@ -50,19 +50,26 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Iceberg (2026-10-31, branch `feature/iceberg`, not merged, not pushed):** `arena_iceberg` is
+**Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not pushed):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
 Domination A/B/C, docs) plus the review-fix commit `2709476d`; see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
-Offline checks only: the **native GPU test is pending** (pockets 4v4/10v10, gate hold and
-release, Bear house (12) clearance, Domination A in the pool and B, PFT Zombies, pickups).
+Native GPU-2 cycle on 31.10. passed for Domination 4v4, Team DM 4v4 and 10v10, Deathmatch 8
+and an ordinary PMC raid; Tactical is refused in the menu
+([GPU-ICEBERG-20261031.md](reports/2026-10/GPU-ICEBERG-20261031.md)). The first Domination
+start refused point A (light root in the pool basin); the heights now follow the measured
+NavMesh floors (`a6ed8d93`). Not run: PFT Zombies, the monitors, daytime.
 MapPort follow-up: Iceberg's overview marker sits under the Arena mode panel in the Arena
 flow (MapPort's position integration overrides ArenaMode's anchors, so only MapPort can move
 it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unreleased MapPort
 `feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
-Iceberg in an ArenaMode release before MapPort publishes it. Nothing was deployed: the
-installed binaries are still the 0.4.1 release.
+Iceberg in an ArenaMode release before MapPort publishes it. **The installed binaries on
+all Syncthing hosts are now the development build `0.4.1+a6ed8d93` of this branch** (client,
+companion, server, Gate, Session), not the 0.4.1 release; Redeploy.Core stays the released
+`1.0.18+232af19` bytes (the rebuild writes different bytes under the same version, so the
+release Core from `Redeploy/artifacts/publish-111/.../stage` is copied back after every
+build). The ArenaMode cfg migrated to revision 5 with `arena_iceberg` in `General/Maps`.
 
 - **Installed MapPort data is a harness dependency.** `tools/ArenaPickupChecks` reads every
   installed ported map, Iceberg included, and fails loudly without
