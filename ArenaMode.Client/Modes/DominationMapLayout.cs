@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ArenaMode.Shared;
 using UnityEngine;
 
 namespace ArenaMode.Modes;
@@ -102,4 +103,18 @@ internal sealed class DominationMapLayout
         "arena_iceberg" => Iceberg,
         _ => throw new InvalidOperationException("No fixed Domination layout exists for this map.")
     };
+
+    /// <summary>
+    /// Objective count for the mode menu: 0 for null or any map without a fixed
+    /// layout, which is never passed to <see cref="Resolve"/>.
+    /// </summary>
+    internal static int ControlPointCount(string map)
+    {
+        // No exception-driven polling before a supported map has been selected.
+        if (map == null || !(ArenaMapCatalog.IsFactoryVariant(map)
+            || ArenaMapCatalog.IsEquator(map) || ArenaMapCatalog.IsBay5(map)
+            || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
+            || ArenaMapCatalog.IsIceberg(map))) return 0;
+        return Resolve(map).Points.Count;
+    }
 }

@@ -389,13 +389,8 @@ internal sealed class ArenaModeSelectionView
     private int ControlPointCount(string mode)
     {
         if (mode != ArenaModeCatalog.DominationId) return 0;
-        string map = _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id;
-        // No exception-driven polling before a supported map has been selected.
-        if (map == null || !(Shared.ArenaMapCatalog.IsFactoryVariant(map)
-            || Shared.ArenaMapCatalog.IsEquator(map) || Shared.ArenaMapCatalog.IsBay5(map)
-            || Shared.ArenaMapCatalog.IsAirPit(map) || Shared.ArenaMapCatalog.IsBowl(map)
-            || Shared.ArenaMapCatalog.IsIceberg(map))) return 0;
-        return DominationMapLayout.Resolve(map).Points.Count;
+        return DominationMapLayout.ControlPointCount(
+            _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id);
     }
 
     private bool CanSelectRow(int index)

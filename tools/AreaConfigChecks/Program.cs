@@ -56,6 +56,19 @@ try
                 "PFT-MAP-SUMMARY","Zombie squad has no fixed opposing team; live view supplies exact allied count.");
         }
 
+    // Map picker hints in a mode without a participant choice (solo and squad Zombies).
+    // Expected texts are literals, not read from the production state.
+    foreach(var (map,pitFireTeam,hint) in new[]{
+        (ArenaMapCatalog.IcebergId,false,"Too few distant spawns: no Tactical"),
+        (ArenaMapCatalog.IcebergId,true,"PitFireTeam squad"),
+        (ArenaMapCatalog.BowlId,false,""),
+        (ArenaMapCatalog.EquatorId,false,"Limited space: no Tactical / squad Zombies")})
+    {
+        var hinted=ArenaAreaSelectionState.Create(map,ArenaModeCatalog.ZombieId,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4);
+        Need(hinted.Available&&hinted.ModeHint==hint,"MAP-MODE-HINT",
+            $"{map}/zombie (PFT={pitFireTeam}) must hint \"{hint}\", got \"{hinted.ModeHint}\".");
+    }
+
     var offered=new HashSet<string>(StringComparer.Ordinal);
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,ArenaMapCatalog.LabyrinthId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.CustomsId})

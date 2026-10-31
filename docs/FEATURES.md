@@ -113,7 +113,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
   ownership rings and one integrated score/objective HUD. Ported-map monitors
-  (ArenaMapPort 0.4.0 or newer, not yet published) display objective scores. Profile rewards are currently excluded.
+  (ArenaMapPort 0.4.0 or newer, published 2026-10-30) display objective scores. Profile rewards are currently excluded.
 
 Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 [ported anchors](reviews/DOMINATION-PORTED-20261026.md),
@@ -129,7 +129,7 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   their configured colors.
 - ArenaMapPort score monitors show **BEAR left / USEC right**, with matching
   score colors, alive counts and match clock. The integration is optional and needs
-  ArenaMapPort 0.4.0 or newer (not yet published); with the public 0.3.0 no
+  ArenaMapPort 0.4.0 or newer (published 2026-10-30); with 0.3.0 no
   monitors appear and everything else works.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
@@ -789,7 +789,7 @@ See also [profile construction](reviews/PROFILE-BUILD-BUDGET-20261017.md) and
   without a dedicated adapter; its own grenade/spectator semantics remain.
 - Reviewed-version drift is advisory in direct play and new private sessions,
   including UIFixes. Actual identity, deny/dependency and protection/API checks
-  still decide admission. The whitelist records ArenaMapPort 0.4.0 (not yet published; the public
+  still decide admission. The whitelist records ArenaMapPort 0.4.0 (published 2026-10-30;
   0.3.0 then only produces a version advisory) and Redeploy 1.1.1.
 - RaidInfoPanels and CombatSlide functionality is incorporated; Arena's local
   full-auto, search and notification behavior does not require their separate

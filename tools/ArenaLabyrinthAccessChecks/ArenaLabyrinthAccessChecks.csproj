@@ -10,6 +10,8 @@
   <ItemGroup>
     <Compile Include="../EquatorMapChecks/PluginStubs.cs" Link="PluginStubs.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
+    <!-- ArenaMenuSelection.ModeAvailabilityRejection reads the companion's Domination seam. -->
+    <Compile Include="../NativeMenuChecks/DominationBridgeStandIn.cs" Link="DominationBridgeStandIn.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="$(ProductionAccessSource)" Link="Production/ArenaLabyrinthAccess.cs" />

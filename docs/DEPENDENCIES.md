@@ -58,7 +58,7 @@ UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it w
 differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
-ArenaMapPort 0.4.0 (not yet published; the public 0.3.0 works, without score monitors,
+ArenaMapPort 0.4.0 (published 2026-10-30; 0.3.0 still works, without score monitors,
 and shows a version advisory) and Redeploy 1.1.1 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code

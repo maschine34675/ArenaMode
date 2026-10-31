@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AnnouncementSourceRoot)/Modes/DominationMapLayout.cs" Link="Production/DominationMapLayout.cs" />
+    <!-- DominationMapLayout.ControlPointCount guards with the map catalog; not a mutated input. -->
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementSnapshot.cs" Link="Production/Snapshot.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementPolicy.cs" Link="Production/Policy.cs" />
     <Compile Include="$(AnnouncementSourceRoot)/Audio/ArenaAnnouncementDirector.cs" Link="Production/Director.cs" />

@@ -16,6 +16,12 @@ $pickupBound = @('ArenaMode.Client/Plugin.cs','ArenaMode.Client/ArenaController.
 $pickupBound += @(Get-ChildItem -LiteralPath $pickupSource -File | ForEach-Object { 'ArenaMode.Client/Pickups/' + $_.Name })
 $pickupBound += @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object { 'tools/ArenaPickupChecks/' + $_.Name })
 foreach ($path in $pickupBound) { $pickupInputs[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash }
+# The installed-data case reads every ported map, Iceberg included. Iceberg ships only in an
+# ArenaMapPort build that carries arena_iceberg (the published 0.4.0 has none): fail loudly.
+$pickupIceberg = Join-Path $SptPath 'SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json'
+if (!(Test-Path -LiteralPath $pickupIceberg)) {
+    throw "Installed Iceberg data missing: $pickupIceberg. ArenaPickupChecks requires an ArenaMapPort build that ships arena_iceberg (the feature build 0.4.0+32fda33 or a later release)."
+}
 $pickupInstalled = @{}
 foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',

@@ -62,6 +62,17 @@ foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator"
     Need(Text("domination", points: actualPoints).Contains("Hold " + actualPoints + " point"),
         "Domination copy uses the actual map objective count: " + map);
 }
+// The menu's objective count per map through the production helper. Expected values
+// are literals, not computed by production; maps without a Domination layout and null
+// report 0 instead of reaching Resolve's exception.
+foreach (var (map, expected) in new (string, int)[] {
+    ("factory4_day", 3), ("factory4_night", 3), ("arena_equator", 1), ("arena_bay5", 1),
+    ("arena_airpit", 2), ("arena_bowl", 2), ("arena_iceberg", 3),
+    ("bigmap", 0), ("laboratory", 0), ("labyrinth", 0), ("unknown", 0), (null, 0) })
+{
+    int count = DominationMapLayout.ControlPointCount(map);
+    Need(count == expected, $"menu objective count for {map ?? "null"}: expected {expected}, got {count}");
+}
 Need(!Text("domination").Contains("Hold 3") && Text("domination").Contains("Hold points to earn team score"),
     "unselected Domination map does not invent an objective count");
 foreach(var (points,seconds) in new[]{(0,0),(100,0),(0,300),(500,1200)})

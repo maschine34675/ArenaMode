@@ -22,14 +22,12 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   sweep [RELEASE-SWEEP-20261029.md](reports/2026-10/RELEASE-SWEEP-20261029.md) ran on
   earlier binaries and proves nothing about the rebuilt release hashes.
 - **Forge** (sp-mod.com) upload is manual and still open for 0.4.1;
-  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the eight-tab draft. Correct its
-  ArenaMapPort wording (below) before uploading.
+  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the eight-tab draft; its ArenaMapPort
+  wording says 0.4.0 is published (corrected on `feature/iceberg`, 2026-10-31).
 - **ArenaMapPort 0.4.0** was published by the user on 2026-10-30 (tag `v0.4.0` in
   `D:\ArenaMapPort` on commit `8f23988`, "0.4.0 published: Pixeldrain links in the release
-  note"). Still saying "not yet published": root `../README.md:152`,
-  [DEPENDENCIES.md](DEPENDENCIES.md) line 61, [FEATURES.md](FEATURES.md) lines 115, 131
-  and 787, [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) lines 71, 166, 226 and 345. The
-  `CHANGELOG.md` 0.4.1 entry describes the wording at release time and stays.
+  note"). The `CHANGELOG.md` 0.4.0 and 0.4.1 entries describe the wording at release time
+  ("not yet published") and stay.
 - **Installed everywhere** (D:\SPT41 on this machine, mirrored by Syncthing to SPT-GPU-1
   `192.168.178.114` and SPT-GPU-2 `192.168.178.109`, both at `C:\SPT41`, and MASCHINE11):
   the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
@@ -62,12 +60,28 @@ It needs an ArenaMapPort build that ships `arena_iceberg`: today only the unrele
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
 Iceberg in an ArenaMode release before MapPort publishes it. Nothing was deployed: the
-installed binaries are still the 0.4.1 release. Harness rot found on the way: AreaConfigChecks,
-ArenaLightingChecks, PortedCoverChecks (the PFT decompile under `artifacts/` is gone; set
-`ARENA_PFT_INSTALLED_SOURCE` to an `ilspycmd -p` output of the installed `pitFireTeam.dll`),
-ParticipantMenuChecks' Domination oracle and AreaTeamMenuChecks' layout literals were repaired on
-that branch; `tools/ArenaLabyrinthAccessChecks` still does not compile (`ArenaMenuSelection.cs`
-needs `Bots`), unrelated to Iceberg.
+installed binaries are still the 0.4.1 release.
+
+- **Installed MapPort data is a harness dependency.** `tools/ArenaPickupChecks` reads every
+  installed ported map, Iceberg included, and fails loudly without
+  `user/mods/ArenaMapPort/db/arena_iceberg/base.json`; so do `IcebergChecks`, and through
+  ArenaPickupChecks also `BowlChecks`, `BowlTeamBoxChecks`, `IcebergTeamBoxChecks` and any
+  full harness run. They need an ArenaMapPort build that ships `arena_iceberg` (the feature
+  build `0.4.0+32fda33` or a later release); the published 0.4.0 is not enough.
+- **FORGE-DESCRIPTION.md deliberately carries no Iceberg** (it is the 0.4.1 upload draft).
+  Add the Iceberg lines (mode list, 2v2–10v10 pockets, spawn shield, Domination A/B/C) when
+  an ArenaMapPort release ships `arena_iceberg`.
+- **PortedCoverChecks** reads the installed PFT decompile from the gitignored
+  `artifacts/pft-installed/`; after a cleanup or a PitFireTeam update recreate it with
+  `pwsh -NoProfile -File tools/Decompile-PitFireTeam.ps1` (read-only on the install; it refuses
+  a non-empty output folder, so remove the old one first). `ARENA_PFT_INSTALLED_SOURCE`, when
+  set, names another decompile root and is tried first.
+- Harness rot found on the way and repaired on that branch: AreaConfigChecks,
+  ArenaLightingChecks, PortedCoverChecks, ParticipantMenuChecks' Domination oracle,
+  AreaTeamMenuChecks' layout literals and `tools/ArenaLabyrinthAccessChecks` (did not compile:
+  `ArenaMenuSelection.cs` needs the Domination bridge stand-in). Still broken and not
+  repaired: `tools/AnnouncementIntegrationChecks` (12 compile errors from `e7d208ad`: its
+  `Vector3` double has no `x`/`z`, and `TeamDeathmatchMode.Domination.cs` needs `Config`).
 
 Known and small (from the 0.4.1/1.1.1 release review and the 2026-10-30 audit):
 

@@ -29,8 +29,8 @@ follow your selection; your saved PMC faction stays unchanged.
 - [ArenaMapPort](https://github.com/maschine34675/ArenaMapPort/releases/latest)
   adds Equator, Bay5, Air Pit and Bowl. It requires your own supported Arena
   installation. Equator excludes Tactical and PitFireTeam Zombies. Team DM and
-  Domination score/timer monitors need ArenaMapPort 0.4.0 or newer (not yet
-  published); the public 0.3.0 works without monitors.
+  Domination score/timer monitors need ArenaMapPort 0.4.0 or newer (published
+  2026-10-30); 0.3.0 works without monitors.
 - Iceberg (in development, not released): needs an ArenaMapPort build that
   ships `arena_iceberg`. Today that is only the unreleased `feature/iceberg` build
   0.4.0+32fda33; the published 0.4.0 has no Iceberg, and without it Arena does
@@ -155,10 +155,9 @@ full Tactical match, Gun Game ladder or long Zombie session.
 A single native BotFirstAid exception occurred at one round end without a hang;
 its exact cause remains unresolved and it did not recur in the final check.
 Ported-map missing Books impact sounds and intermittent audio noise are recorded
-in the limits of ArenaMapPort 0.4.0 (not yet published, so those notes are not
-public yet). WIP features remain WIP. See the release page for
-final package hashes and any hash-specific scanner results; older scans do not
-describe new binaries.
+in the limits of the published ArenaMapPort 0.4.0. WIP features remain WIP. See
+the release page for final package hashes and any hash-specific scanner results;
+older scans do not describe new binaries.
 
 ## License
 

@@ -147,6 +147,24 @@ closer to the west pocket (planar Bear to A/B/C about 78/85/84 m, USEC about
 4. **Team-box interiors** as derived above, argued at `ArenaTeamBoxCatalog.Iceberg`.
 5. **Gate timing** without an Iceberg case (above).
 6. **Domination anchors** at the authored trigger centres; no floor substitution.
+7. **Installed Iceberg data is a harness dependency** (review round). `ArenaPickupChecks`
+   reads every installed ported map and fails loudly without
+   `db/arena_iceberg/base.json`; its message names the requirement (an ArenaMapPort build
+   that ships `arena_iceberg`: the feature build `0.4.0+32fda33` or a later release). So
+   `IcebergChecks`, and through ArenaPickupChecks `BowlChecks`, `BowlTeamBoxChecks`,
+   `IcebergTeamBoxChecks` and any full harness run, need that installed MapPort data; the
+   published 0.4.0 is not enough. No silent skip.
+8. **PFT decompile default** (review round). `PortedCoverChecks` reads
+   `ARENA_PFT_INSTALLED_SOURCE` when set, else `artifacts/pft-installed/pitTeam.Utils/Covers.cs`,
+   and fails naming `tools/Decompile-PitFireTeam.ps1` when neither exists. The script
+   decompiles the installed `BepInEx/plugins/pitFireTeam/pitFireTeam.dll` read-only with
+   `ilspycmd -p` and the game, BepInEx and SPT reference folders (without them ILSpy drops
+   the named argument `checkCurrent: false` the check reads), and refuses a non-empty output
+   folder instead of deleting or mixing it.
+9. **FORGE-DESCRIPTION.md carries no Iceberg** (review round). It is the manual Forge
+   upload draft for 0.4.1, which has no Iceberg; the branch's Iceberg lines were removed
+   again. Add them (mode list, 2v2–10v10 pockets, spawn shield, Domination A/B/C) when an
+   ArenaMapPort release ships `arena_iceberg`.
 
 ## Verification
 
@@ -198,12 +216,71 @@ the donor row and the BEAR anchor; the Domination admission clause.
 AreaConfigChecks did not compile (Settings.cs needs `ArenaTeamSideSelection` since
 `1c86b9c5`) and its PFT summary oracle predated `0e1a3f75`; ArenaLightingChecks did not
 compile (`ArenaTeamPalette` needs the population policy since `bdd679ec`);
-PortedCoverChecks read a PFT decompile under the cleaned `artifacts/` and now accepts
-`ARENA_PFT_INSTALLED_SOURCE` (an `ilspycmd -p` output of the installed `pitFireTeam.dll`),
-still failing when neither exists; ParticipantMenuChecks capped only Team DM at 20 on box
+PortedCoverChecks read a PFT decompile under the cleaned `artifacts/` (see Decision 8 for
+its replacement); ParticipantMenuChecks capped only Team DM at 20 on box
 maps although Domination shares the cap since `fb587a6b`; AreaTeamMenuChecks' panel-top
-literals predated `517ca1db`. `tools/ArenaLabyrinthAccessChecks` still does not compile
-(`ArenaMenuSelection.cs` needs `Bots`); it does not cover Iceberg.
+literals predated `517ca1db`. `tools/ArenaLabyrinthAccessChecks` did not compile
+(`ArenaMenuSelection.cs` needs `Bots`); the review round links the Domination bridge stand-in
+(it does not cover Iceberg).
+
+### Review-fix round
+
+Three independent reviews of `21abac26..d16a3a94` found no blocker and twelve minor
+findings. The fixes below are offline only; nothing was deployed.
+
+- **Menu hint.** `tools/AreaConfigChecks` asserts the Zombies map hints with literal texts:
+  Iceberg solo "Too few distant spawns: no Tactical", Iceberg PFT "PitFireTeam squad", Bowl
+  empty, Equator "Limited space: no Tactical / squad Zombies". Proved red once: without the
+  Iceberg hint line of `ArenaAreaSelectionState.cs` the run stopped at
+  `MAP-MODE-HINT: arena_iceberg/zombie (PFT=False) must hint "Too few distant spawns: no Tactical", got "".`
+- **Objective count.** The menu's map guard moved unchanged from
+  `ArenaModeSelectionView.ControlPointCount` into `DominationMapLayout.ControlPointCount(map)`
+  (same catalog predicates; `Resolve` only for a map with a layout, 0 otherwise); the view
+  keeps the mode check. `tools/CompactModeUxChecks` checks it against literals: Factory
+  day/night 3, Equator 1, Bay5 1, Air Pit 2, Bowl 2, Iceberg 3, Customs, Labs, Labyrinth, an
+  unknown ID and null 0. Proved red once: without the helper's Iceberg clause the run stopped
+  at `menu objective count for arena_iceberg: expected 3, got 0`. CompactModeUxChecks,
+  DominationRuntimeChecks and AnnouncementIntegrationChecks compile `DominationMapLayout.cs`
+  without the map catalog and now link it.
+- **Server tests.** `IcebergTeamSpawnTests` gains `MissingModeRejectsWithoutTouchingNativeMap`
+  and a Tactical row in `OtherModesKeepNativeMarkersAndDoNotRequireTeamBoxDonor`. Unlike Bowl,
+  the server mutator refuses Tactical on Iceberg (the resolver's message) before it changes any
+  raid data, so that row asserts the refusal and the unchanged map rather than a successful
+  mutation. The protected-clone yaw is checked against the authored yaw (every Iceberg yaw lies
+  in 0..359.99) instead of `NativeYaw`.
+- **Harness dependencies.** Decisions 7 and 8 (installed Iceberg data, PFT decompile);
+  `tools/ArenaLabyrinthAccessChecks` compiles again with the Domination bridge stand-in that
+  NativeMenuChecks and ArenaStartErrorChecks already link.
+- **Documents.** ArenaMapPort 0.4.0 is described as published (2026-10-30) in README,
+  DEPENDENCIES, FEATURES and FORGE-DESCRIPTION; the Iceberg sentences stay, the CHANGELOG's
+  release-time wording stays, FORGE-DESCRIPTION has no Iceberg (Decision 9).
+
+Both runs went through the runner, which hashed the live install before and after every step
+and found it unchanged; PortedCoverChecks ran without `ARENA_PFT_INSTALLED_SOURCE`.
+
+```text
+pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -SkipUnitTests -Harness AreaConfigChecks,CompactModeUxChecks,ArenaPickupChecks,PortedCoverChecks,IcebergChecks,ArenaLabyrinthAccessChecks,AnnouncementIntegrationChecks,DominationRuntimeChecks,TdmMatchMenuChecks,TeamGiveUpChecks,IcebergTeamBoxChecks
+ARENA_VERIFICATION_SUMMARY passed=8 failed=3 seconds=690
+pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -SkipUnitTests -Harness CompactModeUxChecks,IcebergTeamBoxChecks
+ARENA_VERIFICATION_SUMMARY passed=2 failed=0 seconds=310
+```
+
+| Harness | Result |
+|---|---|
+| AreaConfigChecks | 321 assertions, real BepInEx; historical 588090f defects reproduced |
+| CompactModeUxChecks | run 1 failed: the incremental build reused the red-proof binary because the restored file kept its older time stamp; run 2 (file time refreshed, content unchanged): 329 assertions, 3 controls |
+| ArenaPickupChecks | 514 assertions, 41 controls |
+| PortedCoverChecks | 231 assertions, 25 compiled faults; source `artifacts/pft-installed/pitTeam.Utils/Covers.cs` from `tools/Decompile-PitFireTeam.ps1` |
+| IcebergChecks | installed data 4 Player / 9 Bot rows; 180 filtered server tests; its programs; 6 compiled PFT adapter faults rejected |
+| ArenaLabyrinthAccessChecks | 50 assertions (the program; its `Verify-*.ps1` scripts were not run) |
+| AnnouncementIntegrationChecks | **failed, not repaired**: 12 compile errors in code from `e7d208ad` (master, 2026-10-27): its `Vector3` double has no `x`/`z` for `DominationMapLayout`'s Factory selection, and `TeamDeathmatchMode.Domination.cs` needs `Config` |
+| DominationRuntimeChecks | 597 assertions, 13 source faults |
+| TdmMatchMenuChecks | 2,670 assertions (the program, compiling the changed view) |
+| TeamGiveUpChecks | passed (the program) |
+| IcebergTeamBoxChecks | run 1 failed at the first Tactical row (expected a successful mutation); run 2: 3,623 tests, 3,620 passed, 3 known skips (IcebergTeamSpawnTests 52, IcebergMapTests 20 passed); EquatorTeamSpawn 1,980; SpawnGate 337; ParticipantMenu 6,173; NativeMenu 956; MapModeAdmission 801; pickups 514; Release builds of client, companion, server: 0 errors |
+
+`Run-ArenaVerification.ps1` has no test filter; the Iceberg test classes ran inside
+IcebergTeamBoxChecks' full suite.
 
 ## Not claimed
 

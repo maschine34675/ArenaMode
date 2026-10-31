@@ -180,7 +180,10 @@ public sealed class IcebergTeamSpawnTests
             Assert.NotSame(native[0].ColliderParams, point.ColliderParams);
             Assert.Equal(spec.X, point.Position!.Value.X); Assert.Equal(spec.Y, point.Position.Value.Y);
             Assert.Equal(spec.Z, point.Position.Value.Z);
-            Assert.Equal(spec.NativeYaw, point.Rotation);
+            // Independent of NativeYaw: every authored Iceberg yaw lies in 0..359.99,
+            // where the native Euler equivalent is the authored value itself.
+            Assert.InRange(spec.Yaw, 0f, 359.99f);
+            Assert.Equal(spec.Yaw, point.Rotation);
             Assert.Equal(new[] { "Player", "Bot", "BotPmc" }, point.Categories);
             Assert.Equal(new[] { spec.Usec ? "Usec" : "Bear" }, point.Sides);
             Assert.Equal("ArenaIceberg", point.Infiltration); Assert.Equal("BotZone_Main", point.BotZoneName);
@@ -301,16 +304,35 @@ public sealed class IcebergTeamSpawnTests
     }
 
     [Theory]
-    [InlineData("deathmatch")] [InlineData("gungame")] [InlineData("zombie")]
+    [InlineData("deathmatch")] [InlineData("gungame")]
+    [InlineData("tactical")] [InlineData("zombie")]
     public void OtherModesKeepNativeMarkersAndDoNotRequireTeamBoxDonor(string mode)
     {
         var map = Map();
         map.SpawnPointParams = map.SpawnPointParams!.Where(p => p.Id != "arena_iceberg-bot-core-01").ToList();
         string before = JsonSerializer.Serialize(map.SpawnPointParams);
-        ArenaLocationMutator.Mutate(map, new(), new(), mode,
+        string mapBefore = JsonSerializer.Serialize(map);
+        void Mutate() => ArenaLocationMutator.Mutate(map, new(), new(), mode,
             participants: mode is "deathmatch" or "gungame" ? 24 : null);
+        if (mode == "tactical")
+        {
+            // The shared resolver refuses Tactical on Iceberg; the server mutator throws
+            // before it changes any raid data, so the native markers stay as they are.
+            var refused = Assert.Throws<InvalidOperationException>(Mutate);
+            Assert.Contains("Tactical", refused.Message);
+            Assert.Equal(mapBefore, JsonSerializer.Serialize(map));
+        }
+        else Mutate();
         Assert.Equal(before, JsonSerializer.Serialize(map.SpawnPointParams));
         Assert.DoesNotContain(map.SpawnPointParams!, p => ArenaTeamBoxCatalog.Owns(p.Id));
+    }
+
+    [Fact]
+    public void MissingModeRejectsWithoutTouchingNativeMap()
+    {
+        var map = Map(); string before = JsonSerializer.Serialize(map);
+        Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(map, new(), new(), null));
+        Assert.Equal(before, JsonSerializer.Serialize(map));
     }
 
     [Theory]

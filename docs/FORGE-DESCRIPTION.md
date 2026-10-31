@@ -36,7 +36,7 @@ profile before playing, particularly when combining mods.
 - **Domination (WIP):** capture and hold control points for team score, with
   continuous team respawns, bot capture/defence assignments and separate score/time
   limits (200 points / ten minutes by default). Factory varies three points each
-  match; Equator and Bay5 use one original point, Air Pit and Bowl two, Iceberg three. **Requires
+  match; Equator and Bay5 use one original point, Air Pit and Bowl two. **Requires
   BigBrain 1.5.0 or newer** (separate download) and has no profile rewards.
 - **Tactical (WIP):** round-based elimination. Solo defaults to 1v5 with a kit
   buy menu. With PitFireTeam, choose own gear or a supplied PMC kit and bring
@@ -59,9 +59,7 @@ Population and starting equipment can be changed in the menu.
   areas are available, in every mode except Domination.
 - With ArenaMapPort: Bay5, Air Pit and Bowl in all modes; Equator in Gun Game, Deathmatch,
   Team DM, Domination and solo Zombies. Equator does not support Tactical or PFT Zombies.
-- Iceberg (needs an ArenaMapPort build that ships it; not yet released): Gun Game,
-  Deathmatch, Team DM, Domination and solo or PFT Zombies, but no Tactical.
-- Domination is offered on Factory day/night and the five ArenaMapPort maps, not on
+- Domination is offered on Factory day/night and the four ArenaMapPort maps, not on
   Labs, Labyrinth or Customs.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
@@ -69,11 +67,8 @@ Population and starting equipment can be changed in the menu.
 - Bowl defaults to eight participants in Deathmatch, Gun
   Game and Team DM. Independent Team DM uses its east/west team boxes for 2v2 to 10v10;
   combat waits for the spawn gates to open, and the gates stay open for respawns.
-- Iceberg defaults to eight participants in Deathmatch, Gun Game and Team DM. Team DM
-  and Domination use its USEC west / BEAR east pockets for 2v2 to 10v10, behind the
-  same spawn gates.
 - The wall score/timer monitors in Team DM and Domination need **ArenaMapPort 0.4.0
-  or newer, which is not yet published**. The public ArenaMapPort 0.3.0 works without
+  or newer** (published 2026-10-30). ArenaMapPort 0.3.0 still works without
   monitors and only produces a version advisory.
 
 #### Mutators
@@ -98,7 +93,7 @@ Population and starting equipment can be changed in the menu.
   shield, double damage, jump boots, unlimited ammo and an M60. Checked positions
   rotate during play, within the selected Customs area where applicable.
 - Visible Team DM bot spawn protection in the fixed team boxes on Equator,
-  Bay5, Air Pit, Bowl and Iceberg, default four seconds; firing, throwing a grenade or dealing
+  Bay5, Air Pit and Bowl, default four seconds; firing, throwing a grenade or dealing
   damage ends it. Other maps retain player protection without bot spawn shields.
 - Narrow colored body contours identify bot spawn protection, Shield and Double
   Damage. Opaque cover hides the contour; simultaneous effects share its colors.
@@ -168,7 +163,7 @@ Tarkova Cola, Accurate Circular Radar, Simple Crosshair and Better BepInEx, and
 since 0.4.0 Use Items Anywhere 2.1.6, ImpactCue 2.0.3 (client
 and Web Config server), Enemy Markers 1.4.0, Fast Grenade Throw 2.0.0,
 Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, plus
-ArenaMapPort 0.4.0 (not yet published) and the standalone Redeploy mod.
+ArenaMapPort 0.4.0 and the standalone Redeploy mod.
 It denies ORBIT, Questing Bots,
 Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
 always allowed; a version that differs from the reviewed one only produces a warning.
@@ -228,9 +223,7 @@ Optional integration targets:
 - **BigBrain 1.5.0+:** required for Domination; also used for pickup pursuit and Molotov. Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain (only Domination is then locked). Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
 - **ArenaMapPort:** Bay5, Equator, Air Pit and Bowl, with client/server and map assets.
-  Iceberg needs a build that ships `arena_iceberg` (today only the unreleased
-  `feature/iceberg` build 0.4.0+32fda33); without one, Arena does not offer it.
-  Score/timer monitors need 0.4.0 or newer (not yet published); 0.3.0 works without them.
+  Score/timer monitors need 0.4.0 or newer (published 2026-10-30); 0.3.0 works without them.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
@@ -349,8 +342,8 @@ reward choice is kept.
 ### Notes and credits
 
 - ArenaMapPort 0.4.0 (score/timer monitors, documented map limits such as missing
-  Books impact sounds and an unresolved intermittent audio noise) is not yet published;
-  the public 0.3.0 works without monitors.
+  Books impact sounds and an unresolved intermittent audio noise) was published on
+  2026-10-30; 0.3.0 works without monitors.
 - One native BotFirstAid teardown exception was seen once and is unattributed.
 - **Amand's Graphics 1.8.0 remains unlisted.** The camera handover worked on
   Factory with the mod ON and OFF. On Labyrinth, its own initial activation

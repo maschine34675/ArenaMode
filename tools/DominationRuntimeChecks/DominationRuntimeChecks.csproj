@@ -9,6 +9,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <Compile Include="../../ArenaMode.Client/Pickups/ArenaPickupLayout.cs" Link="Production/ArenaPickupLayout.cs" />
     <Compile Include="$(LayoutSource)" Link="Production/DominationMapLayout.cs" />
+    <!-- DominationMapLayout.ControlPointCount guards with the map catalog. -->
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/DominationRuntime.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationMatchPolicy.cs" Link="Production/DominationMatchPolicy.cs" />

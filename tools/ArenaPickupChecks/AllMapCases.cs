@@ -87,7 +87,11 @@ internal static partial class Program
         {
             string path=map.StartsWith("arena_")?Path.Combine(root,"SPT_Runtime/user/mods/ArenaMapPort/db",map,"base.json")
                 :Path.Combine(root,"SPT_Runtime/SPT_Data/database/locations",map,"base.json");
-            if(!System.IO.File.Exists(path))throw new Exception("Native map fixture missing: "+path);
+            // Iceberg ships only in an ArenaMapPort build that carries arena_iceberg; the
+            // published 0.4.0 has none. Fail loudly instead of skipping the map.
+            if(!System.IO.File.Exists(path))throw new Exception(map=="arena_iceberg"
+                ?"Installed Iceberg data missing: "+path+". This run requires an ArenaMapPort build that ships arena_iceberg (the feature build 0.4.0+32fda33 or a later release)."
+                :"Native map fixture missing: "+path);
             Fixture();_game.Location.SpawnPointParams=Read(path);
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"spartan").Layouts.Single();
             Check(Pool(layout).Length>=6,"installed map has at least six separated native pickup candidates: "+map);

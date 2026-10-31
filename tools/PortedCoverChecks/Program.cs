@@ -138,14 +138,19 @@ static class Program
         Check(text.Contains("[CanBeNull]\n\tpublic CustomNavigationPoint GetCoverPointMain2".Replace("\n",Environment.NewLine))||text.Contains("[CanBeNull]\n\tpublic CustomNavigationPoint GetCoverPointMain2"),"NATIVE-COVER-NULL-CONTRACT");
         string cover=Method(text,"public CustomNavigationPoint GetCoverPointMain2(");
         Check(cover.Contains("_finderByGraph.GetCover(data)")&&cover.Contains("voxelSafe.PointStartSearch.GetById(data.Bot.Id)"),"NATIVE-NODE-DEPENDENCY");
-        // The decompile of the installed PFT lives under ignored artifacts/ and does not
-        // survive a cleanup; ARENA_PFT_INSTALLED_SOURCE names a fresh decompile root
-        // instead. Either way the installed contract must be read: no silent skip.
+        // The decompile of the installed PFT lives under the ignored artifacts/ and does not
+        // survive a cleanup; tools/Decompile-PitFireTeam.ps1 recreates artifacts/pft-installed/.
+        // ARENA_PFT_INSTALLED_SOURCE, when set, names another decompile root and is tried
+        // first. Either way the installed contract must be read: no silent skip.
+        const string pftFile="pitTeam.Utils/Covers.cs";
         string pftRoot=Environment.GetEnvironmentVariable("ARENA_PFT_INSTALLED_SOURCE");
-        string pft=string.IsNullOrEmpty(pftRoot)
-            ?System.IO.Path.Combine(directory.FullName,"artifacts/zombie-voice-pft-20261009/sain-analysis/pft-installed/pitTeam.Utils/Covers.cs")
-            :System.IO.Path.Combine(pftRoot,"pitTeam.Utils/Covers.cs");
-        if(!File.Exists(pft))throw new FileNotFoundException("Decompiled installed PitFireTeam source missing (set ARENA_PFT_INSTALLED_SOURCE to an ilspycmd -p output of pitFireTeam.dll): "+pft);
+        var pftCandidates=new List<string>();
+        if(!string.IsNullOrEmpty(pftRoot))pftCandidates.Add(System.IO.Path.Combine(pftRoot,pftFile));
+        pftCandidates.Add(System.IO.Path.Combine(directory.FullName,"artifacts/pft-installed",pftFile));
+        string pft=pftCandidates.FirstOrDefault(File.Exists);
+        if(pft==null)throw new FileNotFoundException("Decompiled installed PitFireTeam source missing; run pwsh -NoProfile -File tools/Decompile-PitFireTeam.ps1"
+            +" (or set ARENA_PFT_INSTALLED_SOURCE to an ilspycmd -p output of pitFireTeam.dll). Looked for: "+string.Join(", ",pftCandidates));
+        Console.WriteLine("INSTALLED_PFT_SOURCE: "+pft);
         string candidates=Method(File.ReadAllText(pft),"private static List<CustomNavigationPoint> GetVanillaBackedCandidates(");
         Check(candidates.Contains("GetCoverPointMain(data, checkCurrent: false)")&&candidates.Contains("if (primary != null"),"INSTALLED-PFT-ACCEPTS-EMPTY-COVER");
     }
