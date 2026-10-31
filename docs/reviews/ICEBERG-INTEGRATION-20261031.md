@@ -34,9 +34,7 @@ Commit `21abac26`.
 - Discovery: `ArenaOptionalMapPolicy` queries the live database for the exact ID on
   every client-settings request; a missing, disabled or wrong-ID location is dropped
   only from the detached client view.
-- Presentation: gold **ICEBERG** label at an Arena-flow position north-west of the lake
-  (anchor .31/.09: MapPort's native marker sits under the Arena mode panel, seen on the
-  first host screenshot of 31.10.; the PMC flow keeps MapPort's placement), thumbnail and
+- Presentation: gold **ICEBERG** label, MapPort's native position, thumbnail and
   time choice are kept (AirPit/Bowl behaviour, not the Bay5/Equator override).
 - Pickups (built only from the current raid's Bot/BotPmc rows), phase lighting and
   both PFT coverless adapters (spawn core and combat) accept the exact ID. Iceberg
@@ -193,7 +191,7 @@ real-baseline cases). Before: 3,521 / 3,518 / 3 at `master` `54c464a1`.
 | NativeMenuChecks | 956 assertions (Iceberg admission with Tactical refused, Domination lists) |
 | ParticipantMenuChecks | 6,173 participant, 207 native-area-hook, 66 area-view assertions, 7 controls |
 | AreaConfigChecks | 317 assertions, real BepInEx (rows `bowl-release`, `iceberg-removed`, `future-version`); historical 588090f defects reproduced |
-| AreaMapPreviewChecks | 4,490 assertions (ICEBERG label, Arena-flow position), 5 controls |
+| AreaMapPreviewChecks | 4,490 assertions (ICEBERG label, native position), 5 controls |
 | ArenaPickupChecks | 514 assertions; Iceberg 9 installed candidates; 41 controls |
 | ArenaLightingChecks | 706 assertions |
 | CompactModeUxChecks | 317 assertions ("Hold 3 point" on Iceberg), 3 controls |

@@ -285,7 +285,7 @@ try
             "PORTED-LABEL","Hidden native TMP stays enabled for preferred-size layout; short text sizes the entire toggle.");
         Need(gold.color==ArenaPortedMapPresentation.Gold&&gold.raycastTarget==header.raycastTarget,"PORTED-LABEL","Gold is independent of native text tint while preserving a native header hit surface.");
         Need(gold.GetComponent<LayoutElement>().ignoreLayout,"PORTED-LABEL","New text does not add a second element to native layout calculation.");
-        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id))
+        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id) || ArenaMapCatalog.IsIceberg(id))
         {
             Need(rowRect.anchorMin==new Vector2(.15f,.83f)&&rowRect.anchorMax==new Vector2(.16f,.84f)
                 &&rowRect.anchoredPosition==new Vector2(2,3),"AIRPIT-NATIVE-POSITION","AirPit keeps the complete native MapPort geometry, not the Equator fallback.");
@@ -298,17 +298,15 @@ try
         else
         {
             Need(rowRect.anchorMin==rowRect.anchorMax&&rowRect.anchoredPosition==Vector2.zero,"PORTED-POSITION","New anchors retain native normalized positioning semantics.");
-            Need(id==ArenaMapCatalog.Bay5Id?rowRect.anchorMin.y>.75f
-                :ArenaMapCatalog.IsIceberg(id)?rowRect.anchorMin.x<.35f&&rowRect.anchorMin.y<.15f
-                :rowRect.anchorMin.x>.66f&&rowRect.anchorMin.y<.36f,
-                "PORTED-POSITION","Bay 5 moves north; Equator sits immediately south-east of native Interchange; Iceberg sits north-west of the lake, clear of the Arena mode panel.");
+            Need(id==ArenaMapCatalog.Bay5Id?rowRect.anchorMin.y>.75f:rowRect.anchorMin.x>.66f&&rowRect.anchorMin.y<.36f,
+                "PORTED-POSITION","Bay 5 moves north; Equator sits immediately south-east of native Interchange.");
         }
         header.color=new Color(0,0,0,1);marker.Refresh();
         Need(gold.color==ArenaPortedMapPresentation.Gold,"PORTED-COLOR","Native text animation cannot overwrite own gold label.");
         selectedMarker=true;marker.Refresh();
         Need(gold.color.r<ArenaPortedMapPresentation.Gold.r,"PORTED-COLOR","Selected label uses a darker gold on native light selection background.");
         marker.Close();UObject.EndFrame();
-        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id))
+        if (ArenaMapCatalog.IsAirPit(id) || ArenaMapCatalog.IsBowl(id) || ArenaMapCatalog.IsIceberg(id))
             Need(rowRect.anchorMin==new Vector2(.2f,.7f)&&rowRect.anchorMax==new Vector2(.3f,.8f)&&rowRect.anchoredPosition==new Vector2(4,5),
                 "AIRPIT-CLOSE-POSITION","Closing a label-only lease leaves newer native coordinates untouched.");
         else
