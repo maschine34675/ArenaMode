@@ -245,7 +245,7 @@ internal static class Program
     }
     private static async Task Main()
     {
-        foreach(var map in new[]{"arena_equator","arena_bay5","arena_airpit","arena_bowl"})
+        foreach(var map in new[]{"arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg"})
         foreach(var mode in new[]{Catalog.ModeId,"domination"})
         {
             Formation=Catalog.Find(map);FixtureMode=mode;

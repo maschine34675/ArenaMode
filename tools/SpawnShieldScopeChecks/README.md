@@ -7,7 +7,7 @@ protection leases and team-box catalog. It reuses the existing TDM engine double
 it neither deploys a mod nor starts EFT. Independent expected map/mode lists
 prevent an accidentally widened catalog from widening the test oracle too.
 
-Coverage includes all three ported box maps and both human factions, ordinary
+Coverage includes all five ported box maps and both human factions, ordinary
 maps including day/night Factory, other modes, unarmed/PFT/stale raid rejection,
 current-match loss, setting changes across replacement bots, disabled/invalid
 durations and the existing 30-second cap. Local-player shields are not owned by

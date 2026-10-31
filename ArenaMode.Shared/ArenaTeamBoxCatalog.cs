@@ -70,6 +70,9 @@ public static class ArenaTeamBoxCatalog
         // Bowl's longest authored drive is 13.5 scaled seconds; an alternate exit
         // can reconnect sooner. Current builds use their actual completion status.
         // Both paths still require complete navigation and physical spawn clearance.
+        // Iceberg needs no case of its own: every MapPort build that ships it has
+        // GatesOpen, and its longest drive (GATES_A leaf B) is 5 s at drive scale
+        // 1.0 (2.5 s at the default 0.5), inside the ordinary ten-second watchdog.
         public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
         public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,
@@ -198,13 +201,68 @@ public static class ArenaTeamBoxCatalog
         new Bounds(-9.82035f, 9.82035f, -.1498f, 4.1334f, -10.53575f, 10.53575f,
             -52.8998f, -64.8147f, 318.9815f), 2, 16);
 
+    // Original Iceberg pockets (iceberg.modes.json, iceberg-native-v2). Iceberg has
+    // no TeamFight mode; they come from CheckPoint: USEC = Usec house (5..14) in
+    // SPAWN_BOUND_DEFENCE (west), BEAR = Bear house (5..14) in SPAWN_BOUND_FIGHTER
+    // (east), as MapPort's player-usec/player-bear rows assign them. Bear keeps its
+    // three authored heights (floor .7345, terrace 1.8862, (14) at .8753).
+    //
+    // The interiors are not the authored SPAWN_BOUNDs, which reach past the
+    // closed gates: DEFENCE 3.1 m east of the GATES_B leaf plane (x -36.042),
+    // FIGHTER 1.4 m west of the GATES_A leaf plane (x 82.382). A held path or a
+    // pickup seed in that outside strip would count as inside a closed box. Each
+    // box therefore ends at its gate plane minus the .35 m capsule radius
+    // FloorAndClear uses; the other faces are the authored bounds inset by the
+    // same .35 m horizontally, as Bowl's are. The west pocket continues north past
+    // the authored box to the rotating CheckPoint gate (z -75.664), so the USEC box
+    // runs to that gate minus the inset (Usec house (6) sits on the authored edge
+    // and would fall out of a strict inset). USEC keeps the full authored height;
+    // FIGHTER's 16.3 m would admit other floors and is cut to -.4..5 m, both pocket
+    // floors plus a standing body. The authored yaws (179.9999, 270.2255) are
+    // within .23 degrees of the axes, so these boxes are world-aligned.
+    //
+    // Donor and outside destination: the installed arena_iceberg-bot-core-01, which
+    // had a complete path from the Bear spawn in MapPort's GPU-2 raid (2026-10-30).
+    // Both exits lie outside the gates (East 10.4 m beyond GATES_A, West 5.6 m
+    // beyond GATES_B): no booth exits. Anchors: Usec house (7), Bear house (14).
+    public static readonly Formation Iceberg = new Formation("arena_iceberg", "Iceberg", "arena-iceberg-tdm-v1-",
+        "ArenaIceberg", "USEC west / BEAR east",
+        new Point("arena_iceberg-bot-core-01", false, -10.88f, 3.25f, -80.66f),
+        new Point("", false, -10.88f, 3.25f, -80.66f), new[]
+        {
+            new Point("arena-iceberg-tdm-v1-west-01", true, -39.3812f, 3.2493f, -87.6749f, 75.183f),
+            new Point("arena-iceberg-tdm-v1-west-02", true, -40.7162f, 3.2473f, -79.931f, 88.2443f),
+            new Point("arena-iceberg-tdm-v1-west-03", true, -41.3192f, 3.2473f, -89.603f, 45.3416f),
+            new Point("arena-iceberg-tdm-v1-west-04", true, -39.8452f, 3.2473f, -91.1639f, 52.3511f),
+            new Point("arena-iceberg-tdm-v1-west-05", true, -42.9652f, 3.2443f, -92.504f, 85.0953f),
+            new Point("arena-iceberg-tdm-v1-west-06", true, -39.7352f, 3.2473f, -94.964f, 358.2447f),
+            new Point("arena-iceberg-tdm-v1-west-07", true, -39.9732f, 3.2473f, -85.4959f, 81.4048f),
+            new Point("arena-iceberg-tdm-v1-west-08", true, -40.0992f, 3.2473f, -82.904f, 89.3089f),
+            new Point("arena-iceberg-tdm-v1-west-09", true, -37.0262f, 3.2473f, -93.7889f, 354.4831f),
+            new Point("arena-iceberg-tdm-v1-west-10", true, -44.5252f, 3.2503f, -90.424f, 99.4831f),
+            new Point("arena-iceberg-tdm-v1-east-01", false, 97.9361f, .7345f, -83.7253f, 251.5087f),
+            new Point("arena-iceberg-tdm-v1-east-02", false, 97.3612f, .7345f, -86.7347f, 267.5384f),
+            new Point("arena-iceberg-tdm-v1-east-03", false, 90.7486f, 1.8862f, -94.3529f, 303.1341f),
+            new Point("arena-iceberg-tdm-v1-east-04", false, 95.9648f, .7345f, -94.074f, 265.3582f),
+            new Point("arena-iceberg-tdm-v1-east-05", false, 89.2948f, 1.8862f, -86.464f, 271.4964f),
+            new Point("arena-iceberg-tdm-v1-east-06", false, 94.6365f, .7345f, -84.9785f, 266.5088f),
+            new Point("arena-iceberg-tdm-v1-east-07", false, 90.7653f, 1.8862f, -91.9553f, 258.906f),
+            new Point("arena-iceberg-tdm-v1-east-08", false, 97.7513f, .7345f, -96.1495f, 276.4523f),
+            new Point("arena-iceberg-tdm-v1-east-09", false, 96.6548f, .7345f, -91.174f, 258.9876f),
+            new Point("arena-iceberg-tdm-v1-east-10", false, 95.2948f, .8753f, -89.564f, 273.3514f),
+        },
+        new Bounds(-48.31f, -36.392f, 2.328f, 10.271f, -96.926f, -76.014f),
+        new Bounds(82.732f, 114.444f, -.4f, 5f, -98.465f, -78.223f), 2, 19);
+
     public static Formation? Find(string? map)
         => string.Equals(map, Equator.MapId, StringComparison.OrdinalIgnoreCase) ? Equator
             : string.Equals(map, Bay5.MapId, StringComparison.OrdinalIgnoreCase) ? Bay5
             : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit
-            : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl : null;
+            : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl
+            : string.Equals(map, Iceberg.MapId, StringComparison.OrdinalIgnoreCase) ? Iceberg : null;
     public static bool Applies(string? map, string? mode)
         => (string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase)
             || string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)) && Find(map) != null;
-    public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id);
+    public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id)
+        || Iceberg.Owns(id);
 }

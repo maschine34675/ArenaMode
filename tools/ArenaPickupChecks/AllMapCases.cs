@@ -49,7 +49,7 @@ internal static partial class Program
             Seed("safe",20),Seed("duplicate",20),Seed("pmc",30,category:ESpawnCategoryMask.BotPmc)];
         var filtered=Pool(ArenaPickupMapLayout.Create(_game,"laboratory",null,"spartan").Layouts.Single());
         Check(filtered.Length==2&&filtered.All(p=>p.X==20||p.X==30),"sealed Labs gates, snipers, player entries and malformed seeds cannot become pickups");
-        foreach(var formation in new[]{ArenaTeamBoxCatalog.Equator,ArenaTeamBoxCatalog.Bay5,ArenaTeamBoxCatalog.AirPit,ArenaTeamBoxCatalog.Bowl})
+        foreach(var formation in new[]{ArenaTeamBoxCatalog.Equator,ArenaTeamBoxCatalog.Bay5,ArenaTeamBoxCatalog.AirPit,ArenaTeamBoxCatalog.Bowl,ArenaTeamBoxCatalog.Iceberg})
         {
             var booth=formation.Points[0];
             _game.Location.SpawnPointParams=[Seed(booth.Id,booth.X,booth.Y,booth.Z),Seed("generic-in-box",booth.X,booth.Y,booth.Z),

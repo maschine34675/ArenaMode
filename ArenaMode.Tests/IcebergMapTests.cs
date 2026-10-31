@@ -143,7 +143,9 @@ public sealed class IcebergMapTests
         Assert.True(ArenaMapCatalog.RequiresModeFilteredView(map));
         Assert.True(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.DefaultClientAllowlist, map));
         Assert.False(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.BowlDefaultClientAllowlist, map));
-        Assert.Null(ArenaTeamBoxCatalog.Find(map));
+        Assert.Same(ArenaTeamBoxCatalog.Iceberg, ArenaTeamBoxCatalog.Find(map));
+        // The team boxes cap both team modes at 10v10; solo modes keep 24.
+        Assert.Equal(20, ArenaParticipantPolicy.MaximumFor(map, "domination"));
         foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie" })
         {
             Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _));
@@ -152,7 +154,7 @@ public sealed class IcebergMapTests
             else
             {
                 Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(map, mode));
-                Assert.Equal(24, ArenaParticipantPolicy.MaximumFor(map, mode));
+                Assert.Equal(mode == "teamdeathmatch" ? 20 : 24, ArenaParticipantPolicy.MaximumFor(map, mode));
                 Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 8, out var count, out _));
                 Assert.Equal(8, count);
             }

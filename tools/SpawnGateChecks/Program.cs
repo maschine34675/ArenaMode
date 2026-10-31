@@ -190,6 +190,7 @@ internal static class GateProgram
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
+        OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Iceberg);
         BowlOpening();CompletionSignal();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
@@ -275,13 +276,15 @@ internal static class GateProgram
     {
         foreach (var formation in new[] { ArenaMode.Shared.ArenaTeamBoxCatalog.Equator,
                      ArenaMode.Shared.ArenaTeamBoxCatalog.Bay5, ArenaMode.Shared.ArenaTeamBoxCatalog.AirPit,
-                     ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl })
+                     ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl, ArenaMode.Shared.ArenaTeamBoxCatalog.Iceberg })
         {
             Program.Formation=formation;
             var lease=SetupCompletion();NavMesh.Path=(a,b)=>true;
             Check(!lease.OpeningComplete(100f,0f) && Gates.CompletionReads==0,"SIGNAL-BEFORE-RELEASE: never query before owned release");
             Check(!Runtime.TryOpenForCombat(),"SIGNAL-WAIT: complete paths cannot replace unfinished gate signal");
-            Time.time=formation.MapId=="arena_bowl" ? 6.75f : formation.MapId=="arena_airpit" ? 1.5f : 3.5f;
+            // Iceberg: its longest drive at the default drive scale 0.5 (GATES_A leaf B).
+            Time.time=formation.MapId=="arena_bowl" ? 6.75f : formation.MapId=="arena_airpit" ? 1.5f
+                : formation.MapId=="arena_iceberg" ? 2.5f : 3.5f;
             Gates.Ready=true;
             var first=formation.Points[0];
             NavMesh.Status=(a,b)=>Math.Abs(a.x-first.X)<.001f ? NavMeshPathStatus.PathPartial : NavMeshPathStatus.PathComplete;
