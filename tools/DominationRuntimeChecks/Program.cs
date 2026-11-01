@@ -66,6 +66,14 @@ foreach (var (map, authored) in cases)
     Need(!runtime.AllowsPickup(new(1000,0,1000)), "unprepared layout cannot authorize pickup space");
     Refuses(runtime.VerifyTeamPaths, "team routes require preparation first");
     runtime.Prepare();
+    var mapMarkers = ArenaMode.Compat.DynamicMapsDominationMarkers.Last;
+    Need(mapMarkers.Location == map && !mapMarkers.Disposed, "map overlay belongs to this prepared location");
+    mode.ObjectiveHudVisible = false;
+    Need(!mapMarkers.Allowed(), "map overlay refuses a foreign or stopped round");
+    mode.ObjectiveHudVisible = true;
+    mode.IsSearchActive = false;
+    Need(!mapMarkers.Allowed(), "map overlay refuses countdown and finished phases");
+    mode.IsSearchActive = true;
     if (factory) expected = DominationPointView.Created.Select(v => (v.Id, v.Floor)).ToArray();
     Need(DominationPointView.Created.Count == expected.Length, "preparation creates exactly the authored marker count");
     Need(ArenaPickupGeometry.FactoryCalls == (factory ? 1 : 0), "only Factory uses the reviewed Factory navigation authority");
@@ -116,6 +124,9 @@ foreach (var (map, authored) in cases)
     var bots = expected.Skip(1).Select(p => new BotOwner { GetPlayer = new Player { Position = p.Position, Friendly = false } }).ToList();
     bots.Add(new BotOwner { GetPlayer = new Player { Position = expected[0].Position, Friendly = false, Eligible = false } });
     runtime.Tick(local, bots, true, 8);
+    Need(mapMarkers.Points.Select(p => (p.Id, p.Position, p.OwnerUsec, p.Contested))
+        .SequenceEqual(DominationObjectiveBridge.Points.Select(p => (p.Id, p.Position, p.OwnerUsec, p.Contested))),
+        "map overlay receives the same validated positions and current owners as gameplay");
     Need(rules.Points.Count == expected.Length && rules.Points[0].OwnerUsec == true
         && rules.Points.Skip(1).All(p => p.OwnerUsec == false), "runtime counts and captures each authored point independently");
     Need(DominationObjectiveBridge.Points.Select(p => p.Id).SequenceEqual(expected.Select(p => p.Id))
@@ -124,6 +135,7 @@ foreach (var (map, authored) in cases)
     Need(expected.All(p => runtime.StatusLine.Contains(p.Id + ":")), "status line includes every actual objective label");
     int rendered = DominationPointView.Created.Sum(v => v.Ticks), published = DominationObjectiveBridge.Calls;
     runtime.Dispose(); runtime.Dispose();
+    Need(mapMarkers.Disposed && !mapMarkers.Allowed(), "runtime disposal releases the overlay and revokes visibility");
     Need(DominationPointView.Created.All(v => v.Disposed) && !runtime.AllowsPickup(new(1000,0,1000)),
         "dispose removes all owned markers and pickup authority");
     runtime.Tick(local, bots, true, 9);
