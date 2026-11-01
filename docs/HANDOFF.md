@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-30. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-01. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -50,6 +50,18 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   and the reports that linked it keep only their summaries.
 
 ## Open work
+
+**Domination objectives on DynamicMaps (2026-11-01, development branch
+`feature/domination-map-markers`, not pushed or released):** ArenaMode owns live
+objective diamonds, using each round's verified IDs/positions and faction or
+contested colours. They appear only in the active Domination round and are removed
+at its end; map assets and other modes are unchanged. Source `01f5bb04` is built
+and deployed as client plus BigBrain companion, leaving the installed Core 1.0.19
+and server untouched. GPU-1 loaded the exact candidate after restart. Native
+Factory coverage includes capture, map reopening and normal round-end cleanup;
+ported-map acceptance is not claimed because GPU-1 has no EFT Arena installation
+and correctly rejects those maps. Contract, identity and verification details:
+[DOMINATION-MAP-MARKERS-20261101.md](reviews/DOMINATION-MAP-MARKERS-20261101.md).
 
 **Arena map screen frame drops (2026-10-31, fixed, measured on GPU-2, merged into
 ArenaMode `master` and Redeploy `main` on 31.10. evening, not pushed, not released):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS

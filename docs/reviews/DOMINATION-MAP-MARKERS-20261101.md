@@ -54,5 +54,64 @@ copied into ArenaMode.
 `tools/DominationMapMarkerChecks/Verify.ps1` exercises the production adapter with
 external Unity/DynamicMaps/Harmony boundaries doubled, deliberate source defects
 and installed-DLL metadata checks. `DominationRuntimeChecks` verifies the actual
-runtime-to-overlay data and cleanup. Native rendering is a separate GPU-1 gate;
-its result is appended after the fresh-client check.
+runtime-to-overlay data and cleanup. Native rendering is verified separately on
+GPU-1; the loaded-build evidence and its limits follow below.
+
+Offline results: 3,620 unit tests passed (three environment-gated cases skipped),
+632 Domination runtime assertions and 13 rejected mutations. The map adapter's
+final presentation passed 28 behavioral assertions, seven rejected mutations and
+the installed public Image/marker contracts. Existing DynamicMaps corpse cleanup
+and its regression harness passed unchanged. Both client assemblies build in
+Release with deployment suppressed; the installed payload stayed unchanged during
+these checks. Independent source and installed-UI reviews found no remaining issue.
+
+The first GPU-1 cycle (source `beb13a87`) verified the exact live round, ownership
+updates, reopening and immediate marker removal at the 120-second terminal sample.
+It exposed the padded dot's poor readability, fixed by `01f5bb04`. GPU-1 has no
+EFT Arena installation, so its map gate correctly refused the initial Iceberg
+attempt; the native cycles use Factory. No install gate or third-party setting was
+changed to bypass that boundary. The first scenario's automatic-menu wait timed out
+on the normal ExitStatus screen; the official leave recipe completed the return.
+These are test setup/presentation findings, not accepted final visual evidence.
+
+The corrected client (`01f5bb0484468ac0b02c1d8139c466b7cacc94f8`) was deployed with
+its matching BigBrain companion, leaving the server and installed Core unchanged.
+Fresh GPU-1 process `0710faa7d7354e9a9f04454044e51d74` loaded the client SHA256
+`2DECAFEDF80659AAEACB84CAA068BF874B5175E6F88DF989FD05078A5F1E2E53`, MVID
+`62bdd3ff-8461-405e-ac9b-1503a4b0af88`; companion SHA256
+`6F7210261520D3DA8ACCFC0B43533DFE0C6E1E78421BA4F6F2E13910FE5FA958`.
+UiBridge 0.9.7 reported all 16 scoped plugins and both scoped libraries matching
+disk, and all 40 discovered plugins loaded without an error.
+
+`artifacts/domination-map-markers/final-diamond/report.md` records the complete
+20-step Factory Domination cycle: live verified objectives, ownership update,
+map close/reopen, the real 120-second terminal transition, and the official
+post-raid return. `diamond-terminal.png` shows removal while native player/exfil
+markers remain. The overlay reports three points, one map view and no failure
+during play, then `_current=null` in MainMenu. The ArenaMode warning/error query
+returned zero lines. The player's arrow obscures the captured A in these images;
+an offset view is recorded separately for the final readability check.
+
+The same loaded process then ran a second round with a different random layout.
+`readability/diamond-offset.png` shows A as a legible, upright dark letter on its
+BEAR-red diamond after capture, with the player five metres away. Native floor
+filtering selects this round's lower level. The 11-step `readability/report.md`
+also verifies manual disconnect cleanup and `_current=null` after the return;
+the ArenaMode warning/error query remains empty.
+
+After both corrected-build raids, all **240** configuration value lines match the
+pre-test snapshot exactly (score limit 200, time limit 600, Factory participants 10).
+Only 11 generated range comments changed decimal comma to period when BepInEx
+saved the file. Whole-profile comparison against the final process's pre-raid
+snapshot differs only in `characters/pmc/Hideout/sptUpdateLastRunTimestamp`;
+the PitFireTeam companion database retains SHA256
+`EF83B5B5E99D401ECA0951E308476A5B0AE1E931195EEADF3731B97A87157B02`.
+`preservation.json` records these checks. `cleanup-status.json` confirms MainMenu,
+no raid, no control lease, godmode off, no pending clock/weather overrides,
+and the exact candidate still loaded. Temporary test controls are restored.
+
+The native scope is Factory Domination on DynamicMaps 1.2.1: capture, readable
+possession, reopen, normal end and manual disconnect. Ported maps, the minimap
+presentation and an ordinary non-Domination raid were not separately exercised
+on this host. Their shared data/view path and inactive-mode boundary have source,
+contract and behavioral coverage; this is not a claim of native acceptance there.
