@@ -50,6 +50,7 @@ namespace ArenaMode.Modes
     internal sealed class TeamDeathmatchMode
     {
         internal bool IsSearchActive = true;
+        internal bool ObjectiveHudVisible = true;
         internal bool TryClassifyCurrentBody(EFT.Player player, out bool friendly)
         { friendly = player?.Friendly == true; return player?.Eligible == true; }
     }
@@ -127,3 +128,18 @@ namespace ArenaMode
     internal static class Plugin { internal static readonly Logger ModLogger = new(); }
 }
 namespace ArenaMode.Diagnostics { internal static class ArenaLog { internal static void Developer(string text) { } } }
+namespace ArenaMode.Compat
+{
+    internal sealed class DynamicMapsDominationMarkers : IDisposable
+    {
+        internal static DynamicMapsDominationMarkers Last;
+        internal readonly string Location;
+        internal readonly Func<bool> Allowed;
+        internal bool Disposed;
+        internal ArenaMode.Bots.DominationObjectivePoint[] Points;
+        internal DynamicMapsDominationMarkers(string location, Func<bool> allowed)
+        { Location = location; Allowed = allowed; Last = this; }
+        internal void Update(IReadOnlyList<ArenaMode.Bots.DominationObjectivePoint> points) => Points = points.ToArray();
+        public void Dispose() => Disposed = true;
+    }
+}

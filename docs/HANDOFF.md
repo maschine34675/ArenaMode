@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-10-30. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-01. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -51,8 +51,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Domination objectives on DynamicMaps (2026-11-01, merged into `master` from
+`feature/domination-map-markers`, not released):** ArenaMode owns live
+objective diamonds, using each round's verified IDs/positions and faction or
+contested colours. They appear only in the active Domination round and are removed
+at its end; map assets and other modes are unchanged. Latest installed client and
+BigBrain companion source `73e0c773` enlarges the diamonds and letters by 50% at
+the user's request; GPU-2 loaded that exact build and verified the larger A/B/C,
+capture colour and disconnect cleanup on Iceberg. Core 1.0.19 and the server stay
+unchanged. Earlier build `01f5bb04` has Factory capture/reopen/end/disconnect and
+Iceberg simultaneous A/B/C/ownership/time-limit acceptance on both GPU hosts.
+GPU-1 lacks EFT Arena, so the ported-map checks use GPU-2. The latest run preserved
+all 240 setting values and 49 companion files; its profile control passed after
+accounting separately for startup PitFireTeam registration. Contract and evidence:
+[DOMINATION-MAP-MARKERS-20261101.md](reviews/DOMINATION-MAP-MARKERS-20261101.md).
+
 **Arena map screen frame drops (2026-10-31, fixed, measured on GPU-2, merged into
-ArenaMode `master` and Redeploy `main` on 31.10. evening, not pushed, not released):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS
+ArenaMode `master` and Redeploy `main` on 31.10. evening, not released):** on the Arena SelectLocation screen GPU-2 dropped from 60 to 48 FPS
 with one 45-130 ms frame every 0.2 s (the user's PC far worse). Measured with
 `uibridge_status perfSeconds`, a ModProfiler headless capture and the DeveloperMode timing
 probe (`ArenaLocationSelectionPatch`, `[dev] Arena map menu refresh: …` every 5 s):
@@ -83,7 +98,7 @@ contract and test results: [MAP-MENU-ADMISSION-20261031.md](reviews/MAP-MENU-ADM
 cause evidence: `artifacts/iceberg-20261031/gpu/menu-perf/`. Release note: the next
 ArenaMode release must ship with a Redeploy release that carries Core 1.0.19.
 
-**Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not pushed):** `arena_iceberg` is
+**Iceberg (2026-10-31, merged into `master` from `feature/iceberg`, not released):** `arena_iceberg` is
 integrated like Bowl in four commits (admission with Tactical refused, CheckPoint team boxes,
 Domination A/B/C, docs) plus the review-fix commit `2709476d`; see [ICEBERG-INTEGRATION-20261031.md](reviews/ICEBERG-INTEGRATION-20261031.md).
 Native GPU-2 cycle on 31.10. passed for Domination 4v4, Team DM 4v4 and 10v10, Deathmatch 8
@@ -97,10 +112,11 @@ it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only 
 `feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
-Iceberg in an ArenaMode release before MapPort publishes it. **The installed binaries on
-all Syncthing hosts are the orchestrator's build of 31.10. evening for the native map-screen
+Iceberg in an ArenaMode release before MapPort publishes it. **Historical 31 October
+measurement build (current ArenaMode installation is recorded above):** all Syncthing
+hosts had the orchestrator's build of 31.10. evening for the native map-screen
 measurement: ArenaMode `0.4.1+60795208` (`fix/map-screen-admission`) with Redeploy.Core
-`1.0.19+51ac95c` (`fix/absent-adapter-unpatch`)**, neither the 0.4.1 release nor `master`
+`1.0.19+51ac95c` (`fix/absent-adapter-unpatch`), neither the 0.4.1 release nor `master`
 (before that: the development build of `master`, `a6ed8d93` plus the timing probe, with the
 released Core). Builds of `master` before the merge stamp Core 1.0.18 and keep the released
 `1.0.18+232af19` bytes: the rebuild writes different bytes under the same version, so the

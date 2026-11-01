@@ -26,6 +26,7 @@ internal sealed class DominationRuntime : IDisposable
     private readonly DominationObjectivePoint[] _objectives;
     private readonly Hud.DominationPointView[] _views;
     private readonly List<BotOwner> _eligibleBots = new();
+    private Compat.DynamicMapsDominationMarkers _mapMarkers;
     private float _nextTick;
     private string _lastOwnership;
     private bool _disposed, _prepared, _teamPathsVerified;
@@ -91,6 +92,8 @@ internal sealed class DominationRuntime : IDisposable
             _views[i] = new Hud.DominationPointView(_layout.Points[i].Id, _positions[i], Radius);
         if (_layout.Factory) _previousFactory = (Vector3[])_positions.Clone();
         _prepared = true;
+        _mapMarkers = new Compat.DynamicMapsDominationMarkers(_world.LocationId,
+            () => !_disposed && _mode.ObjectiveHudVisible && _mode.IsSearchActive);
         Plugin.ModLogger.LogDebug("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));
         Diagnostics.ArenaLog.Developer("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));
     }
@@ -183,12 +186,17 @@ internal sealed class DominationRuntime : IDisposable
             Diagnostics.ArenaLog.Developer($"Domination ownership: {ids}={ownership}; USEC {_rules.UsecScore}, BEAR {_rules.BearScore}.");
         }
         DominationObjectiveBridge.Update(_objectives, _eligibleBots, _rules.Phase == TdmMatchPhase.Live);
+        // Advance may have ended the match on this very sample. The adapter checks
+        // the post-Advance phase, so the result hold cannot retain live objectives.
+        _mapMarkers?.Update(_objectives);
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+        _mapMarkers?.Dispose();
+        _mapMarkers = null;
         foreach (var view in _views) view?.Dispose();
         _eligibleBots.Clear();
     }

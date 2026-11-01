@@ -114,8 +114,12 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
   ownership rings and one integrated score/objective HUD. Ported-map monitors
   (ArenaMapPort 0.4.0 or newer, published 2026-10-30) display objective scores. Profile rewards are currently excluded.
+- Optional DynamicMaps displays the live objective IDs and their neutral,
+  USEC/BEAR or contested colours only during Domination. Coordinates come from
+  the current round, including Factory's random layout; other modes keep their map unchanged.
 
 Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
+[DynamicMaps objectives](reviews/DOMINATION-MAP-MARKERS-20261101.md),
 [ported anchors](reviews/DOMINATION-PORTED-20261026.md),
 [native sweep](reports/2026-10/RELEASE-SWEEP-20261029.md).
 

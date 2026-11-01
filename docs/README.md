@@ -18,6 +18,8 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ## Living references
 
+- [Domination objectives on DynamicMaps](reviews/DOMINATION-MAP-MARKERS-20261101.md) — live IDs, ownership colours and exact round cleanup (2026-11-01).
+
 - [Working handoff: versions, installed state, open work, how to continue](HANDOFF.md)
 - [Area rules: per-area constraints and the reviews to read before changing an area](AREA-RULES.md)
 - [Traps: the pitfalls that recur, with symptom, cause and remedy](TRAPS.md)
