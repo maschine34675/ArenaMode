@@ -25,6 +25,7 @@ try {
         @($def, 'Position', 'UnityEngine.Vector3', $true), @($marker, 'Position', 'UnityEngine.Vector3', $true),
         @($marker, 'Color', 'UnityEngine.Color', $true), @($marker, 'Size', 'UnityEngine.Vector2', $true),
         @($marker, 'Label', 'TMPro.TextMeshProUGUI', $false),
+        @($marker, 'Image', 'UnityEngine.UI.Image', $false),
         @($marker, 'LabelAlphaLayerStatus', 'System.Collections.Generic.Dictionary`2<DynamicMaps.UI.Components.LayerStatus,System.Single>', $false))) {
         $p = @($contract[0].Properties | Where-Object Name -eq $contract[1])
         if ($p.Count -ne 1 -or $p[0].PropertyType.FullName -ne $contract[2] -or !$p[0].GetMethod.IsPublic -or

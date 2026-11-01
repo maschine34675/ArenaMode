@@ -9,6 +9,7 @@ using BepInEx.Bootstrap;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ArenaMode.Compat;
 
@@ -100,6 +101,13 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
                 if (marker == null) throw new InvalidOperationException("DynamicMaps did not return a marker.");
                 owned.Add(marker); // own it before any optional styling can fail
                 _api.Size.SetValue(marker, new Vector2(28f, 28f));
+                // DynamicMaps' dot has a tiny opaque centre in a large transparent
+                // canvas. A native solid UI quad makes possession readable without
+                // shipping an icon or allocating a texture. Rotate only the backdrop.
+                var image = (Image)_api.Image.GetValue(marker);
+                image.sprite = null;
+                image.rectTransform.sizeDelta = new Vector2(20f, 20f);
+                image.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 var label = (TextMeshProUGUI)_api.Label.GetValue(marker);
                 // Keep native hover/layer handling, but make the compact ID always
                 // visible on this floor. These dictionaries belong to this marker.
@@ -204,7 +212,7 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
         internal readonly Type ViewType, DefinitionType;
         internal readonly MethodInfo Load, Unload, Add, Remove;
         internal readonly PropertyInfo CurrentMap, MapNames, Text, Category, ImagePath, DefPosition,
-            Position, Color, Size, Label, LabelAlpha;
+            Position, Color, Size, Image, Label, LabelAlpha;
         internal readonly object OnTop;
 
         internal Api(Assembly assembly)
@@ -231,6 +239,7 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
             Position = Property(marker, "Position", typeof(Vector3), true);
             Color = Property(marker, "Color", typeof(Color), true);
             Size = Property(marker, "Size", typeof(Vector2), true);
+            Image = Property(marker, "Image", typeof(Image));
             Label = Property(marker, "Label", typeof(TextMeshProUGUI));
             LabelAlpha = Property(marker, "LabelAlphaLayerStatus", typeof(Dictionary<,>).MakeGenericType(layerStatus, typeof(float)));
         }

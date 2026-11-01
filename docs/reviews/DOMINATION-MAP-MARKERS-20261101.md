@@ -35,7 +35,9 @@ claimed tested by this baseline.
 - Location names must match the current raid. Native projection receives world
   `(x,z,y)` and owns rotation, zoom and floor visibility. The map's own markers and
   global category/opacity settings remain unchanged.
-- `MapMarkerDef` uses the existing dot sprite and an owned category. Its ID label
+- `MapMarkerDef` uses an owned category. Its backdrop is a solid native UI quad
+  rotated into a diamond (the native dot's large transparent border was unreadable
+  in the first GPU test). No new texture or sprite asset is needed. Its ID label
   is centred and visible without hovering. Ownership repaint is followed by the
   native position/layer callback, preserving hidden floors.
 - The instance owns its hook ID and exact marker handles. Late disposal of a

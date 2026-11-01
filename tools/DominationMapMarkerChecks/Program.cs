@@ -52,6 +52,8 @@ Need(view.Markers.Count == 4 && view.Markers[0] == foreign, "inactive retained m
 var a = view.Markers.Single(m => m.Id == "A");
 Need(a.Position.x == 16.77f && a.Position.y == -91.39f && a.Position.z == 4.5f, "Unity coordinates project x z y exactly once");
 Need(a.Category == DynamicMapsDominationMarkers.Category && a.Icon == "Markers/dot.png", "markers use an owned category and existing icon");
+Need(a.Image.sprite == null && a.Image.rectTransform.sizeDelta.x == 20 && a.Image.rectTransform.localRotation.z == 45,
+    "possession backdrop fills a readable diamond instead of the padded native dot");
 Need(a.LabelAlphaLayerStatus[LayerStatus.OnTop] == 1 && a.Label.alignment == TMPro.TextAlignmentOptions.Center && a.Label.fontSize == 18,
     "IDs remain visible and centred without hover");
 Need(a.Color.r == .85f && a.Color.b == .9f, "neutral uses light grey");

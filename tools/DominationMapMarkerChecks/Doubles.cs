@@ -21,10 +21,15 @@ namespace UnityEngine
     public class GameObject
     { public bool activeSelf = true, ThrowSetActive;
       public void SetActive(bool value) { if (ThrowSetActive) throw new Exception("hide failed"); activeSelf = value; } }
-    public class RectTransform { public Vector2 anchorMin, anchorMax, pivot, anchoredPosition, sizeDelta; }
+    public class RectTransform { public Vector2 anchorMin, anchorMax, pivot, anchoredPosition, sizeDelta; public Quaternion localRotation; }
+    public struct Quaternion { public float z; public static Quaternion Euler(float x, float y, float z) => new() { z = z }; }
     public struct Vector2(float x, float y) { public float x = x, y = y; public static Vector2 zero => new(0, 0); }
     public struct Vector3(float x, float y, float z) { public float x = x, y = y, z = z; }
     public struct Color(float r, float g, float b, float a = 1) { public float r = r, g = g, b = b, a = a; }
+}
+namespace UnityEngine.UI
+{
+    public class Image : UnityEngine.Component { public object sprite = new(); public UnityEngine.RectTransform rectTransform = new(); }
 }
 namespace TMPro
 {
@@ -104,6 +109,7 @@ namespace DynamicMaps.UI.Components
     {
         public string Id, Category, Icon;
         public TMPro.TextMeshProUGUI Label { get; } = new();
+        public UnityEngine.UI.Image Image { get; } = new();
         public Dictionary<LayerStatus, float> LabelAlphaLayerStatus { get; } = new() { [LayerStatus.OnTop] = 0 };
         public UnityEngine.Vector2 Size { get; set; }
         private UnityEngine.Vector3 _position;
