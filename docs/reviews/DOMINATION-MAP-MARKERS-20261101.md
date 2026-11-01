@@ -110,8 +110,44 @@ the PitFireTeam companion database retains SHA256
 no raid, no control lease, godmode off, no pending clock/weather overrides,
 and the exact candidate still loaded. Temporary test controls are restored.
 
-The native scope is Factory Domination on DynamicMaps 1.2.1: capture, readable
+The GPU-1 native scope is Factory Domination on DynamicMaps 1.2.1: capture, readable
 possession, reopen, normal end and manual disconnect. Ported maps, the minimap
 presentation and an ordinary non-Domination raid were not separately exercised
 on this host. Their shared data/view path and inactive-mode boundary have source,
 contract and behavioral coverage; this is not a claim of native acceptance there.
+
+## Supplementary Iceberg acceptance on GPU-2
+
+The user released GPU-2 later on 2026-11-01. After a normal restart, process
+`9e6845019f324c32846bc443e2d6f883` loaded the same client MVID and client/companion
+hashes above, with all 16 scoped plugins and both libraries matching disk. ArenaMapPort
+was `0.4.0+880002b9`, MVID `6928d93f-7f1f-4c1e-a3ed-1826e98fe400`. No rebuild,
+redeployment or gameplay/source change was needed for this additional check.
+
+Evidence is under `artifacts/domination-map-markers/gpu2-iceberg/`:
+
+- `start-r2/report.md`: a 5v5 Iceberg Domination raid, clear noon, with the
+  test-only score limit disabled and time limit 180 seconds. The first start
+  (`start/report.md`) was refused before any click by gpu-run's old map catalogue;
+  documented `mapFromMenu` selected the real available Iceberg tile on retry.
+- `validated-anchors.json`: live A `(16.770,4.403,-91.390)`, B
+  `(10.614,3.130,-77.727)`, C `(21.910,3.107,-47.300)`. All three appear together on
+  Ground Floor. `native/iceberg-initial.png` shows the three neutral IDs in the
+  expected arrangement; `native/iceberg-ownership.png` shows A blue and B/C red.
+  Each point was visited, and the same map view reopened between visits.
+- `native/report.md`: all 35 steps passed. The runtime reports `arena_iceberg`,
+  three points, one map view and no adapter failure. At the real time limit,
+  `native/iceberg-terminal.png` shows all three objective diamonds removed while
+  player, corpse and exfil markers remain. After the official return, `_current`
+  is null. ArenaMode and DynamicMaps warning/error queries, plus the final
+  Error query across all BepInEx sources, returned no entries.
+- `preservation.json`: all 240 config values restored, the complete config file
+  byte-identical, only the allowed Hideout bookkeeping timestamp changed in the
+  whole-profile comparison, and all 49 companion/backup files byte-identical.
+  `cleanup-status.json` confirms MainMenu, no raid/control lease, godmode off,
+  time/weather overrides cleared and the exact candidate still loaded.
+
+The additional native acceptance covers Iceberg on DynamicMaps 1.2.1. Other
+ported maps, the separate minimap presentation and an ordinary non-Domination
+raid remain outside the exercised native scope; their shared integration and
+mode boundaries retain the offline coverage described above.

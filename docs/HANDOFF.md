@@ -57,10 +57,12 @@ objective diamonds, using each round's verified IDs/positions and faction or
 contested colours. They appear only in the active Domination round and are removed
 at its end; map assets and other modes are unchanged. Source `01f5bb04` is built
 and deployed as client plus BigBrain companion, leaving the installed Core 1.0.19
-and server untouched. GPU-1 loaded the exact candidate after restart. Native
-Factory coverage includes capture, map reopening and normal round-end cleanup;
-ported-map acceptance is not claimed because GPU-1 has no EFT Arena installation
-and correctly rejects those maps. Contract, identity and verification details:
+and server untouched. Both GPU hosts loaded the exact candidate after restart.
+Factory coverage includes capture, map reopening, normal end and disconnect;
+the supplementary GPU-2 Iceberg round verifies simultaneous A/B/C placement,
+neutral/USEC/BEAR colours and removal at its real time limit. GPU-1 lacks EFT
+Arena, so the ported-map check used GPU-2 after the user's release. Settings and
+profile/companion preservation passed on both hosts. Contract and evidence:
 [DOMINATION-MAP-MARKERS-20261101.md](reviews/DOMINATION-MAP-MARKERS-20261101.md).
 
 **Arena map screen frame drops (2026-10-31, fixed, measured on GPU-2, merged into
