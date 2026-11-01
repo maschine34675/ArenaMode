@@ -154,3 +154,43 @@ The additional native acceptance covers Iceberg on DynamicMaps 1.2.1. Other
 ported maps, the separate minimap presentation and an ordinary non-Domination
 raid remain outside the exercised native scope; their shared integration and
 mode boundaries retain the offline coverage described above.
+
+## Larger markers requested by the user
+
+Source `73e0c773e4017b3d809c46586c1253fb7f078403` scales the marker/label frame
+28 to 42, diamond square 20 to 30 and ID font 18 to 27. Only these dimensions
+changed; projection, ownership and lifecycle code remain as previously verified.
+The existing marker assertions were updated. Verification passed 3,620 unit
+tests (three environment skips), 28 marker assertions, all seven rejected source
+faults and installed contracts. Independent source review found no clipping,
+centering or zoom regression; the Release client/companion build passed without
+writing the live install, then both client assemblies were explicitly deployed.
+
+Fresh GPU-2 process `3778383a4fd74cd5b7d45ae6912e5ad1` loaded client MVID
+`c5699ee6-a6f7-4b74-bfe1-f09380200515`, SHA256
+`749408D9A69B5E7149ACCA90E05FB2E1C2A86AD9FDF2A292A2460343464F2381`; companion
+MVID `ab74ba80-62af-47d6-8cf2-43f5741d9e41`, SHA256
+`F60B3866E744A63E59DDA335FA90477931AA67B756378E6B3C520B1A273D2B00`.
+Evidence is in `artifacts/domination-map-marker-size/`. The 16-step native
+scenario passed: all three enlarged Iceberg IDs are centered and unclipped,
+captured A turns red, reopening keeps the presentation, and manual disconnect
+returns to MainMenu with `_current=null`. ArenaMode and DynamicMaps warning/error
+queries are empty. Independent image review agrees. This larger-build native
+check covers Iceberg overview/capture/reopen/disconnect; it does not repeat the
+earlier build's full time-limit or Factory cases.
+
+The first disk-profile comparison also found a new `spt/mods` entry for
+PitFireTeam 1.1.0, beyond the two permitted bookkeeping timestamps. Its registration
+timestamp matches `/singleplayer/clientmods` at 20:42:07 UTC, before Arena's
+20:42:43 entry snapshot; it was not removed or hidden by relaxing the comparator.
+A separate short raid/disconnect control in `profile-control/` used the saved
+baseline containing that startup entry and passed the unchanged whole-profile
+check with only `Hideout/sptUpdateLastRunTimestamp` differing. The original
+comparison remains in `profile-diff.json`.
+
+`profile-control/preservation.json` verifies all 240 configuration values restored
+and all 49 companion/backup files byte-identical to the original pre-start
+baseline. The config file differs only in 11 BepInEx range comments using decimal
+commas instead of periods. The final status confirms MainMenu, no control lease,
+godmode and time/weather hooks off, and the exact larger candidate still loaded;
+the Error query across BepInEx sources is empty.

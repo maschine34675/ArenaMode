@@ -55,14 +55,15 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 `feature/domination-map-markers`, not pushed or released):** ArenaMode owns live
 objective diamonds, using each round's verified IDs/positions and faction or
 contested colours. They appear only in the active Domination round and are removed
-at its end; map assets and other modes are unchanged. Source `01f5bb04` is built
-and deployed as client plus BigBrain companion, leaving the installed Core 1.0.19
-and server untouched. Both GPU hosts loaded the exact candidate after restart.
-Factory coverage includes capture, map reopening, normal end and disconnect;
-the supplementary GPU-2 Iceberg round verifies simultaneous A/B/C placement,
-neutral/USEC/BEAR colours and removal at its real time limit. GPU-1 lacks EFT
-Arena, so the ported-map check used GPU-2 after the user's release. Settings and
-profile/companion preservation passed on both hosts. Contract and evidence:
+at its end; map assets and other modes are unchanged. Latest installed client and
+BigBrain companion source `73e0c773` enlarges the diamonds and letters by 50% at
+the user's request; GPU-2 loaded that exact build and verified the larger A/B/C,
+capture colour and disconnect cleanup on Iceberg. Core 1.0.19 and the server stay
+unchanged. Earlier build `01f5bb04` has Factory capture/reopen/end/disconnect and
+Iceberg simultaneous A/B/C/ownership/time-limit acceptance on both GPU hosts.
+GPU-1 lacks EFT Arena, so the ported-map checks use GPU-2. The latest run preserved
+all 240 setting values and 49 companion files; its profile control passed after
+accounting separately for startup PitFireTeam registration. Contract and evidence:
 [DOMINATION-MAP-MARKERS-20261101.md](reviews/DOMINATION-MAP-MARKERS-20261101.md).
 
 **Arena map screen frame drops (2026-10-31, fixed, measured on GPU-2, merged into
