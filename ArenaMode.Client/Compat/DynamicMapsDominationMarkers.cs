@@ -100,13 +100,13 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
                 var marker = (Component)_api.Add.Invoke(view, new[] { definitionObject });
                 if (marker == null) throw new InvalidOperationException("DynamicMaps did not return a marker.");
                 owned.Add(marker); // own it before any optional styling can fail
-                _api.Size.SetValue(marker, new Vector2(28f, 28f));
+                _api.Size.SetValue(marker, new Vector2(42f, 42f));
                 // DynamicMaps' dot has a tiny opaque centre in a large transparent
                 // canvas. A native solid UI quad makes possession readable without
                 // shipping an icon or allocating a texture. Rotate only the backdrop.
                 var image = (Image)_api.Image.GetValue(marker);
                 image.sprite = null;
-                image.rectTransform.sizeDelta = new Vector2(20f, 20f);
+                image.rectTransform.sizeDelta = new Vector2(30f, 30f);
                 image.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
                 var label = (TextMeshProUGUI)_api.Label.GetValue(marker);
                 // Keep native hover/layer handling, but make the compact ID always
@@ -116,7 +116,7 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
                 label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(.5f, .5f);
                 label.rectTransform.pivot = new Vector2(.5f, .5f);
                 label.rectTransform.anchoredPosition = Vector2.zero;
-                label.rectTransform.sizeDelta = new Vector2(28f, 28f);
+                label.rectTransform.sizeDelta = new Vector2(42f, 42f);
             }
         }
         for (int i = 0; i < owned.Count; i++)
@@ -127,7 +127,7 @@ internal sealed class DynamicMapsDominationMarkers : IDisposable
             // Native OnEnable/hover may restyle a label; restore only our ID.
             label.alignment = TextAlignmentOptions.Center;
             label.enableAutoSizing = false; label.enableWordWrapping = false;
-            label.fontSize = 18f; label.fontStyle = FontStyles.Bold;
+            label.fontSize = 27f; label.fontStyle = FontStyles.Bold;
             label.color = new Color(.08f, .09f, .12f);
             // Color sets alpha to one: re-run native layer visibility afterwards,
             // including when only ownership changed on a hidden Factory floor.

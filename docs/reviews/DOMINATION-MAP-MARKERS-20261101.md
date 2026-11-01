@@ -40,6 +40,9 @@ claimed tested by this baseline.
   in the first GPU test). No new texture or sprite asset is needed. Its ID label
   is centred and visible without hovering. Ownership repaint is followed by the
   native position/layer callback, preserving hidden floors.
+- The user's larger presentation uses a 42px marker/label frame, a 30px square
+  rotated 45 degrees (about 42px corner-to-corner) and 27px ID text: 50% larger
+  in each linear dimension than the initial accepted presentation.
 - The instance owns its hook ID and exact marker handles. Late disposal of a
   previous round cannot remove a successor's markers. Destroyed views are pruned.
 - Optional binding, rendering and removal errors cannot abort a match. Cleanup
