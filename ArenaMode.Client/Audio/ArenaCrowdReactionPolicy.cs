@@ -144,10 +144,12 @@ internal static class ArenaCrowdReactionPolicy
     }
 
     /// <summary>
-    /// The reactions of one frame. Every kind keeps its strongest entry; a Start or a Finish drops
+    /// The reactions of one tick. Every kind keeps its strongest entry; a Start or a Finish drops
     /// Approve and Disapprove, because the deciding kill's OnKill arrives before its MatchWon cue
     /// (ArenaMatch.ReportKill raises OnKill, then mode.OnKill publishes the result) and the crowd
-    /// must not cheer the kill and then the result as two reactions. Fixed arrays: no allocation.
+    /// must not cheer the kill and then the result as two reactions. The service holds a tick's
+    /// Approve and Disapprove for one more tick, for a result published a tick after its kill
+    /// (ArenaCrowdReactions.Flush). Fixed arrays: no allocation.
     /// </summary>
     internal sealed class Frame
     {
@@ -173,9 +175,11 @@ internal static class ArenaCrowdReactionPolicy
             _source[kind] = source;
         }
 
+        internal bool HasRoundEvent => _strength[Start] > 0f || _strength[Finish] > 0f;
+
         internal void Resolve()
         {
-            if (_strength[Start] <= 0f && _strength[Finish] <= 0f) return;
+            if (!HasRoundEvent) return;
             _strength[Approve] = _strength[Disapprove] = 0f;
             _source[Approve] = _source[Disapprove] = null;
         }

@@ -243,7 +243,12 @@ ArenaMatch NewMatch(IArenaMode mode)
     return match;
 }
 void Frame(float seconds = 0.1f) { UnityEngine.Time.unscaledTime += seconds; ArenaCrowdReactions.Tick(); }
+// Approve and Disapprove go out one tick after their tick (the hold for a result published a tick
+// later); Start and Finish in their own tick. Two ticks settle a moment.
+void Settle() { Frame(); Frame(); }
 void Run(float seconds) { for (float t = 0; t < seconds; t += 0.1f) Frame(); }
+// The announcement epoch is the mode's round identity; no pressure, so the murmur stays at 0.
+ArenaAnnouncementSnapshot Epoch(int epoch, bool live = true) => new() { Active = true, Live = live, Preparing = !live, Epoch = epoch };
 bool Sent(params (int kind, float strength)[] expected)
 {
     bool same = FakeCrowd.Reactions.Count == expected.Length;
@@ -273,26 +278,29 @@ Check(FakeCrowd.Claims == 1 && FakeCrowd.Handle > 0 && binds == 1, "the first ga
 string firstOwner = FakeCrowd.SentOwners[0];
 Check(firstOwner.StartsWith(ArenaCrowdReactions.OwnerPrefix, StringComparison.Ordinal) && firstOwner.Length == 40
     && firstOwner == FakeCrowd.Owners[0], "owner is unique per match and fits MapPort's 40 characters");
-Check(tdm.Subscribers == 3 && ArenaEvents.DiedSubscribers == 1, "a bound reaction part listens to the match");
+Check(tdm.KillSubscribers == 2 && tdm.CueSubscribers == 1 && ArenaEvents.DiedSubscribers == 1,
+    "a bound reaction part listens to the match");
 
 // Mapping through the real events.
 tdm.Kill(LocalKill()); Frame();
+Check(Sent(), "an own kill waits one tick for a result published a tick later");
+Frame();
 Check(Sent((Approve, 0.35f)), "own kill reaches the crowd once");
-tdm.Callout("DOUBLE KILL"); tdm.Kill(LocalKill()); Frame();
+tdm.Callout("DOUBLE KILL"); tdm.Kill(LocalKill()); Settle();
 Check(Sent((Approve, 0.9f)), "callout and kill in one frame give one Approve at the award strength");
-tdm.Callout("HEADSHOT"); tdm.Kill(LocalKill("Bullet", head: true)); Frame();
+tdm.Callout("HEADSHOT"); tdm.Kill(LocalKill("Bullet", head: true)); Settle();
 Check(Sent((Approve, 0.6f)), "headshot kill and its award give one Approve at 0.6");
 tdm.Kill(OtherKill(true, false)); tdm.Kill(OtherKill(null, null)); tdm.Kill(OtherKill(false, true));
-tdm.Kill(LocalKill(eligible: false)); Frame();
+tdm.Kill(LocalKill(eligible: false)); Settle();
 Check(Sent(), "bot-versus-bot (a teammate's included) and unscored kills stay silent");
 tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Frame();
 tdm.Cue(ArenaAnnouncerCue.LostTheLead); Frame();
-tdm.Cue(ArenaAnnouncerCue.TiedForTheLead); Frame();
+tdm.Cue(ArenaAnnouncerCue.TiedForTheLead); Settle();
 Check(Sent((Approve, 0.5f), (Disapprove, 0.5f)), "lead taken and lost react at 0.5, a tie stays silent");
 foreach (var cue in new[] { ArenaAnnouncerCue.LastManStanding, ArenaAnnouncerCue.Clutch, ArenaAnnouncerCue.FinalWeapon,
     ArenaAnnouncerCue.LadderComplete, ArenaAnnouncerCue.Shutdown })
 {
-    tdm.Cue(cue); Frame();
+    tdm.Cue(cue); Settle();
     Check(Sent((Approve, 0.9f)), "team moment cue approves at 0.9: " + cue);
 }
 foreach (var cue in new[] { ArenaAnnouncerCue.PrepareToFight, ArenaAnnouncerCue.Three, ArenaAnnouncerCue.Two,
@@ -310,35 +318,37 @@ Check(Sent() && log.Debugs.Count == debugBefore && FakeCrowd.ReactCalls == calls
 
 // Local death: one decision per body across OnKill and ArenaEvents.OnPlayerDied.
 var body = new Player();
-tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Frame();
+tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
 Check(Sent((Disapprove, 0.5f)), "local death via OnKill and OnPlayerDied gives one Disapprove");
 body = new Player();
-tdm.Kill(LocalDeath(body)); Frame(); ArenaEvents.RaisePlayerDied(body); Frame();
+tdm.Kill(LocalDeath(body)); Frame(); ArenaEvents.RaisePlayerDied(body); Settle();
 Check(Sent((Disapprove, 0.5f)), "local death notified in two frames still gives one Disapprove");
 body = new Player();
-ArenaEvents.RaisePlayerDied(body); Frame(); tdm.Kill(LocalDeath(body)); Frame();
+ArenaEvents.RaisePlayerDied(body); Frame(); tdm.Kill(LocalDeath(body)); Settle();
 Check(Sent((Disapprove, 0.5f)), "local death notified in either order gives one Disapprove");
-ArenaEvents.RaisePlayerDied(new Player()); Frame();
+// Also the path of a local death the mode did not admit (outside its live phase, after the
+// result): ArenaMatch drops that kill before OnKill, so only OnPlayerDied reports it.
+ArenaEvents.RaisePlayerDied(new Player()); Settle();
 Check(Sent((Disapprove, 0.5f)), "a death without a kill record disapproves");
 body = new Player();
-tdm.Kill(LocalDeath(body, eligible: false)); ArenaEvents.RaisePlayerDied(body); Frame();
+tdm.Kill(LocalDeath(body, eligible: false)); ArenaEvents.RaisePlayerDied(body); Settle();
 Check(Sent(), "an unscored local death stays silent on both paths");
 
 // Coalescing with round events.
 tdm.Cue(ArenaAnnouncerCue.RoundStart); Frame();
-Check(Sent((Start, 1f)), "round start reacts at 1.0");
-tdm.Kill(LocalKill()); tdm.Cue(ArenaAnnouncerCue.MatchWon); Frame();
+Check(Sent((Start, 1f)), "round start reacts at 1.0 in its own tick");
+tdm.Kill(LocalKill()); tdm.Cue(ArenaAnnouncerCue.MatchWon); Settle();
 Check(Sent((Finish, 1f)), "deciding kill and MatchWon give Finish only");
-tdm.Cue(ArenaAnnouncerCue.Draw); Frame();
+tdm.Cue(ArenaAnnouncerCue.Draw); Settle();
 Check(Sent(), "one Finish per round");
-tdm.Cue(ArenaAnnouncerCue.RoundStart); tdm.Kill(LocalDeath(new Player())); tdm.Cue(ArenaAnnouncerCue.RoundLost); Frame();
+tdm.Cue(ArenaAnnouncerCue.RoundStart); tdm.Kill(LocalDeath(new Player())); tdm.Cue(ArenaAnnouncerCue.RoundLost); Settle();
 Check(Sent((Finish, 1f), (Start, 1f)), "a frame with Start and Finish sends both, round events first, no Disapprove");
 
 // Announcer interlock.
 AnnouncerService.IsPmcVoiceBlocked = true;
-tdm.Kill(LocalKill()); Frame();
-tdm.Kill(LocalDeath(new Player())); Frame();
-tdm.Callout("FIRST BLOOD"); tdm.Kill(LocalKill()); Frame();
+tdm.Kill(LocalKill()); Settle();
+tdm.Kill(LocalDeath(new Player())); Settle();
+tdm.Callout("FIRST BLOOD"); tdm.Kill(LocalKill()); Settle();
 tdm.Cue(ArenaAnnouncerCue.RoundStart); Frame();
 tdm.Cue(ArenaAnnouncerCue.RoundWon); Frame();
 Check(Sent((Approve, 0.175f), (Disapprove, 0.25f), (Approve, 0.45f), (Start, 1f), (Finish, 1f)),
@@ -359,12 +369,16 @@ Check(tdm.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0 && FakeCrowd.Rele
 var dm = new RoundsMode();
 var dmMatch = Claimed(dm);
 Check(dm.Subscribers == 2, "Deathmatch round events are bound");
+// RoundsMode's epoch: the round while live, round + 1 from the intermission on (the round it prepares).
+ArenaAnnouncementDirector.Snapshot = Epoch(1);
 dm.Start(1); Frame();
 Check(Sent((Start, 1f)), "Deathmatch round start reacts at 1.0");
-dmMatch.Kill(LocalKill()); dm.End(1); Frame();
+ArenaAnnouncementDirector.Snapshot = Epoch(2, live: false);
+dmMatch.Kill(LocalKill()); dm.End(1); Settle();
 Check(Sent((Finish, 1f)), "non-terminal Deathmatch round end gives Finish only");
-dmMatch.Cue(ArenaAnnouncerCue.Draw); Frame();
+dmMatch.Cue(ArenaAnnouncerCue.Draw); Settle();
 Check(Sent(), "non-terminal Deathmatch draw gives one Finish");
+ArenaAnnouncementDirector.Snapshot = Epoch(2);
 dm.Start(2); Frame(); Sent();
 dm.IsComplete = true; dmMatch.Cue(ArenaAnnouncerCue.MatchWon); dm.End(2); Frame();
 Check(Sent((Finish, 1f)), "terminal Deathmatch round end gives one Finish");
@@ -379,6 +393,23 @@ dm.IsComplete = true; dmMatch.Cue(ArenaAnnouncerCue.NoContest); dm.End(1); Frame
 Check(Sent() && FakeCrowd.Handle == 0, "Deathmatch no contest stays silent");
 ArenaCrowdReactions.Detach();
 Check(dm.Subscribers == 0, "Deathmatch round events are unbound on detach");
+
+// Tactical decides its round in its mode tick. A kill raised after that tick in the same Update
+// (ArenaFireRuntime: a burn, a tracked throw) reaches the crowd one tick before its RoundWon.
+var tactical = Claimed(new TacticalMode());
+ArenaAnnouncementDirector.Snapshot = Epoch(1);
+tactical.Cue(ArenaAnnouncerCue.RoundStart); Frame(); Sent();
+tactical.Kill(LocalKill("Flame")); Frame();
+tactical.Cue(ArenaAnnouncerCue.RoundWon); Settle();
+Check(Sent((Finish, 1f)), "a deciding kill one tick before its result gives Finish only");
+// Solo Tactical starts a round without a RoundStart cue when its squad was eliminated while it
+// assembled; EndRound reports the result before it advances RoundNumber, its epoch.
+ArenaAnnouncementDirector.Snapshot = Epoch(2);
+tactical.Kill(LocalKill()); tactical.Cue(ArenaAnnouncerCue.RoundWon); Settle();
+Check(Sent((Finish, 1f)), "a round without a RoundStart cue still sends its result");
+tactical.Cue(ArenaAnnouncerCue.RoundLost); Settle();
+Check(Sent(), "a second result of the same round is dropped");
+ArenaCrowdReactions.Detach();
 
 // Gating: every push needs this exact current match, a Started game and the exact active raid.
 foreach (var condition in new[] { "not current", "not started", "not exact", "abort pending", "no game" })
@@ -422,7 +453,7 @@ ArenaCrowdReactions.Detach();
 // A refused or throwing reaction ends the claim for the match; nothing is claimed again.
 var refused = Claimed(new TeamDeathmatchMode());
 FakeCrowd.ReactResult = false;
-refused.Kill(LocalKill()); Frame();
+refused.Kill(LocalKill()); Settle();
 int reactCalls = FakeCrowd.ReactCalls;
 Check(FakeCrowd.Handle == 0 && FakeCrowd.Releases == 1, "refused reaction releases the claim");
 FakeCrowd.ReactResult = true;
@@ -431,7 +462,7 @@ Check(FakeCrowd.ReactCalls == reactCalls && FakeCrowd.Claims == 1 && FakeCrowd.R
     "after a refused reaction nothing is pushed or claimed again");
 var throwingReact = Claimed(new TeamDeathmatchMode());
 FakeCrowd.ThrowReact = true;
-throwingReact.Kill(LocalKill()); Frame();
+throwingReact.Kill(LocalKill()); Settle();
 Check(FakeCrowd.Handle == 0 && log.Warnings.Count == 1 && log.Warnings[0].Contains("stopped"),
     "a throwing reaction is contained and releases the claim");
 ArenaCrowdReactions.Detach();
@@ -475,8 +506,9 @@ ArenaCrowdReactions.Attach(murmur, Surface(typeof(Variants.V040)));
 ArenaAnnouncementDirector.Snapshot = Live(finalRound: true);
 Frame();
 Check(FakeCrowd.Excitement.Count == 1 && Near(FakeCrowd.Excitement[0], 0.6f), "0.4.0 surface: excitement is written");
-Check(FakeCrowd.Claims == 0 && FakeCrowd.KindReads == 0 && murmur.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0,
+Check(FakeCrowd.Claims == 0 && FakeCrowd.KindReads == 0 && murmur.KillSubscribers == 0 && ArenaEvents.DiedSubscribers == 0,
     "0.4.0 surface: reactions dormant without subscriptions or claims");
+Check(murmur.CueSubscribers == 1, "0.4.0 surface: the murmur hears the cues for NoContest");
 int reads = ArenaAnnouncementDirector.Reads;
 Run(0.85f);
 Check(ArenaAnnouncementDirector.Reads == reads, "excitement polls at most once per second");
@@ -489,6 +521,20 @@ Check(FakeCrowd.Excitement.Count == 3 && Near(FakeCrowd.Excitement[1], 0.85f) &&
 ArenaAnnouncementDirector.Snapshot = Live(matchPoint: true); Run(1.1f);
 ArenaCrowdReactions.Detach();
 Check(FakeCrowd.Excitement.Count == 5 && FakeCrowd.Excitement[4] == 0f, "excitement resets to 0 on release");
+// A failed Team DM raises NoContest but leaves its snapshot Live without a result
+// (TeamDeathmatchMode.Fail), so only the cue can calm the 0.4.0 murmur.
+var failed = NewMatch(new TeamDeathmatchMode());
+ArenaCrowdReactions.Attach(failed, Surface(typeof(Variants.V040)));
+ArenaAnnouncementDirector.Snapshot = Live(seconds: 30); Run(1.1f);
+Check(FakeCrowd.Excitement.Count == 1 && Near(FakeCrowd.Excitement[0], 0.3f), "0.4.0 surface: no-contest control");
+failed.Cue(ArenaAnnouncerCue.RoundStart); failed.Cue(ArenaAnnouncerCue.MatchWon);
+failed.Cue(ArenaAnnouncerCue.NoContest);
+Check(FakeCrowd.Excitement.Count == 2 && FakeCrowd.Excitement[1] == 0f && FakeCrowd.ReactCalls == 0,
+    "0.4.0 surface: no contest calms the murmur at once");
+ArenaAnnouncementDirector.Snapshot = Live(seconds: 0); Run(5);
+Check(FakeCrowd.Excitement.Count == 2, "0.4.0 surface: after no contest a later clock writes nothing");
+ArenaCrowdReactions.Detach();
+Check(failed.CueSubscribers == 0 && FakeCrowd.Excitement.Count == 2, "0.4.0 surface: detach unsubscribes the cue");
 var calm = NewMatch(new TeamDeathmatchMode());
 ArenaCrowdReactions.Attach(calm, Surface(typeof(Variants.V040)));
 Run(5); ArenaCrowdReactions.Detach();
@@ -511,12 +557,12 @@ ArenaCrowdReactions.Detach();
 var brokenMurmur = Claimed(new TeamDeathmatchMode());
 FakeCrowd.ThrowExcite = true;
 ArenaAnnouncementDirector.Snapshot = Live(finalRound: true); Run(1.1f);
-brokenMurmur.Kill(LocalKill()); Frame();
+brokenMurmur.Kill(LocalKill()); Settle();
 Check(Sent((Approve, 0.35f)) && log.Warnings.Count == 1 && log.Warnings[0].Contains("murmur"),
     "a throwing SetExcitement stops only the murmur");
 var brokenSnapshot = Claimed(new TeamDeathmatchMode());
 ArenaAnnouncementDirector.Throw = true; Run(1.1f);
-brokenSnapshot.Kill(LocalKill()); Frame();
+brokenSnapshot.Kill(LocalKill()); Settle();
 Check(Sent((Approve, 0.35f)) && FakeCrowd.Handle > 0, "a throwing snapshot stops only the murmur");
 ArenaCrowdReactions.Detach();
 
@@ -547,7 +593,7 @@ var production = NewMatch(new TacticalMode());
 Chainloader.PluginInfos.Clear();
 Chainloader.PluginInfos[PluginGuid] = new PluginInfo { Instance = new ArenaMapPort.Client.PluginAnchor() };
 ArenaCrowdReactions.Attach(production); Frame();
-production.Kill(LocalKill()); Frame();
+production.Kill(LocalKill()); Settle();
 Check(FakeCrowd.Claims == 1 && Sent((Approve, 0.35f)), "production Attach binds the loaded ArenaMapPort");
 var absent = NewMatch(new TacticalMode());
 Chainloader.PluginInfos.Clear();

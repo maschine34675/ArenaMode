@@ -57,8 +57,23 @@ $cases = @(
        Replace='';
        Failure='raid end detaches the crowd before its null-match return' },
     @{ Name='finish-does-not-drop-approve'; Property='CrowdPolicySource';
-       Find='if (_strength[Start] <= 0f && _strength[Finish] <= 0f) return;'; Replace='return;';
+       Find='if (!HasRoundEvent) return;'; Replace='return;';
        Failure="a Finish drops the frame's Approve and Disapprove" },
+    @{ Name='moments-not-held'; Property='CrowdServiceSource';
+       Find="            send = _held;`n            _held = _pending;`n            _pending = send;`n"; Replace='';
+       Failure='an own kill waits one tick for a result published a tick later' },
+    @{ Name='held-moment-survives-result'; Property='CrowdServiceSource';
+       Find="            _held.Clear();`n            _pending.Resolve();"; Replace='            _pending.Resolve();';
+       Failure='a deciding kill one tick before its result gives Finish only' },
+    @{ Name='finish-latch-ignores-epoch'; Property='CrowdServiceSource';
+       Find='int epoch = RoundEpoch();'; Replace='int epoch = 0;';
+       Failure='a round without a RoundStart cue still sends its result' },
+    @{ Name='cue-subscription-missing'; Property='CrowdServiceSource';
+       Find="            _cueListening = true;`n            match.OnAnnouncerCue += OnAnnouncerCue;`n"; Replace="            _cueListening = true;`n";
+       Failure='a bound reaction part listens to the match' },
+    @{ Name='murmur-ignores-no-contest'; Property='CrowdServiceSource';
+       Find='if (!_cueListening || _silenced) return;'; Replace='if (!_listening || _silenced) return;';
+       Failure='0.4.0 surface: no contest calms the murmur at once' },
     @{ Name='excitement-requires-reaction-members'; Property='CrowdBinderSource';
        Find='var excitement = excitementChanged ? Part.Incompatible : excite != null ? Part.Bound : Part.Absent;';
        Replace='var excitement = excitementChanged ? Part.Incompatible : excite != null && Present(type, "React") ? Part.Bound : Part.Absent;';
@@ -107,7 +122,7 @@ $cases = @(
        Find='if (rounds == null || rounds.IsComplete) return;'; Replace='if (rounds == null) return;';
        Failure='terminal Deathmatch round end itself sends nothing' },
     @{ Name='second-finish-per-round'; Property='CrowdServiceSource';
-       Find="if (!_finishArmed) return false;`n            _finishArmed = false;"; Replace='_finishArmed = false;';
+       Find='if (_finishEpoch == epoch) return false;'; Replace='';
        Failure='one Finish per round' },
     @{ Name='key-off-ignored'; Property='CrowdServiceSource';
        Find='if (!ArenaSession.CrowdReactionsSelection)'; Replace='if (false)';

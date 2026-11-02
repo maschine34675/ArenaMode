@@ -130,33 +130,57 @@ where Redeploy's driver raises `ArenaEvents.OnPlayerDied` (Redeploy `RespawnApi.
 documents the same order). Both carry the same physical body: `ArenaKill.VictimBodyId` is
 `ArenaHitHistory.BodyId` of the dying `Player`, which is `game.LocalPlayer` at `CG_Spawn`. The
 service keeps the bodies it has decided (`TakeDeath`): the first notification decides, in either
-order and whatever frame the second arrives in. An unscored kill record decides "no reaction", so
-an unscored local death stays silent on both paths. An unknown body (id 0) cannot be deduplicated;
-both notifications then land in one frame and the flush keeps one Disapprove.
+order and whatever frame the second arrives in. An unscored kill record (friendly or
+unattributed fire in a live Team DM or Domination match) decides "no reaction", so such a death
+stays silent on both paths. A kill the mode does not admit at all (Team DM, Domination and
+Deathmatch outside their live phase or after the result, where `TryBeginScoredEvent` refuses it)
+is dropped by `ArenaMatch.ReportKill` before `OnKill`; a local death there reaches the crowd only
+through `ArenaEvents.OnPlayerDied` and disapproves like any death without a kill record (plan
+6.3). Those modes protect the local player in most of those phases (`ShouldBlockMatchDamage`,
+the Deathmatch intermission's respawn or protection), so this is rare. An unknown body (id 0)
+cannot be deduplicated; both notifications then land in one tick and the flush keeps one
+Disapprove.
 
-### Coalescing (once per frame)
+### Coalescing (one flush per tick)
 
-Handlers only buffer (`ArenaCrowdReactionPolicy.Frame`, fixed arrays, no allocation); the
+Handlers only buffer (`ArenaCrowdReactionPolicy.Frame`, two fixed frames, no allocation); the
 service's tick flushes once per frame:
 
 - per kind the strongest entry (a callout and its kill give one Approve at the award strength);
-- a Start or a Finish in the same flush drops Approve and Disapprove: the deciding kill's `OnKill`
-  arrives before its result cue (`ArenaMatch.ReportKill` raises `OnKill`, then `mode.OnKill`
-  publishes `MatchWon`), and the crowd must not react twice;
+- a Start or a Finish goes out in the tick it arrives in and drops the Approve and Disapprove of
+  that tick and of the tick before: the deciding kill's `OnKill` arrives before its result cue
+  (`ArenaMatch.ReportKill` raises `OnKill`, then `mode.OnKill` publishes `MatchWon`), and the
+  crowd must not react twice;
+- **Approve and Disapprove wait one tick.** Tactical decides its round only in its mode tick
+  (`ArenaMatchService.Tick`, early in `ArenaController.Update`), while `ArenaFireRuntime.Tick`
+  (burns, tracked throws) can kill after it and before the crowd's tick in the same Update; that
+  kill's `OnKill` and the `RoundWon` of the next frame's mode tick would otherwise be two
+  reactions. Team DM and Deathmatch publish their results synchronously in `mode.OnKill`. One
+  frame of delay is not audible;
 - send order Finish, Start, Approve, Disapprove; at most one push per kind per flush; nothing
   when nothing happened;
-- **one Finish per round**, re-armed by its Start. Deathmatch reports a non-terminal draw twice
-  (`OnRoundEnded`, then the director's `Draw` cue at its next tick); the latch keeps one Finish
-  without depending on both landing in one frame. `RoundsMode.PublishRoundEnd` raises the match
-  result cue, then `OnRoundEnded`, in one call: a terminal round end therefore sends nothing of
-  its own (the result already reacted, NoContest silenced the match, or a terminal draw reacts on
-  its `Draw` cue); only a round that leaves the match running sends its own Finish.
+- **one Finish per round**, where a round is the announcement epoch
+  (`ArenaAnnouncementSnapshot.Epoch`, the announcer's own round identity), read when the Finish
+  arrives; a Start re-arms too. Deathmatch reports a non-terminal draw twice (`OnRoundEnded`,
+  then the director's `Draw` cue), both in the intermission's epoch (round + 1), so it reacts
+  once. Solo Tactical raises `RoundWon`/`RoundLost` before it advances `RoundNumber` (its epoch)
+  and can start a round without a `RoundStart` cue (a squad eliminated while it assembled); that
+  round's result is a new epoch and still reacts. Team DM keeps epoch 1 for its one result. A
+  mode without a snapshot, or a failing read, counts as one epoch (one Finish until the next
+  Start). `RoundsMode.PublishRoundEnd` raises the match result cue, then `OnRoundEnded`, in one
+  call: a terminal round end therefore sends nothing of its own (the result already reacted,
+  NoContest silenced the match, or a terminal draw reacts on its `Draw` cue); only a round that
+  leaves the match running sends its own Finish.
 
 ### NoContest
 
 A technical teardown (failed start, abort), once per match. No reaction; like the announcer,
 which latches it until detach, the crowd stays silent for the rest of the match: the claim is
-released at once and the murmur calms to 0.
+released at once and the murmur calms to 0. The cue is heard whichever part is bound, so this
+holds with ArenaMapPort 0.4.0 too, where only the murmur is bound: a failed Team DM
+(`TeamDeathmatchMode.Fail`) raises NoContest but leaves its snapshot Live without a result, so
+without the cue the clock would keep raising the level. The reset is written from the cue
+handler (the tick stops at once); writing 0 is harmless in any state.
 
 ## Murmur intensity
 
@@ -182,7 +206,7 @@ level is set back to 0 when the crowd presentation ends with a non-zero level se
 
 | Event | Where | What |
 |---|---|---|
-| Attach | `ArenaMatchService.cs:150`, with announcer, hitmarker and lighting, before `mode.OnMatchStart` | Key and Zombies gates, bind, subscriptions (only with a bound reaction part) |
+| Attach | `ArenaMatchService.cs:150`, with announcer, hitmarker and lighting, before `mode.OnMatchStart` | Key and Zombies gates, bind; `OnAnnouncerCue` whenever a part is bound (NoContest), `OnKill`, `OnCallout`, `OnPlayerDied` and the Deathmatch round events only with a bound reaction part |
 | Failed match start | `ArenaMatchService.cs:165` (catch) | Detach |
 | Raid end | `ArenaMatchService.cs:199` (`OnRaidEnded`, before the null-match return) | Detach |
 | New-raid recovery | `ArenaMatchService.cs:228` (`RecoverAtNewRaidStart`, before its early return) | Detach |
@@ -190,7 +214,7 @@ level is set back to 0 when the crowd presentation ends with a non-zero level se
 | Native Stop owns the raid | `ArenaMatchService.cs:58` (`Tick` early return) | `OnNativePresentationStop` |
 | Plugin shutdown | `Plugin.cs:278` | Detach |
 | Every tick | `ArenaCrowdReactions.Tick` | Gate; a failed gate detaches for the rest of the match |
-| NoContest cue | `ArenaCrowdReactions.OnAnnouncerCue` | Release, calm, silent until detach |
+| NoContest cue | `ArenaCrowdReactions.OnAnnouncerCue` (either part bound) | Release, calm, silent until detach |
 | `React` false or throwing | `ArenaMapPortSpectatorCrowd.ReactionClaim.Push` | Release; reactions end, excitement continues |
 
 - **Tick source:** `ArenaController.Update` (`ArenaController.cs:51`) calls
@@ -241,9 +265,11 @@ from a MapPort member or an event handler.
   version, throwing): binding outcomes per variant, the mapping table per source including every
   `ArenaAnnouncerCue` member, coalescing, the death deduplication in both orders and across
   frames, Deathmatch round ends, gating, every exit path, refused and throwing reactions, the
-  retry window, excitement pins and monotonicity, key off, Zombies, the interlock, logging, and
+  retry window, excitement pins and monotonicity, key off, Zombies, the interlock, the one-tick
+  hold (a Tactical kill one tick before its RoundWon), the epoch-keyed Finish latch (a solo
+  Tactical round without a RoundStart), NoContest on the murmur-only 0.4.0 surface, logging, and
   text pins of the wiring that cannot be linked (`ArenaMatchService`, `ArenaController`, `Plugin`,
-  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 27
+  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 32
   hand-made mutants, each anchored on exactly one LF site and each failing its named assertion,
   with the no-deploy targets.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained
@@ -274,8 +300,11 @@ from a MapPort member or an event handler.
   `ArenaMatchService.Tick`'s early return alone.
 - **NoContest silences the match** (release and calm), mirroring the announcer's latch; the plan
   only says "no reaction".
-- **One Finish per round** (a latch re-armed by Start) in addition to the plan's coalescing rule,
-  for the Deathmatch draw that is reported on two frames.
+- **One Finish per round** (keyed on the announcement epoch, re-armed by a Start too) in addition
+  to the plan's coalescing rule, for the Deathmatch draw that is reported twice.
+- **Approve and Disapprove wait one tick**, so a Tactical result published one tick after its
+  deciding kill still sends Finish only (the plan's rule "when the deciding kill and its result
+  cue arrive together, send Finish only").
 - **IsAvailable** gates excitement writes (skipped while false), so a map without a bed is never
   written; the plan leaves the use of `IsAvailable` open.
 - The owner is 40 characters (31 hex digits) instead of the plan's `"AM crowd " + Guid` (41), so

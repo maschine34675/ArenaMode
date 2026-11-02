@@ -109,6 +109,8 @@ namespace ArenaMode.Modes
     }
 
     public sealed class TeamDeathmatchMode : IArenaMode { public string Id => "tdm"; public bool IsComplete { get; set; } }
+    // Tactical: decides its round in its mode tick, and solo Tactical can start a round without a
+    // RoundStart cue; the checks model both through the order of events and the snapshot epoch.
     public sealed class TacticalMode : IArenaMode { public string Id => "tactical"; public bool IsComplete { get; set; } }
     public sealed class GunGameMode : IArenaMode { public string Id => "gungame"; public bool IsComplete { get; set; } }
     public sealed class ZombieMode : IArenaMode { public string Id => "zombie"; public bool IsComplete { get; set; } }
@@ -138,8 +140,10 @@ namespace ArenaMode.Modes
         internal void Kill(ArenaKill kill) => OnKill?.Invoke(kill);
         internal void Callout(string label) => OnCallout?.Invoke(label);
         internal void Cue(ArenaAnnouncerCue cue) => OnAnnouncerCue?.Invoke(cue);
-        internal int Subscribers => (OnKill?.GetInvocationList().Length ?? 0)
-            + (OnCallout?.GetInvocationList().Length ?? 0) + (OnAnnouncerCue?.GetInvocationList().Length ?? 0);
+        internal int Subscribers => KillSubscribers + CueSubscribers;
+        internal int KillSubscribers => (OnKill?.GetInvocationList().Length ?? 0)
+            + (OnCallout?.GetInvocationList().Length ?? 0);
+        internal int CueSubscribers => OnAnnouncerCue?.GetInvocationList().Length ?? 0;
     }
 
     internal static class ArenaMatchService

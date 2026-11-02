@@ -38,9 +38,12 @@ namespace ArenaMode.Audio;
 /// this frame's lead, draw and ladder cues, which must land in the same flush as the kill or round
 /// event that caused them.
 ///
-/// Events are buffered per frame and flushed once from the tick: per kind the strongest entry,
-/// a Start or Finish drops that frame's Approve and Disapprove, at most one push per kind per
-/// flush, nothing when nothing happened. Handlers never log and never throw into the match.
+/// Events are buffered and flushed once per tick: per kind the strongest entry, at most one push
+/// per kind per flush, nothing when nothing happened. Start and Finish go out in the tick they
+/// arrive in; Approve and Disapprove wait one more tick, and a Start or Finish in either tick
+/// drops them (see <see cref="Flush"/>). Handlers buffer only and never throw into the match; the
+/// only lines they write are the NoContest release and the first handler failure, once per match.
+/// Every reaction push happens from the gated tick.
 /// </summary>
 internal static class ArenaCrowdReactions
 {
@@ -60,7 +63,9 @@ internal static class ArenaCrowdReactions
 
     // TakeCover is MapPort's own sensor (plan 4.2); Lull and PurifiedTeam are reserved.
     private static readonly int WantedKinds = Bit(Approve) | Bit(Disapprove) | Bit(Start) | Bit(Finish);
-    private static readonly ArenaCrowdReactionPolicy.Frame Pending = new();
+    // This tick's events, and last tick's Approve/Disapprove that wait one tick (see Flush). Two
+    // fixed frames swapped in place: no allocation.
+    private static ArenaCrowdReactionPolicy.Frame _pending = new(), _held = new();
     // Bodies whose local death already owns its reaction (see TakeDeath).
     private static readonly HashSet<long> HandledDeaths = new();
 
@@ -69,8 +74,10 @@ internal static class ArenaCrowdReactions
     private static Contract _contract;
     private static ReactionClaim _claim;
     private static string _owner;
-    private static bool _listening, _claimClosed, _silenced, _finishArmed, _windowStarted;
+    private static bool _listening, _cueListening, _claimClosed, _silenced, _windowStarted;
     private static bool _excitementOff, _handlerFailed;
+    // Round identity (announcement epoch) of the last Finish; null before the first one and after a Start.
+    private static int? _finishEpoch;
     private static float _windowEndsAt, _nextClaimAt, _nextExcitementAt;
     private static int _excitementStep, _excitementPeak, _sent, _claimAttempts, _lastKinds;
 
@@ -107,14 +114,17 @@ internal static class ArenaCrowdReactions
             }
             _match = match;
             _contract = contract;
-            _finishArmed = true;
+            // The cue is heard whenever either part is bound: NoContest silences the murmur too,
+            // and with ArenaMapPort 0.4.0 the murmur is the only part (a failed Team DM leaves its
+            // snapshot Live, so the clock would keep raising the level).
+            _cueListening = true;
+            match.OnAnnouncerCue += OnAnnouncerCue;
             if (contract.Reactions == Part.Bound)
             {
                 _owner = OwnerPrefix + Guid.NewGuid().ToString("N").Substring(0, OwnerHexDigits);
                 _listening = true;
                 match.OnKill += OnKill;
                 match.OnCallout += OnCallout;
-                match.OnAnnouncerCue += OnAnnouncerCue;
                 ArenaEvents.OnPlayerDied += OnPlayerDied;
                 if (match.Mode is RoundsMode rounds)
                 {
@@ -202,17 +212,40 @@ internal static class ArenaCrowdReactions
             + $"attempt={_claimAttempts}.");
     }
 
+    /// <summary>
+    /// One flush per tick. A Start or Finish of this tick goes out at once and drops the Approve
+    /// and Disapprove of this tick and of the tick before. Without one, last tick's Approve and
+    /// Disapprove go out and this tick's wait one tick. The wait exists because a result can be
+    /// published one tick after its deciding kill: Tactical decides its round only in its mode
+    /// tick (ArenaMatchService.Tick, early in ArenaController.Update), while ArenaFireRuntime.Tick
+    /// (burns, tracked throws) can kill after it and before this tick in the same Update, so that
+    /// kill's OnKill and the RoundWon of the next frame's mode tick would otherwise be two
+    /// reactions. Team DM and Deathmatch publish synchronously in mode.OnKill and need no wait;
+    /// one frame of delay is not audible.
+    /// </summary>
     private static void Flush()
     {
-        if (Pending.IsEmpty) return;
+        if (_pending.IsEmpty && _held.IsEmpty) return;
         var claim = _claim;
-        if (claim == null) { Pending.Clear(); return; }
-        Pending.Resolve();
+        if (claim == null) { _pending.Clear(); _held.Clear(); return; }
+        var send = _pending;
+        if (_pending.HasRoundEvent)
+        {
+            _held.Clear();
+            _pending.Resolve();
+        }
+        else
+        {
+            // Swap: last tick's moments go out now, this tick's become the held ones.
+            send = _held;
+            _held = _pending;
+            _pending = send;
+        }
         // Read once per flush, after the announcer handled this frame's callouts and cues.
         bool announcer = AnnouncerService.IsPmcVoiceBlocked;
         foreach (int kind in ArenaCrowdReactionPolicy.Frame.Order)
         {
-            if (!Pending.TryTake(kind, out float strength, out string source) || !claim.Has(kind)) continue;
+            if (!send.TryTake(kind, out float strength, out string source) || !claim.Has(kind)) continue;
             bool weakened = announcer && ArenaCrowdReactionPolicy.IsInterlocked(kind);
             if (weakened) strength *= ArenaCrowdReactionPolicy.InterlockFactor;
             if (!claim.Push(kind, strength))
@@ -221,7 +254,7 @@ internal static class ArenaCrowdReactions
                 // match; the murmur's excitement is independent and keeps running.
                 _claim = null;
                 _claimClosed = true;
-                Pending.Clear();
+                ClearBuffers();
                 Plugin.ModLogger.LogDebug($"Arena crowd reactions released: handle={claim.Handle}, "
                     + $"reason=reaction refused, sent={_sent}.");
                 return;
@@ -230,7 +263,13 @@ internal static class ArenaCrowdReactions
             Plugin.ModLogger.LogDebug($"Arena crowd reaction: kind={KindName(kind)}, strength={Number(strength)}, "
                 + $"source={source}{(weakened ? ", announcer speaking" : "")}.");
         }
-        Pending.Clear();
+        send.Clear();
+    }
+
+    private static void ClearBuffers()
+    {
+        _pending.Clear();
+        _held.Clear();
     }
 
     private static void TickExcitement(ArenaMatch match, float now)
@@ -267,7 +306,7 @@ internal static class ArenaCrowdReactions
         {
             if (kill.LocalIsVictim && !TakeDeath(kill.VictimBodyId)) return;
             if (ArenaCrowdReactionPolicy.TryMapKill(kill, out int kind, out float strength, out string source))
-                Pending.Add(kind, strength, source);
+                _pending.Add(kind, strength, source);
         }
         catch (Exception ex) { HandlerFailed(ex); }
     }
@@ -285,7 +324,7 @@ internal static class ArenaCrowdReactions
         try
         {
             if (TakeDeath(ArenaHitHistory.BodyId(player)))
-                Pending.Add(Disapprove, ArenaCrowdReactionPolicy.DeathStrength, "death");
+                _pending.Add(Disapprove, ArenaCrowdReactionPolicy.DeathStrength, "death");
         }
         catch (Exception ex) { HandlerFailed(ex); }
     }
@@ -304,53 +343,74 @@ internal static class ArenaCrowdReactions
         try
         {
             if (ArenaCrowdReactionPolicy.TryMapCallout(label, out float strength))
-                Pending.Add(Approve, strength, label);
+                _pending.Add(Approve, strength, label);
         }
         catch (Exception ex) { HandlerFailed(ex); }
     }
 
     private static void OnAnnouncerCue(ArenaAnnouncerCue cue)
     {
-        if (!Listening) return;
+        if (!_cueListening || _silenced) return;
         try
         {
             if (cue == ArenaAnnouncerCue.NoContest)
             {
                 // A technical teardown (failed start, abort), once per match. No reaction; like the
                 // announcer, which latches it until detach, the crowd stays silent for the rest of
-                // the match: the claim goes back and the murmur calms.
+                // the match: the claim goes back and the murmur calms, whichever part is bound.
+                // The reset is written here rather than from the tick because the tick stops at
+                // once (_silenced); writing 0 is harmless in any state.
                 _silenced = true;
                 StopPresenting("no contest");
                 return;
             }
+            if (!_listening) return;   // murmur only: no reaction part bound
             if (!ArenaCrowdReactionPolicy.TryMapCue(cue, out int kind, out float strength)) return;
             if (!ArmFinish(kind)) return;
-            Pending.Add(kind, strength, cue.ToString());
+            _pending.Add(kind, strength, cue.ToString());
         }
         catch (Exception ex) { HandlerFailed(ex); }
     }
 
     /// <summary>
-    /// At most one Finish per round, re-armed by its Start. Deathmatch reports a non-terminal
-    /// draw twice (OnRoundEnded, then the director's Draw cue at its next tick); the latch keeps
-    /// that to one reaction without depending on both landing in the same frame.
+    /// At most one Finish per round. A round is the announcement epoch, the announcer's own round
+    /// identity (ArenaAnnouncementSnapshot.Epoch), read when the Finish arrives; a Start re-arms
+    /// too. Deathmatch reports a non-terminal draw twice, OnRoundEnded and then the director's
+    /// Draw cue, both in the intermission's epoch (round + 1), so it reacts once. Solo Tactical
+    /// raises RoundWon and RoundLost before it advances RoundNumber (its epoch) and may start a
+    /// round without a RoundStart cue (a squad eliminated while it assembled, TacticalMode.TickLive):
+    /// that round's result is a new epoch and still reacts. Team DM keeps epoch 1 for its one result.
     /// </summary>
     private static bool ArmFinish(int kind)
     {
-        if (kind == Start) _finishArmed = true;
+        if (kind == Start) _finishEpoch = null;
         else if (kind == Finish)
         {
-            if (!_finishArmed) return false;
-            _finishArmed = false;
+            int epoch = RoundEpoch();
+            if (_finishEpoch == epoch) return false;
+            _finishEpoch = epoch;
         }
         return true;
+    }
+
+    // A read-only snapshot of the mode (the director's own read). A mode without one, or a failing
+    // read, is one round identity (0): one Finish until the next Start, the plain latch. The murmur
+    // path reports a failing snapshot once; a Finish must not be lost to it.
+    private static int RoundEpoch()
+    {
+        try
+        {
+            var snapshot = ArenaAnnouncementDirector.ReadSnapshot(_match?.Mode);
+            return snapshot.Active ? snapshot.Epoch : 0;
+        }
+        catch (Exception) { return 0; }
     }
 
     private static void OnRoundStarted(int round)
     {
         if (!Listening) return;
         // Deathmatch has no RoundStart cue; this event also fires for round 1.
-        if (ArmFinish(Start)) Pending.Add(Start, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round start");
+        if (ArmFinish(Start)) _pending.Add(Start, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round start");
     }
 
     private static void OnRoundEnded(RoundsMode.RoundState state)
@@ -364,7 +424,7 @@ internal static class ArenaCrowdReactions
             // raises at its next tick. Only a round that leaves the match running sends its own Finish.
             var rounds = _rounds;
             if (rounds == null || rounds.IsComplete) return;
-            if (ArmFinish(Finish)) Pending.Add(Finish, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round end");
+            if (ArmFinish(Finish)) _pending.Add(Finish, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round end");
         }
         catch (Exception ex) { HandlerFailed(ex); }
     }
@@ -382,7 +442,7 @@ internal static class ArenaCrowdReactions
         var claim = _claim;
         _claim = null;
         _claimClosed = true;
-        Pending.Clear();
+        ClearBuffers();
         if (claim != null && claim.Release())
             Plugin.ModLogger.LogDebug($"Arena crowd reactions released: handle={claim.Handle}, reason={reason}, "
                 + $"sent={_sent}.");
@@ -406,11 +466,11 @@ internal static class ArenaCrowdReactions
     {
         var match = _match;
         if (match == null) return;
+        if (_cueListening) match.OnAnnouncerCue -= OnAnnouncerCue;
         if (_listening)
         {
             match.OnKill -= OnKill;
             match.OnCallout -= OnCallout;
-            match.OnAnnouncerCue -= OnAnnouncerCue;
             ArenaEvents.OnPlayerDied -= OnPlayerDied;
         }
         var rounds = _rounds;
@@ -426,12 +486,13 @@ internal static class ArenaCrowdReactions
         _rounds = null;
         _contract = null;
         _owner = null;
-        _listening = _claimClosed = _silenced = _finishArmed = _windowStarted = false;
+        _listening = _cueListening = _claimClosed = _silenced = _windowStarted = false;
         _excitementOff = _handlerFailed = false;
+        _finishEpoch = null;
         _windowEndsAt = _nextClaimAt = _nextExcitementAt = 0f;
         _excitementStep = _excitementPeak = _sent = _claimAttempts = _lastKinds = 0;
         HandledDeaths.Clear();
-        Pending.Clear();
+        ClearBuffers();
     }
 
     private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
