@@ -97,7 +97,12 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
   `ClaimReactions` only when the mask holds our kinds. A mask without our kinds after the window
   means no crowd (Iceberg, a vanilla map, no reaction set, reactions off in MapPort): no claim,
   one Debug line. `ClaimReactions` is never called on such a mask. Nothing is retried when the
-  plugin, the type or the reaction part is absent or incompatible, or a member threw.
+  plugin, the type or the reaction part is absent or incompatible, or a member threw. Phase A
+  publishes the kinds during raid loading (`ArenaSpectators.Create` in its `CreateFromScene`
+  postfix joins the clip worker, then `SpectatorAudio.Create` publishes them), before the first
+  gated tick, and an audio reset keeps the kinds and the queue, so attempt 1 finds them. The
+  window only covers kinds republished shortly after the start (MapPort's developer reaction key
+  switched back on).
 - **Lost claim.** `React` returning false (stale generation, foreign owner, refused) or throwing
   releases the claim (`ReleaseReactions` is still attempted) and ends reactions for the match; it
   is never claimed again. MapPort's `React` also returns false for a refused request on a live
@@ -328,12 +333,22 @@ service's tick flushes once per frame:
 ### NoContest
 
 A technical teardown (failed start, abort), once per match. No reaction; like the announcer,
-which latches it until detach, the crowd stays silent for the rest of the match: the claim is
-released at once and the murmur calms to 0. The cue is heard whichever part is bound, so this
+which latches it until detach, ArenaMode sends nothing new for the rest of the match: the claim
+is released at once and the murmur calms to 0. The cue is heard whichever part is bound, so this
 holds with ArenaMapPort 0.4.0 too, where only the murmur is bound: a failed Team DM
 (`TeamDeathmatchMode.Fail`) raises NoContest but leaves its snapshot Live without a result, so
 without the cue the clock would keep raising the level. The reset is written from the cue
 handler (the tick stops at once); writing 0 is harmless in any state.
+
+What MapPort already accepted is not withdrawn: its release only clears the holder ("Requests
+already accepted still play", `CrowdReactionQueue.Release`), and its reaction voices stop only on
+a kinds withdrawal, a raid that is no longer `Started` or a disabled component. A request pushed
+in the 2 s before the cue (MapPort's age limit; a RoundStart's Start at 1.0 with three voices, or
+a kill's Approve, for example when `TeamDeathmatchMode.Fail` reports NoContest shortly after the
+start) and voices already playing still finish; the real-surface stage shows the accepted Start
+still waiting after the release. No fix without a MapPort withdraw call; accepted. A raid end is
+not affected: once the raid is no longer `Started`, MapPort drops the ring and the planner and
+stops the voices.
 
 ## Murmur intensity
 
@@ -463,7 +478,9 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   null). Further: the developer demo yields to ArenaMode's claim and cannot take it back;
   another plugin's claim refuses ArenaMode's for the whole retry window; a second match
   releases and claims a new handle; after a real `Reset` (crowd removed) the next push returns
-  false, the release returns false and nothing is pushed or claimed again; kinds withdrawn and
+  false, the release returns false and nothing is pushed or claimed again; a no contest right
+  after a Start releases (true) and sends nothing more, while the Start MapPort accepted before
+  it still waits in the queue (see NoContest); kinds withdrawn and
   republished without a push leave the claim working, and with a push between they end it for
   the match (release true, no re-claim) while the next match claims anew. A missing DLL, member
   or internal model type fails the run naming MapPort's requirement (phase A, `d70acd2` or

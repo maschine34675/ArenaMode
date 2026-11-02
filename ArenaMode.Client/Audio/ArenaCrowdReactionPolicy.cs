@@ -14,8 +14,9 @@ namespace ArenaMode.Audio;
 /// with the user's subtitles of every crowd clip, 2.4), not listened values. MapPort turns a
 /// strength into a voice count (up to 1/3: one voice, up to 2/3: two, above: three), a bed swell
 /// and, for two kinds, a sub-pool (plan 2.4, 4.1): from 0.8 the first Approve voice is drawn from
-/// the strong-only shouts, below 0.4 Disapprove draws only the lament clips; below 0.05 a reaction
-/// is dropped. Never into gain. Contract and decisions: docs/reviews/CROWD-REACTIONS-20261102.md.
+/// the strong-only shouts, below 0.4 Disapprove draws only the lament clips. Below 0.05 MapPort's
+/// React refuses (false), which would end the claim for the match; nothing here goes below 0.15.
+/// Never into gain. Contract and decisions: docs/reviews/CROWD-REACTIONS-20261102.md.
 /// </summary>
 internal static class ArenaCrowdReactionPolicy
 {

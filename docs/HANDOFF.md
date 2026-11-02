@@ -168,7 +168,8 @@ migrated to revision 5 with `arena_iceberg` in `General/Maps`.
   loudly when it is missing or lacks the eight `SpectatorCrowd` members of crowd reactions phase
   A (MapPort `d70acd2` or later); the published 0.4.0 is not enough. Installed here on
   2026-11-02: ProductVersion `0.4.0+08964c1` (SHA256 `B6DF4A1D…AE8521`), MapPort's development
-  build of that work from before the commit. `Verify.ps1 -SptRoot` names another installation.
+  build of that work from before the commit. `-SptRoot` of `Run-ArenaVerification.ps1` (forwarded
+  to every harness script that declares it) or of `Verify.ps1` names another installation.
 - **FORGE-DESCRIPTION.md deliberately carries no Iceberg** (it is the 0.4.1 upload draft).
   Add the Iceberg lines (mode list, 2v2–10v10 pockets, spawn shield, Domination A/B/C) when
   an ArenaMapPort release ships `arena_iceberg`.

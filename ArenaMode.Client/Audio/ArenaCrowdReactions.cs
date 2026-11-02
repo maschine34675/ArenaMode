@@ -50,17 +50,21 @@ namespace ArenaMode.Audio;
 internal static class ArenaCrowdReactions
 {
     // Plan 6.2: retry only ReactionKinds/ClaimReactions, until Status == Started plus 30 s, at most
-    // once per second. The crowd is built during raid loading, so the first attempt normally wins;
-    // the window covers a MapPort that publishes its reaction set late (worker load, audio reset).
+    // once per second. MapPort (phase A, d70acd2) builds the crowd and publishes its reaction set
+    // during raid loading (ArenaSpectators.Create joins its clip worker, then SpectatorAudio.Create
+    // publishes the kinds), before the first gated tick, and an audio reset keeps the kinds and the
+    // queue, so the first attempt finds them. The window only covers kinds republished shortly
+    // after the start (MapPort's developer reaction key switched back on).
     internal const float ClaimWindowSeconds = 30f;
     internal const float ClaimRetrySeconds = 1f;
     // One snapshot read feeds the murmur and the Lull. The snapshot changes on the scale of seconds,
     // MapPort smooths the level with a 2 s time constant, and the Lull counts a minute; polling
     // faster would only add calls.
     internal const float SnapshotPollSeconds = 1f;
-    // MapPort deduplicates equal owner strings and truncates them at 40 characters (as for the
-    // score monitors, TeamDeathmatchMode.Monitors). "AM crowd " plus 31 hex digits of a fresh
-    // Guid is exactly 40: unique per match, never shortened into another match's owner.
+    // MapPort deduplicates equal owner strings after cleaning them, and phase A keeps 64 characters
+    // (CrowdReactionQueue.CleanOwner; the score monitors keep 40, TeamDeathmatchMode.Monitors).
+    // "AM crowd " plus 31 hex digits of a fresh Guid is exactly 40, within either limit: unique per
+    // match, never shortened into another match's owner.
     internal const string OwnerPrefix = "AM crowd ";
     private const int OwnerHexDigits = 31;
 
@@ -457,8 +461,10 @@ internal static class ArenaCrowdReactions
             if (cue == ArenaAnnouncerCue.NoContest)
             {
                 // A technical teardown (failed start, abort), once per match. No reaction; like the
-                // announcer, which latches it until detach, the crowd stays silent for the rest of
-                // the match: the claim goes back and the murmur calms, whichever part is bound.
+                // announcer, which latches it until detach, nothing new is sent for the rest of the
+                // match: the claim goes back and the murmur calms, whichever part is bound. MapPort's
+                // release withdraws nothing, so what it already accepted still plays: a request
+                // pushed within its 2 s age limit before this cue, and voices already playing.
                 // The reset is written here rather than from the tick because the tick stops at
                 // once (_silenced); writing 0 is harmless in any state.
                 _silenced = true;

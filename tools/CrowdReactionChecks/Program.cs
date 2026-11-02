@@ -389,7 +389,7 @@ Check(reactLines == FakeCrowd.ReactCalls && log.Warnings.Count == 0, "one Debug 
 tdm.Kill(LocalKill()); tdm.Cue(ArenaAnnouncerCue.NoContest);
 Check(FakeCrowd.Handle == 0 && FakeCrowd.Releases == 1, "no contest releases the claim at once");
 Frame(); tdm.Kill(LocalKill()); tdm.Cue(ArenaAnnouncerCue.RoundStart); Run(40);
-Check(Sent() && FakeCrowd.Claims == 1 && FakeCrowd.Releases == 1, "no contest stays silent for the rest of the match");
+Check(Sent() && FakeCrowd.Claims == 1 && FakeCrowd.Releases == 1, "no contest sends nothing for the rest of the match");
 ArenaCrowdReactions.Detach();
 Check(tdm.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0 && FakeCrowd.Releases == 1, "detach unsubscribes everything");
 
@@ -418,7 +418,7 @@ dmMatch.Cue(ArenaAnnouncerCue.Draw); Frame();
 Check(Sent((Finish, 1f)), "terminal Deathmatch draw reacts on its Draw cue only");
 dm = new RoundsMode(); dmMatch = Claimed(dm);
 dm.IsComplete = true; dmMatch.Cue(ArenaAnnouncerCue.NoContest); dm.End(1); Frame();
-Check(Sent() && FakeCrowd.Handle == 0, "Deathmatch no contest stays silent");
+Check(Sent() && FakeCrowd.Handle == 0, "Deathmatch no contest sends nothing");
 ArenaCrowdReactions.Detach();
 Check(dm.Subscribers == 0, "Deathmatch round events are unbound on detach");
 
@@ -1018,6 +1018,19 @@ Check(realReacts.Count == 1 && realReacts[0].handle == removedHandle && !realRea
     "real surface: after a real Reset (crowd removed) the next push returns false; ArenaMode releases and stops pushing");
 ArenaCrowdReactions.Detach();
 
+// NoContest just after a Start: ArenaMode releases and sends nothing more, but MapPort's release
+// withdraws nothing, so the Start it already accepted still waits to play (documented, accepted).
+var noContestMatch = RealMatch(new TeamDeathmatchMode()); Frame();
+int noContestHandle = real.Holder;
+noContestMatch.Cue(ArenaAnnouncerCue.RoundStart); Frame();
+noContestMatch.Cue(ArenaAnnouncerCue.NoContest);
+noContestMatch.Kill(LocalKill()); noContestMatch.Cue(ArenaAnnouncerCue.RoundStart); Run(40);
+Check(realReacts.Count == 1 && realReacts[0].queued && realReacts[0].kind == MapPortKind("Start")
+    && realReleases.Count == 1 && realReleases[0] == (noContestHandle, true) && real.HolderOwner == null
+    && realClaims.Count == 1 && Drained((MapPortKind("Start"), 1f)),
+    "real surface: no contest releases and sends nothing more; the Start MapPort accepted before it still waits");
+ArenaCrowdReactions.Detach();
+
 // MapPort's developer key Spectators/Reactions (or a disabled SpectatorAudio) withdraws the kinds
 // mid-raid and keeps the holder. Withdrawn and republished without a push between: the claim works.
 // With a push between: React false, ArenaMode releases (still the holder, so true) and does not
@@ -1044,6 +1057,7 @@ ArenaCrowdReactions.Detach();
 Check(log.Warnings.Count == 0 && real.HolderOwner == null, "real surface: no warning, nothing left claimed");
 Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: demo yields to ArenaMode; another plugin's claim refused {foreignAttempts} times in the window; "
     + "a second match releases (true) and claims a new handle; Reset: React false, release false, no re-claim; "
+    + "no contest after a Start: release true, nothing sent after, the accepted Start still queued; "
     + "kinds withdrawn with a push between: React false, release true, no re-claim in that match, the next match claims");
 Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: {checks - checksBeforeReal} assertions against the installed assembly");
 

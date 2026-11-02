@@ -29,9 +29,9 @@ files it cannot link (text pins of `ArenaMatchService`, `ArenaController`, `Plug
 
 **Real surface (installed data).** The last stage loads the installed ArenaMapPort client
 `D:\SPT41\BepInEx\plugins\maschine-ArenaMapPort\maschine-ArenaMapPort.Client.dll` read-only
-(`RealMapPort.cs`; `-SptRoot` of `Verify.ps1` or the `MapPortClientDll` property name another
-one) and needs crowd reactions phase A (ArenaMapPort `d70acd2` or later, `feature/iceberg`, not
-released). A missing DLL, a missing `SpectatorCrowd` member or a missing internal model type
+(`RealMapPort.cs`; `-SptRoot` of the runner, which forwards it to `Verify.ps1`, or the
+`MapPortClientDll` property name another one) and needs crowd reactions phase A (ArenaMapPort
+`d70acd2` or later, `feature/iceberg`, not released). A missing DLL, a missing `SpectatorCrowd` member or a missing internal model type
 fails the run with that requirement; it never skips. MapPort's contract and its state
 (`CrowdReactionQueue`, `CrowdBedState`) are Unity-free, so the stage executes them: the binder
 binds the real `SpectatorCrowd`, the kind numbers, the implemented mask 62, the owner limit 64
@@ -39,7 +39,8 @@ and `MinStrength` 0.05 are read from MapPort's own constants, and the service ru
 real queue (claim with ArenaMode's owner, an own kill's Approve, the weakest strength sent, no
 Lull without bit 6, Start and Finish, excitement into `State.Excitement` and back to 0, release
 on detach, the developer demo yielding, another plugin's claim refusing, a second match, a
-`Reset` mid-match, kinds withdrawn mid-match). Only state is touched (a fresh queue per
+`Reset` mid-match, a no contest after a Start whose accepted request MapPort keeps, kinds
+withdrawn mid-match). Only state is touched (a fresh queue per
 scenario, `SetKinds`, `Reset`, the bed's `Available` flag, `Drain`); `Verify.ps1` checks the
 DLL's hash before and after.
 
