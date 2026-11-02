@@ -203,7 +203,22 @@ $cases = @(
        Failure='a claim without the Lull bit keeps the Lull dormant: no snapshot read, no Lull' },
     @{ Name='lull-not-wanted'; Property='CrowdServiceSource';
        Find='| Bit(Finish) | Bit(Lull);'; Replace='| Bit(Finish);';
-       Failure='a Lull-only mask is claimed' }
+       Failure='a Lull-only mask is claimed' },
+    # Review of 484b095a: a kill or a local death withdraws a decided, unsent Lull from either frame,
+    # and the 90 s gap runs from a Lull that went out.
+    @{ Name='lull-not-withdrawn-at-kill'; Property='CrowdServiceSource';
+       Find="        _pending.TryTake(Lull, out _, out _);`n"; Replace='';
+       Failure="a kill in the Lull's tick withdraws it: only the kill's Approve goes out" },
+    @{ Name='held-lull-not-withdrawn'; Property='CrowdServiceSource';
+       Find="        _held.TryTake(Lull, out _, out _);`n"; Replace='';
+       Failure='a bot-versus-bot kill one tick after the Lull withdraws the held Lull' },
+    @{ Name='lull-gap-from-decision'; Property='CrowdServiceSource';
+       Find='_pending.Add(Lull, ArenaCrowdReactionPolicy.LullStrength, "no kill for 60 s");';
+       Replace='_pending.Add(Lull, ArenaCrowdReactionPolicy.LullStrength, "no kill for 60 s"); _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;';
+       Failure='a withdrawn Lull does not count against the 90 s gap' },
+    @{ Name='lull-gap-not-stamped'; Property='CrowdServiceSource';
+       Find='if (kind == Lull) _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;'; Replace='';
+       Failure='no second Lull within 90 s of the first' }
 )
 foreach ($case in $cases) {
     $source = [IO.File]::ReadAllText($sources[$case.Property]).Replace("`r`n", "`n")

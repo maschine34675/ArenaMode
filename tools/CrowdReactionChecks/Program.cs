@@ -690,9 +690,28 @@ Check(Sent((Finish, 1f)), "a Finish in the Lull's tick drops it");
 lull = LullMatch(withLull);
 StepToLullDecision(); Frame(); lull.Cue(ArenaAnnouncerCue.RoundStart); Settle();
 Check(Sent((Start, 1f)), "a Start one tick after the Lull drops the held Lull");
+// A kill or a local death withdraws a Lull that is decided but not yet sent, from either frame: its
+// premise no longer holds, and it would go out next to the kill's own reaction (plan 2.4).
+lull = LullMatch(withLull);
+StepToLullDecision(); lull.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "a kill in the Lull's tick withdraws it: only the kill's Approve goes out");
+lull = LullMatch(withLull);
+StepToLullDecision(); Frame(); lull.Kill(OtherKill(null, null)); Settle();
+Check(Sent(), "a bot-versus-bot kill one tick after the Lull withdraws the held Lull");
+// The 90 s gap runs from a Lull that went out: the withdrawn one delays nothing, so the next comes
+// 60 s after the kill.
+Run(59);
+Check(Sent(), "after a withdrawn Lull none within 60 s of the kill");
+Run(4);
+Check(Sent((Lull, 0.4f)), "a withdrawn Lull does not count against the 90 s gap");
+lull = LullMatch(withLull);
+StepToLullDecision(); ArenaEvents.RaisePlayerDied(new Player()); Settle();
+Check(Sent((Disapprove, 0.5f)), "a local death in the Lull's tick withdraws it: only the death's Disapprove goes out");
+// A lead cue without a kill (Domination's score moves by objective points) keeps the Lull: D14
+// counts kills. The Lull drops nothing and goes last.
 lull = LullMatch(withLull);
 StepToLullDecision(); lull.Cue(ArenaAnnouncerCue.TakenTheLead); Settle();
-Check(Sent((Approve, 0.5f), (Lull, 0.4f)), "a Lull in the same flush as an Approve drops nothing and goes last");
+Check(Sent((Approve, 0.5f), (Lull, 0.4f)), "a lead cue without a kill keeps the Lull: both go out, the Lull last");
 
 // The mask: without bit 6 the path is dormant (no read, no Lull); a Lull-only mask is claimed and
 // sends the Lull alone, which the announcer interlock leaves at 0.4.

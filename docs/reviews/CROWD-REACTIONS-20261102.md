@@ -7,7 +7,10 @@ writing. Status: implemented and checked offline; no native run, nothing listene
 independent reviews (2026-11-02) found one major issue (a teammate's kill reacted, against D5)
 and minor ones (a Tactical deciding kill one tick before its result, a dropped result in a solo
 Tactical round without RoundStart, NoContest on the 0.4.0 murmur, binder presence and proof
-gaps, documentation); all are fixed in `83d4aee3`..`4d4a9444` and reflected below.
+gaps, documentation); all are fixed in `83d4aee3`..`4d4a9444` and reflected below. A review of
+the revision (`484b095a`) found two minor issues (a kill right after a Lull's decision did not
+withdraw it; the compile evidence was not scoped to its commit); both are fixed in the commit
+after it.
 
 **Source of the values.** The plan as revised in ArenaMapPort commit `08964c1` (2026-11-02,
 "revised with the user's subtitles of every crowd clip": automatic German subtitles of all 252
@@ -204,7 +207,8 @@ service's tick flushes once per frame:
   kill's `OnKill` and the `RoundWon` of the next frame's mode tick would otherwise be two
   reactions. Team DM and Deathmatch publish their results synchronously in `mode.OnKill`. One
   frame of delay is not audible. The Lull waits the same tick: it is decided after a flush and
-  goes out two ticks later unless a Start or Finish arrives first;
+  goes out two ticks later unless a Start or Finish arrives first (it is dropped) or a kill or a
+  local death does (it is withdrawn, section "Lull");
 - send order Finish, Start, Approve, Disapprove, Lull (plan 4.1's priority); at most one push per
   kind per flush; nothing when nothing happened;
 - **one Finish per round**, where a round is the announcement epoch
@@ -241,9 +245,19 @@ service's tick flushes once per frame:
   cue, every Deathmatch `OnRoundEnded`) stops it until the next live poll, so no Lull is decided
   between a result and the snapshot leaving live combat. NoContest, every release and every
   teardown clear it.
-- When the clock reaches 60 s and the last Lull is 90 s or more ago, the poll queues Lull 0.4
-  (`source=no kill for 60 s`) and restarts the clock, so the next one needs a new quiet minute
-  and the 90 s gap.
+- When the clock reaches 60 s and the last Lull that went out is 90 s or more ago, the poll
+  queues Lull 0.4 (`source=no kill for 60 s`) and restarts the clock, so the next one needs a new
+  quiet minute and the 90 s gap. The gap is stamped when the Lull is pushed (`Flush`): a Lull
+  dropped by a Start or Finish, or withdrawn, was never heard and delays nothing.
+- **Withdrawal.** A decided Lull waits up to two ticks (the one-tick hold). A kill (every
+  `OnKill`, as for the resets) or a local death without a kill record in that window withdraws
+  it from either frame (`ResetQuiet`): "no kill for 60 s" no longer holds, and it would go out in
+  the same flush as that kill's own cheer or groan, or the one after (plan 2.4: a jibe right after
+  a cheer contradicts it). A lead or award cue without a kill does not withdraw it: Domination's
+  score moves by objective points (`TeamDeathmatchMode.FriendlyTeamScore`), so its lead can
+  change without a kill; the premise still holds, D14 counts kills only, and the two meet only
+  when the cue falls within the two ticks around the Lull's decision. Both then go out, the Lull
+  last.
 - Never decided outside live combat, in Zombies (nothing is attached there), or without bit 6 in
   the claimed mask; against such a mask nothing is read for it. Not interlocked with the
   announcer.
@@ -338,7 +352,8 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   happened; excitement only on change at about 1 Hz.
 - The Lull is the one reaction decided from time rather than from an event: never decided outside
   live combat, never without bit 6 in the claimed mask (and then nothing is read for it), at most one
-  per 90 s, and never past a Start or Finish in its flush window.
+  per 90 s from the last one sent, and never past a Start, Finish, kill or local death in its flush
+  window.
 - The excitement binding must never require the reaction members, and nothing may assume that
   `ContractVersion` changes when members are appended.
 - Do not depend on `ArenaEvents.OnLocalDamageDealt` (raised only with the hitmarker settings on)
@@ -363,17 +378,25 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   without a kill record reset the clock; nothing outside live combat (preparation, a result, no
   snapshot), the clock starting at the first live poll; a Start restarts, a Finish stops (and the
   next live poll starts again), NoContest, a release and a failing snapshot read end it; a Start
-  or Finish in the Lull's tick or the tick after drops it, an Approve in its flush is kept and
-  sent first; a mask without bit 6 reads nothing for it and sends none, a Lull-only mask is
-  claimed and sends only the Lull, which the interlock leaves at 0.4; Zombies with bit 6 stays
-  silent. `Verify.ps1` runs the baseline and 46 hand-made mutants, each anchored on exactly one LF
-  site and each failing its named assertion, with the no-deploy targets.
+  or Finish in the Lull's tick or the tick after drops it; a local kill or a local death in the
+  Lull's tick and a bot-versus-bot kill in the tick after withdraw it (only the kill's Approve or
+  the death's Disapprove goes out), and the next Lull then comes 60 s after the kill, not held
+  back by the 90 s gap; a lead cue without a kill keeps it, the Approve sent first; a mask without
+  bit 6 reads nothing for it and sends none, a Lull-only mask is claimed and sends only the Lull,
+  which the interlock leaves at 0.4; Zombies with bit 6 stays silent. `Verify.ps1` runs the
+  baseline and 50 hand-made mutants, each anchored on exactly one LF site and each failing its
+  named assertion, with the no-deploy targets.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained
   `ArenaCrowdReactions.Tick`.
-- The complete client source (all of `ArenaMode.Client` plus its linked shared files) compiled on
-  2026-11-02 with 0 errors against the installed game DLLs and the installed Core 1.0.19 in an
-  isolated scratch project outside the repository (no deploy target, no build of Redeploy; the only
-  warnings were four pre-existing CS8632 in `ArenaMode.Shared/ClientSettingsModels.cs`).
+- The complete client source (all of `ArenaMode.Client` plus its linked shared files) compiled
+  with 0 errors at `11682885` (2026-11-02, recorded in that commit's message) against the
+  installed game DLLs and the installed Core 1.0.19 in an isolated scratch project outside the
+  repository (no deploy target, no build of Redeploy; the only warnings were four pre-existing
+  CS8632 in `ArenaMode.Shared/ClientSettingsModels.cs`). No later commit records that compile.
+  After `11682885` the branch changes only the three crowd files under `ArenaMode.Client` and
+  nothing in `ArenaMode.Shared` (`git diff --stat 11682885 -- ArenaMode.Client ArenaMode.Shared`);
+  those changes are compiled only by `tools/CrowdReactionChecks`, against its stand-ins, not
+  against the game DLLs.
 
 ## Not claimed
 
@@ -412,4 +435,7 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   death without a kill record resets it as well as every `OnKill` (the bank is LowDeathIntensity,
   and the crowd has just groaned at that death). A failing snapshot read stops the Lull together
   with the murmur. The Lull rides the one-tick hold like Approve and Disapprove, and it is not
-  interlocked with the announcer.
+  interlocked with the announcer. A kill or a local death in that hold withdraws it, and the 90 s
+  gap counts from a Lull that went out, so a dropped or withdrawn one delays nothing (found by
+  the review of `484b095a`, where a kill right after the decision still let the Lull follow the
+  kill's Approve). A lead or award cue without a kill does not withdraw it (section "Lull").

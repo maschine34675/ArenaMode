@@ -1031,9 +1031,10 @@ frame, at most one push per kind, excitement only on change at about 1 Hz), neve
 when members are appended, and do not depend on `ArenaEvents.OnLocalDamageDealt` or on Fika.
 Kinds sent: Approve 1, Disapprove 2, Start 4, Finish 5 and Lull 6; TakeCover 3 is MapPort's own
 sensor, PurifiedTeam 7 is reserved. The Lull (decision D14) is the one reaction decided from
-time: 60 s of live combat (the murmur's snapshot reading) without a kill, at most one per 90 s,
-only while the claimed mask holds bit 6 (MapPort sets it only once it ships the Lull bank after
-phase A), and a Start or Finish in its flush window drops it. Pins: `tools/CrowdReactionChecks`.
+time: 60 s of live combat (the murmur's snapshot reading) without a kill, at most one per 90 s
+(counted from the last Lull that went out), only while the claimed mask holds bit 6 (MapPort
+sets it only once it ships the Lull bank after phase A); a Start or Finish in its flush window
+drops it, and a kill or a local death there withdraws it. Pins: `tools/CrowdReactionChecks`.
 
 ### From the handoff (snapshot of 2026-10-29)
 

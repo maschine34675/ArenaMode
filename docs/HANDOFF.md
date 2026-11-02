@@ -55,17 +55,19 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 `65007e74`, not merged, not built into any install):** phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
 `SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
-`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (46 mutants) and a compile check
-of the client. Pending: ArenaMapPort phase A (the reaction members), a native GPU run (murmur
-with 0.4.0 first, reactions after phase A, including the respawn wait and the spectator
-camera) and the user's listening. Three independent reviews on 2026-11-02 found one major
+`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (50 mutants) and a compile check
+of the complete client against the game DLLs at `11682885`; the later changes (only the three
+crowd files) are compiled by that harness alone, against stand-ins. Pending: ArenaMapPort
+phase A (the reaction members), a native GPU run (murmur with 0.4.0 first, reactions after
+phase A, including the respawn wait and the spectator camera) and the user's listening. Three independent reviews on 2026-11-02 found one major
 (a teammate's kill reacted, against D5) and minor issues; all are fixed on the branch
 (`83d4aee3`..`4d4a9444`). Applied afterwards from the plan as revised in ArenaMapPort
 `08964c1` (the user's automatic subtitles of every crowd clip): a lost lead disapproves at 0.3
 (laments only, below MapPort's 0.4 band; an own death keeps 0.5), and the Lull of the user's
 decision D14 ("wie empfohlen"): ArenaMode sends Lull 0.4 after 60 s of live combat without a
 kill, at most one per 90 s, dormant until a MapPort after phase A ships the Lull bank and
-advertises kind 6. User decision D1 (MapPort side): phase A exports only the 70 "keep" clips
+advertises kind 6; a kill or a local death withdraws a Lull still waiting to go out (review of
+`484b095a`). User decision D1 (MapPort side): phase A exports only the 70 "keep" clips
 for now; the 19 "listen" clips wait for the user's listening, which is still pending. Contract
 and decisions (D1, D5, D7, D10, D12, D14, announcer interlock):
 [CROWD-REACTIONS-20261102.md](reviews/CROWD-REACTIONS-20261102.md).

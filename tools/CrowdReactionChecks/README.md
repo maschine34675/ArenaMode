@@ -22,9 +22,10 @@ It drives the service through the same events the game raises (`OnCallout` befor
 before the result cue, `ArenaEvents.OnPlayerDied`, the Deathmatch round events) and asserts
 the binding outcomes, the mapping table, coalescing, the local-death deduplication, gating,
 every exit path, the retry window, the excitement mapping, the Lull trigger (decision D14: the
-60 s quiet clock on live combat, its resets, the 90 s gap, the mask bit 6, coalescing with round
-events) and the wiring of the files it cannot link (text pins of `ArenaMatchService`,
-`ArenaController`, `Plugin`, `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` then runs 46 hand-made mutants, each anchored
+60 s quiet clock on live combat, its resets, the 90 s gap from a sent Lull, the mask bit 6,
+coalescing with round events, the withdrawal by a kill or a local death) and the wiring of the
+files it cannot link (text pins of `ArenaMatchService`, `ArenaController`, `Plugin`,
+`ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` then runs 50 hand-made mutants, each anchored
 on exactly one LF site of the production text and each failing its named assertion; every case
 builds with the no-deploy targets into its own folder under `artifacts/crowd-reaction-checks/`.
 

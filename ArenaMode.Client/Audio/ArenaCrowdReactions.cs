@@ -42,7 +42,7 @@ namespace ArenaMode.Audio;
 /// Events are buffered and flushed once per tick: per kind the strongest entry, at most one push
 /// per kind per flush, nothing when nothing happened. Start and Finish go out in the tick they
 /// arrive in; Approve, Disapprove and Lull wait one more tick, and a Start or Finish in either tick
-/// drops them (see <see cref="Flush"/>). Handlers buffer only and never throw into the match; the
+/// drops them (see <see cref="Flush"/>); a kill or a local death withdraws a waiting Lull. Handlers buffer only and never throw into the match; the
 /// only lines they write are the NoContest release and the first handler failure, once per match.
 /// Every reaction push happens from the gated tick. The Lull is decided in the tick from the
 /// once-per-second snapshot poll (see <see cref="TickLull"/>).
@@ -189,7 +189,7 @@ internal static class ArenaCrowdReactions
                 _nextClaimAt = _nextSnapshotAt = now;
             }
             TickClaim(now);
-            Flush();
+            Flush(now);
             TickSnapshot(match, now);
         }
         catch (Exception ex)
@@ -234,9 +234,11 @@ internal static class ArenaCrowdReactions
     /// kill's OnKill and the RoundWon of the next frame's mode tick would otherwise be two
     /// reactions. Team DM and Deathmatch publish synchronously in mode.OnKill and need no wait;
     /// one frame of delay is not audible. The Lull rides the same frames: decided after this flush
-    /// (TickSnapshot), it goes out two ticks later unless a Start or Finish arrives first.
+    /// (TickSnapshot), it goes out two ticks later unless a Start or Finish arrives first or a kill
+    /// or a local death withdraws it (<see cref="ResetQuiet"/>). Its 90 s gap starts here, when it
+    /// goes out: a Lull dropped or withdrawn before that was never heard and delays nothing.
     /// </summary>
-    private static void Flush()
+    private static void Flush(float now)
     {
         if (_pending.IsEmpty && _held.IsEmpty) return;
         var claim = _claim;
@@ -274,6 +276,7 @@ internal static class ArenaCrowdReactions
                 return;
             }
             _sent++;
+            if (kind == Lull) _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;
             Plugin.ModLogger.LogDebug($"Arena crowd reaction: kind={KindName(kind)}, strength={Number(strength)}, "
                 + $"source={source}{(weakened ? ", announcer speaking" : "")}.");
         }
@@ -324,8 +327,14 @@ internal static class ArenaCrowdReactions
     /// without its cue) and a claim taken late in the retry window. Every admitted kill and every
     /// local death resets it (<see cref="ResetQuiet"/>), a Start restarts it and a Finish stops it
     /// (<see cref="NoteRoundEvent"/>), a release clears it. A Lull restarts it as well, so the next
-    /// one needs a new quiet minute and the 90 s gap. The Lull is buffered like a moment: it waits a
-    /// tick, a Start or Finish in either tick drops it, and it never drops anything (Frame.Resolve).
+    /// one needs a new quiet minute, and the 90 s gap from the last Lull that went out (stamped in
+    /// <see cref="Flush"/>). The Lull is buffered like a moment: it waits a tick, a Start or Finish
+    /// in either tick drops it (Frame.Resolve), a kill or a local death in either tick withdraws it
+    /// (<see cref="ResetQuiet"/>), and it never drops anything.
+    /// A lead or award cue without a kill does not withdraw it: Domination's score moves by
+    /// objective points (TeamDeathmatchMode.FriendlyTeamScore), so its lead can change without a
+    /// kill. "No kill for 60 s" then still holds, D14 counts kills only, and the cue's Approve and
+    /// the Lull meet only when the cue falls within the two ticks around the Lull's decision.
     /// It is not interlocked with the announcer.
     /// </summary>
     private static void TickLull(in ArenaAnnouncementSnapshot snapshot, float now)
@@ -335,14 +344,19 @@ internal static class ArenaCrowdReactions
         if (now - since < ArenaCrowdReactionPolicy.LullQuietSeconds || now < _nextLullAt) return;
         _pending.Add(Lull, ArenaCrowdReactionPolicy.LullStrength, "no kill for 60 s");
         _quietSince = now;
-        _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;
     }
 
     // A kill or a local death ends the quiet stretch. A running clock starts again now; a stopped
-    // one stays stopped (no live combat, or a Finish stopped it) until the next live poll.
+    // one stays stopped (no live combat, or a Finish stopped it) until the next live poll. A Lull
+    // decided but not yet sent (it waits up to two ticks, see Flush) is withdrawn from either frame:
+    // its premise, no kill for 60 s, no longer holds, and it would go out in the same flush as the
+    // kill's own cheer or groan, or the one after (plan 2.4: a jibe right after a cheer contradicts
+    // it). It was never heard, so it does not start the 90 s gap. TryTake clears without allocating.
     private static void ResetQuiet()
     {
         if (_quietSince.HasValue) _quietSince = Time.unscaledTime;
+        _pending.TryTake(Lull, out _, out _);
+        _held.TryTake(Lull, out _, out _);
     }
 
     // A Start restarts the quiet clock: a new round is no dull stretch yet. A Finish stops it until
@@ -383,8 +397,9 @@ internal static class ArenaCrowdReactions
         if (!Listening || kill == null) return;
         try
         {
-            // D14: every admitted kill ends a quiet stretch, bot-versus-bot and unscored ones
-            // included. The Lull is about a dull match, not about the local player.
+            // D14: every admitted kill ends a quiet stretch and withdraws a waiting Lull,
+            // bot-versus-bot and unscored ones included. The Lull is about a dull match, not about
+            // the local player.
             ResetQuiet();
             if (kill.LocalIsVictim && !TakeDeath(kill.VictimBodyId)) return;
             if (ArenaCrowdReactionPolicy.TryMapKill(kill, out int kind, out float strength, out string source))
@@ -401,7 +416,8 @@ internal static class ArenaCrowdReactions
     // for it here only creates the weak identity entry the kill capture would create for the same
     // object; it records no contact and changes no award or scoring state.
     // A death without a kill record (a fall, an own grenade) also ends a quiet stretch for the
-    // Lull: the bank is LowDeathIntensity, and the crowd has just groaned at that death.
+    // Lull and withdraws a waiting one: the bank is LowDeathIntensity, and the crowd has just
+    // groaned at that death.
     private static void OnPlayerDied(Player player)
     {
         if (!Listening) return;
