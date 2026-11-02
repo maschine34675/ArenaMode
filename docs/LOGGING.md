@@ -87,6 +87,18 @@ logger plus production `ArenaLog` source and rejects broken opt-in guards. The
 server unit suite also tests routine ladder output separately from malformed
 draws, prohibited-ammunition fallback and attachment failures.
 
+## Crowd reactions (Debug)
+
+The spectator crowd presentation (docs/reviews/CROWD-REACTIONS-20261102.md) logs at Debug only
+and nothing per frame: `Arena crowd attached: mode=…, excitement=…, reactions=…` or `Arena crowd
+off: …` once per match (the key was off, Zombies, ArenaMapPort absent, an older or incompatible
+contract); `Arena crowd reactions claimed: handle=…, kinds=0x…, attempt=…` or, after the 30 s
+window, `Arena crowd reactions not claimed: …`; one `Arena crowd reaction: kind=…, strength=…,
+source=…` per sent reaction (", announcer speaking" when the interlock halved it); `Arena crowd
+reactions released: handle=…, reason=…, sent=…` and `Arena crowd detached: reason=…,
+reactions=…, excitementPeak=…`. Warnings: an incompatible SpectatorCrowd contract (once per
+process per reason) and an exception from an ArenaMapPort member or a crowd event handler.
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five

@@ -51,6 +51,16 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
+`65007e74`, not merged, not built into any install):** phase B of
+`D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
+`SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
+`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (26 mutants) and a compile check
+of the client. Pending: ArenaMapPort phase A (the reaction members), a native GPU run (murmur
+with 0.4.0 first, reactions after phase A, including the respawn wait and the spectator
+camera), the user's listening, and the adversarial review. Contract and decisions (D5, D7, D10,
+D12, announcer interlock): [CROWD-REACTIONS-20261102.md](reviews/CROWD-REACTIONS-20261102.md).
+
 **Domination objectives on DynamicMaps (2026-11-01, merged into `master` from
 `feature/domination-map-markers`, not released):** ArenaMode owns live
 objective diamonds, using each round's verified IDs/positions and faction or

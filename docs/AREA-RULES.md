@@ -1014,6 +1014,21 @@ Active announcer OGGs live in announcements/, the four effect WAVs in sounds/.
 Audio records are consolidated under docs/licenses/audio; see
 docs/reviews/AUDIO-LAYOUT-20261018.md. Keep source-only reserve audio out of payloads.
 
+The spectator crowd of ArenaMapPort maps (`Audio/ArenaCrowdReactions`, binder
+`Compat/ArenaMapPortSpectatorCrowd`, key `Audio/CrowdReactions` frozen at arm) is presentation
+only; read docs/reviews/CROWD-REACTIONS-20261102.md before changing it. It adds no Harmony patch
+and lives on `ArenaMatch`/`ArenaEvents` subscriptions inside an attached Arena match. Its handlers
+buffer only: they never throw into the match, block or log, and a failed reaction never changes
+match state. No push outside an armed Arena match (this exact current match, `Status ==
+Started`, the exact active raid, no pending start abort) or in a plain raid on a ported map. No
+claim may outlive an exit path (failed start, raid end, new-raid recovery, both early returns of
+`ArenaMatchService.Tick`, plugin shutdown, a failed gate, NoContest, a refused `React`). Never
+subscribe to the process-global `SpawnGates.GatesOpened`, never send every frame (one flush per
+frame, at most one push per kind, excitement only on change at about 1 Hz), never make the
+`SetExcitement` binding require the reaction members or assume that `ContractVersion` changes
+when members are appended, and do not depend on `ArenaEvents.OnLocalDamageDealt` or on Fika.
+Pins: `tools/CrowdReactionChecks`.
+
 ### From the handoff (snapshot of 2026-10-29)
 
 Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerpts, or restatements where marked Quoted:/Rule:/Durable form:. Line numbers refer to `handoff-archive/HANDOFF-2026-10-29.md`.

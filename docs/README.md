@@ -57,7 +57,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (198)
+## Feature reviews and contracts (199)
 
 Sorted by file name.
 
@@ -117,6 +117,7 @@ Sorted by file name.
 - [Continuous Healing: native bot healing and retired-body isolation](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md) *(superseded)*
 - [Continuous Load Ammo: body changes and delayed completion](reviews/CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md) *(superseded)*
 - [Corpse cleanup: paired native notifications, corpse release and own-corpse release](reviews/CORPSE-CLEANUP-REVIEW.md)
+- [Crowd reactions and murmur intensity on ArenaMapPort maps: SpectatorCrowd contract, mapping, lifecycle](reviews/CROWD-REACTIONS-20261102.md)
 - [Customs: bounded areas in every Arena mode](reviews/CUSTOMS-ALL-MODES-REVIEW.md)
 - [Customs contours and unified selection: polygon-v2 wire IDs, starts and provenance](reviews/CUSTOMS-AREAS-REVIEW.md)
 - [Surveyed Customs contour (polygon v1): side-only walls, spawn policy and corner carvers](reviews/CUSTOMS-CONTOUR-REVIEW.md) *(superseded)*
