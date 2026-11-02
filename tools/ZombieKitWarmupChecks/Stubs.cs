@@ -116,6 +116,7 @@ namespace ArenaMode.Audio
 {
     public static class AnnouncerService { public static void Tick() { } }
     public static class HitmarkerAudioService { public static void Tick() { } }
+    public static class ArenaPmcVoice { public static void Tick() { } }
     public static class LabyrinthAlarmPatches { public static void Tick() { } }
 }
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static void Tick() { } } }
