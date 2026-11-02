@@ -22,6 +22,10 @@
     <SessionText Condition="'$(SessionText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaSession.cs</SessionText>
     <SettingsText Condition="'$(SettingsText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Config/Settings.cs</SettingsText>
     <LayoutText Condition="'$(LayoutText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Config/ArenaConfigMenuLayout.cs</LayoutText>
+    <!-- The real-surface stage loads the installed ArenaMapPort client at run time, read-only (no
+         reference, nothing copied): crowd reactions phase A, MapPort d70acd2 or later. -->
+    <SptRoot Condition="'$(SptRoot)' == ''">D:\SPT41</SptRoot>
+    <MapPortClientDll Condition="'$(MapPortClientDll)' == ''">$(SptRoot)\BepInEx\plugins\maschine-ArenaMapPort\maschine-ArenaMapPort.Client.dll</MapPortClientDll>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CrowdBinderSource)" Link="Production/ArenaMapPortSpectatorCrowd.cs" />
@@ -41,5 +45,6 @@
     <AssemblyMetadata Include="BinderText" Value="$([System.IO.Path]::GetFullPath('$(CrowdBinderSource)'))" />
     <AssemblyMetadata Include="PolicyText" Value="$([System.IO.Path]::GetFullPath('$(CrowdPolicySource)'))" />
     <AssemblyMetadata Include="ServiceText" Value="$([System.IO.Path]::GetFullPath('$(CrowdServiceSource)'))" />
+    <AssemblyMetadata Include="MapPortClientDll" Value="$([System.IO.Path]::GetFullPath('$(MapPortClientDll)'))" />
   </ItemGroup>
 </Project>

@@ -4,11 +4,19 @@
 # references no mod project), into its own output folder under artifacts/. A mutant anchor is compared
 # with LF line endings and must match exactly one site; production files are never rewritten.
 # -Stage Baseline runs the baseline only (Run-ArenaVerification.ps1 -Harness CrowdReactionChecks:Baseline).
-param([ValidateSet('All', 'Baseline')][string]$Stage = 'All')
+# The program's last stage loads the installed ArenaMapPort client read-only (installed data, like
+# IcebergChecks): it must exist and carry crowd reactions phase A (MapPort d70acd2 or later), and its
+# hash must not change during the check.
+param([ValidateSet('All', 'Baseline')][string]$Stage = 'All', [string]$SptRoot = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
 if (Test-Path variable:PSNativeCommandUseErrorActionPreference) { $PSNativeCommandUseErrorActionPreference = $false }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $project = Join-Path $PSScriptRoot 'CrowdReactionChecks.csproj'
+$mapPortClient = Join-Path $SptRoot 'BepInEx/plugins/maschine-ArenaMapPort/maschine-ArenaMapPort.Client.dll'
+if (!(Test-Path -LiteralPath $mapPortClient)) {
+    throw "Installed ArenaMapPort client is missing: $mapPortClient. The real-surface stage of CrowdReactionChecks needs an ArenaMapPort client with crowd reactions phase A (D:\ArenaMapPort d70acd2 or later)."
+}
+$mapPortHash = (Get-FileHash -LiteralPath $mapPortClient -Algorithm SHA256).Hash
 $evidence = Join-Path $repo ('artifacts/crowd-reaction-checks/' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($evidence) | Out-Null
 $noDeploy = Join-Path $evidence 'must-not-exist-no-deploy'
@@ -27,6 +35,7 @@ foreach ($key in $sources.Keys) { $hashes[$key] = (Get-FileHash -LiteralPath $so
 function Invoke-Case([string]$Name, [string]$Property, [string]$Copy) {
     $arguments = @('run', '--project', $project, '-c', 'Release', '--nologo',
         "-p:CustomAfterMicrosoftCommonTargets=$noDeployTargets", "-p:SPTUserMods=$noDeploy",
+        "-p:MapPortClientDll=$mapPortClient",
         "-p:OutputPath=$(Join-Path $evidence ($Name + '-bin/'))",
         "-p:IntermediateOutputPath=$(Join-Path $evidence ($Name + '-obj/'))")
     if ($Property) { $arguments += "-p:$Property=$Copy" }
@@ -40,8 +49,23 @@ function Invoke-Case([string]$Name, [string]$Property, [string]$Copy) {
 
 $baseline = Invoke-Case 'baseline' '' ''
 if ($baseline.Exit -ne 0 -or $baseline.Text -notmatch 'CROWD_REACTION_CHECKS_PASSED') { throw $baseline.Text }
-Write-Output (($baseline.Text -split "`n") | Where-Object { $_ -match 'CROWD_REACTION_CHECKS_PASSED' })
-if ($Stage -eq 'Baseline') { Write-Output "CROWD_REACTION_CHECKS_BASELINE: evidence $evidence"; return }
+Write-Output (($baseline.Text -split "`n") | Where-Object { $_ -match 'CROWD_REACTION_REAL_SURFACE|CROWD_REACTION_CHECKS_PASSED' })
+function Assert-MapPortUnchanged {
+    if ((Get-FileHash -LiteralPath $mapPortClient -Algorithm SHA256).Hash -ne $mapPortHash) {
+        throw "The installed ArenaMapPort client changed during the check: $mapPortClient"
+    }
+}
+if ($Stage -eq 'Baseline') { Assert-MapPortUnchanged; Write-Output "CROWD_REACTION_CHECKS_BASELINE: evidence $evidence"; return }
+
+# Fault control: without the installed client the program fails (it never skips the real surface)
+# and names MapPort's requirement. The later -p wins over the installed path Invoke-Case passes.
+$absentClient = Join-Path $evidence 'no-mapport/maschine-ArenaMapPort.Client.dll'
+$absent = Invoke-Case 'mapport-client-absent' 'MapPortClientDll' $absentClient
+if ($absent.Exit -eq 0 -or $absent.Text -match 'error CS' -or $absent.Text -match 'CROWD_REACTION_CHECKS_PASSED' -or
+    -not $absent.Text.Contains('FAIL: the installed ArenaMapPort client is missing') -or -not $absent.Text.Contains('d70acd2')) {
+    throw "A missing ArenaMapPort client did not fail the real-surface stage loudly:`n$($absent.Text)"
+}
+Write-Output 'CROWD_REACTION_REAL_SURFACE_FAULT_REJECTED: absent ArenaMapPort client -> FAIL naming phase A (d70acd2 or later)'
 
 $cases = @(
     @{ Name='claim-not-released-on-native-stop'; Property='CrowdServiceSource';
@@ -160,7 +184,7 @@ $cases = @(
        Failure='kinds outside 1..31 have no bit' },
     @{ Name='owner-longer-than-forty'; Property='CrowdServiceSource';
        Find='private const int OwnerHexDigits = 31;'; Replace='private const int OwnerHexDigits = 32;';
-       Failure="owner is unique per match and fits MapPort's 40 characters" },
+       Failure='owner is unique per match and exactly 40 characters' },
     @{ Name='controller-tick-missing'; Property='ControllerText';
        Find="        Audio.ArenaCrowdReactions.Tick();`n"; Replace='';
        Failure='the crowd ticks every frame right after the announcer' },
@@ -218,7 +242,13 @@ $cases = @(
        Failure='a withdrawn Lull does not count against the 90 s gap' },
     @{ Name='lull-gap-not-stamped'; Property='CrowdServiceSource';
        Find='if (kind == Lull) _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;'; Replace='';
-       Failure='no second Lull within 90 s of the first' }
+       Failure='no second Lull within 90 s of the first' },
+    # Real surface (installed ArenaMapPort, phase A): the stand-ins record whatever kind ArenaMode
+    # sends, so a Start/Finish swap passes them all; only MapPort's own numbering rejects it.
+    @{ Name='kind-numbers-not-mapport'; Property='CrowdBinderSource';
+       Find='internal const int Approve = 1, Disapprove = 2, TakeCover = 3, Start = 4, Finish = 5, Lull = 6;';
+       Replace='internal const int Approve = 1, Disapprove = 2, TakeCover = 3, Start = 5, Finish = 4, Lull = 6;';
+       Failure="real surface: ArenaMode's kind numbers are MapPort's CrowdReactionKind numbers" }
 )
 foreach ($case in $cases) {
     $source = [IO.File]::ReadAllText($sources[$case.Property]).Replace("`r`n", "`n")
@@ -239,4 +269,5 @@ foreach ($key in $sources.Keys) {
         throw "A production source changed during the check: $($sources[$key])"
     }
 }
+Assert-MapPortUnchanged
 Write-Output "CROWD_REACTION_CHECKS_VERIFIED: $($cases.Count) mutants rejected; evidence $evidence"

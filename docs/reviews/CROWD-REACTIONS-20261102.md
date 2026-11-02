@@ -2,8 +2,12 @@
 
 Date: 2026-11-02. Branch `feature/crowd-reactions` from `65007e74`. Phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md` (section 6, "Change list: ArenaMode"); the
-ArenaMapPort side (phase A) is a separate project and is **not implemented** at the time of
-writing. Status: implemented and checked offline; no native run, nothing listened to. Three
+ArenaMapPort side (phase A) is a separate project. It was written against the plan before
+MapPort implemented its side; phase A is now **implemented in ArenaMapPort `d70acd2`** on its
+branch `feature/iceberg` (2026-11-02, not released; planned with MapPort's next release; section
+"ArenaMapPort phase A as implemented"). Status: implemented and checked offline, against
+stand-ins and against the installed MapPort client's real contract and queue (no Unity); no
+native run with ArenaMode, nothing listened to. Three
 independent reviews (2026-11-02) found one major issue (a teammate's kill reacted, against D5)
 and minor ones (a Tactical deciding kill one tick before its result, a dropped result in a solo
 Tactical round without RoundStart, NoContest on the 0.4.0 murmur, binder presence and proof
@@ -29,9 +33,10 @@ Arena match:
   through the published `SpectatorCrowd.SetExcitement(float)`. **Works with ArenaMapPort 0.4.0.**
 - **Reactions.** Cheers for the player's own kills, awards and lead, anger at the player's own
   deaths and laments at a lost lead, a call at every round start and round or match result,
-  through the four reaction members of plan 4.3. **Needs the ArenaMapPort version that ships
-  phase A;** against 0.4.0 this part is absent and stays dormant (no subscription, no claim, no
-  call). A complaint about a dull match after a minute of live combat without a kill (Lull,
+  through the four reaction members of plan 4.3. **Needs an ArenaMapPort with phase A**
+  (implemented in `d70acd2`, not released yet); against 0.4.0 this part is absent and stays
+  dormant (no subscription, no claim, no call). A complaint about a dull match after a minute of
+  live combat without a kill (Lull,
   decision D14) needs a later MapPort that also ships the Lull bank; until then it stays dormant
   even against phase A.
 
@@ -53,7 +58,7 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
 |---|---|---|
 | Version gate (both parts) | `int ContractVersion` == 1 | 0.4.0 |
 | Excitement | `void SetExcitement(float)`; optional `bool IsAvailable` | 0.4.0 |
-| Reactions | `int ReactionKinds`, `int ClaimReactions(string)`, `bool React(int, int, float)`, `bool ReleaseReactions(int)` | phase A (not released) |
+| Reactions | `int ReactionKinds`, `int ClaimReactions(string)`, `bool React(int, int, float)`, `bool ReleaseReactions(int)` | phase A: ArenaMapPort `d70acd2` (`feature/iceberg`, not released) |
 
 - The two parts bind **independently**: the excitement part never requires the reaction members
   (plan 6, "must not"), the reaction part never requires `SetExcitement`.
@@ -78,11 +83,15 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
   service sends a Lull, and reads the snapshot for it, only while the claimed mask holds bit 6.
   No contract change.
 - **Claim.** Once per match, owner `"AM crowd "` plus 31 hex digits of a fresh Guid: exactly 40
-  characters, because MapPort deduplicates owners after truncating them at 40 (as for the score
-  monitors). Claimed only when `ReactionKinds` holds one of Approve, Disapprove, Start, Finish or
-  Lull. A Lull-only mask is claimed too and then carries the Lull alone: `ReactionKinds` lists
-  what MapPort can play in this raid, so standing its own Approve, Disapprove and Start sensors
-  down for an external claim (plan 4.2) silences nothing that could have been heard.
+  characters. The plan expected MapPort to deduplicate owners after truncating them at 40, as
+  for the score monitors (`ScoreMonitorModel.OwnerMax` is 40); phase A keeps up to 64 printable
+  ASCII characters (`CrowdReactionQueue.CleanOwner`), so the 40 reach MapPort unchanged (the
+  real-surface stage reads `HolderOwner` back). Claimed only when `ReactionKinds` holds one of
+  Approve, Disapprove, Start, Finish or Lull. A Lull-only mask is claimed too and then carries
+  the Lull alone: `ReactionKinds` lists what MapPort can play in this raid, so standing its own
+  Approve, Disapprove and Start sensors down for an external claim (plan 4.2) silences nothing
+  that could have been heard. Phase A has no such sensors; only its developer demo waits while
+  another owner holds the claim (`CrowdReactionQueue.ExternalClaimed`).
 - **Retry window.** From the first gated tick (the game is `Started` then) for 30 s, at most one
   attempt per second, 31 at most: each attempt reads `ReactionKinds` and calls
   `ClaimReactions` only when the mask holds our kinds. A mask without our kinds after the window
@@ -91,7 +100,58 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
   plugin, the type or the reaction part is absent or incompatible, or a member threw.
 - **Lost claim.** `React` returning false (stale generation, foreign owner, refused) or throwing
   releases the claim (`ReleaseReactions` is still attempted) and ends reactions for the match; it
-  is never claimed again.
+  is never claimed again. MapPort's `React` also returns false for a refused request on a live
+  claim (a kind without a bit in the current `ReactionKinds`, a strength below 0.05, NaN), so
+  ArenaMode cannot tell the two apart and treats both as lost (section "ArenaMapPort phase A as
+  implemented").
+
+## ArenaMapPort phase A as implemented (`d70acd2`)
+
+MapPort implemented its side in `d70acd2` ("Crowd reactions, phase A ...", branch
+`feature/iceberg`, 2026-11-02; not released, planned with its next release). The contract is
+the plan's 4.3 unchanged: the four reaction members are appended to `SpectatorCrowd` and
+`ContractVersion` stays 1. The state behind them is `CrowdReactionQueue` in
+`ArenaMapPort.Client/CrowdReactionModel.cs`:
+
+- **Kinds.** Phase A implements 1 to 5: `ReactionKinds` is 62 (`CrowdReactionKind.ImplementedMask`)
+  once the crowd's reaction set is ready, published by `SpectatorAudio` during raid loading.
+  6 Lull and 7 PurifiedTeam are reserved and have no bit, so ArenaMode's Lull stays dormant
+  against phase A. `SetKinds` clears bit 0 and empties the request ring on 0. The kinds are
+  withdrawn mid-raid only by MapPort's developer key `Spectators/Reactions` (honoured only in
+  DeveloperMode) or a disabled `SpectatorAudio` (`PublishKinds`, `OnDisable`), and reset when the
+  crowd is removed (`ArenaSpectators.OnDestroy`, `SpectatorAudio.OnDestroy`: `Reset` voids every
+  handle and sets the kinds to 0). A withdrawal keeps the holder.
+- **Claim.** Refused (0) for a null or blank owner, while the kinds are 0, or while another owner
+  holds the reactions, unless that holder is the developer demo (`"developer-demo"`), which yields
+  to any other owner and never takes the reactions from one. The same owner gets the same handle
+  back. Owners are cleaned to at most 64 printable ASCII characters; handles come from one
+  process-wide counter and are never reused.
+- **React.** False for a handle that is not the holder's, a kind outside 1..31 or without a bit in
+  the current kinds, NaN and a strength below 0.05 (`MinStrength`); a strength above 1 is clamped.
+  True means queued (the crowd may still drop it by cooldown, rate or its 2 s age).
+- **Release.** True only for the holder; requests already queued still play.
+- **MapPort's own host run** (GPU-2, 2026-11-02 21:09 to 21:20, from its commit message): its
+  developer demo on Equator, Bay5, Air Pit and Bowl, every kind, 0 warnings, Iceberg
+  `ReactionKinds` 0, a plain-raid death and the hideout. Not listened to; ArenaMode was not
+  involved.
+
+What that means for ArenaMode, checked against the installed client by the real-surface stage
+of `tools/CrowdReactionChecks` (section "Verification"):
+
+- ArenaMode's kind numbers, its 40-character owner and its weakest strength (a lost lead under
+  the announcer, 0.15) match MapPort's numbers, owner limit and 0.05 floor.
+- **Kinds withdrawn mid-match (accepted behaviour).** When MapPort's developer key withdraws the
+  kinds and ArenaMode pushes before they are back, `React` returns false; ArenaMode releases the
+  claim (MapPort still counts it as the holder, so the release returns true) and does not claim
+  again for the rest of the match, even once the kinds are republished; the next match claims
+  anew. Accepted: the path exists only through a developer key (or a disabled component), and
+  re-claiming would need ArenaMode to tell a withdrawal from a lost claim, which `React` does not
+  say. A withdrawal and republication without a push in between leaves the claim working.
+- After the crowd is removed (`Reset`), the next push returns false, the release returns false
+  (the handle is void) and nothing is pushed or claimed for the rest of the match.
+- A strength below 0.05 would likewise end the claim for the match instead of dropping one
+  reaction; nothing ArenaMode sends is below 0.15, and the stage pins every strength against
+  MapPort's floor.
 
 ## Decisions as taken
 
@@ -122,7 +182,8 @@ Taken by the orchestrating session from the plan's recommendations (section 8):
   a moment the announcer comments on). It is read once per flush, after the announcer has
   handled that frame's callouts. Against MapPort's bands (plan 2.4, 4.1: up to 1/3 one voice, up
   to 2/3 two, above three; from 0.8 the first Approve voice from the strong-only shouts; below
-  0.4 Disapprove draws laments only; below 0.05 dropped): a kill 0.35 becomes 0.175 and a strong
+  0.4 Disapprove draws laments only; below 0.05 `React` refuses, which ends ArenaMode's claim for
+  the match): a kill 0.35 becomes 0.175 and a strong
   kill 0.6 becomes 0.3 (two voices to one); an award 0.9 becomes 0.45 (three to two, no
   strong-only first voice); lead taken 0.5 becomes 0.25; lead lost 0.3 becomes 0.15 (one voice
   and laments either way, still three times the 0.05 floor); an own death 0.5 becomes 0.25,
@@ -383,9 +444,36 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   the death's Disapprove goes out), and the next Lull then comes 60 s after the kill, not held
   back by the 90 s gap; a lead cue without a kill keeps it, the Approve sent first; a mask without
   bit 6 reads nothing for it and sends none, a Lull-only mask is claimed and sends only the Lull,
-  which the interlock leaves at 0.4; Zombies with bit 6 stays silent. `Verify.ps1` runs the
-  baseline and 50 hand-made mutants, each anchored on exactly one LF site and each failing its
-  named assertion, with the no-deploy targets.
+  which the interlock leaves at 0.4; Zombies with bit 6 stays silent.
+- **Real surface** (last stage of the same program, `RealMapPort.cs`): the installed ArenaMapPort
+  client (`D:\SPT41\BepInEx\plugins\maschine-ArenaMapPort\maschine-ArenaMapPort.Client.dll`,
+  ProductVersion `0.4.0+08964c1`, built from MapPort's phase A work before `d70acd2` was
+  committed) is loaded read-only and executed, since its contract and `CrowdReactionQueue` and
+  `CrowdBedState` are Unity-free. `BindContract` binds both parts of the real `SpectatorCrowd`
+  with the exact signatures and no warning. ArenaMode's kind numbers equal MapPort's
+  `CrowdReactionKind` constants, the implemented mask is 62 without the Lull and PurifiedTeam
+  bits, the 40-character owner passes MapPort's 64-character cleaning unchanged, and every
+  strength ArenaMode sends is at or above MapPort's `MinStrength` 0.05. The service then runs
+  against the real queue (kinds published as 62 through `SetKinds`, the bed's `Available` set):
+  the first gated tick claims with ArenaMode's owner (handle above 0, `ReactionKinds` read 62); an
+  own kill's Approve 0.35 and a lost lead under the announcer at 0.15 are queued (`React` true,
+  `Accepted` grows, the drained requests carry MapPort's kind numbers); 65 s of live combat send
+  no Lull; a Start and a Finish are queued at 1.0; `SetExcitement` reaches `State.Excitement`
+  (0.6) and returns to 0 on release; detach releases (`ReleaseReactions` true, `HolderOwner`
+  null). Further: the developer demo yields to ArenaMode's claim and cannot take it back;
+  another plugin's claim refuses ArenaMode's for the whole retry window; a second match
+  releases and claims a new handle; after a real `Reset` (crowd removed) the next push returns
+  false, the release returns false and nothing is pushed or claimed again; kinds withdrawn and
+  republished without a push leave the claim working, and with a push between they end it for
+  the match (release true, no re-claim) while the next match claims anew. A missing DLL, member
+  or internal model type fails the run naming MapPort's requirement (phase A, `d70acd2` or
+  later); `Verify.ps1` proves that with an absent client and checks the DLL's hash before and
+  after. Only state is touched; nothing of MapPort's Unity side (`SpectatorAudio`, the planner's
+  playback, the bed) runs.
+- `Verify.ps1` runs the baseline, that fault control and 51 hand-made mutants, each anchored on
+  exactly one LF site and each failing its named assertion, with the no-deploy targets. One of
+  them (Start and Finish swapped in the binder's kind constants) passes every stand-in check and
+  is rejected only by the real surface.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained
   `ArenaCrowdReactions.Tick`.
 - The complete client source (all of `ArenaMode.Client` plus its linked shared files) compiled
@@ -400,13 +488,17 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
 
 ## Not claimed
 
-- No native run: the binder has never seen a real ArenaMapPort, the service has never run in EFT.
+- No native ArenaMode and ArenaMapPort run: the binder and the service have met the real MapPort
+  contract and queue only in the harness (no Unity, no EFT); the service has never run in EFT.
+  MapPort's own host run of phase A used its developer demo and involved no ArenaMode.
 - Nothing listened to: strengths, the interlock factor, the excitement curve and their audibility
   over the announcer are proposals from the plan.
-- The reaction part cannot work before ArenaMapPort ships phase A; its contract is the plan's
-  proposal (4.3) and may still change there. With the published 0.4.0 only the murmur intensity
-  can be heard. The Lull needs a MapPort after phase A that ships the Lull bank and advertises
-  bit 6; no such MapPort exists, so its 60 s, 90 s and 0.4 are unheard proposals too.
+- The reaction part needs an ArenaMapPort release with phase A: `d70acd2` is not released and may
+  still change before MapPort's next release (the real-surface stage fails when what it checks
+  changes, nothing more). With the
+  published 0.4.0 only the murmur intensity can be heard. The Lull needs a MapPort after phase A
+  that ships the Lull bank and advertises bit 6; no such MapPort exists, so its 60 s, 90 s and
+  0.4 are unheard proposals too.
 - Where the AudioListener sits in the death replay and in the spectator camera (plan 4.4) is a
   host test item of the MapPort side.
 
@@ -428,7 +520,8 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
 - **IsAvailable** gates excitement writes (skipped while false), so a map without a bed is never
   written; the plan leaves the use of `IsAvailable` open.
 - The owner is 40 characters (31 hex digits) instead of the plan's `"AM crowd " + Guid` (41), so
-  MapPort's truncation cannot shorten it.
+  a truncation at 40, as the score monitors do, could not shorten it. Phase A keeps 64
+  characters, so the margin is wider than needed; the 40 stay.
 - **Lull, readings of D14.** "No `OnKill` for 60 s while `Live`" is read as 60 s of live combat:
   the clock runs only while the poll reads live combat and starts at the first live poll, not
   only at a Start (rounds without a Start cue, a late claim). A Lull restarts the clock. A local

@@ -1,8 +1,10 @@
 // Stand-in ArenaMapPort SpectatorCrowd surfaces. ArenaMapPort.Client.SpectatorCrowd is the phase A
 // surface of D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md 4.3 (the four 0.4.0 members plus the four
 // reaction members); the Variants namespace holds the published 0.4.0 surface and the broken ones.
-// All of them forward to FakeCrowd, which behaves like the planned MapPort hub: one holder, equal
-// owners deduplicated after truncation to 40 characters, a stale handle changes nothing.
+// All of them forward to FakeCrowd, which behaves like the MapPort hub: one holder, equal owners
+// deduplicated after truncation to 64 characters (CrowdReactionQueue.CleanOwner; the plan had 40, as
+// for the score monitors), a stale handle changes nothing. The real queue itself is driven by the
+// real-surface stage at the end of Program.cs (RealMapPort.cs).
 public static class FakeCrowd
 {
     // The phase A kinds; MapPort adds the Lull bit only once it ships the Lull bank (D14).
@@ -42,7 +44,7 @@ public static class FakeCrowd
         Claims++;
         SentOwners.Add(owner);
         if (RefuseClaim || string.IsNullOrWhiteSpace(owner)) return 0;
-        owner = owner.Length > 40 ? owner.Substring(0, 40) : owner;
+        owner = owner.Length > 64 ? owner.Substring(0, 64) : owner;
         if (Handle != 0) return owner == Owner ? Handle : 0;
         Owner = owner; Owners.Add(owner);
         return Handle = ++NextHandle;

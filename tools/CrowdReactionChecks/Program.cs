@@ -302,7 +302,7 @@ var tdm = Claimed(new TeamDeathmatchMode());
 Check(FakeCrowd.Claims == 1 && FakeCrowd.Handle > 0 && binds == 1, "the first gated tick claims once");
 string firstOwner = FakeCrowd.SentOwners[0];
 Check(firstOwner.StartsWith(ArenaCrowdReactions.OwnerPrefix, StringComparison.Ordinal) && firstOwner.Length == 40
-    && firstOwner == FakeCrowd.Owners[0], "owner is unique per match and fits MapPort's 40 characters");
+    && firstOwner == FakeCrowd.Owners[0], "owner is unique per match and exactly 40 characters");
 Check(tdm.KillSubscribers == 2 && tdm.CueSubscribers == 1 && ArenaEvents.DiedSubscribers == 1,
     "a bound reaction part listens to the match");
 
@@ -845,5 +845,206 @@ foreach (var key in new[] { "BinderText", "PolicyText", "ServiceText" })
     Check(!source.Contains("ModulePatch") && !source.Contains("HarmonyLib") && !source.Contains("[Harmony")
         && !source.Contains("LogInfo("), "no Harmony patch and no Info logging: " + key);
 }
+
+// ---------------------------------------------------------------- real surface (installed ArenaMapPort)
+// The installed ArenaMapPort client (crowd reactions phase A, MapPort d70acd2 or later), loaded
+// read-only (RealMapPort.cs). The binder binds its real SpectatorCrowd, and the service runs against
+// the real CrowdReactionQueue and CrowdBedState. The recorder in RealSurface only notes what the
+// delegates BindContract bound on the real type return. Last in the program, so every mutant above
+// still fails its own named assertion first. A missing DLL or member fails here, never skips.
+int checksBeforeReal = checks;
+// The guard below fails loudly on a client without the reaction members, such as the published 0.4.0.
+string v040Missing = RealMapPort.MissingMembers(typeof(Variants.V040));
+Check(RealMapPort.MissingMembers(typeof(ArenaMapPort.Client.SpectatorCrowd)) == null && v040Missing != null
+    && new[] { "ReactionKinds", "ClaimReactions", "React(", "ReleaseReactions" }.All(part => v040Missing.Contains(part))
+    && !v040Missing.Contains("SetExcitement") && !v040Missing.Contains("ContractVersion"),
+    "real surface: the installed-client guard names the four reaction members a 0.4.0 client lacks");
+var real = RealMapPort.Load(Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
+    .Single(attribute => attribute.Key == "MapPortClientDll").Value);
+Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: loaded {real.Path} (ProductVersion {real.ProductVersion}, SHA256 {real.Sha256})");
+
+// MapPort documents the kind numbers and keeps them as internal constants; ArenaMode mirrors them.
+// The stand-in surfaces record whatever ArenaMode sends, so only this pins the numbers themselves.
+Check(Approve == real.KindConstant("Approve") && Disapprove == real.KindConstant("Disapprove")
+    && TakeCover == real.KindConstant("TakeCover") && Start == real.KindConstant("Start")
+    && Finish == real.KindConstant("Finish") && Lull == real.KindConstant("Lull")
+    && HighestKind == real.KindConstant("MaxKind") && real.KindConstant("PurifiedTeam") == 7,
+    "real surface: ArenaMode's kind numbers are MapPort's CrowdReactionKind numbers");
+int implementedMask = real.KindConstant("ImplementedMask");
+Check(implementedMask == 62 && (implementedMask & Bit(Lull)) == 0 && (implementedMask & Bit(7)) == 0,
+    "real surface: phase A implements kinds 1 to 5 (mask 62); Lull and PurifiedTeam have no bit");
+string ownerShape = ArenaCrowdReactions.OwnerPrefix + new string('f', 31);
+Check(real.OwnerMax == 64 && real.CleanOwner(ownerShape) == ownerShape && real.CleanOwner(new string('a', 70)).Length == 64,
+    "real surface: MapPort keeps 64 owner characters; ArenaMode's 40 pass unchanged");
+// A refused React ends ArenaMode's claim for the match, so nothing ArenaMode sends may fall below
+// MapPort's floor: the interlock halves Approve and Disapprove, Start, Finish and Lull stay whole.
+float weakestSent = Math.Min(new[] { ArenaCrowdReactionPolicy.KillStrength, ArenaCrowdReactionPolicy.StrongKillStrength,
+        ArenaCrowdReactionPolicy.AwardStrength, ArenaCrowdReactionPolicy.DeathStrength,
+        ArenaCrowdReactionPolicy.LeadTakenStrength, ArenaCrowdReactionPolicy.LeadLostStrength }.Min()
+    * ArenaCrowdReactionPolicy.InterlockFactor,
+    Math.Min(ArenaCrowdReactionPolicy.RoundStrength, ArenaCrowdReactionPolicy.LullStrength));
+Check(Near(real.MinStrength, 0.05f) && weakestSent >= real.MinStrength,
+    "real surface: every strength ArenaMode sends is at or above MapPort's MinStrength");
+Console.WriteLine(FormattableString.Invariant($"CROWD_REACTION_REAL_SURFACE: kinds Approve..Lull = 1..6 as MapPort's, ImplementedMask {implementedMask}, ")
+    + FormattableString.Invariant($"owner limit {real.OwnerMax} (ArenaMode sends 40), MinStrength {real.MinStrength:0.###} (ArenaMode's weakest {weakestSent:0.###})"));
+
+log.Clear();
+var realBound = BindContract(real.SpectatorCrowd);
+Check(realBound.Excitement == Part.Bound && realBound.Reactions == Part.Bound && realBound.IsAvailable != null
+    && realBound.SetExcitement != null && realBound.ReactionKinds != null && realBound.ClaimReactions != null
+    && realBound.React != null && realBound.ReleaseReactions != null && log.Warnings.Count == 0
+    && realBound.Summary == "excitement=bound, reactions=bound",
+    "real surface: BindContract binds both parts of the installed SpectatorCrowd with the exact signatures");
+Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: BindContract(installed SpectatorCrowd): {realBound.Summary}, no warning");
+
+var realClaims = new List<(string owner, int handle)>();
+var realReacts = new List<(int handle, int kind, float strength, bool queued)>();
+var realReleases = new List<(int handle, bool released)>();
+Contract RealSurface()
+{
+    var contract = BindContract(real.SpectatorCrowd);
+    var claim = contract.ClaimReactions;
+    var react = contract.React;
+    var release = contract.ReleaseReactions;
+    contract.ClaimReactions = owner => { int handle = claim(owner); realClaims.Add((owner, handle)); return handle; };
+    contract.React = (handle, kind, strength) =>
+    {
+        bool queued = react(handle, kind, strength);
+        realReacts.Add((handle, kind, strength, queued));
+        return queued;
+    };
+    contract.ReleaseReactions = handle => { bool released = release(handle); realReleases.Add((handle, released)); return released; };
+    return contract;
+}
+// A match on a map whose crowd published its kinds during raid loading (62) and has a bed.
+ArenaMatch RealMatch(IArenaMode mode)
+{
+    var match = NewMatch(mode);
+    real.Fresh(62);
+    real.Available = true;
+    realClaims.Clear(); realReacts.Clear(); realReleases.Clear();
+    ArenaCrowdReactions.Attach(match, RealSurface);
+    return match;
+}
+bool Drained(params (int kind, float strength)[] expected)
+{
+    var drained = real.Drain();
+    bool same = drained.Count == expected.Length;
+    for (int i = 0; same && i < expected.Length; i++)
+        same = drained[i].kind == expected[i].kind && Near(drained[i].strength, expected[i].strength);
+    return same;
+}
+int MapPortKind(string name) => real.KindConstant(name);
+
+// The service flow against the real queue.
+var realTdm = RealMatch(new TeamDeathmatchMode());
+Frame();
+int realHandle = real.Holder;
+string realOwner = real.HolderOwner;
+Check(realClaims.Count == 1 && realHandle > 0 && realClaims[0].handle == realHandle && realOwner == realClaims[0].owner
+    && realOwner.StartsWith(ArenaCrowdReactions.OwnerPrefix, StringComparison.Ordinal) && realOwner.Length == 40
+    && log.Debugs.Any(line => line.StartsWith($"Arena crowd reactions claimed: handle={realHandle}, kinds=0x3E, attempt=1.",
+        StringComparison.Ordinal)),
+    "real surface: the first gated tick claims with ArenaMode's owner: handle > 0, ReactionKinds read 62");
+long realAccepted = real.Accepted;
+realTdm.Kill(LocalKill()); Settle();
+Check(realReacts.Count == 1 && realReacts[0].handle == realHandle && realReacts[0].queued && real.Accepted == realAccepted + 1
+    && Drained((MapPortKind("Approve"), 0.35f)), "real surface: an own kill's Approve 0.35 is queued: React true, Accepted + 1");
+AnnouncerService.IsPmcVoiceBlocked = true;
+realTdm.Cue(ArenaAnnouncerCue.LostTheLead); Settle();
+AnnouncerService.IsPmcVoiceBlocked = false;
+Check(realReacts.Count == 2 && realReacts[1].queued && real.Accepted == realAccepted + 2 && Drained((MapPortKind("Disapprove"), 0.15f)),
+    "real surface: the weakest strength ArenaMode sends, a lost lead under the announcer at 0.15, is queued");
+ArenaAnnouncementDirector.Snapshot = Epoch(1);
+long realRefused = real.Refused;
+Run(65);
+Check((real.Kinds & Bit(Lull)) == 0 && realReacts.Count == 2 && real.Accepted == realAccepted + 2 && real.Refused == realRefused
+    && ArenaAnnouncementDirector.Reads >= 60 && !log.Debugs.Any(line => line.Contains("kind=Lull")),
+    "real surface: 65 s of live combat without a kill send no Lull: the real mask has no bit 6");
+realTdm.Cue(ArenaAnnouncerCue.RoundStart); Frame();
+realTdm.Kill(LocalKill()); realTdm.Cue(ArenaAnnouncerCue.MatchWon); Settle();
+Check(realReacts.Count == 4 && realReacts.All(entry => entry.queued && entry.handle == realHandle)
+    && real.Accepted == realAccepted + 4 && Drained((MapPortKind("Start"), 1f), (MapPortKind("Finish"), 1f)),
+    "real surface: a Start and a Finish are queued at 1.0 (the deciding kill folded into the Finish)");
+ArenaAnnouncementDirector.Snapshot = Live(finalRound: true); Run(1.1f);
+float realLevel = real.Excitement;
+ArenaCrowdReactions.Detach();
+Check(Near(realLevel, 0.6f) && real.Excitement == 0f, "real surface: SetExcitement reaches the real State.Excitement (0.6) and returns to 0 on release");
+Check(realReleases.Count == 1 && realReleases[0] == (realHandle, true) && real.HolderOwner == null && real.Refused == realRefused
+    && log.Warnings.Count == 0, "real surface: detach releases: ReleaseReactions true, HolderOwner null");
+Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: service flow: claim handle {realHandle} for a {realOwner.Length}-character owner, "
+    + "kinds read 0x3E; queued Approve 0.35, Disapprove 0.15, Start 1, Finish 1 (Accepted +4, Refused +0); no Lull in 65 s; "
+    + FormattableString.Invariant($"excitement {realLevel:0.###} -> 0; release true"));
+
+// MapPort's own claim rules, as ArenaMode meets them: the developer demo yields, another plugin does not.
+var demoMatch = RealMatch(new TeamDeathmatchMode());
+int demoHandle = real.Claim(real.DemoOwner);
+Frame();
+Check(demoHandle > 0 && realClaims.Count == 1 && realClaims[0].handle > demoHandle && real.HolderOwner == realClaims[0].owner
+    && !real.React(demoHandle, MapPortKind("Approve"), 0.5f) && real.Claim(real.DemoOwner) == 0,
+    "real surface: the developer demo's claim yields to ArenaMode's and cannot take it back");
+ArenaCrowdReactions.Detach();
+var foreignMatch = RealMatch(new TeamDeathmatchMode());
+int foreignHandle = real.Claim("another plugin");
+foreignMatch.Kill(LocalKill()); Run(35);
+ArenaCrowdReactions.Detach();
+Check(foreignHandle > 0 && realClaims.Count >= 25 && realClaims.Count <= 31 && realClaims.All(entry => entry.handle == 0)
+    && realReacts.Count == 0 && realReleases.Count == 0 && real.HolderOwner == "another plugin"
+    && log.Debugs.Any(line => line.Contains("claim refused")),
+    "real surface: another plugin's claim refuses ArenaMode's within the retry window; nothing is sent or released");
+int foreignAttempts = realClaims.Count;
+
+// A second match of the same raid gives the first claim back and claims anew.
+RealMatch(new TeamDeathmatchMode()); Frame();
+int firstRealHandle = real.Holder;
+var nextRealMatch = NewMatchKeepingCrowd(new TeamDeathmatchMode());
+ArenaCrowdReactions.Attach(nextRealMatch, RealSurface); Frame();
+Check(realReleases.Count == 1 && realReleases[0] == (firstRealHandle, true) && realClaims.Count == 2
+    && real.Holder > firstRealHandle && real.HolderOwner == realClaims[1].owner && realClaims[0].owner != realClaims[1].owner,
+    "real surface: a second match releases the first claim and claims a new handle with a new owner");
+ArenaCrowdReactions.Detach();
+
+// The crowd is removed mid-match (ArenaSpectators.OnDestroy): the handle is void.
+var removedMatch = RealMatch(new TeamDeathmatchMode()); Frame();
+int removedHandle = real.Holder;
+real.Reset();
+removedMatch.Kill(LocalKill()); Settle();
+real.SetKinds(62);
+removedMatch.Kill(LocalKill()); removedMatch.Cue(ArenaAnnouncerCue.RoundStart); Run(40);
+Check(realReacts.Count == 1 && realReacts[0].handle == removedHandle && !realReacts[0].queued
+    && realReleases.Count == 1 && realReleases[0] == (removedHandle, false) && realClaims.Count == 1
+    && real.HolderOwner == null && real.Accepted == 0 && log.Debugs.Any(line => line.StartsWith(
+        $"Arena crowd reactions released: handle={removedHandle}, reason=reaction refused", StringComparison.Ordinal)),
+    "real surface: after a real Reset (crowd removed) the next push returns false; ArenaMode releases and stops pushing");
+ArenaCrowdReactions.Detach();
+
+// MapPort's developer key Spectators/Reactions (or a disabled SpectatorAudio) withdraws the kinds
+// mid-raid and keeps the holder. Withdrawn and republished without a push between: the claim works.
+// With a push between: React false, ArenaMode releases (still the holder, so true) and does not
+// claim again for the rest of the match, even once the kinds are back (accepted behaviour; the next
+// match claims anew).
+var keyedMatch = RealMatch(new TeamDeathmatchMode()); Frame();
+int keyedHandle = real.Holder;
+real.SetKinds(0); real.SetKinds(62);
+keyedMatch.Kill(LocalKill()); Settle();
+Check(realReacts.Count == 1 && realReacts[0].queued && real.HolderOwner == realClaims[0].owner,
+    "real surface: kinds withdrawn and republished with no push between leave ArenaMode's claim working");
+real.SetKinds(0);
+keyedMatch.Kill(LocalKill()); Settle();
+real.SetKinds(62);
+keyedMatch.Kill(LocalKill()); keyedMatch.Cue(ArenaAnnouncerCue.RoundStart); Run(40);
+Check(realReacts.Count == 2 && !realReacts[1].queued && realReleases.Count == 1 && realReleases[0] == (keyedHandle, true)
+    && real.HolderOwner == null && realClaims.Count == 1 && real.Kinds == 62,
+    "real surface: kinds withdrawn mid-match: React false, ArenaMode releases and does not claim again in that match");
+var afterKeyMatch = NewMatchKeepingCrowd(new TeamDeathmatchMode());
+ArenaCrowdReactions.Attach(afterKeyMatch, RealSurface); Frame();
+Check(realClaims.Count == 2 && realClaims[1].handle > keyedHandle && real.HolderOwner == realClaims[1].owner,
+    "real surface: the next match claims the republished kinds anew");
+ArenaCrowdReactions.Detach();
+Check(log.Warnings.Count == 0 && real.HolderOwner == null, "real surface: no warning, nothing left claimed");
+Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: demo yields to ArenaMode; another plugin's claim refused {foreignAttempts} times in the window; "
+    + "a second match releases (true) and claims a new handle; Reset: React false, release false, no re-claim; "
+    + "kinds withdrawn with a push between: React false, release true, no re-claim in that match, the next match claims");
+Console.WriteLine($"CROWD_REACTION_REAL_SURFACE: {checks - checksBeforeReal} assertions against the installed assembly");
 
 Console.WriteLine($"CROWD_REACTION_CHECKS_PASSED ({checks} assertions)");
