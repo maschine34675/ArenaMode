@@ -70,13 +70,14 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
 Taken by the orchestrating session from the plan's recommendations (section 8):
 
 - **D5, local-centric events.** Own kills, own deaths, whitelisted awards, lead changes, round and
-  match start and result. Ignored: bot-versus-bot kills and every kill with `ScoreEligible == false`
-  (staging, result hold and friendly fire in Team DM, unattributed fire). The one bot kill that
-  reacts is a teammate's kill of an opponent in Team DM and Domination (`KillerIsFriendly == true`,
-  `VictimIsFriendly == false`), because it is good for the viewer's side (plan table, "Teammate
-  kill, optional"). **Zombies: no reactions and no excitement, not even a claim.** Domination
-  capture events are deferred (plan 6.5 "Later"); Gun Game tier-ups reach the crowd only through
-  the FinalWeapon and LadderComplete cues.
+  match start and result. Ignored: every bot-versus-bot kill and every kill record with
+  `ScoreEligible == false` (friendly fire and unattributed fire in a live Team DM or Domination
+  match). The local player is the only human in an Arena match (Team DM and Domination build the
+  friendly side from their own bots), so a teammate's kill of an opponent is a bot-versus-bot kill
+  and stays silent too: the plan's optional row "Teammate kill (Team DM flags), Approve 0.25" was
+  not taken. **Zombies: no reactions and no excitement, not even a claim.** Domination capture
+  events are deferred (plan 6.5 "Later"); Gun Game tier-ups reach the crowd only through the
+  FinalWeapon and LadderComplete cues.
 - **D7, no win/loss colouring.** Every Finish has strength 1.0. NoContest, CancelStatus,
   AdvanceStatus, the countdown (PrepareToFight, Three, Two, One) and the clock and kill milestone
   cues give no reaction.
@@ -99,8 +100,7 @@ Taken by the orchestrating session from the plan's recommendations (section 8):
 | `OnKill`, `KilledByLocal`, `DamageKind` other than below, no headshot | Approve 0.35 |
 | `OnKill`, `KilledByLocal`, `DamageKind` `Melee`, `Explosion` or `GrenadeFragment`, or `Headshot` | Approve 0.6 |
 | `OnKill`, `LocalIsVictim` (scored) | Disapprove 0.5 |
-| `OnKill`, teammate kills opponent (Team DM/Domination faction flags) | Approve 0.25 |
-| `OnKill`, `ScoreEligible == false`, or any other bot-versus-bot kill | none |
+| `OnKill`, `ScoreEligible == false`, or any bot-versus-bot kill (a teammate's kill of an opponent included) | none |
 | `ArenaEvents.OnPlayerDied` without an earlier decision for that body | Disapprove 0.5 |
 | Callouts FIRST BLOOD, PAYBACK, COLLATERAL, SHUTDOWN, AIRBORNE, NO SCOPE, DOUBLE/TRIPLE/ULTRA/MONSTER KILL, KILLING SPREE, RAMPAGE, DOMINATING, UNSTOPPABLE, GODLIKE | Approve 0.9 |
 | Callout HEADSHOT (single-hit headshot award) | Approve 0.6 (stays on the kill's own path) |
@@ -243,7 +243,7 @@ from a MapPort member or an event handler.
   frames, Deathmatch round ends, gating, every exit path, refused and throwing reactions, the
   retry window, excitement pins and monotonicity, key off, Zombies, the interlock, logging, and
   text pins of the wiring that cannot be linked (`ArenaMatchService`, `ArenaController`, `Plugin`,
-  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 26
+  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 27
   hand-made mutants, each anchored on exactly one LF site and each failing its named assertion,
   with the no-deploy targets.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained

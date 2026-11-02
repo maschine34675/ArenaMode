@@ -140,7 +140,10 @@ Check(!ArenaCrowdReactionPolicy.TryMapKill(OtherKill(null, null), out _, out _, 
     && !ArenaCrowdReactionPolicy.TryMapKill(OtherKill(false, true), out _, out _, out _)
     && !ArenaCrowdReactionPolicy.TryMapKill(OtherKill(true, true), out _, out _, out _)
     && !ArenaCrowdReactionPolicy.TryMapKill(null, out _, out _, out _), "bot-versus-bot kills are ignored");
-Check(KillMaps(OtherKill(true, false), Approve, 0.25f), "teammate kill approves at 0.25");
+// D5: a friendly bot killing an opponent is a bot-versus-bot kill too (the local player is the
+// only human); the plan's optional teammate row was not taken.
+Check(!ArenaCrowdReactionPolicy.TryMapKill(OtherKill(true, false), out _, out _, out _),
+    "a teammate's kill of an opponent is silent");
 foreach (var label in new[] { "FIRST BLOOD", "PAYBACK", "COLLATERAL", "SHUTDOWN", "AIRBORNE", "NO SCOPE",
     "DOUBLE KILL", "TRIPLE KILL", "ULTRA KILL", "MONSTER KILL", "KILLING SPREE", "RAMPAGE", "DOMINATING",
     "UNSTOPPABLE", "GODLIKE" })
@@ -279,10 +282,9 @@ tdm.Callout("DOUBLE KILL"); tdm.Kill(LocalKill()); Frame();
 Check(Sent((Approve, 0.9f)), "callout and kill in one frame give one Approve at the award strength");
 tdm.Callout("HEADSHOT"); tdm.Kill(LocalKill("Bullet", head: true)); Frame();
 Check(Sent((Approve, 0.6f)), "headshot kill and its award give one Approve at 0.6");
-tdm.Kill(OtherKill(true, false)); Frame();
-Check(Sent((Approve, 0.25f)), "teammate kill reaches the crowd at 0.25");
-tdm.Kill(OtherKill(null, null)); tdm.Kill(OtherKill(false, true)); tdm.Kill(LocalKill(eligible: false)); Frame();
-Check(Sent(), "bot-versus-bot and unscored kills stay silent");
+tdm.Kill(OtherKill(true, false)); tdm.Kill(OtherKill(null, null)); tdm.Kill(OtherKill(false, true));
+tdm.Kill(LocalKill(eligible: false)); Frame();
+Check(Sent(), "bot-versus-bot (a teammate's included) and unscored kills stay silent");
 tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Frame();
 tdm.Cue(ArenaAnnouncerCue.LostTheLead); Frame();
 tdm.Cue(ArenaAnnouncerCue.TiedForTheLead); Frame();

@@ -21,8 +21,6 @@ internal static class ArenaCrowdReactionPolicy
     internal const float StrongKillStrength = 0.6f;
     internal const float AwardStrength = 0.9f;
     internal const float DeathStrength = 0.5f;
-    // A teammate's kill is good for the viewer's side but not the viewer's own deed.
-    internal const float TeamKillStrength = 0.25f;
     internal const float LeadStrength = 0.5f;
     // Start and Finish carry no win/loss colouring in v1 (decision D7): every result is 1.0.
     internal const float RoundStrength = 1f;
@@ -37,10 +35,21 @@ internal static class ArenaCrowdReactionPolicy
     internal const float FinalRoundLevel = 0.6f, MatchPointLevel = 0.4f, ClockPeak = 0.6f, KillsPeak = 0.6f;
 
     /// <summary>
-    /// Kills, local-centric (decision D5). Ignored: kills the mode did not score (ScoreEligible is
-    /// false for staging, result-hold and friendly-fire kills in Team DM, and for unattributed
-    /// fire) and bot-versus-bot kills that did not involve the viewer's side. The caller owns the
-    /// one-reaction-per-life rule for a local death, which ArenaEvents.OnPlayerDied reports too.
+    /// Kills, local-centric (decision D5): only the local player's own kill or own death reacts.
+    /// Every other kill is bot-versus-bot, because the local player is the only human in an Arena
+    /// match (Team DM and Domination build the friendly side from their own bots only, PitFireTeam
+    /// companions are bots too), so a friendly bot's kill of an opponent stays silent as well: D5
+    /// says "no bot-vs-bot kills", and the plan's optional teammate row was not taken.
+    ///
+    /// Ignored, too: a kill record the mode did not score (ScoreEligible false: friendly fire and
+    /// unattributed fire in a live Team DM or Domination match). Kills the mode does not admit at
+    /// all (Team DM, Domination and Deathmatch outside their live phase or after the result, where
+    /// TryBeginScoredEvent refuses them) never reach ArenaMatch.OnKill; a local death there reaches
+    /// the crowd only through ArenaEvents.OnPlayerDied and disapproves like any death without a kill
+    /// record (plan 6.3). Those modes protect the local player in most of those phases
+    /// (ShouldBlockMatchDamage; the Deathmatch intermission's round-break respawn or protection),
+    /// so that is rare, and the player did die in front of the crowd.
+    /// The caller owns the one-reaction-per-life rule for a local death reported on both paths.
     /// </summary>
     internal static bool TryMapKill(ArenaKill kill, out int kind, out float strength, out string source)
     {
@@ -57,14 +66,6 @@ internal static class ArenaCrowdReactionPolicy
         {
             bool strong = kill.Headshot || kill.DamageKind is "Melee" or "Explosion" or "GrenadeFragment";
             kind = Approve; strength = strong ? StrongKillStrength : KillStrength; source = strong ? "strong kill" : "kill";
-            return true;
-        }
-        // Team DM and Domination classify every admitted kill by faction (ClassifyKill); a scored
-        // kill there always has opposite factions. A friendly bot killing an opponent is the one
-        // bot-versus-bot kill that is good for the viewer's side, so it is not excluded by D5.
-        if (kill.KillerIsFriendly == true && kill.VictimIsFriendly == false)
-        {
-            kind = Approve; strength = TeamKillStrength; source = "team kill";
             return true;
         }
         return false;

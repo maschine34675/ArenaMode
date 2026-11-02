@@ -95,8 +95,11 @@ $cases = @(
        Find='"HEADSHOT" => StrongKillStrength,'; Replace='"HEADSHOT" => AwardStrength,';
        Failure='HEADSHOT stays on the strong-kill path' },
     @{ Name='bot-kills-react'; Property='CrowdPolicySource';
-       Find='if (kill.KillerIsFriendly == true && kill.VictimIsFriendly == false)'; Replace='if (true)';
+       Find='if (kill.KilledByLocal)'; Replace='if (kill.KilledByLocal || kill.KillerIsFriendly.HasValue)';
        Failure='bot-versus-bot kills are ignored' },
+    @{ Name='teammate-kills-react'; Property='CrowdPolicySource';
+       Find='if (kill.KilledByLocal)'; Replace='if (kill.KilledByLocal || kill.KillerIsFriendly == true && kill.VictimIsFriendly == false)';
+       Failure="a teammate's kill of an opponent is silent" },
     @{ Name='unscored-kill-reacts'; Property='CrowdPolicySource';
        Find='if (kill == null || !kill.ScoreEligible) return false;'; Replace='if (kill == null) return false;';
        Failure='unscored kills are ignored' },

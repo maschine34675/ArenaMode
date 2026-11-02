@@ -23,7 +23,7 @@ before the result cue, `ArenaEvents.OnPlayerDied`, the Deathmatch round events) 
 the binding outcomes, the mapping table, coalescing, the local-death deduplication, gating,
 every exit path, the retry window, the excitement mapping and the wiring of the files it cannot
 link (text pins of `ArenaMatchService`, `ArenaController`, `Plugin`, `ArenaSession`,
-`Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` then runs 26 hand-made mutants, each anchored
+`Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` then runs 27 hand-made mutants, each anchored
 on exactly one LF site of the production text and each failing its named assertion; every case
 builds with the no-deploy targets into its own folder under `artifacts/crowd-reaction-checks/`.
 
