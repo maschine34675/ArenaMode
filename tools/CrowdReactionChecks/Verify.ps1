@@ -128,7 +128,7 @@ $cases = @(
        Find='if (!ArenaSession.CrowdReactionsSelection)'; Replace='if (false)';
        Failure='key off: nothing' },
     @{ Name='excitement-every-frame'; Property='CrowdServiceSource';
-       Find='_nextExcitementAt = now + ExcitementPollSeconds;'; Replace='_nextExcitementAt = now;';
+       Find='_nextSnapshotAt = now + SnapshotPollSeconds;'; Replace='_nextSnapshotAt = now;';
        Failure='excitement polls at most once per second' },
     @{ Name='bedless-map-written'; Property='CrowdServiceSource';
        Find='if (contract.IsAvailable != null && !contract.IsAvailable()) return;'; Replace='';
@@ -166,7 +166,44 @@ $cases = @(
        Failure='the crowd ticks every frame right after the announcer' },
     @{ Name='key-not-frozen-at-arm'; Property='SessionText';
        Find="        CrowdReactionsSelection = Settings.CrowdReactions?.Value == true;`n"; Replace='';
-       Failure='the key is frozen at arm and cleared with the announcer selection' }
+       Failure='the key is frozen at arm and cleared with the announcer selection' },
+    # Revised plan (ArenaMapPort 08964c1): a lost lead below the 0.4 band, and the Lull trigger (D14).
+    @{ Name='lead-lost-at-death-strength'; Property='CrowdPolicySource';
+       Find='ArenaAnnouncerCue.LostTheLead => (Disapprove, LeadLostStrength),';
+       Replace='ArenaAnnouncerCue.LostTheLead => (Disapprove, DeathStrength),';
+       Failure='cue mapping LostTheLead' },
+    @{ Name='lull-survives-round-event'; Property='CrowdPolicySource';
+       Find="            _strength[Lull] = 0f;`n"; Replace='';
+       Failure="a Finish drops the frame's Lull" },
+    @{ Name='lull-clock-survives-release'; Property='CrowdServiceSource';
+       Find="        _quietSince = null;`n        ClearBuffers();`n        if (claim != null && claim.Release())";
+       Replace="        ClearBuffers();`n        if (claim != null && claim.Release())";
+       Failure='a release clears the quiet clock: a new match counts its quiet afresh' },
+    @{ Name='lull-rate-limit-removed'; Property='CrowdServiceSource';
+       Find=' || now < _nextLullAt) return;'; Replace=') return;';
+       Failure='no second Lull within 90 s of the first' },
+    @{ Name='lull-ignores-kill-reset'; Property='CrowdServiceSource';
+       Find="            ResetQuiet();`n            if (kill.LocalIsVictim && !TakeDeath(kill.VictimBodyId)) return;";
+       Replace='            if (kill.LocalIsVictim && !TakeDeath(kill.VictimBodyId)) return;';
+       Failure='a bot-versus-bot kill resets the quiet clock' },
+    @{ Name='lull-while-not-live'; Property='CrowdServiceSource';
+       Find='if (!ArenaCrowdReactionPolicy.IsLiveCombat(snapshot)) { _quietSince = null; return; }'; Replace='';
+       Failure='no Lull outside live combat: preparation, a result, no snapshot' },
+    @{ Name='lull-not-restarted-at-start'; Property='CrowdServiceSource';
+       Find='if (kind == Start) _quietSince = Time.unscaledTime;'; Replace='if (false) _quietSince = Time.unscaledTime;';
+       Failure='a Start restarts the quiet clock' },
+    @{ Name='lull-not-cleared-at-finish'; Property='CrowdServiceSource';
+       Find='else if (kind == Finish) _quietSince = null;'; Replace='';
+       Failure='a Finish stops the quiet clock' },
+    # Flush and ReactionClaim.Push also skip a kind outside the claimed mask, so without this gate a
+    # Lull would still never be sent; what the gate keeps is the dormancy: no snapshot read for it.
+    @{ Name='lull-without-mask-bit'; Property='CrowdServiceSource';
+       Find='bool lull = !_lullOff && _claim != null && _claim.Has(Lull);';
+       Replace='bool lull = !_lullOff && _claim != null;';
+       Failure='a claim without the Lull bit keeps the Lull dormant: no snapshot read, no Lull' },
+    @{ Name='lull-not-wanted'; Property='CrowdServiceSource';
+       Find='| Bit(Finish) | Bit(Lull);'; Replace='| Bit(Finish);';
+       Failure='a Lull-only mask is claimed' }
 )
 foreach ($case in $cases) {
     $source = [IO.File]::ReadAllText($sources[$case.Property]).Replace("`r`n", "`n")

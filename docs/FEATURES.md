@@ -543,7 +543,9 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
   `CrowdReactions`, default on, frozen at arm, off in Zombies. With ArenaMapPort 0.4.0 the
   spectator murmur gets louder in the final round, at match point and in the last minute or
   five kills. The reactions (own kills, awards, lead changes, own deaths, round start and
-  result) need an ArenaMapPort with the reaction contract, which is not released yet. See
+  result) need an ArenaMapPort with the reaction contract, which is not released yet; a
+  complaint after a minute of live combat without a kill (Lull) needs a later ArenaMapPort that
+  also ships that bank. See
   [contract and mapping](reviews/CROWD-REACTIONS-20261102.md).
 
 Sources: [cue catalog](../ArenaMode.Client/Audio/AnnouncerCueCatalog.cs),

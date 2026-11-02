@@ -45,8 +45,12 @@ internal static class ArenaMapPortSpectatorCrowd
 
     // MapPort documents the kind numbers instead of publishing constants (its contract pin test
     // forbids constants and fields on the contract class). Mirrored here; the plan's table 4.1 is
-    // the source. Kinds 6 (Lull) and 7 (PurifiedTeam) are reserved there and never sent from here.
-    internal const int Approve = 1, Disapprove = 2, TakeCover = 3, Start = 4, Finish = 5;
+    // the source. Lull (6) is sent by the service under decision D14 (its trigger is ArenaMode's),
+    // but only while the claimed ReactionKinds mask holds bit 6: MapPort builds the Lull bank only
+    // after phase A and leaves the bit out until then (plan 4.3, "unimplemented kinds"), so the
+    // path stays dormant. PurifiedTeam (7) stays reserved and is never sent from here: no ArenaMode
+    // event corresponds to it (plan 2.4, 6.3).
+    internal const int Approve = 1, Disapprove = 2, TakeCover = 3, Start = 4, Finish = 5, Lull = 6;
     internal const int LowestKind = 1, HighestKind = 31;
 
     // Per process, per reason: an incompatible installation does not change between matches, and
@@ -69,6 +73,7 @@ internal static class ArenaMapPortSpectatorCrowd
         TakeCover => "TakeCover",
         Start => "Start",
         Finish => "Finish",
+        Lull => "Lull",
         _ => "Kind" + kind,
     };
 

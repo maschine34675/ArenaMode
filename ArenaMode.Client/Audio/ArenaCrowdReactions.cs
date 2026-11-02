@@ -15,10 +15,11 @@ namespace ArenaMode.Audio;
 
 /// <summary>
 /// The spectator crowd of ArenaMapPort maps follows the Arena match: reactions (cheer, anger,
-/// round start and end) through MapPort's optional reaction claim, and the murmur's sustained
-/// excitement through SpectatorCrowd.SetExcitement. Presentation only: no Harmony patch, no
-/// match state, no profile. It lives entirely on ArenaMatch and ArenaEvents subscriptions inside
-/// an attached Arena match, so an ordinary raid never reaches it. Contract, decisions and
+/// round start and end, and a complaint after a minute without a kill) through MapPort's optional
+/// reaction claim, and the murmur's sustained excitement through SpectatorCrowd.SetExcitement.
+/// Presentation only: no Harmony patch, no match state, no profile. It lives entirely on
+/// ArenaMatch and ArenaEvents subscriptions inside an attached Arena match, so an ordinary raid
+/// never reaches it. Contract, decisions and
 /// mapping: docs/reviews/CROWD-REACTIONS-20261102.md; the MapPort side is
 /// D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md (phase A there, this is phase B).
 ///
@@ -40,10 +41,11 @@ namespace ArenaMode.Audio;
 ///
 /// Events are buffered and flushed once per tick: per kind the strongest entry, at most one push
 /// per kind per flush, nothing when nothing happened. Start and Finish go out in the tick they
-/// arrive in; Approve and Disapprove wait one more tick, and a Start or Finish in either tick
+/// arrive in; Approve, Disapprove and Lull wait one more tick, and a Start or Finish in either tick
 /// drops them (see <see cref="Flush"/>). Handlers buffer only and never throw into the match; the
 /// only lines they write are the NoContest release and the first handler failure, once per match.
-/// Every reaction push happens from the gated tick.
+/// Every reaction push happens from the gated tick. The Lull is decided in the tick from the
+/// once-per-second snapshot poll (see <see cref="TickLull"/>).
 /// </summary>
 internal static class ArenaCrowdReactions
 {
@@ -52,19 +54,25 @@ internal static class ArenaCrowdReactions
     // the window covers a MapPort that publishes its reaction set late (worker load, audio reset).
     internal const float ClaimWindowSeconds = 30f;
     internal const float ClaimRetrySeconds = 1f;
-    // The snapshot changes on the scale of seconds and MapPort smooths the level with a 2 s time
-    // constant; polling faster would only add calls.
-    internal const float ExcitementPollSeconds = 1f;
+    // One snapshot read feeds the murmur and the Lull. The snapshot changes on the scale of seconds,
+    // MapPort smooths the level with a 2 s time constant, and the Lull counts a minute; polling
+    // faster would only add calls.
+    internal const float SnapshotPollSeconds = 1f;
     // MapPort deduplicates equal owner strings and truncates them at 40 characters (as for the
     // score monitors, TeamDeathmatchMode.Monitors). "AM crowd " plus 31 hex digits of a fresh
     // Guid is exactly 40: unique per match, never shortened into another match's owner.
     internal const string OwnerPrefix = "AM crowd ";
     private const int OwnerHexDigits = 31;
 
-    // TakeCover is MapPort's own sensor (plan 4.2); Lull and PurifiedTeam are reserved.
-    private static readonly int WantedKinds = Bit(Approve) | Bit(Disapprove) | Bit(Start) | Bit(Finish);
-    // This tick's events, and last tick's Approve/Disapprove that wait one tick (see Flush). Two
-    // fixed frames swapped in place: no allocation.
+    // TakeCover is MapPort's own sensor (plan 4.2); PurifiedTeam is reserved (no ArenaMode event).
+    // Lull is ours (D14) and dormant until MapPort ships its bank after phase A and sets bit 6.
+    // The claim needs one wanted kind in the mask, so a Lull-only mask is claimed too, and only the
+    // Lull is then sent. That is harmless: ReactionKinds lists the kinds MapPort can play this raid
+    // (plan 4.3), so standing its own Approve, Disapprove and Start sensors down for an external
+    // claim (plan 4.2) silences nothing that could have been heard.
+    private static readonly int WantedKinds = Bit(Approve) | Bit(Disapprove) | Bit(Start) | Bit(Finish) | Bit(Lull);
+    // This tick's events, and last tick's Approve/Disapprove/Lull that wait one tick (see Flush).
+    // Two fixed frames swapped in place: no allocation.
     private static ArenaCrowdReactionPolicy.Frame _pending = new(), _held = new();
     // Bodies whose local death already owns its reaction (see TakeDeath).
     private static readonly HashSet<long> HandledDeaths = new();
@@ -75,10 +83,14 @@ internal static class ArenaCrowdReactions
     private static ReactionClaim _claim;
     private static string _owner;
     private static bool _listening, _cueListening, _claimClosed, _silenced, _windowStarted;
-    private static bool _excitementOff, _handlerFailed;
+    private static bool _excitementOff, _handlerFailed, _lullOff;
     // Round identity (announcement epoch) of the last Finish; null before the first one and after a Start.
     private static int? _finishEpoch;
-    private static float _windowEndsAt, _nextClaimAt, _nextExcitementAt;
+    // The Lull's quiet clock (D14): when the current stretch without a kill began, on the service's
+    // clock (Time.unscaledTime); null while it does not run (no live combat, after a Finish, before
+    // the first live poll, after a release). A struct, so no allocation.
+    private static float? _quietSince;
+    private static float _windowEndsAt, _nextClaimAt, _nextSnapshotAt, _nextLullAt;
     private static int _excitementStep, _excitementPeak, _sent, _claimAttempts, _lastKinds;
 
     internal static void Attach(ArenaMatch match) => Attach(match, ArenaMapPortSpectatorCrowd.Bind);
@@ -174,11 +186,11 @@ internal static class ArenaCrowdReactions
             {
                 _windowStarted = true;
                 _windowEndsAt = now + ClaimWindowSeconds;
-                _nextClaimAt = _nextExcitementAt = now;
+                _nextClaimAt = _nextSnapshotAt = now;
             }
             TickClaim(now);
             Flush();
-            TickExcitement(match, now);
+            TickSnapshot(match, now);
         }
         catch (Exception ex)
         {
@@ -213,15 +225,16 @@ internal static class ArenaCrowdReactions
     }
 
     /// <summary>
-    /// One flush per tick. A Start or Finish of this tick goes out at once and drops the Approve
-    /// and Disapprove of this tick and of the tick before. Without one, last tick's Approve and
-    /// Disapprove go out and this tick's wait one tick. The wait exists because a result can be
-    /// published one tick after its deciding kill: Tactical decides its round only in its mode
+    /// One flush per tick. A Start or Finish of this tick goes out at once and drops the Approve,
+    /// Disapprove and Lull of this tick and of the tick before. Without one, last tick's Approve,
+    /// Disapprove and Lull go out and this tick's wait one tick. The wait exists because a result
+    /// can be published one tick after its deciding kill: Tactical decides its round only in its mode
     /// tick (ArenaMatchService.Tick, early in ArenaController.Update), while ArenaFireRuntime.Tick
     /// (burns, tracked throws) can kill after it and before this tick in the same Update, so that
     /// kill's OnKill and the RoundWon of the next frame's mode tick would otherwise be two
     /// reactions. Team DM and Deathmatch publish synchronously in mode.OnKill and need no wait;
-    /// one frame of delay is not audible.
+    /// one frame of delay is not audible. The Lull rides the same frames: decided after this flush
+    /// (TickSnapshot), it goes out two ticks later unless a Start or Finish arrives first.
     /// </summary>
     private static void Flush()
     {
@@ -254,6 +267,7 @@ internal static class ArenaCrowdReactions
                 // match; the murmur's excitement is independent and keeps running.
                 _claim = null;
                 _claimClosed = true;
+                _quietSince = null;
                 ClearBuffers();
                 Plugin.ModLogger.LogDebug($"Arena crowd reactions released: handle={claim.Handle}, "
                     + $"reason=reaction refused, sent={_sent}.");
@@ -272,14 +286,79 @@ internal static class ArenaCrowdReactions
         _held.Clear();
     }
 
-    private static void TickExcitement(ArenaMatch match, float now)
+    /// <summary>
+    /// One read of the announcement snapshot per second (the director's own read) feeds the murmur
+    /// and the Lull; nothing is read while neither needs it. The Lull needs a claim whose mask holds
+    /// bit 6, so against a MapPort without the Lull bank this path reads nothing for it. A failing
+    /// read stops both for the match: without the snapshot live combat cannot be told, and a Lull is
+    /// never sent outside it.
+    /// </summary>
+    private static void TickSnapshot(ArenaMatch match, float now)
     {
         var contract = _contract;
-        if (_excitementOff || contract?.SetExcitement == null || now < _nextExcitementAt) return;
-        _nextExcitementAt = now + ExcitementPollSeconds;
+        bool murmur = !_excitementOff && contract?.SetExcitement != null;
+        bool lull = !_lullOff && _claim != null && _claim.Has(Lull);
+        if ((!murmur && !lull) || now < _nextSnapshotAt) return;
+        _nextSnapshotAt = now + SnapshotPollSeconds;
+        ArenaAnnouncementSnapshot snapshot;
+        try { snapshot = ArenaAnnouncementDirector.ReadSnapshot(match.Mode); }
+        catch (Exception ex)
+        {
+            _excitementOff = _lullOff = true;
+            _quietSince = null;
+            ResetExcitement();
+            Plugin.ModLogger.LogWarning("Arena crowd match snapshot unavailable, murmur intensity and lull stopped: "
+                + ex.GetBaseException().Message);
+            return;
+        }
+        if (murmur) TickExcitement(contract, snapshot);
+        if (lull) TickLull(snapshot, now);
+    }
+
+    /// <summary>
+    /// Decision D14 (user, 2026-11-02, "wie empfohlen"; plan 6.3 and 8): no kill for 60 s of live
+    /// combat gives one Lull at 0.4, at most one per 90 s. The quiet clock runs only while the poll
+    /// reads live combat (<see cref="ArenaCrowdReactionPolicy.IsLiveCombat"/>, the murmur's own
+    /// definition): any other poll stops it, and the first live poll starts it. That also covers a
+    /// round that goes live without a Start (Gun Game raises none, a solo Tactical round can start
+    /// without its cue) and a claim taken late in the retry window. Every admitted kill and every
+    /// local death resets it (<see cref="ResetQuiet"/>), a Start restarts it and a Finish stops it
+    /// (<see cref="NoteRoundEvent"/>), a release clears it. A Lull restarts it as well, so the next
+    /// one needs a new quiet minute and the 90 s gap. The Lull is buffered like a moment: it waits a
+    /// tick, a Start or Finish in either tick drops it, and it never drops anything (Frame.Resolve).
+    /// It is not interlocked with the announcer.
+    /// </summary>
+    private static void TickLull(in ArenaAnnouncementSnapshot snapshot, float now)
+    {
+        if (!ArenaCrowdReactionPolicy.IsLiveCombat(snapshot)) { _quietSince = null; return; }
+        if (_quietSince is not float since) { _quietSince = now; return; }
+        if (now - since < ArenaCrowdReactionPolicy.LullQuietSeconds || now < _nextLullAt) return;
+        _pending.Add(Lull, ArenaCrowdReactionPolicy.LullStrength, "no kill for 60 s");
+        _quietSince = now;
+        _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;
+    }
+
+    // A kill or a local death ends the quiet stretch. A running clock starts again now; a stopped
+    // one stays stopped (no live combat, or a Finish stopped it) until the next live poll.
+    private static void ResetQuiet()
+    {
+        if (_quietSince.HasValue) _quietSince = Time.unscaledTime;
+    }
+
+    // A Start restarts the quiet clock: a new round is no dull stretch yet. A Finish stops it until
+    // the next live poll, so no Lull is decided between a result and the snapshot leaving live
+    // combat (the poll can be up to a second late, and a mode may keep its snapshot live briefly).
+    private static void NoteRoundEvent(int kind)
+    {
+        if (kind == Start) _quietSince = Time.unscaledTime;
+        else if (kind == Finish) _quietSince = null;
+    }
+
+    private static void TickExcitement(Contract contract, in ArenaAnnouncementSnapshot snapshot)
+    {
         try
         {
-            int step = ArenaCrowdReactionPolicy.ExcitementStep(ArenaAnnouncementDirector.ReadSnapshot(match.Mode));
+            int step = ArenaCrowdReactionPolicy.ExcitementStep(snapshot);
             if (step == _excitementStep) return;
             // No bed (a vanilla map, Iceberg, the bed switched off): MapPort calls the write harmless,
             // but the level is process-global and only a crowd removal resets it, which a map without
@@ -304,6 +383,9 @@ internal static class ArenaCrowdReactions
         if (!Listening || kill == null) return;
         try
         {
+            // D14: every admitted kill ends a quiet stretch, bot-versus-bot and unscored ones
+            // included. The Lull is about a dull match, not about the local player.
+            ResetQuiet();
             if (kill.LocalIsVictim && !TakeDeath(kill.VictimBodyId)) return;
             if (ArenaCrowdReactionPolicy.TryMapKill(kill, out int kind, out float strength, out string source))
                 _pending.Add(kind, strength, source);
@@ -318,11 +400,14 @@ internal static class ArenaCrowdReactions
     // same physical body: ArenaKill.VictimBodyId is ArenaHitHistory.BodyId of that body. Asking
     // for it here only creates the weak identity entry the kill capture would create for the same
     // object; it records no contact and changes no award or scoring state.
+    // A death without a kill record (a fall, an own grenade) also ends a quiet stretch for the
+    // Lull: the bank is LowDeathIntensity, and the crowd has just groaned at that death.
     private static void OnPlayerDied(Player player)
     {
         if (!Listening) return;
         try
         {
+            ResetQuiet();
             if (TakeDeath(ArenaHitHistory.BodyId(player)))
                 _pending.Add(Disapprove, ArenaCrowdReactionPolicy.DeathStrength, "death");
         }
@@ -366,6 +451,7 @@ internal static class ArenaCrowdReactions
             }
             if (!_listening) return;   // murmur only: no reaction part bound
             if (!ArenaCrowdReactionPolicy.TryMapCue(cue, out int kind, out float strength)) return;
+            NoteRoundEvent(kind);
             if (!ArmFinish(kind)) return;
             _pending.Add(kind, strength, cue.ToString());
         }
@@ -410,6 +496,7 @@ internal static class ArenaCrowdReactions
     {
         if (!Listening) return;
         // Deathmatch has no RoundStart cue; this event also fires for round 1.
+        NoteRoundEvent(Start);
         if (ArmFinish(Start)) _pending.Add(Start, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round start");
     }
 
@@ -422,6 +509,8 @@ internal static class ArenaCrowdReactions
             // same call. A terminal round end has therefore already reacted (MatchWon, MatchLost),
             // silenced the match (NoContest) or is a terminal draw, whose Draw cue the director
             // raises at its next tick. Only a round that leaves the match running sends its own Finish.
+            // Every round end stops the Lull's quiet clock, a terminal one too.
+            NoteRoundEvent(Finish);
             var rounds = _rounds;
             if (rounds == null || rounds.IsComplete) return;
             if (ArmFinish(Finish)) _pending.Add(Finish, ArenaCrowdReactionPolicy.RoundStrength, "deathmatch round end");
@@ -436,12 +525,14 @@ internal static class ArenaCrowdReactions
         Plugin.ModLogger.LogWarning("Arena crowd reaction event failed: " + ex.GetBaseException().Message);
     }
 
-    // Release the claim and calm the murmur; the match may still be attached (no contest).
+    // Release the claim, clear the Lull's quiet clock and calm the murmur; the match may still be
+    // attached (no contest). Every teardown runs this too, so a new match counts its quiet afresh.
     private static void StopPresenting(string reason)
     {
         var claim = _claim;
         _claim = null;
         _claimClosed = true;
+        _quietSince = null;
         ClearBuffers();
         if (claim != null && claim.Release())
             Plugin.ModLogger.LogDebug($"Arena crowd reactions released: handle={claim.Handle}, reason={reason}, "
@@ -487,9 +578,10 @@ internal static class ArenaCrowdReactions
         _contract = null;
         _owner = null;
         _listening = _cueListening = _claimClosed = _silenced = _windowStarted = false;
-        _excitementOff = _handlerFailed = false;
+        _excitementOff = _handlerFailed = _lullOff = false;
         _finishEpoch = null;
-        _windowEndsAt = _nextClaimAt = _nextExcitementAt = 0f;
+        // _quietSince was cleared by StopPresenting above.
+        _windowEndsAt = _nextClaimAt = _nextSnapshotAt = _nextLullAt = 0f;
         _excitementStep = _excitementPeak = _sent = _claimAttempts = _lastKinds = 0;
         HandledDeaths.Clear();
         ClearBuffers();

@@ -94,7 +94,8 @@ and nothing per frame: `Arena crowd attached: mode=…, excitement=…, reaction
 off: …` once per match (the key was off, Zombies, ArenaMapPort absent, an older or incompatible
 contract); `Arena crowd reactions claimed: handle=…, kinds=0x…, attempt=…` or, after the 30 s
 window, `Arena crowd reactions not claimed: …`; one `Arena crowd reaction: kind=…, strength=…,
-source=…` per sent reaction (", announcer speaking" when the interlock halved it); `Arena crowd
+source=…` per sent reaction (kinds Approve, Disapprove, Start, Finish and Lull, the last with
+`source=no kill for 60 s`; ", announcer speaking" when the interlock halved it); `Arena crowd
 reactions released: handle=…, reason=…, sent=…` and `Arena crowd detached: reason=…,
 reactions=…, excitementPeak=…`.
 
@@ -105,12 +106,13 @@ SetExcitement/IsAvailable have another signature`, `ArenaMapPort SpectatorCrowd 
 have another signature`, `ArenaMapPort crowd contract unavailable:` (the bind threw). At most
 once per match each: `Arena crowd presentation unavailable:` (Attach threw), `Arena crowd
 presentation stopped:` (the tick threw; everything is released), `Arena crowd murmur intensity
-stopped:` (`SetExcitement` or the ArenaMode snapshot read threw; reactions keep running), `Arena
-crowd murmur intensity reset failed:`, `ArenaMapPort crowd reactions unavailable:`
-(`ReactionKinds` or `ClaimReactions` threw; no further attempts), `ArenaMapPort crowd reactions
-stopped:` (`React` threw; the claim is released), `ArenaMapPort crowd reactions release failed:`,
-and `Arena crowd reaction event failed:` (the first exception in a crowd event handler; it is
-contained and never reaches the match).
+stopped:` (`SetExcitement` or `IsAvailable` threw; reactions keep running), `Arena crowd match
+snapshot unavailable, murmur intensity and lull stopped:` (the ArenaMode snapshot read threw; the
+other reactions keep running), `Arena crowd murmur intensity reset failed:`, `ArenaMapPort crowd
+reactions unavailable:` (`ReactionKinds` or `ClaimReactions` threw; no further attempts),
+`ArenaMapPort crowd reactions stopped:` (`React` threw; the claim is released), `ArenaMapPort
+crowd reactions release failed:`, and `Arena crowd reaction event failed:` (the first exception
+in a crowd event handler; it is contained and never reaches the match).
 
 ## Map-screen refresh probe (DeveloperMode)
 

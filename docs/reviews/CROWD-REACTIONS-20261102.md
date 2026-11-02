@@ -9,6 +9,13 @@ and minor ones (a Tactical deciding kill one tick before its result, a dropped r
 Tactical round without RoundStart, NoContest on the 0.4.0 murmur, binder presence and proof
 gaps, documentation); all are fixed in `83d4aee3`..`4d4a9444` and reflected below.
 
+**Source of the values.** The plan as revised in ArenaMapPort commit `08964c1` (2026-11-02,
+"revised with the user's subtitles of every crowd clip": automatic German subtitles of all 252
+exported crowd files, read by text, not listened to; plan 2.4), plus the two user decisions
+recorded in the plan after that commit (D1, D14). The contract (plan 4.3) is unchanged by the
+revision. Applied on this side afterwards: a lost lead now disapproves at 0.3 instead of 0.5, and
+ArenaMode owns the Lull trigger (kind 6), which stays dormant until a MapPort advertises it.
+
 ## What it does
 
 On an ArenaMapPort map with spectators (Equator, Bay5, Air Pit, Bowl) the crowd follows the
@@ -18,9 +25,12 @@ Arena match:
   louder under match pressure (final round, match point, the last minute, the last five kills)
   through the published `SpectatorCrowd.SetExcitement(float)`. **Works with ArenaMapPort 0.4.0.**
 - **Reactions.** Cheers for the player's own kills, awards and lead, anger at the player's own
-  deaths and a lost lead, a call at every round start and round or match result, through the
-  four reaction members of plan 4.3. **Needs the ArenaMapPort version that ships phase A;**
-  against 0.4.0 this part is absent and stays dormant (no subscription, no claim, no call).
+  deaths and laments at a lost lead, a call at every round start and round or match result,
+  through the four reaction members of plan 4.3. **Needs the ArenaMapPort version that ships
+  phase A;** against 0.4.0 this part is absent and stays dormant (no subscription, no claim, no
+  call). A complaint about a dull match after a minute of live combat without a kill (Lull,
+  decision D14) needs a later MapPort that also ships the Lull bank; until then it stays dormant
+  even against phase A.
 
 Presentation only: no Harmony patch, no match, score, profile or bot state, no new asset. The
 code lives entirely on `ArenaMatch`/`ArenaEvents` subscriptions inside an attached Arena match.
@@ -56,12 +66,20 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
   Warning per process for each of the two reasons. A throwing member is contained (Warning, part
   off).
 - Kinds (plan 4.1, mirrored as internal consts because MapPort's pin test forbids constants on
-  the contract): Approve 1, Disapprove 2, TakeCover 3, Start 4, Finish 5; Lull 6 and
-  PurifiedTeam 7 are reserved and never sent. Bits are `1 << kind` after a 1..31 range check
+  the contract): Approve 1, Disapprove 2, TakeCover 3, Start 4, Finish 5, Lull 6; PurifiedTeam 7
+  is reserved and never sent (no ArenaMode event corresponds to it, plan 2.4). TakeCover is
+  MapPort's own sensor and never sent from here. Bits are `1 << kind` after a 1..31 range check
   (C# masks shift counts to five bits).
+- **Lull is dormant until MapPort ships it.** MapPort builds the Lull bank only after phase A
+  and leaves bit 6 out of `ReactionKinds` until then (plan 4.3, "unimplemented kinds"). The
+  service sends a Lull, and reads the snapshot for it, only while the claimed mask holds bit 6.
+  No contract change.
 - **Claim.** Once per match, owner `"AM crowd "` plus 31 hex digits of a fresh Guid: exactly 40
   characters, because MapPort deduplicates owners after truncating them at 40 (as for the score
-  monitors). Claimed only when `ReactionKinds` holds one of Approve, Disapprove, Start or Finish.
+  monitors). Claimed only when `ReactionKinds` holds one of Approve, Disapprove, Start, Finish or
+  Lull. A Lull-only mask is claimed too and then carries the Lull alone: `ReactionKinds` lists
+  what MapPort can play in this raid, so standing its own Approve, Disapprove and Start sensors
+  down for an external claim (plan 4.2) silences nothing that could have been heard.
 - **Retry window.** From the first gated tick (the game is `Started` then) for 30 s, at most one
   attempt per second, 31 at most: each attempt reads `ReactionKinds` and calls
   `ClaimReactions` only when the mask holds our kinds. A mask without our kinds after the window
@@ -97,8 +115,27 @@ Taken by the orchestrating session from the plan's recommendations (section 8):
   its random calls.
 - **Announcer interlock (plan 6.6).** While `AnnouncerService.IsPmcVoiceBlocked` is true (the
   announcer is speaking or has speech queued), Approve and Disapprove are sent at half strength
-  (fewer voices); Start and Finish never are. It is read once per flush, after the announcer has
-  handled that frame's callouts.
+  (fewer voices); Start, Finish and Lull never are (the Lull answers a minute without a kill, not
+  a moment the announcer comments on). It is read once per flush, after the announcer has
+  handled that frame's callouts. Against MapPort's bands (plan 2.4, 4.1: up to 1/3 one voice, up
+  to 2/3 two, above three; from 0.8 the first Approve voice from the strong-only shouts; below
+  0.4 Disapprove draws laments only; below 0.05 dropped): a kill 0.35 becomes 0.175 and a strong
+  kill 0.6 becomes 0.3 (two voices to one); an award 0.9 becomes 0.45 (three to two, no
+  strong-only first voice); lead taken 0.5 becomes 0.25; lead lost 0.3 becomes 0.15 (one voice
+  and laments either way, still three times the 0.05 floor); an own death 0.5 becomes 0.25,
+  which falls below the 0.4 band and draws laments only. That last one is intended: a
+  second-person heckle of the dead player spoken over the announcer is the worse outcome.
+- **LostTheLead 0.3** (was 0.5; plan table 6.3 as revised in `08964c1`). Below 0.4 Disapprove
+  draws only the 10 lament clips of the Angry bank; its 8 heckles speak to the dead player in the
+  second person and fit an own death only, which keeps 0.5 and the whole bank. TakenTheLead stays
+  Approve 0.5.
+- **D14, Lull (user, 2026-11-02, "wie empfohlen").** The trigger is ArenaMode's: no kill for 60 s
+  of live combat gives Lull 0.4, at most one per 90 s (section "Lull" below). The plan's
+  alternatives (the 14 clips into MapPort's random call pool, or no Lull) were not taken.
+- **D1 (user, 2026-11-02), MapPort side.** Phase A exports only the 70 "keep" clips of the six
+  phase-A banks; the 19 "listen" clips stay out until the user has listened, the 2 clips with a
+  slur in their automatic subtitles stay out. Nothing changes here: the kinds and strengths are
+  the same, MapPort's sub-pools are smaller.
 
 ## Mapping as implemented
 
@@ -114,10 +151,12 @@ Taken by the orchestrating session from the plan's recommendations (section 8):
 | Any other text (NICE THROW, GENIUS!, WAVE n, ...) | none |
 | Cue `RoundStart` (Team DM, Domination, Tactical); Deathmatch `OnRoundStarted` (also round 1) | Start 1.0 |
 | Cues `RoundWon`, `RoundLost`, `MatchWon`, `MatchLost`, `Draw`; Deathmatch `OnRoundEnded` of a round that leaves the match running | Finish 1.0 |
-| Cue `TakenTheLead` / `LostTheLead` | Approve / Disapprove 0.5 |
+| Cue `TakenTheLead` | Approve 0.5 |
+| Cue `LostTheLead` | Disapprove 0.3 (below MapPort's 0.4 band: laments only) |
 | Cues `LastManStanding`, `Clutch`, `FinalWeapon`, `LadderComplete`, `Shutdown` | Approve 0.9 |
 | Cue `NoContest` | none; silences the match (below) |
 | Cues `PrepareToFight`, `Three`, `Two`, `One`, `CancelStatus`, `AdvanceStatus`, `TiedForTheLead`, `OneMinuteRemaining`, `ThirtySecondsRemaining`, `TenSecondsRemaining`, `FiveKillsRemaining`, `OneKillRemaining`, `MatchPoint`, `FinalRound`, `Embarrassing` | none |
+| No `OnKill` (and no local death) for 60 s of live combat, at most once per 90 s, only with bit 6 in the claimed mask (D14) | Lull 0.4 |
 
 - The `Shutdown` cue is raised nowhere today; it means what the SHUTDOWN callout means (the local
   player ended an opponent's streak) and maps the same. `Embarrassing` is an own-grenade death,
@@ -157,15 +196,17 @@ service's tick flushes once per frame:
 - a Start or a Finish goes out in the tick it arrives in and drops the Approve and Disapprove of
   that tick and of the tick before: the deciding kill's `OnKill` arrives before its result cue
   (`ArenaMatch.ReportKill` raises `OnKill`, then `mode.OnKill` publishes `MatchWon`), and the
-  crowd must not react twice;
+  crowd must not react twice. It drops a Lull too (a complaint about a dull match at a round
+  start or result contradicts the moment); a Lull is no round event and drops nothing;
 - **Approve and Disapprove wait one tick.** Tactical decides its round only in its mode tick
   (`ArenaMatchService.Tick`, early in `ArenaController.Update`), while `ArenaFireRuntime.Tick`
   (burns, tracked throws) can kill after it and before the crowd's tick in the same Update; that
   kill's `OnKill` and the `RoundWon` of the next frame's mode tick would otherwise be two
   reactions. Team DM and Deathmatch publish their results synchronously in `mode.OnKill`. One
-  frame of delay is not audible;
-- send order Finish, Start, Approve, Disapprove; at most one push per kind per flush; nothing
-  when nothing happened;
+  frame of delay is not audible. The Lull waits the same tick: it is decided after a flush and
+  goes out two ticks later unless a Start or Finish arrives first;
+- send order Finish, Start, Approve, Disapprove, Lull (plan 4.1's priority); at most one push per
+  kind per flush; nothing when nothing happened;
 - **one Finish per round**, where a round is the announcement epoch
   (`ArenaAnnouncementSnapshot.Epoch`, the announcer's own round identity), read when the Finish
   arrives; a Start re-arms too. Deathmatch reports a non-terminal draw twice (`OnRoundEnded`,
@@ -179,6 +220,36 @@ service's tick flushes once per frame:
   NoContest silenced the match, or a terminal draw reacts on its `Draw` cue); only a round that
   leaves the match running sends its own Finish.
 
+### Lull (D14)
+
+`ArenaCrowdReactions.TickLull`, constants in `ArenaCrowdReactionPolicy` (`LullStrength` 0.4,
+`LullQuietSeconds` 60, `LullGapSeconds` 90), on the service's clock (`Time.unscaledTime`):
+
+- **Live combat** is `ArenaCrowdReactionPolicy.IsLiveCombat`, the murmur's own definition on the
+  same snapshot: `Active` (the mode has a snapshot; Zombies and an ended mode have none), `Live`
+  (Team DM and Domination `MatchPhase == Live`, Deathmatch the rules' Live phase, Tactical the
+  Live phase once the solo squad is combat-ready, Gun Game after the initial kit swap) and not
+  `Terminal` (a result exists). Preparation, countdown, intermission and the result hold are not.
+- **The quiet clock** runs only while the once-per-second snapshot poll reads live combat: any
+  other poll stops it, the first live poll starts it. That also covers a round that goes live
+  without a Start (Gun Game raises none, a solo Tactical round can start without its cue) and a
+  claim taken late in the retry window.
+- **Resets.** Every `OnKill` the service hears resets a running clock: every admitted kill,
+  bot-versus-bot and unscored ones included, because the Lull is about a dull match, not about the
+  local player. A local death without a kill record (`ArenaEvents.OnPlayerDied`) resets it too.
+- A **Start** (`RoundStart` cue, Deathmatch `OnRoundStarted`) restarts it; a **Finish** (any result
+  cue, every Deathmatch `OnRoundEnded`) stops it until the next live poll, so no Lull is decided
+  between a result and the snapshot leaving live combat. NoContest, every release and every
+  teardown clear it.
+- When the clock reaches 60 s and the last Lull is 90 s or more ago, the poll queues Lull 0.4
+  (`source=no kill for 60 s`) and restarts the clock, so the next one needs a new quiet minute
+  and the 90 s gap.
+- Never decided outside live combat, in Zombies (nothing is attached there), or without bit 6 in
+  the claimed mask; against such a mask nothing is read for it. Not interlocked with the
+  announcer.
+- No allocation: a nullable float, a float and a flag; the snapshot read is the murmur's (one
+  read per second for both, nothing read while neither needs it).
+
 ### NoContest
 
 A technical teardown (failed start, abort), once per match. No reaction; like the announcer,
@@ -191,7 +262,8 @@ handler (the tick stops at once); writing 0 is harmless in any state.
 
 ## Murmur intensity
 
-`ArenaAnnouncementDirector.ReadSnapshot(match.Mode)` is polled once per second;
+`ArenaAnnouncementDirector.ReadSnapshot(match.Mode)` is polled once per second (one read feeds
+the murmur and the Lull; a failing read stops both for the match with one warning);
 `SetExcitement` is called only when the level changes, in steps of 0.05, and never while a bound
 `IsAvailable` reads false (no bed: a vanilla map, Iceberg, the bed switched off; the level is
 process-global and only a crowd removal resets it, which such a map never has). Mapping
@@ -246,8 +318,9 @@ Debug only, nothing per frame (see [LOGGING.md](../LOGGING.md)): one line per ma
 a claim, and one per sent reaction (`Arena crowd reaction: kind=…, strength=…, source=…`).
 Warnings: an incompatible or unbindable contract, once per process per reason; and at most once
 per match each, an exception from a MapPort member (claim, react, release, excitement), from the
-ArenaMode snapshot read that drives the murmur, from Attach or the tick, or from an event
-handler. LOGGING.md lists every prefix.
+ArenaMode snapshot read that drives the murmur and the Lull, from Attach or the tick, or from an
+event handler. LOGGING.md lists every prefix. A Lull has the same reaction line as every other
+kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
 
 ## Rules for later changes
 
@@ -263,6 +336,9 @@ handler. LOGGING.md lists every prefix.
   ([AREA-RULES.md](../AREA-RULES.md), spawn gates).
 - Never send every frame: one flush per frame, at most one push per kind, nothing when nothing
   happened; excitement only on change at about 1 Hz.
+- The Lull is the one reaction decided from time rather than from an event: never decided outside
+  live combat, never without bit 6 in the claimed mask (and then nothing is read for it), at most one
+  per 90 s, and never past a Start or Finish in its flush window.
 - The excitement binding must never require the reaction members, and nothing may assume that
   `ContractVersion` changes when members are appended.
 - Do not depend on `ArenaEvents.OnLocalDamageDealt` (raised only with the hitmarker settings on)
@@ -277,13 +353,21 @@ handler. LOGGING.md lists every prefix.
   table per source including every
   `ArenaAnnouncerCue` member, coalescing, the death deduplication in both orders and across
   frames, Deathmatch round ends, gating, every exit path, refused and throwing reactions, the
-  retry window, excitement pins and monotonicity, key off, Zombies, the interlock, the one-tick
-  hold (a Tactical kill one tick before its RoundWon), the epoch-keyed Finish latch (a solo
-  Tactical round without a RoundStart), NoContest on the murmur-only 0.4.0 surface, logging, and
-  text pins of the wiring that cannot be linked (`ArenaMatchService`, `ArenaController`, `Plugin`,
-  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 36
-  hand-made mutants, each anchored on exactly one LF site and each failing its named assertion,
-  with the no-deploy targets.
+  retry window, excitement pins and monotonicity, key off, Zombies, the interlock (lead lost
+  0.3 halved to 0.15, own death 0.5 to 0.25), the one-tick hold (a Tactical kill one tick before
+  its RoundWon), the epoch-keyed Finish latch (a solo Tactical round without a RoundStart),
+  NoContest on the murmur-only 0.4.0 surface, logging, and text pins of the wiring that cannot be
+  linked (`ArenaMatchService`, `ArenaController`, `Plugin`, `ArenaSession`, `Settings`,
+  `ArenaConfigMenuLayout`). The Lull: one Lull 0.4 after 60 s of live combat without a kill, none
+  before; no second one within 90 s, the next at 90 s; a bot-versus-bot kill and a local death
+  without a kill record reset the clock; nothing outside live combat (preparation, a result, no
+  snapshot), the clock starting at the first live poll; a Start restarts, a Finish stops (and the
+  next live poll starts again), NoContest, a release and a failing snapshot read end it; a Start
+  or Finish in the Lull's tick or the tick after drops it, an Approve in its flush is kept and
+  sent first; a mask without bit 6 reads nothing for it and sends none, a Lull-only mask is
+  claimed and sends only the Lull, which the interlock leaves at 0.4; Zombies with bit 6 stays
+  silent. `Verify.ps1` runs the baseline and 46 hand-made mutants, each anchored on exactly one LF
+  site and each failing its named assertion, with the no-deploy targets.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained
   `ArenaCrowdReactions.Tick`.
 - The complete client source (all of `ArenaMode.Client` plus its linked shared files) compiled on
@@ -298,7 +382,8 @@ handler. LOGGING.md lists every prefix.
   over the announcer are proposals from the plan.
 - The reaction part cannot work before ArenaMapPort ships phase A; its contract is the plan's
   proposal (4.3) and may still change there. With the published 0.4.0 only the murmur intensity
-  can be heard.
+  can be heard. The Lull needs a MapPort after phase A that ships the Lull bank and advertises
+  bit 6; no such MapPort exists, so its 60 s, 90 s and 0.4 are unheard proposals too.
 - Where the AudioListener sits in the death replay and in the spectator camera (plan 4.4) is a
   host test item of the MapPort side.
 
@@ -321,3 +406,10 @@ handler. LOGGING.md lists every prefix.
   written; the plan leaves the use of `IsAvailable` open.
 - The owner is 40 characters (31 hex digits) instead of the plan's `"AM crowd " + Guid` (41), so
   MapPort's truncation cannot shorten it.
+- **Lull, readings of D14.** "No `OnKill` for 60 s while `Live`" is read as 60 s of live combat:
+  the clock runs only while the poll reads live combat and starts at the first live poll, not
+  only at a Start (rounds without a Start cue, a late claim). A Lull restarts the clock. A local
+  death without a kill record resets it as well as every `OnKill` (the bank is LowDeathIntensity,
+  and the crowd has just groaned at that death). A failing snapshot read stops the Lull together
+  with the murmur. The Lull rides the one-tick hold like Approve and Disapprove, and it is not
+  interlocked with the announcer.

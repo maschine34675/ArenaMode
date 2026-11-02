@@ -5,7 +5,9 @@
 // owners deduplicated after truncation to 40 characters, a stale handle changes nothing.
 public static class FakeCrowd
 {
+    // The phase A kinds; MapPort adds the Lull bit only once it ships the Lull bank (D14).
     public const int AllKinds = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5);
+    public const int LullBit = 1 << 6;
     public static int Version = 1, Kinds = AllKinds, Handle, NextHandle, Claims, KindReads, Releases, ReactCalls;
     public static bool Available = true, RefuseClaim, ReactResult = true, ThrowReact, ThrowExcite, ThrowKinds, ThrowVersion;
     public static string Owner;

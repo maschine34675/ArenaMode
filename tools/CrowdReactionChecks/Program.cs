@@ -171,7 +171,8 @@ var cueTable = new Dictionary<ArenaAnnouncerCue, (int kind, float strength)>
     [ArenaAnnouncerCue.RoundWon] = (Finish, 1f), [ArenaAnnouncerCue.RoundLost] = (Finish, 1f),
     [ArenaAnnouncerCue.MatchWon] = (Finish, 1f), [ArenaAnnouncerCue.MatchLost] = (Finish, 1f),
     [ArenaAnnouncerCue.Draw] = (Finish, 1f),
-    [ArenaAnnouncerCue.TakenTheLead] = (Approve, 0.5f), [ArenaAnnouncerCue.LostTheLead] = (Disapprove, 0.5f),
+    // A lost lead sits below MapPort's 0.4 band: laments only (plan 6.3 as revised in 08964c1).
+    [ArenaAnnouncerCue.TakenTheLead] = (Approve, 0.5f), [ArenaAnnouncerCue.LostTheLead] = (Disapprove, 0.3f),
     [ArenaAnnouncerCue.LastManStanding] = (Approve, 0.9f), [ArenaAnnouncerCue.Clutch] = (Approve, 0.9f),
     [ArenaAnnouncerCue.FinalWeapon] = (Approve, 0.9f), [ArenaAnnouncerCue.LadderComplete] = (Approve, 0.9f),
     [ArenaAnnouncerCue.Shutdown] = (Approve, 0.9f),
@@ -232,9 +233,20 @@ Check(!frame.TryTake(Approve, out _, out _) && !frame.TryTake(Disapprove, out _,
     "a Finish drops the frame's Approve and Disapprove");
 frame.Add(Approve, 0.35f, "kill"); frame.Add(Start, 1f, "RoundStart"); frame.Resolve();
 Check(!frame.TryTake(Approve, out _, out _) && frame.TryTake(Start, out _, out _), "a Start drops the frame's Approve");
-frame.Add(0, 1f, "x"); frame.Add(6, 1f, "lull"); frame.Add(Approve, float.NaN, "nan"); frame.Add(Approve, -1f, "neg");
+frame.Add(0, 1f, "x"); frame.Add(7, 1f, "purified team"); frame.Add(Approve, float.NaN, "nan"); frame.Add(Approve, -1f, "neg");
 Check(frame.IsEmpty, "unknown kinds and non-positive strengths are ignored");
 frame.Add(Approve, 3f, "over"); Check(frame.TryTake(Approve, out float clamped, out _) && Near(clamped, 1f), "strength is clamped to 1");
+frame.Add(Approve, 0.35f, "kill"); frame.Add(Disapprove, 0.5f, "death"); frame.Add(Lull, 0.4f, "lull");
+bool lullIsRoundEvent = frame.HasRoundEvent; frame.Resolve();
+Check(!lullIsRoundEvent && frame.TryTake(Approve, out _, out _) && frame.TryTake(Disapprove, out _, out _)
+    && frame.TryTake(Lull, out float lullStrength, out _) && Near(lullStrength, 0.4f) && frame.IsEmpty,
+    "a Lull is no round event and drops nothing");
+frame.Add(Lull, 0.4f, "lull"); frame.Add(Finish, 1f, "MatchWon"); frame.Resolve();
+Check(!frame.TryTake(Lull, out _, out _) && frame.TryTake(Finish, out _, out _), "a Finish drops the frame's Lull");
+frame.Add(Lull, 0.4f, "lull"); frame.Add(Start, 1f, "RoundStart"); frame.Resolve();
+Check(!frame.TryTake(Lull, out _, out _) && frame.TryTake(Start, out _, out _), "a Start drops the frame's Lull");
+Check(Array.IndexOf(ArenaCrowdReactionPolicy.Frame.Order, Lull) == ArenaCrowdReactionPolicy.Frame.Order.Length - 1,
+    "the Lull is sent last (plan 4.1 priority)");
 
 // ---------------------------------------------------------------- service
 int binds = 0;
@@ -309,7 +321,7 @@ Check(Sent(), "bot-versus-bot (a teammate's included) and unscored kills stay si
 tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Frame();
 tdm.Cue(ArenaAnnouncerCue.LostTheLead); Frame();
 tdm.Cue(ArenaAnnouncerCue.TiedForTheLead); Settle();
-Check(Sent((Approve, 0.5f), (Disapprove, 0.5f)), "lead taken and lost react at 0.5, a tie stays silent");
+Check(Sent((Approve, 0.5f), (Disapprove, 0.3f)), "lead taken reacts at 0.5, lead lost at 0.3, a tie stays silent");
 foreach (var cue in new[] { ArenaAnnouncerCue.LastManStanding, ArenaAnnouncerCue.Clutch, ArenaAnnouncerCue.FinalWeapon,
     ArenaAnnouncerCue.LadderComplete, ArenaAnnouncerCue.Shutdown })
 {
@@ -361,11 +373,14 @@ Check(Sent((Finish, 1f), (Start, 1f)), "a frame with Start and Finish sends both
 AnnouncerService.IsPmcVoiceBlocked = true;
 tdm.Kill(LocalKill()); Settle();
 tdm.Kill(LocalDeath(new Player())); Settle();
+tdm.Cue(ArenaAnnouncerCue.LostTheLead); Settle();
 tdm.Callout("FIRST BLOOD"); tdm.Kill(LocalKill()); Settle();
 tdm.Cue(ArenaAnnouncerCue.RoundStart); Frame();
 tdm.Cue(ArenaAnnouncerCue.RoundWon); Frame();
-Check(Sent((Approve, 0.175f), (Disapprove, 0.25f), (Approve, 0.45f), (Start, 1f), (Finish, 1f)),
-    "interlock halves Approve and Disapprove only");
+// Own death 0.25 and lead lost 0.15 are both below MapPort's 0.4 band (laments only) and above
+// its 0.05 floor (still sent).
+Check(Sent((Approve, 0.175f), (Disapprove, 0.25f), (Disapprove, 0.15f), (Approve, 0.45f), (Start, 1f), (Finish, 1f)),
+    "interlock halves Approve and Disapprove only: kill 0.175, own death 0.25, lead lost 0.15, award 0.45");
 AnnouncerService.IsPmcVoiceBlocked = false;
 int reactLines = log.Debugs.Count(line => line.StartsWith("Arena crowd reaction:", StringComparison.Ordinal));
 Check(reactLines == FakeCrowd.ReactCalls && log.Warnings.Count == 0, "one Debug line per sent reaction, no warnings");
@@ -576,7 +591,129 @@ Check(Sent((Approve, 0.35f)) && log.Warnings.Count == 1 && log.Warnings[0].Conta
 var brokenSnapshot = Claimed(new TeamDeathmatchMode());
 ArenaAnnouncementDirector.Throw = true; Run(1.1f);
 brokenSnapshot.Kill(LocalKill()); Settle();
-Check(Sent((Approve, 0.35f)) && FakeCrowd.Handle > 0, "a throwing snapshot stops only the murmur");
+Check(Sent((Approve, 0.35f)) && FakeCrowd.Handle > 0 && log.Warnings.Count == 1
+    && log.Warnings[0].Contains("snapshot unavailable"), "a throwing snapshot stops only the murmur and the Lull");
+ArenaCrowdReactions.Detach();
+
+// ---------------------------------------------------------------- lull (D14)
+// No kill for 60 s of live combat gives one Lull at 0.4, at most one per 90 s, only while the
+// claimed mask holds bit 6. The matches use the reaction surface without the murmur part, so every
+// snapshot read is the Lull's; the claim tick's poll reads live combat and starts the quiet clock.
+float quietStart = 0f;
+int withLull = FakeCrowd.AllKinds | FakeCrowd.LullBit;
+ArenaMatch LullMatch(int kinds)
+{
+    var match = NewMatch(new TeamDeathmatchMode());
+    FakeCrowd.Kinds = kinds;
+    ArenaAnnouncementDirector.Snapshot = Epoch(1);
+    ArenaCrowdReactions.Attach(match, Surface(typeof(Variants.NoExcitement)));
+    Frame();
+    quietStart = UnityEngine.Time.unscaledTime;
+    return match;
+}
+// Steps up to the poll that decides the first Lull (the clock at 60 s): it is then buffered in
+// this tick's frame and not yet sent.
+void StepToLullDecision()
+{
+    for (int guard = 0; guard < 1000; guard++)
+    {
+        int reads = ArenaAnnouncementDirector.Reads;
+        Frame();
+        if (ArenaAnnouncementDirector.Reads != reads && UnityEngine.Time.unscaledTime - quietStart >= 60f) return;
+    }
+    throw new InvalidOperationException("FAIL: no Lull decision poll");
+}
+
+LullMatch(withLull); Run(50);
+LullMatch(withLull); Run(50);
+Check(Sent(), "a release clears the quiet clock: a new match counts its quiet afresh");
+
+var lull = LullMatch(withLull);
+Check(FakeCrowd.Claims == 1 && ArenaAnnouncementDirector.Reads == 1, "Lull control: claimed, the claim tick polled");
+Run(59.5f);
+Check(Sent() && ArenaAnnouncementDirector.Reads >= 50, "no Lull before 60 s without a kill");
+Run(3);
+Check(Sent((Lull, 0.4f)) && log.Debugs.Any(line => line.StartsWith(
+        "Arena crowd reaction: kind=Lull, strength=0.4, source=no kill for 60 s.", StringComparison.Ordinal)),
+    "60 s without a kill in live combat give one Lull at 0.4");
+Run(85);
+Check(Sent(), "no second Lull within 90 s of the first");
+Run(8);
+Check(Sent((Lull, 0.4f)), "the next Lull comes 90 s after the previous one");
+
+// Every admitted kill resets the clock, a bot-versus-bot one included; so does a local death
+// without a kill record (it disapproves).
+lull = LullMatch(withLull);
+Run(50); lull.Kill(OtherKill(null, null)); Run(50);
+Check(Sent(), "a bot-versus-bot kill resets the quiet clock");
+Run(13);
+Check(Sent((Lull, 0.4f)), "60 s after the last kill the Lull comes");
+lull = LullMatch(withLull);
+Run(50); ArenaEvents.RaisePlayerDied(new Player()); Settle();
+Check(Sent((Disapprove, 0.5f)), "Lull control: a death without a kill record disapproves");
+Run(50);
+Check(Sent(), "a local death without a kill record resets the quiet clock too");
+
+// Live combat only: preparation, a result and no snapshot stop the clock; the first live poll
+// starts it, so a round that goes live without a Start still gets its Lull.
+lull = LullMatch(withLull);
+ArenaAnnouncementDirector.Snapshot = Epoch(2, live: false); Run(70);
+ArenaAnnouncementDirector.Snapshot = Live(terminal: true); Run(70);
+ArenaAnnouncementDirector.Snapshot = default; Run(70);
+Check(Sent(), "no Lull outside live combat: preparation, a result, no snapshot");
+ArenaAnnouncementDirector.Snapshot = Epoch(2); Run(59);
+Check(Sent(), "the quiet clock starts at the first live poll");
+Run(4);
+Check(Sent((Lull, 0.4f)), "a round that goes live without a Start still gets its Lull");
+
+// A Start restarts the clock; a Finish stops it (the snapshot stays live here, as a mode's may
+// for a moment), and the next live poll starts it again.
+lull = LullMatch(withLull);
+Run(50); lull.Cue(ArenaAnnouncerCue.RoundStart); Frame();
+Check(Sent((Start, 1f)), "Lull control: the round start reacts");
+Run(50);
+Check(Sent(), "a Start restarts the quiet clock");
+Run(13);
+Check(Sent((Lull, 0.4f)), "60 s after the Start the Lull comes");
+lull = LullMatch(withLull);
+Run(59.5f); lull.Cue(ArenaAnnouncerCue.RoundWon); Frame();
+Check(Sent((Finish, 1f)), "Lull control: the result reacts");
+Run(3);
+Check(Sent(), "a Finish stops the quiet clock");
+Run(62);
+Check(Sent((Lull, 0.4f)), "after a Finish the next live poll starts the clock again");
+
+// Coalescing: a Start or Finish in the Lull's tick or the tick after drops it; the Lull drops nothing.
+lull = LullMatch(withLull);
+StepToLullDecision(); lull.Cue(ArenaAnnouncerCue.MatchWon); Settle();
+Check(Sent((Finish, 1f)), "a Finish in the Lull's tick drops it");
+lull = LullMatch(withLull);
+StepToLullDecision(); Frame(); lull.Cue(ArenaAnnouncerCue.RoundStart); Settle();
+Check(Sent((Start, 1f)), "a Start one tick after the Lull drops the held Lull");
+lull = LullMatch(withLull);
+StepToLullDecision(); lull.Cue(ArenaAnnouncerCue.TakenTheLead); Settle();
+Check(Sent((Approve, 0.5f), (Lull, 0.4f)), "a Lull in the same flush as an Approve drops nothing and goes last");
+
+// The mask: without bit 6 the path is dormant (no read, no Lull); a Lull-only mask is claimed and
+// sends the Lull alone, which the announcer interlock leaves at 0.4.
+LullMatch(FakeCrowd.AllKinds); Run(100);
+Check(Sent() && FakeCrowd.Handle > 0 && ArenaAnnouncementDirector.Reads == 0,
+    "a claim without the Lull bit keeps the Lull dormant: no snapshot read, no Lull");
+lull = LullMatch(FakeCrowd.LullBit);
+Check(FakeCrowd.Claims == 1 && FakeCrowd.Handle > 0, "a Lull-only mask is claimed");
+AnnouncerService.IsPmcVoiceBlocked = true;
+lull.Kill(LocalKill()); Run(62.5f);
+Check(Sent((Lull, 0.4f)) && FakeCrowd.ReactCalls == 1,
+    "a Lull-only claim sends the Lull alone, and the announcer interlock leaves it at 0.4");
+
+// No contest and a failing snapshot end the Lull for the match.
+lull = LullMatch(withLull);
+Run(50); lull.Cue(ArenaAnnouncerCue.NoContest); Run(70);
+Check(Sent() && FakeCrowd.Handle == 0, "no contest: no Lull afterwards");
+LullMatch(withLull);
+ArenaAnnouncementDirector.Throw = true; Run(70);
+Check(Sent() && ArenaAnnouncementDirector.Reads == 2 && log.Warnings.Count == 1 && FakeCrowd.Handle > 0,
+    "a throwing snapshot stops the Lull with one warning and keeps the claim");
 ArenaCrowdReactions.Detach();
 
 // Key off, Zombies, nothing bound: no bind, no claim, no excitement, no subscription.
@@ -588,11 +725,13 @@ keyOff.Kill(LocalKill()); Run(40);
 Check(binds == 0 && FakeCrowd.Claims == 0 && FakeCrowd.KindReads == 0 && FakeCrowd.Excitement.Count == 0
     && keyOff.Subscribers == 0 && ArenaAnnouncementDirector.Reads == 0, "key off: nothing");
 var zombies = NewMatch(new ZombieMode());
+FakeCrowd.Kinds = FakeCrowd.AllKinds | FakeCrowd.LullBit;
 ArenaCrowdReactions.Attach(zombies, Surface(typeof(ArenaMapPort.Client.SpectatorCrowd)));
 ArenaAnnouncementDirector.Snapshot = Live(finalRound: true);
-zombies.Kill(LocalKill()); ArenaEvents.RaisePlayerDied(new Player()); Run(40);
+zombies.Kill(LocalKill()); ArenaEvents.RaisePlayerDied(new Player()); Run(70);
 Check(binds == 0 && FakeCrowd.Claims == 0 && FakeCrowd.KindReads == 0 && FakeCrowd.Excitement.Count == 0
-    && zombies.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0 && Sent(), "Zombies: no bind, no claim, no excitement");
+    && zombies.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0 && ArenaAnnouncementDirector.Reads == 0 && Sent(),
+    "Zombies: no bind, no claim, no excitement, no Lull");
 var incompatible = NewMatch(new TeamDeathmatchMode());
 ArenaCrowdReactions.Attach(incompatible, Surface(typeof(Variants.ContractTwo)));
 ArenaAnnouncementDirector.Snapshot = Live(finalRound: true); Run(5);
