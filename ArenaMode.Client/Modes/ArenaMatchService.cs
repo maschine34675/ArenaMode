@@ -40,6 +40,7 @@ internal static partial class ArenaMatchService
         if (TeamStartAbortPending)
         {
             if (Current?.Mode is TeamDeathmatchMode team) team.OnNativePresentationStop();
+            Audio.ArenaCrowdReactions.OnNativePresentationStop();
             TickFailedStartAbort();
             return;
         }
@@ -52,8 +53,9 @@ internal static partial class ArenaMatchService
         if (ArenaRaidExit.NativeStopOwnsCurrentRaid)
         {
             // Stop may dispose bodies before mode.Tick can observe it. Release
-            // only our optional screen claim; native gameplay teardown owns the rest.
+            // only our optional screen and crowd claims; native gameplay teardown owns the rest.
             if (match.Mode is TeamDeathmatchMode team) team.OnNativePresentationStop();
+            Audio.ArenaCrowdReactions.OnNativePresentationStop();
             return;
         }
 
@@ -145,6 +147,7 @@ internal static partial class ArenaMatchService
             Audio.AnnouncerService.Attach(match);
             Audio.HitmarkerAudioService.Attach(match);
             Effects.ArenaLightingDirector.Attach(match, world);
+            Audio.ArenaCrowdReactions.Attach(match);
             mode.OnMatchStart(match);
             ArenaRewardCapture.Attach(match);
             SynchronizeScoreboard(match);
@@ -159,6 +162,7 @@ internal static partial class ArenaMatchService
             Try(Hud.ArenaHud.Detach, "hud detach");
             Try(Audio.AnnouncerService.Detach, "announcer detach");
             Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
+            Try(Audio.ArenaCrowdReactions.Detach, "crowd reactions detach");
             Try(Effects.ArenaLightingDirector.Reset, "lighting detach");
             Try(Effects.ArenaTeamLaserColors.Reset, "team laser detach");
             Effects.ArenaTracerTeams.Reset();
@@ -191,6 +195,8 @@ internal static partial class ArenaMatchService
         var match = Current;
         Current = null;
         Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
+        // Before the null-match return: a native stop or failed start may have left no Current.
+        Try(Audio.ArenaCrowdReactions.Detach, "crowd reactions detach");
         ResetFailedStartAbort();
         _nextScoreboardSyncAt = 0f;
         _lastScoreboardProblem = null;
@@ -219,6 +225,7 @@ internal static partial class ArenaMatchService
         // This boundary also runs for an ordinary raid after a missed GameEnd.
         // Clear cosmetic state even when no match latch survived.
         Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio recovery");
+        Try(Audio.ArenaCrowdReactions.Detach, "crowd reactions recovery");
         Effects.ArenaTeamLaserColors.Reset();
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();

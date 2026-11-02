@@ -275,6 +275,7 @@ public class Plugin : BaseUnityPlugin
         Effects.ArenaLaserBrightness.Reset();
         Audio.AnnouncerService.Shutdown();
         Audio.HitmarkerAudioService.Detach();
+        Audio.ArenaCrowdReactions.Detach();
         Audio.LabyrinthAlarmPatches.Shutdown();
         LabyrinthSpawnTraps.Shutdown();
         Spectator.ArenaSpectatorService.Shutdown();

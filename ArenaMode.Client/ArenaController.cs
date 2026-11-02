@@ -46,6 +46,9 @@ internal sealed class ArenaController : MonoBehaviour
         Effects.ArenaTeamLaserColors.Tick();
         Effects.ArenaLightingDirector.Tick();
         Audio.AnnouncerService.Tick();
+        // After the announcer: its director emits this frame's lead/draw/ladder cues, which the
+        // crowd's one flush per frame must see together with the kill or round event behind them.
+        Audio.ArenaCrowdReactions.Tick();
         Audio.ArenaPmcVoice.Tick();
         Audio.HitmarkerAudioService.Tick();
         Audio.LabyrinthAlarmPatches.Tick();

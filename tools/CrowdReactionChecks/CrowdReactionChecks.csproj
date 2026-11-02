@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Production-linked checks of the crowd reactions (docs/reviews/CROWD-REACTIONS-20261102.md).
+       No project reference: nothing here builds or deploys a mod. Verify.ps1 still passes the
+       no-deploy targets and a sentinel like its siblings, and redirects every case's output. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- The linked ArenaKill and snapshot carry fields these checks never assign. -->
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+    <!-- Generated sources of an earlier direct build must never be globbed (docs/TRAPS.md). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+    <CrowdBinderSource Condition="'$(CrowdBinderSource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs</CrowdBinderSource>
+    <CrowdPolicySource Condition="'$(CrowdPolicySource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Audio/ArenaCrowdReactionPolicy.cs</CrowdPolicySource>
+    <CrowdServiceSource Condition="'$(CrowdServiceSource)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Audio/ArenaCrowdReactions.cs</CrowdServiceSource>
+    <!-- Wiring that cannot be linked (Unity/EFT-heavy) is pinned as text; mutants override these too. -->
+    <MatchServiceText Condition="'$(MatchServiceText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Modes/ArenaMatchService.cs</MatchServiceText>
+    <ControllerText Condition="'$(ControllerText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/ArenaController.cs</ControllerText>
+    <PluginText Condition="'$(PluginText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Plugin.cs</PluginText>
+    <SessionText Condition="'$(SessionText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaSession.cs</SessionText>
+    <SettingsText Condition="'$(SettingsText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Config/Settings.cs</SettingsText>
+    <LayoutText Condition="'$(LayoutText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Config/ArenaConfigMenuLayout.cs</LayoutText>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CrowdBinderSource)" Link="Production/ArenaMapPortSpectatorCrowd.cs" />
+    <Compile Include="$(CrowdPolicySource)" Link="Production/ArenaCrowdReactionPolicy.cs" />
+    <Compile Include="$(CrowdServiceSource)" Link="Production/ArenaCrowdReactions.cs" />
+    <Compile Include="../../ArenaMode.Client/Audio/ArenaAnnouncementSnapshot.cs" Link="Production/ArenaAnnouncementSnapshot.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerCue.cs" Link="Production/ArenaAnnouncerCue.cs" />
+    <Compile Include="../../ArenaMode.Client/Combat/ArenaKill.cs" Link="Production/ArenaKill.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="MatchServiceText" Value="$([System.IO.Path]::GetFullPath('$(MatchServiceText)'))" />
+    <AssemblyMetadata Include="ControllerText" Value="$([System.IO.Path]::GetFullPath('$(ControllerText)'))" />
+    <AssemblyMetadata Include="PluginText" Value="$([System.IO.Path]::GetFullPath('$(PluginText)'))" />
+    <AssemblyMetadata Include="SessionText" Value="$([System.IO.Path]::GetFullPath('$(SessionText)'))" />
+    <AssemblyMetadata Include="SettingsText" Value="$([System.IO.Path]::GetFullPath('$(SettingsText)'))" />
+    <AssemblyMetadata Include="LayoutText" Value="$([System.IO.Path]::GetFullPath('$(LayoutText)'))" />
+    <AssemblyMetadata Include="BinderText" Value="$([System.IO.Path]::GetFullPath('$(CrowdBinderSource)'))" />
+    <AssemblyMetadata Include="PolicyText" Value="$([System.IO.Path]::GetFullPath('$(CrowdPolicySource)'))" />
+    <AssemblyMetadata Include="ServiceText" Value="$([System.IO.Path]::GetFullPath('$(CrowdServiceSource)'))" />
+  </ItemGroup>
+</Project>

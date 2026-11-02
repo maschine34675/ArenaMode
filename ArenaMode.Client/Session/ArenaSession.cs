@@ -121,6 +121,16 @@ public static class ArenaSession
     internal static bool AnnouncerEnabledSelection { get; private set; }
 
     /// <summary>
+    /// Audio/CrowdReactions as it stood at arming, frozen for the same reason as
+    /// <see cref="AnnouncerEnabledSelection"/>: <c>Audio.ArenaCrowdReactions</c> decides once per
+    /// match whether the spectator crowd follows it, and a mid-raid F12 edit must not start or
+    /// stop that. One key for reactions and murmur excitement (decision D10 of
+    /// docs/reviews/CROWD-REACTIONS-20261102.md). A missing entry reads off. False outside an
+    /// arena raid.
+    /// </summary>
+    internal static bool CrowdReactionsSelection { get; private set; }
+
+    /// <summary>
     /// Damage policy for this exact armed raid. Mid-raid F12 changes apply only
     /// to the next raid; missing/cleared selection never creates immunity.
     /// </summary>
@@ -268,6 +278,7 @@ public static class ArenaSession
         Kits.TacticalTeamKitEntry.Capture(mode, PitFireTeamCompat.HasFrozenTeamRoster,
             TacticalTeamOwnGearSelection, ArmEpoch);
         AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
+        CrowdReactionsSelection = Settings.CrowdReactions?.Value == true;
         FriendlyFireEnabledSelection = Settings.GetFriendlyFireEnabled(mode, PitFireTeamCompat.HasFrozenTeamRoster);
         Plugin.ModLogger.LogInfo($"Arena armed for next raid on {map} ({mode}).");
         if (Settings.FriendlyFireEntry(mode, PitFireTeamCompat.HasFrozenTeamRoster) != null)
@@ -291,6 +302,7 @@ public static class ArenaSession
         TacticalTeamOwnGearSelection = true;
         Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
+        CrowdReactionsSelection = false;
         FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();
@@ -375,6 +387,7 @@ public static class ArenaSession
             TacticalTeamOwnGearSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
+            CrowdReactionsSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
@@ -410,6 +423,7 @@ public static class ArenaSession
             TacticalTeamOwnGearSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
+            CrowdReactionsSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
@@ -429,6 +443,7 @@ public static class ArenaSession
             TacticalTeamOwnGearSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
+            CrowdReactionsSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
@@ -452,6 +467,7 @@ public static class ArenaSession
             TacticalTeamOwnGearSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
+            CrowdReactionsSelection = false;
             FriendlyFireEnabledSelection = true;
             DeathmatchSelection = null;
             ArenaReplaySelection.Clear();
@@ -670,6 +686,7 @@ public static class ArenaSession
         TacticalTeamOwnGearSelection = true;
         Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
+        CrowdReactionsSelection = false;
         FriendlyFireEnabledSelection = true;
         DeathmatchSelection = null;
         ArenaReplaySelection.Clear();

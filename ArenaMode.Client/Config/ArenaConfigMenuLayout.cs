@@ -273,6 +273,7 @@ internal static class ArenaConfigMenuLayout
             I("Announcer", "Announcer (All Modes)"),
             Pct("AnnouncerVolume", "Announcer Volume"),
             I("AnnouncerUseUiVolume", "Announcer Follows Interface Volume"),
+            I("CrowdReactions", "Crowd Reactions (ArenaMapPort Maps)"),
             I("MuteLabyrinthAlarm", "Mute Labyrinth Alarm")),
         new Section("Effects", false,
             I("TeamTracers", "Team Tracers"),
