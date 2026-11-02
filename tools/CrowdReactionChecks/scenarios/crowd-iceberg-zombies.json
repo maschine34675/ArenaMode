@@ -1,0 +1,20 @@
+{
+  "name": "crowd-iceberg-zombies",
+  "description": "Negative controls: Iceberg Deathmatch has no crowd (ReactionKinds 0, no claim, no reaction); a Bowl Zombies match attaches nothing.",
+  "host": "host2",
+  "steps": [
+    { "step": "raid", "name": "iceberg", "mode": "deathmatch", "map": "ICEBERG", "mapFromMenu": true, "participants": 8, "timeoutSeconds": 480 },
+    { "step": "sleep", "name": "settle", "seconds": 45 },
+    { "step": "expect", "name": "iceberg-attached", "what": "log", "contains": "Arena crowd", "sinceStep": "iceberg", "onFail": "continue" },
+    { "step": "expect", "name": "iceberg-no-claim", "what": "logAbsent", "contains": "Arena crowd reactions claimed", "sinceStep": "iceberg" },
+    { "step": "expect", "name": "iceberg-no-reaction", "what": "logAbsent", "contains": "Arena crowd reaction:", "sinceStep": "iceberg" },
+    { "step": "log-export", "name": "export-iceberg", "contains": "rowd", "onFail": "continue" },
+    { "step": "leave", "name": "leave-iceberg" },
+    { "step": "raid", "name": "zombies", "mode": "zombie", "map": "bowl", "timeoutSeconds": 480 },
+    { "step": "sleep", "name": "settle-z", "seconds": 20 },
+    { "step": "expect", "name": "zombies-off", "what": "log", "contains": "Arena crowd off: Zombies", "sinceStep": "zombies" },
+    { "step": "expect", "name": "zombies-no-claim", "what": "logAbsent", "contains": "Arena crowd reactions claimed", "sinceStep": "zombies" },
+    { "step": "log-export", "name": "export-zombies", "contains": "rowd", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "zombies" } ]
+}

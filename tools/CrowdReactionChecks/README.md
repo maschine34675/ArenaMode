@@ -52,3 +52,15 @@ under `artifacts/crowd-reaction-checks/`.
 Not covered: MapPort's Unity side (`SpectatorAudio`, the planner's playback, the bed), EFT, Unity
 audio and anything audible. See
 [CROWD-REACTIONS-20261102.md](../../docs/reviews/CROWD-REACTIONS-20261102.md).
+
+## Native scenarios (gpu-run)
+
+`scenarios/crowd-tdm-bowl.json` (Team DM on Bowl: claim, Start, an own kill, an own death),
+`scenarios/crowd-finish.json` (Team DM with a 5 minute limit and Deathmatch over three rounds:
+Finish and murmur intensity) and `scenarios/crowd-iceberg-zombies.json` (no claim on Iceberg,
+nothing in Zombies) are the gpu-run scenarios of the GPU-2 run of 2026-11-02
+(`docs/reports/2026-11/GPU-CROWD-REACTIONS-20261102.md`). Run them from
+`../UiBridge/tools/gpu-run` with `node gpu-run.mjs scenario <file> --host host2 --out <dir>`. They
+need an installed ArenaMapPort with phase A and its developer mode on (its per-reaction line is
+developer-only), and they change ArenaMode match settings (mode, limits, participants): put them
+back afterwards.

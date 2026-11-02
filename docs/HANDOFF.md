@@ -52,7 +52,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 ## Open work
 
 **Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
-`65007e74`, not merged, not built into any install):** phase B of
+`65007e74`, not merged; its build `0.4.1+8d21e362` is installed on all Syncthing hosts since
+2026-11-02 evening):** phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
 `SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
 `CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (51 mutants, plus a real-surface
@@ -66,9 +67,13 @@ harness's real-surface stage binds the installed client's `SpectatorCrowd` and r
 against its real queue: kinds, owner, strengths, claim, release and reset agree with what
 ArenaMode sends and expects (the plan's 40-character owner truncation is 64 in phase A, well
 above ArenaMode's 40-character owner); kinds withdrawn mid-match by MapPort's developer key end
-ArenaMode's reactions for that match (accepted, developer-key only). Pending: a native GPU run
-(murmur with 0.4.0 first, reactions with phase A, including the respawn wait and the spectator
-camera) and the user's listening. Three independent reviews on 2026-11-02 found one major
+ArenaMode's reactions for that match (accepted, developer-key only). Native GPU-2 run on 2026-11-02 evening with MapPort phase A
+([GPU-CROWD-REACTIONS-20261102.md](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)): every kind
+sent once and played by MapPort in Team DM and Deathmatch, Finish once per result, excitement
+0.6/0.85, release on every exit seen, Iceberg no claim, Zombies off, no ArenaMode warning. Pending:
+the user's listening (two tuning questions recorded there: the announcer interlock halves nearly
+every announced event, and Start at 1.0 exhausts MapPort's Start pool), Gun Game, Tactical,
+Domination and the spectator camera with the crowd, then the merge. Three independent reviews on 2026-11-02 found one major
 (a teammate's kill reacted, against D5) and minor issues; all are fixed on the branch
 (`83d4aee3`..`4d4a9444`). Applied afterwards from the plan as revised in ArenaMapPort
 `08964c1` (the user's automatic subtitles of every crowd clip): a lost lead disapproves at 0.3

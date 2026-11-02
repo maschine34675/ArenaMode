@@ -503,13 +503,29 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   those changes are compiled only by `tools/CrowdReactionChecks`, against its stand-ins, not
   against the game DLLs.
 
+## Native run (2026-11-02, GPU-2)
+
+ArenaMode `8d21e362` with the installed ArenaMapPort phase A client, record:
+[GPU-CROWD-REACTIONS-20261102.md](../reports/2026-11/GPU-CROWD-REACTIONS-20261102.md). Team DM on
+Bowl (two runs and one with a 5 min limit), Deathmatch on Equator over three rounds, Iceberg and
+Zombies: claim on the first attempt with kinds 0x3E; Start, Approve (own headshot kill, lead
+taken), Disapprove (own death, lead lost), Finish (match result, Deathmatch round ends, one Finish
+for the terminal round) all sent once and played by MapPort (one dropped by MapPort's cooldown);
+excitement peaks 0.6 (Team DM clock) and 0.85 (Deathmatch final round); release on leaving and
+after the result hold; Iceberg no claim, Zombies off; no ArenaMode warning. Two observations for
+the listening check, unchanged: the announcer interlock halves nearly every announced event (lead
+changes, HEADSHOT, awards), so awards never reach MapPort's 0.8 band for the strong shouts while
+the announcer is on; Start at 1.0 exhausts MapPort's thin Start pool (MapPort relaxes its
+repetition rules).
+
 ## Not claimed
 
-- No native ArenaMode and ArenaMapPort run: the binder and the service have met the real MapPort
-  contract and queue only in the harness (no Unity, no EFT); the service has never run in EFT.
-  MapPort's own host run of phase A used its developer demo and involved no ArenaMode.
+- The native run covers Team DM, Deathmatch, Iceberg and Zombies on GPU-2 only; Gun Game,
+  Tactical (solo and PitFireTeam), Domination, the death replay and the team spectator camera
+  were not run with the crowd. MapPort's own host run of phase A used its developer demo.
 - Nothing listened to: strengths, the interlock factor, the excitement curve and their audibility
-  over the announcer are proposals from the plan.
+  over the announcer are proposals from the plan (the native run proves that they are sent and
+  played, not how they sound).
 - The reaction part needs an ArenaMapPort release with phase A: `d70acd2` is not released and may
   still change before MapPort's next release (the real-surface stage fails when what it checks
   changes, nothing more). With the

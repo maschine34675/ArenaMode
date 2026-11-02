@@ -1,0 +1,36 @@
+{
+  "name": "crowd-finish",
+  "description": "Finish and murmur intensity: Team DM on Bowl with a 5 minute time limit (the clock ends it: Finish on the result cue, excitement rising in the last 60 s, release after the result), then Deathmatch on Equator with 3 rounds of 2 minutes (Start per round via OnRoundStarted, a non-terminal Finish per round end, one Finish for the match result, final-round excitement).",
+  "host": "host2",
+  "steps": [
+    { "step": "raid", "name": "tdm", "mode": "teamdeathmatch", "map": "bowl", "participants": 8, "teamKills": 100, "timeLimit": 5, "timeoutSeconds": 480 },
+    { "step": "hook", "name": "godmode", "action": "godmode", "enabled": true },
+    { "step": "expect", "name": "tdm-claimed", "what": "log", "contains": "Arena crowd reactions claimed", "sinceStep": "tdm", "withinSeconds": 150 },
+    { "step": "wait", "name": "tdm-result", "logContains": "Team Deathmatch result", "timeoutSeconds": 480 },
+    { "step": "expect", "name": "tdm-finish-sent", "what": "log", "contains": "Arena crowd reaction: kind=Finish", "sinceStep": "tdm-result", "withinSeconds": 10 },
+    { "step": "sleep", "name": "tdm-hold", "seconds": 3 },
+    { "step": "expect", "name": "tdm-finish-played", "what": "log", "contains": "arena_bowl: reaction Finish strength=", "sinceStep": "tdm", "onFail": "continue" },
+    { "step": "still", "name": "tdm-still", "id": "crowd-tdm-finish" },
+    { "step": "wait", "name": "tdm-detached", "logContains": "Arena crowd detached", "timeoutSeconds": 60 },
+    { "step": "expect", "name": "tdm-excited", "what": "log", "regex": "Arena crowd detached: .*excitementPeak=(0\\.[0-9]*[1-9]|1)", "sinceStep": "tdm", "onFail": "continue" },
+    { "step": "log-export", "name": "export-tdm", "contains": "rowd", "onFail": "continue" },
+    { "step": "hook", "name": "godmode-off", "action": "godmode", "enabled": false, "onFail": "continue" },
+    { "step": "menu", "name": "tdm-menu" },
+    { "step": "raid", "name": "dm", "mode": "deathmatch", "map": "equator", "participants": 8, "rounds": 3, "kills": 10, "roundTime": 2, "timeoutSeconds": 480 },
+    { "step": "hook", "name": "godmode-dm", "action": "godmode", "enabled": true },
+    { "step": "expect", "name": "dm-claimed", "what": "log", "contains": "Arena crowd reactions claimed", "sinceStep": "dm", "withinSeconds": 150 },
+    { "step": "wait", "name": "dm-end", "logContains": "Arena crowd detached", "timeoutSeconds": 600 },
+    { "step": "expect", "name": "dm-start", "what": "log", "contains": "Arena crowd reaction: kind=Start", "sinceStep": "dm" },
+    { "step": "expect", "name": "dm-finish", "what": "log", "contains": "Arena crowd reaction: kind=Finish", "sinceStep": "dm" },
+    { "step": "expect", "name": "dm-played", "what": "log", "contains": "arena_equator: reaction Finish strength=", "sinceStep": "dm", "onFail": "continue" },
+    { "step": "expect", "name": "dm-excited", "what": "log", "regex": "Arena crowd detached: .*excitementPeak=(0\\.[0-9]*[1-9]|1)", "sinceStep": "dm", "onFail": "continue" },
+    { "step": "expect", "name": "no-arena-warning", "what": "logAbsent", "level": "warning", "source": "maschine-ArenaMode", "sinceStep": "tdm", "onFail": "continue" },
+    { "step": "expect", "name": "no-mapport-warning", "what": "logAbsent", "level": "warning", "source": "maschine-ArenaMapPort", "sinceStep": "tdm", "onFail": "continue" },
+    { "step": "log-export", "name": "export-dm", "contains": "rowd", "onFail": "continue" },
+    { "step": "log-export", "name": "export-spectator", "contains": "[SpectatorAudio]", "onFail": "continue" }
+  ],
+  "finally": [
+    { "step": "hook", "action": "godmode", "enabled": false, "whenStepStarted": "godmode-dm" },
+    { "step": "leave", "whenStepStarted": "dm" }
+  ]
+}
