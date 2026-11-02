@@ -58,8 +58,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 `CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (36 mutants) and a compile check
 of the client. Pending: ArenaMapPort phase A (the reaction members), a native GPU run (murmur
 with 0.4.0 first, reactions after phase A, including the respawn wait and the spectator
-camera), the user's listening, and the adversarial review. Contract and decisions (D5, D7, D10,
-D12, announcer interlock): [CROWD-REACTIONS-20261102.md](reviews/CROWD-REACTIONS-20261102.md).
+camera) and the user's listening. Three independent reviews on 2026-11-02 found one major
+(a teammate's kill reacted, against D5) and minor issues; all are fixed on the branch
+(`83d4aee3`..`4d4a9444`). Contract and decisions (D5, D7, D10, D12, announcer interlock):
+[CROWD-REACTIONS-20261102.md](reviews/CROWD-REACTIONS-20261102.md).
 
 **Domination objectives on DynamicMaps (2026-11-01, merged into `master` from
 `feature/domination-map-markers`, not released):** ArenaMode owns live

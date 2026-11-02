@@ -3,7 +3,11 @@
 Date: 2026-11-02. Branch `feature/crowd-reactions` from `65007e74`. Phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md` (section 6, "Change list: ArenaMode"); the
 ArenaMapPort side (phase A) is a separate project and is **not implemented** at the time of
-writing. Status: implemented and checked offline; no native run, nothing listened to.
+writing. Status: implemented and checked offline; no native run, nothing listened to. Three
+independent reviews (2026-11-02) found one major issue (a teammate's kill reacted, against D5)
+and minor ones (a Tactical deciding kill one tick before its result, a dropped result in a solo
+Tactical round without RoundStart, NoContest on the 0.4.0 murmur, binder presence and proof
+gaps, documentation); all are fixed in `83d4aee3`..`4d4a9444` and reflected below.
 
 ## What it does
 
