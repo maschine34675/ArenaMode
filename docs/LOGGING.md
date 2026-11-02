@@ -96,8 +96,21 @@ contract); `Arena crowd reactions claimed: handle=…, kinds=0x…, attempt=…`
 window, `Arena crowd reactions not claimed: …`; one `Arena crowd reaction: kind=…, strength=…,
 source=…` per sent reaction (", announcer speaking" when the interlock halved it); `Arena crowd
 reactions released: handle=…, reason=…, sent=…` and `Arena crowd detached: reason=…,
-reactions=…, excitementPeak=…`. Warnings: an incompatible SpectatorCrowd contract (once per
-process per reason) and an exception from an ArenaMapPort member or a crowd event handler.
+reactions=…, excitementPeak=…`.
+
+Warnings, by prefix. Once per process and reason (the installed contract does not change between
+matches): `ArenaMapPort SpectatorCrowd has no int ContractVersion property`, `ArenaMapPort
+SpectatorCrowd contract version … is not supported`, `ArenaMapPort SpectatorCrowd
+SetExcitement/IsAvailable have another signature`, `ArenaMapPort SpectatorCrowd reaction members
+have another signature`, `ArenaMapPort crowd contract unavailable:` (the bind threw). At most
+once per match each: `Arena crowd presentation unavailable:` (Attach threw), `Arena crowd
+presentation stopped:` (the tick threw; everything is released), `Arena crowd murmur intensity
+stopped:` (`SetExcitement` or the ArenaMode snapshot read threw; reactions keep running), `Arena
+crowd murmur intensity reset failed:`, `ArenaMapPort crowd reactions unavailable:`
+(`ReactionKinds` or `ClaimReactions` threw; no further attempts), `ArenaMapPort crowd reactions
+stopped:` (`React` threw; the claim is released), `ArenaMapPort crowd reactions release failed:`,
+and `Arena crowd reaction event failed:` (the first exception in a crowd event handler; it is
+contained and never reaches the match).
 
 ## Map-screen refresh probe (DeveloperMode)
 

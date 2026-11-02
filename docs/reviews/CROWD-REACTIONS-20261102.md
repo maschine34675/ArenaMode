@@ -240,15 +240,19 @@ level is set back to 0 when the crowd presentation ends with a non-zero level se
 Debug only, nothing per frame (see [LOGGING.md](../LOGGING.md)): one line per match for attach
 (or why the crowd is off) and detach, one per claim, per release and per window outcome without
 a claim, and one per sent reaction (`Arena crowd reaction: kind=…, strength=…, source=…`).
-Warnings only for an incompatible contract (once per process per reason) and for an exception
-from a MapPort member or an event handler.
+Warnings: an incompatible or unbindable contract, once per process per reason; and at most once
+per match each, an exception from a MapPort member (claim, react, release, excitement), from the
+ArenaMode snapshot read that drives the murmur, from Attach or the tick, or from an event
+handler. LOGGING.md lists every prefix.
 
 ## Rules for later changes
 
 - Never add a Harmony patch for this feature; it lives on `ArenaMatch`/`ArenaEvents`
   subscriptions inside an attached Arena match.
-- Handlers buffer only: no throw into the match, no blocking, no log line. A failed reaction never
-  changes match state.
+- Handlers buffer only and never throw into the match or block. The only lines they write are
+  the NoContest release (Debug) and the first handler failure (Warning), each at most once per
+  match; the only MapPort call they make is the NoContest release and its excitement reset.
+  Every reaction push happens from the gated tick. A failed reaction never changes match state.
 - No push outside the gate above, in particular not in a plain raid on a ported map.
 - No claim may outlive any exit path in the table above; a new exit path needs a release.
 - Never subscribe to the process-global `SpawnGates.GatesOpened`

@@ -1018,8 +1018,10 @@ The spectator crowd of ArenaMapPort maps (`Audio/ArenaCrowdReactions`, binder
 `Compat/ArenaMapPortSpectatorCrowd`, key `Audio/CrowdReactions` frozen at arm) is presentation
 only; read docs/reviews/CROWD-REACTIONS-20261102.md before changing it. It adds no Harmony patch
 and lives on `ArenaMatch`/`ArenaEvents` subscriptions inside an attached Arena match. Its handlers
-buffer only: they never throw into the match, block or log, and a failed reaction never changes
-match state. No push outside an armed Arena match (this exact current match, `Status ==
+buffer only and never throw into the match or block; they log at most once per match (the
+NoContest release at Debug, the first handler failure as a Warning), and every reaction push
+happens from the gated tick. A failed reaction never changes match state. No push outside an
+armed Arena match (this exact current match, `Status ==
 Started`, the exact active raid, no pending start abort) or in a plain raid on a ported map. No
 claim may outlive an exit path (failed start, raid end, new-raid recovery, both early returns of
 `ArenaMatchService.Tick`, plugin shutdown, a failed gate, NoContest, a refused `React`). Never
