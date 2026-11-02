@@ -55,6 +55,17 @@ Check(convertible.Reactions == Part.Incompatible && convertible.ClaimReactions =
     && convertible.Excitement == Part.Bound && log.Warnings.Count == 1,
     "contravariant object claim is not the exact string contract");
 Check(fieldKinds.Reactions == Part.Incompatible, "a field is not the ReactionKinds property");
+// The reaction warning was written above; these reasons share it (one line per process).
+var internalKinds = BindContract(typeof(Variants.InternalKinds));
+Check(internalKinds.Reactions == Part.Incompatible && internalKinds.ReactionKinds == null
+    && internalKinds.Excitement == Part.Bound && log.Warnings.Count == 1,
+    "an internal reaction member is a changed member, not an older MapPort");
+var reactReturn = BindContract(typeof(Variants.WrongReactReturn));
+var releaseReturn = BindContract(typeof(Variants.WrongReleaseReturn));
+Check(reactReturn.Reactions == Part.Incompatible && reactReturn.React == null && reactReturn.Excitement == Part.Bound
+    && releaseReturn.Reactions == Part.Incompatible && releaseReturn.ReleaseReactions == null
+    && releaseReturn.Excitement == Part.Bound && log.Warnings.Count == 1,
+    "a changed return type switches only the reactions off");
 var wrongExcitement = BindContract(typeof(Variants.WrongExcitement));
 var wrongAvailable = BindContract(typeof(Variants.WrongAvailable));
 Check(wrongExcitement.Excitement == Part.Incompatible && wrongExcitement.SetExcitement == null
@@ -67,18 +78,20 @@ BindContract(typeof(Variants.ContractTwo));
 Check(two.Excitement == Part.Incompatible && two.Reactions == Part.Incompatible && two.SetExcitement == null
     && two.React == null && log.Warnings.Count == 3 && log.Warnings[2].Contains("version 2"),
     "contract version 2 switches both parts off with one warning");
+// Its own reason, so its own line even after the version-2 warning.
 var noVersion = BindContract(typeof(Variants.NoVersion));
 var fieldVersion = BindContract(typeof(Variants.FieldVersion));
 Check(noVersion.Excitement == Part.Incompatible && noVersion.Reactions == Part.Incompatible
-    && fieldVersion.Excitement == Part.Incompatible && log.Warnings.Count == 3,
+    && fieldVersion.Excitement == Part.Incompatible && log.Warnings.Count == 4
+    && log.Warnings[3].Contains("no int ContractVersion"),
     "a contract without an int ContractVersion property binds nothing");
 FakeCrowd.ThrowVersion = true;
 var throwing = BindContract(typeof(Variants.ThrowingVersion));
 FakeCrowd.ThrowVersion = false;
-Check(throwing.Excitement == Part.Incompatible && throwing.Reactions == Part.Incompatible && log.Warnings.Count == 4,
+Check(throwing.Excitement == Part.Incompatible && throwing.Reactions == Part.Incompatible && log.Warnings.Count == 5,
     "a throwing contract member is contained");
 var none = BindContract(null);
-Check(none.Excitement == Part.Absent && none.Reactions == Part.Absent && log.Warnings.Count == 4,
+Check(none.Excitement == Part.Absent && none.Reactions == Part.Absent && log.Warnings.Count == 5,
     "no SpectatorCrowd type is an older MapPort");
 Chainloader.PluginInfos.Clear();
 Check(Bind().Excitement == Part.Absent && Bind().Summary.Contains("not loaded"), "plugin absent is normal");

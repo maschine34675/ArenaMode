@@ -133,9 +133,27 @@ $cases = @(
     @{ Name='bedless-map-written'; Property='CrowdServiceSource';
        Find='if (contract.IsAvailable != null && !contract.IsAvailable()) return;'; Replace='';
        Failure='no excitement write while the bed is unavailable' },
-    @{ Name='convertible-signature-binds'; Property='CrowdBinderSource';
+    # Without the parameter check the double React makes CreateDelegate throw (bind failed), so the
+    # first assertion to fail is the changed-member one; the narrower mutant below keeps value-type
+    # mismatches out and proves the contravariant object claim on its own.
+    @{ Name='parameter-type-unchecked'; Property='CrowdBinderSource';
        Find='if (parameters[index].ParameterType != args[index]) return null;'; Replace='if (false) return null;';
        Failure='a changed reaction member switches reactions off with one warning per process' },
+    @{ Name='contravariant-parameter-binds'; Property='CrowdBinderSource';
+       Find='if (parameters[index].ParameterType != args[index]) return null;';
+       Replace='if (!parameters[index].ParameterType.IsAssignableFrom(args[index])) return null;';
+       Failure='contravariant object claim is not the exact string contract' },
+    @{ Name='return-type-unchecked'; Property='CrowdBinderSource';
+       Find='if (method == null || method.ReturnType != returns || method.ContainsGenericParameters) return null;';
+       Replace='if (method == null || method.ContainsGenericParameters) return null;';
+       Failure='a changed return type switches only the reactions off' },
+    @{ Name='presence-public-only'; Property='CrowdBinderSource';
+       Find='private static bool Present(Type type, string name) => type.GetMember(name, AnyMember).Length > 0;';
+       Replace='private static bool Present(Type type, string name) => type.GetMember(name, Declared).Length > 0;';
+       Failure='an internal reaction member is a changed member, not an older MapPort' },
+    @{ Name='no-version-warning-missing'; Property='CrowdBinderSource';
+       Find='Warn(ref _warnedNoVersion, '; Replace='if (false) Warn(ref _warnedNoVersion, ';
+       Failure='a contract without an int ContractVersion property binds nothing' },
     @{ Name='kind-shift-unchecked'; Property='CrowdBinderSource';
        Find='internal static int Bit(int kind) => kind >= LowestKind && kind <= HighestKind ? 1 << kind : 0;';
        Replace='internal static int Bit(int kind) => 1 << kind;';

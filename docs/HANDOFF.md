@@ -55,7 +55,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 `65007e74`, not merged, not built into any install):** phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
 `SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
-`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (32 mutants) and a compile check
+`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (36 mutants) and a compile check
 of the client. Pending: ArenaMapPort phase A (the reaction members), a native GPU run (murmur
 with 0.4.0 first, reactions after phase A, including the respawn wait and the spectator
 camera), the user's listening, and the adversarial review. Contract and decisions (D5, D7, D10,

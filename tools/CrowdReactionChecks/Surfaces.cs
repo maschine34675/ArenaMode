@@ -153,6 +153,40 @@ namespace Variants
         public static bool ReleaseReactions(int claim) => FakeCrowd.Release(claim);
     }
 
+    // A reaction member that became internal: present (as for ArenaMapPortSpawnGates.BindCompletion),
+    // so a changed member, not an older MapPort.
+    public static class InternalKinds
+    {
+        public static int ContractVersion => FakeCrowd.GetVersion();
+        public static void SetExcitement(float level01) => FakeCrowd.SetExcitement(level01);
+        internal static int ReactionKinds => FakeCrowd.GetKinds();
+        public static int ClaimReactions(string owner) => FakeCrowd.Claim(owner);
+        public static bool React(int claim, int kind, float strength01) => FakeCrowd.React(claim, kind, strength01);
+        public static bool ReleaseReactions(int claim) => FakeCrowd.Release(claim);
+    }
+
+    // Exact parameters, another return type: the binder's return-type check is the only guard;
+    // without it Delegate.CreateDelegate throws and the whole contract (the murmur too) would fail.
+    public static class WrongReactReturn
+    {
+        public static int ContractVersion => FakeCrowd.GetVersion();
+        public static void SetExcitement(float level01) => FakeCrowd.SetExcitement(level01);
+        public static int ReactionKinds => FakeCrowd.GetKinds();
+        public static int ClaimReactions(string owner) => FakeCrowd.Claim(owner);
+        public static int React(int claim, int kind, float strength01) => FakeCrowd.React(claim, kind, strength01) ? 1 : 0;
+        public static bool ReleaseReactions(int claim) => FakeCrowd.Release(claim);
+    }
+
+    public static class WrongReleaseReturn
+    {
+        public static int ContractVersion => FakeCrowd.GetVersion();
+        public static void SetExcitement(float level01) => FakeCrowd.SetExcitement(level01);
+        public static int ReactionKinds => FakeCrowd.GetKinds();
+        public static int ClaimReactions(string owner) => FakeCrowd.Claim(owner);
+        public static bool React(int claim, int kind, float strength01) => FakeCrowd.React(claim, kind, strength01);
+        public static void ReleaseReactions(int claim) => FakeCrowd.Release(claim);
+    }
+
     // A reaction member that is a field: present, but not the property contract.
     public static class FieldKinds
     {

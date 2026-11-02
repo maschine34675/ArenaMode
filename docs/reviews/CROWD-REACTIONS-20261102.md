@@ -40,14 +40,17 @@ Files: `ArenaMode.Client/Compat/ArenaMapPortSpectatorCrowd.cs` (binder),
 
 - The two parts bind **independently**: the excitement part never requires the reaction members
   (plan 6, "must not"), the reaction part never requires `SetExcitement`.
-- **Absent** members (no public static member of that name) mean an older MapPort: that part is
-  off, no warning, one Debug line per match. An incomplete reaction set with no changed member
-  counts as absent.
-- A member that **exists with another signature** (another property or parameter type, a field
-  instead of a property, a contravariant `object` parameter) is an incompatibility: that part is
-  off and one Warning is written per process. An extra overload next to the exact member is not.
+- **Absent** members (no member of that name at all; presence uses the flags of
+  `ArenaMapPortSpawnGates.BindCompletion`: public or not, static or instance, inherited) mean an
+  older MapPort: that part is off, no warning, one Debug line per match. An incomplete reaction
+  set with no changed member counts as absent.
+- A member that **exists with another signature** (another property, parameter or return type, a
+  field instead of a property, a contravariant `object` parameter, not public, not static) is an
+  incompatibility: that part is off and one Warning is written per process and reason. An extra
+  overload next to the exact member is not.
 - `ContractVersion` other than 1, or no `int ContractVersion` property: both parts off, one
-  Warning per process. A throwing member is contained (Warning, part off).
+  Warning per process for each of the two reasons. A throwing member is contained (Warning, part
+  off).
 - Kinds (plan 4.1, mirrored as internal consts because MapPort's pin test forbids constants on
   the contract): Approve 1, Disapprove 2, TakeCover 3, Start 4, Finish 5; Lull 6 and
   PurifiedTeam 7 are reserved and never sent. Bits are `1 << kind` after a 1..31 range check
@@ -261,15 +264,16 @@ from a MapPort member or an event handler.
 
 - `tools/CrowdReactionChecks` (production-linked: binder, policy and service compile unchanged
   against stand-ins of the game, BepInEx and the ArenaMode services; MapPort surfaces: phase A,
-  0.4.0, absent, wrong and convertible signatures, a field, an extra overload, version 2, no
-  version, throwing): binding outcomes per variant, the mapping table per source including every
+  0.4.0, absent, wrong parameter, return and convertible signatures, an internal member, a field,
+  an extra overload, version 2, no version, throwing): binding outcomes per variant, the mapping
+  table per source including every
   `ArenaAnnouncerCue` member, coalescing, the death deduplication in both orders and across
   frames, Deathmatch round ends, gating, every exit path, refused and throwing reactions, the
   retry window, excitement pins and monotonicity, key off, Zombies, the interlock, the one-tick
   hold (a Tactical kill one tick before its RoundWon), the epoch-keyed Finish latch (a solo
   Tactical round without a RoundStart), NoContest on the murmur-only 0.4.0 surface, logging, and
   text pins of the wiring that cannot be linked (`ArenaMatchService`, `ArenaController`, `Plugin`,
-  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 32
+  `ArenaSession`, `Settings`, `ArenaConfigMenuLayout`). `Verify.ps1` runs the baseline and 36
   hand-made mutants, each anchored on exactly one LF site and each failing its named assertion,
   with the no-deploy targets.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained

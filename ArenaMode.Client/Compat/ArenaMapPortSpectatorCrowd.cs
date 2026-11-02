@@ -24,17 +24,24 @@ namespace ArenaMode.Compat;
 /// either. Both require ContractVersion == 1: a member is only changed in meaning together with
 /// a new version, so another version means neither part can be trusted.
 ///
-/// Absent members mean an older MapPort: that part is off without a warning (the service writes
-/// one Debug line per match). A member that exists with another signature (property type,
-/// parameter or return type, a field instead of a property) is an incompatibility: that part is
-/// off and one Warning is written per process, like <c>ArenaMapPortSpawnGates.BindCompletion</c>,
-/// which treats only true absence as an older API.
+/// Absent members (no member of that name at all) mean an older MapPort: that part is off without
+/// a warning (the service writes one Debug line per match). A member that exists with another
+/// signature (property type, parameter or return type, a field instead of a property, not public,
+/// not static) is an incompatibility: that part is off and one Warning is written per process,
+/// like <c>ArenaMapPortSpawnGates.BindCompletion</c>, which treats only true absence as an older
+/// API and checks presence with the same flags.
 /// </summary>
 internal static class ArenaMapPortSpectatorCrowd
 {
     internal const string PluginGuid = "com.maschine.ArenaMapPort";
     internal const string ContractTypeName = "ArenaMapPort.Client.SpectatorCrowd";
+    // Binding: exact declared public static members only.
     private const BindingFlags Declared = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
+    // Presence: any member of that name, the flag set of ArenaMapPortSpawnGates.BindCompletion, so a
+    // member that became internal, an instance member or one moved to a base type reads as changed
+    // (one warning), never as an older MapPort.
+    private const BindingFlags AnyMember = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
+        | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 
     // MapPort documents the kind numbers instead of publishing constants (its contract pin test
     // forbids constants and fields on the contract class). Mirrored here; the plan's table 4.1 is
@@ -44,7 +51,8 @@ internal static class ArenaMapPortSpectatorCrowd
 
     // Per process, per reason: an incompatible installation does not change between matches, and
     // one line names it. The service still re-binds every match (a hot-swapped DLL is not supported).
-    private static bool _warnedVersion, _warnedExcitement, _warnedReactions, _warnedBind;
+    // A missing ContractVersion and an unsupported version are two reasons with their own line.
+    private static bool _warnedNoVersion, _warnedVersion, _warnedExcitement, _warnedReactions, _warnedBind;
 
     internal enum Part { Absent, Bound, Incompatible }
 
@@ -109,7 +117,7 @@ internal static class ArenaMapPortSpectatorCrowd
             var version = Getter<int>(type, "ContractVersion", out _);
             if (version == null)
             {
-                Warn(ref _warnedVersion, "ArenaMapPort SpectatorCrowd has no int ContractVersion property; "
+                Warn(ref _warnedNoVersion, "ArenaMapPort SpectatorCrowd has no int ContractVersion property; "
                     + "crowd reactions and murmur intensity stay off.");
                 return new Contract(Part.Incompatible, Part.Incompatible, "contract without ContractVersion");
             }
@@ -181,9 +189,10 @@ internal static class ArenaMapPortSpectatorCrowd
         Plugin.ModLogger.LogWarning(message);
     }
 
-    // "Present" is any public static member of that name: a field, a property of another type and a
-    // method overload all count, so a changed member never reads as an older MapPort.
-    private static bool Present(Type type, string name) => type.GetMember(name, Declared).Length > 0;
+    // "Present" is any member of that name (see AnyMember): a field, a property of another type, a
+    // method overload, a non-public or an instance member all count, so a changed member never
+    // reads as an older MapPort.
+    private static bool Present(Type type, string name) => type.GetMember(name, AnyMember).Length > 0;
 
     // Semantics of ArenaMapPortScoreMonitors.Getter, plus presence for the absent/changed split.
     private static Func<T> Getter<T>(Type type, string name, out bool present)
