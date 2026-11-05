@@ -5,10 +5,15 @@ using System.Text.Json;
 
 namespace ArenaMode.Server.Rewards;
 
+// AuthorityUnavailable: why the lease carries no Authority, when the normal server knows (its own start's refusal
+// of the reward step, "startup:<reason>", or the entry's read of the profile's reward records, "entry:<reason>"),
+// so the private session's reward card can say so instead of "Activation pending" (maschine34675/ArenaMode#1).
+// Absent from the JSON when null, so a lease without it reads and hashes exactly as before this field existed.
 internal sealed record RewardOfflineLease(int Schema, string SessionId, string ProfileId, string RuntimeRoot,
     string PrivateRoot, string MarkerCreatedUtc, int Port, long ConsentRevision, bool Enabled,
     RewardHandoff? Authority, string ControlKey, int NormalServerPid, DateTimeOffset NormalServerStartedUtc,
-    string[] NormalServerArguments, string EntryOperationId, int EntryHelperPid, DateTimeOffset EntryHelperStartedUtc);
+    string[] NormalServerArguments, string EntryOperationId, int EntryHelperPid, DateTimeOffset EntryHelperStartedUtc,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? AuthorityUnavailable = null);
 internal sealed record RewardOfflineReference(int Schema, string SessionId, string LeaseHash,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] bool Activated = false);
 internal sealed record RewardOfflineActivation(int Schema, string SessionId, string LeaseHash, int PrivatePid, DateTimeOffset PrivateStartedUtc);
@@ -53,12 +58,14 @@ internal static partial class RewardOfflineSession
     // evidence binds the same helper operation, not merely a reused session ID.
     // onAuthorityUnavailable receives the fixed-vocabulary reason when the lease is published WITHOUT authority
     // (the read that PreflightReady already made can fail differently once the server is stopped).
+    // startupUnavailable: why this normal server's own start did not run the reward step, if it did not
+    // (RewardRuntimeCoordinator.StartupUnavailable); a lease without authority carries it for the session's card.
     internal static RewardOfflineLease CreateReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        Action<string>? onAuthorityUnavailable = null)
+        Action<string>? onAuthorityUnavailable = null, string? startupUnavailable = null)
     {
         // The shutdown sequence's semaphore does not cover publication. Identical
         // HTTP retries must not race two different random delegations into the lease.
-        lock (Sync) return CreateReadyCore(root, grant, request, onAuthorityUnavailable);
+        lock (Sync) return CreateReadyCore(root, grant, request, onAuthorityUnavailable, startupUnavailable);
     }
 
     // Everything CreateReady can refuse, without a single write. The shutdown listener runs it BEFORE
@@ -67,20 +74,20 @@ internal static partial class RewardOfflineSession
     // the profile's reward authority is unusable (the lease then carries none), or null. A transient file error
     // (sharing violation, access denied) while reading that authority is not "unusable": nothing is paused yet,
     // so it throws and the entry is declined while the normal server is still alive.
-    internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request)
+    internal static string? PreflightReady(string root, RewardEntryGrant grant, RewardEntryRequest request, string? startupUnavailable = null)
     {
         lock (Sync)
         {
-            BuildReady(RewardStartupFiles.Canonical(root), grant, request, preflight: true, out _, out string? unavailable);
+            BuildReady(RewardStartupFiles.Canonical(root), grant, request, preflight: true, startupUnavailable, out _, out string? unavailable);
             return unavailable;
         }
     }
 
     private static RewardOfflineLease CreateReadyCore(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        Action<string>? onAuthorityUnavailable)
+        Action<string>? onAuthorityUnavailable, string? startupUnavailable)
     {
         root = RewardStartupFiles.Canonical(root);
-        var lease = BuildReady(root, grant, request, preflight: false, out bool published, out string? unavailable);
+        var lease = BuildReady(root, grant, request, preflight: false, startupUnavailable, out bool published, out string? unavailable);
         if (!published)
         {
             RewardRuntimeFiles.EnsureDirectory(root, SessionDirectory(root, lease.SessionId));
@@ -111,7 +118,7 @@ internal static partial class RewardOfflineSession
     // matches this installation or whose ledger left the profile (wipe, restored backup, moved or copied
     // install, editor) yields a lease WITHOUT authority, exactly like a profile that never enrolled.
     private static RewardOfflineLease BuildReady(string root, RewardEntryGrant grant, RewardEntryRequest request,
-        bool preflight, out bool published, out string? authorityUnavailable)
+        bool preflight, string? startupUnavailable, out bool published, out string? authorityUnavailable)
     {
         authorityUnavailable = null;
         if (!RewardStartupFiles.MarkerAbsent(root) || grant.Schema != 1 || grant.Purpose != RewardEntryControl.Purpose
@@ -144,11 +151,23 @@ internal static partial class RewardOfflineSession
             lease = new(1, grant.SessionId, grant.ProfileId, root, RewardStartupFiles.Canonical(request.PrivateRoot),
                 request.MarkerCreatedUtc, request.Port, consent.Revision, consent.Enabled, authority, Secret(),
                 grant.ServerPid, grant.ServerStartedUtc, grant.ServerArguments.ToArray(), request.OperationId,
-                request.HelperPid, request.HelperStartedUtc);
+                request.HelperPid, request.HelperStartedUtc, ScopedReason(authority, authorityUnavailable, startupUnavailable));
         }
         Validate(lease);
         return lease;
     }
+
+    // The lease's reason for carrying no authority: the entry's own read of the profile's records first (it says
+    // what is wrong with THIS profile), else the start's refusal (then nothing was enrolled at all). A profile that
+    // never enrolled under an admitted start carries none: that is the genuine "activation pending" (rewards switched
+    // on inside a session are enrolled at the next normal start).
+    // The codes are cut to the lease's shape (RewardUnavailableText.LeaseCode): a wrapped reason such as
+    // "cola-unpaid-plan-invalid: IOException" must not make the lease invalid and decline the entry.
+    internal static string? ScopedReason(RewardHandoff? authority, string? entryUnavailable, string? startupUnavailable)
+        => authority is not null ? null
+            : entryUnavailable is not null ? RewardUnavailableText.EntryScope + RewardUnavailableText.LeaseCode(entryUnavailable)
+            : startupUnavailable is not null ? RewardUnavailableText.StartupScope + RewardUnavailableText.LeaseCode(startupUnavailable)
+            : null;
 
     // Read-only validation of an existing enrollment and ledger; never enrolls. Any failure to read or match
     // them means "no authority for this session" and names the cause for the server log. Only the file errors that
@@ -254,7 +273,9 @@ internal static partial class RewardOfflineSession
             || !DateTimeOffset.TryParse(lease.MarkerCreatedUtc, out _)
             || !Path.IsPathFullyQualified(lease.RuntimeRoot) || !Path.IsPathFullyQualified(lease.PrivateRoot)
             || RewardRuntimeFiles.SameRoot(lease.RuntimeRoot, lease.PrivateRoot)
-            || Convert.FromBase64String(lease.ControlKey).Length != 32)
+            || Convert.FromBase64String(lease.ControlKey).Length != 32
+            // A reason belongs only to a lease without authority, and only in the shape the normal server writes.
+            || lease.AuthorityUnavailable is { } why && (lease.Authority is not null || !RewardUnavailableText.IsLeaseReason(why)))
             throw new RewardDataException("offline-lease-invalid");
         if (lease.Authority is { } authority)
         {

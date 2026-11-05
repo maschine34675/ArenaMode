@@ -296,20 +296,127 @@ public sealed class RewardStartupTests
     [InlineData("loaded")]
     [InlineData("peer")]
     [InlineData("early-callback")]
+    [InlineData("unlisted")]
     public void NativeAdmissionRejectsContractDrift(string mutation)
     {
         using var f = new StartupFixture();
+        // The step at priority 0 and SPT's Watermark behind it, as the installed 4.1.6 registers them (Core last).
         var callbacks = new List<ArenaRewardStartup.StartupCallback>
         {
-            new(typeof(Watermark), typeof(IOnLoad), 0),
-            new(typeof(ArenaRewardStartup), typeof(IOnLoad), 1)
+            new(typeof(ArenaRewardStartup), typeof(IOnLoad), 0),
+            new(typeof(Watermark), typeof(IOnLoad), 0)
         };
         Assert.Null(ArenaRewardStartup.GetAdmissionFailure(new(4, 1, 6, 0), "SPT.Server", f.Root, f.Root, 0, callbacks, false));
-        if (mutation == "early-callback") callbacks.Add(new(typeof(RewardStartupTests), typeof(IOnLoad), 1));
+        if (mutation == "early-callback") callbacks.Insert(0, new(typeof(RewardStartupTests), typeof(IOnLoad), 0));
+        if (mutation == "unlisted") callbacks.RemoveAt(0);
         var failure = ArenaRewardStartup.GetAdmissionFailure(mutation == "native-version" ? new(4, 2, 0, 0) : new(4, 1, 6, 0),
             mutation == "entry" ? "testhost" : "SPT.Server", f.Root, mutation == "root" ? f.Root + "-other" : f.Root,
             mutation == "loaded" ? 1 : 0, callbacks, mutation == "peer");
         Assert.NotNull(failure);
+        if (mutation == "early-callback") Assert.Equal("earlier-startup-callback", failure);
+        if (mutation == "unlisted") Assert.Equal("startup-callback-unlisted", failure);
+    }
+
+    // SPT 4.1.6 runs the pre-load IOnLoad callbacks in the order of the DI list (a stable sort by priority over the
+    // registration order), so only a callback that sits BEFORE the reward step in that list runs before it. From 0.3.0
+    // up to and including 0.4.1 a range check refused every other callback at priority 0 or 1, before or after it, which
+    // switched rewards off for good next to BetterFlea's item-table snapshot at Watermark + 1 (maschine34675/ArenaMode#1).
+    [Fact]
+    public void AdmissionFollowsTheRealCallbackOrderNotAPriorityRange()
+    {
+        using var f = new StartupFixture();
+        string? Admit(params ArenaRewardStartup.StartupCallback[] callbacks)
+            => ArenaRewardStartup.GetAdmissionFailure(new(4, 1, 6, 0), "SPT.Server", f.Root, f.Root, 0, callbacks, false);
+        var self = new ArenaRewardStartup.StartupCallback(typeof(ArenaRewardStartup), typeof(IOnLoad), 0);
+        var watermark = new ArenaRewardStartup.StartupCallback(typeof(Watermark), typeof(IOnLoad), 0);
+        var modAtOne = new ArenaRewardStartup.StartupCallback(typeof(RewardStartupTests), typeof(IOnLoad), 1);
+        var modAtZero = new ArenaRewardStartup.StartupCallback(typeof(RewardRuntimeTests), typeof(IOnLoad), 0);
+
+        // The common "Watermark + 1" after the step, where the sort puts it: admitted, and not an earlier callback.
+        Assert.Null(Admit(self, watermark, modAtOne));
+        Assert.Empty(ArenaRewardStartup.EarlierCallbacks(new[] { self, watermark, modAtOne }));
+        // The same priority, registered later (a mod whose GUID sorts after com.maschine.ArenaMode): admitted.
+        Assert.Null(Admit(self, modAtZero, watermark));
+        // SPT's own Watermark before the step: admitted wherever it sits.
+        Assert.Null(Admit(watermark, self));
+        // Before the step: refused, whatever the priority says, and named in order without the Watermark.
+        Assert.Equal("earlier-startup-callback", Admit(modAtZero, self));
+        Assert.Equal("earlier-startup-callback", Admit(watermark, modAtOne, self));
+        Assert.Equal(new[] { modAtZero, modAtOne }, ArenaRewardStartup.EarlierCallbacks(new[] { modAtZero, watermark, modAtOne, self }));
+        // Not run before the profiles load at all: a later phase, a negative priority (SPT never runs it), another contract.
+        Assert.Null(Admit(new(typeof(RewardStartupTests), typeof(IOnLoad), OnLoadOrder.GameCallbacks), self));
+        Assert.Equal("earlier-startup-callback", Admit(new(typeof(RewardStartupTests), typeof(IOnLoad), OnLoadOrder.GameCallbacks - 1), self));
+        Assert.Null(Admit(new(typeof(RewardStartupTests), typeof(IOnLoad), -1), self));
+        Assert.Null(Admit(new(typeof(RewardStartupTests), typeof(IDisposable), 0), self));
+        // Without the step's own entry the order is unknown.
+        Assert.Equal("startup-callback-unlisted", Admit(watermark, modAtOne));
+        Assert.Empty(ArenaRewardStartup.EarlierCallbacks(new[] { watermark, modAtOne }));
+    }
+
+    [Fact]
+    public void AnOrderRefusalNamesEveryEarlierCallbackWithItsAssemblyAndPriority()
+    {
+        var self = new ArenaRewardStartup.StartupCallback(typeof(ArenaRewardStartup), typeof(IOnLoad), 0);
+        var first = new ArenaRewardStartup.StartupCallback(typeof(RewardStartupTests), typeof(IOnLoad), 3);
+        var second = new ArenaRewardStartup.StartupCallback(typeof(RewardRuntimeTests), typeof(IOnLoad), 0);
+        string assembly = typeof(RewardStartupTests).Assembly.GetName().Name!;
+        Assert.Equal($"earlier-startup-callback: ArenaMode.Tests.RewardStartupTests in {assembly}.dll (priority 3), ArenaMode.Tests.RewardRuntimeTests in {assembly}.dll (priority 0)",
+            ArenaRewardStartup.DescribeRefusal("earlier-startup-callback", new[] { first, new(typeof(Watermark), typeof(IOnLoad), 0), second, self }));
+        Assert.Equal("another-server-or-unknown-process", ArenaRewardStartup.DescribeRefusal("another-server-or-unknown-process", new[] { first, self }));
+        Assert.Equal("earlier-startup-callback", ArenaRewardStartup.DescribeRefusal("earlier-startup-callback", new[] { self }));
+    }
+
+    // The core of the fix is the attribute itself: at Watermark + 1 the stable sort put every mod at 0 before the step,
+    // and the position check alone would not notice a return to that value.
+    [Fact]
+    public void TheRewardStepRunsAtTheEarliestSlot()
+    {
+        var injectable = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SPTarkov.DI.Annotations.Injectable>(typeof(ArenaRewardStartup));
+        Assert.NotNull(injectable);
+        Assert.Equal(OnLoadOrder.Watermark, injectable!.TypePriority);
+        Assert.Equal(SPTarkov.DI.Annotations.InjectionType.Singleton, injectable.InjectionType);
+        Assert.Contains(typeof(IOnLoad), typeof(ArenaRewardStartup).GetInterfaces());
+    }
+
+    [Fact]
+    public void TheWarningNamesTheCallbacksAndSaysWhetherTheRefusalRecurs()
+    {
+        var self = new ArenaRewardStartup.StartupCallback(typeof(ArenaRewardStartup), typeof(IOnLoad), 0);
+        var first = new ArenaRewardStartup.StartupCallback(typeof(RewardStartupTests), typeof(IOnLoad), 0);
+        string recurring = ArenaRewardStartup.ComposeRefusalWarning("earlier-startup-callback", new[] { first, self });
+        Assert.StartsWith("[ArenaMode] Startup rewards unavailable (earlier-startup-callback: ArenaMode.Tests.RewardStartupTests in ", recurring);
+        Assert.Contains(".dll (priority 0)); profiles will load normally. This recurs at every start while the installation stays as it is", recurring);
+        Assert.Equal("[ArenaMode] Startup rewards unavailable (another-server-or-unknown-process); profiles will load normally.",
+            ArenaRewardStartup.ComposeRefusalWarning("another-server-or-unknown-process", new[] { first, self }));
+        Assert.StartsWith("[ArenaMode] Startup rewards unavailable (unreviewed-native-startup-version); profiles will load normally. This recurs",
+            ArenaRewardStartup.ComposeRefusalWarning("unreviewed-native-startup-version", new[] { self }));
+    }
+
+    [Theory]
+    [InlineData("earlier-startup-callback", RewardUnavailableText.EarlierCallback, true)]
+    [InlineData("startup-callback-unlisted", RewardUnavailableText.EarlierCallback, true)]
+    [InlineData("unreviewed-native-startup-version", RewardUnavailableText.UnreviewedStart, true)]
+    [InlineData("not-native-server-startup", RewardUnavailableText.UnreviewedStart, true)]
+    [InlineData("runtime-root-mismatch", RewardUnavailableText.UnreviewedStart, true)]
+    [InlineData("native-profiles-already-loaded", RewardUnavailableText.ProfilesLoadedEarly, true)]
+    [InlineData("reward-storage-linked", RewardUnavailableText.StorageUnusable, true)]
+    [InlineData("reward-storage-access-denied", RewardUnavailableText.StorageUnusable, true)]
+    [InlineData("reward-storage-unavailable", RewardUnavailableText.StorageUnusable, true)]
+    [InlineData("another-server-or-unknown-process", RewardUnavailableText.Temporary, false)]
+    [InlineData("IOException", RewardUnavailableText.Temporary, false)]
+    [InlineData("UnauthorizedAccessException", RewardUnavailableText.Temporary, false)]
+    public void TheCardSaysWhichRefusalsRecurInsteadOfTemporarily(string reason, string text, bool recurs)
+    {
+        Assert.Equal(text, RewardUnavailableText.ForStartupReason(reason));
+        Assert.Equal(recurs, RewardUnavailableText.Recurs(reason));
+        // In the private session the same sentences point at the normal server's log, where the cause is.
+        const string serverLog = "See the server log.", normalLog = "See the normal server's log.";
+        Assert.Equal(text.Replace(serverLog, normalLog), RewardUnavailableText.ForLeaseReason("startup:" + reason));
+        // An entry-side code is a records mismatch, except the two file errors that may clear on their own.
+        Assert.Equal(reason is "IOException" or "UnauthorizedAccessException" ? RewardUnavailableText.Temporary : RewardUnavailableText.RecordsMismatch.Replace(serverLog, normalLog),
+            RewardUnavailableText.ForLeaseReason("entry:" + reason));
+        Assert.Null(RewardUnavailableText.ForLeaseReason(null));
+        Assert.Null(RewardUnavailableText.ForLeaseReason(reason));
     }
 
     private sealed class StartupFixture : IDisposable

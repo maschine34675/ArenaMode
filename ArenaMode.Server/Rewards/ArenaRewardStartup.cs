@@ -14,8 +14,19 @@ namespace ArenaMode.Server.Rewards;
 /// Consumes explicitly approved receipts before native profiles/HTTP/timers start.
 /// Fresh profiles default to rewards ON at this guarded boundary. Existing
 /// choices/history remain authoritative; this is the only profile payout writer.
+/// Priority <see cref="OnLoadOrder.Watermark"/> (0), the earliest slot SPT runs. Its pre-load runner
+/// (ProgramExtensions.RunPreSptLoadCallbacks in the installed 4.1.6 IL) takes the <see cref="IOnLoad"/>
+/// containers with a priority from 0 up to, not including, <see cref="OnLoadOrder.GameCallbacks"/> in the
+/// order of the DI list and runs them one after the other; a negative priority never runs. That list is
+/// a stable sort by priority over the registration order (SPT.Server, Reflection, Web, then the mods by
+/// GUID, Core last), so a mod at the common "Watermark + 1" always runs after this step, and only a mod
+/// that also chooses 0 and sorts before "com.maschine.ArenaMode" by GUID can precede it, which
+/// <see cref="EarlierCallbacks"/> detects by position. From 0.3.0 up to and including 0.4.1 this step sat
+/// at Watermark + 1 and refused every other mod in the range 0 to 1, before or after it, which switched
+/// rewards off for good without naming the mod (maschine34675/ArenaMode#1, BetterFlea's item-table
+/// snapshot at Watermark + 1).
 /// </summary>
-[Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark + 1)]
+[Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark)]
 public sealed class ArenaRewardStartup(
     SaveServer saves,
     IReadOnlyList<DependencyInjectionContainer> containers,
@@ -48,6 +59,7 @@ public sealed class ArenaRewardStartup(
             RewardOfflineSession.RecoverBeforeStartup(recovery, discarded: () =>
                 logger.Info("[ArenaMode] Old Arena session discarded; rewards set to OFF. Normal SPT will start."));
         }
+        var callbacks = containers.Select(c => new StartupCallback(c.ParentType, c.Type, c.InjectableAttribute.TypePriority)).ToList();
         try
         {
             var reason = GetAdmissionFailure(
@@ -56,7 +68,7 @@ public sealed class ArenaRewardStartup(
                 root,
                 AppContext.BaseDirectory,
                 saves.GetProfiles().Count,
-                containers.Select(c => new StartupCallback(c.ParentType, c.Type, c.InjectableAttribute.TypePriority)),
+                callbacks,
                 FindConflictingServer(root));
             if (reason is not null) throw new RewardDataException(reason);
             if (!RewardStartupFiles.MarkerAbsent(root)) return;
@@ -84,8 +96,23 @@ public sealed class ArenaRewardStartup(
             // A refusal affects rewards, never ordinary server startup or raids.
             var reason = e is RewardDataException ? e.Message : e.GetType().Name;
             RewardRuntimeCoordinator.Current.ObserveStartupUnavailable(reason);
-            logger.Warning($"[ArenaMode] Startup rewards unavailable ({reason}); profiles will load normally.");
+            logger.Warning(ComposeRefusalWarning(reason, callbacks));
         }
+    }
+
+    internal static string ComposeRefusalWarning(string reason, IEnumerable<StartupCallback> callbacks)
+        => $"[ArenaMode] Startup rewards unavailable ({DescribeRefusal(reason, callbacks)}); profiles will load normally."
+            + (RewardUnavailableText.Recurs(reason)
+                ? " This recurs at every start while the installation stays as it is: no profile is enrolled, nothing is recorded or paid, and the reward card says 'Rewards are off'."
+                : "");
+
+    // The reason code stays bare (the menu text and the session lease are chosen from it); the log adds the callbacks
+    // behind an order refusal, which is what a player needs to find the mod and what its author needs to change.
+    internal static string DescribeRefusal(string reason, IEnumerable<StartupCallback> callbacks)
+    {
+        if (reason != "earlier-startup-callback") return reason;
+        var earlier = EarlierCallbacks(callbacks);
+        return earlier.Count == 0 ? reason : reason + ": " + string.Join(", ", earlier.Select(c => c.Describe()));
     }
 
     // The exception's own reason is written for the player (no stack, no path); a wrapped failure adds only its
@@ -99,7 +126,12 @@ public sealed class ArenaRewardStartup(
             + "Do not delete or move the reward journal or the Cola plan files. See docs/REWARDS-RUNTIME.md, 'Lost reward authority'.";
     }
 
-    internal sealed record StartupCallback(Type Parent, Type Contract, int Priority);
+    internal sealed record StartupCallback(Type Parent, Type Contract, int Priority)
+    {
+        // "BetterFlea.Flea.ModItemsLoad in BetterFlea.dll (priority 1)": the type, its assembly and the priority are what
+        // a player needs to find the mod and what its author needs to change.
+        internal string Describe() => $"{Parent.FullName} in {Parent.Assembly.GetName().Name}.dll (priority {Priority})";
+    }
 
     /// <summary>Proceed false with nothing else set: a private start or a bootstrap that declined; Unusable: skip rewards.</summary>
     internal sealed record StartupAdmission(bool Proceed, RewardOfflinePrivate? Owner = null,
@@ -236,10 +268,29 @@ public sealed class ArenaRewardStartup(
             return "runtime-root-mismatch";
         if (loadedProfiles != 0) return "native-profiles-already-loaded";
         if (conflictingServer) return "another-server-or-unknown-process";
-        if (callbacks.Any(c => c.Contract == typeof(IOnLoad) && c.Priority is >= OnLoadOrder.Watermark and <= OnLoadOrder.Watermark + 1
-                               && c.Parent != typeof(ArenaRewardStartup) && c.Parent != typeof(Watermark)))
-            return "earlier-startup-callback";
+        if (!PreLoadCallbacks(callbacks).Any(c => c.Parent == typeof(ArenaRewardStartup))) return "startup-callback-unlisted";
+        if (EarlierCallbacks(callbacks).Count > 0) return "earlier-startup-callback";
         return null;
+    }
+
+    // What SPT 4.1.6's pre-load runner takes from the DI list, in its run order: the IOnLoad contracts with a priority
+    // from Watermark (0) up to, not including, GameCallbacks (200000). Later priorities run in the hosted service after
+    // the profiles are loaded, negative ones never (verified in the installed IL; the version gate above keeps it so).
+    internal static List<StartupCallback> PreLoadCallbacks(IEnumerable<StartupCallback> callbacks) =>
+        callbacks.Where(c => c.Contract == typeof(IOnLoad) && c.Priority >= OnLoadOrder.Watermark && c.Priority < OnLoadOrder.GameCallbacks).ToList();
+
+    /// <summary>
+    /// The pre-load callbacks that run before this step, in run order, without SPT's own Watermark (it prints the
+    /// startup banner and touches no profile). Position decides, not priority: at an equal priority the stable DI sort
+    /// keeps the registration order, so a mod at the same priority may sit on either side of this step, and a callback
+    /// that runs after it cannot race its pre-load writes and is no reason to refuse. Empty when this step is not in
+    /// the list at all (GetAdmissionFailure refuses that separately: the order is then unknown).
+    /// </summary>
+    internal static List<StartupCallback> EarlierCallbacks(IEnumerable<StartupCallback> callbacks)
+    {
+        var preLoad = PreLoadCallbacks(callbacks);
+        int self = preLoad.FindIndex(c => c.Parent == typeof(ArenaRewardStartup));
+        return self < 0 ? new() : preLoad.Take(self).Where(c => c.Parent != typeof(Watermark)).ToList();
     }
 
     private static bool FindConflictingServer(string root)

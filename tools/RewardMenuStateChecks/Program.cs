@@ -175,6 +175,20 @@ internal static class Program
         Check(ArenaRewardMenuState.Detail.Contains("return to the normal session") && ArenaRewardMenuState.Detail.Contains("re-enter Arena")
             && !ArenaRewardMenuState.Detail.Contains("restart the normal SPT server"),
             "First private opt-in did not explain the safe enrollment round trip");
+        // A session whose lease names why it has no authority (the normal start refused its reward step) is
+        // "withheld" with that sentence; the round-trip advice would loop (maschine34675/ArenaMode#1).
+        poll = Background();
+        var privateWithheld = Ready(enabled: true);
+        privateWithheld.PrivateSession = true;
+        privateWithheld.AutomaticReturn = true;
+        privateWithheld.Enrolled = false;
+        privateWithheld.State = "withheld";
+        privateWithheld.Detail = "Rewards are off: another mod's startup step runs before Arena's reward step. See the normal server's log.";
+        poll.Complete(privateWithheld);
+        PumpUntil(() => ArenaRewardMenuState.Status.State == "withheld");
+        Check(ArenaRewardMenuState.Detail.StartsWith(privateWithheld.Detail) && !ArenaRewardMenuState.Detail.Contains("re-enter Arena"),
+            "A refused normal start was still shown as 'Activation pending' in the Arena session");
+        Check(ArenaRewardMenuState.CanToggle, "A withheld private session lost its switch");
         poll = Background();
         privatePending.Enrolled = true;
         privatePending.Detail = "At the next normal server start: RUB by mail, XP credited directly.";

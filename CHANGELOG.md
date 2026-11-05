@@ -13,6 +13,20 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 Iceberg requires an ArenaMapPort build that ships `arena_iceberg`; ArenaMapPort has not
 published one yet (the published 0.4.0 has no Iceberg). Without it the map is not offered.
 
+- Fixed profile rewards being switched off at every server start, without naming a
+  cause, when another server mod's startup step also used `OnLoadOrder.Watermark + 1`
+  (BetterFlea 2.4.1 and 2.5.0 do, for a step that only snapshots the item table).
+  Since 0.3.0 Arena's reward step refused the whole start for any other step in that
+  priority range, before or after it; no profile was enrolled, nothing was recorded or
+  paid, the normal session said "temporarily unavailable" and the Arena session's card
+  said "Activation pending — return to the normal session, then re-enter Arena"
+  forever. The reward step now runs at the earliest slot (`Watermark`, 0) and refuses
+  only a step that really runs before it in SPT's order, the Warning names each such
+  step with its type, assembly and priority, every refusal that recurs while the
+  installation stays as it is says "Rewards are off: …" in both sessions, and the
+  Arena session's card shows the reason instead of the round trip. Reported in
+  [maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1).
+  [Details](docs/reviews/REWARD-STARTUP-ORDER-20261105.md)
 - Added optional **Iceberg** support through ArenaMapPort in Gun Game, Deathmatch,
   Team DM and solo and PitFireTeam Zombies, with the gold map label, lighting and pickup
   placement and eight participants by default. Tactical (solo and PitFireTeam) is not

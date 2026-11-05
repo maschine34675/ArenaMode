@@ -62,6 +62,9 @@ internal sealed class RewardRuntimeCoordinator
     internal void ObserveStartupUnavailable(string reason, bool storageUnusable = false)
     { lock (_sync) { _startupUnavailable = reason; _storageUnusable = storageUnusable; } }
 
+    /// <summary>The reason this start's reward step did not run, or null; the Arena entry writes it into the session lease.</summary>
+    internal string? StartupUnavailable { get { lock (_sync) return _startupUnavailable; } }
+
     internal RewardStatusResponse GetStatus(string id)
     {
         lock (_sync)
@@ -195,13 +198,17 @@ internal sealed class RewardRuntimeCoordinator
 
     // "Temporarily" is wrong for a profile whose reward records no longer belong to it or to this
     // installation: waiting does not help, and the server log names the remedy.
-    // The same holds when the reward folder itself cannot be used (a linked SPT folder, denied access).
+    // The same holds when the reward folder itself cannot be used (a linked SPT folder, denied access) and
+    // for every other refusal of the start that recurs while the installation stays as it is (another mod's
+    // step before ours, an unreviewed server): RewardUnavailableText decides from the reason code.
     private string UnavailableDetail(string id)
-        => _startupFailures.GetValueOrDefault(id)?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true
-            ? "Rewards are off for this profile: its reward records no longer match it or this installation. See the server log."
-            : _storageUnusable && !_startupFailures.ContainsKey(id)
-                ? "Rewards are off: this installation's reward folder cannot be used. See the server log."
-                : "Rewards are temporarily unavailable.";
+    {
+        string? profile = _startupFailures.GetValueOrDefault(id);
+        if (profile?.StartsWith(RewardAuthorityRecovery.ReasonPrefix, StringComparison.Ordinal) == true) return RewardUnavailableText.RecordsMismatch;
+        if (profile is not null) return RewardUnavailableText.Temporary;
+        if (_storageUnusable) return RewardUnavailableText.StorageUnusable;
+        return _startupUnavailable is { } startup ? RewardUnavailableText.ForStartupReason(startup) : RewardUnavailableText.Temporary;
+    }
 
     internal RewardStatusResponse SetConsent(string id, bool enabled)
     {

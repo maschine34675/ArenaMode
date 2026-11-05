@@ -35,14 +35,18 @@ internal sealed class RewardOfflinePrivate(RewardOfflineLease lease, IDisposable
         {
             var state = Read();
             var policy = RewardRuntimeCoordinator.Policy;
+            // A lease without authority that names why (the normal start refused its reward step, or the profile's
+            // records no longer match) is "withheld" with that sentence, as the normal session shows it; the card
+            // then stops advising a return that would change nothing. Without a reason, enrollment is pending.
+            string? withheld = state.Enabled && Lease.Authority is null ? RewardUnavailableText.ForLeaseReason(Lease.AuthorityUnavailable) : null;
             return new()
             {
                 Available = true, PrivateSession = true, AutomaticReturn = true, CanChange = true,
                 Enabled = state.Enabled, Enrolled = Lease.Authority is not null, ConsentRevision = state.Revision,
-                State = !state.Enabled ? "disabled" : Lease.Authority is null ? "restart-required" : "ready",
+                State = !state.Enabled ? "disabled" : withheld is not null ? "withheld" : Lease.Authority is null ? "restart-required" : "ready",
                 Detail = !state.Enabled ? "Optional profile rewards are off."
-                    : Lease.Authority is null ? "Rewards will activate after returning to normal SPT and starting a new Arena session."
-                    : "Rewards are credited when returning to normal SPT.",
+                    : withheld ?? (Lease.Authority is null ? "Rewards will activate after returning to normal SPT and starting a new Arena session."
+                    : "Rewards are credited when returning to normal SPT."),
                 RoublesPerKill = policy.RoublesPerKill, RoublesPerRoundWin = policy.RoublesPerRoundWin, MaxRoubles = policy.MaxRoubles,
                 ExperiencePerKill = policy.ExperiencePerKill, ExperiencePerRoundWin = policy.ExperiencePerRoundWin, MaxExperience = policy.MaxExperience,
             };

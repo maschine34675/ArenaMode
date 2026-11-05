@@ -219,6 +219,7 @@ Sorted by file name.
 - [Automatic discard of uncertain old reward claims at normal server startup](reviews/REWARD-DISCARD-20261027.md)
 - [Reward recovery engine: durable closure of uncertain claims and permanent replay rejection](reviews/REWARD-RECOVERY-ENGINE-20261027.md)
 - [Durable restoration checkpoints, native full readback and private-session archiving](reviews/REWARD-RESTORATION-20261027.md)
+- [Reward startup order: position instead of priority range, named refusals, the reason in the session lease](reviews/REWARD-STARTUP-ORDER-20261105.md)
 - [Reward runtime integration: independent source review and corrections](reviews/REWARDS-RUNTIME-REVIEW-20261024.md)
 - [Human PMC scoreboard role correction from profile faction](reviews/ROLE-LABEL-REVIEW.md)
 - [Arena scoreboard (F9): identity, scoring and lifecycle rules](reviews/SCOREBOARD-REVIEW.md)

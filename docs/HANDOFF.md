@@ -51,6 +51,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Reward startup order (2026-11-05, branch `fix/reward-startup-order` from `master`
+`65007e74`, for the next release, not merged yet):** fixes
+[maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1): with
+another server mod's `IOnLoad` at `Watermark + 1` (BetterFlea) the reward step refused
+every start, enrolled nothing, and the Arena session's card said "Activation pending"
+forever. The step now runs at `Watermark` (0), refuses only a callback that really sits
+before it in SPT's run order, names each one in the Warning, says "Rewards are off: …"
+for every refusal that recurs, and the session lease carries the reason
+(`authorityUnavailable`) so the private card shows it. Server-only; the client is
+unchanged. Contract: [REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md).
+Verified offline (xunit, `OfflineStartupChecks` mutants, `RewardMenuStateChecks`, an
+adversarial review of 49 agents whose findings are fixed or documented there); the native
+GPU-2 run with a probe server mod at `Watermark + 1` and at 0 is planned as
+[GPU-REWARD-STARTUP-ORDER-20261105.md](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
+and outstanding until that file exists. The issue has no reply yet; the review document
+holds a suggested one.
+
 **Domination objectives on DynamicMaps (2026-11-01, merged into `master` from
 `feature/domination-map-markers`, not released):** ArenaMode owns live
 objective diamonds, using each round's verified IDs/positions and faction or

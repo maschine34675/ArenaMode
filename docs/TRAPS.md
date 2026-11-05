@@ -48,6 +48,15 @@ vaulting component at all — `InitVaultingComponent` returns immediately for AI
 **Server: only prefixes on async methods.** A postfix fires at the first suspension
 point, not at completion. "After the raid" logic lives in its own route.
 
+**Server: `TypePriority` is a sort key, not a slot.** SPT 4.1.6 runs the pre-load
+`IOnLoad` callbacks (priority 0 up to, not including, 200000) in the order of its DI list,
+a stable sort by priority over the registration order (SPT.Server, Reflection, Web, the
+mods by GUID, Core last); negative priorities never run, and `Watermark + 1` is any mod's
+natural "run first" value. Refusing a priority range instead of reading the position in
+that list switched rewards off for every BetterFlea user for as long as 0.3.0 to 0.4.1
+were installed (maschine34675/ArenaMode#1). Verify such claims in the installed IL
+(`ilspycmd -t <Type> <dll>`), not in the reference source.
+
 **`OperationResult<T>` is not a bool.** Discarding it means the container mutates but
 nothing is notified — items stay visible, models stay in the pool. Call `RaiseEvents`.
 

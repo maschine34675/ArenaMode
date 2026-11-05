@@ -8,6 +8,27 @@ namespace ArenaMode.Tests;
 
 public sealed class RewardRuntimeTests
 {
+    // A refusal of the start that recurs while the installation stays as it is (another mod's load step before
+    // Arena's) is not "temporarily unavailable": the card says that rewards are off and points to the log
+    // (maschine34675/ArenaMode#1). Only what a plain restart may clear stays "temporarily".
+    [Fact]
+    public void ANormalSessionShowsARecurringStartRefusalAsOffNotTemporary()
+    {
+        using var f = new Fixture(enroll: false);
+        f.Coordinator.SetConsent(Fixture.ProfileId, true);
+        f.Coordinator.ObserveStartupUnavailable("earlier-startup-callback");
+        Assert.Equal("earlier-startup-callback", f.Coordinator.StartupUnavailable);
+        var status = f.Coordinator.GetStatus(Fixture.ProfileId);
+        Assert.Equal("withheld", status.State);
+        Assert.Equal(RewardUnavailableText.EarlierCallback, status.Detail);
+        f.Coordinator.ObserveStartupUnavailable("unreviewed-native-startup-version");
+        Assert.Equal(RewardUnavailableText.UnreviewedStart, f.Coordinator.GetStatus(Fixture.ProfileId).Detail);
+        f.Coordinator.ObserveStartupUnavailable("another-server-or-unknown-process");
+        Assert.Equal(RewardUnavailableText.Temporary, f.Coordinator.GetStatus(Fixture.ProfileId).Detail);
+        f.Coordinator.ObserveStartupUnavailable("reward-storage-linked", storageUnusable: true);
+        Assert.Equal(RewardUnavailableText.StorageUnusable, f.Coordinator.GetStatus(Fixture.ProfileId).Detail);
+    }
+
     [Fact]
     public async Task ConsentDoesNotTouchLiveProfileAndEnrollmentOccursOnlyAtStartup()
     {
@@ -587,7 +608,8 @@ public sealed class RewardRuntimeTests
         f.Coordinator.ObserveStartupUnavailable("unreviewed-native-startup-version");
         var status = f.Coordinator.GetStatus(Fixture.ProfileId);
         Assert.Equal("withheld", status.State);
-        Assert.Equal("Rewards are temporarily unavailable.", status.Detail);
+        // Not "temporarily": an unreviewed server version recurs at every start until ArenaMode or SPT changes.
+        Assert.Equal(RewardUnavailableText.UnreviewedStart, status.Detail);
         Assert.False(status.Enrolled);
         Assert.Equal(before, f.Profile);
     }

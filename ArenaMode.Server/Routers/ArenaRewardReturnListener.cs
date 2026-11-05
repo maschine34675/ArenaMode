@@ -125,7 +125,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 // anything else declines the entry and the helper reopens the normal session.
                 stage = "entry-preflight";
                 refusal = "entry-preflight-failed";
-                try { preflightUnavailable = RewardOfflineSession.PreflightReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!); }
+                try { preflightUnavailable = RewardOfflineSession.PreflightReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!, RewardRuntimeCoordinator.Current.StartupUnavailable); }
                 catch (Exception preflight)
                 {
                     string why = preflight is RewardDataException ? preflight.Message : preflight.GetType().Name;
@@ -179,7 +179,8 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     reply = await RewardEntryPublication.PublishAsync(
                         // A read error that only shows up now (the preflight read was fine or differed) is reported here, once.
                         () => RewardOfflineSession.CreateReady(Directory.GetCurrentDirectory(), entryGrant!, entryRequest!,
-                            reason => { if (ReportsAfterStop(preflightUnavailable, reason)) WarnAuthorityUnavailable(id.ToString(), reason); }),
+                            reason => { if (ReportsAfterStop(preflightUnavailable, reason)) WarnAuthorityUnavailable(id.ToString(), reason); },
+                            RewardRuntimeCoordinator.Current.StartupUnavailable),
                         reply, ScheduleShutdown, message => ArenaContext.Logger?.Warning("[ArenaMode] " + message));
                 }
                 else ScheduleShutdown(true);

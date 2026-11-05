@@ -23,13 +23,30 @@ this work. All executable profile tests use generated files.
 
 ## Native boundary
 
-`ArenaRewardStartup` is an `IOnLoad` component at `OnLoadOrder.Watermark + 1`.
-The installed SPT 4.1.6 Program awaits these pre-load callbacks before `app.RunAsync`;
-DI orders them by priority. The native Watermark at priority 0 only prints startup
-information. Normal profile loading, HTTP handling and native update/autosave work
-have not started at this seam. The new consumer writes the approved disk document;
-SPT later loads and migrates that file through its **unchanged** normal pipeline.
-It never swaps a cached/live `SptProfile`, bypasses a migration or clears save hashes.
+`ArenaRewardStartup` is an `IOnLoad` component at `OnLoadOrder.Watermark` (0), the
+earliest slot SPT runs. The installed SPT 4.1.6 Program awaits these pre-load callbacks
+before `app.RunAsync`: `RunPreSptLoadCallbacks` takes the `IOnLoad` containers with a
+priority from 0 up to, not including, `GameCallbacks` (200000) in the order of the DI
+list and runs them one after the other; a negative priority never runs, and the later
+priorities run in the hosted service after the profiles are loaded. The DI list is a
+stable `OrderBy` on `TypePriority` over the registration order (SPT.Server, Reflection,
+Web, then the mods sorted by GUID, Core last), so two steps at one priority keep that
+order. The native Watermark at priority 0 only prints startup information and sits
+behind the mods. Nothing else of SPT runs below priority 1000. Normal profile loading,
+HTTP handling and native update/autosave work have not started at this seam. The new
+consumer writes the approved disk document; SPT later loads and migrates that file
+through its **unchanged** normal pipeline. It never swaps a cached/live `SptProfile`,
+bypasses a migration or clears save hashes.
+
+From 0.3.0 up to and including 0.4.1 the consumer sat at `Watermark + 1` and refused
+the start for any other `IOnLoad` in the range 0 to 1, before or after it. `Watermark + 1` is the natural
+"run before other mods" value, BetterFlea uses it for a step that only snapshots the
+item table, and the refusal recurred at every start, named no mod and was shown as
+temporary ([maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1)).
+Now only a callback that sits before the consumer in the list it runs from refuses
+(`EarlierCallbacks`, position, not priority), the Warning names each one with its type,
+assembly and priority, and the refusal reaches the menu and the session lease as a
+recurring one ([REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md)).
 
 Installed evidence was checked independently of the reference source:
 
@@ -52,9 +69,12 @@ Payment requires all these checks together:
   and application directory belong to the same unlinked runtime root.
 - No private `arena-session.json` marker exists. A directory marker, access error
   or unreadable origin is not evidence of an ordinary server.
-- No native profiles are loaded, and no unexpected earlier/equal-priority load
-  component precedes the consumer. The profile count is checked again on lease
-  operations; closing the startup window invalidates further use.
+- No native profiles are loaded, and no other pre-load `IOnLoad` component sits
+  before the consumer in the DI list SPT runs from (SPT's own Watermark excepted; a
+  component at the same priority registered after it, or at a later priority, is no
+  reason). The consumer's own entry must be in that list (`startup-callback-unlisted`
+  otherwise). The profile count is checked again on lease operations; closing the
+  startup window invalidates further use.
 - No other recognizable SPT server process is running. V1 conservatively defers
   even for another installation: its executable path does not prove its working
   directory or profile root. Unknown process identity also refuses payment.

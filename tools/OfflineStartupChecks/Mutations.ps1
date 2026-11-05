@@ -14,7 +14,32 @@ $mutations = @(
     @{ Name = 'lost-pointer-drops-unapplied-discard'; File = 'RewardOfflineRecovery.cs';
        Old = 'if (!DiscardCompleted(root, lease, discard)) pending.Add(lease);';
        New = '// mutation: an unfinished discard is treated as terminal';
-       Test = 'InterruptedDiscardAndLostPointerFinishOnceWithoutRestoringOldOn' }
+       Test = 'InterruptedDiscardAndLostPointerFinishOnceWithoutRestoringOldOn' },
+    # The 0.4.1 bug (maschine34675/ArenaMode#1): every other pre-load callback counts as "earlier", whatever its position.
+    @{ Name = 'callback-position-ignored'; File = 'ArenaRewardStartup.cs';
+       Old = 'return self < 0 ? new() : preLoad.Take(self).Where(c => c.Parent != typeof(Watermark)).ToList();';
+       New = 'return self < 0 ? new() : preLoad.Where(c => c.Parent != typeof(Watermark) && c.Parent != typeof(ArenaRewardStartup)).ToList();';
+       Test = 'AdmissionFollowsTheRealCallbackOrderNotAPriorityRange' },
+    # The lease forgets why it carries no authority: the session's card falls back to "Activation pending".
+    @{ Name = 'lease-reason-dropped'; File = 'RewardOfflineSession.cs';
+       Old = 'request.HelperPid, request.HelperStartedUtc, ScopedReason(authority, authorityUnavailable, startupUnavailable));';
+       New = 'request.HelperPid, request.HelperStartedUtc);';
+       Test = 'ARefusedStartIsNamedInTheLeaseAndTheSessionCardOfANeverEnrolledProfile' },
+    # The step back at Watermark + 1 (0.3.0 to 0.4.1): the stable sort then puts every mod at 0 before it.
+    @{ Name = 'priority-back-at-watermark-plus-one'; File = 'ArenaRewardStartup.cs';
+       Old = '[Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark)]';
+       New = '[Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark + 1)]';
+       Test = 'TheRewardStepRunsAtTheEarliestSlot' },
+    # A callback SPT runs after the profiles are loaded (priority 200000) counts as pre-load.
+    @{ Name = 'pre-load-upper-bound-inclusive'; File = 'ArenaRewardStartup.cs';
+       Old = 'c.Priority < OnLoadOrder.GameCallbacks).ToList();';
+       New = 'c.Priority <= OnLoadOrder.GameCallbacks).ToList();';
+       Test = 'AdmissionFollowsTheRealCallbackOrderNotAPriorityRange' },
+    # The step missing from the list is admitted although its position, and so the order, is unknown.
+    @{ Name = 'unlisted-step-admitted'; File = 'ArenaRewardStartup.cs';
+       Old = 'return "startup-callback-unlisted";';
+       New = 'return null;';
+       Test = 'NativeAdmissionRejectsContractDrift' }
 )
 $originals = @{}
 $restoreRequired = $false
