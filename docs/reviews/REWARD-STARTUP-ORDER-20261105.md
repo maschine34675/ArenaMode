@@ -160,9 +160,15 @@ code either way.
   a test: `ArenaRewardReturnListener` passing `RewardRuntimeCoordinator.StartupUnavailable`
   into `PreflightReady`/`CreateReady` (an HTTP listener with a host lifetime; the native
   run exercises the same call for the `entry:` reason).
-- Native run on GPU-2: planned as
-  [GPU-REWARD-STARTUP-ORDER-20261105.md](../reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md),
-  outstanding until that file exists.
+- Native run on GPU-2, second attempt (2026-11-05 21:14 to 21:25, build `3b0dc30e`):
+  passed, [GPU-REWARD-STARTUP-ORDER-20261105.md](../reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md).
+  The probe at `Watermark + 1` no longer refuses the start; the Arena entry of the
+  lost-authority profile records `entry:expected-object` next to the lease and its card
+  reads "Rewards are off for this profile: … See the normal server's log."; the probe at 0
+  before Arena's step is refused with its name, assembly and priority and the recurring
+  sentence; return and a clean start without the probe work. Not shown natively: the
+  `startup:` card sentence (no never-enrolled profile on the hosts) and the normal
+  session's card under a refusal (not displayed while admission is blocked).
 
 ## Replying to the issue
 

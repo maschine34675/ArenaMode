@@ -63,10 +63,15 @@ to the session lease (`authority-unavailable.json`; never in the lease, whose 17
 members the session helper parses with a fixed count) so the private card shows it.
 Server-only; the client and the helper are unchanged. Contract: [REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md).
 Verified offline (xunit, `OfflineStartupChecks` mutants, `RewardMenuStateChecks`, an
-adversarial review of 49 agents whose findings are fixed or documented there); the native
-GPU-2 run with a probe server mod at `Watermark + 1` and at 0 is planned as
-[GPU-REWARD-STARTUP-ORDER-20261105.md](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
-and outstanding until that file exists. The issue has no reply yet; the review document
+adversarial review of 49 agents whose findings are fixed or documented there) and natively
+on GPU-2 with a probe server mod at `Watermark + 1` and at 0
+([GPU-REWARD-STARTUP-ORDER-20261105.md](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)):
+the first attempt put the reason into the lease and paused in the session helper, whose
+parser counts the lease's 17 members; the reason is a file of its own since `3b0dc30e`.
+**Installed state since 2026-11-05 evening:** the server DLL `0.4.1+3b0dc30e` of this
+branch is on every Syncthing host (built from the server project alone; client
+`0.4.1+8d21e362` of `feature/crowd-reactions`, helper and Core 1.0.19 unchanged); the probe
+was removed from all hosts after the run. The issue has no reply yet; the review document
 holds a suggested one.
 
 **Domination objectives on DynamicMaps (2026-11-01, merged into `master` from

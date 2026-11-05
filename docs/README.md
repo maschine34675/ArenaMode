@@ -261,9 +261,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (264)
+## Reports (265)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
+
+### 2026-11
+
+- [Reward startup order: native run on GPU-2 with a probe server mod at Watermark + 1 and at 0, the helper's lease parser found](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
 
 ### 2026-10
 
