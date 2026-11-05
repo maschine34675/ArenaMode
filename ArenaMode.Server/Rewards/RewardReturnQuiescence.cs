@@ -124,8 +124,6 @@ internal sealed class RewardReturnSequence(RewardReturnRequestGate requests, Rew
                 or "reward-root-is-linked" or "reward-path-is-linked" or "reward-path-outside-root"
                 or "return-update-loop-still-running" or "return-update-loop-faulted"
                 ? data.Message : exception.GetType().Name;
-            ArenaContext.Logger?.Warning($"[ArenaMode] Session switch refused: {stage}/{reason}; "
-                + $"active requests={requests.Active}, active updates={_updates.Active}; held={UpdatesStopped}.");
             // Only this completed, resumed sequence may authorize reopening the existing server.
             // A scoped restore hold, another owner or an unfinished native save is not resumable.
             return new(false, UpdatesStopped ? "return-held-preserving-profile" : "return-not-ready", UpdatesStopped,

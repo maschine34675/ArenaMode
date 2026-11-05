@@ -12,6 +12,17 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Session save diagnostics (2026-11-05, source only):** rejected authenticated
+  session switches now carry RAM/disk versus RAM-during-readback results, a hashed
+  profile alias/selection role, at most three fixed section labels and the final
+  resume permission in one Warning. Capture is bounded and failure-only; save
+  proof, hold/retry behavior and helper/lease contracts are unchanged. See
+  [logging meanings and limits](LOGGING.md#session-save-refusals).
+  Offline verification: **3,694 passed, 3 expected fixture-gated skips**, including
+  23 new diagnostic cases exercising the production comparison/sequence. Listener
+  response/error placement was independently source-reviewed; no native game claim.
+  Installed hashes stayed unchanged. No deployment or release.
+
 - **ArenaMode 0.4.1** (2026-10-29, hotfix for 0.4.0) is the latest
   [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.1); tag
   `v0.4.1` = `2a4438c9`. It bundles shared **Redeploy.Core 1.0.18**, byte-identical to the

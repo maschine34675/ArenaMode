@@ -69,6 +69,42 @@ it for a helper run, launch with `ARENAMODE_SESSION_DEBUG=1` in its environment;
 the watchdog inherits that setting. This does not change copy/delete safety,
 profile handling or the game's separate DeveloperMode setting.
 
+## Session save refusals
+
+An authenticated entry/return rejected by the drain/save sequence emits one
+Warning per attempt, without enabling Debug or DeveloperMode. Successful checks
+stay silent. The original `stage/reason` remains searchable; the warning adds:
+
+- `operation=enter|return` and, for `return-profile-save-not-confirmed`, an eight-character
+  hash alias of the failing loaded profile plus `selected|other-loaded`.
+- `ramDiskMatch`: the first RAM snapshot matches the saved file; and
+  `ramStableDuringReadback`: RAM is unchanged between the two snapshots. **Both RAM
+  snapshots are after the native save.** Either or both comparisons can fail.
+- `fieldSample`: at most three fixed schema section labels, prefixed `disk:` or
+  `ram:`. This is a sample, not a complete diff. Unknown extension fields stay
+  `unclassified-section` or their nearest known parent; values, dynamic dictionary
+  keys, array items, full profile IDs and paths are never included.
+- `updateStopStarted`: native update stopping has begun, not necessarily completed.
+  `canResumeNormal` is the listener's final permission to reopen the normal game,
+  including the request/update holds and host shutdown state. On the legacy return
+  route it remains false by protocol; false alone does not mean an unusable server.
+  If that final decision could not be reached, it is `unconfirmed`.
+
+Diagnostics use only the already captured strings, only after a failed comparison.
+Each snapshot is limited to 4 Mi characters and JSON depth 64; larger snapshots
+report `size-limit`, and unavailable comparisons say `unknown`. Sampling failures
+cannot alter the original refusal. A held process retains the retry/do-not-close
+guidance in the same warning. Logging failures cannot change the reply or holds.
+
+These observations do **not** prove profile corruption or identify the writer.
+For a report, request the surrounding server log and matching `helper.log` section.
+Save/readback protection, helper replies and lease formats are unchanged.
+`SessionSaveDiagnosticsTests` exercises the production comparison and sequence,
+including privacy sentinels, limits, retries, held failures and a throwing logger;
+run it as part of `tools/Run-ArenaVerification.ps1` without deploying.
+
+## Logging cleanup evidence
+
 The cleanup reviewed all client, server and companion log emitters. Historical
 Info call-site counts are not a promise about total lines per raid: other mods,
 Unity and server request middleware retain their own logging policies.

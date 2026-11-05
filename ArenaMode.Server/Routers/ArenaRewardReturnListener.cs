@@ -39,6 +39,9 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
         bool reserved = false;
         string stage = "admission";
         string refusal = "admission-failed";
+        var diagnostics = new SessionSaveDiagnostics();
+        RewardReturnReply? refusedReply = null;
+        bool resumeDecisionConfirmed = false;
         try
         {
             if (!RewardReturnQuiescence.Enabled) throw Refused("native-gates-disabled");
@@ -149,7 +152,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             reply = await RewardReturnQuiescence.Sequence.PrepareAsync(
                 () => (entering ? RewardEntryControl.Current.Authorize(id.ToString(), entryRequest!, out _)
                     : control.Authorize(id.ToString(), request!)) && IsIdle(),
-                SaveAndVerify,
+                ct => SaveAndVerify(ct, diagnostics, id.ToString()),
                 async ct =>
                 {
                     await updates.StopAsync(ct);
@@ -160,10 +163,17 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                     if (updates.ExecuteTask.IsFaulted) throw Refused("return-update-loop-faulted");
                 }, operationTimeout.Token);
 
+            if (!reply.Accepted) refusedReply = reply;
             if (!reply.Accepted && !reply.Held) Release();
             reply = reply with { CanResumeNormal = entering && reply.CanResumeNormal
                 && !RewardReturnQuiescence.Requests.Held && !RewardReturnQuiescence.Updates.Held
                 && !lifetime.ApplicationStopping.IsCancellationRequested && !lifetime.ApplicationStopped.IsCancellationRequested };
+            if (!reply.Accepted) refusedReply = reply;
+            resumeDecisionConfirmed = true;
+            // Do not delay the warning behind a blocked response transport. Catch is an idempotent
+            // fallback if Release failed before the resume decision could be confirmed.
+            diagnostics.WarnRefusal(entering, refusedReply, resumeDecisionConfirmed,
+                message => ArenaContext.Logger?.Warning(message));
             // Register the exit after durable save proof, before writing the acknowledgement. The helper
             // also pins the old process and waits for its actual exit before starting a successor.
             if (reply.Accepted)
@@ -185,14 +195,16 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 }
                 else ScheduleShutdown(true);
             }
-            else if (reply.Held)
-                ArenaContext.Logger?.Warning("[ArenaMode] Session switch paused: the local server retained its profiles in memory because a safe final save could not be confirmed. Do not close it; retry the session switch.");
             stage = "write-response";
             refusal = "response-write-failed";
             await context.Response.WriteAsync(RewardRuntimeFiles.Json(reply), CancellationToken.None);
         }
         catch (Exception exception)
         {
+            // Release may have failed before the resume decision. Log before even an error response
+            // can stall; an accepted sequence's publication/shutdown failure has its own diagnostics.
+            diagnostics.WarnRefusal(entering, refusedReply, resumeDecisionConfirmed,
+                message => ArenaContext.Logger?.Warning(message));
             bool held = ReturnHeld(RewardReturnQuiescence.Sequence, RewardReturnQuiescence.Requests);
             // Before authorization, only fixed local codes are safe to log. Keep the
             // existing native-save diagnostics once the local capability was verified.
@@ -274,7 +286,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
                 && assembly.Name == "Microsoft.AspNetCore.DataProtection";
     }
 
-    private async Task SaveAndVerify(CancellationToken ct)
+    private async Task SaveAndVerify(CancellationToken ct, SessionSaveDiagnostics diagnostics, string selectedProfileId)
     {
         var profiles = saves.GetProfiles();
         if (profiles.Count is 0 or > 1024) throw new RewardDataException("return-profile-set-unavailable");
@@ -294,12 +306,7 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
             using var reader = new StreamReader(input);
             string actual = await reader.ReadToEndAsync(ct);
             string after = Serialize(saves.GetProfile(pair.Key));
-            try { RequireSavedProfile(expected, actual, after); }
-            catch (RewardDataException)
-            {
-                ArenaContext.Logger?.Debug($"[ArenaMode] Automatic reward return: profile readback refused (profile {RewardIdentity.Hash(id)[..8]}).");
-                throw;
-            }
+            RequireSavedProfile(expected, actual, after, diagnostics, id, selectedProfileId);
         }
         if (!profiles.Keys.ToHashSet().SetEquals(saves.GetProfiles().Keys))
             throw new RewardDataException("return-profile-set-changed");
@@ -309,6 +316,17 @@ public sealed class ArenaRewardReturnListener(SaveServer saves, ArenaSessionServ
     {
         if (!RewardRuntimeFiles.SameProfile(before, disk) || !RewardRuntimeFiles.SameProfile(before, after))
             throw new RewardDataException("return-profile-save-not-confirmed");
+    }
+
+    internal static void RequireSavedProfile(string before, string disk, string after,
+        SessionSaveDiagnostics diagnostics, string profileId, string selectedProfileId)
+    {
+        try { RequireSavedProfile(before, disk, after); }
+        catch (RewardDataException exception) when (exception.Message == "return-profile-save-not-confirmed")
+        {
+            diagnostics.Capture(profileId, selectedProfileId, before, disk, after);
+            throw;
+        }
     }
 
     internal static async Task SaveWithoutAborting(Func<CancellationToken, Task> save, CancellationToken ct)

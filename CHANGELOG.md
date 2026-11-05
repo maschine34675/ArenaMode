@@ -13,6 +13,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 Iceberg requires an ArenaMapPort build that ships `arena_iceberg`; ArenaMapPort has not
 published one yet (the published 0.4.0 has no Iceberg). Without it the map is not offered.
 
+- Failed session switches now report whether disk readback differs from RAM,
+  RAM changed during readback, or both, plus a profile alias, up to three safe
+  section labels and the final resume permission. One warning per failed attempt;
+  no profile contents or extra success logging. Save protection is unchanged.
 - Fixed profile rewards being switched off at every server start, without naming a
   cause, when another server mod's startup step also used `OnLoadOrder.Watermark + 1`
   (BetterFlea 2.4.1 and 2.5.0 do, for a step that only snapshots the item table).
