@@ -51,8 +51,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Reward startup order (2026-11-05, branch `fix/reward-startup-order` from `master`
-`65007e74`, for the next release, not merged yet):** fixes
+**Reward startup order (2026-11-05, merged into `master` from `fix/reward-startup-order`
+the same evening, for the next release, not released, not pushed):** fixes
 [maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1): with
 another server mod's `IOnLoad` at `Watermark + 1` (BetterFlea) the reward step refused
 every start, enrolled nothing, and the Arena session's card said "Activation pending"
