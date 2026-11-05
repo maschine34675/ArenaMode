@@ -8,6 +8,15 @@ internal sealed class RewardOfflinePrivate(RewardOfflineLease lease, IDisposable
     private readonly object _sync = new();
     private bool _disposed;
     private RewardOfflineState? _last;
+    // The reason the normal server recorded next to the lease, read once: it was written before this process existed.
+    private string? _reason;
+    private bool _reasonRead;
+
+    private string? Reason()
+    {
+        if (!_reasonRead) { _reason = RewardOfflineSession.ReadAuthorityUnavailable(Lease); _reasonRead = true; }
+        return _reason;
+    }
     internal RewardOfflineLease Lease { get; } = lease;
 
     internal void Initialize()
@@ -35,10 +44,10 @@ internal sealed class RewardOfflinePrivate(RewardOfflineLease lease, IDisposable
         {
             var state = Read();
             var policy = RewardRuntimeCoordinator.Policy;
-            // A lease without authority that names why (the normal start refused its reward step, or the profile's
-            // records no longer match) is "withheld" with that sentence, as the normal session shows it; the card
-            // then stops advising a return that would change nothing. Without a reason, enrollment is pending.
-            string? withheld = state.Enabled && Lease.Authority is null ? RewardUnavailableText.ForLeaseReason(Lease.AuthorityUnavailable) : null;
+            // A lease without authority whose session directory names why (the normal start refused its reward step,
+            // or the profile's records no longer match) is "withheld" with that sentence, as the normal session shows
+            // it; the card then stops advising a return that would change nothing. Without a reason, enrollment is pending.
+            string? withheld = state.Enabled && Lease.Authority is null ? RewardUnavailableText.ForLeaseReason(Reason()) : null;
             return new()
             {
                 Available = true, PrivateSession = true, AutomaticReturn = true, CanChange = true,

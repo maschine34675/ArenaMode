@@ -7,26 +7,36 @@ namespace ArenaMode.Tests;
 /// A normal start whose reward step was refused (another mod's load step before Arena's, an unreviewed server)
 /// enrolls nothing, so the Arena session's lease carries no authority. Until 0.4.1 the session's reward card then
 /// said "Activation pending — return to the normal session, then re-enter Arena", and following that advice looped
-/// (maschine34675/ArenaMode#1). The lease now carries the reason, scoped by its origin, and the private session
-/// shows the normal session's "withheld" sentence. docs/REWARDS-RUNTIME.md, "Lost reward authority".
+/// (maschine34675/ArenaMode#1). The normal server now records the reason, scoped by its origin, in a file of its own
+/// next to the lease (never in the lease: the session helper parses that with a fixed member count), and the private
+/// session shows the normal session's "withheld" sentence. docs/REWARDS-RUNTIME.md, "Lost reward authority".
 /// </summary>
 public sealed partial class RewardOfflineSessionTests
 {
     private const string Refused = "earlier-startup-callback";
 
+    private static string ReasonPath(Fixture f) => RewardOfflineSession.AuthorityUnavailablePath(f.Root, f.Grant.SessionId);
+
     [Fact]
-    public void ARefusedStartIsNamedInTheLeaseAndTheSessionCardOfANeverEnrolledProfile()
+    public void ARefusedStartIsRecordedNextToTheLeaseAndShownOnTheSessionCardOfANeverEnrolledProfile()
     {
         using var f = new Fixture(enroll: false);
         RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);   // the player wants rewards; the refused start enrolled nothing
         Assert.Null(RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request, Refused));
+        Assert.False(File.Exists(ReasonPath(f)));                // the preflight writes nothing
         f.Lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, Refused);
         Assert.Null(f.Lease.Authority);
-        Assert.Equal(RewardUnavailableText.StartupScope + Refused, f.Lease.AuthorityUnavailable);
-        Assert.Contains("\"authorityUnavailable\":\"startup:earlier-startup-callback\"", RewardRuntimeFiles.Json(f.Lease));
-        // An identical retry (lost reply) finds the same lease, reason included, and so does a retry that no longer knows it.
+        Assert.Equal(RewardUnavailableText.StartupScope + Refused, RewardOfflineSession.ReadAuthorityUnavailable(f.Lease));
+        string recorded = File.ReadAllText(ReasonPath(f));
+        Assert.Contains("\"reason\":\"startup:earlier-startup-callback\"", recorded);
+        // The lease itself is what every helper and server release knows: its 17 members, nothing of the reason.
+        string lease = File.ReadAllText(RewardOfflineSession.LeasePath(f.Root, f.Grant.SessionId));
+        Assert.DoesNotContain("authorityUnavailable", lease, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("startup:", lease);
+        // An identical retry (lost reply) finds the same lease and the same record, whether or not it still knows the reason.
         Assert.Equal(RewardRuntimeFiles.Json(f.Lease), RewardRuntimeFiles.Json(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, Refused)));
         Assert.Equal(RewardRuntimeFiles.Json(f.Lease), RewardRuntimeFiles.Json(RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request)));
+        Assert.Equal(recorded, File.ReadAllText(ReasonPath(f)));
 
         f.Start();
         var status = f.Owner!.Status();
@@ -46,18 +56,14 @@ public sealed partial class RewardOfflineSessionTests
     }
 
     [Fact]
-    public void WithoutARefusalANeverEnrolledProfileStaysPendingAndTheLeaseHasNoReasonField()
+    public void WithoutARefusalANeverEnrolledProfileStaysPendingAndNoReasonIsRecorded()
     {
         using var f = new Fixture(enroll: false);
         RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);
         var lease = f.Ready();
         Assert.Null(lease.Authority);
-        Assert.Null(lease.AuthorityUnavailable);
-        // Absent when null: a lease without a reason is byte-identical to one written before the field existed, so
-        // its hash and the signed state that carries it do not change.
-        string json = File.ReadAllText(RewardOfflineSession.LeasePath(f.Root, f.Grant.SessionId));
-        Assert.DoesNotContain("authorityUnavailable", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(RewardRuntimeFiles.Json(lease), RewardRuntimeFiles.Json(RewardOfflineSession.ReadLease(f.Root, RewardOfflineSession.LeasePath(f.Root, f.Grant.SessionId))));
+        Assert.False(File.Exists(ReasonPath(f)));
+        Assert.Null(RewardOfflineSession.ReadAuthorityUnavailable(lease));
         f.Start();
         var status = f.Owner!.Status();
         Assert.Equal("restart-required", status.State);
@@ -76,7 +82,7 @@ public sealed partial class RewardOfflineSessionTests
         Assert.False(string.IsNullOrEmpty(why));
         f.Lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, Refused);
         Assert.Null(f.Lease.Authority);
-        Assert.Equal(RewardUnavailableText.EntryScope + why, f.Lease.AuthorityUnavailable);
+        Assert.Equal(RewardUnavailableText.EntryScope + why, RewardOfflineSession.ReadAuthorityUnavailable(f.Lease));
         f.Start();
         var status = f.Owner!.Status();
         Assert.Equal("withheld", status.State);
@@ -86,7 +92,7 @@ public sealed partial class RewardOfflineSessionTests
     }
 
     [Fact]
-    public void AHealthyAuthorityIsDelegatedDespiteTheStartsRefusal()
+    public void AHealthyAuthorityIsDelegatedDespiteTheStartsRefusalAndNoReasonIsRecorded()
     {
         // The enrollment of an earlier, admitted start still delegates: the session earns, and its receipts wait
         // for the next start whose reward step runs.
@@ -94,7 +100,67 @@ public sealed partial class RewardOfflineSessionTests
         Assert.Null(RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request, Refused));
         var lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, Refused);
         Assert.NotNull(lease.Authority);
-        Assert.Null(lease.AuthorityUnavailable);
+        Assert.False(File.Exists(ReasonPath(f)));
+        f.Start();
+        Assert.Equal("ready", f.Owner!.Status().State);
+    }
+
+    // A refusal recorded as a wrapped RewardDataException ("cola-unpaid-plan-invalid: IOException") reaches the record as
+    // a code: the record's shape is checked by the reader, and a reason that does not fit must not cost the session.
+    [Fact]
+    public void AReasonThatDoesNotFitIsCutToACode()
+    {
+        using var f = new Fixture(enroll: false);
+        RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);
+        const string refused = "cola-unpaid-plan-invalid: IOException";
+        Assert.Null(RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request, refused));
+        var lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, refused);
+        Assert.Equal("startup:cola-unpaid-plan-invalid", RewardOfflineSession.ReadAuthorityUnavailable(lease));
+        Assert.Equal("unknown", RewardUnavailableText.LeaseCode(": nothing usable"));
+        Assert.Equal("unknown", RewardUnavailableText.LeaseCode(""));
+        Assert.Equal(new string('a', 120), RewardUnavailableText.LeaseCode(new string('a', 300)));
+        Assert.Equal("IOException", RewardUnavailableText.LeaseCode("IOException"));
+        f.Start();
+        var status = f.Owner!.Status();
+        Assert.Equal("withheld", status.State);
+        Assert.Equal(RewardUnavailableText.Temporary, status.Detail);   // an unknown code is not claimed to recur
+    }
+
+    [Theory]
+    [InlineData("other-session")]
+    [InlineData("other-schema")]
+    [InlineData("bad-shape")]
+    [InlineData("no-scope")]
+    [InlineData("damaged")]
+    [InlineData("oversized")]
+    public void ARecordThatIsNotThisSessionsIsIgnoredAndTheCardStaysPending(string variant)
+    {
+        using var f = new Fixture(enroll: false);
+        RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);
+        var lease = f.Ready();
+        string text = variant switch
+        {
+            "other-session" => RewardRuntimeFiles.Json(new RewardOfflineAuthorityUnavailable(1, Guid.NewGuid().ToString("N"), "startup:" + Refused)),
+            "other-schema" => RewardRuntimeFiles.Json(new RewardOfflineAuthorityUnavailable(2, f.Grant.SessionId, "startup:" + Refused)),
+            "bad-shape" => RewardRuntimeFiles.Json(new RewardOfflineAuthorityUnavailable(1, f.Grant.SessionId, "startup:<b>bold</b>")),
+            "no-scope" => RewardRuntimeFiles.Json(new RewardOfflineAuthorityUnavailable(1, f.Grant.SessionId, Refused)),
+            "damaged" => "{",
+            "oversized" => "{\"pad\":\"" + new string('x', 8000) + "\"}",
+            _ => throw new ArgumentOutOfRangeException(nameof(variant)),
+        };
+        File.WriteAllText(ReasonPath(f), text);
+        Assert.Null(RewardOfflineSession.ReadAuthorityUnavailable(lease));
+        f.Start();
+        Assert.Equal("restart-required", f.Owner!.Status().State);
+    }
+
+    [Fact]
+    public void ARecordNextToAnAuthorityChangesNothing()
+    {
+        using var f = new Fixture();
+        var lease = f.Ready();
+        Assert.NotNull(lease.Authority);
+        File.WriteAllText(ReasonPath(f), RewardRuntimeFiles.Json(new RewardOfflineAuthorityUnavailable(1, f.Grant.SessionId, "startup:" + Refused)));
         f.Start();
         Assert.Equal("ready", f.Owner!.Status().State);
     }
@@ -111,22 +177,11 @@ public sealed partial class RewardOfflineSessionTests
     [InlineData("startup:<b>bold</b>", false)]
     [InlineData("startup:ärger", false)]
     [InlineData("entry:cola-unpaid-plan-invalid: IOException", false)]
-    public void TheLeaseAcceptsOnlyAScopedReasonCode(string value, bool valid)
+    public void OnlyAScopedReasonCodeIsARecordedReason(string value, bool valid)
     {
-        using var f = new Fixture(enroll: false);
-        var lease = f.Ready() with { AuthorityUnavailable = value };
-        if (valid) RewardOfflineSession.Validate(lease);
-        else Assert.Equal("offline-lease-invalid", Assert.Throws<RewardDataException>(() => RewardOfflineSession.Validate(lease)).Message);
+        Assert.Equal(valid, RewardUnavailableText.IsLeaseReason(value));
         Assert.True(RewardUnavailableText.IsLeaseReason(RewardUnavailableText.EntryScope + new string('a', 120)));
         Assert.False(RewardUnavailableText.IsLeaseReason(RewardUnavailableText.EntryScope + new string('a', 121)));
-    }
-
-    [Fact]
-    public void AReasonNextToAnAuthorityIsInvalid()
-    {
-        using var f = new Fixture();
-        var lease = f.Ready() with { AuthorityUnavailable = RewardUnavailableText.StartupScope + Refused };
-        Assert.Equal("offline-lease-invalid", Assert.Throws<RewardDataException>(() => RewardOfflineSession.Validate(lease)).Message);
     }
 
     [Fact]
@@ -138,27 +193,6 @@ public sealed partial class RewardOfflineSessionTests
         Assert.Equal("entry:x", RewardOfflineSession.ScopedReason(null, "x", Refused));
         using var f = new Fixture();
         Assert.Null(RewardOfflineSession.ScopedReason(f.Ready().Authority, "x", Refused));
-    }
-
-    // A refusal recorded as a wrapped RewardDataException ("cola-unpaid-plan-invalid: IOException") must reach the lease as
-    // a code, not make the lease invalid: Validate runs inside the entry preflight, where that would decline the entry.
-    [Fact]
-    public void AReasonThatDoesNotFitTheLeaseIsCutToACodeInsteadOfDecliningTheEntry()
-    {
-        using var f = new Fixture(enroll: false);
-        RewardEnrollment.SetConsent(f.Root, Fixture.Id, true);
-        const string refused = "cola-unpaid-plan-invalid: IOException";
-        Assert.Null(RewardOfflineSession.PreflightReady(f.Root, f.Grant, f.Request, refused));
-        var lease = RewardOfflineSession.CreateReady(f.Root, f.Grant, f.Request, null, refused);
-        Assert.Equal("startup:cola-unpaid-plan-invalid", lease.AuthorityUnavailable);
-        Assert.Equal("unknown", RewardUnavailableText.LeaseCode(": nothing usable"));
-        Assert.Equal("unknown", RewardUnavailableText.LeaseCode(""));
-        Assert.Equal(new string('a', 120), RewardUnavailableText.LeaseCode(new string('a', 300)));
-        Assert.Equal("IOException", RewardUnavailableText.LeaseCode("IOException"));
-        f.Start();
-        var status = f.Owner!.Status();
-        Assert.Equal("withheld", status.State);
-        Assert.Equal(RewardUnavailableText.Temporary, status.Detail);   // an unknown code is not claimed to recur
     }
 
     // The entry's read can fail on a file a scanner holds for a moment after the stop; that is not a mismatch of the records.

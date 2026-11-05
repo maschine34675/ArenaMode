@@ -20,11 +20,11 @@ $mutations = @(
        Old = 'return self < 0 ? new() : preLoad.Take(self).Where(c => c.Parent != typeof(Watermark)).ToList();';
        New = 'return self < 0 ? new() : preLoad.Where(c => c.Parent != typeof(Watermark) && c.Parent != typeof(ArenaRewardStartup)).ToList();';
        Test = 'AdmissionFollowsTheRealCallbackOrderNotAPriorityRange' },
-    # The lease forgets why it carries no authority: the session's card falls back to "Activation pending".
+    # The reason is not recorded next to the lease: the session's card falls back to "Activation pending".
     @{ Name = 'lease-reason-dropped'; File = 'RewardOfflineSession.cs';
-       Old = 'request.HelperPid, request.HelperStartedUtc, ScopedReason(authority, authorityUnavailable, startupUnavailable));';
-       New = 'request.HelperPid, request.HelperStartedUtc);';
-       Test = 'ARefusedStartIsNamedInTheLeaseAndTheSessionCardOfANeverEnrolledProfile' },
+       Old = 'if (reason is not null) RewardRuntimeFiles.WriteNew(root, AuthorityUnavailablePath(root, lease.SessionId), new RewardOfflineAuthorityUnavailable(1, lease.SessionId, reason));';
+       New = '// mutation: the reason is not recorded next to the lease';
+       Test = 'ARefusedStartIsRecordedNextToTheLeaseAndShownOnTheSessionCardOfANeverEnrolledProfile' },
     # The step back at Watermark + 1 (0.3.0 to 0.4.1): the stable sort then puts every mod at 0 before it.
     @{ Name = 'priority-back-at-watermark-plus-one'; File = 'ArenaRewardStartup.cs';
        Old = '[Injectable(InjectionType.Singleton, TypePriority = OnLoadOrder.Watermark)]';

@@ -78,33 +78,38 @@ are temporarily unavailable." (`UnavailableDetail`), the private session's card 
    type name stay "Rewards are temporarily unavailable." The normal session's
    `UnavailableDetail` uses it (a profile's own `authority-lost-*` failure comes first,
    then the reward-folder flag, then the start's reason).
-4. **The reason in the lease.** `RewardOfflineLease.AuthorityUnavailable` (JSON
-   `authorityUnavailable`, omitted when null, so a lease without it is byte-identical to one
-   written before the field existed and hashes the same) carries, for a lease without
-   authority, `entry:<code>` when the entry's own read of the profile's reward records
+4. **The reason next to the lease.** For a lease without authority the normal server
+   writes `user/arena-rewards/offline-sessions/<sessionId>/authority-unavailable.json`
+   (`RewardOfflineAuthorityUnavailable`: schema 1, the session id, the reason) right after
+   `lease.json`: `entry:<code>` when the entry's own read of the profile's reward records
    failed (wipe, moved install, damaged enrollment: that names what is wrong with THIS
    profile and comes first), else `startup:<code>` when the normal server's start recorded
    a refusal (`RewardRuntimeCoordinator.StartupUnavailable`, passed by
-   `ArenaRewardReturnListener` into `PreflightReady` and `CreateReady`), else nothing (a
+   `ArenaRewardReturnListener` into `PreflightReady` and `CreateReady`), else no file (a
    profile that never enrolled under an admitted start: the genuine "activation pending",
-   rewards switched on inside a session are enrolled at the next normal start).
-   `Validate` accepts the field only without an authority and only as
-   `startup:`/`entry:` plus 1 to 120 characters of `[A-Za-z0-9._-]`; the writer cuts a
-   reason to that shape first (`RewardUnavailableText.LeaseCode`: the leading run of such
-   characters, `unknown` when there is none), because a wrapped reason such as
-   `cola-unpaid-plan-invalid: IOException` would otherwise make the lease invalid inside
-   the entry preflight and decline the Arena entry (found by the adversarial review). The
-   private session's `RewardOfflinePrivate.Status` turns a reason into state `withheld`
-   with the sentence above, where "See the server log." becomes "See the normal server's
-   log." (the private server's own log holds nothing about it); an `entry:` code is
-   `RecordsMismatch` except `IOException` and `UnauthorizedAccessException`, which may be
-   a scanner holding the file for a moment after the stop and stay `Temporary`.
-   `CanChange` stays true, and the client's card already shows `Detail` for `withheld`;
-   switched off inside the session the card says "off", switched on again the reason
-   returns. An identical entry retry (lost reply) finds the published lease, reason
-   included, whether or not the retry still knows the reason. The label above the detail
-   still reads "PROFILE REWARDS: ON" (the setting is on, payment is off), as the normal
-   session's withheld card has always shown it.
+   rewards switched on inside a session are enrolled at the next normal start). The lease
+   itself keeps its 17 members, bytes and hash: the first draft put the reason into the
+   lease as an optional member, and the first native entry on GPU-2 paused in the session
+   helper, which parses the lease with a fixed member count
+   (`HelperOfflineSession.ParseLease`, `Parse(bytes, 17)`) and showed "Arena is waiting
+   for SPT to finish saving"; a file of its own keeps every helper release working. The
+   code is cut to `[A-Za-z0-9._-]`, at most 120 characters, before it is written
+   (`RewardUnavailableText.LeaseCode`: the leading run of such characters, `unknown` when
+   there is none), and the reader (`RewardOfflineSession.ReadAuthorityUnavailable`, from
+   the original root's session directory, where the private server reads the lease and the
+   active pointer anyway) accepts only schema 1, this session's id and that shape, never
+   throws, and treats anything else as no reason; a file next to an authority changes
+   nothing. The private session's `RewardOfflinePrivate.Status` reads it once and turns a
+   reason into state `withheld` with the sentence above, where "See the server log."
+   becomes "See the normal server's log." (the private server's own log holds nothing
+   about it); an `entry:` code is `RecordsMismatch` except `IOException` and
+   `UnauthorizedAccessException`, which may be a scanner holding the file for a moment
+   after the stop and stay `Temporary`. `CanChange` stays true, and the client's card
+   already shows `Detail` for `withheld`; switched off inside the session the card says
+   "off", switched on again the reason returns. An identical entry retry (lost reply) finds
+   the published lease and record, whether or not the retry still knows the reason. The
+   label above the detail still reads "PROFILE REWARDS: ON" (the setting is on, payment is
+   off), as the normal session's withheld card has always shown it.
 
 Not changed: the client, the whitelist, the enrollment, the payment path, the lease hash
 of a lease without a reason. Known gap, documented in REWARDS-RUNTIME.md: a healthy
@@ -128,9 +133,16 @@ code either way.
   (`ANormalSessionShowsARecurringStartRefusalAsOffNotTemporary`;
   `UnavailableNativeStartupIsVisibleWithoutEnrollingOrEditingTheProfile` now expects the
   unreviewed-server sentence), `RewardStartupRefusalTests.cs` (partial
-  `RewardOfflineSessionTests`: lease and private status for a refused start, no reason
-  without a refusal and no field in the JSON, records mismatch first, healthy authority
-  despite a refusal, the field's validation, the scoping).
+  `RewardOfflineSessionTests`: the record and the private status for a refused start, no
+  record without a refusal and nothing of it in the lease, records mismatch first, healthy
+  authority despite a refusal, a record that is not this session's ignored, the code's
+  shape, the scoping).
+- Native run on GPU-2, first attempt (2026-11-05 20:55, build `c5618dfe` with the reason
+  as a lease member): the server start with the probe at `Watermark + 1` ran the reward
+  step and the probe after it, as intended, but the Arena entry paused in the session
+  helper ("Arena is waiting for SPT to finish saving"): `HelperOfflineSession.ParseLease`
+  refuses a lease with more than 17 members. The reason moved into its own file (change
+  4); the review had not read the helper's parser.
 - `tools/OfflineStartupChecks`: Focused stage runs these classes; `Mutations.ps1` gained
   `callback-position-ignored` (every pre-load callback counts as earlier: the 0.4.1 bug) and
   `lease-reason-dropped` (the lease forgets the reason), each rejected by its named test.

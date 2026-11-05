@@ -102,10 +102,11 @@ that recurs while the installation stays as it is says "Rewards are off" the sam
 ("another mod's startup step runs before Arena's reward step"), an unreviewed SPT
 version, a start that is not the native server's, or profiles already loaded. Only a
 refusal that a plain restart may clear (another server process, an unexpected
-exception) keeps "temporarily unavailable". An Arena session entered after such a
-start carries the reason in its lease (`authorityUnavailable`, "startup:<code>") and
-its reward card shows the same sentence instead of "Activation pending", which would
-send the player on a round trip that changes nothing
+exception) keeps "temporarily unavailable". For an Arena session entered after such a
+start the normal server records the reason next to the session lease
+(`authority-unavailable.json`, "startup:<code>") and the session's reward card shows
+the same sentence instead of "Activation pending", which would send the player on a
+round trip that changes nothing
 ([maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1)).
 Only a held lock counts as contention (a
 sharing or lock violation, `RewardStartupLifetimeLock.IsContention`); a missing
@@ -134,13 +135,21 @@ pauses anything, the shutdown listener runs `RewardOfflineSession.PreflightReady
 everything publication would refuse, without a write. A missing or mismatching
 enrollment, an unreadable ledger or a missing consent file is not a refusal; the
 session lease is then published WITHOUT authority, exactly like a never-enrolled
-profile, and a Warning names the profile and the cause. The lease records that cause
-as `authorityUnavailable` ("entry:<code>"; "startup:<code>" when the profile has no
-enrollment because this normal start's reward step was refused; absent when a profile
-simply never enrolled, the genuine "activation pending"; the code is cut to letters,
-digits, `-`, `_` and `.`, at most 120 of them, so a wrapped reason never makes the lease
-invalid), and the private session's reward card shows "withheld" with the matching
-sentence instead of advising a return: the records no longer match (every entry-side
+profile, and a Warning names the profile and the cause. The normal server records that
+cause next to the lease, in
+`user/arena-rewards/offline-sessions/<sessionId>/authority-unavailable.json`
+("entry:<code>"; "startup:<code>" when the profile has no enrollment because this normal
+start's reward step was refused; no file when a profile simply never enrolled, the
+genuine "activation pending"; the code is cut to letters, digits, `-`, `_` and `.`, at
+most 120 of them). It is a file of its own and never a member of the lease: the session
+helper parses the lease with a fixed member count and refuses an added one, which pauses
+every entry on a helper that does not know it ("Arena is waiting for SPT to finish
+saving"), and the lease's bytes and hash stay what every helper and server release
+knows. The private server reads the file from the original root's session directory,
+where it reads the lease and the active pointer anyway; a file that is not this session's
+(another id, an unknown shape, unreadable) counts as none. The private session's reward
+card then shows "withheld" with the matching sentence instead of advising a return: the
+records no longer match (every entry-side
 code except `IOException` and `UnauthorizedAccessException`, which may be a scanner
 holding the file for a moment and stay "temporarily unavailable"), or the start's
 refusal. Spoken in the private session the sentences end "See the normal server's

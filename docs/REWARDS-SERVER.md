@@ -45,8 +45,9 @@ item table, and the refusal recurred at every start, named no mod and was shown 
 temporary ([maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1)).
 Now only a callback that sits before the consumer in the list it runs from refuses
 (`EarlierCallbacks`, position, not priority), the Warning names each one with its type,
-assembly and priority, and the refusal reaches the menu and the session lease as a
-recurring one ([REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md)).
+assembly and priority, and the refusal reaches the menu and, through a file next to the
+session lease, the Arena session's card as a recurring one
+([REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md)).
 
 Installed evidence was checked independently of the reference source:
 

@@ -58,9 +58,10 @@ another server mod's `IOnLoad` at `Watermark + 1` (BetterFlea) the reward step r
 every start, enrolled nothing, and the Arena session's card said "Activation pending"
 forever. The step now runs at `Watermark` (0), refuses only a callback that really sits
 before it in SPT's run order, names each one in the Warning, says "Rewards are off: …"
-for every refusal that recurs, and the session lease carries the reason
-(`authorityUnavailable`) so the private card shows it. Server-only; the client is
-unchanged. Contract: [REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md).
+for every refusal that recurs, and the normal server records the reason in a file next
+to the session lease (`authority-unavailable.json`; never in the lease, whose 17
+members the session helper parses with a fixed count) so the private card shows it.
+Server-only; the client and the helper are unchanged. Contract: [REWARD-STARTUP-ORDER-20261105.md](reviews/REWARD-STARTUP-ORDER-20261105.md).
 Verified offline (xunit, `OfflineStartupChecks` mutants, `RewardMenuStateChecks`, an
 adversarial review of 49 agents whose findings are fixed or documented there); the native
 GPU-2 run with a probe server mod at `Watermark + 1` and at 0 is planned as

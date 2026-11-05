@@ -57,6 +57,14 @@ that list switched rewards off for every BetterFlea user for as long as 0.3.0 to
 were installed (maschine34675/ArenaMode#1). Verify such claims in the installed IL
 (`ilspycmd -t <Type> <dll>`), not in the reference source.
 
+**The session helper parses the lease with a fixed member count.** `ArenaMode.Session`
+(`HelperOfflineSession.ParseLease`, `Parse(bytes, 17)`) refuses a lease with an added
+member, and the dialog it then shows says "Arena is waiting for SPT to finish saving",
+which points nowhere near the cause. New data for the private session goes into a file
+of its own in the session directory (`authority-unavailable.json` is the first), never
+into `lease.json`; found natively on 2026-11-05 after an adversarial review of 49 agents
+had not read the helper.
+
 **`OperationResult<T>` is not a bool.** Discarding it means the container mutates but
 nothing is notified — items stay visible, models stay in the pool. Call `RaiseEvents`.
 
