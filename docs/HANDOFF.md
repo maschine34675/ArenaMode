@@ -52,8 +52,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 ## Open work
 
 **Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
-`65007e74`, not merged; its build `0.4.1+8d21e362` is installed on all Syncthing hosts since
-2026-11-02 evening):** phase B of
+`65007e74`, not merged; its build `0.4.1+67bbc215` is installed on all Syncthing hosts since
+2026-11-07 17:16, client DLL only, the server stays `3b0dc30e`):** phase B of
+`D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. **2026-11-07: ArenaMapPort's roar layer
+(`e3e4290`: each played reaction roars Arena's Cheer bed for Approve, Start and Finish or an
+Angry bed for Disapprove from every stand, the other kind cut in 0.5 s; the murmur swell is
+gone; contract unchanged) adopted in `67bbc215`:** one mood per flush
+(`Frame.KeepOneMood`, the stronger of Approve and Disapprove across the going and the waiting
+frame) and a 1 s mood window across flushes (the opposite kind within a second only when
+stronger; a weaker same-kind mood leaves the memory alone; Start, Finish and Lull end it), one
+Debug line per drop; `CrowdReactionChecks` 1,340 assertions, 61 mutants, the real surface reads
+MapPort's roar kind table and amplitude law when present. Native GPU-2 run of that build
+([GPU-CROWD-ROAR-20261107.md](reports/2026-11/GPU-CROWD-ROAR-20261107.md)): 25 reactions in
+Team DM (Bowl) and Deathmatch (Equator, 3 rounds), every one played with the right roar from
+every stand, no drop, no ArenaMode warning; the trade case did not occur in the game (offline
+only). Open for the ear: the roar level (MapPort's -32 dBFS start value), the 1 s window, and
+that a lost lead boos from all stands on every lead change (six times in eight minutes of 4v4).
+Earlier state: phase B of
 `D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
 `SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
 `CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (51 mutants, plus a real-surface

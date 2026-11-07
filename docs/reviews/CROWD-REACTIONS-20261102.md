@@ -597,6 +597,18 @@ changes, HEADSHOT, awards), so awards never reach MapPort's 0.8 band for the str
 the announcer is on; Start at 1.0 exhausts MapPort's thin Start pool (MapPort relaxes its
 repetition rules).
 
+## Native run (2026-11-07, GPU-2, roar layer)
+
+ArenaMode `67bbc215` with the installed roar-layer client of ArenaMapPort, record:
+[GPU-CROWD-ROAR-20261107.md](../reports/2026-11/GPU-CROWD-ROAR-20261107.md). Team DM on Bowl
+(one run to 25 kills, left after 8 min; one with a 5 min limit) and Deathmatch on Equator over
+three rounds: 25 reactions sent, 25 played, 25 roars from every stand with the right bed (cheer
+for Start, Finish and the lead taken, angry for the death and the lead lost), amplitudes as the
+table above, no drop by MapPort and none by the one-mood rule or the window (no two opposite
+moods within a second occurred; the trade case is proven offline only), excitement peaks 0.6
+and 0.85 as before, no ArenaMode warning. For the ear: a lost lead now boos from all stands on
+every lead change (six in eight minutes of 4v4).
+
 ## Not claimed
 
 - The native run covers Team DM, Deathmatch, Iceberg and Zombies on GPU-2 only; Gun Game,
