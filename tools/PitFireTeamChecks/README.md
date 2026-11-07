@@ -15,7 +15,7 @@ relaxed generic team predicate. Runtime Zombie wave/rebuild checks live separate
 
 When the optional client plugin is installed, the check also reads the installed
 `pitFireTeam.dll` and `Assembly-CSharp.dll` as metadata (it does not execute either
-assembly). This verifies the installed identity against the 0.10.0/0.10.3/1.0.0
+assembly). This verifies the installed identity against the 0.10.0/0.10.3/1.0.0/1.1.1
 reviewed baselines and forward admission, the selected-roster type, the
 inherited `RaidPlayer` identity fields and PFT's own My Squad marker against the
 runtime that will actually load.
@@ -59,3 +59,25 @@ instead of requiring the old adjacent team/kit branch layout. Direct negative
 controls reject an inverted team condition, a broken `else` chain and a missing
 solo kit swap. The solo kit-selection ordering marker names the executable
 declaration, so an explanatory comment cannot accidentally satisfy it.
+
+## PitFireTeam 1.1.1 (2026-11-07)
+
+1.1.1 is a reviewed baseline next to 0.10.0, 0.10.3 and 1.0.0 (1.1.0 stays an unreviewed,
+advisory build). Three adapter changes ship with it, all gated on an installed assembly
+version of 1.1.0 or newer so that 1.0.0 and 0.10.x bind exactly as before:
+
+- The leased `SpawnGroupBots` call first awaits a served saved-spawn-settings preflight,
+  because 1.1.1 loads `/client/game/bot/followerdetails` asynchronously before
+  `BotCreationData.Create` and would otherwise leave the synchronous lease window empty.
+- The report guard also patches the new 6-argument `SendKillReport` overload that
+  `PlayerKilledPatch` calls directly, so an Arena kill never reaches the kill-message
+  endpoint.
+- The fallback stop-cleanup contract mirrors the two extra steps of PFT's stop patch,
+  `CompanionRaidPreparation.Reset()` and `FollowerRaidHealthRetention.Clear()`.
+
+The served preflight depends on a completed natural round-1 call of the same raid (the
+natural spawn may run during the deploy countdown, so the raid counts as Arena's by the
+report guard's arming predicate); without one, the leased call runs PFT's own preflight
+and the lease fails closed with the extended diagnostic. The installed-metadata checks of
+these members are skipped on a PFT below 1.1.0, and the source pins are text-based, so
+the behaviour itself rests on the native GPU run recorded in the 1.1.1 review.

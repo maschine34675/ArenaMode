@@ -32,7 +32,9 @@ internal static class Program
             CheckTeamOpponentActivationPolicy();
             CheckFrozenArmContract();
             CheckSourceContract();
+            CheckPft11SourceContract();
             CheckInstalledRuntimeContract();
+            CheckPft11InstalledContract();
             Console.WriteLine($"PITFIRETEAM_COMPAT_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
         }
@@ -133,14 +135,14 @@ internal static class Program
                    version => incompatibleTeam.Reason.Contains(version, StringComparison.Ordinal))
                && incompatibleTeam.Reason.Contains("layout", StringComparison.OrdinalIgnoreCase),
             "unsupported contract rejection names every pinned version and the runtime layout");
-        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3", "1.0.0" })
+        Assert(PitFireTeamVersions.VerifiedPluginVersions.SequenceEqual(new[] { "0.10.0", "0.10.3", "1.0.0", "1.1.1" })
                && PitFireTeamVersions.VerifiedAssemblyVersions.SequenceEqual(
-                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0), new Version(1, 0, 0, 0) })
+                   new[] { new Version(0, 10, 0, 0), new Version(0, 10, 3, 0), new Version(1, 0, 0, 0), new Version(1, 1, 1, 0) })
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.0")
                && PitFireTeamVersions.IsSupportedPluginVersion("0.10.3")
                && PitFireTeamVersions.IsSupportedAssemblyVersion(new Version(0, 10, 3, 0)),
             "the verified baselines stay distinct from forward admission");
-        foreach (var supported in new[] { "0.10.0", "0.10.0.0", "0.10.3", "0.10.3.0", "0.10.3.1", "0.10.4", "0.11.0", "1.0.0", "12.0.0.4" })
+        foreach (var supported in new[] { "0.10.0", "0.10.0.0", "0.10.3", "0.10.3.0", "0.10.3.1", "0.10.4", "0.11.0", "1.0.0", "1.1.1", "1.1.1.0", "12.0.0.4" })
         {
             var version = new Version(supported);
             Assert(PitFireTeamVersions.IsSupportedPluginVersion(supported), "admitted plugin " + supported);
@@ -165,7 +167,11 @@ internal static class Program
                && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0))
                && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0, 0))
                && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 0, 1))
-               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 1)),
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 0, 1))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1))
+               && !PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1, 0))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 0))
+               && PitFireTeamVersions.IsNewerThanVerified(new Version(1, 1, 1, 1)),
             "warnings distinguish known baselines from untested newer versions");
 
         foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "endless", "rounds", "gungame", "tactical", "zombie" })
@@ -645,7 +651,7 @@ internal static class Program
         // Every gate reads the shared admission policy and matching build identity:
         // six places accepting "a version" independently is how a build slips in
         // through the half of the contract nobody remembered to widen.
-        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\", \"1.0.0\" }", StringComparison.Ordinal)
+        Assert(versions.Contains("VerifiedPluginVersions = { \"0.10.0\", \"0.10.3\", \"1.0.0\", \"1.1.1\" }", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedPluginVersion(pluginVersion)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedAssemblyVersion(assemblyName.Version)", StringComparison.Ordinal)
                && roundLifecycle.Contains("PitFireTeamVersions.IsSupportedIdentity(pluginVersion, assemblyName.Version)", StringComparison.Ordinal)
@@ -1852,6 +1858,284 @@ internal static class Program
         var bossInstance = bossPlayers.Properties.Single(property => property.Name == "Instance");
         Assert(bossInstance.SetMethod?.IsStatic == true,
             "installed PFT BossPlayers singleton can be force-reset after a failed Dispose");
+    }
+
+    // ---- PitFireTeam 1.1.x adapter pins (lease preflight, report guard, stop cleanup) ----
+
+    private static string Lf(string text) => text.Replace("\r\n", "\n");
+
+    private static string SafeSlice(string source, string startMarker, string endMarker)
+    {
+        int start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        if (start < 0)
+            return string.Empty;
+        int end = source.IndexOf(endMarker, start + startMarker.Length, StringComparison.Ordinal);
+        return end < 0 ? string.Empty : source.Substring(start, end - start);
+    }
+
+    private static string MutateOnce(string source, string find, string replacement)
+    {
+        int first = source.IndexOf(find, StringComparison.Ordinal);
+        if (first < 0 || source.IndexOf(find, first + find.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Mutant anchor is missing or not unique: " + find);
+        return source.Substring(0, first) + replacement + source.Substring(first + find.Length);
+    }
+
+    /// <summary>Returns the name of the first missing lease-preflight pin, or null.</summary>
+    private static string FirstMissingLifecyclePin(string lifecycle)
+    {
+        string src = Lf(lifecycle);
+        string[] literals =
+        {
+            "private static readonly Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);",
+            "if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)",
+            "\"LoadSavedSpawnSettings\",",
+            "BindingFlags.NonPublic | BindingFlags.Static,",
+            "typeof(IEnumerable<string>),",
+            "typeof(Func<bool>));",
+            ".SequenceEqual(new[] { \"accounts\", \"valid\" }, StringComparer.Ordinal)",
+            "RequireType(assembly, \"pitTeam.Utils.BotDetails\")",
+            "private static void ClearServedPreflightUnsafe()",
+            "saved-spawn-settings preflight (LoadSavedSpawnSettings) was not served synchronously from the completed round-1 result",
+            "PFT SpawnGroupBots returned without the exact count-zero BotCreationData.Create lease",
+            "if (_loadSavedSpawnSettingsMethod != null)",
+        };
+        foreach (string literal in literals)
+            if (!src.Contains(literal, StringComparison.Ordinal))
+                return literal;
+
+        string prefix = SafeSlice(src, "private static bool LoadSavedSpawnSettingsPrefix(", "\n    private static");
+        foreach (string literal in new[]
+                 {
+                     "ref Task __result",
+                     "remembered.Status != TaskStatus.RanToCompletion",
+                     "!_loadSavedSpawnSettingsMethod.ReturnType.IsInstanceOfType(remembered)",
+                     "!_servedPreflightAccounts.SequenceEqual(sorted, StringComparer.Ordinal)",
+                     "!ReferenceEquals(_spawnLease, lease)",
+                     "lease.Revoked",
+                     "ReferenceEquals(_servedPreflightGame, lease.Game)",
+                     "ReferenceEquals(_servedPreflightWorld, lease.World)",
+                     "__result = remembered;",
+                     "return false;",
+                 })
+            if (!prefix.Contains(literal, StringComparison.Ordinal))
+                return literal;
+
+        string postfix = SafeSlice(src, "private static void LoadSavedSpawnSettingsPostfix(", "\n    private static");
+        if (!postfix.Contains(
+                "_spawnGroupInvocationLease != null || __result == null\n"
+                + "            || !(ArenaSession.IsActive || ArenaSession.ArmedForNextRaid || ArenaServerClient.HasPendingArm))",
+                StringComparison.Ordinal))
+            return "postfix guard";
+        foreach (string literal in new[]
+                 {
+                     "&& _servedPreflightTask.Status == TaskStatus.RanToCompletion",
+                     "_servedPreflightTask = __result;",
+                     "_servedPreflightAccounts = sorted;",
+                     "_servedPreflightGame = game;",
+                     "_servedPreflightWorld = world;",
+                 })
+            if (!postfix.Contains(literal, StringComparison.Ordinal))
+                return literal;
+
+        int calls = 0;
+        for (int at = src.IndexOf("ClearServedPreflightUnsafe();", StringComparison.Ordinal);
+             at >= 0;
+             at = src.IndexOf("ClearServedPreflightUnsafe();", at + 1, StringComparison.Ordinal))
+            calls++;
+        if (calls != 3)
+            return "exactly three ClearServedPreflightUnsafe call sites";
+        if (!SafeSlice(src, "private static void ClearRaidStateUnsafe(", "\n    private static")
+                .Contains("_spawnLease = null;\n        ClearServedPreflightUnsafe();", StringComparison.Ordinal))
+            return "ClearServedPreflightUnsafe call site in ClearRaidStateUnsafe";
+        if (!SafeSlice(src, "private static void ClearContractUnsafe(", "\n    private static")
+                .Contains("ClearServedPreflightUnsafe();", StringComparison.Ordinal))
+            return "ClearServedPreflightUnsafe call site in ClearContractUnsafe";
+        if (!src.Contains(
+                "_stage = PitFireTeamRoundLifecycleStage.Failed;\n        ClearServedPreflightUnsafe();",
+                StringComparison.Ordinal))
+            return "ClearServedPreflightUnsafe call site in FailUnsafe";
+
+        string register = SafeSlice(src, "if (_loadSavedSpawnSettingsMethod != null)\n            {\n                SpawnLeaseHarmony.Patch(",
+            "postfix: preflightPostfix);");
+        if (!register.Contains("_loadSavedSpawnSettingsMethod,", StringComparison.Ordinal)
+            || !register.Contains("prefix: preflightPrefix,", StringComparison.Ordinal)
+            || !src.Contains("postfix: preflightPostfix);", StringComparison.Ordinal))
+            return "Harmony registration of the preflight patch";
+        return null;
+    }
+
+    /// <summary>Returns the name of the first missing guard/cleanup pin, or null.</summary>
+    private static string FirstMissingGuardCleanupPin(string guardSource, string compatSource)
+    {
+        string guard = Lf(guardSource);
+        string compat = Lf(compatSource);
+        if (!Regex.IsMatch(guard,
+                @"assembly\.GetName\(\)\.Version >= new Version\(1, 1, 0, 0\)\s*\?\s*Require\(""FriendlyEncounterPenaltyRuntime"", ""SendKillReport"", ""System\.Threading\.Tasks\.Task"",\s*""System\.String"", ""System\.String"", ""System\.String"", ""System\.Int64"", ""System\.String"", ""System\.Boolean""\)\s*:\s*null!;"))
+            return "version-gated 6-argument SendKillReport Require";
+        if (!guard.Contains(
+                "if (penaltyRecruitment != null) harmony.Patch(penaltyRecruitment, prefix: Patch(nameof(TaskPrefix)));",
+                StringComparison.Ordinal))
+            return "6-argument SendKillReport Patch call";
+        if (!Regex.IsMatch(guard,
+                @"Require\(""FriendlyEncounterPenaltyRuntime"", ""SendKillReport"", ""System\.Threading\.Tasks\.Task"",\s*""System\.String"", ""System\.String"", ""System\.String"", ""System\.Int64"", ""System\.String""\)")
+            || !guard.Contains("harmony.Patch(penalty, prefix: Patch(nameof(TaskPrefix)));", StringComparison.Ordinal))
+            return "5-argument SendKillReport Require and Patch";
+
+        if (!compat.Contains("bool pft11 = assembly.GetName().Version >= new Version(1, 1, 0, 0);",
+                StringComparison.Ordinal))
+            return "pft11 version gate";
+        string loop = SafeSlice(compat, "foreach (var field in new[]",
+            "AddSetStaticField(steps, assembly, \"pitTeam.Patches.BotsControllerPatch\", \"Controller\"");
+        int clear = loop.IndexOf("AddClearStaticField(steps, assembly, \"pitTeam.Patches.BotsControllerPatch\", field);",
+            StringComparison.Ordinal);
+        int gate = loop.IndexOf("if (pft11 && field == \"followerCreationTask\")", StringComparison.Ordinal);
+        int reset = loop.IndexOf(
+            "AddStaticCall(steps, assembly, \"pitTeam.Modules.CompanionRaidPreparation\", \"Reset\");",
+            StringComparison.Ordinal);
+        int follower = loop.IndexOf("\"followerCreationTask\",", StringComparison.Ordinal);
+        int allies = loop.IndexOf("\"alliesCreationTask\",", StringComparison.Ordinal);
+        if (!(follower >= 0 && allies > follower && clear > allies && gate > clear && reset > gate))
+            return "CompanionRaidPreparation.Reset step between followerCreationTask and alliesCreationTask";
+        if (!Regex.IsMatch(compat,
+                @"AddStaticCall\(steps, assembly, ""pitTeam\.Modules\.FollowerTransitStateCache"", ""Clear""\);\s*(//[^\n]*\n\s*)*if \(pft11\)\s*AddStaticCall\(steps, assembly, ""pitTeam\.Modules\.FollowerRaidHealthRetention"", ""Clear""\);"))
+            return "version-gated FollowerRaidHealthRetention.Clear step after FollowerTransitStateCache.Clear";
+        return null;
+    }
+
+    private static void CheckPft11SourceContract()
+    {
+        var repo = FindRepositoryRoot();
+        string lifecycle = Read(repo, "ArenaMode.Client/Compat/PitFireTeamRoundLifecycle.cs");
+        string guard = Read(repo, "ArenaMode.Client/Compat/PitFireTeamReportGuard.cs");
+        string compat = Read(repo, "ArenaMode.Client/Compat/PitFireTeamCompat.cs");
+
+        string missing = FirstMissingLifecyclePin(lifecycle);
+        Assert(missing == null, "PFT 1.1 lease preflight source contract lost: " + missing);
+        missing = FirstMissingGuardCleanupPin(guard, compat);
+        Assert(missing == null, "PFT 1.1 report guard / stop cleanup source contract lost: " + missing);
+
+        string lf = Lf(lifecycle);
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf,
+                   "                    || remembered.Status != TaskStatus.RanToCompletion\n", string.Empty))
+               == "remembered.Status != TaskStatus.RanToCompletion",
+            "mutant: dropping the RanToCompletion requirement fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf,
+                   "                    || !ReferenceEquals(_servedPreflightGame, lease.Game)\n", string.Empty))
+               == "ReferenceEquals(_servedPreflightGame, lease.Game)",
+            "mutant: dropping the game binding fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf,
+                   "        _spawnLease = null;\n        ClearServedPreflightUnsafe();\n", "        _spawnLease = null;\n"))
+               == "exactly three ClearServedPreflightUnsafe call sites",
+            "mutant: removing the ClearRaidStateUnsafe clear fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf, "__result = remembered;", "return true;"))
+               == "__result = remembered;",
+            "mutant: a prefix that never serves the remembered task fails the preflight pin");
+        const string gate = "if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)";
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf, gate,
+                   "if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) <= 0)")) == gate,
+            "mutant: a reversed version gate fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf, gate, "if (installedVersion != null)")) == gate,
+            "mutant: a dropped version gate (which would fail 1.0.0 discovery) fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf,
+                   "                    || !_servedPreflightAccounts.SequenceEqual(sorted, StringComparer.Ordinal)\n", string.Empty))
+               == "!_servedPreflightAccounts.SequenceEqual(sorted, StringComparer.Ordinal)",
+            "mutant: dropping the account comparison fails the preflight pin");
+        Assert(FirstMissingLifecyclePin(MutateOnce(lf, "                _servedPreflightTask = __result;\n", string.Empty))
+               == "_servedPreflightTask = __result;",
+            "mutant: a postfix that never remembers the task fails the preflight pin");
+
+        string guardLf = Lf(guard);
+        string compatLf = Lf(compat);
+        Assert(FirstMissingGuardCleanupPin(MutateOnce(guardLf,
+                   "        if (penaltyRecruitment != null) harmony.Patch(penaltyRecruitment, prefix: Patch(nameof(TaskPrefix)));\n",
+                   string.Empty), compatLf) == "6-argument SendKillReport Patch call",
+            "mutant: dropping the 6-argument Patch call fails the guard pin");
+        Assert(FirstMissingGuardCleanupPin(MutateOnce(guardLf,
+                   "assembly.GetName().Version >= new Version(1, 1, 0, 0)\n            ?", "true\n            ?"),
+                   compatLf) == "version-gated 6-argument SendKillReport Require",
+            "mutant: removing the version gate fails the guard pin");
+        Assert(FirstMissingGuardCleanupPin(guardLf, MutateOnce(compatLf,
+                   "if (pft11 && field == \"followerCreationTask\")", "if (pft11 && field == \"alliesCreationTask\")"))
+               == "CompanionRaidPreparation.Reset step between followerCreationTask and alliesCreationTask",
+            "mutant: moving Reset after the allies clear fails the cleanup pin");
+        Assert(FirstMissingGuardCleanupPin(guardLf, MutateOnce(compatLf,
+                   "        if (pft11)\n            AddStaticCall(steps, assembly, \"pitTeam.Modules.FollowerRaidHealthRetention\", \"Clear\");\n",
+                   string.Empty))
+               == "version-gated FollowerRaidHealthRetention.Clear step after FollowerTransitStateCache.Clear",
+            "mutant: removing the FollowerRaidHealthRetention step fails the cleanup pin");
+        Assert(FirstMissingGuardCleanupPin(guardLf, MutateOnce(compatLf,
+                   "        if (pft11)\n            AddStaticCall(steps, assembly, \"pitTeam.Modules.FollowerRaidHealthRetention\", \"Clear\");",
+                   "        AddStaticCall(steps, assembly, \"pitTeam.Modules.FollowerRaidHealthRetention\", \"Clear\");"))
+               == "version-gated FollowerRaidHealthRetention.Clear step after FollowerTransitStateCache.Clear",
+            "mutant: an unconditional cleanup step (which would fail 1.0.0) fails the cleanup pin");
+    }
+
+    private static void CheckPft11InstalledContract()
+    {
+        var repo = FindRepositoryRoot();
+        var spt = Directory.GetParent(Directory.GetParent(repo)!.FullName)!.FullName;
+        var pitPath = Path.Combine(spt, "BepInEx", "plugins", "pitFireTeam", "pitFireTeam.dll");
+        if (!File.Exists(pitPath))
+            return;
+
+        using var pit = AssemblyDefinition.ReadAssembly(pitPath);
+        if (pit.Name.Version < new Version(1, 1, 0, 0))
+        {
+            Console.WriteLine(
+                "PITFIRETEAM_11_CONTRACT_SKIPPED (installed pitFireTeam " + pit.Name.Version
+                + " is older than 1.1.0; the 1.1 members are not required)");
+            return;
+        }
+
+        var botsPatch = pit.MainModule.GetType("pitTeam.Patches.BotsControllerPatch")
+                        ?? throw new InvalidOperationException("Installed PFT BotsControllerPatch type is missing.");
+        var load = botsPatch.Methods.Where(method => method.Name == "LoadSavedSpawnSettings").ToArray();
+        Assert(load.Length == 1
+               && load[0].IsPrivate
+               && load[0].IsStatic
+               && load[0].Parameters.Select(parameter => parameter.Name)
+                   .SequenceEqual(new[] { "accounts", "valid" })
+               && load[0].Parameters.Select(parameter => parameter.ParameterType.FullName)
+                   .SequenceEqual(new[]
+                   {
+                       "System.Collections.Generic.IEnumerable`1<System.String>",
+                       "System.Func`1<System.Boolean>",
+                   })
+               && load[0].ReturnType.FullName
+               == "System.Threading.Tasks.Task`1<System.Collections.Generic.Dictionary`2<System.String,pitTeam.Utils.BotDetails>>",
+            "installed PFT 1.1 exposes the exact private static async LoadSavedSpawnSettings(accounts, valid) preflight");
+        Assert(pit.MainModule.GetType("pitTeam.Utils.BotDetails") != null,
+            "installed PFT 1.1 has the pitTeam.Utils.BotDetails result type");
+
+        foreach (var (typeName, methodName) in new[]
+                 {
+                     ("pitTeam.Modules.CompanionRaidPreparation", "Reset"),
+                     ("pitTeam.Modules.FollowerRaidHealthRetention", "Clear"),
+                 })
+        {
+            var type = pit.MainModule.GetType(typeName)
+                       ?? throw new InvalidOperationException($"Installed PFT cleanup type {typeName} is missing.");
+            Assert(type.Methods.Any(method => method.Name == methodName
+                                              && method.IsStatic
+                                              && method.Parameters.Count == 0
+                                              && method.ReturnType.FullName == "System.Void"),
+                $"installed PFT 1.1 stop-recovery contract includes {typeName}.{methodName}");
+        }
+
+        var penaltyType = DescendantTypes(pit.MainModule.Types)
+                              .SingleOrDefault(type => type.Name == "FriendlyEncounterPenaltyRuntime")
+                          ?? throw new InvalidOperationException(
+                              "Installed PFT FriendlyEncounterPenaltyRuntime type is missing.");
+        static bool HasKillReport(TypeDefinition type, params string[] parameters)
+            => type.Methods.Count(method => method.Name == "SendKillReport"
+                                            && method.ReturnType.FullName == "System.Threading.Tasks.Task"
+                                            && method.Parameters.Select(parameter => parameter.ParameterType.FullName)
+                                                .SequenceEqual(parameters)) == 1;
+        Assert(HasKillReport(penaltyType, "System.String", "System.String", "System.String", "System.Int64", "System.String",
+                   "System.Boolean")
+               && HasKillReport(penaltyType, "System.String", "System.String", "System.String", "System.Int64", "System.String"),
+            "installed PFT 1.1 has exactly one 5-argument and one 6-argument SendKillReport for the report guard");
     }
 
     private static string[] Native(IEnumerable<string> companions)

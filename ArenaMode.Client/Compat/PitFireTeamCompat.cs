@@ -1789,6 +1789,9 @@ internal static partial class PitFireTeamCompat
         AddStaticCall(steps, assembly, BossPlayersTypeName, "Dispose");
         AddSetStaticProperty(steps, assembly, BossPlayersTypeName, "Instance", null);
 
+        // PFT 1.1.0+ also resets CompanionRaidPreparation between the follower and
+        // ally task clears (BotsControllerStopPatch order).
+        bool pft11 = assembly.GetName().Version >= new Version(1, 1, 0, 0);
         foreach (var field in new[]
                  {
                      "spawnedPlayers",
@@ -1798,6 +1801,8 @@ internal static partial class PitFireTeamCompat
                  })
         {
             AddClearStaticField(steps, assembly, "pitTeam.Patches.BotsControllerPatch", field);
+            if (pft11 && field == "followerCreationTask")
+                AddStaticCall(steps, assembly, "pitTeam.Modules.CompanionRaidPreparation", "Reset");
         }
 
         AddSetStaticField(steps, assembly, "pitTeam.Patches.BotsControllerPatch", "Controller", null);
@@ -1822,6 +1827,9 @@ internal static partial class PitFireTeamCompat
         AddClearStaticField(steps, assembly, "pitTeam.Utils.SpawnHelper", "spawnMemberIdsScav");
         AddClearStaticField(steps, assembly, "pitTeam.Utils.SpawnHelper", "spawnMemberIdsBoss");
         AddStaticCall(steps, assembly, "pitTeam.Modules.FollowerTransitStateCache", "Clear");
+        // PFT 1.1.0+: non-transit group clears the health retention too (Arena is never a transit).
+        if (pft11)
+            AddStaticCall(steps, assembly, "pitTeam.Modules.FollowerRaidHealthRetention", "Clear");
         AddSetStaticField(
             steps,
             assembly,

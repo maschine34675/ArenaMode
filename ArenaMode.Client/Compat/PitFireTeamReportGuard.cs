@@ -53,6 +53,13 @@ internal static class PitFireTeamReportGuard
         MethodInfo karma = Require("PmcKarmaRuntime", "Send", "System.Void", "pitTeam.Shared.PmcKarmaReport", "EFT.Player");
         MethodInfo penalty = Require("FriendlyEncounterPenaltyRuntime", "SendKillReport", "System.Threading.Tasks.Task",
             "System.String", "System.String", "System.String", "System.Int64", "System.String");
+        // PFT 1.1.0+ made the 5-argument overload a forwarder; production callers
+        // (PlayerKilledPatch) reach the 6-argument overload directly, so the guard
+        // must cover it too. Absent on a 1.1.x build it fails closed like any member.
+        MethodInfo penaltyRecruitment = assembly.GetName().Version >= new Version(1, 1, 0, 0)
+            ? Require("FriendlyEncounterPenaltyRuntime", "SendKillReport", "System.Threading.Tasks.Task",
+                "System.String", "System.String", "System.String", "System.Int64", "System.String", "System.Boolean")
+            : null!;
         MethodInfo insurance = Require("GiveGearInsurance", "Cancel", "System.Void", "EFT.IEftSession", "EFT.Profile",
             typeof(System.Collections.Generic.IEnumerable<string>).FullName!);
         MethodInfo trackInsurance = Require("GiveGearInsurance", "Track", "System.Void", "EFT.IEftSession", "EFT.Player", "EFT.BotOwner",
@@ -71,6 +78,7 @@ internal static class PitFireTeamReportGuard
         harmony.Patch(trackInsurance, prefix: Patch(nameof(CurrentProtectionPrefix)));
         harmony.Patch(complete, prefix: Patch(nameof(VoidPrefix)));
         harmony.Patch(penalty, prefix: Patch(nameof(TaskPrefix)));
+        if (penaltyRecruitment != null) harmony.Patch(penaltyRecruitment, prefix: Patch(nameof(TaskPrefix)));
         harmony.Patch(prepare, postfix: Patch(nameof(PreparePostfix)));
         harmony.Patch(send, prefix: Patch(nameof(SendPrefix)));
         IsReady = true;

@@ -112,6 +112,25 @@ internal static class PitFireTeamRoundLifecycle
     private static FieldInfo _manualUpdateField;
     private static bool _spawnLeasePatchInstalled;
 
+    /// <summary>
+    /// PFT 1.1.0 moved the follower metadata fetch of SpawnGroupBots into an awaited
+    /// BotsControllerPatch.LoadSavedSpawnSettings preflight that runs BEFORE
+    /// BotCreationData.Create. Null on builds older than this version, which must
+    /// behave exactly as before.
+    /// </summary>
+    private static readonly Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);
+    private static MethodInfo _loadSavedSpawnSettingsMethod;
+
+    /// <summary>
+    /// The natural (unleased) round-1 preflight result of the current Arena raid,
+    /// kept so the leased respawn call can continue synchronously to Create.
+    /// Guarded by StateLock; cleared with the per-raid state.
+    /// </summary>
+    private static Task _servedPreflightTask;
+    private static string[] _servedPreflightAccounts;
+    private static LocalGame _servedPreflightGame;
+    private static GameWorld _servedPreflightWorld;
+
     private static Player _oldLeader;
     private static string _oldLeaderProfileId;
     private static object _oldBoss;
@@ -1884,6 +1903,28 @@ internal static class PitFireTeamRoundLifecycle
             BindingFlags.Public | BindingFlags.Instance,
             typeof(Task),
             _bossType);
+        _loadSavedSpawnSettingsMethod = null;
+        Version installedVersion = assembly.GetName().Version;
+        if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)
+        {
+            Type botDetailsType = RequireType(assembly, "pitTeam.Utils.BotDetails");
+            _loadSavedSpawnSettingsMethod = RequireMethod(
+                _botsPatchType,
+                "LoadSavedSpawnSettings",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                typeof(Task<>).MakeGenericType(
+                    typeof(Dictionary<,>).MakeGenericType(typeof(string), botDetailsType)),
+                typeof(IEnumerable<string>),
+                typeof(Func<bool>));
+            if (!_loadSavedSpawnSettingsMethod.IsPrivate
+                || !_loadSavedSpawnSettingsMethod.GetParameters()
+                    .Select(parameter => parameter.Name)
+                    .SequenceEqual(new[] { "accounts", "valid" }, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "BotsControllerPatch.LoadSavedSpawnSettings is not the exact private 1.1.x saved-spawn-settings preflight");
+            }
+        }
         _botCreationDataCreateMethod = RequireMethod(
             typeof(BotCreationData),
             nameof(BotCreationData.Create),
@@ -2031,8 +2072,33 @@ internal static class PitFireTeamRoundLifecycle
                 typeof(PitFireTeamRoundLifecycle).FullName,
                 nameof(LocalGameCreateBotByProfilePostfix));
 
+        HarmonyMethod preflightPrefix = null;
+        HarmonyMethod preflightPostfix = null;
+        if (_loadSavedSpawnSettingsMethod != null)
+        {
+            preflightPrefix = new HarmonyMethod(typeof(PitFireTeamRoundLifecycle).GetMethod(
+                nameof(LoadSavedSpawnSettingsPrefix),
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(
+                    typeof(PitFireTeamRoundLifecycle).FullName,
+                    nameof(LoadSavedSpawnSettingsPrefix)));
+            preflightPostfix = new HarmonyMethod(typeof(PitFireTeamRoundLifecycle).GetMethod(
+                nameof(LoadSavedSpawnSettingsPostfix),
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(
+                    typeof(PitFireTeamRoundLifecycle).FullName,
+                    nameof(LoadSavedSpawnSettingsPostfix)));
+        }
+
         try
         {
+            if (_loadSavedSpawnSettingsMethod != null)
+            {
+                SpawnLeaseHarmony.Patch(
+                    _loadSavedSpawnSettingsMethod,
+                    prefix: preflightPrefix,
+                    postfix: preflightPostfix);
+            }
             SpawnLeaseHarmony.Patch(
                 _botCreationDataCreateMethod,
                 postfix: new HarmonyMethod(creationPostfix));
@@ -2066,6 +2132,12 @@ internal static class PitFireTeamRoundLifecycle
     /// state machine is executing synchronously. PFT reaches the count-zero
     /// BotCreationData.Create call before its first incomplete await because
     /// Arena has already supplied the completed CreateFollowerProfiles task.
+    /// PFT 1.1.x additionally awaits LoadSavedSpawnSettings before Create; the
+    /// LoadSavedSpawnSettings prefix serves that preflight from the natural
+    /// round-1 result of the same raid (already completed), so the state
+    /// machine still continues synchronously. Without a usable cached result
+    /// PFT runs its own incomplete preflight and the lease fails closed in
+    /// RestoreSpawnGroupInvocation.
     /// </summary>
     private static bool SpawnGroupBotsPrefix(
         object __instance,
@@ -2104,6 +2176,129 @@ internal static class PitFireTeamRoundLifecycle
             _spawnGroupInvocationLease = lease;
             return true;
         }
+    }
+
+    /// <summary>
+    /// Natural (unleased) PFT call of an Arena raid: remember the result task and
+    /// the distinct, ordinally sorted accounts it was asked for. Nothing else is
+    /// touched; the task is judged only at use time (RanToCompletion). The raid
+    /// counts as Arena's by the same predicate the report guard uses, because
+    /// PFT's natural spawn can run during the deploy countdown, before
+    /// ArenaSession.IsActive latches. The first completed result of a raid stays:
+    /// a later natural call of the same game and world replaces it only while
+    /// the remembered task is not RanToCompletion.
+    /// </summary>
+    private static void LoadSavedSpawnSettingsPostfix(
+        IEnumerable<string> accounts,
+        Task __result)
+    {
+        if (_spawnGroupInvocationLease != null || __result == null
+            || !(ArenaSession.IsActive || ArenaSession.ArmedForNextRaid || ArenaServerClient.HasPendingArm))
+            return;
+
+        try
+        {
+            string[] sorted = DistinctSortedAccounts(accounts);
+            if (sorted == null
+                || !Singleton<IBotGame>.Instantiated
+                || Singleton<IBotGame>.Instance is not LocalGame game
+                || !Singleton<GameWorld>.Instantiated
+                || Singleton<GameWorld>.Instance is not GameWorld world)
+            {
+                return;
+            }
+
+            lock (StateLock)
+            {
+                if (_loadSavedSpawnSettingsMethod == null || _assembly == null)
+                    return;
+                if (_servedPreflightTask != null
+                    && _servedPreflightTask.Status == TaskStatus.RanToCompletion
+                    && ReferenceEquals(_servedPreflightGame, game)
+                    && ReferenceEquals(_servedPreflightWorld, world))
+                    return;
+
+                _servedPreflightTask = __result;
+                _servedPreflightAccounts = sorted;
+                _servedPreflightGame = game;
+                _servedPreflightWorld = world;
+            }
+            Plugin.ModLogger.LogDebug(
+                $"Arena remembered PFT's saved-spawn-settings preflight for {sorted.Length} follower account(s).");
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogDebug(
+                "Arena could not remember PFT's saved-spawn-settings preflight: " + ex.GetBaseException().Message);
+        }
+    }
+
+    /// <summary>
+    /// Leased call inside Arena's own SpawnGroupBots invocation: hand PFT the
+    /// completed natural result of the same raid and the same accounts so the
+    /// state machine continues synchronously to BotCreationData.Create. Skips
+    /// PFT's own re-fetch and its GameplayModeAddons.ConfirmSpawnSelection
+    /// side effect (the natural call already confirmed this selection). Every
+    /// other case runs PFT's own preflight and the lease diagnostics report it.
+    /// </summary>
+    private static bool LoadSavedSpawnSettingsPrefix(
+        IEnumerable<string> accounts,
+        ref Task __result)
+    {
+        FollowerSpawnLease lease = _spawnGroupInvocationLease;
+        if (lease == null)
+            return true;
+
+        try
+        {
+            string[] sorted = DistinctSortedAccounts(accounts);
+            lock (StateLock)
+            {
+                Task remembered = _servedPreflightTask;
+                if (sorted == null
+                    || remembered == null
+                    || remembered.Status != TaskStatus.RanToCompletion
+                    || !_loadSavedSpawnSettingsMethod.ReturnType.IsInstanceOfType(remembered)
+                    || _servedPreflightAccounts == null
+                    || !_servedPreflightAccounts.SequenceEqual(sorted, StringComparer.Ordinal)
+                    || !ReferenceEquals(_servedPreflightGame, lease.Game)
+                    || !ReferenceEquals(_servedPreflightWorld, lease.World)
+                    || !ReferenceEquals(_spawnLease, lease)
+                    || lease.Revoked)
+                {
+                    return true;
+                }
+
+                __result = remembered;
+            }
+            Plugin.ModLogger.LogDebug(
+                $"Arena served PFT's saved-spawn-settings preflight from the round-1 result for {sorted.Length} follower account(s).");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Plugin.ModLogger.LogDebug(
+                "Arena could not serve PFT's saved-spawn-settings preflight: " + ex.GetBaseException().Message);
+            return true;
+        }
+    }
+
+    private static string[] DistinctSortedAccounts(IEnumerable<string> accounts)
+    {
+        if (accounts == null)
+            return null;
+
+        string[] sorted = accounts.Distinct(StringComparer.Ordinal).ToArray();
+        Array.Sort(sorted, StringComparer.Ordinal);
+        return sorted;
+    }
+
+    private static void ClearServedPreflightUnsafe()
+    {
+        _servedPreflightTask = null;
+        _servedPreflightAccounts = null;
+        _servedPreflightGame = null;
+        _servedPreflightWorld = null;
     }
 
     private static void SpawnGroupBotsPostfix(
@@ -2151,8 +2346,13 @@ internal static class PitFireTeamRoundLifecycle
             if (state.Lease.BotCreationInvocation != null)
                 return string.Empty;
 
-            const string captureProblem =
+            string captureProblem =
                 "PFT SpawnGroupBots returned without the exact count-zero BotCreationData.Create lease";
+            if (_loadSavedSpawnSettingsMethod != null)
+            {
+                captureProblem +=
+                    "; PFT's saved-spawn-settings preflight (LoadSavedSpawnSettings) was not served synchronously from the completed round-1 result";
+            }
             if (ReferenceEquals(_spawnLease, state.Lease) && !state.Lease.Revoked)
                 FailUnsafe(captureProblem);
             return captureProblem;
@@ -4398,6 +4598,7 @@ internal static class PitFireTeamRoundLifecycle
     private static void FailUnsafe(string reason)
     {
         _stage = PitFireTeamRoundLifecycleStage.Failed;
+        ClearServedPreflightUnsafe();
         _diagnostic = string.IsNullOrWhiteSpace(reason)
             ? "PitFireTeam round lifecycle failed closed."
             : reason;
@@ -4447,6 +4648,7 @@ internal static class PitFireTeamRoundLifecycle
             HistoricalSpawnRecords.Clear();
         }
         _spawnLease = null;
+        ClearServedPreflightUnsafe();
     }
 
     private static void ClearContractUnsafe()
@@ -4485,6 +4687,8 @@ internal static class PitFireTeamRoundLifecycle
         _followerCreationTasksField = null;
         _createFollowerProfilesMethod = null;
         _spawnGroupBotsMethod = null;
+        _loadSavedSpawnSettingsMethod = null;
+        ClearServedPreflightUnsafe();
         _botCreationDataCreateMethod = null;
         _localGameCreateBotByProfileMethod = null;
         _localGameBotsField = null;

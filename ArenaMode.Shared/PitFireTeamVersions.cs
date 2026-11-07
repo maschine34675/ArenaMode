@@ -10,15 +10,18 @@ namespace ArenaMode.Shared;
 /// attempt the integration, but must still pass every reflected API and profile
 /// protection contract. Admission is not a compatibility certification.
 /// The previously reviewed 0.10.0 remains admitted; 0.10.1/0.10.2 were not reviewed.
+/// Reviewed baselines are 0.10.0, 0.10.3, 1.0.0 and 1.1.1; 1.1.0 was not reviewed and
+/// stays advisory like any other intervening build.
 /// </summary>
 public static class PitFireTeamVersions
 {
-    public static readonly string[] VerifiedPluginVersions = { "0.10.0", "0.10.3", "1.0.0" };
+    public static readonly string[] VerifiedPluginVersions = { "0.10.0", "0.10.3", "1.0.0", "1.1.1" };
     public static readonly Version[] VerifiedAssemblyVersions =
     {
         new Version(0, 10, 0, 0),
         new Version(0, 10, 3, 0),
-        new Version(1, 0, 0, 0)
+        new Version(1, 0, 0, 0),
+        new Version(1, 1, 1, 0)
     };
     public static readonly Version MinimumForwardVersion = new Version(0, 10, 3, 0);
     public static string Describe => "0.10.0 or 0.10.3+ (reviewed: " + string.Join(", ", VerifiedPluginVersions) + ")";
