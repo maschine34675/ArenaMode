@@ -64,6 +64,9 @@ function Get-InstalledSnapshot {
             }
         }
     }
+    # The server's client-settings.json is runtime state (written whenever a client uploads its settings,
+    # also on another installation that Syncthing mirrors back here), never part of the package: ignore it.
+    $files = @($files | Where-Object { $_ -notmatch '/config/client-settings[^/]*\.json$' })
     $state = [ordered]@{}
     foreach ($file in ($files | Sort-Object -Unique)) {
         $path = Join-Path $SptPath $file
