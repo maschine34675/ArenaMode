@@ -8,7 +8,15 @@ $ErrorActionPreference = 'Stop'
 
 $repo = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $installation = [System.IO.Path]::GetFullPath((Join-Path $repo '..\..'))
-$reference = [System.IO.Path]::GetFullPath((Join-Path $repo '..\_reference\SPT-PitFireTeam-main'))
+# The PitFireTeam reference tree: SPT-PitFireTeam-main when present, otherwise the newest
+# SPT-PitFireTeam-<version> folder (the reference is refreshed per PFT release, 1.1.0 since 2026-11-01).
+$referenceRoot = [System.IO.Path]::GetFullPath((Join-Path $repo '..\_reference'))
+$reference = Join-Path $referenceRoot 'SPT-PitFireTeam-main'
+if (-not [System.IO.Directory]::Exists($reference)) {
+    $candidate = Get-ChildItem -LiteralPath $referenceRoot -Directory -Filter 'SPT-PitFireTeam-*' -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    if ($candidate) { $reference = $candidate.FullName }
+}
 
 function Get-RequiredHash([string] $path) {
     if (-not [System.IO.File]::Exists($path)) {
