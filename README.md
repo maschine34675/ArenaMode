@@ -1,11 +1,11 @@
 # ArenaMode
 
-**0.4.1 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
+**0.5.0 for SPT 4.1.x** — fast arena matches against AI, with instant respawns,
 equipment kits and six modes. Select **ARENA** beside PMC and Scav. Single-player;
 **Fika is not supported**.
 
-[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.4.1) ·
-[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.4.1.md) ·
+[Download](https://github.com/maschine34675/ArenaMode/releases/tag/v0.5.0) ·
+[Changelog](CHANGELOG.md) · [Release notes](docs/RELEASE-0.5.0.md) ·
 [Full feature inventory](docs/FEATURES.md)
 
 ## Modes
@@ -13,7 +13,7 @@ equipment kits and six modes. Select **ARENA** beside PMC and Scav. Single-playe
 | Mode | Play |
 |---|---|
 | **Team DM** | USEC vs BEAR, continuous respawns and team kill/time limits. Default for new installations. |
-| **Domination (WIP)** | Capture and hold control points. Separate point/time limits, continuous team respawns and bot capture/defence assignments. Requires BigBrain and the bundled Arena companion. |
+| **Domination** | Capture and hold control points. Separate point/time limits, continuous team respawns and bot capture/defence assignments. Requires BigBrain and the bundled Arena companion. |
 | **Gun Game** | Each kill advances your weapon; the ladder repeats after its final stage. Losing a stage on death is optional. |
 | **Deathmatch** | Free-for-all or all bots against you, optional kill/time limits, finite or unlimited rounds. |
 | **Tactical (WIP)** | Elimination rounds with a kit buy phase. Optional PitFireTeam squad play with 1–4 companions. |
@@ -27,15 +27,14 @@ follow your selection; your saved PMC faction stays unchanged.
 - Factory day/night, Labs, Labyrinth and three bounded Customs areas support
   Gun Game, Deathmatch, Team DM, Tactical and Zombies.
 - [ArenaMapPort](https://github.com/maschine34675/ArenaMapPort/releases/latest)
-  adds Equator, Bay5, Air Pit and Bowl. It requires your own supported Arena
+  adds Equator, Bay5, Air Pit, Bowl and Iceberg. It requires your own supported Arena
   installation. Equator excludes Tactical and PitFireTeam Zombies. Team DM and
-  Domination score/timer monitors need ArenaMapPort 0.4.0 or newer (published
-  2026-10-30); 0.3.0 works without monitors.
-- Iceberg (in development, not released): needs an ArenaMapPort build that
-  ships `arena_iceberg`. Today that is only the unreleased `feature/iceberg` build
-  0.4.0+32fda33; the published 0.4.0 has no Iceberg, and without it Arena does
+  Domination score/timer monitors need ArenaMapPort 0.4.0 or newer; 0.3.0 works
+  without monitors.
+- Iceberg needs **ArenaMapPort 0.5.0** (published 2026-11-07); with 0.4.0 Arena does
   not offer the map. Iceberg excludes Tactical (solo and PitFireTeam); its Team
-  DM and Domination use the original USEC west / BEAR east pockets.
+  DM and Domination use the original USEC west / BEAR east pockets. The crowd
+  reactions on ArenaMapPort maps need 0.5.0 as well.
 - Domination supports Factory day/night and all five ported maps. Factory picks
   three separated points each match; Equator/Bay5 use one original point each,
   Air Pit/Bowl two and Iceberg three (A/B/C). Labs, Labyrinth and Customs do not
@@ -63,10 +62,10 @@ match HUD and session indicators stay within their own Arena contexts.
 ## Install or update
 
 1. Close EFT and SPT. Back up your profile and customized Arena files.
-2. Extract **ArenaMode-0.4.1.zip** into the SPT installation root, merging
+2. Extract **ArenaMode-0.5.0.zip** into the SPT installation root, merging
    `BepInEx/` and `SPT_Runtime/`.
-3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.18**. This shared
-   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.1
+3. Keep one copy of each Arena DLL and **Redeploy.Core 1.0.20**. This shared
+   library is included; the standalone Redeploy mod is optional. Redeploy 1.1.2
    ships the same Core. Never replace a newer Core with an older copy.
 4. Start SPT and EFT, then select **ARENA**, or use the direct start below.
 

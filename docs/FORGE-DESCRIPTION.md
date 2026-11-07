@@ -1,4 +1,4 @@
-<!-- ArenaMode description draft of 0.4.1 (Redeploy.Core 1.0.18, identical to the copy in Redeploy 1.1.1). Post it only together with the 0.4.1 package. -->
+<!-- ArenaMode description draft of 0.5.0 (Redeploy.Core 1.0.20, identical to the copy in Redeploy 1.1.2). Post it only together with the 0.5.0 package. -->
 ## {.tabset}
 
 ### Overview
@@ -6,7 +6,7 @@
 ArenaMode adds arena matches against AI to SPT 4.1. Select **ARENA** next to PMC
 and Scav, then choose a mode, map, equipment and mutators in the raid setup menu.
 
-- Six modes: Team DM (the default for new installations), Domination (WIP), Gun Game,
+- Six modes: Team DM (the default for new installations), Domination, Gun Game,
   Deathmatch, Tactical (WIP) and Zombies (WIP).
 - Respawns or round/wave-based survival, depending on the mode.
 - Arena kits, a weapon ladder and mode-specific own-gear options.
@@ -33,9 +33,9 @@ profile before playing, particularly when combining mods.
   per-round kill/time limit, or continuous play without limits.
 - **Team DM:** USEC against BEAR (choose your side), with respawns and team
   kill/time limits. Default mode for new installations. Does not require PitFireTeam.
-- **Domination (WIP):** capture and hold control points for team score, with
+- **Domination:** capture and hold control points for team score, with
   continuous team respawns, bot capture/defence assignments and separate score/time
-  limits (200 points / ten minutes by default). Factory varies three points each
+  limits (300 points / ten minutes by default). Factory varies three points each
   match; Equator and Bay5 use one original point, Air Pit and Bowl two. **Requires
   BigBrain 1.5.0 or newer** (separate download) and has no profile rewards.
 - **Tactical (WIP):** round-based elimination. Solo defaults to 1v5 with a kit
@@ -59,7 +59,7 @@ Population and starting equipment can be changed in the menu.
   areas are available, in every mode except Domination.
 - With ArenaMapPort: Bay5, Air Pit and Bowl in all modes; Equator in Gun Game, Deathmatch,
   Team DM, Domination and solo Zombies. Equator does not support Tactical or PFT Zombies.
-- Domination is offered on Factory day/night and the four ArenaMapPort maps, not on
+- Domination is offered on Factory day/night and the five ArenaMapPort maps, not on
   Labs, Labyrinth or Customs.
 - Select participant totals in Deathmatch/Gun Game and team sizes in Team DM,
   within the chosen map/area's limits.
@@ -70,6 +70,8 @@ Population and starting equipment can be changed in the menu.
 - The wall score/timer monitors in Team DM and Domination need **ArenaMapPort 0.4.0
   or newer** (published 2026-10-30). ArenaMapPort 0.3.0 still works without
   monitors and only produces a version advisory.
+- Iceberg (Gun Game, Deathmatch, Team DM, PitFireTeam Zombies and Domination; no
+  Tactical) and the crowd reactions need **ArenaMapPort 0.5.0** (published 2026-11-07).
 
 #### Mutators
 
@@ -124,8 +126,8 @@ the post-raid XP page skipped.
 - To start without opening normal EFT, run the installed Session.exe and choose a
   profile; its picker can create a desktop shortcut. A short normal-server start and
   stop before the private server is expected, even with rewards off.
-- Use the supplied `maschine-Redeploy.Core.dll` (Core 1.0.18, identical to the copy
-  in Redeploy 1.1.1); keep only one copy,
+- Use the supplied `maschine-Redeploy.Core.dll` (Core 1.0.20, identical to the copy
+  in Redeploy 1.1.2); keep only one copy,
   directly in `BepInEx/plugins/`.
   Arena requires at least the version its client was built against and disables itself before initialization
   if Core is missing, unreadable or older. Restart after correcting the files.
@@ -163,7 +165,7 @@ Tarkova Cola, Accurate Circular Radar, Simple Crosshair and Better BepInEx, and
 since 0.4.0 Use Items Anywhere 2.1.6, ImpactCue 2.0.3 (client
 and Web Config server), Enemy Markers 1.4.0, Fast Grenade Throw 2.0.0,
 Manimal's Quick Cancel 2.0.0, HUD Breakout 1.2.0 and PiP Disabler 2.1.0, plus
-ArenaMapPort 0.4.0 and the standalone Redeploy mod.
+ArenaMapPort 0.5.0, PitFireTeam 1.1.1 and the standalone Redeploy 1.1.2.
 It denies ORBIT, Questing Bots,
 Adaptive Bot Culling, ISB Special Forces and Aishi. SPT's own plugins and ArenaMode are
 always allowed; a version that differs from the reviewed one only produces a warning.
@@ -222,8 +224,9 @@ Optional integration targets:
 - **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** required for Domination; also used for pickup pursuit and Molotov. Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain (only Domination is then locked). Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
-- **ArenaMapPort:** Bay5, Equator, Air Pit and Bowl, with client/server and map assets.
-  Score/timer monitors need 0.4.0 or newer (published 2026-10-30); 0.3.0 works without them.
+- **ArenaMapPort:** Bay5, Equator, Air Pit, Bowl and Iceberg, with client/server and map assets.
+  Iceberg and the crowd reactions need 0.5.0 (published 2026-11-07); score/timer monitors need
+  0.4.0 or newer; 0.3.0 works without them.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
 - **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
@@ -275,7 +278,7 @@ Optional integration targets:
   camera/Akimbo matrix remains untested.
 
 The Recoil Rework Legacy, Continuous Load Ammo and Continuous Healing body-replacement fixes
-are provided by the bundled Redeploy.Core (1.0.18; they also apply to standalone Redeploy);
+are provided by the bundled Redeploy.Core (1.0.20; they also apply to standalone Redeploy);
 Arena keeps only its medical fallback for Arena bots.
 
 The newer targets (Fast Grenade Throw, Quick Cancel, HUD Breakout and PiP Disabler)
@@ -341,6 +344,8 @@ reward choice is kept.
 
 ### Notes and credits
 
+- ArenaMapPort 0.5.0 (Iceberg, the crowd reactions and their roar layer) was published on
+  2026-11-07.
 - ArenaMapPort 0.4.0 (score/timer monitors, documented map limits such as missing
   Books impact sounds and an unresolved intermittent audio noise) was published on
   2026-10-30; 0.3.0 works without monitors.

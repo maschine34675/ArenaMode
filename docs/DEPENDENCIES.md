@@ -12,7 +12,7 @@ for every feature.
 |---|---|
 | SPT 4.1.x | Including the BepInEx/client components supplied with SPT. Current GPU checks used SPT 4.1.6. |
 | ArenaMode client and server | Both components and their required data/assets belong in the package. |
-| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.4.1 bundles/requires **1.0.18**, shared byte-for-byte with Redeploy 1.1.1; the current source requires **1.0.19** (unreleased, see below). Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
+| `maschine-Redeploy.Core.dll` | Direct runtime dependency. ArenaMode 0.5.0 bundles/requires **1.0.20**, shared byte-for-byte with Redeploy 1.1.2 (see below). Older releases used their own earlier Core versions. Shared optional-mod body replacement protection arrived in 1.0.9. Ship the exact Core built and verified for the Arena package, keeping one copy. This is a library, not the complete Redeploy mod. |
 
 The main client declares SPT Core, PFT, SAIN, BigBrain, DynamicMaps, Continuous
 Healing, Continuous Load Ammo and Recoil Rework Legacy as soft load-order dependencies.
@@ -22,16 +22,17 @@ their body-replacement fixes are implemented there for both Arena and standalone
 Redeploy. Published Arena 0.2.1's older bundle does not include these additions.
 Magazine Check Interrupt's floating-panel correction additionally requires
 **Core 1.0.12**; Radar and Simple Crosshair handovers require **Core 1.0.13**.
-The 0.4.1 package requires **Core 1.0.18**. Core 1.0.14 added ImpactCue and
+The 0.5.0 package requires **Core 1.0.20**. Core 1.0.14 added ImpactCue and
 Enemy Markers handovers; 1.0.15 added Quick Cancel, PiP Disabler and the bounded
 Amand camera correction. Core 1.0.16/1.0.17 also support Redeploy's own-Scav
 continuation, and 1.0.18 hands Recoil Rework Legacy and FOV Fix over to that
-Scav body; Arena respawns behave as with 1.0.17. The current source (branch
-`fix/map-screen-admission`, 2026-10-31, unreleased) requires **Core 1.0.19**: optional-mod
-adapters of absent mods no longer unpatch on every admission check
-([map-screen admission](reviews/MAP-MENU-ADMISSION-20261031.md)); a client built from it
-refuses Core 1.0.18, so the two ship together. Core keeps its independent
-version line; the public Redeploy client/server release is 1.1.1. Keep one copy of the shared library.
+Scav body; Arena respawns behave as with 1.0.17. Core 1.0.19 made the optional-mod
+adapters of absent mods stop unpatching on every admission check
+([map-screen admission](reviews/MAP-MENU-ADMISSION-20261031.md)), and 1.0.20 adds the
+Raid Review 1.10.0, HollywoodFX 3.0.0 and Hands Are Not Busy 1.7.1 handovers (validated
+offline only); a client built from this source refuses Core 1.0.19 or older, so ArenaMode
+0.5.0 and Redeploy 1.1.2 ship together. Core keeps its independent version line; the
+public Redeploy client/server release is 1.1.2. Keep one copy of the shared library.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -62,8 +63,9 @@ UiBridge, ModProfiler, LogTools and ConsoleToMonitor (each with the version it w
 differing recognized version remains advisory in direct play and new private
 sessions). Versions are still attempted, including UIFixes; actual identity,
 dependency and protection/API requirements remain mandatory. The list records
-ArenaMapPort 0.4.0 (published 2026-10-30; 0.3.0 still works, without score monitors,
-and shows a version advisory) and Redeploy 1.1.1 on both sides. User policy is preserved.
+ArenaMapPort 0.5.0 (published 2026-11-07; 0.4.0 still works without Iceberg and the crowd
+reactions, 0.3.0 also without score monitors, each with a version advisory), PitFireTeam
+1.1.1 and Redeploy 1.1.2 on both sides. User policy is preserved.
 Its deny list holds the five mods ArenaMode refused by code before the
 whitelist existed: ORBIT, Questing Bots, Adaptive Bot Culling, ISB Special Forces and Aishi; that code
 was removed on 2026-10-22, so the deny list alone refuses them. They are never loaded in an Arena
@@ -93,10 +95,10 @@ and is therefore also admitted if installed, but was not part of those checks. S
 |---|---|---|
 | SAIN | 4.5.1 or newer; reviewed at that version, newer versions warn | Personalities, search speed, movement and lifecycle safeguards. Native AI is used without SAIN. |
 | BigBrain + ArenaMode.BigBrainCompat | 1.5.0 or newer; tested at that version, newer versions warn and undergo runtime checks | Domination (required: without BigBrain and the companion only Domination is locked), directed pickup pursuit, pursuit after the player's death and escape from fire. Without the Arena companion library, directed pickup control and Molotov fire are unavailable; the private Molotov item stays harmless and normal grenades remain unchanged. Pickups themselves remain usable. BigBrain is also a separate prerequisite of SAIN/PFT. |
-| PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0. Current whitelist review: 1.0.0. Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator remains excluded from both PFT variants; Iceberg from PFT Tactical (PFT Zombies is admitted). |
+| PitFireTeam, client and server | 0.10.0 or 0.10.3 and newer; reviewed adapter baselines: 0.10.0, 0.10.3, 1.0.0, 1.1.1 (1.1.x binds three more members, gated on the installed version: the served spawn-settings preflight, the six-argument kill report, two stop resets; see [the 1.1.1 review](reviews/PITFIRETEAM-111-20261107.md)). Current whitelist review: 1.1.1. Other admitted builds warn; 0.10.1/0.10.2 remain excluded | 1–4 invited companions for Tactical (still against five enemies) and PFT Zombies. Solo and independent Team DM do not require PFT. Equator remains excluded from both PFT variants; Iceberg from PFT Tactical (PFT Zombies is admitted). |
 | APBS | Metadata version 2.4.1 or newer; reviewed at that version, newer versions warn | Bot equipment/progression. Without APBS, native SPT generation is used; a missing/old version or invalid API contract leaves APBS's own level selection in place with a warning. |
-| ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer; Iceberg requires a build that ships `arena_iceberg` (today only the unreleased `feature/iceberg` build 0.4.0+32fda33; the published 0.4.0 has none and carries the same version string, so Arena detects Iceberg by the live location, never by version) | Bay5, Equator, Air Pit, Bowl and Iceberg. Independent Team DM and Domination use their team starts; Bowl supports 2v2–10v10 from its east/west boxes, Iceberg 2v2–10v10 from its USEC west / BEAR east pockets. Iceberg excludes Tactical. Other Bowl and Iceberg modes use generic spawns. Without a build that ships Iceberg, Arena simply does not offer it. Not required for ordinary SPT maps. |
-| ArenaMapPort SpectatorCrowd contract (client) | Contract version 1, optional, bound by exact signatures in two independent parts: the murmur intensity (`SetExcitement`, published in 0.4.0) and the crowd reactions (`ReactionKinds`, `ClaimReactions`, `React`, `ReleaseReactions`; phase A of ArenaMapPort's plan, implemented in ArenaMapPort `d70acd2` on `feature/iceberg`, not released yet, planned with its next release; kinds 1 to 5, mask 62, Lull 6 and PurifiedTeam 7 reserved; owners up to 64 characters, ArenaMode's 40 pass unchanged) | F12 Audio `CrowdReactions`. With 0.4.0 only the murmur follows the match; reactions start with the ArenaMapPort release that ships phase A, without an ArenaMode change. Absent members are an older ArenaMapPort (silent), changed members switch their part off with one warning. A refused `React` (also MapPort's withdrawal of the kinds mid-match through its developer key `Spectators/Reactions`) ends the reactions for that match; the next match claims anew. Nothing in a match depends on it. ArenaMapPort's roar layer (`e3e4290`, 2026-11-07: each played reaction roars one of Arena's Cheer beds for Approve, Start and Finish or an Angry bed for Disapprove from every stand, the other kind cut in 0.5 s; contract unchanged) is why ArenaMode sends one mood per flush and holds a 1 s mood window. Offline check against the installed client: the real-surface stage of `tools/CrowdReactionChecks`, which fails without a phase A client and reports whether the roar layer is present. See [the contract](reviews/CROWD-REACTIONS-20261102.md). |
+| ArenaMapPort, client/server/map assets | The optional map must be present and enabled on both client and server; Air Pit Team DM requires the team starts from 0.2.2 or newer; Iceberg requires ArenaMapPort 0.5.0 (published 2026-11-07; 0.4.0 has none, and Arena detects Iceberg by the live location, never by version) | Bay5, Equator, Air Pit, Bowl and Iceberg. Independent Team DM and Domination use their team starts; Bowl supports 2v2–10v10 from its east/west boxes, Iceberg 2v2–10v10 from its USEC west / BEAR east pockets. Iceberg excludes Tactical. Other Bowl and Iceberg modes use generic spawns. Without a build that ships Iceberg, Arena simply does not offer it. Not required for ordinary SPT maps. |
+| ArenaMapPort SpectatorCrowd contract (client) | Contract version 1, optional, bound by exact signatures in two independent parts: the murmur intensity (`SetExcitement`, published in 0.4.0) and the crowd reactions (`ReactionKinds`, `ClaimReactions`, `React`, `ReleaseReactions`; phase A of ArenaMapPort's plan, published in ArenaMapPort 0.5.0 on 2026-11-07 together with the roar layer; kinds 1 to 5, mask 62, Lull 6 and PurifiedTeam 7 reserved; owners up to 64 characters, ArenaMode's 40 pass unchanged) | F12 Audio `CrowdReactions`. With 0.4.0 only the murmur follows the match; 0.5.0 plays the reactions and the roar. Absent members are an older ArenaMapPort (silent), changed members switch their part off with one warning. A refused `React` (also MapPort's withdrawal of the kinds mid-match through its developer key `Spectators/Reactions`) ends the reactions for that match; the next match claims anew. Nothing in a match depends on it. ArenaMapPort's roar layer (`e3e4290`, 2026-11-07: each played reaction roars one of Arena's Cheer beds for Approve, Start and Finish or an Angry bed for Disapprove from every stand, the other kind cut in 0.5 s; contract unchanged) is why ArenaMode sends one mood per flush and holds a 1 s mood window. Offline check against the installed client: the real-surface stage of `tools/CrowdReactionChecks`, which fails without a phase A client and reports whether the roar layer is present. See [the contract](reviews/CROWD-REACTIONS-20261102.md). |
 | Killcam | Current integration target: 1.0.0; API checks rather than a fixed version allowlist | Actual killcam replays; DeathReplay must be enabled. The former KillcamReplay plugin is not accepted. Arena's subsequent team-spectating mode is separate Arena code. |
 | DynamicMaps | 1.2.1 or newer; reviewed at that version, newer versions warn | Minimaps and corpse-marker cleanup. Arena's static map previews work without DynamicMaps. |
 | Waypoints | No direct Arena dependency; coexistence observed with 1.9.0 | Independent navigation/spawn-display features; do not list it as mandatory for Arena merely because it is part of a common AI-mod setup. |
@@ -317,9 +319,9 @@ the asset notices. Readable documents are under
 `BepInEx/plugins/maschine-ArenaMode/docs/`, with UI provenance under `docs/licenses/ui/`.
 Building from source requires the adjacent public
 [Redeploy repository](https://github.com/maschine34675/Redeploy); its exact source
-revision is recorded in the package manifest. ArenaMode 0.4.1 bundles Core
-1.0.18, identical to the library in Redeploy 1.1.1. See
-[release notes](RELEASE-0.4.1.md) and [native coverage](reports/2026-10/RELEASE-SWEEP-20261029.md).
+revision is recorded in the package manifest. ArenaMode 0.5.0 bundles Core
+1.0.20, identical to the library in Redeploy 1.1.2. See
+[release notes](RELEASE-0.5.0.md) and [native coverage](reports/2026-10/RELEASE-SWEEP-20261029.md).
 
 The 18 previously extracted EFT Arena UI graphics have been replaced in the
 current source by eight generated realistic weapon-category images, six original

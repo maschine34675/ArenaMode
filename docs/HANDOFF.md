@@ -12,6 +12,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **0.5.0 prepared (2026-11-07 late evening; release commit on `master`, not tagged, not
+  pushed):** version 0.5.0 in the five version sites, shared **Core 1.0.20** from Redeploy's
+  release commit `3b68193` (Redeploy 1.1.2, prepared the same evening, its package
+  `Redeploy-1.1.2.zip` built from that commit), the whitelist at ArenaMapPort 0.5.0 (published
+  2026-11-07), Redeploy 1.1.2 and PitFireTeam 1.1.1, the PitFireTeam 1.1.1 adaptation
+  ([review](reviews/PITFIRETEAM-111-20261107.md), see Open work), Domination without the WIP
+  mark and with a 300-point default, [RELEASE-0.5.0.md](RELEASE-0.5.0.md) with its native-check
+  and package sections still pending. Verified offline on the release state: xunit 3,700
+  passed / 3 expected skips, PitFireTeamChecks 407, DominationPolicyChecks 21,596,
+  DominationAdmissionChecks, PftTacticalKitChecks, ArenaSessionClientChecks (174 mutants),
+  DeployLayoutChecks, ArenaGateChecks. The order from here: package from the release commit
+  (`tools/Package-TestRelease.ps1 -Release -CoreAssemblyPath <the Core of Redeploy-1.1.2.zip>
+  -CoreAssemblySha256 150851f5…`, Redeploy checked out at `3b68193`), install the package
+  binaries on D:\SPT41 (Syncthing carries them), one GPU-2 cycle (Redeploy respawn, Team DM on
+  Iceberg with the crowd, Domination, PitFireTeam Tactical over three rounds), then the record
+  commit with hashes, VirusTotal and the native check. The tag belongs on the release commit
+  and is the user's, as is the push.
 - **Branches (2026-11-07 evening):** `master` holds everything that was open: the crowd
   reactions (`feature/crowd-reactions`, merge `28b92a40`), the reward startup order fix, the
   session save diagnostics (`codex/session-save-diagnostics-20261105`, fast-forwarded), the
@@ -70,6 +87,24 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   and the reports that linked it keep only their summaries.
 
 ## Open work
+
+**PitFireTeam 1.1.1 (2026-11-07, in the 0.5.0 release commit):** every member the adapter
+reflects on is unchanged, but 1.1.1's `SpawnGroupBots` awaits a thread-pool preflight
+(`LoadSavedSpawnSettings`, `/client/game/bot/followerdetails`) before `BotCreationData.Create`,
+so Arena's leased follower respawn of rounds 2+ (Tactical, Zombies) returned an incomplete task
+before `Create` and failed the lease. Arena now remembers the completed natural round-1 preflight
+task (gated on the report guard's arming predicate, the first completed result of a raid stays)
+and serves it inside its leased call so the state machine reaches `Create` synchronously; the
+kill-report guard also patches the six-argument `SendKillReport`, the stop-cleanup fallback
+mirrors `CompanionRaidPreparation.Reset` and `FollowerRaidHealthRetention.Clear`, and 1.1.1 is a
+reviewed baseline. All of it is gated on an installed assembly of 1.1.0 or newer; builds below
+bind byte for byte as before. `PitFireTeamChecks` pins the source (gate, prefix conditions,
+postfix assignments, mutants) and the installed metadata (skipped below 1.1.0); the served
+preflight itself is proven only natively (GPU-2 Tactical, three rounds, in the 0.5.0 cycle).
+Known limit: a companion wounded in a normal raid is refused by 1.1.1 at the Arena start; the
+player heals it in PFT's menu. `PitFireTeam100Checks` (1.0.0 release folder) and
+`PitFireTeamRoundLifecycleChecks` (0.10.0 reference checkout) need folders this machine lacks.
+Contract and findings: [PITFIRETEAM-111-20261107.md](reviews/PITFIRETEAM-111-20261107.md).
 
 **Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
 `65007e74`, merged into `master` on 2026-11-07 evening and the branch deleted; its build

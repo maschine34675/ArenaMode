@@ -1,7 +1,8 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-10-29** for **0.4.1**, including Domination,
-direct session start, profile recovery and the current compatibility additions.
+Source inventory updated **2026-11-07** for **0.5.0**, including Iceberg, the crowd
+reactions, Domination, direct session start, profile recovery and the current
+compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
 a list of future plans or a claim that every combination has passed a recent
 in-game test. Defaults below are code defaults; existing saved settings can
@@ -36,7 +37,7 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   not a promise of the exact randomly drawn kit. The redundant map-screen avatar
   is hidden. Preview lifetime handling avoids the earlier model jitter and
   leftover equipment appearing in later inventory previews.
-- Playable modes: **Gun Game, Deathmatch, Team DM, Domination (WIP),
+- Playable modes: **Gun Game, Deathmatch, Team DM, Domination,
   Tactical (WIP), Zombies (WIP)**. New installations default to Team DM;
   existing choices are preserved. Short descriptions keep stable vertical
   alignment; details and mutator help use tooltips. Capture the Flag remains
@@ -100,7 +101,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   Round changes can reissue equipment or only heal in place, depending on the
   advanced round-respawn preference.
 
-### Domination (WIP)
+### Domination
 
 - USEC/BEAR teams capture and hold points; kills do not replace objective score.
   Players respawn continuously and bots receive capture/defend assignments while
@@ -109,7 +110,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   separated by at least 12 horizontal metres. Equator and Bay5 use one original
   anchor each; Air Pit and Bowl use two, Iceberg three (A/B/C, the authored trigger
   centres). Other maps do not offer this mode.
-- Separate score/time controls default to 200 points and ten minutes. Either
+- Separate score/time controls default to 300 points and ten minutes. Either
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
   ownership rings and one integrated score/objective HUD. Ported-map monitors
@@ -539,7 +540,7 @@ Sources: [score rules](../ArenaMode.Client/Combat/ScoreRules.cs),
   than the single-hit lethal HEADSHOT announcement.
 - Loading/retry handling for announcements across matches, rather than requiring
   a full restart after a recoverable missing-clip load.
-- **Crowd reactions (ArenaMapPort maps, run on GPU-2, not yet heard):** F12 Audio
+- **Crowd reactions (ArenaMapPort maps, run on GPU-2, heard by the author on 2026-11-07):** F12 Audio
   `CrowdReactions`, default on, frozen at arm, off in Zombies. With ArenaMapPort 0.4.0 the
   spectator murmur gets louder in the final round, at match point and in the last minute or
   five kills. The reactions (own kills, awards, lead changes, own deaths, round start and

@@ -363,9 +363,9 @@ public sealed class ArenaWhitelistTests
             ("com.acidphantasm.botplacementsystem", "ABPS", ArenaWhitelistTier.Mod, "2.1.0", "2.1.0"),
             ("xyz.drakia.bigbrain", "BigBrain", ArenaWhitelistTier.Mod, "1.5.0", null),
             ("xyz.drakia.waypoints", "Waypoints", ArenaWhitelistTier.Mod, "1.9.0", null),
-            ("com.maschine.ArenaMapPort", "ArenaMapPort", ArenaWhitelistTier.Mod, "0.4.0", "0.4.0"),
+            ("com.maschine.ArenaMapPort", "ArenaMapPort", ArenaWhitelistTier.Mod, "0.5.0", "0.5.0"),
             ("com.maschine.Killcam", "Killcam", ArenaWhitelistTier.Mod, "1.0.1", null),
-            ("com.maschine.Redeploy", "Redeploy", ArenaWhitelistTier.Mod, "1.1.1", "1.1.1"),
+            ("com.maschine.Redeploy", "Redeploy", ArenaWhitelistTier.Mod, "1.1.2", "1.1.2"),
             ("com.maschine.AutoCorpseSearch", "AutoCorpseSearch", ArenaWhitelistTier.Mod, "2.2.0", null),
             ("com.maschine.DefaultAutoFireMode", "DefaultAutoFireMode", ArenaWhitelistTier.Mod, "2.0.0", null),
             ("com.maschine.DualSideDoorBreach", "DualSideDoorBreach", ArenaWhitelistTier.Mod, "2.0.2", null),
@@ -375,7 +375,7 @@ public sealed class ArenaWhitelistTests
             ("com.maschine.StashFilter", "StashFilter", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.SurroundAudio", "SurroundAudio", ArenaWhitelistTier.Mod, "1.0.0", null),
             ("com.maschine.UnloadAllMagazines", "UnloadAllMagazines", ArenaWhitelistTier.Mod, "2.2.1", null),
-            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.0.0", "1.0.0"),
+            ("xyz.pit.fireteam", "PitFireTeam", ArenaWhitelistTier.Mod, "1.1.1", "1.1.1"),
             ("com.mpstark.dynamicmaps", "DynamicMaps", ArenaWhitelistTier.Mod, "1.2.1", "1.2.1"),
             ("com.tyfon.uifixes", "UIFixes", ArenaWhitelistTier.Mod, "6.0.3", "6.0.3"),
             ("com.wtt.commonlib", "WTT-CommonLib", ArenaWhitelistTier.Mod, "3.0.6", "3.0.6"),
@@ -437,10 +437,11 @@ public sealed class ArenaWhitelistTests
     }
 
     [Theory]
-    [InlineData("1.0.0", false)]
-    [InlineData("1.0.0.0", false)]
-    [InlineData("1.0.0.1", true)]
-    [InlineData("1.0.1", true)]
+    [InlineData("1.1.1", false)]
+    [InlineData("1.1.1.0", false)]
+    [InlineData("1.1.1.1", true)]
+    [InlineData("1.1.2", true)]
+    [InlineData("1.0.0", true)]
     public void ShippedPftReviewControlsBothNotesAndVersionFilteredSessions(string version, bool differs)
     {
         const string guid = "xyz.pit.fireteam";

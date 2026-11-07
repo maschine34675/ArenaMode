@@ -8,15 +8,50 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## Unreleased
+## [0.5.0] - 2026-11-07
 
-Iceberg requires an ArenaMapPort build that ships `arena_iceberg`; ArenaMapPort has not
-published one yet (the published 0.4.0 has no Iceberg). Without it the map is not offered.
+Iceberg and the crowd reactions need **ArenaMapPort 0.5.0** (published 2026-11-07); with
+0.4.0 the map is not offered and only the crowd murmur follows the match. The package
+bundles shared **Core 1.0.20**, identical to the Core in Redeploy 1.1.2.
 
-- Failed session switches now report whether disk readback differs from RAM,
-  RAM changed during readback, or both, plus a profile alias, up to three safe
-  section labels and the final resume permission. One warning per failed attempt;
-  no profile contents or extra success logging. Save protection is unchanged.
+### Maps
+
+- Added optional **Iceberg** support through ArenaMapPort in Gun Game, Deathmatch,
+  Team DM and solo and PitFireTeam Zombies, with the gold map label, lighting and pickup
+  placement and eight participants by default. Tactical (solo and PitFireTeam) is not
+  offered on Iceberg: its centre leaves too few distant bot spawn points for five
+  opponents. Existing custom map allowlists are preserved; the exact previous default
+  list gains Iceberg once. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md)
+- Team DM on Iceberg uses the original USEC west / BEAR east pockets for 2v2–10v10;
+  combat waits for the spawn gates to open, and the gates stay open for respawns.
+  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#team-boxes-commit-b)
+- Domination on Iceberg with three original points (A/B/C) in the same pockets.
+  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#domination-commit-c)
+- Documentation for the Iceberg integration, its migration and its native-test
+  boundary. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#not-claimed)
+
+### Domination
+
+- Domination leaves WIP: the mode row reads DOMINATION, and the default score limit is
+  300 points instead of 200 (an existing F12 value is kept; the row's choices are
+  unchanged). The default time limit stays ten minutes.
+
+### Crowd
+
+- Added an optional link to the spectator crowd of ArenaMapPort maps (F12 Audio,
+  **Crowd Reactions (ArenaMapPort Maps)**, default on, frozen when the raid is armed; not in
+  Zombies). The crowd murmur gets louder in the final round, at match point and in the last
+  minute or the last five kills; this works with ArenaMapPort 0.4.0. With **ArenaMapPort
+  0.5.0** the crowd also cheers your kills, awards and leads, jeers your deaths, groans at a
+  lost lead and calls round starts and results, and every reaction makes the whole crowd roar
+  or boo from all stands; a later ArenaMapPort can also let it complain when a match goes a
+  minute without a kill. Because of that roar, a kill and a death in the same moment (within
+  a second) give one reaction, the stronger. No game rules, scores or profiles change. Run in
+  the game on 2026-11-02 and 2026-11-07 and heard by the author.
+  [Details](docs/reviews/CROWD-REACTIONS-20261102.md)
+
+### Rewards and sessions
+
 - Fixed profile rewards being switched off at every server start, without naming a
   cause, when another server mod's startup step also used `OnLoadOrder.Watermark + 1`
   (BetterFlea 2.4.1 and 2.5.0 do, for a step that only snapshots the item table).
@@ -31,37 +66,37 @@ published one yet (the published 0.4.0 has no Iceberg). Without it the map is no
   Arena session's card shows the reason instead of the round trip. Reported in
   [maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1).
   [Details](docs/reviews/REWARD-STARTUP-ORDER-20261105.md)
-- Added optional **Iceberg** support through ArenaMapPort in Gun Game, Deathmatch,
-  Team DM and solo and PitFireTeam Zombies, with the gold map label, lighting and pickup
-  placement and eight participants by default. Tactical (solo and PitFireTeam) is not
-  offered on Iceberg: its centre leaves too few distant bot spawn points for five
-  opponents. Existing custom map allowlists are preserved; the exact previous default
-  list gains Iceberg once. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md)
-- Team DM on Iceberg uses the original USEC west / BEAR east pockets for 2v2–10v10;
-  combat waits for the spawn gates to open, and the gates stay open for respawns.
-  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#team-boxes-commit-b)
-- Domination on Iceberg with three original points (A/B/C) in the same pockets.
-  [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#domination-commit-c)
-- Documentation for the Iceberg integration, its migration and its native-test
-  boundary. [Details](docs/reviews/ICEBERG-INTEGRATION-20261031.md#not-claimed)
+- Failed session switches now report whether disk readback differs from RAM,
+  RAM changed during readback, or both, plus a profile alias, up to three safe
+  section labels and the final resume permission. One warning per failed attempt;
+  no profile contents or extra success logging. Save protection is unchanged.
+
+### Compatibility
+
 - Fixed the Arena map screen stuttering: it dropped to about 48 FPS with one long frame
   every 0.2 s, because each refresh checked optional-mod compatibility four times and
   every check of a mod that is not installed rescanned all patched game methods. The
   screen now checks once per refresh, the adapters of absent mods no longer rescan, and
-  clicks, the claim and the raid start still check fresh. **Requires Redeploy.Core
-  1.0.19**; an ArenaMode built from this source refuses Core 1.0.18. Not yet measured in
-  the game. [Details](docs/reviews/MAP-MENU-ADMISSION-20261031.md)
-- Added an optional link to the spectator crowd of ArenaMapPort maps (F12 Audio,
-  **Crowd Reactions (ArenaMapPort Maps)**, default on, frozen when the raid is armed; not in
-  Zombies). The crowd murmur gets louder in the final round, at match point and in the last
-  minute or the last five kills; this works with ArenaMapPort 0.4.0. The crowd will also
-  cheer your kills, awards and leads, jeer your deaths, groan at a lost lead and call round
-  starts and results once an ArenaMapPort with crowd reactions is released; a later
-  ArenaMapPort can also let it complain when a match goes a minute without a kill. With 0.4.0
-  that part stays off. Because that ArenaMapPort makes the whole crowd roar or boo with each
-  reaction, a kill and a death in the same moment (within a second) give one reaction, the
-  stronger. No game rules, scores or profiles change. Run in the game, not yet heard.
-  [Details](docs/reviews/CROWD-REACTIONS-20261102.md)
+  clicks, the claim and the raid start still check fresh. Measured on the GPU test host
+  on 2026-10-31: the screen went from 48 to about 60 FPS. The adapter fix lives in the
+  shared Core (1.0.19, shipped here inside **Core 1.0.20**); this ArenaMode refuses an
+  older Core. [Details](docs/reviews/MAP-MENU-ADMISSION-20261031.md)
+- **Shared Core 1.0.20** (identical to Redeploy 1.1.2): Raid Review 1.10.0 records every
+  physical life separately, HollywoodFX 3.0.0 refreshes its caches after a replacement and
+  Hands Are Not Busy 1.7.1 keeps its hands reset off retired bodies; the handovers apply to
+  Arena respawns as well as to Redeploy's. All three were validated offline only, not in the
+  game. A client built from this source refuses Core 1.0.19 or older.
+- **PitFireTeam 1.1.1** is a reviewed baseline (no advisory warning; 1.0.0, 0.10.3 and 0.10.0
+  stay reviewed). Every member Arena reflects on is unchanged, but 1.1.1 fetches the saved
+  follower settings asynchronously before it creates the companions, which broke Arena's
+  follower respawn of rounds 2 and later in Tactical and Zombies; Arena now serves that
+  preflight from the first round's result. The kill-report guard also covers 1.1.1's new
+  SendKillReport overload, and the protected-stop fallback mirrors its two new resets. A
+  companion wounded in a normal raid is refused by 1.1.1 at the Arena start; heal it in
+  PitFireTeam's menu first. Builds below 1.1.0 are bound exactly as before. See
+  [the review](docs/reviews/PITFIRETEAM-111-20261107.md).
+- The whitelist records ArenaMapPort 0.5.0, Redeploy 1.1.2 and PitFireTeam 1.1.1; a
+  differing recognized version stays advisory, user policy is preserved.
 
 ## [0.4.1] - 2026-10-29
 

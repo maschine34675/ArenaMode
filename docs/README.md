@@ -28,7 +28,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Maps and modes: current admission matrix (as of 2026-10-17)](MAP-MODE-COMPATIBILITY.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
 - [Deferred Arena design work](FUTURE-WORK.md)
-- [Forge description, eight tabs (draft of 0.4.1)](FORGE-DESCRIPTION.md)
+- [Forge description, eight tabs (draft of 0.5.0)](FORGE-DESCRIPTION.md)
 
 ### Specifications and contracts
 
@@ -48,6 +48,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Release notes
 
+- [ArenaMode 0.5.0 release notes](RELEASE-0.5.0.md)
 - [ArenaMode 0.4.1 release notes (hotfix for 0.4.0)](RELEASE-0.4.1.md)
 - [ArenaMode 0.4.0 release notes](RELEASE-0.4.0.md)
 - [0.3.0 release notes and verification](RELEASE-0.3.0.md)
@@ -57,7 +58,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (199)
+## Feature reviews and contracts (200)
 
 Sorted by file name.
 
@@ -202,6 +203,7 @@ Sorted by file name.
 - [Health pickups and bot pickup objectives](reviews/PICKUP-OBJECTIVES-REVIEW.md)
 - [Arena pickups: powerups, weapon pickups and per-map placement contract](reviews/PICKUPS-REVIEW.md)
 - [PitFireTeam 1.0.0 persistence protection and version-filtered Arena sessions](reviews/PITFIRETEAM-1.0.0-20261024.md)
+- [PitFireTeam 1.1.1 against the adapter: served spawn preflight, kill-report overload, reviewed baseline](reviews/PITFIRETEAM-111-20261107.md)
 - [Automatic PMC voicelines, rotating TDM voices and bot clothing ownership](reviews/PMC-VOICELINES-20261026.md)
 - [Polygon areas and scene capture (area outline survey helper)](reviews/POLYGON-AREA-REVIEW.md)
 - [Arena pool-prewarm clamp (PoolPrewarmKeepIdle): design, Harmony recipe, measurements](reviews/POOL-PREWARM-REVIEW.md)

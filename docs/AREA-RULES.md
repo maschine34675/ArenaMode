@@ -1449,8 +1449,8 @@ separate optic-icon and SAIN unload NREs do not establish a mantle connection.
 ## Build, deploy and release
 
 Core admission: both clients fail closed before runtime initialization when the loaded
-Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (currently
-1.0.19 in the source, 1.0.18 in the 0.4.1 release; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (1.0.20 in the
+source and in the 0.5.0 package; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 
 ### From the handoff (snapshot of 2026-10-29)
@@ -1471,7 +1471,7 @@ Publish the final verified Core source
 
 *(handoff lines 302-304)*
 
-Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.4.1.
+Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.5.0.
 
 *(handoff lines 546-549)*
 
