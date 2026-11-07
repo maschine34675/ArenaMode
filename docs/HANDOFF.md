@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-01. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-07. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,15 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Branches (2026-11-07 evening):** `master` holds everything that was open: the crowd
+  reactions (`feature/crowd-reactions`, merge `28b92a40`), the reward startup order fix, the
+  session save diagnostics (`codex/session-save-diagnostics-20261105`, fast-forwarded), the
+  Iceberg and map-screen work; those branches and the `ArenaMode-crowd` worktree were deleted
+  after their merges. `master` is ahead of `dev/master` and **not pushed** (the user's call). The
+  only open branch is `feature/fika-admission` in the worktree `D:\SPT41\Development\ArenaMode-fika-m1`
+  (another session's work, left alone). After the merge: no-deploy solution build, xunit and the
+  crowd baseline on the merged `master` (see the merge commit's successor for the record).
 
 - **Session save diagnostics (2026-11-05, source only):** rejected authenticated
   session switches now carry RAM/disk versus RAM-during-readback results, a hashed
