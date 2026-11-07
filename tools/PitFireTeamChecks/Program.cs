@@ -1887,7 +1887,7 @@ internal static class Program
         string src = Lf(lifecycle);
         string[] literals =
         {
-            "private static readonly Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);",
+            "private static readonly System.Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);",
             "if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)",
             "\"LoadSavedSpawnSettings\",",
             "BindingFlags.NonPublic | BindingFlags.Static,",
@@ -1982,7 +1982,7 @@ internal static class Program
             || !guard.Contains("harmony.Patch(penalty, prefix: Patch(nameof(TaskPrefix)));", StringComparison.Ordinal))
             return "5-argument SendKillReport Require and Patch";
 
-        if (!compat.Contains("bool pft11 = assembly.GetName().Version >= new Version(1, 1, 0, 0);",
+        if (!compat.Contains("bool pft11 = assembly.GetName().Version >= new System.Version(1, 1, 0, 0);",
                 StringComparison.Ordinal))
             return "pft11 version gate";
         string loop = SafeSlice(compat, "foreach (var field in new[]",

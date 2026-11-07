@@ -1791,7 +1791,7 @@ internal static partial class PitFireTeamCompat
 
         // PFT 1.1.0+ also resets CompanionRaidPreparation between the follower and
         // ally task clears (BotsControllerStopPatch order).
-        bool pft11 = assembly.GetName().Version >= new Version(1, 1, 0, 0);
+        bool pft11 = assembly.GetName().Version >= new System.Version(1, 1, 0, 0);
         foreach (var field in new[]
                  {
                      "spawnedPlayers",

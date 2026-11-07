@@ -118,7 +118,7 @@ internal static class PitFireTeamRoundLifecycle
     /// BotCreationData.Create. Null on builds older than this version, which must
     /// behave exactly as before.
     /// </summary>
-    private static readonly Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);
+    private static readonly System.Version SavedSpawnPreflightVersion = new(1, 1, 0, 0);
     private static MethodInfo _loadSavedSpawnSettingsMethod;
 
     /// <summary>
@@ -1904,7 +1904,7 @@ internal static class PitFireTeamRoundLifecycle
             typeof(Task),
             _bossType);
         _loadSavedSpawnSettingsMethod = null;
-        Version installedVersion = assembly.GetName().Version;
+        System.Version installedVersion = assembly.GetName().Version;
         if (installedVersion != null && installedVersion.CompareTo(SavedSpawnPreflightVersion) >= 0)
         {
             Type botDetailsType = RequireType(assembly, "pitTeam.Utils.BotDetails");
