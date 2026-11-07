@@ -12,8 +12,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
-- **0.5.0 prepared (2026-11-07 late evening; release commit on `master`, not tagged, not
-  pushed):** version 0.5.0 in the five version sites, shared **Core 1.0.20** from Redeploy's
+- **0.5.0 published (2026-11-07 evening; tag `v0.5.0` = `063a7684`,
+  [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.5.0) with
+  `ArenaMode-0.5.0.zip` and its checksum, latest, not a prerelease; `master` pushed to `dev`
+  with the record commit `eaa46712` and this note):** version 0.5.0 in the five version sites, shared **Core 1.0.20** from Redeploy's
   release commit `3b68193` (Redeploy 1.1.2, prepared the same evening, its package
   `Redeploy-1.1.2.zip` built from that commit), the whitelist at ArenaMapPort 0.5.0 (published
   2026-11-07), Redeploy 1.1.2 and PitFireTeam 1.1.1, the PitFireTeam 1.1.1 adaptation
@@ -29,13 +31,13 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   VirusTotal in the release notes. Installed on D:\SPT41 and rolled out to GPU-2 at 21:49; the
   native cycle is recorded in [GPU-RELEASE-050-20261107.md](reports/2026-11/GPU-RELEASE-050-20261107.md)
   (Redeploy respawn, Team DM Iceberg, Domination Bowl with the crowd, PitFireTeam Tactical over
-  three rounds with the served preflight). The tag belongs on `063a7684` and is the user's, as is
-  the push; the Forge texts are drafts.
+  three rounds with the served preflight). The Forge (sp-mod.com) upload is manual and open;
+  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the 0.5.0 draft.
 - **Branches (2026-11-07 evening):** `master` holds everything that was open: the crowd
   reactions (`feature/crowd-reactions`, merge `28b92a40`), the reward startup order fix, the
   session save diagnostics (`codex/session-save-diagnostics-20261105`, fast-forwarded), the
   Iceberg and map-screen work; those branches and the `ArenaMode-crowd` worktree were deleted
-  after their merges. `master` is ahead of `dev/master` and **not pushed** (the user's call). The
+  after their merges. `master` was pushed to `dev` with the 0.5.0 release on 2026-11-07. The
   only open branch is `feature/fika-admission` in the worktree `D:\SPT41\Development\ArenaMode-fika-m1`
   (another session's work, left alone). After the merge: no-deploy solution build, xunit and the
   crowd baseline on the merged `master` (see the merge commit's successor for the record).
