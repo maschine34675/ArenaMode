@@ -19,7 +19,7 @@ Need(ArenaModeCatalog.All.Select(m => m.Id).SequenceEqual(new[] {
     "gungame", "deathmatch", "teamdeathmatch", "domination", "tactical", "zombie" }),
     "six playable rows preserve the existing mode order around the new team mode");
 var definition = ArenaModeCatalog.All.Single(m => m.Id == Mode);
-Need(definition.Label == "DOMINATION (WIP)" && definition.Description.Length <= 80
+Need(definition.Label == "DOMINATION" && definition.Description.Length <= 80
     && definition.Description.EndsWith(".", StringComparison.Ordinal)
     && definition.Description.Contains("Choose the match limits", StringComparison.Ordinal)
     && !definition.Description.Contains("Factory", StringComparison.OrdinalIgnoreCase),

@@ -14,7 +14,7 @@ internal static class ArenaCompactModeRules
 
     internal static string Describe(string mode, bool team, int rounds, int kills, int seconds,
         bool freeForAll, int teamKills, int teamSeconds, int tacticalWins,
-        bool friendlyFire, int controlPoints, int dominationPoints = 200, int dominationSeconds = 600)
+        bool friendlyFire, int controlPoints, int dominationPoints = 300, int dominationSeconds = 600)
     {
         switch (ArenaModeCatalog.NormalizeId(mode))
         {

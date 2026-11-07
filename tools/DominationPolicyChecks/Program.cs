@@ -186,7 +186,7 @@ Need(thirds.AdvanceUntilScoreLimit(1, new[] { B(), B(), B() }, 7) == 0d
 Throws<ArgumentOutOfRangeException>(() => thirds.AdvanceUntilScoreLimit(1, new[] { U(), U(), U() }, 0), "invalid cap rejected");
 Throws<ArgumentOutOfRangeException>(() => thirds.AdvanceUntilScoreLimit(double.NaN, new[] { U(), U(), U() }, 9), "invalid capped time rejected");
 
-DominationMatchPolicy Live(int score = 200, int time = 600, float start = 3)
+DominationMatchPolicy Live(int score = 300, int time = 600, float start = 3)
 {
     var match = new DominationMatchPolicy(score, time);
     match.UpdateStart(start - 3, true);
@@ -195,7 +195,7 @@ DominationMatchPolicy Live(int score = 200, int time = 600, float start = 3)
     return match;
 }
 var defaults = new DominationMatchPolicy();
-Need(defaults.ScoreLimit == 200 && defaults.TimeLimitSeconds == 600
+Need(defaults.ScoreLimit == 300 && defaults.TimeLimitSeconds == 600
     && defaults.Points.Count == 3
     && defaults.Phase == TdmMatchPhase.Assembling && defaults.Result == TdmMatchResult.None, "objective defaults and initial lifecycle");
 foreach (int invalid in new[] { -1, 1001 })

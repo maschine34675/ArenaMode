@@ -15,7 +15,7 @@ internal sealed class DominationMatchPolicy
     private float _lastStartUpdate = -1f;
     private bool _localUsec = true;
 
-    internal DominationMatchPolicy(int scoreLimit = 200, int timeLimitSeconds = 600, int pointCount = 3)
+    internal DominationMatchPolicy(int scoreLimit = 300, int timeLimitSeconds = 600, int pointCount = 3)
     {
         if (scoreLimit < 0 || scoreLimit > 1000) throw new ArgumentOutOfRangeException(nameof(scoreLimit));
         if (timeLimitSeconds < 0 || timeLimitSeconds > 7200) throw new ArgumentOutOfRangeException(nameof(timeLimitSeconds));

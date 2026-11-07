@@ -1240,7 +1240,7 @@ public static class Settings
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 7200)));
 
-        DominationScoreLimit = config.Bind("Domination", "ScoreLimit", 200,
+        DominationScoreLimit = config.Bind("Domination", "ScoreLimit", 300,
             new ConfigDescription("Team points needed to win (0 = unlimited). Frozen at match start.",
                 new AcceptableValueRange<int>(0, 1000)));
         DominationTimeLimitSeconds = config.Bind("Domination", "TimeLimitSeconds", 600,

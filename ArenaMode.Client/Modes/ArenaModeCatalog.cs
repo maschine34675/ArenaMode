@@ -88,7 +88,7 @@ internal static class ArenaModeCatalog
             new ArenaModeDefinition(TeamDeathmatchId, "TEAM DM",
                 "USEC versus BEAR. The team with more kills wins.",
                 "Most team kills", "Instant", "Arena kits"),
-            new ArenaModeDefinition(DominationId, "DOMINATION (WIP)",
+            new ArenaModeDefinition(DominationId, "DOMINATION",
                 "Hold control points to earn team score. Choose the match limits below.",
                 "Hold objectives", "Instant", "Arena kits"),
             new ArenaModeDefinition(TacticalId, "TACTICAL (WIP)",
