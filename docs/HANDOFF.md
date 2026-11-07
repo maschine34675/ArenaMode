@@ -22,13 +22,15 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   and package sections still pending. Verified offline on the release state: xunit 3,700
   passed / 3 expected skips, PitFireTeamChecks 407, DominationPolicyChecks 21,596,
   DominationAdmissionChecks, PftTacticalKitChecks, ArenaSessionClientChecks (174 mutants),
-  DeployLayoutChecks, ArenaGateChecks. The order from here: package from the release commit
-  (`tools/Package-TestRelease.ps1 -Release -CoreAssemblyPath <the Core of Redeploy-1.1.2.zip>
-  -CoreAssemblySha256 150851f5…`, Redeploy checked out at `3b68193`), install the package
-  binaries on D:\SPT41 (Syncthing carries them), one GPU-2 cycle (Redeploy respawn, Team DM on
-  Iceberg with the crowd, Domination, PitFireTeam Tactical over three rounds), then the record
-  commit with hashes, VirusTotal and the native check. The tag belongs on the release commit
-  and is the user's, as is the push.
+  DeployLayoutChecks, ArenaGateChecks. Packaged from the build commit `063a7684` (the release
+  commit plus a System.Version fix, the package snapshot's exclusion of the server's
+  client-settings.json and the PitFireTeam reference-tree lookup): `ArenaMode-0.5.0.zip` SHA-256
+  `524ab749…836a14`, 3,892,127 bytes, Core `1.0.20+3b68193` byte-identical to Redeploy 1.1.2,
+  VirusTotal in the release notes. Installed on D:\SPT41 and rolled out to GPU-2 at 21:49; the
+  native cycle is recorded in [GPU-RELEASE-050-20261107.md](reports/2026-11/GPU-RELEASE-050-20261107.md)
+  (Redeploy respawn, Team DM Iceberg, Domination Bowl with the crowd, PitFireTeam Tactical over
+  three rounds with the served preflight). The tag belongs on `063a7684` and is the user's, as is
+  the push; the Forge texts are drafts.
 - **Branches (2026-11-07 evening):** `master` holds everything that was open: the crowd
   reactions (`feature/crowd-reactions`, merge `28b92a40`), the reward startup order fix, the
   session save diagnostics (`codex/session-save-diagnostics-20261105`, fast-forwarded), the
@@ -67,7 +69,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   ("not yet published") and stay.
 - **Installed everywhere** (D:\SPT41 on this machine, mirrored by Syncthing to SPT-GPU-1
   `192.168.178.114` and SPT-GPU-2 `192.168.178.109`, both at `C:\SPT41`, and MASCHINE11):
-  the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
+  since 2026-11-07 21:49 the package binaries of ArenaMode 0.5.0 (`063a7684`) and Redeploy 1.1.2
+  (`3b68193`, Core 1.0.20), ArenaMapPort 0.5.0 since 18:18 and PitFireTeam 1.1.1 since 2026-11-05;
+  before that the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
   differently stamped binaries; say so in the next handoff. Since 31.10. ArenaMode and

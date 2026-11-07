@@ -98,9 +98,48 @@ still apply.
 
 ## Native release check
 
-Pending: recorded after the GPU cycle with the exact package binaries.
+On the GPU test host SPT-GPU-2 (SPT 4.1.6) with these exact binaries loaded, together with
+Redeploy 1.1.2, ArenaMapPort 0.5.0 and PitFireTeam 1.1.1: a Redeploy respawn near the corpse in
+a normal Factory raid; Team DM on Iceberg with an Arena respawn through Core 1.0.20; Domination
+on Bowl with the crowd's start, lead and death reactions and their roar from every stand; a
+PitFireTeam Tactical match with two companions over three rounds, in which the companions of
+rounds 2 and 3 respawned through Arena's lease with the served saved-spawn-settings preflight
+(the 1.1.1 adaptation of this release) and the profile snapshot was restored at the end. No
+mod warning or error beyond the known pursuit diagnostics. Not run: Gun Game, Zombies, the
+spectator camera, the Session.exe path. One timing note: an Arena raid started within a second
+of the previous match's deferred post-raid processing can be refused with "PitFireTeam
+post-raid finalization is still settling; retry shortly"; the next attempt starts. Record:
+[GPU-RELEASE-050-20261107.md](reports/2026-11/GPU-RELEASE-050-20261107.md).
 
 ## Package checks
 
-Pending: recorded after packaging (build commit, ZIP SHA-256 and size, fresh test
-counts, VirusTotal results).
+Built from `063a7684fd8d63fdaefc654eb80cdbad14176580`. ZIP SHA-256:
+`524ab7491e7693f34c772aaa15688df3969f8f6795791eb94eb5c28d2c836a14` (3,892,127 bytes, 74
+files). The package manifest records Core 1.0.20 from Redeploy `3b68193`; the bundled Core is
+byte-identical to the one in Redeploy 1.1.2. Package contents, paths, hashes, defaults, 31
+notice links and 41 audio provenance records passed the package verifier, and the PitFireTeam
+rule (no PitFireTeam binary, no byte-identical reference payload) passed against the 1.1.1
+reference tree.
+
+Fresh checks in the isolated source snapshot: 3,699 passed with four environment-dependent
+skips (two reward-recovery fixtures, the installed-APBS probe and the installed-PitFireTeam
+transaction-target probe). The release state was verified in the working tree before packaging
+as well (xunit 3,700 passed, PitFireTeamChecks 407, DominationPolicyChecks 21,596,
+DominationAdmissionChecks, PftTacticalKitChecks, ArenaSessionClientChecks, DeployLayoutChecks,
+ArenaGateChecks). No credential scan was run for this release.
+
+VirusTotal results below apply to these exact binaries (7 November 2026). The five DLLs had no
+malicious or suspicious labels. The unsigned helper `maschine-ArenaMode.Session.exe` has **4
+malicious labels** (VirIT `Trojan.Win32.MSIL_Heur.A`, Elastic `malicious (moderate
+confidence)`, APEX `Malicious`, McAfeeD `ti!1F89B982B6D6`) and 67 engines without detection.
+These findings are unresolved; they are not established false positives. No antivirus
+protection needs to be disabled.
+
+| File | SHA-256 / scan |
+|---|---|
+| `maschine-ArenaMode.Gate.dll` | [c5ac2bbeaf14…](https://www.virustotal.com/gui/file/c5ac2bbeaf14b3aaf61a0743940e0540ab845ef6ad9b86559aeeb78dc6a9f2f6) |
+| `maschine-ArenaMode.BigBrainCompat.dll` | [0cc66b158f4f…](https://www.virustotal.com/gui/file/0cc66b158f4fd204dafc4d4605fe2be55e82d0698db6cbb620863a82069e6612) |
+| `maschine-ArenaMode.Client.dll` | [eaae8f5086af…](https://www.virustotal.com/gui/file/eaae8f5086af9e0118c456c87a782b73b3e4f80e0c3e4269e26dbda0c2d70dd7) |
+| `maschine-ArenaMode.Session.exe` | [1f89b982b6d6…](https://www.virustotal.com/gui/file/1f89b982b6d6bfe311af9570d1c0e133eaa0f8eab3d0388ee212c7678dce4b76) |
+| `maschine-Redeploy.Core.dll` | [150851f557dc…](https://www.virustotal.com/gui/file/150851f557dc14356de53f75023128b591fb607d2cac99388e91c54148e8c87b) |
+| `maschine-ArenaMode.Server.dll` | [beb502b46610…](https://www.virustotal.com/gui/file/beb502b46610c60b0b7c2defb60ce1ba9d554f6587ceda4859444d7e2043360a) |
