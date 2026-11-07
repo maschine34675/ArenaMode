@@ -123,6 +123,36 @@ logger plus production `ArenaLog` source and rejects broken opt-in guards. The
 server unit suite also tests routine ladder output separately from malformed
 draws, prohibited-ammunition fallback and attachment failures.
 
+## Crowd reactions (Debug)
+
+The spectator crowd presentation (docs/reviews/CROWD-REACTIONS-20261102.md) logs at Debug only
+and nothing per frame: `Arena crowd attached: mode=…, excitement=…, reactions=…` or `Arena crowd
+off: …` once per match (the key was off, Zombies, ArenaMapPort absent, an older or incompatible
+contract); `Arena crowd reactions claimed: handle=…, kinds=0x…, attempt=…` or, after the 30 s
+window, `Arena crowd reactions not claimed: …`; one `Arena crowd reaction: kind=…, strength=…,
+source=…` per sent reaction (kinds Approve, Disapprove, Start, Finish and Lull, the last with
+`source=no kill for 60 s`; ", announcer speaking" when the interlock halved it); `Arena crowd
+reaction dropped: kind=…, strength=…, source=…, …` when the one-mood rule or the 1 s mood window
+of ArenaMapPort's roar layer drops the weaker of an Approve and a Disapprove (the rest of the
+line names the other mood); `Arena crowd
+reactions released: handle=…, reason=…, sent=…` and `Arena crowd detached: reason=…,
+reactions=…, excitementPeak=…`.
+
+Warnings, by prefix. Once per process and reason (the installed contract does not change between
+matches): `ArenaMapPort SpectatorCrowd has no int ContractVersion property`, `ArenaMapPort
+SpectatorCrowd contract version … is not supported`, `ArenaMapPort SpectatorCrowd
+SetExcitement/IsAvailable have another signature`, `ArenaMapPort SpectatorCrowd reaction members
+have another signature`, `ArenaMapPort crowd contract unavailable:` (the bind threw). At most
+once per match each: `Arena crowd presentation unavailable:` (Attach threw), `Arena crowd
+presentation stopped:` (the tick threw; everything is released), `Arena crowd murmur intensity
+stopped:` (`SetExcitement` or `IsAvailable` threw; reactions keep running), `Arena crowd match
+snapshot unavailable, murmur intensity and lull stopped:` (the ArenaMode snapshot read threw; the
+other reactions keep running), `Arena crowd murmur intensity reset failed:`, `ArenaMapPort crowd
+reactions unavailable:` (`ReactionKinds` or `ClaimReactions` threw; no further attempts),
+`ArenaMapPort crowd reactions stopped:` (`React` threw; the claim is released), `ArenaMapPort
+crowd reactions release failed:`, and `Arena crowd reaction event failed:` (the first exception
+in a crowd event handler; it is contained and never reaches the match).
+
 ## Map-screen refresh probe (DeveloperMode)
 
 While `Diagnostics/DeveloperMode` is on, the Arena map selection screen logs every five

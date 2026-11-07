@@ -57,7 +57,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (198)
+## Feature reviews and contracts (199)
 
 Sorted by file name.
 
@@ -117,6 +117,7 @@ Sorted by file name.
 - [Continuous Healing: native bot healing and retired-body isolation](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md) *(superseded)*
 - [Continuous Load Ammo: body changes and delayed completion](reviews/CONTINUOUS-LOAD-AMMO-COMPAT-20261019.md) *(superseded)*
 - [Corpse cleanup: paired native notifications, corpse release and own-corpse release](reviews/CORPSE-CLEANUP-REVIEW.md)
+- [Crowd reactions and murmur intensity on ArenaMapPort maps: SpectatorCrowd contract, mapping, lifecycle](reviews/CROWD-REACTIONS-20261102.md)
 - [Customs: bounded areas in every Arena mode](reviews/CUSTOMS-ALL-MODES-REVIEW.md)
 - [Customs contours and unified selection: polygon-v2 wire IDs, starts and provenance](reviews/CUSTOMS-AREAS-REVIEW.md)
 - [Surveyed Customs contour (polygon v1): side-only walls, spawn policy and corner carvers](reviews/CUSTOMS-CONTOUR-REVIEW.md) *(superseded)*
@@ -261,12 +262,14 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (265)
+## Reports (267)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
+- [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Reward startup order: native run on GPU-2 with a probe server mod at Watermark + 1 and at 0, the helper's lease parser found](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
 
 ### 2026-10

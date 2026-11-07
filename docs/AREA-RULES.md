@@ -1014,6 +1014,28 @@ Active announcer OGGs live in announcements/, the four effect WAVs in sounds/.
 Audio records are consolidated under docs/licenses/audio; see
 docs/reviews/AUDIO-LAYOUT-20261018.md. Keep source-only reserve audio out of payloads.
 
+The spectator crowd of ArenaMapPort maps (`Audio/ArenaCrowdReactions`, binder
+`Compat/ArenaMapPortSpectatorCrowd`, key `Audio/CrowdReactions` frozen at arm) is presentation
+only; read docs/reviews/CROWD-REACTIONS-20261102.md before changing it. It adds no Harmony patch
+and lives on `ArenaMatch`/`ArenaEvents` subscriptions inside an attached Arena match. Its handlers
+buffer only and never throw into the match or block; they log at most once per match (the
+NoContest release at Debug, the first handler failure as a Warning), and every reaction push
+happens from the gated tick. A failed reaction never changes match state. No push outside an
+armed Arena match (this exact current match, `Status ==
+Started`, the exact active raid, no pending start abort) or in a plain raid on a ported map. No
+claim may outlive an exit path (failed start, raid end, new-raid recovery, both early returns of
+`ArenaMatchService.Tick`, plugin shutdown, a failed gate, NoContest, a refused `React`). Never
+subscribe to the process-global `SpawnGates.GatesOpened`, never send every frame (one flush per
+frame, at most one push per kind, excitement only on change at about 1 Hz), never make the
+`SetExcitement` binding require the reaction members or assume that `ContractVersion` changes
+when members are appended, and do not depend on `ArenaEvents.OnLocalDamageDealt` or on Fika.
+Kinds sent: Approve 1, Disapprove 2, Start 4, Finish 5 and Lull 6; TakeCover 3 is MapPort's own
+sensor, PurifiedTeam 7 is reserved. The Lull (decision D14) is the one reaction decided from
+time: 60 s of live combat (the murmur's snapshot reading) without a kill, at most one per 90 s
+(counted from the last Lull that went out), only while the claimed mask holds bit 6 (MapPort
+sets it only once it ships the Lull bank after phase A); a Start or Finish in its flush window
+drops it, and a kill or a local death there withdraws it. Pins: `tools/CrowdReactionChecks`.
+
 ### From the handoff (snapshot of 2026-10-29)
 
 Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerpts, or restatements where marked Quoted:/Rule:/Durable form:. Line numbers refer to `handoff-archive/HANDOFF-2026-10-29.md`.

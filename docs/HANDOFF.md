@@ -62,6 +62,57 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
+`65007e74`, merged into `master` on 2026-11-07 evening and the branch deleted; its build
+`0.4.1+67bbc215` is installed on all Syncthing hosts since 2026-11-07 17:16, client DLL only,
+the server stays `3b0dc30e`; the client sources of `master` are identical to that build):** phase B of
+`D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. **2026-11-07: ArenaMapPort's roar layer
+(`e3e4290`: each played reaction roars Arena's Cheer bed for Approve, Start and Finish or an
+Angry bed for Disapprove from every stand, the other kind cut in 0.5 s; the murmur swell is
+gone; contract unchanged) adopted in `67bbc215`:** one mood per flush
+(`Frame.KeepOneMood`, the stronger of Approve and Disapprove across the going and the waiting
+frame) and a 1 s mood window across flushes (the opposite kind within a second only when
+stronger; a weaker same-kind mood leaves the memory alone; Start, Finish and Lull end it), one
+Debug line per drop; `CrowdReactionChecks` 1,340 assertions, 61 mutants, the real surface reads
+MapPort's roar kind table and amplitude law when present. Native GPU-2 run of that build
+([GPU-CROWD-ROAR-20261107.md](reports/2026-11/GPU-CROWD-ROAR-20261107.md)): 25 reactions in
+Team DM (Bowl) and Deathmatch (Equator, 3 rounds), every one played with the right roar from
+every stand, no drop, no ArenaMode warning; the trade case did not occur in the game (offline
+only). Open for the ear: the roar level (MapPort's -32 dBFS start value), the 1 s window, and
+that a lost lead boos from all stands on every lead change (six times in eight minutes of 4v4).
+Earlier state: phase B of
+`D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md`. Murmur intensity through ArenaMapPort 0.4.0's
+`SetExcitement` and dormant crowd reactions for the phase A contract; F12 Audio
+`CrowdReactions`. Offline only: `tools/CrowdReactionChecks` (51 mutants, plus a real-surface
+stage against the installed ArenaMapPort client) and a compile check
+of the complete client against the game DLLs at `11682885`; the later changes (only the three
+crowd files) are compiled by that harness alone, against stand-ins. ArenaMapPort phase A (the
+reaction members) is implemented in MapPort `d70acd2` on its `feature/iceberg` (2026-11-02, not
+released, planned with its next release; mask 62, Lull 6 and PurifiedTeam 7 reserved, owners up
+to 64 characters) and host-run there with MapPort's developer demo only, without ArenaMode. The
+harness's real-surface stage binds the installed client's `SpectatorCrowd` and runs the service
+against its real queue: kinds, owner, strengths, claim, release and reset agree with what
+ArenaMode sends and expects (the plan's 40-character owner truncation is 64 in phase A, well
+above ArenaMode's 40-character owner); kinds withdrawn mid-match by MapPort's developer key end
+ArenaMode's reactions for that match (accepted, developer-key only). Native GPU-2 run on 2026-11-02 evening with MapPort phase A
+([GPU-CROWD-REACTIONS-20261102.md](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)): every kind
+sent once and played by MapPort in Team DM and Deathmatch, Finish once per result, excitement
+0.6/0.85, release on every exit seen, Iceberg no claim, Zombies off, no ArenaMode warning. Pending:
+the user's listening (two tuning questions recorded there: the announcer interlock halves nearly
+every announced event, and Start at 1.0 exhausts MapPort's Start pool), Gun Game, Tactical,
+Domination and the spectator camera with the crowd, then the merge. Three independent reviews on 2026-11-02 found one major
+(a teammate's kill reacted, against D5) and minor issues; all are fixed on the branch
+(`83d4aee3`..`4d4a9444`). Applied afterwards from the plan as revised in ArenaMapPort
+`08964c1` (the user's automatic subtitles of every crowd clip): a lost lead disapproves at 0.3
+(laments only, below MapPort's 0.4 band; an own death keeps 0.5), and the Lull of the user's
+decision D14 ("wie empfohlen"): ArenaMode sends Lull 0.4 after 60 s of live combat without a
+kill, at most one per 90 s, dormant until a MapPort after phase A ships the Lull bank and
+advertises kind 6; a kill or a local death withdraws a Lull still waiting to go out (review of
+`484b095a`). User decision D1 (MapPort side): phase A exports only the 70 "keep" clips
+for now; the 19 "listen" clips wait for the user's listening, which is still pending. Contract
+and decisions (D1, D5, D7, D10, D12, D14, announcer interlock):
+[CROWD-REACTIONS-20261102.md](reviews/CROWD-REACTIONS-20261102.md).
+
 **Reward startup order (2026-11-05, merged into `master` from `fix/reward-startup-order`
 the same evening, for the next release, not released, not pushed):** fixes
 [maschine34675/ArenaMode#1](https://github.com/maschine34675/ArenaMode/issues/1): with
@@ -81,7 +132,7 @@ the first attempt put the reason into the lease and paused in the session helper
 parser counts the lease's 17 members; the reason is a file of its own since `3b0dc30e`.
 **Installed state since 2026-11-05 evening:** the server DLL `0.4.1+3b0dc30e` of this
 branch is on every Syncthing host (built from the server project alone; client
-`0.4.1+8d21e362` of `feature/crowd-reactions`, helper and Core 1.0.19 unchanged); the probe
+`0.4.1+67bbc215` of `feature/crowd-reactions` since 2026-11-07 17:16, helper and Core 1.0.19 unchanged); the probe
 was removed from all hosts after the run. The issue has no reply yet; the review document
 holds a suggested one.
 
@@ -166,6 +217,14 @@ migrated to revision 5 with `arena_iceberg` in `General/Maps`.
   ArenaPickupChecks also `BowlChecks`, `BowlTeamBoxChecks`, `IcebergTeamBoxChecks` and any
   full harness run. They need an ArenaMapPort build that ships `arena_iceberg` (the feature
   build `0.4.0+32fda33` or a later release); the published 0.4.0 is not enough.
+- **The installed ArenaMapPort client is a harness dependency too** (branch
+  `feature/crowd-reactions`): the real-surface stage of `tools/CrowdReactionChecks` loads
+  `BepInEx/plugins/maschine-ArenaMapPort/maschine-ArenaMapPort.Client.dll` read-only and fails
+  loudly when it is missing or lacks the eight `SpectatorCrowd` members of crowd reactions phase
+  A (MapPort `d70acd2` or later); the published 0.4.0 is not enough. Installed here on
+  2026-11-02: ProductVersion `0.4.0+08964c1` (SHA256 `B6DF4A1D…AE8521`), MapPort's development
+  build of that work from before the commit. `-SptRoot` of `Run-ArenaVerification.ps1` (forwarded
+  to every harness script that declares it) or of `Verify.ps1` names another installation.
 - **FORGE-DESCRIPTION.md deliberately carries no Iceberg** (it is the 0.4.1 upload draft).
   Add the Iceberg lines (mode list, 2v2–10v10 pockets, spawn shield, Domination A/B/C) when
   an ArenaMapPort release ships `arena_iceberg`.

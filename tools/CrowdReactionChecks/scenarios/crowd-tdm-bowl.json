@@ -1,0 +1,301 @@
+{
+  "name": "crowd-tdm-bowl",
+  "description": "ArenaMode crowd reactions with ArenaMapPort phase A on Bowl, Team DM 4v4 to 25 team kills: attach with both parts bound, claim with kinds 62, Start at Live, an attempted own kill (Approve), an own death (Disapprove), Finish at the result, release; MapPort plays each accepted reaction.",
+  "host": "host2",
+  "steps": [
+    {
+      "step": "status",
+      "name": "status"
+    },
+    {
+      "step": "raid",
+      "name": "raid",
+      "mode": "teamdeathmatch",
+      "map": "bowl",
+      "participants": 8,
+      "teamKills": 25,
+      "timeoutSeconds": 480
+    },
+    {
+      "step": "expect",
+      "name": "attached",
+      "what": "log",
+      "contains": "Arena crowd attached",
+      "sinceStep": "raid",
+      "withinSeconds": 120
+    },
+    {
+      "step": "expect",
+      "name": "claimed",
+      "what": "log",
+      "contains": "Arena crowd reactions claimed",
+      "sinceStep": "raid",
+      "withinSeconds": 120
+    },
+    {
+      "step": "wait",
+      "name": "start-sent",
+      "logContains": "Arena crowd reaction: kind=Start",
+      "timeoutSeconds": 150
+    },
+    {
+      "step": "wait",
+      "name": "start-played",
+      "logContains": "arena_bowl: reaction Start strength=",
+      "timeoutSeconds": 20,
+      "onFail": "continue"
+    },
+    {
+      "step": "expect",
+      "name": "start-roared",
+      "what": "log",
+      "contains": "arena_bowl: roar cheer amp=1.00",
+      "sinceStep": "raid",
+      "withinSeconds": 10,
+      "onFail": "continue"
+    },
+    {
+      "step": "hook",
+      "name": "godmode",
+      "action": "godmode",
+      "enabled": true
+    },
+    {
+      "step": "hook",
+      "name": "ammo",
+      "action": "infiniteAmmo",
+      "enabled": true,
+      "keepCondition": true
+    },
+    {
+      "step": "walk",
+      "name": "approach",
+      "at": "nearest",
+      "distance": 12,
+      "seconds": 45,
+      "expect": [
+        "arrived",
+        "time_up",
+        "target_died",
+        "target_gone"
+      ],
+      "onFail": "continue"
+    },
+    {
+      "step": "look",
+      "name": "aim",
+      "at": "nearestVisible",
+      "track": true,
+      "seconds": 25,
+      "onFail": "continue"
+    },
+    {
+      "step": "hook",
+      "name": "fire1",
+      "action": "fire",
+      "holdMs": 700,
+      "onFail": "continue"
+    },
+    {
+      "step": "sleep",
+      "name": "pause1",
+      "seconds": 2
+    },
+    {
+      "step": "hook",
+      "name": "fire2",
+      "action": "fire",
+      "holdMs": 700,
+      "onFail": "continue"
+    },
+    {
+      "step": "sleep",
+      "name": "pause2",
+      "seconds": 2
+    },
+    {
+      "step": "hook",
+      "name": "fire3",
+      "action": "fire",
+      "holdMs": 700,
+      "onFail": "continue"
+    },
+    {
+      "step": "sleep",
+      "name": "pause3",
+      "seconds": 2
+    },
+    {
+      "step": "expect",
+      "name": "approve-sent",
+      "what": "log",
+      "contains": "Arena crowd reaction: kind=Approve",
+      "sinceStep": "start-sent",
+      "onFail": "continue"
+    },
+    {
+      "step": "look",
+      "name": "aim-stop",
+      "stop": true,
+      "onFail": "continue"
+    },
+    {
+      "step": "hook",
+      "name": "godmode-off",
+      "action": "godmode",
+      "enabled": false
+    },
+    {
+      "step": "events",
+      "name": "mark",
+      "max": 1
+    },
+    {
+      "step": "hook",
+      "name": "kill",
+      "action": "kill"
+    },
+    {
+      "step": "wait",
+      "name": "dead",
+      "lifeEvent": "death",
+      "sinceEvent": {
+        "$ref": "/steps/mark/next"
+      },
+      "timeoutSeconds": 30
+    },
+    {
+      "step": "expect",
+      "name": "disapprove-sent",
+      "what": "log",
+      "contains": "Arena crowd reaction: kind=Disapprove",
+      "sinceStep": "kill",
+      "withinSeconds": 15
+    },
+    {
+      "step": "wait",
+      "name": "disapprove-played",
+      "logContains": "arena_bowl: reaction Disapprove strength=",
+      "timeoutSeconds": 15,
+      "onFail": "continue"
+    },
+    {
+      "step": "expect",
+      "name": "death-booed",
+      "what": "log",
+      "contains": "arena_bowl: roar angry amp=",
+      "sinceStep": "kill",
+      "withinSeconds": 10,
+      "onFail": "continue"
+    },
+    {
+      "step": "wait",
+      "name": "respawned",
+      "alive": true,
+      "timeoutSeconds": 90
+    },
+    {
+      "step": "hook",
+      "name": "godmode-2",
+      "action": "godmode",
+      "enabled": true
+    },
+    {
+      "step": "wait",
+      "name": "result",
+      "logContains": "Team Deathmatch result",
+      "timeoutSeconds": 420
+    },
+    {
+      "step": "expect",
+      "name": "finish-sent",
+      "what": "log",
+      "contains": "Arena crowd reaction: kind=Finish",
+      "sinceStep": "result",
+      "withinSeconds": 10
+    },
+    {
+      "step": "wait",
+      "name": "finish-played",
+      "logContains": "arena_bowl: reaction Finish strength=",
+      "timeoutSeconds": 15,
+      "onFail": "continue"
+    },
+    {
+      "step": "still",
+      "name": "result-still",
+      "id": "crowd-tdm-result"
+    },
+    {
+      "step": "wait",
+      "name": "released",
+      "logContains": "Arena crowd reactions released",
+      "timeoutSeconds": 60,
+      "onFail": "continue"
+    },
+    {
+      "step": "expect",
+      "name": "no-arena-warning",
+      "what": "logAbsent",
+      "level": "warning",
+      "source": "maschine-ArenaMode",
+      "sinceStep": "raid",
+      "onFail": "continue"
+    },
+    {
+      "step": "expect",
+      "name": "no-mapport-warning",
+      "what": "logAbsent",
+      "level": "warning",
+      "source": "maschine-ArenaMapPort",
+      "sinceStep": "raid",
+      "onFail": "continue"
+    },
+    {
+      "step": "log-export",
+      "name": "export-crowd",
+      "contains": "rowd",
+      "onFail": "continue"
+    },
+    {
+      "step": "log-export",
+      "name": "export-spectator",
+      "contains": "[SpectatorAudio]",
+      "onFail": "continue"
+    },
+    {
+      "step": "log-export",
+      "name": "export-roars",
+      "contains": "[ReactionBeds]",
+      "onFail": "continue"
+    }
+  ],
+  "finally": [
+    {
+      "step": "look",
+      "stop": true,
+      "whenStepStarted": "aim"
+    },
+    {
+      "step": "walk",
+      "stop": true,
+      "whenStepStarted": "approach"
+    },
+    {
+      "step": "hook",
+      "action": "infiniteAmmo",
+      "enabled": false,
+      "whenStepStarted": "ammo"
+    },
+    {
+      "step": "hook",
+      "action": "godmode",
+      "enabled": false,
+      "whenStepStarted": "godmode"
+    },
+    {
+      "step": "leave",
+      "whenStepStarted": "raid"
+    }
+  ]
+}

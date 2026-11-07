@@ -31,7 +31,9 @@ Leave the suite out (for example when a named wrapper runs it anyway).
 
 .PARAMETER SptRoot
 The installed game, for the environment variables the data-bound tests read and for the live-install
-hashes.
+hashes. When it is named here, it is also forwarded as -SptRoot to every harness script whose param
+block declares one, so the harnesses read the same installation the runner hashes; left out, each
+script keeps its own default.
 
 .EXAMPLE
 pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness PoolPrewarmChecks,ArenaAreaChecks:Server
@@ -52,6 +54,14 @@ if (Test-Path -LiteralPath $noDeploy) { throw 'The no-deploy sentinel must not e
 # "A,B:Stage" and repeated arguments both work; a stage after ':' is forwarded to the script.
 $Harness = @($Harness | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $verdicts = New-Object System.Collections.Generic.List[object]
+# Only a value named on this command line is forwarded: the scripts' own defaults are not all
+# D:\SPT41 (ApbsCompatibilityChecks derives its root from the checkout), and they stay as they are.
+$forwardSptRoot = $PSBoundParameters.ContainsKey('SptRoot')
+function Test-ScriptDeclaresSptRoot([string]$Path) {
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$null, [ref]$null)
+    return $null -ne $ast.ParamBlock -and
+        @($ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'SptRoot' }).Count -gt 0
+}
 
 function Add-Verdict([string]$Name, [bool]$Passed, [double]$Seconds, [string]$Detail) {
     $verdicts.Add([pscustomobject]@{ Name = $Name; Passed = $Passed; Seconds = [math]::Round($Seconds); Detail = $Detail })
@@ -126,6 +136,7 @@ try {
             if (Test-Path -LiteralPath $script) {
                 $arguments = @('-NonInteractive', '-NoLogo', '-NoProfile', '-File', $script)
                 if ($stage) { $arguments += @('-Stage', $stage) }
+                if ($forwardSptRoot -and (Test-ScriptDeclaresSptRoot $script)) { $arguments += @('-SptRoot', $SptRoot) }
                 & pwsh @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
             }
             elseif ($name -notlike '*.ps1' -and (Test-Path -LiteralPath $project)) {

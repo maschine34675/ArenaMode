@@ -108,6 +108,7 @@ public static class Settings
     public static ConfigEntry<bool> PmcVoiceEnabled { get; private set; }
     public static ConfigEntry<float> AnnouncerVolume { get; private set; }
     public static ConfigEntry<bool> AnnouncerUseUiVolume { get; private set; }
+    public static ConfigEntry<bool> CrowdReactions { get; private set; }
     public static ConfigEntry<bool> DeathmatchAnnouncerEnabled { get; private set; }
     public static ConfigEntry<bool> GunGameAnnouncerEnabled { get; private set; }
     public static ConfigEntry<bool> TacticalAnnouncerEnabled { get; private set; }
@@ -1712,6 +1713,16 @@ public static class Settings
             "Audio", "AnnouncerUseUiVolume", false,
             "Off: use the dedicated Arena output controlled by AnnouncerVolume and overall game volume. " +
             "On: restore the legacy Interface-volume output for compatibility.");
+
+        // One key for both halves of the crowd presentation (reactions and the murmur's
+        // excitement), frozen at arm into ArenaSession.CrowdReactionsSelection like the
+        // announcer's per-mode switch. Not a map-screen mutator: the screen has no free slot.
+        CrowdReactions = config.Bind(
+            "Audio", "CrowdReactions", true,
+            "The spectator crowd follows your match: it gets louder near the end and cheers or boos your kills, " +
+            "deaths, awards, lead changes and round results. Needs an ArenaMapPort map with spectators; " +
+            "the louder murmur works with ArenaMapPort 0.4.0, the reactions need a newer ArenaMapPort. " +
+            "Not in Zombies. Frozen when the raid is armed.");
 
         // Item 2 of the 2026-10-06 follow-up ("announcer mutator"): per-mode
         // gate layered on top of the master Announcer switch above. Defaults

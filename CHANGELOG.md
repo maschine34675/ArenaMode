@@ -51,6 +51,17 @@ published one yet (the published 0.4.0 has no Iceberg). Without it the map is no
   clicks, the claim and the raid start still check fresh. **Requires Redeploy.Core
   1.0.19**; an ArenaMode built from this source refuses Core 1.0.18. Not yet measured in
   the game. [Details](docs/reviews/MAP-MENU-ADMISSION-20261031.md)
+- Added an optional link to the spectator crowd of ArenaMapPort maps (F12 Audio,
+  **Crowd Reactions (ArenaMapPort Maps)**, default on, frozen when the raid is armed; not in
+  Zombies). The crowd murmur gets louder in the final round, at match point and in the last
+  minute or the last five kills; this works with ArenaMapPort 0.4.0. The crowd will also
+  cheer your kills, awards and leads, jeer your deaths, groan at a lost lead and call round
+  starts and results once an ArenaMapPort with crowd reactions is released; a later
+  ArenaMapPort can also let it complain when a match goes a minute without a kill. With 0.4.0
+  that part stays off. Because that ArenaMapPort makes the whole crowd roar or boo with each
+  reaction, a kill and a death in the same moment (within a second) give one reaction, the
+  stronger. No game rules, scores or profiles change. Run in the game, not yet heard.
+  [Details](docs/reviews/CROWD-REACTIONS-20261102.md)
 
 ## [0.4.1] - 2026-10-29
 
