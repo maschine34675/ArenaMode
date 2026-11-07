@@ -46,6 +46,15 @@
       "onFail": "continue"
     },
     {
+      "step": "expect",
+      "name": "start-roared",
+      "what": "log",
+      "contains": "arena_bowl: roar cheer amp=1.00",
+      "sinceStep": "raid",
+      "withinSeconds": 10,
+      "onFail": "continue"
+    },
+    {
       "step": "hook",
       "name": "godmode",
       "action": "godmode",
@@ -171,6 +180,15 @@
       "onFail": "continue"
     },
     {
+      "step": "expect",
+      "name": "death-booed",
+      "what": "log",
+      "contains": "arena_bowl: roar angry amp=",
+      "sinceStep": "kill",
+      "withinSeconds": 10,
+      "onFail": "continue"
+    },
+    {
       "step": "wait",
       "name": "respawned",
       "alive": true,
@@ -243,6 +261,12 @@
       "step": "log-export",
       "name": "export-spectator",
       "contains": "[SpectatorAudio]",
+      "onFail": "continue"
+    },
+    {
+      "step": "log-export",
+      "name": "export-roars",
+      "contains": "[ReactionBeds]",
       "onFail": "continue"
     }
   ],

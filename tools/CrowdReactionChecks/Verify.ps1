@@ -243,6 +243,42 @@ $cases = @(
     @{ Name='lull-gap-not-stamped'; Property='CrowdServiceSource';
        Find='if (kind == Lull) _nextLullAt = now + ArenaCrowdReactionPolicy.LullGapSeconds;'; Replace='';
        Failure='no second Lull within 90 s of the first' },
+    # One mood per flush (MapPort's roar layer, e3e4290): the service's call, the rule itself, the tie,
+    # the waiting frame's share of the decision, and the drop from the waiting frame.
+    @{ Name='two-moods-per-flush'; Property='CrowdServiceSource';
+       Find='if (ArenaCrowdReactionPolicy.Frame.KeepOneMood(send, _held, out int dropped, out float droppedStrength, out string droppedSource))';
+       Replace='if (false && ArenaCrowdReactionPolicy.Frame.KeepOneMood(send, _held, out int dropped, out float droppedStrength, out string droppedSource))';
+       Failure='a trade in one tick sends the death only: one mood per flush' },
+    @{ Name='mood-rule-disabled'; Property='CrowdPolicySource';
+       Find='if (!(approve > 0f) || !(disapprove > 0f)) return false;'; Replace='return false;';
+       Failure='one mood per frame: the weaker Approve is dropped for the death' },
+    @{ Name='mood-tie-boos'; Property='CrowdPolicySource';
+       Find='dropped = approve >= disapprove ? Disapprove : Approve;'; Replace='dropped = approve > disapprove ? Disapprove : Approve;';
+       Failure='on a tie Approve stays (plan 4.1 order)' },
+    @{ Name='mood-ignores-waiting-frame'; Property='CrowdPolicySource';
+       Find='float disapprove = Math.Max(going._strength[Disapprove], waitingDisapprove);'; Replace='float disapprove = going._strength[Disapprove];';
+       Failure='across the frames: the going Approve yields to the waiting death' },
+    @{ Name='mood-kept-in-waiting-frame'; Property='CrowdPolicySource';
+       Find='            waiting?.Drop(dropped);'; Replace='';
+       Failure='across the frames: the strongest entry decides, the other kind leaves both frames, the drop names its strongest entry' },
+    # The mood window across flushes: no window, a window that drops the stronger opposite mood too,
+    # and a Start or Finish that does not end it.
+    @{ Name='mood-window-ignored'; Property='CrowdServiceSource';
+       Find='if (_moodKind != 0 && _moodKind != kind && now - _moodAt < ArenaCrowdReactionPolicy.MoodWindowSeconds';
+       Replace='if (_moodKind != 0 && _moodKind != kind && false';
+       Failure='a weaker kill within a second of the death is dropped' },
+    @{ Name='mood-window-drops-stronger'; Property='CrowdServiceSource';
+       Find='                    && strength <= _moodStrength)'; Replace='                    )';
+       Failure='a stronger death within a second of the kill goes out: the crowd changes its mind' },
+    @{ Name='round-event-keeps-mood-window'; Property='CrowdServiceSource';
+       Find='            else _moodKind = 0;   // a Start, a Finish or a Lull is a new moment'; Replace='';
+       Failure='a Start ends the window: the kill right after it goes out' },
+    @{ Name='mood-memory-overwritten'; Property='CrowdServiceSource';
+       Find='if (!weakerSameKind)'; Replace='if (true)';
+       Failure='a weaker same-kind mood inside the window keeps the stronger memory: the death is still dropped' },
+    @{ Name='mood-memory-outlives-match'; Property='CrowdServiceSource';
+       Find="        _moodKind = 0;`n        _moodStrength = _moodAt = 0f;`n"; Replace='';
+       Failure='a new match starts without a mood memory' },
     # Real surface (installed ArenaMapPort, phase A): the stand-ins record whatever kind ArenaMode
     # sends, so a Start/Finish swap passes them all; only MapPort's own numbering rejects it.
     @{ Name='kind-numbers-not-mapport'; Property='CrowdBinderSource';

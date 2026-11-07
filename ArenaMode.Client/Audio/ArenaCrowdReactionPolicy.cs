@@ -12,11 +12,16 @@ namespace ArenaMode.Audio;
 /// state is read or changed here. Strengths are the plan's proposals
 /// (D:\ArenaMapPort\docs\PLAN-CROWD-REACTIONS.md, table 6.3, as revised in ArenaMapPort 08964c1
 /// with the user's subtitles of every crowd clip, 2.4), not listened values. MapPort turns a
-/// strength into a voice count (up to 1/3: one voice, up to 2/3: two, above: three), a bed swell
-/// and, for two kinds, a sub-pool (plan 2.4, 4.1): from 0.8 the first Approve voice is drawn from
-/// the strong-only shouts, below 0.4 Disapprove draws only the lament clips. Below 0.05 MapPort's
-/// React refuses (false), which would end the claim for the match; nothing here goes below 0.15.
-/// Never into gain. Contract and decisions: docs/reviews/CROWD-REACTIONS-20261102.md.
+/// strength into a voice count (up to 1/3: one voice, up to 2/3: two, above: three), for two
+/// kinds a sub-pool (plan 2.4, 4.1: from 0.8 the first Approve voice is drawn from the strong-only
+/// shouts, below 0.4 Disapprove draws only the lament clips) and, since MapPort e3e4290
+/// (2026-11-07), a roar from every stand: Arena's Cheer bed for Approve, Start and Finish, its
+/// Angry bed for Disapprove, at amplitude 0.35 + 0.65 * strength for the reaction's length
+/// (1.5 to 5 s, then a 2 s release); a roar of the other kind is cut in 0.5 s. The neutral
+/// murmur is lifted by the sustained excitement only (SetExcitement, up to +60 percent), never
+/// by a reaction. Below 0.05 MapPort's React refuses (false), which would end the claim for the
+/// match; nothing here goes below 0.15. Never into gain. Contract and decisions:
+/// docs/reviews/CROWD-REACTIONS-20261102.md.
 /// </summary>
 internal static class ArenaCrowdReactionPolicy
 {
@@ -40,11 +45,25 @@ internal static class ArenaCrowdReactionPolicy
     // Against MapPort's bands: a kill 0.35 -> 0.175 and a strong kill 0.6 -> 0.3 (two voices ->
     // one); an award 0.9 -> 0.45 (three -> two, and the first voice no longer comes from the
     // strong-only shouts); lead taken 0.5 -> 0.25 (two -> one); lead lost 0.3 -> 0.15 (one voice
-    // and laments either way, only the bed swell shrinks; still three times MapPort's 0.05 floor).
-    // An own death 0.5 -> 0.25 falls below the 0.4 band and draws laments only, one voice.
-    // Intended: a second-person heckle of the dead player spoken over the announcer is the worse
-    // outcome; a lament under it still says what happened.
+    // and laments either way, only the roar shrinks, 0.55 -> 0.45; still three times MapPort's
+    // 0.05 floor). An own death 0.5 -> 0.25 falls below the 0.4 band and draws laments only, one
+    // voice. Intended: a second-person heckle of the dead player spoken over the announcer is the
+    // worse outcome; a lament under it still says what happened. The roar keeps the moment
+    // audible either way: MapPort's floor of 0.35 gives even a halved kill (0.175) a roar of 0.46
+    // from every stand, against 0.58 unhalved.
     internal const float InterlockFactor = 0.5f;
+    // The roar layer makes an Approve and a Disapprove within a second of each other a crowd that
+    // cheers and then boos (MapPort cuts the first roar in 0.5 s for the second). For the two frames
+    // of one flush Frame.KeepOneMood decides before anything is sent; across flushes the service
+    // remembers the last mood it sent: within this window the opposite kind goes out only when it
+    // is stronger than what went out (the crowd changes its mind for the bigger moment: the death
+    // right after the kill that traded for it), a weaker one is dropped. One second is the "same
+    // moment"; a Start, a Finish or a Lull is a new moment and ends the window. The window covers
+    // the quick trade only, not the roar's whole life (hold up to 5 s and a 2 s release): a death
+    // two seconds after a kill is a second moment, both react, and MapPort's 0.5 s cut of the
+    // first roar is the transition. Compared as sent, after the interlock: that is the roar the
+    // crowd heard. A weaker mood of the same kind inside the window leaves the memory alone.
+    internal const float MoodWindowSeconds = 1f;
 
     // Lull (kind 6), decision D14 of 2026-11-02 ("wie empfohlen", plan 6.3 and 8): no kill for
     // 60 s of live combat gives one Lull at 0.4 (two voices from the whole LowDeathIntensity bank,
@@ -140,7 +159,11 @@ internal static class ArenaCrowdReactionPolicy
 
     // The Lull is not interlocked: it answers a minute without a kill, not a moment the announcer
     // is commenting on.
-    internal static bool IsInterlocked(int kind) => kind == Approve || kind == Disapprove;
+    internal static bool IsInterlocked(int kind) => IsMood(kind);
+
+    // The two moods of the roar layer (Cheer for Approve, Angry for Disapprove), which contradict
+    // each other within a moment; Start and Finish are round events, the Lull is neither.
+    internal static bool IsMood(int kind) => kind == Approve || kind == Disapprove;
 
     /// <summary>
     /// Live combat as the announcer snapshot reports it, for the murmur and the Lull alike: the
@@ -188,7 +211,8 @@ internal static class ArenaCrowdReactionPolicy
     /// complaining about a dull match at a round start or a result contradicts the moment. A Lull
     /// is no round event and drops nothing. The service holds a tick's Approve, Disapprove and
     /// Lull for one more tick, for a result published a tick after its kill
-    /// (ArenaCrowdReactions.Flush). Fixed arrays: no allocation.
+    /// (ArenaCrowdReactions.Flush), and sends one mood per flush across the frame that goes out
+    /// and the one that waits (<see cref="KeepOneMood"/>). Fixed arrays: no allocation.
     /// </summary>
     internal sealed class Frame
     {
@@ -236,6 +260,42 @@ internal static class ArenaCrowdReactionPolicy
             _strength[kind] = 0f;
             _source[kind] = null;
             return true;
+        }
+
+        /// <summary>
+        /// One mood per flush. Since MapPort's roar layer (e3e4290, 2026-11-07) every Approve
+        /// roars Arena's Cheer bed and every Disapprove its Angry bed from all stands, and the later
+        /// one cuts the other in 0.5 s, so an Approve and a Disapprove for the same moment (a trade:
+        /// the own kill and the own death in one tick or in neighbouring ticks, one in the frame
+        /// that goes out and one in the frame that waits) would make the whole crowd cheer and
+        /// then boo within a second. The strongest entry of the two kinds across both frames
+        /// decides; the other kind is dropped from both frames (on a tie Approve stays: plan 4.1's
+        /// order lists it first). With separate voices this was a mixed crowd; with roars it is a
+        /// contradiction. Returns what was dropped, its strongest entry, for the service's Debug
+        /// line. The interlock halves both kinds alike, so it does not change the decision.
+        /// </summary>
+        internal static bool KeepOneMood(Frame going, Frame waiting, out int dropped, out float droppedStrength, out string droppedSource)
+        {
+            dropped = 0;
+            droppedStrength = 0f;
+            droppedSource = null;
+            float waitingApprove = waiting?._strength[Approve] ?? 0f, waitingDisapprove = waiting?._strength[Disapprove] ?? 0f;
+            float approve = Math.Max(going._strength[Approve], waitingApprove);
+            float disapprove = Math.Max(going._strength[Disapprove], waitingDisapprove);
+            if (!(approve > 0f) || !(disapprove > 0f)) return false;
+            dropped = approve >= disapprove ? Disapprove : Approve;
+            droppedStrength = dropped == Approve ? approve : disapprove;
+            float droppedWaiting = dropped == Approve ? waitingApprove : waitingDisapprove;
+            droppedSource = going._strength[dropped] >= droppedWaiting ? going._source[dropped] : waiting._source[dropped];
+            going.Drop(dropped);
+            waiting?.Drop(dropped);
+            return true;
+        }
+
+        private void Drop(int kind)
+        {
+            _strength[kind] = 0f;
+            _source[kind] = null;
         }
 
         internal void Clear()

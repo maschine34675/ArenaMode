@@ -247,6 +247,41 @@ frame.Add(Lull, 0.4f, "lull"); frame.Add(Start, 1f, "RoundStart"); frame.Resolve
 Check(!frame.TryTake(Lull, out _, out _) && frame.TryTake(Start, out _, out _), "a Start drops the frame's Lull");
 Check(Array.IndexOf(ArenaCrowdReactionPolicy.Frame.Order, Lull) == ArenaCrowdReactionPolicy.Frame.Order.Length - 1,
     "the Lull is sent last (plan 4.1 priority)");
+// One mood per flush (MapPort's roar layer, e3e4290): across the frame that goes out and the frame
+// that waits, the stronger of Approve and Disapprove survives in both; the other kind leaves both.
+var going = new ArenaCrowdReactionPolicy.Frame();
+var waiting = new ArenaCrowdReactionPolicy.Frame();
+going.Add(Approve, 0.35f, "kill"); going.Add(Disapprove, 0.5f, "death");
+Check(ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, null, out int droppedKind, out float droppedStrength, out string droppedSource)
+    && droppedKind == Approve && Near(droppedStrength, 0.35f) && droppedSource == "kill"
+    && !going.TryTake(Approve, out _, out _) && going.TryTake(Disapprove, out float kept, out _) && Near(kept, 0.5f) && going.IsEmpty,
+    "one mood per frame: the weaker Approve is dropped for the death");
+going.Add(Approve, 0.6f, "strong kill"); going.Add(Disapprove, 0.5f, "death");
+Check(ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, waiting, out droppedKind, out droppedStrength, out droppedSource)
+    && droppedKind == Disapprove && Near(droppedStrength, 0.5f) && droppedSource == "death"
+    && going.TryTake(Approve, out _, out _) && going.IsEmpty,
+    "one mood per frame: the weaker Disapprove is dropped for the strong kill");
+going.Add(Approve, 0.5f, "TakenTheLead"); going.Add(Disapprove, 0.5f, "death");
+Check(ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, null, out droppedKind, out _, out _) && droppedKind == Disapprove
+    && going.TryTake(Approve, out _, out _) && going.IsEmpty, "on a tie Approve stays (plan 4.1 order)");
+going.Add(Approve, 0.35f, "kill"); waiting.Add(Disapprove, 0.5f, "death");
+Check(ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, waiting, out droppedKind, out droppedStrength, out droppedSource)
+    && droppedKind == Approve && Near(droppedStrength, 0.35f) && droppedSource == "kill" && going.IsEmpty
+    && waiting.TryTake(Disapprove, out _, out _) && waiting.IsEmpty,
+    "across the frames: the going Approve yields to the waiting death");
+going.Add(Disapprove, 0.3f, "LostTheLead"); waiting.Add(Approve, 0.9f, "FIRST BLOOD"); waiting.Add(Disapprove, 0.5f, "death");
+Check(ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, waiting, out droppedKind, out droppedStrength, out droppedSource)
+    && droppedKind == Disapprove && Near(droppedStrength, 0.5f) && droppedSource == "death" && going.IsEmpty
+    && waiting.TryTake(Approve, out float strongest, out _) && Near(strongest, 0.9f) && waiting.IsEmpty,
+    "across the frames: the strongest entry decides, the other kind leaves both frames, the drop names its strongest entry");
+going.Add(Approve, 0.35f, "kill"); going.Add(Lull, 0.4f, "lull");
+Check(!ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, waiting, out droppedKind, out _, out _) && droppedKind == 0
+    && going.TryTake(Approve, out _, out _) && going.TryTake(Lull, out _, out _) && going.IsEmpty,
+    "one mood alone (with a Lull) is no decision");
+going.Add(Approve, 0.5f, "kill"); waiting.Add(Approve, 0.9f, "award");
+Check(!ArenaCrowdReactionPolicy.Frame.KeepOneMood(going, waiting, out _, out _, out _)
+    && going.TryTake(Approve, out _, out _) && waiting.TryTake(Approve, out _, out _),
+    "the same mood in both frames is kept in both");
 
 // ---------------------------------------------------------------- service
 int binds = 0;
@@ -318,10 +353,11 @@ Check(Sent((Approve, 0.6f)), "headshot kill and its award give one Approve at 0.
 tdm.Kill(OtherKill(true, false)); tdm.Kill(OtherKill(null, null)); tdm.Kill(OtherKill(false, true));
 tdm.Kill(LocalKill(eligible: false)); Settle();
 Check(Sent(), "bot-versus-bot (a teammate's included) and unscored kills stay silent");
-tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Frame();
-tdm.Cue(ArenaAnnouncerCue.LostTheLead); Frame();
+tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Settle(); Run(1f);   // past the mood window, below
+tdm.Cue(ArenaAnnouncerCue.LostTheLead); Settle();
 tdm.Cue(ArenaAnnouncerCue.TiedForTheLead); Settle();
 Check(Sent((Approve, 0.5f), (Disapprove, 0.3f)), "lead taken reacts at 0.5, lead lost at 0.3, a tie stays silent");
+Run(1f);   // past the mood window of the lost lead: the cues below test the mapping alone
 foreach (var cue in new[] { ArenaAnnouncerCue.LastManStanding, ArenaAnnouncerCue.Clutch, ArenaAnnouncerCue.FinalWeapon,
     ArenaAnnouncerCue.LadderComplete, ArenaAnnouncerCue.Shutdown })
 {
@@ -359,6 +395,61 @@ body = new Player();
 tdm.Kill(LocalDeath(body, eligible: false)); ArenaEvents.RaisePlayerDied(body); Settle();
 Check(Sent(), "an unscored local death stays silent on both paths");
 
+// One mood per flush (MapPort's roar layer): a trade's own kill and own death give one reaction,
+// the stronger, whether they arrive in one tick or in neighbouring ticks.
+int droppedBefore = log.Debugs.Count(line => line.StartsWith("Arena crowd reaction dropped:", StringComparison.Ordinal));
+body = new Player();
+Run(1.5f);   // past the mood window of the deaths above: these test the frame rule alone
+tdm.Kill(LocalKill()); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
+Check(Sent((Disapprove, 0.5f)), "a trade in one tick sends the death only: one mood per flush");
+body = new Player();
+Run(1.5f);
+tdm.Kill(LocalKill()); Frame(); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
+Check(Sent((Disapprove, 0.5f)), "a kill one tick before the own death yields to the stronger death");
+body = new Player();
+Run(1.5f);   // past the mood window of the death above: this tests the frame rule alone
+tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Frame(); tdm.Kill(LocalKill("Bullet", head: true)); Settle();
+Check(Sent((Approve, 0.6f)), "an own death one tick before a strong kill yields to the stronger kill");
+body = new Player();
+tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); tdm.Cue(ArenaAnnouncerCue.TakenTheLead); Settle();
+Check(Sent((Approve, 0.5f)), "a death and a lead taken in one tick: on a tie the Approve goes out");
+Check(log.Debugs.Count(line => line.StartsWith("Arena crowd reaction dropped:", StringComparison.Ordinal)) == droppedBefore + 4
+    && log.Debugs.Any(line => line.StartsWith("Arena crowd reaction dropped: kind=Approve, strength=0.35, source=kill, ", StringComparison.Ordinal))
+    && log.Debugs.Any(line => line.StartsWith("Arena crowd reaction dropped: kind=Disapprove, strength=0.5, source=death, ", StringComparison.Ordinal)),
+    "every dropped mood writes one Debug line naming kind, strength and source");
+// Across flushes: within a second of a sent mood the opposite kind goes out only when it is
+// stronger (MapPort then cuts the first roar: the crowd changes its mind); a weaker one is dropped;
+// after the window both play; a Start or Finish ends the window.
+Run(1.5f); tdm.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "mood window control: a kill after a quiet second goes out");
+body = new Player();
+Run(0.5f); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
+Check(Sent((Disapprove, 0.5f)), "a stronger death within a second of the kill goes out: the crowd changes its mind");
+Run(0.3f); tdm.Kill(LocalKill()); Settle();
+Check(Sent() && log.Debugs.Any(line => line.StartsWith("Arena crowd reaction dropped: kind=Approve, strength=0.35, source=kill, Disapprove 0.5 went out ", StringComparison.Ordinal)),
+    "a weaker kill within a second of the death is dropped");
+Run(0.2f); tdm.Kill(LocalKill("Bullet", head: true)); Settle();
+Check(Sent((Approve, 0.6f)), "a stronger kill within a second of the death goes out");
+Run(1.2f); body = new Player(); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
+Check(Sent((Disapprove, 0.5f)), "a weaker death after the window goes out");
+tdm.Cue(ArenaAnnouncerCue.RoundStart); Frame(); Sent();
+tdm.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "a Start ends the window: the kill right after it goes out");
+// The window's edge: 1.1 s after the death is outside, 0.9 s inside.
+Run(1.5f); body = new Player(); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle(); Sent();
+Run(0.9f); tdm.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "a weaker kill 1.1 s after the death goes out");
+Run(1.5f); body = new Player(); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle(); Sent();
+Run(0.7f); tdm.Kill(LocalKill()); Settle();
+Check(Sent(), "a weaker kill 0.9 s after the death is dropped");
+// A weaker mood of the same kind inside the window neither lowers the bar nor extends the window.
+Run(1.5f); tdm.Callout("DOUBLE KILL"); tdm.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.9f)), "same-kind memory control: the award goes out");
+Run(0.3f); tdm.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "a weaker kill of the same mood goes out (MapPort's cooldown may drop it)");
+Run(0.1f); body = new Player(); tdm.Kill(LocalDeath(body)); ArenaEvents.RaisePlayerDied(body); Settle();
+Check(Sent(), "a weaker same-kind mood inside the window keeps the stronger memory: the death is still dropped");
+
 // Coalescing with round events.
 tdm.Cue(ArenaAnnouncerCue.RoundStart); Frame();
 Check(Sent((Start, 1f)), "round start reacts at 1.0 in its own tick");
@@ -392,6 +483,17 @@ Frame(); tdm.Kill(LocalKill()); tdm.Cue(ArenaAnnouncerCue.RoundStart); Run(40);
 Check(Sent() && FakeCrowd.Claims == 1 && FakeCrowd.Releases == 1, "no contest sends nothing for the rest of the match");
 ArenaCrowdReactions.Detach();
 Check(tdm.Subscribers == 0 && ArenaEvents.DiedSubscribers == 0 && FakeCrowd.Releases == 1, "detach unsubscribes everything");
+
+// The mood memory does not outlive the match: a death right before the detach, a weaker kill
+// right after the next attach (within the window) still goes out.
+var moodMatch = Claimed(new TeamDeathmatchMode());
+var moodBody = new Player();
+moodMatch.Kill(LocalDeath(moodBody)); ArenaEvents.RaisePlayerDied(moodBody); Settle(); Sent();
+ArenaCrowdReactions.Detach();
+moodMatch = Claimed(new TeamDeathmatchMode());
+moodMatch.Kill(LocalKill()); Settle();
+Check(Sent((Approve, 0.35f)), "a new match starts without a mood memory");
+ArenaCrowdReactions.Detach();
 
 // Deathmatch round events.
 var dm = new RoundsMode();
@@ -887,6 +989,22 @@ Check(Near(real.MinStrength, 0.05f) && weakestSent >= real.MinStrength,
     "real surface: every strength ArenaMode sends is at or above MapPort's MinStrength");
 Console.WriteLine(FormattableString.Invariant($"CROWD_REACTION_REAL_SURFACE: kinds Approve..Lull = 1..6 as MapPort's, ImplementedMask {implementedMask}, ")
     + FormattableString.Invariant($"owner limit {real.OwnerMax} (ArenaMode sends 40), MinStrength {real.MinStrength:0.###} (ArenaMode's weakest {weakestSent:0.###})"));
+// MapPort's roar layer (e3e4290, 2026-11-07): the kind table ArenaMode's one-mood rule rests on
+// (Approve, Start and Finish share one bed, Disapprove has the other, the later one cuts the
+// other bed) and the amplitude floor that keeps even the weakest sent strength audible.
+if (real.HasRoarLayer)
+{
+    int cheer = real.RoarKind(Approve), angry = real.RoarKind(Disapprove);
+    Check(cheer != 0 && angry != 0 && cheer != angry && real.RoarKind(Start) == cheer && real.RoarKind(Finish) == cheer
+        && real.RoarKind(TakeCover) == 0 && real.RoarKind(Lull) == 0 && real.RoarKind(7) == 0,
+        "real surface: Approve, Start and Finish roar one bed, Disapprove the other, TakeCover, Lull and PurifiedTeam none");
+    Check(real.RoarAmplitude(weakestSent) >= 0.35f - 0.0005f && real.RoarAmplitude(weakestSent) > real.RoarAmplitude(0f)
+        && real.RoarAmplitude(ArenaCrowdReactionPolicy.RoundStrength) <= 1f,
+        "real surface: ArenaMode's weakest strength roars above MapPort's amplitude floor, its strongest within 1");
+    Console.WriteLine(FormattableString.Invariant($"CROWD_REACTION_REAL_SURFACE: roar layer present: Approve/Start/Finish -> bed {cheer}, Disapprove -> bed {angry}, ")
+        + FormattableString.Invariant($"amplitude {real.RoarAmplitude(weakestSent):0.###} for ArenaMode's weakest strength, {real.RoarAmplitude(ArenaCrowdReactionPolicy.KillStrength):0.###} for a kill"));
+}
+else Console.WriteLine("CROWD_REACTION_REAL_SURFACE: no roar layer in the installed client (MapPort before e3e4290); the one-mood rule is checked against the stand-ins only");
 
 log.Clear();
 var realBound = BindContract(real.SpectatorCrowd);
@@ -950,6 +1068,7 @@ long realAccepted = real.Accepted;
 realTdm.Kill(LocalKill()); Settle();
 Check(realReacts.Count == 1 && realReacts[0].handle == realHandle && realReacts[0].queued && real.Accepted == realAccepted + 1
     && Drained((MapPortKind("Approve"), 0.35f)), "real surface: an own kill's Approve 0.35 is queued: React true, Accepted + 1");
+Run(1f);   // past the mood window: a weaker lost lead within a second of the kill would be dropped
 AnnouncerService.IsPmcVoiceBlocked = true;
 realTdm.Cue(ArenaAnnouncerCue.LostTheLead); Settle();
 AnnouncerService.IsPmcVoiceBlocked = false;

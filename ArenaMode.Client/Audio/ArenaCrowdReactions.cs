@@ -42,7 +42,10 @@ namespace ArenaMode.Audio;
 /// Events are buffered and flushed once per tick: per kind the strongest entry, at most one push
 /// per kind per flush, nothing when nothing happened. Start and Finish go out in the tick they
 /// arrive in; Approve, Disapprove and Lull wait one more tick, and a Start or Finish in either tick
-/// drops them (see <see cref="Flush"/>); a kill or a local death withdraws a waiting Lull. Handlers buffer only and never throw into the match; the
+/// drops them (see <see cref="Flush"/>); a kill or a local death withdraws a waiting Lull. A flush
+/// sends one mood: of an Approve and a Disapprove in its two frames only the stronger kind goes
+/// out (a trade's own kill and own death; since MapPort's roar layer, e3e4290, the two would make
+/// the whole crowd cheer and then boo within a second). Handlers buffer only and never throw into the match; the
 /// only lines they write are the NoContest release and the first handler failure, once per match.
 /// Every reaction push happens from the gated tick. The Lull is decided in the tick from the
 /// once-per-second snapshot poll (see <see cref="TickLull"/>).
@@ -96,6 +99,11 @@ internal static class ArenaCrowdReactions
     private static float? _quietSince;
     private static float _windowEndsAt, _nextClaimAt, _nextSnapshotAt, _nextLullAt;
     private static int _excitementStep, _excitementPeak, _sent, _claimAttempts, _lastKinds;
+    // The last mood sent (Approve or Disapprove), its strength as sent and when: the roar layer's
+    // window (ArenaCrowdReactionPolicy.MoodWindowSeconds). 0 after a Start, a Finish or a Lull
+    // and at detach.
+    private static int _moodKind;
+    private static float _moodStrength, _moodAt;
 
     internal static void Attach(ArenaMatch match) => Attach(match, ArenaMapPortSpectatorCrowd.Bind);
 
@@ -241,6 +249,9 @@ internal static class ArenaCrowdReactions
     /// (TickSnapshot), it goes out two ticks later unless a Start or Finish arrives first or a kill
     /// or a local death withdraws it (<see cref="ResetQuiet"/>). Its 90 s gap starts here, when it
     /// goes out: a Lull dropped or withdrawn before that was never heard and delays nothing.
+    /// One mood per flush: of an Approve and a Disapprove across the frame that goes out and the
+    /// frame that waits, only the stronger kind survives, in both frames
+    /// (<see cref="ArenaCrowdReactionPolicy.Frame.KeepOneMood"/>; one Debug line names the dropped one).
     /// </summary>
     private static void Flush(float now)
     {
@@ -260,6 +271,12 @@ internal static class ArenaCrowdReactions
             _held = _pending;
             _pending = send;
         }
+        // One mood per flush across the frame that goes out and the one that waits (MapPort's
+        // roar layer, e3e4290): a trade's Approve and Disapprove would make the whole crowd cheer
+        // and then boo within a second. Nothing to decide after a round event (Resolve dropped both).
+        if (ArenaCrowdReactionPolicy.Frame.KeepOneMood(send, _held, out int dropped, out float droppedStrength, out string droppedSource))
+            Plugin.ModLogger.LogDebug($"Arena crowd reaction dropped: kind={KindName(dropped)}, strength={Number(droppedStrength)}, "
+                + $"source={droppedSource}, the other mood of this flush is stronger.");
         // Read once per flush, after the announcer handled this frame's callouts and cues.
         bool announcer = AnnouncerService.IsPmcVoiceBlocked;
         foreach (int kind in ArenaCrowdReactionPolicy.Frame.Order)
@@ -267,6 +284,30 @@ internal static class ArenaCrowdReactions
             if (!send.TryTake(kind, out float strength, out string source) || !claim.Has(kind)) continue;
             bool weakened = announcer && ArenaCrowdReactionPolicy.IsInterlocked(kind);
             if (weakened) strength *= ArenaCrowdReactionPolicy.InterlockFactor;
+            if (ArenaCrowdReactionPolicy.IsMood(kind))
+            {
+                // The roar layer's window: within a second of a sent mood the opposite one goes out
+                // only when it is stronger (MapPort then cuts the first roar); a weaker one is dropped.
+                if (_moodKind != 0 && _moodKind != kind && now - _moodAt < ArenaCrowdReactionPolicy.MoodWindowSeconds
+                    && strength <= _moodStrength)
+                {
+                    Plugin.ModLogger.LogDebug($"Arena crowd reaction dropped: kind={KindName(kind)}, strength={Number(strength)}, "
+                        + $"source={source}, {KindName(_moodKind)} {Number(_moodStrength)} went out {Number(now - _moodAt)} s ago.");
+                    continue;
+                }
+                // A weaker mood of the same kind inside the window neither lowers the bar nor extends
+                // the window: the stronger roar is what still sounds (MapPort may even drop this one on
+                // the kind's 3 s cooldown). Anything else becomes the memory.
+                bool weakerSameKind = _moodKind == kind && now - _moodAt < ArenaCrowdReactionPolicy.MoodWindowSeconds
+                    && strength < _moodStrength;
+                if (!weakerSameKind)
+                {
+                    _moodKind = kind;
+                    _moodStrength = strength;
+                    _moodAt = now;
+                }
+            }
+            else _moodKind = 0;   // a Start, a Finish or a Lull is a new moment
             if (!claim.Push(kind, strength))
             {
                 // A stale, foreign or refused claim: Push released it. Not claimed again in this
@@ -605,6 +646,8 @@ internal static class ArenaCrowdReactions
         // _quietSince was cleared by StopPresenting above.
         _windowEndsAt = _nextClaimAt = _nextSnapshotAt = _nextLullAt = 0f;
         _excitementStep = _excitementPeak = _sent = _claimAttempts = _lastKinds = 0;
+        _moodKind = 0;
+        _moodStrength = _moodAt = 0f;
         HandledDeaths.Clear();
         ClearBuffers();
     }

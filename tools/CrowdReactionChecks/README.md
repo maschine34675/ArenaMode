@@ -42,12 +42,17 @@ on detach, the developer demo yielding, another plugin's claim refusing, a secon
 `Reset` mid-match, a no contest after a Start whose accepted request MapPort keeps, kinds
 withdrawn mid-match). Only state is touched (a fresh queue per
 scenario, `SetKinds`, `Reset`, the bed's `Available` flag, `Drain`); `Verify.ps1` checks the
-DLL's hash before and after.
+DLL's hash before and after. When the installed client has MapPort's roar layer (`e3e4290`,
+2026-11-07: `SpectatorReactionBedKind`, `SpectatorReactionBedModel`), the stage also pins its
+kind table (Approve, Start and Finish on one bed, Disapprove on the other, TakeCover, Lull and
+PurifiedTeam on none) and the amplitude floor for ArenaMode's weakest strength, the facts behind
+ArenaMode's one-mood rule and mood window; a client without it is reported, not failed.
 
 `Verify.ps1` then runs a fault control (an absent client must fail naming the requirement) and
-51 hand-made mutants, each anchored on exactly one LF site of the production text and each
-failing its named assertion; every case builds with the no-deploy targets into its own folder
-under `artifacts/crowd-reaction-checks/`.
+61 hand-made mutants (51 of phase B, 10 of the roar-layer rules: the frame rule, the tie, the
+waiting frame, the mood window, its memory and its reset by a round event and at detach), each anchored on exactly one LF
+site of the production text and each failing its named assertion; every case builds with the
+no-deploy targets into its own folder under `artifacts/crowd-reaction-checks/`.
 
 Not covered: MapPort's Unity side (`SpectatorAudio`, the planner's playback, the bed), EFT, Unity
 audio and anything audible. See
@@ -55,12 +60,14 @@ audio and anything audible. See
 
 ## Native scenarios (gpu-run)
 
-`scenarios/crowd-tdm-bowl.json` (Team DM on Bowl: claim, Start, an own kill, an own death),
+`scenarios/crowd-tdm-bowl.json` (Team DM on Bowl: claim, Start, an own kill, an own death;
+since 2026-11-07 also MapPort's `[ReactionBeds]` roar lines for the Start and the death),
 `scenarios/crowd-finish.json` (Team DM with a 5 minute limit and Deathmatch over three rounds:
 Finish and murmur intensity) and `scenarios/crowd-iceberg-zombies.json` (no claim on Iceberg,
-nothing in Zombies) are the gpu-run scenarios of the GPU-2 run of 2026-11-02
-(`docs/reports/2026-11/GPU-CROWD-REACTIONS-20261102.md`). Run them from
+nothing in Zombies) are the gpu-run scenarios of the GPU-2 runs of 2026-11-02 and 2026-11-07
+(`docs/reports/2026-11/GPU-CROWD-REACTIONS-20261102.md`,
+`docs/reports/2026-11/GPU-CROWD-ROAR-20261107.md`). Run them from
 `../UiBridge/tools/gpu-run` with `node gpu-run.mjs scenario <file> --host host2 --out <dir>`. They
-need an installed ArenaMapPort with phase A and its developer mode on (its per-reaction line is
-developer-only), and they change ArenaMode match settings (mode, limits, participants): put them
-back afterwards.
+need an installed ArenaMapPort with phase A and its developer mode on (its per-reaction and roar
+lines are developer-only), and they change ArenaMode match settings (mode, limits, participants):
+put them back afterwards.

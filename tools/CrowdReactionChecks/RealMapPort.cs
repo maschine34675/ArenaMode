@@ -16,8 +16,9 @@ internal sealed class RealMapPort
 {
     internal const string Requirement = "an ArenaMapPort client with crowd reactions phase A "
         + "(D:\\ArenaMapPort commit d70acd2 or later on feature/iceberg, unreleased; the installed development "
-        + "build 0.4.0+08964c1 carries it): the eight SpectatorCrowd members ContractVersion, IsAvailable, "
-        + "Excitement, SetExcitement, ReactionKinds, ClaimReactions, React, ReleaseReactions";
+        + "build stamped 0.4.0+d70acd2 of 2026-11-07 carries it with the roar layer of e3e4290): the eight "
+        + "SpectatorCrowd members ContractVersion, IsAvailable, Excitement, SetExcitement, ReactionKinds, "
+        + "ClaimReactions, React, ReleaseReactions";
     private const BindingFlags Public = BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly;
     private const BindingFlags Inner = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
         | BindingFlags.Instance | BindingFlags.DeclaredOnly;
@@ -28,7 +29,7 @@ internal sealed class RealMapPort
     internal string ProductVersion { get; private set; }
     internal string Sha256 { get; private set; }
     internal Type SpectatorCrowd { get; private set; }
-    private Type _queueType, _stateType, _kindType, _requestType;
+    private Type _queueType, _stateType, _kindType, _requestType, _roarKindType, _roarModelType;
 
     internal static RealMapPort Load(string path)
     {
@@ -51,8 +52,21 @@ internal sealed class RealMapPort
         real._stateType = Internal(assembly, "CrowdBedState", real);
         real._kindType = Internal(assembly, "CrowdReactionKind", real);
         real._requestType = Internal(assembly, "CrowdReactionRequest", real);
+        // The roar layer (MapPort e3e4290, 2026-11-07) is optional here: a phase A client before it
+        // is still the surface ArenaMode binds; Program.cs reports which it found.
+        real._roarKindType = assembly.GetType("ArenaMapPort.Client.SpectatorReactionBedKind");
+        real._roarModelType = assembly.GetType("ArenaMapPort.Client.SpectatorReactionBedModel");
         return real;
     }
+
+    /// <summary>The installed client has the roar layer's Unity-free kind table and amplitude law.</summary>
+    internal bool HasRoarLayer => _roarKindType != null && _roarModelType != null;
+
+    /// <summary>SpectatorReactionBedKind.For: the bed a reaction kind roars (0 none, 1 Cheer, 2 Angry).</summary>
+    internal int RoarKind(int reactionKind) => (int)_roarKindType.GetMethod("For", Inner).Invoke(null, new object[] { reactionKind });
+
+    /// <summary>SpectatorReactionBedModel.Amplitude: the roar's level for a strength (0.35 + 0.65 * strength).</summary>
+    internal float RoarAmplitude(float strength) => (float)_roarModelType.GetMethod("Amplitude", Inner).Invoke(null, new object[] { strength });
 
     // The contract members with their exact signatures (MapPort's SpectatorCrowd, contract version 1);
     // null when all eight are there. Program.cs also runs it on the stand-in 0.4.0 surface.

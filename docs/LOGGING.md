@@ -96,6 +96,9 @@ contract); `Arena crowd reactions claimed: handle=…, kinds=0x…, attempt=…`
 window, `Arena crowd reactions not claimed: …`; one `Arena crowd reaction: kind=…, strength=…,
 source=…` per sent reaction (kinds Approve, Disapprove, Start, Finish and Lull, the last with
 `source=no kill for 60 s`; ", announcer speaking" when the interlock halved it); `Arena crowd
+reaction dropped: kind=…, strength=…, source=…, …` when the one-mood rule or the 1 s mood window
+of ArenaMapPort's roar layer drops the weaker of an Approve and a Disapprove (the rest of the
+line names the other mood); `Arena crowd
 reactions released: handle=…, reason=…, sent=…` and `Arena crowd detached: reason=…,
 reactions=…, excitementPeak=…`.
 

@@ -40,8 +40,9 @@ published one yet (the published 0.4.0 has no Iceberg). Without it the map is no
   cheer your kills, awards and leads, jeer your deaths, groan at a lost lead and call round
   starts and results once an ArenaMapPort with crowd reactions is released; a later
   ArenaMapPort can also let it complain when a match goes a minute without a kill. With 0.4.0
-  that part stays off. No game rules, scores or profiles change. Not yet run or heard in the
-  game.
+  that part stays off. Because that ArenaMapPort makes the whole crowd roar or boo with each
+  reaction, a kill and a death in the same moment (within a second) give one reaction, the
+  stronger. No game rules, scores or profiles change. Run in the game, not yet heard.
   [Details](docs/reviews/CROWD-REACTIONS-20261102.md)
 
 ## [0.4.1] - 2026-10-29

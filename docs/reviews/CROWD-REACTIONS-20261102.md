@@ -158,6 +158,71 @@ of `tools/CrowdReactionChecks` (section "Verification"):
   reaction; nothing ArenaMode sends is below 0.15, and the stage pins every strength against
   MapPort's floor.
 
+## ArenaMapPort's roar layer as implemented (`e3e4290`, 2026-11-07)
+
+MapPort reworked what a reaction does to the crowd beds (user decision 2026-11-07: "das neutrale
+gemurmel anzuheben macht glaube ich nicht wirklich sinn, eher sollten dann die lauteren Cheer und
+Angry Betten laufen"). The phase-A swell of the neutral murmur is gone; instead every played
+reaction roars from all of the murmur's stands with one of Arena's own in-match beds:
+Approve, Start and Finish one of the three Cheer beds, Disapprove one of the three Angry beds,
+TakeCover none (`SpectatorReactionBedKind.For`). Amplitude `0.35 + 0.65 * strength`, hold the
+reaction's length clamped to 1.5 to 5 s after a 0.3 s attack, then a 2 s release; a retrigger of
+the same kind keeps its clip and extends the hold; **a roar of the other kind is cut in 0.5 s**
+(`SpectatorReactionBeds.Trigger`, `RoarEnvelope`). The sustained `SetExcitement` level still lifts
+the neutral murmur by up to 60 percent, as in 0.4.0. The public `SpectatorCrowd` contract is
+unchanged (eight members, version 1), so the binder, the claim and every strength ArenaMode sends
+keep working; MapPort's own host run of 2026-11-07 (its developer demo, Equator and Bowl) played
+every kind with the matching roar.
+
+What it means for ArenaMode's strengths (voices as before, roar amplitude new):
+
+| Sent | Voices | Roar |
+|---|---|---|
+| kill 0.35 / halved 0.175 | 2 / 1 | 0.58 / 0.46 |
+| strong kill 0.6 / 0.3 | 2 / 1 | 0.74 / 0.55 |
+| award 0.9 / 0.45 | 3 (first a strong shout) / 2 | 0.94 / 0.64 |
+| own death 0.5 / 0.25 | 2 (laments and heckles) / 1 (laments) | 0.68 / 0.51 (Angry) |
+| lead taken 0.5 / 0.25 | 2 / 1 | 0.68 / 0.51 |
+| lead lost 0.3 / 0.15 | 1 / 1 | 0.55 / 0.45 (Angry) |
+| Start, Finish 1.0 | 3 | 1.0 |
+
+Even the weakest strength ArenaMode sends roars at 0.45 from every stand: the roar, not the
+voice count, is now what makes a reaction audible in a firefight. The interlock factor and the
+strengths stay as proposed (nothing listened to yet).
+
+**Consequence, decided here (2026-11-07): one mood per flush, and a mood window of one second.**
+With separate voices an Approve and a Disapprove for the same moment were a mixed crowd (one fan
+cheers, one laments). With roars they are the whole crowd cheering and then booing within a
+second, because MapPort starts the second kind 0.75 s after the first (its pace) and cuts the
+first roar in 0.5 s. So:
+
+- `ArenaCrowdReactionPolicy.Frame.KeepOneMood`: across the two frames of one flush (the frame
+  that goes out and the frame that waits a tick) the strongest entry of Approve and Disapprove
+  decides, the other kind is dropped from both frames (tie: Approve, plan 4.1's order). A trade
+  (the own kill and the own death in one tick or in neighbouring ticks) gives one reaction, the
+  stronger: the death at 0.5 over the kill at 0.35, a strong kill or an award over the death.
+- `ArenaCrowdReactionPolicy.MoodWindowSeconds` = 1 s: the service remembers the last Approve or
+  Disapprove it sent (strength as sent, after the interlock) and within that window sends the
+  opposite kind only when it is stronger (MapPort then cuts the first roar: the crowd changes its
+  mind for the bigger moment); a weaker one is dropped. A sent Start, Finish or Lull ends the
+  window. A weaker mood of the same kind inside the window leaves the memory alone (it neither
+  lowers the bar for a flip nor extends the window; MapPort may drop it on the kind's 3 s
+  cooldown anyway), found by the review of 2026-11-07. One second is "the same moment"; after
+  it a kill followed by a death are two moments and both react, with MapPort's cut as the
+  transition. The window covers the quick trade, not the roar's whole life (up to 7 s).
+- Each drop writes one Debug line, `Arena crowd reaction dropped: kind=…, strength=…, source=…,
+  …` (the reason names the other mood). A death dropped this way never reacts (one decision per
+  body); intended, the crowd stayed with the stronger moment.
+- Unchanged: Start and Finish still drop the moods of their tick and the tick before, the Lull is
+  no mood (it is dropped by round events and withdrawn by kills as before), the interlock, the
+  one-tick hold, the epoch-keyed Finish latch.
+
+Checked by the real-surface stage against the installed client (section "Verification"): the
+kind table (Approve, Start and Finish on one bed, Disapprove on the other, TakeCover, Lull and
+PurifiedTeam on none) and the amplitude floor for ArenaMode's weakest strength; a client before
+`e3e4290` has no roar types, which the stage reports and tolerates (the rules are harmless with
+voices alone).
+
 ## Decisions as taken
 
 Taken by the orchestrating session from the plan's recommendations (section 8):
@@ -277,6 +342,10 @@ service's tick flushes once per frame:
   local death does (it is withdrawn, section "Lull");
 - send order Finish, Start, Approve, Disapprove, Lull (plan 4.1's priority); at most one push per
   kind per flush; nothing when nothing happened;
+- **one mood per flush, and the 1 s mood window across flushes** (section "ArenaMapPort's roar
+  layer"): of an Approve and a Disapprove in the two frames of a flush only the stronger kind
+  goes out, in both frames; within a second of a sent mood the opposite kind goes out only when
+  stronger. The Lull is no mood;
 - **one Finish per round**, where a round is the announcement epoch
   (`ArenaAnnouncementSnapshot.Epoch`, the announcer's own round identity), read when the Finish
   arrives; a Start re-arms too. Deathmatch reports a non-terminal draw twice (`OnRoundEnded`,
@@ -487,8 +556,18 @@ kind (`kind=Lull, strength=0.4, source=no kill for 60 s`).
   later); `Verify.ps1` proves that with an absent client and checks the DLL's hash before and
   after. Only state is touched; nothing of MapPort's Unity side (`SpectatorAudio`, the planner's
   playback, the bed) runs.
-- `Verify.ps1` runs the baseline, that fault control and 51 hand-made mutants, each anchored on
-  exactly one LF site and each failing its named assertion, with the no-deploy targets. One of
+- **Roar layer (2026-11-07):** the frame rule (the weaker mood dropped within a frame and across
+  the going and the waiting frame, the tie, the drop from both frames, a lone mood or a Lull
+  deciding nothing, the same mood kept in both frames), the service (a trade in one tick and in
+  neighbouring ticks in both orders, the tie, the Debug line per drop), the mood window (a
+  stronger opposite mood within a second goes out, a weaker one is dropped with its line, after
+  the window both play, a Start ends it, 0.9 s is inside and 1.1 s outside, a weaker same-kind
+  mood keeps the stronger memory, a new match starts without one); the real surface additionally reads MapPort's roar kind
+  table and amplitude law when the installed client has them (`SpectatorReactionBedKind.For`,
+  `SpectatorReactionBedModel.Amplitude`) and reports their absence otherwise.
+- `Verify.ps1` runs the baseline, that fault control and 61 hand-made mutants (51 of phase B, 10
+  of the roar-layer rules), each anchored on exactly one LF site and each failing its named
+  assertion, with the no-deploy targets. One of
   them (Start and Finish swapped in the binder's kind constants) passes every stand-in check and
   is rejected only by the real surface.
 - `TdmWarmupChecks` and `ZombieKitWarmupChecks` link `ArenaController.cs`; their stand-ins gained
@@ -525,7 +604,9 @@ repetition rules).
   were not run with the crowd. MapPort's own host run of phase A used its developer demo.
 - Nothing listened to: strengths, the interlock factor, the excitement curve and their audibility
   over the announcer are proposals from the plan (the native run proves that they are sent and
-  played, not how they sound).
+  played, not how they sound). The same holds for MapPort's roar layer (its level of -32 dBFS RMS
+  per bed, attack, release and hold are MapPort's start values) and for ArenaMode's 1 s mood
+  window, chosen as "the same moment" without a listening test.
 - The reaction part needs an ArenaMapPort release with phase A: `d70acd2` is not released and may
   still change before MapPort's next release (the real-surface stage fails when what it checks
   changes, nothing more). With the
