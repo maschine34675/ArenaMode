@@ -264,7 +264,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (269)
+## Reports (270)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -272,6 +272,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
+- [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)
 - [Survey of the fork thatHeathenJay/ArenaMode: co-op design, live-UI rips, adoptable pieces](reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md)
 - [Reward startup order: native run on GPU-2 with a probe server mod at Watermark + 1 and at 0, the helper's lease parser found](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)

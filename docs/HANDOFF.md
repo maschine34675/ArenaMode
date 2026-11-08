@@ -106,8 +106,10 @@ kill and no win, TeamScore and LocalTarget rejected with mode controls, the loca
 without a score), DominationAdmissionChecks (reward pins and 11 compiled mutants, three of them on the
 reward rule and the clock), TdmMatchMenuChecks, TeamDeathmatchRuntimeChecks, TdmMonitorChecks,
 AnnouncementIntegrationChecks, SpawnShieldScopeChecks, TeamGiveUpChecks, RewardMenuStateChecks,
-DominationPolicyChecks; no-deploy solution build 0 errors. Native run: pending (a Domination match with
-rewards on GPU-2, profile SPT-GPU-1, kills paid at the next normal server start).
+DominationPolicyChecks; no-deploy solution build 0 errors. Native run 2026-11-08 on GPU-2 with profile
+SPT-GPU-1: one kill in a Domination match, 1,000 RUB + 100 XP paid at the next normal server start
+([GPU-DOMINATION-REWARDS-20261108.md](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)); a score-limit
+finish, a time-limit finish and a give-up with rewards were not run.
 
 **PitFireTeam 1.1.1 (2026-11-07, in the 0.5.0 release commit):** every member the adapter
 reflects on is unchanged, but 1.1.1's `SpawnGroupBots` awaits a thread-pool preflight

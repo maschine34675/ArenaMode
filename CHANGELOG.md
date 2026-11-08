@@ -10,7 +10,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
-- Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept.
+- Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept. Run natively on GPU-2 on 2026-11-08 (one kill paid at the next normal server start).
 
 ## [0.5.0] - 2026-11-07
 
