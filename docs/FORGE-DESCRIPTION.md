@@ -22,9 +22,6 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - **Direct start:** run `maschine-ArenaMode.Session.exe`, choose a profile and start
   Arena without opening normal EFT first. It manages a local SPT installation only.
 
-Domination, Tactical, Zombies, Akimbo and Molotov are marked **WIP**. Back up your
-profile before playing, particularly when combining mods.
-
 ### Modes
 
 - **Gun Game:** each kill advances your weapon. Respawn at the current stage;
@@ -46,9 +43,6 @@ profile before playing, particularly when combining mods.
   waves. Solo death ends the match. A PitFireTeam squad can keep fighting after
   your death; fallen members return after the wave is cleared. A wipe ends the
   match. Entry gear is restored between waves, including the surviving player.
-
-Zombie defaults: **32 alive, 50 in the first wave, +20 per wave, own gear**.
-Population and starting equipment can be changed in the menu.
 
 ### Maps and mutators
 
@@ -218,9 +212,8 @@ runs: README and `docs/ARENA-SESSION-20261021.md` in the repository.
 
 Optional integration targets:
 
-- **PitFireTeam 0.10.0 or 0.10.3+**, client and server: 1–4 companions in Tactical
+- **PitFireTeam 0.10.3+**, client and server: 1–4 companions in Tactical
   or Zombies; 1.0.0 has been reviewed, including its separate companion databases.
-  PFT 0.10.1 and 0.10.2 remain excluded.
 - **SAIN 4.5.1+:** personality, pursuit and movement adapters.
 - **BigBrain 1.5.0+:** required for Domination; also used for pickup pursuit and Molotov. Arena's bundled integration library handles bot actions; it has no separate plugin GUID and stays inactive without BigBrain (only Domination is then locked). Tested on 1.5.0; newer versions log a warning and retain runtime checks.
 - **APBS 2.4.1+:** equipment/progression adapter.
