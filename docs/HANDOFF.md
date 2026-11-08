@@ -76,15 +76,19 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   before that the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
-  differently stamped binaries; say so in the next handoff. Since 31.10. ArenaMode and
-  Redeploy.Core are such builds (see the Iceberg entry under Open work).
+  differently stamped binaries; say so in the next handoff. Since 2026-11-08 the ArenaMode
+  client and server DLLs on every host are the development build `0.5.0+fd4543d9` (Cola
+  archive; before it `b3dd3983`, Domination rewards); BigBrainCompat, Gate, the Session helper
+  and Core 1.0.20 are still the release files.
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
-  2026-10-29 while it carried Tarkova Cola reward history. From 0.4.1 to the Domination
+  2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
-  ([REWARDS-RUNTIME.md](REWARDS-RUNTIME.md), "Lost reward authority"). With the Cola archive
-  change of 2026-11-08 (Open work) its complete history is expected to be archived and the
-  profile enrolled again at the next normal server start; the manual reward-folder rename at
-  a stopped server remains only for an incomplete history.
+  ([REWARDS-RUNTIME.md](REWARDS-RUNTIME.md), "Lost reward authority"). On 2026-11-08 the Cola
+  archive change (Open work) archived its records at the first server start with that build
+  (`user/arena-rewards/6ab7db1c….archived-20261108T102701Z-4d0d46d8`, consent OFF carried),
+  rewards were switched ON in the game and the next start enrolled it afresh (epoch
+  `e34fafb2…`): [GPU-COLA-ARCHIVE-20261108.md](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md).
+  Its rewards are ON now; the manual rename remains only for an incomplete history.
 - Repository hygiene 2026-10-30: `docs/` reorganised (reviews/, reports/, evidence/,
   handoff-archive/), `test-evidence/` moved to `docs/evidence/`, `assets/archive/` deleted
   (its thumbnail iterations stay in git history before this change), `AGENTS.md` cut to
@@ -110,9 +114,11 @@ files, never touched.
 Files: `ArenaMode.Server/Rewards/RewardAuthorityRecovery.cs`, `RewardColaJournal.cs`, `RewardStartupProcessor.cs`;
 docs `docs/REWARDS-RUNTIME.md` ("Lost reward authority"), `CHANGELOG.md`. Verified offline: xunit 3,717 passed
 (3 skips; new cases for the archived wiped and moved profiles, the named gaps, the kept notice and the recovered
-line with a detail), OfflineStartupChecks 481, no-deploy solution build 0 errors. Native: pending; the next normal
-server start on GPU-2 with profile SPT-GPU-2 (id 6ab7db1c64f04b565cf78be9, two completed Cola plans, both with a
-`.done.json`, consent file with rewards OFF, runtime-managed enrollment) is the proof.
+line with a detail), OfflineStartupChecks 481, no-deploy solution build 0 errors. Native 2026-11-08 on GPU-2:
+profile SPT-GPU-2 (two completed Cola plans with their `.done.json`, consent OFF, runtime-managed enrollment) was
+archived with its Cola history at the first server start with the build and enrolled afresh at the next one after
+rewards were switched ON ([GPU-COLA-ARCHIVE-20261108.md](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md)). Not
+run natively: a moved install, an incomplete history (both xunit), a payout into the fresh enrollment.
 
 **Domination rewards (2026-11-08, master, not released):** Domination joined the reward protocol
 under the `KillsOnly` rule like Gun Game and Zombies: eligible local hostile final kills pay (1,000 RUB
