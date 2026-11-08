@@ -2,7 +2,7 @@
 
 This follows the [initial prototype](DOMINATION-PROTOTYPE-20261026.md). Capture
 and match rules, point locations, ordinary TDM and persistent reward exclusions
-are unchanged. There is no public version bump.
+are unchanged. There is no public version bump. (Note 2026-11-08: the reward exclusion was lifted; Domination now awards kills only, see [REWARDS-RESULTS.md](../REWARDS-RESULTS.md).)
 
 ## Changes
 

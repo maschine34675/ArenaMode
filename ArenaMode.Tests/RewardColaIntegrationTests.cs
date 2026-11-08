@@ -59,6 +59,7 @@ public sealed class RewardColaIntegrationTests
     [InlineData("gungame")]
     [InlineData("tactical")]
     [InlineData("teamdeathmatch")]
+    [InlineData("domination")]
     public void ForeignProgressNeverAuthorizesOtherModes(string mode)
     {
         using var fixture = new Fixture(RewardColaDeltaTests.XpDelta());

@@ -315,7 +315,8 @@ install, the old reward folder
 (`user/arena-rewards/<profile>`) is renamed to `.archived-...` (never deleted) and your
 reward choice is kept.
 
-- Domination currently has no profile rewards.
+- Domination pays eligible kills only, like Gun Game and Zombies; there is no
+  objective win bonus (point ownership has no server-verifiable proof).
 
 - Per eligible kill: 1,000 RUB + 100 XP; per DM/TDM/Tactical round win:
   10,000 RUB + 1,000 XP; maximum 200,000 RUB + 20,000 XP per match.

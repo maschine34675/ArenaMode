@@ -710,7 +710,7 @@ Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
   applied before startup payouts. Concurrent normal startup is refused while
   the private session owns the original installation.
 - Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
-  capped at **200,000 RUB + 20,000 XP per match**. Gun Game and Zombies award kills only; Domination is excluded.
+  capped at **200,000 RUB + 20,000 XP per match**. Gun Game, Zombies and Domination award kills only.
   No-contest results do not pay. Normal exits can retain kills from an unfinished
   round without granting a win. RUB arrives as system mail; XP is credited directly
   at normal server startup and listed in the mail, with the same duplicate protection.

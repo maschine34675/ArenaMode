@@ -34,7 +34,9 @@ boundary. It does not import foreign/private profiles or permit live payment.
   The client cannot select an amount or payout recipient.
 - Enemy final kills count; assists, friendly kills, self-kills and environmental
   deaths do not. DM/TDM/Tactical wins use the actual configured scoring rule.
-  Gun Game and Zombies currently award kills only, not ladder/wave victories.
+  Gun Game, Zombies and Domination award kills only, not ladder/wave/objective
+  victories: Domination point ownership has no server proof, so a win bonus needs
+  new evidence (2026-11-08: Domination joined the kills-only protocol).
 - A normal exit can retain kills from the last unfinished combat round without
   inventing a win. Aborted/no-contest reports receive no payment for the run.
 - **START ARENA SESSION** saves and stops the supported local normal server before

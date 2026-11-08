@@ -28,7 +28,7 @@ Kills, deaths, assists and personal combat points stay on the existing scoreboar
 They cannot win the objective match. Objective lead/time announcements work;
 "kills remaining" cues are excluded. V1 does not submit reward receipts: the
 existing server reward proofs are kill-based. The map menu explicitly displays
-that limitation, without changing the profile's reward preference. Full profile
+that limitation, without changing the profile's reward preference. (Note 2026-11-08: the exclusion was lifted; Domination now awards kills only, see [REWARDS-RESULTS.md](../REWARDS-RESULTS.md).) Full profile
 restoration remains mandatory and unchanged.
 
 ## Geometry and presentation

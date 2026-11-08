@@ -52,11 +52,10 @@ internal static class ArenaRewardCapture
         _delivered = _stopFrozen = _warned = _lastActive = false;
         _lastAt = Time.time; _activeSeconds = 0f;
         PendingDeaths.Clear();
-        // Objective ownership has no server-verifiable reward proof yet. Do not
-        // submit Domination under the kill-based TeamScore contract inherited
-        // by its shared runtime class; existing reward whitelists stay strict.
+        // Domination submits KillsOnly (see TeamDeathmatchMode.ReadRewardState):
+        // objective ownership has no server-verifiable proof, so only eligible
+        // hostile final kills pay and there is no win bonus.
         if (!_hooksReady || !ArenaSession.IsActive || match == null
-            || match.Mode.Id == ArenaModeCatalog.DominationId
             || string.IsNullOrWhiteSpace(ArenaServerClient.RewardArmToken)) return;
         try
         {

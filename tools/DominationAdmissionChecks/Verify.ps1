@@ -91,8 +91,20 @@ Reject-Change 'pin-server-arm-map-guard' 'ArenaMode.Server/Services/ArenaSession
     'ArenaAreaCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)' `
     'OtherCatalog.TryResolve(areaId!, map, mode!, protectPitFireTeam, out var area, out var areaFailure)' `
     'server direct and preparation arms retain the shared map guard before session publication' $true
+Reject-Change 'pin-validator-domination-rule' 'ArenaMode.Server/Rewards/RewardResultValidator.cs' `
+    '"domination" => rule == RewardRoundRule.KillsOnly,' '"domination" => false,' `
+    'server reward validator admits Domination as a KillsOnly mode with the local forfeit' $true
+Reject-Change 'pin-coordinator-domination-rule' 'ArenaMode.Server/Rewards/RewardRuntimeCoordinator.cs' `
+    '"domination" => rule == RewardRoundRule.KillsOnly,' '"domination" => false,' `
+    'server reward begin admits Domination under the KillsOnly rule only' $true
+Reject-Change 'pin-client-domination-rule' 'ArenaMode.Client/Modes/ArenaRewardModeState.cs' `
+    'Rule = "KillsOnly", Target = 0, Limit = 0,' 'Rule = "TeamScore", Target = 0, Limit = 0,' `
+    'Domination reward state is KillsOnly with no score target, no time limit and a monotonic reward clock' $true
+Reject-Change 'pin-client-domination-monotonic-clock' 'ArenaMode.Client/Modes/ArenaRewardModeState.cs' `
+    'if (elapsed > _dominationRewardElapsed) _dominationRewardElapsed = elapsed;' '_dominationRewardElapsed = elapsed;' `
+    'Domination reward state is KillsOnly with no score target, no time limit and a monotonic reward clock' $true
 if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash) { throw 'Production catalog changed during checks.' }
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 10 compiled mutants, 4 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 11 compiled mutants, 7 wiring controls, installed hashes unchanged; evidence $evidence"

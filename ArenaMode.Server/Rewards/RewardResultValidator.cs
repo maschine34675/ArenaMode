@@ -24,7 +24,7 @@ internal static class RewardResultValidator
         if (!RewardIdentity.IsGuid(run.RunId) || run.Sequence is < 1 or > 4096 || !RewardIdentity.IsGuid(run.ArmToken)
             || !RewardIdentity.IsGuid(run.RestorationId) || !RewardIdentity.IsHex(run.LocalParticipantId, 24)
             || !ValidNativeIdentity(run.NativeEndIdentity, run.ArmToken) || !RewardIdentity.IsHex(run.CleanProfileRevision, 64)
-            || run.Mode is not ("deathmatch" or "gungame" or "teamdeathmatch" or "tactical" or "zombies"))
+            || run.Mode is not ("deathmatch" or "gungame" or "teamdeathmatch" or "tactical" or "zombies" or "domination"))
             Fail("invalid-run-identity");
         var policy = run.Policy;
         if (policy is null || policy.Version is null || !Regex.IsMatch(policy.Version, "\\A[A-Za-z0-9._-]{1,32}\\z")
@@ -172,7 +172,9 @@ internal static class RewardResultValidator
                     // opponent score; ordinary suicides/environment deaths do not.
                     if (death.Kind == RewardDeathKind.LocalForfeit)
                     {
-                        if (run.Mode != "teamdeathmatch"
+                        // Domination shares the client's give-up path but pays kills
+                        // only; it has no score, so the forfeit changes nothing there.
+                        if (run.Mode is not ("teamdeathmatch" or "domination")
                             || round.Rule is not (RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly)
                             || victim.ParticipantId != run.LocalParticipantId)
                             Fail("invalid-local-forfeit");
@@ -242,6 +244,8 @@ internal static class RewardResultValidator
         // Ladder skips/demotions and administrative zombie wave retirements need
         // further evidence. Do not invent a round win from a kill total there.
         "gungame" or "zombies" => rule == RewardRoundRule.KillsOnly,
+        // Objective ownership has no server proof: kills only, no win bonus.
+        "domination" => rule == RewardRoundRule.KillsOnly,
         _ => false
     };
 

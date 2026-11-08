@@ -8,6 +8,7 @@ public sealed partial class TeamDeathmatchMode
 {
     public bool IsDomination { get; }
     private DominationMatchPolicy _dominationRules;
+    private float _dominationRewardElapsed; // the reward reader's monotonic clock, see ArenaRewardModeState.cs
     private DominationRuntime _domination;
 
     public TeamDeathmatchMode(bool domination = false) => IsDomination = domination;
@@ -44,6 +45,7 @@ public sealed partial class TeamDeathmatchMode
             throw new InvalidOperationException("Domination requires the registered Arena BigBrain objective layer.");
         _dominationRules = new DominationMatchPolicy(Config.Settings.DominationScoreLimit.Value,
             Config.Settings.DominationTimeLimitSeconds.Value, DominationMapLayout.Resolve(_world.LocationId).Points.Count);
+        _dominationRewardElapsed = 0f;
         _domination = new DominationRuntime(this, _dominationRules, _world);
         try
         {

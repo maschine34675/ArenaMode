@@ -94,6 +94,21 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Domination rewards (2026-11-08, master, not released):** Domination joined the reward protocol
+under the `KillsOnly` rule like Gun Game and Zombies: eligible local hostile final kills pay (1,000 RUB
++ 100 XP under the server policy, capped per match), no match-win bonus because objective ownership has
+no server-verifiable proof (see `docs/REWARDS-RESULTS.md`, "Win derivation"). Touches the client capture
+(`ArenaRewardCapture`), `ArenaRewardModeState`, the server `RewardResultValidator` and the consent card
+text; the Domination reward clock is a monotonic high-water mark of the policy's clock with no time limit
+(a score-limit finish stamps the analytic crossing time, which can lie before the last observed frame
+and would void the run). Verified offline: xunit 3,708 passed (new validator cases: KillsOnly pays one
+kill and no win, TeamScore and LocalTarget rejected with mode controls, the local forfeit accepted
+without a score), DominationAdmissionChecks (reward pins and 11 compiled mutants, three of them on the
+reward rule and the clock), TdmMatchMenuChecks, TeamDeathmatchRuntimeChecks, TdmMonitorChecks,
+AnnouncementIntegrationChecks, SpawnShieldScopeChecks, TeamGiveUpChecks, RewardMenuStateChecks,
+DominationPolicyChecks; no-deploy solution build 0 errors. Native run: pending (a Domination match with
+rewards on GPU-2, profile SPT-GPU-1, kills paid at the next normal server start).
+
 **PitFireTeam 1.1.1 (2026-11-07, in the 0.5.0 release commit):** every member the adapter
 reflects on is unchanged, but 1.1.1's `SpawnGroupBots` awaits a thread-pool preflight
 (`LoadSavedSpawnSettings`, `/client/game/bot/followerdetails`) before `BotCreationData.Create`,

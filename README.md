@@ -128,8 +128,7 @@ normal server start ArenaMode.Server adds a small data block to the profile file
 It credits RUB mail and PMC XP only after Arena matches. Switch it off with the
 rewards card in the Arena map menu. Eligible kills award **1,000 RUB + 100 PMC XP**;
 DM/TDM/Tactical wins add **10,000 RUB + 1,000 XP**, capped at **200,000 RUB +
-20,000 XP per match**. Gun Game/Zombies award kills only. Domination currently
-has no persistent rewards. Private-session return processes accepted rewards
+20,000 XP per match**. Gun Game/Zombies/Domination award kills only. Private-session return processes accepted rewards
 before normal EFT opens; direct play pays at the next normal server start.
 RUB arrives by mail; XP is already credited and is not granted again on collection.
 

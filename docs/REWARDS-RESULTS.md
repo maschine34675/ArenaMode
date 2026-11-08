@@ -87,14 +87,16 @@ own native individual identity, not inherit the previous occupant's scoring slot
 | Team Deathmatch | Team kill target/time comparison. Ally kills help the team score but are not local kill rewards. Only an explicit **local give-up** adds the virtual opposing-team kill; ordinary self/environment deaths do not. |
 | Tactical solo | All five registered opponents eliminated before timeout while the player survives. |
 | Tactical PFT | Five opponents; player plus one to four companions. Team elimination first, then timeout compares surviving bodies; simultaneous total wipe is a loss. |
-| Continuous DM, Gun Game, Zombies | `KillsOnly`: eligible kills, **no inferred ladder/wave/round win bonus**. |
+| Continuous DM, Gun Game, Zombies, Domination | `KillsOnly`: eligible kills, **no inferred ladder/wave/round/objective win bonus**. Domination (since 2026-11-08): point ownership has no server proof; its give-up is accepted as a local forfeit but adds no virtual kill and no win. |
 
 The future adapter must capture fully ready rounds. Missing tactical spawns cannot
 be mistaken for a smaller victorious roster; the validator requires five opponents.
 A solo round that continued via a partial-spawn fallback therefore earns no reward
 through this first protocol. Gun Game demotion/skipped unusable tiers and zombie
 administrative retirements prevent deriving a real ladder/wave victory from kill
-totals alone; richer evidence is needed before adding those bonuses.
+totals alone; richer evidence is needed before adding those bonuses. Domination
+(admitted as `KillsOnly` on 2026-11-08) is the same case: capture-point ownership
+and score live only in the client, so a win bonus needs new evidence.
 
 `Completed` means a fully captured, normally finalized report, not `Mode.IsComplete`
 or a win. Gun Game and continuous DM can finish their raid report without winning

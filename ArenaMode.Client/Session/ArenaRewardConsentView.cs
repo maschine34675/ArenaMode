@@ -55,7 +55,7 @@ internal sealed class ArenaRewardConsentView
             var generation = _root;
             _button.onClick.AddListener(() =>
             {
-                if (!Owns(generation) || IsObjectivePrototype || !ArenaRewardMenuState.CanToggle) return;
+                if (!Owns(generation) || !ArenaRewardMenuState.CanToggle) return;
                 ArenaRewardMenuState.Toggle();
                 Refresh();
             });
@@ -84,15 +84,6 @@ internal sealed class ArenaRewardConsentView
         Place((RectTransform)_button.transform, width - 126f, 10f, 112f, 28f);
         Place(_label.rectTransform, 8f, 0f, 46f, 28f);
         Place(_detail.rectTransform, 14f, 44f, width - 28f, 62f);
-        if (IsObjectivePrototype)
-        {
-            _label.text = "N/A";
-            _detail.text = "No profile rewards in Domination.";
-            _label.color = ArenaUiTheme.Muted;
-            _button.interactable = false;
-            RefreshSwitch(false, false);
-            return;
-        }
         ArenaRewardMenuState.Refresh();
         _label.text = ArenaRewardMenuState.Busy ? "…"
             : !ArenaRewardMenuState.Status.Available ? "N/A"
@@ -110,8 +101,6 @@ internal sealed class ArenaRewardConsentView
         _switchKnob.color = canToggle ? enabled ? ArenaUiTheme.Positive : ArenaUiTheme.Text : ArenaUiTheme.Muted;
         Place((RectTransform)_switchKnob.transform, enabled ? 25f : 3f, 2f, 12f, 12f);
     }
-
-    private static bool IsObjectivePrototype => Config.Settings.GameMode.Value == Modes.ArenaModeCatalog.DominationId;
 
     private bool Owns(GameObject generation) => ReferenceEquals(generation, _root)
         && _root != null && _root.activeInHierarchy && _owner != null && _owner.activeInHierarchy;

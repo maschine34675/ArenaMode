@@ -142,8 +142,27 @@ bool Ordered(string source, string first, string second, int start = 0)
     return a >= 0 && b > a;
 }
 string reward = Read("ArenaMode.Client/Session/ArenaRewardCapture.cs");
-Need(Ordered(reward, "match.Mode.Id == ArenaModeCatalog.DominationId", "new RewardBeginRequest"),
-    "Domination reward opt-out precedes creating or posting a kill-based reward begin");
+Need(!reward.Contains("ArenaModeCatalog.DominationId"),
+    "Domination is no longer excluded from the reward capture and submits like the other modes");
+string rewardState = Read("ArenaMode.Client/Modes/ArenaRewardModeState.cs");
+int dominationState = rewardState.IndexOf("private ArenaRewardModeState ReadDominationRewardState()", StringComparison.Ordinal);
+Need(rewardState.Contains("IsDomination ? ReadDominationRewardState()") && dominationState >= 0
+    && Ordered(rewardState, "Rule = \"KillsOnly\"", "Target = 0", dominationState)
+    && Ordered(rewardState, "Target = 0", "Limit = 0", dominationState)
+    && rewardState.Contains("if (elapsed > _dominationRewardElapsed) _dominationRewardElapsed = elapsed;", StringComparison.Ordinal)
+    && rewardState.Contains("Elapsed = _dominationRewardElapsed", StringComparison.Ordinal),
+    "Domination reward state is KillsOnly with no score target, no time limit and a monotonic reward clock");
+string consent = Read("ArenaMode.Client/Session/ArenaRewardConsentView.cs");
+Need(!consent.Contains("IsObjectivePrototype") && !consent.Contains("No profile rewards in Domination"),
+    "the reward consent card no longer reports Domination as reward-free");
+string rewardValidator = Read("ArenaMode.Server/Rewards/RewardResultValidator.cs");
+Need(rewardValidator.Contains("or \"zombies\" or \"domination\")")
+    && rewardValidator.Contains("\"domination\" => rule == RewardRoundRule.KillsOnly,")
+    && rewardValidator.Contains("run.Mode is not (\"teamdeathmatch\" or \"domination\")"),
+    "server reward validator admits Domination as a KillsOnly mode with the local forfeit");
+string rewardCoordinator = Read("ArenaMode.Server/Rewards/RewardRuntimeCoordinator.cs");
+Need(rewardCoordinator.Contains("\"domination\" => rule == RewardRoundRule.KillsOnly,"),
+    "server reward begin admits Domination under the KillsOnly rule only");
 string menu = Read("ArenaMode.Client/Session/ArenaMenuSelection.cs");
 int validate = menu.IndexOf("public static bool TryValidateAndFreezeRequest", StringComparison.Ordinal);
 Need(menu.Contains("Bots.DominationObjectiveBridge.Available) return null;")

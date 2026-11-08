@@ -49,7 +49,7 @@ public sealed partial class RoundsMode
 
 public sealed partial class TeamDeathmatchMode
 {
-    internal ArenaRewardModeState ReadRewardState() => new ArenaRewardModeState
+    internal ArenaRewardModeState ReadRewardState() => IsDomination ? ReadDominationRewardState() : new ArenaRewardModeState
     {
         Rule = (_rules?.KillLimit ?? Settings.TeamDeathmatchKillLimit.Value) == 0
             && (_rules?.TimeLimitSeconds ?? Settings.TeamDeathmatchTimeLimitSeconds.Value) == 0 ? "KillsOnly" : "TeamScore",
@@ -58,6 +58,30 @@ public sealed partial class TeamDeathmatchMode
         Active = _rules?.Phase == TdmMatchPhase.Live,
         Finished = HasResult, Failed = _failure != null, Elapsed = PlayingElapsed
     };
+
+    // Domination pays KillsOnly like Gun Game and Zombies: objective ownership has
+    // no server-verifiable proof, so there is no score target, no win bonus and,
+    // like every KillsOnly run, no round end rule (Limit 0): a kill in the last
+    // live frame still pays, and the server has no deadline to measure deaths
+    // against. The reward clock must never run backwards: the objective runtime
+    // integrates the score every 0.2 s and a score-limit finish stamps the
+    // analytic crossing time, which can lie before the frame the capture last
+    // observed; a shrinking clock voids the whole run (NoContest). So the mode
+    // keeps a high-water mark of the policy's clock for the reward reader
+    // (_dominationRewardElapsed, declared and reset beside the rules in
+    // TeamDeathmatchMode.Domination.cs so the harnesses that compile that file
+    // alone still build).
+    private ArenaRewardModeState ReadDominationRewardState()
+    {
+        float elapsed = PlayingElapsed;
+        if (elapsed > _dominationRewardElapsed) _dominationRewardElapsed = elapsed;
+        return new ArenaRewardModeState
+        {
+            Rule = "KillsOnly", Target = 0, Limit = 0,
+            Active = _dominationRules?.Phase == TdmMatchPhase.Live,
+            Finished = HasResult, Failed = _failure != null, Elapsed = _dominationRewardElapsed
+        };
+    }
 
     internal bool TryRewardSide(Player player, out string side)
     {

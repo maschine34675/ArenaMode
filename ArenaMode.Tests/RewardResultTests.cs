@@ -54,6 +54,7 @@ public sealed class RewardResultTests
     [Theory]
     [InlineData("gungame")]
     [InlineData("zombies")]
+    [InlineData("domination")]
     public void KillOnlyModesNeverInventLadderOrWaveWins(string mode)
     {
         var run = Run() with { Mode = mode };
@@ -62,6 +63,45 @@ public sealed class RewardResultTests
         Assert.Equal(2, result.EligibleKills);
         Assert.Equal(0, result.RoundWins);
         Assert.Equal(200, result.Roubles);
+    }
+
+    [Fact]
+    public void DominationPaysEligibleLocalKillsWithoutAWinBonus()
+    {
+        var run = Run() with { Mode = "domination" };
+        var result = Evaluate(run, Death(1, 2, 1));
+        Assert.Equal(RewardEvaluationStatus.Eligible, result.Status);
+        Assert.Equal(1, result.EligibleKills);
+        Assert.Equal(0, result.RoundWins);
+        Assert.Equal(100, result.Roubles);
+    }
+
+    [Fact]
+    public void DominationForfeitByTheLocalPlayerPaysNoWinAndChangesNoScore()
+    {
+        var run = Run() with { Mode = "domination" };
+        var result = Evaluate(run, Death(1, 1, null, RewardDeathKind.LocalForfeit));
+        Assert.Equal(RewardEvaluationStatus.NoReward, result.Status);
+        Assert.Equal(0, result.EligibleKills);
+        Assert.Equal(0, result.RoundWins);
+        Assert.Equal(0, result.Roubles);
+    }
+
+    [Fact]
+    public void DominationRejectsTeamScoreRule() => AssertDominationRejects(RewardRoundRule.TeamScore);
+
+    [Fact]
+    public void DominationRejectsLocalTargetRule() => AssertDominationRejects(RewardRoundRule.LocalTarget);
+
+    private static void AssertDominationRejects(RewardRoundRule rule)
+    {
+        var run = Run(rule, target: 1) with { Mode = "domination" };
+        var failure = Assert.Throws<RewardDataException>(() => Evaluate(run, Death(1, 2, 1)));
+        Assert.Equal("invalid-authorized-round", failure.Message);
+        // Control: the same run is valid for the mode the rule belongs to, so the
+        // rejection above is Domination's rule table, not a fixture defect.
+        var control = run with { Mode = rule == RewardRoundRule.TeamScore ? "teamdeathmatch" : "deathmatch" };
+        Assert.Equal(RewardEvaluationStatus.Eligible, Evaluate(control, Death(1, 2, 1)).Status);
     }
 
     [Fact]
@@ -238,7 +278,9 @@ public sealed class RewardResultTests
     [InlineData("deathmatch", 1, false)]
     [InlineData("gungame", 1, false)]
     [InlineData("zombies", 1, false)]
-    public void UnlimitedLocalForfeitIsRestrictedToTheLocalTeamDeathmatchPlayer(string mode, int victim, bool accepted)
+    [InlineData("domination", 1, true)]
+    [InlineData("domination", 3, false)]
+    public void UnlimitedLocalForfeitIsRestrictedToTheLocalPlayerInTeamDeathmatchAndDomination(string mode, int victim, bool accepted)
     {
         var run = Run() with { Mode = mode };
         var result = Evaluate(run, Death(1, 2, 1), Death(2, victim, null, RewardDeathKind.LocalForfeit));

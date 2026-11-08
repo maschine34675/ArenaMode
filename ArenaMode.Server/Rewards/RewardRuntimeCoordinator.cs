@@ -612,6 +612,8 @@ internal sealed class RewardRuntimeCoordinator
     {
         "deathmatch" => rule == RewardRoundRule.KillsOnly || rule == (ffa ? RewardRoundRule.FreeForAllScore : RewardRoundRule.LocalTarget),
         "gungame" or "zombies" => rule == RewardRoundRule.KillsOnly,
+        // Objective ownership has no server proof: kills only, no win bonus.
+        "domination" => rule == RewardRoundRule.KillsOnly,
         "teamdeathmatch" => rule is RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly,
         "tactical" => rule == (team ? RewardRoundRule.TeamElimination : RewardRoundRule.SoloElimination),
         _ => false

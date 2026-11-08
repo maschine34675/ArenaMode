@@ -8,6 +8,10 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## Unreleased
+
+- Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept.
+
 ## [0.5.0] - 2026-11-07
 
 Iceberg and the crowd reactions need **ArenaMapPort 0.5.0** (published 2026-11-07); with
