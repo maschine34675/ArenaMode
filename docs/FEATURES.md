@@ -114,7 +114,8 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
   ownership rings and one integrated score/objective HUD. Ported-map monitors
-  (ArenaMapPort 0.4.0 or newer, published 2026-10-30) display objective scores. Profile rewards are currently excluded.
+  (ArenaMapPort 0.4.0 or newer, published 2026-10-30) display objective scores. Profile
+  rewards pay eligible kills since 2026-11-08 (KillsOnly, no win bonus; see Rewards).
 - Optional DynamicMaps displays the live objective IDs and their neutral,
   USEC/BEAR or contested colours only during Domination. Coordinates come from
   the current round, including Factory's random layout; other modes keep their map unchanged.

@@ -37,6 +37,17 @@ bundles shared **Core 1.0.20**, identical to the Core in Redeploy 1.1.2.
 
 ### Domination
 
+- Added live Domination objectives on optional **DynamicMaps 1.2.1 or newer**: the current
+  round's points appear on the map and the minimap as diamonds with their letter (A/B/C on
+  Factory and Iceberg, A/B on Air Pit and Bowl, the original X on Equator and Bay5), light
+  grey while neutral, blue for USEC, red for BEAR, yellow while contested, placed from the
+  round's verified floors (Factory's random layout included) and only while a Domination
+  match is live; they leave at the score or time limit, on a map change and at every stop.
+  The diamonds and labels are fifty percent larger than first drawn, after the first GPU run
+  found the native dot unreadable. Without DynamicMaps nothing happens, an incompatible
+  version disables only this overlay, and no match rule, profile or DynamicMaps setting
+  changes. Run natively on Factory (GPU-1) and Iceberg (GPU-2) on 2026-11-01.
+  [Details](docs/reviews/DOMINATION-MAP-MARKERS-20261101.md)
 - Domination leaves WIP: the mode row reads DOMINATION, and the default score limit is
   300 points instead of 200 (an existing F12 value is kept; the row's choices are
   unchanged). The default time limit stays ten minutes.

@@ -24,6 +24,14 @@ Bundles shared **Redeploy.Core 1.0.20**, identical to the Core in Redeploy 1.1.2
   kill and a death within the same second give one reaction, the stronger. Nothing in
   the match depends on it; without a crowd nothing happens.
 
+- **Live Domination objectives on DynamicMaps** (optional, 1.2.1 or newer): the current
+  round's points appear on the map and the minimap as diamonds with their letter, light
+  grey while neutral, blue for USEC, red for BEAR, yellow while contested, placed from the
+  round's verified floors (Factory's random layout included) and only while a Domination
+  match is live; they leave at the score or time limit, on a map change and at every stop.
+  Without DynamicMaps nothing happens; an incompatible version disables only this overlay.
+  Run natively on Factory and Iceberg on 2026-11-01
+  ([details](https://github.com/maschine34675/ArenaMode/blob/v0.5.0/docs/reviews/DOMINATION-MAP-MARKERS-20261101.md)).
 - **Domination is complete:** the mode row reads DOMINATION, without the WIP mark, and
   a new installation starts with a score limit of 300 points (an existing F12 value is
   kept). Capture, defence, the wall monitors, the DynamicMaps objectives and Iceberg's

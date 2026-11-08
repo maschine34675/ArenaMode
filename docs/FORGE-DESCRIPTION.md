@@ -33,7 +33,8 @@ and Scav, then choose a mode, map, equipment and mutators in the raid setup menu
 - **Domination:** capture and hold control points for team score, with
   continuous team respawns, bot capture/defence assignments and separate score/time
   limits (300 points / ten minutes by default). Factory varies three points each
-  match; Equator and Bay5 use one original point, Air Pit and Bowl two. **Requires
+  match; Equator and Bay5 use one original point, Air Pit and Bowl two; optional
+  DynamicMaps shows the live points in their ownership colours on the map and minimap. **Requires
   BigBrain 1.5.0 or newer** (separate download) and has no profile rewards.
 - **Tactical (WIP):** round-based elimination. Solo defaults to 1v5 with a kit
   buy menu. With PitFireTeam, choose own gear or a supplied PMC kit and bring
@@ -222,7 +223,8 @@ Optional integration targets:
   0.4.0 or newer; 0.3.0 works without them.
 - **Killcam 1.0.0:** compatible API and enabled DeathReplay required. The former
   KillcamReplay plugin is not accepted. Team spectating does not require Killcam.
-- **DynamicMaps 1.2.1+:** corpse-marker cleanup integration.
+- **DynamicMaps 1.2.1+:** corpse-marker cleanup integration; live Domination objectives
+  (ownership-coloured diamonds with their letter) on the map and minimap while a match is live.
 - **Continuous Healing 1.6.3+:** player-only healing continuation/cancellation
   does not affect Arena bots or retired player bodies. It remains enabled for
   the current living player.

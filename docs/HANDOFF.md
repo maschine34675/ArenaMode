@@ -32,7 +32,11 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   native cycle is recorded in [GPU-RELEASE-050-20261107.md](reports/2026-11/GPU-RELEASE-050-20261107.md)
   (Redeploy respawn, Team DM Iceberg, Domination Bowl with the crowd, PitFireTeam Tactical over
   three rounds with the served preflight). The Forge (sp-mod.com) upload is manual and open;
-  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the 0.5.0 draft.
+  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the 0.5.0 draft. On 2026-11-08 the 0.5.0
+  changelog, [RELEASE-0.5.0.md](RELEASE-0.5.0.md) (GitHub release body re-published from it) and
+  the Forge draft gained the DynamicMaps Domination objectives of `feature/domination-map-markers`
+  (merged 2026-11-01), which the release texts had left out; the tagged `CHANGELOG.md` on GitHub
+  shows it only after the next push of `master`.
 - **Branches (2026-11-07 evening):** `master` holds everything that was open: the crowd
   reactions (`feature/crowd-reactions`, merge `28b92a40`), the reward startup order fix, the
   session save diagnostics (`codex/session-save-diagnostics-20261105`, fast-forwarded), the
