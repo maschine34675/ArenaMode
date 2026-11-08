@@ -1,7 +1,8 @@
 # Tactical capture point: native runs on GPU-2 (2026-11-08)
 
-Three solo Tactical raids on Factory with the development build of the Tactical objective
-package ([review](../../reviews/TACTICAL-OBJECTIVE-20261108.md)) on SPT-GPU-2
+Three solo Tactical raids, then two PitFireTeam team matches, on Factory with the development
+build of the Tactical objective package ([review](../../reviews/TACTICAL-OBJECTIVE-20261108.md))
+on SPT-GPU-2
 (`192.168.178.109`, `C:\SPT41`, profile `SPT-GPU-2`), driven from the VM with gpu-run,
 UiBridge 0.9.9 and Windows-MCP. Dated evidence, not proof about any other build. The first
 raid ran the package as reviewed; the door reset was corrected twice from what the raids
@@ -106,12 +107,85 @@ out at 15:47 (`0.5.0+e1dfc344` on `D:\SPT41`, `gpu-run deploy-wait --host host2 
 --force`: 3 files identical after 34 s, server restarted, game restarted, `16/16` identical), so
 the installed product version names the commit that holds the code of the third raid.
 
+## PitFireTeam team arena (18:34 to 18:47, committed state `0.5.0+e1dfc344`)
+
+Two matches `gpu-run raid --host host2 --mode tactical --map factory --squad 2 --expect-clean
+ArenaMode` with test1 and test2 (PitFireTeam 1.1.1, roster test1 to test4), first to three rounds,
+3 versus 5, on the build the commit `e1dfc344` produced (`16/16` plugins and `2/2` libraries
+identical between `D:\SPT41`, the host's disk and the process; Core `1.0.21+bebf49b0`). The mode
+row read **`First to 3 round wins; hold the point. On death, spectate...`** both times (the team
+copy for a map with a layout), ArenaMode clean at both starts, zero ArenaMode warnings over the
+first match and one over the second: the known pursuit diagnostic `Team Arena native awareness
+rejected ... native-goal-setter-refused` ([log audit](../2026-10/LOG-SOURCE-AUDIT-20261018.md)).
+
+### Match 1 (18:35 to 18:40, lost 2-3; defaults 60 s / 10 s, then 20 s / 5 s)
+
+- 18:35:04 `Tactical objective: capture point after 60s of combat, hold 10s (both read again at
+  every round start); bot objective layer available.`, `Tactical team Arena: first to 3; waiting
+  for 2 PitFireTeam companions`.
+- Round 1 live 18:35:19 (`3 allies versus five opponents`), `door reset saw 77 door(s), shut 0,
+  skipped 22`, point at (-32.1, -2.7, 30.0), 5 lanes. `uibridge_bots` 12 s later: test1 and test2
+  on **`pitTeam.FollowerPatrol`** beside the player, all five opponents on **`Arena Combat
+  Domination`** spread along the lanes. Point up 18:36:19; the five ran from the lanes to the
+  point; 18:36:37 `the capture point was held for 10s by the enemy squad`, `round 1: defeat — ...;
+  score 0-1, continuation RebindNextRound`, toast `Round 1 — the enemy held the point`, HUD `01:32
+  3v5 Round 1 0-1 DEFEAT next round in 5s`.
+- Round 2 live 18:36:55, `door reset saw 77 door(s), shut 2, skipped 22` (two doors the squads
+  opened in round 1), point at (-6.8, 0.0, 10.0); the BEAR squad stood on four lane points in a
+  line across the midpoint ((21.9, 10.3), (18.9, 19.9), (23.6, -0.4), (26.0, -8.5)), not moving,
+  until the point came up at 18:37:55; 18:38:10 held 10 s by the enemy squad, 0-2.
+- `uibridge_config_set persist=false` at 18:37: `ObjectiveAfterSeconds 20`, `ObjectiveHoldSeconds
+  5` (the .cfg kept 60 / 10; read at the next round start). Round 3 live 18:38:23 (`shut 1`),
+  point at (-32.1, -2.7, 30.0); the player was teleported onto the point with godmode (the
+  teleport's own reachability check refused the path once, the doors just shut lie on it;
+  `reachable=false`); the point came up at about 18:38:43; **18:38:51 `the capture point was held
+  for 5s by the player side`, `round 3: victory — ...; score 1-2`**. The two followers respawned
+  for round 4 at the player's position, on the point.
+- Round 4 live 18:39:03 (`shut 0`), point at (35.6, 4.5, 35.7), up 18:39:23; the player teleported
+  onto it (no godmode on the new body), **18:39:43 held 5 s by the player side, 2-2**; HUD at the
+  round 5 start `05:20 3v5 Round 5 2-2 Allies 3/3 Enemies 5/5 POINT free`, team points `600:0`.
+- Round 5 live 18:39:56 (`shut 2`), point at (-20.8, 0.0, 22.8), up 18:40:16; 18:40:34 held 5 s by
+  the enemy squad, **2-3, `continuation EndMatchLost`**; 18:40:40 `Tactical team Arena ended 2-3
+  after 5 round(s) with native status MissingInAction`, follower spawn lease 4 revoked, `Tactical
+  ended: 2-3 over 5 round(s), 0 roubles left`. Server: `/arenamode/rewards/begin` at 18:35:04
+  without a refusal (the team mode with the point declares `KillsOnly`), `/arenamode/rewards/capture`
+  and `/arenamode/raid-end` at 18:40:41, `Protected Arena end completed ...; rewards are verified
+  separately`, the profile snapshot restored, PitFireTeam's post-raid services suppressed as
+  before. `gpu-run menu`: ExitStatus → KillList → SessionStatistics → MainMenu in 15 s.
+
+Observation, round 5: from 18:40:17 to 18:40:25 three opponents stood 2.2 to 2.9 m from the
+point's centre on their lane points ((-20.8, 0.3, 20.6), (-20.7, 0.0, 19.9), (-21.4, 0.0, 20.2)),
+not moving, while the HUD read `POINT free`; the enemy hold began at about 18:40:29 and completed
+at 18:40:34. Occupancy needs a clear line from the centre to the body (the same check as
+Domination's `DominationRuntime`), so a lane that ends inside the ring but behind cover does not
+count until a bot steps around it. Consistent with the contract; noted, not changed.
+
+### Match 2 (18:42 to 18:46, lost 0-3; the test values 20 s / 5 s still in memory)
+
+Started 1 min 50 s after the first match's raid-end, without the PitFireTeam settling refusal.
+
+- Round 1 live 18:42:49 (`shut 0`), point at (35.6, 4.5, 35.7) near the player spawn, up 18:43:09;
+  the squads fought around it (the player lost a leg and head HP without godmode), 18:44:38 held
+  5 s by the enemy squad, 0-1.
+- **Round 2, the PMC down:** live 18:44:54, `uibridge_hook action=kill` at 18:44:59: `Arena death
+  #1 — held for protected team transition`, `Arena kept the PitFireTeam squad active after the
+  local player was eliminated`, `Team Arena post-death pursuit active for round epoch 2: allies 2,
+  opponents 5`, spectator on test2. `uibridge_bots` right after: **all seven bots on `Arena Combat
+  Pursuit`**, none left on the objective layer; the HUD read `02:24 3v5 Round 2 0-1 Allies 2/3
+  Enemies 5/5 YOU ARE DOWN POINT in 11s`, so the point's clock kept running for the followers; the
+  point came up at 18:45:14 while the pursuit fought; 18:45:50 `round 2: defeat — the complete
+  player team was eliminated; score 0-2` (elimination decided; nobody held the point).
+- Round 3 live 18:46:00 (`shut 0, skipped 24`), point at (4.7, 0.0, -35.1), up 18:46:20; 18:46:29
+  held 5 s by the enemy squad, **0-3, EndMatchLost**, `Tactical ended: 0-3 over 3 round(s)`; server
+  begin at 18:42:39 and capture at 18:46:36 as in the first match. `gpu-run menu` back to the
+  main menu; EFT left there.
+
 ## Not covered
 
-- The PitFireTeam team arena (companions, the squad leaving the point when the PMC is down):
-  no companions were invited on GPU-2 in this cycle.
 - Bay 5, Air Pit, Bowl (the non-Factory placement path with the team-box anchor).
 - A point refused by the floor or path checks (Warning, round by elimination).
-- The reward settlement of a KillsOnly Tactical run at the next normal server start (the
-  begin was requested and not refused; no kill was made).
+- The reward settlement of a KillsOnly Tactical run at the next normal server start (all three
+  begins were requested and not refused, both team captures posted; no kill was made in any match).
+- A follower capture without the PMC on the point (the followers stood on the point only beside
+  the player), and a round the followers win while the PMC is down.
 - The beam and label in a picture (the ring was seen; the camera stood behind a wall).

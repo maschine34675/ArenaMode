@@ -35,8 +35,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   VirusTotal in the release notes. Installed on D:\SPT41 and rolled out to GPU-2 at 21:49; the
   native cycle is recorded in [GPU-RELEASE-050-20261107.md](reports/2026-11/GPU-RELEASE-050-20261107.md)
   (Redeploy respawn, Team DM Iceberg, Domination Bowl with the crowd, PitFireTeam Tactical over
-  three rounds with the served preflight). The Forge (sp-mod.com) upload is manual and open;
-  [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the 0.5.0 draft. On 2026-11-08 the 0.5.0
+  three rounds with the served preflight). The user published 0.5.0 on the Forge (sp-mod.com) on
+  2026-11-08; [FORGE-DESCRIPTION.md](FORGE-DESCRIPTION.md) is the 0.5.0 text. On 2026-11-08 the 0.5.0
   changelog, [RELEASE-0.5.0.md](RELEASE-0.5.0.md) (GitHub release body re-published from it) and
   the Forge draft gained the DynamicMaps Domination objectives of `feature/domination-map-markers`
   (merged 2026-11-01), which the release texts had left out; the tagged `CHANGELOG.md` on GitHub
@@ -130,11 +130,16 @@ three native solo Tactical raids on Factory on GPU-2
 objective layer, HUD tails, enemy and friendly captures ending rounds, the door reset shutting a
 bot-opened door at a round start; two native findings fixed on the way (the local game world has no
 `World` component, and `LocationScene.GetAllObjects<Door>` finds nothing: enumerate
-`WorldInteractiveObject`). Not covered natively: the PitFireTeam team arena, the ported maps, a refused
-point, the reward settlement. **Core on all hosts is now `1.0.21+bebf49b0`** (Redeploy `main` with the
+`WorldInteractiveObject`). The PitFireTeam team arena followed the same evening, two matches with two
+companions (same record): followers never driven, opponents on the lanes and then the point, enemy
+captures ending rounds, two player-side captures, the door reset shutting squad-opened doors, the PMC
+down handing every bot to the pursuit while the point's clock ran on, the server accepting the team
+begin with KillsOnly. Not covered natively: the ported maps, a refused point, the reward settlement,
+a follower capture without the PMC. **Core on all hosts is `1.0.21+bebf49b0`** (Redeploy `main` with the
 Plate, Skills Extended and ladder adapters): this session's ArenaMode builds deployed the checkout's
 Core (NoDeploy.targets does not cover Core), and ArenaMode is built against it (`CoreVersionGate`), so
-the 1.0.20 release bytes cannot simply be put back; the user decides. Dev build **`0.5.0+e1dfc344`**
+the 1.0.20 release bytes cannot simply be put back; the user decided on 2026-11-08 that the newer Core
+stays deployed. Dev build **`0.5.0+e1dfc344`**
 (client and server, rebuilt from the commit) installed on `D:\SPT41`, mirrored to every host and
 running on GPU-2 (its server restarted, `16/16` plugins identical).
 

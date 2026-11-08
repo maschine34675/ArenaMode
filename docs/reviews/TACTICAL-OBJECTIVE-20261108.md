@@ -148,6 +148,18 @@ errors from ArenaMode. Two findings came out of the raids and are fixed in the c
 and `LocationScene.GetAllObjects<Door>` answers nothing because the scenes register their doors
 under `WorldInteractiveObject` (an exact-type dictionary); the reset now enumerates that base type
 and keeps the `Door`s, and logs one Debug line per round start (`door reset saw 77 door(s), shut 1,
-skipped 23` in the third raid: a door a bot opened in round 1 was shut at the round 2 start). Not
-covered natively: the PitFireTeam team arena, Bay 5 / Air Pit / Bowl, a refused point, the reward
-settlement of a KillsOnly Tactical run, the beam and label in a picture.
+skipped 23` in the third raid: a door a bot opened in round 1 was shut at the round 2 start).
+
+PitFireTeam team arena, two matches with two companions on Factory on GPU-2 the same evening (same
+record): the team menu copy `First to 3 round wins; hold the point.`, the followers never on the
+objective layer (`pitTeam.FollowerPatrol`) while all five opponents were, the lanes in a line across
+the midpoint until the point came up, the enemy capture ending rounds as defeats (`continuation
+RebindNextRound`, then `EndMatchLost` at 2-3 and 0-3), the player side capturing twice with the
+followers beside the PMC (1-2, 2-2), the door reset shutting the doors the squads had opened (`shut
+2`), the point's clock running on while the PMC was down (`YOU ARE DOWN POINT in 11s`) with every bot
+on `Arena Combat Pursuit` and the round decided by elimination, the server's `/arenamode/rewards/begin`
+accepted for the team mode with KillsOnly and both captures posted; one observation, a lane ending
+inside the ring but behind cover does not count until the bot steps around it (the clear-line check,
+as in Domination). Not covered natively: Bay 5 / Air Pit / Bowl, a refused point, the reward
+settlement of a KillsOnly Tactical run, a follower capture without the PMC, the beam and label in a
+picture.
