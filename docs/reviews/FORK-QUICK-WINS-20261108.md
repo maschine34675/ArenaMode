@@ -138,8 +138,11 @@ Offline, each with its mutants (`tools/Run-ArenaVerification.ps1`):
 - `ArenaMode.Tests/ArenaScoreboardTests.AnEarlierBodyOfASeatKillingItsReplacementCostsTheLifeWithoutCredit`.
 - The linked harnesses `SpawnShieldScopeChecks` and `TeamGiveUpChecks` compile the changed mode.
 
-Native (one GPU-2 cycle, Team DM): a rejected arrival, if any, names its gate; the F9 table shows
-fixed seats with a replacement under the first name and a vacant seat as OUT; the killfeed shows the
-seat name for a replacement body; no backpack on bot bodies and the server's "backpack removed"
-Debug lines; Tab tap opens the inventory, Tab hold shows the table while moving, the inventory's own
-Tab closes it, F9 still works. The record goes to `docs/reports/2026-11/`.
+Native (one GPU-2 cycle, Team DM on Factory, build `74c4d580`, 2026-11-08 13:33-13:41, record
+[GPU-FORK-QUICK-WINS-20261108.md](../reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)): 15 server
+"Team bot loadout … 1 backpack(s) removed" lines for the raid's generated bots; 11 "seat … reoccupied"
+lines, the F9 table with every seat under its first name (one seat at 1 kill / 2 deaths LIVE while its
+body was the third); the held table over the running game with both team tables, no cursor, inventory
+closed; a Tab tap opened the inventory and the inventory's own Tab closed it; F9 unchanged; no
+ArenaMode Warning or Error. Not exercised natively: a refused arrival (no rejection happened), the
+Release press type, a mouse binding, Domination, the killfeed line of a replacement body.

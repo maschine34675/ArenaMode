@@ -265,7 +265,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (271)
+## Reports (272)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -274,6 +274,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)
+- [Fork quick wins: native Team DM run on GPU-2 (seats, hold-to-peek, no bot backpacks)](reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)
 - [Lost reward authority with Tarkova Cola history: native run on GPU-2 (SPT-GPU-2 archived and enrolled afresh)](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md)
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)
 - [Survey of the fork thatHeathenJay/ArenaMode: co-op design, live-UI rips, adoptable pieces](reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md)

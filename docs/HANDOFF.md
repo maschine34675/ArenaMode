@@ -81,7 +81,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
   differently stamped binaries; say so in the next handoff. Since 2026-11-08 the ArenaMode
-  client and server DLLs on every host are the development build `0.5.0+fd4543d9` (Cola
+  client and server DLLs on every host are the development build `0.5.0+74c4d580` (fork quick
+  wins, see Open work; before that `0.5.0+fd4543d9`, Cola
   archive; before it `b3dd3983`, Domination rewards); BigBrainCompat, Gate, the Session helper
   and Core 1.0.20 are still the release files.
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
@@ -114,8 +115,15 @@ key (`ArenaInventoryKeyNode`, `ArenaScoreboardPeek`, shared `ArenaScoreboardRows
 `Hud/ArenaInventoryKeyNode.cs`, `Hud/ArenaScoreboardPeek.cs`, `Hud/ArenaScoreboardRows.cs`,
 `Hud/InventoryKeyHold.cs`, `Hud/ArenaPanel.cs`, `Hud/ArenaHud.cs`,
 `ArenaMode.Server/Services/TeamDeathmatchArmbandPolicy.cs`, `Patches/ArenaTeamDeathmatchArmbandPatch.cs`.
-Offline verification and the native GPU-2 cycle are recorded in the review and in
-`reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md` once run.
+Committed as `74c4d580` after xunit 3,720 passed / 3 expected skips and the six affected harnesses with
+their mutants (TeamDeathmatchRuntimeChecks 40, TeamArmbandChecks 6, RoleLabelChecks 10,
+InventoryKeyHoldChecks 9, SpawnShieldScopeChecks, TeamGiveUpChecks). Native Team DM run on GPU-2 the
+same afternoon ([record](reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)): 15 server loadout lines
+with a backpack removed, 11 seat reoccupations, the F9 table and the held table under the first
+names, tap and hold on Tab as designed, no ArenaMode Warning. Not run natively: the Release press
+type, mouse bindings, Domination (pinned offline), a refused arrival. Since that run the development
+build `0.5.0+74c4d580` (client and server) is installed on D:\SPT41 and mirrored to every host, Core
+`1.0.20+ade752a`; the 0.5.0 release DLLs are no longer on any host.
 
 **Lost reward authority with Cola history (2026-11-08, master, not released):** user decision: the
 automatic archive of `RewardAuthorityRecovery.Reconcile` also covers a complete Tarkova Cola history. Before,
