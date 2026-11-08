@@ -4,7 +4,7 @@ namespace UnityEngine
 {
     internal static class Time { internal static float time; }
     // Position is only passed to the native presentation boundary in this harness.
-    internal struct Vector3 { internal Vector3(float x, float y, float z) { } }
+    internal struct Vector3 { internal float x, y, z; internal Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; } }
 }
 namespace Comfort.Common { internal static class Singleton<T> { internal static T Instance; } }
 namespace EFT
@@ -123,5 +123,16 @@ namespace ArenaMode.Bots
         internal static bool Available = true;
         internal static void Begin(object match, object game, object world) { }
         internal static void Stop() { }
+    }
+}
+
+// TeamDeathmatchMode.Domination.cs reads the Domination limits from Config.Settings when it creates its
+// policy (since 2026-10-27); the double carries the 0.5.0 defaults, the harness never reads them.
+namespace ArenaMode.Config
+{
+    internal sealed class IntSetting { internal int Value; internal IntSetting(int value) { Value = value; } }
+    internal static class Settings
+    {
+        internal static readonly IntSetting DominationScoreLimit = new(300), DominationTimeLimitSeconds = new(600);
     }
 }

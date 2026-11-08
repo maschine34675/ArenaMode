@@ -50,8 +50,8 @@ $cases = @(
     },
     @{
         Name = 'spawn-gates-countdown'; Path = $flow; Property = 'FlowSource';
-        Find = '&& !Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;';
-        Replace = '&& false) return;';
+        Find = 'if (!Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;';
+        Replace = 'if (false) return;';
         Failure = 'GATES: incomplete opening keeps timer and round cue held'
     },
     @{

@@ -276,3 +276,14 @@ public static class ConvertibleClaimSignature
     public static bool SetScore(int handle, int a, int b, int aliveA, int aliveB) => true;
     public static bool SetClock(int handle, int mode, float seconds) => true;
 }
+
+// TeamDeathmatchMode.Domination.cs reads the Domination limits from Config.Settings when it creates its
+// policy (since 2026-10-27); the double carries the 0.5.0 defaults, the harness never reads them.
+namespace ArenaMode.Config
+{
+    internal sealed class IntSetting { internal int Value; internal IntSetting(int value) { Value = value; } }
+    internal static class Settings
+    {
+        internal static readonly IntSetting DominationScoreLimit = new(300), DominationTimeLimitSeconds = new(600);
+    }
+}

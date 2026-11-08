@@ -243,7 +243,7 @@ void CheckPreviews()
 CheckPreviews();
 view.Synchronize("domination", false);
 Need(bearChoice.gameObject.activeInHierarchy && !RuleRoot().activeInHierarchy
-    && Label("Domination point limit").text == "POINT LIMIT: 200"
+    && Label("Domination point limit").text == "POINT LIMIT: 300"
     && Label("Domination time limit").text == "TIME LIMIT: 10 min",
     "Domination shows side and selectable objective limits without TDM kill controls");
 Button DomPoints(int value) => Buttons().Single(b=>b.name=="Arena Domination Points "+value);
