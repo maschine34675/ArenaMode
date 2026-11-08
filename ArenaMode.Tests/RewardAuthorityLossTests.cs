@@ -258,7 +258,7 @@ public sealed partial class RewardOfflineSessionTests
     [InlineData("unrecognised-file", "unrecognised entry")]
     [InlineData("active-session", "still recorded as active")]
     [InlineData("journal-missing", "journal is missing")]
-    [InlineData("cola-progression", "Tarkova Cola progression")]
+    [InlineData("cola-progression", "Tarkova Cola history is not complete")]
     [InlineData("approved-not-journaled", "approved reward is not paid yet")]
     [InlineData("candidate-not-imported", "candidate is not imported yet")]
     [InlineData("decision-not-journaled", "decision is not paid yet")]
@@ -280,7 +280,7 @@ public sealed partial class RewardOfflineSessionTests
                     [new RewardJournalEntry(payment, RewardJournalPhase.Attempting, new string('b', 64))])));
                 break;
             case "cola-progression":
-                // Committed, but the external progression it carries is not something an archive may abandon.
+                // Committed, but its Tarkova Cola plan is nowhere: the history is not complete, so the archive may not take it.
                 string colaKey = Guid.NewGuid().ToString("N") + ":1";
                 var colaPayment = new RewardPayment(colaKey, new string('a', 64), 0, RewardIdentity.MessageId(binding, colaKey), 1_700_000_000,
                     Cola: RewardColaProfile.Resolve(f.Profile, RewardColaDelta.Capture("{}", "{\"xp\":{\"speedcola\":3},\"ach\":{\"a_first\":true}}")));

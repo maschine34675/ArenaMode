@@ -103,3 +103,5 @@ Root passed 148 restoration/lifecycle/runtime tests with the no-deploy runner,
 then the full regression. Native Factory exit and private-to-normal return also
 produced and archived all six checkpoint records. In-game/native acceptance
 remains distinct from the temporary-fixture checks; see the linked report.
+
+Note (2026-11-08): the lost-authority archive of a profile's reward folder now also covers a complete Tarkova Cola history (it used to keep the quarantine); see [REWARDS-RUNTIME](../REWARDS-RUNTIME.md), "Lost reward authority".

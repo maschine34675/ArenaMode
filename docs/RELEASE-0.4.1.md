@@ -16,7 +16,9 @@
   profile file or a move or copy of the installation when the Cola reward history
   is complete; rewards stay off for that profile and nothing is changed or
   deleted. An unfinished Cola reward or an unreadable Cola file still stops
-  startup, now with the real cause and the remedy that fits it.
+  startup, now with the real cause and the remedy that fits it. (2026-11-08: the next
+  version archives a complete Cola history and enrolls the profile again automatically;
+  see the changelog's Unreleased section.)
 - **Unusable reward folder:** SPT starts normally when its folder or a parent
   folder is a junction, symbolic link or mount point, or when the reward folder
   cannot be used. Rewards are skipped for that start, with one Warning.

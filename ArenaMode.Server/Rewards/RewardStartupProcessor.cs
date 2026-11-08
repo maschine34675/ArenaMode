@@ -47,12 +47,13 @@ internal static class RewardStartupProcessor
             // player has since opted out. This path cannot create a new payment.
             var cola = await RewardColaJournal.RecoverAsync(window, id, cancellationToken);
             // The Cola history was kept because this installation has no authority over the native side. The
-            // authority recovery reports a lost reward block or a moved install itself; this covers the states it
-            // does not act on (no consent file, a legacy enrollment) so that the player still reads, once, why
-            // rewards stay off. A deleted profile file has no authority to report and stays a Debug line.
+            // authority recovery archives and re-enrolls such a profile itself when its enrollment is runtime-managed
+            // and a consent file exists, and reports an unsettled one; this covers the states it does not act on (no
+            // consent file, a legacy enrollment) so that the player still reads, once, why rewards stay off and what
+            // the automatic archive lacks. A deleted profile file has no authority to report and stays a Debug line.
             if (includeRuntimeInbox && authority is null && cola is RewardColaRecoveryResult.KeptProfileLostRewardBlock or RewardColaRecoveryResult.KeptInstallRootChanged)
                 authority = new(false, cola == RewardColaRecoveryResult.KeptInstallRootChanged ? "install-root-changed" : "profile-reward-block-missing",
-                    "its reward records hold Tarkova Cola history, which stays unchanged", null);
+                    "its reward records hold Tarkova Cola history that the automatic archive does not cover without a saved reward choice and a runtime-managed enrollment, so they stay unchanged", null);
             if (includeRuntimeInbox)
             {
                 RewardRuntimeInbox.Preflight(window.Root, id);

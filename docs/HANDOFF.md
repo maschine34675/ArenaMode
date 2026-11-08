@@ -79,10 +79,12 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   differently stamped binaries; say so in the next handoff. Since 31.10. ArenaMode and
   Redeploy.Core are such builds (see the Iceberg entry under Open work).
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
-  2026-10-29 while it carried Tarkova Cola reward history. Since 0.4.1 SPT starts with one
-  Warning and that profile's rewards stay off ([REWARDS-RUNTIME.md](REWARDS-RUNTIME.md),
-  "Lost reward authority"); they return only after the documented reward-folder rename at a
-  stopped server.
+  2026-10-29 while it carried Tarkova Cola reward history. From 0.4.1 to the Domination
+  build SPT started with one Warning and that profile's rewards stayed off
+  ([REWARDS-RUNTIME.md](REWARDS-RUNTIME.md), "Lost reward authority"). With the Cola archive
+  change of 2026-11-08 (Open work) its complete history is expected to be archived and the
+  profile enrolled again at the next normal server start; the manual reward-folder rename at
+  a stopped server remains only for an incomplete history.
 - Repository hygiene 2026-10-30: `docs/` reorganised (reviews/, reports/, evidence/,
   handoff-archive/), `test-evidence/` moved to `docs/evidence/`, `assets/archive/` deleted
   (its thumbnail iterations stay in git history before this change), `AGENTS.md` cut to
@@ -93,6 +95,24 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   and the reports that linked it keep only their summaries.
 
 ## Open work
+
+**Lost reward authority with Cola history (2026-11-08, master, not released):** user decision: the
+automatic archive of `RewardAuthorityRecovery.Reconcile` also covers a complete Tarkova Cola history. Before,
+`UnsettledCore()` refused unconditionally on a `cola-plans` folder or Cola progression in a journal payment, so
+a player who ever earned a Cola reward and then wiped the profile kept rewards off for good (Warning at every
+start; only the manual rename helped). Now a complete companion side (`RewardColaJournal.CompanionGap` returns
+null) is settled and archived by rename with the consent carried over and a fresh enrollment in the same pass; an
+incomplete or unreadable history keeps the quarantine and an unfinished Cola payment still stops startup
+(`RequireCompleteCompanionSide`). The automatic archive needs what `Reconcile` always needed: a runtime-managed
+enrollment, a `consent.json` and the profile file present; a legacy enrollment or a missing consent file keeps the
+old notice (which now names that) and the manual remedy. The Cola progression lives in the Tarkova Cola mod's own
+files, never touched.
+Files: `ArenaMode.Server/Rewards/RewardAuthorityRecovery.cs`, `RewardColaJournal.cs`, `RewardStartupProcessor.cs`;
+docs `docs/REWARDS-RUNTIME.md` ("Lost reward authority"), `CHANGELOG.md`. Verified offline: xunit 3,717 passed
+(3 skips; new cases for the archived wiped and moved profiles, the named gaps, the kept notice and the recovered
+line with a detail), OfflineStartupChecks 481, no-deploy solution build 0 errors. Native: pending; the next normal
+server start on GPU-2 with profile SPT-GPU-2 (id 6ab7db1c64f04b565cf78be9, two completed Cola plans, both with a
+`.done.json`, consent file with rewards OFF, runtime-managed enrollment) is the proof.
 
 **Domination rewards (2026-11-08, master, not released):** Domination joined the reward protocol
 under the `KillsOnly` rule like Gun Game and Zombies: eligible local hostile final kills pay (1,000 RUB

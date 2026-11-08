@@ -210,9 +210,10 @@ only the ledger block is replaced). Crash safety: the choice is staged first
 (`<profileId>.reenroll-<id>`), and the next startup finishes an interrupted second
 rename before anything reads the missing directory as a new profile.
 
-Unsettled means: any journal entry not committed or carrying Tarkova Cola
-progression, or a `cola-plans` folder (the Tarkova Cola history is never
-archived); a received receipt or allocation without its `imported` marker; an
+Unsettled means: any journal entry not committed, or carrying Tarkova Cola
+progression or a `cola-plans` folder while the Cola history is not complete (a
+complete one is archived with the rest, 2026-11-08, see "Tarkova Cola history and lost
+authority" below); a received receipt or allocation without its `imported` marker; an
 approval, candidate or decision not matched by a committed journal entry; a pending
 recovery request; an unresolved Arena run or restoration; an active offline session;
 an unrecognised file; a moved install whose ledger and journal disagree. A record
@@ -265,16 +266,27 @@ outcomes:
   committed with a matching plan. A plan the journal does not know, or knows only
   as Prepared, never reached a native write and is inert, like a stray temporary
   file (the ordinary recovery skips both as well). `RecoverAsync` returns without
-  writing anything: no Cola progress, no payment, no file changed or moved. The
-  profile stays quarantined (a Cola progression is unsettled), startup goes on,
-  the profiles load, and for a wiped profile or a moved install the one Warning
-  above says the reward records hold Tarkova Cola history that stays unchanged and
-  rewards stay off. A deleted profile file whose Cola plans remain is treated the
-  same, but has no authority to report and logs at Debug level only. The check
-  reads the plans without the installation root (the reward folder synchronises
-  between installations); it never locates or touches the Tarkova Cola mod's own
-  files.
-- The companion side is not complete. Startup stops, because a half-finished
+  writing anything: no Cola progress, no payment, no file changed or moved. Startup
+  goes on and the profiles load. (2026-11-08) A complete Cola history no longer
+  keeps the profile quarantined: the startup recovery above judges it settled, so
+  for a wiped profile or a moved install it archives the whole reward folder by
+  rename with the other records, `cola-plans` and its completion records included,
+  carries the consent choice over and enrolls the profile afresh in the same pass. This
+  needs what the recovery always needed (a runtime-managed enrollment, a `consent.json`
+  and the profile file present); without them the Warning names the Cola history and
+  what the automatic archive lacks, and the manual remedy below applies.
+  The Cola progression itself lives in the Tarkova Cola mod's own files
+  (`user/mods`), which are never read or touched; the reward folder only held the
+  audit trail. Before this decision the profile stayed quarantined here, with a
+  Warning at every start saying the Cola history stays unchanged and rewards stay
+  off. A deleted profile file whose Cola plans remain is treated the same by
+  `RecoverAsync`, but has no authority to report and logs at Debug level only. The
+  check reads the plans without the installation root (the reward folder
+  synchronises between installations); it never locates or touches the Tarkova Cola
+  mod's own files.
+- The companion side is not complete (or cannot be read, 2026-11-08: the startup
+  recovery then keeps the profile quarantined, and its Warning names the first gap).
+  Startup stops, because a half-finished
   companion write could leave the Cola files inconsistent and nothing here can
   finish it. The Error names the actual cause and the remedy that is true for it:
   - A possibly paid plan has no completion record, or the journal records a Cola
@@ -300,11 +312,16 @@ in `enrollment.json` once, so its pending rewards are delivered, and move it aga
 or, accepting the loss of those unpaid rewards, stop the server and rename
 `user/arena-rewards/<profileId>` aside (a profile that still carries the ledger block
 also needs that block removed from its file, which is why this is a last resort).
-For a wiped profile whose Tarkova Cola history is complete, the same last resort
-starts the reward ledger afresh: the Cola progress belongs to the Tarkova Cola mod
-(`user/mods`, not the reward folder) and the transactions are already finished, so
-only the audit trail (journal, plans) is lost to the live folder. The rename sets
-the WHOLE folder aside, though, not just that trail: the player's reward choice
+(2026-11-08) A wiped profile or a moved install whose Tarkova Cola history is
+complete no longer needs this when its enrollment is runtime-managed and a `consent.json`
+exists: the next normal start archives and enrolls it automatically (see above). The
+manual rename remains the last resort for the cases the automation refuses or does not
+cover, an incomplete or unreadable Cola history, a legacy enrollment, a missing consent
+file: there too the Cola
+progress belongs to the Tarkova Cola mod (`user/mods`, not the reward folder), so
+only the audit trail (journal, plans) is lost to the live folder, but only once the
+Cola payments are known to be finished. The rename sets
+the WHOLE folder aside, not just that trail: the player's reward choice
 (`consent.json`) and the enrollment go with it. The next start finds a profile with
 no reward folder, treats it as new and enrolls it with the default, rewards ON, so a
 player who had switched rewards off must switch them off again (the automatic

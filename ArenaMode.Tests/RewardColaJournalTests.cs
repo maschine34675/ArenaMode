@@ -692,13 +692,59 @@ public sealed class RewardColaJournalTests
         return (f, plan);
     }
 
+    private static string[] Archives(Fixture f) => Directory.GetDirectories(Path.GetDirectoryName(f.RewardDirectory)!, f.Binding.ProfileId + ".archived-*");
+
+    // The automatic archive covers a COMPLETE Cola history: the plan folder is an audit trail (the progression lives
+    // in the Cola mod's files), so it moves with the directory, the consent choice is carried over and a fresh
+    // enrollment follows. Nothing is deleted, nothing is paid, the Cola mod's own file is not touched.
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task WipedProfileWithCompleteColaHistoryDoesNotStopStartupAndChangesNothing(bool consent, bool enabled)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WipedProfileWithCompleteColaHistoryIsArchivedWithItAndTheConsentIsCarried(bool enabled)
     {
-        var (f, _) = CompletedThenWiped(consent, enabled);
+        var (f, plan) = CompletedThenWiped(consent: true, enabled);
+        using var _f = f;
+        var oldRecords = Tree(f.RewardDirectory);
+        Assert.Contains(Path.Combine("cola-plans", plan.Approval.Claim.RunId + ".json"), oldRecords.Keys);
+        Assert.Contains(Path.Combine("cola-plans", plan.Approval.Claim.RunId + ".done.json"), oldRecords.Keys);
+        string profile = f.Profile, foreign = f.Foreign;
+
+        RewardAuthorityNotice? notice;
+        if (!enabled)
+        {
+            // The whole startup pass (archive, then the Cola recovery on the fresh state, then the consent check).
+            var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+            notice = outcome.Authority;
+            Assert.Equal(0, outcome.Roubles);
+            Assert.Equal("rewards-not-enabled", outcome.Result.Reason);
+        }
+        else notice = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId);
+
+        Assert.True(notice!.Recovered, notice.Detail);
+        Assert.Equal("profile-reward-block-missing", notice.Trigger);
+        Assert.Contains("Tarkova Cola", notice.Detail);
+        string archive = Assert.Single(Archives(f));
+        Assert.Equal("user/arena-rewards/" + Path.GetFileName(archive), notice.Archive);
+        // Every old record, the plan and its completion record included, is in the archive byte for byte.
+        Assert.Equal(oldRecords, Tree(archive));
+        Assert.False(Directory.Exists(f.PlanDirectory));
+        // The carried choice is the live directory; the Cola mod's file and the wiped profile are untouched.
+        Assert.Equal(["consent.json"], Directory.GetFileSystemEntries(f.RewardDirectory).Select(Path.GetFileName).ToArray());
+        Assert.Equal(enabled, RewardEnrollment.ReadConsent(f.Root, f.Binding.ProfileId).Enabled);
+        Assert.Equal(foreign, f.Foreign);
+        Assert.Equal(profile, f.Profile);
+        // The Cola recovery on the fresh state finds nothing to finish and never reports the history incomplete.
+        Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+        // A second start finds nothing to archive again.
+        Assert.Null(RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId));
+        Assert.Single(Archives(f));
+    }
+
+    [Fact]
+    public async Task WipedProfileWithCompleteColaHistoryAndNoConsentFileStaysWithTheColaNotice()
+    {
+        // No consent file: the authority recovery stays out (it has no choice to carry over), as before.
+        var (f, _) = CompletedThenWiped(consent: false, enabled: false);
         using var _f = f;
         var tree = Tree(f.Root);
 
@@ -731,14 +777,26 @@ public sealed class RewardColaJournalTests
         using var _f = f;
         f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
         var tree = Tree(f.Root);
+        var records = Tree(f.RewardDirectory);
         Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
-        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
-        Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
-        Assert.Equal("profile-reward-block-missing", outcome.Authority!.Trigger);
-        Assert.Equal(tree, Tree(f.Root));
-        // An incomplete companion side still stops, root or not.
+        // An incomplete companion side still stops, root or not, and the authority recovery names the gap and keeps
+        // the quarantine without moving anything.
+        byte[] done = File.ReadAllBytes(f.DonePath);
         File.Delete(f.DonePath);
         await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        var quarantined = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!;
+        Assert.False(quarantined.Recovered);
+        Assert.Contains("Tarkova Cola history is not complete", quarantined.Detail);
+        Assert.Contains("has no completion record", quarantined.Detail);
+        Assert.Empty(Archives(f));
+        File.WriteAllBytes(f.DonePath, done);
+        Assert.Equal(tree, Tree(f.Root));
+        // Complete again: the root plays no part in the check, so the history is archived with the directory.
+        var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
+        Assert.True(outcome.Authority!.Recovered, outcome.Authority.Detail);
+        Assert.Equal("profile-reward-block-missing", outcome.Authority.Trigger);
+        Assert.Equal(0, outcome.Roubles);
+        Assert.Equal(records, Tree(Assert.Single(Archives(f))));
     }
 
     [Fact]
@@ -855,6 +913,17 @@ public sealed class RewardColaJournalTests
         var tree = Tree(f.Root);
 
         Assert.Equal(movedInstall ? RewardColaRecoveryResult.KeptInstallRootChanged : RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
+        if (state == "temporary-file-beside-complete-history")
+        {
+            // Complete history plus a stray temporary file (inert): the authority recovery archives it all.
+            var notice = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!;
+            Assert.True(notice.Recovered, notice.Detail);
+            Assert.True(File.Exists(Path.Combine(Assert.Single(Archives(f)), "cola-plans", ".arena-reward-44444444444444444444444444444444.tmp")));
+            Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+            return;
+        }
+        // The other two states are not settled for the authority recovery on other grounds (an approval that is
+        // not paid, a journal entry that is not committed): the quarantine stays and nothing moves.
         var outcome = await RewardStartupProcessor.ProcessProfileAsync(f.Window, f.Binding.ProfileId, CancellationToken.None, applyDefault: true);
         Assert.Contains(outcome.Result.Status, new[] { RewardSettlementStatus.Quarantined, RewardSettlementStatus.Deferred });
         Assert.Equal(0, outcome.Roubles);
@@ -891,10 +960,39 @@ public sealed class RewardColaJournalTests
     // profile still carries the block and the reward folder (synchronised between machines) names another root, so
     // the ordinary recovery would reject the first plan as not bound to this installation and stop startup for good.
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MovedInstallWithCompleteColaHistoryIsArchivedWithItAsForAnyOtherHistory(bool enabled)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        f.Complete(plan);
+        f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
+        File.WriteAllText(Path.Combine(f.RewardDirectory, "consent.json"), JsonSerializer.Serialize(new RewardConsent(1, enabled, 1), RewardSettlementCore.JournalJson));
+        string foreign = f.Foreign;
+        var records = Tree(f.RewardDirectory);
+
+        var notice = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!;
+
+        Assert.True(notice.Recovered, notice.Detail);
+        Assert.Equal("install-root-changed", notice.Trigger);
+        Assert.Contains("Tarkova Cola", notice.Detail);
+        // The profile still carried the ledger block: it is kept beside the old records as for any moved install.
+        string archive = Assert.Single(Archives(f));
+        Assert.Contains(RewardAuthorityRecovery.ArchivedLedgerFile, Tree(archive).Keys);
+        var archived = Tree(archive);
+        archived.Remove(RewardAuthorityRecovery.ArchivedLedgerFile);
+        Assert.Equal(records, archived);
+        Assert.False(JsonNode.Parse(f.Profile)!.AsObject().ContainsKey(RewardProfileDocument.ExtensionKey));
+        Assert.Equal(foreign, f.Foreign);
+        Assert.Equal(enabled, RewardEnrollment.ReadConsent(f.Root, f.Binding.ProfileId).Enabled);
+        Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
-    [InlineData(true, false, true)]
-    [InlineData(true, true, true)]
-    public async Task MovedInstallWithCompleteColaHistoryDoesNotStopStartupAndChangesNothing(bool consent, bool enabled, bool runtimeManaged)
+    public async Task MovedInstallWithCompleteColaHistoryWithoutRuntimeEnrollmentStaysWithTheColaNotice(bool consent, bool enabled, bool runtimeManaged)
     {
         using var f = new Fixture();
         var plan = f.Prepare();
@@ -1001,14 +1099,66 @@ public sealed class RewardColaJournalTests
     {
         var (f, _) = CompletedThenWiped(consent: true, enabled: true);
         using var _f = f;
-        Assert.Equal("profile-reward-block-missing", RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!.Trigger);
         Assert.Equal(RewardColaRecoveryResult.KeptProfileLostRewardBlock, await f.Recover());
         // A profile of another id is nobody's lost authority: Reconcile stays out, the Cola recovery keeps stopping.
-        var other = JsonNode.Parse(f.Profile)!.AsObject();
+        string wiped = f.Profile;
+        var other = JsonNode.Parse(wiped)!.AsObject();
         other["info"]!["id"] = "ffffffffffffffffffffffff";
         File.WriteAllText(f.ProfilePath, other.ToJsonString());
         Assert.Null(RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId));
         await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        File.WriteAllText(f.ProfilePath, wiped);
+        // Both name the same lost block; with the history complete the authority recovery archives it, after which
+        // the Cola recovery has nothing left to judge.
+        var notice = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!;
+        Assert.True(notice.Recovered, notice.Detail);
+        Assert.Equal("profile-reward-block-missing", notice.Trigger);
+        Assert.Equal(RewardColaRecoveryResult.Nothing, await f.Recover());
+    }
+
+    // An incomplete or unreadable Cola history keeps the quarantine exactly as before, now with the gap named in the
+    // reason (the Warning at every start); the Cola recovery's own stop for an unfinished payment is unchanged.
+    [Theory]
+    [InlineData("plan-without-done", "has no completion record", false)]
+    [InlineData("plan-without-done", "has no completion record", true)]
+    [InlineData("unknown-file", "unknown file", false)]
+    [InlineData("unknown-file", "unknown file", true)]
+    [InlineData("unreadable-plan", "cannot be read", false)]
+    [InlineData("done-without-plan", "has no Cola plan", false)]
+    [InlineData("plan-folder-gone", "that has no Cola plan", false)]
+    [InlineData("plan-folder-gone", "that has no Cola plan", true)]
+    public async Task IncompleteColaHistoryKeepsTheQuarantineAndNamesTheGap(string gap, string expected, bool movedInstall)
+    {
+        using var f = new Fixture();
+        var plan = f.Prepare();
+        await f.Pay();
+        if (gap != "plan-without-done") f.Complete(plan);
+        switch (gap)
+        {
+            case "plan-without-done": break;
+            case "unknown-file": File.WriteAllText(Path.Combine(f.PlanDirectory, "notes.txt"), "x"); break;
+            case "unreadable-plan": File.WriteAllText(f.PlanPath, "{"); break;
+            case "done-without-plan": File.Delete(f.PlanPath); break;
+            case "plan-folder-gone": File.Delete(f.PlanPath); File.Delete(f.DonePath); Directory.Delete(f.PlanDirectory); break;
+            default: throw new ArgumentOutOfRangeException(nameof(gap));
+        }
+        f.EnrollRuntimeManaged(consent: true, enabled: true);
+        if (movedInstall) f.WriteEnrollment(f.Enrollment with { RuntimeRoot = f.ForeignRoot, RuntimeManaged = true });
+        else f.Wipe();
+        var tree = Tree(f.Root);
+
+        var notice = RewardAuthorityRecovery.Reconcile(f.Window, f.Binding.ProfileId)!;
+
+        Assert.False(notice.Recovered);
+        Assert.Equal(movedInstall ? "install-root-changed" : "profile-reward-block-missing", notice.Trigger);
+        Assert.Contains("its Tarkova Cola history is not complete: ", notice.Detail);
+        Assert.Contains(expected, notice.Detail);
+        Assert.Null(notice.Archive);
+        Assert.Empty(Archives(f));
+        Assert.Equal(tree, Tree(f.Root)); // not one byte moved, deleted or written
+        // The Cola recovery still refuses to start on a wiped profile with an incomplete companion side.
+        if (!movedInstall) await Assert.ThrowsAsync<RewardColaRecoveryException>(() => f.Recover());
+        Assert.Equal(tree, Tree(f.Root));
     }
 
     [Fact]

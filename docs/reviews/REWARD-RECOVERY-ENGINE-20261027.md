@@ -33,6 +33,8 @@ Checkpoint publication uses a separate `ReadCheckpointClosures` query because it
 
 New unrelated runs retain their normal validation and can pay. New unresolved generations and changed unrelated journal history remain errors. Exact historical exceptions do not waive a genuine Cola transaction or profile ownership recovery.
 
+Note (2026-11-08): where this review treats Tarkova Cola history as never archived, that no longer holds for a complete Cola history; the lost-authority archive now covers it, see [REWARDS-RUNTIME](../REWARDS-RUNTIME.md), "Lost reward authority".
+
 ### Late restoration after a completed discard (2026-10-28)
 
 The two-host direct-start tests exposed an older completed discard whose exact

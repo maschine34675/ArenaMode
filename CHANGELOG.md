@@ -10,6 +10,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- A wiped profile, a restored pre-enrollment backup or a moved installation whose Tarkova Cola reward history is complete is now archived and enrolled again at the next normal server start, like any other such profile; the reward choice is kept (this needs a runtime-managed enrollment with a saved reward choice, as the automatic archive always did; otherwise the Warning now says so). Before, any Cola history kept rewards off for good with a Warning at every start, and only the documented manual rename helped. An unfinished or unreadable Cola reward history still keeps the quarantine, and an unfinished Cola reward still stops startup with the real cause.
 - Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept. Run natively on GPU-2 on 2026-11-08 (one kill paid at the next normal server start).
 
 ## [0.5.0] - 2026-11-07

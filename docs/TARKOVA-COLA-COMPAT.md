@@ -122,3 +122,5 @@ research. After the temporary test bottle was discarded through the native
 inventory UI and the optional payload was removed, the normal game reached its
 main menu with XP, achievements and the payment ledger preserved. The test record
 documents the archived payload and the remaining inactive cache structure.
+
+Note (2026-11-08): the plans and completion records mentioned above no longer keep a wiped or moved profile quarantined once the Cola history is complete; the automatic reward-authority archive sets them aside with the rest of the reward folder. An incomplete history keeps the quarantine. See [REWARDS-RUNTIME](REWARDS-RUNTIME.md), "Lost reward authority".

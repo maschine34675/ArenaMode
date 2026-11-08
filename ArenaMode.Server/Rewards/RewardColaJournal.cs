@@ -130,8 +130,11 @@ internal static class RewardColaJournal
     // Lost authority: a native profile without the reward block cannot be a half-written payment (every
     // payment write replaces a whole profile that carries the block before AND after), and the native side of
     // every recorded payment is gone with it, so nothing native can be confirmed or finished any more. When
-    // the companion side is complete too there is nothing to do: the call returns without a write and the
-    // authority recovery keeps the profile quarantined. When it is not complete it stops startup (see
+    // the companion side is complete too there is nothing to do: the call returns without a write. Whether
+    // the profile is enrolled afresh is RewardAuthorityRecovery.Reconcile's decision, taken before this call:
+    // it archives a complete history with the other records when the enrollment is runtime-managed, a consent
+    // file exists and the profile file is present; otherwise the records stay as they are and the startup
+    // processor reports why once. When the companion side is not complete it stops startup (see
     // RequireCompleteCompanionSide). A moved or copied install (the enrollment names another root, so every plan
     // fails the root-bound authority check) is decided the same way, after the enrollment is read.
     internal static async Task<RewardColaRecoveryResult> RecoverAsync(RewardStartupWindow window, string id,
@@ -333,7 +336,7 @@ internal static class RewardColaJournal
     // One gap found by the completeness check. RestoreRecords: the damage is in the reward records themselves, so a
     // profile backup cannot repair it (the ordinary recovery would stop on the same file); otherwise the transaction
     // is unfinished and the original native profile (or the original installation) is what finishes it.
-    private sealed record Gap(string Text, bool RestoreRecords);
+    internal sealed record Gap(string Text, bool RestoreRecords);
     private static Gap Unfinished(string text) => new(text, false);
     private static Gap Damaged(string text) => new(text, true);
 
@@ -346,7 +349,7 @@ internal static class RewardColaJournal
     // ordinary recovery ignores it): it is an unfinished write that never became a plan or a record. Reads only
     // (the Tarkova Cola mod's own files are not touched or even located). Returns null when complete, otherwise
     // the first gap; a failure to read is reported as a gap too.
-    private static Gap? CompanionGap(RewardStartupWindow window, string id, CancellationToken cancellationToken)
+    internal static Gap? CompanionGap(RewardStartupWindow window, string id, CancellationToken cancellationToken)
     {
         var rewardDirectory = RewardRuntimeFiles.DirectoryFor(window.Root, id);
         var enrollmentPath = Path.Combine(rewardDirectory, "enrollment.json");
@@ -361,6 +364,7 @@ internal static class RewardColaJournal
         var journal = RewardSettlementCore.ParseJournal(ReadBounded(journalPath, 4_194_304), enrollment.Binding, new());
 
         var directory = DirectoryFor(window.Root, id);
+        // Exists link-checks the folder itself (RequireLocalPath); every entry is checked below before it is read.
         var paths = RewardRuntimeFiles.Exists(window.Root, directory)
             ? Directory.EnumerateFileSystemEntries(directory).Take(MaxPlans * 3 + 1).ToArray() : [];
         if (paths.Length > MaxPlans * 3) return Damaged("the Cola plan folder holds too many files");
@@ -419,6 +423,16 @@ internal static class RewardColaJournal
                 return Damaged("the reward journal records a Tarkova Cola reward (" + reward + ") that does not match its Cola plan");
         }
         return null;
+    }
+
+    // The authority recovery's question: may the Cola audit trail (plans, completion records) be archived with the
+    // old reward directory? Null when the companion side is complete; otherwise the first gap, and a failure to read
+    // counts as a gap (same rule as RequireCompleteCompanionSide). Reads only; never throws for a damaged file.
+    internal static string? IncompleteHistory(RewardStartupWindow window, string id, CancellationToken cancellationToken = default)
+    {
+        try { return CompanionGap(window, id, cancellationToken)?.Text; }
+        catch (Exception e) when (e is not OperationCanceledException)
+        { return "the Tarkova Cola reward files could not be checked (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"; }
     }
 
     // Used where this installation holds no authority over the native side (profile wipe, restored backup, editor,

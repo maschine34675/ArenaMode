@@ -147,6 +147,19 @@ public sealed class RewardStartupAdmissionTests : IDisposable
     }
 
     [Fact]
+    public void TheRecoveredLogLineCarriesTheArchiveDetailAfterTheArchivePath()
+    {
+        // The detail (for example the archived Cola history) follows the archive path in parentheses and leaves the
+        // enrollment statement intact.
+        var notice = new RewardAuthorityNotice(true, "profile-reward-block-missing",
+            "its completed Tarkova Cola reward history moved into the archive with the other records", "user/arena-rewards/x.archived-y");
+        var outcome = new RewardStartupOutcome("0123456789abcdef01234567", new(RewardSettlementStatus.Deferred, "rewards-enrolled-no-pending-result"), 0, 0, notice);
+        string text = ArenaRewardStartup.DescribeRecovered(outcome, "the profile lost its reward ledger", notice);
+        Assert.Contains("archived at user/arena-rewards/x.archived-y (its completed Tarkova Cola reward history moved into the archive with the other records) and rewards were enrolled again.", text);
+        Assert.DoesNotContain("()", text);
+    }
+
+    [Fact]
     public void OnlyUnusableStorageIsSkippedNeverContentionOrOwnership()
     {
         string root = RewardStartupFiles.Canonical(Real);

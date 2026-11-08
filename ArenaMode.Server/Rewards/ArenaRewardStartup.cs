@@ -248,7 +248,8 @@ public sealed class ArenaRewardStartup(
     // (for example on a freshly wiped profile that is not yet confirmed clean) or may not apply (rewards switched off).
     internal static string DescribeRecovered(RewardStartupOutcome outcome, string cause, RewardAuthorityNotice notice)
     {
-        string head = $"[ArenaMode] Profile {outcome.ProfileId}: {cause}, and no reward was unsettled, so its old reward records were archived at {notice.Archive}";
+        string head = $"[ArenaMode] Profile {outcome.ProfileId}: {cause}, and no reward was unsettled, so its old reward records were archived at {notice.Archive}"
+            + (notice.Detail.Length == 0 ? "" : $" ({notice.Detail})");
         if (outcome.Result.Status is RewardSettlementStatus.Quarantined or RewardSettlementStatus.Rejected
             || outcome.Result.Reason == "startup-storage-unavailable")
             return head + $". Enrolling again did not succeed in this start ({outcome.Result.Reason}); it follows at the next successful start. Your rewards setting was kept.";

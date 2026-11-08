@@ -25,7 +25,8 @@ internal sealed record RewardAuthorityNotice(bool Recovered, string Trigger, str
 ///
 /// Recovery is deliberately narrow. It acts only when NOTHING is unsettled in the old directory: every
 /// journal entry committed, every received receipt imported (or closed without payment by a recovery closure), no pending run or restoration, no external
-/// (Tarkova Cola) progression, nothing unrecognised. Then the old directory is ARCHIVED by rename (never
+/// (Tarkova Cola) history that is not complete (a complete one is audit trail only and moves into the archive),
+/// nothing unrecognised. Then the old directory is ARCHIVED by rename (never
 /// deleted), the player's consent choice is carried over unchanged, and the ordinary enrollment path
 /// creates a fresh epoch. A fresh epoch makes every receipt and key of the old one unusable, so nothing
 /// can be paid twice, whichever copy of an install keeps the old authority. Anything unsettled keeps the
@@ -112,7 +113,14 @@ internal static class RewardAuthorityRecovery
             or InvalidOperationException)
         { return null; }
 
-        if (Unsettled(root, id, directory, enrollment.Binding, ledger) is { } unsettled) return Unresolved(trigger, unsettled);
+        if (Unsettled(window, id, directory, enrollment.Binding, ledger) is { } unsettled) return Unresolved(trigger, unsettled);
+
+        // Settled includes a COMPLETE Tarkova Cola history: the plans and completion records are an audit trail
+        // that goes into the archive with the directory (Directory.Move below takes the folder along); the
+        // progression itself lives in the Cola mod's own files, which this never touches. The notice names the
+        // history only when the folder holds something (Exists link-checks it; Unsettled read every entry).
+        string colaDirectory = Path.Combine(directory, ColaHistoryFolder);
+        bool colaArchived = RewardRuntimeFiles.Exists(root, colaDirectory) && Directory.EnumerateFileSystemEntries(colaDirectory).Any();
 
         // --- the old authority is fully settled: archive it and let the ordinary enrollment start fresh ---
         window.RequireOpen();
@@ -141,7 +149,8 @@ internal static class RewardAuthorityRecovery
         window.RequireOpen();
         Directory.Move(directory, archive);
         Finish(root, id, directory, staging, archive);
-        return new(true, trigger, "", Path.GetRelativePath(root, archive).Replace(Path.DirectorySeparatorChar, '/'));
+        return new(true, trigger, colaArchived ? "its completed Tarkova Cola reward history moved into the archive with the other records; the Cola progression itself stays in the Tarkova Cola mod's files" : "",
+            Path.GetRelativePath(root, archive).Replace(Path.DirectorySeparatorChar, '/'));
     }
 
     // The evidence folders follow the records into the archive, then the carried choice becomes the live directory.
@@ -206,26 +215,29 @@ internal static class RewardAuthorityRecovery
     }
 
     /// <summary>Why the old directory may not be archived, or null when nothing in it is unsettled.</summary>
-    internal static string? Unsettled(string root, string id, string directory, RewardBinding binding,
+    internal static string? Unsettled(RewardStartupWindow window, string id, string directory, RewardBinding binding,
         IReadOnlyList<RewardPayment>? ledger)
     {
-        try { return UnsettledCore(root, id, directory, binding, ledger); }
+        try { return UnsettledCore(window, id, directory, binding, ledger); }
         catch (Exception e) when (e is RewardDataException or JsonException or FormatException or ArgumentException
             or InvalidOperationException or IOException or UnauthorizedAccessException)
         { return "a reward record could not be read (" + (e is RewardDataException ? e.Message : e.GetType().Name) + ")"; }
     }
 
-    private static string? UnsettledCore(string root, string id, string directory, RewardBinding binding,
+    private static string? UnsettledCore(RewardStartupWindow window, string id, string directory, RewardBinding binding,
         IReadOnlyList<RewardPayment>? ledger)
     {
+        string root = window.Root;
         if (RewardOfflineSession.HasActive(root)) return "an Arena session is still recorded as active";
         RewardStartupFiles.RequireLocalPath(root, directory);
+        bool colaFolder = false;
         foreach (var path in Directory.EnumerateFileSystemEntries(directory).Take(257))
         {
             string name = Path.GetFileName(path);
             if (TemporaryName.IsMatch(name)) continue;
-            // The Tarkova Cola companion history is never archived: say what it is instead of calling it unknown.
-            if (name == ColaHistoryFolder) return "its reward records hold Tarkova Cola history (" + name + "), which stays unchanged";
+            // The Tarkova Cola plan folder is the one recognised companion history; whether it may go into the
+            // archive is decided once below, by the Cola recovery's own completeness check.
+            if (name == ColaHistoryFolder) { colaFolder = true; continue; }
             if (!KnownEntries.Contains(name)) return "unrecognised entry '" + name + "'";
         }
 
@@ -233,10 +245,13 @@ internal static class RewardAuthorityRecovery
         if (!RewardRuntimeFiles.Exists(root, journalPath)) return "the reward journal is missing";
         var journal = RewardSettlementCore.ParseJournal(File.ReadAllText(journalPath), binding, new());
         foreach (var entry in journal.Entries)
-        {
             if (entry.Phase != RewardJournalPhase.Committed) return "payment " + entry.Payment.ReceiptKey + " is not committed";
-            if (entry.Payment.Cola is not null) return "payment " + entry.Payment.ReceiptKey + " carries Tarkova Cola progression, which stays unchanged";
-        }
+        // Tarkova Cola history (the plan folder, or a journal payment that carries Cola progression) is settled
+        // only when the companion side is complete: every plan has its completion record and the journal agrees.
+        // An incomplete or unreadable one keeps the quarantine and names the gap. Evaluated once.
+        if ((colaFolder || journal.Entries.Any(e => e.Payment.Cola is not null))
+            && RewardColaJournal.IncompleteHistory(window, id) is { } colaGap)
+            return "its Tarkova Cola history is not complete: " + colaGap;
         // A moved install still holds the ledger: it must be exactly the journal. A ledger BEHIND the journal
         // is a restored older backup; the settlement core keeps refusing that one.
         if (ledger is not null && (ledger.Count != journal.Entries.Count
