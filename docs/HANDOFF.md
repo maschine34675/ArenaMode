@@ -105,7 +105,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Tactical objective package (2026-11-08, master, not released):** the fork survey's second item
+**Tactical objective package (2026-11-08, master `e1dfc344`, not released, not pushed):** the fork survey's second item
 ([review](reviews/TACTICAL-OBJECTIVE-20261108.md)): one capture point per Tactical round (solo and
 PitFireTeam) from the map's Domination layout, a pure hold clock (`Modes/TacticalObjectivePolicy.cs`),
 opening lanes (`Modes/TacticalObjectiveLanes.cs`) and the point for the enemy squad through the shared
@@ -130,8 +130,9 @@ bot-opened door at a round start; two native findings fixed on the way (the loca
 point, the reward settlement. **Core on all hosts is now `1.0.21+bebf49b0`** (Redeploy `main` with the
 Plate, Skills Extended and ladder adapters): this session's ArenaMode builds deployed the checkout's
 Core (NoDeploy.targets does not cover Core), and ArenaMode is built against it (`CoreVersionGate`), so
-the 1.0.20 release bytes cannot simply be put back; the user decides. Dev build `0.5.0+f1ba6b95`
-(product version = HEAD; the working tree held the package) installed on `D:\SPT41` and mirrored.
+the 1.0.20 release bytes cannot simply be put back; the user decides. Dev build **`0.5.0+e1dfc344`**
+(client and server, rebuilt from the commit) installed on `D:\SPT41`, mirrored to every host and
+running on GPU-2 (its server restarted, `16/16` plugins identical).
 
 **Fork quick wins (2026-11-08, master, not released):** four pieces adopted from the fork survey
 ([review](reviews/FORK-QUICK-WINS-20261108.md)): named arrival gates in the TDM retire Warning, fixed

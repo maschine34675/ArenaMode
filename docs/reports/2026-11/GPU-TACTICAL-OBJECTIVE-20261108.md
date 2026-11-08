@@ -99,6 +99,13 @@ wall, so the picture shows the ring only.
 - Left with `gpu-run leave` (normal). No warnings or errors from ArenaMode in any of the
   three raids.
 
+## After the commit
+
+The package was committed as `e1dfc344` and client and server were rebuilt from it and rolled
+out at 15:47 (`0.5.0+e1dfc344` on `D:\SPT41`, `gpu-run deploy-wait --host host2 --server --game
+--force`: 3 files identical after 34 s, server restarted, game restarted, `16/16` identical), so
+the installed product version names the commit that holds the code of the third raid.
+
 ## Not covered
 
 - The PitFireTeam team arena (companions, the squad leaving the point when the PMC is down):
