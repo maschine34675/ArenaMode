@@ -12,6 +12,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-08:** Amand's Graphics 1.8.0 was admitted after
+  Factory and Labyrinth respawns. Amand's Sense Updated 3.1.0 was exercised
+  with Core 1.0.22 on Factory and remains unlisted. [Builds, evidence and
+  coverage](reports/2026-11/GPU-AMANDS-20261108.md).
 - **0.5.0 published (2026-11-07 evening; tag `v0.5.0` = `063a7684`,
   [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.5.0) with
   `ArenaMode-0.5.0.zip` and its checksum, latest, not a prerelease; `master` pushed to `dev`

@@ -9,6 +9,11 @@ if ($SkipMutants) { return }
 $source = [IO.File]::ReadAllText((Join-Path $repo 'ArenaMode.Client\Compat\ArenaOptionalMods.cs'))
 $mutants = @(
     @{
+        Name = 'skip-amands-scene-admission'
+        Before = '?? ArenaAmandsGraphicsScene.GetRejectionReason()'
+        After = ''
+    },
+    @{
         Name = 'skip-whitelist-admission'
         Before = 'if (whitelistFailure != null) return whitelistFailure;'
         After = ''

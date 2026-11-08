@@ -233,12 +233,13 @@ native observations below predate that migration; see
   Arena additionally isolates its cold-kit preloads. Two actual scoped Arena
   deaths and a newly held scope's rendering passed with Fontaine FOV Fix 4.1.0.
   Coverage does not extend to every optic, NVG/thermal mode or callback race.
-- **Amand's Graphics 1.8.0:** remains unlisted. The Core camera
-  handover retained its ON/OFF choice and original scene defaults during Factory
-  respawns. Labyrinth still fails during Amand's own initial activation, before
-  Core replacement: its `!settings` lookup dereferences a missing object.
-  Core refuses an incomplete baseline rather than trying to invent scene defaults.
-  Factory acceptance therefore does not establish Labyrinth compatibility.
+- **Amand's Graphics 1.8.0:** reviewed in the development whitelist. Arena uses
+  Labyrinth's actual lighting settings when Graphics cannot find its usual
+  scene object. The initial kit and two deaths on Labyrinth passed, including
+  one with graphics switched off. [Native test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
+- **Amand's Sense Updated 3.1.0:** development Core 1.0.22 preserves Sense
+  markers and the current inventory across a body replacement. The mod remains
+  outside the default Arena whitelist. [Test and scope](reports/2026-11/GPU-AMANDS-20261108.md)
 - **Better BepInEx 1.0.0:** normal client mod, not a BepInEx core replacement.
   Its existing ConfigurationManager dependency must remain installed. Other
   mods' stock F12-window patches may be removed by Better BepInEx itself.

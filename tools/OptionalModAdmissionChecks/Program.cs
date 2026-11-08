@@ -66,6 +66,10 @@ internal static class Program
     private static void CheckAdditionalAdapterContracts()
     {
         Reset();
+        ArenaAmandsGraphicsScene.Reason = "Graphics scene lookup unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaAmandsGraphicsScene.Reason && FastGrenadeThrowCompat.Calls == 0,
+            "The Graphics scene contract is required after Core validates the foreign camera contract");
+        Reset();
         FastGrenadeThrowCompat.Reason = "Grenade body handoff unavailable";
         PipPreloadCompat.Reason = "PIP preload ownership unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == FastGrenadeThrowCompat.Reason,
@@ -82,7 +86,7 @@ internal static class Program
         Reset();
         BodyReplacementCompatibility.Reason = "Core unavailable";
         Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
-            && FastGrenadeThrowCompat.Calls == 0 && PipPreloadCompat.Calls == 0,
+            && ArenaAmandsGraphicsScene.Calls == 0 && FastGrenadeThrowCompat.Calls == 0 && PipPreloadCompat.Calls == 0,
             "Core refusal remains ahead of both newer adapters");
     }
 
@@ -166,6 +170,8 @@ internal static class Program
         ArenaTarkovaColaCompat.Calls = 0;
         FastGrenadeThrowCompat.Reason = PipPreloadCompat.Reason = null;
         FastGrenadeThrowCompat.Calls = PipPreloadCompat.Calls = 0;
+        ArenaAmandsGraphicsScene.Reason = null;
+        ArenaAmandsGraphicsScene.Calls = 0;
     }
 
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);

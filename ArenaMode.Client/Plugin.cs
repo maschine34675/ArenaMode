@@ -227,6 +227,7 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaSessionBanner.Shutdown();
         ArenaTarkovaColaCompat.Shutdown();
+        ArenaAmandsGraphicsScene.Shutdown();
         ArenaMedicalBodyScope.Shutdown();
         ArenaBigBrainLibrary.Shutdown();
         Combat.ArenaDefaultFireMode.Shutdown();

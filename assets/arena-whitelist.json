@@ -40,6 +40,7 @@
     { "guid": "com.cj.useFromAnywhere", "name": "Use Items Anywhere", "kind": "mod", "clientVersion": "2.1.6" },
     { "guid": "com.dizzlow.impactcue", "name": "ImpactCue-UI-MOD", "kind": "mod", "clientVersion": "2.0.3" },
     { "guid": "com.dizzlow.impactcue.webconfig", "name": "ImpactCue Web Config", "kind": "mod", "serverVersion": "2.0.3" },
+    { "guid": "com.Amanda.Graphics", "name": "Amand's Graphics", "kind": "mod", "clientVersion": "1.8.0" },
     { "guid": "flir.enemymarkers", "name": "Enemy Markers", "kind": "mod", "clientVersion": "1.4.0" },
     { "guid": "com.vultify.fastgrenadethrow", "name": "Fast Grenade Throw", "kind": "mod", "clientVersion": "2.0.0" },
     { "guid": "com.manimal.quickcancel", "name": "Manimal's Quick Cancel", "kind": "mod", "clientVersion": "2.0.0" },

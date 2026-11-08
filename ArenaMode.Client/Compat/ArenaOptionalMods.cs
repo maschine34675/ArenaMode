@@ -24,6 +24,7 @@ internal static class ArenaOptionalMods
 
         // Body replacement contracts belong to Core and also protect standalone Redeploy.
         return BodyReplacementCompatibility.GetRejectionReason()
+            ?? ArenaAmandsGraphicsScene.GetRejectionReason()
             ?? FastGrenadeThrowCompat.GetRejectionReason()
             ?? PipPreloadCompat.GetRejectionReason()
             ?? ArenaTarkovaColaCompat.GetRejectionReason();

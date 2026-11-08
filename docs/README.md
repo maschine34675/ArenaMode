@@ -272,6 +272,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [Amand's Graphics on Labyrinth and Factory, and Amand's Sense Updated](reports/2026-11/GPU-AMANDS-20261108.md)
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)

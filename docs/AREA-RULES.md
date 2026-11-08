@@ -275,9 +275,11 @@ The explicitly requested follow-up integrations are documented in
 docs/reviews/ITEMS-HUD-COMPAT-20261025.md and docs/reviews/REMAINING-MOD-COMPAT-20261026.md:
 Arena owns Use Items Anywhere slot composition, Fast Grenade Throw priority/input
 and suppression of PiP callbacks for Arena's withheld kit preloads. General body
-and camera lifetimes remain in Redeploy.Core (current source minimum 1.0.19).
-Amand's Graphics remains unlisted because its initial Labyrinth scene setup
-fails before any Core replacement; Factory camera tests do not remove that limit.
+and camera lifetimes remain in Redeploy.Core (development build minimum 1.0.22).
+Amand's Graphics 1.8.0 is reviewed for Arena. On Labyrinth only, Arena corrects
+its unsuccessful `!settings` lookup for the local FPS camera using EFT's active
+scene `LevelSettings`. This requires the exact active raid or its still-loading,
+server-armed local game and map. Core owns the subsequent camera handoff.
 
 Reviewed-version differences are advisory in direct play and new private sessions
 (user decision, 2026-10-27; docs/reviews/MOD-VERSION-FOLLOWUP-20261027.md). Attempt recognized

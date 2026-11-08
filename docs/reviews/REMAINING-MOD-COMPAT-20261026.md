@@ -1,5 +1,8 @@
 # Remaining optional-mod compatibility work
 
+**8 November follow-up:** the [Graphics retest](../reports/2026-11/GPU-AMANDS-20261108.md)
+resolved the Arena Labyrinth startup issue and supersedes the October whitelist decision below.
+
 Status: **bounded native acceptance and policy update, 2026-10-26**. This records the
 follow-up to [the seven-mod review](../reports/2026-10/SEVEN-MOD-COMPAT-20261025.md) and the earlier
 [Fast Grenade Throw review](../reports/2026-10/FOUR-MOD-COMPAT-20261025.md). It does not certify

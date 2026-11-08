@@ -346,10 +346,9 @@ reward choice is kept.
   Books impact sounds and an unresolved intermittent audio noise) was published on
   2026-10-30; 0.3.0 works without monitors.
 - One native BotFirstAid teardown exception was seen once and is unattributed.
-- **Amand's Graphics 1.8.0 remains unlisted.** The camera handover worked on
-  Factory with the mod ON and OFF. On Labyrinth, its own initial activation
-  dereferences a missing `!settings` object before Core attempts replacement.
-  The handover correction does not resolve that separate map blocker.
+- Amand's Graphics 1.8.0 is unlisted in release 0.5.0. The development build
+  resolves the Labyrinth lighting settings during Arena startup and includes
+  the mod in its whitelist. Graphics can stay ON or OFF through respawns.
 - HUD continuity does not align every foreign damage, shield, assist or killfeed
   rule with Arena. Optional HUDs and sounds can overlap; configure them separately.
 - High bot counts depend on hardware, map and installed AI mods. Zombie defaults

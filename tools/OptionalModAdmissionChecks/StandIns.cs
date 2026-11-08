@@ -17,6 +17,12 @@ namespace ArenaMode.Session
 
 namespace ArenaMode.Compat
 {
+    internal static class ArenaAmandsGraphicsScene
+    {
+        internal static string Reason;
+        internal static int Calls;
+        internal static string GetRejectionReason() { Calls++; return Reason; }
+    }
     internal static class FastGrenadeThrowCompat
     {
         internal static string Reason;

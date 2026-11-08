@@ -10,6 +10,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Add Amand's Graphics 1.8.0 to the Arena whitelist. Its Labyrinth lighting
+  initializes before the starting kit is handed out, and its ON/OFF setting
+  survives respawns. [Native test](docs/reports/2026-11/GPU-AMANDS-20261108.md)
 - A wiped profile, a restored pre-enrollment backup or a moved installation whose Tarkova Cola reward history is complete is now archived and enrolled again at the next normal server start, like any other such profile; the reward choice is kept (this needs a runtime-managed enrollment with a saved reward choice, as the automatic archive always did; otherwise the Warning now says so). Before, any Cola history kept rewards off for good with a Warning at every start, and only the documented manual rename helped. An unfinished or unreadable Cola reward history still keeps the quarantine, and an unfinished Cola reward still stops startup with the real cause.
 - Team DM and Domination tables have fixed seats, as in live Arena: a replacement bot takes over the seat, the name and the running stats of the body it replaces (shown under that name in the scoreboard, killfeed and death notices; the bot profile is not written), and a vacant seat stays on the table as OUT until the replacement arrives. Before, every replacement started a new row under a new name. [Details](docs/reviews/FORK-QUICK-WINS-20261108.md)
 - Hold the inventory key (Tab by default; the bound keyboard key is read, a mouse-bound key keeps its stock behaviour) in any Arena raid to see the scoreboard tables while you keep moving and shooting; a tap still opens the inventory, under the default key setting on the release of the tap rather than on the press (at most a quarter second later). The F9 panel with its live settings is unchanged and wins over the held table.
