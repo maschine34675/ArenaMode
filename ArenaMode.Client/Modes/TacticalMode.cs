@@ -29,7 +29,7 @@ namespace ArenaMode.Modes;
 /// silences ours with BurstSpawnService.ManualControl. Either alone would be a
 /// single point of failure for a mode whose rounds would then never end.
 /// </summary>
-public sealed partial class TacticalMode : IArenaMode
+public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
 {
     public enum Phase
     {
@@ -334,7 +334,8 @@ public sealed partial class TacticalMode : IArenaMode
                     case Phase.Live:
                         return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
                             + $"Allies {AlliesAlive}/{TeamCompanionCount + 1}   Enemies {SquadAlive}/5"
-                            + (_playerDown ? "   YOU ARE DOWN" : string.Empty);
+                            + (_playerDown ? "   YOU ARE DOWN" : string.Empty)
+                            + ObjectiveStatusTail;
 
                     case Phase.Aftermath:
                         return $"{TeamMatchLabel}   Round {RoundNumber}   {RoundsWon}-{RoundsLost}   "
@@ -374,7 +375,7 @@ public sealed partial class TacticalMode : IArenaMode
                     break;
 
                 case Phase.Live:
-                    line += _playerDown ? "   DOWN" : $"   {SquadAlive} left";
+                    line += (_playerDown ? "   DOWN" : $"   {SquadAlive} left") + ObjectiveStatusTail;
                     break;
 
                 case Phase.Aftermath:
@@ -430,6 +431,7 @@ public sealed partial class TacticalMode : IArenaMode
         _lastTeamReadinessDiagnostic = null;
         TeamArenaPursuit.Reset();
         ArenaSpectatorService.Stop("Tactical match start");
+        InitializeObjective();
 
         if (_teamArena)
         {
@@ -740,7 +742,12 @@ public sealed partial class TacticalMode : IArenaMode
                 ArenaToasts.Show($"Round {RoundNumber} — fight! ({ready} opponents ready)");
                 Plugin.ModLogger.LogDebug($"Tactical round {RoundNumber} live: {ready} active opponents, {eliminated} already eliminated.");
             }
+            BeginObjectiveRound();
         }
+
+        // The capture point can end the round before the timer; it defers to elimination itself.
+        if (TickObjective())
+            return;
 
         // The safety net, and it has to be checked or it is decoration: a squad
         // member stuck somewhere the player cannot reach would otherwise hold
@@ -931,6 +938,7 @@ public sealed partial class TacticalMode : IArenaMode
         KitCatalog.KitProvider = null;
         ArenaSpectatorService.Stop("Tactical match ended");
         TeamArenaPursuit.Reset();
+        EndObjectiveRound();
         _squad.Clear();
         _boundTeamFollowers = Array.Empty<BotOwner>();
         _boundTeamFollowerProfileIds = Array.Empty<string>();
@@ -1113,6 +1121,8 @@ public sealed partial class TacticalMode : IArenaMode
                 // no body a clear could touch belongs to anybody still playing.
                 Bots.CorpseCleanupService.ClearAllSoon($"team round {RoundNumber} start");
                 TeamArenaPursuit.BeginRound(_teamRoundEpoch);
+                ResetDoorsForRound();
+                BeginObjectiveRound();
                 _match.ReportAnnouncerCue(ArenaAnnouncerCue.RoundStart);
                 ArenaToasts.Show($"{TeamMatchLabel} — fight!");
                 Plugin.ModLogger.LogDebug(
@@ -1243,6 +1253,10 @@ public sealed partial class TacticalMode : IArenaMode
             EndTeamRound(true, "all five Arena opponents were eliminated");
             return;
         }
+
+        // The capture point decides after the eliminations and before the timer.
+        if (TickObjective())
+            return;
 
         if (Time.time >= _phaseEndsAt)
         {
@@ -1901,6 +1915,7 @@ public sealed partial class TacticalMode : IArenaMode
         _match.Scoreboard.MarkCurrentRosterInactive();
         _squadEpoch++;
         RetireSquad();
+        EndObjectiveRound();
         _preferredSpectatorProfileId = null;
 
         _match.ReportAnnouncerCue(
@@ -2625,6 +2640,7 @@ public sealed partial class TacticalMode : IArenaMode
         _phaseEndsAt = Time.time + AftermathSeconds;
         _squadEpoch++;
         RetireSquad();
+        EndObjectiveRound();
         ArenaToasts.Show($"{TeamMatchLabel} no contest — protected round rebuild failed");
         _match.ReportAnnouncerCue(ArenaAnnouncerCue.NoContest);
         Plugin.ModLogger.LogError(
@@ -2792,6 +2808,7 @@ public sealed partial class TacticalMode : IArenaMode
         _soloCombatReady = false;
         _phase = Phase.Live;
         Bots.CorpseCleanupService.ClearAllSoon($"round {RoundNumber} start");
+        ResetDoorsForRound();
         // Bots can be killed as soon as their native activation finishes,
         // before the complete roster is ready. Awards start now; the delayed
         // fight cue must not reset First Blood or revenge a second time.
@@ -2938,6 +2955,7 @@ public sealed partial class TacticalMode : IArenaMode
         // Close the combat phase before retiring surviving enemies. Their
         // administrative cleanup must not become an in-combat fatal event.
         RetireSquad();
+        EndObjectiveRound();
         _match.Scoreboard.MarkCurrentRosterInactive();
 
         _match.ReportAnnouncerCue(

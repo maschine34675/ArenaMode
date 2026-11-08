@@ -479,6 +479,16 @@ No Fika dependency. Arena is solo by default; the optional API-validated
 PitFireTeam compatibility path supports protected Tactical (PMC + 1-4 companions versus five enemies) and
 Zombie squad survival; read docs/reviews/PFT-SQUAD-SIZE-REVIEW.md for the frozen roster contract; read docs/reviews/ZOMBIE-PITFIRETEAM-REVIEW.md before changing the latter.
 
+Tactical's capture point (solo and PitFireTeam): one verified point of the map's Domination layout
+per round, a pure hold clock (`Modes/TacticalObjectivePolicy.cs`), opening lanes and the point for
+the enemy squad through the shared `Bots/DominationObjectiveBridge.cs` behind
+`Modes/IArenaObjectiveHost.cs` (never PitFireTeam followers; in the team arena only while the local
+PMC lives), the door reset at the round start (`Modes/ArenaRoundDoorReset.cs`) and KillsOnly
+rewards while the point is on (client rule and both server admissions). Round-end order:
+elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIVE-20261108.md
+before changing that order, the bridge contract, the lease teardown at every round end or the
+reward rule.
+
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
 spawner. Solo has one life: death freezes survival and exits protected after any

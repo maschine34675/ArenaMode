@@ -336,7 +336,8 @@ internal sealed class ArenaModeSelectionView
             Settings.DeathmatchFreeForAll.Value, Settings.TeamDeathmatchKillLimit.Value,
             Settings.TeamDeathmatchTimeLimitSeconds.Value, Settings.TacticalTeamRoundsToWin.Value,
             Settings.GetFriendlyFireEnabled(mode.Id, _selection.TacticalOnly), ControlPointCount(mode.Id),
-            Settings.DominationScoreLimit.Value, Settings.DominationTimeLimitSeconds.Value);
+            Settings.DominationScoreLimit.Value, Settings.DominationTimeLimitSeconds.Value,
+            Settings.TacticalObjective?.Value != false);
         ((RectTransform)_root.transform).sizeDelta = new Vector2(PanelWidth, PanelHeight);
         for (int i = 0; i < _buttons.Count; i++)
             if (ArenaModeCatalog.All[i].Id == ArenaModeCatalog.TacticalId)
@@ -388,7 +389,7 @@ internal sealed class ArenaModeSelectionView
 
     private int ControlPointCount(string mode)
     {
-        if (mode != ArenaModeCatalog.DominationId) return 0;
+        if (mode != ArenaModeCatalog.DominationId && mode != ArenaModeCatalog.TacticalId) return 0;
         return DominationMapLayout.ControlPointCount(
             _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id);
     }

@@ -78,6 +78,11 @@ public static class ArenaSession
     /// </summary>
     internal static bool ZombieOwnGearSelection { get; private set; }
     internal static bool TacticalTeamOwnGearSelection { get; private set; } = true;
+    /// <summary>
+    /// Tactical's capture point (Settings.TacticalObjective), frozen at arming like the other
+    /// per-raid selections and true (the setting's default) while nothing is armed.
+    /// </summary>
+    internal static bool TacticalObjectiveSelection { get; private set; } = true;
 
     /// <summary>
     /// True when ZombieOwnGearSelection applies to the raid currently ARMING
@@ -277,6 +282,7 @@ public static class ArenaSession
             || !PitFireTeamCompat.HasFrozenTeamRoster || Settings.TacticalTeamOwnGear?.Value != false;
         Kits.TacticalTeamKitEntry.Capture(mode, PitFireTeamCompat.HasFrozenTeamRoster,
             TacticalTeamOwnGearSelection, ArmEpoch);
+        TacticalObjectiveSelection = Settings.TacticalObjective?.Value != false;
         AnnouncerEnabledSelection = Settings.GetAnnouncerPerModeEnabled(mode);
         CrowdReactionsSelection = Settings.CrowdReactions?.Value == true;
         FriendlyFireEnabledSelection = Settings.GetFriendlyFireEnabled(mode, PitFireTeamCompat.HasFrozenTeamRoster);
@@ -300,6 +306,7 @@ public static class ArenaSession
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
         TacticalTeamOwnGearSelection = true;
+        TacticalObjectiveSelection = true;
         Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
         CrowdReactionsSelection = false;
@@ -385,6 +392,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
+            TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             CrowdReactionsSelection = false;
@@ -421,6 +429,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
+            TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             CrowdReactionsSelection = false;
@@ -441,6 +450,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
+            TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             CrowdReactionsSelection = false;
@@ -465,6 +475,7 @@ public static class ArenaSession
             GunGameLadderSelection = null;
             ZombieOwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
+            TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
             AnnouncerEnabledSelection = false;
             CrowdReactionsSelection = false;
@@ -684,6 +695,7 @@ public static class ArenaSession
         GunGameLadderSelection = null;
         ZombieOwnGearSelection = false;
         TacticalTeamOwnGearSelection = true;
+        TacticalObjectiveSelection = true;
         Kits.TacticalTeamKitEntry.Reset();
         AnnouncerEnabledSelection = false;
         CrowdReactionsSelection = false;

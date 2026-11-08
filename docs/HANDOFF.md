@@ -105,6 +105,34 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Tactical objective package (2026-11-08, master, not released):** the fork survey's second item
+([review](reviews/TACTICAL-OBJECTIVE-20261108.md)): one capture point per Tactical round (solo and
+PitFireTeam) from the map's Domination layout, a pure hold clock (`Modes/TacticalObjectivePolicy.cs`),
+opening lanes (`Modes/TacticalObjectiveLanes.cs`) and the point for the enemy squad through the shared
+`Bots/DominationObjectiveBridge.cs` behind the new `Modes/IArenaObjectiveHost.cs` (Team DM answers it in
+`Modes/TeamDeathmatchMode.ObjectiveHost.cs`), the runtime partial `Modes/TacticalMode.Objective.cs`
+with its hooks in `TacticalMode.cs`, the marker `Hud/TacticalObjectiveView.cs`, the door reset
+`Modes/ArenaRoundDoorReset.cs`, four `Tactical` settings with F12 rows, the frozen
+`ArenaSession.TacticalObjectiveSelection`, the menu copy variants (`ArenaCompactModeRules`, the view's
+control-point count also for Tactical) and KillsOnly rewards for Tactical with the point on
+(`ArenaRewardModeState`, `RewardResultValidator.RuleFitsMode`, `RewardRuntimeCoordinator.RuleAllowed`).
+Harnesses: `tools/TacticalObjectiveChecks` (43 checks, 12 mutants), `DominationBotChecks` with the
+single-team host contract (mutant `faction-not-host`; `host-not-live` dies at the Team DM case), `CompactModeUxChecks`
+with the objective copy and its mutant, `TacticalPolishChecks` stubs. UiBridge gpu-run knows the two
+new description variants. Verified on 2026-11-08: xunit 3,734 (3,731 passed, 3 expected skips), the ten
+affected harnesses green, gpu-run `npm test` 2,961, a 41-agent review (nine low findings, all addressed);
+three native solo Tactical raids on Factory on GPU-2
+([record](reports/2026-11/GPU-TACTICAL-OBJECTIVE-20261108.md)): menu copy, point and lanes, bots on the
+objective layer, HUD tails, enemy and friendly captures ending rounds, the door reset shutting a
+bot-opened door at a round start; two native findings fixed on the way (the local game world has no
+`World` component, and `LocationScene.GetAllObjects<Door>` finds nothing: enumerate
+`WorldInteractiveObject`). Not covered natively: the PitFireTeam team arena, the ported maps, a refused
+point, the reward settlement. **Core on all hosts is now `1.0.21+bebf49b0`** (Redeploy `main` with the
+Plate, Skills Extended and ladder adapters): this session's ArenaMode builds deployed the checkout's
+Core (NoDeploy.targets does not cover Core), and ArenaMode is built against it (`CoreVersionGate`), so
+the 1.0.20 release bytes cannot simply be put back; the user decides. Dev build `0.5.0+f1ba6b95`
+(product version = HEAD; the working tree held the package) installed on `D:\SPT41` and mirrored.
+
 **Fork quick wins (2026-11-08, master, not released):** four pieces adopted from the fork survey
 ([review](reviews/FORK-QUICK-WINS-20261108.md)): named arrival gates in the TDM retire Warning, fixed
 scoreboard seats for TDM/Domination bots (replacement continues the seat's row, name and stats; vacant

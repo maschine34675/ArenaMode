@@ -22,7 +22,8 @@ if ($baseline.Code -ne 0 -or !$baseline.Output.Contains('COMPACT_MODE_UX_CHECKS_
 $faults = @(
     @('continuous-winner', 'string objective = kills == 0 && seconds == 0 ?', 'string objective = false ?', 'continuous DM has no winner'),
     @('squad-one-life', 'return (team ? "Team wipe ends the match.', 'return (false ? "Team wipe ends the match.', 'PFT Zombies never promises'),
-    @('fixed-three-points', '? controlPoints +', '? 3 +', 'Domination copy uses the actual map objective count')
+    @('fixed-three-points', '? controlPoints +', '? 3 +', 'Domination copy uses the actual map objective count'),
+    @('objective-copy-ignores-map', 'bool point = tacticalObjective && controlPoints > 0;', 'bool point = tacticalObjective;', 'Tactical copy promises the point only when it is on and the map has one')
 )
 foreach ($fault in $faults) {
     if ([regex]::Matches($arenaSource, [regex]::Escape($fault[1])).Count -ne 1) { throw "Ambiguous mutant: $($fault[0])" }

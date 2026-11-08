@@ -10,7 +10,10 @@ using UnityEngine;
 
 namespace ArenaMode.Bots;
 
-/// <summary>Scene-validated point snapshot. Ownership is USEC=true, BEAR=false, neutral=null.</summary>
+/// <summary>
+/// Scene-validated point snapshot. Ownership is team A=true, team B=false, neutral=null; the
+/// publishing host names the teams (Domination: USEC/BEAR; Tactical: the enemy squad is team A).
+/// </summary>
 public readonly struct DominationObjectivePoint
 {
     public DominationObjectivePoint(string id, Vector3 position, bool? ownerUsec, bool contested)
@@ -57,6 +60,7 @@ public sealed class DominationObjectiveLease
         return Center + new Vector3((float)(offset.x * Math.Cos(angle) - offset.z * Math.Sin(angle)) * scale,
             0f, (float)(offset.x * Math.Sin(angle) + offset.z * Math.Cos(angle)) * scale);
     }
+    /// <summary>Team A of the publishing host: USEC in Domination, the enemy squad in Tactical.</summary>
     public bool Usec { get; }
     public int Generation { get; }
     internal float AssignedAt { get; }
@@ -69,7 +73,12 @@ public sealed class DominationObjectiveLease
     }
 }
 
-/// <summary>Exact-match coordinate authority; contains no optional BigBrain types or inventory mutation.</summary>
+/// <summary>
+/// Exact-match coordinate authority; contains no optional BigBrain types or inventory mutation.
+/// Fed by the running mode when it is an <see cref="IArenaObjectiveHost"/> (Domination's three
+/// points, Tactical's capture point and opening lanes); the host says which bodies it owns and
+/// which team each one is on, the bridge only spreads and leases.
+/// </summary>
 public static class DominationObjectiveBridge
 {
     private static ArenaMatch _match;
@@ -102,15 +111,19 @@ public static class DominationObjectiveBridge
     private static bool Context()
         => Available && _match != null && _game != null && _world != null
             && ReferenceEquals(ArenaMatchService.Current, _match)
-            && _match.Mode is TeamDeathmatchMode mode && mode.IsDomination && mode.IsSearchActive
+            && _match.Mode is IArenaObjectiveHost host && host.ObjectivesLive
             && !_match.Mode.IsComplete && _game.Status == GameStatus.Started
             && Singleton<AbstractGame>.Instantiated && Singleton<GameWorld>.Instantiated
             && ReferenceEquals(Singleton<AbstractGame>.Instance, _game)
             && ReferenceEquals(Singleton<GameWorld>.Instance, _world)
             && ReferenceEquals(_game.GameWorld, _world) && ArenaSession.IsExactActiveRaid(_game, _world);
 
-    private static bool ValidBot(BotOwner bot)
+    private static bool ValidBot(BotOwner bot) => ValidBot(bot, out _);
+
+    /// <summary>A live, active, exactly registered body the host owns; <paramref name="teamA"/> is the host's team of it.</summary>
+    private static bool ValidBot(BotOwner bot, out bool teamA)
     {
+        teamA = false;
         try
         {
             var body = bot?.GetPlayer;
@@ -119,16 +132,15 @@ public static class DominationObjectiveBridge
             && ReferenceEquals(body.AIData?.BotOwner, bot) && !string.IsNullOrEmpty(body.ProfileId)
             && ReferenceEquals(_world.GetAlivePlayerByProfileID(body.ProfileId), body)
             && ReferenceEquals(_world.GetEverExistedPlayerByID(body.ProfileId), body)
-                && _match.Mode is TeamDeathmatchMode mode && mode.TryClassifyCurrentBody(body, out _)
-                && body.Side is EPlayerSide.Usec or EPlayerSide.Bear;
+                && _match.Mode is IArenaObjectiveHost host && host.TryClassifyObjectiveBody(body, out teamA);
         }
-        catch { return false; }
+        catch { teamA = false; return false; }
     }
 
     public static void Update(IReadOnlyList<DominationObjectivePoint> points, IReadOnlyList<BotOwner> bots, bool live)
     {
-        if (!live || !Context() || points == null || _match.Mode is not TeamDeathmatchMode mode
-            || points.Count != mode.ObjectiveCount || points.Count < 1 || points.Count > 16 || bots == null)
+        if (!live || !Context() || points == null || _match.Mode is not IArenaObjectiveHost host
+            || points.Count != host.ObjectiveCount || points.Count < 1 || points.Count > 16 || bots == null)
         { _live = false; Assignments.Clear(); Rejected.Clear(); Points.Clear(); return; }
         for (int i = 0; i < points.Count; i++)
         {
@@ -141,7 +153,7 @@ public static class DominationObjectiveBridge
         if (Time.time < _nextPlan) return;
         _nextPlan = Time.time + 1f;
         Points.Clear(); for (int i = 0; i < points.Count; i++) Points.Add(points[i]);
-        var current = bots.Where(ValidBot).Distinct().OrderBy(b => b.ProfileId, StringComparer.Ordinal).ToArray();
+        var current = bots.Where(b => ValidBot(b)).Distinct().OrderBy(b => b.ProfileId, StringComparer.Ordinal).ToArray();
         foreach (var bot in Assignments.Keys.ToArray())
             if (!current.Any(b => ReferenceEquals(b, bot)) || !IsCurrent(Assignments[bot])) Assignments.Remove(bot);
         foreach (var bot in Rejected.Keys.ToArray())
@@ -154,7 +166,8 @@ public static class DominationObjectiveBridge
         Assignments.TryGetValue(bot, out var previous);
         // The assignment survives brief combat/medical handoffs; do not continually retarget moving bots.
         if (previous != null && Time.time - previous.AssignedAt < 8f) return;
-        bool usec = bot.GetPlayer.Side == EPlayerSide.Usec;
+        // The host names the team: Domination by faction, Tactical the one enemy squad.
+        if (!ValidBot(bot, out bool usec)) { Assignments.Remove(bot); return; }
         float bestScore = float.NegativeInfinity;
         DominationObjectivePoint? best = null;
         foreach (var point in Points)
@@ -170,7 +183,7 @@ public static class DominationObjectiveBridge
         if (previous != null && previous.PointId == best.Value.Id) return;
         Assignments[bot] = new DominationObjectiveLease(bot, best.Value, usec, _generation, Time.time);
         if (Diagnostics.ArenaLog.DeveloperEnabled)
-            Diagnostics.ArenaLog.Developer($"Arena Domination objective assigned: bot={bot.ProfileId}; team={(usec ? "USEC" : "BEAR")}; point={best.Value.Id}; destination={Assignments[bot].Destination}.");
+            Diagnostics.ArenaLog.Developer($"Arena Domination objective assigned: bot={bot.ProfileId}; team={(usec ? "A" : "B")} ({bot.GetPlayer.Side}); point={best.Value.Id}; destination={Assignments[bot].Destination}.");
     }
 
     public static bool TryGet(BotOwner bot, out DominationObjectiveLease lease)
@@ -183,10 +196,10 @@ public static class DominationObjectiveBridge
     public static bool IsCurrent(DominationObjectiveLease lease)
     {
         try { return lease != null && _live && Context() && Time.time - _updatedAt <= 3f
-            && lease.Generation == _generation && ValidBot(lease.Bot)
+            && lease.Generation == _generation && ValidBot(lease.Bot, out bool teamA)
             && ReferenceEquals(lease.Bot.GetPlayer, lease.Body) && ReferenceEquals(lease.Bot.Mover, lease.Mover)
             && ReferenceEquals(lease.Bot.BotsGroup, lease.Group) && lease.ProfileId == lease.Bot.ProfileId
-            && (lease.Body.Side == EPlayerSide.Usec) == lease.Usec
+            && teamA == lease.Usec
             && Assignments.TryGetValue(lease.Bot, out var current) && ReferenceEquals(current, lease)
             && Points.Any(p => p.Id == lease.PointId && (p.Position - lease.Center).sqrMagnitude < .0001f);
         }

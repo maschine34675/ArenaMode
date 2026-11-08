@@ -114,8 +114,11 @@ public sealed partial class TacticalMode
     {
         var result = new ArenaRewardModeState {
             Number = RoundNumber,
-            Rule = _teamArena ? "TeamElimination" : "SoloElimination",
-            Limit = (long)Math.Round((_rewardRoundLimit > 0 ? _rewardRoundLimit : Mathf.Max(30f, Settings.TacticalRoundSeconds.Value)) * 1000d),
+            // With the capture point on, a hold can end a round and the server has no proof of a
+            // hold: KillsOnly like Domination (no win bonus, no round end rule, no deadline), also on
+            // a map without a point, because the rule is frozen with the selection at arming.
+            Rule = _objectiveEnabled ? "KillsOnly" : _teamArena ? "TeamElimination" : "SoloElimination",
+            Limit = _objectiveEnabled ? 0 : (long)Math.Round((_rewardRoundLimit > 0 ? _rewardRoundLimit : Mathf.Max(30f, Settings.TacticalRoundSeconds.Value)) * 1000d),
             Active = _phase == Phase.Live && (_teamArena || _soloCombatReady),
             Finished = _phase is Phase.Aftermath or Phase.Rebinding or Phase.Buy or Phase.Ended,
             Failed = _teamArena && _phase == Phase.Aftermath && _teamRoundResult == TeamArenaRoundResult.NoContest,
@@ -123,7 +126,7 @@ public sealed partial class TacticalMode
             // The native float timer can expire just below the canonical
             // millisecond limit. Only its actual expiry branch supplies this
             // lower bound; early elimination never asserts a timeout.
-            MinimumElapsedMilliseconds = _rewardTimerExpired ? (long)Math.Round(_rewardRoundLimit * 1000d) : 0,
+            MinimumElapsedMilliseconds = !_objectiveEnabled && _rewardTimerExpired ? (long)Math.Round(_rewardRoundLimit * 1000d) : 0,
             FixedRoster = new List<(Player, string)>()
         };
         if (!result.Active) return result;

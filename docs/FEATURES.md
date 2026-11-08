@@ -155,6 +155,23 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 
 - Eliminate the opposing squad to win a round. Solo defaults to **1v5**;
   advanced settings can change the solo squad and timing.
+- Optional **capture point** (default on, `Tactical/Objective`), solo and PitFireTeam: on
+  Factory, Bay 5, Air Pit and Bowl one verified point of the Domination layout appears after
+  60 s of combat (`ObjectiveAfterSeconds`, 0-300); the side that holds it alone for 10 s
+  (`ObjectiveHoldSeconds`, 3-60) wins the round. Both sides on the point freeze the hold, an
+  empty point resets it, elimination still ends a round first and the round timer is
+  unchanged. With BigBrain installed the enemy squad spreads out across the middle of the
+  arena until the point appears instead of rushing the player; PitFireTeam
+  companions are never driven, and in the team arena the squad leaves the point once the
+  PMC is down. A ring, a beam and a `POINT` label mark the point; the status line adds
+  `POINT in 23s`, `POINT you 40%`, `POINT enemy 60%`, `POINT contested`. Maps without a
+  layout and areas play by elimination (`no capture point here`); the menu copy promises the
+  point only where there is one. With the point on, profile rewards pay kills only (no server
+  round-win reward; the in-raid roubles bonuses are unchanged), like Domination. The appear
+  and hold times are read at each round start.
+- Doors a round left open are shut at the next round start (`CloseDoorsAtRoundStart`,
+  default on); doors the map itself starts open, locked, broken and blocked doors and doors
+  with map-script triggers are left alone.
 - Solo kit buy phase, kill income, win/loss bonuses and retention of purchased
   kit selection while alive; that selected kit is refreshed for the next round.
   The buy menu reports the **front plate's** armor class.

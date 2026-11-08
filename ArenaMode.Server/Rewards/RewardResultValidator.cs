@@ -240,7 +240,8 @@ internal static class RewardResultValidator
     {
         "deathmatch" => rule is RewardRoundRule.KillsOnly or RewardRoundRule.LocalTarget or RewardRoundRule.FreeForAllScore,
         "teamdeathmatch" => rule is RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly,
-        "tactical" => rule is RewardRoundRule.SoloElimination or RewardRoundRule.TeamElimination,
+        // With the capture point on, a hold can end the round and has no server proof: kills only.
+        "tactical" => rule is RewardRoundRule.SoloElimination or RewardRoundRule.TeamElimination or RewardRoundRule.KillsOnly,
         // Ladder skips/demotions and administrative zombie wave retirements need
         // further evidence. Do not invent a round win from a kill total there.
         "gungame" or "zombies" => rule == RewardRoundRule.KillsOnly,

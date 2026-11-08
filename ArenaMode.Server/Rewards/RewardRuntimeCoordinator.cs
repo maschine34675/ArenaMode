@@ -615,7 +615,8 @@ internal sealed class RewardRuntimeCoordinator
         // Objective ownership has no server proof: kills only, no win bonus.
         "domination" => rule == RewardRoundRule.KillsOnly,
         "teamdeathmatch" => rule is RewardRoundRule.TeamScore or RewardRoundRule.KillsOnly,
-        "tactical" => rule == (team ? RewardRoundRule.TeamElimination : RewardRoundRule.SoloElimination),
+        // With the capture point on, a hold can end the round and has no server proof: kills only.
+        "tactical" => rule == RewardRoundRule.KillsOnly || rule == (team ? RewardRoundRule.TeamElimination : RewardRoundRule.SoloElimination),
         _ => false
     };
 

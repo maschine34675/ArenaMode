@@ -4,9 +4,9 @@ using ArenaMode.Session;
 int checks = 0;
 void Need(bool pass, string reason) { if (!pass) throw new Exception(reason); checks++; }
 string Text(string mode, bool team = false, int rounds = 0, int kills = 0, int seconds = 0,
-    bool ffa = true, int teamKills = 50, int teamSeconds = 600, int wins = 3, bool ff = true, int points = 0)
+    bool ffa = true, int teamKills = 50, int teamSeconds = 600, int wins = 3, bool ff = true, int points = 0, bool objective = false)
     => ArenaCompactModeRules.Describe(mode, team, rounds, kills, seconds, ffa,
-        teamKills, teamSeconds, wins, ff, points);
+        teamKills, teamSeconds, wins, ff, points, tacticalObjective: objective);
 
 // The menu's no-limit and first-limit statements are checked against the real
 // gameplay state machines, not against a second hard-coded policy implementation.
@@ -52,6 +52,10 @@ Need(Text("tactical").Contains("death / timeout loses") && Text("tactical").Cont
 Need(Text("tactical", team: true, wins: 7).Contains("First to 7 round wins")
     && Text("tactical", team: true).Contains("spectate until next round"),
     "PFT Tactical explains its distinct match and death behavior");
+Need(Text("tactical", points: 1, objective: true).Contains("Eliminate the squad or hold the point")
+    && Text("tactical", team: true, wins: 5, points: 2, objective: true).Contains("First to 5 round wins; hold the point")
+    && !Text("tactical", objective: true).Contains("hold the point") && !Text("tactical", points: 3).Contains("hold the point"),
+    "Tactical copy promises the point only when it is on and the map has one");
 Need(Text("zombie").Contains("Survive escalating waves") && Text("zombie").Contains("Gear refills"),
     "solo Zombies explains waves and resupply; the respawn row owns its life rule");
 Need(Text("zombie", team: true).Contains("Team wipe ends the match")

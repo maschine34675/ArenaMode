@@ -5,16 +5,19 @@ $domEvidence = Join-Path $domRepo ('artifacts/domination-bot-checks/' + [guid]::
 [void][IO.Directory]::CreateDirectory($domEvidence)
 $domClient = Join-Path $domRepo 'ArenaMode.Client/Bots'
 $domCompat = Join-Path $domRepo 'ArenaMode.BigBrainCompat'
+$domModes = Join-Path $domRepo 'ArenaMode.Client/Modes'
+# The host contract and Team DM's exact production rule for it (the Domination partial itself stays doubled).
+$domModeFiles = @('IArenaObjectiveHost.cs','TeamDeathmatchMode.ObjectiveHost.cs')
 $domInputs = @{}
-$domFiles = @((Join-Path $domClient 'DominationObjectiveBridge.cs')) + @(Get-ChildItem -LiteralPath $domCompat -Filter 'ArenaDomination*.cs' | ForEach-Object FullName) + @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object FullName)
+$domFiles = @((Join-Path $domClient 'DominationObjectiveBridge.cs')) + @($domModeFiles | ForEach-Object { Join-Path $domModes $_ }) + @(Get-ChildItem -LiteralPath $domCompat -Filter 'ArenaDomination*.cs' | ForEach-Object FullName) + @(Get-ChildItem -LiteralPath $PSScriptRoot -File | ForEach-Object FullName)
 foreach ($domFile in $domFiles) { $domInputs[$domFile] = (Get-FileHash -LiteralPath $domFile).Hash }
-function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[string]$reject='') {
+function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[string]$modes,[string]$reject='') {
     $stage = Join-Path $domEvidence $name
     [void][IO.Directory]::CreateDirectory($stage)
     $build = & dotnet build (Join-Path $PSScriptRoot 'DominationBotChecks.csproj') -c Release --nologo `
         "-p:CustomAfterMicrosoftCommonTargets=$(Join-Path $domRepo 'tools/AirPitChecks/NoDeploy.targets')" `
         "-p:SPTUserMods=$(Join-Path $domRepo 'artifacts/nodeploy/must-not-exist')" `
-        "-p:ClientSourceRoot=$client" "-p:ObjectiveSourceRoot=$compat" "-p:BaseIntermediateOutputPath=$stage/obj/" "-p:OutputPath=$stage/out/" 2>&1 | Out-String
+        "-p:ClientSourceRoot=$client" "-p:ObjectiveSourceRoot=$compat" "-p:ModesSourceRoot=$modes" "-p:BaseIntermediateOutputPath=$stage/obj/" "-p:OutputPath=$stage/out/" 2>&1 | Out-String
     [IO.File]::WriteAllText((Join-Path $stage 'build.log'),$build)
     if ($LASTEXITCODE -ne 0) { throw "$name did not compile: $build" }
     # Windows PowerShell represents expected native stderr as NativeCommandError.
@@ -34,18 +37,20 @@ function Invoke-DominationCheck([string]$name,[string]$client,[string]$compat,[s
         Write-Output $run.Trim()
     }
 }
-Invoke-DominationCheck 'production' $domClient $domCompat
+Invoke-DominationCheck 'production' $domClient $domCompat $domModes
 $faults = @(
     @{Name='stale-return-target';File='ArenaDominationLogic.cs';Find='(point - _ownedDestination).sqrMagnitude';Replace='(point - _destination).sqrMagnitude';Reject='failed alternate preflights clear the original owned return target'},
     @{Name='no-center-fallback';File='DominationObjectiveBridge.cs';Find='if (index == ApproachCount - 1) return Center;';Replace='if (index == ApproachCount - 1) return Destination;';Reject='blocked ring offsets fall back to a reachable center'},
     @{Name='unsafe-approach-projection';File='ArenaDominationRuntime.cs';Find='|| Math.Abs(hit.position.y - candidate.y) > .5f';Replace='';Reject='approach projection cannot change floor'},
     @{Name='unprojected-move';File='ArenaDominationRuntime.cs';Find='destination = hit.position;';Replace='destination = candidate;';Reject='native movement receives the projected capture-valid floor'},
-    @{Name='fixed-three-points';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount';Replace='points.Count != 3';Reject='authored point count supports current bot assignments: 1'},
-    @{Name='publisher-count-drift';File='DominationObjectiveBridge.cs';Find='points.Count != mode.ObjectiveCount || ';Replace='';Reject='publisher count mismatch revokes existing leases'},
+    @{Name='fixed-three-points';File='DominationObjectiveBridge.cs';Find='points.Count != host.ObjectiveCount';Replace='points.Count != 3';Reject='authored point count supports current bot assignments: 1'},
+    @{Name='publisher-count-drift';File='DominationObjectiveBridge.cs';Find='points.Count != host.ObjectiveCount || ';Replace='';Reject='publisher count mismatch revokes existing leases'},
     @{Name='oversized-objective-list';File='DominationObjectiveBridge.cs';Find='|| points.Count > 16';Replace='';Reject='more than sixteen points rejected even when mode agrees'},
     @{Name='stale-bigbrain-action';File='ArenaDominationLayer.cs';Find='|| !ReferenceEquals(_action.Lease, _lease)';Replace='';Reject='planner reassignment ends previous BigBrain action'},
-    @{Name='unowned-body';File='DominationObjectiveBridge.cs';Find='&& _match.Mode is TeamDeathmatchMode mode && mode.TryClassifyCurrentBody(body, out _)';Replace='';Reject='foreign live body cannot claim objective'},
-    @{Name='tdm-leak';File='DominationObjectiveBridge.cs';Find='mode.IsDomination &&';Replace='';Reject='ordinary TDM excluded'},
+    @{Name='unowned-body';File='DominationObjectiveBridge.cs';Find='&& _match.Mode is IArenaObjectiveHost host && host.TryClassifyObjectiveBody(body, out teamA)';Replace='&& ((teamA = body.Side == EPlayerSide.Usec) || true)';Reject='foreign live body cannot claim objective'},
+    @{Name='tdm-leak';File='TeamDeathmatchMode.ObjectiveHost.cs';Find='IsDomination && IsSearchActive';Replace='IsSearchActive';Reject='ordinary TDM excluded'},
+    @{Name='faction-not-host';File='DominationObjectiveBridge.cs';Find='if (!ValidBot(bot, out bool usec)) { Assignments.Remove(bot); return; }';Replace='bool usec = bot.GetPlayer.Side == EPlayerSide.Usec;';Reject='a single-team host leases scav bodies as team A on its one point'},
+    @{Name='host-not-live';File='DominationObjectiveBridge.cs';Find='&& _match.Mode is IArenaObjectiveHost host && host.ObjectivesLive';Replace='&& _match.Mode is IArenaObjectiveHost';Reject='ordinary TDM excluded'},
     @{Name='point-stacking';File='DominationObjectiveBridge.cs';Find='18 * claimed';Replace='0 * claimed';Reject='distribute each team across three points'},
     @{Name='capture-through-wall';File='DominationObjectiveBridge.cs';Find='&& ArenaPickupGeometry.LineClear(Center + Vector3.up * .8f, position + Vector3.up * .8f)';Replace='';Reject='wall prevents false holding'},
     @{Name='shootable-enemy-ignored';File='ArenaDominationRuntime.cs';Find='(enemy.IsVisible && enemy.CanShoot)';Replace='false';Reject='yield visible shootable enemy'},
@@ -58,17 +63,18 @@ $faults = @(
 )
 foreach ($fault in $faults) {
     $sourceRoot = Join-Path $domEvidence ($fault.Name+'/source')
-    $client = Join-Path $sourceRoot 'client'; $compat = Join-Path $sourceRoot 'compat'
-    [void][IO.Directory]::CreateDirectory($client); [void][IO.Directory]::CreateDirectory($compat)
+    $client = Join-Path $sourceRoot 'client'; $compat = Join-Path $sourceRoot 'compat'; $modes = Join-Path $sourceRoot 'modes'
+    [void][IO.Directory]::CreateDirectory($client); [void][IO.Directory]::CreateDirectory($compat); [void][IO.Directory]::CreateDirectory($modes)
     Copy-Item -LiteralPath (Join-Path $domClient 'DominationObjectiveBridge.cs') -Destination $client
+    foreach ($file in $domModeFiles) { Copy-Item -LiteralPath (Join-Path $domModes $file) -Destination $modes }
     foreach ($file in Get-ChildItem -LiteralPath $domCompat -Filter 'ArenaDomination*.cs') { Copy-Item -LiteralPath $file.FullName -Destination $compat }
-    $path = if ($fault.File -eq 'DominationObjectiveBridge.cs') { Join-Path $client $fault.File } else { Join-Path $compat $fault.File }
+    $path = if ($fault.File -eq 'DominationObjectiveBridge.cs') { Join-Path $client $fault.File } elseif ($domModeFiles -contains $fault.File) { Join-Path $modes $fault.File } else { Join-Path $compat $fault.File }
     $source = [IO.File]::ReadAllText($path)
     if ($source.Split(@($fault.Find),[StringSplitOptions]::None).Length -ne 2) { throw "Nonunique mutation anchor: $($fault.Name)" }
     [IO.File]::WriteAllText($path,$source.Replace($fault.Find,$fault.Replace))
-    Invoke-DominationCheck $fault.Name $client $compat $fault.Reject
+    Invoke-DominationCheck $fault.Name $client $compat $modes $fault.Reject
 }
-Invoke-DominationCheck 'production-final' $domClient $domCompat
+Invoke-DominationCheck 'production-final' $domClient $domCompat $domModes
 foreach ($path in $domInputs.Keys) { if ((Get-FileHash -LiteralPath $path).Hash -ne $domInputs[$path]) { throw "Input changed: $path" } }
 [ordered]@{ Inputs=$domInputs; Faults=$faults.Count; CompletedUtc=[DateTime]::UtcNow.ToString('o');
     Limitation='Production-linked source with native doubles and compilable mutations; not Unity movement, rendering, real BigBrain scheduling or live NavMesh acceptance.' } |

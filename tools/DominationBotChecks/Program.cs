@@ -14,6 +14,7 @@ static class Program
     private static ArenaMatch _match;
     private static List<BotOwner> _bots;
     private static DominationObjectivePoint[] _points;
+    static TeamDeathmatchMode Tdm=>(TeamDeathmatchMode)_match.Mode;
     static void Assert(bool value,string name){_checks++;if(!value)throw new Exception("FAIL: "+name);}
     static void Setup(int count=6,int pointCount=3)
     {
@@ -25,13 +26,13 @@ static class Program
         ArenaMode.Pickups.ArenaPickupGeometry.Clear=true;
         _world=new();_game=new(){GameWorld=_world};_match=new();_bots=[];
         Singleton<GameWorld>.Instance=_world;Singleton<AbstractGame>.Instance=_game;ArenaMatchService.Current=_match;
-        _match.Mode.ObjectiveCount=pointCount;
+        Tdm.ObjectiveCount=pointCount;
         _points=Enumerable.Range(0,pointCount).Select(i=>new DominationObjectivePoint(
             ((char)('A'+i)).ToString(),new(i*25,0,0),null,false)).ToArray();
         for(int i=0;i<count;i++)
         {
             var body=new Player(){ProfileId="bot"+i,Side=i%2==0?EPlayerSide.Usec:EPlayerSide.Bear,Position=new(-20,0,-20)};
-            var bot=new BotOwner(){GetPlayer=body};body.AIData.BotOwner=bot;_world.Bodies[body.ProfileId]=body;_bots.Add(bot);_match.Mode.Owned.Add(body);
+            var bot=new BotOwner(){GetPlayer=body};body.AIData.BotOwner=bot;_world.Bodies[body.ProfileId]=body;_bots.Add(bot);Tdm.Owned.Add(body);
         }
         DominationObjectiveBridge.Available=true;DominationObjectiveBridge.Begin(_match,_game,_world);Tick();
     }
@@ -70,11 +71,11 @@ static class Program
         Setup();first=Lease(_bots[0]);_world.Bodies[first.Body.ProfileId]=new(){ProfileId=first.Body.ProfileId};Assert(!first.Current,"same profile replacement rejected");
         Setup();first=Lease(_bots[0]);_bots[0].Mover=new();Assert(!first.Current,"mover replacement rejected");
         Setup();first=Lease(_bots[0]);_bots[0].BotsGroup=new();Assert(!first.Current,"group replacement rejected");
-        Setup();first=Lease(_bots[0]);_match.Mode.Owned.Remove(first.Body);Assert(!first.Current,"foreign live body cannot claim objective");
+        Setup();first=Lease(_bots[0]);Tdm.Owned.Remove(first.Body);Assert(!first.Current,"foreign live body cannot claim objective");
         Setup();first=Lease(_bots[0]);Singleton<GameWorld>.Instance=new();Assert(!first.Current,"world replacement rejected");
         Setup();first=Lease(_bots[0]);ArenaMatchService.Current=new();Assert(!first.Current,"match replacement rejected");
-        Setup();first=Lease(_bots[0]);_match.Mode.IsDomination=false;Assert(!first.Current,"ordinary TDM excluded");
-        Setup();first=Lease(_bots[0]);_match.Mode.IsSearchActive=false;Assert(!first.Current,"countdown excluded");
+        Setup();first=Lease(_bots[0]);Tdm.IsDomination=false;Assert(!first.Current,"ordinary TDM excluded");
+        Setup();first=Lease(_bots[0]);Tdm.IsSearchActive=false;Assert(!first.Current,"countdown excluded");
         Setup();first=Lease(_bots[0]);Time.time+=4;Assert(!first.Current,"lost publisher heartbeat revoked");
         Setup();first=Lease(_bots[0]);DominationObjectiveBridge.Available=false;Assert(!first.Current,"library loss revokes objectives");
         Setup();first=Lease(_bots[0]);DominationObjectiveBridge.Begin(_match,_game,_world);Tick();Assert(!first.Current,"generation reset revokes old lease");
@@ -123,6 +124,7 @@ static class Program
         logic.Update(data);for(int i=0;i<5;i++){Time.time++;Tick();logic.Update(data);}
         Assert(!data.Lease.Current&&bot.RouteCalls==0,"handoff wait bounded and no route stolen");
         PointCountContract();
+        SingleTeamHostContract();
         Console.WriteLine($"Domination bot checks passed: {_checks} assertions.");
     }
 
@@ -159,6 +161,25 @@ static class Program
             "native movement receives the projected capture-valid floor");
     }
 
+    // Tactical's shape of a host (docs/reviews/TACTICAL-OBJECTIVE-20261108.md): one enemy squad, scav sides included,
+    // every owned body team A, one point; the bridge takes the host's word, never the faction.
+    static void SingleTeamHostContract()
+    {
+        Setup(count:5,pointCount:1);
+        var host=new SingleTeamHost();
+        foreach(var bot in _bots){bot.GetPlayer.Side=EPlayerSide.Savage;host.Owned.Add(bot.GetPlayer);}
+        _match.Mode=host;DominationObjectiveBridge.Begin(_match,_game,_world);Tick();
+        Assert(_bots.All(bot=>DominationObjectiveBridge.TryGet(bot,out var lease)&&lease.Usec&&lease.PointId=="A"),
+            "a single-team host leases scav bodies as team A on its one point");
+        var kept=Lease(_bots[1]);
+        host.Owned.Remove(_bots[0].GetPlayer);
+        Assert(!DominationObjectiveBridge.TryGet(_bots[0],out _)&&kept.Current,"a body the host disowns loses its lease, the others keep theirs");
+        host.Live=false;
+        Assert(!kept.Current&&!DominationObjectiveBridge.TryGet(_bots[1],out _),"a host that is not live revokes every lease");
+        host.Live=true;Time.time++;Tick();
+        Assert(DominationObjectiveBridge.TryGet(_bots[1],out _),"a host that is live again leases again");
+    }
+
     static void PointCountContract()
     {
         foreach(int count in new[]{1,2,3})
@@ -172,11 +193,11 @@ static class Program
             var original=Lease(_bots[0]);
             Time.time++;Tick();
             Assert(ReferenceEquals(original,Lease(_bots[0])),"variable-count assignments remain stable: "+count);
-            _match.Mode.ObjectiveCount=count+1;
+            Tdm.ObjectiveCount=count+1;
             Tick();
             Assert(!original.Current&&!DominationObjectiveBridge.TryGet(_bots[0],out _),
                 "publisher count mismatch revokes existing leases");
-            _match.Mode.ObjectiveCount=count;
+            Tdm.ObjectiveCount=count;
             Time.time++;Tick();
             Assert(DominationObjectiveBridge.TryGet(_bots[0],out _),"matching current publisher can resume after mismatch");
             original=Lease(_bots[0]);

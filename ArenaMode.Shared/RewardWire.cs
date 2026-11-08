@@ -78,6 +78,7 @@ public class RewardBeginRequest
     public string Mode { get; set; } = "";
     // KillsOnly, LocalTarget, FreeForAllScore, TeamScore,
     // SoloElimination, TeamElimination; server checks against its armed mode.
+    // Tactical sends KillsOnly while its capture point is on (2026-11-08).
     public string Rule { get; set; } = "";
     public long TimeLimitMilliseconds { get; set; }
     public int KillTarget { get; set; }

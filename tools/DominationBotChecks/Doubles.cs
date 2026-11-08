@@ -131,14 +131,26 @@ public class RunToEnemy
 }
 namespace ArenaMode.Modes
 {
-    public class TeamDeathmatchMode
+    public interface IArenaMode { bool IsComplete {get;} }
+    // The production partial TeamDeathmatchMode.ObjectiveHost.cs (linked) adds ObjectivesLive and TryClassifyObjectiveBody.
+    public partial class TeamDeathmatchMode : IArenaMode
     {
-        public bool IsDomination=true,IsSearchActive=true,IsComplete;
-        public int ObjectiveCount=3;
+        public bool IsDomination=true,IsSearchActive=true;
+        public bool IsComplete {get;set;}
+        public int ObjectiveCount {get;set;}=3;
         public HashSet<Player> Owned=[];
         public bool TryClassifyCurrentBody(Player body,out bool friendly){friendly=body.Side==EPlayerSide.Usec;return Owned.Contains(body);}
     }
-    public class ArenaMatch {public TeamDeathmatchMode Mode=new();}
+    // Tactical's shape of a host: one enemy squad, every owned body team A whatever its faction, one point or a few lanes.
+    public class SingleTeamHost : IArenaMode, IArenaObjectiveHost
+    {
+        public bool Live=true;public bool IsComplete {get;set;}
+        public bool ObjectivesLive=>Live;
+        public int ObjectiveCount {get;set;}=1;
+        public HashSet<Player> Owned=[];
+        public bool TryClassifyObjectiveBody(Player body,out bool teamA){teamA=true;return Owned.Contains(body);}
+    }
+    public class ArenaMatch {public IArenaMode Mode=new TeamDeathmatchMode();}
     public static class ArenaMatchService {public static ArenaMatch Current;}
 }
 namespace ArenaMode.Session

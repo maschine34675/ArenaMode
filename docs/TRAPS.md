@@ -25,6 +25,28 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   comma-separated list matches nothing and the wave is dropped in silence; that shipped,
   and it emptied the Lab.
 
+- **Doors and other world interactive objects in a local raid (2026-11-08)** —
+  `GameWorld.WorldInteractiveObjects()` throws a NullReferenceException in a local game: it
+  reads the `World` component, which the local game world does not carry. And
+  `LocationScene.GetAllObjects<Door>()` answers an empty list without an error: the scenes
+  register their doors under `WorldInteractiveObject[]`, and `GetObjects<T>` answers from a
+  dictionary keyed by the exact registered type. Enumerate
+  `LocationScene.GetAllObjects<WorldInteractiveObject>()` and keep the `Door`s, as
+  `Modes/ArenaRoundDoorReset.cs` does; log what the walk saw, because a reset that finds
+  nothing looks exactly like one that had nothing to do (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).
+- **Every ArenaMode build deploys the Redeploy checkout's Core (2026-11-08)** — the
+  `ProjectReference` to `Redeploy.Core` builds and deploys that project, and
+  `tools/AirPitChecks/NoDeploy.targets` does not cover it: a no-deploy client build still
+  wrote `maschine-Redeploy.Core.dll` into `D:\SPT41`, from whatever commit the Redeploy
+  checkout is on (1.0.21 that day, while the hosts ran 1.0.20), and Syncthing mirrored it.
+  ArenaMode is then built against that Core and its `CoreVersionGate` refuses an older one,
+  so the release bytes cannot simply be copied back. Check `git -C ..\Redeploy log -1` and the
+  installed Core's ProductVersion before any build, and record both in the run's report.
+- **UiBridge godmode does not survive a Tactical body swap (2026-11-08)** — the hook protects
+  the Player object it was set on; a round start that hands the player a new body (a kit,
+  the respawn after a death) leaves the new body mortal. Set it again after every round start
+  in a test, or expect the death.
+
 **`MongoId` is a struct.** `FirstOrDefault()` on an empty sequence returns twenty-four
 zeroes, never null. A null check will not fire and you will write a node referencing a
 template that does not exist.

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Modes/TacticalObjectivePolicy.cs</PolicySource>
+    <LanesSource Condition="'$(LanesSource)' == ''">../../ArenaMode.Client/Modes/TacticalObjectiveLanes.cs</LanesSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/TacticalObjectivePolicy.cs" />
+    <Compile Include="$(LanesSource)" Link="Production/TacticalObjectiveLanes.cs" />
+  </ItemGroup>
+</Project>

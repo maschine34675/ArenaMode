@@ -198,6 +198,10 @@ public static class Settings
     public static ConfigEntry<int> TacticalKillReward { get; private set; }
     public static ConfigEntry<int> TacticalWinBonus { get; private set; }
     public static ConfigEntry<int> TacticalLossBonus { get; private set; }
+    public static ConfigEntry<bool> TacticalObjective { get; private set; }
+    public static ConfigEntry<int> TacticalObjectiveAfterSeconds { get; private set; }
+    public static ConfigEntry<int> TacticalObjectiveHoldSeconds { get; private set; }
+    public static ConfigEntry<bool> TacticalCloseDoorsAtRoundStart { get; private set; }
     public static ConfigEntry<float> TacticalReplaySeconds { get; private set; }
     public static ConfigEntry<int> TacticalTeamRoundsToWin { get; private set; }
     public static ConfigEntry<bool> TacticalTeamSpectator { get; private set; }
@@ -1469,6 +1473,43 @@ public static class Settings
                 "Safety net on a round that never resolves — a squad member stuck " +
                 "somewhere unreachable would otherwise hold the match open forever.",
                 new AcceptableValueRange<float>(60f, 900f)));
+
+        TacticalObjective = config.Bind(
+            "Tactical",
+            "Objective",
+            true,
+            "A capture point appears during the round on maps with a fixed layout (Factory, Bay 5, " +
+            "Air Pit, Bowl): hold it alone for the hold time to win the round; the enemy squad wins " +
+            "it the same way. Elimination still ends a round first. With BigBrain installed the squad " +
+            "spreads out across the middle of the arena until the point appears instead of rushing you. " +
+            "With the point on, profile rewards pay kills only (no server round-win reward; the in-raid " +
+            "Round Win Bonus roubles are unchanged), like Domination. This switch is frozen at match " +
+            "start; the two times below are read at each round start.");
+
+        TacticalObjectiveAfterSeconds = config.Bind(
+            "Tactical",
+            "ObjectiveAfterSeconds",
+            60,
+            new ConfigDescription(
+                "Seconds of combat before the capture point appears.",
+                new AcceptableValueRange<int>(0, 300)));
+
+        TacticalObjectiveHoldSeconds = config.Bind(
+            "Tactical",
+            "ObjectiveHoldSeconds",
+            10,
+            new ConfigDescription(
+                "Seconds a side must hold the point alone to win the round. Both sides on the point " +
+                "freeze the hold; an empty point resets it.",
+                new AcceptableValueRange<int>(3, 60)));
+
+        TacticalCloseDoorsAtRoundStart = config.Bind(
+            "Tactical",
+            "CloseDoorsAtRoundStart",
+            true,
+            "Shut the doors a round left open when the next round starts, so each round begins with " +
+            "the doors as the map placed them. Doors the map itself starts open, locked, broken and " +
+            "blocked doors and doors that trigger map scripts stay as they are.");
 
         TacticalStartMoney = config.Bind(
             "Tactical",

@@ -53,6 +53,8 @@ public partial class TacticalMode
     public bool CanAfford(KitDefinition kit)=>PriceOf(kit)<=Money;
     private bool HoldRoundStartForKitSwap()=>false;
     private void TickTeamStaging(){} private void TickTeamLive(){} private void TickTeamRebinding(){}
+    private void InitializeObjective(){} private void BeginObjectiveRound(){} private bool TickObjective()=>false;
+    private void EndObjectiveRound(){} private void ResetDoorsForRound(){}
     private void EnterTeamRebinding(){} private void EndTeamRaid(){}
     private void EndRound(bool won) {if(won) Wins++; else Losses++; _phase=Phase.Aftermath; _squadEpoch++;}
     public void Prepare(bool down=false, bool team=false)

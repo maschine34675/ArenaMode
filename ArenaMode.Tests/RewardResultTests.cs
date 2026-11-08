@@ -55,6 +55,7 @@ public sealed class RewardResultTests
     [InlineData("gungame")]
     [InlineData("zombies")]
     [InlineData("domination")]
+    [InlineData("tactical")]
     public void KillOnlyModesNeverInventLadderOrWaveWins(string mode)
     {
         var run = Run() with { Mode = mode };

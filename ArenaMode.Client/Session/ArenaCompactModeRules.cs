@@ -14,7 +14,8 @@ internal static class ArenaCompactModeRules
 
     internal static string Describe(string mode, bool team, int rounds, int kills, int seconds,
         bool freeForAll, int teamKills, int teamSeconds, int tacticalWins,
-        bool friendlyFire, int controlPoints, int dominationPoints = 300, int dominationSeconds = 600)
+        bool friendlyFire, int controlPoints, int dominationPoints = 300, int dominationSeconds = 600,
+        bool tacticalObjective = false)
     {
         switch (ArenaModeCatalog.NormalizeId(mode))
         {
@@ -32,8 +33,12 @@ internal static class ArenaCompactModeRules
                 return "USEC versus BEAR.\nHold " + (controlPoints > 0
                     ? controlPoints + (controlPoints == 1 ? " point" : " points") : "points") + " to earn team score.";
             case ArenaModeCatalog.TacticalId:
-                return team ? "First to " + Math.Max(1, Math.Min(9, tacticalWins)) + " round wins.\nOn death, spectate until next round."
-                    : "Eliminate the enemy squad.\nEndless rounds; death / timeout loses.";
+                // The point is promised only where the picked map has a layout for it.
+                bool point = tacticalObjective && controlPoints > 0;
+                return team ? "First to " + Math.Max(1, Math.Min(9, tacticalWins)) + (point ? " round wins; hold the point." : " round wins.")
+                        + "\nOn death, spectate until next round."
+                    : (point ? "Eliminate the squad or hold the point." : "Eliminate the enemy squad.")
+                        + "\nEndless rounds; death / timeout loses.";
             case ArenaModeCatalog.ZombieId:
                 return (team ? "Team wipe ends the match." : "Survive escalating waves.")
                     + "\nGear refills after each cleared wave.";

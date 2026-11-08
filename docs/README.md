@@ -58,7 +58,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (202)
+## Feature reviews and contracts (203)
 
 Sorted by file name.
 
@@ -237,6 +237,7 @@ Sorted by file name.
 - [Slow walking during surgical treatment and leg splinting](reviews/SURGICAL-WALK-REVIEW.md)
 - [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
 - [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)
+- [Tactical capture point, opening lanes and door reset (solo and PitFireTeam)](reviews/TACTICAL-OBJECTIVE-20261108.md)
 - [Solo Tactical purchase, readiness, countdown and Escape menus](reviews/TACTICAL-START-POLISH-REVIEW.md)
 - [Independent TDM search awareness: guarded SAIN hearing cue](reviews/TDM-AWARENESS-REVIEW.md)
 - [Team DM bot spawn shields: damage authority and first-attack release](reviews/TDM-BOT-SPAWN-SHIELD-20261017.md)
@@ -265,7 +266,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (272)
+## Reports (273)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -275,6 +276,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)
 - [Fork quick wins: native Team DM run on GPU-2 (seats, hold-to-peek, no bot backpacks)](reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)
+- [Tactical capture point: three native solo runs on GPU-2 (lanes, captures, door reset)](reports/2026-11/GPU-TACTICAL-OBJECTIVE-20261108.md)
 - [Lost reward authority with Tarkova Cola history: native run on GPU-2 (SPT-GPU-2 archived and enrolled afresh)](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md)
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)
 - [Survey of the fork thatHeathenJay/ArenaMode: co-op design, live-UI rips, adoptable pieces](reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md)

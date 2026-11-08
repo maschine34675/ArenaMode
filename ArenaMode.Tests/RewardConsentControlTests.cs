@@ -493,6 +493,32 @@ public sealed class RewardConsentControlTests
         Assert.True(File.Exists(f.PrivateOrigin));
     }
 
+    [Theory]
+    [InlineData("tactical", false, "KillsOnly", true)]
+    [InlineData("tactical", true, "KillsOnly", true)]
+    [InlineData("tactical", false, "SoloElimination", true)]
+    [InlineData("tactical", true, "TeamElimination", true)]
+    [InlineData("tactical", false, "TeamElimination", false)]
+    [InlineData("tactical", true, "SoloElimination", false)]
+    [InlineData("tactical", false, "TeamScore", false)]
+    [InlineData("tactical", false, "LocalTarget", false)]
+    [InlineData("domination", true, "KillsOnly", true)]
+    [InlineData("teamdeathmatch", true, "SoloElimination", false)]
+    public async Task TacticalBeginAdmitsKillsOnlyBesideItsEliminationRule(string mode, bool team, string rule, bool accepted)
+    {
+        // The capture point (2026-11-08) makes Tactical declare KillsOnly; its elimination rules stay, every other rule stays refused.
+        using var f = new Fixture(enroll: true);
+        var p = f.Private(f.Prepare());
+        await p.RefreshPrivateConsentAsync(Fixture.Id);
+        p.ObserveSnapshot(Fixture.Id, f.PrivateProfile);
+        string arm = Guid.NewGuid().ToString("N");
+        string native = Protocol.BuildNativeEndIdentity("factory4_day.Pmc " + f.Now.ToUnixTimeSeconds(), arm);
+        var begin = p.Begin(Fixture.Id, arm, native, "aaaaaaaaaaaaaaaaaaaaaaaa", mode, team, false,
+            new() { ArmToken = arm, NativeEndIdentity = native, Mode = mode, Rule = rule });
+        Assert.True(accepted == begin.Accepted, $"accepted={begin.Accepted} reason={begin.Reason}");
+        if (!accepted) Assert.Equal("reward-begin-mismatch", begin.Reason);
+    }
+
     [Fact]
     public async Task PrivateRewardFailureRemainsVisibleAfterAnotherSuccessfulPreferenceRead()
     {

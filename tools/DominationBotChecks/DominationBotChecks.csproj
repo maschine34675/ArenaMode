@@ -4,10 +4,13 @@
     <Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ClientSourceRoot Condition="'$(ClientSourceRoot)' == ''">../../ArenaMode.Client/Bots</ClientSourceRoot>
     <ObjectiveSourceRoot Condition="'$(ObjectiveSourceRoot)' == ''">../../ArenaMode.BigBrainCompat</ObjectiveSourceRoot>
+    <ModesSourceRoot Condition="'$(ModesSourceRoot)' == ''">../../ArenaMode.Client/Modes</ModesSourceRoot>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs;Doubles.cs" />
     <Compile Include="$(ClientSourceRoot)/DominationObjectiveBridge.cs" />
+    <Compile Include="$(ModesSourceRoot)/IArenaObjectiveHost.cs" />
+    <Compile Include="$(ModesSourceRoot)/TeamDeathmatchMode.ObjectiveHost.cs" />
     <Compile Include="$(ObjectiveSourceRoot)/ArenaDominationRuntime.cs" />
     <Compile Include="$(ObjectiveSourceRoot)/ArenaDominationLayer.cs" />
     <Compile Include="$(ObjectiveSourceRoot)/ArenaDominationLogic.cs" />
