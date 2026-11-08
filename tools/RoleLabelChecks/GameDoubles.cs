@@ -6,12 +6,14 @@ namespace EFT
     {
         Profile Profile { get; }
         bool IsAI { get; }
+        string ProfileId { get; }
     }
 
     public sealed class TestPlayer : IPlayer
     {
         public Profile Profile { get; set; }
         public bool IsAI { get; set; }
+        public string ProfileId { get; set; }
         public bool IsYourPlayer { get; set; }
     }
 

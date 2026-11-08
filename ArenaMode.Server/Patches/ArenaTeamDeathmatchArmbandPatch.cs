@@ -43,7 +43,15 @@ public sealed class ArenaTeamDeathmatchArmbandPatch : AbstractPatch
                 || __result?.Id == sessionId)
                 return;
 
+            var source = __result;
+            var equipment = source?.Inventory?.Equipment?.ToString();
+            int packs = equipment == null ? 0 : source!.Inventory!.Items?.Count(item =>
+                item.SlotId == "Backpack" && item.ParentId == equipment) ?? 0;
             __result = TeamDeathmatchArmbandPolicy.Apply(__result, botGenerationDetails)!;
+            if (!ReferenceEquals(source, __result))
+                ArenaContext.Logger?.Debug($"[ArenaMode] Team bot loadout: {botGenerationDetails?.Side} armband set"
+                    + (packs > 0 ? $", {packs} backpack(s) removed" : ", no backpack")
+                    + $"; {source?.Inventory?.Items?.Count} -> {__result?.Inventory?.Items?.Count} items.");
         }
         catch (Exception ex)
         {

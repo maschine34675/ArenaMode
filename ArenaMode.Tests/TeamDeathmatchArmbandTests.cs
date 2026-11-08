@@ -97,6 +97,43 @@ public sealed class TeamDeathmatchArmbandTests : IDisposable
         Assert.Equal(original, JsonSerializer.Serialize(bot));
     }
 
+    [Fact]
+    public void BackpackAndItsContentsAreRemovedWithTheArmbandSwap()
+    {
+        Start();
+        // The band is already right: only the backpack makes this bot change.
+        var bot = Bot("Usec", TeamDeathmatchArmbandPolicy.UsecBlue);
+        var pack = Item("444444444444444444444444", "Backpack", Root.ToString());
+        var inside = Item("555555555555555555555555", "main", pack.Id.ToString());
+        var nested = Item("666666666666666666666666", "main", inside.Id.ToString());
+        var second = Item("777777777777777777777777", "Backpack", Root.ToString());
+        // Children listed before their parents: the descendant expansion must reach a fixed point.
+        bot.Inventory!.Items!.AddRange([nested, inside, second, pack]);
+        var original = JsonSerializer.Serialize(bot);
+
+        var result = Generate(bot, Details());
+        Assert.NotSame(bot, result);
+        Assert.DoesNotContain(result.Inventory!.Items!, item => item.SlotId == "Backpack");
+        Assert.DoesNotContain(result.Inventory.Items, item => item.Id == inside.Id || item.Id == nested.Id || item.Id == second.Id);
+        Assert.Equal(3, result.Inventory.Items.Count);
+        Assert.Equal(TeamDeathmatchArmbandPolicy.UsecBlue, Band(result).Template.ToString());
+        Assert.Same(bot.Inventory.Items[1], result.Inventory.Items[1]);
+        Assert.Equal(original, JsonSerializer.Serialize(bot));
+        Assert.Same(result, Generate(result, Details()));
+    }
+
+    [Fact]
+    public void DominationBotsGetTheSameLoadoutMarks()
+    {
+        Start("domination");
+        var bot = Bot("Bear");
+        bot.Inventory!.Items!.Add(Item("444444444444444444444444", "Backpack", Root.ToString()));
+        var result = Generate(bot, Details("Bear"));
+        Assert.NotSame(bot, result);
+        Assert.Equal(TeamDeathmatchArmbandPolicy.BearRed, Band(result).Template.ToString());
+        Assert.DoesNotContain(result.Inventory!.Items!, item => item.SlotId == "Backpack");
+    }
+
     [Theory]
     [InlineData("endless", false)]
     [InlineData("rounds", false)]

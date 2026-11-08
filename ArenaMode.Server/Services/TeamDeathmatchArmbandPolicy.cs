@@ -4,7 +4,15 @@ using SPTarkov.Server.Core.Models.Spt.Bots;
 
 namespace ArenaMode.Server.Services;
 
-/// <summary>One generated bot's final faction marker, never a shared template or player inventory.</summary>
+/// <summary>
+/// One generated bot's final loadout marks for the independent team modes, never a shared
+/// template or player inventory: the faction armband, and no backpack. Live Arena issues no
+/// backpacks, so a generated Team DM / Domination bot loses its Backpack slot item with
+/// everything in it (2026-11-08, adopted from the fork survey; no switch by user decision).
+/// Reload magazines come from the rig and pockets only (EFT's FastAccessSlots), spare
+/// magazines and the secure-container ammo reserve are generated before this runs, so the bot
+/// loses only the loot, meds and loose ammo that landed in the backpack.
+/// </summary>
 public static class TeamDeathmatchArmbandPolicy
 {
     // Native SPT forceArmband convention, independent of APBS's weighted pools.
@@ -39,10 +47,12 @@ public static class TeamDeathmatchArmbandPolicy
         var parent = equipment.ToString();
         var template = new MongoId(Equal(details.Side, "Usec") ? UsecBlue : BearRed);
         var bands = source.Where(item => item.ParentId == parent && item.SlotId == "ArmBand").ToList();
-        var removed = bands.Select(item => item.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+        var packs = source.Where(item => item.ParentId == parent && item.SlotId == "Backpack").ToList();
+        var removed = bands.Concat(packs).Select(item => item.Id.ToString()).ToHashSet(StringComparer.Ordinal);
         // Some third-party items use ArmBand as a container slot. Replacing
         // such a bot-only item must remove its descendants too, not orphan them
-        // beneath an ordinary cloth band. Other equipment/loot stays identical.
+        // beneath an ordinary cloth band; the backpack's contents go with the
+        // backpack for the same reason. Other equipment/loot stays identical.
         bool expanded;
         do
         {
@@ -55,7 +65,7 @@ public static class TeamDeathmatchArmbandPolicy
         // A malformed parent cycle must never remove the inventory root.
         if (removed.Contains(parent))
             return bot;
-        if (bands.Count == 1 && removed.Count == 1 && bands[0].Template == template)
+        if (packs.Count == 0 && bands.Count == 1 && removed.Count == 1 && bands[0].Template == template)
             return bot;
 
         var items = source.Where(item => !removed.Contains(item.Id.ToString())).ToList();

@@ -390,8 +390,8 @@ namespace ArenaMode.Modes
         public static ArenaMatch Current;
         internal static readonly List<string> Aborts = new();
         internal static void ScheduleFailedStartAbort(string reason) => Aborts.Add(reason);
-        public static ArenaScoreboardActor SnapshotActor(Player player)
-            => new(player.ProfileId, player.ProfileId, player.IsAI ? "PMC" : "You", player.HealthController.IsAlive);
+        public static ArenaScoreboardActor SnapshotActor(Player player, string stableId = null)
+            => new(player.ProfileId, player.ProfileId, player.IsAI ? "PMC" : "You", player.HealthController.IsAlive, stableId);
     }
 }
 namespace ArenaMode.Bots

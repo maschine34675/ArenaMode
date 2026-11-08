@@ -5,6 +5,13 @@ and BEAR red (`5b3f3ade86f7746b6b790d8e`) armbands. APBS settings, bot
 templates, human gear, protected PFT gear, and other Arena/normal modes are not
 changed. These are faction colors, not arbitrary tracer palette colors.
 
+Since 2026-11-08 the same pass removes the generated bot's `Backpack` slot item with
+all its descendants (live Arena issues no backpacks; no switch by user decision), and a
+bot whose band is already right but who carries a backpack is still rewritten. The
+xunit case `BackpackAndItsContentsAreRemovedWithTheArmbandSwap` and the mutant
+`BackpackKept` pin it; `OrdinaryModeLeak` now anchors `IsIndependentTeam`, which also
+admits Domination. See `docs/reviews/FORK-QUICK-WINS-20261108.md` for what the bot loses.
+
 The patch surrounds **synchronous** `BotGenerator.PrepareAndGenerateBot`.
 Its inner `GenerateBot` finishes `BotInventoryGenerator.GenerateInventory`
 (including APBS's replacement and its `GenerateBot` postfix) before returning.

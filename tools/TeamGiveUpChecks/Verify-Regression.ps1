@@ -75,7 +75,9 @@ $mutants = @(
        From = 'RaiseSafe(teams.OnLocalDeath, "mode.OnLocalDeath");'; To = '';
        Failure = 'unscored staging death immediately invalidates countdown before any roster tick' },
     @{ Name = 'staging-handover-countdown'; Source = $modePath; Property = 'ModeSource';
-       From = 'if (_rules?.Phase == TdmMatchPhase.Countdown) TickMatchStart(false);'; To = '';
+       # The Domination prototype (bdd679ec) replaced _rules?.Phase with the shared MatchPhase; the
+       # OnLocalDeath site adds an IsCurrentRaid() guard, so this text is the respawn handover only.
+       From = 'if (MatchPhase == TdmMatchPhase.Countdown) TickMatchStart(false);'; To = '';
        Failure = 'staging body handover immediately invalidates countdown without a score' },
     @{ Name = 'giveup-discovers-deadline'; Source = $giveUpPath; Property = 'GiveUpSource';
        From = 'if (teams?.HasResult == true)'; To = 'if (false)';

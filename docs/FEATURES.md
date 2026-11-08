@@ -402,7 +402,9 @@ Sources: [pickup system](reviews/PICKUPS-REVIEW.md),
 ## 6. Team identification and friendly fire
 
 - Native faction friendliness for Team DM and explicit PFT squad membership.
-- Forced faction armbands in Team DM without requiring manual APBS changes.
+- Forced faction armbands in Team DM and Domination without requiring manual APBS
+  changes; the same pass removes the generated bot's backpack with its contents, as
+  live Arena issues none (no switch; reload magazines come from rig and pockets).
 - A raised friendly diamond above living allies, with screen-position handling
   for DLSS/render scaling. No corresponding enemy wall marker.
 - Team-colored tracers for **all bullets**, including normally tracerless
@@ -430,9 +432,16 @@ Sources: [friendly fire](reviews/FRIENDLY-FIRE-REVIEW.md),
 
 - **F9 scoreboard** and live Arena settings: names, roles, alive/out state,
   kills, deaths, assists, headshots and points, plus local K/D, best streak and
-  elapsed time. Local/PFT totals survive their replacement bodies; ordinary
-  new bots begin a new personal run while team totals retain earlier lives.
-  Non-team standings show the leading twelve runs and keep the player visible.
+  elapsed time. Local/PFT totals survive their replacement bodies. Team DM and
+  Domination bots sit in fixed seats: a replacement takes over the seat, its
+  name and its running stats, a vacant seat stays listed as OUT; in every other
+  mode, Tactical included, an ordinary replacement bot begins a new personal run.
+  Team totals retain earlier lives. Non-team standings
+  show the leading twelve runs and keep the player visible.
+- **Hold the inventory key** (Tab by default, the bound keyboard key is read) to see
+  the scoreboard tables while moving and shooting; a tap opens the inventory (under
+  the default key setting on the release of the tap). No cursor, no input block, no
+  controls; F9 wins over it; a mouse-bound key keeps its stock behaviour.
 - The scoreboard opens for eligible round breaks/results, with Give up or
   Return to menu actions. Opening it during combat is not an invulnerability
   switch, and it does not stack over native inventory/raid menus.

@@ -167,6 +167,23 @@ Source evidence: `ArenaMode.Client/Bots/BurstSpawnService.cs`,
 `ArenaMode.Client/Bots/ArenaBotSpawnPatches.cs`, and
 `../_decompiled/EFT/BotSpawner.cs:899`, `:958`, `:982`.
 
+## Seats and named arrival gates (2026-11-08)
+
+`SeatChecks.cs` pins the fixed scoreboard seats and the named arrival rejections of
+`docs/reviews/FORK-QUICK-WINS-20261108.md`: every refused arrival (faction, role, foreign or
+mixed group, stale request) is retired with its gate in the Warning; opposing and friendly
+bots occupy `stable:bear-n`/`stable:usec-n` rows numbered from zero; a seat is named by its
+first occupant; a dead body leaves a vacant seat listed as OUT with its stats; the replacement
+takes that seat, keeps the name and the running stats and gets the seat name in
+`TeamSeatNames` (the first occupant does not); its own kills and posthumous kills of the
+earlier body land on the seat; a replacement never displaces a living body; the registry is
+empty after `OnMatchEnd`; Domination bots sit in seats too; a body that dies right after its
+adoption, before any tick, is a vacant seat and never a second row. The stub's `SnapshotActor` passes the stable id through and its
+display name is the profile id, so a seat name equals its first occupant's id here.
+`Verify-Regression.ps1` carries eight mutants for it (`arrival-gate-unnamed`, `seat-per-body`,
+`vacant-seat-dropped`, `seat-renamed-by-replacement`, `seat-name-not-carried`,
+`seat-never-reused`, `seat-reused-under-living-body`, `seats-outlive-match`).
+
 ## Bounded-area consumer contract
 
 The production mode now also runs against explicit area-state inputs: it freezes

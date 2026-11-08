@@ -104,6 +104,19 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Fork quick wins (2026-11-08, master, not released):** four pieces adopted from the fork survey
+([review](reviews/FORK-QUICK-WINS-20261108.md)): named arrival gates in the TDM retire Warning, fixed
+scoreboard seats for TDM/Domination bots (replacement continues the seat's row, name and stats; vacant
+seat as OUT; names via `TeamSeatNames`, no profile write), no backpacks on generated TDM/Domination
+bots (server armband pass, no switch by user decision) and the hold-to-peek table on the inventory
+key (`ArenaInventoryKeyNode`, `ArenaScoreboardPeek`, shared `ArenaScoreboardRows`). Files:
+`ArenaMode.Client/Modes/TeamDeathmatchMode.cs`, `TeamSeatNames.cs`, `Combat/RoleClassifier.cs`,
+`Hud/ArenaInventoryKeyNode.cs`, `Hud/ArenaScoreboardPeek.cs`, `Hud/ArenaScoreboardRows.cs`,
+`Hud/InventoryKeyHold.cs`, `Hud/ArenaPanel.cs`, `Hud/ArenaHud.cs`,
+`ArenaMode.Server/Services/TeamDeathmatchArmbandPolicy.cs`, `Patches/ArenaTeamDeathmatchArmbandPatch.cs`.
+Offline verification and the native GPU-2 cycle are recorded in the review and in
+`reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md` once run.
+
 **Lost reward authority with Cola history (2026-11-08, master, not released):** user decision: the
 automatic archive of `RewardAuthorityRecovery.Reconcile` also covers a complete Tarkova Cola history. Before,
 `UnsettledCore()` refused unconditionally on a `cola-plans` folder or Cola progression in a journal payment, so

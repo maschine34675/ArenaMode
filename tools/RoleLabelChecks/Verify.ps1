@@ -49,6 +49,8 @@ try {
     Test-Mutant 'faction-labels-swapped' 'humanSide.Value == EPlayerSide.Usec' 'humanSide.Value == EPlayerSide.Bear' 'local USEC with native default role label'
     Test-Mutant 'human-requires-bot-settings' 'info == null || player.IsAI' 'info == null || player.IsAI || info.Settings == null' 'human PMC without bot settings Usec label'
     Test-Mutant 'round-faction-ignored' 'Bots.TeamDeathmatchRelations.Faction(player) ?? ' '' 'selected round side Usec label'
+    Test-Mutant 'seat-name-ignored' 'Modes.TeamSeatNames.TryGet(player.ProfileId, out var seatName)' 'Modes.TeamSeatNames.TryGet(null, out var seatName)' 'replacement bot displays its seat name'
+    Test-Mutant 'seat-name-for-humans' 'player != null && player.IsAI && Modes.TeamSeatNames.TryGet' 'player != null && Modes.TeamSeatNames.TryGet' 'a human never takes a seat name'
 }
 finally {
     Assert-Production

@@ -21,11 +21,17 @@ $armMutants = @(
        From = 'Equal(details.Side, "Usec") ? UsecBlue : BearRed'; To = 'Equal(details.Side, "Usec") ? BearRed : UsecBlue';
        Test = 'FinalGeneratedBandOverridesApbsWithoutChangingSharedGear' },
     @{ Name = 'ApbsBandWins'; Source = $armSourcePaths[0]; Compile = 'Services\TeamDeathmatchArmbandPolicy.cs';
-       From = 'if (bands.Count == 1 && removed.Count == 1 && bands[0].Template == template)'; To = 'if (bands.Count == 1)';
+       From = 'if (packs.Count == 0 && bands.Count == 1 && removed.Count == 1 && bands[0].Template == template)'; To = 'if (bands.Count == 1)';
        Test = 'FinalGeneratedBandOverridesApbsWithoutChangingSharedGear' },
     @{ Name = 'OrdinaryModeLeak'; Source = $armSourcePaths[2]; Compile = 'Services\ArenaSessionService.cs';
-       From = '|| !string.Equals(entry.Mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)'; To = '|| false';
+       From = '|| !ArenaPopulationPolicy.IsIndependentTeam(entry.Mode)'; To = '|| false';
        Test = 'OtherModesAndProtectedPftLeaveEquipmentUntouched' },
+    @{ Name = 'DominationExcluded'; Source = $armSourcePaths[2]; Compile = 'Services\ArenaSessionService.cs';
+       From = '|| !ArenaPopulationPolicy.IsIndependentTeam(entry.Mode)'; To = '|| !string.Equals(entry.Mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)';
+       Test = 'DominationBotsGetTheSameLoadoutMarks' },
+    @{ Name = 'BackpackKept'; Source = $armSourcePaths[0]; Compile = 'Services\TeamDeathmatchArmbandPolicy.cs';
+       From = 'var packs = source.Where(item => item.ParentId == parent && item.SlotId == "Backpack").ToList();'; To = 'var packs = new List<Item>();';
+       Test = 'BackpackAndItsContentsAreRemovedWithTheArmbandSwap' },
     @{ Name = 'NewRaidAdoption'; Source = $armSourcePaths[1]; Compile = 'Patches\ArenaTeamDeathmatchArmbandPatch.cs';
        From = '|| !string.Equals(__state, identity, StringComparison.Ordinal)'; To = '|| false';
        Test = 'OldGenerationCannotAdoptNewRaidIdentity' }

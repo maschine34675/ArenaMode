@@ -442,6 +442,16 @@ kill/time limits, frozen per match. See docs/reviews/TDM-MATCH-FLOW-REVIEW.md be
 scoring or death handling: terminal death interception must remain armed until
 the native player owner is verified and the intentional protected exit starts.
 
+Scoreboard seats (2026-11-08, docs/reviews/FORK-QUICK-WINS-20261108.md): a TDM/Domination bot's
+scoreboard identity is its seat (`usec-n`/`bear-n`, the lowest seat no living bot of the faction
+holds), passed as the roster `StableId`; a replacement body continues the seat's row, name and
+stats, a vacant seat is passed as OUT with its last profile id. The seat name reaches the
+killfeed through `TeamSeatNames` (AI only, reset at match start and end); never write a bot's
+`Profile.Info.Nickname` for it, and keep kill classification on profile ids. A refused native
+arrival is retired with its failing gate named (`ArrivalRejection`); keep the gate order and
+the relations registration last, it has a side effect. Generated TDM/Domination bots lose
+their backpack in the server's armband pass by user decision, without a switch.
+
 ### From the handoff (snapshot of 2026-10-29)
 
 Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerpts, or restatements where marked Quoted:/Rule:/Durable form:. Line numbers refer to `handoff-archive/HANDOFF-2026-10-29.md`.
@@ -1009,6 +1019,18 @@ or materials, add a positive depth bias, or draw an unchecked through-wall halo.
 
 `docs/reviews/HUD-MUTATORS-REVIEW.md` documents the scoped ARENA HUD switch: preserve individual
 HUD preferences, essential match notices and the separate audio controls.
+
+Hold-to-peek table (2026-11-08, docs/reviews/FORK-QUICK-WINS-20261108.md): `ArenaInventoryKeyNode`
+joins EFT's input tree with `InputTree.Add` (visited before every screen and the player owner) and
+returns an explicit Block only for `ToggleInventory`, only in the battle UI of an active Arena
+session, outside the respawn pipeline, while no Arena panel blocks input and while the peek is
+healthy; everything else is Ignore, so the inventory screen keeps its own close key. Both press
+types of the binding are handled (down: block and forward a tap to the game's own started
+`EftGamePlayerOwner` of the living main player; up: block after a hold); a mouse- or
+joystick-bound inventory key is left to the game. `ArenaScoreboardPeek` draws
+without a window, cursor vote, input block or controls and reuses `ArenaScoreboardRows` and
+`ArenaScoreboardPresentation` with the F9 panel; never give it controls or an input block, and
+never let it outlive the per-match HUD object.
 
 Active announcer OGGs live in announcements/, the four effect WAVs in sounds/.
 Audio records are consolidated under docs/licenses/audio; see

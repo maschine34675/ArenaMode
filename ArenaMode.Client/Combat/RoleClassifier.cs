@@ -109,6 +109,11 @@ internal static class RoleClassifier
 
     public static string DisplayName(IPlayer player)
     {
+        // A Team DM / Domination replacement bot wears its seat's name everywhere a name is
+        // shown (scoreboard, killfeed, death notices); the registry is empty outside such a
+        // match and never holds a human, so every other body keeps its own nickname.
+        if (player != null && player.IsAI && Modes.TeamSeatNames.TryGet(player.ProfileId, out var seatName))
+            return seatName;
         var nickname = player?.Profile?.Info?.Nickname;
         return string.IsNullOrEmpty(nickname) ? "?" : nickname;
     }

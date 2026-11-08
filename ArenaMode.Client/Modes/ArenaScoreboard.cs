@@ -16,8 +16,9 @@ public enum ArenaScoreboardSide
 /// <summary>
 /// Plain actor data copied from the current world. A scoreboard never keeps a
 /// Player or BotOwner alive: both are disposable bodies in an Arena raid.
-/// StableId is reserved for identities that really survive body replacement
-/// (currently the local player and authenticated PitFireTeam account IDs).
+/// StableId is reserved for identities that really survive body replacement:
+/// the local player, authenticated PitFireTeam account IDs and, since 2026-11-08,
+/// the fixed Team DM / Domination seats (`usec-n` / `bear-n`).
 /// </summary>
 public sealed class ArenaScoreboardActor
 {
@@ -108,8 +109,10 @@ public readonly struct ArenaScoreboardTotals
 /// Match-long standings independent of Unity objects. Ordinary bots are honest
 /// one-body contestants keyed by profile ID. Random replacements therefore do
 /// not inherit another bot's personal score; the opponent/team total provides
-/// the durable comparison. Authenticated PFT companions are the exception:
-/// their stable account key deliberately carries their score to a new body.
+/// the durable comparison. The exceptions carry a stable key on purpose:
+/// authenticated PFT companions (their account id) and, since 2026-11-08, the
+/// fixed Team DM / Domination seats, whose row, name and stats a replacement body
+/// continues (docs/reviews/FORK-QUICK-WINS-20261108.md).
 /// </summary>
 public sealed class ArenaScoreboard
 {
@@ -266,8 +269,26 @@ public sealed class ArenaScoreboard
             kill.VictimRoleLabel,
             forceLocal: kill.LocalIsVictim,
             friendly: kill.VictimIsFriendly);
-        if (killer == null || victim == null || ReferenceEquals(killer, victim))
+        if (killer == null || victim == null)
             return;
+        if (ReferenceEquals(killer, victim))
+        {
+            // A true self-kill earns and costs nothing. Two bodies of one stable row (a dead
+            // seat body's grenade kills its own replacement, 2026-11-08) still cost the victim
+            // body its life: no kill credit, but the death and the streak reset are real.
+            if (!kill.LocalIsVictim && kill.KillerBodyId != 0 && kill.VictimBodyId != 0
+                && kill.KillerBodyId != kill.VictimBodyId
+                && !string.Equals(Normalize(kill.KillerProfileId), Normalize(kill.VictimProfileId), StringComparison.Ordinal))
+            {
+                if (victim.AwardBodyId == kill.VictimBodyId)
+                    victim.AwardLifeStreak = 0;
+                victim.Deaths++;
+                victim.Streak = 0;
+                MarkProfileInactive(victim, kill.VictimProfileId);
+                Version++;
+            }
+            return;
+        }
 
         if (kill.ScoreEligible)
         {

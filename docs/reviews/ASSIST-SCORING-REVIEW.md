@@ -73,7 +73,8 @@ while still being enemies; presentation color is not a friendly-fire test.
 
 Contributions retain only managed scoreboard entries and numbers, never Player,
 BotOwner or native health objects. Authenticated PFT and local identities survive
-respawn; ordinary bot replacements remain distinct. If an ordinary helper has
+respawn, and since 2026-11-08 so do the Team DM / Domination seats; ordinary bot
+replacements in the other modes remain distinct. If an ordinary helper has
 already been compacted out of the visible history, a later reward updates the
 archived team totals once, without recreating the old row.
 If a delayed projectile has independently recreated that same logical row,

@@ -343,6 +343,38 @@ public sealed class ArenaScoreboardTests
             new[] { Actor(enemyProfile, "Same Name", alive: true) },
             out problem);
 
+    [Fact]
+    public void AnEarlierBodyOfASeatKillingItsReplacementCostsTheLifeWithoutCredit()
+    {
+        ArenaScoreboard board = Board();
+        Assert.True(board.TrySynchronizeRoster(1, Actor("local-profile", "Player", alive: true),
+            Array.Empty<ArenaScoreboardActor>(),
+            new[] { Actor("bear-body-1", "Ivan", alive: true, stableId: "bear-0") }, out _));
+        board.ReportKill(Kill("bear-body-1", "Ivan", "local-profile", "Player", ArenaRole.Pmc, localVictim: true));
+        Assert.True(board.TrySynchronizeRoster(2, Actor("local-profile", "Player", alive: true),
+            Array.Empty<ArenaScoreboardActor>(),
+            new[] { Actor("bear-body-2", "Ivan", alive: true, stableId: "bear-0") }, out _));
+        ArenaScoreboardEntry seat = Assert.Single(board.Standings(ArenaScoreboardSide.Opponent, true, 10, false));
+        Assert.Equal(1, seat.Kills);
+        Assert.Equal(1, seat.Streak);
+
+        // The dead first body's grenade kills the second body: one row, two bodies.
+        ArenaKill late = Kill("bear-body-1", "Ivan", "bear-body-2", "Ivan", ArenaRole.Pmc);
+        late.KillerBodyId = 11;
+        late.VictimBodyId = 12;
+        board.ReportKill(late);
+        Assert.Equal(1, seat.Kills);
+        Assert.Equal(1, seat.Deaths);
+        Assert.Equal(0, seat.Streak);
+        Assert.False(seat.IsActive);
+
+        // A true self-kill of one body stays uncounted, as before.
+        ArenaKill self = Kill("bear-body-2", "Ivan", "bear-body-2", "Ivan", ArenaRole.Pmc);
+        self.KillerBodyId = self.VictimBodyId = 12;
+        board.ReportKill(self);
+        Assert.Equal(1, seat.Deaths);
+    }
+
     private static ArenaKill Kill(
         string killerProfile,
         string killerName,

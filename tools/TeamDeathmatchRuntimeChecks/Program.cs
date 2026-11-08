@@ -769,6 +769,7 @@ internal static partial class Program
         LoadingAndPreActiveOccupancy();
         HumanDeathRespawnAndAwareness();
         RejectionsAndRetirement();
+        SeatsAndArrivalDiagnostics();
         ActivationLifetime();
         ExactRaidAndLateCallbacks();
         NativeShutdownWindow();

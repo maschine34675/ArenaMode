@@ -58,7 +58,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (200)
+## Feature reviews and contracts (202)
 
 Sorted by file name.
 
@@ -146,6 +146,7 @@ Sorted by file name.
 - [Factory courtyard spawn exclusion (original single-marker record)](reviews/FACTORY-SPAWN-REVIEW.md) *(superseded)*
 - [Factory day/night team-spawn exclusions (ten courtyard and underground markers)](reviews/FACTORY-SPAWNS-REVIEW.md)
 - [Failed-start intro/exit ordering and the terminal result exit lease](reviews/FAILED-START-INTRO-REVIEW.md)
+- [Fork quick wins: named arrival gates, fixed seats, no bot backpacks, hold-to-peek table](reviews/FORK-QUICK-WINS-20261108.md)
 - [Team friendly fire: frozen decision, physical ownership and delayed projectiles](reviews/FRIENDLY-FIRE-REVIEW.md)
 - [Friendly markers: native output projection with DLSS](reviews/FRIENDLY-MARKERS-REVIEW.md)
 - [Arena GC threshold: design, measurements and offline checks](reviews/GC-THRESHOLD-REVIEW.md)

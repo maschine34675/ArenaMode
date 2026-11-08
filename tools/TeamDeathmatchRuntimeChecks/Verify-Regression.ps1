@@ -80,6 +80,51 @@ $cases = @(
         Failure = 'native friendly admission rejects initial, revenge and direct causes'
     },
     @{
+        Name = 'arrival-gate-unnamed'; Path = $mode; Property = 'ModeSource';
+        Find = 'Retire(bot, "arrival rejected: " + rejection);'; Replace = 'Retire(bot, "arrival rejected");';
+        Failure = 'arrival retirement names the failing gate: faction'
+    },
+    @{
+        Name = 'seat-per-body'; Path = $mode; Property = 'ModeSource';
+        Find = '? new ArenaScoreboardActor(body.ProfileId, seat.Name, seat.Label, true, pair.Key)';
+        Replace = '? new ArenaScoreboardActor(body.ProfileId, seat.Name, seat.Label, true, null)';
+        Failure = 'opposing bots sit in fixed seats'
+    },
+    @{
+        Name = 'vacant-seat-dropped'; Path = $mode; Property = 'ModeSource';
+        Find = 'foreach (var pair in _seats)'; Replace = 'foreach (var pair in _seats.Where(candidate => occupied.ContainsKey(candidate.Key)))';
+        Failure = 'a vacant seat stays on the table as OUT'
+    },
+    @{
+        Name = 'seat-renamed-by-replacement'; Path = $mode; Property = 'ModeSource';
+        Find = '? new ArenaScoreboardActor(body.ProfileId, seat.Name, seat.Label, true, pair.Key)';
+        Replace = '? ArenaMatchService.SnapshotActor(body.GetPlayer, pair.Key)';
+        Failure = 'the seat keeps its first occupant''s name'
+    },
+    @{
+        Name = 'seat-name-not-carried'; Path = $mode; Property = 'ModeSource';
+        Find = 'TeamSeatNames.Assign(bot.ProfileId, record.Name);'; Replace = '';
+        Failure = 'the replacement body wears the seat name for killfeed and notices'
+    },
+    @{
+        Name = 'seat-never-reused'; Path = $mode; Property = 'ModeSource';
+        Find = 'while (taken.Contains(prefix + index)) index++;';
+        Replace = 'while (taken.Contains(prefix + index)) index++; index = _seats.Count(candidate => candidate.Key.StartsWith(prefix, StringComparison.Ordinal));';
+        Failure = 'the replacement takes the vacant seat rather than a new row'
+    },
+    @{
+        # Every body in seat 0: the roster rejects the duplicate logical participant and the
+        # mode fails, so the first scenario's scoreboard population check is what catches it.
+        Name = 'seat-reused-under-living-body'; Path = $mode; Property = 'ModeSource';
+        Find = 'while (taken.Contains(prefix + index)) index++;'; Replace = '';
+        Failure = 'real mode populates real scoreboard with both complete factions'
+    },
+    @{
+        Name = 'seats-outlive-match'; Path = $mode; Property = 'ModeSource';
+        Find = "        _usecById.Clear();`r`n        ResetSeats();"; Replace = "        _usecById.Clear();";
+        Failure = 'seat names do not outlive the match'
+    },
+    @{
         Name = 'partial-respawn'; Path = $mode; Property = 'ModeSource';
         Find = 'if (!Respawn.ArenaRespawnDriver.IsRespawnInProgress'; Replace = 'if (true';
         Failure = 'intermediate local body published during respawn must not be adopted before readiness'

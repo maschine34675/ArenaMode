@@ -41,6 +41,15 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
     private Player _pendingGiveUpLife;
     private Player _creditedGiveUpLife;
     private int _spawnGateEpoch;
+    // Live Arena's team table has fixed seats (2026-11-08, from the fork survey): a
+    // replacement bot takes the seat, the name and the running stats of the body it
+    // replaces, so the table keeps the same names all match and a vacant seat stays
+    // visible as OUT until the replacement arrives. Seats are match-local presentation:
+    // the bot profile is never written (TeamSeatNames carries the display name) and kill
+    // classification still runs on profile ids through _usecById.
+    private sealed class Seat { public string Name, Label, LastProfileId; }
+    private readonly Dictionary<string, Seat> _seats = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _seatByProfile = new(StringComparer.Ordinal);
 
     public string Id => IsDomination ? Shared.ArenaPopulationPolicy.Domination : ArenaModeCatalog.TeamDeathmatchId;
     public string DisplayName => IsDomination ? "Domination" : "Team Deathmatch";
@@ -81,6 +90,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _local = _world?.MainPlayer;
         _localId = _local?.ProfileId;
         _spawnShieldSeconds = 0f;
+        ResetSeats();
         if (!IsDomination)
             _rules = new TeamDeathmatchMatchPolicy(Settings.TeamDeathmatchKillLimit.Value,
                 Settings.TeamDeathmatchTimeLimitSeconds.Value);
@@ -302,13 +312,14 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             if (ObserveNativeStop()) return;
             var player = bot?.GetPlayer;
             EPlayerSide expected = ticket.Usec ? EPlayerSide.Usec : EPlayerSide.Bear;
-            if (!IsRequestCurrent(ticket) || !_population.CanAdmit(ticket, Time.realtimeSinceStartup) || !Alive(bot)
-                || TeamDeathmatchRelations.Faction(player) != expected
-                || string.IsNullOrWhiteSpace(bot.ProfileId) || _usecById.ContainsKey(bot.ProfileId)
-                || CountBots(ticket.Usec) >= _population.BotTarget(ticket.Usec)
-                || !ValidGroup(bot, expected) || !TeamDeathmatchRelations.Register(player))
+            string rejection = ArrivalRejection(ticket, bot, player, expected);
+            if (rejection != null)
             {
-                Retire(bot, "expired, duplicate, over-capacity or inconsistent faction arrival");
+                // Retire warns only for a living body; a dead or missing arrival is still named here.
+                if (!Alive(bot))
+                    Plugin.ModLogger.LogDebug("Team Deathmatch rejected a dead " + (ticket.Usec ? "USEC" : "BEAR")
+                        + " arrival: " + rejection);
+                Retire(bot, "arrival rejected: " + rejection);
                 DelayRetry(ticket);
                 return;
             }
@@ -323,6 +334,9 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             TrackSpawnShield(bot);
             _activationDeadline.Add(bot, Time.time + TeamDeathmatchPopulation.RequestTimeout);
             _population.Settle(ticket);
+            // Load-bearing for the seats: this sync assigns the body's seat before any kill can
+            // reach the scoreboard, so Resolve never invents a body row that a later roster
+            // plan would reject as a changed identity.
             if (!TrySynchronizeScoreboardRoster(out var problem))
                 Fail("scoreboard affiliation drift: " + problem);
             _nextTick = 0f;
@@ -345,6 +359,63 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
             if (Alive(member) && TeamDeathmatchRelations.Faction(member.GetPlayer) != expected) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// The first admission gate a native arrival fails, in the order the gates are checked,
+    /// or null when the body may be adopted. Registration with the combat relations stays
+    /// the last gate and runs only when every other gate passed, as before. The gates are
+    /// named (2026-11-08, adopted from the fork survey) because the former generic text left
+    /// every such retirement in the log unexplained.
+    /// </summary>
+    private string ArrivalRejection(TeamDeathmatchPopulation.Ticket ticket, BotOwner bot, Player player, EPlayerSide expected)
+    {
+        if (!IsRequestCurrent(ticket)) return "stale request";
+        if (!_population.CanAdmit(ticket, Time.realtimeSinceStartup)) return "request not admitting (preparing or expired)";
+        if (!Alive(bot)) return "dead on arrival";
+        EPlayerSide? faction = TeamDeathmatchRelations.Faction(player);
+        if (faction != expected) return "faction " + (faction.HasValue ? faction.Value.ToString() : "unknown") + ", expected " + expected;
+        if (string.IsNullOrWhiteSpace(bot.ProfileId)) return "empty profile id";
+        if (_usecById.ContainsKey(bot.ProfileId)) return "duplicate profile";
+        int occupied = CountBots(ticket.Usec), target = _population.BotTarget(ticket.Usec);
+        if (occupied >= target) return "over capacity (" + occupied + "/" + target + ")";
+        if (!ValidGroup(bot, expected)) return "group side or membership inconsistent";
+        if (!TeamDeathmatchRelations.Register(player)) return "combat relations refused registration";
+        return null;
+    }
+
+    private void ResetSeats()
+    {
+        _seats.Clear();
+        _seatByProfile.Clear();
+        TeamSeatNames.Reset();
+    }
+
+    /// <summary>
+    /// The lowest seat of the faction not held by a living bot; a seat is named by its first
+    /// occupant and every later body in it is shown under that name.
+    /// </summary>
+    private string AssignSeat(BotOwner bot, bool usec)
+    {
+        if (_seatByProfile.TryGetValue(bot.ProfileId, out string seat)) return seat;
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        foreach (BotOwner other in _bots)
+            if (Alive(other) && _seatByProfile.TryGetValue(other.ProfileId, out string held)) taken.Add(held);
+        string prefix = usec ? "usec-" : "bear-";
+        int index = 0;
+        while (taken.Contains(prefix + index)) index++;
+        seat = prefix + index;
+        _seatByProfile[bot.ProfileId] = seat;
+        ArenaScoreboardActor snapshot = ArenaMatchService.SnapshotActor(bot.GetPlayer);
+        if (_seats.TryGetValue(seat, out Seat record))
+        {
+            record.LastProfileId = bot.ProfileId;
+            TeamSeatNames.Assign(bot.ProfileId, record.Name);
+            Plugin.ModLogger.LogDebug("Team Deathmatch seat " + seat + " reoccupied; the replacement wears the seat's name.");
+        }
+        else
+            _seats[seat] = new Seat { Name = snapshot?.DisplayName, Label = snapshot?.RoleLabel, LastProfileId = bot.ProfileId };
+        return seat;
     }
 
     private int CountBots(bool usec)
@@ -417,10 +488,22 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         if (_population == null || _match == null || _local == null || !IsCurrentRaid() || HasResult) return true;
         var friendly = new List<ArenaScoreboardActor>();
         var opposing = new List<ArenaScoreboardActor>();
+        var occupied = new Dictionary<string, BotOwner>(StringComparer.Ordinal);
         foreach (BotOwner bot in _bots)
         {
-            if (bot == null || bot.GetPlayer == null || !_usecById.TryGetValue(bot.ProfileId, out bool usec)) continue;
-            (usec == _population.LocalUsec ? friendly : opposing).Add(ArenaMatchService.SnapshotActor(bot.GetPlayer));
+            if (!Alive(bot) || !_usecById.TryGetValue(bot.ProfileId, out bool usec)) continue;
+            occupied[AssignSeat(bot, usec)] = bot;
+        }
+        // Every seat ever taken stays on the table: the living body under the seat's name,
+        // or the seat's last body as OUT until its replacement arrives.
+        foreach (var pair in _seats)
+        {
+            bool usec = pair.Key.StartsWith("usec-", StringComparison.Ordinal);
+            Seat seat = pair.Value;
+            ArenaScoreboardActor actor = occupied.TryGetValue(pair.Key, out BotOwner body)
+                ? new ArenaScoreboardActor(body.ProfileId, seat.Name, seat.Label, true, pair.Key)
+                : new ArenaScoreboardActor(seat.LastProfileId, seat.Name, seat.Label, false, pair.Key);
+            (usec == _population.LocalUsec ? friendly : opposing).Add(actor);
         }
         return _match.Scoreboard.TrySynchronizeRoster(1, ArenaMatchService.SnapshotActor(_local),
             friendly, opposing, out problem);
@@ -590,6 +673,7 @@ public sealed partial class TeamDeathmatchMode : IArenaMode
         _bots.Clear();
         _activationDeadline.Clear();
         _usecById.Clear();
+        ResetSeats();
         TeamDeathmatchRelations.Reset();
     }
 }

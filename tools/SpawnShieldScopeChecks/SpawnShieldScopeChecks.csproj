@@ -25,6 +25,7 @@
     <Compile Include="../../ArenaMode.Client/Modes/TeamDeathmatchPopulation.cs" Link="Production/TeamDeathmatchPopulation.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/IArenaMode.cs" Link="Production/IArenaMode.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaScoreboard.cs" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamSeatNames.cs" Link="Production/TeamSeatNames.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TeamDeathmatchRelations.cs" Link="Production/TeamDeathmatchRelations.cs" />
     <Compile Include="../../ArenaMode.Client/Bots/TdmSearchAwareness.cs" Link="Production/TdmSearchAwareness.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaReplaySelection.cs" Link="Production/ArenaReplaySelection.cs" />

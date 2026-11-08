@@ -16,7 +16,8 @@ Bot replacement is not hidden behind a made-up identity:
 |---|---|---|
 | Local PMC | local match identity | score is retained |
 | PitFireTeam follower | authenticated `AccountId` | score is retained |
-| Generated opponent or ordinary bot | physical `ProfileId` | a new body gets a new row |
+| Team DM / Domination bot (since 2026-11-08) | fixed seat `usec-n` / `bear-n` | row, name and stats are retained, see [FORK-QUICK-WINS-20261108.md](FORK-QUICK-WINS-20261108.md) |
+| Generated opponent or ordinary bot (other modes) | physical `ProfileId` | a new body gets a new row |
 
 For Tactical, the friendly and opponent team totals remain match-long even
 though each freshly generated opponent has a fresh row. The current opposition

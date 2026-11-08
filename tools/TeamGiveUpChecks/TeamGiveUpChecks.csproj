@@ -28,6 +28,7 @@
     <Compile Include="$(FlowSource)" Link="Production/TeamDeathmatchMatchFlow.cs" />
     <Compile Include="$(PolicySource)" Link="Production/TeamDeathmatchMatchPolicy.cs" />
     <Compile Include="$(ScoreboardSource)" Link="Production/ArenaScoreboard.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/TeamSeatNames.cs" Link="Production/TeamSeatNames.cs" />
     <Compile Include="../TeamDeathmatchRuntimeChecks/Stubs.cs" Link="EngineModel.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs" Link="Production/ArenaTeamBoxCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />

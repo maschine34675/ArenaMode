@@ -32,13 +32,7 @@ internal sealed class ArenaPanel : MonoBehaviour
     private Rect _windowRect;
     private Vector2 _scrollPosition;
     private bool _stylesReady;
-    private int _scoreboardVersion = -1;
-    private ArenaMatch _cachedMatch;
-    private bool _cachedTactical;
-    private List<ArenaScoreboardEntry> _friendlyRows = new();
-    private List<ArenaScoreboardEntry> _opponentRows = new();
-    private List<ArenaScoreboardEntry> _overallRows = new();
-    private int _hiddenRows;
+    private readonly ArenaScoreboardRows _rows = new();
     private GUIStyle _windowStyle;
     private GUIStyle _titleStyle;
     private GUIStyle _bodyStyle;
@@ -243,7 +237,7 @@ internal sealed class ArenaPanel : MonoBehaviour
         // ArenaPanel lives on the persistent plugin object. A match can be
         // replaced while the panel is open, so do not carry scroll position or
         // cached entry objects from the previous raid into the next one.
-        if (_cachedMatch != null && !ReferenceEquals(_cachedMatch, match))
+        if (_rows.Match != null && !ReferenceEquals(_rows.Match, match))
             ClearScoreboardCache();
 
         GUILayout.Space(6);
@@ -335,7 +329,7 @@ internal sealed class ArenaPanel : MonoBehaviour
 
     private void DrawScoreboard(ArenaMatch match)
     {
-        RefreshScoreboardCache(match);
+        _rows.Refresh(match);
         GUILayout.Label("Scoreboard", _titleStyle);
         GUILayout.Space(4);
 
@@ -347,14 +341,14 @@ internal sealed class ArenaPanel : MonoBehaviour
                 GUILayout.Label($"Control points  {teams.FriendlyTeamScore} - {teams.OpponentTeamScore}     {teams.ObjectiveStatusLine}", _statStyle);
             GUILayout.Label($"Kills  {friendly.Kills} - {opponent.Kills}     "
                 + $"Match points  {friendly.Score:n0} - {opponent.Score:n0}", _statStyle);
-            DrawStandingsTable(teams.FriendlyFaction + " — YOUR TEAM", _friendlyRows, _friendlyRowStyle);
+            DrawStandingsTable(teams.FriendlyFaction + " — YOUR TEAM", _rows.Friendly, _friendlyRowStyle);
             GUILayout.Space(6);
-            DrawStandingsTable(teams.OpponentFaction, _opponentRows, _opponentRowStyle);
-            GUILayout.Label("Team totals include earlier bot lives. Replacement bots start a new personal run.", _mutedStyle);
+            DrawStandingsTable(teams.OpponentFaction, _rows.Opponent, _opponentRowStyle);
+            GUILayout.Label("Seats are fixed: a replacement bot takes over its seat, name and running stats. Team totals include earlier lives.", _mutedStyle);
             return;
         }
 
-        if (_cachedTactical && match.Mode is TacticalMode tactical)
+        if (_rows.Teams && match.Mode is TacticalMode tactical)
         {
             ArenaScoreboardTotals friendly = match.Scoreboard.Totals(ArenaScoreboardSide.Friendly);
             ArenaScoreboardTotals opponent = match.Scoreboard.Totals(ArenaScoreboardSide.Opponent);
@@ -364,11 +358,11 @@ internal sealed class ArenaPanel : MonoBehaviour
                 + $"Kills  {friendly.Kills} - {opponent.Kills}",
                 _statStyle);
             GUILayout.Space(5);
-            DrawStandingsTable(tactical.IsTeamArena ? "YOUR TEAM" : "YOU", _friendlyRows, _friendlyRowStyle);
+            DrawStandingsTable(tactical.IsTeamArena ? "YOUR TEAM" : "YOU", _rows.Friendly, _friendlyRowStyle);
             GUILayout.Space(6);
-            DrawStandingsTable("OPPOSITION", _opponentRows, _opponentRowStyle);
-            int earlierOpponentPoints = opponent.Score - _opponentRows.Sum(entry => entry.Score);
-            int earlierOpponentKills = opponent.Kills - _opponentRows.Sum(entry => entry.Kills);
+            DrawStandingsTable("OPPOSITION", _rows.Opponent, _opponentRowStyle);
+            int earlierOpponentPoints = opponent.Score - _rows.Opponent.Sum(entry => entry.Score);
+            int earlierOpponentKills = opponent.Kills - _rows.Opponent.Sum(entry => entry.Kills);
             if (earlierOpponentPoints > 0 || earlierOpponentKills > 0)
             {
                 GUILayout.Label(
@@ -376,70 +370,20 @@ internal sealed class ArenaPanel : MonoBehaviour
                     + $"{earlierOpponentKills} kills (included in match total)",
                     _mutedStyle);
             }
-            if (_hiddenRows > 0)
-                GUILayout.Label($"{_hiddenRows} additional current participant(s) hidden", _mutedStyle);
+            if (_rows.Hidden > 0)
+                GUILayout.Label($"{_rows.Hidden} additional current participant(s) hidden", _mutedStyle);
             return;
         }
 
-        DrawStandingsTable("MATCH STANDINGS", _overallRows, null);
-        if (_hiddenRows > 0)
-            GUILayout.Label($"{_hiddenRows} lower or completed bot run(s) not shown", _mutedStyle);
+        DrawStandingsTable("MATCH STANDINGS", _rows.Overall, null);
+        if (_rows.Hidden > 0)
+            GUILayout.Label($"{_rows.Hidden} lower or completed bot run(s) not shown", _mutedStyle);
     }
 
-    private void RefreshScoreboardCache(ArenaMatch match)
-    {
-        bool tactical = match.Mode is TacticalMode || match.Mode is TeamDeathmatchMode;
-        if (ReferenceEquals(_cachedMatch, match)
-            && _scoreboardVersion == match.Scoreboard.Version
-            && _cachedTactical == tactical)
-            return;
-
-        _cachedMatch = match;
-        _scoreboardVersion = match.Scoreboard.Version;
-        _cachedTactical = tactical;
-        if (tactical)
-        {
-            _friendlyRows = match.Scoreboard.Standings(
-                    ArenaScoreboardSide.Friendly,
-                    currentRosterOnly: true,
-                    maxRows: match.Mode is TeamDeathmatchMode ? 12 : 5,
-                    pinLocal: true)
-                .ToList();
-            _opponentRows = match.Scoreboard.Standings(
-                    ArenaScoreboardSide.Opponent,
-                    currentRosterOnly: true,
-                    maxRows: 15,
-                    pinLocal: false)
-                .ToList();
-            _overallRows.Clear();
-            _hiddenRows = Math.Max(
-                0,
-                match.Scoreboard.Count(ArenaScoreboardSide.Friendly, true) - _friendlyRows.Count
-                + match.Scoreboard.Count(ArenaScoreboardSide.Opponent, true) - _opponentRows.Count);
-            return;
-        }
-
-        _overallRows = match.Scoreboard.Standings(
-                side: null,
-                currentRosterOnly: false,
-                maxRows: 12,
-                pinLocal: true)
-            .ToList();
-        _friendlyRows.Clear();
-        _opponentRows.Clear();
-        _hiddenRows = Math.Max(
-            0,
-            match.Scoreboard.HistoricalParticipantCount - _overallRows.Count);
-    }
-
+    // Row selection is shared with the hold-to-peek table (ArenaScoreboardRows).
     private void ClearScoreboardCache()
     {
-        _cachedMatch = null;
-        _scoreboardVersion = -1;
-        _friendlyRows.Clear();
-        _opponentRows.Clear();
-        _overallRows.Clear();
-        _hiddenRows = 0;
+        _rows.Clear();
         _scrollPosition = Vector2.zero;
     }
 

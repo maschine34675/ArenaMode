@@ -114,6 +114,19 @@ Equal(usec.Profile.Info.Settings.Role, WildSpawnType.assault, "classifier never 
 Equal(RoleClassifier.DisplayName(usec), "Test actor", "display name remains unchanged");
 Equal(RoleClassifier.DisplayName(null), "?", "missing display name remains safe");
 
+// Team DM / Domination seats (2026-11-08): a replacement bot displays its seat's name, a
+// human never does, and the registry is gone with the match.
+var seated = Player(true, EPlayerSide.Bear, WildSpawnType.pmcBEAR);
+seated.ProfileId = "seat-body";
+TeamSeatNames.Assign("seat-body", "First occupant");
+Equal(RoleClassifier.DisplayName(seated), "First occupant", "replacement bot displays its seat name");
+Equal(RoleClassifier.Label(seated), "BEAR", "a seat name leaves the role label alone");
+var humanWithSeatId = Player(false, EPlayerSide.Bear);
+humanWithSeatId.ProfileId = "seat-body";
+Equal(RoleClassifier.DisplayName(humanWithSeatId), "Test actor", "a human never takes a seat name");
+TeamSeatNames.Reset();
+Equal(RoleClassifier.DisplayName(seated), "Test actor", "seat names end with the match");
+
 foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
 {
     var selected = native == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;

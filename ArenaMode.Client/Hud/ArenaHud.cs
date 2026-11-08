@@ -160,6 +160,10 @@ internal static class ArenaHud
         _friendlyMarkers = new ArenaFriendlyMarkers();
         _friendlyMarkers.Create(root);
         _infoPanels = new InfoPanels.ArenaInfoPanels(combatRoot, match);
+        // Holding the inventory key shows the team table; a tap still opens the inventory.
+        // Both live on the HUD object and go with it.
+        _canvasGo.AddComponent<ArenaScoreboardPeek>();
+        ArenaInventoryKeyNode.Attach(_canvasGo);
     }
 
     private static void OnKill(ArenaKill kill)

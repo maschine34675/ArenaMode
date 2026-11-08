@@ -192,6 +192,7 @@ internal static partial class ArenaMatchService
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         Bots.TeamDeathmatchRelations.Reset();
+        TeamSeatNames.Reset();
         var match = Current;
         Current = null;
         Try(Audio.HitmarkerAudioService.Detach, "hitmarker audio detach");
@@ -230,6 +231,7 @@ internal static partial class ArenaMatchService
         Effects.ArenaLightingDirector.Reset();
         Effects.ArenaTracerTeams.Reset();
         Bots.TeamDeathmatchRelations.Reset();
+        TeamSeatNames.Reset();
         if (Current == null && !TeamStartAbortPending)
             return;
 

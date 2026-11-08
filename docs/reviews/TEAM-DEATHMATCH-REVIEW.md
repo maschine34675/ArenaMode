@@ -21,15 +21,20 @@ while the human is dead; native AI or installed SAIN owns movement and combat.
 The ordinary HuntPlayer/PMC-floor controls do not govern this mode.
 
 The HUD shows faction kill totals. The Arena scoreboard separates both teams,
-including all earlier lives in match totals. New generated bots start a new
-personal run; they do not impersonate a previous bot. Existing team-colored
+including all earlier lives in match totals. Since 2026-11-08 the bots sit in
+fixed seats: a replacement bot takes over the seat, the name and the running stats
+of the body it replaces, and a vacant seat stays listed as OUT (before: every new
+generated bot started a new personal run; see [FORK-QUICK-WINS-20261108.md](FORK-QUICK-WINS-20261108.md)).
+The bot profile is never written for that. Existing team-colored
 tracers classify admitted friendly/enemy identities and preserve the color of
 posthumous projectiles. Same-team kills do not earn points or announcements.
 
 Generated Team DM bots now receive fixed native faction armbands: **USEC blue,
 BEAR red**. Arena applies them after APBS inventory generation and before native
 profile bundle loading, with no APBS configuration changes. Human equipment and
-protected PFT kits are unchanged. TDM uses fixed faction colors consistently;
+protected PFT kits are unchanged. Since 2026-11-08 the same pass also removes the
+generated bot's backpack with its contents (live Arena issues none; no switch), see
+[FORK-QUICK-WINS-20261108.md](FORK-QUICK-WINS-20261108.md) for what the bot loses. TDM uses fixed faction colors consistently;
 other modes retain their configurable friendly/opponent tracer palette.
 
 `Effects / TeamLasers` defaults to enabled for Team DM. Visible mounted weapon
