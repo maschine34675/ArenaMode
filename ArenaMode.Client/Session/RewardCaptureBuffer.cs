@@ -77,6 +77,18 @@ internal sealed class RewardCaptureBuffer
         _deaths.Add(victim, death);
     }
 
+    /// <summary>
+    /// Which killer a fatal event is recorded with. A kill credited to a body that this round has not
+    /// registered AND that is no longer alive in the world is a posthumous one: a tripwire or grenade of a
+    /// life that ended before this round saw it (Labyrinth re-arms its tripwires for every Shadow of Tagilla
+    /// life, and EFT credits a trap to its planter for as long as the trap exists). It is still a death, but
+    /// it can be scored for nobody, so it is recorded like a death EFT names no killer for: without one. The
+    /// game's own scoring of that kill is not this journal's business and stays as it is. A living body the
+    /// round does not know is a capture defect, not a late credit, and Death keeps voiding it.
+    /// </summary>
+    internal long? CreditedKiller(long? killer, bool aliveInWorld)
+        => killer.HasValue && !aliveInWorld && !_actors.ContainsKey(killer.Value) ? null : killer;
+
     internal bool KnowsActor(long body) => _actors.ContainsKey(body);
     internal bool KnowsDeath(long body) => _deaths.ContainsKey(body);
 

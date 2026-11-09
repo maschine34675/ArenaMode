@@ -4,10 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Nullable>disable</Nullable>
+    <RewardBufferSource Condition="'$(RewardBufferSource)' == ''">../../ArenaMode.Client/Session/RewardCaptureBuffer.cs</RewardBufferSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
-    <Compile Include="../../ArenaMode.Client/Session/RewardCaptureBuffer.cs" Link="RewardCaptureBuffer.cs" />
+    <Compile Include="$(RewardBufferSource)" Link="RewardCaptureBuffer.cs" />
     <Compile Include="../../ArenaMode.Shared/RewardWire.cs" Link="RewardWire.cs" />
   </ItemGroup>
 </Project>

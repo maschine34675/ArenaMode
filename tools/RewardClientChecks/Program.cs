@@ -8,7 +8,7 @@ internal static class Program
     private static int _assertions;
     private const string Local = "aaaaaaaaaaaaaaaaaaaaaaaa", Enemy = "bbbbbbbbbbbbbbbbbbbbbbbb";
     private static void Check(bool value, string reason)
-    { _assertions++; if (!value) throw new InvalidOperationException(reason); }
+    { _assertions++; if (!value) throw new InvalidOperationException("FAIL: " + reason); }
     private static RewardCaptureBuffer Fresh()
     {
         var b = new RewardCaptureBuffer("11111111111111111111111111111111", "22222222222222222222222222222222", "native|arenamode:22222222222222222222222222222222");
@@ -44,6 +44,29 @@ internal static class Program
         Check(side.Packet.State == "NoContest", "A physical body changed affiliation");
         var unknown = Fresh(); unknown.Death(2, 77, "Combat", 500);
         Check(unknown.Packet.State == "NoContest" && unknown.Current.Deaths.Count == 0, "Unknown attacker accepted");
+        // Issue 2: a tripwire or grenade of a life that ended before the round saw it (the body is dead in the
+        // world, the round never registered it) is a death scored for nobody, not a void; a living or a known
+        // killer keeps its credit, and only a living unknown one still voids through Death.
+        var late = Fresh();
+        Check(late.CreditedKiller(77, aliveInWorld: false) == null, "Posthumous credit of an earlier life kept a killer");
+        Check(late.CreditedKiller(77, aliveInWorld: true) == 77, "A registered unknown killer was dropped (the defect detector)");
+        Check(late.CreditedKiller(1, aliveInWorld: false) == 1, "A known dead killer lost its credit");
+        Check(late.CreditedKiller(1, aliveInWorld: true) == 1, "A known living killer lost its credit");
+        Check(late.CreditedKiller(null, aliveInWorld: false) == null, "A killer-less death gained a killer");
+        Check(late.CreditedKiller(null, aliveInWorld: true) == null, "A killer-less death of a living world gained a killer");
+        long? lateKiller = late.CreditedKiller(77, aliveInWorld: false);
+        late.Death(2, lateKiller, lateKiller.HasValue ? "Combat" : "Environment", 500);
+        Check(late.Packet.State == "Completed" && late.Current.Deaths.Single().KillerBody == null && late.Current.Deaths.Single().Kind == "Environment",
+            "Posthumous kill of an earlier life was not recorded as a killer-less death");
+        late.Death(2, null, "Environment", 500);
+        Check(late.Packet.State == "Completed" && late.Current.Deaths.Count == 1, "The environment fallback after the late credit changed the outcome");
+        var fallbackFirst = Fresh(); fallbackFirst.Death(2, null, "Environment", 500);
+        long? afterFallback = fallbackFirst.CreditedKiller(77, aliveInWorld: false);
+        fallbackFirst.Death(2, afterFallback, afterFallback.HasValue ? "Combat" : "Environment", 500);
+        Check(fallbackFirst.Packet.State == "Completed" && fallbackFirst.Current.Deaths.Count == 1, "The late credit after the environment fallback changed the outcome");
+        var registeredUnknown = Fresh(); long? kept = registeredUnknown.CreditedKiller(77, aliveInWorld: true);
+        registeredUnknown.Death(2, kept, "Combat", 500);
+        Check(registeredUnknown.Packet.State == "NoContest", "A registered body unknown to the round was accepted as a killer");
         var unknownVictim = Fresh(); unknownVictim.Death(77, 1, "Combat", 500);
         Check(unknownVictim.Packet.State == "NoContest", "Unknown victim accepted");
         var changedDeath = Fresh(); changedDeath.Death(2, 1, "Combat", 500); changedDeath.Death(2, null, "Environment", 500);

@@ -10,6 +10,16 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
+  EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
+  ended before the round. On Labyrinth in Deathmatch this was close to certain in every match
+  with more than one round, because the map re-arms its tripwires for every Shadow of
+  Tagilla life and credits a trap to its planter; a bot's grenade that goes off after a round
+  change did the same on any map. Such a kill is now captured as a death without a killer: it
+  pays nobody, the match stays valid, and the game's own scoring of it is unchanged.
+  Single-round matches were never affected. Reported with
+  the analysis and a tested fix in
+  [maschine34675/ArenaMode#2](https://github.com/maschine34675/ArenaMode/issues/2).
 - Add Amand's Graphics 1.8.0 to the Arena whitelist. Its Labyrinth lighting
   initializes before the starting kit is handed out, and its ON/OFF setting
   survives respawns. [Native test](docs/reports/2026-11/GPU-AMANDS-20261108.md)

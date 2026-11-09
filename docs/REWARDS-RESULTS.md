@@ -72,7 +72,18 @@ own native individual identity, not inherit the previous occupant's scoring slot
   Allies' kills, assists, self-kills, friendly kills and environmental deaths do not.
 - Every victim may die once. Event sequence is consecutive across rounds; times
   must be ordered, within the observed round, and after both bodies were registered.
-  Delayed grenade/fire attribution may name an attacker who has since died.
+  Delayed grenade/fire attribution may name an attacker who has since died. (2026-11-09)
+  A kill credited to a dead body the round never registered (a tripwire or grenade of a
+  life that ended before the round saw it; Labyrinth re-arms its tripwires for every Shadow
+  of Tagilla life) is captured as an environment death without a killer: a valid death
+  scored for nobody, instead of voiding the match as before
+  ([issue 2](https://github.com/maschine34675/ArenaMode/issues/2)). A living body the round
+  has not seen keeps voiding the match. The game's own scoring is independent of the
+  capture and still counts such a kill for the dead life's profile, so in the rare
+  Deathmatch round that such a kill decides, the server sees it differently: a round the
+  client ended at the kill target through it is unfinished for the server (the match is
+  rejected, unpaid, as it was voided before), and a timeout lead that rests on it earns no
+  server round win.
 - Round IDs, ordering and counts must match the authorization. Future schema,
   duplicate JSON fields, unknown members/enums, missing required fields, changed
   identities, impossible counts and events after a terminal result are refused.

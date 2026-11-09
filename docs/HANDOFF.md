@@ -109,6 +109,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Posthumous kills across a round boundary (2026-11-09, master, for 0.6.0;
+[issue 2](https://github.com/maschine34675/ArenaMode/issues/2)):** a kill EFT credits to a body of an earlier
+round (a Labyrinth tripwire re-armed by a Shadow of Tagilla life, a bot's grenade over the round change) met
+`RewardCaptureBuffer.Death`'s unknown-killer check and voided the match (`NoContest`). `ArenaRewardCapture.Kill`
+now records such a kill without a killer (`RewardCaptureBuffer.CreditedKiller`: the round does not know the
+body AND it is not alive in the world; EFT unregisters a body one frame after death, except one that died on
+a stationary weapon, which stays listed dead, hence the alive test), on both fatal-event paths, before the
+buffer so that the environment fallback agrees in either order; a living body unknown to the round still
+voids (defect detector). The server is unchanged (it already accepts a killer-less environment death and
+refuses `unknown-killer-life`). Trade-off (review 2026-11-09): the kill pays nobody, while the game's own
+scoring (`DeathmatchRules.RecordKill`, `ArenaScoreboard` by profile id) still counts it for the dead life's
+profile; in the rare Deathmatch round decided by such a kill the server sees `unfinished-round` (rejected,
+unpaid, as it was voided before) or derives the timeout win without it. Making the game's scoring follow the
+capture was rejected: it would make round scoring depend on rewards being on. Verified offline:
+RewardClientChecks (rule, both event orders, the kept void, call-site anchors) with its five mutants, xunit,
+no-deploy build. Native: pending (a three-round Labyrinth Deathmatch with rewards on GPU-2).
+
 **Tactical objective package (2026-11-08, master `e1dfc344`, not released, not pushed):** the fork survey's second item
 ([review](reviews/TACTICAL-OBJECTIVE-20261108.md)): one capture point per Tactical round (solo and
 PitFireTeam) from the map's Domination layout, a pure hold clock (`Modes/TacticalObjectivePolicy.cs`),

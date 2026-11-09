@@ -173,7 +173,7 @@ internal static class ArenaRewardCapture
                     _lastAt = Time.time;
                     if (state.Elapsed >= 0) _activeSeconds = state.Elapsed;
                     _buffer.Advance(Milliseconds(_activeSeconds));
-                    long? lastKiller = kill.KillerBodyId > 0 ? kill.KillerBodyId : (long?)null;
+                    long? lastKiller = CreditedKiller(kill, AliveInWorld(kill.KillerBodyId));
                     _buffer.Death(kill.VictimBodyId, lastKiller, lastKiller.HasValue ? "Combat" : "Environment",
                         _buffer.Current.ObservedDurationMilliseconds);
                     Observe();
@@ -195,10 +195,19 @@ internal static class ArenaRewardCapture
                 ? at > _selection.TimeLimitMilliseconds : at >= _selection.TimeLimitMilliseconds)) return;
             // A spawn may be killed in the same frame before the normal poll.
             // Resolve the exact wrapper identity, never a reused profile slot.
+            // The killer is registered here only while alive: a dead body still on the list (the one frame
+            // before EFT unregisters it, or a body that died on a stationary weapon, which EFT never
+            // unregisters) is no life of this round, see CreditedKiller.
+            bool killerAlive = false;
             foreach (var actor in _world.RegisteredPlayers)
-                if (actor is Player player && (ArenaHitHistory.BodyId(player) == kill.VictimBodyId
-                    || ArenaHitHistory.BodyId(player) == kill.KillerBodyId)) Register(player);
-            long? killer = kill.KillerBodyId > 0 ? kill.KillerBodyId : (long?)null;
+            {
+                if (!(actor is Player player)) continue;
+                long body = ArenaHitHistory.BodyId(player);
+                bool alive = player.HealthController?.IsAlive == true;
+                if (body == kill.KillerBodyId && alive) killerAlive = true;
+                if (body == kill.VictimBodyId || body == kill.KillerBodyId && alive) Register(player);
+            }
+            long? killer = CreditedKiller(kill, killerAlive);
             _buffer.Death(kill.VictimBodyId, killer, killer.HasValue ? "Combat" : "Environment", at);
         }
         catch (Exception e) { _buffer.Invalidate(); Warn("a fatal event could not be captured", e); }
@@ -228,6 +237,29 @@ internal static class ArenaRewardCapture
         if (_buffer.KnowsDeath(body)) return;
         if (!_buffer.KnowsActor(body)) Register(player);
         if (_buffer.KnowsActor(body)) PendingDeaths[body] = (_buffer.Current.Number, administrative);
+    }
+
+    // A killer that is dead (EFT unregisters a body one frame after its death, Player.OnDeadCoroutine ->
+    // GameWorld.UnregisterPlayer; a body that died on a stationary weapon stays listed, dead) and that this
+    // round never registered is a life that ended before the round saw it, whose tripwire or grenade went off
+    // now. Such a kill is recorded without a killer (RewardCaptureBuffer.CreditedKiller); a living body the
+    // round does not know still voids. The game's own scoring of the kill is untouched (issue 2).
+    private static long? CreditedKiller(ArenaKill kill, bool killerAlive)
+    {
+        long? named = kill.KillerBodyId > 0 ? kill.KillerBodyId : (long?)null;
+        long? credited = _buffer.CreditedKiller(named, killerAlive);
+        if (named.HasValue && !credited.HasValue)
+            Plugin.ModLogger.LogDebug("Arena reward capture: the kill of body " + kill.VictimBodyId + " is credited to body "
+                + named.Value + ", a dead body this round never registered (a tripwire or grenade of an earlier life); recorded without a killer.");
+        return credited;
+    }
+
+    private static bool AliveInWorld(long body)
+    {
+        if (body <= 0 || _world == null) return false;
+        foreach (var actor in _world.RegisteredPlayers)
+            if (actor is Player player && ArenaHitHistory.BodyId(player) == body) return player.HealthController?.IsAlive == true;
+        return false;
     }
 
     internal static void Invalidate(string reason)
