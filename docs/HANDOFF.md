@@ -12,6 +12,11 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-09:** the private home menu uses a Factory hall with
+  mouse parallax. The EFT startup panel and the direct-start profile picker use
+  the flat version. [Contract](reviews/SESSION-MENU-ART-20261109.md) and
+  [two-host verification](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md).
+
 - **Development, 2026-11-08:** Amand's Graphics 1.8.0 was admitted after
   Factory and Labyrinth respawns. Amand's Sense Updated 3.1.0 was exercised
   with Core 1.0.22 on Factory and remains unlisted. [Builds, evidence and

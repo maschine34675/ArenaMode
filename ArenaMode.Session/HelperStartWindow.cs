@@ -20,6 +20,7 @@ namespace ArenaMode.SessionHelper
             if (requestedProfile != null && selected < 0) throw new HelperException("The selected SPT profile is unavailable. Open ArenaMode without arguments to choose another.");
             bool busy = false, result = true;
             Application.EnableVisualStyles();
+            using (var header = LoadHeader())
             using (var form = new Form { Text = "ArenaMode", ClientSize = new Size(410, 178),
                 FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = true,
                 StartPosition = FormStartPosition.CenterScreen, Font = new Font("Segoe UI", 10), AutoScaleMode = AutoScaleMode.Dpi })
@@ -33,6 +34,14 @@ namespace ArenaMode.SessionHelper
                 foreach (var profile in profiles) combo.Items.Add(profile);
                 combo.SelectedIndex = selected >= 0 ? selected : 0;
                 form.Controls.AddRange(new Control[] { label, combo, status, shortcut, cancel, start });
+                if (header != null)
+                {
+                    int height = (int)Math.Round((double)form.ClientSize.Width * header.Height / header.Width);
+                    form.ClientSize = new Size(form.ClientSize.Width, form.ClientSize.Height + height);
+                    foreach (Control control in form.Controls) control.Top += height;
+                    form.Controls.Add(new PictureBox { Size = new Size(form.ClientSize.Width, height),
+                        Image = header, SizeMode = PictureBoxSizeMode.Zoom, TabStop = false });
+                }
                 form.AcceptButton = start; form.CancelButton = cancel;
                 form.FormClosing += (_, e) => { if (busy) e.Cancel = true; };
                 shortcut.LinkClicked += (_, e) =>
@@ -55,6 +64,18 @@ namespace ArenaMode.SessionHelper
                 starter.Progress = _ => { };
             }
             return result;
+        }
+
+        private static Bitmap LoadHeader()
+        {
+            // Keep the existing picker and status usable even when GDI cannot decode the artwork.
+            try
+            {
+                using (var stream = typeof(HelperStartWindow).Assembly.GetManifestResourceStream("ArenaMode.SessionMenu.splash.jpg"))
+                using (var image = Image.FromStream(stream))
+                    return new Bitmap(image);
+            }
+            catch (Exception) { return null; }
         }
 
         internal static string CreateShortcut(string executable, string gameRoot, string desktop)

@@ -10,6 +10,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Private Arena sessions show an original Factory hall during EFT startup and
+  a three-layer version with subtle mouse parallax behind the main menu.
+  The desktop profile picker uses the same artwork. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
+
 - Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen
   offers "Arena kits" or "Own gear" there as it did for Zombies and PitFireTeam Tactical, one saved
   preference per mode (new F12 keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,

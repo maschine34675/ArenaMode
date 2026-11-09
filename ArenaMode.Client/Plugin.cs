@@ -58,6 +58,7 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void InitializeRuntime()
     {
+        ArenaMenuArt.Enable();
         RedeployCore.Init(ModLogger);
         Settings.Init(Config);
         ArenaParticipantSettings.Init(Config);
@@ -225,6 +226,7 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ShutdownRuntime()
     {
+        ArenaMenuArt.Shutdown();
         ArenaSessionBanner.Shutdown();
         ArenaTarkovaColaCompat.Shutdown();
         ArenaAmandsGraphicsScene.Shutdown();

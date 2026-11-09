@@ -1,0 +1,27 @@
+{
+  "generator": "OpenAI built-in image_gen",
+  "generatedOn": "2026-11-09",
+  "masters": [
+    {
+      "file": "masters/hall.png",
+      "sha256": "1b49a94caae61f9c19677ced060d79598b8d704d610ca3e0b01d63c75c490950",
+      "reference": null,
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Create an original film-still-quality photoreal environment plate, cinematic 21:9 ultrawide 2520x1080, full bleed, for a tactical game's Factory Arena main menu. A quiet, empty, gritty decommissioned Eastern European steel fabrication hall repurposed as an indoor combat arena. Human eye level at a distance, looking along stacked overhead steel I-beams and clerestory roof trusses beneath a vast high corrugated roof into dusty blue-green haze. Big weathered industrial columns, metal wall panels, concrete loading bays, a modest exterior-lit entrance and an amber industrial work lamp back on the right third of frame. Puddled worn concrete with subdued pools of warm light and cool bounced skylight. Dark steel and restrained old safety yellow. Tactile: chipped lead paint, old brick, rough concrete, grime. Composition must work both ultrawide and center-cropped 16:9. Eye-catching architectural silhouette on the right third. Keep the left/middle and lower-middle naturally dark, low contrast and quiet for native menu typography; still show believable hall texture in shadows. Atmospheric, decaying late-shift industry, art directed yet physically realistic, restrained exposure, clear subtle tonal depth. Entire image is the FAR BACKGROUND ONLY, ending in an unobstructed open floor: do not place any near foreground railings/fencing, close obstructions, central crates, players or people. No text, letters, logos, typography, numbers, flags, watermarks, screens, interfaces, floating dust effects, dramatic fire or science fiction. The main feature is the scale and perspective of the hall itself, not a pile of props. Professional film art direction, 32mm lens, filmic color, crisp depth in the architecture. Fill the entire image without letterboxing or titles."
+    },
+    {
+      "file": "masters/barrier.png",
+      "sha256": "3bfde66ae48ffbbb95be96f464105267490077d22d0bcf06bb87c94b2c3c7a12",
+      "reference": "masters/hall.png",
+      "transparent": true,
+      "prompt": "Use the supplied original factory photograph only to match perspective, worn materials and cool/amber lighting. Make a new isolated object on actual transparent alpha: a low, heavily worn concrete Jersey arena crash barrier, about 1 m high, oriented diagonally from the lower RIGHT near the camera to the LEFT further away and slightly higher in frame; viewed obliquely from the left of the barrier at a standing person's eye level. Its broad front face and left end cap are visible. Flat narrow top, chamfered base, battered edges, small exposed aggregate chips, grime streaks, several strips of extremely faded muted ochre hazard paint across the near dark charcoal concrete face. The light is mainly cool, a very restrained amber edge on the right/top. One tangible believable battered prop, photoreal game background photography to match the reference scene. It will occupy only a small part of the lower right edge of that factory frame as a middle parallax layer. Show entire barrier and a small soft contact shadow on transparent alpha. NO hall, background, floor, UI, text, lettering, symbol, logo, people, other props or vignette. Wide horizontal cutout; retain both ends, do not crop its edges. Dark understated, no shiny caution-yellow, front-left end of object is farther and smaller, right end closer and slightly lower."
+    },
+    {
+      "file": "masters/fence.png",
+      "sha256": "c8b35fb0a1189678c92c826c10170b896b6a4e7c06d1e5d38923b736e262bdc1",
+      "reference": "masters/hall.png",
+      "transparent": true,
+      "prompt": "Use the factory photograph as a lighting reference only. Make one isolated transparent foreground layer, a photoreal depthy close-out-of-focus fragment of an old industrial chain-link gate with a square steel hinge post, rusty hinges and broad diamond wire mesh. Viewed almost edge-on, with the dark, thick vertical post at its RIGHT edge leaning very slightly towards the left as it goes up, mesh extending horizontally to its LEFT. The mesh wiring MUST be open holes with real transparent alpha, background everywhere must also be transparent alpha. A tall narrow cropped section of an industrial gate in a 2:3 portrait composition, extending from TOP to BOTTOM edge in frame. Very close to camera, soft optical defocus on mesh/materials, dark charcoal green iron, dull cool gray sidelight, no visual emphasis, no orange. Understated dark mass suitable for framing the far LEFT edge of a game image, not covering the center. Only one vertical slice of gate, no entire symmetrical fence. No hall, floor, sky, interior, scene visible through gaps, text, chains, label or people. Believable cold worn iron with a few rust marks, cinematic realism, restrained exposure, foreground gate fragment on pure transparent alpha."
+    }
+  ]
+}

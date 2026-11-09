@@ -32,6 +32,9 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Specifications and contracts
 
+- [Private Factory startup artwork and main-menu parallax](reviews/SESSION-MENU-ART-20261109.md)
+- [Private and ordinary startup checks on GPU-1 and GPU-2](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md)
+
 - [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
 - [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
