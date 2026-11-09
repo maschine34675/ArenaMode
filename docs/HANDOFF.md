@@ -16,6 +16,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   mouse parallax. The EFT startup panel and the direct-start profile picker use
   the flat version. [Contract](reviews/SESSION-MENU-ART-20261109.md) and
   [two-host verification](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md).
+  Installed the tested client, session helper and required Core 1.0.22 into
+  `D:\SPT41` on 2026-11-09. Their hashes and module IDs matched the tested
+  binaries on disk. Rollback manifest and previous files are under
+  `D:\SPT41-Backups\arena-session-menu-art\20261109-192424-305`.
 
 - **Development, 2026-11-08:** Amand's Graphics 1.8.0 was admitted after
   Factory and Labyrinth respawns. Amand's Sense Updated 3.1.0 was exercised
