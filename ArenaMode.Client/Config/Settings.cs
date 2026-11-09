@@ -220,6 +220,10 @@ public static class Settings
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<bool> TacticalTeamOwnGear { get; private set; }
+    public static ConfigEntry<bool> TacticalOwnGear { get; private set; }
+    public static ConfigEntry<bool> DeathmatchOwnGear { get; private set; }
+    public static ConfigEntry<bool> TeamDeathmatchOwnGear { get; private set; }
+    public static ConfigEntry<bool> DominationOwnGear { get; private set; }
     public static ConfigEntry<bool> ZombiePftFastPathEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieVoiceBudgetEnabled { get; private set; }
     public static ConfigEntry<bool> ZombieCrowdEnabled { get; private set; }
@@ -364,7 +368,7 @@ public static class Settings
     /// They read <see cref="Session.ArenaSession.AnnouncerEnabledSelection"/>,
     /// the per-mode half frozen once at arm (captured from
     /// <see cref="GetAnnouncerPerModeEnabled"/>, exactly like
-    /// <c>GunGameLadderSelection</c>/<c>ZombieOwnGearSelection</c>), and
+    /// <c>GunGameLadderSelection</c>/<c>OwnGearSelection</c>), and
     /// re-combine it with the live master switch themselves — see that
     /// property's own doc comment for why a live call here would have let a
     /// mid-raid F12 edit desync an already-armed/active match (ANN-1, the
@@ -389,19 +393,27 @@ public static class Settings
     internal static bool GetAnnouncerPerModeEnabled(string mode) => AnnouncerEntry(mode)?.Value == true;
 
     /// <summary>
-    /// Independent preferences for solo Zombies and protected Tactical. The
-    /// selection policy additionally checks the current party before exposing
-    /// either entry; a stored preference never enables another mode's kit path.
+    /// One independent preference per mode and roster: Deathmatch, Team DM,
+    /// Domination and Zombies solo, Tactical twice (solo Tactical/OwnGear and
+    /// protected Tactical/TeamOwnGear). Gun Game has none: its ladder is the
+    /// loadout (ArenaOwnGearPolicy). The selection policy additionally checks
+    /// the current party before exposing an entry; a stored preference never
+    /// enables another mode's kit path, and a protected Zombie squad never reads
+    /// its entry (it keeps own gear without a choice).
     /// </summary>
-    private static ConfigEntry<bool> EquipmentChoiceEntry(string mode)
+    private static ConfigEntry<bool> EquipmentChoiceEntry(string mode, bool protectedTeam)
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
-            ArenaModeCatalog.ZombieId => ZombieOwnGear,
-            ArenaModeCatalog.TacticalId => TacticalTeamOwnGear,
+            ArenaModeCatalog.ZombieId when !protectedTeam => ZombieOwnGear,
+            ArenaModeCatalog.TacticalId => protectedTeam ? TacticalTeamOwnGear : TacticalOwnGear,
+            ArenaModeCatalog.DeathmatchId when !protectedTeam => DeathmatchOwnGear,
+            ArenaModeCatalog.TeamDeathmatchId when !protectedTeam => TeamDeathmatchOwnGear,
+            ArenaModeCatalog.DominationId when !protectedTeam => DominationOwnGear,
             _ => null,
         };
 
-    internal static bool GetEquipmentChoiceOwnGear(string mode) => EquipmentChoiceEntry(mode)?.Value == true;
+    internal static bool GetEquipmentChoiceOwnGear(string mode, bool protectedTeam)
+        => EquipmentChoiceEntry(mode, protectedTeam)?.Value == true;
 
     /// <summary>
     /// Same ConfigEntry, same <c>ArenaSession.IsActive||ArmedForNextRaid</c>
@@ -411,10 +423,10 @@ public static class Settings
     /// panel's own row — only the caller (<see cref="Session.
     /// ArenaEquipmentChoiceView"/> instead of the mutators panel) changed.
     /// </summary>
-    internal static bool TrySelectEquipmentChoice(string mode, bool ownGear)
+    internal static bool TrySelectEquipmentChoice(string mode, bool protectedTeam, bool ownGear)
     {
         if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
-        var entry = EquipmentChoiceEntry(mode);
+        var entry = EquipmentChoiceEntry(mode, protectedTeam);
         if (entry == null) return false;
         try { entry.Value = ownGear; }
         catch (Exception ex)
@@ -1243,6 +1255,11 @@ public static class Settings
             new ConfigDescription("Independent Team Deathmatch duration after both teams are ready and the countdown ends (0 = unlimited). " +
                 "At the time limit the leading team wins; equal scores draw. Changes during a raid apply next match.",
                 new AcceptableValueRange<int>(0, 7200)));
+        TeamDeathmatchOwnGear = config.Bind("Team Deathmatch", "OwnGear", false,
+            "Bring your own protected equipment instead of a random Arena kit. Your entry loadout, ammunition " +
+            "included, is restored on every respawn; items picked up during the raid are not kept across a " +
+            "restore. The secure container stays as it is. Nothing is lost or gained: the raid restores your " +
+            "profile as always. Frozen before loading.");
 
         DominationScoreLimit = config.Bind("Domination", "ScoreLimit", 300,
             new ConfigDescription("Team points needed to win (0 = unlimited). Frozen at match start.",
@@ -1250,6 +1267,11 @@ public static class Settings
         DominationTimeLimitSeconds = config.Bind("Domination", "TimeLimitSeconds", 600,
             new ConfigDescription("Match duration in seconds (0 = unlimited). Highest score wins; equal scores draw. Frozen at match start.",
                 new AcceptableValueRange<int>(0, 7200)));
+        DominationOwnGear = config.Bind("Domination", "OwnGear", false,
+            "Bring your own protected equipment instead of a random Arena kit. Your entry loadout, ammunition " +
+            "included, is restored on every respawn; items picked up during the raid are not kept across a " +
+            "restore. The secure container stays as it is. Nothing is lost or gained: the raid restores your " +
+            "profile as always. Frozen before loading.");
 
         ZombieMaxAlive = config.Bind("Zombie", "MaxAlive", 32,
             new ConfigDescription(
@@ -1387,7 +1409,8 @@ public static class Settings
             "RoundRespawn",
             true,
             "Respawn with a fresh kit when a round ends, at a spawn point away " +
-            "from the fight. Off: keep standing where the round ended, healed up.");
+            "from the fight; with own gear, the entry loadout is restored instead. " +
+            "Off: keep standing where the round ended, healed up.");
 
         DeathmatchRounds = config.Bind("Deathmatch", "Rounds", 0,
             new ConfigDescription("Rounds per match (0 = endless). Finite rounds require a kill or time limit. Frozen before loading.",
@@ -1400,6 +1423,11 @@ public static class Settings
                 new AcceptableValueRange<int>(0, 7200)));
         DeathmatchFreeForAll = config.Bind("Deathmatch", "FreeForAll", true,
             "True: every individual fights everyone. False: all bots fight only the player. Frozen with server acknowledgement before loading.");
+        DeathmatchOwnGear = config.Bind("Deathmatch", "OwnGear", false,
+            "Bring your own protected equipment instead of a random Arena kit. Your entry loadout, ammunition " +
+            "included, is restored on every respawn and at every round break with a fresh kit selected; items " +
+            "picked up during the raid are not kept across a restore. The secure container stays as it is. " +
+            "Nothing is lost or gained: the raid restores your profile as always. Frozen before loading.");
         var migrated = config.Bind("Deathmatch", "LegacyRulesMigrated", false,
             "Internal one-time migration from Endless/Rounds; leave enabled.");
         if (!migrated.Value)
@@ -1450,7 +1478,14 @@ public static class Settings
             "With PitFireTeam, bring your own protected PMC equipment (default) or receive an Arena kit. " +
             "Only your PMC changes; companions keep their own gear. The issued kit is restored after " +
             "your death at the next round, using the same protected round lifecycle. Survivors retain " +
-            "their current equipment. No buy phase is added. Frozen at match start; solo Tactical is unchanged.");
+            "their current equipment. No buy phase is added. Frozen at match start; solo Tactical has its own " +
+            "OwnGear setting.");
+
+        TacticalOwnGear = config.Bind("Tactical", "OwnGear", false,
+            "Solo Tactical: bring your own protected equipment instead of the kit economy. There is nothing " +
+            "to buy and no roubles are awarded; the buy countdown stays as the pause between rounds. Your " +
+            "entry loadout, ammunition included, is restored at every round start and after your death. " +
+            "Frozen before loading; PitFireTeam squads use TeamOwnGear instead.");
 
         TacticalSquadIsPmc = config.Bind(
             "Tactical",

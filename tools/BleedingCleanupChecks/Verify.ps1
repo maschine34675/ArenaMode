@@ -13,7 +13,11 @@ $bleedingCommutator = [IO.File]::ReadAllText((Join-Path $bleedingNative 'Systems
 $bleedingSession = [IO.File]::ReadAllText((Join-Path $bleedingRoot 'ArenaMode.Client/Session/ArenaSession.cs'))
 $bleedingExactScope = [regex]::Match($bleedingSession,
     'internal static bool IsExactActiveRaid\(AbstractGame game, GameWorld world\)\s*=>[\s\S]*?;').Value
-if (!$bleedingExactScope) { throw 'Production exact-raid scope extraction changed.' }
+# Since 2026-10-09 the exact-raid scope delegates to IsExactStartedRaid (the server-rejected start
+# shares it); the generated partial carries both, over the stand-in's _startedGame/_startedWorld.
+$bleedingStartedScope = [regex]::Match($bleedingSession,
+    'internal static bool IsExactStartedRaid\(AbstractGame game, GameWorld world\)\s*=>[\s\S]*?;').Value
+if (!$bleedingExactScope -or !$bleedingStartedScope) { throw 'Production exact-raid scope extraction changed.' }
 
 function Extract-Method([string]$Source, [string]$Signature) {
     $start = $Source.IndexOf($Signature, [StringComparison]::Ordinal)
@@ -51,6 +55,7 @@ using Systems.Effects;
 using UnityEngine;
 namespace ArenaMode.Session { internal static partial class ArenaSession {
 $bleedingExactScope
+$bleedingStartedScope
 } }
 namespace EFT { public partial class Player {
 $($bleedingPlayerMethods -join "`n")

@@ -195,8 +195,8 @@ namespace ArenaMode.Session
         public static bool ArmedForNextRaid;
         public static int ArmEpoch;
         public static string ArmedMode;
-        public static bool ZombieOwnGearSelection;
-        public static bool ZombieOwnGearArmed => Modes.ZombieOwnGearGate.IsSelectedFor(ArmedMode, ZombieOwnGearSelection);
+        public static bool OwnGearSelection;
+        public static bool OwnGearArmed => Modes.ArenaOwnGearPolicy.IsSelectedFor(ArmedMode, OwnGearSelection);
     }
     internal static class ArenaSideSelectionLayout
     {
@@ -251,15 +251,20 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Shared
 {
-    internal static class ArenaPopulationPolicy { public const string Zombie = "zombie"; }
+    internal static class ArenaPopulationPolicy
+    {
+        public const string TeamDeathmatch = "teamdeathmatch", Domination = "domination", Tactical = "tactical", Zombie = "zombie";
+    }
+    internal static class DeathmatchSelection { public const string ModeId = "deathmatch"; }
 }
 namespace ArenaMode.Config
 {
     internal static class Settings
     {
         public static string SelectedGameModeId = "deathmatch";
-        public static bool OwnGear;
-        public static bool GetEquipmentChoiceOwnGear(string mode) => OwnGear;
+        // Two preferences, as in production: the solo per-mode entry and protected Tactical's own.
+        public static bool OwnGear, TeamOwnGear;
+        public static bool GetEquipmentChoiceOwnGear(string mode, bool protectedTeam) => protectedTeam ? TeamOwnGear : OwnGear;
     }
 }
 namespace ArenaMode.Compat

@@ -119,22 +119,6 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             yield break;
         }
 
-        // Zombie's own-gear option (item 4, 2026-10-06 follow-up): the same
-        // idea as the frozen PitFireTeam branch just below, for solo play —
-        // restore the entry loadout instead of drawing a kit. Frozen PFT teams
-        // are explicitly excluded: they must consume the prepared lease below.
-        // Checked FIRST for the solo path
-        // (and unconditionally skips KitCatalog.GetSelectedKit() below) so a
-        // random-kit respawn can never reach a player who asked to keep their
-        // own gear. See ZombieOwnGearLoadout's own doc comment for why no
-        // separate "prepare ahead of time" stage is needed, unlike the team
-        // branch's TickTeamRetirement staging.
-        if (ArenaSession.ZombieOwnGearActive && !PitFireTeamCompat.HasFrozenTeamRoster)
-        {
-            yield return game.StartCoroutine(RespawnOwnGearPlayer(game, deadPlayer, corpsePosition, raidEpoch));
-            yield break;
-        }
-
         // A frozen PitFireTeam roster may enter Redeploy only through its mode's
         // one-shot round/wave-transition authorization. That authorization binds the
         // exact LocalGame/dead body, epoch and fully prepared in-memory loadout;
@@ -195,7 +179,17 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         // without this file's usings.
         long startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var kit = KitCatalog.GetSelectedKit();
+        // The player's own-gear option (ArenaOwnGearLoadout): decided after the
+        // frozen-roster branch above, so a protected squad can never reach it,
+        // and before the kit draw, so a random kit can never reach a player who
+        // asked to keep their own gear. Everything else on this path is shared
+        // — the Team DM terminal hold, the team-box reservation, the area
+        // preflight and the failure routing are the same whether the new body
+        // wears a kit or the restored entry loadout. Preload(null) is a no-op:
+        // every item of the entry loadout is already in the raid.
+        bool ownGear = ArenaSession.OwnGearActive;
+        int ownGearEpoch = 0;
+        KitDefinition kit = ownGear ? null : KitCatalog.GetSelectedKit();
         long kitPickedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
         // No-op when this kit was already preloaded this raid (raid-start swap);
@@ -257,7 +251,21 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
             SpawnSelector = preparedSpawn,
             EquipmentStrategy = (profile, dead) =>
             {
-                if (kit != null)
+                if (ownGear)
+                {
+                    // Fail closed where the kit path skips silently
+                    // (EquipmentSurgeon's requireCorpse): without the corpse the
+                    // dead tree would be orphaned into nothing. EFT creates the
+                    // corpse inside Player.OnDead, which runs before the game's
+                    // own DiedEvent handler that Redeploy intercepts (the player
+                    // subscribes in its Init, the game later), so this does not
+                    // fire in practice; and a player who chose own gear is never
+                    // handed a random kit instead.
+                    if (CorpseField(dead) == null)
+                        throw new InvalidOperationException("own-gear respawn found no corpse to leave the dead loadout on");
+                    ownGearEpoch = Kits.ArenaOwnGearLoadout.Reissue(profile, "Arena own-gear respawn");
+                }
+                else if (kit != null)
                     KitBuilder.ApplyToProfile(profile, dead, kit, requireCorpse: true);
                 else
                     Redeploy.Core.Inventory.EquipmentSurgeon.ReplaceEquipment(profile, dead);
@@ -313,6 +321,18 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
                 Areas.ArenaAreaRuntime.Abort("body replacement failed: " + failure.GetBaseException().Message);
                 yield break;
             }
+            if (ownGear)
+            {
+                // A failed restore poisons the snapshot for the rest of the raid
+                // (ArenaOwnGearLoadout): the generic death screen would run on an
+                // owner the engine already destroyed, with the player's real
+                // gear on the line. The verified-owner abort ends the raid
+                // instead, as the protected-team path does; the server restores
+                // the profile either way.
+                Modes.ArenaMatchService.ScheduleFailedStartAbort(
+                    "Arena own-gear body replacement failed: " + failure.GetBaseException().Message);
+                yield break;
+            }
             LocalGameAccessor.InvokeDeathScreen(game);
             yield break;
         }
@@ -346,6 +366,11 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
 
         if (kit != null)
             ArenaEvents.RaiseKitApplied(kit);
+        else if (ownGear)
+        {
+            Plugin.ModLogger.LogDebug($"Arena own-gear respawn restored the entry loadout (epoch {ownGearEpoch}).");
+            ArenaEvents.RaiseOwnGearReissued();
+        }
         ArenaEvents.RaisePlayerRespawned(respawned);
     }
 
@@ -450,106 +475,6 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         ArenaEvents.RaisePlayerRespawned(respawnedPlayer);
     }
 
-    /// <summary>
-    /// Zombie's own-gear option (item 4): the only non-team entrance to
-    /// Redeploy that restores the entry loadout instead of a kit. Arm+
-    /// Prepare+Commit all run inside the EquipmentStrategy callback itself —
-    /// see ZombieOwnGearLoadout's own doc comment for why no separate
-    /// staging phase is needed here, unlike RespawnProtectedTeamPlayer's
-    /// team equivalent above. Area-bounded spawn selection matches the
-    /// ordinary (non-team) respawn path above, since Zombie is solo like it,
-    /// not team like PitFireTeam.
-    /// </summary>
-    private static IEnumerator RespawnOwnGearPlayer(
-        LocalGame game,
-        LocalPlayer deadPlayer,
-        Vector3 corpsePosition,
-        int raidEpoch)
-    {
-        var startedAt = Time.realtimeSinceStartup;
-
-        var requestedSpawn = new ArenaSpawnSelector(
-            new InfilSpawnSelector(new NearPositionSpawnSelector(() => corpsePosition, () => 25f)),
-            () => corpsePosition, Settings.RespawnMinDistance.Value);
-        if (!Areas.ArenaAreaRespawn.TryPrepare(game, requestedSpawn, out var preparedSpawn))
-        {
-            EndPipelineUse(raidEpoch);
-            yield break;
-        }
-
-        string restoreReason = null;
-        int restoreEpoch = 0;
-        var request = new RespawnRequest
-        {
-            EnablePipelineTiming = ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled,
-            Game = game,
-            DeadPlayer = deadPlayer,
-            SpawnSelector = preparedSpawn,
-            EquipmentStrategy = (profile, dead) =>
-            {
-                // The dead body's keys and items are still exact here — same
-                // reasoning as RespawnProtectedTeamPlayer's own comment.
-                Kits.AutoQuickSlots.SettleBeforeReissue(profile);
-
-                if (!Kits.ZombieOwnGearLoadout.TryRestore(
-                        profile, out restoreEpoch, out restoreReason, out var nextRuntimeMap))
-                {
-                    throw new InvalidOperationException(
-                        $"Zombie own-gear respawn could not restore the entry loadout: {restoreReason}");
-                }
-
-                Kits.AutoQuickSlots.NoteItemsReissued(nextRuntimeMap);
-            },
-            HealthPercent = 100f,
-            Protection = new SpawnProtectionOptions
-            {
-                DurationSeconds = Settings.SpawnProtectionSeconds.Value,
-                EndEarlyOnWeapon = false,
-                StowAutoDrawnWeapon = false,
-                ShowToasts = true,
-            },
-        };
-
-        Exception failure = null;
-        yield return game.StartCoroutine(RespawnEngine.RunRespawn(request, e => failure = e));
-
-        if (!IsSameActiveRaid(game, raidEpoch) || StandDown)
-        {
-            EndPipelineUse(raidEpoch);
-            yield break;
-        }
-
-        if (failure != null)
-        {
-            AbortOwnGearRespawn(
-                raidEpoch, $"Zombie own-gear respawn failed: {failure.GetBaseException().Message}");
-            yield break;
-        }
-
-        EndPipelineUse(raidEpoch);
-
-        LocalPlayer respawned = RespawnEngineState.LastRespawnedPlayer;
-        if (respawned == null || !respawned.IsYourPlayer || !ReferenceEquals(game.LocalPlayer, respawned))
-        {
-            Plugin.ModLogger.LogWarning(
-                "Arena Zombie own-gear respawn finished without the exact new local-player body — no respawn event published.");
-            yield break;
-        }
-
-        Plugin.ModLogger.LogDebug(
-            $"Arena Zombie own-gear respawn completed (epoch {restoreEpoch}) "
-            + $"in {Time.realtimeSinceStartup - startedAt:0.00}s.");
-        ArenaEvents.RaisePlayerRespawned(respawned);
-    }
-
-    private static void AbortOwnGearRespawn(int raidEpoch, string reason)
-    {
-        EndPipelineUse(raidEpoch);
-        StandDown = true;
-        Plugin.ModLogger.LogError($"Arena blocked Zombie own-gear respawn: {reason}");
-        Modes.ArenaMatchService.ScheduleFailedStartAbort(reason);
-    }
-
     private static double Seconds(long fromTimestamp, long toTimestamp)
         => (toTimestamp - fromTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency;
 
@@ -652,7 +577,7 @@ internal sealed class ArenaRespawnDriver : IDeathInterceptionDriver
         Combat.WeaponSwapService.Reset();
         Kits.AutoQuickSlots.Reset();
         Kits.ArenaSecureContainer.Reset();
-        Kits.ZombieOwnGearLoadout.Reset();
+        Kits.ArenaOwnGearLoadout.Reset();
         ArenaSpawnSelector.Reset();
         KitCatalog.KitProvider = null;
         LadderCatalog.Reset();

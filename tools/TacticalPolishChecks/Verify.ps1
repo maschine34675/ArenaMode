@@ -72,6 +72,10 @@ if(!$SkipNegativeProbes){
     $matchSlice=$matchSlice.Replace(' && beginAwardRound','')
     Run-Probe 'fault-cue-resets-awards' $methods $panel 'cue' 'delayed cue preserves early First Blood and multi-kill chain'
     $matchSlice=$originalMatchSlice
+    # Own gear (2026-11-09): only the _ownGear guard can refuse an affordable kit.
+    $buy=$methods.Clone();$buy['TryBuy']=$methods['TryBuy'].Replace('_teamArena || _ownGear || kit == null','_teamArena || kit == null')
+    if($buy['TryBuy'] -eq $methods['TryBuy']){throw 'own-gear TryBuy guard anchor missing'}
+    Run-Probe 'fault-own-gear-buys' $buy $panel 'kit' 'own gear refuses buying even an affordable kit'
 }
 [ordered]@{files=$before;check='production method bodies and full panel/policy/award sources';negativeProbesSkipped=$SkipNegativeProbes.IsPresent}|
     ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $scratch 'source-binding.json') -Encoding utf8

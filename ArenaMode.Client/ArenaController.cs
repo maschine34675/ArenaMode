@@ -112,6 +112,13 @@ internal sealed class ArenaController : MonoBehaviour
         if (!Kits.ZombieKitWarmupPolicy.AllowsOptionalCatalogue(Session.ArenaSession.ActiveMode))
             return;
 
+        // A raid the player entered with their own gear hands out no kit at
+        // all (every respawn and reissue restores the entry loadout), so a
+        // warm catalogue would be twenty kits of pools nobody draws from. Read
+        // from the frozen active selection like the Zombie check above.
+        if (Session.ArenaSession.OwnGearActive)
+            return;
+
         // Random kits need every bundle warm because any of them can come up on
         // the next life. So does a mode that hands out kits itself (Gun Game
         // walks the whole ladder), even with the random draw switched off.

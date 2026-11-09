@@ -7,7 +7,7 @@ namespace ArenaMode.Tests;
 /// Pure tests for item 2 of the 2026-10-06 follow-up ("announcer mutator"):
 /// the per-mode default table and the master+per-mode decision
 /// (<see cref="ArenaAnnouncerGate"/>). Mirrors the shape of
-/// <c>ZombieOwnGearGateTests</c>/<c>ArenaEquipmentChoiceTests</c> (plain
+/// <c>ArenaOwnGearPolicyTests</c>/<c>ArenaEquipmentChoiceTests</c> (plain
 /// static-method assertions, no EFT/Unity dependency).
 /// </summary>
 public sealed class ArenaAnnouncerGateTests

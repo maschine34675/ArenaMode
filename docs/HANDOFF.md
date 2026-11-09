@@ -112,6 +112,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Own gear in every mode but Gun Game (2026-11-09, master, for 0.6.0;
+[contract](reviews/OWN-GEAR-ALL-MODES-20261109.md)):** the EQUIPMENT row offers Arena kits / Own gear for
+Deathmatch, Team DM, Domination and solo Tactical too (new keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
+`Domination/OwnGear`, `Tactical/OwnGear`, default off; Zombies and PFT Tactical unchanged). `ZombieOwnGearGate` became
+`Modes.ArenaOwnGearPolicy` (table, frozen gate, `SelectionAtArm`), `ZombieOwnGearLoadout` became
+`Kits.ArenaOwnGearLoadout` (plus `Reissue`, `IsPoisoned`); `ArenaSession.OwnGearSelection/Armed/Active` replace the
+Zombie-named members. The own-gear death respawn runs on the driver's ordinary path (shared Team DM hold, team-box
+reservation, area preflight, failure routing; fail-closed corpse guard; a plain mode's failure goes to the
+verified-owner abort instead of the death screen), `LiveKitRespawn.AtRoundBreak` is own-gear aware (Deathmatch
+round break, solo Tactical survivors) and ends a match whose snapshot is poisoned, solo Tactical suspends its kit
+economy under own gear (no starter, no shop, no roubles; the buy countdown stays as the pause), the loading-screen
+preload, the optional warm-up, the secure container and the preview follow the generalized gate, and
+`ArenaEvents.OnOwnGearReissued` keeps the GC monitor's new-body moment. Gun Game stays kit-only (the ladder is the
+loadout). Design critiqued by five read-only agents before implementation (findings in the contract). Verified
+offline: xunit, and the harnesses the contract lists (numbers in the record commit). Native GPU-2 run: pending at the
+time of this entry; see the dated report once it exists.
+
 **Posthumous kills across a round boundary (2026-11-09, master, for 0.6.0;
 [issue 2](https://github.com/maschine34675/ArenaMode/issues/2)):** a kill EFT credits to a body of an earlier
 round (a Labyrinth tripwire re-armed by a Shadow of Tagilla life, a bot's grenade over the round change) met

@@ -33,7 +33,7 @@ Map selection hides but retains the owner across first entry, accept/loading
 return and repeated shows; foreign settings cannot hide it, late native requests
 are revoked, and subsequent offline/accept screens still reuse the same body.
 Equipment-source coverage executes the actual flow and the actual
-`ZombieOwnGearGate`: the full mode/own-gear/team-eligibility matrix, provided/own
+`ArenaOwnGearPolicy`: the full mode/own-gear/team-eligibility matrix, provided/own
 transitions in Confirmation and Deploying, native render-texture recreation,
 late pending-body completion, stale/current arm epochs, frozen selection across
 F12 edits and same-screen re-show, abort/back, local-player click reconciliation,

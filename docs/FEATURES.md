@@ -44,12 +44,13 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   a disabled preview. Domination is selectable when its BigBrain support is ready.
 - Native map filtering, mode-specific equipment choices, participant/team-size
   controls, time choices and match rules in the map-selection screen.
-- Own gear versus Arena kits is offered for solo Zombies and PFT Tactical.
-  Tactical defaults to own gear; only the PMC receives a kit, while companions
-  keep their equipment. PFT Zombies keeps own gear automatically.
-  This is not a universal equipment toggle for DM,
-  Gun Game or Team DM. Invited PFT companions restrict selection to their two
-  supported modes; Tactical displays the actual party size, such as 3v5 PFT.
+- Own gear versus Arena kits is offered in every solo mode but Gun Game
+  (Deathmatch, Team DM, Domination, Tactical, Zombies; one saved preference per
+  mode, Arena kits the default except Zombies) and for PFT Tactical, which
+  defaults to own gear; only the PMC receives a kit, while companions keep
+  their equipment. PFT Zombies keeps own gear automatically. Gun Game keeps its
+  ladder. Invited PFT companions restrict selection to their two supported
+  modes; Tactical displays the actual party size, such as 3v5 PFT.
 - Customs area selection includes a map preview with the actual polygon
   highlighted; thumbnails remain visible without the long vanilla description.
 - Bay5, Equator, Air Pit, Bowl and Iceberg have gold labels without the old `Arena:` prefix and their
@@ -99,7 +100,8 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   player's kill count. Round and match results are distinct from score points.
 - Arena-kit respawns, round intermissions and a configurable total population.
   Round changes can reissue equipment or only heal in place, depending on the
-  advanced round-respawn preference.
+  advanced round-respawn preference; with own gear the reissue restores the
+  entry loadout.
 
 ### Domination
 
@@ -174,6 +176,9 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   with map-script triggers are left alone.
 - Solo kit buy phase, kill income, win/loss bonuses and retention of purchased
   kit selection while alive; that selected kit is refreshed for the next round.
+  With own gear (`Tactical/OwnGear`) the economy is suspended: nothing to buy, no
+  roubles, the entry loadout restored at every round start and after a death,
+  the buy countdown kept as the pause between rounds.
   The buy menu reports the **front plate's** armor class.
   Without a first purchase, the cheapest buildable starter kit is free. After
   death without a purchase, the best affordable kit is selected automatically;
@@ -284,8 +289,12 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   without a valid optic path may still use iron sights.
 - Invalid/unfinished game templates are excluded from generated equipment.
   Generated item trees and required bundles are checked before use.
-- Own gear is a mode-dependent alternative. PFT Tactical preserves the selected
-  entry loadout (own gear or a supplied PMC kit), and PFT Zombies uses own gear.
+- Own gear is an alternative in every mode but Gun Game: the entry loadout is
+  captured once and restored, ammunition included, on every respawn and at a
+  round break; mid-life pickups are not kept, the secure container is never
+  emptied. PFT Tactical preserves the selected entry loadout (own gear or a
+  supplied PMC kit), and PFT Zombies uses own gear.
+  [Contract](reviews/OWN-GEAR-ALL-MODES-20261109.md)
 - Two **RGD-5** grenades in supplied kits, placed in accessible rig/pocket space
   where possible; no automatic Zarya flash grenade. Molotov is an additional
   dedicated item, not a renamed or converted RGD-5.

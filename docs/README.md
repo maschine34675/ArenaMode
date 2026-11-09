@@ -58,7 +58,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (203)
+## Feature reviews and contracts (204)
 
 Sorted by file name.
 
@@ -194,6 +194,7 @@ Sorted by file name.
 - [Empty scope-ring reflex paths: generator rule for ring sockets and mutation checks](reviews/OPTIC-MOUNT-REVIEW.md)
 - [Scoped optic pool preload safeguard (KitOpticPreloadGuard): ownership and checks](reviews/OPTIC-PRELOAD-REVIEW.md)
 - [Optional mod minimum versions and forward admission (SAIN, PFT, APBS, DynamicMaps)](reviews/OPTIONAL-MOD-VERSIONS-20261019.md)
+- [Own gear in every mode but Gun Game: policy, respawn path, solo Tactical, verification](reviews/OWN-GEAR-ALL-MODES-20261109.md)
 - [Per-map participant selection: native menu preference and view contract](reviews/PARTICIPANT-MENU-REVIEW.md)
 - [Fixed participant count: server contract, raid clone and release](reviews/PARTICIPANT-SERVER-REVIEW.md)
 - [Per-map participant count: menu, formats, population, bosses and pending play test](reviews/PARTICIPANTS-REVIEW.md)

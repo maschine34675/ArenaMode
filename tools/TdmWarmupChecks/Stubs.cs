@@ -17,7 +17,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Session
 {
-    public static class ArenaSession { public static bool IsActive; public static string ActiveMode; public static void TickAreaStart() { } }
+    public static class ArenaSession { public static bool IsActive, OwnGearActive; public static string ActiveMode; public static void TickAreaStart() { } }
     public static class LabyrinthSpawnTraps { public static void Tick() { } }
 }
 namespace ArenaMode.Compat

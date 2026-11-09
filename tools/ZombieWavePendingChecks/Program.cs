@@ -29,7 +29,7 @@ internal static class Program
             var bots = new BotGame(); Singleton<IBotGame>.Instance = bots;
             Game.LocalPlayer = new LocalPlayer { IsYourPlayer = true, Profile = new() { Id = "local", AccountId = "human" } };
             World.MainPlayer = Game.LocalPlayer; World.RegisteredPlayers.Add(Game.LocalPlayer); World.Ever["local"] = Game.LocalPlayer;
-            ArenaSession.Active = true; ArenaSession.ReplaySeconds = 0; ArenaSession.ZombieOwnGearActive = ownGear;
+            ArenaSession.Active = true; ArenaSession.ReplaySeconds = 0; ArenaSession.OwnGearActive = ownGear;
             ArenaRespawnDriver.StandDown = ArenaRespawnDriver.IsRespawnInProgress = false;
             PitFireTeamCompat.TeamArenaActive = team; PitFireTeamCompat.PersistenceSuppressionActive = true;
             PitFireTeamCompat.RoundTransitionActive = false; PitFireTeamCompat.Followers = new();

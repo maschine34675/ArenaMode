@@ -813,8 +813,8 @@ internal static class Program
             "team Arena bypasses initial player-body replacement while solo keeps it");
         Assert(!HasInitialTeamBodyGuard(session.Replace("if (PitFireTeamCompat.HasFrozenTeamRoster)",
                     "if (!PitFireTeamCompat.HasFrozenTeamRoster)", StringComparison.Ordinal))
-               && !HasInitialTeamBodyGuard(session.Replace("else if (ZombieOwnGearActive)",
-                    "if (ZombieOwnGearActive)", StringComparison.Ordinal))
+               && !HasInitialTeamBodyGuard(session.Replace("else if (OwnGearActive)",
+                    "if (OwnGearActive)", StringComparison.Ordinal))
                && !HasInitialTeamBodyGuard(session.Replace("Respawn.LiveKitRespawn.AtRaidStart(game);", "", StringComparison.Ordinal)),
             "initial-body guard detects a negated team gate, broken else chain and removed solo swap");
         Assert(localStart.Contains("var requestedMode = Settings.SelectedGameModeId", StringComparison.Ordinal)
@@ -1150,7 +1150,7 @@ internal static class Program
             takeAuthorization,
             StringComparison.Ordinal);
         int soloKitSelection = respawnRoutine.IndexOf(
-            "var kit = KitCatalog.GetSelectedKit()",
+            "KitDefinition kit = ownGear ? null : KitCatalog.GetSelectedKit();",
             StringComparison.Ordinal);
         Assert(stoppedRaidExit >= 0
                && frozenRosterGate > stoppedRaidExit
@@ -1158,9 +1158,15 @@ internal static class Program
                && protectedRespawn > takeAuthorization
                && soloKitSelection > protectedRespawn,
             "only a live frozen roster with a one-shot coordinator lease reaches protected respawn before the untouched solo kit path");
-        Assert(Regex.IsMatch(respawnRoutine,
-                @"if\s*\(ArenaSession\.ZombieOwnGearActive\s*&&\s*!PitFireTeamCompat\.HasFrozenTeamRoster\)"),
-            "solo Zombie own-gear respawn cannot bypass a frozen PFT coordinator authorization");
+        // The own-gear decision (2026-11-09, every mode but Gun Game) sits after the frozen
+        // roster branch and before the kit draw, on the ordinary path: a protected squad
+        // can never reach it, and it never has a coroutine of its own to bypass the
+        // coordinator authorization with.
+        int ownGearDecision = respawnRoutine.IndexOf("bool ownGear = ArenaSession.OwnGearActive;", StringComparison.Ordinal);
+        Assert(ownGearDecision > protectedRespawn
+               && soloKitSelection > ownGearDecision
+               && !respawn.Contains("RespawnOwnGearPlayer", StringComparison.Ordinal),
+            "the own-gear decision follows the frozen PFT branch and precedes the kit draw, with no separate own-gear coroutine to bypass the coordinator");
 
         string protectedTeamRespawn = Slice(
             respawn,
@@ -2209,7 +2215,7 @@ internal static class Program
         // ordinary kit branches. Match that actual exclusive chain; the former
         // adjacent-branch expression failed when solo own gear was introduced.
         var team = Regex.Match(source,
-            @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{(?<body>[^{}]*)\}\s*else\s+if\s*\(\s*ZombieOwnGearActive\s*\)");
+            @"if\s*\(\s*PitFireTeamCompat\.HasFrozenTeamRoster\s*\)\s*\{(?<body>[^{}]*)\}\s*else\s+if\s*\(\s*OwnGearActive\s*\)");
         if (!team.Success || team.Groups["body"].Value.Contains("LiveKitRespawn", StringComparison.Ordinal))
             return false;
         return Regex.IsMatch(source.Substring(team.Index + team.Length),

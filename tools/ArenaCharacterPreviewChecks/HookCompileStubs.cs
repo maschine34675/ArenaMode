@@ -32,7 +32,7 @@ namespace ArenaMode.Session
         public static bool ArmedForNextRaid => false;
         public static int ArmEpoch => 0;
         public static string ArmedMode => null;
-        public static bool ZombieOwnGearArmed => false;
+        public static bool OwnGearArmed => false;
     }
     internal static class ArenaSideSelectionLayout
     {
@@ -45,14 +45,18 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Shared
 {
-    internal static class ArenaPopulationPolicy { public const string Zombie = "zombie"; }
+    internal static class ArenaPopulationPolicy
+    {
+        public const string TeamDeathmatch = "teamdeathmatch", Domination = "domination", Tactical = "tactical", Zombie = "zombie";
+    }
+    internal static class DeathmatchSelection { public const string ModeId = "deathmatch"; }
 }
 namespace ArenaMode.Config
 {
     internal static class Settings
     {
         public static string SelectedGameModeId => "deathmatch";
-        public static bool GetEquipmentChoiceOwnGear(string mode) => false;
+        public static bool GetEquipmentChoiceOwnGear(string mode, bool protectedTeam) => false;
     }
 }
 namespace ArenaMode.Compat

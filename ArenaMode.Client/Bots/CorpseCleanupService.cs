@@ -947,8 +947,10 @@ internal static class CorpseCleanupService
             // worst: every piece of gear on a corpse is an instantiated model,
             // and the bot gear ramp means late-raid bodies wear far more of them
             // than early ones. Taking the gear off hands each model back to the
-            // pool it came from, where a living bot can use it again.
-            StripGear(corpse);
+            // pool it came from, where a living bot can use it again. The
+            // player's own corpse keeps the slots the next body is built from
+            // (see StripGear).
+            StripGear(corpse, own: corpse.PlayerProfileID == mainPlayer?.ProfileId);
 
             // AFTER the strip, and this matters: the captured list included the
             // renderers of every worn model, and those models have just gone
@@ -1628,8 +1630,19 @@ internal static class CorpseCleanupService
     /// bodies are already invisible and already dropped from the loot records,
     /// so nothing is taken away that anyone could still have reached — and bots
     /// no longer loot corpses at all.
+    ///
+    /// The player's own corpse (<paramref name="own"/>) is also the source of
+    /// the next body's retained slots: Redeploy's EquipmentSurgeon carries the
+    /// secure container, scabbard and armband over to the replacement, and the
+    /// own-gear restore (TeamArenaLoadoutSnapshot) insists on them and on the
+    /// special pocket slots before it rebuilds anything. A round-start clear
+    /// (Tactical's StartRound) trims that corpse before the held respawn reads
+    /// it, which on GPU-2 (2026-11-09) ended an own-gear Tactical match with
+    /// "1 originally protected items left or disappeared from protected slots"
+    /// over the bayonet. Those slots stay on an own corpse; the heavy models
+    /// (armour, rig, backpack, headwear, stowed weapons) still go.
     /// </summary>
-    private static void StripGear(Corpse corpse)
+    private static void StripGear(Corpse corpse, bool own)
     {
         if (!Settings.StripCorpseGear.Value)
             return;
@@ -1651,6 +1664,10 @@ internal static class CorpseCleanupService
                 // the game, and the weapon the ragdoll is holding belongs to the
                 // registry that keeps it from floating in mid-air.
                 if (slot.ID == "SecuredContainer" || ReferenceEquals(item, corpse.ItemInHands?.Value))
+                    continue;
+
+                // The own corpse keeps what the next body inherits (class comment).
+                if (own && (slot.ID == "Scabbard" || slot.ID == "ArmBand" || slot.ID == "Pockets"))
                     continue;
 
                 try

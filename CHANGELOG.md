@@ -10,6 +10,16 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Bring your own gear in every mode but Gun Game: the EQUIPMENT row of the map screen offers
+  "Arena kits" or "Own gear" for Deathmatch, Team DM, Domination and solo Tactical as it did for
+  Zombies and PitFireTeam Tactical, one saved preference per mode (new F12 keys
+  `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`, `Domination/OwnGear`, `Tactical/OwnGear`, all
+  off by default). With own gear your real, protected equipment replaces the kit: it is restored
+  with full ammunition on every respawn and at Deathmatch's round break, the secure container stays
+  as it is, nothing is lost or gained, and items picked up in a life are not kept across a
+  restore. Solo Tactical with own gear has nothing to buy: no roubles, no shop, the buy countdown
+  stays as the pause between rounds. Gun Game keeps its ladder (the ladder is the loadout).
+  [Contract](docs/reviews/OWN-GEAR-ALL-MODES-20261109.md)
 - Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
   EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
   ended before the round. On Labyrinth in Deathmatch this was close to certain in every match

@@ -41,6 +41,7 @@ internal static class GcThresholdMonitor
         _subscribed = true;
         ArenaEvents.OnPlayerDied += OnPlayerDied;
         ArenaEvents.OnKitApplied += OnKitApplied;
+        ArenaEvents.OnOwnGearReissued += OnOwnGearReissued;
     }
 
     /// <summary>
@@ -160,6 +161,14 @@ internal static class GcThresholdMonitor
         if (GcThresholdPolicy.ShouldSwitchAtMoment(_state))
             Switch("a new body (round break or respawn)");
     }
+
+    /// <summary>
+    /// The same moment in a raid the player entered with their own gear: the
+    /// restored entry loadout is not a kit and raises no OnKitApplied, so the
+    /// round-break and respawn switch would otherwise wait for a mid-fight death
+    /// or the bounded timeout there.
+    /// </summary>
+    private static void OnOwnGearReissued() => OnKitApplied(null);
 
     private static void Switch(string moment)
     {
