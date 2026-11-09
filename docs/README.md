@@ -266,7 +266,7 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (273)
+## Reports (274)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
@@ -277,6 +277,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)
 - [Fork quick wins: native Team DM run on GPU-2 (seats, hold-to-peek, no bot backpacks)](reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)
+- [Posthumous kills across a round boundary (issue 2): native three-round Labyrinth Deathmatch on GPU-2](reports/2026-11/GPU-ISSUE2-POSTHUMOUS-KILLS-20261109.md)
 - [Tactical capture point: three native solo runs and two PitFireTeam matches on GPU-2 (lanes, captures, door reset, the PMC down)](reports/2026-11/GPU-TACTICAL-OBJECTIVE-20261108.md)
 - [Lost reward authority with Tarkova Cola history: native run on GPU-2 (SPT-GPU-2 archived and enrolled afresh)](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md)
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)

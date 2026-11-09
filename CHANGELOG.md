@@ -19,7 +19,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   pays nobody, the match stays valid, and the game's own scoring of it is unchanged.
   Single-round matches were never affected. Reported with
   the analysis and a tested fix in
-  [maschine34675/ArenaMode#2](https://github.com/maschine34675/ArenaMode/issues/2).
+  [maschine34675/ArenaMode#2](https://github.com/maschine34675/ArenaMode/issues/2). Run natively
+  on GPU-2 on 2026-11-09: a three-round Labyrinth Deathmatch met the case in round 2 and completed.
 - Add Amand's Graphics 1.8.0 to the Arena whitelist. Its Labyrinth lighting
   initializes before the starting kit is handed out, and its ON/OFF setting
   survives respawns. [Native test](docs/reports/2026-11/GPU-AMANDS-20261108.md)

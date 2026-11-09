@@ -84,11 +84,14 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   before that the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
-  differently stamped binaries; say so in the next handoff. Since 2026-11-08 the ArenaMode
-  client and server DLLs on every host are the development build `0.5.0+74c4d580` (fork quick
-  wins, see Open work; before that `0.5.0+fd4543d9`, Cola
-  archive; before it `b3dd3983`, Domination rewards); BigBrainCompat, Gate, the Session helper
-  and Core 1.0.20 are still the release files.
+  differently stamped binaries; say so in the next handoff. Since 2026-11-09 the ArenaMode
+  client and server DLLs on every host are the development build `0.5.0+dacad6fa` (issue 2,
+  built against the installed Core 1.0.21; before that `0.5.0+74c4d580` and `e1dfc344` of the fork
+  quick wins and the Tactical objective, `fd4543d9` Cola archive, `b3dd3983` Domination rewards);
+  BigBrainCompat, Gate and the Session helper are still the 0.5.0 release files, Core is the 1.0.21
+  development build `bebf49b` (installed 2026-11-08 by the Tactical objective session, the user's
+  choice; Redeploy `main` is already at 1.0.22, so an ArenaMode build must detach Redeploy at
+  `bebf49b` or the client refuses the installed Core).
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
@@ -124,7 +127,12 @@ profile; in the rare Deathmatch round decided by such a kill the server sees `un
 unpaid, as it was voided before) or derives the timeout win without it. Making the game's scoring follow the
 capture was rejected: it would make round scoring depend on rewards being on. Verified offline:
 RewardClientChecks (rule, both event orders, the kept void, call-site anchors) with its five mutants, xunit,
-no-deploy build. Native: pending (a three-round Labyrinth Deathmatch with rewards on GPU-2).
+no-deploy build. Native 2026-11-09 on GPU-2 ([GPU-ISSUE2-POSTHUMOUS-KILLS-20261109.md](reports/2026-11/GPU-ISSUE2-POSTHUMOUS-KILLS-20261109.md)):
+a three-round Labyrinth Deathmatch in an Arena session (the host carries non-whitelisted TSD mods now) met the
+case 81 s into round 2 (the kill of body 56 credited to the round-1 body 8, recorded without a killer), the capture
+closed Completed with 135 deaths over three rounds and the normal server decided `no-eligible-reward` (0 local
+kills; the issue's voided matches ended `run-not-completed`). Not run: a payout into such a run, a round ended at
+the kill target by such a kill.
 
 **Tactical objective package (2026-11-08, master `e1dfc344`, not released, not pushed):** the fork survey's second item
 ([review](reviews/TACTICAL-OBJECTIVE-20261108.md)): one capture point per Tactical round (solo and
