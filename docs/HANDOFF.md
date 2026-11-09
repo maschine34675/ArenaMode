@@ -84,10 +84,14 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   before that the release binaries of ArenaMode 0.4.1 and Redeploy 1.1.1. Recoil Rework Legacy,
   installed temporarily for the 1.1.1 native check, was removed again on all hosts including
   its generated `com.pein.camerarecoilmod.cfg`. Any development build replaces these with
-  differently stamped binaries; say so in the next handoff. Since 2026-11-09 the ArenaMode
-  client and server DLLs on every host are the development build `0.5.0+dacad6fa` (issue 2,
-  built against the installed Core 1.0.21; before that `0.5.0+74c4d580` and `e1dfc344` of the fork
-  quick wins and the Tactical objective, `fd4543d9` Cola archive, `b3dd3983` Domination rewards);
+  differently stamped binaries; say so in the next handoff. Since 2026-11-09 13:31 UTC the ArenaMode
+  client and server DLLs on every host are the development build of the own-gear change, stamped
+  `0.5.0+f33a3d2c` (built from the uncommitted tree before its commits, against the installed Core
+  1.0.21; client SHA-256 `0a1435527b85a6f4…`, server `895900142165ce1d…`; before that `0.5.0+dacad6fa`
+  of issue 2, `0.5.0+74c4d580` and `e1dfc344` of the fork quick wins and the Tactical objective,
+  `fd4543d9` Cola archive, `b3dd3983` Domination rewards); the test profile SPT-GPU-2 now wears an M4A1,
+  Trooper armour, a TC-2002 helmet, two STANAG magazines and an IFAK from its own stash (equipped for the
+  own-gear run, left on);
   BigBrainCompat, Gate and the Session helper are still the 0.5.0 release files, Core is the 1.0.21
   development build `bebf49b` (installed 2026-11-08 by the Tactical objective session, the user's
   choice; Redeploy `main` is already at 1.0.22, so an ArenaMode build must detach Redeploy at
@@ -125,9 +129,25 @@ round break, solo Tactical survivors) and ends a match whose snapshot is poisone
 economy under own gear (no starter, no shop, no roubles; the buy countdown stays as the pause), the loading-screen
 preload, the optional warm-up, the secure container and the preview follow the generalized gate, and
 `ArenaEvents.OnOwnGearReissued` keeps the GC monitor's new-body moment. Gun Game stays kit-only (the ladder is the
-loadout). Design critiqued by five read-only agents before implementation (findings in the contract). Verified
-offline: xunit, and the harnesses the contract lists (numbers in the record commit). Native GPU-2 run: pending at the
-time of this entry; see the dated report once it exists.
+loadout). Design critiqued by five read-only agents before implementation, the implementation by 35 agents (five
+finders, two skeptics per finding; findings in the contract). Verified offline on the final tree: xunit 3,737 passed /
+3 expected skips (one flaky `ArenaDirectStartTests` run over a locked probe exe in between, green on the rerun),
+ZombieKitWarmupChecks 104 assertions / 11 compiled faults, TdmWarmupChecks 41 / 10, PreviewHostLifecycleChecks (18
+rejected), ArenaCharacterPreviewChecks, ZombieTeam/Solo/WavePendingChecks (18 / 13 / 12 mutants), TacticalPolishChecks
+(own-gear StartRound scenario, fault `fault-own-gear-buys`), AreaConfigChecks, ArenaKillcamChecks 176, BleedingCleanupChecks 106
+(its generated partial lacked `IsExactStartedRaid` since 2026-10-09, repaired), GcThresholdChecks 35 / 17, DeathmatchChecks,
+CrowdReactionChecks, PitFireTeamChecks 407, TeamArenaLoadoutChecks 142, TeamArenaExpansionChecks 895, FailedStartAbortChecks 145
+(its TERMINAL-END-RESET anchor predated the reward capture's flush since 2026-10-24, repaired), ArenaPostRaidChecks 81,
+TdmMatchChecks, TdmMatchMenuChecks 2,758, SoloTacticalSpawnChecks 57, CorpseCleanupChecks 312 (own-corpse case and fault
+`strips-the-own-corpse-retained-slots`), TacticalCorpseChecks 68, DynamicMapCorpseChecks. Still red for an older reason:
+`tools/PftTacticalKitChecks/Verify-Integration.ps1` runs PitFireTeamRoundLifecycleChecks, which reads
+`_reference\SPT-PitFireTeam-beta-0.10.0` (gone; 1.1.0 and 1.1.1 are there). **Native GPU-2 2026-11-09**
+([GPU-OWN-GEAR-20261109.md](reports/2026-11/GPU-OWN-GEAR-20261109.md)): Deathmatch (raid start, death respawn, round
+break), Team DM (three respawns) and solo Tactical (held respawn to the next round) each restored the entry loadout with
+full ammunition; the first Tactical attempt failed on the round-start corpse clear stripping the own corpse's bayonet
+before the held respawn (`CorpseCleanupService.StripGear` now leaves the retained slots and the pockets on an own
+corpse; TRAPS.md). Not run: Domination (the Team DM path), a team-box map, a poisoned-snapshot abort, the row in the
+native menu (the keys were set through the bridge; TdmMatchMenuChecks covers the row).
 
 **Posthumous kills across a round boundary (2026-11-09, master, for 0.6.0;
 [issue 2](https://github.com/maschine34675/ArenaMode/issues/2)):** a kill EFT credits to a body of an earlier

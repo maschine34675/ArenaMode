@@ -28,6 +28,12 @@ Protected squads are unchanged: PFT Zombies keeps own gear without a choice, PFT
   (heal + resupply through the same live swap). An own-gear raid never reaches the kit catalogue
   from there; a frozen roster is refused outright (PFT Zombies drives `AtRoundBreakOwnGear` itself).
   Team DM and Domination have no round break; they rely on the death respawn alone.
+- The corpse cleanup leaves the retained slots and the pockets on the player's own corpse
+  (`CorpseCleanupService.StripGear`, own corpse only; the heavy models still go). The restore reads
+  the secure container, scabbard, armband and special pocket slots from the body being replaced and
+  refuses when one is missing; Tactical's round-start clear trims that corpse before the held
+  respawn runs, and on GPU-2 the first attempt failed on the stripped bayonet (see the report).
+  Redeploy's EquipmentSurgeon carries the same slots over in kit raids, so they profit as well.
 - Items picked up during a life (the Pickups mutator, loot) are not kept across a restore, as with
   kits. The secure container is never emptied (`ArenaSecureContainer.LeavesContentsAtHome`) and the
   slot stays visible; `Kits/EmptySecureContainer` is inert for own gear. The loading-screen kit
@@ -134,7 +140,12 @@ integration. Numbers and the native GPU-2 run are in HANDOFF.md and the dated re
 
 Not covered offline: the driver lambda and `AtRoundBreak`'s own-gear branch run only in the game
 (no csproj compiles them; they are text-anchored), so the native cycle has to see a death respawn
-and a round-break reissue with own gear.
+and a round-break reissue with own gear. It did, on GPU-2 on 2026-11-09
+([report](../reports/2026-11/GPU-OWN-GEAR-20261109.md)): Deathmatch (raid start, death respawn,
+round break), Team DM (three respawns, two of them bot kills after the killcam) and solo Tactical
+(the held respawn to the next round, after the corpse-strip fix) each restored the entry loadout
+with full ammunition; the server restored the profile after every raid. CorpseCleanupChecks carries
+the own-corpse case and a compiled fault for the rule.
 
 ## Limits
 

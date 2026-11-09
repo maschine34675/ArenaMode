@@ -19,7 +19,12 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   as it is, nothing is lost or gained, and items picked up in a life are not kept across a
   restore. Solo Tactical with own gear has nothing to buy: no roubles, no shop, the buy countdown
   stays as the pause between rounds. Gun Game keeps its ladder (the ladder is the loadout).
-  [Contract](docs/reviews/OWN-GEAR-ALL-MODES-20261109.md)
+  [Contract](docs/reviews/OWN-GEAR-ALL-MODES-20261109.md). Run natively on GPU-2 on 2026-11-09: Deathmatch
+  (raid start, death respawn, round break), Team DM (three respawns) and solo Tactical (held respawn to the
+  next round) each restored the entry loadout with full ammunition
+  ([report](docs/reports/2026-11/GPU-OWN-GEAR-20261109.md)). The corpse cleanup leaves the retained slots and
+  the pockets on the player's own corpse since that run: a round-start clear had stripped the bayonet before
+  the held Tactical respawn read it, which the own-gear restore rightly refused.
 - Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
   EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
   ended before the round. On Labyrinth in Deathmatch this was close to certain in every match

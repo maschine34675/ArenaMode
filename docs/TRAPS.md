@@ -227,6 +227,21 @@ reference; `ZombieMode.Tick` now does too. Any new per-mode code that caches
 a live `Player`/`BotOwner` reference across ticks must self-heal the same
 way, not just subscribe to the one event that happens to be named for it.
 
+**The player's own corpse is the source of the next body, and a corpse sweep
+can get to it first.** `CorpseCleanupService` strips first-level gear from
+trimmed corpses, and a round-start clear (`ClearAllSoon`, Tactical's
+`StartRound`) trims the player's own newest corpse too, before the held respawn
+reads it: Redeploy's EquipmentSurgeon carries the secure container, scabbard and
+armband from the dead tree to the replacement, and the own-gear restore
+(`TeamArenaLoadoutSnapshot`) refuses when one of those or a special pocket slot
+is gone ("1 originally protected items left or disappeared from protected
+slots" over the bayonet, GPU-2 2026-11-09, which ended the match through the
+verified-owner abort). The strip leaves those slots and the pockets on an own
+corpse now (`StripGear(corpse, own)`); any new path that takes something from
+the dead body at respawn time has to check what the sweep may have done to it
+first, and a respawn that is held (Tactical, a killcam) widens that window from
+a frame to seconds. See docs/reviews/OWN-GEAR-ALL-MODES-20261109.md.
+
 **Do not detour constructed generic inventory queries on Mono.** Patching
 `GetReachableItemsOfTypeNonAlloc<Magazine>` also replaced Ammo and ThrowWeap
 calls with the Magazine wrapper. The original scanner then threw
