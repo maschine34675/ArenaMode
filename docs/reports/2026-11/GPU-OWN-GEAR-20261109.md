@@ -1,5 +1,8 @@
 # Own gear in every mode: native run on GPU-2 (2026-11-09)
 
+*Later the same day the user withdrew solo Tactical's own-gear option (the buy economy is the mode); the
+Tactical runs below record what the option did while it existed and the corpse-strip finding, which stays.*
+
 Host SPT-GPU-2 (`C:\SPT41`, SPT 4.1.6), 12:06 to 12:38 UTC (13:06 to 13:38 local). Development build of the
 own-gear working tree (contract [OWN-GEAR-ALL-MODES-20261109.md](../../reviews/OWN-GEAR-ALL-MODES-20261109.md)),
 stamped `0.5.0+f33a3d2c` (the HEAD of the uncommitted tree; the commits that carry the change follow this

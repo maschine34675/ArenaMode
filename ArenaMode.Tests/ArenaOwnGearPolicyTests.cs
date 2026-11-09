@@ -15,7 +15,7 @@ public sealed class ArenaOwnGearPolicyTests
     private static readonly string[] OwnGearModes =
     {
         DeathmatchSelection.ModeId, ArenaPopulationPolicy.TeamDeathmatch, ArenaPopulationPolicy.Domination,
-        ArenaPopulationPolicy.Tactical, ArenaPopulationPolicy.Zombie,
+        ArenaPopulationPolicy.Zombie,
     };
 
     [Fact]
@@ -27,14 +27,15 @@ public sealed class ArenaOwnGearPolicyTests
     }
 
     [Fact]
-    public void OnSelectionIsActiveOnEveryModeButGunGame()
+    public void OnSelectionIsActiveOnEveryModeButGunGameAndTactical()
     {
         foreach (var mode in OwnGearModes)
             Assert.True(ArenaOwnGearPolicy.IsSelectedFor(mode, ownGearSelection: true), mode);
 
-        // Gun Game owns its loadout (the ladder); the legacy Deathmatch ids are
-        // normalized away before arming and must not open a second door.
-        foreach (var otherMode in new[] { "gungame", "endless", "rounds", "ctf", "unknown" })
+        // Gun Game owns its loadout (the ladder), solo Tactical its buy economy
+        // (user decision 2026-11-09); the legacy Deathmatch ids are normalized
+        // away before arming and must not open a second door.
+        foreach (var otherMode in new[] { "gungame", ArenaPopulationPolicy.Tactical, "endless", "rounds", "ctf", "unknown" })
         {
             Assert.False(ArenaOwnGearPolicy.IsSelectedFor(otherMode, ownGearSelection: true),
                 $"own gear must not leak into mode '{otherMode}'");
@@ -51,7 +52,7 @@ public sealed class ArenaOwnGearPolicyTests
         Assert.True(ArenaOwnGearPolicy.IsSelectedFor("ZOMBIE", ownGearSelection: true));
         Assert.True(ArenaOwnGearPolicy.IsSelectedFor("Deathmatch", ownGearSelection: true));
         Assert.True(ArenaOwnGearPolicy.IsSelectedFor("  teamdeathmatch  ", ownGearSelection: true));
-        Assert.True(ArenaOwnGearPolicy.IsOffered(" TACTICAL ", protectedTeam: false));
+        Assert.True(ArenaOwnGearPolicy.IsOffered(" DOMINATION ", protectedTeam: false));
         Assert.True(ArenaOwnGearPolicy.IsOffered(" TACTICAL ", protectedTeam: true));
     }
 
@@ -66,11 +67,13 @@ public sealed class ArenaOwnGearPolicyTests
     }
 
     [Fact]
-    public void SoloOffersTheChoiceForEveryModeButGunGame()
+    public void SoloOffersTheChoiceForEveryModeButGunGameAndTactical()
     {
         foreach (var mode in OwnGearModes)
             Assert.True(ArenaOwnGearPolicy.IsOffered(mode, protectedTeam: false), mode);
         Assert.False(ArenaOwnGearPolicy.IsOffered("gungame", protectedTeam: false));
+        Assert.False(ArenaOwnGearPolicy.IsOffered(ArenaPopulationPolicy.Tactical, protectedTeam: false),
+            "solo Tactical keeps its buy economy");
     }
 
     [Fact]

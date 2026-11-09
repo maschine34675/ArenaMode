@@ -152,10 +152,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         if (buying && !_autoOpenHandled)
         {
             _autoOpenHandled = true;
-            // Own gear has nothing to choose: the toast at EnterBuy carries the
-            // notice, and the hotkey below still opens the countdown panel.
-            if (!mode.OwnGear)
-                SetOpen(true);
+            SetOpen(true);
         }
         else if (!buying)
         {
@@ -238,7 +235,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         if (_windowRect.width < 1f)
             _windowRect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
-        _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, Mode.OwnGear ? "Next round" : "Buy", _windowStyle);
+        _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, "Buy", _windowStyle);
     }
 
     private void DrawWindow(int id)
@@ -251,8 +248,8 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         GUILayout.Label(
             $"Round {mode.RoundNumber}   {mode.RoundsWon}-{mode.RoundsLost}", _titleStyle);
         GUILayout.Label(
-            (mode.OwnGear ? string.Empty : $"{mode.Money:N0} ₽    ") + (mode.WaitingForKitSwap
-                ? (mode.OwnGear ? "starting when your gear has landed" : "starting when your kit has landed")
+            $"{mode.Money:N0} ₽    " + (mode.WaitingForKitSwap
+                ? "starting when your kit has landed"
                 : $"starting in {mode.PhaseRemaining:0}s"),
             _bodyStyle);
 
@@ -266,8 +263,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         GUILayout.Space(8f);
 
         _scroll = GUILayout.BeginScrollView(_scroll);
-        // Own gear lists nothing: the notice above says what the round starts with.
-        foreach (var kit in mode.OwnGear ? System.Linq.Enumerable.Empty<KitDefinition>() : Ordered(KitCatalog.Kits))
+        foreach (var kit in Ordered(KitCatalog.Kits))
         {
             var price = mode.PriceOf(kit);
             var affordable = mode.CanAfford(kit);

@@ -137,7 +137,7 @@ internal static class Program
         // draws no kit for a raid that hands out none, and the in-raid optional catalogue
         // warm-up stays off even with the random draw on, where the Zombie-only policy
         // above would let it run.
-        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "domination", "tactical" })
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "domination" })
         {
             var pools = New(mode, KitPreloadScope.WholeCatalogue, ownGear: true);
             KitBundlePreloader.BeginRaidStart();

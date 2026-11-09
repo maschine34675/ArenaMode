@@ -6,8 +6,9 @@ namespace ArenaMode.Session;
 /// Visibility and guarded persistence for the inline PMC equipment selector.
 /// Mode/roster policy lives in ArenaEquipmentChoice; hidden or armed controls
 /// cannot change the saved preference. The getter and setter take the mode AND
-/// the roster, because Tactical keeps two independent preferences (solo
-/// Tactical/OwnGear, protected Tactical/TeamOwnGear).
+/// the roster, because Tactical's preference belongs to its protected squad
+/// alone (Tactical/TeamOwnGear; a solo Tactical player has none) while the
+/// other modes carry one each.
 /// </summary>
 internal sealed class ArenaEquipmentChoiceState
 {

@@ -95,7 +95,7 @@ internal static class ArenaModeCatalog
                 "Eliminate the enemy squad. PitFireTeam: 1-4 companions from My Squad.",
                 "Round elimination", "Next round", "Buy / retain kit"),
             new ArenaModeDefinition(ZombieId, "ZOMBIES (WIP)",
-                "One life solo. Gear refills after each cleared wave.",
+                "One life solo. Gear refills after each cleared wave; PitFireTeam optional.",
                 "Survive the waves", "None", "Arena kits"),
         });
 

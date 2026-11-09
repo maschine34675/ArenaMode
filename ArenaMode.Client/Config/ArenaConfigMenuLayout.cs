@@ -132,7 +132,6 @@ internal static class ArenaConfigMenuLayout
         new Section("Tactical", false,
             I("SquadSize", "Enemy Squad Size"),
             I("SquadIsPmc", "Enemy Squad Are PMCs"),
-            I("OwnGear", "Bring Own Gear (Solo)"),
             I("TeamOwnGear", "Own Gear With PitFireTeam"),
             I("BuySeconds", "Buy Phase (s)"),
             I("RoundSeconds", "Round Time Limit (s)"),

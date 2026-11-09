@@ -16,18 +16,19 @@ public sealed class ArenaEquipmentChoiceTests
 {
     private static readonly string[] SoloModes =
     {
-        "deathmatch", "teamdeathmatch", "domination", "tactical", ArenaPopulationPolicy.Zombie,
+        "deathmatch", "teamdeathmatch", "domination", ArenaPopulationPolicy.Zombie,
     };
 
     [Fact]
-    public void EveryModeButGunGameOffersAChoiceWithoutAProtectedTeam()
+    public void EveryModeButGunGameAndTacticalOffersAChoiceWithoutAProtectedTeam()
     {
         foreach (var mode in SoloModes)
             Assert.True(ArenaEquipmentChoice.IsOfferedFor(mode), mode);
         Assert.True(ArenaEquipmentChoice.IsOfferedFor("ZOMBIE"));
         Assert.True(ArenaEquipmentChoice.IsOfferedFor("  deathmatch  "));
 
-        foreach (var otherMode in new[] { "gungame", "endless", "rounds" })
+        // Gun Game's ladder is the loadout; solo Tactical's buy economy is the mode.
+        foreach (var otherMode in new[] { "gungame", "tactical", "endless", "rounds" })
         {
             Assert.False(ArenaEquipmentChoice.IsOfferedFor(otherMode),
                 $"equipment choice must not be offered for mode '{otherMode}'");
@@ -68,15 +69,18 @@ public sealed class ArenaEquipmentChoiceTests
     }
 
     [Fact]
-    public void ChoiceIsVisibleForEverySoloModeButGunGame()
+    public void ChoiceIsVisibleForEverySoloModeButGunGameAndTactical()
     {
         var fx = new Fixture();
 
-        fx.State.Synchronize("gungame", tacticalOnly: false);
-        Assert.False(fx.State.Visible, "Gun Game must not show the equipment choice");
-        Assert.False(fx.State.Editable);
-        Assert.False(fx.State.TrySelect(true));
-        Assert.Equal(0, fx.SetCalls);
+        foreach (var mode in new[] { "gungame", "tactical" })
+        {
+            fx.State.Synchronize(mode, tacticalOnly: false);
+            Assert.False(fx.State.Visible, $"mode '{mode}' must not show the equipment choice");
+            Assert.False(fx.State.Editable);
+            Assert.False(fx.State.TrySelect(true));
+            Assert.Equal(0, fx.SetCalls);
+        }
 
         foreach (var mode in SoloModes)
         {
@@ -94,7 +98,7 @@ public sealed class ArenaEquipmentChoiceTests
         Assert.True(fx.State.TrySelect(true));
         Assert.True(fx.Backing[("deathmatch", false)]);
 
-        foreach (var other in new[] { "teamdeathmatch", "domination", "tactical", ArenaPopulationPolicy.Zombie })
+        foreach (var other in new[] { "teamdeathmatch", "domination", ArenaPopulationPolicy.Zombie })
         {
             fx.State.Synchronize(other, tacticalOnly: false);
             Assert.False(fx.State.OwnGear, $"Deathmatch's choice must not leak into '{other}'");
@@ -134,8 +138,8 @@ public sealed class ArenaEquipmentChoiceTests
         Assert.False(fx.State.OwnGear);
         fx.Locked = false;
         fx.State.Synchronize("tactical", tacticalOnly: false);
-        Assert.True(fx.State.Visible, "solo Tactical offers the row too");
-        Assert.True(fx.State.OwnGear, "solo Tactical reads its own entry");
+        Assert.False(fx.State.Visible, "solo Tactical keeps its buy economy and offers no row");
+        Assert.False(fx.State.TrySelect(true));
         fx.State.Synchronize("tactical", tacticalOnly: true);
         Assert.False(fx.State.OwnGear);
     }

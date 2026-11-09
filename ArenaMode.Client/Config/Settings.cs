@@ -220,7 +220,6 @@ public static class Settings
     public static ConfigEntry<float> ZombieStuckWaveTimeoutSeconds { get; private set; }
     public static ConfigEntry<bool> ZombieOwnGear { get; private set; }
     public static ConfigEntry<bool> TacticalTeamOwnGear { get; private set; }
-    public static ConfigEntry<bool> TacticalOwnGear { get; private set; }
     public static ConfigEntry<bool> DeathmatchOwnGear { get; private set; }
     public static ConfigEntry<bool> TeamDeathmatchOwnGear { get; private set; }
     public static ConfigEntry<bool> DominationOwnGear { get; private set; }
@@ -394,9 +393,9 @@ public static class Settings
 
     /// <summary>
     /// One independent preference per mode and roster: Deathmatch, Team DM,
-    /// Domination and Zombies solo, Tactical twice (solo Tactical/OwnGear and
-    /// protected Tactical/TeamOwnGear). Gun Game has none: its ladder is the
-    /// loadout (ArenaOwnGearPolicy). The selection policy additionally checks
+    /// Domination and Zombies solo, protected Tactical (Tactical/TeamOwnGear).
+    /// Gun Game and solo Tactical have none: the ladder is the loadout, the buy
+    /// economy is the mode (ArenaOwnGearPolicy). The selection policy additionally checks
     /// the current party before exposing an entry; a stored preference never
     /// enables another mode's kit path, and a protected Zombie squad never reads
     /// its entry (it keeps own gear without a choice).
@@ -405,7 +404,7 @@ public static class Settings
         => ArenaModeCatalog.NormalizeId(mode) switch
         {
             ArenaModeCatalog.ZombieId when !protectedTeam => ZombieOwnGear,
-            ArenaModeCatalog.TacticalId => protectedTeam ? TacticalTeamOwnGear : TacticalOwnGear,
+            ArenaModeCatalog.TacticalId when protectedTeam => TacticalTeamOwnGear,
             ArenaModeCatalog.DeathmatchId when !protectedTeam => DeathmatchOwnGear,
             ArenaModeCatalog.TeamDeathmatchId when !protectedTeam => TeamDeathmatchOwnGear,
             ArenaModeCatalog.DominationId when !protectedTeam => DominationOwnGear,
@@ -1478,14 +1477,8 @@ public static class Settings
             "With PitFireTeam, bring your own protected PMC equipment (default) or receive an Arena kit. " +
             "Only your PMC changes; companions keep their own gear. The issued kit is restored after " +
             "your death at the next round, using the same protected round lifecycle. Survivors retain " +
-            "their current equipment. No buy phase is added. Frozen at match start; solo Tactical has its own " +
-            "OwnGear setting.");
-
-        TacticalOwnGear = config.Bind("Tactical", "OwnGear", false,
-            "Solo Tactical: bring your own protected equipment instead of the kit economy. There is nothing " +
-            "to buy and no roubles are awarded; the buy countdown stays as the pause between rounds. Your " +
-            "entry loadout, ammunition included, is restored at every round start and after your death. " +
-            "Frozen before loading; PitFireTeam squads use TeamOwnGear instead.");
+            "their current equipment. No buy phase is added. Frozen at match start; solo Tactical is unchanged " +
+            "(its buy economy is the mode).");
 
         TacticalSquadIsPmc = config.Bind(
             "Tactical",

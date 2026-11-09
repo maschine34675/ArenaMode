@@ -4,8 +4,8 @@ namespace ArenaMode.Modes;
 /// The labels of the inline equipment selector in the left mode panel and the
 /// question which mode shows it. The table itself is
 /// <see cref="ArenaOwnGearPolicy"/>'s, so the row and the raid can never
-/// disagree about who may bring their own gear: every mode but Gun Game solo,
-/// Tactical alone with a protected PitFireTeam squad. The row changes only the
+/// disagree about who may bring their own gear: Deathmatch, Team DM, Domination
+/// and Zombies solo, Tactical alone with a protected PitFireTeam squad. The row changes only the
 /// local PMC's loadout; PFT companions keep their own equipment either way.
 /// </summary>
 internal static class ArenaEquipmentChoice
@@ -25,9 +25,9 @@ internal static class ArenaEquipmentChoice
 
     /// <summary>
     /// The row's tooltip: what each choice means in the selected mode, since
-    /// the consequence differs (solo Tactical suspends its kit economy, a
-    /// protected squad changes only the PMC, the respawning modes restore the
-    /// entry loadout on every life).
+    /// the consequence differs (a protected squad changes only the PMC, the
+    /// respawning modes restore the entry loadout on every life, Zombies after
+    /// each cleared wave).
     /// </summary>
     internal static string Describe(bool ownGear, string mode, bool protectedTeam)
     {
@@ -38,8 +38,6 @@ internal static class ArenaEquipmentChoice
         if (protectedTeam)
             return "Your PMC's own equipment, protected: restored after a death at the next round. Companions keep theirs either way.";
         string id = (mode ?? string.Empty).Trim().ToLowerInvariant();
-        if (id == ArenaMode.Shared.ArenaPopulationPolicy.Tactical)
-            return "Your own equipment, protected: restored at every round start and after a death. No buy phase, no roubles.";
         if (id == ArenaMode.Shared.ArenaPopulationPolicy.Zombie)
             return "Your own equipment, protected: restored after each cleared wave. One life.";
         if (id == ArenaMode.Shared.DeathmatchSelection.ModeId)

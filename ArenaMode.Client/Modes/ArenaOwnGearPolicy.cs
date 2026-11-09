@@ -16,8 +16,10 @@ namespace ArenaMode.Modes;
 /// Gun Game is deliberately not in the table: its ladder IS the loadout (a rung
 /// is a whole kit, or the earned weapon merged onto the base kit by
 /// KitMerge.WithPrimaryWeapon), so there is no "own" equipment a rung could be
-/// merged into. The row stays hidden for it and its plain fact ("Assigned
-/// weapons") remains.
+/// merged into. Solo Tactical is not in it either (user decision, 2026-11-09,
+/// after a day with the option): its buy economy IS the mode, the gear is
+/// earned in the match, so a brought loadout would hollow it out. Both keep
+/// their plain fact ("Assigned weapons", "Buy / retain kit").
 ///
 /// Protected PitFireTeam squads are a different axis and never read
 /// <see cref="IsSelectedFor"/>: PFT Zombies keeps own gear without a choice,
@@ -51,15 +53,15 @@ internal static class ArenaOwnGearPolicy
         DeathmatchSelection.ModeId,
         ArenaPopulationPolicy.TeamDeathmatch,
         ArenaPopulationPolicy.Domination,
-        ArenaPopulationPolicy.Tactical,
         ArenaPopulationPolicy.Zombie,
     };
 
     /// <summary>
     /// True iff the map screen offers the Arena kits / Own gear choice for
-    /// <paramref name="mode"/>: solo, every mode but Gun Game; with a protected
-    /// PitFireTeam squad, Tactical alone (PFT Zombies keeps own gear without a
-    /// choice and shows the plain "PMC entry gear" fact instead).
+    /// <paramref name="mode"/>: solo, Deathmatch, Team DM, Domination and
+    /// Zombies; with a protected PitFireTeam squad, Tactical alone (PFT Zombies
+    /// keeps own gear without a choice and shows the plain "PMC entry gear"
+    /// fact instead).
     /// </summary>
     internal static bool IsOffered(string mode, bool protectedTeam)
         => protectedTeam ? Is(mode, ArenaPopulationPolicy.Tactical) : IsSoloMode(mode);

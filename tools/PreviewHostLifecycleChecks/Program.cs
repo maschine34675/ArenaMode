@@ -339,12 +339,14 @@ internal static class Program
             ArenaMenuSelection.CurrentEligibility = new() { Allowed = allowed, IsTeam = team };
             // A protected party decides by roster on the modes PitFireTeam supports (exact
             // ids, as its policy compares them) and shows the supplied figure elsewhere;
-            // alone, every mode but Gun Game follows its own preference (2026-11-09),
-            // whatever the id's case or spacing.
+            // alone, every mode but Gun Game and Tactical follows its own preference
+            // (2026-11-09; solo Tactical keeps its buy economy), whatever the id's case
+            // or spacing.
             bool protectedParty = allowed && team;
+            string trimmed = mode.Trim().ToLowerInvariant();
             bool native = protectedParty
                 ? mode == "zombie" || mode == "tactical" && own
-                : own && !mode.Trim().Equals("gungame", StringComparison.OrdinalIgnoreCase);
+                : own && trimmed != "gungame" && trimmed != "tactical";
             var accept = new Widget();
             ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
             Check(ArenaPreviewFlow.TryShowAccept(accept.Model) == !native,
@@ -359,8 +361,8 @@ internal static class Program
             Check(fixture.Preview.Releases == 0, "equipment selection keeps detached renderer available");
         }
 
-        // Tactical keeps two preferences: the squad's choice never leaks into solo play, and
-        // the solo choice never into a protected party.
+        // Tactical has one preference, the squad's: it never selects native equipment for a
+        // solo player, and a solo preference (the double's OwnGear) never reaches a protected party.
         foreach (bool team in new[] { false, true })
         {
             var fixture = new Fixture();

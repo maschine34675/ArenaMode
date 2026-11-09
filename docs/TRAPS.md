@@ -235,8 +235,9 @@ reads it: Redeploy's EquipmentSurgeon carries the secure container, scabbard and
 armband from the dead tree to the replacement, and the own-gear restore
 (`TeamArenaLoadoutSnapshot`) refuses when one of those or a special pocket slot
 is gone ("1 originally protected items left or disappeared from protected
-slots" over the bayonet, GPU-2 2026-11-09, which ended the match through the
-verified-owner abort). The strip leaves those slots and the pockets on an own
+slots" over the bayonet, GPU-2 2026-11-09, in the own-gear Tactical attempt that
+was withdrawn the same day; it ended the match through the verified-owner
+abort). The strip leaves those slots and the pockets on an own
 corpse now (`StripGear(corpse, own)`); any new path that takes something from
 the dead body at respawn time has to check what the sweep may have done to it
 first, and a respawn that is held (Tactical, a killcam) widens that window from

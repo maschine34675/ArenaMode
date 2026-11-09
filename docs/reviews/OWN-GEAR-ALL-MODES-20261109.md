@@ -2,10 +2,12 @@
 
 The player's own, protected equipment instead of an Arena kit was a Zombie option (item 4 of the
 2026-10-06 follow-up) and a protected PitFireTeam Tactical choice (PFT-TACTICAL-KITS-20261018.md).
-Since 2026-11-09 the left mode panel offers the same EQUIPMENT row ("Arena kits" / "Own gear") in
-every solo mode but Gun Game: Deathmatch, Team Deathmatch, Domination, solo Tactical and Zombies.
-Protected squads are unchanged: PFT Zombies keeps own gear without a choice, PFT Tactical keeps its
-`Tactical/TeamOwnGear` preference and its entry-kit machinery.
+Since 2026-11-09 the left mode panel offers the same EQUIPMENT row ("Arena kits" / "Own gear") for
+Deathmatch, Team Deathmatch, Domination and Zombies played alone. Protected squads are unchanged:
+PFT Zombies keeps own gear without a choice, PFT Tactical keeps its `Tactical/TeamOwnGear` preference
+and its entry-kit machinery. Solo Tactical had the option for a day (built, reviewed, run natively)
+and lost it again the same day on the user's decision: its buy economy is the mode, the gear is
+earned in the match. The native report keeps what that run found.
 
 ## What own gear means
 
@@ -24,16 +26,18 @@ Protected squads are unchanged: PFT Zombies keeps own gear without a choice, PFT
   which runs before the game's `DiedEvent` handler Redeploy intercepts (the player subscribes in
   its `Init`, the game later), so the guard does not fire in practice.
 - `LiveKitRespawn.AtRoundBreak` is own-gear aware: Deathmatch's round-break respawn ("Fresh Kit At
-  Round End") and solo Tactical's survivor reissue restore the entry loadout instead of a kit
-  (heal + resupply through the same live swap). An own-gear raid never reaches the kit catalogue
-  from there; a frozen roster is refused outright (PFT Zombies drives `AtRoundBreakOwnGear` itself).
-  Team DM and Domination have no round break; they rely on the death respawn alone.
+  Round End") restores the entry loadout instead of a kit (heal + resupply through the same live
+  swap). An own-gear raid never reaches the kit catalogue from there; a frozen roster is refused
+  outright (PFT Zombies drives `AtRoundBreakOwnGear` itself). Team DM and Domination have no round
+  break; they rely on the death respawn alone. (Solo Tactical's survivor reissue would take the same
+  branch, but its gate never opens: Tactical is not in the solo table.)
 - The corpse cleanup leaves the retained slots and the pockets on the player's own corpse
   (`CorpseCleanupService.StripGear`, own corpse only; the heavy models still go). The restore reads
   the secure container, scabbard, armband and special pocket slots from the body being replaced and
-  refuses when one is missing; Tactical's round-start clear trims that corpse before the held
-  respawn runs, and on GPU-2 the first attempt failed on the stripped bayonet (see the report).
-  Redeploy's EquipmentSurgeon carries the same slots over in kit raids, so they profit as well.
+  refuses when one is missing; Tactical's round-start clear trims that corpse before a held respawn
+  runs, and on GPU-2 the (since withdrawn) own-gear Tactical attempt failed on the stripped bayonet
+  (see the report). Redeploy's EquipmentSurgeon carries the same slots over in kit raids, so the
+  held kit respawn of solo Tactical and any killcam-delayed respawn profit from the rule.
 - Items picked up during a life (the Pickups mutator, loot) are not kept across a restore, as with
   kits. The secure container is never emptied (`ArenaSecureContainer.LeavesContentsAtHome`) and the
   slot stays visible; `Kits/EmptySecureContainer` is inert for own gear. The loading-screen kit
@@ -44,35 +48,41 @@ Protected squads are unchanged: PFT Zombies keeps own gear without a choice, PFT
   unchanged, as are rewards. The server knows nothing of the choice (`ArenaMode.Server` and
   `ArenaMode.Shared` have no own-gear reference).
 
-## Solo Tactical
+## Solo Tactical keeps its kit economy
 
-Own gear suspends the kit economy: no starter kit is looked up (a catalogue the player does not use
-must not end their raid), `KitCatalog.KitProvider` stays null, `Money` is 0 and no kill, win or loss
-roubles are awarded, `TryBuy` refuses first, `StartRound` skips the cheapest-kit fallback for a dead
-player and the charge, and the HUD reads `Round N   W-L   NEXT ROUND Xs   [own gear]` (or `[own
-gear, back next round]` while down). The buy countdown (`Tactical/BuySeconds`) stays as the pause
-between rounds and the dead player's respawn hold; `SoloTacticalRoundStartPolicy` and the hold
-logic of `HoldRoundStartForKitSwap` are untouched (only its toast says "gear" instead of "kit").
-The buy panel does not auto-open (nothing to choose; the toast at `EnterBuy` carries the notice),
-the hotkey still opens it as "Next round" with the notice and Ready/Close, and it lists no kits.
-The survivor reissue notes at Debug when it does not start or land (routine stand-downs); a real
-restore failure is logged at Error by the swap itself.
-Everything else of solo Tactical (squad, objective, doors, rounds) is unchanged.
+Tactical played alone is a buy mode: the starter is free, kills and rounds pay roubles, the next
+round's kit is bought or retained. Bringing one's own loadout would hollow that out, so the row is
+not offered there (`ArenaOwnGearPolicy` leaves Tactical out of the solo table; `Settings` has no
+`Tactical/OwnGear`) and `TacticalMode`/`TacticalBuyPanel` are the pre-2026-11-09 code. For one day
+the option existed (no starter, no shop, no roubles, the buy countdown as the pause, the held respawn
+restoring the loadout) and ran natively; the user withdrew it the same day because the gear is meant
+to be earned in the match. What that run found, the corpse-strip rule below, stays, because it also
+protects the retained slots the kit path carries over.
 
 ## Gun Game is excluded
 
 The ladder is the loadout: a rung is a whole kit or the earned weapon merged onto the base kit
 (`KitMerge.WithPrimaryWeapon`), so there is no "own" equipment a rung could be merged into. The row
 stays hidden for Gun Game and its plain fact ("Assigned weapons") remains. `ArenaOwnGearPolicy`
-names the five modes; the row and the raid read the same table.
+names the four solo modes; the row and the raid read the same table.
+
+## The PitFireTeam option is named again
+
+Since the compact menu copy of 2026-10-26 a solo player saw no mention that Tactical and Zombies can
+be played as a PitFireTeam squad (the catalog's long description, which named it, left the screen).
+The second description line of solo Tactical ("Rounds; death / timeout loses; PFT optional.") and
+the first of solo Zombies ("Survive escalating waves; PFT optional.") name it, abbreviated as the row
+labels abbreviate it ("3v5 PFT", "ZOMBIES / PFT"); the catalog's Zombie description says
+"PitFireTeam optional." too. Both lines stay inside the 44-character budget
+(`ArenaCompactModeRules`, pinned by CompactModeUxChecks and TdmMatchMenuChecks).
 
 ## Settings, freezing and the gate
 
 - One independent entry per mode and roster: `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
-  `Domination/OwnGear`, `Tactical/OwnGear` (solo; all default false, Arena kits stay the Arena
-  default), the existing `Zombie/OwnGear` (default true) and `Tactical/TeamOwnGear` (protected
-  squad, default true). `Settings.EquipmentChoiceEntry(mode, protectedTeam)` dispatches; a protected
-  party reads an entry only for Tactical. The F12 layout carries the four new rows
+  `Domination/OwnGear` (all default false, Arena kits stay the Arena default), the existing
+  `Zombie/OwnGear` (default true) and `Tactical/TeamOwnGear` (protected squad, default true).
+  `Settings.EquipmentChoiceEntry(mode, protectedTeam)` dispatches; a protected party reads an entry
+  only for Tactical, a solo player none for Tactical. The F12 layout carries the three new rows
   (`ArenaConfigMenuLayoutTests` enforces).
 - `ArenaSession.MarkArmed` freezes `OwnGearSelection = ArenaOwnGearPolicy.SelectionAtArm(mode,
   HasFrozenTeamRoster, GetEquipmentChoiceOwnGear(mode, false))`: alone, the mode's own preference;
@@ -91,8 +101,8 @@ coordinator, the team-box or area abort, or, where plain Deathmatch and solo Tac
 run the vanilla death screen on an owner the engine already destroyed, the verified-owner
 `ScheduleFailedStartAbort`. A live reissue that fails keeps `SwapRoutine`'s ordinary recovery
 (the player keeps the current body); when the snapshot is poisoned (`ArenaOwnGearLoadout.IsPoisoned`)
-and the caller is `AtRoundBreak` (Deathmatch's round break, solo Tactical's survivors: modes that
-respawn on death), `LiveKitRespawn` ends the match through the same abort at once rather than one
+and the caller is `AtRoundBreak` (Deathmatch's round break: a mode that respawns on death),
+`LiveKitRespawn` ends the match through the same abort at once rather than one
 life later. Zombie's wave refill (`AtRoundBreakOwnGear`) does not ask for that abort and degrades
 gracefully as before (one life, no death respawn to doom). A player who chose own gear is never
 handed a random kit. The GC threshold monitor hears the new-body moment through
@@ -102,8 +112,7 @@ restore), where the kit refill's `OnKitApplied` gives it in a kit raid.
 
 The EQUIPMENT row's tooltip names the consequence per mode (Deathmatch: every respawn and the
 round break; Team DM and Domination: every respawn; Zombies: after each cleared wave, one life;
-solo Tactical: every round start and after a death, no buy phase; protected Tactical: the PMC
-only).
+protected Tactical: the PMC only).
 
 ## Design review (2026-11-09)
 
@@ -130,7 +139,8 @@ change touched: ZombieKitWarmupChecks (plus an own-gear case for the loading ski
 in the four respawning modes and a fault on the new `ArenaController` return), TdmWarmupChecks,
 PreviewHostLifecycleChecks (matrix with Domination and the two Tactical preferences),
 ArenaCharacterPreviewChecks (real EFT API compile), ZombieTeam/Solo/WavePendingChecks,
-TacticalPolishChecks (own-gear StartRound: no charge, no provider, no fallback, reissue dispatched),
+TacticalPolishChecks (unchanged code since the withdrawal), CompactModeUxChecks and
+NativeModeSelectionChecks (the PitFireTeam mention within the copy budgets),
 AreaConfigChecks, ArenaKillcamChecks, BleedingCleanupChecks, GcThresholdChecks, DeathmatchChecks,
 CrowdReactionChecks, PitFireTeamChecks (renamed anchors: the own-gear decision follows the frozen
 PFT branch and precedes the kit draw), TeamArenaLoadoutChecks, TeamArenaExpansionChecks,
@@ -149,7 +159,8 @@ the own-corpse case and a compiled fault for the rule.
 
 ## Limits
 
-- Own gear is the local PMC's; PFT companions keep theirs in every case.
+- Own gear is the local PMC's; PFT companions keep theirs in every case. Solo Tactical and Gun
+  Game have no own-gear option (above).
 - A restore moves the player to a spawn point (the round break) or the respawn position, as kits
   do; mid-life pickups and loot are not kept.
-- Gun Game has no own-gear option (above). Zombie's one-life rule is unchanged.
+- Zombie's one-life rule is unchanged.

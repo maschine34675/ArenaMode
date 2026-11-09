@@ -95,15 +95,6 @@ static class Program
         mode.SurvivedForTest();mode.Start();Check(mode.Money==100&&mode.Issue().Id=="costly","winning keeps purchased gear when its price is no longer affordable");
         mode=Fresh();mode.Prepare(down:true);mode.Start();Check(mode.Bought.Id=="costly"&&mode.Money==100,"existing death/no-buy auto-purchase remains");
         mode=Fresh();mode.Prepare(team:true);Check(!mode.TryBuy(KitCatalog.Kits[0]),"protected team rejects buying");
-        // Own gear (2026-11-09): no kit economy — nothing buyable, nothing charged, no
-        // provider, no catalogue fallback for a dead player; the survivor reissue still runs.
-        mode=Fresh();mode.PrepareOwnGear(money:1000);
-        Check(!mode.TryBuy(KitCatalog.Kits[1])&&mode.Bought==null,"own gear refuses buying even an affordable kit");
-        Check(mode.NoPurchaseDescription.Contains("Own gear")&&!mode.NoPurchaseDescription.Contains("starter"),"own gear UI says the entry loadout is restored, not a starter");
-        mode.Start();Check(mode.Bought==null&&mode.Money==1000&&KitCatalog.KitProvider==null,"own gear round start charges nothing, picks no kit and installs no provider");
-        Check(LiveKitRespawn.Swaps==1,"own gear survivor is reissued through the same round-break swap");
-        mode=Fresh();mode.PrepareOwnGear(down:true);mode.Start();
-        Check(mode.Bought==null&&mode.Money==0,"own gear dead player gets no cheapest-kit fallback");
         mode=Fresh();mode.LoseStarterForTest();bool refused=false;try{mode.Issue();}catch(InvalidOperationException){refused=true;}
         Check(refused,"missing supplier state refuses instead of drawing random");
         KitCatalog.Kits=[new(){Id="invalid",Invalid=true}];Check(TacticalMode.SelectOpeningKit()==null,"no usable catalogue never selects invalid starter");

@@ -32,8 +32,6 @@ public partial class TacticalMode
     private bool _rewardTimerExpired;
     private void BeginRewardCombat() { _rewardTimerExpired = false; }
     private KitDefinition _bought,_worn,_starter;
-    private bool _ownGear;
-    public bool OwnGear=>_ownGear;
     private Phase _phase=Phase.Buy;
     private float _phaseEndsAt,_squadDeadlineAt;
     private int _squadRequested,_squadEpoch;
@@ -64,12 +62,6 @@ public partial class TacticalMode
         _starter=SelectOpeningKit(); _playerDown=down; _teamArena=team;
         _phase=Phase.Buy;_roundStartPending=true;_match.Mode=this;ArenaMatchService.Current=_match;
         KitCatalog.KitProvider=IssueSoloKit;
-    }
-    public void PrepareOwnGear(bool down=false,int money=0)
-    {
-        _ownGear=true;Money=money;_playerDown=down;_teamArena=false;_starter=null;
-        _phase=Phase.Buy;_roundStartPending=true;_match.Mode=this;ArenaMatchService.Current=_match;
-        KitCatalog.KitProvider=null;
     }
     public void Start()=>StartRound();
     public IReadOnlyList<ArenaAnnouncerCue> Cues=>_match.Cues;

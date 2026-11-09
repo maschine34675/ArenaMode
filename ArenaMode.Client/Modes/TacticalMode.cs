@@ -145,15 +145,6 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     /// a purchase by StartRound.
     /// </summary>
     private KitDefinition _worn;
-
-    // The player's own-gear option (ArenaOwnGearPolicy), frozen at OnMatchStart
-    // from the arm-time selection like _teamArena: solo Tactical then runs no
-    // kit economy — no starter, no shop, no roubles — and the buy countdown is
-    // only the pause between rounds. A survivor is reissued the entry loadout
-    // by the same AtRoundBreak call survivors always get (own-gear aware), a
-    // dead player's held respawn restores it through the driver. Always false
-    // for a protected squad, which decides through TacticalTeamOwnGearSelection.
-    private bool _ownGear;
     private bool _playerDown;
     private bool _roundStartPending;
     private SoloTacticalRoundStartPolicy.State _roundStartHold;
@@ -205,9 +196,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     internal bool AllowsCountdownMenu => _phase == Phase.Buy
         || _phase == Phase.Staging || _phase == Phase.Aftermath;
 
-    public string NoPurchaseDescription => _ownGear
-        ? "Own gear: your entry loadout is restored at every round start."
-        : RoundNumber == 1 && !_playerDown
+    public string NoPurchaseDescription => RoundNumber == 1 && !_playerDown
         ? $"No purchase: free starter ({_starter?.Name ?? _starter?.Id ?? "unavailable"})."
         : KeepsCurrentGear
             ? "No purchase: keep and resupply your previous round's loadout."
@@ -221,9 +210,6 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     public bool WaitingForKitSwap => !_teamArena && _phase == Phase.Buy && _roundStartHold.Holding;
 
     public bool IsTeamArena => _teamArena;
-
-    /// <summary>Solo match on the player's own gear: no kit economy, see the field.</summary>
-    public bool OwnGear => _ownGear;
     internal bool AssistScoringOpen => _phase == Phase.Live && !IsComplete;
 
     // Awards use current physical bodies, never historical tracer/profile aliases.
@@ -364,22 +350,11 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
                 }
             }
 
-            var line = _ownGear
-                ? $"Round {RoundNumber}   {RoundsWon}-{RoundsLost}"
-                : $"Round {RoundNumber}   {RoundsWon}-{RoundsLost}   {Money:N0} ₽";
+            var line = $"Round {RoundNumber}   {RoundsWon}-{RoundsLost}   {Money:N0} ₽";
 
             switch (_phase)
             {
                 case Phase.Staging:
-                    break;
-
-                case Phase.Buy when _ownGear:
-                    // Nothing to buy: the countdown is the pause between rounds,
-                    // and a dead player's hold until the next one.
-                    line += WaitingForKitSwap
-                        ? "   NEXT ROUND  waiting for your gear"
-                        : $"   NEXT ROUND  {PhaseRemaining:0}s";
-                    line += _playerDown ? "   [own gear, back next round]" : "   [own gear]";
                     break;
 
                 case Phase.Buy:
@@ -433,7 +408,6 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _boundLocalProfileId = null;
         _playerDown = false;
         _starter = _worn = null;
-        _ownGear = false;
         _soloCombatReady = false;
         _roundStartPending = false;
         _teamEnemiesRequested = false;
@@ -522,21 +496,6 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             return;
         }
 
-        _ownGear = ArenaSession.OwnGearActive;
-        if (_ownGear)
-        {
-            // Own gear: the raid-start kit swap is skipped and the entry
-            // loadout captured instead (ArenaSession.CompleteRaidStart), so the
-            // kit economy has nothing to sell. No starter is looked up (a
-            // catalogue the player does not use must not end their raid), the
-            // provider stays null (the driver's own-gear path never asks), and
-            // the buy countdown stays as the pause between rounds.
-            Money = 0;
-            EnterBuy();
-            Plugin.ModLogger.LogDebug("Tactical: match started with the player's own gear; the kit economy is off.");
-            return;
-        }
-
         // A free opening loadout is deliberate, but it is always the cheapest
         // buildable kit, never the user's random/configured paid loadout.
         // Capture once so purchases and later catalogue reads cannot change it.
@@ -622,7 +581,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
                 Plugin.ModLogger.LogDebug(
                     $"Tactical round {RoundNumber}: buy phase over, waiting for the body swap in flight to land "
                     + $"(up to {SoloTacticalRoundStartPolicy.InitialSwapHoldSeconds:0}s).");
-                ArenaToasts.Show($"Round {RoundNumber} — waiting for your {(_ownGear ? "gear" : "kit")}");
+                ArenaToasts.Show($"Round {RoundNumber} — waiting for your kit");
                 return true;
 
             case SoloTacticalRoundStartDecision.Hold:
@@ -819,8 +778,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         if (_phase != Phase.Live || !kill.KilledByLocal || kill.LocalIsVictim)
             return;
 
-        if (!_ownGear)
-            Money += Settings.TacticalKillReward.Value;
+        Money += Settings.TacticalKillReward.Value;
     }
 
     public void OnLocalDeath()
@@ -999,10 +957,8 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _preferredSpectatorProfileId = null;
         _lastTeamReadinessDiagnostic = null;
 
-        Plugin.ModLogger.LogDebug(_ownGear
-            ? $"Tactical ended: {RoundsWon}-{RoundsLost} over {RoundNumber} round(s), own gear."
-            : $"Tactical ended: {RoundsWon}-{RoundsLost} over {RoundNumber} round(s), {Money:N0} roubles left.");
-        _ownGear = false;
+        Plugin.ModLogger.LogDebug(
+            $"Tactical ended: {RoundsWon}-{RoundsLost} over {RoundNumber} round(s), {Money:N0} roubles left.");
     }
 
     /// <summary>Ends the buy phase now. The round still starts through Tick, so there is one path in.</summary>
@@ -1015,7 +971,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     /// <summary>Buy a kit. Refuses what the player cannot afford, and charges nothing until the round starts.</summary>
     public bool TryBuy(KitDefinition kit)
     {
-        if (_teamArena || _ownGear || kit == null || _phase != Phase.Buy)
+        if (_teamArena || kit == null || _phase != Phase.Buy)
             return false;
 
         if (PriceOf(kit) > Money)
@@ -1053,7 +1009,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // cheap thing you could still pay for — punishing the win.
         _bought = null;
 
-        ArenaToasts.Show($"Round {RoundNumber} — {(_ownGear ? "next round soon" : "buy phase")}. {NoPurchaseDescription}");
+        ArenaToasts.Show($"Round {RoundNumber} — buy phase. {NoPurchaseDescription}");
     }
 
     /// <summary>
@@ -2839,14 +2795,12 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // they get the best they can afford rather than a naked round. A player
         // who survived and bought nothing keeps what they are wearing — that is
         // what winning is for.
-        if (wasDown && _bought == null && !_ownGear)
+        if (wasDown && _bought == null)
             _bought = Affordable();
 
         // Charged now rather than at the click, so browsing the menu is free and
-        // a round that never starts costs nothing. Own gear has nothing to
-        // charge: _bought stays null and the reissue below restores the entry
-        // loadout instead of a kit.
-        var price = _ownGear ? 0 : PriceOf(_bought);
+        // a round that never starts costs nothing.
+        var price = PriceOf(_bought);
         if (price <= Money)
             Money -= price;
 
@@ -2882,31 +2836,16 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
             && game.Status == GameStatus.Started)
         {
-            bool reissueStarted = Respawn.LiveKitRespawn.AtRoundBreak(
+            Respawn.LiveKitRespawn.AtRoundBreak(
                 game,
                 Settings.SpawnProtectionSeconds.Value,
                 () => _phase == Phase.Live && RoundNumber == roundNumber,
-                // A kit reissue that did not land only means last round's
-                // magazines; an own-gear one is noted (Debug: the stand-downs
-                // are routine races, a real restore failure is already logged
-                // at Error and ends the match through LiveKitRespawn's
-                // poisoned-snapshot abort).
-                _ownGear
-                    ? (Action<bool>)(success =>
-                    {
-                        if (!success)
-                            Plugin.ModLogger.LogDebug(
-                                $"Tactical round {roundNumber}: the own-gear reissue did not land; the round runs on the previous body.");
-                    })
-                    : null);
-            if (_ownGear && !reissueStarted)
-                Plugin.ModLogger.LogDebug($"Tactical round {roundNumber}: the own-gear reissue was not started.");
+                null);
         }
 
-        Plugin.ModLogger.LogDebug(_ownGear
-            ? $"Tactical round {RoundNumber}: {_squadRequested} enemies, own gear reissued."
-            : $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
-              + $"{Money:N0} left.");
+        Plugin.ModLogger.LogDebug(
+            $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
+            + $"{Money:N0} left.");
 
         ArenaToasts.Show($"Round {RoundNumber} — assembling {_squadRequested} opponents");
     }
@@ -3025,29 +2964,18 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         if (won)
         {
             RoundsWon++;
-            if (_ownGear)
-                ArenaToasts.Show($"Round {RoundNumber} won");
-            else
-            {
-                Money += Settings.TacticalWinBonus.Value;
-                ArenaToasts.Show($"Round {RoundNumber} won  (+{Settings.TacticalWinBonus.Value:N0} ₽)");
-            }
+            Money += Settings.TacticalWinBonus.Value;
+            ArenaToasts.Show($"Round {RoundNumber} won  (+{Settings.TacticalWinBonus.Value:N0} ₽)");
         }
         else
         {
             RoundsLost++;
-            if (_ownGear)
-                ArenaToasts.Show($"Round {RoundNumber} lost");
-            else
-            {
-                Money += Settings.TacticalLossBonus.Value;
-                ArenaToasts.Show($"Round {RoundNumber} lost  (+{Settings.TacticalLossBonus.Value:N0} ₽)");
-            }
+            Money += Settings.TacticalLossBonus.Value;
+            ArenaToasts.Show($"Round {RoundNumber} lost  (+{Settings.TacticalLossBonus.Value:N0} ₽)");
         }
 
-        Plugin.ModLogger.LogDebug(_ownGear
-            ? $"Tactical round {RoundNumber} {(won ? "won" : "lost")} — {RoundsWon}-{RoundsLost}, own gear."
-            : $"Tactical round {RoundNumber} {(won ? "won" : "lost")} — {RoundsWon}-{RoundsLost}, {Money:N0} roubles.");
+        Plugin.ModLogger.LogDebug(
+            $"Tactical round {RoundNumber} {(won ? "won" : "lost")} — {RoundsWon}-{RoundsLost}, {Money:N0} roubles.");
 
         RoundNumber++;
     }

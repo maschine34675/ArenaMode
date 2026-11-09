@@ -45,8 +45,8 @@ Need(Settings.ZombieMaxAlive.Value == 32 && Settings.ZombieWaveStartSize.Value =
     && Settings.ZombieWaveGrowth.Value == 20 && Settings.ZombieOwnGear.Value,
     "fresh Zombie preferences use tested 32/50/20 own-gear defaults");
 Need(!Settings.DeathmatchOwnGear.Value && !Settings.TeamDeathmatchOwnGear.Value && !Settings.DominationOwnGear.Value
-    && !Settings.TacticalOwnGear.Value && Settings.TacticalTeamOwnGear.Value,
-    "fresh preferences keep Arena kits in the respawning modes and solo Tactical; protected Tactical keeps own gear");
+    && Settings.TacticalTeamOwnGear.Value,
+    "fresh preferences keep Arena kits in the respawning modes; protected Tactical keeps own gear");
 var savedZombieConfig = new ConfigFile();
 savedZombieConfig.Stored["Zombie/MaxAlive"] = 24;
 savedZombieConfig.Stored["Zombie/WaveStartSize"] = 35;
@@ -402,37 +402,39 @@ Need(Settings.DeathmatchRounds.Value == 3, "hidden Deathmatch callbacks cannot c
 
 // Item 1 of the 2026-10-06 follow-up ("own gear to the left"): the equipment
 // choice row lives in the LEFT mode panel (ArenaEquipmentChoiceView),
-// replacing the plain EQUIPMENT fact while visible. Since 2026-11-09 every
-// solo mode but Gun Game offers it, each persisting to its own entry; Gun Game
-// keeps the plain fact (its ladder is the loadout), same HIDE-when-inapplicable
+// replacing the plain EQUIPMENT fact while visible. Since 2026-11-09 Deathmatch,
+// Team DM, Domination and Zombies offer it solo, each persisting to its own
+// entry; Gun Game (its ladder is the loadout) and solo Tactical (its buy
+// economy is the mode) keep the plain fact, same HIDE-when-inapplicable
 // convention as the TDM/Deathmatch rules rows.
 Button EquipmentChoiceButton(bool ownGear) =>
     Buttons().Single(x => x.name == "Arena Equipment Choice " + (ownGear ? "OwnGear" : "ArenaKits"));
 GameObject EquipmentChoiceRoot() =>
     view.Root.transform.Children.Single(x => x.name == "Arena Equipment Choice").gameObject;
 Settings.ZombieOwnGear.Value = false;
-Settings.DeathmatchOwnGear.Value = Settings.TeamDeathmatchOwnGear.Value = false;
-Settings.DominationOwnGear.Value = Settings.TacticalOwnGear.Value = false;
-view.Synchronize("gungame", false);
-Need(!EquipmentChoiceRoot().activeSelf, "equipment choice stays hidden for Gun Game");
-Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf
-    && Label("EQUIPMENT value").text == "Assigned weapons", "the plain EQUIPMENT fact remains for Gun Game");
-EquipmentChoiceButton(true).onClick.Invoke();
-Need(!Settings.ZombieOwnGear.Value && !Settings.DeathmatchOwnGear.Value && !Settings.TacticalOwnGear.Value,
-    "a hidden equipment choice row cannot change any setting on Gun Game");
+Settings.DeathmatchOwnGear.Value = Settings.TeamDeathmatchOwnGear.Value = Settings.DominationOwnGear.Value = false;
+foreach (var (plainMode, plainFact) in new[] { ("gungame", "Assigned weapons"), ("tactical", "Buy / retain kit") })
+{
+    view.Synchronize(plainMode, false);
+    Need(!EquipmentChoiceRoot().activeSelf, "equipment choice stays hidden for " + plainMode);
+    Need(Label("EQUIPMENT label").gameObject.activeSelf && Label("EQUIPMENT value").gameObject.activeSelf
+        && Label("EQUIPMENT value").text == plainFact, "the plain EQUIPMENT fact remains for " + plainMode);
+    EquipmentChoiceButton(true).onClick.Invoke();
+    Need(!Settings.ZombieOwnGear.Value && !Settings.DeathmatchOwnGear.Value && Settings.TacticalTeamOwnGear.Value,
+        "a hidden equipment choice row cannot change any setting on " + plainMode);
+}
 view.Synchronize("tactical", true);
 Need(EquipmentChoiceRoot().activeSelf && Marked(EquipmentChoiceButton(true)),
     "protected Tactical offers own gear by default");
 EquipmentChoiceButton(false).onClick.Invoke();
-Need(!Settings.TacticalTeamOwnGear.Value && Marked(EquipmentChoiceButton(false)) && !Settings.ZombieOwnGear.Value
-    && !Settings.TacticalOwnGear.Value,
+Need(!Settings.TacticalTeamOwnGear.Value && Marked(EquipmentChoiceButton(false)) && !Settings.ZombieOwnGear.Value,
     "protected Tactical kit choice changes only its own preference");
 EquipmentChoiceButton(true).onClick.Invoke();
 Need(Settings.TacticalTeamOwnGear.Value, "protected Tactical can return to own gear");
 foreach (var (soloMode, entry) in new[]
          {
              ("deathmatch", Settings.DeathmatchOwnGear), ("teamdeathmatch", Settings.TeamDeathmatchOwnGear),
-             ("domination", Settings.DominationOwnGear), ("tactical", Settings.TacticalOwnGear),
+             ("domination", Settings.DominationOwnGear),
          })
 {
     view.Synchronize(soloMode, false);
@@ -445,7 +447,7 @@ foreach (var (soloMode, entry) in new[]
     Need(Label("EQUIPMENT value").text == "Own gear" && EquipmentChoiceRoot().activeSelf,
         soloMode + "'s hidden EQUIPMENT fact value keeps tracking the inline choice");
     Need(!Settings.ZombieOwnGear.Value && Settings.TacticalTeamOwnGear.Value
-        && new[] { Settings.DeathmatchOwnGear, Settings.TeamDeathmatchOwnGear, Settings.DominationOwnGear, Settings.TacticalOwnGear }
+        && new[] { Settings.DeathmatchOwnGear, Settings.TeamDeathmatchOwnGear, Settings.DominationOwnGear }
             .Count(e => e.Value) == 1,
         soloMode + " changes no other mode's preference");
     EquipmentChoiceButton(false).onClick.Invoke();
@@ -511,11 +513,10 @@ foreach (bool ownGear in new[] { false, true })
 foreach (var (schemaMode, schemaTeam) in new[] { ("deathmatch", false), ("gungame", false), ("tactical", false),
     ("tactical", true), ("teamdeathmatch", false), ("zombie", false), ("zombie", true) })
 {
-    foreach (bool ownGear in schemaMode == "zombie" || schemaMode != "gungame" && !schemaTeam ? new[] { false, true } : new[] { false })
+    foreach (bool ownGear in schemaMode == "zombie" || schemaMode is not ("gungame" or "tactical") && !schemaTeam ? new[] { false, true } : new[] { false })
     {
         Settings.ZombieOwnGear.Value = ownGear;
-        Settings.DeathmatchOwnGear.Value = Settings.TeamDeathmatchOwnGear.Value = ownGear;
-        Settings.DominationOwnGear.Value = Settings.TacticalOwnGear.Value = ownGear;
+        Settings.DeathmatchOwnGear.Value = Settings.TeamDeathmatchOwnGear.Value = Settings.DominationOwnGear.Value = ownGear;
         view.Synchronize(schemaMode, schemaTeam);
         string scope = schemaMode + (schemaTeam ? " (PFT)" : "") + (ownGear ? " own gear" : "");
         foreach (string fact in new[] { "RESPAWN", "EQUIPMENT" })
