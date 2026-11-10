@@ -94,8 +94,11 @@ public static class ConfigStore
 
                 ArenaContext.Config = config;
 
+                // kits.json carries no prices: KitPricer gave them at load, and a reload has to
+                // give them again, or every stock kit reads free in the Tactical shop and the
+                // custom-kit cap becomes 0 until the next server start.
                 if (File.Exists(KitsFile))
-                    ArenaContext.KitsJson = File.ReadAllText(KitsFile);
+                    ArenaContext.KitsJson = KitPricer.Reprice(File.ReadAllText(KitsFile));
 
                 if (File.Exists(LadderFile))
                     ArenaContext.LadderJson = File.ReadAllText(LadderFile);

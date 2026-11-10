@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using ArenaMode.Shared;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
 using SPTarkov.Common.Models.Logging;
@@ -18,7 +19,11 @@ namespace ArenaMode.Server.Services;
 ///
 /// The number is the handbook sum in roubles, which is a currency the player
 /// already has intuitions about: a kit that reads 320,000 is understood without
-/// a legend. No scaling, because a scaled score would need explaining.
+/// a legend. No scaling, because a scaled score would need explaining. The rule
+/// itself lives in <see cref="KitPriceRule"/> (shared with the client, which prices
+/// the player's own kits with it, docs/reviews/CUSTOM-KITS-20261110.md); this class
+/// only applies it to the catalogue, at load and again after the config page's
+/// "Reload from disk" (<see cref="Reprice"/>), which reads the unpriced kits.json.
 /// </summary>
 [Injectable(TypePriority = OnLoadOrder.PostLoad + 98000)]
 public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger) : IOnLoad
@@ -27,7 +32,13 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
     {
         try
         {
-            var priced = Price(ArenaContext.KitsJson, out var count, out var cheapest, out var dearest);
+            var prices = HandbookPrices(templateTable);
+            if (prices == null)
+                return Task.CompletedTask;
+
+            ArenaContext.HandbookPrices = prices;
+
+            var priced = Apply(ArenaContext.KitsJson, prices, out var count, out var cheapest, out var dearest);
             if (priced == null)
                 return Task.CompletedTask;
 
@@ -47,43 +58,33 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
     }
 
     /// <summary>
-    /// The secure container and everything in it, which is not gear anyone buys.
-    ///
-    /// It is the arena's own plumbing — every kit carries the same one — and at
-    /// 360,000 roubles the Alpha was two thirds of what a kit appeared to cost.
-    /// Counting it put the CHEAPEST kit at 540,000 and made the starting budget
-    /// unable to buy anything at all: twenty disabled buttons on round one.
-    /// Without it the catalogue spans 180,000 to 592,000, which is a ladder.
+    /// The handbook as one dictionary rather than a scan per item: a kit is thirty-odd
+    /// templates and there are twenty kits, which is six hundred lookups against a list
+    /// of thousands. Null when the database has no handbook.
     /// </summary>
-    private static HashSet<string> SecureContainerSubtree(JsonArray items)
+    private static Dictionary<string, double>? HandbookPrices(TemplateTable templateTable)
     {
-        var skipped = new HashSet<string>(StringComparer.Ordinal);
+        var handbook = templateTable.Handbook?.Items;
+        if (handbook == null)
+            return null;
 
-        foreach (var item in items)
+        var prices = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in handbook)
         {
-            if (string.Equals(item?["slotId"]?.GetValue<string>(), "SecuredContainer", StringComparison.OrdinalIgnoreCase)
-                && item?["_id"]?.GetValue<string>() is { } id)
-                skipped.Add(id);
+            if (entry.Id.ToString() is { } id)
+                prices[id] = entry.Price ?? 0d;
         }
 
-        // Whatever hangs off it goes too, however deep.
-        var grew = true;
-        while (grew)
-        {
-            grew = false;
-            foreach (var item in items)
-            {
-                var id = item?["_id"]?.GetValue<string>();
-                var parent = item?["parentId"]?.GetValue<string>();
-                if (id != null && parent != null && skipped.Contains(parent) && skipped.Add(id))
-                    grew = true;
-            }
-        }
-
-        return skipped;
+        return prices;
     }
 
-    private string? Price(string kitsJson, out int count, out double cheapest, out double dearest)
+    /// <summary>
+    /// Prices every kit of <paramref name="kitsJson"/> that has no price of its own with
+    /// <see cref="KitPriceRule"/>. Null when the text is no array or no kit needed a price;
+    /// throws on a kit whose ids are not strings, as the load always did.
+    /// </summary>
+    public static string? Apply(string kitsJson, IReadOnlyDictionary<string, double> prices,
+        out int count, out double cheapest, out double dearest)
     {
         count = 0;
         cheapest = 0;
@@ -92,20 +93,7 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
         if (JsonNode.Parse(kitsJson) is not JsonArray kits)
             return null;
 
-        var handbook = templateTable.Handbook?.Items;
-        if (handbook == null)
-            return null;
-
-        // One dictionary rather than a scan per item: a kit is thirty-odd
-        // templates and there are twenty kits, which is six hundred lookups
-        // against a list of thousands.
-        var prices = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in handbook)
-        {
-            if (entry.Id.ToString() is { } id)
-                prices[id] = entry.Price ?? 0d;
-        }
-
+        Func<string, double?> lookup = tpl => prices.TryGetValue(tpl, out var price) ? price : null;
         foreach (var node in kits)
         {
             if (node is not JsonObject kit)
@@ -114,26 +102,7 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
             if (kit["price"] is not null)
                 continue;
 
-            var total = 0d;
-            if (kit["items"] is JsonArray items)
-            {
-                var skipped = SecureContainerSubtree(items);
-
-                foreach (var item in items)
-                {
-                    var id = item?["_id"]?.GetValue<string>();
-                    if (id != null && skipped.Contains(id))
-                        continue;
-
-                    var tpl = item?["_tpl"]?.GetValue<string>();
-                    if (tpl != null && prices.TryGetValue(tpl, out var price))
-                        total += price;
-                }
-            }
-
-            // Rounded to something a person reads as a price rather than as a
-            // sum: 318,400 becomes 318,000.
-            total = Math.Round(total / 1000d) * 1000d;
+            var total = kit["items"] is JsonArray items ? KitPriceRule.Price(Rows(items), lookup) : 0d;
 
             kit["price"] = total;
             count++;
@@ -142,5 +111,42 @@ public class KitPricer(TemplateTable templateTable, ISptLogger<KitPricer> logger
         }
 
         return count > 0 ? kits.ToJsonString() : null;
+    }
+
+    /// <summary>
+    /// For ConfigStore.Reload: the catalogue priced again with the handbook read at load,
+    /// or the text as given when there is none yet or the text cannot be priced. Never
+    /// throws: a reload that cannot price still reloads, and says so.
+    /// </summary>
+    public static string Reprice(string kitsJson)
+    {
+        var prices = ArenaContext.HandbookPrices;
+        if (prices == null)
+            return kitsJson;
+
+        try
+        {
+            return Apply(kitsJson, prices, out _, out _, out _) ?? kitsJson;
+        }
+        catch (Exception ex)
+        {
+            ArenaContext.Logger?.Warning($"[ArenaMode] Kit pricing after the reload failed, kits stay unpriced: {ex.Message}");
+            return kitsJson;
+        }
+    }
+
+    private static List<KitPriceNode> Rows(JsonArray items)
+    {
+        var rows = new List<KitPriceNode>(items.Count);
+        foreach (var item in items)
+        {
+            rows.Add(new KitPriceNode(
+                item?["_id"]?.GetValue<string>(),
+                item?["_tpl"]?.GetValue<string>(),
+                item?["parentId"]?.GetValue<string>(),
+                item?["slotId"]?.GetValue<string>()));
+        }
+
+        return rows;
     }
 }
