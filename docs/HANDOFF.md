@@ -12,7 +12,18 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
-- **Development, 2026-11-10, merged into `master` (not pushed; `master` is ahead of `dev/master`):**
+- **Development, 2026-11-10, `master` `e664eff1` (not pushed), server deployed:** an observed
+  restoration whose disk readback can never match no longer quarantines its profile at every
+  normal start; the startup discard closes it without payment
+  ([report](reports/2026-11/REWARD-UNPROVABLE-CHECKPOINT-20261110.md)). It had withheld every
+  reward of the owner's profile since 2026-10-27; SPT-GPU-2's start closed that checkpoint.
+  Installed: server `0.5.0+e664eff1` (with the zero-round final fix), client still `0.5.0+9543fed0`;
+  previous server DLL, profiles and reward folders in
+  `D:\SPT41-Backups\reward-checkpoint-fix\20261110-204937`. That profile's rewards are OFF since an
+  automatic session discard on 2026-10-29; its 2026-10-28 receipt pays once the owner switches
+  them on.
+
+- **Development, 2026-11-10, merged into `master` (pushed to `dev/master` at 18:26 as `3fe0053c`):**
   four branches merged with `--no-ff` on `5d82ea93`.
   `feature/kit-picker` (merge `5bc35e2b`): the KITS screen on the Arena map screen and the
   card-based solo Tactical buy screen ([contract](reviews/KIT-PICKER-20261110.md),
@@ -25,9 +36,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   end instead of the "reward-capture-identity" warning (see [REWARDS-RUNTIME.md](REWARDS-RUNTIME.md)).
   `fix/spare-magazine-fill` (merge `b38d73d7`): spare magazines are loaded to capacity in stacks
   of the round's size (a belt box was handed out 40/100 or 60/100).
-  Installed is still client and server `0.5.0+9543fed0` from the kit-picker branch (mirrored to
-  the GPU hosts), Core unchanged at `1.0.22+b1d69e1`; the reward and spare fixes are neither
-  deployed nor run natively. Offline after the merges: xunit (3764 tests) and 15 of the 16 harnesses
+  Installed is still the client `0.5.0+9543fed0` from the kit-picker branch (mirrored to the GPU
+  hosts; the server is `e664eff1` since the entry above), Core unchanged at `1.0.22+b1d69e1`; the
+  zero-round reward fix is deployed with that server but has not met its case natively, the spare
+  magazine fix is neither deployed nor run natively. Offline after the merges: xunit (3764 tests) and 15 of the 16 harnesses
   the four branches touch are green. `tools/MolotovItemChecks` did not compile from `6380270d`
   (it links `KitPolishChecks/Supplies/Program.cs`, which calls `LooseReserveChecks`, without
   `LooseReserveChecks.cs`); it links that file since 2026-11-10 and passes with all its mutants. Sporadic:

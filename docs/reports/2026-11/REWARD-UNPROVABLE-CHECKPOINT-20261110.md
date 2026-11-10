@@ -81,4 +81,23 @@ already true for a missing `observed.json`; both fall under the discard policy.
 
 ## Native run
 
-Pending.
+Server `0.5.0+e664eff1` built from the commit and deployed to `D:\SPT41` (client unchanged at
+`0.5.0+9543fed0`); before that the installed server DLL, every profile and the four reward
+folders were copied to `D:\SPT41-Backups\reward-checkpoint-fix\20261110-204937`. Neither
+MASCHINE11 nor SPT-GPU-2 had a server running. `gpu-run deploy-wait` confirmed the identical
+DLL on SPT-GPU-2 and started its SPT server alone (no game) at 19:51 UTC:
+
+- The owner's profile, first in the pass, logged `Startup reward: Deferred (rewards-not-enabled)`
+  instead of the mismatch: the pass now reaches the consent check (rewards are OFF for this
+  profile since 2026-10-29).
+- A new recovery attempt `dc761def…` completed `closed-without-payment` with exactly one case,
+  the snapshot `aebdfb71…`, its evidence `checkpoint.json`, `mismatch.json`, `observed.json` and
+  the guard; the guard is still `pending` and the checkpoint files are unchanged apart from the
+  rewritten `mismatch.json` of that start.
+- Against the copy taken before the start, the profile differs only in the reward block's
+  `recoveries` (1 to 2 entries); no other section changed.
+- The other profiles' outcomes are those of the earlier starts that day.
+
+The server was stopped again and the changed files arrived byte-identical on `D:\SPT41`. The
+2026-10-28 receipt is paid at the first normal start after the owner switches rewards on, as
+the replay showed (10,000 RUB, 1,000 XP); that start has not happened yet.
