@@ -87,6 +87,8 @@ namespace Redeploy.Core.Ui {}
 namespace ArenaMode.Hud
 {
     public static class CursorVote {public static void Set(object x,bool b){}}
+    // The card screen is drawn by the game's UI; here it never builds, so the panel's own window stays the subject.
+    public sealed class TacticalBuyScreen {public bool Drawn=>false;public int Shows,Hides,Ticks;public void Show(ArenaMode.Modes.TacticalMode m,Action close){Shows++;}public void Hide(){Hides++;}public void Tick(ArenaMode.Modes.TacticalMode m){Ticks++;}}
     public static class ArenaInputBlocker {public static bool Open,Drained;public static void Request(object x,bool open,bool drainOnRelease=false){Open=open;Drained=!open&&drainOnRelease;}}
 }
 namespace BepInEx.Configuration { public class KeyboardShortcut {public UnityEngine.KeyCode MainKey;public UnityEngine.KeyCode[] Modifiers=[];} }

@@ -19,9 +19,9 @@ function Extract-Method([string]$source,[string]$name){
     if($matches.Count -ne 1){throw "Expected exactly one production method $name, found $($matches.Count)"}
     return $matches[0].Value
 }
-$methodNames=@('Tick','TickLive','StartRound','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
+$methodNames=@('Tick','TickLive','StartRound','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','ClearPurchase','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
 $methods=@{};foreach($name in $methodNames){$methods[$name]=Extract-Method $tactical $name}
-$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription')|ForEach-Object {
+$properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','Worn')|ForEach-Object {
     $match=[regex]::Match($tactical,'(?ms)^    (?:public|internal) \w+ '+$_+'\s*=>.*?;[ \t]*\r?$')
     if(!$match.Success){throw "Production property $_ not found"};$match.Value
 }
@@ -72,6 +72,16 @@ if(!$SkipNegativeProbes){
     $matchSlice=$matchSlice.Replace(' && beginAwardRound','')
     Run-Probe 'fault-cue-resets-awards' $methods $panel 'cue' 'delayed cue preserves early First Blood and multi-kill chain'
     $matchSlice=$originalMatchSlice
+    # NO PURCHASE (docs/reviews/KIT-PICKER-20261110.md): a buy-phase respawn must not make the
+    # purchase the kept kit, and only a solo buy phase with a purchase can take one back.
+    function Mutate([string]$method,[string]$find,[string]$replace){
+        $copy=$methods.Clone();$body=$copy[$method]
+        if(([regex]::Matches($body,[regex]::Escape($find))).Count -ne 1){throw "Mutant anchor missing or ambiguous in ${method}: $find"}
+        $copy[$method]=$body.Replace($find,$replace);return $copy
+    }
+    Run-Probe 'fault-buy-phase-respawn-commits-purchase' (Mutate 'IssueSoloKit' 'if (_phase != Phase.Buy)' 'if (true)') $panel 'kit' 'an early hand-out does not change the kept kit'
+    Run-Probe 'fault-clear-outside-buy-phase' (Mutate 'ClearPurchase' '_phase != Phase.Buy || ' '') $panel 'kit' 'nothing to take back once the round runs'
+    Run-Probe 'fault-clear-in-team-arena' (Mutate 'ClearPurchase' '_teamArena || ' '') $panel 'kit' 'protected team has no purchase to take back'
 }
 [ordered]@{files=$before;check='production method bodies and full panel/policy/award sources';negativeProbesSkipped=$SkipNegativeProbes.IsPresent}|
     ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $scratch 'source-binding.json') -Encoding utf8

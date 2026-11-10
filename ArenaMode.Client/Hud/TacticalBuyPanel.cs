@@ -51,10 +51,16 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
     private GUIStyle _detailStyle;
     private ArenaWindowSkin _skin;
 
+    // The card screen (docs/reviews/KIT-PICKER-20261110.md). This panel stays the owner of the
+    // buy phase, the input block and the cursor; its own window below is what draws when the
+    // card screen cannot be built.
+    private readonly TacticalBuyScreen _screen = new();
+
     private void OnDestroy()
     {
         try
         {
+            _screen.Hide();
             SetCursor(false);
             ArenaInputBlocker.Request(this, false, drainOnRelease: true);
         }
@@ -177,6 +183,8 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
             _nextCursorRetry = Time.unscaledTime + 0.5f;
             SetCursor(true);
         }
+
+        if (_open) _screen.Tick(mode);
     }
 
     private static bool Modifiers(BepInEx.Configuration.KeyboardShortcut shortcut)
@@ -210,6 +218,9 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         {
             Plugin.ModLogger.LogWarning($"Tactical buy menu cursor request failed: {ex.Message}");
         }
+
+        if (open) _screen.Show(Mode, () => SetOpen(false));
+        else _screen.Hide();
     }
 
     private void OnGUI()
@@ -229,6 +240,9 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
             // Escape for this IMGUI window; the native menu owns that key.
             return;
         }
+
+        if (_screen.Drawn)
+            return;
 
         var width = Mathf.Min(620f, Screen.width * 0.9f);
         var height = Mathf.Min(560f, Screen.height * 0.9f);

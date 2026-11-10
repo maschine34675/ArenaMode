@@ -71,4 +71,6 @@ public partial class TacticalMode
     public void SurvivedForTest(){_phase=Phase.Buy;_roundStartPending=true;RoundNumber++;_bought=null;}
     public KitDefinition Issue()=>IssueSoloKit();
     public void LoseStarterForTest(){_bought=_worn=_starter=null;}
+    // The protected team never reaches TryBuy; this sets the field its guard must ignore.
+    public void ForceBoughtForTest(KitDefinition kit){_bought=kit;}
 }

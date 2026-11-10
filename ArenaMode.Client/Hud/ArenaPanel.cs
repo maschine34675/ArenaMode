@@ -131,6 +131,11 @@ internal sealed class ArenaPanel : MonoBehaviour
         if (!_open && (!ArenaSession.IsActive || !IsBattleUiActive()))
             return;
 
+        // A Tactical buy phase gives the hotkey to the buy screen, which reopens on it
+        // (TacticalBuyPanel): two windows on one key would open on top of each other.
+        if (!_open && (ArenaMatchService.Current?.Mode as TacticalMode)?.InBuyPhase == true)
+            return;
+
         _autoOpened = false;
         SetOpen(!_open);
     }
