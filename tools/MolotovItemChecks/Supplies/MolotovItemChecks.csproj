@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Remove=".work/**;obj/**;bin/**" />
     <Compile Include="../../KitPolishChecks/Supplies/Program.cs" Link="Checks/Program.cs" />
+    <Compile Include="../../KitPolishChecks/Supplies/LooseReserveChecks.cs" Link="Checks/LooseReserveChecks.cs" />
     <Compile Include="../../KitPolishChecks/Supplies/StandIns.cs" Link="Boundary/StandIns.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitBuilder.cs" Link="Production/KitBuilder.cs" />
     <Compile Include="../../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />

@@ -28,9 +28,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   Installed is still client and server `0.5.0+9543fed0` from the kit-picker branch (mirrored to
   the GPU hosts), Core unchanged at `1.0.22+b1d69e1`; the reward and spare fixes are neither
   deployed nor run natively. Offline after the merges: xunit (3764 tests) and 15 of the 16 harnesses
-  the four branches touch are green. Red for an older reason: `tools/MolotovItemChecks` does not
-  compile since `6380270d` (it links `KitPolishChecks/Supplies/Program.cs`, which calls
-  `LooseReserveChecks`, without `LooseReserveChecks.cs`). Sporadic:
+  the four branches touch are green. `tools/MolotovItemChecks` did not compile from `6380270d`
+  (it links `KitPolishChecks/Supplies/Program.cs`, which calls `LooseReserveChecks`, without
+  `LooseReserveChecks.cs`); it links that file since 2026-11-10 and passes with all its mutants. Sporadic:
   `OfflineSessionHelperTests.DiscardedTreeCanBeRebuiltWithoutItsMarkerOrOldOutboxTransfer(missingMarker: False)`
   failed once and passed in the same tree's second suite run and three reruns. Open: the Arena
   session's handbook and the PitFireTeam entry with an own kit (both not run natively); the weapon
