@@ -53,6 +53,7 @@ DefaultAutoFireMode, DualSideDoorBreach, LinkedSearchInStash, LowAmmoCue, RaidMe
 SurroundAudio, UnloadAllMagazines), PitFireTeam, DynamicMaps, UIFixes, WTT-CommonLib, WTT-ContentBackport
 (and its patcher), SVM, give-ui, ContinuousHealing, Continuous Load Ammo, Recoil Rework Legacy,
 Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
+Caliber Under Ammo Name, Compatibility Highlighter, Trader Modding and Improved Weapon Building,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
@@ -122,6 +123,16 @@ than 1.5.0 or invalid API contracts safely disable the integration. Newer versio
 are attempted with a one-time warning; this is not confirmation of full compatibility.
 
 ## Other explicitly considered combinations
+
+- **Caliber Under Ammo Name 1.2.0** adds caliber labels and can sort ammunition
+  by caliber. The release tag is `1.2.0b`; the client DLL reports `1.2.0`.
+  Its Amand's Sense integration is optional. [Release](https://github.com/slpf/CaliberUnderName/releases/tag/1.2.0b)
+- **Compatibility Highlighter 1.3.2** highlights compatible items and slots
+  during inventory hover and drag. [Release](https://github.com/awnova/CompatibilityHighlighter/releases/tag/v1.3.2)
+- **Trader Modding and Improved Weapon Building 2.1.2** needs its client and
+  server components for trader and flea prices in the preset editor. Quick Buy
+  and item transfers use the normal out-of-raid inventory transactions.
+  Arena's Tactical buy menu is separate. [Release](https://github.com/Soulztorm/ChooChoo-TraderModding/releases/tag/2.1.2)
 
 The current whitelist includes Fast Grenade Throw 2.0.0, Quick Cancel 2.0.0,
 HUD Breakout 1.2.0 and PiP Disabler 2.1.0 after bounded Arena and standalone

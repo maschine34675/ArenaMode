@@ -406,6 +406,9 @@ public sealed class ArenaWhitelistTests
             ("com.tarkin.doordash", "DoorDash", ArenaWhitelistTier.Mod, "1.2.0", null),
             ("com.anvil.weboverlay", "Anvil-WebOverlay", ArenaWhitelistTier.Mod, "1.11.0", null),
             ("com.slpf.armorclassicon", "ArmorClassIcon", ArenaWhitelistTier.Mod, "1.0.0", null),
+            ("com.slpf.caliberundername", "Caliber Under Ammo Name", ArenaWhitelistTier.Mod, "1.2.0", null),
+            ("com.awnova.compatibilityhighlighter", "Compatibility Highlighter", ArenaWhitelistTier.Mod, "1.3.2", null),
+            ("com.choochoo.tradermodding", "Trader Modding and Improved Weapon Building", ArenaWhitelistTier.Mod, "2.1.2", "2.1.2"),
             ("katrin0522.betterammoloadinglist", "BetterAmmoLoadingList", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("7Bpencil.BrighterInteriors", "BrighterInteriors", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("com.acidphantasm.devbalaclavafix", "DevBalaclavaFix", ArenaWhitelistTier.Mod, "1.2.0", null),
@@ -497,6 +500,8 @@ public sealed class ArenaWhitelistTests
     [InlineData("com.manimal.quickcancel", "2.0.0", ArenaWhitelistSide.Client)]
     [InlineData("com.deadwolf.hudbreakout", "1.2.0", ArenaWhitelistSide.Client)]
     [InlineData("com.fiodor.pipdisabler", "2.1.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.slpf.caliberundername", "1.2.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.awnova.compatibilityhighlighter", "1.3.2", ArenaWhitelistSide.Client)]
     public void ItemAccessAndBodyHudModsKeepExactIdentitiesAndSideSpecificReviews(string guid, string reviewed, ArenaWhitelistSide side)
     {
         string shipped = File.ReadAllText(ShippedDefaultPath);
@@ -574,6 +579,7 @@ public sealed class ArenaWhitelistTests
         "com.ozen.continuousloadammo", "com.pein.camerarecoilmod",
         "com.cj.useFromAnywhere", "com.dizzlow.impactcue", "com.dizzlow.impactcue.webconfig", "flir.enemymarkers",
         "com.Amanda.Graphics", "com.vultify.fastgrenadethrow", "com.manimal.quickcancel", "com.deadwolf.hudbreakout", "com.fiodor.pipdisabler",
+        "com.slpf.caliberundername", "com.awnova.compatibilityhighlighter", "com.choochoo.tradermodding",
         "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
         "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
         "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",
