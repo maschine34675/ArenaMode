@@ -75,6 +75,7 @@ public class Plugin : BaseUnityPlugin
         ArenaMenuSelection.RegisterTeamArenaQuery(() => PitFireTeamCompat.TeamArenaActive);
 
         ArenaSession.Initialize();
+        ArenaNativeNotices.Enable();
         Diagnostics.ArenaNativeModelDiagnostics.Enable();
         DynamicMapsCorpseMarkers.Enable();
         Hud.ArenaExtractionList.Enable();
@@ -226,6 +227,7 @@ public class Plugin : BaseUnityPlugin
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ShutdownRuntime()
     {
+        ArenaNativeNotices.Shutdown();
         ArenaMenuArt.Shutdown();
         ArenaSessionBanner.Shutdown();
         ArenaTarkovaColaCompat.Shutdown();

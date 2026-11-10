@@ -10,6 +10,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- The private Arena home menu hides the orange beta notice. During a confirmed
+  Arena raid the HUD hides the lower-left version line, including when playing
+  Arena directly from a normal SPT process.
 - The private Arena session shows a sunlit indoor training course from the
   desktop profile picker through EFT startup and profile loading. In the home
   menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)

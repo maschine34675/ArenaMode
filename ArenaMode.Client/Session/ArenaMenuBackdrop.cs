@@ -37,6 +37,7 @@ internal sealed class ArenaMenuBackdrop : MonoBehaviour
     private static void AfterShow(MenuScreen __instance, MenuScreen.MainMenuBaseScreenController __0)
     {
         if (!_installed) return;
+        ArenaNativeNotices.MenuShown(__instance, __0);
         if (!ArenaSessionMode.GateActive || __0 is not MenuScreen.MainMenuScreenController home || ArenaSession.IsActive)
         {
             RemoveCurrent();

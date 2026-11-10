@@ -12,6 +12,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-10.** The private home menu hides the beta banner. Arena raids hide the lower-left version line through respawns and restore it on the result screen. An ordinary Factory PMC raid kept the line visible. The tested client is installed in `D:\SPT41`. Its previous version is in `D:\SPT41-Backups\arena-beta-version\20261110-122437-600`. [Two-host verification and client identity](reports/2026-11/GPU-BETA-VERSION-20261110.md).
+
 - **Development, 2026-11-10:** the private startup and home menu now use the
   selected Streiflicht training course. The environment carries the artwork
   behind native profile-loading text until the home menu finishes fading in.

@@ -20,7 +20,9 @@ to `AGENTS.md`.
    The startup panel, profile loading and home menu appear before any raid.
    Their artwork requires the private-process gate report. Boot and loading
    share the flat texture until the last view releases it. Native status and
-   dialogs draw above the loading image. Only the home menu receives parallax.
+   dialogs draw above the loading image. Only the private home menu receives
+   parallax and hides the native beta notice. The separate corner label is
+   hidden only while the exact, confirmed Arena game and world are active.
    [Lifecycle](reviews/SESSION-MENU-ART-20261109.md).
 
    Protected PFT Tactical may issue one PMC-only Arena kit after the exact
