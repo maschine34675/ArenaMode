@@ -6,7 +6,7 @@ foreach ($arenaFault in @(
     @{ Name = 'MissingClientGuard'; Source = 'ArenaMode.Client/Session/ArenaMenuSelection.cs';
        Property = 'ProductionMenuSelectionSource';
        From = '|| BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId)'; To = '|| true';
-       Failure = 'protected Zombie direct setter still rejects unavailable map: arena_equator' },
+       Failure = 'solo Zombie direct setter still rejects unavailable map: arena_equator' },
     @{ Name = 'MissingModeGuard'; Source = 'ArenaMode.Shared/ArenaAreaCatalog.cs'; Property = 'ProductionAreaCatalogSource';
        From = 'if (ArenaMapCatalog.IsEquator(map!)'; To = 'if (false && ArenaMapCatalog.IsEquator(map!)';
        Failure = 'mode switch updates the owned Equator row' },
@@ -14,9 +14,12 @@ foreach ($arenaFault in @(
        Property = 'ProductionMenuSelectionSource';
        From = '!ArenaMapCatalog.IsOptionalMap(map)'; To = '!ArenaMapCatalog.IsEquator(map)';
        Failure = 'protected Zombie direct setter still rejects unavailable map: arena_bay5' },
-    @{ Name = 'MissingBay5OwnedRow'; Source = 'ArenaMode.Shared/ArenaMapCatalog.cs'; Property = 'ProductionMapCatalogSource';
-       From = '=> string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsOptionalMap(locationId);';
-       To = '=> string.Equals(locationId, CustomsId, StringComparison.OrdinalIgnoreCase) || IsEquator(locationId);';
+    # Since the Domination prototype (bdd679ec) the LocationButton.Show postfix owns every
+    # supported row; RequiresModeFilteredView no longer decides which rows get an Arena view.
+    @{ Name = 'MissingBay5OwnedRow'; Source = 'ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs';
+       Property = 'ProductionLocationPatchSource';
+       From = 'if (!ArenaMapCatalog.IsSupportedMap(location?.Id)';
+       To = 'if (!ArenaMapCatalog.IsSupportedMap(location?.Id) || ArenaMapCatalog.IsBay5(location?.Id)';
        Failure = 'unavailable Bay5 cannot hide or deselect selected Equator' }
 )) {
     $arenaSourcePath = Join-Path $arenaRepo $arenaFault.Source

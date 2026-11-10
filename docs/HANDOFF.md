@@ -24,9 +24,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   an own kit, KitBuilder's spare fill of belt boxes (one stack of the round's stack size), and the
   pre-existing "reward-capture-identity" warning on leaving solo Tactical in its buy phase. The
   run left an empty `com.maschine.ArenaMode.custom-kits.json` and its `.bak` under
-  `BepInEx\config` (delete the `.bak` first). Still red for an older reason:
-  `tools/EquatorMapChecks` (its `MissingClientGuard` negative control now trips the Bay5 assertion
-  first; also on clean `5d82ea93`).
+  `BepInEx\config` (delete the `.bak` first).
 
 - **Development, 2026-11-10.** The private home menu hides the beta banner. Arena raids hide the lower-left version line through respawns and restore it on the result screen. An ordinary Factory PMC raid kept the line visible. The tested client is installed in `D:\SPT41`. Its previous version is in `D:\SPT41-Backups\arena-beta-version\20261110-122437-600`. [Two-host verification and client identity](reports/2026-11/GPU-BETA-VERSION-20261110.md).
 
