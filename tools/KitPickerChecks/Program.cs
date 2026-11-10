@@ -139,6 +139,24 @@ Need(ArenaKitCards.ForShop(null, 5, null, null).Count == 0, "no catalogue, no sh
 Need(ArenaKitCards.Purse(0) == "0 \u20bd" && ArenaKitCards.Purse(1234567) == "1,234,567 \u20bd" && ArenaKitCards.Purse(-5) == "0 \u20bd",
      "an empty purse reads 0, never free");
 
+// --- the player's own kits (docs/reviews/CUSTOM-KITS-20261110.md)
+var mine = new List<ArenaKitCardSource>(kits) { new() { Id = "custom-00000000000000aa", Name = "Mine", Price = 150000, Order = 100001, Custom = true },
+    new() { Id = "custom-00000000000000bb", Name = "Too dear", Price = 900000, Order = 100002, Custom = true, Blocked = "above the stock cap: solo Tactical only" } };
+var minePicker = ArenaKitCards.ForPicker(mine, new ArenaKitChoice(false, "custom-00000000000000bb"), null, false, false);
+var ownCard = minePicker.Single(c => c.Id == "custom-00000000000000aa");
+Need(ownCard.Custom && ownCard.Tag == ArenaKitCards.CustomTag && ownCard.Enabled && ownCard.Blocked == null, "an own kit is tagged CUSTOM and pickable");
+var dear = minePicker.Single(c => c.Id == "custom-00000000000000bb");
+Need(!dear.Enabled && dear.Blocked != null && dear.PriceText.Contains("solo Tactical") && dear.Selected && dear.Tag == ArenaKitCards.SelectedTag,
+     "a blocked own kit is greyed with its reason and keeps its SELECTED tag");
+Need(ArenaKitCards.ChoiceLine(new ArenaKitChoice(false, "custom-00000000000000bb"), mine).Contains("the first buildable kit is used")
+     && ArenaKitCards.ChoiceLine(new ArenaKitChoice(false, "custom-00000000000000aa"), mine) == "Mine, every life", "choice line: a blocked own kit says what is used instead");
+var mineShop = ArenaKitCards.ForShop(mine.Where(k => k != null).Select(k => k.Id == "custom-00000000000000bb" ? new ArenaKitCardSource { Id = k.Id, Name = k.Name, Price = k.Price, Order = k.Order, Custom = true } : k).ToList(), 1000000, null, null);
+Need(mineShop.Single(c => c.Id == "custom-00000000000000bb").Enabled && mineShop.Single(c => c.Id == "custom-00000000000000bb").Custom,
+     "the shop sells an own kit above the cap");
+var unusable = ArenaKitCards.ForShop(new[] { new ArenaKitCardSource { Id = "custom-00000000000000cc", Name = "Broken", Price = 1000, Custom = true, Blocked = "unknown items" } }, 1000000, null, null);
+Need(!unusable[0].Enabled && unusable[0].PriceText.Contains("unknown items"), "the shop greys an unusable own kit");
+Need(Ids(ArenaKitCards.ForPicker(mine, random, null, false, false)).Contains("custom-00000000000000aa,drifter"), "own kits sort by price among the stock kits");
+
 // --- the line above the picker
 Need(ArenaKitCards.ChoiceLine(random, kits) == "A random kit for every life", "choice line: random");
 Need(ArenaKitCards.ChoiceLine(new ArenaKitChoice(false, "Gamma"), kits) == "Gamma, every life", "choice line: named kit");

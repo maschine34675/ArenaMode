@@ -277,7 +277,7 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
         GUILayout.Space(8f);
 
         _scroll = GUILayout.BeginScrollView(_scroll);
-        foreach (var kit in Ordered(KitCatalog.Kits))
+        foreach (var kit in Ordered(KitCatalog.ShopKits))
         {
             var price = mode.PriceOf(kit);
             var affordable = mode.CanAfford(kit);
@@ -292,8 +292,8 @@ internal sealed class TacticalBuyPanel : MonoBehaviour
             // seeing what a good round would buy is most of what makes the
             // economy readable.
             GUI.enabled = affordable && !picked;
-            if (GUILayout.Button($"{label}", picked ? _pickedStyle : _buttonStyle, GUILayout.MinWidth(320f)))
-                mode.TryBuy(kit);
+            if (GUILayout.Button($"{label}", picked ? _pickedStyle : _buttonStyle, GUILayout.MinWidth(320f)) && mode.TryBuy(kit))
+                TacticalBuyScreen.WarmBought(kit);
 
             GUI.enabled = true;
             GUILayout.Label(affordable ? cost : $"{cost}  (short)", _bodyStyle, GUILayout.Width(150f));

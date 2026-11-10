@@ -43,6 +43,11 @@ $cardFaults = @(
     @{ Name='unstorable-id-clickable'; Find='Enabled = !locked && ArenaKitFavorites.IsKitId(kit.Id),'; Replace='Enabled = !locked,'; Failure='a kit id the choice cannot store is shown but not clickable' },
     @{ Name='unstorable-id-favourite'; Find='CanFavorite = ArenaKitFavorites.IsKitId(kit.Id),'; Replace='CanFavorite = true,'; Failure='only a storable kit id gets a favourite mark, locked or not' },
     @{ Name='favourite-follows-lock'; Find='CanFavorite = ArenaKitFavorites.IsKitId(kit.Id),'; Replace='CanFavorite = !locked && ArenaKitFavorites.IsKitId(kit.Id),'; Failure='only a storable kit id gets a favourite mark, locked or not' },
+    @{ Name='custom-untagged'; Find='if (kit.Custom && string.IsNullOrEmpty(card.Tag)) card.Tag = CustomTag;'; Replace=''; Failure='an own kit is tagged CUSTOM and pickable' },
+    @{ Name='blocked-clickable'; Find='        card.Enabled = false;'; Replace=''; Failure='a blocked own kit is greyed with its reason and keeps its SELECTED tag' },
+    @{ Name='blocked-silent'; Find='card.PriceText = (card.PriceText ?? string.Empty) + "  \u00b7  " + kit.Blocked;'; Replace=''; Failure='a blocked own kit is greyed with its reason and keeps its SELECTED tag' },
+    @{ Name='choice-line-hides-block'; Find='return kit.Blocked == null ? TitleOf(kit) + ", every life"'; Replace='return true ? TitleOf(kit) + ", every life"'; Failure='choice line: a blocked own kit says what is used instead' },
+    @{ Name='shop-ignores-block'; Find='Mark(cards[cards.Count - 1], kit); // a custom kit the shop cannot sell is greyed too'; Replace=''; Failure='the shop sells an own kit above the cap' },
     @{ Name='purse-reads-free'; Find='=> Math.Max(0, roubles).ToString("N0", CultureInfo.InvariantCulture) + " ₽";'; Replace='=> Money(roubles);'; Failure='an empty purse reads 0, never free' }
 )
 foreach ($fault in $cardFaults) { $fault.Path = $cards; $fault.Property = 'CardsSource' }

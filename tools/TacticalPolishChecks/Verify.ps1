@@ -82,6 +82,15 @@ if(!$SkipNegativeProbes){
     Run-Probe 'fault-buy-phase-respawn-commits-purchase' (Mutate 'IssueSoloKit' 'if (_phase != Phase.Buy)' 'if (true)') $panel 'kit' 'an early hand-out does not change the kept kit'
     Run-Probe 'fault-clear-outside-buy-phase' (Mutate 'ClearPurchase' '_phase != Phase.Buy || ' '') $panel 'kit' 'nothing to take back once the round runs'
     Run-Probe 'fault-clear-in-team-arena' (Mutate 'ClearPurchase' '_teamArena || ' '') $panel 'kit' 'protected team has no purchase to take back'
+    # Own kits (docs/reviews/CUSTOM-KITS-20261110.md): the plain window warms what it sold, and only that.
+    function Mutate-Panel([string]$find,[string]$replace){
+        $text=$panel.Replace("`r`n","`n")
+        if(([regex]::Matches($text,[regex]::Escape($find))).Count -ne 1){throw "Panel mutant anchor missing or ambiguous: $find"}
+        return $text.Replace($find,$replace)
+    }
+    $buyLine="GUILayout.MinWidth(320f)) && mode.TryBuy(kit))`n                TacticalBuyScreen.WarmBought(kit);"
+    Run-Probe 'fault-plain-buy-not-warmed' $methods (Mutate-Panel $buyLine "GUILayout.MinWidth(320f)) && mode.TryBuy(kit))`n                { }") 'kit' 'a buy in the plain window warms the kit'
+    Run-Probe 'fault-plain-buy-warms-first' $methods (Mutate-Panel $buyLine "GUILayout.MinWidth(320f)))`n                { TacticalBuyScreen.WarmBought(kit); mode.TryBuy(kit); }") 'kit' 'a refused buy in the plain window warms nothing'
 }
 [ordered]@{files=$before;check='production method bodies and full panel/policy/award sources';negativeProbesSkipped=$SkipNegativeProbes.IsPresent}|
     ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $scratch 'source-binding.json') -Encoding utf8

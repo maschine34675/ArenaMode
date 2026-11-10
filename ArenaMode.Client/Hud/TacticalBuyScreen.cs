@@ -35,6 +35,10 @@ internal sealed class TacticalBuyScreen
     // second for every card still waiting, and must not allocate for it.
     private static readonly ConditionalWeakTable<KitDefinition, string[]> TemplatesByKit = new();
 
+    // Own kits whose warm-up was started; a second purchase of the same kit starts none.
+    private static readonly ConditionalWeakTable<KitDefinition, object> Warming = new();
+    private static readonly object Started = new();
+
     private readonly ArenaKitBrowserView _browser = new();
     private GameObject _canvas;
     private TextMeshProUGUI _title, _money, _state, _plan;
@@ -113,7 +117,8 @@ internal sealed class TacticalBuyScreen
             // The kit a no-purchase round hands out; a player who is down keeps nothing.
             bool keeps = mode.KeepsCurrentGear;
             KitDefinition worn = keeps ? mode.Worn : null;
-            IReadOnlyList<KitDefinition> kits = KitCatalog.Kits ?? (IReadOnlyList<KitDefinition>)Array.Empty<KitDefinition>();
+            // The stock kits and the player's own ready kits (docs/reviews/CUSTOM-KITS-20261110.md).
+            IReadOnlyList<KitDefinition> kits = KitCatalog.ShopKits ?? (IReadOnlyList<KitDefinition>)Array.Empty<KitDefinition>();
 
             bool fresh = !_shown;
             if (fresh || round != _shownRound || won != _shownWon || lost != _shownLost)
@@ -144,7 +149,7 @@ internal sealed class TacticalBuyScreen
             var sources = new List<ArenaKitCardSource>(kits.Count);
             foreach (KitDefinition kit in kits)
                 if (kit != null)
-                    sources.Add(new ArenaKitCardSource { Id = kit.Id, Name = kit.Name, Price = mode.PriceOf(kit), Order = kit.Order });
+                    sources.Add(new ArenaKitCardSource { Id = kit.Id, Name = kit.Name, Price = mode.PriceOf(kit), Order = kit.Order, Custom = KitCatalog.IsCustom(kit) });
             var shop = ArenaKitCards.ForShop(sources, money, bought?.Id, worn?.Id);
             _browser.Show(shop, id => Find(kits, id), card => Buy(card, kits), null,
                 "The kit catalogue is empty.", "A round you survive keeps what you wear.", "Price");
@@ -253,7 +258,23 @@ internal sealed class TacticalBuyScreen
         TacticalMode mode = Mode;
         KitDefinition kit = card == null ? null : Find(kits, card.Id);
         if (mode == null || kit == null) return;
-        if (mode.TryBuy(kit)) _cardsStale = true;
+        if (!mode.TryBuy(kit)) return;
+        _cardsStale = true;
+        WarmBought(kit);
+    }
+
+    /// <summary>
+    /// After a purchase in either buy window (this screen or the plain TacticalBuyPanel): stock
+    /// kits are warmed by the raid's catalogue warm-up; an own kit never was, and its bundles would
+    /// otherwise load cold at the round start. Once per kit object. Not serialised with the round
+    /// start's own preload of the kit: bought in the last seconds of the buy phase, the two overlap
+    /// as the catalogue warm-up already can with a respawn (docs/reviews/CUSTOM-KITS-20261110.md).
+    /// </summary>
+    internal static void WarmBought(KitDefinition kit)
+    {
+        if (kit == null || !KitCatalog.IsCustom(kit) || Warming.TryGetValue(kit, out _) || Plugin.Instance == null) return;
+        Warming.Add(kit, Started);
+        Plugin.Instance.StartCoroutine(KitBundlePreloader.Preload(kit));
     }
 
     private void HoldEvents()

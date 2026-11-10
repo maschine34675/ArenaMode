@@ -11,6 +11,10 @@ internal sealed class ArenaKitCardSource
     internal string Name;
     internal int Price;
     internal int Order;
+    /// <summary>One of the player's own kits (docs/reviews/CUSTOM-KITS-20261110.md).</summary>
+    internal bool Custom;
+    /// <summary>Why this card cannot be picked or bought here; null when it can.</summary>
+    internal string Blocked;
 }
 
 /// <summary>One card of the kit browser as it is drawn: a kit, or the random draw.</summary>
@@ -29,6 +33,9 @@ internal sealed class ArenaKitCard
     internal bool IsRandom;
     /// <summary>True when the card may carry a favourite mark: a kit whose id the favourite list can store.</summary>
     internal bool CanFavorite;
+    internal bool Custom;
+    /// <summary>The reason a card is greyed out beyond the purse or the lock (a custom kit above the cap, unusable here); null otherwise.</summary>
+    internal string Blocked;
 }
 
 /// <summary>
@@ -43,6 +50,7 @@ internal static class ArenaKitCards
     internal const string SelectedTag = "SELECTED";
     internal const string BuyingTag = "BUYING";
     internal const string WearingTag = "WEARING";
+    internal const string CustomTag = "CUSTOM";
 
     internal static List<ArenaKitCard> ForPicker(IReadOnlyList<ArenaKitCardSource> kits, ArenaKitChoice choice,
         IEnumerable<string> favorites, bool favoritesOnly, bool locked)
@@ -71,6 +79,7 @@ internal static class ArenaKitCards
                 // not Enabled; an id the list cannot store gets no mark at all.
                 CanFavorite = ArenaKitFavorites.IsKitId(kit.Id),
             });
+            Mark(cards[cards.Count - 1], kit);
         }
 
         return cards;
@@ -98,6 +107,7 @@ internal static class ArenaKitCards
                 Tag = bought ? BuyingTag : worn ? WearingTag : string.Empty,
                 Enabled = affordable && !bought,
             });
+            Mark(cards[cards.Count - 1], kit); // a custom kit the shop cannot sell is greyed too
         }
 
         return cards;
@@ -110,7 +120,9 @@ internal static class ArenaKitCards
         if (choice.KitId.Length == 0) return "The first kit of the catalogue, every life";
         if (kits != null)
             foreach (ArenaKitCardSource kit in kits)
-                if (kit != null && choice.Selects(kit.Id)) return TitleOf(kit) + ", every life";
+                if (kit != null && choice.Selects(kit.Id))
+                    return kit.Blocked == null ? TitleOf(kit) + ", every life"
+                        : TitleOf(kit) + ": " + kit.Blocked + "; the first buildable kit is used";
         return "'" + choice.KitId + "' is not in the catalogue: the first buildable kit is used";
     }
 
@@ -120,6 +132,21 @@ internal static class ArenaKitCards
     /// <summary>A purse, which is never "free": an empty one reads 0 ₽.</summary>
     internal static string Purse(int roubles)
         => Math.Max(0, roubles).ToString("N0", CultureInfo.InvariantCulture) + " ₽";
+
+    /// <summary>
+    /// A custom kit's card: tagged CUSTOM when no state tag is shown, and a blocked kit greyed out
+    /// with its reason in the price line (it keeps a SELECTED or BUYING tag, so a stored choice
+    /// that the cap now refuses is still visible).
+    /// </summary>
+    private static void Mark(ArenaKitCard card, ArenaKitCardSource kit)
+    {
+        card.Custom = kit.Custom;
+        if (kit.Custom && string.IsNullOrEmpty(card.Tag)) card.Tag = CustomTag;
+        if (kit.Blocked == null) return;
+        card.Blocked = kit.Blocked;
+        card.Enabled = false;
+        card.PriceText = (card.PriceText ?? string.Empty) + "  \u00b7  " + kit.Blocked;
+    }
 
     internal static string TitleOf(ArenaKitCardSource kit)
         => string.IsNullOrWhiteSpace(kit?.Name) ? kit?.Id ?? string.Empty : kit.Name.Trim();
