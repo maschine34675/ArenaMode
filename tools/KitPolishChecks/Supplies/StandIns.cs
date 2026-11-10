@@ -109,7 +109,11 @@ namespace EFT
             }
             if(item is Magazine m)
             {
-                m.MaxCount=t.Properties["Cartridges"]?[0]?["_max_count"]?.Value<int>() ?? 1;
+                m.Cartridges.MaxCount=t.Properties["Cartridges"]?[0]?["_max_count"]?.Value<int>() ?? 1;
+                // Native CylinderMagazine.MaxCount is its camora count (slots named camora_*); the
+                // MSGL's cartridge stack slot holds 0, its cylinder 6.
+                int camoras=m.Slots.Count(s=>s.ID.StartsWith("camora_"));
+                m.MaxCount=camoras>0?camoras:m.Cartridges.MaxCount;
                 m.ReloadMagType=t.Properties["ReloadMagType"]?.Value<string>()=="InternalMagazine" ? Weapon.EReloadMode.InternalMagazine : Weapon.EReloadMode.ExternalMagazine;
             }
             return item;
@@ -152,8 +156,15 @@ namespace EFT.InventoryLogic
     public class Magazine:CompoundItem { public int MaxCount;public Weapon.EReloadMode ReloadMagType;public StackSlot Cartridges=new(); }
     public class StackSlot
     {
+        // As native StackSlot.Add: a stack larger than the room left is refused (TooLargeStackError),
+        // the round's StackMaxSize is never looked at, and the slot holds any number of stacks.
+        public int MaxCount=int.MaxValue;
         public List<Item> Items=[]; public int Count=>Items.Sum(i=>i.StackObjectsCount);
-        public Result Add(Item item,bool simulate){if(!simulate)Items.Add(item);return new();}
+        public Result Add(Item item,bool simulate)
+        {
+            if(item.StackObjectsCount>MaxCount-Count)return new(){Failed=true,Error="too large stack"};
+            if(!simulate)Items.Add(item);return new();
+        }
     }
     public class Slot
     {
