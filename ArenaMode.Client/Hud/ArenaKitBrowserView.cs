@@ -7,6 +7,14 @@ using UnityEngine.UI;
 
 namespace ArenaMode.Hud;
 
+/// <summary>A button of the detail pane for the kit it shows (copy, edit, delete in the kit screen).</summary>
+internal sealed class ArenaKitDetailAction
+{
+    /// <summary>The label for this card; null hides the button for it.</summary>
+    internal Func<ArenaKitCard, string> LabelFor;
+    internal Action<ArenaKitCard> Run;
+}
+
 /// <summary>
 /// The kit browser (docs/reviews/KIT-PICKER-20261110.md): a scrolling grid of kit cards on the
 /// left and the detail of one kit on the right. It draws the cards it is given
@@ -56,7 +64,9 @@ internal sealed class ArenaKitBrowserView
     private KitDefinition _detailWaiting;
     private float _nextReadyCheck;
     private ArenaKitUiStyle _style;
-    private RectTransform _root, _content, _detailRows, _detailGear;
+    private RectTransform _root, _content, _detailRows, _detailGear, _detailActions;
+    private IReadOnlyList<ArenaKitDetailAction> _actions;
+    private string _actionsKey;
     private ScrollRect _scroll;
     private TextMeshProUGUI _empty, _detailTitle, _detailPrice, _detailNote;
     private Image _detailWeapon, _detailWeaponBox;
@@ -104,9 +114,11 @@ internal sealed class ArenaKitBrowserView
     /// </summary>
     internal void Show(IReadOnlyList<ArenaKitCard> cards, Func<string, KitDefinition> kitOf,
         Action<ArenaKitCard> onClick, Action<ArenaKitCard> onFavorite, string emptyText, string note,
-        string priceLabel = "Value")
+        string priceLabel = "Value", IReadOnlyList<ArenaKitDetailAction> actions = null)
     {
         if (_root == null || cards == null) return;
+        _actions = actions;
+        _actionsKey = null;
         _kitOf = kitOf;
         _onClick = onClick;
         _onFavorite = onFavorite;
@@ -144,7 +156,9 @@ internal sealed class ArenaKitBrowserView
         _kitOf = null;
         _onClick = _onFavorite = null;
         var root = _root;
-        _root = _content = _detailRows = _detailGear = null;
+        _root = _content = _detailRows = _detailGear = _detailActions = null;
+        _actions = null;
+        _actionsKey = null;
         _scroll = null;
         _empty = _detailTitle = _detailPrice = _detailNote = null;
         _detailWeapon = _detailWeaponBox = null;
@@ -210,6 +224,7 @@ internal sealed class ArenaKitBrowserView
         _detailWeapon.enabled = false;
         _detailRows = ArenaKitUi.Box(pane.transform, "Facts", 16f, 242f, inner, 8f * 24f);
         _detailGear = ArenaKitUi.Box(pane.transform, "Gear", 16f, 446f, inner, 68f);
+        _detailActions = ArenaKitUi.Box(pane.transform, "Actions", 16f, _height - 76f - 46f, inner, 34f);
         _detailNote = ArenaKitUi.Text(pane.transform, "Note", _style, string.Empty, 13f, ArenaUiTheme.Muted,
             TextAlignmentOptions.BottomLeft, 16f, _height - 76f, inner, 64f);
         _detailNote.enableWordWrapping = true;
@@ -378,6 +393,7 @@ internal sealed class ArenaKitBrowserView
     private void ShowDetail(CardWidgets widgets)
     {
         if (_detailTitle == null) return;
+        RefreshActions(widgets?.Card);
         string key = widgets == null ? "none" : widgets.Card.IsRandom ? "random" : "kit:" + widgets.Card.Id;
         if (widgets != null)
         {
@@ -460,6 +476,42 @@ internal sealed class ArenaKitBrowserView
     {
         Func<KitDefinition, bool> ready = PicturesReady;
         return ready == null || (kit != null && ready(kit));
+    }
+
+    /// <summary>The detail pane's buttons for <paramref name="card"/>, rebuilt only when their labels change.</summary>
+    private void RefreshActions(ArenaKitCard card)
+    {
+        if (_detailActions == null) return;
+        var labels = new List<string>();
+        var runs = new List<Action<ArenaKitCard>>();
+        if (card != null && _actions != null)
+        {
+            foreach (ArenaKitDetailAction action in _actions)
+            {
+                string label = action?.LabelFor?.Invoke(card);
+                if (string.IsNullOrEmpty(label) || action.Run == null) continue;
+                labels.Add(label);
+                runs.Add(action.Run);
+            }
+        }
+
+        string key = (card?.Id ?? "<none>") + "|" + string.Join("|", labels.ToArray());
+        if (string.Equals(key, _actionsKey, StringComparison.Ordinal)) return;
+        _actionsKey = key;
+        Clear(_detailActions);
+        for (int index = 0; index < labels.Count; index++)
+        {
+            Action<ArenaKitCard> run = runs[index];
+            ArenaKitCard target = card;
+            Button button = ArenaKitUi.Button(_detailActions, "Arena Kit Action " + labels[index], _style, labels[index], 13f,
+                index * 150f, 0f, 140f, 32f, out _);
+            button.onClick.AddListener(() =>
+            {
+                if (_root == null) return;
+                try { run(target); }
+                catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena kit browser: action failed: {ex.Message}"); }
+            });
+        }
     }
 
     private KitDefinition _detailKit;
