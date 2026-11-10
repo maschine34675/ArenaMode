@@ -12,6 +12,7 @@
     <Compile Include="$(PreloaderSource)" Link="Production/KitBundlePreloader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Kits\ZombieKitWarmupPolicy.cs" Link="Production/ZombieKitWarmupPolicy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Kits\KitPreloadPlan.cs" Link="Production/KitPreloadPlan.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Client\Kits\ArenaKitChoice.cs" Link="Production/ArenaKitChoice.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)..\..\ArenaMode.Shared\ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
   </ItemGroup>
 </Project>

@@ -15,6 +15,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="ExternalSeams.cs" />
     <Compile Include="$(SettingsSource)" Link="Production/Settings.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/ArenaKitChoice.cs" Link="Production/ArenaKitChoice.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
     <!-- Settings.cs binds the Team DM side through these choices since 1c86b9c5; plain C#, no Unity. -->

@@ -40,6 +40,7 @@
     <Compile Include="$(ProductionRulesView)" Link="Production/ArenaTdmMatchRulesView.cs" />
     <Compile Include="$(ProductionModeView)" Link="Production/ArenaModeSelectionView.cs" />
     <Compile Include="$(ProductionSettings)" Link="Production/Settings.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/ArenaKitChoice.cs" Link="Production/ArenaKitChoice.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaModeSelectionState.cs" Link="Production/ArenaModeSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaModeCatalog.cs" Link="Production/ArenaModeCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />

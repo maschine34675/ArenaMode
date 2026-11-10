@@ -33,6 +33,17 @@ public static class KitCatalog
     private static KitDefinition _reservedBaseKit;
 
     /// <summary>
+    /// The kit choice of the armed or running raid (docs/reviews/KIT-PICKER-20261110.md): the
+    /// settings as they were when the raid first asked, kept until the next arm.
+    /// </summary>
+    private static readonly ArenaKitChoiceLatch ChoiceLatch = new();
+
+    /// <summary>The choice in force: live in the menu, held for an armed or running raid.</summary>
+    internal static ArenaKitChoice CurrentChoice
+        => ChoiceLatch.Resolve(Session.ArenaSession.ArmedForNextRaid || Session.ArenaSession.IsActive,
+            Session.ArenaSession.ArmEpoch, new ArenaKitChoice(Settings.RandomKit.Value, Settings.SelectedKit.Value));
+
+    /// <summary>
     /// Lets a mode decide what the next life gets. Gun Game owns this while it
     /// runs, so a respawn hands back the tier the player had reached instead of
     /// starting them over on a random loadout. Cleared at raid end.
@@ -62,6 +73,22 @@ public static class KitCatalog
     {
         _kits = null;
         EnsureLoaded();
+    }
+
+    /// <summary>
+    /// The kit screen's refresh (docs/reviews/KIT-PICKER-20261110.md): fetches the catalogue
+    /// again, like Preload, but keeps the loaded one when the request fails, so a server that
+    /// is down while the map screen is open costs one request per opening, not a blocking
+    /// retry on every click. Left alone while a raid is armed or running: the raid's kit
+    /// reservation and caches hold that catalogue's objects.
+    /// </summary>
+    internal static IReadOnlyList<KitDefinition> RefreshForMenu()
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid)
+            return _kits;
+        if (TryFetch(out var kits))
+            _kits = kits;
+        return _kits;
     }
 
     /// <summary>
@@ -114,10 +141,11 @@ public static class KitCatalog
         if (_kits == null || _kits.Count == 0)
             return null;
 
-        if (Settings.RandomKit.Value)
+        var choice = CurrentChoice;
+        if (choice.Random)
             return PickRandomKit();
 
-        var wanted = Settings.SelectedKit.Value;
+        var wanted = choice.KitId;
         KitDefinition preferred = null;
         if (!string.IsNullOrEmpty(wanted))
         {
@@ -222,27 +250,28 @@ public static class KitCatalog
         if (_kits != null)
             return;
 
+        // On a failure _kits stays null, so a transient server hiccup is retried on next
+        // access instead of downgrading every later raid this session.
+        if (TryFetch(out var kits))
+            _kits = kits;
+    }
+
+    private static bool TryFetch(out List<KitDefinition> kits)
+    {
+        kits = null;
         try
         {
             var json = RequestHandler.GetJson(Protocol.KitsRoute);
-            var kits = JsonConvert.DeserializeObject<List<KitDefinition>>(json);
-            if (kits != null)
-            {
-                kits.Sort((a, b) => a.Order.CompareTo(b.Order));
-                _kits = kits;
-            }
-            else
-            {
-                _kits = new List<KitDefinition>();
-            }
-
-            Plugin.ModLogger.LogDebug($"Kit catalog loaded: {_kits.Count} kits.");
+            kits = JsonConvert.DeserializeObject<List<KitDefinition>>(json) ?? new List<KitDefinition>();
+            kits.Sort((a, b) => a.Order.CompareTo(b.Order));
+            Plugin.ModLogger.LogDebug($"Kit catalog loaded: {kits.Count} kits.");
+            return true;
         }
         catch (Exception ex)
         {
-            // Leave _kits null so a transient server hiccup is retried on next access
-            // instead of downgrading every later raid this session.
+            kits = null;
             Plugin.ModLogger.LogError($"Kit catalog load failed ({ex.Message}) — will retry on next arena raid.");
+            return false;
         }
     }
 }

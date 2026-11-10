@@ -26,6 +26,7 @@ public static class Settings
     public static ConfigEntry<string> Maps { get; private set; }
     public static ConfigEntry<string> SelectedKit { get; private set; }
     public static ConfigEntry<bool> RandomKit { get; private set; }
+    public static ConfigEntry<string> FavoriteKits { get; private set; }
     public static ConfigEntry<float> SpawnProtectionSeconds { get; private set; }
     public static ConfigEntry<bool> DisableLabyrinthSpawnTraps { get; private set; }
     public static ConfigEntry<bool> MovementEnabled { get; private set; }
@@ -436,6 +437,39 @@ public static class Settings
         return true;
     }
 
+    /// <summary>
+    /// The kit screen's choice (docs/reviews/KIT-PICKER-20261110.md): the random draw, or one
+    /// catalogue kit. Refused while a raid is armed or running, like every other menu choice;
+    /// the raid then keeps the choice it was armed with. Both entries are written together, so
+    /// a failed second write cannot leave "fixed" pointing at the previous kit.
+    /// </summary>
+    internal static bool TrySelectKit(bool random, string kitId)
+    {
+        if (RandomKit == null || SelectedKit == null) return false;
+        bool locked = Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid;
+        if (!Kits.ArenaKitChoiceWrite.Apply(locked, random, kitId,
+                () => RandomKit.Value, value => RandomKit.Value = value,
+                () => SelectedKit.Value, value => SelectedKit.Value = value,
+                ex => Plugin.ModLogger?.LogWarning($"Arena kit selection failed: {ex.Message}")))
+            return false;
+        try { if (File?.SaveOnConfigSet == false) File.Save(); }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena kit selection save failed: {ex.Message}"); }
+        return true;
+    }
+
+    /// <summary>Adds or removes one kit in Kits/FavoriteKits. Display only, so it is allowed at any time.</summary>
+    internal static bool TryToggleFavoriteKit(string kitId)
+    {
+        if (FavoriteKits == null || !Kits.ArenaKitFavorites.IsKitId((kitId ?? string.Empty).Trim())) return false;
+        try
+        {
+            FavoriteKits.Value = Kits.ArenaKitFavorites.Toggle(FavoriteKits.Value, kitId);
+            if (File?.SaveOnConfigSet == false) File.Save();
+            return true;
+        }
+        catch (Exception ex) { Plugin.ModLogger?.LogWarning($"Arena favourite kit change failed: {ex.Message}"); return false; }
+    }
+
     internal static bool TrySelectDeathmatchRule(int row, int value)
     {
         if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid) return false;
@@ -629,6 +663,13 @@ public static class Settings
             "",
             "Kit id from the server catalog (user/mods/ArenaMode/config/kits.json). " +
             "Empty = first kit in the catalog. Ignored while RandomKit is on.");
+
+        FavoriteKits = config.Bind(
+            "Kits",
+            "FavoriteKits",
+            "",
+            "Kit ids marked as favourites in the Arena menu's kit screen, separated by commas. " +
+            "They mark cards there and fill its FAVOURITES view; they change nothing in a raid.");
 
         SpawnProtectionSeconds = config.Bind(
             "Respawn",
