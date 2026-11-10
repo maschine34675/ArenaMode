@@ -46,7 +46,10 @@ Protected Zombie cases select Factory day/night, Labs and Labyrinth through the
 production hooks and assert native Ready, Factory time controls, strict request
 matching and selection retention across group/updater refreshes. They also check
 Tactical/Zombie switching, the five-player squad summary, and rejection of other
-PFT modes, bounded Customs and imported maps. The roster seam uses the production
+PFT modes, bounded Customs and imported maps. Without the MapPort registry entry the
+direct setter must reject Equator in solo Zombie (squads never admit Equator, so only
+the solo check depends on the registry guard) and Bay5 in the squad; the EquatorMapChecks
+negative controls rely on that order. The roster seam uses the production
 mode catalog; it does not authenticate real companion identities. PFT admission
 and the native four-companion roster need their own checks and GPU run.
 

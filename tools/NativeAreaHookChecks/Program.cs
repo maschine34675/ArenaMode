@@ -405,6 +405,16 @@ internal static class Program
                 && !f.Screen._conditions.Open, "unsupported PFT mode cannot select a map before mode repair: " + mode);
         }
         Settings.GameMode.Value = ArenaModeCatalog.ZombieId;
+        // Squads never admit Equator (it is too cramped for a protected squad), so the squad
+        // loop below rejects it even with MapPort loaded and cannot tell whether the MapPort
+        // registry guard still holds for Equator. Solo Zombie admits Equator once MapPort is
+        // present, so there the missing registry entry is the only thing keeping it out. This
+        // runs before the squad's Bay5 check, which pins the same guard for Bay5 alone.
+        f.Team = false;
+        f.Screen.SelectedLocation = f.Screen.Locations[ArenaMapCatalog.EquatorId];
+        Assert(f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
+            "solo Zombie direct setter still rejects unavailable map: " + ArenaMapCatalog.EquatorId);
+        f.Team = true;
         foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id })
         {
             f.Screen.SelectedLocation = f.Screen.Locations[map];
