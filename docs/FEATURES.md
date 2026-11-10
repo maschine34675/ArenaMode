@@ -179,7 +179,10 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Solo kit buy phase, kill income, win/loss bonuses and retention of purchased
   kit selection while alive; that selected kit is refreshed for the next round.
   There is no own-gear option for solo Tactical: the gear is earned in the match.
-  The buy menu reports the **front plate's** armor class.
+  The buy menu reports the **front plate's** armor class. It draws the catalogue
+  as cards (picture, classes, price; a kit above the purse stays visible) with
+  NO PURCHASE, READY and CLOSE; the plain window is the fallback when the card
+  screen cannot be built. [Contract](reviews/KIT-PICKER-20261110.md)
   Without a first purchase, the cheapest buildable starter kit is free. After
   death without a purchase, the best affordable kit is selected automatically;
   if none is affordable, the cheapest buildable kit is free again.
@@ -287,6 +290,11 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   buildable kit exists; fixed selection is available. Per-raid variants prefer
   CQB optics and do not add thermal/night optics or scopes above 4×. A weapon
   without a valid optic path may still use iron sights.
+- The map screen's **KITS** window picks the kit of the base draw, or the random
+  draw, from cards with the game's own item pictures, armour and helmet class,
+  value and contents, and keeps a favourites list. A raid holds the choice it
+  was armed with; the per-raid attachment draw stays.
+  [Contract](reviews/KIT-PICKER-20261110.md)
 - Invalid/unfinished game templates are excluded from generated equipment.
   Generated item trees and required bundles are checked before use.
 - Own gear is an alternative in Deathmatch, Team DM, Domination and Zombies: the
