@@ -209,4 +209,6 @@ shipped from its art: the pictures are the running game's icons.
   against the real handbook, the reload pricing again), `TemplateEligibilityTests` (the forwarders),
   `CustomKitStructureTests` (every shipped kit copies into a sound own kit; the envelope).
 - The engine layer, the editor and the raid paths are engine-bound and verified natively on a
-  GPU host.
+  GPU host: [the run of 2026-11-10 on GPU-2](../reports/2026-11/GPU-CUSTOM-KITS-20261110.md)
+  (copy, a belt-fed gun, a refused pick, rename, Deathmatch and solo Tactical with an own kit,
+  delete; normal session; the PitFireTeam entry and the Arena session not yet run).
