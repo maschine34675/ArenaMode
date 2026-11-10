@@ -64,6 +64,21 @@ restore observation exists and the complete current disk fingerprint matches.
 An existing positive proof remains valid after later ordinary progress; it never
 replaces the current profile. Requested/confirmed case closures stop checkpoint
 writes before closure processing, including incomplete acknowledgement retries.
+(2026-11-10) A readback that does not match leaves the generation pending (no
+`persisted.json`, guard and run file unchanged, `mismatch.json` written) and lets the
+pass go on to the next generation; it no longer throws. Startup holds no clone, so a
+later start could only compare the same old snapshot with a newer profile: the throw
+quarantined the profile at every start, before the automatic discard could close the
+generation, and withheld every later payout. The discard now closes it without payment
+like a restoration that was never observed. The runtime readback
+(`RecoverPersisted`/`FinalizePersisted`) and the restore observation still throw.
+Accepted consequence: two installations that share one synchronised tree (same
+capture root) can lose a reward this way. A server that starts while the restored
+profile file has not arrived yet, but its checkpoint files have, closes the generation
+before the installation that wrote it could prove it at its own next start. The same
+was already true when `observed.json` itself had not arrived. Both fall under the
+discard policy (an uncertain reward is dropped, never a repair task); do not start a
+second server on a shared tree while the synchronisation is catching up.
 
 The offline owner calls `RecoverPrivateStopped(privateRoot, id, authority)` only
 after exact lease/marker validation and process exit, before freezing the receipt

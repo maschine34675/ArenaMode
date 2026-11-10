@@ -466,7 +466,14 @@ journal, profile ledger and native mail then settle receipts sequentially.
 Imported markers, allocations, decisions and paid receipts cross-check one
 another. Missing histories, changed sources and unresolved ordinary-run recovery
 defer/quarantine rewards instead of guessing. No automatic pruning or repair is
-performed. Histories are bounded to 4,096 entries per profile generation,
+performed. One unproven case does not hold the others up (2026-11-10): a restoration
+that was observed in memory but whose disk readback cannot match at startup (the server
+stopped before its save was confirmed, `return-profile-save-not-confirmed`, and the
+profile moved on) stays pending instead of failing the profile's startup pass, and the
+automatic discard of the same pass closes it without payment with its records kept
+([discard](reviews/REWARD-DISCARD-20261027.md)). Until then the payout path still
+refuses it. Before, the throw (`reward-checkpoint-profile-mismatch`, a Debug line)
+quarantined the profile at every start and nothing was paid again. Histories are bounded to 4,096 entries per profile generation,
 including snapshot attempts cancelled before combat. The limits of 100 rounds
 per run, 20,000 lives and 24 hours of active time remain. Shared rollback of all
 authority/profile files and unrelated external writers remain outside the local

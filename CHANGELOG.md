@@ -38,6 +38,12 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   the server) or shows "No reward for the last match." in the menu: the server now accepts such a
   final report without a round as an ordinary no-pay end. Nothing was paid before and nothing is
   paid now; the profile restoration and its proof are unchanged.
+- Fixed profile rewards stopping for good after one Arena raid whose end the server could not
+  confirm before it stopped (`return-profile-save-not-confirmed`): at every later normal start the
+  reward pass for that profile stopped at `reward-checkpoint-profile-mismatch` (a Debug line), so
+  queued rewards were never paid and new ones only queued up. The server now closes such a
+  restoration without payment, as it already did for other unproven ones, and the profile's other
+  rewards pay again at the next normal start. [Report](docs/reports/2026-11/REWARD-UNPROVABLE-CHECKPOINT-20261110.md)
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)

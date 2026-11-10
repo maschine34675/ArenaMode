@@ -63,3 +63,9 @@ entry/return and startup, not another combat raid.
 Private backup, deployment, audit and UI evidence is retained under
 `artifacts/reward-discard-20261027/` and must not be published. Game and servers
 were stopped again after verification; no second instance remained.
+
+Note (2026-11-10): an observed restoration whose disk readback cannot match at startup is
+an unproven snapshot too. The checkpoint recovery used to throw on it ahead of this
+discard and quarantined the profile at every start; it now leaves the generation pending
+and this discard closes it without payment
+([report](../reports/2026-11/REWARD-UNPROVABLE-CHECKPOINT-20261110.md)).

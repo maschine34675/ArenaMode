@@ -63,26 +63,35 @@ internal static class RewardRestorationCheckpoint
     {
         var directory = DirectoryFor(root, id, generation);
         var checkpoint = ReadCheckpoint(root, directory, id, generation);
-        RequireProfile(root, directory, checkpoint, profile, "restore-observation");
+        if (!MatchesProfile(root, directory, checkpoint, profile, "restore-observation"))
+            throw new RewardDataException("reward-checkpoint-profile-mismatch");
         RewardRuntimeFiles.WriteNew(root, Path.Combine(directory, "observed.json"),
             new RewardCheckpointObservation(1, Hash(checkpoint), checkpoint.ProfileFingerprint));
     }
 
     internal static void Persisted(string root, string id, string generation, string profile)
     {
+        if (!TryPersisted(root, id, generation, profile)) throw new RewardDataException("reward-checkpoint-profile-mismatch");
+    }
+
+    // False only when the given profile is not the restored snapshot (mismatch.json then holds the bounded
+    // hash diagnostics). A damaged witness or a profile that is not clean still throws.
+    private static bool TryPersisted(string root, string id, string generation, string profile)
+    {
         var directory = DirectoryFor(root, id, generation);
         var checkpoint = ReadCheckpoint(root, directory, id, generation);
         var observed = ReadObservation(root, directory, checkpoint);
-        RequireProfile(root, directory, checkpoint, profile, "durable-readback");
+        if (!MatchesProfile(root, directory, checkpoint, profile, "durable-readback")) return false;
         RewardStartupFiles.RequireCleanProfile(profile, checkpoint.Binding);
         if (Exists(root, directory, "persisted.json"))
         {
             // Preserve the first proven serialization on an exact semantic retry.
             ReadProof(root, directory, checkpoint, observed);
-            return;
+            return true;
         }
         RewardRuntimeFiles.WriteNew(root, Path.Combine(directory, "persisted.json"),
             new RewardCheckpointProof(1, Hash(checkpoint), Hash(observed), checkpoint.ProfileFingerprint, RewardIdentity.Hash(profile)));
+        return true;
     }
 
     // Returns null when there was no final report. Such a clean no-pay end is
@@ -417,7 +426,15 @@ internal static class RewardRestorationCheckpoint
             // Archived private evidence cannot use an ordinary profile as a
             // substitute for its private native-save readback.
             if (profile is null || !RewardRuntimeFiles.SameRoot(root, checkpoint.CaptureRoot)) return;
-            Persisted(root, id, generation, profile);
+            // A profile on disk that is not the restored snapshot stays unproven: startup holds no clone, so
+            // nothing in this process can make it one, and every later start compares the same old snapshot
+            // with a newer profile. Throwing here quarantined the profile at every start before the automatic
+            // discard could run (2026-11-10: an observed 27.10 restoration whose native save was never
+            // confirmed had withheld every later payout). Left pending, it is closed without payment by
+            // RewardRecovery.DiscardUncertainAtStartup with its files kept as evidence, exactly like a
+            // restoration that was never observed; until then the payout path still refuses it
+            // (reward-snapshot-restoration-unresolved).
+            if (!TryPersisted(root, id, generation, profile)) return;
         }
         Complete(root, id, generation, authority);
     }
@@ -513,16 +530,17 @@ internal static class RewardRestorationCheckpoint
             throw new RewardDataException("reward-checkpoint-pending-conflict");
     }
 
-    private static void RequireProfile(string root, string directory, RewardCheckpoint expected, string actual, string phase)
+    // A mismatch records only hashes (expected/actual fingerprint, differing top-level sections) in mismatch.json.
+    private static bool MatchesProfile(string root, string directory, RewardCheckpoint expected, string actual, string phase)
     {
         var fingerprint = Fingerprint(actual);
-        if (fingerprint == expected.ProfileFingerprint) return;
+        if (fingerprint == expected.ProfileFingerprint) return true;
         var sections = Sections(actual);
         var differing = expected.Sections.Keys.Union(sections.Keys, StringComparer.Ordinal)
             .Where(path => expected.Sections.GetValueOrDefault(path) != sections.GetValueOrDefault(path)).Order(StringComparer.Ordinal).Take(16).ToArray();
         RewardRuntimeFiles.Write(root, Path.Combine(directory, "mismatch.json"), new
         { schema = 1, generation = expected.Generation, phase, expected = expected.ProfileFingerprint, actual = fingerprint, differingPathHashes = differing });
-        throw new RewardDataException("reward-checkpoint-profile-mismatch");
+        return false;
     }
 
     // Stable full-document comparison: every property and array position matters.

@@ -115,6 +115,8 @@ public sealed class RewardRestorationCheckpointTests
         Assert.Equal("restored", f.GuardState);
     }
 
+    // Startup leaves an unprovable restoration pending instead of throwing (2026-11-10): the throw quarantined the
+    // profile at every start before the automatic discard could close it (RewardRecoveryTests covers that pass).
     [Fact]
     public void MismatchedCurrentProfileRemainsByteIdenticalAndRecordsOnlyBoundedHashDiagnostics()
     {
@@ -123,10 +125,14 @@ public sealed class RewardRestorationCheckpointTests
         f.Observe();
         f.EditProfile(p => p["foreignMod"]!["progress"] = "private-value-never-in-diagnostics");
         var before = f.Profile;
-        Assert.Throws<RewardDataException>(f.RestartRecovery);
+        f.RestartRecovery();
         Assert.Equal(before, f.Profile);
         Assert.False(Directory.Exists(f.Inbox));
         Assert.False(File.Exists(f.CheckpointFile("persisted.json")));
+        Assert.False(File.Exists(f.CheckpointFile("complete.json")));
+        Assert.Equal("pending", f.GuardState);
+        Assert.DoesNotContain("state", File.ReadAllText(f.Pending));
+        Assert.Throws<RewardDataException>(() => RewardRestorationCheckpoint.Persisted(f.Root, Fixture.Id, f.Generation, f.Profile));
         var mismatch = File.ReadAllText(f.CheckpointFile("mismatch.json"));
         Assert.DoesNotContain("private-value-never-in-diagnostics", mismatch);
         using var document = JsonDocument.Parse(mismatch);

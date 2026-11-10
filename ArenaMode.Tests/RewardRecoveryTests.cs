@@ -235,6 +235,76 @@ public sealed class RewardRecoveryTests
         Assert.Equal(731, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
     }
 
+    // 2026-11-10: a restoration that was observed but whose native save was never confirmed (the server stopped
+    // first) left a checkpoint no later start can prove: the profile on disk is not the restored snapshot and
+    // only moves further away from it. Startup threw on it and quarantined the profile before the automatic
+    // discard ran, so nothing was paid again for two weeks. It is closed without payment like any other
+    // unproven restoration, its files stay unchanged, and later rewards pay.
+    [Theory]
+    [InlineData("snapshot")]
+    [InlineData("run")]
+    [InlineData("final")]
+    public async Task UnprovableObservedRestorationIsDiscardedInsteadOfQuarantiningTheProfile(string shape)
+    {
+        using var f = new Fixture();
+        var old = f.ObservedNotPersisted(shape);
+        f.Edit(p => p["foreignMod"]!["progress"] = 732);
+        var checkpoint = RewardRestorationCheckpoint.DirectoryFor(f.Root, f.Id, old.Generation);
+        var before = f.Profile;
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        AssertOnlyMarkerAdded(before, f.Profile);
+        Assert.Empty(f.Ledger);
+        Assert.False(File.Exists(f.PathOf("inbox/" + (old.Run ?? "none") + ".json")));
+        Assert.True(File.Exists(Path.Combine(checkpoint, "mismatch.json")));
+        Assert.False(File.Exists(Path.Combine(checkpoint, "persisted.json")));
+        Assert.False(File.Exists(Path.Combine(checkpoint, "complete.json")));
+        Assert.Equal(shape == "final", File.Exists(Path.Combine(checkpoint, "final.json")));
+        Assert.Equal("pending", RewardStartupFiles.Read<RewardSnapshotGuard>(f.SnapshotPath(old.Generation)).State);
+        var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+        Assert.True(closures.ClosesSnapshot(old.Generation));
+        if (old.Run is { } run) Assert.True(closures.ClosesRun(run, old.Arm!));
+        var closed = f.Profile;
+        var evidence = f.SourceBytes();
+        Assert.NotEqual(RewardSettlementStatus.Quarantined, (await f.Process()).Result.Status);
+        Assert.Equal(closed, f.Profile);
+        f.AssertSources(evidence);
+        Assert.Single(RewardRecovery.ReadAttempts(f.Root, f.Id));
+        f.CaptureAndPublish();
+        Assert.Equal(RewardSettlementStatus.Paid, (await f.Process()).Result.Status);
+        Assert.Single(f.Ledger);
+        Assert.Equal(732, JsonNode.Parse(f.Profile)!["foreignMod"]!["progress"]!.GetValue<int>());
+    }
+
+    // Leaving the unprovable checkpoint pending must not cost a restoration that this very start can still
+    // prove: RecoverAtStartup goes on to the next checkpoint and proves it before the discard reviews what is
+    // left, whichever of the two it reads first (NTFS lists the generation directories in name order).
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UnprovableRestorationLeavesAProvableOneInTheSamePassToPay(bool unprovableFirst)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            Assert.True(attempt < 64, "Could not arrange the checkpoint order.");
+            using var f = new Fixture();
+            var old = f.ObservedNotPersisted("snapshot");
+            f.Edit(p => p["foreignMod"]!["progress"] = 733);
+            var provable = f.ObservedNotPersisted("final");
+            if (string.CompareOrdinal(old.Generation, provable.Generation) < 0 != unprovableFirst) continue;
+            var outcome = await f.Process();
+            Assert.Equal(RewardSettlementStatus.Paid, outcome.Result.Status);
+            Assert.Equal(1000, outcome.Roubles);
+            Assert.StartsWith(provable.Run + ":", Assert.Single(f.Ledger).ReceiptKey, StringComparison.Ordinal);
+            Assert.Equal("restored", RewardStartupFiles.Read<RewardSnapshotGuard>(f.SnapshotPath(provable.Generation)).State);
+            Assert.Equal("pending", RewardStartupFiles.Read<RewardSnapshotGuard>(f.SnapshotPath(old.Generation)).State);
+            var closures = RewardRecovery.ReadClosures(f.Root, f.Id, f.Profile);
+            Assert.True(closures.ClosesSnapshot(old.Generation));
+            Assert.False(closures.ClosesSnapshot(provable.Generation));
+            Assert.False(closures.ClosesRun(provable.Run!, provable.Arm!));
+            return;
+        }
+    }
+
     [Theory]
     [InlineData("plan")]
     [InlineData("profile")]
@@ -924,6 +994,41 @@ public sealed class RewardRecoveryTests
             var arm = Guid.NewGuid().ToString("N");
             WriteAt(SnapshotPath(generation), new RewardSnapshotGuard(1, generation, "pending"));
             WriteAt(RunPath(run), new RewardRuntimePending(1, arm, run));
+            return (generation, run, arm);
+        }
+        // A server that restored the current profile in memory and stopped before its save was confirmed: the
+        // checkpoint holds the observation but no readback proof. Its own coordinator, so this fixture's stays clean.
+        // "snapshot" takes no run (a raid without a reward run), "run" ends without a final, "final" with one.
+        internal (string Generation, string? Run, string? Arm) ObservedNotPersisted(string shape)
+        {
+            var stopped = new RewardRuntimeCoordinator(Root, () => _now);
+            var captured = Profile;
+            var parent = Path.Combine(Root, "user", "arena-reward-checkpoints", Id);
+            var known = Directory.Exists(parent) ? Directory.GetDirectories(parent).ToHashSet() : [];
+            stopped.ObserveSnapshot(Id, captured);
+            var generation = Path.GetFileName(Directory.GetDirectories(parent).Single(d => !known.Contains(d)));
+            string? run = null, arm = null;
+            if (shape != "snapshot")
+            {
+                arm = Guid.NewGuid().ToString("N");
+                var native = Protocol.BuildNativeEndIdentity("factory4_day.Pmc " + _now.ToUnixTimeSeconds(), arm);
+                var begin = stopped.Begin(Id, arm, native, LocalId, "deathmatch", false, false,
+                    new() { ArmToken = arm, NativeEndIdentity = native, Mode = "deathmatch", Rule = "KillsOnly" });
+                Assert.True(begin.Accepted, begin.Reason);
+                run = begin.RunId;
+                _now = _now.AddSeconds(10);
+                var final = shape == "final";
+                var captureResult = stopped.Capture(Id, new RewardCaptureRequest
+                {
+                    RunId = run, ArmToken = arm, NativeEndIdentity = native, Revision = 1, Final = final,
+                    Rounds = [new() { Number = 1, Closed = final, ObservedDurationMilliseconds = 2000,
+                        Actors = [new() { Body = 1, ParticipantId = LocalId, Side = "Friendly" },
+                            new() { Body = 2, ParticipantId = "bbbbbbbbbbbbbbbbbbbbbbbb", Side = "Opponent" }],
+                        Deaths = [new() { Sequence = 1, AtMilliseconds = 1000, VictimBody = 2, KillerBody = 1 }] }]
+                });
+                Assert.True(captureResult.Accepted, captureResult.Reason);
+            }
+            stopped.ObserveRestored(Id, captured);
             return (generation, run, arm);
         }
         internal string Queue()
