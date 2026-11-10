@@ -33,7 +33,7 @@ can recover before its RAM evidence is released.
 | --- | --- |
 | `checkpoint.json` | Exact binding, generation, delegation, capture root and full-profile fingerprint; bounded hashed top-level sections for diagnostics. |
 | `run.json` | Exact run, arm and native-end identities. |
-| `final.json` | Validated final authorization/report, persisted before acknowledging capture; no restoration assertion. |
+| `final.json` | Validated final authorization/report, persisted before acknowledging capture; no restoration assertion. A final without a round has none and closes like a run without a final (2026-11-10, docs/REWARDS-RUNTIME.md, "Combat capture"). |
 | `observed.json` | The actual clone-restore observer matched the entire expected profile. |
 | `persisted.json` | A full native-file readback matched that observed restore; binds the exact persisted serialization. |
 | `complete.json` | Publication/terminal completion bound to proof and final-result hashes. |

@@ -85,7 +85,7 @@ internal sealed class RewardRuntimeCoordinator
                 if (_runs.TryGetValue(id, out var active))
                 {
                     result.State = "earning";
-                    if (active.Final is not null) SetPending(result, Evaluate(active, active.Final), active.Cola);
+                    if (active.Final is not null && !NoCapturedRound(active.Final)) SetPending(result, Evaluate(active, active.Final), active.Cola);
                 }
                 ApplyPrivatePending(id, result);
                 ApplyFailure(id, result);
@@ -104,7 +104,8 @@ internal sealed class RewardRuntimeCoordinator
                 if (_runs.TryGetValue(id, out var run))
                 {
                     result.State = "earning";
-                    if (run.Final is not null) SetPending(result, Evaluate(run, run.Final), run.Cola);
+                    // A final without a captured round has no authorization to evaluate and nothing pending.
+                    if (run.Final is not null && !NoCapturedRound(run.Final)) SetPending(result, Evaluate(run, run.Final), run.Cola);
                 }
                 if (!result.PrivateSession && result.Enrolled)
                 {
@@ -383,9 +384,10 @@ internal sealed class RewardRuntimeCoordinator
             try
             {
                 if (!_runs.TryGetValue(id, out var run)) throw new RewardDataException("reward-run-not-active");
+                // Only a final report may have no round (NoCapturedRound); a provisional one has nothing to record.
                 if (request is null || request.Schema != 1 || request.RunId != run.Id || request.ArmToken != run.ArmToken
                     || request.NativeEndIdentity != run.NativeEnd || request.Revision is < 1 or > 100_000
-                    || request.Rounds is null || request.Rounds.Count is < 1 or > 100
+                    || request.Rounds is null || request.Rounds.Count > 100 || request.Rounds.Count == 0 && !request.Final
                     || !Enum.TryParse<RewardReportState>(request.State, false, out var state) || !Enum.IsDefined(state))
                     throw new RewardDataException("reward-capture-identity");
                 var json = RewardRuntimeFiles.Json(request);
@@ -399,6 +401,22 @@ internal sealed class RewardRuntimeCoordinator
                     }
                     if (run.Final is not null || request.Revision <= run.Last.Revision) throw new RewardDataException("reward-capture-already-final");
                     RequireAppendOnly(run.Last, request);
+                }
+                if (NoCapturedRound(request))
+                {
+                    // The match ended before its capture held a combat round: left in Tactical's first buy phase,
+                    // or round 1 ended before it went live, after which the client's contiguous numbering records
+                    // no later round (RewardCaptureBuffer.BeginRound; the run is NoContest then). There is no
+                    // authorization to build (one needs a round) and nothing to pay, so no final.json is written
+                    // and no Cola observation is taken. The durable outcome is the one a run without a final
+                    // report already has: after the unchanged restore proof, Complete closes it
+                    // "unrewarded-restored" without a receipt, and a lost RAM replays exactly that. Acknowledging
+                    // it only spares the player a withheld status and both sides a Warning for a match with no
+                    // captured combat (the refusal used to be logged as reward-capture-identity by the client and
+                    // reward-final-report-missing by the server).
+                    run.Last = run.Final = JsonSerializer.Deserialize<RewardCaptureRequest>(json, RewardSettlementCore.JournalJson)!;
+                    run.Cola = null;
+                    return new() { Accepted = true, Revision = request.Revision };
                 }
                 // Independent wall clock is an upper bound only; the report's
                 // active clock may pause or spend time in countdowns/loading.
@@ -478,8 +496,17 @@ internal sealed class RewardRuntimeCoordinator
                     throw new RewardDataException("reward-durable-restoration-unproven");
                 var evaluation = RewardRestorationCheckpoint.Complete(_root, id, run.Snapshot.Generation, run.Authority);
                 if (run.Final is null) throw new RewardDataException("reward-final-report-missing");
+                // Only a final without a captured round has no checkpoint final.json (see Capture); for any other
+                // final a missing one is lost evidence, not a clean end.
+                if (evaluation is null)
+                {
+                    if (!NoCapturedRound(run.Final)) throw new RewardDataException("reward-final-report-missing");
+                    _failures.Remove(id);
+                    ArenaContext.Logger?.Debug("[ArenaMode] Arena reward run ended without a captured combat round; restored, nothing to pay.");
+                    return;
+                }
                 var privateSession = !RewardStartupFiles.MarkerAbsent(_root);
-                if (evaluation!.Status == RewardEvaluationStatus.Eligible)
+                if (evaluation.Status == RewardEvaluationStatus.Eligible)
                     Compat.ArenaTarkovaColaState.Published(id, run.ArmToken, run.Cola);
                 _failures.Remove(id);
                 if (privateSession)
@@ -588,6 +615,12 @@ internal sealed class RewardRuntimeCoordinator
         return new(1, authorization, report, new(1, run.Authority.Binding, run.Id, run.ArmToken, run.NativeEnd,
             run.Snapshot.Generation, RewardRestorationState.Persisted, revision, revision));
     }
+
+    /// <summary>
+    /// A final report without a single round: the match ended before its capture held a combat round. Capture
+    /// admits it only as a final, so it never follows a provisional report that held a round (append-only).
+    /// </summary>
+    private static bool NoCapturedRound(RewardCaptureRequest report) => report.Final && report.Rounds.Count == 0;
 
     private static T Parse<T>(string value) where T : struct, Enum => Enum.TryParse<T>(value, false, out var parsed) && Enum.IsDefined(parsed)
         ? parsed : throw new RewardDataException("reward-unknown-enum");
