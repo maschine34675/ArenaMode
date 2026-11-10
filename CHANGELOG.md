@@ -20,7 +20,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   cannot afford stays visible, NO PURCHASE takes a purchase back, READY starts the round, CLOSE lets
   you walk. The plain buy window remains as the fallback, and during a buy phase the panel hotkey
   reopens the buy screen instead of also opening the scoreboard.
-  [Contract](docs/reviews/KIT-PICKER-20261110.md)
+  [Contract](docs/reviews/KIT-PICKER-20261110.md),
+  [native runs](docs/reports/2026-11/GPU-KIT-PICKER-20261110.md)
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)

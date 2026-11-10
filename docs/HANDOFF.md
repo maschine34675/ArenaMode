@@ -12,6 +12,14 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-10, branch `feature/kit-picker` (not merged, not pushed):** the KITS screen on
+  the Arena map screen and the card-based solo Tactical buy screen
+  ([contract](reviews/KIT-PICKER-20261110.md), [native runs](reports/2026-11/GPU-KIT-PICKER-20261110.md)),
+  commits `92c8b038`..`024565bd` on `5d82ea93`. Client `0.5.0+024565bd` is installed in `D:\SPT41`
+  (mirrored to the GPU hosts); server and Core unchanged. Custom kits and the kit editor are the next
+  stage on the same branch. Still red for an older reason: `tools/EquatorMapChecks` (its
+  `MissingClientGuard` negative control now trips the Bay5 assertion first; also on clean `5d82ea93`).
+
 - **Development, 2026-11-10.** The private home menu hides the beta banner. Arena raids hide the lower-left version line through respawns and restore it on the result screen. An ordinary Factory PMC raid kept the line visible. The tested client is installed in `D:\SPT41`. Its previous version is in `D:\SPT41-Backups\arena-beta-version\20261110-122437-600`. [Two-host verification and client identity](reports/2026-11/GPU-BETA-VERSION-20261110.md).
 
 - **Development, 2026-11-10:** the private startup and home menu now use the

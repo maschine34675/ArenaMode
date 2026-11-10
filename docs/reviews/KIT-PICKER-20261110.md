@@ -150,5 +150,6 @@ by the running game from the player's own installation, and the layout is built 
   `Settings.RandomKit` as before), `AreaConfigChecks` and `TdmMatchMenuChecks`
   (`ArenaKitChoice.cs` linked for `Settings.cs`), `NativeAreaHookChecks` and
   `DominationMenuPerformanceChecks` (`ArenaModeSelectionView.Root`).
-- The views, the event-system hold and the picture gate are engine-bound: they are
-  verified in a raid on a GPU host only.
+- The views, the event-system hold and the picture gate are engine-bound: verified in a
+  raid, recorded in
+  [../reports/2026-11/GPU-KIT-PICKER-20261110.md](../reports/2026-11/GPU-KIT-PICKER-20261110.md).

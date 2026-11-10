@@ -278,6 +278,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 ### 2026-11
 
 - [Inventory UI mod admission: Caliber Under Ammo Name, Compatibility Highlighter and Trader Modding](reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
+- [Kit screen and Tactical buy screen: native runs on GPU-2 (the dead clicks, the bare-scope error, F9 twice, the take-back after a buy-phase death)](reports/2026-11/GPU-KIT-PICKER-20261110.md)
 - [Amand's Graphics on Labyrinth and Factory, and Amand's Sense Updated](reports/2026-11/GPU-AMANDS-20261108.md)
 - [Private home beta notice and Arena raid version label](reports/2026-11/GPU-BETA-VERSION-20261110.md)
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
