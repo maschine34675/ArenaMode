@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline checks of the custom-kit rules (docs/reviews/CUSTOM-KITS-20261110.md). No project
+       reference: nothing here builds or deploys a mod. Verify.ps1 runs it once as it is and once per
+       mutant of the production sources named below. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Kits/ArenaCustomKitPolicy.cs</PolicySource>
+    <StructureSource Condition="'$(StructureSource)' == ''">../../ArenaMode.Client/Kits/CustomKitStructure.cs</StructureSource>
+    <EditingSource Condition="'$(EditingSource)' == ''">../../ArenaMode.Client/Kits/CustomKitEditing.cs</EditingSource>
+    <StoreSource Condition="'$(StoreSource)' == ''">../../ArenaMode.Client/Kits/CustomKitStore.cs</StoreSource>
+    <CandidatesSource Condition="'$(CandidatesSource)' == ''">../../ArenaMode.Client/Kits/CustomKitCandidates.cs</CandidatesSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/ArenaCustomKitPolicy.cs" />
+    <Compile Include="$(StructureSource)" Link="Production/CustomKitStructure.cs" />
+    <Compile Include="$(EditingSource)" Link="Production/CustomKitEditing.cs" />
+    <Compile Include="$(StoreSource)" Link="Production/CustomKitStore.cs" />
+    <Compile Include="$(CandidatesSource)" Link="Production/CustomKitCandidates.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/KitModels.cs" Link="Production/KitModels.cs" />
+    <Compile Include="../../ArenaMode.Client/Kits/ArenaKitChoice.cs" Link="Production/ArenaKitChoice.cs" />
+    <Compile Include="../../ArenaMode.Shared/KitPriceRule.cs" Link="Production/KitPriceRule.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTemplateExclusions.cs" Link="Production/ArenaTemplateExclusions.cs" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
