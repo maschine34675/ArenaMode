@@ -60,6 +60,14 @@ public sealed class TeamArenaLoadoutSnapshot
     public int CapturedItemCount { get; }
 
     /// <summary>
+    /// True once a prepare or commit failed: the gate stays poisoned for the
+    /// rest of the raid and refuses every later restore (see
+    /// TeamArenaLoadoutRestoreGate). Lets a live reissue tell a doomed match
+    /// from a transient swap failure.
+    /// </summary>
+    internal bool RestorePoisoned => _restoreGate.IsPoisoned;
+
+    /// <summary>
     /// Captures the live equipment graph. Protected roots are found from the actual
     /// slot objects (including dynamically marked special pocket slots), then their
     /// complete descendant sets are removed from the serialized graph.

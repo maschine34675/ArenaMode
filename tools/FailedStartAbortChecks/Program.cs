@@ -129,8 +129,10 @@ static class Program
         var match=File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Modes/ArenaMatchService.cs"));
         Check(match.Contains("TickFailedStartAbort();")&&match.Contains("ResetFailedStartAbort();"),"MATCH-TICK-END-WIRED");
         Check(File.ReadAllText(Path.Combine(root,"ArenaMode.Client/Plugin.cs")).Contains("ArenaFailedStartIntro.Enable();"),"INTRO-PATCH-WIRED");
-        Check(match.Contains("private static void OnRaidEnded()\r\n    {\r\n        TdmMatchExit.Reset();")
-            || match.Contains("private static void OnRaidEnded()\n    {\n        TdmMatchExit.Reset();"),"TERMINAL-END-RESET");
+        // The reward capture's final flush (74c2c3b6, 2026-10-24) precedes the terminal reset; the reset
+        // still comes before every mode-specific cleanup.
+        Check(match.Contains("private static void OnRaidEnded()\r\n    {\r\n        ArenaRewardCapture.OnRaidEnded();\r\n        TdmMatchExit.Reset();")
+            || match.Contains("private static void OnRaidEnded()\n    {\n        ArenaRewardCapture.OnRaidEnded();\n        TdmMatchExit.Reset();"),"TERMINAL-END-RESET");
         var recover=match[match.IndexOf("internal static void RecoverAtNewRaidStart()")..];
         Check(recover.IndexOf("TdmMatchExit.Reset();")<recover.IndexOf("if (Current == null"),"TERMINAL-RECOVERY-RESET");
         TerminalIntroChecks();

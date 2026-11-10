@@ -20,7 +20,7 @@ namespace ArenaMode.Session
 {
     public static class ArenaSession
     {
-        public static bool IsActive, ArmedForNextRaid, ZombieOwnGearArmed;
+        public static bool IsActive, ArmedForNextRaid, OwnGearArmed, OwnGearActive;
         public static string ActiveMode, ArmedMode;
         public static int ArmEpoch;
         public static void TickAreaStart() { }

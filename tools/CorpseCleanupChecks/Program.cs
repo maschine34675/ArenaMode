@@ -137,6 +137,31 @@ Slot Add(Corpse corpse, InventoryEquipment gear, string id)
 }
 
 {
+    // The player's own corpse is the source of the next body's retained slots
+    // (Redeploy carries them over, the own-gear restore insists on them), and a
+    // round-start clear trims it before a held respawn reads it (GPU-2,
+    // 2026-11-09): the heavy models still go, those slots stay.
+    var (world, body, gear) = Setup();
+    world.MainPlayer.ProfileId = body.PlayerProfileID;
+    var head = Add(body, gear, "Headwear");
+    var scabbard = Add(body, gear, "Scabbard");
+    var armband = Add(body, gear, "ArmBand");
+    var pockets = Add(body, gear, "Pockets");
+    CorpseCleanupService.ClearAllSoon("round 2 start");
+    CorpseCleanupService.Tick();
+    Check(head.Returns == 1 && head.ContainedItem == null, "a round-start clear still strips the own corpse's heavy models");
+    Check(scabbard.ContainedItem != null && armband.ContainedItem != null && pockets.ContainedItem != null
+        && scabbard.Returns == 0 && armband.Returns == 0 && pockets.Returns == 0,
+        "the own corpse keeps the retained slots and the pockets the next body inherits");
+    var (_, other, otherGear) = Setup();
+    var otherScabbard = Add(other, otherGear, "Scabbard");
+    Add(other, otherGear, "Headwear");
+    CorpseCleanupService.Tick();
+    Check(otherScabbard.ContainedItem == null && otherScabbard.Returns == 1,
+        "another body's scabbard is stripped as before");
+}
+
+{
     var (_, body, gear) = Setup();
     var busy = Add(body, gear, "Backpack");
     var free = Add(body, gear, "Headwear");

@@ -96,17 +96,17 @@ public static partial class KitBundlePreloader
             return;
         }
 
-        // Zombie's own-gear option (item 4, 2026-10-06 follow-up): the exact
-        // same reasoning as the protected-team check above, decided before the
-        // plan is asked so a whole-catalogue plan does not build pools for a
-        // raid that hands out no kit at all. ZombieOwnGearArmed reads the
-        // frozen-at-arm selection against ArmedMode, since IsActive/ActiveMode
-        // cannot have latched yet at this loading-time call (AGENTS.md's
-        // loading-time exception list).
-        if (Session.ArenaSession.ZombieOwnGearArmed)
+        // The player's own-gear option (any mode but Gun Game): the exact same
+        // reasoning as the protected-team check above, decided before the plan
+        // is asked so a whole-catalogue plan does not build pools for a raid
+        // that hands out no kit at all. OwnGearArmed reads the frozen-at-arm
+        // selection against ArmedMode, since IsActive/ActiveMode cannot have
+        // latched yet at this loading-time call (AGENTS.md's loading-time
+        // exception list).
+        if (Session.ArenaSession.OwnGearArmed)
         {
             Plugin.ModLogger.LogDebug(
-                "Arena: nothing to preload in the loading screen — Zombie own gear keeps the entry loadout.");
+                "Arena: nothing to preload in the loading screen — the player's own gear keeps the entry loadout.");
             return;
         }
 

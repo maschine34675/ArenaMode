@@ -12,7 +12,7 @@ namespace ArenaMode.Session;
 /// Two inline choices ("Arena kits" / "Own gear") inside the LEFT mode panel,
 /// replacing only the plain EQUIPMENT value for any mode
 /// <see cref="Modes.ArenaEquipmentChoice.IsOfferedFor"/> returns true for
-/// (solo Zombies and protected Tactical). The common EQUIPMENT label stays in the same position
+/// (every solo mode but Gun Game, and protected Tactical). The common EQUIPMENT label stays in the same position
 /// as every other mode; selected buttons carry the current value. These controls
 /// retain their own state lock and exact callback ownership when hidden/retired.
 /// </summary>
@@ -57,6 +57,11 @@ internal sealed class ArenaEquipmentChoiceView
         {
             choice.Button.interactable = _state.Editable;
             choice.Marker.SetActive(choice.OwnGear == _state.OwnGear);
+            // The consequence differs per mode, so the tooltip follows the
+            // selection rather than the label set at creation.
+            var tooltip = choice.Button.GetComponent<HoverTooltipArea>();
+            if (tooltip != null)
+                tooltip.SetMessageText(Modes.ArenaEquipmentChoice.Describe(choice.OwnGear, _state.Mode, _state.ProtectedTeam), rawText: true);
         }
     }
 

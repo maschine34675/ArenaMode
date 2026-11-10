@@ -1508,6 +1508,10 @@ table, never a mode-id literal of their own.
 | Team Deathmatch | no | plain EQUIPMENT fact |
 | Tactical | no (has its own mechanism) | plain EQUIPMENT fact; the automatic protected-team own-gear path is untouched and gets no row here |
 
+*Superseded 2026-11-09: the row is offered in every solo mode but Gun Game and the table lives in
+`Modes.ArenaOwnGearPolicy`; see docs/reviews/OWN-GEAR-ALL-MODES-20261109.md. The rows above record the
+2026-10-06 state.*
+
 ### Frozen plumbing
 
 - **Equipment choice.** Unchanged from v1: `ArenaSession.ZombieOwnGearSelection`

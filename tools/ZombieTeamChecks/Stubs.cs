@@ -88,7 +88,7 @@ namespace ArenaMode.Session
 {
     public static class ArenaSession
     {
-        public static bool Active = true, ZombieOwnGearActive = true; public static float ReplaySeconds;
+        public static bool Active = true, OwnGearActive = true; public static float ReplaySeconds;
         public static int ArmEpoch;
         public static bool IsExactActiveRaid(LocalGame g, GameWorld w) => Active
             && ReferenceEquals(Comfort.Common.Singleton<AbstractGame>.Instance,g) && ReferenceEquals(Comfort.Common.Singleton<GameWorld>.Instance,w);

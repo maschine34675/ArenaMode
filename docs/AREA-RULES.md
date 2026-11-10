@@ -17,6 +17,14 @@ to `AGENTS.md`.
 **Loading-time and static exceptions to non-negotiable 2** (the complete list, as argued in the old `AGENTS.md`):
 
    Loading-time exceptions are documented here and at their call sites:
+   The startup panel, profile loading and home menu appear before any raid.
+   Their artwork requires the private-process gate report. Boot and loading
+   share the flat texture until the last view releases it. Native status and
+   dialogs draw above the loading image. Only the private home menu receives
+   parallax and hides the native beta notice. The separate corner label is
+   hidden only while the exact, confirmed Arena game and world are active.
+   [Lifecycle](reviews/SESSION-MENU-ART-20261109.md).
+
    Protected PFT Tactical may issue one PMC-only Arena kit after the exact
    native local-start identity binds, before LocalGame creates the first body.
    Read docs/reviews/PFT-TACTICAL-KITS-20261018.md: exact arm token/epoch, profile,
@@ -538,7 +546,7 @@ Once the exact native raid has committed Stopping/Stopped (`ArenaRaidExit.Native
 
 *(handoff lines 913-915)*
 
-PFT Tactical equipment choice: the map screen offers Own gear (default) or Arena kits, for the local PMC only. PFT companions keep their stored equipment. One base kit is issued before the first native player/leader body. The existing protected round restore reissues that entry kit after the PMC dies. There is no team buy phase, and PFT Zombies keeps own gear. Read docs/reviews/PFT-TACTICAL-KITS-20261018.md and docs/reports/2026-10/GPU-PFT-TACTICAL-KITS-20261018.md for acceptance limits.
+PFT Tactical equipment choice: the map screen offers Own gear (default) or Arena kits, for the local PMC only. PFT companions keep their stored equipment. One base kit is issued before the first native player/leader body. The existing protected round restore reissues that entry kit after the PMC dies. There is no team buy phase, and PFT Zombies keeps own gear. Read docs/reviews/PFT-TACTICAL-KITS-20261018.md and docs/reports/2026-10/GPU-PFT-TACTICAL-KITS-20261018.md for acceptance limits. Solo Tactical has no own-gear option (user decision 2026-11-09: the gear is earned in the match; docs/reviews/OWN-GEAR-ALL-MODES-20261109.md).
 
 *(handoff lines 964-971)*
 
@@ -1130,7 +1138,7 @@ Colored tracers are team-only, like laser colors. `Settings.TracerEntry(mode, pr
 
 *(handoff lines 1951-1960)*
 
-`Modes.ArenaEquipmentChoice` is the pure per-mode availability table for the left-panel EQUIPMENT row (`Session/ArenaEquipmentChoiceView`/`ArenaEquipmentChoiceState`). It offers Arena kits / Own gear for solo Zombies and for protected Tactical only. Writes go only through `Settings.TrySelectEquipmentChoice`, which refuses while `ArenaSession.IsActive` or `ArmedForNextRaid` and writes `Settings.ZombieOwnGear` or `TacticalTeamOwnGear`. The raid reads only the values frozen at arm (`ArenaSession.ZombieOwnGearSelection` / `TacticalTeamOwnGearSelection`). `ArenaMutator.OwnGear` no longer exists.
+`Modes.ArenaOwnGearPolicy` is the pure table behind the left-panel EQUIPMENT row (`Modes.ArenaEquipmentChoice` delegates to it; `Session/ArenaEquipmentChoiceView`/`ArenaEquipmentChoiceState`) and behind the raid's gate: Arena kits / Own gear for Deathmatch, Team DM, Domination and Zombies solo, and for protected Tactical (not Gun Game, not solo Tactical). Writes go only through `Settings.TrySelectEquipmentChoice(mode, protectedTeam, ownGear)`, which refuses while `ArenaSession.IsActive` or `ArmedForNextRaid` and writes the mode's own entry (`Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`, `Domination/OwnGear`, `Zombie/OwnGear`, protected `Tactical/TeamOwnGear`). The raid reads only the values frozen at arm (`ArenaSession.OwnGearSelection` through `OwnGearArmed`/`OwnGearActive`, `TacticalTeamOwnGearSelection`); the own-gear death respawn runs on the driver's ordinary path, `LiveKitRespawn.AtRoundBreak` is own-gear aware, and the kit catalogue is never asked in an own-gear raid. Read docs/reviews/OWN-GEAR-ALL-MODES-20261109.md. `ArenaMutator.OwnGear` no longer exists.
 
 *(handoff lines 2221-2231)*
 

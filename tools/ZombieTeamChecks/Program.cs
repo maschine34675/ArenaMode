@@ -27,7 +27,7 @@ internal static class Program
         {
             Time.time=0;
             Singleton<AbstractGame>.Instance=Game; Singleton<GameWorld>.Instance=World; Singleton<IBotGame>.Instance=Bots;
-            ArenaSession.Active=true; ArenaSession.ZombieOwnGearActive=true; ArenaSession.ReplaySeconds=0;
+            ArenaSession.Active=true; ArenaSession.OwnGearActive=true; ArenaSession.ReplaySeconds=0;
             ArenaMatchService.Current=Match;
             ArenaRespawnDriver.IsRespawnInProgress=false; ArenaRespawnDriver.StandDown=false;
             PitFireTeamCompat.FrozenCompanionCount=team?expectedCount:0; PitFireTeamCompat.TeamArenaActive=team; PitFireTeamCompat.PersistenceSuppressionActive=true;

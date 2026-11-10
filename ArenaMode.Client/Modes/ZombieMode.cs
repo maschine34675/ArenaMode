@@ -94,9 +94,9 @@ public sealed partial class ZombieMode : IArenaMode
 
     // Item 4 ("own protected gear"), frozen at OnMatchStart like _config and
     // _shooterPercent above: whether this raid restores the player's real
-    // entry loadout (ArenaSession.ZombieOwnGearActive) instead of drawing
+    // entry loadout (ArenaSession.OwnGearActive) instead of drawing
     // Arena kits. Read once here rather than live every tick for the same
-    // reason _config is frozen — ArenaSession.ZombieOwnGearSelection itself
+    // reason _config is frozen — ArenaSession.OwnGearSelection itself
     // cannot change mid-raid anyway (frozen at arm), but caching it keeps
     // this class's own "frozen settings" convention consistent and avoids a
     // property-chain read on every refill decision.
@@ -246,7 +246,7 @@ public sealed partial class ZombieMode : IArenaMode
             StuckWaveTimeoutSeconds = Settings.ZombieStuckWaveTimeoutSeconds.Value,
         };
         _shooterPercent = shooterPercent;
-        _ownGear = ArenaSession.ZombieOwnGearActive;
+        _ownGear = ArenaSession.OwnGearActive;
         if (Compat.PitFireTeamCompat.TeamArenaActive)
         {
             if (!_ownGear) throw new InvalidOperationException("Protected Zombie teams require own gear.");

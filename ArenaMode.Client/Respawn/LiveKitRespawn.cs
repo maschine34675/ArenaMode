@@ -91,6 +91,18 @@ internal static class LiveKitRespawn
     /// the point — the bots that were shooting at you go on searching the place
     /// you left, which is what makes the pause feel like a pause.
     ///
+    /// In a raid the player entered with their own gear (ArenaSession.
+    /// OwnGearActive) the new body wears the restored entry loadout instead of
+    /// a kit: the same heal and resupply, committed by ArenaOwnGearLoadout.
+    /// Reissue through the equipment override, so Deathmatch rounds and solo
+    /// Tactical need no second call site. Protected squads never come through
+    /// AtRoundBreak (their modes drive <see cref="AtRoundBreakOwnGear"/> with a
+    /// prepared restore), and Zombie's kit refill installs a KitProvider only
+    /// in a kit raid, so the two branches cannot meet. A restore that fails
+    /// here poisons the snapshot for the rest of the raid, and every one of
+    /// these modes respawns on death, so the swap asks SwapRoutine to end the
+    /// match at once rather than one life later.
+    ///
     /// Returns whether the respawn was actually started. The callback reports
     /// the outcome (true = the player is standing in a new body, protected).
     /// </summary>
@@ -110,8 +122,15 @@ internal static class LiveKitRespawn
         if (game.LocalPlayer.HealthController == null || !game.LocalPlayer.HealthController.IsAlive)
             return false;
 
-        var kit = KitCatalog.GetSelectedKit();
-        if (kit == null)
+        // An own-gear raid never reaches the kit catalogue from here: a
+        // protected squad (PFT Zombies, where the selection is also on) owns
+        // its reissue through AtRoundBreakOwnGear and is refused rather than
+        // handed a random kit by a future caller.
+        bool ownGear = Session.ArenaSession.OwnGearActive;
+        if (ownGear && Compat.PitFireTeamCompat.HasFrozenTeamRoster)
+            return false;
+        var kit = ownGear ? null : KitCatalog.GetSelectedKit();
+        if (!ownGear && kit == null)
             return false;
 
         var here = game.LocalPlayer.Position;
@@ -134,22 +153,23 @@ internal static class LiveKitRespawn
             kit,
             spawn,
             protection,
-            "round respawn",
+            ownGear ? "round own-gear reissue" : "round respawn",
             stillWanted,
             onComplete,
             raidEpoch,
-            equipmentOverride: null));
+            equipmentOverride: ownGear
+                ? (profile, dead) => ArenaOwnGearLoadout.Reissue(profile, "Arena round own-gear reissue")
+                : null,
+            abortWhenPoisoned: ownGear));
         return true;
     }
 
     /// <summary>
-    /// Zombie's own-gear option (item 4): the SAME live, in-place body swap
-    /// AtRoundBreak uses between rounds/waves, but committing the protected
-    /// entry-loadout restore (ZombieOwnGearLoadout.TryRestore, via
-    /// <paramref name="equipmentStrategy"/>) instead of applying a
-    /// KitDefinition — AtRoundBreak itself hard-refuses when
-    /// KitCatalog.GetSelectedKit() returns null, so own-gear mode needs this
-    /// sibling rather than a parameter on AtRoundBreak. Every other guarantee
+    /// The explicit-strategy sibling of AtRoundBreak: the SAME live, in-place
+    /// body swap, but committing whatever protected entry-loadout restore the
+    /// caller hands in (Zombie's wave refill through ArenaOwnGearLoadout, the
+    /// protected Zombie squad's prepared team restore) instead of asking the
+    /// kit catalogue or the session's own-gear gate. Every other guarantee
     /// (hands-check, one-pipeline-at-a-time lease, spawn selection, failure
     /// recovery) is the identical SwapRoutine code AtRoundBreak itself runs —
     /// writes no new inventory-mutation code, reuses the existing live swap.
@@ -215,7 +235,8 @@ internal static class LiveKitRespawn
         Func<bool> stillWanted,
         Action<bool> onComplete,
         int raidEpoch,
-        Action<EFT.Profile, LocalPlayer> equipmentOverride)
+        Action<EFT.Profile, LocalPlayer> equipmentOverride,
+        bool abortWhenPoisoned = false)
     {
         while (Areas.ArenaAreaRuntime.IsPending
                && ArenaRespawnDriver.IsSameActiveRaid(game, raidEpoch)
@@ -342,6 +363,23 @@ internal static class LiveKitRespawn
         {
             Plugin.ModLogger.LogError($"Arena {what} failed: {failure}");
             RecoverOldBody(game, oldBody);
+            if (abortWhenPoisoned && kit == null && ArenaOwnGearLoadout.IsPoisoned)
+            {
+                // A restore that failed poisons the snapshot for the rest of
+                // the raid (ArenaOwnGearLoadout's class comment). The callers
+                // that ask for it (AtRoundBreak in an own-gear raid) belong to
+                // modes that respawn on death, so the next death respawn is
+                // certain to fail: end the match now, through the same
+                // verified-owner abort the death path uses, instead of letting
+                // the player fight on towards a certain abort one life later.
+                // Zombie's wave refill does not ask (one life, no death respawn
+                // to doom) and keeps the ordinary recovery above, as it always
+                // did; so does any swap that failed for another reason.
+                Plugin.ModLogger.LogError(
+                    $"Arena {what}: the entry loadout cannot be restored again this raid; ending the match.");
+                ArenaRespawnDriver.StandDown = true;
+                Modes.ArenaMatchService.ScheduleFailedStartAbort("own gear could not be restored at the round break");
+            }
             Report(onComplete, false);
             yield break;
         }
@@ -361,7 +399,11 @@ internal static class LiveKitRespawn
         // Own-gear mode (kit == null) never raises OnKitApplied: it is not a
         // kit, and ZombieMode's own doc comment on that subscription already
         // documents this exact exclusion (matching TeamArenaLoadoutSnapshot's
-        // protected-team restore, which does not raise it either).
+        // protected-team restore, which does not raise it either). Every such
+        // live swap raises OnOwnGearReissued instead (the round-break reissue,
+        // Zombie's wave refill, the protected Zombie squad's restore), so the
+        // new-body moment the GC threshold monitor waits for exists in those
+        // raids too, as the kit refill's OnKitApplied gives it in a kit raid.
         if (kit != null)
         {
             Plugin.ModLogger.LogDebug($"Arena {what} complete: {kit.Name}.");
@@ -370,6 +412,7 @@ internal static class LiveKitRespawn
         else
         {
             Plugin.ModLogger.LogDebug($"Arena {what} complete.");
+            ArenaEvents.RaiseOwnGearReissued();
         }
         Report(onComplete, true);
     }

@@ -48,6 +48,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\SessionMenu\hall.jpg;Assets\SessionMenu\barrier.png;Assets\SessionMenu\fence.png;Assets\SessionMenu\splash.jpg">
+      <LogicalName>ArenaMode.SessionMenu.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The shared payload writer supplies build, publish and installed assets. -->
     <ArenaAudioAsset Include="Assets\ArenaMode\**\*" />
   </ItemGroup>

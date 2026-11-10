@@ -46,6 +46,7 @@
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTracerColor.cs" Link="Production/ArenaTracerColor.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaEquipmentChoice.cs" Link="Production/ArenaEquipmentChoice.cs" />
+    <Compile Include="../../ArenaMode.Client/Modes/ArenaOwnGearPolicy.cs" Link="Production/ArenaOwnGearPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceState.cs" Link="Production/ArenaEquipmentChoiceState.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaEquipmentChoiceView.cs" Link="Production/ArenaEquipmentChoiceView.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ArenaAnnouncerGate.cs" Link="Production/ArenaAnnouncerGate.cs" />

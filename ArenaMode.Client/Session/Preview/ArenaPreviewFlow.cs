@@ -149,18 +149,24 @@ internal static class ArenaPreviewFlow
         // a stale arm from an aborted raid must never supply preview equipment.
         if (_loadingScreen != null && ArenaSession.ArmedForNextRaid
             && ArenaSession.ArmEpoch != _loadingArmEpoch)
-            return ArenaSession.ZombieOwnGearArmed
+            return ArenaSession.OwnGearArmed
                 || (Compat.PitFireTeamSelectionPolicy.SupportsMode(ArenaSession.ArmedMode)
                     && Compat.PitFireTeamCompat.HasFrozenTeamRoster
                     && !Kits.TacticalTeamKitEntry.Selected);
 
+        // The live menu choice, read the way MarkArmed will freeze it: a
+        // protected party on a mode PitFireTeam supports decides by roster
+        // (Zombies keeps own gear without a choice, Tactical through its
+        // TeamOwnGear preference); a protected party on any other mode shows
+        // the supplied-kit figure, as before; solo reads the per-mode choice.
         var mode = Config.Settings.SelectedGameModeId;
-        if (Modes.ZombieOwnGearGate.IsSelectedFor(mode, Config.Settings.GetEquipmentChoiceOwnGear(mode)))
-            return true;
-        if (!Compat.PitFireTeamSelectionPolicy.SupportsMode(mode)) return false;
         var eligibility = ArenaMenuSelection.CurrentEligibility;
-        return eligibility.Allowed && eligibility.IsTeam
-            && (mode != Modes.ArenaModeCatalog.TacticalId || Config.Settings.GetEquipmentChoiceOwnGear(mode));
+        bool team = eligibility.Allowed && eligibility.IsTeam;
+        if (team && Compat.PitFireTeamSelectionPolicy.SupportsMode(mode))
+            return mode != Modes.ArenaModeCatalog.TacticalId
+                || Config.Settings.GetEquipmentChoiceOwnGear(mode, protectedTeam: true);
+        if (team) return false;
+        return Modes.ArenaOwnGearPolicy.IsSelectedFor(mode, Config.Settings.GetEquipmentChoiceOwnGear(mode, protectedTeam: false));
     }
 
     private static bool UseNativeEquipment(Transform host)

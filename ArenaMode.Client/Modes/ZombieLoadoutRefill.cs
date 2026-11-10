@@ -104,7 +104,7 @@ internal static class ZombieLoadoutRefill
     /// the player's protected ENTRY LOADOUT instead of a kit, through
     /// <see cref="LiveKitRespawn.AtRoundBreakOwnGear"/> — the same live,
     /// in-place body swap TryRefill's AtRoundBreak call uses, just committing
-    /// ZombieOwnGearLoadout's restore instead of a KitDefinition. Writes no
+    /// ArenaOwnGearLoadout's restore instead of a KitDefinition. Writes no
     /// new inventory-mutation code of its own, same as TryRefill. Returns
     /// whether the refill actually started, for ZombieRefillPolicy's own
     /// started/not-started bookkeeping — identical contract to TryRefill.
@@ -115,7 +115,7 @@ internal static class ZombieLoadoutRefill
         float protectionSeconds,
         Func<bool> stillWanted)
     {
-        if (!ZombieOwnGearLoadout.IsActive)
+        if (!ArenaOwnGearLoadout.IsActive)
         {
             // Nothing captured this raid (e.g. the raid-start capture itself
             // failed and already aborted the match) — not an error here,
@@ -133,18 +133,7 @@ internal static class ZombieLoadoutRefill
             int restoredEpoch = 0;
             return LiveKitRespawn.AtRoundBreakOwnGear(
                 game,
-                (profile, dead) =>
-                {
-                    AutoQuickSlots.SettleBeforeReissue(profile);
-
-                    if (!ZombieOwnGearLoadout.TryRestore(profile, out restoredEpoch, out string reason, out var nextRuntimeMap))
-                    {
-                        throw new InvalidOperationException(
-                            $"Zombie own-gear refill could not restore the entry loadout: {reason}");
-                    }
-
-                    AutoQuickSlots.NoteItemsReissued(nextRuntimeMap);
-                },
+                (profile, dead) => restoredEpoch = ArenaOwnGearLoadout.Reissue(profile, "Zombie own-gear refill"),
                 protectionSeconds,
                 stillWanted,
                 success =>

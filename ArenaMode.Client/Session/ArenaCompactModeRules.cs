@@ -34,13 +34,16 @@ internal static class ArenaCompactModeRules
                     ? controlPoints + (controlPoints == 1 ? " point" : " points") : "points") + " to earn team score.";
             case ArenaModeCatalog.TacticalId:
                 // The point is promised only where the picked map has a layout for it.
+                // Alone, the second line names the PitFireTeam option ("PFT", as the
+                // row labels abbreviate it): since the compact copy of 2026-10-26 the
+                // squad possibility had no visible mention until a squad was invited.
                 bool point = tacticalObjective && controlPoints > 0;
                 return team ? "First to " + Math.Max(1, Math.Min(9, tacticalWins)) + (point ? " round wins; hold the point." : " round wins.")
                         + "\nOn death, spectate until next round."
                     : (point ? "Eliminate the squad or hold the point." : "Eliminate the enemy squad.")
-                        + "\nEndless rounds; death / timeout loses.";
+                        + "\nRounds; death / timeout loses; PFT optional.";
             case ArenaModeCatalog.ZombieId:
-                return (team ? "Team wipe ends the match." : "Survive escalating waves.")
+                return (team ? "Team wipe ends the match." : "Survive escalating waves; PFT optional.")
                     + "\nGear refills after each cleared wave.";
             default:
                 return string.Empty;

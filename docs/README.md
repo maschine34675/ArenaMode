@@ -32,6 +32,9 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Specifications and contracts
 
+- [Private training-course artwork, loading and main-menu parallax](reviews/SESSION-MENU-ART-20261109.md)
+- [Private and ordinary startup checks on GPU-1 and GPU-2](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md)
+
 - [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
 - [Arena session: whitelist by not loading (binding specification)](ARENA-SESSION-20261021.md)
 - [Arena session: answer to the external review of 2026-10-22](ARENA-SESSION-REVIEW-RESPONSE-20261022.md)
@@ -58,7 +61,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (203)
+## Feature reviews and contracts (204)
 
 Sorted by file name.
 
@@ -194,6 +197,7 @@ Sorted by file name.
 - [Empty scope-ring reflex paths: generator rule for ring sockets and mutation checks](reviews/OPTIC-MOUNT-REVIEW.md)
 - [Scoped optic pool preload safeguard (KitOpticPreloadGuard): ownership and checks](reviews/OPTIC-PRELOAD-REVIEW.md)
 - [Optional mod minimum versions and forward admission (SAIN, PFT, APBS, DynamicMaps)](reviews/OPTIONAL-MOD-VERSIONS-20261019.md)
+- [Own gear in every mode but Gun Game: policy, respawn path, solo Tactical, verification](reviews/OWN-GEAR-ALL-MODES-20261109.md)
 - [Per-map participant selection: native menu preference and view contract](reviews/PARTICIPANT-MENU-REVIEW.md)
 - [Fixed participant count: server contract, raid clone and release](reviews/PARTICIPANT-SERVER-REVIEW.md)
 - [Per-map participant count: menu, formats, population, bosses and pending play test](reviews/PARTICIPANTS-REVIEW.md)
@@ -266,23 +270,26 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (274)
+## Reports (275)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
 - [Amand's Graphics on Labyrinth and Factory, and Amand's Sense Updated](reports/2026-11/GPU-AMANDS-20261108.md)
+- [Private home beta notice and Arena raid version label](reports/2026-11/GPU-BETA-VERSION-20261110.md)
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)
 - [Crowd reactions with ArenaMapPort's roar layer: native run (GPU-2)](reports/2026-11/GPU-CROWD-ROAR-20261107.md)
 - [Domination profile rewards: native run on GPU-2 (one kill paid at the next normal start)](reports/2026-11/GPU-DOMINATION-REWARDS-20261108.md)
 - [Fork quick wins: native Team DM run on GPU-2 (seats, hold-to-peek, no bot backpacks)](reports/2026-11/GPU-FORK-QUICK-WINS-20261108.md)
 - [Posthumous kills across a round boundary (issue 2): native three-round Labyrinth Deathmatch on GPU-2](reports/2026-11/GPU-ISSUE2-POSTHUMOUS-KILLS-20261109.md)
+- [Own gear in every mode: native Deathmatch, Team DM and solo Tactical runs on GPU-2 (the corpse-strip finding)](reports/2026-11/GPU-OWN-GEAR-20261109.md)
 - [Tactical capture point: three native solo runs and two PitFireTeam matches on GPU-2 (lanes, captures, door reset, the PMC down)](reports/2026-11/GPU-TACTICAL-OBJECTIVE-20261108.md)
 - [Lost reward authority with Tarkova Cola history: native run on GPU-2 (SPT-GPU-2 archived and enrolled afresh)](reports/2026-11/GPU-COLA-ARCHIVE-20261108.md)
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)
 - [Survey of the fork thatHeathenJay/ArenaMode: co-op design, live-UI rips, adoptable pieces](reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md)
 - [Reward startup order: native run on GPU-2 with a probe server mod at Watermark + 1 and at 0, the helper's lease parser found](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
+- [Training-course artwork and the private profile-loading transition](reports/2026-11/GPU-TRAINING-COURSE-LOADING-20261110.md)
 
 ### 2026-10
 

@@ -22,7 +22,7 @@ void Check(bool condition, string reason) { checks++; if (!condition) throw new 
     game.GameWorld = world;
     TdmMatchExit.Reset();
     Singleton<AbstractGame>.Instance = game; Singleton<GameWorld>.Instance = world;
-    ArenaSession.Active = true; ArenaSession.ZombieOwnGearActive = ownGear; ArenaSession.ReplaySeconds = replay;
+    ArenaSession.Active = true; ArenaSession.OwnGearActive = ownGear; ArenaSession.ReplaySeconds = replay;
     PitFireTeamCompat.TeamArenaActive = false;
     ArenaRespawnDriver.IsRespawnInProgress = false; ArenaRespawnDriver.StandDown = false;
     RespawnEngineState.IsPipelineRunning = false;

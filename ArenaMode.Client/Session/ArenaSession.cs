@@ -69,14 +69,19 @@ public static class ArenaSession
     internal static string GunGameLadderSelection { get; private set; }
 
     /// <summary>
-    /// Zombie's own-gear option (item 4, 2026-10-06 follow-up) as it stood at
-    /// arming — frozen the same moment and for the same reason
-    /// GunGameLadderSelection is: the loading-screen kit preload and the
-    /// raid-start kit swap both decide what to do before IsActive can latch,
-    /// so an F12 edit made while the map loads must not desync the preload
-    /// from what the live raid actually does. False outside an arena raid.
+    /// The player's own-gear choice (Modes.ArenaOwnGearPolicy; grew out of
+    /// Zombie's item 4 of the 2026-10-06 follow-up) as it stood at arming —
+    /// frozen the same moment and for the same reason GunGameLadderSelection
+    /// is: the loading-screen kit preload and the raid-start kit swap both
+    /// decide what to do before IsActive can latch, so an F12 edit made while
+    /// the map loads must not desync the preload from what the live raid
+    /// actually does. Read for the mode being armed and the solo roster; a
+    /// protected PitFireTeam squad freezes true for Zombies (own gear without
+    /// a choice) and false for Tactical, whose squad decides through
+    /// <see cref="TacticalTeamOwnGearSelection"/> and its own entry-kit
+    /// machinery instead. False outside an arena raid.
     /// </summary>
-    internal static bool ZombieOwnGearSelection { get; private set; }
+    internal static bool OwnGearSelection { get; private set; }
     internal static bool TacticalTeamOwnGearSelection { get; private set; } = true;
     /// <summary>
     /// Tactical's capture point (Settings.TacticalObjective), frozen at arming like the other
@@ -85,27 +90,29 @@ public static class ArenaSession
     internal static bool TacticalObjectiveSelection { get; private set; } = true;
 
     /// <summary>
-    /// True when ZombieOwnGearSelection applies to the raid currently ARMING
-    /// (ArmedMode) — used by the loading-screen kit-preload skip, which runs
-    /// before IsActive/ActiveMode can have latched (see AGENTS.md's loading-
-    /// time exception list).
+    /// True when OwnGearSelection applies to the raid currently ARMING
+    /// (ArmedMode) — used by the loading-screen kit-preload skip and the
+    /// character preview, which run before IsActive/ActiveMode can have
+    /// latched (see AGENTS.md's loading-time exception list).
     /// </summary>
-    internal static bool ZombieOwnGearArmed
-        => Modes.ZombieOwnGearGate.IsSelectedFor(ArmedMode, ZombieOwnGearSelection);
+    internal static bool OwnGearArmed
+        => Modes.ArenaOwnGearPolicy.IsSelectedFor(ArmedMode, OwnGearSelection);
 
     /// <summary>
-    /// True when ZombieOwnGearSelection applies to the ACTIVE raid
-    /// (ActiveMode) — used by every live-raid check (secure container,
-    /// respawn, the wave-intermission refill).
+    /// True when OwnGearSelection applies to the ACTIVE raid (ActiveMode) —
+    /// used by every live-raid check (the raid-start capture instead of the
+    /// kit swap, the death respawn, the round-break reissue, Zombie's
+    /// wave-intermission refill, the secure container, the optional kit
+    /// warm-up, solo Tactical's suspended kit economy).
     /// </summary>
-    internal static bool ZombieOwnGearActive
-        => Modes.ZombieOwnGearGate.IsSelectedFor(ActiveMode, ZombieOwnGearSelection);
+    internal static bool OwnGearActive
+        => Modes.ArenaOwnGearPolicy.IsSelectedFor(ActiveMode, OwnGearSelection);
 
     /// <summary>
     /// The announcer's per-mode switch (item 2 of the 2026-10-06 follow-up,
     /// ANN-1's fix) as it stood at arming — frozen the same moment and
     /// largely for the same reason <see cref="GunGameLadderSelection"/>/
-    /// <see cref="ZombieOwnGearSelection"/> are. Those two only have to
+    /// <see cref="OwnGearSelection"/> are. Those two only have to
     /// survive the loading screen before the live raid's own
     /// <see cref="ActiveMode"/>/<see cref="IsActive"/> take over; this one
     /// does not stop mattering there — <c>AnnouncerService</c> reads it for
@@ -276,8 +283,10 @@ public static class ArenaSession
         ArmedMap = map;
         ArmedMode = mode;
         GunGameLadderSelection = Settings.GunGameLadder.Value;
-        ZombieOwnGearSelection = Settings.ZombieOwnGear.Value
-            || (mode == Shared.ArenaPopulationPolicy.Zombie && PitFireTeamCompat.HasFrozenTeamRoster);
+        // A protected squad never reads the per-mode preference: PFT Zombies keeps
+        // own gear without a choice, PFT Tactical decides through the line below.
+        OwnGearSelection = Modes.ArenaOwnGearPolicy.SelectionAtArm(mode, PitFireTeamCompat.HasFrozenTeamRoster,
+            Settings.GetEquipmentChoiceOwnGear(mode, protectedTeam: false));
         TacticalTeamOwnGearSelection = mode != Shared.ArenaPopulationPolicy.Tactical
             || !PitFireTeamCompat.HasFrozenTeamRoster || Settings.TacticalTeamOwnGear?.Value != false;
         Kits.TacticalTeamKitEntry.Capture(mode, PitFireTeamCompat.HasFrozenTeamRoster,
@@ -304,7 +313,7 @@ public static class ArenaSession
         ArmedForNextRaid = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
-        ZombieOwnGearSelection = false;
+        OwnGearSelection = false;
         TacticalTeamOwnGearSelection = true;
         TacticalObjectiveSelection = true;
         Kits.TacticalTeamKitEntry.Reset();
@@ -390,7 +399,7 @@ public static class ArenaSession
             ArmedMap = null;
             ArmedMode = null;
             GunGameLadderSelection = null;
-            ZombieOwnGearSelection = false;
+            OwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
             TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
@@ -427,7 +436,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("Fika raid rejected");
             GunGameLadderSelection = null;
-            ZombieOwnGearSelection = false;
+            OwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
             TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
@@ -448,7 +457,7 @@ public static class ArenaSession
                 $"Arena was armed for {ArmedMap} but raid started on {location} — arena stays inactive.");
             Kits.KitBundlePreloader.DiscardRaidStart("armed map did not match started raid");
             GunGameLadderSelection = null;
-            ZombieOwnGearSelection = false;
+            OwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
             TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
@@ -473,7 +482,7 @@ public static class ArenaSession
         {
             Kits.KitBundlePreloader.DiscardRaidStart("the server rejected the raid-start token");
             GunGameLadderSelection = null;
-            ZombieOwnGearSelection = false;
+            OwnGearSelection = false;
             TacticalTeamOwnGearSelection = true;
             TacticalObjectiveSelection = true;
             Kits.TacticalTeamKitEntry.Reset();
@@ -569,11 +578,12 @@ public static class ArenaSession
         // Replacing that body would strand all four followers on a dead leader,
         // so protected 5v5 keeps that exact PMC body for the opening round and
         // preserves the entry loadout for guarded between-round replacement.
-        // Solo Arena retains the existing raid-start swap verbatim. Zombie's
-        // own-gear option (item 4, 2026-10-06 follow-up) is the same idea for
-        // solo play: it protects the player's real equipment exactly the way
-        // protected 5v5 protects a PMC's, just through its own
-        // ZombieOwnGearLoadout snapshot rather than PitFireTeam's roster — see
+        // Solo Arena retains the existing raid-start swap verbatim. The player's
+        // own-gear option (Modes.ArenaOwnGearPolicy; Zombie's item 4 of the
+        // 2026-10-06 follow-up, every mode but Gun Game since 2026-11-09) is the
+        // same idea for solo play: it protects the player's real equipment
+        // exactly the way protected 5v5 protects a PMC's, just through its own
+        // ArenaOwnGearLoadout snapshot rather than PitFireTeam's roster — see
         // that class's own doc comment.
         if (PitFireTeamCompat.HasFrozenTeamRoster)
         {
@@ -581,16 +591,21 @@ public static class ArenaSession
                 "Arena team: skipped the raid-start kit/body swap; PitFireTeam remains bound to the original PMC. "
                 + "The secure container stays as it is, shown and usable.");
         }
-        else if (ZombieOwnGearActive)
+        else if (OwnGearActive)
         {
             string captureProblem = null;
-            bool captured = currentGame is LocalGame zombieGame
-                && Kits.ZombieOwnGearLoadout.TryCaptureEntryLoadout(zombieGame.Profile, out captureProblem);
+            var ownGearGame = currentGame as LocalGame;
+            bool captured = ownGearGame != null
+                && Kits.ArenaOwnGearLoadout.TryCaptureEntryLoadout(ownGearGame.Profile, out captureProblem);
 
             if (captured)
             {
+                // The modes that respawn (every own-gear mode but one-life
+                // Zombies) resolve their spawn points through the same cache
+                // the kit branch below warms before its first swap.
+                Redeploy.Core.Spawning.SpawnSystemCache.Warm(ownGearGame);
                 Plugin.ModLogger.LogInfo(
-                    "Arena Zombie own gear: skipped the raid-start kit swap; the entry loadout is protected in "
+                    "Arena own gear: skipped the raid-start kit swap; the entry loadout is protected in "
                     + "process memory, the same way Tactical's protected 5v5 protects it. The secure container "
                     + "stays as it is, shown and usable.");
             }
@@ -598,9 +613,9 @@ public static class ArenaSession
             {
                 string why = captureProblem ?? "no active LocalGame";
                 Plugin.ModLogger.LogError(
-                    $"Arena Zombie own gear could not capture the entry loadout ({why}); standing the raid down.");
+                    $"Arena own gear could not capture the entry loadout ({why}); standing the raid down.");
                 Modes.ArenaMatchService.ScheduleFailedStartAbort(
-                    "Zombie own gear could not capture the entry loadout");
+                    "own gear could not capture the entry loadout");
             }
         }
         else if (Comfort.Common.Singleton<AbstractGame>.Instance is LocalGame game)
@@ -693,7 +708,7 @@ public static class ArenaSession
         _rejectedServerRaidPendingEnd = false;
         ArmedMode = null;
         GunGameLadderSelection = null;
-        ZombieOwnGearSelection = false;
+        OwnGearSelection = false;
         TacticalTeamOwnGearSelection = true;
         TacticalObjectiveSelection = true;
         Kits.TacticalTeamKitEntry.Reset();

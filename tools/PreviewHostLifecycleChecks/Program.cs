@@ -51,7 +51,8 @@ internal static class Program
             ArenaSession.ArmedForNextRaid = false;
             ArenaSession.ArmEpoch = 0;
             ArenaSession.ArmedMode = null;
-            ArenaSession.ZombieOwnGearSelection = false;
+            ArenaSession.OwnGearSelection = false;
+            ArenaMode.Config.Settings.TeamOwnGear = false;
             ArenaMode.Config.Settings.SelectedGameModeId = "deathmatch";
             ArenaMode.Config.Settings.OwnGear = false;
             ArenaMenuSelection.CurrentEligibility = new();
@@ -326,7 +327,7 @@ internal static class Program
 
     private static void EquipmentChoiceFollowsActualModes()
     {
-        foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", " ZOMBIE " })
+        foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "domination", "zombie", " ZOMBIE " })
         foreach (bool own in new[] { false, true })
         foreach (bool team in new[] { false, true })
         foreach (bool allowed in new[] { false, true })
@@ -334,10 +335,18 @@ internal static class Program
             var fixture = new Fixture();
             ArenaMode.Config.Settings.SelectedGameModeId = mode;
             ArenaMode.Config.Settings.OwnGear = own;
+            ArenaMode.Config.Settings.TeamOwnGear = own;
             ArenaMenuSelection.CurrentEligibility = new() { Allowed = allowed, IsTeam = team };
-            bool native = mode.Trim().Equals("zombie", StringComparison.OrdinalIgnoreCase) && own
-                || mode == "zombie" && allowed && team
-                || mode == "tactical" && allowed && team && own;
+            // A protected party decides by roster on the modes PitFireTeam supports (exact
+            // ids, as its policy compares them) and shows the supplied figure elsewhere;
+            // alone, every mode but Gun Game and Tactical follows its own preference
+            // (2026-11-09; solo Tactical keeps its buy economy), whatever the id's case
+            // or spacing.
+            bool protectedParty = allowed && team;
+            string trimmed = mode.Trim().ToLowerInvariant();
+            bool native = protectedParty
+                ? mode == "zombie" || mode == "tactical" && own
+                : own && trimmed != "gungame" && trimmed != "tactical";
             var accept = new Widget();
             ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
             Check(ArenaPreviewFlow.TryShowAccept(accept.Model) == !native,
@@ -350,6 +359,22 @@ internal static class Program
             Check(loading.Raw.enabled == native && loading.Camera.enabled == native,
                 "loading native flags reflect equipment owner");
             Check(fixture.Preview.Releases == 0, "equipment selection keeps detached renderer available");
+        }
+
+        // Tactical has one preference, the squad's: it never selects native equipment for a
+        // solo player, and a solo preference (the double's OwnGear) never reaches a protected party.
+        foreach (bool team in new[] { false, true })
+        {
+            var fixture = new Fixture();
+            ArenaMode.Config.Settings.SelectedGameModeId = "tactical";
+            ArenaMode.Config.Settings.OwnGear = team;
+            ArenaMode.Config.Settings.TeamOwnGear = !team;
+            ArenaMenuSelection.CurrentEligibility = new() { Allowed = true, IsTeam = team };
+            var accept = new Widget();
+            ArenaPreviewFlow.PrepareAccept(accept.Screen, fixture.Settings);
+            Check(ArenaPreviewFlow.TryShowAccept(accept.Model),
+                $"the other roster's Tactical own-gear preference does not select native equipment: team={team}");
+            accept.CheckNative(false, "Tactical preferences stay with their roster");
         }
     }
 
@@ -392,7 +417,7 @@ internal static class Program
         var fixture = new Fixture();
         ArenaSession.ArmedForNextRaid = true;
         ArenaSession.ArmedMode = "zombie";
-        ArenaSession.ZombieOwnGearSelection = true;
+        ArenaSession.OwnGearSelection = true;
         ArenaSession.ArmEpoch = 12;
         var loading = fixture.Loading();
         Check(!loading.Raw.enabled, "stale earlier arm cannot override current provided-kit selection");
@@ -412,7 +437,7 @@ internal static class Program
         var next = fixture.Loading();
         Check(!next.Raw.enabled, "return from aborted load uses new menu selection, not old arm");
         ArenaSession.ArmedMode = "tactical";
-        ArenaSession.ZombieOwnGearSelection = false;
+        ArenaSession.OwnGearSelection = false;
         ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster = true;
         ArenaSession.ArmEpoch++;
         fixture.Tick();
@@ -426,7 +451,7 @@ internal static class Program
         Check(!ArenaPreviewFlow.TryShowLoading(next.Screen), "initial own selection uses native");
         ArenaSession.ArmedForNextRaid = true;
         ArenaSession.ArmedMode = "zombie";
-        ArenaSession.ZombieOwnGearSelection = false;
+        ArenaSession.OwnGearSelection = false;
         ArenaSession.ArmEpoch++;
         fixture.Tick();
         Check(!next.Raw.enabled && fixture.Preview.Shows == 1,
@@ -440,7 +465,7 @@ internal static class Program
             var fixture = new Fixture();
             ArenaMode.Config.Settings.SelectedGameModeId = "tactical";
             // Opposite menu choice makes the newer arm's precedence observable.
-            ArenaMode.Config.Settings.OwnGear = issued;
+            ArenaMode.Config.Settings.TeamOwnGear = issued;
             ArenaMenuSelection.CurrentEligibility = new() { Allowed = true, IsTeam = true };
             var loading = new LoadingWidget(fixture.Settings);
             ArenaPreviewFlow.PrepareLoading(loading.Screen, loading.Controller);

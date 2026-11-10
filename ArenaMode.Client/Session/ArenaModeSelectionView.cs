@@ -93,10 +93,11 @@ internal sealed class ArenaModeSelectionView
             2 => Settings.DeathmatchSeconds.Value, _ => Settings.DeathmatchFreeForAll.Value ? 0 : 1 },
             Settings.TrySelectDeathmatchRule, () => ArenaSession.IsActive || ArenaSession.ArmedForNextRaid);
         // Item 1 of the 2026-10-06 follow-up ("own gear to the left"): a
-        // mode-independent row driven entirely by Settings' own per-mode
-        // dispatch (today only Zombie has a backing entry) plus the pure
-        // ArenaEquipmentChoice table that decides whether it is offered at
-        // all — same lock shape as every other frozen-at-arm menu choice.
+        // mode-independent row driven entirely by Settings' own per-mode,
+        // per-roster dispatch plus the pure ArenaOwnGearPolicy table (through
+        // ArenaEquipmentChoice) that decides whether it is offered at all —
+        // every solo mode but Gun Game and protected Tactical since 2026-11-09
+        // — same lock shape as every other frozen-at-arm menu choice.
         _equipmentChoice = new ArenaEquipmentChoiceState(
             Settings.GetEquipmentChoiceOwnGear,
             Settings.TrySelectEquipmentChoice,
@@ -352,14 +353,14 @@ internal sealed class ArenaModeSelectionView
             && Spectator.KillcamCompat.CanPlay(out _)) _respawn.text = "After killcam";
         // Same special-case line protected 5v5's TacticalOnly branch already
         // uses, generalized for item 1 of the 2026-10-06 follow-up ("own gear
-        // to the left"): reads the pure table plus Settings' own per-mode
-        // dispatch instead of a Zombie-only literal, so a future mode added to
-        // ArenaEquipmentChoice needs no edit here. Self-contained (does not
+        // to the left"): reads the pure table plus Settings' own per-mode,
+        // per-roster dispatch instead of a Zombie-only literal, so a mode added
+        // to ArenaOwnGearPolicy needs no edit here. Self-contained (does not
         // depend on _equipmentChoice.Synchronize having run yet this frame).
         _equipment.text = _selection.TacticalOnly
-            ? mode.Id == ArenaModeCatalog.TacticalId && !Settings.GetEquipmentChoiceOwnGear(mode.Id)
+            ? mode.Id == ArenaModeCatalog.TacticalId && !Settings.GetEquipmentChoiceOwnGear(mode.Id, protectedTeam: true)
                 ? Modes.ArenaEquipmentChoice.ArenaKitsLabel : "PMC entry gear"
-            : Modes.ArenaEquipmentChoice.IsOfferedFor(mode.Id) && Settings.GetEquipmentChoiceOwnGear(mode.Id)
+            : Modes.ArenaEquipmentChoice.IsOfferedFor(mode.Id) && Settings.GetEquipmentChoiceOwnGear(mode.Id, protectedTeam: false)
                 ? Modes.ArenaEquipmentChoice.OwnGearLabel
             : mode.Equipment;
         _mutators.Synchronize(_selection.SelectedMode, _selection.TacticalOnly);

@@ -10,6 +10,29 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- The private Arena home menu hides the orange beta notice. During a confirmed
+  Arena raid the HUD hides the lower-left version line, including when playing
+  Arena directly from a normal SPT process.
+- The private Arena session shows a sunlit indoor training course from the
+  desktop profile picker through EFT startup and profile loading. In the home
+  menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
+
+- Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen
+  offers "Arena kits" or "Own gear" there as it did for Zombies and PitFireTeam Tactical, one saved
+  preference per mode (new F12 keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
+  `Domination/OwnGear`, all off by default). With own gear your real, protected equipment replaces
+  the kit: it is restored with full ammunition on every respawn and at Deathmatch's round break, the
+  secure container stays as it is, nothing is lost or gained, and items picked up in a life are not
+  kept across a restore. Gun Game keeps its ladder (the ladder is the loadout) and solo Tactical its
+  buy economy (the gear is earned in the match).
+  [Contract](docs/reviews/OWN-GEAR-ALL-MODES-20261109.md). Run natively on GPU-2 on 2026-11-09: Deathmatch
+  (raid start, death respawn, round break) and Team DM (three respawns) each restored the entry loadout
+  with full ammunition ([report](docs/reports/2026-11/GPU-OWN-GEAR-20261109.md)). The corpse cleanup leaves
+  the retained slots and the pockets on the player's own corpse since that run: a round-start clear had
+  stripped the bayonet before a held Tactical respawn read it, which the restore rightly refused.
+- The Tactical and Zombies descriptions in the map screen name the PitFireTeam option again
+  ("PFT optional", as the row labels abbreviate it): since the compact copy of 2026-10-26 a solo player
+  had no visible hint that both modes can be played as a squad.
 - Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
   EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
   ended before the round. On Labyrinth in Deathmatch this was close to certain in every match

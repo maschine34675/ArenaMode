@@ -31,12 +31,23 @@ public static class ArenaEvents
     /// </summary>
     public static event Action<KitDefinition> OnKitApplied;
 
+    /// <summary>
+    /// The new body wears a restored entry loadout instead of a kit: raised where
+    /// <see cref="OnKitApplied"/> would be for a kit, once that body is the game's local
+    /// player — after the own-gear death respawn on the driver's ordinary path and after
+    /// every live swap that restores a loadout (the round-break reissue, Zombie's wave
+    /// refill, the protected Zombie squad's restore). The protected Tactical squad's
+    /// prepared restore on the death path has its own lifecycle and raises nothing.
+    /// </summary>
+    public static event Action OnOwnGearReissued;
+
     /// <summary>The local player dealt damage (hitmarker/damage-number feed).</summary>
     public static event Action<ArenaDamage> OnLocalDamageDealt;
 
     internal static void RaisePlayerDied(Player player) => Raise(OnPlayerDied, h => h(player), nameof(OnPlayerDied));
     internal static void RaisePlayerRespawned(Player player) => Raise(OnPlayerRespawned, h => h(player), nameof(OnPlayerRespawned));
     internal static void RaiseKitApplied(KitDefinition kit) => Raise(OnKitApplied, h => h(kit), nameof(OnKitApplied));
+    internal static void RaiseOwnGearReissued() => Raise(OnOwnGearReissued, h => h(), nameof(OnOwnGearReissued));
 
     // The damage feed fires per hit, so it neither closes over its argument nor snapshots
     // the invocation list on every raise: a multicast delegate is immutable, and the

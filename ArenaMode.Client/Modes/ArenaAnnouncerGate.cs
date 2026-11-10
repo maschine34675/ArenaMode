@@ -36,7 +36,7 @@ namespace ArenaMode.Modes;
 /// (ANN-1, caught in review the same day this follow-up landed). Every
 /// sibling per-mode setting in this codebase freezes its config value once at
 /// arm (Killcam's seconds into <c>ArenaReplaySelection</c>, Zombie's own-gear
-/// choice into <c>ZombieOwnGearSelection</c>), and this one now does too:
+/// choice into <c>OwnGearSelection</c>), and this one now does too:
 /// <c>AnnouncerService</c> calls <see cref="IsEnabled"/> with <see
 /// cref="Session.ArenaSession.AnnouncerEnabledSelection"/> — the per-mode half
 /// frozen at <c>ArenaSession.MarkArmed</c> — as the per-mode argument, and the

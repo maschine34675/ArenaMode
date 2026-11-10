@@ -49,7 +49,8 @@ internal static class Program
         ArenaSession.ArmedForNextRaid = true;
         ArenaSession.ArmedMode = mode;
         ArenaSession.ActiveMode = null;
-        ArenaSession.ZombieOwnGearArmed = ownGear;
+        ArenaSession.OwnGearArmed = ownGear;
+        ArenaSession.OwnGearActive = ownGear;
         ArenaSession.ArmEpoch++;
         ArenaMenuSelection.CompatibilityTeamArenaActive = false;
         PitFireTeamCompat.TeamArenaActive = PitFireTeamCompat.IsFinalizing = false;
@@ -130,6 +131,26 @@ internal static class Program
             Check(controller.Starts == 0, "other modes preserve the eight-second delay: " + mode);
             At(controller, 9);
             Check(controller.Starts == 1, "other modes preserve optional background catalog work: " + mode);
+        }
+
+        // Own gear in a respawning mode (2026-11-09): the loading screen warms nothing and
+        // draws no kit for a raid that hands out none, and the in-raid optional catalogue
+        // warm-up stays off even with the random draw on, where the Zombie-only policy
+        // above would let it run.
+        foreach (var mode in new[] { "deathmatch", "teamdeathmatch", "domination" })
+        {
+            var pools = New(mode, KitPreloadScope.WholeCatalogue, ownGear: true);
+            KitBundlePreloader.BeginRaidStart();
+            CompleteAll(pools);
+            Check(pools.Requested.Count == 0 && KitCatalog.Draws == 0 && KitCatalog.Reserved == null,
+                "own gear loading warms nothing and reserves no kit: " + mode);
+            Activate(mode);
+            if (mode == "teamdeathmatch") ArenaMatchService.Current = new Match { Mode = new TeamDeathmatchMode { InitialRosterReady = true } };
+            ArenaSession.OwnGearActive = true;
+            var controller = new ArenaController();
+            At(controller, 1); At(controller, 9); At(controller, 100);
+            Check(controller.Starts == 0, "own gear never schedules optional background catalog work: " + mode);
+            ArenaSession.OwnGearActive = false;
         }
 
         // Exercise the real asynchronous loading/adoption seam. Two later

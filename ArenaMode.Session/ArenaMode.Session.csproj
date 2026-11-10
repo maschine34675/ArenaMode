@@ -57,6 +57,7 @@
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
+    <EmbeddedResource Include="..\ArenaMode.Client\Assets\SessionMenu\splash.jpg" LogicalName="ArenaMode.SessionMenu.splash.jpg" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaMiniJson.cs" Link="Shared\Session\ArenaMiniJson.cs" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistPolicy.cs" Link="Shared\Session\ArenaWhitelistPolicy.cs" />
     <Compile Include="..\ArenaMode.Shared\Session\ArenaWhitelistDecision.cs" Link="Shared\Session\ArenaWhitelistDecision.cs" />
