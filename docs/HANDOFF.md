@@ -12,6 +12,26 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-10.** The private home menu hides the beta banner. Arena raids hide the lower-left version line through respawns and restore it on the result screen. An ordinary Factory PMC raid kept the line visible. The tested client is installed in `D:\SPT41`. Its previous version is in `D:\SPT41-Backups\arena-beta-version\20261110-122437-600`. [Two-host verification and client identity](reports/2026-11/GPU-BETA-VERSION-20261110.md).
+
+- **Development, 2026-11-10:** the private startup and home menu now use the
+  selected Streiflicht training course. The environment carries the artwork
+  behind native profile-loading text until the home menu finishes fading in.
+  [Presentation contract](reviews/SESSION-MENU-ART-20261109.md) and
+  [before/after capture and Factory return](reports/2026-11/GPU-TRAINING-COURSE-LOADING-20261110.md).
+  The tested client and helper were installed in `D:\SPT41` and verified
+  against their tested module IDs, file hashes and embedded image hash.
+  Previous files: `D:\SPT41-Backups\arena-session-training-course\20261110-120524-837`.
+
+- **Development, 2026-11-09:** the private home menu uses a Factory hall with
+  mouse parallax. The EFT startup panel and the direct-start profile picker use
+  the flat version. [Contract](reviews/SESSION-MENU-ART-20261109.md) and
+  [two-host verification](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md).
+  Installed the tested client, session helper and required Core 1.0.22 into
+  `D:\SPT41` on 2026-11-09. Their hashes and module IDs matched the tested
+  binaries on disk. Rollback manifest and previous files are under
+  `D:\SPT41-Backups\arena-session-menu-art\20261109-192424-305`.
+
 - **Development, 2026-11-08:** Amand's Graphics 1.8.0 was admitted after
   Factory and Labyrinth respawns. Amand's Sense Updated 3.1.0 was exercised
   with Core 1.0.22 on Factory and remains unlisted. [Builds, evidence and

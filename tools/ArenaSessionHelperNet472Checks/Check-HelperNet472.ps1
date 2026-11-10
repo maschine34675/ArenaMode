@@ -28,6 +28,13 @@ function Report([string]$Name, [bool]$Ok, [string]$Detail) {
     if ($Ok) { Write-Output "PASS $Name" } else { $script:failed++; Write-Output "FAIL ${Name}: $Detail" }
 }
 
+try {
+    $picker = $assembly.GetType('ArenaMode.SessionHelper.HelperStartWindow', $true)
+    $header = $picker.GetMethod('LoadHeader', $flags).Invoke($null, @())
+    try { Report 'direct-start-header-decodes' ($null -ne $header -and $header.Width -gt $header.Height) 'The .NET Framework picker can decode the embedded widescreen art.' }
+    finally { if ($header) { $header.Dispose() } }
+} catch { Report 'direct-start-header-decodes' $false $_.Exception.Message }
+
 # [connected, reached address as text]
 function Connect([string]$HostName, [int]$Port) {
     $arguments = [object[]]@($HostName, $Port, 2000, $null)

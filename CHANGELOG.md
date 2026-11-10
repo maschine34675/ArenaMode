@@ -13,6 +13,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
+- The private Arena home menu hides the orange beta notice. During a confirmed
+  Arena raid the HUD hides the lower-left version line, including when playing
+  Arena directly from a normal SPT process.
+- The private Arena session shows a sunlit indoor training course from the
+  desktop profile picker through EFT startup and profile loading. In the home
+  menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
+
 - Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen
   offers "Arena kits" or "Own gear" there as it did for Zombies and PitFireTeam Tactical, one saved
   preference per mode (new F12 keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
