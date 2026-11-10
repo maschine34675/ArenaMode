@@ -68,7 +68,9 @@ $combatFaults = @(
     @{ Name='retired-shutdown'; Property='ScoreboardSource'; Part='shutdown';
        Find='&& IsCurrentBody(victim, profile)'; Replace=''; Failure='shutdown rejects expired' },
     @{ Name='dead-life-shutdown'; Property='ScoreboardSource'; Part='shutdown';
-       Find='victim.AwardLifeStreak = 0;'; Replace='victim.AwardLifeStreak += 0;'; Failure='shutdown rejects dead-life' },
+       # The ordinary victim branch, not the same-row seat branch above it (74c4d580): the next line
+       # pins the indentation, so the anchor stays unique.
+       Find="victim.AwardLifeStreak = 0;`n            victim.Deaths++;"; Replace="victim.AwardLifeStreak += 0;`n            victim.Deaths++;"; Failure='shutdown rejects dead-life' },
     @{ Name='resurrection-clutch'; Property='AwardsSource'; Part='clutch';
        Find="_clutchInvalidated = true;`n        _clutchCandidate"; Replace="_clutchInvalidated = false;`n        _clutchCandidate"; Failure='clutch rejects resurrection' },
     @{ Name='stale-survival-clutch'; Property='AwardsSource'; Part='clutch';
