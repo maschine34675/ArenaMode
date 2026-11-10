@@ -36,6 +36,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - The Tactical and Zombies descriptions in the map screen name the PitFireTeam option again
   ("PFT optional", as the row labels abbreviate it): since the compact copy of 2026-10-26 a solo player
   had no visible hint that both modes can be played as a squad.
+- Spare magazines that hold more than one stack of their round are handed out full: the PKM/PKP
+  and M60 boxes came with 40 of 100 rounds, the RPD box with 60 of 100, and 50-round and 75-round
+  drums short the same way, in full kits and in Gun Game weapon swaps alike. Loose reserve rounds
+  never form a stack larger than the round allows (only the MSGL's 40 mm grenades were affected).
 - Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
   EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
   ended before the round. On Labyrinth in Deathmatch this was close to certain in every match

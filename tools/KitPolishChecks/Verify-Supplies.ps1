@@ -26,6 +26,20 @@ if(-not $supplySource.Contains($supplyGetterNeedle)){throw 'Supplies patched-get
 [IO.File]::WriteAllText($supplyMutant,$supplySource.Replace($supplyGetterNeedle,'equipment.GrenadeThrowingSlots'))
 $supplyOutput=& dotnet run --project $supplyProject -c Release "-p:BuilderSource=$supplyMutant" -- $supplyRoot $Database 2>&1
 if($LASTEXITCODE -eq 0 -or ($supplyOutput -join "`n") -notmatch 'ASSERT: patched quick-throw list cannot redirect grenades to backpack'){throw "Supplies patched-getter negative control failed unexpectedly: $supplyOutput"}
+
+# Reserve stacks (2026-11-10): one stack per spare magazine, the fill before this date, left every box
+# that holds more than one stack of its round short (an RPD kit's spare read 60/100 natively); an uncut
+# loose share put three stack-1 40 mm grenades into one item. Each anchor must exist exactly once.
+foreach($supplyFault in @(
+    @{Name='single-spare-stack';Find='room -= ammo.StackObjectsCount;';Replace='break;';Failure='spare magazines are loaded to capacity'},
+    @{Name='uncut-loose-share';Find='ammo.StackObjectsCount = Math.Min(rounds, perStack);';Replace='ammo.StackObjectsCount = rounds;';Failure='loose reserve stacks never exceed the round''s stack size'}
+)){
+    if($supplySource.Split(@($supplyFault.Find),[StringSplitOptions]::None).Length -ne 2){throw "Supplies $($supplyFault.Name) anchor drifted or is ambiguous."}
+    [IO.File]::WriteAllText($supplyMutant,$supplySource.Replace($supplyFault.Find,$supplyFault.Replace))
+    $supplyOutput=& dotnet run --project $supplyProject -c Release "-p:BuilderSource=$supplyMutant" -- $supplyRoot $Database 2>&1
+    if($LASTEXITCODE -eq 0 -or ($supplyOutput -join "`n") -notmatch [regex]::Escape('ASSERT: '+$supplyFault.Failure)){throw "Supplies $($supplyFault.Name) negative control failed unexpectedly: $supplyOutput"}
+    Write-Output "Rejected $($supplyFault.Name) at $($supplyFault.Failure)"
+}
 dotnet run --project $supplyProject -c Release -- $supplyRoot $Database
 if($LASTEXITCODE -ne 0){throw 'Supplies production recheck failed.'}
 # The test project builds the server, whose deploy target writes the live user/mods unless the no-deploy

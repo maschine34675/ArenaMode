@@ -164,11 +164,10 @@ public static class KitBuilder
         {
             for (var i = 0; i < count; i++)
             {
-                var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-                ammo.StackObjectsCount = LooseReserveRounds(Math.Max(template.MaxCount, ammo.StackMaxSize), count, i);
-                if (ammo.StackObjectsCount == 0)
+                var share = LooseReserveStacks(factory, ammoTpl, template.MaxCount, count, i);
+                if (share.Count == 0)
                     break;
-                spares.Add(ammo);
+                spares.AddRange(share);
             }
 
             return;
@@ -180,15 +179,45 @@ public static class KitBuilder
             if (magazine == null)
                 break;
 
-            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = Math.Max(1, Math.Min(magazine.MaxCount, ammo.StackMaxSize));
-
-            var loadResult = magazine.Cartridges.Add(ammo, false);
-            if (loadResult.Failed)
-                Plugin.ModLogger.LogWarning($"Kit: loading a handed-out magazine failed: {loadResult.Error}");
+            var loadError = LoadToCapacity(factory, magazine, ammoTpl);
+            if (loadError != null)
+                Plugin.ModLogger.LogWarning($"Kit: loading a handed-out magazine failed: {loadError}");
 
             spares.Add(magazine);
         }
+    }
+
+    /// <summary>
+    /// Fills an empty spare the way the game loads a magazine: stacks of at most
+    /// the round's stack size until it is full, so a 100-round belt box takes
+    /// 60 + 40 of a round that stacks to 60. Both spare fills used to put in ONE
+    /// stack of <c>Math.Min(capacity, StackMaxSize)</c>, which handed out every
+    /// magazine that holds more than one stack short: the ladder's PKM/PKP and
+    /// M60 boxes (a 40-stack round) with 40 of 100, the RPD's box (60-stack) with
+    /// 60 of 100, seen natively as "60/100" on an RPD kit's spare on 2026-11-10;
+    /// 50-round drums and 75-round AK drums the same way. The stack slot itself
+    /// never checks the stack size, so one stack of the whole capacity would go
+    /// in too, but a stack over the round's own limit is not something the game
+    /// makes. Returns the native refusal of the first stack that did not go in,
+    /// or null when the magazine is full.
+    /// </summary>
+    private static string LoadToCapacity(ItemFactory factory, Magazine magazine, string ammoTpl)
+    {
+        for (var room = magazine.MaxCount - magazine.Cartridges.Count; room > 0;)
+        {
+            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+            ammo.StackObjectsCount = Math.Min(room, Math.Max(1, ammo.StackMaxSize));
+
+            var loadResult = magazine.Cartridges.Add(ammo, false);
+            if (loadResult.Failed)
+                return $"{loadResult.Error}";
+
+            // Counted here instead of re-read from the slot: the loop ends after
+            // capacity / stack size stacks whatever the slot reports.
+            room -= ammo.StackObjectsCount;
+        }
+
+        return null;
     }
 
     /// <summary>The rig/pockets/backpack of a live inventory, for callers outside the builder.</summary>
@@ -525,11 +554,9 @@ public static class KitBuilder
                 break;
             }
 
-            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = Math.Max(1, Math.Min(magazine.MaxCount, ammo.StackMaxSize));
-            var loadResult = magazine.Cartridges.Add(ammo, false);
-            if (loadResult.Failed)
-                Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadResult.Error}");
+            var loadError = LoadToCapacity(factory, magazine, ammoTpl);
+            if (loadError != null)
+                Plugin.ModLogger.LogWarning($"Kit: loading spare magazine failed: {loadError}");
 
             if (!AddToAnyGrid(containers, magazine, out var reason))
             {
@@ -562,21 +589,55 @@ public static class KitBuilder
         return (int)(total / stacks + (index < total % stacks ? 1 : 0));
     }
 
+    /// <summary>
+    /// Share <paramref name="index"/> of the loose reserve as the items the game
+    /// would make: stacks of at most the round's stack size. Every tube, internal
+    /// box and revolver cylinder in the catalogue and the ladder holds less than
+    /// twice its round's stack, so each share stays the one stack it always was.
+    /// A launcher cylinder does not: the MSGL's six camoras of a 40 mm grenade
+    /// that stacks to 1 made shares of three, one item holding three grenades
+    /// (the primary-weapon slot takes the MSGL, so a kit can carry it). The total
+    /// stays the halved reserve; only an oversized share becomes several items.
+    /// </summary>
+    private static List<Item> LooseReserveStacks(ItemFactory factory, string ammoTpl, int magazineRounds,
+        int stacks, int index)
+    {
+        var share = new List<Item>();
+        var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+        var perStack = Math.Max(1, ammo.StackMaxSize);
+        for (var rounds = LooseReserveRounds(Math.Max(magazineRounds, ammo.StackMaxSize), stacks, index); rounds > 0;)
+        {
+            if (ammo == null)
+                ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
+
+            ammo.StackObjectsCount = Math.Min(rounds, perStack);
+            rounds -= ammo.StackObjectsCount;
+            share.Add(ammo);
+            ammo = null;
+        }
+
+        return share;
+    }
+
     private static void FillLooseAmmo(List<CompoundItem> containers, ItemFactory factory, string ammoTpl,
         int roundsPerStack, int stacks)
     {
         for (var i = 0; i < stacks; i++)
         {
-            var ammo = factory.CreateItem(factory.NextId, ammoTpl, null);
-            ammo.StackObjectsCount = LooseReserveRounds(Math.Max(roundsPerStack, ammo.StackMaxSize), stacks, i);
-            if (ammo.StackObjectsCount == 0)
+            var share = LooseReserveStacks(factory, ammoTpl, roundsPerStack, stacks, i);
+            if (share.Count == 0)
                 break;
 
-            if (!AddToAnyGrid(containers, ammo, out var reason))
+            foreach (var ammo in share)
             {
-                Plugin.ModLogger.LogWarning(
-                    $"Kit: only {i} of {stacks} ammunition stacks fit - {Describe(ammo)} was refused: {reason}");
-                break;
+                if (!AddToAnyGrid(containers, ammo, out var reason))
+                {
+                    // i counts the requested stacks that went in whole; a share
+                    // split for a stack-1 round stops at its first refused item.
+                    Plugin.ModLogger.LogWarning(
+                        $"Kit: only {i} of {stacks} ammunition stacks fit - {Describe(ammo)} was refused: {reason}");
+                    return;
+                }
             }
         }
     }
