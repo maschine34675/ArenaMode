@@ -728,8 +728,9 @@ Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 - Session.exe can start Arena directly, with profile selection, remembered choice
   and a desktop shortcut. Local normal SPT prepares/saves the profile before the
   private session starts; no normal EFT launch is required.
-- The desktop picker and private EFT startup show the Factory hall. In the
-  private main menu its foreground shifts with the mouse. [Session artwork](reviews/SESSION-MENU-ART-20261109.md)
+- The desktop picker, private EFT startup and profile-loading screen show the
+  sunlit training course. Its foreground shifts with the mouse in the private
+  home menu. [Session artwork](reviews/SESSION-MENU-ART-20261109.md)
 - Native update callbacks drain before profile restoration and saved readback,
   preventing the observed round-end hang. Missing disposable data after a stopped
   session can be discarded safely during ordinary startup. Uncertain old rewards

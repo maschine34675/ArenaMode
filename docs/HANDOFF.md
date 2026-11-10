@@ -12,6 +12,15 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-10:** the private startup and home menu now use the
+  selected Streiflicht training course. The environment carries the artwork
+  behind native profile-loading text until the home menu finishes fading in.
+  [Presentation contract](reviews/SESSION-MENU-ART-20261109.md) and
+  [before/after capture and Factory return](reports/2026-11/GPU-TRAINING-COURSE-LOADING-20261110.md).
+  The tested client and helper were installed in `D:\SPT41` and verified
+  against their tested module IDs, file hashes and embedded image hash.
+  Previous files: `D:\SPT41-Backups\arena-session-training-course\20261110-120524-837`.
+
 - **Development, 2026-11-09:** the private home menu uses a Factory hall with
   mouse parallax. The EFT startup panel and the direct-start profile picker use
   the flat version. [Contract](reviews/SESSION-MENU-ART-20261109.md) and

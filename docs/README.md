@@ -32,7 +32,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Specifications and contracts
 
-- [Private Factory startup artwork and main-menu parallax](reviews/SESSION-MENU-ART-20261109.md)
+- [Private training-course artwork, loading and main-menu parallax](reviews/SESSION-MENU-ART-20261109.md)
 - [Private and ordinary startup checks on GPU-1 and GPU-2](reports/2026-11/GPU-SESSION-MENU-ART-20261109.md)
 
 - [Arena session gate: build notes and offline evidence](ARENA-GATE-20261021.md)
@@ -288,6 +288,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 - [Release cycle 0.5.0 / Redeploy 1.1.2: native run on GPU-2](reports/2026-11/GPU-RELEASE-050-20261107.md)
 - [Survey of the fork thatHeathenJay/ArenaMode: co-op design, live-UI rips, adoptable pieces](reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md)
 - [Reward startup order: native run on GPU-2 with a probe server mod at Watermark + 1 and at 0, the helper's lease parser found](reports/2026-11/GPU-REWARD-STARTUP-ORDER-20261105.md)
+- [Training-course artwork and the private profile-loading transition](reports/2026-11/GPU-TRAINING-COURSE-LOADING-20261110.md)
 
 ### 2026-10
 

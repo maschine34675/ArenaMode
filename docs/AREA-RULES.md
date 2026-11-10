@@ -17,10 +17,11 @@ to `AGENTS.md`.
 **Loading-time and static exceptions to non-negotiable 2** (the complete list, as argued in the old `AGENTS.md`):
 
    Loading-time exceptions are documented here and at their call sites:
-   The startup panel and home menu appear before any raid. Their custom
-   artwork requires the private-process gate report. Only the native main
-   menu controller receives parallax; boot artwork and menu textures belong
-   to their particular screens. [Lifecycle](reviews/SESSION-MENU-ART-20261109.md).
+   The startup panel, profile loading and home menu appear before any raid.
+   Their artwork requires the private-process gate report. Boot and loading
+   share the flat texture until the last view releases it. Native status and
+   dialogs draw above the loading image. Only the home menu receives parallax.
+   [Lifecycle](reviews/SESSION-MENU-ART-20261109.md).
 
    Protected PFT Tactical may issue one PMC-only Arena kit after the exact
    native local-start identity binds, before LocalGame creates the first body.

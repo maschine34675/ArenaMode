@@ -34,15 +34,12 @@ internal static class ArenaBootSplash
         try
         {
             if (_view != null) _view.Release();
-            var texture = ArenaMenuArt.Splash;
-            if (texture == null) return;
             _view = panel.gameObject.AddComponent<ArenaBootSplashView>();
-            _view.AttachImage(panel, texture);
+            _view.AttachImage(panel);
         }
         catch (Exception ex)
         {
             if (_view != null) _view.Release();
-            else ArenaMenuArt.ReleaseSplash();
             Warn(ex);
         }
     }
@@ -57,7 +54,6 @@ internal static class ArenaBootSplash
     {
         if (!ReferenceEquals(view, _view)) return;
         _view = null;
-        ArenaMenuArt.ReleaseSplash();
     }
 
     internal static void Warn(Exception ex) => Plugin.ModLogger?.LogWarning("Arena boot artwork unavailable: " + ex.Message);
@@ -68,13 +64,17 @@ internal sealed class ArenaBootSplashView : MonoBehaviour
     private readonly List<(CanvasRenderer Renderer, float Alpha)> _hidden = new();
     private GameObject _art;
     private RawImage _image;
+    private ArenaMenuArt.SplashLease _lease;
     private Image[] _nativeImages;
     private Vector2 _size;
     private float _aspect;
     private bool _released;
 
-    internal void AttachImage(SplashScreenPanel panel, Texture2D texture)
+    internal void AttachImage(SplashScreenPanel panel)
     {
+        _lease = ArenaMenuArt.AcquireSplash();
+        if (_lease == null) { Release(); return; }
+        var texture = _lease.Texture;
         // EFT fits its sharp sprite to 16:9 and stretches four other sprites into the margins.
         // Their common group spans the viewport and owns the fade. The native footer follows
         // that group as a sibling, so this one surface covers ultrawide without covering text.
@@ -107,9 +107,7 @@ internal sealed class ArenaBootSplashView : MonoBehaviour
         var size = _image.rectTransform.rect.size;
         if (size.x <= 0f || size.y <= 0f || size == _size) return;
         _size = size;
-        float viewAspect = size.x / size.y;
-        float width = Mathf.Min(1f, viewAspect / _aspect), height = Mathf.Min(1f, _aspect / viewAspect);
-        _image.uvRect = new Rect((1f - width) / 2f, (1f - height) / 2f, width, height);
+        _image.uvRect = ArenaMenuArt.CoverUv(size, _aspect);
         if (_image.enabled) return;
         // Prevent the stock picture showing through our picture during EFT's translucent fade.
         // Renderer alpha preserves the original Graphic, its sprite, hit testing and hierarchy.
@@ -137,6 +135,8 @@ internal sealed class ArenaBootSplashView : MonoBehaviour
             if (slot.Renderer != null && slot.Renderer.GetAlpha() == 0f) slot.Renderer.SetAlpha(slot.Alpha);
         _hidden.Clear();
         _nativeImages = null;
+        _lease?.Dispose();
+        _lease = null;
         ArenaBootSplash.Released(this);
         Destroy(this);
     }

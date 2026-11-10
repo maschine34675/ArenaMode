@@ -12,6 +12,11 @@ internal sealed class ArenaMenuBackdrop : MonoBehaviour
 {
     private static ArenaMenuBackdrop _current;
     private static bool _installed, _warned;
+    internal const float OverscanAt1080 = 13f;
+
+    internal static bool VisibleFor(MenuScreen.MainMenuScreenController owner) => _current != null &&
+        ReferenceEquals(_current._owner, owner) && _current.isActiveAndEnabled && _current._lastSize.x > 0f &&
+        _current._lastSize.y > 0f;
 
     private MenuScreen.MainMenuScreenController _owner;
     private RectTransform _screen, _viewport, _panel, _hall, _barrier, _fence;
@@ -125,7 +130,7 @@ internal sealed class ArenaMenuBackdrop : MonoBehaviour
         _panel.localPosition = center;
         _panel.sizeDelta = size;
         _unit = size.y / 1080f;
-        float margin = _unit * 13f;
+        float margin = _unit * OverscanAt1080;
         float height = Mathf.Max(size.y + 2f * margin, (size.x + 2f * margin) / _artAspect);
         _hall.sizeDelta = _barrier.sizeDelta = _fence.sizeDelta = new Vector2(height * _artAspect, height);
         return true;
