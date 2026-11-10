@@ -436,6 +436,89 @@ public sealed class RewardRuntimeTests
         Assert.Equal(1000, (await f.Process()).Roubles);
     }
 
+    // GPU-2, 2026-11-10: leaving solo Tactical in its first buy phase (Completed), and leaving a match whose
+    // round 1 had ended before it went live (NoContest, the capture then records no later round), sent a final
+    // report without a round. It was refused as reward-capture-identity, and the native end then withheld the
+    // run as reward-final-report-missing: a Warning on each side and "No reward for the last match." for a match
+    // with nothing to pay. Such a final is a no-pay end, nothing more.
+    [Theory]
+    [InlineData("Completed")]
+    [InlineData("NoContest")]
+    [InlineData("Aborted")]
+    public async Task FinalWithoutAnyRoundClosesAsANoPayEndWithoutWithholding(string state)
+    {
+        using var f = new Fixture();
+        var report = f.BeginReport();
+        report.Rounds.Clear();
+        report.State = state;
+        var accepted = f.Coordinator.Capture(Fixture.ProfileId, report);
+        Assert.True(accepted.Accepted, accepted.Reason);
+        Assert.Equal(1, accepted.Revision);
+        Assert.True(f.Coordinator.Capture(Fixture.ProfileId, report).Accepted); // the client's identical retry
+        var changed = JsonSerializer.Deserialize<RewardCaptureRequest>(JsonSerializer.Serialize(report))!;
+        changed.State = state == "Completed" ? "NoContest" : "Completed";
+        Assert.Equal("reward-revision-conflict", f.Coordinator.Capture(Fixture.ProfileId, changed).Reason);
+        changed.Revision = 2;
+        Assert.Equal("reward-capture-already-final", f.Coordinator.Capture(Fixture.ProfileId, changed).Reason);
+        var during = f.Coordinator.GetStatus(Fixture.ProfileId);
+        Assert.Equal("earning", during.State);
+        Assert.Equal(0, during.PendingRoubles);
+        Assert.Equal(0, during.PendingExperience);
+        // Nothing to authorize, so nothing in the checkpoint that a restart could publish.
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(f.Root, "user", "arena-reward-checkpoints"), "final.json",
+            SearchOption.AllDirectories));
+        var before = f.Profile;
+        f.RestoreAndPublish(report);
+        Assert.False(f.Coordinator.HasCapture(Fixture.ProfileId));
+        Assert.Equal("ready", f.Coordinator.GetStatus(Fixture.ProfileId).State);
+        Assert.Equal(before, f.Profile);
+        Assert.False(Directory.Exists(f.PathOf("inbox")));
+        Assert.Contains("unrewarded-restored",
+            File.ReadAllText(Path.Combine(f.Root, "user", "arena-reward-runs", Fixture.ProfileId, report.RunId + ".json")));
+        Assert.Equal(0, (await f.Process()).Roubles);
+        Assert.Empty(f.Ledger);
+        f.RestoreAndPublish(f.Capture());
+        Assert.Equal(1000, (await f.Process()).Roubles);
+    }
+
+    // Like every clean end, a match that ended before combat replaces the earlier match's withheld note.
+    [Fact]
+    public void FinalWithoutAnyRoundClearsTheWithheldNoteOfTheMatchBefore()
+    {
+        using var f = new Fixture();
+        var missing = f.Capture(final: false);
+        f.Coordinator.ObserveRestored(Fixture.ProfileId, f.Profile);
+        Assert.Throws<RewardDataException>(() => f.Coordinator.FinalizePersisted(Fixture.ProfileId, missing.NativeEndIdentity, f.Profile));
+        Assert.Equal("withheld", f.Coordinator.GetStatus(Fixture.ProfileId).State);
+        var report = f.BeginReport();
+        report.Rounds.Clear();
+        Assert.True(f.Coordinator.Capture(Fixture.ProfileId, report).Accepted);
+        f.RestoreAndPublish(report);
+        Assert.Equal("ready", f.Coordinator.GetStatus(Fixture.ProfileId).State);
+    }
+
+    [Fact]
+    public void OnlyAFinalMayHaveNoRoundAndItCannotEraseAnEarlierRound()
+    {
+        using var f = new Fixture();
+        var report = f.BeginReport();
+        var rounds = report.Rounds.ToList();
+        report.Final = false;
+        report.Rounds.Clear();
+        Assert.Equal("reward-capture-identity", f.Coordinator.Capture(Fixture.ProfileId, report).Reason);
+        report.Rounds.AddRange(rounds);
+        report.Rounds[0].Closed = false;
+        Assert.True(f.Coordinator.Capture(Fixture.ProfileId, report).Accepted);
+        report.Revision++;
+        report.Final = true;
+        report.Rounds.Clear();
+        Assert.Equal("reward-rounds-removed", f.Coordinator.Capture(Fixture.ProfileId, report).Reason);
+        // The run still has no final: its native end stays lost evidence, withheld as before.
+        f.Coordinator.ObserveRestored(Fixture.ProfileId, f.Profile);
+        Assert.Throws<RewardDataException>(() => f.Coordinator.FinalizePersisted(Fixture.ProfileId, report.NativeEndIdentity, f.Profile));
+        Assert.Equal("withheld", f.Coordinator.GetStatus(Fixture.ProfileId).State);
+    }
+
     [Fact]
     public async Task PhysicalWrapperCanSurviveAcrossRoundsWithNewRoundLifeIdentity()
     {

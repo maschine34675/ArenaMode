@@ -391,6 +391,20 @@ existing validator enforce life uniqueness, timing, sides, event ordering and
 terminal results. Report active time cannot exceed elapsed server time plus a
 small scheduling tolerance.
 
+A match whose capture holds no combat round (left in solo Tactical's first buy
+phase, or round 1 ended before it went live, after which the contiguous round
+numbering records no later round and the run is NoContest) sends a final report
+without a round. The server acknowledges it as a no-pay end: no
+authorization exists without a round, so no checkpoint `final.json` is written,
+no Cola observation is taken and nothing is pending. After the unchanged restore
+proof the run closes `unrewarded-restored` without a receipt, the same durable
+outcome a lost RAM replays, and the status is not withheld. Only a final may be
+roundless, and it cannot follow a provisional report that held a round. A final
+that did hold rounds and whose `final.json` is missing stays withheld as
+`reward-final-report-missing`. Until 2026-11-10 the roundless final was refused
+as `reward-capture-identity` and then withheld as `reward-final-report-missing`,
+with a Warning on each side.
+
 SPT does not independently simulate combat. Roster and kill observations still
 come from the local game; consistency checks and a server-owned rate policy are
 not an anti-cheat system against the owner of the local machine.

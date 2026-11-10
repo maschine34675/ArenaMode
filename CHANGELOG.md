@@ -32,6 +32,12 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   reopens the buy screen instead of also opening the scoreboard.
   [Contract](docs/reviews/KIT-PICKER-20261110.md),
   [native runs](docs/reports/2026-11/GPU-KIT-PICKER-20261110.md)
+- Leaving an Arena match whose reward capture holds no combat round (solo Tactical's first buy
+  phase, or a match whose first round ended before it went live) no longer logs a reward
+  Warning on both sides (`reward-capture-identity` in the game, `reward-final-report-missing` on
+  the server) or shows "No reward for the last match." in the menu: the server now accepts such a
+  final report without a round as an ordinary no-pay end. Nothing was paid before and nothing is
+  paid now; the profile restoration and its proof are unchanged.
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)

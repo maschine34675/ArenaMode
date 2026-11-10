@@ -67,6 +67,39 @@ public sealed class RewardRestorationCheckpointTests
         if (beginRun) Assert.Contains("unrewarded-restored", File.ReadAllText(f.Pending));
     }
 
+    // A final without a round is acknowledged without final.json: after lost RAM it must replay as exactly the
+    // no-pay end it stands for, never as an unresolved run.
+    [Fact]
+    public void LostRamAfterAFinalWithoutAnyRoundReplaysTheSameUnrewardedEnd()
+    {
+        using var f = new Fixture();
+        f.Capture(roundless: true);
+        Assert.False(File.Exists(f.CheckpointFile("final.json")));
+        f.Observe();
+        var before = f.Profile;
+        f.RestartRecovery();
+        Assert.Equal("restored", f.GuardState);
+        Assert.False(Directory.Exists(f.Inbox));
+        Assert.Equal(before, f.Profile);
+        Assert.Contains("unrewarded-restored", File.ReadAllText(f.Pending));
+    }
+
+    // Only a final without a round may end without final.json. For a final that held one, a missing record is
+    // lost evidence: the native end reports reward-final-report-missing and the status stays withheld (on disk
+    // Complete has closed the run unrewarded, as it always did; no receipt can appear).
+    [Fact]
+    public void FinalWithARoundWhoseRecordIsMissingStaysWithheld()
+    {
+        using var f = new Fixture();
+        f.Capture();
+        File.Delete(f.CheckpointFile("final.json"));
+        f.Observe();
+        var failure = Assert.Throws<RewardDataException>(() => f.Coordinator.FinalizePersisted(Fixture.Id, f.Report!.NativeEndIdentity, f.Profile));
+        Assert.Equal("reward-final-report-missing", failure.Message);
+        Assert.Equal("withheld", f.Coordinator.GetStatus(Fixture.Id).State);
+        Assert.False(Directory.Exists(f.Inbox));
+    }
+
     [Theory]
     [InlineData("Aborted")]
     [InlineData("NoContest")]
@@ -497,7 +530,7 @@ public sealed class RewardRestorationCheckpointTests
             Generation = Path.GetFileName(Directory.GetDirectories(parent).Single(d => !before.Contains(d)));
         }
 
-        internal void Capture(bool final = true, string state = "Completed")
+        internal void Capture(bool final = true, string state = "Completed", bool roundless = false)
         {
             TakeSnapshot();
             var arm = Guid.NewGuid().ToString("N");
@@ -514,6 +547,7 @@ public sealed class RewardRestorationCheckpointTests
                         new() { Body = 2, ParticipantId = "bbbbbbbbbbbbbbbbbbbbbbbb", Side = "Opponent" }],
                     Deaths = [new() { Sequence = 1, AtMilliseconds = 1000, VictimBody = 2, KillerBody = 1 }] }]
             };
+            if (roundless) Report.Rounds.Clear();
             var response = Coordinator.Capture(Id, Report);
             Assert.True(response.Accepted, response.Reason);
         }
