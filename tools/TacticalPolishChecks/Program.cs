@@ -97,6 +97,32 @@ static class Program
         mode=Fresh();mode.Prepare(team:true);Check(!mode.TryBuy(KitCatalog.Kits[0]),"protected team rejects buying");
         mode=Fresh();mode.LoseStarterForTest();bool refused=false;try{mode.Issue();}catch(InvalidOperationException){refused=true;}
         Check(refused,"missing supplier state refuses instead of drawing random");
+        // NO PURCHASE (docs/reviews/KIT-PICKER-20261110.md): the kept kit is the free starter before the
+        // first round, a purchase taken back costs nothing, and a buy-phase respawn that handed the
+        // purchase out early does not make it the kept kit.
+        mode=Fresh();Check(mode.Worn?.Id=="starter","free starter is the kept kit before the first round");
+        Check(!mode.ClearPurchase(),"nothing bought, nothing to take back");
+        mode.Issue();mode.Start();mode.SurvivedForTest();
+        Check(mode.TryBuy(KitCatalog.Kits[0])&&mode.Issue().Id=="costly","a buy-phase respawn hands the purchase out at once");
+        Check(mode.Worn?.Id=="starter","an early hand-out does not change the kept kit");
+        Check(mode.ClearPurchase()&&mode.Bought==null&&mode.Money==1000,"NO PURCHASE takes the purchase back without touching the purse");
+        mode.Start();
+        Check(mode.Money==1000&&mode.Issue().Id=="starter"&&mode.Worn?.Id=="starter","a purchase taken back after a buy-phase respawn is neither charged nor kept");
+        mode.SurvivedForTest();Check(mode.TryBuy(KitCatalog.Kits[0]),"the next buy phase accepts a purchase");mode.Start();
+        Check(!mode.ClearPurchase()&&mode.Bought?.Id=="costly"&&mode.Money==100,"nothing to take back once the round runs");
+        mode=Fresh();mode.Prepare(team:true);mode.ForceBoughtForTest(KitCatalog.Kits[1]);
+        Check(!mode.ClearPurchase()&&mode.Bought!=null,"protected team has no purchase to take back");
+        // The plain window's buy starts the own-kit warm-up like the card screen's (TacticalBuyScreen.WarmBought,
+        // docs/reviews/CUSTOM-KITS-20261110.md), and only for a buy that went through.
+        var panelType=typeof(TacticalBuyPanel);var shop=new TacticalBuyPanel();int warmed=TacticalBuyScreen.Warmed;
+        panelType.GetMethod("EnsureStyles",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shop,null);
+        void DrawShop()=>panelType.GetMethod("DrawWindow",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(shop,[0]);
+        GUILayout.Press="costly";
+        mode=Fresh();mode.Issue();DrawShop();
+        Check(mode.Bought?.Id=="costly"&&TacticalBuyScreen.Warmed==warmed+1,"a buy in the plain window warms the kit");
+        mode=Fresh();mode.Prepare(team:true);DrawShop();
+        Check(mode.Bought==null&&TacticalBuyScreen.Warmed==warmed+1,"a refused buy in the plain window warms nothing");
+        GUILayout.Press=null;
         KitCatalog.Kits=[new(){Id="invalid",Invalid=true}];Check(TacticalMode.SelectOpeningKit()==null,"no usable catalogue never selects invalid starter");
     }
     static void Escape()

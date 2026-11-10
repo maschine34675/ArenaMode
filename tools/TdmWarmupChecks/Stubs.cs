@@ -41,7 +41,12 @@ namespace ArenaMode.Kits
     public class KitItemNode { public string Tpl, ParentId; }
     public class KitFill { public List<KitStackedItem> RigContents = new(); }
     public class KitStackedItem { public string Tpl; }
-    public static class KitCatalog { public static object KitProvider; public static List<KitDefinition> Kits; }
+    public static class KitCatalog
+    {
+        public static object KitProvider; public static List<KitDefinition> Kits;
+        // The checks steer the random draw through Settings.RandomKit, as production stores it.
+        internal static ArenaKitChoice CurrentChoice => new(ArenaMode.Config.Settings.RandomKit.Value, "");
+    }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }
     public static class AutoQuickSlots { public static void Tick() { } }
     public static class ArenaSecureContainer { public static void Tick() { } }

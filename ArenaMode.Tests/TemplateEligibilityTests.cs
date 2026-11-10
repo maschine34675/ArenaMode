@@ -117,4 +117,19 @@ public sealed class TemplateEligibilityTests
         Assert.True(ArenaTemplateEligibility.IsExcluded(
             "544a3d0a4bdc2d1b388b4567", "Nightforce NXS 2.5-10x24 scope", Array.Empty<string>()));
     }
+
+    /// <summary>
+    /// The rules live in ArenaMode.Shared since the client's custom-kit lists use them too
+    /// (docs/reviews/CUSTOM-KITS-20261110.md); the server's names must keep answering with the
+    /// very same lists, not copies that could drift.
+    /// </summary>
+    [Fact]
+    public void TheServerNamesForwardToTheSharedRules()
+    {
+        Assert.Same(ArenaMode.Shared.ArenaTemplateExclusions.KnownPlaceholders, ArenaTemplateEligibility.KnownPlaceholders);
+        Assert.Same(ArenaMode.Shared.ArenaTemplateExclusions.KnownBrokenTemplates, ArenaTemplateEligibility.KnownBrokenTemplates);
+        Assert.Same(ArenaMode.Shared.ArenaTemplateExclusions.SeededExclusions, ArenaTemplateEligibility.SeededExclusions);
+        Assert.Contains("544a3d0a4bdc2d1b388b4567", ArenaTemplateEligibility.ExclusionSet(null));
+        Assert.True(ArenaTemplateEligibility.IsExcluded("544a3d0a4bdc2d1b388b4567", "Nightforce", null));
+    }
 }

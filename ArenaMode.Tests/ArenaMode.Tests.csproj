@@ -49,6 +49,9 @@
     <Compile Include="..\ArenaMode.Client\Kits\AutoQuickSlotLedger.cs" Link="ClientRules\AutoQuickSlotLedger.cs" />
     <Compile Include="..\ArenaMode.Client\Kits\KitModels.cs" Link="ClientRules\KitModels.cs" />
     <Compile Include="..\ArenaMode.Client\Kits\KitPreloadPlan.cs" Link="ClientRules\KitPreloadPlan.cs" />
+    <Compile Include="..\ArenaMode.Client\Kits\ArenaCustomKitPolicy.cs" Link="ClientRules\ArenaCustomKitPolicy.cs" />
+    <Compile Include="..\ArenaMode.Client\Kits\CustomKitStructure.cs" Link="ClientRules\CustomKitStructure.cs" />
+    <Compile Include="..\ArenaMode.Client\Kits\CustomKitEditing.cs" Link="ClientRules\CustomKitEditing.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\SoloTacticalRoundStartPolicy.cs" Link="ClientRules\SoloTacticalRoundStartPolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ZombieWavePolicy.cs" Link="ClientRules\ZombieWavePolicy.cs" />
     <Compile Include="..\ArenaMode.Client\Modes\ZombieRoleMix.cs" Link="ClientRules\ZombieRoleMix.cs" />

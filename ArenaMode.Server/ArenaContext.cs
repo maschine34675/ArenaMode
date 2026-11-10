@@ -22,6 +22,12 @@ public static class ArenaContext
     public static ArenaModeConfig Config { get; internal set; } = new();
     public static ArenaWeaponVariants? WeaponVariants { get; internal set; }
 
+    /// <summary>
+    /// The handbook's rouble price per template, published by KitPricer at load so the
+    /// config page's "Reload from disk" can price the catalogue again. Null until it ran.
+    /// </summary>
+    public static IReadOnlyDictionary<string, double>? HandbookPrices { get; internal set; }
+
     /// <summary>Authored kit source; raid-owned variants never overwrite this or config/kits.json.</summary>
     public static string KitsJson { get; internal set; } = "[]";
 

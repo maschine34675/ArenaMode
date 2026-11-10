@@ -2,6 +2,7 @@ using ArenaMode.Shared;
 using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 using System;
+using System.Collections.Generic;
 
 namespace ArenaMode.Session;
 
@@ -79,6 +80,35 @@ public static class ArenaClientConfig
         catch
         {
             return default;
+        }
+    }
+
+    /// <summary>
+    /// The server's configured <c>excludedTemplates</c> (docs/reviews/CUSTOM-KITS-20261110.md):
+    /// what the custom-kit candidate lists leave out besides the seeded ids of
+    /// ArenaTemplateExclusions. Null when the config is not loaded or names none; the
+    /// seeded ids apply either way.
+    /// </summary>
+    public static IReadOnlyList<string> ExcludedTemplates()
+    {
+        EnsureLoaded();
+        try
+        {
+            if (!(_config?["excludedTemplates"] is JArray list))
+                return null;
+
+            var result = new List<string>(list.Count);
+            foreach (var token in list)
+            {
+                if (token != null && token.Type == JTokenType.String)
+                    result.Add((string)token);
+            }
+
+            return result;
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 

@@ -220,12 +220,36 @@ internal static class ArenaLocationSelectionPatch
             foreach (var row in ConditionalMaps) row.View.Close();
             ConditionalMaps.Clear();
             Areas.Close();
+            NotifyModePanelClosing(Modes.Root);
             Modes.Close();
             Map.Restore();
         }
     }
 
     private static readonly ConditionalWeakTable<MatchMakerSelectionLocationScreen, ScreenState> States = new();
+
+    /// <summary>
+    /// Companions of the Arena map screen that own no patch (the kit screen,
+    /// docs/reviews/KIT-PICKER-20261110.md): told once the mode panel of a screen stands, with
+    /// the screen, the panel root and the native typography, and told again before that panel
+    /// is torn down. A companion that throws is logged and never fails the map screen.
+    /// </summary>
+    internal static event System.Action<Transform, GameObject, TMP_Text> ModePanelShown;
+    internal static event System.Action<GameObject> ModePanelClosing;
+
+    private static void NotifyModePanelShown(MatchMakerSelectionLocationScreen screen, GameObject panel)
+    {
+        if (screen == null || panel == null) return;
+        try { ModePanelShown?.Invoke(screen.transform, panel, screen._acceptButton?._headerLabel); }
+        catch (System.Exception ex) { Plugin.ModLogger.LogWarning($"Arena map-screen companion failed to open: {ex.Message}"); }
+    }
+
+    private static void NotifyModePanelClosing(GameObject panel)
+    {
+        if (panel == null) return;
+        try { ModePanelClosing?.Invoke(panel); }
+        catch (System.Exception ex) { Plugin.ModLogger.LogWarning($"Arena map-screen companion failed to close: {ex.Message}"); }
+    }
 
     public static void Enable()
     {
@@ -359,11 +383,13 @@ internal static class ArenaLocationSelectionPatch
                 state.Preview.Show(__instance.transform, state.Info.Root,
                     __instance._acceptButton?._headerLabel);
                 state.Refresh(__instance);
+                NotifyModePanelShown(__instance, state.Modes.Root);
             }
             catch (System.Exception ex)
             {
                 state.Preview.Close();
                 state.Info.Close();
+                NotifyModePanelClosing(state.Modes.Root);
                 state.Modes.Close();
                 state.Areas.Close();
                 // The native map screen remains fully usable if our optional

@@ -248,6 +248,27 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     public KitDefinition Bought => _bought;
 
     /// <summary>
+    /// What a survivor is handed when nothing is bought: the kit of the last round start, the
+    /// free starter before the first. A respawn in the buy phase may put the purchase on the
+    /// body early; this stays the kept kit until the round start pays for the purchase.
+    /// </summary>
+    public KitDefinition Worn => _worn ?? _starter;
+
+    /// <summary>
+    /// Takes the purchase of this buy phase back. Nothing was charged yet (the price is taken at
+    /// the round start), so the purse is untouched and the round falls back to what
+    /// <see cref="NoPurchaseDescription"/> says.
+    /// </summary>
+    public bool ClearPurchase()
+    {
+        if (_teamArena || _phase != Phase.Buy || _bought == null)
+            return false;
+
+        _bought = null;
+        return true;
+    }
+
+    /// <summary>
     /// Whether buying nothing means walking into the round with what you have.
     ///
     /// True for a player who survived the last round: the gear is still on them
@@ -2770,7 +2791,11 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     {
         var kit = _bought ?? _worn ?? _starter;
         if (kit == null) throw new InvalidOperationException("Solo Tactical lost its starter/loadout binding");
-        _worn = kit;
+        // A respawn in the buy phase hands out the purchase at once, but nothing is paid before
+        // the round starts and NO PURCHASE (ClearPurchase) can still take it back. Committing
+        // it as the kept kit here gave that kit away for free; StartRound commits a purchase.
+        if (_phase != Phase.Buy)
+            _worn = kit;
         return kit;
     }
 

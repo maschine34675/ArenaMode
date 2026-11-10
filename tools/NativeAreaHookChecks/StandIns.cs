@@ -251,6 +251,8 @@ namespace ArenaMode.Session
         public static ArenaModeSelectionView Last;
         internal ArenaModeSelectionState State;
         internal bool Closed = true;
+        // The panel root the patch hands to its companions (the kit screen); none here.
+        internal UnityEngine.GameObject Root;
         public void Show(UnityEngine.Transform screen, TMPro.TMP_Text text, string mode, bool team, Func<string, bool> callback)
         { Last = this; Closed = false; State = new(mode, team, callback); State.CommitInitialSelection(); }
         public void Synchronize(string mode, bool team) => State?.Synchronize(mode, team);

@@ -1052,6 +1052,30 @@ without a window, cursor vote, input block or controls and reuses `ArenaScoreboa
 `ArenaScoreboardPresentation` with the F9 panel; never give it controls or an input block, and
 never let it outlive the per-match HUD object.
 
+Kit screen and Tactical buy screen (2026-11-10, docs/reviews/KIT-PICKER-20261110.md): the base draw
+reads the kit choice only through `KitCatalog.CurrentChoice`, which holds it per raid on
+`ArenaSession.ArmEpoch`; never read `Kits/RandomKit` or `Kits/SelectedKit` directly in raid code.
+`ArenaKitMenu` owns no patch: it lives on `ArenaLocationSelectionPatch.ModePanelShown`/
+`ModePanelClosing` and must never fail the map screen. `ArenaKitBrowserView` draws what
+`ArenaKitCards` returns and reads no setting. In a raid, game UI gets a click only while
+`UIEventSystem.SetTemporaryStatus(true)` is held (`BattleUIScreen.Show` disables the event system);
+the buy screen holds it while drawn and hands it back unless the console is open. Item pictures in
+a raid are asked for only when every template of the kit is warmed (`PicturesReady`): the picture
+of a cold kit instantiates a bare scope, which throws in `CameraManager.method_10`. Never clone a
+native prefab or ship game art for these views. `TacticalBuyPanel` stays the owner of the buy
+phase, the input block and the cursor and keeps its plain window as the fallback;
+`tools/TacticalPolishChecks` compiles it verbatim. During a Tactical buy phase `ArenaPanel.Toggle`
+does not open the scoreboard panel. Pins: `tools/KitPickerChecks`.
+
+Own kits (2026-11-10, docs/reviews/CUSTOM-KITS-20261110.md): `KitCatalog.Kits` stays the stock
+catalogue; own kits reach a raid only through `KitCatalog.CustomView` (held per arm, read by
+`GetBaseKit` for a kit chosen by id, the one place the cap is applied) and `KitCatalog.ShopKits`
+(solo Tactical's shop, no cap). Never let the Tactical starter, the broke auto-buy, the random draw,
+the Gun Game ladder fallback, pickups or the warm-up read an own kit. Every edit is a new kit object
+checked by `CustomKitStructure` and `CustomKitProbe` before `CustomKitStore` writes it; never write
+the kit file outside the store, never trust a price or order stored in it, never write it while a
+raid is armed or running. Pins: `tools/CustomKitChecks`, `CustomKitStructureTests`.
+
 Active announcer OGGs live in announcements/, the four effect WAVs in sounds/.
 Audio records are consolidated under docs/licenses/audio; see
 docs/reviews/AUDIO-LAYOUT-20261018.md. Keep source-only reserve audio out of payloads.

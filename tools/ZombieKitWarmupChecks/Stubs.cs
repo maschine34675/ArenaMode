@@ -58,6 +58,8 @@ namespace ArenaMode.Kits
         public static int Draws;
         public static KitDefinition ReserveBaseKit() { Draws++; return Reserved = Opening; }
         public static void ClearReservedBaseKit() => Reserved = null;
+        // The checks steer the random draw through Settings.RandomKit, as production stores it.
+        internal static ArenaKitChoice CurrentChoice => new(ArenaMode.Config.Settings.RandomKit.Value, "");
     }
     public static class KitMerge { public static KitDefinition WithPrimaryWeapon(KitDefinition kit, KitDefinition weapon) => kit; }
     public static class LadderCatalog { public static List<KitDefinition> Rungs; }

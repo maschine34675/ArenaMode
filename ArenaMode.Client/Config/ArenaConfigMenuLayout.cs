@@ -169,6 +169,7 @@ internal static class ArenaConfigMenuLayout
         new Section("Kits", false,
             I("RandomKit", "Random Kit Each Life"),
             I("SelectedKit", "Fixed Kit ID"),
+            I("FavoriteKits", "Favourite Kit IDs"),
             I("AutoQuickSlots", "Auto-Bind Medical Quick Slots"),
             I("UseItemsAnywhere", "Use Items Anywhere"),
             I("EmptySecureContainer", "Leave Secure Container Contents Home")),

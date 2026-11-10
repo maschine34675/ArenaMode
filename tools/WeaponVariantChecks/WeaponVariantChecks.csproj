@@ -11,5 +11,6 @@
     <Compile Include="$(VariantSource)" Link="Production/ArenaWeaponVariants.cs" />
     <Compile Include="../../ArenaMode.Server/Services/LadderPicker.cs" Link="Production/LadderPicker.cs" />
     <Compile Include="../../ArenaMode.Server/Services/ArenaTemplateEligibility.cs" Link="Production/ArenaTemplateEligibility.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaTemplateExclusions.cs" Link="Production/ArenaTemplateExclusions.cs" />
   </ItemGroup>
 </Project>

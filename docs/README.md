@@ -164,6 +164,8 @@ Sorted by file name.
 - [Use Items Anywhere and shared HUD compatibility (ImpactCue, Enemy Markers)](reviews/ITEMS-HUD-COMPAT-20261025.md)
 - [Kill confirmation with the Arena skull: signal source, eligibility and lifetime](reviews/KILL-SKULL-REVIEW.md)
 - [Killcam per Arena mode: frozen selection, camera ownership and respawn hold](reviews/KILLCAM-MODES-REVIEW.md)
+- [Own kits: the kit editor, the kit file, the price rule and cap, who sees own kits, the two checks](reviews/CUSTOM-KITS-20261110.md)
+- [Kit screen and Tactical buy screen: choice held per raid, card browser, event system and picture gate in a raid](reviews/KIT-PICKER-20261110.md)
 - [Kit polish: front armor class display and optional RGD-5 grenade supplies](reviews/KIT-POLISH-REVIEW.md)
 - [Arena Labs: excluding extraction-gate bot spawns and five-opponent point planning](reviews/LABS-SPAWN-REVIEW.md)
 - [Labyrinth center alarm: Arena-only suppression and installed scene contract](reviews/LABYRINTH-ALARM-REVIEW.md)
@@ -277,6 +279,8 @@ Dated records, newest month first, sorted by file name within a month. Check the
 ### 2026-11
 
 - [Inventory UI mod admission: Caliber Under Ammo Name, Compatibility Highlighter and Trader Modding](reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
+- [Kit screen and Tactical buy screen: native runs on GPU-2 (the dead clicks, the bare-scope error, F9 twice, the take-back after a buy-phase death)](reports/2026-11/GPU-KIT-PICKER-20261110.md)
+- [Own kits: native run on GPU-2 (copy, editor, a belt-fed gun, a refused pick, rename, Deathmatch and solo Tactical with an own kit, delete)](reports/2026-11/GPU-CUSTOM-KITS-20261110.md)
 - [Amand's Graphics on Labyrinth and Factory, and Amand's Sense Updated](reports/2026-11/GPU-AMANDS-20261108.md)
 - [Private home beta notice and Arena raid version label](reports/2026-11/GPU-BETA-VERSION-20261110.md)
 - [Crowd reactions: first native run with ArenaMapPort phase A (GPU-2)](reports/2026-11/GPU-CROWD-REACTIONS-20261102.md)

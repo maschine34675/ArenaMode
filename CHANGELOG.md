@@ -10,6 +10,28 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
+  editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from
+  lists of what each slot takes, every item arriving as the game's own default build and a weapon
+  loaded with its rounds. Every change is checked (slot rules, conflicts, required parts, supplies
+  fitting) and saved at once. An own kit costs the handbook sum of its items; it is handed out in
+  every mode when it costs no more than the dearest stock kit, and solo Tactical sells it at its
+  price either way. Own kits come exactly as built (no attachment draw, no extra grenades) and are
+  kept in `BepInEx/config/com.maschine.ArenaMode.custom-kits.json`, the same file in a normal and an
+  Arena session. The config page's "Reload from disk" no longer leaves every stock kit at price 0.
+  [Contract](docs/reviews/CUSTOM-KITS-20261110.md)
+- Pick your kit: **KITS** on the Arena map screen opens the catalogue as cards, cheapest first, with
+  the game's own picture of each weapon, the armour and helmet class, the value and the full contents
+  on hover. Pick one kit for every life or keep the random draw, and mark favourites. A picked kit
+  keeps its per-raid attachment draw. The choice is the F12 pair `Kits/RandomKit` and
+  `Kits/SelectedKit` as before; a raid now keeps the choice it started with (an F12 edit made in a
+  raid counts from the next one). New F12 key `Kits/FavoriteKits`.
+  Solo Tactical's buy phase shows the same cards with prices, the purse and the countdown: a kit you
+  cannot afford stays visible, NO PURCHASE takes a purchase back, READY starts the round, CLOSE lets
+  you walk. The plain buy window remains as the fallback, and during a buy phase the panel hotkey
+  reopens the buy screen instead of also opening the scoreboard.
+  [Contract](docs/reviews/KIT-PICKER-20261110.md),
+  [native runs](docs/reports/2026-11/GPU-KIT-PICKER-20261110.md)
 - Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
   halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
   [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)

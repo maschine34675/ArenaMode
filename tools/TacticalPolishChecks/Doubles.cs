@@ -44,6 +44,8 @@ namespace ArenaMode.Kits
     public static class KitCatalog
     {
         public static IReadOnlyList<KitDefinition> Kits=[];public static Func<KitDefinition> KitProvider;
+        // The shop reads stock and own kits; the checks give it the stock list.
+        public static IReadOnlyList<KitDefinition> ShopKits=>Kits;
         public static KitDefinition GetBaseKit()=>Kits.OrderByDescending(x=>x.Price).First();
     }
     public static class KitSummary {public static string For(KitDefinition k)=>"";}
@@ -87,6 +89,8 @@ namespace Redeploy.Core.Ui {}
 namespace ArenaMode.Hud
 {
     public static class CursorVote {public static void Set(object x,bool b){}}
+    // The card screen is drawn by the game's UI; here it never builds, so the panel's own window stays the subject.
+    public sealed class TacticalBuyScreen {public static int Warmed;public static void WarmBought(ArenaMode.Kits.KitDefinition k){Warmed++;}public bool Drawn=>false;public int Shows,Hides,Ticks;public void Show(ArenaMode.Modes.TacticalMode m,Action close){Shows++;}public void Hide(){Hides++;}public void Tick(ArenaMode.Modes.TacticalMode m){Ticks++;}}
     public static class ArenaInputBlocker {public static bool Open,Drained;public static void Request(object x,bool open,bool drainOnRelease=false){Open=open;Drained=!open&&drainOnRelease;}}
 }
 namespace BepInEx.Configuration { public class KeyboardShortcut {public UnityEngine.KeyCode MainKey;public UnityEngine.KeyCode[] Modifiers=[];} }
@@ -116,6 +120,8 @@ namespace UnityEngine
     {
         public static void Space(float x){} public static void Label(string x,GUIStyle s,params object[] options){} public static Vector2 BeginScrollView(Vector2 v)=>v;public static void EndScrollView(){}
         public static void BeginHorizontal(){} public static void EndHorizontal(){} public static object MinWidth(float x)=>null;public static object Width(float x)=>null;public static object Height(float x)=>null;
-        public static bool Button(string x,GUIStyle s,params object[] options)=>false;
+        // The label a check "presses" in the next draw; no button is pressed otherwise.
+        public static string Press;
+        public static bool Button(string x,GUIStyle s,params object[] options)=>Press!=null&&x==Press;
     }
 }

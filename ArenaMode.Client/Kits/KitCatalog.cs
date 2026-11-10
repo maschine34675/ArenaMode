@@ -33,6 +33,84 @@ public static class KitCatalog
     private static KitDefinition _reservedBaseKit;
 
     /// <summary>
+    /// The kit choice of the armed or running raid (docs/reviews/KIT-PICKER-20261110.md): the
+    /// settings as they were when the raid first asked, kept until the next arm.
+    /// </summary>
+    private static readonly ArenaKitChoiceLatch ChoiceLatch = new();
+
+    /// <summary>
+    /// The player's own kits of the armed or running raid (docs/reviews/CUSTOM-KITS-20261110.md):
+    /// read, priced and checked at the first question after an arm and held until the next one,
+    /// deep copies included, so the kit file changing during a raid changes nothing in it. Not
+    /// held while the stock catalogue is missing (the cap would be unknown). Only GetBaseKit (for
+    /// a kit chosen by id) and <see cref="ShopKits"/> read it; <see cref="Kits"/> stays the stock
+    /// catalogue, so the Tactical starter, the broke auto-buy, the random draw, the Gun Game
+    /// ladder fallback, pickups and the warm-up never see a custom kit.
+    /// </summary>
+    internal static CustomKitView CustomView
+        => CustomHold.Resolve(Session.ArenaSession.ArmedForNextRaid || Session.ArenaSession.IsActive,
+            Session.ArenaSession.ArmEpoch, ReadCustomKits, view => view.StockLoaded);
+
+    private static readonly ArenaRaidHold<CustomKitView> CustomHold = new();
+    private static int _customWarnEpoch = int.MinValue;
+    private static IReadOnlyList<KitDefinition> _shopStock;
+    private static CustomKitView _shopView;
+    private static List<KitDefinition> _shopKits = new List<KitDefinition>();
+
+    /// <summary>
+    /// What solo Tactical's shop offers: the stock kits and the ready custom kits of the held view,
+    /// each custom kit at its own price and without the cap (docs/reviews/CUSTOM-KITS-20261110.md).
+    /// Rebuilt only when either list changes; the buy screen asks every frame.
+    /// </summary>
+    internal static IReadOnlyList<KitDefinition> ShopKits
+    {
+        get
+        {
+            var stock = Kits;
+            var view = CustomView;
+            if (ReferenceEquals(stock, _shopStock) && ReferenceEquals(view, _shopView))
+                return _shopKits;
+
+            var shop = new List<KitDefinition>();
+            if (stock != null) shop.AddRange(stock);
+            if (view != null) shop.AddRange(view.Ready);
+            _shopStock = stock;
+            _shopView = view;
+            _shopKits = shop;
+            return shop;
+        }
+    }
+
+    /// <summary>Whether <paramref name="kit"/> is one of the held view's ready custom kits.</summary>
+    internal static bool IsCustom(KitDefinition kit)
+    {
+        if (kit == null) return false;
+        foreach (KitDefinition ready in CustomView.Ready)
+            if (ReferenceEquals(ready, kit)) return true;
+        return false;
+    }
+
+    private static CustomKitView ReadCustomKits()
+    {
+        EnsureLoaded();
+        try
+        {
+            return CustomKits.Load(_kits);
+        }
+        catch (Exception ex)
+        {
+            // Held like any view: a raid with a broken kit file plays on the stock kits.
+            Plugin.ModLogger.LogWarning($"Arena custom kits unavailable this raid: {ex.Message}");
+            return new CustomKitView { StockLoaded = _kits != null };
+        }
+    }
+
+    /// <summary>The choice in force: live in the menu, held for an armed or running raid.</summary>
+    internal static ArenaKitChoice CurrentChoice
+        => ChoiceLatch.Resolve(Session.ArenaSession.ArmedForNextRaid || Session.ArenaSession.IsActive,
+            Session.ArenaSession.ArmEpoch, new ArenaKitChoice(Settings.RandomKit.Value, Settings.SelectedKit.Value));
+
+    /// <summary>
     /// Lets a mode decide what the next life gets. Gun Game owns this while it
     /// runs, so a respawn hands back the tier the player had reached instead of
     /// starting them over on a random loadout. Cleared at raid end.
@@ -62,6 +140,22 @@ public static class KitCatalog
     {
         _kits = null;
         EnsureLoaded();
+    }
+
+    /// <summary>
+    /// The kit screen's refresh (docs/reviews/KIT-PICKER-20261110.md): fetches the catalogue
+    /// again, like Preload, but keeps the loaded one when the request fails, so a server that
+    /// is down while the map screen is open costs one request per opening, not a blocking
+    /// retry on every click. Left alone while a raid is armed or running: the raid's kit
+    /// reservation and caches hold that catalogue's objects.
+    /// </summary>
+    internal static IReadOnlyList<KitDefinition> RefreshForMenu()
+    {
+        if (Session.ArenaSession.IsActive || Session.ArenaSession.ArmedForNextRaid)
+            return _kits;
+        if (TryFetch(out var kits))
+            _kits = kits;
+        return _kits;
     }
 
     /// <summary>
@@ -114,16 +208,37 @@ public static class KitCatalog
         if (_kits == null || _kits.Count == 0)
             return null;
 
-        if (Settings.RandomKit.Value)
+        var choice = CurrentChoice;
+        if (choice.Random)
             return PickRandomKit();
 
-        var wanted = Settings.SelectedKit.Value;
+        var wanted = choice.KitId;
         KitDefinition preferred = null;
         if (!string.IsNullOrEmpty(wanted))
         {
             preferred = _kits.Find(k => string.Equals(k.Id, wanted, StringComparison.OrdinalIgnoreCase));
             if (preferred == null)
-                Plugin.ModLogger.LogWarning($"Selected kit '{wanted}' not in catalog — using first valid kit.");
+            {
+                // Not a stock kit: one of the player's own, issued exactly as built when it is
+                // ready and within the cap (the dearest stock kit), else the stock fallback below.
+                var view = CustomView;
+                var custom = view.Find(wanted);
+                if (custom != null)
+                {
+                    if (ArenaCustomKitPolicy.Eligible(custom.State, custom.Price, view.StockCap))
+                        return custom.Kit;
+                    if (_customWarnEpoch != Session.ArenaSession.ArmEpoch)
+                    {
+                        _customWarnEpoch = Session.ArenaSession.ArmEpoch;
+                        Plugin.ModLogger.LogWarning($"Own kit '{custom.Kit?.Name ?? wanted}' is not handed out here "
+                            + $"({ArenaCustomKitPolicy.PickerBlock(custom.State, custom.Reason, custom.Price, view.StockCap)}) — using the first valid kit.");
+                    }
+                }
+                else
+                {
+                    Plugin.ModLogger.LogWarning($"Selected kit '{wanted}' not in catalog — using first valid kit.");
+                }
+            }
         }
 
         foreach (var kit in preferred != null ? Prepend(preferred, _kits) : _kits)
@@ -222,27 +337,28 @@ public static class KitCatalog
         if (_kits != null)
             return;
 
+        // On a failure _kits stays null, so a transient server hiccup is retried on next
+        // access instead of downgrading every later raid this session.
+        if (TryFetch(out var kits))
+            _kits = kits;
+    }
+
+    private static bool TryFetch(out List<KitDefinition> kits)
+    {
+        kits = null;
         try
         {
             var json = RequestHandler.GetJson(Protocol.KitsRoute);
-            var kits = JsonConvert.DeserializeObject<List<KitDefinition>>(json);
-            if (kits != null)
-            {
-                kits.Sort((a, b) => a.Order.CompareTo(b.Order));
-                _kits = kits;
-            }
-            else
-            {
-                _kits = new List<KitDefinition>();
-            }
-
-            Plugin.ModLogger.LogDebug($"Kit catalog loaded: {_kits.Count} kits.");
+            kits = JsonConvert.DeserializeObject<List<KitDefinition>>(json) ?? new List<KitDefinition>();
+            kits.Sort((a, b) => a.Order.CompareTo(b.Order));
+            Plugin.ModLogger.LogDebug($"Kit catalog loaded: {kits.Count} kits.");
+            return true;
         }
         catch (Exception ex)
         {
-            // Leave _kits null so a transient server hiccup is retried on next access
-            // instead of downgrading every later raid this session.
+            kits = null;
             Plugin.ModLogger.LogError($"Kit catalog load failed ({ex.Message}) — will retry on next arena raid.");
+            return false;
         }
     }
 }
