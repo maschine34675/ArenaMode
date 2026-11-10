@@ -10,6 +10,16 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
+  editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from
+  lists of what each slot takes, every item arriving as the game's own default build and a weapon
+  loaded with its rounds. Every change is checked (slot rules, conflicts, required parts, supplies
+  fitting) and saved at once. An own kit costs the handbook sum of its items; it is handed out in
+  every mode when it costs no more than the dearest stock kit, and solo Tactical sells it at its
+  price either way. Own kits come exactly as built (no attachment draw, no extra grenades) and are
+  kept in `BepInEx/config/com.maschine.ArenaMode.custom-kits.json`, the same file in a normal and an
+  Arena session. The config page's "Reload from disk" no longer leaves every stock kit at price 0.
+  [Contract](docs/reviews/CUSTOM-KITS-20261110.md)
 - Pick your kit: **KITS** on the Arena map screen opens the catalogue as cards, cheapest first, with
   the game's own picture of each weapon, the armour and helmet class, the value and the full contents
   on hover. Pick one kit for every life or keep the random draw, and mark favourites. A picked kit

@@ -2,8 +2,8 @@
 
 The contract of the kit browser: the KITS screen of the Arena map screen, where the player
 picks the kit of the base draw, and solo Tactical's buy screen, which draws the same cards
-with the round's purse. Custom kits and the kit editor are the next stage and are not part
-of this document yet.
+with the round's purse. The player's own kits and the kit editor are their own contract:
+[CUSTOM-KITS-20261110.md](CUSTOM-KITS-20261110.md).
 
 ## What the player gets
 
@@ -139,7 +139,7 @@ by the running game from the player's own installation, and the layout is built 
 
 - `tools/KitPickerChecks` (`Verify.ps1`): choice, its write and rollback, latch,
   favourites, both card presenters and the purse text, with mutants of the production
-  source (65 assertions, 34 mutants on 2026-11-10).
+  source (72 assertions, 41 mutants on 2026-11-10, the own-kit cards of the next stage included).
 - `tools/TacticalPolishChecks`: compiles `TacticalBuyPanel` and the extracted
   `TacticalMode` methods, now with `ClearPurchase` and `Worn`: the kept kit before the
   first round, a purchase taken back after a buy-phase respawn (neither charged nor kept),

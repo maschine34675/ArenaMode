@@ -295,6 +295,11 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   value and contents, and keeps a favourites list. A raid holds the choice it
   was armed with; the per-raid attachment draw stays.
   [Contract](reviews/KIT-PICKER-20261110.md)
+- Own kits: copied from any kit and edited per slot in the KITS window from the game's
+  default builds, checked by structure and engine rules before every save, priced at
+  the handbook sum, issued exactly as built in every mode up to the dearest stock kit's
+  price and sold in solo Tactical at any price. One file under BepInEx/config.
+  [Contract](reviews/CUSTOM-KITS-20261110.md)
 - Invalid/unfinished game templates are excluded from generated equipment.
   Generated item trees and required bundles are checked before use.
 - Own gear is an alternative in Deathmatch, Team DM, Domination and Zombies: the

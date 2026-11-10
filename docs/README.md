@@ -164,6 +164,7 @@ Sorted by file name.
 - [Use Items Anywhere and shared HUD compatibility (ImpactCue, Enemy Markers)](reviews/ITEMS-HUD-COMPAT-20261025.md)
 - [Kill confirmation with the Arena skull: signal source, eligibility and lifetime](reviews/KILL-SKULL-REVIEW.md)
 - [Killcam per Arena mode: frozen selection, camera ownership and respawn hold](reviews/KILLCAM-MODES-REVIEW.md)
+- [Own kits: the kit editor, the kit file, the price rule and cap, who sees own kits, the two checks](reviews/CUSTOM-KITS-20261110.md)
 - [Kit screen and Tactical buy screen: choice held per raid, card browser, event system and picture gate in a raid](reviews/KIT-PICKER-20261110.md)
 - [Kit polish: front armor class display and optional RGD-5 grenade supplies](reviews/KIT-POLISH-REVIEW.md)
 - [Arena Labs: excluding extraction-gate bot spawns and five-opponent point planning](reviews/LABS-SPAWN-REVIEW.md)
