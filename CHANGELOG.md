@@ -22,7 +22,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   [Contract](docs/reviews/CUSTOM-KITS-20261110.md)
 - Pick your kit: **KITS** on the Arena map screen opens the catalogue as cards, cheapest first, with
   the game's own picture of each weapon, the armour and helmet class, the value and the full contents
-  on hover. Pick one kit for every life or keep the random draw, and mark favourites. A picked kit
+  of the card the pointer rests on (crossing other cards on the way to COPY TO MY KITS keeps the
+  kit). Pick one kit for every life or keep the random draw, and mark favourites. A picked kit
   keeps its per-raid attachment draw. The choice is the F12 pair `Kits/RandomKit` and
   `Kits/SelectedKit` as before; a raid now keeps the choice it started with (an F12 edit made in a
   raid counts from the next one). New F12 key `Kits/FavoriteKits`.

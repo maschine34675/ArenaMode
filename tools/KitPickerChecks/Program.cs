@@ -157,6 +157,111 @@ var unusable = ArenaKitCards.ForShop(new[] { new ArenaKitCardSource { Id = "cust
 Need(!unusable[0].Enabled && unusable[0].PriceText.Contains("unknown items"), "the shop greys an unusable own kit");
 Need(Ids(ArenaKitCards.ForPicker(mine, random, null, false, false)).Contains("custom-00000000000000aa,drifter"), "own kits sort by price among the stock kits");
 
+// --- which card the detail pane shows (ArenaKitHoverIntent): the browser's 4 x 4 grid of 236 x 150 cards
+// with 12 px gaps, the pane right of it (x from 992 on); y grows downwards here, only its size matters
+const float Frame = 1f / 60f;
+string CardAt(float x, float y)
+{
+    if (x < 0f || y < 0f || x >= 4 * 248f || y >= 4 * 162f || x % 248f > 236f || y % 162f > 150f) return null;
+    return "card" + ((int)(y / 162f) * 4 + (int)(x / 248f));
+}
+float clock = 0f; string under = null; int misreports = 0;
+var intent = new ArenaKitHoverIntent<string>();
+// One frame as the view runs it; Update's answer must say whether the shown card changed (the view redraws on it).
+void Tick(float x, float y)
+{
+    string before = intent.Shown;
+    if (intent.Update(clock, x, y) == ReferenceEquals(before, intent.Shown)) misreports++;
+    clock += Frame;
+}
+// The pointer on (x, y) for one frame: the card under it gets its enter, the one it left its exit.
+void Step(float x, float y)
+{
+    string card = CardAt(x, y);
+    if (card != under) { if (under != null) intent.Exit(under); if (card != null) intent.Enter(card, clock); under = card; }
+    Tick(x, y);
+}
+int Frames(float seconds) => Math.Max(1, (int)Math.Round(seconds / Frame));
+// A straight line at a steady speed, one frame at a time.
+void Glide(float x0, float y0, float x1, float y1, float seconds)
+{
+    int frames = Frames(seconds);
+    for (int frame = 0; frame <= frames; frame++) Step(x0 + (x1 - x0) * frame / frames, y0 + (y1 - y0) * frame / frames);
+}
+void Hold(float x, float y, float seconds) => Glide(x, y, x, y, seconds);
+// A hand on the mouse: a few pixels to either side every frame.
+void Jitter(float x, float y, float amplitude, float seconds)
+{
+    for (int frame = 0; frame <= Frames(seconds); frame++) Step(x + (frame % 2 == 0 ? amplitude : -amplitude), y);
+}
+void Restart() { intent.Reset(); under = null; clock += 10f; }
+
+Hold(100f, 75f, .2f);
+Need(intent.Shown == "card0", "a card the pointer rests on takes the pane");
+Glide(100f, 75f, 1300f, 75f, .6f);
+Hold(1300f, 75f, 1f);
+Need(intent.Shown == "card0", "crossing cards on the way to the pane leaves the pane on its kit");
+Glide(1300f, 75f, 100f, 75f, .3f);
+Hold(100f, 75f, .2f);
+Glide(100f, 75f, 1300f, 75f, 4f);
+Hold(1300f, 75f, .5f);
+Need(intent.Shown == "card0", "creeping right towards the pane does not take it");
+Restart();
+Hold(845f, 75f, .2f);
+Need(intent.Shown == "card3", "the rightmost card takes the pane");
+Glide(845f, 75f, 1000f, 600f, 2.5f);
+Need(intent.Shown == "card3", "creeping steeply down-right to the buttons does not take the pane");
+Restart();
+Hold(400f, 75f, .2f);
+Glide(400f, 75f, 130f, 75f, .1f);
+Glide(130f, 75f, 118f, 75f, .15f);
+Need(intent.Shown == "card1", "a drift past the rest distance is no rest");
+Restart();
+Hold(400f, 75f, .2f);
+Glide(400f, 75f, 120f, 75f, .1f);
+Jitter(120f, 75f, 2.5f, .2f);
+Need(intent.Shown == "card0", "a hand's jitter of a few pixels still rests");
+Restart();
+Hold(400f, 75f, .2f);
+Glide(400f, 75f, 200f, 75f, .25f);
+Glide(200f, 75f, 175f, 75f, .3f);
+Need(intent.Shown == "card1", "a card is not shown before its dwell while the pointer creeps");
+Glide(175f, 75f, 150f, 75f, .3f);
+Need(intent.Shown == "card0", "a card the pointer creeps over without heading to the pane is shown after a while");
+Restart();
+Hold(400f, 75f, .2f);
+Glide(400f, 75f, 120f, 75f, .1f);
+Hold(120f, 75f, .05f);
+Need(intent.Shown == "card1", "a stop shorter than a rest keeps the pane");
+Hold(120f, 75f, .1f);
+Need(intent.Shown == "card0", "a stop of a rest takes the pane");
+Restart();
+Hold(100f, 75f, .2f);
+intent.Enter("card1", clock); intent.Exit("card0"); under = "card1";
+Hold(300f, 75f, .2f);
+Need(intent.Shown == "card1", "a late exit of the previous card does not drop the current one");
+intent.Show("card2");
+Need(intent.Shown == "card2", "a click shows its card at once");
+intent.Exit("card1"); under = null;
+Hold(1300f, 75f, 1f);
+intent.Enter("card3", clock); under = "card3";
+Tick(1300f, 75f);
+Need(intent.Shown == "card3", "a card scrolled under a resting pointer is shown at once");
+Restart();
+Need(intent.Shown == null, "a rebuilt browser shows no hovered card");
+intent.Enter("card0", clock); under = "card0";
+Tick(100f, 75f);
+Need(intent.Shown == null, "a pointer that has just jumped onto a card has to rest first");
+Restart();
+Hold(600f, 75f, .2f);
+intent.Reset();
+for (int frame = 0; frame < 12; frame++) Tick(600f, 75f);
+Need(intent.Shown == null, "a rebuild forgets the card under the pointer (its exit never comes)");
+intent.Enter("card2", clock);
+Tick(600f, 75f);
+Need(intent.Shown == "card2", "the rebuilt card under a resting pointer is shown at once");
+Need(misreports == 0, "Update reports exactly the frames on which the shown card changes");
+
 // --- the line above the picker
 Need(ArenaKitCards.ChoiceLine(random, kits) == "A random kit for every life", "choice line: random");
 Need(ArenaKitCards.ChoiceLine(new ArenaKitChoice(false, "Gamma"), kits) == "Gamma, every life", "choice line: named kit");

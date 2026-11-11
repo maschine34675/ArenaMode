@@ -51,4 +51,24 @@ $cardFaults = @(
     @{ Name='purse-reads-free'; Find='=> Math.Max(0, roubles).ToString("N0", CultureInfo.InvariantCulture) + " ₽";'; Replace='=> Money(roubles);'; Failure='an empty purse reads 0, never free' }
 )
 foreach ($fault in $cardFaults) { $fault.Path = $cards; $fault.Property = 'CardsSource' }
-Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'KitPickerChecks.csproj') -Token 'KIT_PICKER_CHECKS_PASSED' -Properties @() -Faults ($choiceFaults + $cardFaults)
+$intent = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Kits/ArenaKitHoverIntent.cs')).Path
+$intentFaults = @(
+    @{ Name='show-on-enter'; Find="        _over = card;`n        _enteredAt = now;"; Replace="        _over = card;`n        Shown = card;`n        _enteredAt = now;"; Failure='crossing cards on the way to the pane leaves the pane on its kit' },
+    @{ Name='no-rest'; Find='bool resting = now - _stillSince >= RestSeconds;'; Replace='bool resting = false;'; Failure='a card the pointer rests on takes the pane' },
+    @{ Name='rest-never-resets'; Find="            _stillY = y;`n            _stillSince = now;"; Replace="            _stillY = y;"; Failure='crossing cards on the way to the pane leaves the pane on its kit' },
+    @{ Name='exit-ignored'; Find='if (card != null && ReferenceEquals(_over, card)) _over = null;'; Replace='if (card == null) _over = null;'; Failure='crossing cards on the way to the pane leaves the pane on its kit' },
+    @{ Name='exit-clears-any'; Find='if (card != null && ReferenceEquals(_over, card)) _over = null;'; Replace='if (card != null) _over = null;'; Failure='a late exit of the previous card does not drop the current one' },
+    @{ Name='dwell-ignores-heading'; Find='bool dwelt = now - _enteredAt >= DwellSeconds && !_headingRight;'; Replace='bool dwelt = now - _enteredAt >= DwellSeconds;'; Failure='creeping right towards the pane does not take it' },
+    @{ Name='no-dwell'; Find='bool dwelt = now - _enteredAt >= DwellSeconds && !_headingRight;'; Replace='bool dwelt = false;'; Failure='a card the pointer creeps over without heading to the pane is shown after a while' },
+    @{ Name='short-dwell'; Find='internal const float DwellSeconds = .45f;'; Replace='internal const float DwellSeconds = .2f;'; Failure='a card is not shown before its dwell while the pointer creeps' },
+    @{ Name='heading-any-direction'; Find='_headingRight = dx >= HeadingMinimum && Math.Abs(dy) <= dx * HeadingSlope;'; Replace='_headingRight = Math.Abs(dx) >= HeadingMinimum && Math.Abs(dy) <= Math.Abs(dx) * HeadingSlope;'; Failure='a card the pointer creeps over without heading to the pane is shown after a while' },
+    @{ Name='heading-too-narrow'; Find='_headingRight = dx >= HeadingMinimum && Math.Abs(dy) <= dx * HeadingSlope;'; Replace='_headingRight = dx >= HeadingMinimum && Math.Abs(dy) <= dx;'; Failure='creeping steeply down-right to the buttons does not take the pane' },
+    @{ Name='reset-keeps-shown'; Find="        _over = null;`n        Shown = null;"; Replace="        _over = null;"; Failure='a rebuilt browser shows no hovered card' },
+    @{ Name='reset-keeps-over'; Find="        _over = null;`n        Shown = null;"; Replace="        Shown = null;"; Failure='a rebuild forgets the card under the pointer (its exit never comes)' },
+    @{ Name='rest-without-jitter'; Find='internal const float RestDistance = 6f;'; Replace='internal const float RestDistance = .5f;'; Failure="a hand's jitter of a few pixels still rests" },
+    @{ Name='rest-too-loose'; Find='internal const float RestDistance = 6f;'; Replace='internal const float RestDistance = 10f;'; Failure='a drift past the rest distance is no rest' },
+    @{ Name='never-reports'; Find="        Shown = _over;`n        return true;"; Replace="        Shown = _over;`n        return false;"; Failure='Update reports exactly the frames on which the shown card changes' },
+    @{ Name='always-reports'; Find='if (_over == null || ReferenceEquals(_over, Shown)) return false;'; Replace='if (_over == null || ReferenceEquals(_over, Shown)) return true;'; Failure='Update reports exactly the frames on which the shown card changes' }
+)
+foreach ($fault in $intentFaults) { $fault.Path = $intent; $fault.Property = 'IntentSource' }
+Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'KitPickerChecks.csproj') -Token 'KIT_PICKER_CHECKS_PASSED' -Properties @() -Faults ($choiceFaults + $cardFaults + $intentFaults)

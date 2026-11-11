@@ -13,6 +13,14 @@ with the round's purse. The player's own kits and the kit editor are their own c
   draw. A click picks; the line under the title says what the next raid hands out.
   Hovering a card shows the kit on the right: weapon and ammunition, sidearm, armour,
   helmet, headset, spare magazines, supplies, backpack, and pictures of the gear.
+  (2026-11-11, "Hover") In the kit screen the pane changes when the pointer comes to rest
+  on a card (0.10 s within 6 px), or stays on one 0.45 s without heading right towards the
+  pane; a click on a card or its FAV shows it at once. Crossing other cards on the way to
+  COPY TO MY KITS, EDIT or DELETE therefore keeps the kit those buttons act on; before, the
+  pane took every card the pointer touched and the buttons went with it (owner's report).
+  A steady sweep to the right shows the next card only when the pointer pauses. The buy
+  screen's pane has no buttons and still follows the pointer at once. Should the pointer
+  position ever throw, the kit screen falls back to that immediate behaviour too.
 - **FAV** on a card marks a favourite; **FAVOURITES** shows only those. Favourites only
   mark cards and fill that view: they reorder nothing and change nothing in a raid.
 - A picked kit keeps the per-raid attachment draw of the server: the player picks the kit,
@@ -117,6 +125,7 @@ with the round's purse. The player's own kits and the kit editor are their own c
 |---|---|
 | `Kits/ArenaKitChoice.cs` | `ArenaKitChoice`, `ArenaKitChoiceWrite`, `ArenaKitChoiceLatch`, `ArenaKitFavorites`: pure. |
 | `Kits/ArenaKitCards.cs` | `ForPicker`, `ForShop`, `ChoiceLine`, `Money`, `Purse`: pure, decides order, state and text of every card. |
+| `Kits/ArenaKitHoverIntent.cs` | Which card the kit screen's pane shows from card enter/exit, clicks and the pointer's motion (rest, dwell, heading right): pure, fed `Time.unscaledTime` and `Input.mousePosition` by the view. |
 | `Kits/KitFacts.cs` | The card line and detail rows of a kit; `KitPreviewItems` builds the detached items the pictures are asked for. A kit that fails `KitBuilder.ValidateKit` gets no pictures. |
 | `Hud/ArenaKitUi.cs` | Small uGUI builders on the `ArenaUiTheme` palette, the hover relay, `ArenaKitItemIcon.Show` (shows `ItemViewFactory.LoadItemIcon` in an image; not named Bind, which ArenaConfigMenuLayoutTests reads as a config bind). |
 | `Hud/ArenaKitBrowserView.cs` | Cards, scroll area, detail pane. Draws what it is given, reports clicks, reads no setting. Pictures are asked for two per frame; a failure switches pictures off, not the browser. |
@@ -139,7 +148,10 @@ by the running game from the player's own installation, and the layout is built 
 
 - `tools/KitPickerChecks` (`Verify.ps1`): choice, its write and rollback, latch,
   favourites, both card presenters and the purse text, with mutants of the production
-  source (72 assertions, 41 mutants on 2026-11-10, the own-kit cards of the next stage included).
+  source (72 assertions, 41 mutants on 2026-11-10, the own-kit cards of the next stage included;
+  91 assertions, 57 mutants on 2026-11-11 with the hover intent: simulated gestures over the real
+  4 x 4 grid geometry, rest, jitter, drift, dwell, heading right, late exits, rebuilds, and that
+  `Update` reports exactly the frames on which the shown card changes).
 - `tools/TacticalPolishChecks`: compiles `TacticalBuyPanel` and the extracted
   `TacticalMode` methods, now with `ClearPurchase` and `Worn`: the kept kit before the
   first round, a purchase taken back after a buy-phase respawn (neither charged nor kept),

@@ -111,14 +111,20 @@ internal static class ArenaKitUi
     }
 }
 
-/// <summary>Tells its card when the pointer enters it, so the detail pane can follow the mouse.</summary>
-internal sealed class ArenaKitCardHover : MonoBehaviour, IPointerEnterHandler
+/// <summary>Tells its card when the pointer enters and leaves it; the browser decides from that and the pointer's motion which kit the detail pane shows.</summary>
+internal sealed class ArenaKitCardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    internal Action Entered;
+    internal Action Entered, Exited;
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         try { Entered?.Invoke(); }
+        catch (Exception ex) { Plugin.ModLogger.LogDebug($"Arena kit card hover failed: {ex.Message}"); }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        try { Exited?.Invoke(); }
         catch (Exception ex) { Plugin.ModLogger.LogDebug($"Arena kit card hover failed: {ex.Message}"); }
     }
 }

@@ -75,8 +75,8 @@ internal sealed class ArenaKitBrowserView
     private Action<ArenaKitCard> _onClick, _onFavorite;
     private string _structure;
     private string _detailKey;
-    private CardWidgets _hovered;
-    private bool _failed;
+    private readonly ArenaKitHoverIntent<CardWidgets> _intent = new();
+    private bool _failed, _pointerFailed;
 
     internal GameObject Root => _root != null ? _root.gameObject : null;
 
@@ -102,7 +102,7 @@ internal sealed class ArenaKitBrowserView
         {
             CreateCardsArea();
             CreateDetail();
-            _root.gameObject.AddComponent<Pump>().Tick = PumpIcons;
+            _root.gameObject.AddComponent<Pump>().Tick = Frame;
         }
         catch { Close(); throw; }
     }
@@ -110,7 +110,7 @@ internal sealed class ArenaKitBrowserView
     /// <summary>
     /// Draws <paramref name="cards"/>. Cards are rebuilt only when their set or order changes;
     /// a changed selection, favourite mark or price updates the existing ones in place, so the
-    /// scroll position and the hovered kit survive a click.
+    /// scroll position and the kit on the right survive a click.
     /// </summary>
     internal void Show(IReadOnlyList<ArenaKitCard> cards, Func<string, KitDefinition> kitOf,
         Action<ArenaKitCard> onClick, Action<ArenaKitCard> onFavorite, string emptyText, string note,
@@ -135,7 +135,7 @@ internal sealed class ArenaKitBrowserView
         _empty.text = cards.Count == 0 ? emptyText ?? string.Empty : string.Empty;
         _detailNote.text = note ?? string.Empty;
 
-        CardWidgets shown = _hovered != null && _widgets.Contains(_hovered) ? _hovered : null;
+        CardWidgets shown = _intent.Shown != null && _widgets.Contains(_intent.Shown) ? _intent.Shown : null;
         if (shown == null)
             foreach (CardWidgets widgets in _widgets)
                 if (widgets.Card.Selected) { shown = widgets; break; }
@@ -150,7 +150,7 @@ internal sealed class ArenaKitBrowserView
         foreach (CardWidgets widgets in _widgets)
             if (widgets.Button != null) widgets.Button.onClick.RemoveAllListeners();
         _widgets.Clear();
-        _hovered = null;
+        _intent.Reset();
         _structure = null;
         _detailKey = null;
         _kitOf = null;
@@ -235,7 +235,7 @@ internal sealed class ArenaKitBrowserView
         _pendingIcons.Clear();
         _waitingIcons.Clear();
         _detailWaiting = null;
-        _hovered = null;
+        _intent.Reset();
         _detailKey = null;
         foreach (CardWidgets old in _widgets)
             if (old.Button != null)
@@ -282,7 +282,9 @@ internal sealed class ArenaKitBrowserView
                 favorite.onClick.AddListener(() => Favorite(widgets));
             }
 
-            widgets.Button.gameObject.AddComponent<ArenaKitCardHover>().Entered = () => Hover(widgets);
+            var hover = widgets.Button.gameObject.AddComponent<ArenaKitCardHover>();
+            hover.Entered = () => Hover(widgets);
+            hover.Exited = () => _intent.Exit(widgets);
             widgets.Button.onClick.AddListener(() => Click(widgets));
             _widgets.Add(widgets);
         }
@@ -317,6 +319,30 @@ internal sealed class ArenaKitBrowserView
         if (!widgets.IconBound && widgets.Icon != null && kit != null
             && !_pendingIcons.Contains(widgets) && !_waitingIcons.Contains(widgets))
             _pendingIcons.Enqueue(widgets);
+    }
+
+    private void Frame()
+    {
+        TrackPointer();
+        PumpIcons();
+    }
+
+    /// <summary>Hands the pane to the card the pointer rests on (<see cref="ArenaKitHoverIntent{T}"/>).</summary>
+    private void TrackPointer()
+    {
+        if (_pointerFailed || _root == null) return;
+        try
+        {
+            Vector3 pointer = Input.mousePosition;
+            if (_intent.Update(Time.unscaledTime, pointer.x, pointer.y) && _intent.Shown != null && _widgets.Contains(_intent.Shown))
+                ShowDetail(_intent.Shown);
+        }
+        catch (Exception ex)
+        {
+            // Without the pointer's position the pane follows every hovered card at once, as it did before.
+            _pointerFailed = true;
+            Plugin.ModLogger.LogWarning($"Arena kit browser: pointer position unavailable, the detail follows every hovered card: {ex.Message}");
+        }
     }
 
     private void PumpIcons()
@@ -372,6 +398,9 @@ internal sealed class ArenaKitBrowserView
     private void Click(CardWidgets widgets)
     {
         if (_root == null || !_widgets.Contains(widgets) || widgets.Card?.Enabled != true) return;
+        // The clicked card takes the pane at once, whatever the pointer did on the way.
+        _intent.Show(widgets);
+        ShowDetail(widgets);
         try { _onClick?.Invoke(widgets.Card); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena kit browser: selection failed: {ex.Message}"); }
     }
@@ -379,6 +408,9 @@ internal sealed class ArenaKitBrowserView
     private void Favorite(CardWidgets widgets)
     {
         if (_root == null || !_widgets.Contains(widgets) || widgets.Card == null) return;
+        // A FAV click acts on its card like a card click, so the pane shows that card at once too.
+        _intent.Show(widgets);
+        ShowDetail(widgets);
         try { _onFavorite?.Invoke(widgets.Card); }
         catch (Exception ex) { Plugin.ModLogger.LogWarning($"Arena kit browser: favourite change failed: {ex.Message}"); }
     }
@@ -386,7 +418,16 @@ internal sealed class ArenaKitBrowserView
     private void Hover(CardWidgets widgets)
     {
         if (_root == null || !_widgets.Contains(widgets)) return;
-        _hovered = widgets;
+        // Only a pane with buttons (the kit screen's COPY TO MY KITS, EDIT, DELETE) has to stay on its kit while
+        // the pointer crosses other cards on the way to them; there the pane changes when the pointer rests on a
+        // card (TrackPointer). The buy screen's pane only shows the kit and follows the pointer at once.
+        if (!_pointerFailed && _actions != null && _actions.Count > 0)
+        {
+            _intent.Enter(widgets, Time.unscaledTime);
+            return;
+        }
+
+        _intent.Show(widgets);
         ShowDetail(widgets);
     }
 

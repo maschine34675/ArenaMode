@@ -4,9 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <ChoiceSource Condition="'$(ChoiceSource)' == ''">../../ArenaMode.Client/Kits/ArenaKitChoice.cs</ChoiceSource>
     <CardsSource Condition="'$(CardsSource)' == ''">../../ArenaMode.Client/Kits/ArenaKitCards.cs</CardsSource>
+    <IntentSource Condition="'$(IntentSource)' == ''">../../ArenaMode.Client/Kits/ArenaKitHoverIntent.cs</IntentSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ChoiceSource)" Link="Production/ArenaKitChoice.cs" />
     <Compile Include="$(CardsSource)" Link="Production/ArenaKitCards.cs" />
+    <Compile Include="$(IntentSource)" Link="Production/ArenaKitHoverIntent.cs" />
   </ItemGroup>
 </Project>
