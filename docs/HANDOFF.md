@@ -17,7 +17,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   DELETE ([contract](reviews/KIT-PICKER-20261110.md), "Hover"; [native run](reports/2026-11/GPU-KIT-HOVER-20261111.md)).
   Installed: client `0.5.0+1fb93c69` (only that DLL replaced; it carries the merged spare-magazine fill
   too), server `0.5.0+e664eff1`, BigBrainCompat, Gate, session helper and Core unchanged. Previous client
-  DLL in `D:\SPT41-Backups\kit-hover-intent61111-110106`.
+  DLL in `D:\SPT41-Backups\kit-hover-intent\20261111-110106`.
 
 - **Development, 2026-11-10, `master` `e664eff1` (not pushed), server deployed:** an observed
   restoration whose disk readback can never match no longer quarantines its profile at every
