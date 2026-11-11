@@ -177,6 +177,12 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
+`SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as
+they are for SPT 4.1: recovery closures record the evidence files' relative paths and hashes, so moving them would fail
+verification and quarantine the profile. Design one root folder for the SPT 5.0 port, where every player starts fresh
+and nothing has to be migrated.
+
 **Own gear in Deathmatch, Team DM and Domination (2026-11-09, master, for 0.6.0;
 [contract](reviews/OWN-GEAR-ALL-MODES-20261109.md)):** the EQUIPMENT row offers Arena kits / Own gear for
 Deathmatch, Team DM and Domination too (new keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
