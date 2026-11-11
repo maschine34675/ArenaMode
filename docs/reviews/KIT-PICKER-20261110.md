@@ -152,6 +152,9 @@ by the running game from the player's own installation, and the layout is built 
   91 assertions, 57 mutants on 2026-11-11 with the hover intent: simulated gestures over the real
   4 x 4 grid geometry, rest, jitter, drift, dwell, heading right, late exits, rebuilds, and that
   `Update` reports exactly the frames on which the shown card changes).
+- Native (2026-11-11, [record](../reports/2026-11/GPU-KIT-HOVER-20261111.md)): driven glides on GPU-2
+  from a rested card to COPY TO MY KITS, fast, slow and L-shaped across five cards, kept the pane on
+  its kit; a rest on another card took it.
 - `tools/TacticalPolishChecks`: compiles `TacticalBuyPanel` and the extracted
   `TacticalMode` methods, now with `ClearPurchase` and `Worn`: the kept kit before the
   first round, a purchase taken back after a buy-phase respawn (neither charged nor kept),
