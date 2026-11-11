@@ -11,7 +11,21 @@ public sealed class ArenaDirectStartTests : IDisposable
     private const string Profile = "6ab7db1164f04b565cf78be7";
     private readonly string _root = Path.Combine(Path.GetTempPath(), "arena-direct-start-" + Guid.NewGuid().ToString("N"));
     public ArenaDirectStartTests() { Directory.CreateDirectory(_root); }
-    public void Dispose() { Directory.Delete(_root, true); }
+    // AlreadyStartingServerIsReusedAndForeignImageIsRefused runs a copy of ping.exe from _root. A
+    // killed process can still be tearing down when xunit disposes the class (seen under the load
+    // of a full run): its image is still mapped and deleting the copy fails with "Access to the
+    // path ... is denied" until the teardown ends, tens of milliseconds later. Retry for a bounded
+    // time; anything that still holds a file after that is a real leak and still fails the test.
+    public void Dispose()
+    {
+        var waited = Stopwatch.StartNew();
+        while (true)
+        {
+            try { Directory.Delete(_root, true); return; }
+            catch (Exception ex) when ((ex is UnauthorizedAccessException or IOException) && waited.ElapsedMilliseconds < 10_000)
+            { Thread.Sleep(50); }
+        }
+    }
     private string Put(string relative, string text)
     {
         string path = Path.Combine(_root, relative); Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllText(path, text); return path;
