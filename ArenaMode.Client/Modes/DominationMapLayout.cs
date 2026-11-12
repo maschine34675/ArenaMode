@@ -97,11 +97,12 @@ internal sealed class DominationMapLayout
     // light root of autoservice.modes.json (a Bowl leftover name, but the only capture point
     // the scene carries; the same per-light source as the other ports). X/Z and the height
     // are all the root's own: GPU-2 on 12.11.2026 (ordinary PMC raid, UiBridge teleport dry
-    // runs, scratchpad record gpu2-measurement-20261112) put the Arena NavMesh floor at
+    // runs; docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md) put the Arena NavMesh floor at
     // y -3.8 for this X/Z, accepted the exact point with a snap below 0.05 m and room to
     // stand, and found complete paths from both pockets (42.2 / 37.1 m). Unlike Iceberg
-    // (a6ed8d93) nothing is substituted. The native ArenaMode acceptance run with the gates
-    // held is still pending; if it refuses the point, change ChopShopControlPointY below and
+    // (a6ed8d93) nothing is substituted. The native Domination run the same day verified the
+    // point at (-369.290, -3.805, 499.490) with the gates held and the routes from both
+    // pockets. If a later map build refuses it, change ChopShopControlPointY below and
     // nothing else. Do not move X/Z, add a relocation or loosen ArenaPickupGeometry.TryFloor:
     // a refused point must keep aborting the protected match.
     private const float ChopShopControlPointY = -3.8f;

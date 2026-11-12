@@ -288,8 +288,9 @@ public static class ArenaTeamBoxCatalog
     //
     // Height is cut, not authored: the east bound spans 17.1 m (y -11.36 .. 5.75, down 7.5 m
     // below the floor and up past the tribune decks at 4.35 .. 5.3), the west 9.8 m (-7.72 ..
-    // 2.12). Measured on GPU-2 on 2026-11-12 (ordinary PMC raid, gates opened by MapPort, no
-    // ArenaMode involvement; native acceptance with held gates is still pending): the west
+    // 2.12). Measured on GPU-2 on 2026-11-12 (ordinary PMC raid, gates opened by MapPort;
+    // docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md has both surveys and the Team DM runs
+    // with held gates, 4v4 and 10v10, that followed the same day): the west
     // pocket's roof is walkable navmesh at y 1.7 .. 1.9 over the whole footprint and the east
     // pocket has separate navmesh islands at -1.8, -0.8, -0.2 and 1.0 (path_partial from
     // inside the pocket with the gates open); the highest connected pocket surface is a step at
