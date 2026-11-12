@@ -164,6 +164,19 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   development build `bebf49b` (installed 2026-11-08 by the Tactical objective session, the user's
   choice; Redeploy `main` is already at 1.0.22, so an ArenaMode build must detach Redeploy at
   `bebf49b` or the client refuses the installed Core).
+  **Since 2026-11-12 14:53 UTC** the ArenaMode client, BigBrainCompat and server DLLs in `D:\SPT41`
+  (mirrored to the hosts; loaded on GPU-2, 16/16 identical) are the development build of Chop Shop,
+  stamped `0.5.0+3ea7eabb` (the `master` head before this note; client SHA-256
+  `7f3acef7580a886c35a85d157d1743fdbecf0f1e8414550e03f204ed771acc79`, BigBrainCompat
+  `fb281181c5a111d81ba8c7bb72d9543ca88c076e980858978c95090a3e1d2e43`, server
+  `187440bec0d680884757ae4842334965ef79827c4b04c2e43542363a16a69f56`), built against the installed Core
+  `1.0.22+b1d69e1` (SHA-256 `5873c9bc…`, unchanged by the build; the Core 1.0.21 remark above is superseded
+  by the installs of 2026-11-09, and Redeploy `main` needs no detach for a build at present). Gate and the
+  Session helper were not touched. On its first start the client moved `General/Maps` to optional-map
+  revision 6 (`arena_autoservice` added) and the server added the map's row to `config.json`; every other
+  config value the test runs changed is back at its previous value. Previous files:
+  `D:\SPT41-Backupsrena-chop-shop61112-142217` (the state before this work, client
+  `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
