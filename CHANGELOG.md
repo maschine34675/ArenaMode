@@ -16,8 +16,16 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   participants. Team DM and Domination use the map's original pockets, USEC east / BEAR west, for
   2v2-10v10, and Domination has its one capture point. The map needs an ArenaMapPort build that
   ships it (not yet released); the saved map list gains it once through optional-map revision 6.
-  Box height and capture point are measured on a test machine; the full in-raid run is still
-  pending. [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md)
+  It ran on a test machine on 2026-11-12 (menu, Deathmatch, Team Deathmatch 4v4 and 10v10, Domination,
+  solo Zombies); its gates get a 15 s watchdog because the match flow polls the opening once a second.
+  Known limits: Domination places 5 of 6 pickups, and the yard centre is a dead patch for spawns
+  (the map has only seven bot spawn points).
+  [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md),
+  [native report](docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)
+- Zombies: when an infected spawn request fails (no usable spawn point), the wave now waits two seconds
+  before the next attempt instead of retrying every pacing interval. The slot is still retried. In a spot
+  without a usable spawn point this took the dropped requests and warnings from 133 in 30 s to 18 in 36 s.
+  [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md)
 - Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
   editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from
   lists of what each slot takes, every item arriving as the game's own default build and a weapon

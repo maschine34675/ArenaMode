@@ -662,11 +662,13 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   0.4.0+32fda33). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM, TDM (original
   pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point) and solo Zombies, but no
   Tactical (seven bot markers, none beyond the 25 m floor from the yard centre) and no PFT Zombies
-  (1,916 m2 main walkable component); it defaults to six participants. It needs an ArenaMapPort build
-  that ships it (today only the unreleased `feature/autoservice` build 0.5.0+b7876d3) and is
-  detected by the live location. Its team-box height and Domination point are measured on GPU-2 in
-  an ordinary raid; the native ArenaMode run is pending
-  ([contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)). ArenaMode does not ship or install those maps itself.
+  (1,916 m2 main walkable component); it defaults to six participants (seven Bot rows). It needs an
+  ArenaMapPort build that ships it (today only the unreleased `feature/autoservice` build 0.5.0+b7876d3)
+  and is detected by the live location. It ran natively on GPU-2 on 2026-11-12 (menu, Deathmatch,
+  Team DM 4v4 and 10v10, Domination, solo Zombies, PMC control; [report](reports/2026-11/GPU-CHOP-SHOP-20261112.md),
+  [contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)). Its gate watchdog is 15 s. Known limits:
+  Domination places 5 of 6 pickups (Health is left out) and the yard centre has a dead patch for
+  Zombies, Deathmatch and Gun Game spawns. ArenaMode does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
 - Factory day and night exclude the known unsafe courtyard/underground bot

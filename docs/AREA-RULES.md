@@ -430,7 +430,7 @@ owned route destination separate from any failed alternative for exact cleanup.
 The six ported maps use original anchors: Equator, Bay5 and Chop Shop one each, AirPit and
 Bowl two each (CapturePointEntity), Iceberg three, A/B/C. Chop Shop's "X" is the
 CAPTURE_POINT light root with all three of its own coordinates (GPU-2 accepted it exactly on
-2026-11-12; nothing is substituted); keep the shared projection as it is, see
+2026-11-12 and the protected match verified (-369.290, -3.805, 499.490); nothing is substituted); keep the shared projection as it is, see
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md. Read docs/reviews/DOMINATION-PORTED-20261026.md.
 Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
 averages two distinct objectives (Iceberg's is null). Iceberg's A/B/C are the
@@ -637,6 +637,12 @@ Iceberg's; do not remove them to claim the map fully accepted. It needs an Arena
 ships it (the unreleased feature/autoservice, 0.5.0+b7876d3, whose version string the published 0.5.0
 shares); detect it by the live location, never by the MapPort version. See
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md.
+Zombies: a failed infected dispatch reported with its time (`ZombieWavePolicy.ReportFailedDispatch(ref
+state, now)`) holds the wave's next attempt for `FailedDispatchBackoffSeconds` (2 s); the slot is still
+retried. Found on Chop Shop, where the yard centre has no Bot row beyond the 25 m floor (133 dropped
+requests in 30 s before, 18 in 36 s after); the contract is the section "Zombies: failed dispatch
+backoff" of docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md. Do not drop the time argument at the two
+`ZombieMode.Tick` call sites.
 Air Pit is an optional full map for all current modes, using its existing safe
 generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
 Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
@@ -746,12 +752,19 @@ Zombies (default six for DM/Gun Game/TDM/Domination). Independent TDM and Domina
 authored pockets, USEC east / BEAR west, with twenty private markers. The interiors are the
 authored world-aligned bounds inset .35 m, with the east face towards the big gate held at the leaf
 plus .35 m, and the height is cut to y -4.8 .. -1.0 for both pockets (GPU-2, 2026-11-12): the west
-roof is walkable at 1.7 .. 1.9 and the east pocket has separate navmesh islands above -1.0, so the
-authored heights would admit them. Keep the cut. Gate opening has no Chop Shop case (the longest
-drive leaves the ten-second watchdog 2 s at drive scale 1.0). Donor and outside destination is the
+roof is walkable at 1.7 .. 1.9 and the east pocket has separate navmesh islands at -1.8, -0.8, -0.2 and
+1.0, so the authored heights would admit the roof and the islands at -0.8 and above. Keep the cut. Two
+surfaces stay inside the band and are unreachable from the pocket and from the yard: the strip along the
+east pocket's north edge at y -1.7 .. -2.0 and the shelf at the west pocket's south end (second survey,
+2026-11-12); no held path or formation point can use them, and the band is not narrowed for them. Gate
+opening has no legacy minimum but a 15 s watchdog (`GateOpeningTimeoutSeconds`; the match flow polls once
+a second and the native run measured 5.00 s at drive scale 0.5 and 9.00 s at 1.0, so the ordinary ten
+seconds would leave two polls after the 8.0 s drive). Donor and outside destination is the
 installed arena_autoservice-bot-core-03; anchors are Usec house (4) and (6). Revision-6 migration,
-the face derivation and the native-test boundary (the ArenaMode run with held gates is still
-pending) are in docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md.
+the face derivation and the native cycle (GPU-2, 2026-11-12: Deathmatch, Team DM 4v4 and 10v10,
+Domination, solo Zombies, PMC control; known limits: Domination places 5 of 6 pickups, a dead patch in
+the yard centre) are in docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md and
+docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md.
 
 Independent Equator, Bay5, AirPit, Bowl, Iceberg and Chop Shop Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south

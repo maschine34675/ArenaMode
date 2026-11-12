@@ -1,0 +1,26 @@
+{
+  "name": "chopshop-dom",
+  "description": "Chop Shop Domination with its one capture point: point verified on the NavMesh, formation in the pockets, gates opened with all twenty paths revalidated, objective routes from both opened pockets verified, a minute of play.",
+  "host": "host2",
+  "parameters": {
+    "participants": { "default": 8 },
+    "formationLine": { "default": "Team DM formation ready: 4v4" }
+  },
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "domination", "map": "CHOP SHOP", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
+    { "step": "expect", "name": "points", "what": "log", "contains": "Domination points verified: X=", "sinceStep": "raid", "withinSeconds": 60 },
+    { "step": "expect", "name": "formation", "what": "log", "contains": { "$ref": "/parameters/formationLine" }, "sinceStep": "raid", "withinSeconds": 60 },
+    { "step": "expect", "name": "gates-open", "what": "log", "contains": "Team DM gates open: all twenty formation paths revalidated", "sinceStep": "raid", "withinSeconds": 150 },
+    { "step": "expect", "name": "routes", "what": "log", "contains": "Domination objective routes from both opened team boxes verified", "sinceStep": "raid", "withinSeconds": 60 },
+    { "step": "still", "name": "still-open", "id": "dom-gates-open" },
+    { "step": "sleep", "name": "play", "seconds": 60 },
+    { "step": "bots", "name": "all-bots", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "player", "name": "player" },
+    { "step": "still", "name": "still-play", "id": "dom-play" },
+    { "step": "screenshot", "name": "desktop", "id": "dom-desktop" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}

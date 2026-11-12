@@ -184,23 +184,30 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (not merged, not pushed;
-[contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)):** admission (`c09e886a`), original pockets as team
-boxes (`4feaa9f6`), one-point Domination (`94ff82ba`) and the harness entry points
-(`tools/ChopShopChecks`, `tools/ChopShopTeamBoxChecks`) are done offline. Team-box height
-(-4.8 .. -1.0), donor `arena_autoservice-bot-core-03` and the Domination point (-369.29, -3.8, 499.49) were
-measured on GPU-2 in an ordinary PMC raid on 2026-11-12. Open: (1) the **native ArenaMode cycle on
-GPU-2** (Deathmatch, Team DM 2v2 and 10v10 with held gates, Domination, the Tactical and PFT Zombies
-refusals in the menu) and its gpu-run scenarios (`tools/ChopShopChecks` has no `scenarios/` folder yet);
-(2) the saved map list moves to **optional-map revision 6** (an Iceberg default gains Chop Shop once; an exact
-Bowl default at revision 5 means Iceberg was removed and stays) - installed configs migrate on the first start of a
-client built from this branch; (3) the harnesses that read installed MapPort data
-(`ChopShopChecks`, `ChopShopTeamBoxChecks`, `ArenaPickupChecks` and through it every full run) fail without an
-ArenaMapPort build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5.0+b7876d3`;
-the published 0.5.0 has the same version string and no Chop Shop); (4) README and FORGE-DESCRIPTION must stay
-free of Chop Shop, and the whitelist stays at 0.5.0, until an ArenaMapPort release ships the map. Not claimed:
-native run, crowd reactions, Redeploy/Killcam, spawn stall in the yard centre, DM/Gun Game up to 24 on seven
-bot rows, monitors, a DynamicMaps overlay (MapPort has no folder for it), the Fika fork.
+**Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (not pushed;
+[contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md), [native report](reports/2026-11/GPU-CHOP-SHOP-20261112.md)):**
+admission (`c09e886a`), original pockets as team boxes (`4feaa9f6`), one-point Domination (`94ff82ba`), the
+harness entry points and contract (`d843e4c2`), and the fixes of the native cycle (`0f14cdb9`: gate
+watchdog 15 s, Zombies failed-dispatch backoff of 2 s, a general Zombies change; `34e21317`:
+`ZombieWavePendingChecks` follows it) are done. **The native cycle ran on GPU-2 on 2026-11-12** (menu,
+Deathmatch with the default of six, Team DM 4v4 and 10v10 with held gates, Domination, solo Zombies, an
+ordinary PMC control; 0 errors; two builds, `d843e4c2` and `0f14cdb9`); its five gpu-run scenarios are in
+`tools/ChopShopChecks/scenarios/`. Open: (1) the two known limits, as possible ArenaMapPort data
+follow-ups (more Bot/BotPmc rows would remove both; ArenaMode does not edit that data): Domination places
+5 of 6 pickups (core-01 and core-02 lie inside the 6 m objective clearance, Health is left out), and about
+4 % of the yard centre has no Bot row beyond the 25 m floor (Zombies back off, Deathmatch and Gun Game
+drip more slowly there); (2) not run: PFT on this map (both modes refused), Gun Game, a match played to its
+result and reward, more than 6 participants in DM/Gun Game, crowd and monitors judged by a person,
+daytime, weather, long sessions, a DynamicMaps overlay (MapPort has none), the killcam (off in the test
+configuration) and the Fika fork; (3) the saved map list moved to **optional-map revision 6** (an Iceberg default gains Chop Shop
+once; an exact Bowl default at revision 5 means Iceberg was removed and stays); the migration was read
+back on GPU-2; (4) the harnesses that read installed MapPort data (`ChopShopChecks`,
+`ChopShopTeamBoxChecks`, `ArenaPickupChecks` and through it every full run) fail without an ArenaMapPort
+build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5.0+b7876d3`; the published
+0.5.0 has the same version string and no Chop Shop); (5) **no ArenaMode release may announce Chop Shop
+before an ArenaMapPort release ships it**: README and FORGE-DESCRIPTION stay free of it and the whitelist
+stays at 0.5.0 until then. After the end of one Arena raid, wait about 40 s before the next (PitFireTeam
+post-raid finalization); a start after 5 s was refused and hung the load.
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as

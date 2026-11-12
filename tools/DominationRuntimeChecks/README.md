@@ -1,7 +1,7 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 597 assertions; all fourteen source mutants rejected by their
+Current baseline: 680 assertions; all fourteen source mutants rejected by their
 intended behavioral assertions, followed by a clean baseline (2026-11-12, with Chop Shop).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup

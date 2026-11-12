@@ -107,9 +107,14 @@ PFT gesperrt: Es gibt nur sieben Botpunkte, und von der Hofmitte aus liegt keine
 entfernt. Zombies mit PFT sind gesperrt (die zusammenhängende Lauffläche hat nur 1.916 m², dazu
 1–2,4 m enge Gänge an den Toren); solo bleiben Zombies freigegeben. Team DM und Domination nutzen
 die ursprünglichen Taschen USEC Ost / BEAR West; Domination hat einen Punkt (X). Standard sind
-sechs Teilnehmer. Die Boxhöhe (−4,8 bis −1,0) und der Domination-Punkt sind am 12.11.2026 auf
-GPU-2 in einem gewöhnlichen PMC-Raid gemessen; der native ArenaMode-Lauf mit gehaltenen Toren steht
-noch aus. Siehe [Chop-Shop-Integration](reviews/CHOP-SHOP-INTEGRATION-20261112.md).
+sechs Teilnehmer (sieben Botpunkte). Der native Lauf auf GPU-2 am 12.11.2026 (Menü, Deathmatch,
+Team DM 4v4 und 10v10 mit gehaltenen Toren, Domination, Zombies solo, PMC-Kontrolle) lief ohne Fehler;
+die Boxhöhe (−4,8 bis −1,0) und der Domination-Punkt (−369,290 / −3,805 / 499,490) haben gehalten. Der
+Tor-Watchdog beträgt 15 s. Bekannte Grenzen: Domination setzt nur 5 von 6 Pickups (Heilung entfällt),
+und in der Hofmitte gibt es eine tote Stelle für Zombie-, Deathmatch- und Gun-Game-Spawns. Nicht
+gelaufen sind unter anderem PFT, Gun Game und ein zu Ende gespieltes Match. Siehe
+[Chop-Shop-Integration](reviews/CHOP-SHOP-INTEGRATION-20261112.md) und den
+[nativen Bericht](reports/2026-11/GPU-CHOP-SHOP-20261112.md).
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

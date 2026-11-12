@@ -1,0 +1,22 @@
+{
+  "name": "chopshop-dm",
+  "description": "Chop Shop Deathmatch with the default 6 participants: generic admission (no team boxes), bots alive, in-game still, no dropped spawn request, no errors.",
+  "host": "host2",
+  "parameters": { "participants": { "default": 6 }, "minBots": { "default": 3 } },
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "deathmatch", "map": "CHOP SHOP", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
+    { "step": "sleep", "name": "settle", "seconds": 30 },
+    { "step": "player", "name": "player" },
+    { "step": "bots", "name": "bots", "aliveOnly": true, "minCount": { "$ref": "/parameters/minBots" }, "onFail": "continue" },
+    { "step": "expect", "what": "logAbsent", "contains": "Team DM formation ready", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "team-box capacity", "sinceStep": "raid" },
+    { "step": "expect", "what": "logAbsent", "contains": "Domination points", "sinceStep": "raid" },
+    { "step": "expect", "name": "no-dropped-spawn", "what": "logAbsent", "contains": "no usable spawn point", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "still", "name": "still", "id": "dm-ingame" },
+    { "step": "screenshot", "name": "desktop", "id": "dm-desktop" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}

@@ -241,6 +241,13 @@ with any other mode's clone.
   `StuckWaveTimeoutSeconds` watchdog for a wave whose tail never clears, and
   `ReportFailedDispatch` to undo an optimistic spawn-slot commit that the
   real dispatch never actually fulfilled.
+  *2026-11-12:* a failed dispatch reported with its time
+  (`ReportFailedDispatch(ref state, now)`) also holds the wave's next attempt for
+  `FailedDispatchBackoffSeconds` (2 s); the slot is still retried. Why: on Chop Shop,
+  with the player in the yard centre where no Bot row lies beyond the 25 m floor, the wave
+  retried on its pacing cadence and dropped 133 requests in 30 s (18 in 36 s with the
+  backoff). Callers without a time keep the old pacing. Contract: the section "Zombies:
+  failed dispatch backoff" of [CHOP-SHOP-INTEGRATION-20261112.md](CHOP-SHOP-INTEGRATION-20261112.md).
 - **`ZombieRoleMix`** (`Modes/ZombieRoleMix.cs`) is the pure, deterministic
   role/difficulty draw: `infectedAssault` 50% / `infectedPmc` 25% /
   `infectedCivil` 15% / `infectedLaborant` 10%, `normal` unless an

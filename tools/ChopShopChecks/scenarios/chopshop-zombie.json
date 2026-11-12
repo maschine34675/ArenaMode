@@ -1,0 +1,29 @@
+{
+  "name": "chopshop-zombie",
+  "description": "Chop Shop solo Zombies under godmode (an idle player dies within half a minute): the first wave spawns from the seven Bot rows with the player at its pocket spawn. In the yard centre no row lies beyond the 25 m floor: dropped requests are expected there (known limit, held to one attempt per backoff), and the refill resumes once the player is back where a row is far enough. No errors.",
+  "host": "host2",
+  "steps": [
+    {"step": "status", "name": "status"},
+    {"step": "raid", "name": "raid", "mode": "zombie", "map": "CHOP SHOP", "mapFromMenu": true, "timeoutSeconds": 480},
+    {"step": "hook", "name": "godmode", "action": "godmode", "enabled": true},
+    {"step": "sleep", "name": "first-wave", "seconds": 35},
+    {"step": "player", "name": "player-pocket"},
+    {"step": "bots", "name": "infected-pocket", "aliveOnly": true, "minCount": 1, "onFail": "continue"},
+    {"step": "teleport", "name": "to-centre", "x": -379, "y": -3.79, "z": 495, "reachable": false, "onFail": "continue"},
+    {"step": "sleep", "name": "centre", "seconds": 60},
+    {"step": "player", "name": "player-centre"},
+    {"step": "bots", "name": "infected-centre", "aliveOnly": true, "onFail": "continue"},
+    {"step": "expect", "name": "centre-drops-known", "what": "log", "contains": "no usable spawn point", "sinceStep": "to-centre", "withinSeconds": 5, "onFail": "continue"},
+    {"step": "teleport", "name": "back-to-pocket", "x": -337.278, "y": -3.8, "z": 502.69, "reachable": false},
+    {"step": "expect", "name": "refill-resumes", "what": "log", "contains": "infected", "sinceStep": "back-to-pocket", "withinSeconds": 30},
+    {"step": "sleep", "name": "pocket", "seconds": 10},
+    {"step": "bots", "name": "infected-back", "aliveOnly": true, "minCount": 1, "onFail": "continue"},
+    {"step": "still", "name": "still", "id": "zombie-centre"},
+    {"step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue"},
+    {"step": "log-export", "name": "export", "onFail": "continue"}
+  ],
+  "finally": [
+    {"step": "hook", "name": "godmode-off", "action": "godmode", "enabled": false, "onFail": "continue"},
+    {"step": "leave", "whenStepStarted": "raid"}
+  ]
+}

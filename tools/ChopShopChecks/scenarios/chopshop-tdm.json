@@ -1,0 +1,33 @@
+{
+  "name": "chopshop-tdm",
+  "description": "Chop Shop Team Deathmatch in the original TeamFight pockets: formation ready, gates held then opened with all twenty paths revalidated, both factions alive, the route to the capture point from the field, player death and respawn into the pocket.",
+  "host": "host2",
+  "parameters": {
+    "participants": { "default": 8 },
+    "formationLine": { "default": "Team DM formation ready: 4v4" }
+  },
+  "steps": [
+    { "step": "status", "name": "status" },
+    { "step": "raid", "name": "raid", "mode": "teamdeathmatch", "map": "CHOP SHOP", "mapFromMenu": true, "participants": { "$ref": "/parameters/participants" }, "timeoutSeconds": 480 },
+    { "step": "expect", "name": "formation", "what": "log", "contains": { "$ref": "/parameters/formationLine" }, "sinceStep": "raid", "withinSeconds": 60 },
+    { "step": "player", "name": "player-held" },
+    { "step": "bots", "name": "bots-held", "aliveOnly": true, "onFail": "continue" },
+    { "step": "expect", "name": "gates-open", "what": "log", "contains": "Team DM gates open: all twenty formation paths revalidated", "sinceStep": "raid", "withinSeconds": 150 },
+    { "step": "still", "name": "still-open", "id": "tdm-gates-open" },
+    { "step": "bots", "name": "usec", "contains": "usec", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "bots", "name": "bear", "contains": "bear", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "sleep", "name": "settle", "seconds": 20 },
+    { "step": "bots", "name": "all-bots", "aliveOnly": true, "minCount": 1, "onFail": "continue" },
+    { "step": "player", "name": "player-before" },
+    { "step": "teleport", "name": "routes", "dryRun": true, "path": true, "expect": "any", "points": [ [-369.29, -3.8, 499.49], [-367.44, -3.79, 492.11] ], "onFail": "continue" },
+    { "step": "hook", "name": "kill", "action": "kill" },
+    { "step": "wait", "name": "dead", "lifeEvent": "death", "timeoutSeconds": 30, "onFail": "continue" },
+    { "step": "wait", "name": "respawned", "alive": true, "timeoutSeconds": 90 },
+    { "step": "expect", "name": "respawn-log", "what": "log", "contains": "team player respawn", "sinceStep": "kill", "withinSeconds": 30, "onFail": "continue" },
+    { "step": "player", "name": "player-after" },
+    { "step": "still", "name": "still-respawn", "id": "tdm-after-respawn" },
+    { "step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue" },
+    { "step": "log-export", "name": "export", "onFail": "continue" }
+  ],
+  "finally": [ { "step": "leave", "whenStepStarted": "raid" } ]
+}
