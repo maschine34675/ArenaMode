@@ -96,18 +96,25 @@ internal static class Program
 
         using (var f = new Fixture())
         {
+            // A failed dispatch holds the next attempt for ZombieWavePolicy.FailedDispatchBackoffSeconds (2 s,
+            // Chop Shop finding of 2026-11-12): the failure is acknowledged at 1, the owed slot is retried at 3.
             f.Tick(.2f); ZombieSpawnService.Pending = 0; ZombieSpawnService.FailedDispatches = 1;
-            f.Tick(1);
+            f.Tick(1); f.Tick(2.9f);
+            Check(ZombieSpawnService.Dispatched == 1, "a failed dispatch is not retried on the pacing cadence");
+            f.Tick(3);
             Check(ZombieSpawnService.Dispatched == 2 && ZombieSpawnService.Pending == 1 && ZombieLoadoutRefill.Calls == 0,
                 "known asynchronous failure retries its owed wave slot before clearance");
-            f.Tick(2); Check(ZombieSpawnService.Dispatched == 2, "failed-slot acknowledgement is consumed once");
+            f.Tick(4); Check(ZombieSpawnService.Dispatched == 2, "failed-slot acknowledgement is consumed once");
         }
         using (var f = new Fixture())
         {
             ZombieSpawnService.RejectRequest = true;
             for (int i = 1; i < 10; i++) f.Tick(i);
             Check(ZombieLoadoutRefill.Calls == 0 && ZombieSpawnService.Dispatched == 0, "synchronous rejections do not silently clear a wave");
+            // The rejections at 1, 3, 5, 7 and 9 each held the next attempt for the backoff: the slot recovers at 11.
             ZombieSpawnService.RejectRequest = false; f.Tick(10);
+            Check(ZombieSpawnService.Dispatched == 0, "a rejected slot waits for its backoff");
+            f.Tick(11);
             Check(ZombieSpawnService.Dispatched == 1, "immediate rejection leaves slot available for recovery");
         }
         foreach (bool team in new[] { false, true })
