@@ -1,8 +1,8 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 597 assertions; all thirteen source mutants rejected by their
-intended behavioral assertions, followed by a clean baseline (2026-10-31, with Iceberg).
+Current baseline: 597 assertions; all fourteen source mutants rejected by their
+intended behavioral assertions, followed by a clean baseline (2026-11-12, with Chop Shop).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup
 spacing and original team-box catalogs. It has no mod project references or
@@ -10,7 +10,7 @@ deployment targets. Unity/NavMesh, pickup geometry, point views, physical-player
 classification, bridge output and logging are explicit boundary doubles.
 
 The independent expected table preserves the authored X point on Equator/Bay5,
-individual A/B points on AirPit/Bowl, Iceberg's A/B/C trigger centres and Factory
+individual A/B points on AirPit/Bowl, Iceberg's A/B/C points, Chop Shop's single X and Factory
 A/B/C day/night. It checks exact
 counts, coordinates and labels, rejects unknown maps and policy-count mismatch,
 and verifies immutable layout views. The recorded geometry calls must disable
@@ -30,8 +30,8 @@ Failure on the last BEAR route must not cache success and must allow a later
 retry. Factory must not invent booth checks. Bad start/end navigation samples,
 height drift and forward/reverse false/partial paths are all rejected.
 
-Thirteen compiled-source mutants target the Factory separation and repeat rules,
-the legacy centroid, a lifted Iceberg trigger centre, lost X label, port
+Fourteen compiled-source mutants target the Factory separation and repeat rules,
+the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port
 relocation, count mismatch, missing return route, height drift, partial paths,
 missing BEAR routes, prematurely cached success and post-disposal authority.
 The runner requires each mutant's specific behavioral assertion and checks that

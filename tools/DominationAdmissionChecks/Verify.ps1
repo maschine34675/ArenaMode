@@ -61,7 +61,8 @@ function Reject-Change([string]$name, [string]$path, [string]$from, [string]$to,
     Write-Output "DOMINATION_ADMISSION_MUTANT_REJECTED: $name (source pin: $pinned)"
 }
 $maps = [ordered]@{ FactoryDayId='factory4_day'; FactoryNightId='factory4_night'; Bay5Id='arena_bay5';
-    EquatorId='arena_equator'; AirPitId='arena_airpit'; BowlId='arena_bowl'; IcebergId='arena_iceberg' }
+    EquatorId='arena_equator'; AirPitId='arena_airpit'; BowlId='arena_bowl'; IcebergId='arena_iceberg';
+    AutoServiceId='arena_autoservice' }
 foreach ($key in $maps.Keys) {
     Reject-Change ('reject-' + $maps[$key]) 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
         "string.Equals(map, ArenaMapCatalog.$key, StringComparison.OrdinalIgnoreCase)" `
@@ -75,7 +76,7 @@ Reject-Change 'allow-area' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     'if (pitFireTeam || id != FullMapId' 'if (pitFireTeam || false' `
     'the native area model offers exactly the reviewed whole map: factory4_day'
 Reject-Change 'allow-unreviewed-map' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
-    '&& !string.Equals(map, ArenaMapCatalog.IcebergId, StringComparison.OrdinalIgnoreCase)' '&& false' `
+    '&& !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)' '&& false' `
     'unreviewed objective map rejected by shared authority'
 # These explicitly labelled controls exercise source wiring, not executed native/server code.
 Reject-Change 'pin-final-freshness' 'ArenaMode.Client/Session/ArenaMenuSelection.cs' `
@@ -107,4 +108,4 @@ if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash)
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 11 compiled mutants, 7 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 12 compiled mutants, 7 wiring controls, installed hashes unchanged; evidence $evidence"

@@ -8,7 +8,7 @@ pwsh -NoProfile -File tools/DominationAdmissionChecks/Verify.ps1
 
 This standalone net10 harness compiles the real shared map/population/participant
 rules, native selection state, virtual-side lease and conditional-map lifecycle.
-It checks exactly Factory day/night, Bay5, Equator, AirPit, Bowl and Iceberg admission,
+It checks exactly Factory day/night, Bay5, Equator, AirPit, Bowl, Iceberg and Chop Shop admission,
 rejected other maps/areas/PFT, retained existing mode behavior, count validation,
 selected-side isolation and native-view switch back. A small explicitly labelled
 source-contract section checks that dependency, map and reward guards remain

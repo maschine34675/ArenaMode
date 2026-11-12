@@ -93,6 +93,20 @@ internal sealed class DominationMapLayout
     private static readonly DominationMapLayout Iceberg = new(false,
         new Point("A", 16.77f, 4.5f, -91.39f), new Point("B", 10.614f, 3.13f, -77.727f),
         new Point("C", 21.91f, 3.15f, -47.3f));
+    // Chop Shop (arena_autoservice): one point "X", the CAPTURE_POINT/BOWL_CAPTURE_POINT_LIGHT_03
+    // light root of autoservice.modes.json (a Bowl leftover name, but the only capture point
+    // the scene carries; the same per-light source as the other ports). X/Z and the height
+    // are all the root's own: GPU-2 on 12.11.2026 (ordinary PMC raid, UiBridge teleport dry
+    // runs, scratchpad record gpu2-measurement-20261112) put the Arena NavMesh floor at
+    // y -3.8 for this X/Z, accepted the exact point with a snap below 0.05 m and room to
+    // stand, and found complete paths from both pockets (42.2 / 37.1 m). Unlike Iceberg
+    // (a6ed8d93) nothing is substituted. The native ArenaMode acceptance run with the gates
+    // held is still pending; if it refuses the point, change ChopShopControlPointY below and
+    // nothing else. Do not move X/Z, add a relocation or loosen ArenaPickupGeometry.TryFloor:
+    // a refused point must keep aborting the protected match.
+    private const float ChopShopControlPointY = -3.8f;
+    private static readonly DominationMapLayout ChopShop = new(false,
+        new Point("X", -369.29f, ChopShopControlPointY, 499.49f));
 
     internal static DominationMapLayout Resolve(string map) => map?.ToLowerInvariant() switch
     {
@@ -102,6 +116,7 @@ internal sealed class DominationMapLayout
         "arena_airpit" => AirPit,
         "arena_bowl" => Bowl,
         "arena_iceberg" => Iceberg,
+        "arena_autoservice" => ChopShop,
         _ => throw new InvalidOperationException("No fixed Domination layout exists for this map.")
     };
 
@@ -115,7 +130,7 @@ internal sealed class DominationMapLayout
         if (map == null || !(ArenaMapCatalog.IsFactoryVariant(map)
             || ArenaMapCatalog.IsEquator(map) || ArenaMapCatalog.IsBay5(map)
             || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
-            || ArenaMapCatalog.IsIceberg(map))) return 0;
+            || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;
         return Resolve(map).Points.Count;
     }
 }

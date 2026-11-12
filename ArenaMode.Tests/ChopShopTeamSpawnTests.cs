@@ -241,22 +241,19 @@ public sealed class ChopShopTeamSpawnTests
         Assert.Equal(sourceBefore, JsonSerializer.Serialize(original));
     }
 
-    // Domination is a Team Deathmatch variant in the generic catalog: Applies already
-    // names it, so the box catalog would hand it the same twenty records. The resolver's
-    // explicit Domination list does not admit Chop Shop yet (that comes with its single
-    // control point), so the server mutator still refuses the mode before it touches
-    // the map. The admission step replaces this test by the Iceberg shape: twenty
-    // private records and no mutation of the source.
     [Fact]
-    public void DominationIsStillRefusedBeforeMutationUntilItsAdmissionStep()
+    public void DominationUsesTheSameTwentyPrivateRecords()
     {
-        Assert.True(ArenaTeamBoxCatalog.Applies("arena_autoservice", "domination"));
         var map = Map();
-        string before = JsonSerializer.Serialize(map);
-        Assert.Throws<InvalidOperationException>(() => ArenaLocationMutator.Mutate(
-            map, new(), new(), "domination", participants: 8));
-        Assert.Equal(before, JsonSerializer.Serialize(map));
-        Assert.DoesNotContain(map.SpawnPointParams!, p => ArenaTeamBoxCatalog.Owns(p.Id));
+        string sourceBefore = JsonSerializer.Serialize(map);
+        var clone = JsonSerializer.Deserialize<LocationBase>(sourceBefore)!;
+        ArenaLocationMutator.Mutate(clone, new(), new(), "domination", participants: 8);
+        ArenaLocationMutator.ValidateParticipantPopulation(clone, "arena_autoservice", "domination", 8);
+        Assert.Equal(22, clone.SpawnPointParams!.Count());
+        Assert.Equal(ArenaTeamBoxCatalog.AutoService.Points.Select(p => p.Id).OrderBy(id => id, StringComparer.Ordinal),
+            clone.SpawnPointParams!.Where(p => ArenaTeamBoxCatalog.AutoService.Owns(p.Id)).Select(p => p.Id!)
+                .OrderBy(id => id, StringComparer.Ordinal));
+        Assert.Equal(sourceBefore, JsonSerializer.Serialize(map));
     }
 
     [Theory]

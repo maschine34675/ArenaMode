@@ -60,7 +60,7 @@ Need(Text("zombie").Contains("Survive escalating waves") && Text("zombie").Conta
     "solo Zombies explains waves and resupply; the respawn row owns its life rule");
 Need(Text("zombie", team: true).Contains("Team wipe ends the match")
     && Text("zombie", team: true).Contains("each cleared wave"), "PFT Zombies never promises first-death termination");
-foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg" })
+foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
 {
     int actualPoints = DominationMapLayout.Resolve(map).Points.Count;
     Need(Text("domination", points: actualPoints).Contains("Hold " + actualPoints + " point"),
@@ -71,7 +71,7 @@ foreach (string map in new[] { "factory4_day", "factory4_night", "arena_equator"
 // report 0 instead of reaching Resolve's exception.
 foreach (var (map, expected) in new (string, int)[] {
     ("factory4_day", 3), ("factory4_night", 3), ("arena_equator", 1), ("arena_bay5", 1),
-    ("arena_airpit", 2), ("arena_bowl", 2), ("arena_iceberg", 3),
+    ("arena_airpit", 2), ("arena_bowl", 2), ("arena_iceberg", 3), ("arena_autoservice", 1),
     ("bigmap", 0), ("laboratory", 0), ("labyrinth", 0), ("unknown", 0), (null, 0) })
 {
     int count = DominationMapLayout.ControlPointCount(map);

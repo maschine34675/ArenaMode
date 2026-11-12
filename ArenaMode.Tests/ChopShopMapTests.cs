@@ -9,7 +9,7 @@ namespace ArenaMode.Tests;
 /// <summary>
 /// Chop Shop (arena_autoservice) as an optional ArenaMapPort map: optional-map revision 6,
 /// the Tactical and PitFireTeam-Zombies refusals, the default of six participants and
-/// the live-location discovery. The team boxes and Domination come with their own commits.
+/// the live-location discovery. The team boxes and the one-point Domination come with their own commits.
 /// </summary>
 [Collection(ArenaContextSerialCollection.Name)]
 public sealed class ChopShopMapTests
@@ -184,6 +184,27 @@ public sealed class ChopShopMapTests
             Assert.False(ArenaMapCatalog.IsSupportedMap(unknown));
             Assert.Equal(string.Empty, ArenaMapCatalog.CanonicalOptionalMapId(unknown));
         }
+    }
+
+    [Theory]
+    [InlineData("arena_autoservice")]
+    [InlineData("ARENA_AUTOSERVICE")]
+    public void ChopShopAdmitsWholeMapDominationWithoutPitFireTeamOrAreas(string map)
+    {
+        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "domination", false, out var area, out var reason));
+        Assert.Null(area); Assert.Null(reason);
+        Assert.True(ArenaAreaCatalog.TryResolve(null, map, "DOMINATION", false, out _, out _));
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "domination", true, out _, out reason));
+        Assert.Equal("Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.", reason);
+        foreach (string bounded in new[] { ArenaAreaCatalog.CustomsYardId, "unknown-area" })
+            Assert.False(ArenaAreaCatalog.TryResolve(bounded, map, "domination", false, out _, out _));
+        Assert.True(ArenaTeamBoxCatalog.Applies(map, "domination"));
+        Assert.Equal(20, ArenaParticipantPolicy.MaximumFor(map, "domination"));
+        Assert.True(ArenaParticipantPolicy.TryResolve(map, "domination", false, false, 20, out var count, out _));
+        Assert.Equal(20, count);
+        foreach (int invalid in new[] { 3, 22, 24 })
+            Assert.False(ArenaParticipantPolicy.TryResolve(map, "domination", false, false, invalid, out _, out _));
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, "arena_autoservice_extra", "domination", false, out _, out _));
     }
 
     // Seven installed Bot rows and the smallest main component of any port: five bots

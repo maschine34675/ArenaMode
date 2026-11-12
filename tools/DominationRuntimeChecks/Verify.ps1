@@ -16,6 +16,9 @@ $faults = @(
     @{ Name='iceberg-pool-height'; Path=$layout; Property='LayoutSource';
        Find='new Point("A", 16.77f, 4.5f, -91.39f)'; Replace='new Point("A", 16.77f, 3.9f, -91.39f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
+    @{ Name='chopshop-lifted-point'; Path=$layout; Property='LayoutSource';
+       Find='private const float ChopShopControlPointY = -3.8f;'; Replace='private const float ChopShopControlPointY = -3.3f;';
+       Failure='individual source anchors and labels are preserved instead of aggregate centroids' },
     @{ Name='one-point-renamed'; Path=$layout; Property='LayoutSource';
        Find='new Point("X", 1.28f, .25f, 4.22f)'; Replace='new Point("A", 1.28f, .25f, 4.22f)';
        Failure='individual source anchors and labels are preserved instead of aggregate centroids' },

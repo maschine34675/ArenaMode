@@ -13,7 +13,8 @@ internal static partial class Program
         var originalAllowlist = Settings.Allowlist;
         var originalEnabled = ArenaClientConfig.Enabled;
         string[] ports = { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id,
-            ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId };
+            ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId,
+            ArenaMapCatalog.AutoServiceId };
         try
         {
             Settings.Allowlist = ArenaMapCatalog.DefaultClientAllowlist;
@@ -42,7 +43,7 @@ internal static partial class Program
             ArenaMode.Bots.DominationObjectiveBridge.Available = true;
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                 ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                ArenaMapCatalog.IcebergId })
+                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
             {
                 ConfigureAreaNegotiation(); Select(map);
                 Settings.GameMode.Value = "domination";
