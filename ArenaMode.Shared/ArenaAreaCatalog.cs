@@ -708,10 +708,10 @@ public static class ArenaAreaCatalog
         if (pitFireTeam && ArenaMapCatalog.IsEquator(map!)
             && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }
-        // Chop Shop is the smallest port after Equator: its main walkable component
-        // is 1,915.6 m² (Equator 2,783, Iceberg 4,788, Bowl 4,987) with 1 to 2.4 m
-        // corridors at the gate mouths, so the squad plus its infected wave has no
-        // room either. Solo Zombies stays admitted.
+        // Chop Shop is the smallest port, smaller than Equator: its main walkable
+        // component is 1,915.6 m² (Equator 2,783, Iceberg 4,788, Bowl 4,987) with 1 to
+        // 2.4 m corridors at the gate mouths, so the squad plus its infected wave has
+        // no room either. Solo Zombies stays admitted.
         if (pitFireTeam && ArenaMapCatalog.IsAutoService(map!)
             && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Chop Shop is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }

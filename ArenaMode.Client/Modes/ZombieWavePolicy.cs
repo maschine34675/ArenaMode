@@ -283,12 +283,29 @@ internal static class ZombieWavePolicy
     /// undoes exactly that one optimistic increment, so the slot is retried
     /// on the wave's normal pacing cadence (NextSpawnAt was already
     /// advanced by Evaluate either way) instead of being lost.
+    ///
+    /// <para><b>Backoff (2026-11-12 GPU finding, Chop Shop).</b> A caller that
+    /// passes <paramref name="now"/> also holds the next attempt for
+    /// <see cref="FailedDispatchBackoffSeconds"/>. A failed dispatch has already
+    /// cost a profile request, and the reason does not go away within one pacing
+    /// interval: with the player in Chop Shop's yard centre no Bot row lies beyond
+    /// the 25 m floor, and the wave asked for a discarded profile and logged a
+    /// dropped request about five times a second (133 in 30 s) until the player
+    /// moved. The slot is still retried, only not on the pacing cadence. Without
+    /// <paramref name="now"/> (the pure tests of the slot accounting) the pacing
+    /// is untouched.</para>
     /// </summary>
-    internal static void ReportFailedDispatch(ref State state)
+    internal static void ReportFailedDispatch(ref State state, float now = float.NaN)
     {
         if (state.SpawnedThisWave > 0)
             state.SpawnedThisWave--;
+        if (float.IsNaN(now)) return;
+        float retryAt = now + FailedDispatchBackoffSeconds;
+        if (state.NextSpawnAt < retryAt) state.NextSpawnAt = retryAt;
     }
+
+    /// <summary>How long a failed dispatch holds the next spawn attempt of its wave.</summary>
+    internal const float FailedDispatchBackoffSeconds = 2f;
 
     /// <param name="arrivedTotal">
     /// Monotonic lifetime count of infected confirmed alive on arrival this

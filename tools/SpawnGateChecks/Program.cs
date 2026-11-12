@@ -192,7 +192,7 @@ internal static class GateProgram
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Bowl);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Iceberg);
         OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.AutoService);
-        BowlOpening();CompletionSignal();Runtime.Shutdown();
+        BowlOpening();ChopShopOpening();CompletionSignal();Runtime.Shutdown();
         Console.WriteLine($"EQUATOR_SPAWN_GATE_CHECKS_PASSED ({_checks} assertions)");
     }
     private static void OriginalBoxes(ArenaMode.Shared.ArenaTeamBoxCatalog.Formation selected)
@@ -241,6 +241,22 @@ internal static class GateProgram
         Setup(active:false,installed:false);Game.Settings.location="arena_equator";
         Check(Hold(typeof(Gates))==null&&Gates.Holds==0,"CROSS-MAP-SETTINGS: native settings must match world");
         Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.Equator;
+    }
+    // Chop Shop's big gate drives 8.0 s at MapPort's largest drive scale and the match flow polls the
+    // opening once a second: its watchdog is fifteen seconds, the ordinary ten must not abort it.
+    private static void ChopShopOpening()
+    {
+        Program.Formation=ArenaMode.Shared.ArenaTeamBoxCatalog.AutoService;
+        Setup();SealedPaths();
+        Check(!Runtime.TryOpenForCombat(),"CHOPSHOP-OPEN: own release starts once");
+        Time.time=10f;
+        Check(!Runtime.TryOpenForCombat(),"CHOPSHOP-DRIVE: the ordinary ten-second watchdog cannot abort the eight-second drive");
+        Time.time=14.99f;Time.realtimeSinceStartup=300f;
+        Check(!Runtime.TryOpenForCombat(),"CHOPSHOP-TIMEOUT: navigation receives the remaining settle budget");
+        Time.time=15f;Reject(()=>Runtime.TryOpenForCombat(),"CHOPSHOP-TIMEOUT: disconnected formation fails closed");
+        Setup();SealedPaths();Runtime.TryOpenForCombat();Time.time=9f;NavMesh.Path=(a,b)=>true;
+        Check(Runtime.TryOpenForCombat(),"CHOPSHOP-LIVE: all real paths after the drive allow combat");
+        Check(Gates.Releases==1,"CHOPSHOP-ONCE: no repeated release during the drive");
     }
     private static void BowlOpening()
     {

@@ -674,6 +674,44 @@ public sealed class ZombieWavePolicyTests
     }
 
     [Fact]
+    public void AFailedDispatchReportedWithItsTimeHoldsTheNextAttemptForTheBackoff()
+    {
+        // Chop Shop, GPU-2 2026-11-12: with the player where no Bot row lies beyond the
+        // 25 m floor every dispatch failed, and the wave retried on its pacing cadence
+        // (a discarded profile request and a dropped-request warning about five times a
+        // second). A failure reported with its time holds the next attempt for the backoff.
+        var config = Config(maxAlive: 20, start: 5, growth: 0, intermission: 10f, interval: .2f);
+        var state = ZombieWavePolicy.Initial();
+        float now = 100f;
+        var first = ZombieWavePolicy.Evaluate(ref state, config, now, alive: 0, pending: 0);
+        Assert.Equal(1, first.SpawnNow);
+        ZombieWavePolicy.ReportFailedDispatch(ref state, now);
+
+        // The slot is free again (not written off), but not on the pacing cadence.
+        for (float t = now + .2f; t < now + ZombieWavePolicy.FailedDispatchBackoffSeconds - .05f; t += .2f)
+            Assert.Equal(0, ZombieWavePolicy.Evaluate(ref state, config, t, alive: 0, pending: 0).SpawnNow);
+        var retry = ZombieWavePolicy.Evaluate(ref state, config, now + ZombieWavePolicy.FailedDispatchBackoffSeconds,
+            alive: 0, pending: 0);
+        Assert.Equal(1, retry.SpawnNow);
+        Assert.Equal(ZombieWavePolicy.Phase.Wave, retry.Phase);
+
+        // A success keeps the ordinary pacing: the backoff belongs to failures only.
+        var next = ZombieWavePolicy.Evaluate(ref state, config, now + ZombieWavePolicy.FailedDispatchBackoffSeconds + .2f,
+            alive: 1, pending: 0);
+        Assert.Equal(1, next.SpawnNow);
+    }
+
+    [Fact]
+    public void AFailedDispatchReportedWithoutATimeKeepsThePacing()
+    {
+        var config = Config(maxAlive: 20, start: 5, growth: 0, intermission: 10f, interval: .2f);
+        var state = ZombieWavePolicy.Initial();
+        Assert.Equal(1, ZombieWavePolicy.Evaluate(ref state, config, 100f, alive: 0, pending: 0).SpawnNow);
+        ZombieWavePolicy.ReportFailedDispatch(ref state);
+        Assert.Equal(1, ZombieWavePolicy.Evaluate(ref state, config, 100.2f, alive: 0, pending: 0).SpawnNow);
+    }
+
+    [Fact]
     public void OnlyConfirmedDispatchesCountTowardTheWaveWhenSomeFail()
     {
         // Mixed success/failure: only confirmed dispatches may ever reduce

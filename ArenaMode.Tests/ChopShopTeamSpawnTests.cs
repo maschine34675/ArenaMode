@@ -100,10 +100,12 @@ public sealed class ChopShopTeamSpawnTests
         Assert.Equal(string.Empty, formation.Destination.Id);
         foreach (bool usec in new[] { true, false })
             Assert.False(formation.InsideBooth(formation.Destination.X, formation.Destination.Y, formation.Destination.Z, usec));
-        // Every MapPort build that ships Chop Shop exposes GatesOpen; the longest drive (the
-        // big gate) is 8.0 s at drive scale 1.0, which leaves the ten-second watchdog 2 s.
+        // Every MapPort build that ships Chop Shop exposes GatesOpen, so there is no legacy
+        // minimum. The watchdog is fifteen seconds: the big gate drives 8.0 s at drive scale
+        // 1.0 and the match flow polls the opening once a second, so the ordinary ten would
+        // leave two polls after the drive.
         Assert.Equal(0f, formation.MinimumGateOpeningSeconds);
-        Assert.Equal(10f, formation.GateOpeningTimeoutSeconds);
+        Assert.Equal(15f, formation.GateOpeningTimeoutSeconds);
         Assert.Null(formation.Find("arena-autoservice-tdm-v1-east-11"));
         Assert.Null(formation.Find("arena-autoservice-tdm-v1-west-00"));
         Assert.False(formation.Owns(ArenaEquatorTeamSpawns.Points[0].Id));
@@ -146,8 +148,9 @@ public sealed class ChopShopTeamSpawnTests
     // World-aligned interiors (both authored bounds have yaw exactly 270). The east x min face
     // is the big gate's pocket-side face plus the .35 m capsule radius; the west gate rule is
     // looser than the inset, so the inset stays. Height is cut to y -4.8 .. -1.0 (measured on
-    // GPU-2, 2026-11-12: the west roof is walkable at 1.7 .. 1.9, the east islands sit at -1.8
-    // .. 1.0, the highest connected pocket surface is a step at y -2.5).
+    // GPU-2, 2026-11-12: the west roof is walkable at 1.7 .. 1.9, the east islands sit at -2.0
+    // .. 1.0, the highest connected pocket surface is a step at y -2.5; the islands below
+    // -1.0 stay inside the band and are pinned as such below).
     [Theory]
     [InlineData(true, -343.587f, -332.999f, -4.8f, -1f, 473.821f, 511.764f)]
     [InlineData(false, -413.635f, -402.769f, -4.8f, -1f, 473.498f, 511.441f)]
@@ -177,12 +180,19 @@ public sealed class ChopShopTeamSpawnTests
             Assert.False(formation.InsideBooth(-343.937f, -3.8f, 490f, true));
             Assert.False(formation.InsideBooth(-344.2145f, -3.8f, 490f, true));
             Assert.False(formation.InsideBooth(-344.6f, -3.8f, 506.8f, true));
-            // The pocket's connected raised step (-343.5, -2.5, 489.5) is inside; the
-            // separate islands at y -0.8, -0.2 and 1.0 are above the cut.
+            // The pocket's connected raised step (-343.5, -2.5, 489.5) and the curb along the
+            // east wall (-333.6, -3.3, 491.4) are inside; the separate islands at y -0.8, -0.3
+            // and 1.0 are above the cut.
             Assert.True(formation.InsideBooth(-343.5f, -2.5f, 489.5f, true));
+            Assert.True(formation.InsideBooth(-333.6f, -3.3f, 491.4f, true));
             Assert.False(formation.InsideBooth(-338.7f, -.8f, 511.6f, true));
-            Assert.False(formation.InsideBooth(-342.6f, -.2f, 497f, true));
+            Assert.False(formation.InsideBooth(-343f, -.3f, 497f, true));
             Assert.False(formation.InsideBooth(-341.6f, 1f, 503.5f, true));
+            // Known and accepted: the strip along the north edge (y -1.7 .. -2.0) lies inside
+            // the band. No path reaches it from the pocket floor or the yard (GPU-2 survey),
+            // so nothing can use it; the band is not narrowed to 0.3 m above the step for it.
+            Assert.True(formation.InsideBooth(-340.5f, -1.7f, 511.4f, true));
+            Assert.True(formation.InsideBooth(-341.7f, -2f, 511.5f, true));
         }
         else
         {

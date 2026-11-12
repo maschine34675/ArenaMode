@@ -73,11 +73,17 @@ public static class ArenaTeamBoxCatalog
         // Iceberg needs no case of its own: every MapPort build that ships it has
         // GatesOpen, and its longest drive (GATES_A leaf B) is 5 s at drive scale
         // 1.0 (2.5 s at the default 0.5), inside the ordinary ten-second watchdog.
-        // Chop Shop needs none either: its longest drive (the big gate) is 8.0 s at drive
-        // scale 1.0 (4.0 s at the default 0.5), which leaves the watchdog 2 s of margin even
-        // at scale 1.0.
+        // Chop Shop needs no legacy minimum either (GatesOpen exists in every build that
+        // ships it), but it gets a longer watchdog: its big gate drives 8.0 s at MapPort's
+        // largest drive scale 1.0 (4.0 s at the default 0.5), and the match flow polls the
+        // opening once a second (GPU-2, 2026-11-12: MapPort reported the gates open 4.0 s
+        // after the release, the formation was revalidated at 5.00 s). The ordinary ten
+        // seconds would leave two polls after an eight-second drive, and a missed one ends
+        // the protected match; fifteen leave seven. The watchdog still only catches a
+        // formation that never reconnects, which is all it is for.
         public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
-        public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f : 10f;
+        public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f
+            : MapId == "arena_autoservice" ? 15f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,
             Point donor, Point destination, Point[] points, Bounds usecBounds, Bounds bearBounds,
             int usecAnchor, int bearAnchor, params string[] boothExits)
@@ -289,6 +295,13 @@ public static class ArenaTeamBoxCatalog
     // inside the pocket with the gates open); the highest connected pocket surface is a step at
     // (-343.5, -2.5, 489.5). The box therefore runs y -4.8 .. -1.0 for both pockets: 1.0 m
     // below the lowest marker (-3.84), 1.5 m above that step and 2.7 m below the west roof.
+    // A second survey the same day (2.5 m grid over both footprints, surfaces between the
+    // floor and y 0.4) found nothing else connected: curbs at -3.3 along the east wall and
+    // the step are part of the pocket; a strip along the east pocket's north edge (y -1.7 ..
+    // -2.0 at x -340.5 .. -341.7, z 511.2 .. 511.5) and an unstandable shelf at the west
+    // pocket's south end lie INSIDE the band, but no path reaches them from the pocket floor
+    // or from the yard, so no held path and no formation point can use them. The band is
+    // not narrowed to cut them out: 0.3 m above the step would be the only room for it.
     // The smallest marker margin overall is that 0.96 m to the floor of the box ((19) at
     // -3.84). Arena's own NavMesh has no polygon inside either footprint above -3.35 or below
     // -3.83, so the band loses no walkable surface of Arena's mesh.

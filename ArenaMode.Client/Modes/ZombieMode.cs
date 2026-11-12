@@ -355,7 +355,7 @@ public sealed partial class ZombieMode : IArenaMode
             // unresolved native requests remain counted, never free capacity.
             int failedDispatches = ZombieSpawnService.ConsumeFailedDispatches();
             for (int i = 0; i < failedDispatches; i++)
-                ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
+                ZombieWavePolicy.ReportFailedDispatch(ref _waveState, now);
 
             int alive = ZombieSpawnService.CountAliveInfected();
             int pending = ZombieSpawnService.Pending;
@@ -413,7 +413,7 @@ public sealed partial class ZombieMode : IArenaMode
                 // wave does not silently reach "everything spawned" with
                 // fewer real zombies than configured.
                 if (!dispatched)
-                    ZombieWavePolicy.ReportFailedDispatch(ref _waveState);
+                    ZombieWavePolicy.ReportFailedDispatch(ref _waveState, now);
             }
 
             // Self-heal _local before computing playerEligible below.
