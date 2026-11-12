@@ -24,7 +24,7 @@ internal static partial class Program
         _game.Location.SpawnPointParams=Enumerable.Range(0,40).Select(i=>Seed("native-"+i,(i%8)*8,0,(i/8)*8)).ToArray();
         var original=_game.Location.SpawnPointParams;
         string snapshot=Newtonsoft.Json.JsonConvert.SerializeObject(original);
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice"})
         {
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"chosen-kit").Layouts.Single();
             Check(layout.Points.Count==6&&layout.Points.Select(p=>p.Kind).Distinct().Count()==6,"all supported full maps retain all six pickup types: "+map);
@@ -83,14 +83,17 @@ internal static partial class Program
                 (float)row["Position"]["y"],(float)row["Position"]["z"],(string)row["BotZoneName"],
                 row["Categories"].Aggregate(ESpawnCategoryMask.None,(mask,c)=>mask|Enum.Parse<ESpawnCategoryMask>((string)c)))).ToArray();
         }
-        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg"})
+        foreach(string map in new[]{"laboratory","labyrinth","arena_equator","arena_bay5","arena_airpit","arena_bowl","arena_iceberg","arena_autoservice"})
         {
             string path=map.StartsWith("arena_")?Path.Combine(root,"SPT_Runtime/user/mods/ArenaMapPort/db",map,"base.json")
                 :Path.Combine(root,"SPT_Runtime/SPT_Data/database/locations",map,"base.json");
-            // Iceberg ships only in an ArenaMapPort build that carries arena_iceberg; the
-            // published 0.4.0 has none. Fail loudly instead of skipping the map.
+            // Iceberg and Chop Shop ship only in ArenaMapPort builds that carry them; the
+            // published 0.4.0 has no Iceberg and the published 0.5.0 no Chop Shop. Fail
+            // loudly instead of skipping the map.
             if(!System.IO.File.Exists(path))throw new Exception(map=="arena_iceberg"
                 ?"Installed Iceberg data missing: "+path+". This run requires an ArenaMapPort build that ships arena_iceberg (the feature build 0.4.0+32fda33 or a later release)."
+                :map=="arena_autoservice"
+                ?"Installed Chop Shop data missing: "+path+". This run requires an ArenaMapPort build that ships arena_autoservice (the unreleased feature/autoservice build 0.5.0+b7876d3 or a later release)."
                 :"Native map fixture missing: "+path);
             Fixture();_game.Location.SpawnPointParams=Read(path);
             var layout=ArenaPickupMapLayout.Create(_game,map,null,"spartan").Layouts.Single();

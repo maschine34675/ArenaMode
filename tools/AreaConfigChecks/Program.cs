@@ -36,12 +36,13 @@ try
 
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,
         ArenaMapCatalog.LaboratoryId,ArenaMapCatalog.LabyrinthId,ArenaMapCatalog.CustomsId,
-        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId,ArenaMapCatalog.BowlId,ArenaMapCatalog.IcebergId})
+        ArenaMapCatalog.EquatorId,ArenaMapCatalog.Bay5Id,ArenaMapCatalog.AirPitId,ArenaMapCatalog.BowlId,ArenaMapCatalog.IcebergId,ArenaMapCatalog.AutoServiceId})
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
             bool allowed=(mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId)
                 && !ArenaMapCatalog.IsEquator(map)
+                && !ArenaMapCatalog.IsAutoService(map)
                 && !(ArenaMapCatalog.IsIceberg(map) && mode.Id == ArenaModeCatalog.TacticalId);
             Need(team.Available==allowed,"PFT-MAP-ADMISSION",
                 $"{map}/{mode.Id}: protected squad map choices must agree with the supported team modes.");
@@ -62,7 +63,8 @@ try
         (ArenaMapCatalog.IcebergId,false,"Too few distant spawns: no Tactical"),
         (ArenaMapCatalog.IcebergId,true,"PitFireTeam squad"),
         (ArenaMapCatalog.BowlId,false,""),
-        (ArenaMapCatalog.EquatorId,false,"Limited space: no Tactical / squad Zombies")})
+        (ArenaMapCatalog.EquatorId,false,"Limited space: no Tactical / squad Zombies"),
+        (ArenaMapCatalog.AutoServiceId,false,"Few distant spawns: no Tactical / squad Zombies")})
     {
         var hinted=ArenaAreaSelectionState.Create(map,ArenaModeCatalog.ZombieId,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4);
         Need(hinted.Available&&hinted.ModeHint==hint,"MAP-MODE-HINT",
@@ -182,7 +184,9 @@ try
         (Name: "bowl-removed", Maps: ArenaMapCatalog.AirPitDefaultClientAllowlist, Legacy: true, Revision: 4, Gain: false),
         (Name: "bowl-release", Maps: ArenaMapCatalog.BowlDefaultClientAllowlist, Legacy: true, Revision: 4, Gain: true),
         (Name: "iceberg-removed", Maps: ArenaMapCatalog.BowlDefaultClientAllowlist, Legacy: true, Revision: 5, Gain: false),
-        (Name: "future-version", Maps: ArenaMapCatalog.BowlDefaultClientAllowlist, Legacy: true, Revision: 6, Gain: false),
+        (Name: "iceberg-release", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 5, Gain: true),
+        (Name: "chopshop-removed", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 6, Gain: false),
+        (Name: "future-version", Maps: ArenaMapCatalog.IcebergDefaultClientAllowlist, Legacy: true, Revision: 7, Gain: false),
     })
     {
         string path=Path.Combine(scratch,"optional-"+migration.Name+".cfg");

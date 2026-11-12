@@ -18,8 +18,14 @@ public static class ArenaParticipantPolicy
     public static int MaximumFor(string map, string mode)
         => ArenaTeamBoxCatalog.Applies(map, mode) ? 20 : MaximumTotal;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
+    // Chop Shop defaults to 6 (five bots) on its own branch. The default follows the
+    // map's size and bot rows, not a single group: Equator (2,783 m², ten Bot rows)
+    // defaults to 4 and the ~4,800 m² ports (installed BotMax 8) to 8. Chop Shop has
+    // the fewest Bot/BotPmc rows of any port (seven) and a 1,915.6 m² main component,
+    // so it sits between the two. The ranges stay generic (2-24 solo, 4-20 through the boxes).
     public static int DefaultTotal(string map, string mode)
-        => ArenaMapCatalog.IsEquator(map) ? 4 : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
+        => ArenaMapCatalog.IsEquator(map) ? 4 : ArenaMapCatalog.IsAutoService(map) ? 6
+            : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
                 || ArenaMapCatalog.IsIceberg(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;

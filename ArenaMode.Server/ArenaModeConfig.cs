@@ -106,6 +106,14 @@ public class ArenaModeConfig
             BurstMinAliveBots = 4,
         },
 
+        [ArenaMapCatalog.AutoServiceId] = new ArenaMapConfig
+        {
+            SpawnZones = "BotZone_Main",
+            BotMax = 8,
+            MaxBotPerZone = 8,
+            BurstMinAliveBots = 4,
+        },
+
         // Whole-map Customs shares the generic client-owned population paths;
         // versioned bounded areas retain their independent TDM adapter. This
         // historical ambient-wave default is kept for existing configurations.

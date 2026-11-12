@@ -32,6 +32,7 @@ public sealed class EquatorMapConfigTests
     [InlineData(ArenaMapCatalog.AirPitId)]
     [InlineData(ArenaMapCatalog.BowlId)]
     [InlineData(ArenaMapCatalog.IcebergId)]
+    [InlineData(ArenaMapCatalog.AutoServiceId)]
     public void DefaultsUseRealZoneAndSmallMapPopulation(string mapId)
     {
         var map = new ArenaModeConfig().Maps[mapId];
@@ -102,13 +103,14 @@ public sealed partial class ArenaAreaServerTests
     public static IEnumerable<object?[]> OptionalRouteCases()
     {
         foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.CustomsId })
+                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.CustomsId })
             foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", "endless", "rounds", null })
                 yield return new object?[] { map, mode,
                     (mode is "deathmatch" or "gungame" or "tactical" or "teamdeathmatch" or "zombie")
                     && map != ArenaMapCatalog.CustomsId
                     && !(ArenaMapCatalog.IsEquator(map) && mode == "tactical")
-                    && !(ArenaMapCatalog.IsIceberg(map) && mode == "tactical") };
+                    && !(ArenaMapCatalog.IsIceberg(map) && mode == "tactical")
+                    && !(ArenaMapCatalog.IsAutoService(map) && mode == "tactical") };
     }
 
     [Theory]
@@ -143,7 +145,7 @@ public sealed partial class ArenaAreaServerTests
     public static IEnumerable<object[]> OptionalUnavailableCases()
     {
         foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                     ArenaMapCatalog.IcebergId })
+                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
             foreach (string scenario in new[] { "missing", "disabled", "wrong-id", "other-imported-map", "throws" })
                 yield return new object[] { map, scenario };
     }

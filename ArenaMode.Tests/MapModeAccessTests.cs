@@ -11,9 +11,10 @@ public sealed class MapModeAccessTests
     public static IEnumerable<object[]> SupportedCases()
     {
         foreach (string map in new[] { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                     ArenaMapCatalog.IcebergId })
+                     ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" })
-            if (!((map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.IcebergId) && mode == "tactical"))
+            if (!((map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId)
+                  && mode == "tactical"))
                 yield return [map, mode];
     }
 
@@ -27,6 +28,15 @@ public sealed class MapModeAccessTests
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "tactical", false, out _, out _));
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "tactical", true, out _, out _));
         Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.IcebergId, "zombie", true, out _, out _));
+    }
+
+    [Fact]
+    public void ChopShopTacticalIsExcludedFromTheSupportedPairs()
+    {
+        var pairs = SupportedCases().Select(c => ((string)c[0], (string)c[1])).ToArray();
+        Assert.DoesNotContain((ArenaMapCatalog.AutoServiceId, "tactical"), pairs);
+        Assert.Contains((ArenaMapCatalog.AutoServiceId, "zombie"), pairs);
+        Assert.Contains((ArenaMapCatalog.AutoServiceId, "teamdeathmatch"), pairs);
     }
 
     [Theory]

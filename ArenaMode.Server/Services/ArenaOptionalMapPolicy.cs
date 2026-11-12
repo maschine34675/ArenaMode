@@ -39,6 +39,8 @@ internal static class ArenaOptionalMapPolicy
             view["maps"]?.AsObject().Remove(ArenaMapCatalog.BowlId);
         if (!IsAvailable(ArenaMapCatalog.IcebergId))
             view["maps"]?.AsObject().Remove(ArenaMapCatalog.IcebergId);
+        if (!IsAvailable(ArenaMapCatalog.AutoServiceId))
+            view["maps"]?.AsObject().Remove(ArenaMapCatalog.AutoServiceId);
         return view.ToJsonString();
     }
 }

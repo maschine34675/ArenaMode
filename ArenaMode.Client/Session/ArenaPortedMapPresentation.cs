@@ -25,7 +25,8 @@ internal sealed class ArenaPortedMapPresentation
     internal static string DisplayName(string id, string fallback)
         => ArenaMapCatalog.IsBay5(id) ? "BAY 5" : ArenaMapCatalog.IsEquator(id) ? "EQUATOR"
             : ArenaMapCatalog.IsAirPit(id) ? "AIR PIT" : ArenaMapCatalog.IsBowl(id) ? "BOWL"
-            : ArenaMapCatalog.IsIceberg(id) ? "ICEBERG" : fallback;
+            : ArenaMapCatalog.IsIceberg(id) ? "ICEBERG"
+            : ArenaMapCatalog.IsAutoService(id) ? "CHOP SHOP" : fallback;
 
     internal static ArenaPortedMapPresentation Create(string id, RectTransform rect,
         TMP_Text header, TMP_Text size, Func<bool> selected)
@@ -39,7 +40,8 @@ internal sealed class ArenaPortedMapPresentation
             _name = DisplayName(id, header.text),
             // Same normalized map coordinates that native LocationButton.Show uses.
             // Bay 5: northern docks; Equator: immediately south-east of Interchange.
-            // AirPit/Bowl/Iceberg retain the native MapPort position, including later updates.
+            // AirPit/Bowl/Iceberg/Chop Shop retain the native MapPort position, including later updates
+            // (MapPort places Chop Shop's marker at 870/428 itself; no _reposition entry).
             // With ArenaMapPort installed this target is moot for every optional map: its
             // ArenaModeMapPositionIntegration (since MapPort 0.3.0, 18.10.2026) overwrites
             // _target with the native anchor after Create and refreshes, so the marker sits

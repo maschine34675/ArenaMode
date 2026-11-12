@@ -59,6 +59,7 @@ internal sealed class ArenaAreaSelectionState
             : pitFireTeam ? "PitFireTeam squad"
             : ArenaMapCatalog.IsEquator(map) ? "Limited space: no Tactical / squad Zombies"
             : ArenaMapCatalog.IsIceberg(map) ? "Too few distant spawns: no Tactical"
+            : ArenaMapCatalog.IsAutoService(map) ? "Few distant spawns: no Tactical / squad Zombies"
             : string.Empty;
     }
 

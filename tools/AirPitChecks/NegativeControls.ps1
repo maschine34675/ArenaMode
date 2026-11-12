@@ -31,7 +31,17 @@ foreach ($fault in @(
     @{ Name = 'IcebergMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_iceberg", StringComparison.OrdinalIgnoreCase)'; After = '';
-       Failure = 'EMPTY-COVER arena_icebergtactical' }
+       Failure = 'EMPTY-COVER arena_icebergtactical' },
+    # Chop Shop refuses Tactical and PFT Zombies, so these adapters never run on it in
+    # the mod, but every port is listed there and the fixtures reach tactical first.
+    @{ Name = 'AutoServiceMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
+       Property = 'PortedSource'; Harness = 'PftPortedMapChecks';
+       Before = '&& !string.Equals(map, "arena_autoservice", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'arena_autoservice/tactical/False' },
+    @{ Name = 'AutoServiceMissingPftCombatAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapCombat.cs';
+       Property = 'CombatSource'; Harness = 'PortedCoverChecks';
+       Before = '&& !string.Equals(world.LocationId, "arena_autoservice", StringComparison.OrdinalIgnoreCase)'; After = '';
+       Failure = 'EMPTY-COVER arena_autoservicetactical' }
 )) {
     $source = [IO.File]::ReadAllText((Join-Path $arenaRepo $fault.File))
     if (!$source.Contains($fault.Before)) { throw "Missing fault anchor: $($fault.Name)" }

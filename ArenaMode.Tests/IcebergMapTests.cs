@@ -17,8 +17,9 @@ public sealed class IcebergMapTests
         return new JsonObject { ["maps"] = maps, ["optionalMapsRevision"] = revision };
     }
 
-    // Revision 5 extends only the exact Bowl default; every earlier default keeps
-    // its own cutoff, and the AirPit default at revision 4 is a Bowl removal.
+    // Revision 5 extended the exact Bowl default with Iceberg; revision 6 extends the
+    // exact Iceberg default with Chop Shop (ChopShopMapTests). Every earlier default
+    // keeps its own cutoff, and the AirPit default at revision 4 is a Bowl removal.
     [Theory]
     [InlineData(ArenaMapCatalog.BowlDefaultClientAllowlist, 4, true)]
     [InlineData(ArenaMapCatalog.AirPitDefaultClientAllowlist, 3, true)]
@@ -204,8 +205,10 @@ public sealed class IcebergMapTests
         var keys = new ArenaModeConfig().Maps.Keys.OrderBy(x => x, StringComparer.Ordinal);
         Assert.Equal(ArenaMapCatalog.DefaultClientAllowlist.Split(',').OrderBy(x => x, StringComparer.Ordinal), keys);
         Assert.Equal(ArenaMapCatalog.BowlDefaultClientAllowlist + "," + ArenaMapCatalog.IcebergId,
+            ArenaMapCatalog.IcebergDefaultClientAllowlist);
+        Assert.Equal(ArenaMapCatalog.IcebergDefaultClientAllowlist + "," + ArenaMapCatalog.AutoServiceId,
             ArenaMapCatalog.DefaultClientAllowlist);
-        Assert.Equal(5, ArenaMapCatalog.OptionalMapsRevision);
+        Assert.Equal(6, ArenaMapCatalog.OptionalMapsRevision);
         Assert.Equal(ArenaMapCatalog.OptionalMapsRevision, new ArenaModeConfig().OptionalMapsRevision);
     }
 }

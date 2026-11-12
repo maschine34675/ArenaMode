@@ -6,8 +6,9 @@ using SPT.Common.Http;
 internal static partial class Program
 {
     // tactical=false: the map's shared resolver refuses both Tactical formats
-    // (Iceberg, like Equator, lacks five distant bot markers from its centre).
-    private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool tactical = true)
+    // (Iceberg and Chop Shop, like Equator, lack five distant bot markers from their centres).
+    // pftZombie=false: Chop Shop's main mesh is too small for the protected squad's Zombies.
+    private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool tactical = true, bool pftZombie = true)
     {
         var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
         var previousAllowlist = Settings.Allowlist;
@@ -50,15 +51,25 @@ internal static partial class Program
                 ArenaMenuSelection.ConfigureEligibility(() => new(true, true, ""), _ => string.Empty);
                 ArenaMenuSelection.RegisterTeamArenaQuery(() => true);
                 Select(map);
-                Assert(ArenaMenuSelection.HasConfiguredMap(true) && ArenaMenuSelection.IsMapAvailable(map) == admitted,
+                // A map with neither protected-squad mode (Chop Shop) is not offered to a squad at all.
+                Assert(ArenaMenuSelection.HasConfiguredMap(true) == (tactical || pftZombie) && ArenaMenuSelection.IsMapAvailable(map) == admitted,
                     map + ": PFT: protected map discovery and final mode admission");
                 int before = RequestHandler.StartCount;
                 bool accepted = Start(Request(map: map), out var task);
-                Assert(admitted
+                // The start prefix sees the protected squad (the map-availability read above does not):
+                // Chop Shop refuses PFT Zombies there.
+                bool startAdmitted = admitted && (pftZombie || mode != "zombie");
+                Assert(startAdmitted
                     ? accepted && task == null && RequestHandler.StartCount == before + 1 && ArenaSession.ArmedForNextRaid
                     : !accepted && task.IsFaulted && RequestHandler.StartCount == before && !ArenaSession.ArmedForNextRaid,
                     map + ": PFT-START: actual protected local-start negotiation");
             }
+            // This loop's eligibility is re-initialised by Select, so it checks the solo path of
+            // each mode; the protected-squad refusal is asserted on the resolver itself.
+            if (!pftZombie)
+                Assert(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", true, out _, out _)
+                    && ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", false, out _, out _),
+                    map + ": PFT-ZOMBIE: squad Zombies refused, solo Zombies admitted");
             ConfigureAreaNegotiation();
             Settings.GameMode.Value = "gungame";
             Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;

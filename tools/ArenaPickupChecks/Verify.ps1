@@ -22,6 +22,12 @@ $pickupIceberg = Join-Path $SptPath 'SPT_Runtime/user/mods/ArenaMapPort/db/arena
 if (!(Test-Path -LiteralPath $pickupIceberg)) {
     throw "Installed Iceberg data missing: $pickupIceberg. ArenaPickupChecks requires an ArenaMapPort build that ships arena_iceberg (the feature build 0.4.0+32fda33 or a later release)."
 }
+# Chop Shop likewise ships only in an unreleased ArenaMapPort build (feature/autoservice 0.5.0+b7876d3;
+# the published 0.5.0 has the same version string and no Chop Shop): fail loudly, never skip.
+$pickupAutoService = Join-Path $SptPath 'SPT_Runtime/user/mods/ArenaMapPort/db/arena_autoservice/base.json'
+if (!(Test-Path -LiteralPath $pickupAutoService)) {
+    throw "Installed Chop Shop data missing: $pickupAutoService. ArenaPickupChecks requires an ArenaMapPort build that ships arena_autoservice (the unreleased feature/autoservice build 0.5.0+b7876d3 or a later release)."
+}
 $pickupInstalled = @{}
 foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll','BepInEx/plugins/maschine-Redeploy.Core.dll',
     'SPT_Runtime/user/mods/ArenaMode/maschine-ArenaMode.Server.dll','EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll',
@@ -29,7 +35,7 @@ foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Clien
     'SPT_Runtime/SPT_Data/database/locations/laboratory/base.json','SPT_Runtime/SPT_Data/database/locations/labyrinth/base.json',
     'SPT_Runtime/SPT_Data/database/locations/bigmap/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_equator/base.json',
     'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bay5/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_airpit/base.json',
-    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json')) {
+    'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_autoservice/base.json')) {
     $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
 function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {

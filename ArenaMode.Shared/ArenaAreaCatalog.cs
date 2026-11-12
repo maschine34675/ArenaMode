@@ -691,11 +691,29 @@ public static class ArenaAreaCatalog
         if (ArenaMapCatalog.IsIceberg(map!)
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
         { reason = "Iceberg has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
+        // Chop Shop (installed ArenaMapPort data, 2026-11-12): only seven Bot/BotPmc
+        // rows exist. A leader in the yard centre (-379, 495) has none of them beyond
+        // the 25 m floor, and on the central half of the marker box every 1 m cell
+        // sees fewer than five (Iceberg 45 of 810 cells, Equator 437 of 510), so the
+        // five-opponent squad cannot be guaranteed after a round transition. MapPort's
+        // own mesh measurement leaves the south-east of the yard without any row. The
+        // team boxes do not change that: Tactical uses the generic markers. Solo and
+        // PFT are both refused here because the criterion is the squad, not the player.
+        if (ArenaMapCatalog.IsAutoService(map!)
+            && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
+        { reason = "Chop Shop has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
         // Solo survival remains supported; the compact map does not have enough
         // room for the protected five-player squad and its infected wave together.
         if (pitFireTeam && ArenaMapCatalog.IsEquator(map!)
             && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }
+        // Chop Shop is the smallest port after Equator: its main walkable component
+        // is 1,915.6 m² (Equator 2,783, Iceberg 4,788, Bowl 4,987) with 1 to 2.4 m
+        // corridors at the gate mouths, so the squad plus its infected wave has no
+        // room either. Solo Zombies stays admitted.
+        if (pitFireTeam && ArenaMapCatalog.IsAutoService(map!)
+            && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
+        { reason = "Chop Shop is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }
         if (id == FullMapId)
         {
             if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))
