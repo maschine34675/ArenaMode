@@ -175,7 +175,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   Session helper were not touched. On its first start the client moved `General/Maps` to optional-map
   revision 6 (`arena_autoservice` added) and the server added the map's row to `config.json`; every other
   config value the test runs changed is back at its previous value. Previous files:
-  `D:\SPT41-Backupsrena-chop-shop61112-142217` (the state before this work, client
+  `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
