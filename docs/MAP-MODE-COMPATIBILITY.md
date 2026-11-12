@@ -1,9 +1,9 @@
-# Karten und Modi – Stand 31.10.2026
+# Karten und Modi – Stand 12.11.2026
 
 Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung und
 in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
 Grenzen der Spawn- und Arealverwaltung bleiben erhalten. Tabelle am 31.10.2026 um
-Bowl, Iceberg und Domination ergänzt; der übrige Text ist der Stand vom 17.10.2026,
+Bowl, Iceberg und Domination, am 12.11.2026 um Chop Shop ergänzt; der übrige Text ist der Stand vom 17.10.2026,
 wo nicht anders vermerkt.
 
 | Karte | Deathmatch / Gun Game | Team DM | Domination | Tactical solo / PFT | Zombies solo / PFT |
@@ -13,6 +13,7 @@ wo nicht anders vermerkt.
 | Bay5, Air Pit | Ja | Ja, Teamboxen 2v2–10v10 | Ja, Bay5 ein Punkt, Air Pit zwei | Ja | Ja |
 | Bowl | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte | Ja | Ja |
 | Iceberg (unveröffentlichter ArenaMapPort-Build nötig) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, drei Punkte (A/B/C) | Nein: von der Kartenmitte nur vier entfernte Botpunkte | Ja / Ja |
+| Chop Shop (unveröffentlichter ArenaMapPort-Build nötig) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt (X) | Nein: sieben Botpunkte, von der Hofmitte keiner über 25 m | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Equator | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt | Nein: fünf entfernte Gegnerstarts nicht überall möglich | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Nein | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
@@ -97,6 +98,18 @@ wie auf Equator. Zombies (solo und PFT) bleiben freigegeben, die Karte ist nicht
 Team DM und Domination nutzen die CheckPoint-Taschen USEC West / BEAR Ost, auf die
 geschlossenen Tore zugeschnitten; Domination hat drei Punkte A/B/C. Ein nativer
 GPU-Test steht noch aus. Siehe [Iceberg-Integration](reviews/ICEBERG-INTEGRATION-20261031.md).
+
+Chop Shop (ArenaMapPort-ID `arena_autoservice`) braucht einen ArenaMapPort-Build, der diese Karte
+mitbringt; das ist derzeit nur der unveröffentlichte `feature/autoservice`-Build 0.5.0+b7876d3.
+Das veröffentlichte 0.5.0 hat kein Chop Shop und dieselbe Versionsnummer; ArenaMode erkennt die
+Karte nur an der vorhandenen, aktivierten Location, nie an der Version. Tactical ist solo und mit
+PFT gesperrt: Es gibt nur sieben Botpunkte, und von der Hofmitte aus liegt keiner weiter als 25 m
+entfernt. Zombies mit PFT sind gesperrt (die zusammenhängende Lauffläche hat nur 1.916 m², dazu
+1–2,4 m enge Gänge an den Toren); solo bleiben Zombies freigegeben. Team DM und Domination nutzen
+die ursprünglichen Taschen USEC Ost / BEAR West; Domination hat einen Punkt (X). Standard sind
+sechs Teilnehmer. Die Boxhöhe (−4,8 bis −1,0) und der Domination-Punkt sind am 12.11.2026 auf
+GPU-2 in einem gewöhnlichen PMC-Raid gemessen; der native ArenaMode-Lauf mit gehaltenen Toren steht
+noch aus. Siehe [Chop-Shop-Integration](reviews/CHOP-SHOP-INTEGRATION-20261112.md).
 
 Quellprüfung, Daten und Offline-Nachweise: `CUSTOMS-ALL-MODES-REVIEW.md`,
 `PFT-PORTED-MAPS-REVIEW.md` und die ursprüngliche Analyse `MAP-MODE-ACCESS-REVIEW.md`.

@@ -184,6 +184,24 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
+**Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (not merged, not pushed;
+[contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)):** admission (`c09e886a`), original pockets as team
+boxes (`4feaa9f6`), one-point Domination (`94ff82ba`) and the harness entry points
+(`tools/ChopShopChecks`, `tools/ChopShopTeamBoxChecks`) are done offline. Team-box height
+(-4.8 .. -1.0), donor `arena_autoservice-bot-core-03` and the Domination point (-369.29, -3.8, 499.49) were
+measured on GPU-2 in an ordinary PMC raid on 2026-11-12. Open: (1) the **native ArenaMode cycle on
+GPU-2** (Deathmatch, Team DM 2v2 and 10v10 with held gates, Domination, the Tactical and PFT Zombies
+refusals in the menu) and its gpu-run scenarios (`tools/ChopShopChecks` has no `scenarios/` folder yet);
+(2) the saved map list moves to **optional-map revision 6** (an Iceberg default gains Chop Shop once; an exact
+Bowl default at revision 5 means Iceberg was removed and stays) - installed configs migrate on the first start of a
+client built from this branch; (3) the harnesses that read installed MapPort data
+(`ChopShopChecks`, `ChopShopTeamBoxChecks`, `ArenaPickupChecks` and through it every full run) fail without an
+ArenaMapPort build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5.0+b7876d3`;
+the published 0.5.0 has the same version string and no Chop Shop); (4) README and FORGE-DESCRIPTION must stay
+free of Chop Shop, and the whitelist stays at 0.5.0, until an ArenaMapPort release ships the map. Not claimed:
+native run, crowd reactions, Redeploy/Killcam, spawn stall in the yard centre, DM/Gun Game up to 24 on seven
+bot rows, monitors, a DynamicMaps overlay (MapPort has no folder for it), the Fika fork.
+
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as
 they are for SPT 4.1: recovery closures record the evidence files' relative paths and hashes, so moving them would fail

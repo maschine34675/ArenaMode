@@ -10,6 +10,14 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
+  Domination and solo Zombies, **without Tactical or PitFireTeam Zombies** (seven bot spawn points,
+  none beyond the 25 m floor from the yard centre; a very small walkable area). Default is six
+  participants. Team DM and Domination use the map's original pockets, USEC east / BEAR west, for
+  2v2-10v10, and Domination has its one capture point. The map needs an ArenaMapPort build that
+  ships it (not yet released); the saved map list gains it once through optional-map revision 6.
+  Box height and capture point are measured on a test machine; the full in-raid run is still
+  pending. [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md)
 - Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
   editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from
   lists of what each slot takes, every item arriving as the game's own default build and a weapon

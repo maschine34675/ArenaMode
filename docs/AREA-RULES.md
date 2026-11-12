@@ -427,8 +427,11 @@ must not depend on the selected triple. Read docs/reviews/DOMINATION-OPTIONS-ROU
 Domination owns separate score/time preferences, frozen at match start. Bot
 approaches must be capture-valid and fully reachable; keep the last successfully
 owned route destination separate from any failed alternative for exact cleanup.
-The five ported maps use original anchors: Equator and Bay5 one each, AirPit and
-Bowl two each (CapturePointEntity), Iceberg three, A/B/C. Read docs/reviews/DOMINATION-PORTED-20261026.md.
+The six ported maps use original anchors: Equator, Bay5 and Chop Shop one each, AirPit and
+Bowl two each (CapturePointEntity), Iceberg three, A/B/C. Chop Shop's "X" is the
+CAPTURE_POINT light root with all three of its own coordinates (GPU-2 accepted it exactly on
+2026-11-12; nothing is substituted); keep the shared projection as it is, see
+docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md. Read docs/reviews/DOMINATION-PORTED-20261026.md.
 Never use the old MapPort modes.json capture_point centroid for AirPit/Bowl: it
 averages two distinct objectives (Iceberg's is null). Iceberg's A/B/C are the
 CheckPoint CAPTURE_POINT_LIGHT_02 trigger centres; A (in the pool) and B lie .5 m
@@ -626,6 +629,14 @@ next to Equator's; do not remove it to claim the map fully accepted. Iceberg nee
 ArenaMapPort build that ships it (the unreleased feature/iceberg, 0.4.0+32fda33);
 detect it by the live location, never by the MapPort version. See
 docs/reviews/ICEBERG-INTEGRATION-20261031.md.
+Chop Shop (arena_autoservice, MapPort's id; Arena's name) is unavailable for Tactical, solo and PFT:
+it has seven Bot/BotPmc rows and none lies beyond the 25 m floor from the yard centre. PFT Zombies is
+excluded too (Equator's compactness rule: 1,915.6 m2 main walkable component, 1-2.4 m corridors at
+the gate mouths); solo Zombies stays. Both blocks sit in the shared resolver next to Equator's and
+Iceberg's; do not remove them to claim the map fully accepted. It needs an ArenaMapPort build that
+ships it (the unreleased feature/autoservice, 0.5.0+b7876d3, whose version string the published 0.5.0
+shares); detect it by the live location, never by the MapPort version. See
+docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md.
 Air Pit is an optional full map for all current modes, using its existing safe
 generic spawn markers and the same exact-raid PFT coverless adapters as Bay5.
 Independent AirPit Team DM requires MapPort 0.2.2 navigation and passport gates
@@ -691,7 +702,7 @@ Area selection shares the existing F12 `ExperimentalArea` setting. Map/time/mode
 
 ## Spawns, team boxes and spawn gates
 
-Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl and Iceberg)
+Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl, Iceberg and Chop Shop)
 own finite exact-body spawn damage shields with first-attack release. Other maps
 receive no bot spawn shield; local-player protection is unchanged. Read
 docs/reviews/BOT-SPAWN-SHIELD-SCOPE-20261019.md and docs/reviews/TDM-BOT-SPAWN-SHIELD-20261017.md
@@ -728,7 +739,21 @@ and outside destination is the installed arena_iceberg-bot-core-01. Revision-5
 migration, the box derivation and the native-test boundary are in
 docs/reviews/ICEBERG-INTEGRATION-20261031.md.
 
-Independent Equator, Bay5, AirPit, Bowl and Iceberg Team DM use their original team boxes for initial
+**Chop Shop team boxes** (the paragraph starts with the Chop Shop map admission):
+
+Chop Shop is optional in Gun Game, DM, Team DM, Domination and solo Zombies, not Tactical and not PFT
+Zombies (default six for DM/Gun Game/TDM/Domination). Independent TDM and Domination use its two
+authored pockets, USEC east / BEAR west, with twenty private markers. The interiors are the
+authored world-aligned bounds inset .35 m, with the east face towards the big gate held at the leaf
+plus .35 m, and the height is cut to y -4.8 .. -1.0 for both pockets (GPU-2, 2026-11-12): the west
+roof is walkable at 1.7 .. 1.9 and the east pocket has separate navmesh islands above -1.0, so the
+authored heights would admit them. Keep the cut. Gate opening has no Chop Shop case (the longest
+drive leaves the ten-second watchdog 2 s at drive scale 1.0). Donor and outside destination is the
+installed arena_autoservice-bot-core-03; anchors are Usec house (4) and (6). Revision-6 migration,
+the face derivation and the native-test boundary (the ArenaMode run with held gates is still
+pending) are in docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md.
+
+Independent Equator, Bay5, AirPit, Bowl, Iceberg and Chop Shop Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
 BEAR; Bay5 is east warehouse USEC / southwest depot BEAR. Read
 docs/reviews/BAY5-TEAM-BOXES-REVIEW.md for the map-keyed catalog/runtime. The exact
@@ -804,7 +829,7 @@ Bot pickup objectives (BigBrain companion): before changing them read PICKUP-OBJ
 
 *(handoff lines 2914-2917)*
 
-Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4; Bay5/AirPit/Bowl/Iceberg 8; Labs 16; Labyrinth 8; Factory and others 10.
+Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4; Chop Shop 6; Bay5/AirPit/Bowl/Iceberg 8; Labs 16; Labyrinth 8; Factory and others 10.
 
 *(handoff lines 2966-2969)*
 

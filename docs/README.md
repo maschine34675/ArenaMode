@@ -61,7 +61,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (204)
+## Feature reviews and contracts (205)
 
 Sorted by file name.
 
@@ -116,6 +116,7 @@ Sorted by file name.
 - [Arena character selection by clicking the model](reviews/CHARACTER-MODEL-CLICK-REVIEW.md)
 - [Arena character preview: third posed menu figure with fixed loadout](reviews/CHARACTER-PREVIEW-REVIEW.md)
 - [Native character selection row alignment (initial review)](reviews/CHARACTER-SELECTION-REVIEW.md) *(superseded)*
+- [Chop Shop map admission, original pockets as team boxes and the one-point Domination (provisional until the native run)](reviews/CHOP-SHOP-INTEGRATION-20261112.md)
 - [Same-bullet Collateral announcement](reviews/COLLATERAL-ANNOUNCEMENT-20261018.md)
 - [F12 settings menu: names, order, advanced developer tools](reviews/CONFIG-MENU-20261018.md)
 - [Continuous Healing: native bot healing and retired-body isolation](reviews/CONTINUOUS-HEALING-COMPAT-20261019.md) *(superseded)*

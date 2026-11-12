@@ -1,6 +1,6 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-11-07** for **0.5.0**, including Iceberg, the crowd
+Source inventory updated **2026-11-12** (Chop Shop) on top of **0.5.0**, including Iceberg, the crowd
 reactions, Domination, direct session start, profile recovery and the current
 compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
@@ -55,8 +55,8 @@ Contents: [Menus](#1-native-menus-and-match-setup) ·
   ("PFT optional") for a solo player.
 - Customs area selection includes a map preview with the actual polygon
   highlighted; thumbnails remain visible without the long vanilla description.
-- Bay5, Equator, Air Pit, Bowl and Iceberg have gold labels without the old `Arena:` prefix and their
-  own positions on the map overview (Air Pit, Bowl and Iceberg keep ArenaMapPort's native position; since ArenaMapPort 0.3.0 its map-position integration keeps every optional marker at MapPort's native position, and Iceberg's sits under the Arena mode panel until MapPort moves it). Bay5 supports its native time choices;
+- Bay5, Equator, Air Pit, Bowl, Iceberg and Chop Shop have gold labels without the old `Arena:` prefix and their
+  own positions on the map overview (Air Pit, Bowl, Iceberg and Chop Shop keep ArenaMapPort's native position; since ArenaMapPort 0.3.0 its map-position integration keeps every optional marker at MapPort's native position, and Iceberg's sits under the Arena mode panel until MapPort moves it). Bay5 supports its native time choices;
   Factory and Equator use Day/Night labels; Equator's night phase retains
   its rainy weather.
 - Mutators are embedded directly in the screen, with active/inactive colors
@@ -113,7 +113,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 - Factory day/night chooses three points per match from eight surveyed seeds,
   separated by at least 12 horizontal metres. Equator and Bay5 use one original
   anchor each; Air Pit and Bowl use two, Iceberg three (A/B/C, the authored trigger
-  centres). Other maps do not offer this mode.
+  centres), Chop Shop one ("X", the capture-point light root; menu "Hold 1 point"). Other maps do not offer this mode.
 - Separate score/time controls default to 300 points and ten minutes. Either
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
@@ -143,7 +143,7 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   monitors appear and everything else works.
 - Continuous replacement of dead participants into fixed faction slots.
 - Visible protection for newly spawned bots on both teams **only in Equator,
-  Bay5, Air Pit, Bowl and Iceberg Team DM and Domination**, where initial and replacement bots use fixed team
+  Bay5, Air Pit, Bowl, Iceberg and Chop Shop Team DM and Domination**, where initial and replacement bots use fixed team
   boxes. Other maps do not grant bot spawn protection; player protection is
   unchanged. The configured duration defaults to **4 seconds** and starts in live
   combat when the bot is active. Firing, throwing a grenade or dealing outgoing
@@ -239,7 +239,7 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** in even steps, or **4–20 in Team DM and Domination on the team-box maps** (Equator,
-Bay5, Air Pit, Bowl, Iceberg). Defaults are Equator 4, Bay5, Air Pit, Bowl and Iceberg 8,
+Bay5, Air Pit, Bowl, Iceberg, Chop Shop). Defaults are Equator 4, Chop Shop 6, Bay5, Air Pit, Bowl and Iceberg 8,
 Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
 defaults to 2v2. These are menu defaults, not hardware performance guarantees.
 
@@ -394,7 +394,7 @@ Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
 
 Built-in layouts cover **every supported Arena map**, only in **Deathmatch and
 independent Team DM**: Factory day/night, Labs, Labyrinth, the selected Customs
-area, Equator, Bay5, AirPit, Bowl and Iceberg. Gun Game, Tactical/PFT and Zombies do not use them.
+area, Equator, Bay5, AirPit, Bowl, Iceberg and Chop Shop. Gun Game, Tactical/PFT and Zombies do not use them.
 
 | Pickup | Effect |
 |---|---|
@@ -659,7 +659,14 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   fewer companions. **Iceberg** supports Gun Game, DM, TDM, Domination and solo and PFT
   Zombies, but no Tactical (solo or PFT): its centre leaves only four distant bot markers. Iceberg
   needs an ArenaMapPort build that ships it (today only the unreleased `feature/iceberg` build
-  0.4.0+32fda33). ArenaMode does not ship or install those maps itself.
+  0.4.0+32fda33). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM, TDM (original
+  pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point) and solo Zombies, but no
+  Tactical (seven bot markers, none beyond the 25 m floor from the yard centre) and no PFT Zombies
+  (1,916 m2 main walkable component); it defaults to six participants. It needs an ArenaMapPort build
+  that ships it (today only the unreleased `feature/autoservice` build 0.5.0+b7876d3) and is
+  detected by the live location. Its team-box height and Domination point are measured on GPU-2 in
+  an ordinary raid; the native ArenaMode run is pending
+  ([contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)). ArenaMode does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
 - Factory day and night exclude the known unsafe courtyard/underground bot
