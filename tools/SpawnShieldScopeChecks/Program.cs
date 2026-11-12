@@ -83,7 +83,7 @@ internal static class Program
     private static void Main()
     {
         TeamDeathmatchRelations.Enable();
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT", "arena_bowl", "ARENA_BOWL", "arena_iceberg", "ARENA_ICEBERG" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "ARENA_AIRPIT", "arena_bowl", "ARENA_BOWL", "arena_iceberg", "ARENA_ICEBERG", "arena_autoservice", "ARENA_AUTOSERVICE" })
         foreach (bool usec in new[] { true, false })
         {
             using var raid = new Raid(map, usec);
@@ -122,7 +122,7 @@ internal static class Program
         }
 
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie", "endless", "rounds", "", null })
-        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg" })
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
         {
             Check(!ArenaTeamBoxCatalog.Applies(map, mode), "other modes must not enter the box catalog");
             using var raid = new Raid(map, mode: mode);

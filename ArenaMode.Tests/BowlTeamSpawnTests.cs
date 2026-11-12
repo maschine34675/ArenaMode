@@ -204,6 +204,11 @@ public sealed class BowlTeamSpawnTests
     [InlineData("arena_iceberg", "arena_equator")] [InlineData("arena_equator", "arena_iceberg")]
     [InlineData("arena_iceberg", "arena_bay5")] [InlineData("arena_bay5", "arena_iceberg")]
     [InlineData("arena_iceberg", "arena_airpit")] [InlineData("arena_airpit", "arena_iceberg")]
+    [InlineData("arena_autoservice", "arena_bowl")] [InlineData("arena_bowl", "arena_autoservice")]
+    [InlineData("arena_autoservice", "arena_equator")] [InlineData("arena_equator", "arena_autoservice")]
+    [InlineData("arena_autoservice", "arena_bay5")] [InlineData("arena_bay5", "arena_autoservice")]
+    [InlineData("arena_autoservice", "arena_airpit")] [InlineData("arena_airpit", "arena_autoservice")]
+    [InlineData("arena_autoservice", "arena_iceberg")] [InlineData("arena_iceberg", "arena_autoservice")]
     public void ForeignMapPrivateMarkerCannotEnterAnyProtectedFormation(string ownMap, string foreignMap)
     {
         var own = ArenaTeamBoxCatalog.Find(ownMap)!;
@@ -211,7 +216,8 @@ public sealed class BowlTeamSpawnTests
         var donor = ownMap == "arena_equator" ? EquatorTeamSpawnTests.Donor()
             : ownMap == "arena_bay5" ? Bay5TeamSpawnTests.Donor()
             : ownMap == "arena_airpit" ? AirPitTeamSpawnTests.Donor()
-            : ownMap == "arena_iceberg" ? IcebergTeamSpawnTests.Donor() : Donor();
+            : ownMap == "arena_iceberg" ? IcebergTeamSpawnTests.Donor()
+            : ownMap == "arena_autoservice" ? ChopShopTeamSpawnTests.Donor() : Donor();
         var map = Map(); map.Id = own.MapId;
         map.SpawnPointParams = [donor, Donor() with { Id = foreign.Points[0].Id }];
         string before = JsonSerializer.Serialize(map);

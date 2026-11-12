@@ -145,7 +145,7 @@ internal static class Program
                 bool expected = candidate.Available && mode != "tactical"
                     && count <= ((mode == "teamdeathmatch" || mode == "domination")
                         && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId || map == ArenaMapCatalog.BowlId
-                            || map == ArenaMapCatalog.IcebergId) ? 20 : 24)
+                            || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId) ? 20 : 24)
                     && (!ArenaParticipantPolicy.IsTeam(mode) || candidate.SelectedId == Full && count >= 4 && count % 2 == 0);
                 Need(selection.Available == expected, "map/mode/count matrix matches offered formats");
                 Need(Buttons().Count(b => b.name.StartsWith("Arena Participants")) == (expected ? 2 : 0),

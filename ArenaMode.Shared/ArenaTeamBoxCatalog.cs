@@ -73,6 +73,9 @@ public static class ArenaTeamBoxCatalog
         // Iceberg needs no case of its own: every MapPort build that ships it has
         // GatesOpen, and its longest drive (GATES_A leaf B) is 5 s at drive scale
         // 1.0 (2.5 s at the default 0.5), inside the ordinary ten-second watchdog.
+        // Chop Shop needs none either: its longest drive (the big gate) is 8.0 s at drive
+        // scale 1.0 (4.0 s at the default 0.5), which leaves the watchdog 2 s of margin even
+        // at scale 1.0.
         public float MinimumGateOpeningSeconds => MapId == "arena_bowl" ? 13.5f : 0f;
         public float GateOpeningTimeoutSeconds => MapId == "arena_bowl" ? 20f : 10f;
         internal Formation(string map, string display, string prefix, string infiltration, string teams,
@@ -254,15 +257,88 @@ public static class ArenaTeamBoxCatalog
         new Bounds(-48.31f, -36.392f, 2.328f, 10.271f, -96.926f, -76.014f),
         new Bounds(82.732f, 114.444f, -.4f, 5f, -98.465f, -78.223f), 2, 19);
 
+    // Original Chop Shop TeamFight pockets (autoservice.modes.json, autoservice-native-v2;
+    // the map is arena_autoservice, ArenaMapPort's id, Arena's name is Chop Shop). USEC = the
+    // east pocket (SPAWN_BOUND_Fighter), BEAR = the west pocket (SPAWN_BOUND_Fighter (1)), as
+    // MapPort's player-usec/player-bear rows assign them (the same split as Bowl). Every marker
+    // is named "Usec house (n)": the name says nothing about the faction, only the containing
+    // bound does. The twenty points keep their authored positions and yaws, in sidecar order.
+    //
+    // Interiors, derived face by face. Both authored bounds have yaw exactly 270 (scene
+    // quaternion 0.0003 degrees off), so the boxes are world-aligned. Horizontally each face is
+    // the authored AABB inset by the .35 m capsule radius FloorAndClear uses (east x -344.2145 ..
+    // -332.6485, z 473.471 .. 512.1141; west x -413.9845 .. -402.4185, z 473.1481 .. 511.7911).
+    // The face towards the gates is additionally held at the gate leaf's pocket-side face plus
+    // .35 m where that is stricter. East: the big gate (big_gate_metal, leaf "gate 1" x -344.202
+    // .. -343.937, movement collider -344.150 .. -344.090) gives -343.937 + .35 = -343.587, which
+    // is stricter than the inset alone (-343.865); the equator shutter leaf (x -344.650 ..
+    // -344.558) lies further west and is excluded by the same face. West: the techlight leaves
+    // (x -402.320 .. -402.200, frame to -402.048) give -402.320 - .35 = -402.670, looser than the
+    // inset -402.7685, so the inset stays. No gate sits in a z end. Without the clip a held path
+    // or a pickup seed in the strip between leaf and authored edge would count as inside the
+    // closed box; the east authored x min (-344.2145) coincides with the leaf's yard face.
+    // The smallest horizontal margins of a marker to a face are 1.817 m (east x max, Usec house
+    // (19)) and 2.60 m (west z min, (13)).
+    //
+    // Height is cut, not authored: the east bound spans 17.1 m (y -11.36 .. 5.75, down 7.5 m
+    // below the floor and up past the tribune decks at 4.35 .. 5.3), the west 9.8 m (-7.72 ..
+    // 2.12). Measured on GPU-2 on 2026-11-12 (ordinary PMC raid, gates opened by MapPort, no
+    // ArenaMode involvement; native acceptance with held gates is still pending): the west
+    // pocket's roof is walkable navmesh at y 1.7 .. 1.9 over the whole footprint and the east
+    // pocket has separate navmesh islands at -1.8, -0.8, -0.2 and 1.0 (path_partial from
+    // inside the pocket with the gates open); the highest connected pocket surface is a step at
+    // (-343.5, -2.5, 489.5). The box therefore runs y -4.8 .. -1.0 for both pockets: 1.0 m
+    // below the lowest marker (-3.84), 1.5 m above that step and 2.7 m below the west roof.
+    // The smallest marker margin overall is that 0.96 m to the floor of the box ((19) at
+    // -3.84). Arena's own NavMesh has no polygon inside either footprint above -3.35 or below
+    // -3.83, so the band loses no walkable surface of Arena's mesh.
+    //
+    // Donor and outside destination: the installed arena_autoservice-bot-core-03 row
+    // (-367.44, -3.79, 492.11) of ArenaMapPort 0.5.0+b7876d3, central in the yard, 7.6 m from
+    // the capture point. All seven Bot rows are reachable from both pockets on GPU-2 on
+    // 2026-11-12; core-03 has complete paths of 44.4 m (west, 10 corners) and 39.9 m (east,
+    // 9 corners). Both exits ("Chop Shop East Gate" 4.9 m, "Chop Shop West Gate" about 9 m)
+    // lie outside the gate planes: no booth exits. Anchors: Usec house (4) = MapPort player-usec
+    // (east-05) and Usec house (6) = MapPort player-bear (west-02).
+    public static readonly Formation AutoService = new Formation("arena_autoservice", "Chop Shop", "arena-autoservice-tdm-v1-",
+        "ArenaAutoService", "USEC east / BEAR west",
+        new Point("arena_autoservice-bot-core-03", false, -367.44f, -3.79f, 492.11f),
+        new Point("", false, -367.44f, -3.79f, 492.11f), new[]
+        {
+            new Point("arena-autoservice-tdm-v1-east-01", true, -337.789f, -3.8f, 485.627f, 239.9997f),
+            new Point("arena-autoservice-tdm-v1-east-02", true, -338.448f, -3.8f, 490.47f, 269.9997f),
+            new Point("arena-autoservice-tdm-v1-east-03", true, -337.87f, -3.8f, 495.48f, 314.9997f),
+            new Point("arena-autoservice-tdm-v1-east-04", true, -336.619f, -3.8f, 497.847f, 239.9997f),
+            new Point("arena-autoservice-tdm-v1-east-05", true, -337.278f, -3.8f, 502.69f, 269.9997f),
+            new Point("arena-autoservice-tdm-v1-east-06", true, -336.7f, -3.8f, 507.7f, 269.9998f),
+            new Point("arena-autoservice-tdm-v1-east-07", true, -338.781f, -3.783f, 476.541f, 281.4502f),
+            new Point("arena-autoservice-tdm-v1-east-08", true, -338.85f, -3.783f, 482.13f, 255.353f),
+            new Point("arena-autoservice-tdm-v1-east-09", true, -340.59f, -3.797f, 506.675f, 271.065f),
+            new Point("arena-autoservice-tdm-v1-east-10", true, -334.816f, -3.84f, 482.536f, 255.0871f),
+            new Point("arena-autoservice-tdm-v1-west-01", false, -409.9721f, -3.74f, 491.243f, 59.9998f),
+            new Point("arena-autoservice-tdm-v1-west-02", false, -409.313f, -3.74f, 487.0409f, 89.9998f),
+            new Point("arena-autoservice-tdm-v1-west-03", false, -409.451f, -3.74f, 483.84f, 134.9998f),
+            new Point("arena-autoservice-tdm-v1-west-04", false, -409.256f, -3.74f, 499.843f, 89.9997f),
+            new Point("arena-autoservice-tdm-v1-west-05", false, -409.402f, -3.74f, 477.391f, 89.9998f),
+            new Point("arena-autoservice-tdm-v1-west-06", false, -407.045f, -3.74f, 482.428f, 134.9998f),
+            new Point("arena-autoservice-tdm-v1-west-07", false, -406.688f, -3.74f, 501.696f, 92.8713f),
+            new Point("arena-autoservice-tdm-v1-west-08", false, -405.933f, -3.72f, 476.098f, 71.763f),
+            new Point("arena-autoservice-tdm-v1-west-09", false, -409.503f, -3.72f, 495.572f, 77.189f),
+            new Point("arena-autoservice-tdm-v1-west-10", false, -405.941f, -3.72f, 486.419f, 159.278f),
+        },
+        new Bounds(-343.587f, -332.999f, -4.8f, -1f, 473.821f, 511.764f),
+        new Bounds(-413.635f, -402.769f, -4.8f, -1f, 473.498f, 511.441f), 4, 11);
+
     public static Formation? Find(string? map)
         => string.Equals(map, Equator.MapId, StringComparison.OrdinalIgnoreCase) ? Equator
             : string.Equals(map, Bay5.MapId, StringComparison.OrdinalIgnoreCase) ? Bay5
             : string.Equals(map, AirPit.MapId, StringComparison.OrdinalIgnoreCase) ? AirPit
             : string.Equals(map, Bowl.MapId, StringComparison.OrdinalIgnoreCase) ? Bowl
-            : string.Equals(map, Iceberg.MapId, StringComparison.OrdinalIgnoreCase) ? Iceberg : null;
+            : string.Equals(map, Iceberg.MapId, StringComparison.OrdinalIgnoreCase) ? Iceberg
+            : string.Equals(map, AutoService.MapId, StringComparison.OrdinalIgnoreCase) ? AutoService : null;
     public static bool Applies(string? map, string? mode)
         => (string.Equals(mode, ModeId, StringComparison.OrdinalIgnoreCase)
             || string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)) && Find(map) != null;
     public static bool Owns(string? id) => Equator.Owns(id) || Bay5.Owns(id) || AirPit.Owns(id) || Bowl.Owns(id)
-        || Iceberg.Owns(id);
+        || Iceberg.Owns(id) || AutoService.Owns(id);
 }

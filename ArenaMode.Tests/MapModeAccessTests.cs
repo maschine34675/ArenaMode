@@ -63,6 +63,8 @@ public sealed class MapModeAccessTests
             original.SpawnPointParams = [BowlTeamSpawnTests.Donor()];
         else if (mapId == ArenaMapCatalog.IcebergId && mode == "teamdeathmatch")
             original.SpawnPointParams = [IcebergTeamSpawnTests.Donor()];
+        else if (mapId == ArenaMapCatalog.AutoServiceId && mode == "teamdeathmatch")
+            original.SpawnPointParams = [ChopShopTeamSpawnTests.Donor()];
         string before = JsonSerializer.Serialize(original);
         var clone = JsonSerializer.Deserialize<LocationBase>(before)!;
         var config = new ArenaModeConfig();

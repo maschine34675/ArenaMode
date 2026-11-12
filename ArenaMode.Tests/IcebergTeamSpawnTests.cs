@@ -263,6 +263,7 @@ public sealed class IcebergTeamSpawnTests
 
     [Theory]
     [InlineData("arena_equator")] [InlineData("arena_bay5")] [InlineData("arena_airpit")] [InlineData("arena_bowl")]
+    [InlineData("arena_autoservice")]
     public void ForeignPrivateMarkerCannotEnterTheIcebergFormation(string foreignMap)
     {
         var foreign = ArenaTeamBoxCatalog.Find(foreignMap)!;
