@@ -22,12 +22,19 @@ internal static class Program
     {
         internal readonly LocalGame Game = new();
         internal readonly GameWorld World;
-        internal readonly TeamDeathmatchMode Mode = new();
+        internal readonly TeamDeathmatchMode Mode;
         internal readonly ArenaMatch Match;
         internal List<BotOwner> Bots => Game.BotsController.BotSpawner._bots.BotOwners;
         internal Raid(string map, bool usec = true, string mode = "teamdeathmatch", bool active = true,
-            bool pft = false, float seconds = 4f, Action<Raid> beforeStart = null)
+            bool pft = false, float seconds = 4f, Action<Raid> beforeStart = null, bool domination = false)
         {
+            Mode = new TeamDeathmatchMode(domination);
+            if (domination)
+            {
+                mode = "domination";
+                // The fixture objective runtime wants one sample per control point of the map.
+                DominationRuntime.Sample = new DominationOccupancy[DominationMapLayout.Resolve(map).Points.Count];
+            }
             ArenaMode.Areas.ArenaAreaRuntime.Reset();
             ArenaTeamBoxRuntime.Reset();
             TdmMatchExit.Reset();
@@ -128,6 +135,33 @@ internal static class Program
             using var raid = new Raid(map, mode: mode);
             Check(raid.Mode.IsComplete && !raid.Mode.IsBotSpawnProtected(raid.World.MainPlayer), "other modes cannot start independent TDM shield authority");
         }
+        // Domination arms the same scope: the six box maps shield their bots, Factory does not.
+        // Its phase lives in the objective rules (MatchPhase), not in the Team DM kill policy.
+        foreach (string map in new[] { "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
+        foreach (bool usec in new[] { true, false })
+        {
+            Check(ArenaTeamBoxCatalog.Applies(map, "domination"), "Domination box map is in the catalog: " + map);
+            using var raid = new Raid(map, usec, domination: true);
+            raid.Fill();
+            Check(raid.Bots.All(bot => raid.Mode.IsBotSpawnProtected(bot.GetPlayer)), "Domination box-map bots must receive shields");
+            Check(raid.Bots.All(bot => raid.Mode.ShouldBlockMatchDamage(bot.GetPlayer)), "Domination box-map bots refuse damage while the lease runs");
+            Check(!raid.Mode.ShouldBlockMatchDamage(raid.World.MainPlayer), "Domination bot shield never covers the local player");
+            float live = Time.time;
+            raid.Step(live + 3.99f);
+            Check(raid.Bots.All(bot => raid.Mode.IsBotSpawnProtected(bot.GetPlayer)), "Domination lease runs until its configured end");
+            raid.Step(live + 4f);
+            Check(raid.Bots.All(bot => !raid.Mode.IsBotSpawnProtected(bot.GetPlayer)), "Domination lease ends on time");
+        }
+        foreach (string map in new[] { "factory4_day", "factory4_night", "FACTORY4_DAY" })
+        {
+            Check(!ArenaTeamBoxCatalog.Applies(map, "domination"), "Factory Domination is outside the box catalog: " + map);
+            using var raid = new Raid(map, domination: true);
+            raid.Fill();
+            Settings.SpawnProtectionSeconds.Value = 30;
+            Check(raid.Bots.All(bot => !raid.Mode.ShouldBlockMatchDamage(bot.GetPlayer)), "Domination on Factory gives no bot spawn immunity");
+            Check(raid.Bots.All(bot => !raid.Mode.IsBotSpawnProtected(bot.GetPlayer)), "Domination on Factory arms no bot shield");
+        }
+
         foreach (float seconds in new[] { 0f, -1f, float.NaN, float.PositiveInfinity, float.NegativeInfinity })
         {
             using var raid = new Raid("arena_equator", seconds: seconds);

@@ -14,6 +14,10 @@ durations and the existing 30-second cap. Local-player shields are not owned by
 these code paths; the model checks that live local damage remains outside bot
 spawn admission.
 
+Domination is covered too: the six box maps (both factions) must shield their bots, refuse damage and
+let the lease end on time; Factory day/night in Domination must grant none. This pins the scope; the
+phase-read fault controls for Domination live in `tools/TeamDeathmatchRuntimeChecks/Verify-Regression.ps1`.
+
 Five compiled fault controls remove map filtering, remove all box-map protection,
 admit PFT, reread the duration for refills and remove current-match identity.
 Each must compile and fail the named behavioral assertion. The verifier stores

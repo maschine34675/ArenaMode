@@ -13,6 +13,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - The KITS window's top-right button now reads **DONE** instead of BACK. Kit window buttons no longer flash
   white when they are built (the buttons of the selected kit, the editor's buttons): they start on their
   resting colour and keep the fade for hover, press and disabled.
+- In Domination on the ported maps bots now have the same spawn protection as in Team Deathmatch; it was
+  armed but never took effect.
 - Admit Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,
   Auto Shoulder Swap 1.1.1 and Dynamic External Resolution Patch 1.1.2.
   Arena guards Shoulder Swap's unsafe non-firearm callbacks and displays

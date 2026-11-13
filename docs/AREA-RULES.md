@@ -730,8 +730,10 @@ Area selection shares the existing F12 `ExperimentalArea` setting. Map/time/mode
 ## Spawns, team boxes and spawn gates
 
 Independent TDM bots on catalog-backed team-box maps (Equator, Bay5, Air Pit, Bowl, Iceberg and Chop Shop)
-own finite exact-body spawn damage shields with first-attack release. Other maps
-receive no bot spawn shield; local-player protection is unchanged. Read
+own finite exact-body spawn damage shields with first-attack release. Domination has the
+same scope (box maps only, Factory none) and reads its phase through `MatchPhase`: the Team DM
+kill policy `_rules` is null there, so a `_rules?.Phase` read in the shield code silently disables
+it. Other maps receive no bot spawn shield; local-player protection is unchanged. Read
 docs/reviews/BOT-SPAWN-SHIELD-SCOPE-20261019.md and docs/reviews/TDM-BOT-SPAWN-SHIELD-20261017.md
 before changing damage admission, attack hooks or shield lifetime. Never reuse
 historical team IDs as shield authority or modify their DamageCoeff.

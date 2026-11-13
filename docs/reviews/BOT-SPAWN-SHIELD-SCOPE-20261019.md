@@ -37,3 +37,17 @@ This is scope and lifetime evidence, not native visual/damage acceptance. Parent
 integration must separately build the client and test a ported Team DM plus a
 Factory Team DM in EFT, preserving the local-player protection behavior. Shared
 indicator rendering is reviewed in `BOT-EFFECT-OUTLINES-20261019.md`.
+
+## Note 2026-11-13: Domination
+
+Domination has had the same scope by rule since 2026-10-26 (`ArenaTeamBoxCatalog.Applies` accepts
+`domination` on the six box maps, Factory and the other maps get none). The shield never took effect
+there, though: the duration was frozen and bots were tracked, but the three phase reads in
+`TeamDeathmatchMode.SpawnProtection.cs` used the Team DM kill policy (`_rules?.Phase`), which is null in
+Domination. Damage was never refused, the lease clock never started and no visual was created. The reads
+now use the mode-neutral `MatchPhase`. Scope, duration, first-attack release and visual are unchanged.
+
+Evidence: `tools/TeamDeathmatchRuntimeChecks` replays every bot-shield case in a live Domination match
+on Equator (three mutants revert one read each and die at a `DOM ...` assertion);
+`tools/SpawnShieldScopeChecks` pins Domination on all six box maps (shield, lease ends on time) and on
+Factory day/night (no shield). Native acceptance in EFT is still open.

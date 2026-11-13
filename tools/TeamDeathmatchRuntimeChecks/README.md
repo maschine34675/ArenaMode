@@ -194,3 +194,8 @@ position requests abort instead of admitting the body. `AreaStandIns.cs` models
 those external verdicts and records the abort request; it does not execute
 geometry, NavMesh, native Stop or profile restoration. Earlier assertions remain
 unchanged, and normal/full-map fixtures reset the new external input.
+
+Bot spawn shields are asserted twice (`SpawnShieldChecks.cs`): once in Team DM and once in a live
+Domination match on Equator (messages prefixed `DOM `). Domination keeps its phase in the objective
+rules, so three mutants in `Verify-Regression.ps1` revert one `MatchPhase` read of the shield file each
+(`spawn-shield-dom-refusal-phase`, `-release-phase`, `-tick-phase`) and must die at a `DOM ` assertion.

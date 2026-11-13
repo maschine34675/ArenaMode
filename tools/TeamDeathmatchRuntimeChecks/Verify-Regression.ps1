@@ -49,6 +49,22 @@ $cases = @(
         Failure = 'stale body/game/identity cannot retain immunity'
     },
     @{
+        # Domination keeps its phase in the objective rules; the Team DM kill policy is null there.
+        Name = 'spawn-shield-dom-refusal-phase'; Path = $shield; Property = 'ShieldSource';
+        Find = 'MatchPhase != TdmMatchPhase.Live) return false;'; Replace = '_rules?.Phase != TdmMatchPhase.Live) return false;';
+        Failure = 'DOM all allied/opposing initial bots receive full duration at Live'
+    },
+    @{
+        Name = 'spawn-shield-dom-release-phase'; Path = $shield; Property = 'ShieldSource';
+        Find = 'MatchPhase != TdmMatchPhase.Live) return;'; Replace = '_rules?.Phase != TdmMatchPhase.Live) return;';
+        Failure = 'DOM first attack ends damage shield and hides its visual synchronously'
+    },
+    @{
+        Name = 'spawn-shield-dom-tick-phase'; Path = $shield; Property = 'ShieldSource';
+        Find = 'bool live = MatchPhase == TdmMatchPhase.Live;'; Replace = 'bool live = _rules?.Phase == TdmMatchPhase.Live;';
+        Failure = 'DOM every protected bot has one visual'
+    },
+    @{
         Name = 'spawn-gates-countdown'; Path = $flow; Property = 'FlowSource';
         Find = 'if (!Bots.ArenaTeamBoxRuntime.TryOpenForCombat()) return;';
         Replace = 'if (false) return;';

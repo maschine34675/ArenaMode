@@ -43,7 +43,7 @@ public sealed partial class TeamDeathmatchMode
 
     internal bool IsBotSpawnProtected(Player body)
     {
-        if (body == null || !IsCurrentMatch() || _rules?.Phase != TdmMatchPhase.Live) return false;
+        if (body == null || !IsCurrentMatch() || MatchPhase != TdmMatchPhase.Live) return false;
         foreach (var shield in _spawnShields)
             if (ReferenceEquals(shield.Body, body) && CurrentShield(shield))
                 return shield.Lease.IsProtected(Time.time, shield.Owner.BotState == EBotState.Active);
@@ -52,7 +52,7 @@ public sealed partial class TeamDeathmatchMode
 
     internal void EndBotSpawnProtection(Player attacker)
     {
-        if (attacker == null || !IsCurrentMatch() || _rules?.Phase != TdmMatchPhase.Live) return;
+        if (attacker == null || !IsCurrentMatch() || MatchPhase != TdmMatchPhase.Live) return;
         foreach (var shield in _spawnShields)
         {
             if (!ReferenceEquals(shield.Body, attacker) || !CurrentShield(shield)) continue;
@@ -70,7 +70,7 @@ public sealed partial class TeamDeathmatchMode
         {
             var shield = _spawnShields[i];
             bool current = CurrentShield(shield);
-            bool live = _rules?.Phase == TdmMatchPhase.Live;
+            bool live = MatchPhase == TdmMatchPhase.Live;
             bool protectedNow = current && shield.Lease.IsProtected(Time.time,
                 live && shield.Owner.BotState == EBotState.Active);
             if (!protectedNow)
