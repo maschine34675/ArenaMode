@@ -197,6 +197,7 @@ foreach (string map in maps)
             map, "base.json");
     if (minimumRows.ContainsKey(map))
         Need(File.Exists(file), SpawnRowsData(map, "the file " + file + " is missing"));
+    Need(File.Exists(file), "DATA-FILE: the installed file " + file + " is missing; this harness reads the installed maps");
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     Need(document.RootElement.GetProperty("Id").GetString() == map, "DATA-ID: inspect the exact installed map");
     // ArenaMapPort's tag v0.5.0 holds a stub arena_autoservice/base.json without any spawn rows; name the
@@ -270,6 +271,10 @@ foreach (string map in maps)
     string gridLine = "";
     if (minimumRows.ContainsKey(map))
     {
+        // The grid and the evidence pins below read the one zone these maps have (BotZone_Main); rows spread
+        // over several zones would otherwise end in a raw "Sequence contains more than one element".
+        Need(zones.Length == 1, "SPAWN-ROWS-ZONE: the Bot rows of " + map + " are spread over " + zones.Length
+            + " BotZoneName values; the Tactical pins were decided on a single zone and are to be re-decided");
         var (gridMinimum, gridCell) = GridMinimum(zones.Single());
         string cellText = FormattableString.Invariant($"({gridCell.x:0.0}, {gridCell.z:0.0})");
         gridLine = $" Grid minimum {gridMinimum} near {cellText}.";
