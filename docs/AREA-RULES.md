@@ -502,8 +502,9 @@ elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIV
 before changing that order, the bridge contract, the lease teardown at every round end or the
 reward rule. The point applies wherever Tactical is admitted and the map has a Domination layout: besides
 Factory, Bay 5, Air Pit and Bowl, on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
-since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor;
-not run natively on those three maps.
+since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor.
+In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no
+hold was run (the test timing ends each round when the point appears).
 
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
@@ -815,10 +816,10 @@ always did; Air Pit South Gate sits at the pocket mouth, its box edge 0.4 m and 
 for all six formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
 nothing reads the positions, and the flares only mark the pockets. A first spawn or a respawn can stand in an
 exit box (Iceberg's Bear house (9) does); that it never extracts is MapPort's observation in Team DM on Bowl
-and Iceberg and this repository's Team DM run on Chop Shop of 2026-11-13 (first spawn 0.4 m from the West
-Gate's box, respawn in the same pocket); a respawn onto a point inside a box is not verified.
-Since 2026-11-13 the MapPort exits sit in the team start pockets, so Arena admission fails
-closed when those hooks are not installed (`ArenaExtractionIsolation.AdmissionFailure`, read by
+and Iceberg. This repository's Team DM run on Chop Shop of 2026-11-13 spawned 0.4 m and respawned 0.9 m
+outside the West Gate's box, so it adds nothing to that; a respawn onto a point inside a box is not verified.
+Because the MapPort exits sit in the team start pockets, Arena admission fails
+closed since 2026-11-13 when those hooks are not installed (`ArenaExtractionIsolation.AdmissionFailure`, read by
 `ArenaOptionalMods` right after the whitelist); see docs/reviews/EXTRACTION-HARDENING-20261113.md.
 See docs/reviews/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
 The completion contract is polled

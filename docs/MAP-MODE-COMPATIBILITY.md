@@ -101,10 +101,14 @@ solo und mit PFT freigegeben: Der ArenaMapPort-Build vom 12.11. bringt 17 Botpun
 alten Kartenmitte liegen mindestens neun weiter als 25 m entfernt (auf dem Netz mindestens zehn).
 Zombies (solo und PFT) bleiben freigegeben, die Karte ist nicht eng. Der Tactical-Kontrollpunkt
 gilt hier wie auf Equator und Chop Shop über die vorhandenen Domination-Punkte (Iceberg: einer
-von A/B/C je Runde); er ist dort nicht nativ getestet.
+von A/B/C je Runde). In den nativen Läufen vom 13.11.2026 wurde der Punkt auf allen drei Karten in jeder
+Runde gesetzt und angesagt; ein Halten des Punkts ist nicht gelaufen (die Testzeiten beenden die Runde, sobald
+der Punkt erscheint).
 Team DM und Domination nutzen die CheckPoint-Taschen USEC West / BEAR Ost, auf die
-geschlossenen Tore zugeschnitten; Domination hat drei Punkte A/B/C. Ein nativer
-GPU-Test steht noch aus. Siehe [Iceberg-Integration](reviews/ICEBERG-INTEGRATION-20261031.md).
+geschlossenen Tore zugeschnitten; Domination hat drei Punkte A/B/C. Der native
+GPU-Lauf vom 31.10.2026 steht im [Bericht](reports/2026-10/GPU-ICEBERG-20261031.md); Tactical lief am
+13.11.2026 solo und mit PFT ([Bericht](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)).
+Siehe [Iceberg-Integration](reviews/ICEBERG-INTEGRATION-20261031.md).
 
 Chop Shop (ArenaMapPort-ID `arena_autoservice`) braucht einen ArenaMapPort-Build, der diese Karte
 mitbringt; das ist derzeit nur der unveröffentlichte `feature/autoservice`-Build, für die Botpunkte unten
@@ -127,8 +131,8 @@ die Boxhöhe (−4,8 bis −1,0) und der Domination-Punkt (−369,290 / −3,805
 Tor-Watchdog beträgt 15 s. Die beiden bekannten Grenzen dieses Laufs (Domination setzte nur 5 von 6 Pickups,
 in der Hofmitte gab es eine tote Stelle für Zombie-, Deathmatch- und Gun-Game-Spawns) kamen von den sieben
 Botpunkten und sind mit den 16 Botpunkten weg: Auf GPU-2 am 13.11.2026 setzte Domination 6 von 6 Pickups,
-solo Zombies aus der Hofmitte füllten 32 von 32. Nicht gelaufen sind unter anderem PFT, Gun Game, ein zu
-Ende gespieltes Match und Tactical auf den neu freigegebenen Karten (Stand beim Schreiben). Beide Ausgänge
+solo Zombies aus der Hofmitte füllten 32 von 32. Solo-Tactical lief am 13.11.2026 über drei Runden. Nicht gelaufen sind unter anderem PFT, Gun Game und ein zu
+Ende gespieltes Match. Beide Ausgänge
 liegen seit dem 12.11. in den Teamtaschen; ArenaMode deaktiviert die Extraktion, die Flares markieren nur die Taschen. Siehe
 [Chop-Shop-Integration](reviews/CHOP-SHOP-INTEGRATION-20261112.md), den
 [nativen Bericht](reports/2026-11/GPU-CHOP-SHOP-20261112.md) und die

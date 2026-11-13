@@ -2,16 +2,19 @@
 
 Run `pwsh -NoProfile -File tools/MapModeAdmissionChecks/Verify.ps1 -SptRoot D:\SPT41`.
 This compiles the real shared catalog/participant policy and client spawn planner
-with minimal native vector/marker boundaries. It requires the installed Customs,
-Equator and Bay5 JSON records; it fails rather than silently skipping absent data.
+with minimal native vector/marker boundaries. It requires the installed `base.json`
+of the six ported maps (Equator, Bay5, Air Pit, Bowl, Iceberg, Chop Shop) and of
+Customs; it fails rather than silently skipping absent data.
 No game process, deployment, settings or profiles are changed.
 
-Checks cover supported mode pairs, the concrete Equator five-opponent limit,
-the Equator-only PFT Zombie exclusion (solo remains available), bounded all-mode
+Checks cover supported mode pairs, the five distant rows a Tactical squad needs
+(Equator and Iceberg have them everywhere, Chop Shop's yard centre does not), the
+PFT Zombie exclusion on Equator and Chop Shop (solo remains available), bounded all-mode
 ownership, exact frozen totals/team sizes, retired/wrong-map
 contours and unidentified legacy populations. Installed opening markers are
-planned by the production selector; the Equator center is a real counterexample
-to equating safe initial starts with Tactical multi-round capacity. Fifteen compiled
+planned by the production selector; safe initial starts are not the same as
+Tactical multi-round capacity, which is why the centres are pinned separately
+(`EQUATOR-CENTER`, `ICEBERG-CENTER`, `CHOPSHOP-YARD-CENTER`). Fifteen compiled
 faults must each fail at their intended assertion, after the positive baseline.
 
 Installed-data pins of the spawn rows (ArenaMapPort 0.5.0+160523d, 2026-11-12):
@@ -27,7 +30,9 @@ the evidence of the PitFireTeam refusal beside `CHOPSHOP-YARD-CENTER`; today 3) 
 `EXIT-NAMES` (`ArenaTeamBoxCatalog`'s `BoothExits` equal the installed `exits[].Name`
 of each of the six ported maps as a set, in its own loop over the six formations
 because Bowl has no row in the mode matrix; only this pin notices a rename on
-ArenaMapPort's side). The three newest faults raise the 25 m floor to 30 m (dies at
+ArenaMapPort's side). `SPAWN-ROWS-ZONE` says that the Bot rows of the three maps lie
+in one zone (the grid and the evidence pins read it), and `DATA-FILE` names a
+missing installed file of any other map. The three newest faults raise the 25 m floor to 30 m (dies at
 `EQUATOR-GRID`) and rename an Iceberg and a Bowl exit literal (both die at
 `EXIT-NAMES`); the harness
 project takes the production team-box catalogue and selector through

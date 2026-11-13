@@ -84,7 +84,9 @@ Domination clearance) agreed with that run.
 4. **Tactical objective.** With Tactical admitted, the capture point applies on Equator (X), Iceberg (one of
    A/B/C per round) and Chop Shop (X) through the existing `DominationMapLayout` rows with the formation's
    Destination as navigation anchor. No code change; the `Settings.cs` description that listed which maps have
-   it now names all seven. Not run natively on these three maps.
+   it now names all seven. In the native runs of 2026-11-13 the point was resolved and announced in every round
+   on the three maps (Chop Shop X, Equator X, Iceberg C then B); no hold was run, because the test timing ends
+   each round when the point appears.
 5. **BoothExits.** Every formation names its two exits, USEC pocket first, the order Equator's entry uses:
    Equator "Equator North Gate" / "Equator South Gate"; Bay5 "Bay5 North Loading Bay" / "Bay5 South Container
    Lane"; Air Pit "Air Pit North Gate" / "Air Pit South Gate" (the south one stands at the pocket mouth: its box
@@ -98,8 +100,10 @@ Domination clearance) agreed with that run.
    without extracting (the Iceberg first spawn, Bear house (9), lies inside the east box).
 6. **Harness pins follow the decisions, not the row lists** (next section).
 7. **Documents.** This contract, the living documents (AREA-RULES, FEATURES, MAP-MODE-COMPATIBILITY,
-   DEPENDENCIES, CHANGELOG, HANDOFF) and a dated note at the top of the three contracts whose Tactical or exit
-   statements changed. The reports of 2026-11-12 and older stay as they are. README, FORGE-DESCRIPTION and the
+   DEPENDENCIES, CHANGELOG, HANDOFF) and a dated note at the top of the seven contracts whose Tactical or exit
+   statements changed (AIRPIT-TEAM-BOXES-REVIEW, BAY5-TEAM-BOXES-REVIEW, MAP-MODE-ACCESS-REVIEW,
+   CHOP-SHOP-INTEGRATION-20261112, EQUATOR-MAP-REVIEW, ICEBERG-INTEGRATION-20261031,
+   TACTICAL-OBJECTIVE-20261108). The reports of 2026-11-12 and older stay as they are. README, FORGE-DESCRIPTION and the
    whitelist stay untouched: no ArenaMode release may announce Chop Shop or the new Tactical maps on unreleased
    ArenaMapPort data before an ArenaMapPort release ships it.
    **Release blocker (lead decision, 2026-11-13).** The published ArenaMapPort 0.5.0 has Equator 10 Bot rows
@@ -196,8 +200,12 @@ new pins hold what the decisions rest on:
     with the installed rows and the tag's stub `arena_autoservice` (it has no `SpawnPointParams`) at
     `SPAWN-ROWS-DATA: the file carries no spawn rows (a stub location) for arena_autoservice`; with that file
     removed at `SPAWN-ROWS-DATA: the file ... is missing for arena_autoservice`. Each message goes on with the
-    sentence about the needed build. On the installed data the harness passes with 976 assertions and prints
-    the grid minima 6 (Equator), 9 (Iceberg) and 3 (Chop Shop).
+    sentence about the needed build. On the installed data the harness passed with 976 assertions then and
+    prints the grid minima 6 (Equator), 9 (Iceberg) and 3 (Chop Shop).
+  - `SPAWN-ROWS-ZONE` and `DATA-FILE` (after the final review): the Bot rows of each of the three maps lie in
+    one zone, which the grid and the evidence pins read (rows spread over two `BotZoneName` values used to end
+    in a raw exception), and a missing installed file of any other map fails with a sentence. 985 assertions
+    on the installed data.
 - Every other oracle that encoded the refusals, hints or the default follows the decisions: AreaConfigChecks
   (matrix and hint literals), NativeMenuChecks (tactical flags and the Equator PFT admission), ParticipantMenuChecks,
   CompactModeUxChecks, PftPortedMapChecks, NativeAreaHookChecks, CustomsAllModesChecks, the NegativeControls of
@@ -236,22 +244,41 @@ live install before and after), on 2026-11-13 for commit `2a085839`:
   and the xunit flake `ArenaDirectStartTests.AlreadyStartingServerIsReusedAndForeignImageIsRefused` (passes on
   rerun).
 
-VERIFY-RERUN: (lead fills in the green runs of `ChopShopTeamBoxChecks`, `IcebergTeamBoxChecks` and
-`BowlTeamBoxChecks` and the final run of the branch; the logs of the pass above hold only their red baseline).
+Final run, 2026-11-13, one pass of `tools/Run-ArenaVerification.ps1` on the merge `8d4797dd` (this branch with
+`master`'s extraction hardening `722e871e`): 25 of 25 steps passed in 2,763 s. xunit: 3,903 tests, 3,900 passed,
+3 known environment skips. Harnesses: `ChopShopChecks`, `MapModeAdmissionChecks` (15 compiled faults),
+`AreaConfigChecks`, `NativeMenuChecks` (1,077 assertions), `NativeAreaHookChecks`, `CustomsAllModesChecks`,
+`EquatorMapChecks`, `AirPitChecks`, `ArenaExtractionChecks` (174 assertions, 14 source faults),
+`OptionalModAdmissionChecks`, `SainExtractGuardChecks` (33 assertions, 5 source faults),
+`ParticipantMenuChecks`, `CompactModeUxChecks` (332 assertions and its mutants), `PftPortedMapChecks` (340),
+`TdmMatchMenuChecks`, `AreaMapPreviewChecks`, `DominationAdmissionChecks`, `ParticipantServerChecks`,
+`IcebergChecks`, `BowlChecks`, `ChopShopTeamBoxChecks`, `IcebergTeamBoxChecks`, `BowlTeamBoxChecks`,
+`ArenaPickupChecks` (521 assertions). After that run two things changed and were run on their own:
+`MapModeAdmissionChecks` after the guards `SPAWN-ROWS-ZONE` and `DATA-FILE` (`47b9878e`: 985 assertions, 15
+compiled faults), and `ArenaTracerChecks` after `master`'s repair of that harness was merged (`a02764ac`: 344
+assertions). The document commits after `8d4797dd` change no code.
+
+An earlier final run on the unmerged head was cut short from outside: at 10:38 another session installed a
+test build into `D:\SPT41`, and the runner's installed-file guard marked the eight steps after that as failed
+although their own checks had passed (`CHOPSHOP_TEAM_BOX_CHECKS_PASSED` and so on). Its first fifteen steps
+had passed; all of them are in the run above again. The three team-box harnesses had first gone green on
+`e90d1f72` (`ChopShopTeamBoxChecks`, `IcebergTeamBoxChecks`, `BowlTeamBoxChecks`, with `IcebergChecks`,
+`BowlChecks` and `ArenaPickupChecks`: 6 of 6).
 
 NATIVE: run on GPU-2 on 2026-11-13, report
 [GPU-SPAWN-ROWS-20261113.md](../reports/2026-11/GPU-SPAWN-ROWS-20261113.md). With the build that was installed
 before this change (`0.5.0+3ea7eabb`) and the new rows: Chop Shop Domination placed 6 of 6 pickups from 16
 candidates; solo Zombies with the player in the yard centre from the start filled 32 of 32 with no dropped
-request; Team DM 4v4 on Chop Shop with the exits in the pockets spawned and respawned beside the exit box
-without an extraction. With build `0.5.0+e90d1f72`: with a PitFireTeam squad the Tactical menu offers Iceberg
+request; Team DM 4v4 on Chop Shop with the exits in the pockets spawned 0.4 m and respawned 0.9 m outside the
+West Gate's exit box and the match went on (the player never stood inside the box). With build `0.5.0+e90d1f72`: with a PitFireTeam squad the Tactical menu offers Iceberg
 and Equator and not Chop Shop; solo Tactical ran three rounds on Chop Shop, Equator and Iceberg with the
 committed scenario `tactical-solo-ported` (20 steps each, every round live with five opponents, the capture
 point resolved in every round: Chop Shop X, Equator X, Iceberg C then B); PitFireTeam Tactical with two
 companions went live with three allies against five opponents on Iceberg (three rounds, the third with the
 surviving leader in the old centre: 11 usable rows) and on Equator (round 2 with the surviving leader at the
 worst spot (-4, 0.1, 15): 6 usable rows, the offline grid minimum). No error in the BepInEx log. The commits
-after `e90d1f72` change comments, harnesses and documents only.
+after `e90d1f72` up to `bf8072d6` change comments, harnesses and documents only; the merge of `master` that
+followed adds the extraction hardening, which was in neither native build.
 
 ## Not claimed
 

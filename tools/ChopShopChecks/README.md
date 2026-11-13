@@ -11,9 +11,9 @@ player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-2
 
 ## Scenarios
 
-`scenarios/` holds the five gpu-run scenario files of the native cycle on GPU-2 of 2026-11-12, and
-`tactical-solo-ported.json` of 2026-11-13
-([report](../../docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)):
+`scenarios/` holds the five gpu-run scenario files of the native cycle on GPU-2 of 2026-11-12
+([report](../../docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)) and `tactical-solo-ported.json` of 2026-11-13
+([report](../../docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md)):
 
 | File | Runs |
 |---|---|

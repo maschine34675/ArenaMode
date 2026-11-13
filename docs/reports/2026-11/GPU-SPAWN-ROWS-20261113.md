@@ -31,23 +31,28 @@ Build B was built with `tools/AirPitChecks/NoDeploy.targets` in a separate clean
 build worktree, the three stamps were checked, the DLLs were copied into
 `D:\SPT41` and rolled out with `gpu-run deploy-wait --host host2 --server --game`
 (VM build = host disk = loaded process). The files of build A were kept in
-`D:\SPT41-Backups\arena-spawn-rows\20261113-093617`. The commits after `e90d1f72`
-on the branch change comments, harnesses and documents only; the build that is
-installed at the end of the day is rebuilt from the merged master head, and its
-stamp and hashes are recorded in [HANDOFF.md](../../HANDOFF.md), not here.
+`D:\SPT41-Backups\arena-spawn-rows\20261113-093617`. The hashes of build B are the
+ones printed when it was installed; its files are no longer installed. The
+commits after `e90d1f72` up to `bf8072d6` change comments, harnesses and documents
+only. The merge of `master` that followed (`8d4797dd`, extraction hardening) adds
+production code that was in neither build. This work installed nothing after
+build B: at 10:38 the session working on `fix/solo-squad-dispatch-order` installed
+its own test build over it (client and BigBrainCompat `0.5.0+73370e37`, which
+contains this branch up to `ab16c8f3`) and restarted the game on the host at
+10:41. What is installed is recorded in [HANDOFF.md](../../HANDOFF.md), not here.
 
 ## Results
 
 | Run (build) | Result |
 |---|---|
 | Chop Shop Domination 4v4 (A) | **Passed** (14 steps). `Domination points verified: X=(-369.290, -3.805, 499.490)`, gates open after 5.00 s, `Arena pickup placement attempt 1: ... placed=6/6; alternatives=7; ... refusals=[another pickup is within 3m=1]` with 16 candidates per pickup, Health at the donor row (-367.44, -3.805, 492.11). On 2026-11-12 the same code placed 5 of 6 (five usable rows for six pickup kinds, Health left out). The limit is gone with MapPort's rows; no code changed. |
-| Chop Shop solo Zombies, player in the yard centre from the start (A) | **Passed** (`chopshop-zombie`, 15 steps). Player at (-379, -3.8, 495) under godmode; every plan line reads `points 5 preferred + 0 distant, selected 1`; 32 plans, 32/32 infected alive after 35 s, again 32/32 after the move to the east pocket; no `no usable spawn point` line. On 2026-11-12 this spot had no row beyond 25 m and every request was dropped (133 in 30 s before the backoff, 18 in 36 s with it). |
-| Chop Shop Team DM 4v4 with the exits in the pockets (A) | **Passed** (`chopshop-tdm`, 21 steps). `restored 20 box markers`, capacity 10/10 on both sides, gates open after 5.01 s, pickups 6/6 from 16 candidates. Local BEAR first spawn on west-08, 0.4 m from the West Gate's exit box, respawn on west-05 (-409.40, -3.74, 477.39): no extraction prompt, no raid end, `Arena extraction-list: existing native list CanvasGroup hidden`. |
-| Menu with a PitFireTeam squad of two, Tactical selected (B) | The map tiles offer ICEBERG and EQUATOR and no CHOP SHOP (`pft/menu-pft-tactical-no-chopshop.png`). Solo, Tactical offers all three. |
+| Chop Shop solo Zombies, player in the yard centre from the start (A) | **Passed** (`chopshop-zombie`, 15 steps). Player at (-379, -3.8, 495) under godmode; every plan line reads `points 5 preferred + 0 distant, selected 1`; 32 plans, 32/32 infected alive after 35 s; after the move to the east pocket the 32 were still alive (no new fill was needed there) and there was no `no usable spawn point` line. On 2026-11-12 this spot had no row beyond 25 m and every request was dropped (133 in 30 s before the backoff, 18 in 36 s with it). |
+| Chop Shop Team DM 4v4 with the exits in the pockets (A) | **Passed** (`chopshop-tdm`, 21 steps). `restored 20 box markers`, capacity 10/10 on both sides, gates open after 5.01 s, pickups 6/6 from 16 candidates. Local BEAR first spawn on west-08, 0.4 m outside the West Gate's exit box (a 4 x 3 x 4 m box at (-406.5, -3.7, 478.5)), respawn on west-05 (-409.40, -3.74, 477.39), 0.9 m outside it. The player was alive and in the raid after both, and the two stills show no extraction prompt. No scenario step asserts that, and the player never stood inside the box. |
+| Menu with a PitFireTeam squad of two, Tactical selected (B) | The offered map tiles are ICEBERG, BOWL, EQUATOR, AIR PIT and BAY 5; there is no CHOP SHOP tile (`pft/menu-pft-tactical-no-chopshop.png`, mode shown as `3v5 PFT`; the two companions were set with `gpu-run squad`). Solo, the scenario runs reached all three maps through their Tactical tiles. |
 | Solo Tactical, Chop Shop (B) | **Passed** twice: the first scenario version (23 steps) and the committed `tactical-solo-ported` (20 steps, 10 expectations). Every round `live: 5 active opponents`; plans 11, 13, 11 and 13, 11, 12 preferred rows; `objective: point at (-369.3, -3.8, 499.5), 5 opening lane(s), bots on the objective layer`. Nearest opponents 27.3 m (round 1) and 33.3 m (round 2). |
-| Solo Tactical, Equator (B) | **Passed** with `tactical-solo-ported` (20 steps). Plans `9 preferred + 5 distant`, `10 + 2`, `9 + 5`; objective at (1.3, 0.3, 4.2), 5 lanes; nearest opponents 28.1 m and 31 m. The first scenario version failed at its own step 9 on this map (it waited for the round timer, but the bots killed the player in round 1: godmode set before the round-1 body swap does not carry over); the log of that run shows three rounds live with five opponents as well. The scenario was reworked after that. |
+| Solo Tactical, Equator (B) | **Passed** with `tactical-solo-ported` (20 steps). Plans `9 preferred + 5 distant`, `10 + 2`, `9 + 5`; objective at (1.3, 0.3, 4.2), 5 lanes; nearest opponents 28.1 m and 31 m. The first scenario version failed at its own step 9 on this map (it waited for the round timer, but the bots killed the player in round 1; godmode had been set before the round-1 body swap and most likely did not carry over to the new body); the log of that run shows three rounds live with five opponents as well. The scenario was reworked after that. |
 | Solo Tactical, Iceberg (B) | **Passed** with `tactical-solo-ported` (20 steps). Plans `5 preferred + 12 distant`, `9 + 6`, `6 + 11`; the objective changed between rounds (C, then B). |
-| PitFireTeam Tactical, Iceberg, leader plus two companions (B) | Three rounds went live: `Tactical team Arena round N live: 3 allies versus five opponents`. Rounds 1 and 2 from the Player row (`6 preferred + 11 distant`). For round 3 the surviving leader was teleported into the old centre (9.9, 3.1, -69.7), the spot that had four distant rows before: `points 11 preferred + 0 distant, selected 5`, round live with five. No no-contest. |
+| PitFireTeam Tactical, Iceberg, leader plus two companions (B) | Three rounds went live: `Tactical team Arena round N live: 3 allies versus five opponents`. Rounds 1 and 2 from the Player row (`6 preferred + 11 distant`). For round 3 the surviving leader was teleported into the old centre rectangle (teleport point (10.6, 3.1, -70.0); he stood at (9.9, 3.2, -69.7) when the round went live), the area that had four distant rows before: `points 11 preferred + 0 distant, selected 5`, round live with five. No no-contest. |
 | PitFireTeam Tactical, Equator, leader plus two companions (B) | Round 1 `13 preferred + 0 distant`, live with three allies versus five. For round 2 the surviving leader stood at the worst spot of the map (-4, 0.1, 15): `points 6 preferred + 0 distant, selected 5`, followed by the round-2 start. The offline grid minimum for Equator is the same six. |
 
 Errors in the BepInEx log during these raids: none. One expected warning in
@@ -83,7 +88,10 @@ shows it by the count as well: the survivor stood in the worst cell of the yard
 for round 3 read `points 13 preferred + 0 distant`, the count from the east
 Player row he was moved to. One second after that squad went live its members
 stood 22.3, 23.1, 24.3, 43.8 and 57.0 m from him (they had started to move); in
-round 2 of the same raid, after a death, 27.4, 47.1, 52.8, 54.3 and 57.9 m.
+round 2 of the same raid, after a death, 27.4, 47.1, 52.8, 54.3 and 57.9 m. These
+distances were read live with `uibridge_bots`; the measurement raid has no export
+of its own in the evidence folder (its log lines are at the start of the export
+of `tactical-solo-equator-final`).
 
 This is a measurement, not a guarantee: nothing in the code orders the pick
 after the move, and profiles that are ready within less than 0.1 s would be
@@ -100,7 +108,7 @@ solo Tactical on every map, and the reorder is filed as a separate task.
   `Map participants/arena_autoservice_solo` stays 6 while the description now
   says `Default value: 8`. Only a fresh configuration gets eight.
 - In the committed scenario a survivor of round 1 on Chop Shop was placed on the
-  Player row he already stood on (-409.5, -3.7, 495.5 before and after); on
+  Player row he already stood on (-409.5, -3.7, 495.5 before, 495.6 after); on
   Equator he moved 12 m to the other row of the same pocket; in the measurement
   raid he was moved 41 m. All three are Player rows.
 
@@ -115,6 +123,11 @@ solo Tactical on every map, and the reorder is filed as a separate task.
   `persist=false` and never reached the cfg file. Against the copy taken in the
   morning the cfg differs only in three description lines the new build wrote.
 - The PitFireTeam squad group was cleared after the squad runs (0 of 4).
+- The comparison copies (profile, cfg, hash list of the PitFireTeam files) were kept
+  in the session's scratch folder, not in the evidence folder.
+- The game on the host was left running in the menu. It had not been running
+  before this work; the process that runs now was started at 10:41 by the other
+  session's deploy.
 
 ## Not run
 

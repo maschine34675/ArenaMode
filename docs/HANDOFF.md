@@ -177,7 +177,20 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   config value the test runs changed is back at its previous value. Previous files:
   `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
-  INSTALLED-STATE: (lead fills in)
+  **Since 2026-11-13 this paragraph no longer describes what is installed.** The spawn-row work installed its
+  test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
+  `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
+  working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
+  and restarted the game on GPU-2 (10:41). Installed at noon on 2026-11-13: client `0.5.0+73370e37` (SHA-256
+  `99b56e9ded225a181db254b33bb1d5e3c644238f67c924ecba741e1f7181e97c`), BigBrainCompat `0.5.0+73370e37`
+  (`2a06ae297af1953187844130b56f9e0ece6312233335c8473a33976d7c3043b7`), server `0.5.0+e90d1f72`
+  (`e8a4414279c1dcc963ad7cf47172e605a7655552f74de53cb0096d0eacdf6385`). That build contains the spawn-row
+  branch up to `ab16c8f3` and the unmerged dispatch-order fix; it does not contain the extraction hardening,
+  so it matches no commit on `master`. It was left in place on purpose: it belongs to another session's
+  unfinished native test. To get the `master` state installed, build the `master` head with
+  `tools/AirPitChecks/NoDeploy.targets`, check the three stamps and copy the three DLLs (the procedure of the
+  paragraph above). The Session helper's file time is 10:04:43 of the same day; the spawn-row work did not
+  touch it. Core is unchanged (`1.0.22+b1d69e1`), ArenaMapPort is `0.5.0+160523d`.
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
@@ -229,10 +242,11 @@ followed in `2a085839` (code and pins) and the document commit after it. Done: T
 and Iceberg (solo and PFT) and on Chop Shop solo; PFT Tactical stays refused on Chop Shop, with the
 yard-centre reason; Chop Shop defaults to eight; picker hints; every formation names its two exits
 (`BoothExits`, data only); pins on decisions (`ChopShopChecks` without id list, `MapModeAdmissionChecks` with
-the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that patch). Open: (1) the **native
-runs of the new build** (see the contract's `NATIVE:` line): Tactical solo and PFT on Equator and Iceberg,
-solo on Chop Shop, the capture point on those three maps, a PFT match on Chop Shop refused in the menu, a
-respawn onto an in-box formation point (Iceberg Bear house (9)); (2) **release blocker**: ArenaMapPort has not released
+the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that patch). The native runs are in
+[GPU-SPAWN-ROWS-20261113.md](reports/2026-11/GPU-SPAWN-ROWS-20261113.md): solo Tactical on Chop Shop, Equator
+and Iceberg, PFT Tactical on Iceberg and Equator, the capture point resolved in every round, the PFT menu
+without Chop Shop. Open: (1) natively still missing: a respawn onto an in-box formation point (Iceberg Bear
+house (9)), a Tactical match played to its end, a won round and a capture-point hold on the three maps; (2) **release blocker**: ArenaMapPort has not released
 these rows. The published 0.5.0 has Equator 10 Bot rows (4 distant from the atrium, grid minimum 3), Iceberg 9 (4
 distant in the centre) and no Chop Shop, and the unreleased build with the rows carries the same version string
 0.5.0; the whitelist versions are advisory (`ArenaWhitelistAdmission` turns a reviewed-version difference into a
@@ -247,8 +261,9 @@ release notes; README, FORGE-DESCRIPTION and the whitelist stay untouched until 
 build, and through it the three team-box harnesses; (3) the two hardening items that were filed separately (Arena arming although `ArenaExtractionIsolation`
 failed to install, bots leaving through SAIN's extraction) are done:
 [EXTRACTION-HARDENING-20261113.md](reviews/EXTRACTION-HARDENING-20261113.md), merged into this branch; (4) the 1.7 % of Chop Shop mesh cells with
-fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the green reruns of the
-three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract); (6) filed separately (branch `fix/solo-squad-dispatch-order`, not merged when this was written): the
+fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the installed build is another session's test build and matches no commit on `master` (see "Since
+2026-11-13" in the installed-state paragraph above); the final verification of the merged branch is in the
+contract's Verified section; (6) filed separately (branch `fix/solo-squad-dispatch-order`, not merged when this was written): the
 dispatch order of the solo Tactical squad
 against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
 its points when the profiles arrive; all ten measured round starts of 2026-11-13 had the move 0.06 to 0.28 s

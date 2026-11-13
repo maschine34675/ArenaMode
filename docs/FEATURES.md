@@ -673,7 +673,9 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   and again on 2026-11-13 with the new rows (Domination placed 6 of 6 pickups, solo Zombies from the yard
   centre filled 32 of 32): the two known limits of the first cycle are gone
   ([follow-up](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)). Its gate watchdog is 15 s. The capture point of
-  Tactical applies on all three maps; Tactical on them was not run natively when this was written. ArenaMode
+  Tactical applies on all three maps. Tactical ran natively on them on 2026-11-13: solo on all three, with a
+  PitFireTeam squad on Iceberg and Equator; the point was resolved in every round and no hold was run
+  ([report](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)). ArenaMode
   does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
