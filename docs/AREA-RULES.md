@@ -442,6 +442,13 @@ team boxes, gate completion, physical roster and spawn-shield ownership.
 Never turn its holding points into kill-based rewards or widen PFT pursuit leases.
 The original TDM kill policy stays separate; all physical roster/respawn boundaries
 remain shared. The September single-control-point proposal is historical.
+The world letter of a Domination point (`DominationPointView`, constructor argument `showLetter`) exists only on
+the vanilla maps (`!ArenaMapCatalog.IsOptionalMap`): ported maps already have the ring, the HUD row and the
+DynamicMaps diamond, so no label object is created there. On vanilla maps the letter is near-white with a dark
+outline on a chip in the owner's dark world colour (`RingColorFor`), and its scale follows the camera distance
+and field of view (about 3 % of the screen height, clamped 1.5 to 14). It keeps normal scene depth: walls occlude
+it, no overlay shader. `ColorFor` stays the HUD/DynamicMaps colour. See DOMINATION-PROTOTYPE-20261026.md, note
+of 2026-11-13.
 
 Team Deathmatch is independent USEC vs BEAR combat with continuous respawns;
 it is separate from protected PitFireTeam Tactical. See docs/reviews/TEAM-DEATHMATCH-REVIEW.md.

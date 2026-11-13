@@ -47,7 +47,7 @@ namespace UnityEngine
         public T[] GetComponentsInChildren<T>(bool includeInactive) where T : Component
             => Components.OfType<T>().Concat(transform.Children.SelectMany(t => t.gameObject.GetComponentsInChildren<T>(includeInactive))).ToArray();
         public static GameObject CreatePrimitive(PrimitiveType type)
-        { var go = new GameObject("Cube"); go.AddComponent<Renderer>(); go.AddComponent<Collider>(); return go; }
+        { var go = new GameObject(type.ToString()); go.AddComponent<Renderer>(); go.AddComponent<Collider>(); return go; }
         public void SetActive(bool active)
         {
             activeSelf = active;
@@ -59,12 +59,17 @@ namespace UnityEngine
     {
         public readonly List<Transform> Children = new();
         public Transform parent;
-        public Vector3 position, localPosition, localScale;
+        private Vector3 _position;
+        // A child's world position is its parent's plus its local offset (no rotation or scale: the
+        // checks only place the label above an unrotated root).
+        public Vector3 position
+        { get => parent == null ? _position : parent.position + localPosition; set => _position = value; }
+        public Vector3 localPosition, localScale;
         public Quaternion rotation, localRotation;
         public void SetParent(Transform target, bool world)
         { parent?.Children.Remove(this); parent = target; parent?.Children.Add(this); }
     }
-    public class Camera : Component { }
+    public class Camera : Component { public float fieldOfView = 60f; }
     public class Collider : Component { public bool enabled = true; }
     public class Renderer : Component
     { public bool enabled = true, receiveShadows; public Material sharedMaterial; public Rendering.ShadowCastingMode shadowCastingMode; }
@@ -88,7 +93,7 @@ namespace UnityEngine
         public Shader Shader;
         public Material(Shader shader) { Shader = shader; All.Add(this); }
     }
-    public enum PrimitiveType { Cube }
+    public enum PrimitiveType { Cube, Quad }
     public struct Color(float r, float g, float b, float a = 1)
     {
         public float r = r, g = g, b = b, a = a;
@@ -99,6 +104,7 @@ namespace UnityEngine
     public readonly record struct Vector3(float x, float y, float z)
     {
         public static Vector3 up => new(0, 1, 0);
+        public static float Distance(Vector3 a, Vector3 b) { var d = a - b; return MathF.Sqrt(d.sqrMagnitude); }
         public static Vector3 one => new(1, 1, 1);
         public float sqrMagnitude => x * x + y * y + z * z;
         public static Vector3 operator +(Vector3 a, Vector3 b) => new(a.x + b.x, a.y + b.y, a.z + b.z);
@@ -114,6 +120,9 @@ namespace UnityEngine
         public static float Sin(float f) => MathF.Sin(f);
         public static float Max(float a, float b) => MathF.Max(a, b);
         public static int CeilToInt(float f) => (int)MathF.Ceiling(f);
+        public const float Deg2Rad = MathF.PI / 180f;
+        public static float Tan(float f) => MathF.Tan(f);
+        public static float Clamp(float value, float min, float max) => value < min ? min : value > max ? max : value;
     }
     public static class Time { public static float time, unscaledTime; }
 }
@@ -148,7 +157,8 @@ namespace TMPro
                 _renderer.receiveShadows = false;
             }
         }
-        public float fontSize;
+        public float fontSize, outlineWidth;
+        public UnityEngine.Color outlineColor;
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color;
         public bool richText, enableWordWrapping;

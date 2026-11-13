@@ -116,3 +116,16 @@ follow-up on 2026-10-26; no public version bump):
 
 Raw local evidence belongs under `artifacts/domination-20261026/`; it is not a
 substitute for the observed game run and may contain private test-profile data.
+
+## Note, 2026-11-13: the world letter
+
+The "World labels show only the point letter" rule above stands, with two changes made before the release.
+On the ported maps (`ArenaMapCatalog.IsOptionalMap`) the point has no world letter any more: the ring, the HUD
+row and the DynamicMaps diamond stay, and `DominationRuntime.Prepare` passes `showLetter = false`, so no label
+object exists. On the vanilla maps the letter was a 4 to 14 px smudge at the usual 15 to 40 m, pastel and
+without an edge: it now keeps about 3 % of the screen height at any distance (scale from the camera distance and
+field of view, clamped 1.5 to 14), is near-white with a dark outline, and sits on a camera-facing chip in the
+owner's `RingColorFor` colour. Depth testing is unchanged (walls occlude it). The HUD row and the DynamicMaps
+diamond keep `ColorFor`. Offline pins: tools/ArenaPickupViewChecks (letter, chip, scale law and clamps, no
+objects on ported maps) and tools/DominationRuntimeChecks (which map passes which value). Not yet seen in a
+native picture: the chip's alignment behind the glyph and the legibility at 10, 30 and 60 m on Factory.

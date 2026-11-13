@@ -87,13 +87,14 @@ namespace ArenaMode.Hud
         internal readonly string Id;
         internal readonly Vector3 Floor;
         internal readonly float Radius;
+        internal readonly bool ShowLetter;
         internal bool Disposed;
         internal int Ticks;
         internal DominationPointState State;
-        internal DominationPointView(string id, Vector3 floor, float radius)
+        internal DominationPointView(string id, Vector3 floor, float radius, bool showLetter)
         {
             if (Created.Count == ThrowAt) throw new InvalidOperationException("test view allocation failed");
-            Id = id; Floor = floor; Radius = radius; Created.Add(this);
+            Id = id; Floor = floor; Radius = radius; ShowLetter = showLetter; Created.Add(this);
         }
         internal void Tick(DominationPointState state) { Ticks++; State = state; }
         internal static string Describe(string id, DominationPointState state, bool rich)

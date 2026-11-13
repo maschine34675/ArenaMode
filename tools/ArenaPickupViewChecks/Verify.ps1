@@ -22,7 +22,17 @@ $faults=@(
     @{Name='ring-white-vertices';Path=$domination;Property='DominationViewSource';Find='_ring.startColor = _ring.endColor = color;';Replace='_ring.startColor = _ring.endColor = Color.white;';Failure='objective ring vertex tint follows neutral'},
     @{Name='ring-fallback-white';Path=$domination;Property='DominationViewSource';Find='_material.color = _vertexTint ? Color.white : color;';Replace='_material.color = Color.white;';Failure='objective material tint follows the shader contract neutral'},
     @{Name='ring-double-tint';Path=$domination;Property='DominationViewSource';Find='_material.color = _vertexTint ? Color.white : color;';Replace='_material.color = color;';Failure='objective material tint follows the shader contract neutral'},
-    @{Name='ring-uses-overexposed-ui-tint';Path=$domination;Property='DominationViewSource';Find='var color = RingColorFor(state);';Replace='var color = ColorFor(state);';Failure='objective ring vertex tint follows neutral'}
+    @{Name='ring-uses-overexposed-ui-tint';Path=$domination;Property='DominationViewSource';Find='var color = RingColorFor(state);';Replace='var color = ColorFor(state);';Failure='objective ring vertex tint follows neutral'},
+    @{Name='ported-map-letter';Path=$domination;Property='DominationViewSource';Find='if (showLetter)';Replace='if (true)';Failure='objective ported view creates no label and no chip'},
+    @{Name='chip-ignores-owner';Path=$domination;Property='DominationViewSource';Find='_chipMaterial.color = color;';Replace='_chipMaterial.color = RingColorFor(default);';Failure='objective chip colour follows the owner USEC'},
+    @{Name='letter-owner-tint';Path=$domination;Property='DominationViewSource';Find='_label.color = LetterColor;';Replace='_label.color = ColorFor(default);';Failure='objective letter is near-white neutral'},
+    @{Name='letter-without-outline';Path=$domination;Property='DominationViewSource';Find='_label.outlineWidth = .2f;';Replace='_label.outlineWidth = 0f;';Failure='objective letter has a dark outline'},
+    @{Name='chip-in-front-of-letter';Path=$domination;Property='DominationViewSource';Find='new Vector3(0f, 0f, ChipDepth)';Replace='new Vector3(0f, 0f, -ChipDepth)';Failure='objective chip is a child of the letter, larger than the glyph and behind it'},
+    @{Name='letter-scale-unclamped';Path=$domination;Property='DominationViewSource';Find='return Mathf.Clamp(scale, MinLetterScale, MaxLetterScale);';Replace='return scale;';Failure='objective letter scale respects the minimum clamp'},
+    @{Name='letter-scale-no-maximum';Path=$domination;Property='DominationViewSource';Find='return Mathf.Clamp(scale, MinLetterScale, MaxLetterScale);';Replace='return Mathf.Clamp(scale, MinLetterScale, 1000f);';Failure='objective letter scale respects the maximum clamp'},
+    @{Name='letter-scale-fixed-distance';Path=$domination;Property='DominationViewSource';Find='2f * distance * Mathf.Tan';Replace='2f * 30f * Mathf.Tan';Failure='objective letter scale follows the distance law at 20 m'},
+    @{Name='letter-scale-fixed-fov';Path=$domination;Property='DominationViewSource';Find='fieldOfViewDegrees * GlyphScreenFraction';Replace='60f * GlyphScreenFraction';Failure='objective letter scale follows the camera field of view'},
+    @{Name='chip-material-leak';Path=$domination;Property='DominationViewSource';Find='if (_chipMaterial != null) UnityEngine.Object.Destroy(_chipMaterial);';Replace='';Failure='objective letter, chip and chip material released on dispose'}
 )
 foreach($fault in $faults) {
     $count=([IO.File]::ReadAllText($fault.Path).Split(@($fault.Find),[StringSplitOptions]::None).Length-1)

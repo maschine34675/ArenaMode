@@ -1,8 +1,9 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 680 assertions; all fourteen source mutants rejected by their
-intended behavioral assertions, followed by a clean baseline (2026-11-12, with Chop Shop).
+Current baseline: 688 assertions; all fifteen source mutants rejected by their
+intended behavioral assertions, followed by a clean baseline (2026-11-13, with the
+world-letter pin).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup
 spacing and original team-box catalogs. It has no mod project references or
@@ -30,10 +31,11 @@ Failure on the last BEAR route must not cache success and must allow a later
 retry. Factory must not invent booth checks. Bad start/end navigation samples,
 height drift and forward/reverse false/partial paths are all rejected.
 
-Fourteen compiled-source mutants target the Factory separation and repeat rules,
+Fifteen compiled-source mutants target the Factory separation and repeat rules,
 the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port
 relocation, count mismatch, missing return route, height drift, partial paths,
-missing BEAR routes, prematurely cached success and post-disposal authority.
+missing BEAR routes, prematurely cached success, post-disposal authority and an inverted
+`showLetter` (ported maps must pass false, Factory true).
 The runner requires each mutant's specific behavioral assertion and checks that
 production files remain unchanged; its final baseline must pass again.
 

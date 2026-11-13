@@ -96,6 +96,9 @@ foreach (var (map, authored) in cases)
             "every prepared point reserves its full pickup clearance");
     }
     Need(NavMesh.Samples.All(s => s.Range == .75f && s.Areas == NavMesh.AllAreas), "navigation sampling remains bounded");
+    // Ported maps carry the ring, the HUD row and the DynamicMaps diamond already: no world letter there.
+    Need(DominationPointView.Created.All(v => v.ShowLetter == factory),
+        "ported maps pass showLetter false and vanilla Factory passes true");
     Need(runtime.AllowsPickup(new(1000,0,1000)), "prepared layout permits distant pickup positions");
     Refuses(runtime.Prepare, "prepared layout cannot allocate duplicate markers");
     int preparationRoutes = NavMesh.Routes.Count;

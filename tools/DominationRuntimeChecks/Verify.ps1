@@ -46,6 +46,9 @@ $faults = @(
        Failure='opened route proof covers both factions and every authored point in both directions' },
     @{ Name='disposed-pickup-authority'; Path=$runtime; Property='RuntimeSource';
        Find='=> _prepared && !_disposed'; Replace='=> _prepared';
-       Failure='dispose removes all owned markers and pickup authority' }
+       Failure='dispose removes all owned markers and pickup authority' },
+    @{ Name='letter-inverted'; Path=$runtime; Property='RuntimeSource';
+       Find='!ArenaMapCatalog.IsOptionalMap(_world.LocationId));'; Replace='ArenaMapCatalog.IsOptionalMap(_world.LocationId));';
+       Failure='ported maps pass showLetter false and vanilla Factory passes true' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'DominationRuntimeChecks.csproj') -Token 'DOMINATION_RUNTIME_CHECKS_PASSED' -Properties @() -Faults $faults

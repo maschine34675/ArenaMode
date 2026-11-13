@@ -89,7 +89,8 @@ internal sealed class DominationRuntime : IDisposable
         }
         // No partial placement: every path must pass before a marker is made.
         for (int i = 0; i < _positions.Length; i++)
-            _views[i] = new Hud.DominationPointView(_layout.Points[i].Id, _positions[i], Radius);
+            _views[i] = new Hud.DominationPointView(_layout.Points[i].Id, _positions[i], Radius,
+                !ArenaMapCatalog.IsOptionalMap(_world.LocationId));
         if (_layout.Factory) _previousFactory = (Vector3[])_positions.Clone();
         _prepared = true;
         _mapMarkers = new Compat.DynamicMapsDominationMarkers(_world.LocationId,
