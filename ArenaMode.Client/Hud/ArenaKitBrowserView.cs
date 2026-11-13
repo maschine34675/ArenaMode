@@ -50,6 +50,8 @@ internal sealed class ArenaKitBrowserView
         internal Image Icon;
         internal TextMeshProUGUI Tag, Title, Line, Price, FavoriteLabel;
         internal bool IconBound;
+        // Set by Rebuild, cleared by the first Apply: a card built unusable starts on the disabled colour.
+        internal bool JustBuilt;
     }
 
     private sealed class Pump : MonoBehaviour
@@ -250,7 +252,7 @@ internal sealed class ArenaKitBrowserView
         {
             ArenaKitCard card = cards[index];
             float x = index % Columns * (CardWidth + Gap), y = index / Columns * (CardHeight + Gap);
-            var widgets = new CardWidgets { Card = card };
+            var widgets = new CardWidgets { Card = card, JustBuilt = true };
             widgets.Button = ArenaKitUi.Button(_content, "Arena Kit Card " + (card.IsRandom ? "random" : card.Id),
                 _style, null, 0f, x, y, CardWidth, CardHeight, out _);
             Transform parent = widgets.Button.transform;
@@ -307,7 +309,15 @@ internal sealed class ArenaKitBrowserView
         }
 
         bool usable = card.Enabled || card.Selected;
-        widgets.Button.interactable = usable;
+        // A fresh card is put on its state colour in this frame (it would otherwise fade from the
+        // normal colour to the disabled one over 0.1 s); later changes keep the fade.
+        if (widgets.JustBuilt)
+        {
+            widgets.JustBuilt = false;
+            ArenaKitUi.SetInteractableAtOnce(widgets.Button, usable);
+        }
+        else
+            widgets.Button.interactable = usable;
         widgets.Marker.SetActive(card.Selected);
         widgets.Tag.text = card.Tag ?? string.Empty;
         widgets.Title.text = card.Title ?? string.Empty;

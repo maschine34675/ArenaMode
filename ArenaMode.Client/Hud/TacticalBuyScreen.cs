@@ -131,7 +131,10 @@ internal sealed class TacticalBuyScreen
             {
                 // NoPurchaseDescription follows the round, whether the player is down and the starter.
                 _plan.text = bought != null ? $"Buying: {bought.Name ?? bought.Id}" : mode.NoPurchaseDescription;
-                _keep.interactable = bought != null;
+                // The first Tick after the build puts the button on its state colour at once (no fade
+                // from the normal colour); later purchases keep the fade.
+                if (fresh) ArenaKitUi.SetInteractableAtOnce(_keep, bought != null);
+                else _keep.interactable = bought != null;
                 _keepLabel.color = bought != null ? ArenaUiTheme.Text : ArenaUiTheme.Muted;
             }
 
