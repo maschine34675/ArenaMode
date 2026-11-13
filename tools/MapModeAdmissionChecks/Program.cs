@@ -157,6 +157,37 @@ foreach (string? legacy in new[] { null, "endless", "rounds", "future-mode" })
     Need(!ArenaAreaCatalog.TryResolve(null, map, legacy, false, out _, out _),
         "CURRENT-MODES: opening new full maps must not enable unidentified/legacy populations");
 
+// SPAWN-ROWS-DATA: the Tactical admissions of 2026-11-13 (Equator, Iceberg, Chop Shop) were decided on
+// the Bot rows ArenaMapPort added on 2026-11-12. Older installed data cannot verify them; the pins that
+// follow would be red for that reason and not because of an ArenaMode defect, so say so.
+string SpawnRowsData(string map, string what)
+    => "SPAWN-ROWS-DATA: " + what + " for " + map + ". The installed ArenaMapPort data predates the spawn rows of "
+        + "2026-11-12 (build 0.5.0+160523d or a later release is needed; the published 0.5.0 has 10 and 9 rows and no "
+        + "Chop Shop). The Tactical admissions of 2026-11-13 were decided on those rows, so they cannot be verified on "
+        + "this data, and a red pin on older data is not an ArenaMode defect.";
+var minimumRows = new Dictionary<string, int>
+{
+    [ArenaMapCatalog.EquatorId] = 16, [ArenaMapCatalog.IcebergId] = 17, [ArenaMapCatalog.AutoServiceId] = 16,
+};
+
+// Minimum of the production selector's usable-row count over the bounding box of the zone's rows,
+// in 1 m steps; the cell's y is the y of the nearest row (x/z distance). Returns the cell of the minimum.
+(int Minimum, Vector3 Cell) GridMinimum(BotZone zone)
+{
+    var rows = zone.SpawnPoints.Select(point => point.Position).ToArray();
+    float minX = rows.Min(r => r.x), maxX = rows.Max(r => r.x), minZ = rows.Min(r => r.z), maxZ = rows.Max(r => r.z);
+    int best = int.MaxValue; var bestCell = default(Vector3);
+    for (float x = minX; x <= maxX; x += 1f)
+        for (float z = minZ; z <= maxZ; z += 1f)
+        {
+            var nearest = rows.OrderBy(r => (r.x - x) * (r.x - x) + (r.z - z) * (r.z - z)).First();
+            var cell = new Vector3(x, nearest.y, z);
+            int usable = BurstSpawnPointSelector.CountUsable(zone, cell);
+            if (usable < best) { best = usable; bestCell = cell; }
+        }
+    return (best, bestCell);
+}
+
 string sptRoot = args.FirstOrDefault() ?? @"D:\SPT41";
 foreach (string map in maps)
 {
@@ -164,6 +195,8 @@ foreach (string map in maps)
         ? Path.Combine(sptRoot, "SPT_Runtime", "SPT_Data", "database", "locations", "bigmap", "base.json")
         : Path.Combine(sptRoot, "SPT_Runtime", "user", "mods", "ArenaMapPort", "db",
             map, "base.json");
+    if (minimumRows.ContainsKey(map))
+        Need(File.Exists(file), SpawnRowsData(map, "the file " + file + " is missing"));
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     Need(document.RootElement.GetProperty("Id").GetString() == map, "DATA-ID: inspect the exact installed map");
     var markers = document.RootElement.GetProperty("SpawnPointParams").EnumerateArray().ToArray();
@@ -223,6 +256,35 @@ foreach (string map in maps)
         Need(points?.Count == 5, "OPENING-SQUAD: native entry has five distinct distant markers: " + map);
         Need(points.All(point => Vector3.Distance(point.Position, p) >= 25f), "DISTANCE: never reduce safety floor");
     }
+    if (minimumRows.TryGetValue(map, out int rowsNeeded))
+    {
+        int rows = zones.SelectMany(z => z.SpawnPoints).Select(point => point.Id).Distinct().Count();
+        Need(rows >= rowsNeeded, SpawnRowsData(map, "the file has " + rows + " distinct Bot/BotPmc rows, at least " + rowsNeeded + " are required"));
+    }
+    string gridLine = "";
+    if (minimumRows.ContainsKey(map))
+    {
+        var (gridMinimum, gridCell) = GridMinimum(zones.Single());
+        string cellText = FormattableString.Invariant($"({gridCell.x:0.0}, {gridCell.z:0.0})");
+        gridLine = $" Grid minimum {gridMinimum} near {cellText}.";
+        if (map == ArenaMapCatalog.AutoServiceId)
+            Need(gridMinimum >= 1 && gridMinimum < 5, "CHOPSHOP-GRID: the minimum over the bounding box is " + gridMinimum + " near " + cellText
+                + "; the PitFireTeam Tactical refusal rests on 1..4 (the yard centre is the pin beside it)");
+        else
+            Need(gridMinimum >= 5, (map == ArenaMapCatalog.EquatorId ? "EQUATOR-GRID" : "ICEBERG-GRID") + ": the minimum over the bounding box is "
+                + gridMinimum + " near " + cellText + "; Tactical with a squad needs five distant rows from every cell");
+    }
+    // EXIT-NAMES: Formation.BoothExits is data without a reader, so only this pin notices a rename on MapPort's side.
+    if (map != ArenaMapCatalog.CustomsId)
+    {
+        var booth = ArenaTeamBoxCatalog.Find(map) ?? throw new InvalidOperationException("EXIT-NAMES: no team-box formation for " + map);
+        var installedExits = document.RootElement.GetProperty("exits").EnumerateArray()
+            .Select(exit => exit.GetProperty("Name").GetString()!).ToArray();
+        Need(installedExits.Length == 2 && booth.BoothExits.Count == 2
+            && new HashSet<string>(installedExits).SetEquals(booth.BoothExits),
+            "EXIT-NAMES: " + map + " BoothExits [" + string.Join(", ", booth.BoothExits) + "] must equal the installed exits ["
+            + string.Join(", ", installedExits) + "]");
+    }
     // Installed-data evidence of the Tactical decisions, computed with the production selector (distinct
     // coordinates, 3-D distance, the unchanged 25 m floor). A MapPort data change that moves one of
     // these fails here and the decision is to be re-made, not the number silently re-pinned.
@@ -254,7 +316,7 @@ foreach (string map in maps)
         int yard = BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(-375f, -3.8f, 487f));
         Need(yard >= 1 && yard < 5, "CHOPSHOP-YARD-CENTER: the yard centre has " + yard + " distant rows; the PitFireTeam Tactical refusal rests on 1..4");
     }
-    Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified.");
+    Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified." + gridLine);
 }
 
 Console.WriteLine($"MAP_MODE_ADMISSION_CHECKS_PASSED ({assertions} assertions)");
