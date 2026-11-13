@@ -10,14 +10,15 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
-- Prepare admission of Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,
+- Admit Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,
   Auto Shoulder Swap 1.1.1 and Dynamic External Resolution Patch 1.1.2.
   Arena guards Shoulder Swap's unsafe non-firearm callbacks and displays
   Arena's effective carry limits in Encumbrance Bar. Shared Core 1.0.23
   corrects the encumbrance and resolution mods' body references after respawn.
-  Final body/optic gameplay acceptance is pending test-host coordination.
+  Scoped Factory checks passed through actual Arena respawn and standalone
+  Redeploy's PMC-to-own-Scav continuation. No third-party binaries are bundled.
   [Scope](docs/reviews/FOUR-MOD-COMPAT-20261113.md),
-  [test progress](docs/reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
+  [native checks](docs/reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
 - Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
   blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
   so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.

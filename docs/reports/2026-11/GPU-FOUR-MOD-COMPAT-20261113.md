@@ -1,7 +1,8 @@
 # Four optional mods: native compatibility verification
 
-Status: in progress. Do not treat the source/offline checks or the short candidate
-raid as native acceptance of every branch below.
+Status: the scoped native checks passed with the final frozen candidate; cleanup
+was independently verified and synchronization restored. This is not an exhaustive
+compatibility claim.
 
 ## Environment and isolation
 
@@ -74,23 +75,128 @@ reward for another existing profile, at the server-start timestamp; those unrela
 reward changes will be preserved. Automatically rotated old SPT profile backups
 are likewise not replaced wholesale.
 
-## Remaining native acceptance
+## Final candidate: Arena
 
-- Revised offline candidate `candidate-r2/`: unchanged Arena client above,
-  Core 1.0.23 SHA-256
+Frozen files in `candidate-r2/` were loaded on GPU-1, not built or installed into the
+normal development installation. Loaded and on-disk MVIDs matched:
+
+- Arena client: unchanged `B86CF03F…` and MVID above.
+- Core 1.0.23: SHA-256
   `6E4F0BA1D32CACFE584F11C367E97A7957BE1F001142FB422770C712CC7C8696`,
-  rebuilt Redeploy client SHA-256
-  `D03290B8AF1542707FB1F16951F7A4DE0D37403E9885219F5FA1BFA7941E380D`.
-  These revised Core bytes have **not** been loaded for the remaining tests.
-- Final frozen candidate identity after the rollback correction.
-- Bar thresholds and live inventory-weight updates before and after a real death.
-- Firearm shoulder switching and knife leaning without the reproduced exception.
-- DERP's actual rendering-scale change on magnified ADS and restoration on release,
-  across two physical bodies, plus a friendly-marker observation where practical.
-- Standalone Redeploy without ArenaMode loaded: live bar subscription transfer and
-  optic behavior after replacement.
-- Final profile comparisons and complete temporary-mod/profile/config cleanup,
-  including PFT-data hashes and restoration of the original synchronization state.
+  MVID `c66effad-400f-4697-8788-e94d777750e2`.
+- Redeploy client 1.1.2: SHA-256
+  `D03290B8AF1542707FB1F16951F7A4DE0D37403E9885219F5FA1BFA7941E380D`,
+  MVID `746efa95-53cd-42a4-818b-a7492d748c84`.
+
+Factory TDM, four participants, no score/time limit, killcam disabled. The final
+process was `38095ab3…`. A deterministic death hook killed native player 2; the
+native death/body ledger then recorded replacement player 8. The replacement's
+UiBridge inspection handle was `bc43901a:6`, also returned by DERP's private cache.
+
+- The inventory bar displayed the body's actual doubled limits: base
+  `(67.6, 200.2)`, walking `(117, 223.6)`.
+- After the death, installing the PSO-1 from the backpack onto the held SVDS through
+  the native inventory action changed strength-adjusted weight from `15.889` to
+  `15.2890005` kg and bar fill from `0.07936563` to `0.07636864`, without closing
+  the inventory. The 0.6 kg change follows the profile's elite weapon-weight rule.
+  This exercises the new inventory subscription, not just initial rendering.
+- The earlier `giveItem` before/after exports were identical and are **inconclusive**
+  for event delivery. They are retained as diagnostic artifacts and are not counted
+  as acceptance. The native-install pair above is the actual event evidence.
+- Leaning with the firearm set `Tilt=-5` and `LeftStance=true`. After switching to
+  the knife, leaning still set `Tilt=-5`, with zero firearm scopes and
+  `LeftStance=false`. Both paths were exercised again after the death. The original
+  `CurrentScope` exception did not recur.
+- Overwatch initially supplied a collimator, so the native inventory UI was used to
+  remove its B-13V mount and install a PSO-1. Magnified ADS changed applied rendering
+  from DLSS quality 1, ratio `0.580208361`, input `1114x627`, to quality 3, ratio
+  `0.333333343`, input `640x360`. Releasing ADS restored `1114x627`. The same changes
+  occurred on the replacement body.
+- The complete protected profile comparison after leaving changed only
+  `/characters/pmc/Hideout/sptUpdateLastRunTimestamp`.
+
+Evidence: `r2-loaded-arena.json`, `r2-arena-events.json`,
+`r2-bar-before-native-install.json` / `r2-bar-after-native-install.json`,
+`r2-weight-before-native-install.json` / `r2-weight-after-native-install.json`,
+`r2-respawn-firearm-lean.json`, `r2-respawn-knife-lean.json`,
+`r2-ssaa-before-ads.json`, `r2-ssaa-ads.json`, `r2-ssaa-after-ads.json`,
+`r2-respawn-ssaa-ads.json`, `r2-respawn-ssaa-after.json`,
+`r2-respawn-derp-owner.json`, `r2-arena-profile-diff.json`.
+
+The attempted friendly-marker screenshot was obstructed by a wall and did not show
+the teammate or marker. Marker alignment is not claimed by this test.
+
+## Final candidate: standalone Redeploy
+
+ArenaMode.Client and its BigBrain helper were outside the plugin tree. The loaded
+inventory confirms Arena was absent while the same final Core and Redeploy driver
+were running. A disposable-only fixture equipped an existing scoped SR-25 on the
+PMC and a copy with fresh item IDs on that profile's own Scav. No real profile was
+edited. Factory PMC was started with bots disabled.
+
+The PMC died through the native death hook. Selecting **Continue as Scav** created
+a new physical player with the Scav profile. DERP's cache returned that new body.
+The bar retained ordinary limits `(26, 77)` and `(45, 86)`, matching the new body's
+physical values; Arena's doubled limits did not apply. Discarding the existing
+water bottle through native inventory input, with the inventory kept open, changed
+Scav weight `19.244` → `18.594` kg and fill `0.249922067` → `0.241480514`.
+This exercises a profile distinct from the backend PMC and its live weight event.
+
+The initial standalone ADS attempt is **inconclusive**: drawn hands and actual
+optic ADS were not recorded, and its saved resolution remained `1114x627`. That
+file is not ADS evidence. During the bounded rerun, the new Scav was observed with
+empty hands despite carrying the scoped rifle. This explains why an ADS command
+alone is insufficient, but does not retrospectively prove the first attempt's
+hands state. The rerun explicitly drew the rifle, then verified `IsAiming=true`,
+`CurrentScope.IsOptic=true`, one scope, and the SR-25 as the actual hands item.
+Two separate saved snapshots showed quality 3, ratio `0.333333343`, `640x360` input.
+Releasing ADS restored quality 1, ratio `0.580208361`, `1114x627`. The rerun process
+was `f3accfb7…`; its native ledger records PMC death and replacement Scav player 2.
+
+Evidence: `r2-loaded-standalone.json`, `standalone-events.json`,
+`standalone-scav-bar-before.json` / `standalone-scav-bar-after.json`,
+`standalone-scav-body-before.json` / `standalone-scav-body-after.json`,
+`standalone-repeat-status.json`, `standalone-repeat-events.json`,
+`standalone-repeat-scav-hands-ads.json`, `standalone-repeat-scav-hands-ads2.json`,
+`standalone-repeat-scav-ssaa-ads1.json`, `standalone-repeat-scav-ssaa-ads2.json`,
+`standalone-repeat-scav-ssaa-after.json`, `standalone-scav-ads.png`.
+
+The final Arena and both standalone error exports contain only the host's known
+microphone initialization error. No new compatibility gameplay exception appeared.
+Preparation-abort rollback is covered by the fault-injection harness; it was not
+artificially forced in the live client.
+
+## Cleanup
+
+EFT and the SPT server were stopped before cleanup. The reviewed
+`cleanup-owned.ps1` removed the four temporary mods, their generated configuration
+and name-list files, the disposable profile and its backups/reward data, BPS data,
+and the three exact registry keys. A follow-up ownership audit found the profile's
+PFT allegiance database and two own-Scav continuation journals. Their session,
+PMC and Scav identities were checked before removing those three files and the
+empty journal directory. No general journal/database directory was reset.
+
+Independent verification found all 53 original PFT files and all three original
+canonical profiles byte-identical, all 465 original plugin manifest entries present,
+no additional plugin payloads, and no remaining probe identity in user data outside
+logs/cache. Launcher settings were unchanged. The other profile's normal startup
+reward closure and the server's automatic backup rotation were preserved.
+
+The binaries/configs touched by this test were first restored, then reconciled with
+the **current** normal development installation: another session had advanced its
+Arena client, BigBrain helper and settings while this host was isolated. Copies kept
+the normal files' modification times and were verified by SHA-256. This prevented an
+older GPU backup from propagating over newer parallel work. This task did not write
+the normal development installation or deploy the tested Core 1.0.23 there.
+
+After the independent audit cleared cleanup, synchronization returned to its original
+unpaused state. All 12 touched paths still matched the normal installation, whose
+hashes remained unchanged after resuming. EFT and the server remain stopped.
+
+Evidence: `cleanup-stopped.txt`, `cleanup-plan.json`, `cleanup-followup-owned.json`,
+`cleanup-final-installation-audit.json`, `cleanup-final-catchup.json`,
+`restore-sync-result.json`, `cleanup-after-sync.json`. Original profile/reward data
+and raw diagnostic logs remain only in the ignored local artifact directory.
 
 ## Offline verification
 
