@@ -9,8 +9,10 @@ Checks cover the actual 50-kill/600-second defaults and F12 ranges, accepted and
 rejected persistence, independent zero limits, hidden non-TDM/PFT controls,
 live armed/active guards, exact custom F12 labels with no invented selection,
 same-mode refresh, real button callbacks, the shared mode panel footprint
-(base 360x530, TDM/Domination 360x584, Deathmatch/Zombie 360x596), and close/reopen listener ownership. Thirty-six deliberate
-source faults must compile and fail their corresponding behavioral assertions.
+(base 360x530, TDM/Domination 360x584, Deathmatch/Zombie 360x596), and close/reopen listener ownership. Thirty-nine deliberate
+source faults must compile and fail their corresponding behavioral assertions; two of them swap the
+arms of the menu line that picks the control point count per mode (Domination by map and area, Tactical by
+map), read through the real description text on The Lab, The Labyrinth and a Customs area.
 All compiler mutations and output evidence go to ignored repo `artifacts/`;
 production files are not rewritten. The final run restores production inputs.
 

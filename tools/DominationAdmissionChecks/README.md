@@ -17,7 +17,7 @@ before roster freeze, client/server arm publication and reward begin. These
 source checks complement separate executable NativeMenu/server harnesses; they
 do not claim to execute their HTTP/Unity/protection behavior.
 
-The wrapper rejects eighteen compiled shared-policy mutants and eight explicitly
+The wrapper rejects nineteen compiled shared-policy mutants and eight explicitly
 labelled source-wiring controls. Copies live outside source directories; compiler
 failure is never accepted as a policy-mutant result. Before/after snapshots cover
 installed Client, BigBrain companion, Server, Gate and Session helper binaries.

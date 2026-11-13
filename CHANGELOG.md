@@ -23,9 +23,10 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   white when they are built (the buttons of the selected kit, the editor's buttons, the kit cards and the Tactical
   buy screen's NO PURCHASE button): each starts on the colour of its state at once, resting or disabled, and keeps
   the fade only for later changes.
-- Domination: on the vanilla maps the point's letter is now readable from afar (constant apparent size, dark
-  outline, a chip in the owner's colour behind it); on the ported maps, which already have the ring and the
-  map markers, the world letter is no longer drawn.
+- Domination: on the vanilla maps the point's letter is now readable from afar (a bold white letter with a dark
+  edge on a chip in the owner's colour, at a constant apparent size); on the ported maps, which already have
+  the ring and the map markers, the world letter is no longer drawn.
+  [Native runs](docs/reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)
 - In Domination on the ported maps bots now have the same spawn protection as in Team Deathmatch; it was
   armed but never took effect.
 - Admit Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,

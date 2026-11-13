@@ -107,27 +107,45 @@ map-generic and were not changed.
   it passes, fallback in listed order, the 15 m separation (14.99 refused, 15.01 accepted, any direction),
   abort when a slot has no passing candidate or the network cannot be proved (no markers, no pickup
   authority), determinism, the whole-map early return of `VerifyTeamPaths`, the area team-start proof on a
-  synthetic area, Tactical's `Resolve` still refusing The Lab, The Labyrinth, Customs. Fifteen new mutants.
+  synthetic area, Tactical's `Resolve` still refusing The Lab, The Labyrinth, Customs. Fourteen new mutants. Added in the
+  review round: for 15 map ids times 13 area ids, the shared catalogue admits Domination exactly where the
+  layout has points (`TryResolve` against `DominationPointCount`), with the mutant
+  `catalogue-admits-map-without-layout`.
 - `ArenaPickupChecks`: the pool anchor over the real geometry (quorum, majority, one-way, partial, floor,
   clearance, the cap of 16 seeds, independent of the local player and of the seed order).
 - `DominationAdmissionChecks`: the ten admitted maps, PFT refused on the new maps, whole Customs and the Customs
   areas refused, the refusal text, the Lab and Labyrinth rows staying visible under Domination.
 - `CompactModeUxChecks`: Domination counts (Lab 3, Labyrinth 1) while Tactical's count stays 0 there.
+- `TdmMatchMenuChecks`: the one menu line that picks the count per mode
+  (`ArenaModeSelectionView.ControlPointCount`), read through the real description text: Domination says 3
+  points on The Lab and in a Customs area and 1 point on The Labyrinth, Tactical promises no point there and
+  keeps its point on Factory; mutants `menu-tactical-uses-domination-count` and
+  `menu-domination-uses-control-count`.
 - `NativeMenuChecks`, `NativeAreaHookChecks`, `ParticipantMenuChecks`, `AreaTeamRuntimeChecks` and the xunit
   tests that pinned the old refusal text.
 - Stage 3 (the Customs areas), see the pins listed in that section.
 
 ## What is not claimed
 
-- Nothing here is a native acceptance. The seeds passed the lead's dry runs, the runtime proves them again,
-  and a match that cannot prove its network or a slot aborts instead of playing a smaller layout.
-- Bot behaviour on these maps (the 160 m route limit of the objective layer, doors, elevators and the three
-  Lab levels, the maze) is unmeasured; the native run decides it.
+- The offline checks are no native acceptance; what was run natively is under `NATIVE:` below. The seeds
+  passed the lead's dry runs, the runtime proves them again, and a match that cannot prove its network or a
+  slot aborts instead of playing a smaller layout.
+- Bot behaviour on these maps is measured only as far as that paragraph says (first captures, no refusal
+  line in the first one to two minutes). The 160 m route limit of the objective layer from far starts, doors,
+  elevators and the other two Lab levels are unmeasured.
 - The Labyrinth needs no third-party unlock mod: the client projects its menu fields (`ArenaLabyrinthAccess`)
   and the server enables the raid clone (`ArenaLocationMutator`). EnableLabyrinth is optional (docs/FEATURES.md).
 - Customs: see stage 3 below.
 
-NATIVE: (lead fills in)
+NATIVE: run on GPU-2 on 2026-11-13 with the test builds `c5b1ed96` and `a7965541`
+([report](../reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)). The Lab, The Labyrinth and each of the three Customs areas started a Domination
+match on their primaries (no alternate was needed), logged `Domination points verified` with the rows above,
+in the areas also `Arena area armed: <id>; mode=domination, ...`, READY and `Domination objective routes from
+both area team starts verified.`, placed 6 of 6 pickups and saw points change hands within the first minute
+(by both teams on The Lab, in Industrial Center and in Industrial Side), with no ArenaMode warning. The menu
+offered ten maps under Domination, exactly the three areas and the size row on Customs, and the 3-point and
+1-point copy. Team Deathmatch in Customs Yard started unchanged. Not run: a match to its limit, the other Lab
+levels, the far starts of the areas against the 160 m route limit, PitFireTeam (refused by rule).
 
 ## Stage 3: the Customs areas
 
@@ -210,7 +228,8 @@ location mutator already validates the area's faction starts for every mode that
   PFT refused in an area with the Domination text, an area on every other map refused, retired and unknown ids
   refused, the team size negotiated like Team Deathmatch (2 to 5, explicit; a squad and the other modes refused),
   the native area model (exactly the three areas, size choice 2 to 5), no participant override, the Customs row
-  staying visible under Domination. Eighteen compiled mutants, among them whole Customs admitted, PFT admitted, the
+  staying visible under Domination. Nineteen compiled mutants (eighteen at stage 3, then `bounded-id-admitted`: the
+  whole-map branch returning for every id), among them whole Customs admitted, PFT admitted, the
   area map check removed, the mode filter without Domination and the size rule back to Team Deathmatch only.
 - `CustomsAllModesChecks`: the mode matrix now has Domination (admission, size UI and wire size shared with Team
   Deathmatch, no whole Customs, PFT refused); mutants for the catalogue's size rule, the mode filter and the menu's
@@ -222,7 +241,7 @@ location mutator already validates the area's faction starts for every mode that
   seeds), every seed inside its contour with the 0.5 m floor inset (the real polygons), the primaries 15 m apart,
   counts and exact area/map keys, prepare inside each area, the team-start proof on both factions, a point cut
   off from one faction aborting the match, fallback and the single-candidate abort, a layout not borrowed by
-  another area; six mutants.
+  another area; seven mutants.
 - `CompactModeUxChecks`: three points per area, 0 for every wrong key, Tactical's count still 0; two mutants.
 - `NativeMenuChecks` (inside `AreaTeamMenuChecks`): the real native start arms the exact area and the chosen size
   for each area and size 2, 3, 5, sends no participant count, refuses sizes 1 and 6 before any arm, refuses PFT
@@ -232,8 +251,8 @@ location mutator already validates the area's faction starts for every mode that
 
 ### What is not claimed (stage 3)
 
-- Nothing here is a native acceptance (`NATIVE:` above). The seeds passed the lead's dry runs; the runtime proves
-  them again and aborts instead of playing a smaller layout.
+- The offline checks are no native acceptance; `NATIVE:` above says what was run. The seeds passed the lead's
+  dry runs; the runtime proves them again and aborts instead of playing a smaller layout.
 - The objective layer refuses a route longer than 160 m (`ArenaDominationRuntime.RouteAllowed`): from the BEAR rear
   start of Industrial Center the path to A is probably longer, so bots there may reject that trip and fall back to
   native behaviour for 12 s. Unmeasured.

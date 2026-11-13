@@ -127,5 +127,11 @@ without an edge: it now keeps about 3 % of the screen height at any distance (sc
 field of view, clamped 1.5 to 14), is near-white with a dark outline, and sits on a camera-facing chip in the
 owner's `RingColorFor` colour. Depth testing is unchanged (walls occlude it). The HUD row and the DynamicMaps
 diamond keep `ColorFor`. Offline pins: tools/ArenaPickupViewChecks (letter, chip, scale law and clamps, no
-objects on ported maps) and tools/DominationRuntimeChecks (which map passes which value). Not yet seen in a
-native picture: the chip's alignment behind the glyph and the legibility at 10, 30 and 60 m on Factory.
+objects on ported maps) and tools/DominationRuntimeChecks (which map passes which value).
+
+Native pictures of the same day ([report](../reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)): the chip and the constant size
+worked at 6 to 86 m on Factory, The Lab, The Labyrinth and in Customs, but the glyph came out black with a white
+hairline, because TMP centres the outline band on the glyph edge and the HUD font is thin. The label's own
+material copy now carries a face dilate of 0.3 against the outline of 0.2, which puts the band outside the
+glyph: a bold near-white letter with a black edge, seen on a neutral chip at 46 and 86 m and on a USEC-blue
+chip at 11 m. On Chop Shop the point has its ring and no label object.

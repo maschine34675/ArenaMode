@@ -50,4 +50,8 @@ now use the mode-neutral `MatchPhase`. Scope, duration, first-attack release and
 Evidence: `tools/TeamDeathmatchRuntimeChecks` replays every bot-shield case in a live Domination match
 on Equator (three mutants revert one read each and die at a `DOM ...` assertion);
 `tools/SpawnShieldScopeChecks` pins Domination on all six box maps (shield, lease ends on time) and on
-Factory day/night (no shield). Native acceptance in EFT is still open.
+Factory day/night (no shield). Native, the same day on GPU-2
+([report](../reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)): on Chop Shop the team bots carry the shield
+outline from the first second of the live match and not while the teams assemble; on Equator a replacement bot
+took fifteen tracked rounds to the head 2.8 to 3.8 s after its arrival and lived, while the same burst killed a
+team bot that had been alive for a minute and an opposing bot.

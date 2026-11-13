@@ -276,13 +276,14 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (291)
+## Reports (292)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
 - [Branch and worktree collection, 2026-11-13: two branches merged, eleven deleted, eleven worktrees archived and removed, checks on the merged master](reports/2026-11/WORKTREE-CLEANUP-20261113.md)
+- [Pre-release polish native runs, 2026-11-13: the kit window without the button flash, the bot spawn shield in Domination on Chop Shop and Equator, the point letter on vanilla maps and none on ported ones, Domination on The Lab, The Labyrinth and in the three Customs areas](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)
 - [Solo Tactical squad dispatch order, 2026-11-13: the request after the round's body move, twelve round starts on Chop Shop and Equator, plan positions, acceptance](reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md)
 - [Spawn-row follow-up native runs, 2026-11-13: Domination 6/6 and Zombies from the yard centre on Chop Shop, Team DM with the pocket exits, solo Tactical on Chop Shop, Equator and Iceberg, PitFireTeam Tactical on Iceberg and Equator](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
 - [Chop Shop native acceptance: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies and a PMC control on GPU-2 (the 15 s gate watchdog, the failed-dispatch backoff, Domination 5 of 6 pickups)](reports/2026-11/GPU-CHOP-SHOP-20261112.md)

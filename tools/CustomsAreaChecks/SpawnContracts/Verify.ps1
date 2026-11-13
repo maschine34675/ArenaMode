@@ -26,6 +26,9 @@ Assert-SpawnContract ($spawnLocalGame.IndexOf('game.Profile = profile;') -lt $sp
 
 # These source bindings complement the executable policy checks. They are not
 # a claim that this standalone process can run Unity scene loading/respawning.
+# The first binding names LocalSpawnSide only: what that property reads (the virtual
+# side of the independent team modes, else the profile's) lives in
+# ArenaAreaTeamRuntime.cs and is executed by AreaTeamRuntimeChecks.
 $spawnRuntime = [regex]::Replace((Get-Content -LiteralPath (Join-Path $spawnRepo 'ArenaMode.Client/Areas/ArenaAreaRuntime.cs') -Raw), '\s+', '')
 foreach ($binding in @(
     'ArenaAreaSpawnPolicy.IsPlayerPoint(p,LocalSpawnSide)',

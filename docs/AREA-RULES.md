@@ -462,7 +462,10 @@ polygon), `VerifyTeamPaths` proves every point connected both ways with a verifi
 The world letter of a Domination point (`DominationPointView`, constructor argument `showLetter`) exists only on
 the vanilla maps (`!ArenaMapCatalog.IsOptionalMap`): ported maps already have the ring, the HUD row and the
 DynamicMaps diamond, so no label object is created there. On vanilla maps the letter is near-white with a dark
-outline on a chip in the owner's dark world colour (`RingColorFor`), and its scale follows the camera distance
+outline on a chip in the owner's dark world colour (`RingColorFor`). TMP centres the outline band on the glyph
+edge, so the label's own material copy carries a `_FaceDilate` above the outline width (the native run of
+2026-11-13 showed a black letter with a white hairline without it); never dilate the font asset's shared
+material, and recompute the mesh padding after the dilate. The letter's scale follows the camera distance
 and field of view (about 3 % of the screen height, clamped 1.5 to 14). It keeps normal scene depth: walls occlude
 it, no overlay shader. `ColorFor` stays the HUD/DynamicMaps colour. See DOMINATION-PROTOTYPE-20261026.md, note
 of 2026-11-13.
