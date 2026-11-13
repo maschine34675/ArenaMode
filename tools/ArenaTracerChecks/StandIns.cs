@@ -20,7 +20,8 @@ namespace ArenaMode.Config
         internal static bool RequestedTeam;
         // Mirror of the production rule (Config/Settings.cs TracerEntry, 2026-10-08):
         // colored tracers are team-only, so the one TeamTracers entry exists for
-        // Team DM and protected Tactical 5v5 and every other mode has none. This
+        // the independent team modes (Team DM and, since bdd679ec, Domination) and
+        // protected Tactical 5v5 and every other mode has none. This
         // stub only lets the REAL renderer prefix be exercised per mode; the
         // production body is pinned by CheckSourceAndLifecycleContract (and mutated
         // by Verify-Regression.ps1) and executed against the real Settings by
@@ -28,7 +29,7 @@ namespace ArenaMode.Config
         internal static ConfigEntry<bool> TracerEntry(string mode, bool protectedTeam)
         {
             RequestedMode = mode; RequestedTeam = protectedTeam;
-            return mode == "teamdeathmatch" || (mode == "tactical" && protectedTeam) ? TeamTracers : null;
+            return mode == "teamdeathmatch" || mode == "domination" || (mode == "tactical" && protectedTeam) ? TeamTracers : null;
         }
         internal static ConfigEntry<ArenaTracerColor> FriendlyTracerColor { get; } = new();
         internal static ConfigEntry<ArenaTracerColor> OpponentTracerColor { get; } = new();

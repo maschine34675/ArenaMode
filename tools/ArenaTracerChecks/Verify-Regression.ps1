@@ -79,7 +79,7 @@ Invoke-NegativeCase 'lost-protected-team-selection' $color $teams ($patch.Replac
 
 # Colored tracers are team-only (2026-10-08). The renderer prefix must stay native
 # for a mode without a tracer entry, and Settings.TracerEntry must keep mapping
-# only Team DM and protected Tactical 5v5 to TeamTracers.
+# only Team DM, Domination and protected Tactical/Zombie squads to TeamTracers.
 $entryGate = 'Settings.TracerEntry(ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch)?.Value != true'
 if ([regex]::Matches($patch, [regex]::Escape($entryGate)).Count -ne 1) {
     throw 'Expected exactly one tracer entry test in the renderer gate; refusing an ambiguous mutation.'
@@ -87,13 +87,13 @@ if ([regex]::Matches($patch, [regex]::Escape($entryGate)).Count -ne 1) {
 Invoke-NegativeCase 'null-entry-renders' $color $teams ($patch.Replace($entryGate, 'Settings.TracerEntry(ArenaSession.ActiveMode, ArenaTracerTeams.ProtectedTeamMatch)?.Value == false')) $matchService $tactical `
     'renderer stays native in solo mode deathmatch regardless of TeamTracers'
 
-$teamEntry = 'ArenaModeCatalog.TeamDeathmatchId => TeamTracers,'
+$teamEntry = 'ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamTracers,'
 if ([regex]::Matches($settings, [regex]::Escape($teamEntry)).Count -ne 1) {
     throw 'Expected exactly one Team DM tracer entry mapping; refusing an ambiguous mutation.'
 }
 Invoke-NegativeCase 'tracer-entry-solo-leak' $color $teams $patch $matchService $tactical `
-    'TracerEntry maps only Team DM and protected Tactical/Zombie to TeamTracers' `
-    ($settings.Replace($teamEntry, 'ArenaModeCatalog.DeathmatchId or ArenaModeCatalog.TeamDeathmatchId => TeamTracers,'))
+    'TracerEntry maps only Team DM/Domination and protected Tactical/Zombie to TeamTracers' `
+    ($settings.Replace($teamEntry, 'ArenaModeCatalog.DeathmatchId or ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamTracers,'))
 
 $protectedPolicy = 'if (!verifiedPlayerIdentity'
 if ([regex]::Matches($teams, [regex]::Escape($protectedPolicy)).Count -ne 1) {

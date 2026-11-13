@@ -9,6 +9,10 @@
     <ProductionPatchSource Condition="'$(ProductionPatchSource)' == ''">../../ArenaMode.Client/Effects/ArenaTracerPatches.cs</ProductionPatchSource>
   </PropertyGroup>
   <ItemGroup>
+    <!-- ArenaTeamPalette.LocalUsec asks ArenaPopulationPolicy.IsIndependentTeam since bdd679ec
+         (Domination joined Team Deathmatch as an independent team mode). Link the real rule, not a
+         stand-in: it is a dependency-free static class, so a stub could only drift from it. -->
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
     <Compile Include="$(ProductionColorSource)" Link="Production/ArenaTracerColor.cs" />
     <Compile Include="$(ProductionTeamsSource)" Link="Production/ArenaTracerTeams.cs" />
