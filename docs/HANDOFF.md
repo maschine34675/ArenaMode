@@ -216,8 +216,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   (`e8a4414279c1dcc963ad7cf47172e605a7655552f74de53cb0096d0eacdf6385`) stays, the server and shared sources
   differ from it only in comments. Built against Core `1.0.22+b1d69e1` from a separate Redeploy worktree
   (`D:\SPT41\Development\_squadorder-build\Redeploy`), because the shared Redeploy checkout carries
-  uncommitted 1.0.23 work. This client contains the extraction hardening through the spawn-row branch's merge
-  of `master`, but it is not a `master` build until that branch and the fix are merged. Native runs on it:
+  uncommitted 1.0.23 work. This client contains the extraction hardening and the dispatch-order fix (both now
+  in `master`, the fix through merge `bd0b1a15`), but not `master`'s four-mod compatibility commits
+  (`eccdd376`..`9f5b51d3`), so it still matches no `master` commit. Native runs on it:
   [GPU-SOLO-SQUAD-ORDER-20261113.md](reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md). GPU-1 had paused
   the `SPT41` folder on its side for a Codex test at the time and did not receive either build.
   To get the `master` state installed, build the `master` head with
@@ -297,10 +298,10 @@ failed to install, bots leaving through SAIN's extraction) are done:
 fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the installed build is another session's test build and matches no commit on `master` (see "Since
 2026-11-13" in the installed-state paragraph above); the final verification of the merged branch is in the
 contract's Verified section; (6) the dispatch order of the solo Tactical squad against the round's body move
-(contract decision 9) is fixed on branch `fix/solo-squad-dispatch-order` (based on this branch, not merged,
-not pushed): the request waits for the swap or the held respawn to land (`SoloTacticalSquadDispatch`,
+(contract decision 9) is fixed: branch `fix/solo-squad-dispatch-order`, merged into `master` locally on
+2026-11-13 (`bd0b1a15`), not pushed; the request waits for the swap or the held respawn to land (`SoloTacticalSquadDispatch`,
 [SOLO-TACTICAL-SPAWN-REVIEW.md](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md), "Dispatch order"), verified offline and
-natively on Chop Shop and Equator; merge it with or after this branch.
+natively on Chop Shop and Equator.
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as
