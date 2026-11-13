@@ -73,7 +73,7 @@ public sealed class AirPitTeamSpawnTests
             Assert.True(formation.InsideBooth(point.X, point.Y, point.Z, usec));
             Assert.False(formation.InsideBooth(point.X, point.Y, point.Z, !usec));
         }
-        Assert.Empty(formation.BoothExits);
+        Assert.Equal(new[] { "Air Pit North Gate", "Air Pit South Gate" }, formation.BoothExits);
         Assert.Equal(formation.Points[1], formation.BoothAnchor(true));
         Assert.Equal(formation.Points[17], formation.BoothAnchor(false));
         Assert.False(formation.InsideBooth(-15.51f, .1f, -37.64f, false));

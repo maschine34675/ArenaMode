@@ -1,8 +1,10 @@
 # ChopShopChecks
 
 `Verify.ps1` runs the Chop Shop integration checks against the installed ArenaMapPort data
-(`user/mods/ArenaMapPort/db/arena_autoservice/base.json`, 4 Player and 7 Bot rows, exactly
-the seven the Tactical refusal and the default of six participants were argued from), the
+(`user/mods/ArenaMapPort/db/arena_autoservice/base.json`: 4 Player rows and at least the 16
+Bot rows of ArenaMapPort 0.5.0+160523d, all in `BotZone_Main`, the donor row
+`arena_autoservice-bot-core-03` with its exact floats; no list of ids, the Tactical rule and
+the default of eight are pinned in `MapModeAdmissionChecks`), the
 filtered Chop Shop xunit classes and the PFT compiled faults; it fails loudly when the
 installed MapPort build ships no `arena_autoservice`. The location id is MapPort's, the
 player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md`.
@@ -14,10 +16,10 @@ player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-2
 
 | File | Runs |
 |---|---|
-| `chopshop-dm.json` | Deathmatch with the default of six (13 steps, 5 expectations) |
+| `chopshop-dm.json` | Deathmatch with six participants, the parameter default (13 steps, 5 expectations); the recommendation is eight since 2026-11-13 |
 | `chopshop-tdm.json` | Team DM with held gates, formation, capacity, respawn (21 steps, 4 expectations) |
 | `chopshop-dom.json` | Domination 4v4 with the one capture point (14 steps, 5 expectations) |
-| `chopshop-zombie.json` | solo Zombies (18 steps, 3 expectations) |
+| `chopshop-zombie.json` | solo Zombies from the yard centre (15 steps, 3 expectations) |
 | `chopshop-pmc.json` | ordinary PMC control raid, no ArenaMode line expected |
 
 Run from the UiBridge checkout (they need an ArenaMapPort build that ships `arena_autoservice`
@@ -30,8 +32,11 @@ node ../UiBridge/tools/gpu-run/gpu-run.mjs scenario <file> --host host2
 Team DM at ten per side takes two parameters:
 `--param participants=20 --param "formationLine=Team DM formation ready: 10v10"`.
 
-The Zombies scenario runs under godmode (an idle player dies within half a minute) and
-expects dropped spawn requests while the player stands in the yard centre, where no Bot row lies
-beyond the 25 m floor (a known limit; the failed-dispatch backoff holds them to about one per
-2 s). Leave about 40 s between two Arena raids: a start 5 s after the previous one was refused
+The Zombies scenario runs under godmode (an idle player dies within half a minute) with the
+player in the yard centre from the start. Until ArenaMapPort's rows of 2026-11-12 no Bot row
+lay beyond the 25 m floor there and every request was dropped (the failed-dispatch backoff held
+them to about one per 2 s); with the 16 rows the first wave has to fill (20 infected) without a
+dropped request ("no usable spawn point" must be absent), at the centre and again after the
+player moved to a pocket. Native on GPU-2, 2026-11-13: 32 of 32 with "points 5 preferred".
+Leave about 40 s between two Arena raids: a start 5 s after the previous one was refused
 with "PitFireTeam post-raid finalization is still settling".

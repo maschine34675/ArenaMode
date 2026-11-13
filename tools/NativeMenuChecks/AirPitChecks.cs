@@ -5,10 +5,11 @@ using SPT.Common.Http;
 
 internal static partial class Program
 {
-    // tactical=false: the map's shared resolver refuses both Tactical formats
-    // (Iceberg and Chop Shop, like Equator, lack five distant bot markers from their centres).
-    // pftZombie=false: Chop Shop's main mesh is too small for the protected squad's Zombies.
-    private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool tactical = true, bool pftZombie = true)
+    // Solo Tactical is admitted on every ported map since ArenaMapPort's rows of 2026-11-12.
+    // pftTactical=false: Chop Shop's yard centre has too few distant rows for the exact five of a
+    // protected Tactical squad. pftZombie=false: Equator's and Chop Shop's main meshes are too small
+    // for the protected squad's Zombies.
+    private static void CheckPortedMapAdmission(string map, string excludedAllowlist, bool pftTactical = true, bool pftZombie = true)
     {
         var plugins = BepInEx.Bootstrap.Chainloader.PluginInfos;
         var previousAllowlist = Settings.Allowlist;
@@ -20,7 +21,7 @@ internal static partial class Program
             foreach (bool present in new[] { false, true })
             foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "tactical", "zombie" })
             {
-                bool admitted = present && (tactical || mode != "tactical");
+                bool admitted = present;
                 ConfigureAreaNegotiation();
                 if (present) plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
                 else plugins.Remove(ArenaMapCatalog.ArenaMapPortPluginId);
@@ -31,7 +32,7 @@ internal static partial class Program
                 Assert(ArenaMenuSelection.HasConfiguredMap(false) == present,
                     map + ": DISCOVERY: optional plugin required for a single imported map picker");
                 Assert(ArenaMenuSelection.IsMapAvailable(map) == admitted,
-                    map + ": AVAILABILITY: optional plugin and all generic modes" + (tactical ? "" : " except Tactical"));
+                    map + ": AVAILABILITY: optional plugin and all generic modes");
                 int before = RequestHandler.StartCount;
                 bool accepted = Start(Request(map: map), out var task);
                 Assert(accepted == admitted, map + ": START: actual local-start prefix respects optional presence and mode admission");
@@ -44,7 +45,8 @@ internal static partial class Program
             plugins[ArenaMapCatalog.ArenaMapPortPluginId] = new object();
             foreach (string mode in new[] { "tactical", "zombie" })
             {
-                bool admitted = tactical || mode != "tactical";
+                // The map-availability read below is the solo one: every mode is admitted.
+                bool admitted = true;
                 ConfigureAreaNegotiation();
                 Settings.GameMode.Value = mode;
                 Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;
@@ -52,13 +54,13 @@ internal static partial class Program
                 ArenaMenuSelection.RegisterTeamArenaQuery(() => true);
                 Select(map);
                 // A map with neither protected-squad mode (Chop Shop) is not offered to a squad at all.
-                Assert(ArenaMenuSelection.HasConfiguredMap(true) == (tactical || pftZombie) && ArenaMenuSelection.IsMapAvailable(map) == admitted,
+                Assert(ArenaMenuSelection.HasConfiguredMap(true) == (pftTactical || pftZombie) && ArenaMenuSelection.IsMapAvailable(map) == admitted,
                     map + ": PFT: protected map discovery and final mode admission");
                 int before = RequestHandler.StartCount;
                 bool accepted = Start(Request(map: map), out var task);
                 // The start prefix sees the protected squad (the map-availability read above does not):
-                // Chop Shop refuses PFT Zombies there.
-                bool startAdmitted = admitted && (pftZombie || mode != "zombie");
+                // Chop Shop refuses PFT Zombies and PFT Tactical there, Equator PFT Zombies.
+                bool startAdmitted = admitted && (pftZombie || mode != "zombie") && (pftTactical || mode != "tactical");
                 Assert(startAdmitted
                     ? accepted && task == null && RequestHandler.StartCount == before + 1 && ArenaSession.ArmedForNextRaid
                     : !accepted && task.IsFaulted && RequestHandler.StartCount == before && !ArenaSession.ArmedForNextRaid,
@@ -70,6 +72,10 @@ internal static partial class Program
                 Assert(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", true, out _, out _)
                     && ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", false, out _, out _),
                     map + ": PFT-ZOMBIE: squad Zombies refused, solo Zombies admitted");
+            if (!pftTactical)
+                Assert(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", true, out _, out _)
+                    && ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", false, out _, out _),
+                    map + ": PFT-TACTICAL: squad Tactical refused, solo Tactical admitted");
             ConfigureAreaNegotiation();
             Settings.GameMode.Value = "gungame";
             Settings.TeamDeathmatchArea.Value = ArenaAreaCatalog.FullMapId;

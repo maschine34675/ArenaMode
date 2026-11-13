@@ -59,6 +59,18 @@ Check(Harmony.Registered.Any(p => p.target.DeclaringType == typeof(SecretExfiltr
 Check(Harmony.Registered.All(p => p.target.Name != "Stop"), "general native Stop is never patched");
 ArenaExtractionIsolation.Enable(); Check(Harmony.Registered.Count == 3, "Enable is idempotent");
 
+// The real exit names of the ported maps (their exits.json). ArenaMapPort moved every exit into the
+// team pockets on 2026-11-12, so a team-mode spawn stands next to or in an exit box: the isolation has
+// to hold for these exact names, and a rename on MapPort's side shows up here.
+var realExits = new Dictionary<string, string[]>
+{
+    ["arena_equator"] = new[] { "Equator North Gate", "Equator South Gate" },
+    ["arena_bay5"] = new[] { "Bay5 North Loading Bay", "Bay5 South Container Lane" },
+    ["arena_airpit"] = new[] { "Air Pit North Gate", "Air Pit South Gate" },
+    ["arena_bowl"] = new[] { "Bowl BTR Gate", "Bowl Army Gate" },
+    ["arena_iceberg"] = new[] { "Iceberg East Gate", "Iceberg West Gate" },
+    ["arena_autoservice"] = new[] { "Chop Shop East Gate", "Chop Shop West Gate" },
+};
 foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth", "bigmap", "arena_equator", "arena_bay5", "arena_airpit", "arena_bowl", "arena_iceberg", "arena_autoservice" })
 {
     f = Setup(map: mapName);
@@ -70,6 +82,17 @@ foreach (string mapName in new[] { "factory4_day", "factory4_night", "labyrinth"
         NativeExtraction(f.game, f.local.ProfileId, ExitStatus.Runner, point.Settings.Name);
         Check(f.game.Stops == 0, "shared/individual extraction-only completion blocked on " + mapName + " " + point.Settings.Name);
     }
+    if (realExits.TryGetValue(mapName, out var exitNames))
+        foreach (string exitName in exitNames)
+        {
+            var real = new ExfiltrationPoint { Settings = new() { Name = exitName } };
+            f.world.ExfiltrationController.ExfiltrationPoints = new[] { real };
+            NativeProceed(real, f.local);
+            Check(real.NativeProceeds == 0, "active local Proceed blocked on the real exit " + exitName);
+            NativeExtraction(f.game, f.local.ProfileId, ExitStatus.Survived, exitName);
+            NativeExtraction(f.game, f.local.ProfileId, ExitStatus.Runner, exitName);
+            Check(f.game.Stops == 0, "extraction completion blocked on the real exit " + exitName);
+        }
     f.game.Stop(f.local.ProfileId, ExitStatus.Left, null);
     Check(f.game.Stops == 1 && f.game.LastExit == ExitStatus.Left, "manual leave remains native on " + mapName);
     f.game.Stop(f.local.ProfileId, ExitStatus.Survived, "Arena match result");

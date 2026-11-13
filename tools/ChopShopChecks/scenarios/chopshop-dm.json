@@ -1,6 +1,6 @@
 {
   "name": "chopshop-dm",
-  "description": "Chop Shop Deathmatch with the default 6 participants: generic admission (no team boxes), bots alive, in-game still, no dropped spawn request, no errors.",
+  "description": "Chop Shop Deathmatch with 6 participants (the scenario parameter; the recommendation is 8 since 2026-11-13): generic admission (no team boxes), bots alive, in-game still, no dropped spawn request, no errors.",
   "host": "host2",
   "parameters": { "participants": { "default": 6 }, "minBots": { "default": 3 } },
   "steps": [

@@ -58,6 +58,11 @@ public static class ArenaTeamBoxCatalog
         public readonly string MapId, DisplayName, IdPrefix, Infiltration, TeamDescription;
         public readonly Point Donor, Destination;
         public readonly IReadOnlyList<Point> Points;
+        // The two extraction points that stand in the pockets, USEC's first, as they are named
+        // in the map's exits.json (ArenaMapPort 2026-11-12 moved every port's exits into the
+        // team pockets; Air Pit South Gate stands at the pocket mouth, 0.41 m outside). This is
+        // data only: Arena disables extraction (ArenaExtractionIsolation matches by object and
+        // exit name, nothing reads these positions), and the flares merely mark the pockets.
         public readonly IReadOnlyList<string> BoothExits;
         private readonly Bounds _usecBounds, _bearBounds;
         private readonly int _usecAnchor, _bearAnchor;
@@ -140,7 +145,8 @@ public static class ArenaTeamBoxCatalog
         // Native SPAWN_BOUND_FIGHTER interiors. Only canonical starts gain the
         // held-gate exception, and every real path corner must remain inside.
         new Bounds(129.01f, 149.59f, -3.24f, 1.04f, 39.78f, 69.46f),
-        new Bounds(45.87f, 66.45f, -4.08f, .20f, -14.46f, 1.53f), 8, 19);
+        new Bounds(45.87f, 66.45f, -4.08f, .20f, -14.46f, 1.53f), 8, 19,
+        "Bay5 North Loading Bay", "Bay5 South Container Lane");
 
     // Original AirPit TeamFight SPAWNS: north 6..10,16..20; south 1..5,11..15.
     // Requires MapPort 0.2.2's extended north navigation and passport held gates.
@@ -172,7 +178,8 @@ public static class ArenaTeamBoxCatalog
             new Point("arena-airpit-tdm-v1-south-10", false, -6.039999962f, .136999965f, -71.989997864f, -36.495658363f),
         },
         new Bounds(-36.45f, 13.50f, -.62f, 4.97f, 69.16f, 85.15f),
-        new Bounds(-22.81f, -.50f, -.62f, 4.97f, -80.41f, -64.42f), 1, 17);
+        new Bounds(-22.81f, -.50f, -.62f, 4.97f, -80.41f, -64.42f), 1, 17,
+        "Air Pit North Gate", "Air Pit South Gate");
 
     // Original Bowl TeamFight starts (bowl.modes.json, bowl-native-v2).
     // Source pocket labels north/south mean east/west here; the installed map
@@ -208,7 +215,8 @@ public static class ArenaTeamBoxCatalog
         new Bounds(-11.1677f, 11.1677f, -.1498f, 4.1334f, -12.82095f, 12.82095f,
             51.2529f, -7.0645f, 318.9815f),
         new Bounds(-9.82035f, 9.82035f, -.1498f, 4.1334f, -10.53575f, 10.53575f,
-            -52.8998f, -64.8147f, 318.9815f), 2, 16);
+            -52.8998f, -64.8147f, 318.9815f), 2, 16,
+        "Bowl BTR Gate", "Bowl Army Gate");
 
     // Original Iceberg pockets (iceberg.modes.json, iceberg-native-v2). Iceberg has
     // no TeamFight mode; they come from CheckPoint: USEC = Usec house (5..14) in
@@ -232,8 +240,11 @@ public static class ArenaTeamBoxCatalog
     //
     // Donor and outside destination: the installed arena_iceberg-bot-core-01, which
     // had a complete path from the Bear spawn in MapPort's GPU-2 raid (2026-10-30).
-    // Both exits lie outside the gates (East 10.4 m beyond GATES_A, West 5.6 m
-    // beyond GATES_B): no booth exits. Anchors: Usec house (7), Bear house (14).
+    // Both exits stand inside the pockets since ArenaMapPort 2026-11-12: East Gate
+    // (90.88, 1.67, -86.34) on the Bear landing at the top of the stairs (stage marker
+    // Bear house (9), also an Arena start point, lies inside its box), West Gate
+    // (-38.79, 3.2, -85.6) on the Usec terrace in front of the entrance. They are
+    // listed USEC first (West, East). Anchors: Usec house (7), Bear house (14).
     public static readonly Formation Iceberg = new Formation("arena_iceberg", "Iceberg", "arena-iceberg-tdm-v1-",
         "ArenaIceberg", "USEC west / BEAR east",
         new Point("arena_iceberg-bot-core-01", false, -10.88f, 3.25f, -80.66f),
@@ -261,7 +272,8 @@ public static class ArenaTeamBoxCatalog
             new Point("arena-iceberg-tdm-v1-east-10", false, 95.2948f, .8753f, -89.564f, 273.3514f),
         },
         new Bounds(-48.31f, -36.392f, 2.328f, 10.271f, -96.926f, -76.014f),
-        new Bounds(82.732f, 114.444f, -.4f, 5f, -98.465f, -78.223f), 2, 19);
+        new Bounds(82.732f, 114.444f, -.4f, 5f, -98.465f, -78.223f), 2, 19,
+        "Iceberg West Gate", "Iceberg East Gate");
 
     // Original Chop Shop TeamFight pockets (autoservice.modes.json, autoservice-native-v2;
     // the map is arena_autoservice, ArenaMapPort's id, Arena's name is Chop Shop). USEC = the
@@ -309,10 +321,13 @@ public static class ArenaTeamBoxCatalog
     //
     // Donor and outside destination: the installed arena_autoservice-bot-core-03 row
     // (-367.44, -3.79, 492.11) of ArenaMapPort 0.5.0+b7876d3, central in the yard, 7.6 m from
-    // the capture point. All seven Bot rows are reachable from both pockets on GPU-2 on
-    // 2026-11-12; core-03 has complete paths of 44.4 m (west, 10 corners) and 39.9 m (east,
-    // 9 corners). Both exits ("Chop Shop East Gate" 4.9 m, "Chop Shop West Gate" about 9 m)
-    // lie outside the gate planes: no booth exits. Anchors: Usec house (4) = MapPort player-usec
+    // the capture point. The seven Bot rows of that build were reachable from both pockets on
+    // GPU-2 on 2026-11-12 (the sixteen of 0.5.0+160523d are all accepted from the donor by
+    // MapPort's own dry run; Arena has not walked them all); core-03 has complete paths of
+    // 44.4 m (west, 10 corners) and 39.9 m (east, 9 corners). Both exits stand inside the
+    // pockets since 2026-11-12: "Chop Shop East Gate" (-340.5, -3.6, 485.0) in the east
+    // pocket, in the lane just inside the big gate, "Chop Shop West Gate" (-406.5, -3.7,
+    // 478.5) in the west one. Anchors: Usec house (4) = MapPort player-usec
     // (east-05) and Usec house (6) = MapPort player-bear (west-02).
     public static readonly Formation AutoService = new Formation("arena_autoservice", "Chop Shop", "arena-autoservice-tdm-v1-",
         "ArenaAutoService", "USEC east / BEAR west",
@@ -341,7 +356,8 @@ public static class ArenaTeamBoxCatalog
             new Point("arena-autoservice-tdm-v1-west-10", false, -405.941f, -3.72f, 486.419f, 159.278f),
         },
         new Bounds(-343.587f, -332.999f, -4.8f, -1f, 473.821f, 511.764f),
-        new Bounds(-413.635f, -402.769f, -4.8f, -1f, 473.498f, 511.441f), 4, 11);
+        new Bounds(-413.635f, -402.769f, -4.8f, -1f, 473.498f, 511.441f), 4, 11,
+        "Chop Shop East Gate", "Chop Shop West Gate");
 
     public static Formation? Find(string? map)
         => string.Equals(map, Equator.MapId, StringComparison.OrdinalIgnoreCase) ? Equator

@@ -7,8 +7,11 @@ foreach ($arenaFault in @(
        Property = 'ProductionMenuSelectionSource';
        From = '|| BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId)'; To = '|| true';
        Failure = 'solo Zombie direct setter still rejects unavailable map: arena_equator' },
-    @{ Name = 'MissingModeGuard'; Source = 'ArenaMode.Shared/ArenaAreaCatalog.cs'; Property = 'ProductionAreaCatalogSource';
-       From = 'if (ArenaMapCatalog.IsEquator(map!)'; To = 'if (false && ArenaMapCatalog.IsEquator(map!)';
+    # Equator admits Tactical since 2026-11-13; the control puts the old refusal back and the owned
+    # Equator row must then disappear in Tactical.
+    @{ Name = 'EquatorTacticalRefusalReturns'; Source = 'ArenaMode.Shared/ArenaAreaCatalog.cs'; Property = 'ProductionAreaCatalogSource';
+       From = 'if (id == FullMapId)';
+       To = 'if (ArenaMapCatalog.IsEquator(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)';
        Failure = 'mode switch updates the owned Equator row' },
     @{ Name = 'MissingBay5ClientGuard'; Source = 'ArenaMode.Client/Session/ArenaMenuSelection.cs';
        Property = 'ProductionMenuSelectionSource';

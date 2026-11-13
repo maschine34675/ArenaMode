@@ -11,7 +11,11 @@ void Need(bool condition, string message)
     if (!condition) throw new InvalidOperationException(message);
 }
 
-string[] maps = { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.CustomsId };
+// Iceberg and Chop Shop join the matrix with ArenaMapPort's spawn rows of 2026-11-12: both carry
+// the same Tactical decisions as Equator now (see the TACTICAL-ROWS block and the installed-data
+// pins below).
+string[] maps = { ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId, ArenaMapCatalog.AirPitId, ArenaMapCatalog.CustomsId,
+    ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId };
 string[] modes = { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" };
 string[] areas = { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
     ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId };
@@ -26,12 +30,6 @@ foreach (string mode in modes)
             "CUSTOMS-AREA-ONLY: omitted area cannot become a whole-map raid");
         continue;
     }
-    if (ArenaMapCatalog.IsEquator(map) && mode == "tactical")
-    {
-        Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out var blocked, out var blocker)
-            && blocked == null && blocker?.Contains("five-opponent") == true, "EQUATOR-SQUAD: explain the exact capacity blocker");
-        continue;
-    }
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out var area, out var reason)
         && area == null && reason == null, "FULL-MAP: " + map + "/" + mode);
     Need(ArenaAreaCatalog.TryResolve(null, map, mode, false, out area, out reason)
@@ -44,7 +42,8 @@ foreach (string mode in modes)
     foreach (int total in new[] { 4, 8, 20, 22, 24 })
     {
         bool expected = selectable && !(mode == "teamdeathmatch" && total > 20
-            && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId));
+            && (map == ArenaMapCatalog.EquatorId || map == ArenaMapCatalog.Bay5Id || map == ArenaMapCatalog.AirPitId
+                || map == ArenaMapCatalog.IcebergId || map == ArenaMapCatalog.AutoServiceId));
         Need(ArenaParticipantPolicy.TryResolve(map, mode, false, false, total, out int? selected, out _)
             == expected && (!expected || selected == total), "PARTICIPANTS: exact frozen total " + map + "/" + mode);
     }
@@ -78,9 +77,33 @@ Need(!ArenaParticipantPolicy.TryResolve(ArenaMapCatalog.AirPitId, "teamdeathmatc
     "AIRPIT-CAPACITY: original boxes cannot promise more than twenty participants");
 foreach (string map in maps)
 foreach (string mode in new[] { "tactical", "zombie" })
+{
+    // Written out per map and mode on purpose: Customs has no whole-map raid; Equator and Chop Shop
+    // are too small for the squad's infected wave (space, not rows); Chop Shop's yard centre has
+    // too few distant rows for a PitFireTeam Tactical squad (the pinned evidence is below).
+    bool squadAdmitted = map != ArenaMapCatalog.CustomsId
+        && !(mode == "zombie" && (ArenaMapCatalog.IsEquator(map) || ArenaMapCatalog.IsAutoService(map)))
+        && !(mode == "tactical" && ArenaMapCatalog.IsAutoService(map));
     Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out var area, out _)
-        == !(map == ArenaMapCatalog.CustomsId || ArenaMapCatalog.IsEquator(map)) && area == null,
+        == squadAdmitted && area == null,
         "PFT-FULL: authenticated squad observes exact full-map capacity " + map + "/" + mode);
+}
+
+// TACTICAL-ROWS: ArenaMapPort's rows of 2026-11-12 removed the row argument of the Equator, Iceberg
+// and Chop Shop Tactical refusals. Equator and Iceberg are admitted solo and with a squad; Chop Shop
+// solo only, with its own reason for the squad format.
+foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+foreach (string spelling in new[] { "tactical", "TACTICAL" })
+{
+    Need(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, spelling, false, out var soloArea, out var soloReason)
+        && soloArea == null && soloReason == null, "TACTICAL-ROWS: solo Tactical is admitted on " + map);
+    bool squad = ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, spelling, true, out var squadArea, out var squadReason);
+    if (map == ArenaMapCatalog.AutoServiceId)
+        Need(!squad && squadArea == null && squadReason?.Contains("yard centre") == true
+            && squadReason.Contains("PitFireTeam Tactical squad"), "CHOPSHOP-PFT-TACTICAL: explain the yard-centre blocker");
+    else
+        Need(squad && squadArea == null && squadReason == null, "TACTICAL-ROWS: squad Tactical is admitted on " + map);
+}
 
 foreach (string map in new[] { "arena_equator", "ARENA_EQUATOR" })
 foreach (string mode in new[] { "zombie", "ZOMBIE" })
@@ -200,13 +223,36 @@ foreach (string map in maps)
         Need(points?.Count == 5, "OPENING-SQUAD: native entry has five distinct distant markers: " + map);
         Need(points.All(point => Vector3.Distance(point.Position, p) >= 25f), "DISTANCE: never reduce safety floor");
     }
+    // Installed-data evidence of the Tactical decisions, computed with the production selector (distinct
+    // coordinates, 3-D distance, the unchanged 25 m floor). A MapPort data change that moves one of
+    // these fails here and the decision is to be re-made, not the number silently re-pinned.
     if (map == ArenaMapCatalog.EquatorId)
     {
-        var center = new Vector3(0f, .2f, 2f);
-        Need(BurstSpawnPointSelector.CountUsable(zones.Single(), center) == 4,
-            "EQUATOR-CENTER: real mid-map survivor cannot receive five Tactical opponents");
-        Need(!ArenaAreaCatalog.TryResolve(null, map, "tactical", true, out _, out _),
-            "EQUATOR-CENTER: admission must retain actual capacity blocker");
+        // The atrium had four such rows before the rows of 2026-11-12 (nine now); MapPort's mesh minimum is six.
+        foreach (var spot in new[] { new Vector3(0f, .2f, 2f), new Vector3(-4f, .2f, 15f) })
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), spot) >= 5,
+                "EQUATOR-CENTER: a surviving leader at " + spot + " must still have five distant rows for Tactical");
+        Need(ArenaAreaCatalog.TryResolve(null, map, "tactical", true, out _, out _),
+            "EQUATOR-CENTER: with the rows present Tactical is admitted with a squad");
+    }
+    if (map == ArenaMapCatalog.IcebergId)
+    {
+        // The old centre rectangle (x -12.6..12.5, z -71.9..-58.8) had four before; MapPort's mesh minimum is ten.
+        var near = markers.Where(row => Category(row, "Bot")).Select(Position)
+            .OrderBy(p => (p.x - 10f) * (p.x - 10f) + (p.z + 68f) * (p.z + 68f)).First();
+        Need(BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(10f, near.y, -68f)) >= 5,
+            "ICEBERG-CENTER: a surviving leader in the old centre must have five distant rows for Tactical");
+    }
+    if (map == ArenaMapCatalog.AutoServiceId)
+    {
+        foreach (var player in players)
+            Need(BurstSpawnPointSelector.CountUsable(zones.Single(), Position(player)) >= 5,
+                "CHOPSHOP-PLAYER-ROWS: a solo survivor moved to a Player row has five distant rows for Tactical");
+        // The yard centre is the evidence of the PitFireTeam refusal: no dead patch any more (the 25 m floor
+        // leaves rows) but fewer than the five a squad needs. When MapPort closes this patch the
+        // assertion fails and the PitFireTeam Tactical rule in ArenaAreaCatalog is to be re-decided.
+        int yard = BurstSpawnPointSelector.CountUsable(zones.Single(), new Vector3(-375f, -3.8f, 487f));
+        Need(yard >= 1 && yard < 5, "CHOPSHOP-YARD-CENTER: the yard centre has " + yard + " distant rows; the PitFireTeam Tactical refusal rests on 1..4");
     }
     Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified.");
 }

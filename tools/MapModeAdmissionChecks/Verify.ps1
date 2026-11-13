@@ -11,7 +11,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Production map admission/spawn baseline failed
 foreach ($fault in @(
     @{ Name='BlockAllPorts'; From='if (id == FullMapId)'; To='if (ArenaMapCatalog.IsOptionalMap(map!)) { reason = "old restriction"; return false; } if (id == FullMapId)'; Failure='FULL-MAP' },
     @{ Name='AllowWholeCustoms'; From='if (string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase))'; To='if (false)'; Failure='CUSTOMS-AREA-ONLY' },
-    @{ Name='EquatorTacticalCapacity'; From='if (ArenaMapCatalog.IsEquator(map!)'; To='if (false && ArenaMapCatalog.IsEquator(map!)'; Failure='EQUATOR-SQUAD' },
+    @{ Name='ChopShopPftTactical'; From='if (ArenaMapCatalog.IsAutoService(map!) && pitFireTeam'; To='if (false && ArenaMapCatalog.IsAutoService(map!) && pitFireTeam'; Failure='PFT-FULL' },
+    @{ Name='EquatorTacticalRefused'; From='if (id == FullMapId)'; To='if (ArenaMapCatalog.IsEquator(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)'; Failure='FULL-MAP' },
+    @{ Name='IcebergTacticalRefused'; From='if (id == FullMapId)'; To='if (ArenaMapCatalog.IsIceberg(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)'; Failure='FULL-MAP' },
+    @{ Name='ChopShopSoloTacticalRefused'; From='if (id == FullMapId)'; To='if (ArenaMapCatalog.IsAutoService(map!) && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)) { reason = "refused"; return false; } if (id == FullMapId)'; Failure='FULL-MAP' },
     @{ Name='BoundedAnyPftMode'; From='if (pitFireTeam && !string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)'; To='if (false && pitFireTeam && !string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)'; Failure='BOUNDED-ADAPTER' },
     @{ Name='WrongMapContour'; From='if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))'; To='if (false)'; Failure='MAP-IDENTITY' },
     @{ Name='LegacyPopulation'; From='if (ArenaMapCatalog.RequiresModeFilteredView(map!)'; To='if (false && ArenaMapCatalog.RequiresModeFilteredView(map!)'; Failure='CURRENT-MODES' },
@@ -35,4 +38,4 @@ foreach ($fault in @(
     Write-Output "Rejected compiled map admission fault: $($fault.Name)"
 }
 Write-Output "Evidence: $scratch"
-Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (9 compiled faults)'
+Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (12 compiled faults)'

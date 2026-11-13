@@ -84,7 +84,7 @@ public sealed class IcebergTeamSpawnTests
         }
         // Bear's terrace and floor heights stay distinct; nothing was flattened.
         Assert.Equal(3, formation.Points.Where(p => !p.Usec).Select(p => p.Y).Distinct().Count());
-        Assert.Empty(formation.BoothExits);
+        Assert.Equal(new[] { "Iceberg West Gate", "Iceberg East Gate" }, formation.BoothExits);
         Assert.Same(formation.Points[2], formation.BoothAnchor(true));
         Assert.Same(formation.Points[19], formation.BoothAnchor(false));
         Assert.True(formation.BoothAnchor(true).Usec);
@@ -312,18 +312,9 @@ public sealed class IcebergTeamSpawnTests
         var map = Map();
         map.SpawnPointParams = map.SpawnPointParams!.Where(p => p.Id != "arena_iceberg-bot-core-01").ToList();
         string before = JsonSerializer.Serialize(map.SpawnPointParams);
-        string mapBefore = JsonSerializer.Serialize(map);
-        void Mutate() => ArenaLocationMutator.Mutate(map, new(), new(), mode,
+        // Solo Tactical is admitted on Iceberg (the server resolves without a PitFireTeam squad).
+        ArenaLocationMutator.Mutate(map, new(), new(), mode,
             participants: mode is "deathmatch" or "gungame" ? 24 : null);
-        if (mode == "tactical")
-        {
-            // The shared resolver refuses Tactical on Iceberg; the server mutator throws
-            // before it changes any raid data, so the native markers stay as they are.
-            var refused = Assert.Throws<InvalidOperationException>(Mutate);
-            Assert.Contains("Tactical", refused.Message);
-            Assert.Equal(mapBefore, JsonSerializer.Serialize(map));
-        }
-        else Mutate();
         Assert.Equal(before, JsonSerializer.Serialize(map.SpawnPointParams));
         Assert.DoesNotContain(map.SpawnPointParams!, p => ArenaTeamBoxCatalog.Owns(p.Id));
     }

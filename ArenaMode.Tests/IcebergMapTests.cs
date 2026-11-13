@@ -133,7 +133,7 @@ public sealed class IcebergMapTests
     [Theory]
     [InlineData("arena_iceberg")]
     [InlineData("ARENA_ICEBERG")]
-    public void IcebergIsOptionalAndAdmitsEveryModeExceptTactical(string map)
+    public void IcebergIsOptionalAndAdmitsEveryMode(string map)
     {
         Assert.Equal(ArenaMapCatalog.IcebergId, ArenaMapCatalog.CanonicalOptionalMapId(map));
         Assert.True(ArenaMapCatalog.IsSupportedMap(map));
@@ -147,10 +147,10 @@ public sealed class IcebergMapTests
         Assert.Same(ArenaTeamBoxCatalog.Iceberg, ArenaTeamBoxCatalog.Find(map));
         // The team boxes cap both team modes at 10v10; solo modes keep 24.
         Assert.Equal(20, ArenaParticipantPolicy.MaximumFor(map, "domination"));
-        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie" })
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie", "tactical" })
         {
             Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _));
-            if (mode == "zombie")
+            if (mode is "zombie" or "tactical")
                 Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, true, out _, out _));
             else
             {
@@ -160,14 +160,14 @@ public sealed class IcebergMapTests
                 Assert.Equal(8, count);
             }
         }
-        // Like Equator: the centre leaves only four distant bot markers, so the
-        // shared resolver refuses both Tactical formats at menu, arm and response.
+        // Both Tactical formats are admitted: the 17 Bot rows of ArenaMapPort 2026-11-12 leave
+        // at least nine beyond the 25 m floor in the old centre rectangle (four before).
         foreach (bool pitFireTeam in new[] { false, true })
         {
-            Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", pitFireTeam,
+            Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", pitFireTeam,
                 out var area, out var reason));
             Assert.Null(area);
-            Assert.Equal("Iceberg has too few distant bot spawn points for Tactical's five-opponent squad.", reason);
+            Assert.Null(reason);
         }
         foreach (string unknown in new[] { "arena_iceberg_extra", "arena_iceberg2", "iceberg", " arena_iceberg" })
         {
