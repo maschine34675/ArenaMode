@@ -408,7 +408,8 @@ internal static class ArenaMenuSelection
                || BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(ArenaMapCatalog.ArenaMapPortPluginId));
 
     // Discovery must not depend on a previous saved mode, but a configured map
-    // still needs at least one supported PFT format (Equator has neither).
+    // still needs at least one supported PFT format (under PitFireTeam Chop Shop has
+    // neither Tactical nor Zombies; Equator has Tactical only).
     // Actual roster/mode eligibility remains the later selection/start guard.
     public static bool HasConfiguredMap(bool pitFireTeam)
         => ArenaMapCatalog.AnyMapAvailable(map => IsMapConfigured(map) && (!pitFireTeam

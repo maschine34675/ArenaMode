@@ -61,7 +61,10 @@ ArenaExtractionIsolation.Enable(); Check(Harmony.Registered.Count == 3, "Enable 
 
 // The real exit names of the ported maps (their exits.json). ArenaMapPort moved every exit into the
 // team pockets on 2026-11-12, so a team-mode spawn stands next to or in an exit box: the isolation has
-// to hold for these exact names, and a rename on MapPort's side shows up here.
+// to hold for these exact names. What the loop proves: the isolation blocks each of these names when
+// the controller holds it. It feeds the same literal to both sides, so a rename on MapPort's side
+// cannot show up here; the installed-data pin EXIT-NAMES in tools/MapModeAdmissionChecks compares
+// ArenaTeamBoxCatalog's BoothExits with the installed base.json (keep this table equal to them).
 var realExits = new Dictionary<string, string[]>
 {
     ["arena_equator"] = new[] { "Equator North Gate", "Equator South Gate" },

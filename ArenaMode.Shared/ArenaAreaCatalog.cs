@@ -686,12 +686,16 @@ public static class ArenaAreaCatalog
         // from every point of its mesh. Iceberg has 17: at least 9 in the old centre rectangle
         // (x -12.6..12.5, z -71.9..-58.8) and 10 on its mesh. Both are admitted, solo and with a
         // PitFireTeam squad. Chop Shop has 16: 5 beyond 25 m from the yard centre (-379, 495)
-        // and 11 to 13 from each Player row, but only 3 around (-377..-374, 485..489), and its
-        // mesh has 98.3 % of cells with five or more.
+        // and 11 to 13 from each Player row, but with a minimum of 3 inside x -377..-373.5,
+        // z 485..489, and its mesh has 98.3 % of cells with five or more.
         // Whether that minimum matters depends on who dispatches the squad. Solo Tactical never
         // needs exactly five (RequestSoloSquad passes no requireExactCount): with fewer usable
-        // rows it spawns a smaller squad after SoloTacticalSpawnPolicy's 45 s wait, and a solo
-        // survivor is moved to a Player row at the round break anyway. A PitFireTeam leader who
+        // rows it spawns a smaller squad after SoloTacticalSpawnPolicy's 45 s wait. The squad is
+        // requested before the round-break move (TacticalMode.StartRound) and its points are
+        // picked when the profiles arrive; in the native runs of 2026-11-13 the move had landed
+        // by then (the plan counted the 11 to 13 rows of a Player row), but the code does not
+        // guarantee it, and a plan against the old position gives a smaller squad after the
+        // 45 s wait at worst. A PitFireTeam leader who
         // survives stays where he stands, and RequestTeamEnemies demands exactly five: three or
         // four usable rows at the yard centre end the whole match as no contest. So Chop Shop
         // keeps only the PitFireTeam refusal. When MapPort closes that patch, the installed-data

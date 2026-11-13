@@ -20,7 +20,7 @@ public static class ArenaParticipantPolicy
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
     // Chop Shop defaulted to 6 while it had seven Bot/BotPmc rows (eight would have asked
     // for seven bots from seven rows). ArenaMapPort's rows of 2026-11-12 gave it sixteen,
-    // as many as Bay5, Equator and Air Pit have, and Arena's own TeamFight on this map is
+    // as many as Bay5 and Equator have (Iceberg 17, Air Pit 20, Bowl 21), and Arena's own TeamFight on this map is
     // 5v5, so it joins the 8-group (seven bots from sixteen rows leaves nine spare). It is a
     // menu preset, not a ranking by area: Chop Shop is 1,915.6 m². A value saved per map
     // is not migrated; only a fresh configuration gets the new recommendation.

@@ -60,7 +60,8 @@ public static class ArenaTeamBoxCatalog
         public readonly IReadOnlyList<Point> Points;
         // The two extraction points that stand in the pockets, USEC's first, as they are named
         // in the map's exits.json (ArenaMapPort 2026-11-12 moved every port's exits into the
-        // team pockets; Air Pit South Gate stands at the pocket mouth, 0.41 m outside). This is
+        // team pockets; Air Pit South Gate stands at the pocket mouth: the exit box's edge is
+        // 0.4 m outside the pocket bound, its centre 2.4 m outside). This is
         // data only: Arena disables extraction (ArenaExtractionIsolation matches by object and
         // exit name, nothing reads these positions), and the flares merely mark the pockets.
         public readonly IReadOnlyList<string> BoothExits;
@@ -241,9 +242,9 @@ public static class ArenaTeamBoxCatalog
     // Donor and outside destination: the installed arena_iceberg-bot-core-01, which
     // had a complete path from the Bear spawn in MapPort's GPU-2 raid (2026-10-30).
     // Both exits stand inside the pockets since ArenaMapPort 2026-11-12: East Gate
-    // (90.88, 1.67, -86.34) on the Bear landing at the top of the stairs (stage marker
-    // Bear house (9), also an Arena start point, lies inside its box), West Gate
-    // (-38.79, 3.2, -85.6) on the Usec terrace in front of the entrance. They are
+    // (90.88, 1.67, -86.34) on the upper west part of the ramp, which falls from y 1.9 to
+    // 0.75 (stage marker Bear house (9), also an Arena start point, lies inside its box),
+    // West Gate (-38.79, 3.2, -85.6) on flat floor. They are
     // listed USEC first (West, East). Anchors: Usec house (7), Bear house (14).
     public static readonly Formation Iceberg = new Formation("arena_iceberg", "Iceberg", "arena-iceberg-tdm-v1-",
         "ArenaIceberg", "USEC west / BEAR east",
