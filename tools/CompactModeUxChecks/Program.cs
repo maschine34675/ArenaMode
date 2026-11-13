@@ -77,6 +77,25 @@ foreach (var (map, expected) in new (string, int)[] {
     int count = DominationMapLayout.ControlPointCount(map);
     Need(count == expected, $"menu objective count for {map ?? "null"}: expected {expected}, got {count}");
 }
+// Domination's own count by (map, area): The Lab has three points, The Labyrinth exactly one, and the other maps
+// answer as before. Tactical keeps ControlPointCount above, so its copy never promises a point on The Lab,
+// The Labyrinth or Customs. Literals again, not computed by production.
+foreach (var (map, area, expected) in new (string, string, int)[] {
+    ("laboratory", null, 3), ("labyrinth", null, 1), ("LABORATORY", "full-map", 3), ("labyrinth", "", 1),
+    ("factory4_day", null, 3), ("arena_equator", null, 1), ("arena_airpit", null, 2), ("arena_autoservice", null, 1),
+    ("bigmap", null, 0), ("bigmap", "full-map", 0), ("bigmap", "customs-yard-polygon-v1", 0),
+    ("laboratory", "customs-yard-polygon-v1", 0), ("unknown", null, 0), (null, null, 0) })
+{
+    int count = DominationMapLayout.DominationPointCount(map, area);
+    Need(count == expected, $"Domination objective count for {map ?? "null"}/{area ?? "whole map"}: expected {expected}, got {count}");
+}
+Need(Text("domination", points: DominationMapLayout.DominationPointCount("labyrinth", null)).Contains("Hold 1 point to"),
+    "The Labyrinth's Domination copy says one point");
+Need(Text("domination", points: DominationMapLayout.DominationPointCount("laboratory", null)).Contains("Hold 3 points to"),
+    "The Lab's Domination copy says three points");
+foreach (string map in new[] { "laboratory", "labyrinth", "bigmap" })
+    Need(!Text("tactical", points: DominationMapLayout.ControlPointCount(map), objective: true).Contains("hold the point"),
+        "Tactical's copy promises no point on The Lab, The Labyrinth or Customs: " + map);
 Need(!Text("domination").Contains("Hold 3") && Text("domination").Contains("Hold points to earn team score"),
     "unselected Domination map does not invent an objective count");
 foreach(var (points,seconds) in new[]{(0,0),(100,0),(0,300),(500,1200)})

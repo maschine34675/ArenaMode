@@ -21,6 +21,8 @@ internal sealed class DominationRuntime : IDisposable
     private readonly DominationMatchPolicy _rules;
     private readonly GameWorld _world;
     private readonly DominationMapLayout _layout;
+    private readonly string _areaId;
+    private readonly int[] _candidateUsed;
     private readonly Vector3[] _positions;
     private readonly DominationOccupancy[] _occupancy;
     private readonly DominationObjectivePoint[] _objectives;
@@ -33,26 +35,51 @@ internal sealed class DominationRuntime : IDisposable
     internal string StatusLine { get; private set; }
 
     internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, GameWorld world)
+        : this(mode, rules, world, ActiveAreaId, DominationMapLayout.ResolveDomination(world?.LocationId, ActiveAreaId)) { }
+
+    // The layout is resolved for one (map, area) key; the seam also lets a harness run a synthetic
+    // layout inside a synthetic bounded area.
+    internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, GameWorld world,
+        string areaId, DominationMapLayout layout)
     {
         _mode = mode; _rules = rules; _world = world;
-        _layout = DominationMapLayout.Resolve(world?.LocationId);
+        _areaId = areaId;
+        _layout = layout ?? throw new InvalidOperationException("No fixed Domination layout exists for this map and area.");
         int count = _layout.Points.Count;
         if (rules.Points.Count != count) throw new InvalidOperationException("Domination objective count changed during preparation.");
+        _candidateUsed = new int[count];
         _positions = new Vector3[count]; _occupancy = new DominationOccupancy[count];
         _objectives = new DominationObjectivePoint[count]; _views = new Hud.DominationPointView[count];
         StatusLine = string.Join("     |     ", _layout.Points.Select(p => p.Id + "  NEUTRAL"));
     }
 
+    /// <summary>The bounded area this raid plays in, null on a whole map; the second half of the layout key.</summary>
+    internal static string ActiveAreaId => Areas.ArenaAreaRuntime.CurrentArea?.Id;
+
+    /// <summary>The objective count the match policy is built with: the (map, active area) layout's slots.</summary>
+    internal static int PointCount(GameWorld world)
+        => DominationMapLayout.ResolveDomination(world?.LocationId, ActiveAreaId).Points.Count;
+
     internal void Prepare()
     {
-        if (_disposed || _prepared || Areas.ArenaAreaRuntime.CurrentArea != null)
-            throw new InvalidOperationException("Domination requires a fresh full-map objective layout.");
+        // The layout was resolved for one (map, area) when this runtime was built; an area that
+        // appeared or changed since must not borrow it.
+        if (_disposed || _prepared || !string.Equals(_areaId, ActiveAreaId, StringComparison.Ordinal))
+            throw new InvalidOperationException("Domination requires a fresh objective layout for the active map and area.");
         Vector3 anchor;
         if (_layout.Factory)
         {
             var layout = ArenaPickupLayouts.Select(ArenaPickupLayouts.Factory("domination-survey"), _world.LocationId, null);
             if (!ArenaPickupGeometry.TryFactoryAnchor(layout, out anchor))
                 throw new InvalidOperationException("Domination could not verify Factory's main navigation network.");
+        }
+        else if (_layout.Surveyed)
+        {
+            // The layout's own seeds are the network, not the local player (who may stand on an
+            // island or not have landed) and not a team-box catalogue (vanilla maps have none).
+            if (!ArenaPickupGeometry.TryPoolAnchor(_layout.NavigationSeeds, out anchor, out var anchorReason))
+                throw new InvalidOperationException(
+                    $"Domination could not verify the main navigation network of {_world.LocationId}: {anchorReason}.");
         }
         else
         {
@@ -79,6 +106,7 @@ internal sealed class DominationRuntime : IDisposable
             var selected = DominationMapLayout.SelectFactory(floors, LayoutRandom, _previousFactory);
             Array.Copy(selected, _positions, selected.Length);
         }
+        else if (_layout.Surveyed) PlaceSurveyed(anchor);
         else for (int i = 0; i < _layout.Points.Count; i++)
         {
             var point = _layout.Points[i];
@@ -95,14 +123,61 @@ internal sealed class DominationRuntime : IDisposable
         _prepared = true;
         _mapMarkers = new Compat.DynamicMapsDominationMarkers(_world.LocationId,
             () => !_disposed && _mode.ObjectiveHudVisible && _mode.IsSearchActive);
-        Plugin.ModLogger.LogDebug("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));
-        Diagnostics.ArenaLog.Developer("Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}")));
+        string verified = "Domination points verified: " + string.Join("; ", _positions.Select((p, i) => $"{_layout.Points[i].Id}={p:F3}"))
+            + AlternatesUsedNote();
+        Plugin.ModLogger.LogDebug(verified);
+        Diagnostics.ArenaLog.Developer(verified);
+    }
+
+    // Surveyed slots in order: the first candidate (primary, then the alternates) that passes the
+    // native floor and path proof from the anchor, is connected both ways and keeps the layout's
+    // minimum horizontal separation from the floors already chosen. Deterministic for one scene.
+    // A slot without a passing candidate aborts the match: no partial layout, no loosened proof.
+    private void PlaceSurveyed(Vector3 anchor)
+    {
+        float separation = DominationMapLayout.SurveyedMinimumSeparation;
+        for (int i = 0; i < _layout.Points.Count; i++)
+        {
+            var slot = _layout.Points[i];
+            string refusal = null;
+            int tried = 0, used = -1;
+            Vector3 chosen = default;
+            foreach (var candidate in slot.Candidates)
+            {
+                int index = tried++;
+                if (!ArenaPickupGeometry.TryPlacePoint(candidate, anchor, true, out var floor, out var reason, out _))
+                { refusal = reason; continue; }
+                if (!ConnectedBothWays(floor, anchor)) { refusal = "return path unavailable"; continue; }
+                int near = -1;
+                for (int earlier = 0; earlier < i && near < 0; earlier++)
+                {
+                    float dx = _positions[earlier].x - floor.x, dz = _positions[earlier].z - floor.z;
+                    if (dx * dx + dz * dz < separation * separation) near = earlier;
+                }
+                if (near >= 0) { refusal = $"closer than {separation:0} m to point {_layout.Points[near].Id}"; continue; }
+                chosen = floor; used = index;
+                break;
+            }
+            if (used < 0)
+                throw new InvalidOperationException(
+                    $"Domination point {slot.Id} is unsafe or unreachable: {refusal ?? "no candidate"} ({tried} candidate(s) tried).");
+            _positions[i] = chosen;
+            _candidateUsed[i] = used;
+        }
+    }
+
+    private string AlternatesUsedNote()
+    {
+        if (!_layout.Surveyed || _candidateUsed.All(c => c == 0)) return "";
+        return "; alternates used: " + string.Join(", ", _layout.Points
+            .Select((p, i) => (p.Id, Index: _candidateUsed[i])).Where(c => c.Index != 0).Select(c => $"{c.Id}=#{c.Index}"));
     }
 
     internal void VerifyTeamPaths()
     {
         if (_disposed || !_prepared) throw new InvalidOperationException("Domination points are not prepared.");
         if (_layout.Factory || _teamPathsVerified) return;
+        if (_layout.Surveyed) { VerifySurveyedTeamPaths(); return; }
         var formation = ArenaTeamBoxCatalog.Find(_world.LocationId);
         foreach (bool usec in new[] { true, false })
         {
@@ -115,6 +190,29 @@ internal sealed class DominationRuntime : IDisposable
         _teamPathsVerified = true;
         Plugin.ModLogger.LogDebug("Domination objective routes from both opened team boxes verified.");
         Diagnostics.ArenaLog.Developer("Domination objective routes from both opened team boxes verified.");
+    }
+
+    // A surveyed layout on a whole map has no team boxes, no gates and no faction starts (both
+    // factions draw from the same native zones), so there is nothing to prove and it returns like
+    // Factory. Inside a bounded area with team starts the area runtime has already proved the starts
+    // themselves; every point must be connected both ways with at least one start of each faction.
+    private void VerifySurveyedTeamPaths()
+    {
+        if (Areas.ArenaAreaRuntime.CurrentArea == null) return;
+        for (int side = 0; side < 2; side++)
+        {
+            bool usec = side == 0;
+            var starts = Areas.ArenaAreaRuntime.TeamStartPositions(usec);
+            for (int i = 0; i < _positions.Length; i++)
+            {
+                Vector3 point = _positions[i];
+                if (!starts.Any(start => ConnectedBothWays(start, point)))
+                    throw new InvalidOperationException($"Domination point {_layout.Points[i].Id} is disconnected from the {(usec ? "USEC" : "BEAR")} team starts of the area.");
+            }
+        }
+        _teamPathsVerified = true;
+        Plugin.ModLogger.LogDebug("Domination objective routes from both area team starts verified.");
+        Diagnostics.ArenaLog.Developer("Domination objective routes from both area team starts verified.");
     }
 
     private static bool ConnectedBothWays(Vector3 from, Vector3 to)

@@ -168,15 +168,49 @@ internal static class ArenaPickupGeometry
         if (seeds.Length > 8) return false;
         var nodes = new List<Vector3>();
         foreach (var seed in seeds)
-        {
-            if (!TryResolvePoint(new Vector3(seed.X, seed.Y, seed.Z), null, true,
-                out var floor, out _, out _, null)
-                || !NavMesh.SamplePosition(floor, out var nav, .75f, NavMesh.AllAreas)
-                || Math.Abs(nav.position.y - floor.y) > .5f) continue;
-            if (nodes.Any(p => (p.x - nav.position.x) * (p.x - nav.position.x)
-                + (p.z - nav.position.z) * (p.z - nav.position.z) < 9f)) continue;
-            nodes.Add(nav.position);
-        }
+            TryAddNetworkNode(nodes, new Vector3(seed.X, seed.Y, seed.Z));
+        return ElectNetworkAnchor(nodes, out anchor);
+    }
+
+    /// <summary>
+    /// The same independent main-network proof for a surveyed Domination layout: the pool is the
+    /// layout's own seeds (every slot candidate plus the extra network seeds), never the local
+    /// player's position and never a team-box catalogue. Each seed is floored with the 2 m
+    /// relocation (inside the active area only, TryFloor applies the contour), seeds within 3 m of
+    /// an earlier node are dropped, and the best-connected node of a strict majority of at least
+    /// three is the anchor. Seeds are ordered by position first, so the result does not depend on
+    /// the order of the layout rows. TryFactoryAnchor and its Factory guard are untouched.
+    /// </summary>
+    internal static bool TryPoolAnchor(IReadOnlyList<Vector3> seeds, out Vector3 anchor, out string reason)
+    {
+        anchor = default;
+        reason = null;
+        if (seeds == null || seeds.Count < 3 || seeds.Count > MaximumPoolSeeds)
+        { reason = "the seed pool must hold 3 to " + MaximumPoolSeeds + " positions"; return false; }
+        var nodes = new List<Vector3>();
+        foreach (var seed in seeds.OrderBy(p => p.x).ThenBy(p => p.z).ThenBy(p => p.y))
+            TryAddNetworkNode(nodes, seed);
+        if (!ElectNetworkAnchor(nodes, out anchor))
+        { reason = nodes.Count + " of " + seeds.Count + " seeds have a floor, no majority is connected both ways"; return false; }
+        return true;
+    }
+
+    internal const int MaximumPoolSeeds = 16;
+
+    private static void TryAddNetworkNode(List<Vector3> nodes, Vector3 seed)
+    {
+        if (!TryResolvePoint(seed, null, true,
+            out var floor, out _, out _, null)
+            || !NavMesh.SamplePosition(floor, out var nav, .75f, NavMesh.AllAreas)
+            || Math.Abs(nav.position.y - floor.y) > .5f) return;
+        if (nodes.Any(p => (p.x - nav.position.x) * (p.x - nav.position.x)
+            + (p.z - nav.position.z) * (p.z - nav.position.z) < 9f)) return;
+        nodes.Add(nav.position);
+    }
+
+    private static bool ElectNetworkAnchor(List<Vector3> nodes, out Vector3 anchor)
+    {
+        anchor = default;
         if (nodes.Count < 3) return false;
         var connections = new int[nodes.Count];
         var path = new NavMeshPath();

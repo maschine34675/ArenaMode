@@ -199,7 +199,7 @@ public sealed class ChopShopMapTests
         Assert.Null(area); Assert.Null(reason);
         Assert.True(ArenaAreaCatalog.TryResolve(null, map, "DOMINATION", false, out _, out _));
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "domination", true, out _, out reason));
-        Assert.Equal("Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.", reason);
+        Assert.Equal("Domination is not available for this map or area, or with a PitFireTeam squad.", reason);
         foreach (string bounded in new[] { ArenaAreaCatalog.CustomsYardId, "unknown-area" })
             Assert.False(ArenaAreaCatalog.TryResolve(bounded, map, "domination", false, out _, out _));
         Assert.True(ArenaTeamBoxCatalog.Applies(map, "domination"));

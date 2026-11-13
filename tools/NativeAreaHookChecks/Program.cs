@@ -328,8 +328,20 @@ internal static class Program
         using var f = new Fixture(mode: ArenaModeCatalog.DominationId);
         var day = f.Screen.Buttons.Single(b => b.Location.Id == Day);
         var labs = f.Screen.Buttons.Single(b => b.Location.Id == ArenaMapCatalog.LaboratoryId);
-        Assert(day.gameObject.activeSelf && !labs.gameObject.activeSelf && !CustomsButton(f).gameObject.activeSelf,
-            "Domination filters existing vanilla rows to Factory without destroying them");
+        var labyrinth = f.Screen.Buttons.Single(b => b.Location.Id == ArenaMapCatalog.LabyrinthId);
+        // Domination now offers Factory, The Lab and The Labyrinth; Customs (areas only) is still filtered out.
+        Assert(day.gameObject.activeSelf && labs.gameObject.activeSelf && labyrinth.gameObject.activeSelf
+            && !CustomsButton(f).gameObject.activeSelf,
+            "Domination offers Factory, The Lab and The Labyrinth and filters Customs without destroying its row");
+        // Every vanilla row keeps its conditional view, so a map outside the configured allowlist leaves the list.
+        var allowed = ArenaClientConfig.Enabled;
+        ArenaClientConfig.Enabled = map => map != ArenaMapCatalog.LaboratoryId;
+        Updater(f).Tick();
+        Assert(!labs.gameObject.activeSelf && labyrinth.gameObject.activeSelf && day.gameObject.activeSelf,
+            "Domination keeps a conditional view on every vanilla row: a map outside the allowlist is hidden");
+        ArenaClientConfig.Enabled = allowed;
+        Updater(f).Tick();
+        Assert(labs.gameObject.activeSelf, "the vanilla row returns with its map");
         f.Screen.OnLocationSelected(f.Screen.Locations[Day]);
         f.Screen.UpdateSelectedTime(EDateTime.PAST);
         Assert(f.Screen.SelectedLocation?.Id == Night && f.Screen._conditions.Open,
@@ -339,11 +351,11 @@ internal static class Program
         Assert(labs.gameObject.activeSelf && CustomsButton(f).gameObject.activeSelf
             && f.Screen.ShowCalls == 1 && f.Screen.SubscriptionCount == 2,
             "switching from Domination restores vanilla maps without native resubscription");
-        f.Screen.OnLocationSelected(f.Screen.Locations[ArenaMapCatalog.LaboratoryId]);
+        f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
         Settings.GameMode.Value = ArenaModeCatalog.DominationId;
         Updater(f).Tick();
-        Assert(!labs.gameObject.activeSelf && f.Screen.SelectedLocation == null,
-            "switching back to Domination clears an unsupported selected vanilla map");
+        Assert(!CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation == null,
+            "switching back to Domination clears an unsupported selected map");
         ArenaClientConfig.Enabled = map => map != Day;
         Updater(f).Tick();
         Assert(day.gameObject.activeSelf, "Factory tile remains visible when only Domination night is configured");

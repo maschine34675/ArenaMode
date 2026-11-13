@@ -10,6 +10,8 @@ internal sealed class DominationRuntime : IDisposable
     internal static DominationOccupancy[] Sample = new DominationOccupancy[3];
     private readonly DominationMatchPolicy _rules;
     internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, GameWorld world) => _rules = rules;
+    // The real runtime resolves its layout by (map, active area); a whole-map fixture is enough here.
+    internal static int PointCount(GameWorld world) => DominationMapLayout.ResolveDomination(world?.LocationId, null).Points.Count;
     internal string StatusLine => "points";
     internal void Prepare() { }
     internal void VerifyTeamPaths() { }

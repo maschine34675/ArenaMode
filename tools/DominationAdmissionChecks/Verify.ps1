@@ -62,7 +62,7 @@ function Reject-Change([string]$name, [string]$path, [string]$from, [string]$to,
 }
 $maps = [ordered]@{ FactoryDayId='factory4_day'; FactoryNightId='factory4_night'; Bay5Id='arena_bay5';
     EquatorId='arena_equator'; AirPitId='arena_airpit'; BowlId='arena_bowl'; IcebergId='arena_iceberg';
-    AutoServiceId='arena_autoservice' }
+    AutoServiceId='arena_autoservice'; LaboratoryId='laboratory'; LabyrinthId='labyrinth' }
 foreach ($key in $maps.Keys) {
     Reject-Change ('reject-' + $maps[$key]) 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
         "string.Equals(map, ArenaMapCatalog.$key, StringComparison.OrdinalIgnoreCase)" `
@@ -75,6 +75,16 @@ Reject-Change 'allow-pft' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
 Reject-Change 'allow-area' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     'if (pitFireTeam || id != FullMapId' 'if (pitFireTeam || false' `
     'the native area model offers exactly the reviewed whole map: factory4_day'
+Reject-Change 'allow-whole-customs' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)' `
+    '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) && !string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)' `
+    'unreviewed objective map rejected by shared authority: bigmap'
+Reject-Change 'allow-pft-on-lab' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    'if (pitFireTeam || id != FullMapId' 'if (pitFireTeam && !string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) || id != FullMapId' `
+    'server authority refuses PFT even with a reviewed map: laboratory'
+Reject-Change 'stale-refusal-text' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    'Domination is not available for this map or area, or with a PitFireTeam squad.' 'Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.' `
+    'server authority refuses PFT even with a reviewed map'
 Reject-Change 'allow-unreviewed-map' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     '&& !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)' '&& false' `
     'unreviewed objective map rejected by shared authority'
@@ -108,4 +118,4 @@ if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash)
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 12 compiled mutants, 7 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 16 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"

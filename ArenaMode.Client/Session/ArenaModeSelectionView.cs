@@ -391,8 +391,13 @@ internal sealed class ArenaModeSelectionView
     private int ControlPointCount(string mode)
     {
         if (mode != ArenaModeCatalog.DominationId && mode != ArenaModeCatalog.TacticalId) return 0;
-        return DominationMapLayout.ControlPointCount(
-            _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id);
+        string map = _screen?.GetComponent<MatchMakerSelectionLocationScreen>()?.SelectedLocation?.Id;
+        // Domination reads its own (map, area) answer, which includes The Lab and The Labyrinth.
+        // Tactical keeps ControlPointCount: its capture point has no layout there, so its copy
+        // must not promise one (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).
+        return mode == ArenaModeCatalog.DominationId
+            ? DominationMapLayout.DominationPointCount(map, ArenaMenuSelection.AreaSelection(map)?.SelectedArea?.Id)
+            : DominationMapLayout.ControlPointCount(map);
     }
 
     private bool CanSelectRow(int index)

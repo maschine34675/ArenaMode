@@ -93,6 +93,7 @@ namespace ArenaMode.Modes
     internal sealed class DominationRuntime
     {
         internal DominationRuntime(TeamDeathmatchMode mode, DominationMatchPolicy rules, EFT.GameWorld world) { }
+        internal static int PointCount(EFT.GameWorld world) => DominationMapLayout.ResolveDomination(world?.LocationId, null).Points.Count;
         internal string StatusLine => "";
         internal bool AllowsPickup(UnityEngine.Vector3 floor) => true;
         internal void Prepare() { }

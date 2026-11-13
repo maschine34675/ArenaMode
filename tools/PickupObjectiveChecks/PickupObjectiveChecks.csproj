@@ -16,6 +16,7 @@
     <Compile Include="../ArenaPickupChecks/FactoryAnchorCases.cs"/>
     <Compile Include="$(PickupSourceRoot)/ArenaPickupMapLayout.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs"/>
     <Compile Include="../../ArenaMode.Shared/ArenaTeamBoxCatalog.cs"/>

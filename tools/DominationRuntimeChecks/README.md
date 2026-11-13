@@ -1,9 +1,9 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 688 assertions; all fifteen source mutants rejected by their
+Current baseline: 756 assertions; all thirty source mutants rejected by their
 intended behavioral assertions, followed by a clean baseline (2026-11-13, with the
-world-letter pin).
+world-letter pin and the surveyed-slot layout kind).
 This small console harness links the production `DominationMapLayout`,
 `DominationRuntime`, both objective policies, TDM phase policy, objective-pickup
 spacing and original team-box catalogs. It has no mod project references or
@@ -31,7 +31,13 @@ Failure on the last BEAR route must not cache success and must allow a later
 retry. Factory must not invent booth checks. Bad start/end navigation samples,
 height drift and forward/reverse false/partial paths are all rejected.
 
-Fifteen compiled-source mutants target the Factory separation and repeat rules,
+Surveyed layouts (The Lab, The Labyrinth; docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md) have their own
+section: the measured rows (independent literal tables), the pool anchor, the fallback order, the 15 m
+separation, the abort of a slot without a passing candidate, determinism, the whole-map early return of
+`VerifyTeamPaths` and, on a synthetic layout in a synthetic area, the area team-start proof. Tactical's
+`Resolve` must keep refusing The Lab, The Labyrinth and Customs. Fifteen further mutants cover these rules.
+
+Fifteen compiled-source mutants (the first group) target the Factory separation and repeat rules,
 the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port
 relocation, count mismatch, missing return route, height drift, partial paths,
 missing BEAR routes, prematurely cached success, post-disposal authority and an inverted

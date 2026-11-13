@@ -73,6 +73,8 @@ try {
         Test-Mutant 'prepared-player-occupancy-ignored' '_reservation != null && !_reservation.CanReleasePlayer' 'false' 'late occupant blocks final prepared player release' 'PreparedSource'
         Test-Mutant 'mutable-marker-position-accepted' '&& (Point.Position - Position).sqrMagnitude < 0.0001f' '' 'native marker position mutation expires reserved arrival'
         Test-Mutant 'mutable-marker-identity-accepted' '&& Point.Id == PointId' '' 'native marker identity mutation expires reservation'
+        Test-Mutant 'team-starts-ignore-faction' '(_area.TeamStarts.Allows(usec, true, p.Id) || _area.TeamStarts.Allows(usec, false, p.Id)))' 'true)' 'team start accessor returns exactly the faction''s start markers in teamdeathmatch'
+        Test-Mutant 'team-starts-include-disconnected' 'return Connected.Where(p => p != null && !p.SpawnBlocked' 'return Candidates.Where(p => p != null && !p.SpawnBlocked' 'team start accessor leaves out a marker the area runtime found disconnected'
         Test-Mutant 'mutable-marker-disposal-key' 'TeamReservations.Remove(PointId);' 'TeamReservations.Remove(Point.Id);' 'reservation disposal uses frozen identity after native marker rename'
     }
 } finally {Assert-Production}

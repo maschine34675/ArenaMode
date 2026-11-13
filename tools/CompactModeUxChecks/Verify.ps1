@@ -5,9 +5,9 @@ $arenaSourcePath = Join-Path $arenaRepo 'ArenaMode.Client/Session/ArenaCompactMo
 $arenaSource = [IO.File]::ReadAllText($arenaSourcePath)
 $arenaScratch = Join-Path $arenaRepo ('artifacts/compact-mode-ux/' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $arenaScratch -Force | Out-Null
-function Invoke-Check([string]$Name, [string]$Source = '') {
+function Invoke-Check([string]$Name, [string]$Source = '', [string]$Property = 'ProductionCompactRules') {
     $arguments = @('run', '--project', $arenaProject, '-c', 'Release')
-    if ($Source) { $arguments += "-p:ProductionCompactRules=$Source" }
+    if ($Source) { $arguments += "-p:$Property=$Source" }
     $previous = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
@@ -30,6 +30,27 @@ foreach ($fault in $faults) {
     $copy = Join-Path $arenaScratch ($fault[0] + '.cs')
     [IO.File]::WriteAllText($copy, $arenaSource.Replace($fault[1], $fault[2]))
     $result = Invoke-Check $fault[0] $copy
+    if ($result.Code -eq 0 -or $result.Output.Contains('error CS') -or !$result.Output.Contains($fault[3])) { throw $result.Output }
+    Write-Output "NEGATIVE CONTROL PASSED: $($fault[0])"
+}
+# Mutants of the layout's two counts: Tactical's ControlPointCount must not gain The Lab, and Domination's own count must answer it.
+$arenaLayoutPath = Join-Path $arenaRepo 'ArenaMode.Client/Modes/DominationMapLayout.cs'
+$arenaLayout = [IO.File]::ReadAllText($arenaLayoutPath).Replace("`r`n", "`n")
+$layoutFaults = @(
+    @('tactical-count-gains-lab', "|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;`n        return Resolve(map).Points.Count;",
+      "|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;",
+      'menu objective count for laboratory: expected 0, got 3'),
+    @('domination-count-lab-missing', 'return ResolveDomination(map, areaId).Points.Count;', 'return 0;',
+      'Domination objective count for laboratory/whole map: expected 3, got 0'),
+    @('labyrinth-two-points', 'new Point("X", new Vector3(-9.92f, .1f, 23.92f), new Vector3(5.92f, .1f, 20.22f),',
+      'new Point("Y", new Vector3(-30f, .1f, 20f)), new Point("X", new Vector3(-9.92f, .1f, 23.92f), new Vector3(5.92f, .1f, 20.22f),',
+      'Domination objective count for labyrinth/whole map: expected 1, got 2')
+)
+foreach ($fault in $layoutFaults) {
+    if ([regex]::Matches($arenaLayout, [regex]::Escape($fault[1])).Count -ne 1) { throw "Ambiguous mutant: $($fault[0])" }
+    $copy = Join-Path $arenaScratch ($fault[0] + '.cs')
+    [IO.File]::WriteAllText($copy, $arenaLayout.Replace($fault[1], $fault[2]))
+    $result = Invoke-Check $fault[0] $copy 'ProductionMapLayout'
     if ($result.Code -eq 0 -or $result.Output.Contains('error CS') -or !$result.Output.Contains($fault[3])) { throw $result.Output }
     Write-Output "NEGATIVE CONTROL PASSED: $($fault[0])"
 }

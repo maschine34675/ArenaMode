@@ -49,6 +49,55 @@ $faults = @(
        Failure='dispose removes all owned markers and pickup authority' },
     @{ Name='letter-inverted'; Path=$runtime; Property='RuntimeSource';
        Find='!ArenaMapCatalog.IsOptionalMap(_world.LocationId));'; Replace='ArenaMapCatalog.IsOptionalMap(_world.LocationId));';
-       Failure='ported maps pass showLetter false and vanilla Factory passes true' }
+       Failure='ported maps pass showLetter false and vanilla Factory passes true' },
+    # Surveyed slots (The Lab, The Labyrinth): layout rows and the Tactical decoupling.
+    @{ Name='lab-point-lifted'; Path=$layout; Property='LayoutSource';
+       Find='new Point("A", new Vector3(-224.879f, .082f, -279.867f)'; Replace='new Point("A", new Vector3(-224.879f, .582f, -279.867f)';
+       Failure='surveyed slots keep their measured primary and their ordered alternates' },
+    @{ Name='labyrinth-network-seeds-dropped'; Path=$layout; Property='LayoutSource';
+       Find='new[] { new Vector3(-23.83f, .1f, 20.08f), new Vector3(-10.91f, .1f, 6.08f), new Vector3(15.23f, .1f, 27.16f) },';
+       Replace='Array.Empty<Vector3>(),';
+       Failure='the network proof pool is every slot candidate plus the extra seeds, which are never points' },
+    @{ Name='tactical-resolver-gains-lab'; Path=$layout; Property='LayoutSource';
+       Find='"arena_autoservice" => ChopShop,'; Replace='"arena_autoservice" => ChopShop, "laboratory" => Laboratory,';
+       Failure='Tactical''s layout resolver still refuses The Lab, The Labyrinth, Customs and unknown maps' },
+    @{ Name='tactical-count-gains-lab'; Path=$layout; Property='LayoutSource';
+       Find="|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map))) return 0;`n        return Resolve(map).Points.Count;";
+       Replace="|| ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)`n            || string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase))) return 0;`n        return ResolveDomination(map, null).Points.Count;";
+       Failure='Domination counts the surveyed slots while Tactical''s count stays 0' },
+    @{ Name='domination-count-ignores-slots'; Path=$layout; Property='LayoutSource';
+       Find='return ResolveDomination(map, areaId).Points.Count;'; Replace='return 0;';
+       Failure='Domination counts the surveyed slots while Tactical''s count stays 0' },
+    # Surveyed slots: the runtime's slot rules.
+    @{ Name='surveyed-separation-ignored'; Path=$runtime; Property='RuntimeSource';
+       Find='if (dx * dx + dz * dz < separation * separation) near = earlier;'; Replace='if (false) near = earlier;';
+       Failure='a surveyed slot never takes a candidate closer than 15 m to an earlier slot' },
+    @{ Name='surveyed-slot-without-candidate-continues'; Path=$runtime; Property='RuntimeSource';
+       Find='if (used < 0)'; Replace='if (false)';
+       Failure='a slot without a passing candidate aborts the match and names the slot and the last refusal' },
+    @{ Name='surveyed-primary-only'; Path=$runtime; Property='RuntimeSource';
+       Find='foreach (var candidate in slot.Candidates)'; Replace='foreach (var candidate in slot.Candidates.Take(1))';
+       Failure='a refused primary falls to the first alternate and leaves the other slots alone' },
+    @{ Name='surveyed-no-relocation'; Path=$runtime; Property='RuntimeSource';
+       Find='TryPlacePoint(candidate, anchor, true, out var floor, out var reason, out _)'; Replace='TryPlacePoint(candidate, anchor, false, out var floor, out var reason, out _)';
+       Failure='surveyed placement uses the pool anchor and keeps the bounded 2 m relocation' },
+    @{ Name='surveyed-anchor-from-primaries'; Path=$runtime; Property='RuntimeSource';
+       Find='TryPoolAnchor(_layout.NavigationSeeds,'; Replace='TryPoolAnchor(_layout.Points.Select(p => p.Position).ToArray(),';
+       Failure='a surveyed layout proves the navigation network of its own seed pool, never Factory''s' },
+    @{ Name='surveyed-whole-map-team-proof'; Path=$runtime; Property='RuntimeSource';
+       Find='if (Areas.ArenaAreaRuntime.CurrentArea == null) return;'; Replace='';
+       Failure='a surveyed whole-map layout skips the team proofs like Factory' },
+    @{ Name='area-proof-skips-bear'; Path=$runtime; Property='RuntimeSource';
+       Find='for (int side = 0; side < 2; side++)'; Replace='for (int side = 0; side < 1; side++)';
+       Failure='the area team-start proof covers both factions and every point in both directions' },
+    @{ Name='area-proof-needs-every-start'; Path=$runtime; Property='RuntimeSource';
+       Find='if (!starts.Any(start => ConnectedBothWays(start, point)))'; Replace='if (!starts.All(start => ConnectedBothWays(start, point)))';
+       Failure='one connected start per faction is enough, a second start may be cut off' },
+    @{ Name='area-proof-skipped'; Path=$runtime; Property='RuntimeSource';
+       Find='if (!starts.Any(start => ConnectedBothWays(start, point)))'; Replace='if (false)';
+       Failure='the area team-start proof covers both factions and every point in both directions' },
+    @{ Name='layout-borrowed-by-another-area'; Path=$runtime; Property='RuntimeSource';
+       Find='!string.Equals(_areaId, ActiveAreaId, StringComparison.Ordinal)'; Replace='false';
+       Failure='bounded area cannot borrow a full map objective layout' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'DominationRuntimeChecks.csproj') -Token 'DOMINATION_RUNTIME_CHECKS_PASSED' -Properties @() -Faults $faults

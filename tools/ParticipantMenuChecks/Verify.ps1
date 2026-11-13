@@ -45,7 +45,7 @@ if (__instance == null
 $arenaFaults = @(
     @('domination-vanilla-map-leak', 'ArenaMode.Client/Session/ArenaLocationSelectionPatch.cs',
         'if (!ArenaMapCatalog.IsSupportedMap(location?.Id)', 'if (!ArenaMapCatalog.RequiresModeFilteredView(location?.Id)',
-        $arenaNative, 'ProductionLocationPatchSource', 'Domination filters existing vanilla rows to Factory without destroying them'),
+        $arenaNative, 'ProductionLocationPatchSource', 'Domination keeps a conditional view on every vanilla row: a map outside the allowlist is hidden'),
     @('missing-disk-save', 'ArenaMode.Client\Config\ArenaParticipantSettings.cs', '_file.Save();', '/* missing save */',
         $arenaParticipant, 'ProductionParticipantSettingsSource', 'PERSISTENCE:'),
     @('armed-write', 'ArenaMode.Client\Config\ArenaParticipantSettings.cs', '|| Session.ArenaSession.ArmedForNextRaid', '',

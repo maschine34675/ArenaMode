@@ -24,6 +24,20 @@ internal static partial class ArenaAreaRuntime
     internal static bool HasTeamStarts => IsCurrentActive() && _area.TeamStarts != null
         && _mode == Modes.ArenaModeCatalog.TeamDeathmatchId;
 
+    /// <summary>
+    /// The connected, unblocked start markers of one faction (its PMC and bot sets) of the active
+    /// area, for a mode that must prove its own route data against them (Domination's surveyed
+    /// points). Empty without an active area or without surveyed team starts. Read-only: it
+    /// reserves nothing and does not depend on which mode armed the area.
+    /// </summary>
+    internal static IReadOnlyList<Vector3> TeamStartPositions(bool usec)
+    {
+        if (!IsCurrentActive() || _area.TeamStarts == null) return Array.Empty<Vector3>();
+        return Connected.Where(p => p != null && !p.SpawnBlocked
+                && (_area.TeamStarts.Allows(usec, true, p.Id) || _area.TeamStarts.Allows(usec, false, p.Id)))
+            .Select(p => p.Position).ToArray();
+    }
+
     internal static bool TryInitialTeamSpawn(SpawnSystem system, ESpawnCategory category,
         EPlayerSide side, string profileId, out ISpawnPoint selected)
     {

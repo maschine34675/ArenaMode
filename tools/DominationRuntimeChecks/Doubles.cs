@@ -55,7 +55,17 @@ namespace ArenaMode.Modes
         { friendly = player?.Friendly == true; return player?.Eligible == true; }
     }
 }
-namespace ArenaMode.Areas { internal static class ArenaAreaRuntime { internal static object CurrentArea; } }
+namespace ArenaMode.Areas
+{
+    internal sealed class AreaDouble { internal string Id; }
+    internal static class ArenaAreaRuntime
+    {
+        internal static AreaDouble CurrentArea;
+        // The connected start markers of one faction of the active area (the area runtime has proved the starts themselves).
+        internal static Func<bool, IReadOnlyList<Vector3>> Starts = _ => Array.Empty<Vector3>();
+        internal static IReadOnlyList<Vector3> TeamStartPositions(bool usec) => Starts(usec);
+    }
+}
 namespace ArenaMode.Pickups
 {
     internal static class ArenaPickupGeometry
@@ -68,6 +78,13 @@ namespace ArenaMode.Pickups
         internal static readonly List<(Vector3 Requested, Vector3 Anchor, bool AllowNearby)> Placements = new();
         internal static bool TryFactoryAnchor(object layout, out Vector3 anchor)
         { FactoryCalls++; anchor = FactoryAnchor; return FactoryOk; }
+        // The pool-based proof of a surveyed layout (the real one is linked in ArenaPickupChecks).
+        internal static bool PoolOk = true;
+        internal static int PoolCalls;
+        internal static IReadOnlyList<Vector3> PoolSeeds;
+        internal static readonly Vector3 PoolAnchor = new(200, 0, 200);
+        internal static bool TryPoolAnchor(IReadOnlyList<Vector3> seeds, out Vector3 anchor, out string reason)
+        { PoolCalls++; PoolSeeds = seeds; anchor = PoolAnchor; reason = PoolOk ? null : "test network refused"; return PoolOk; }
         internal static bool TryPlacePoint(Vector3 point, Vector3 anchor, bool allowNearby,
             out Vector3 floor, out string reason, out bool relocated)
         {
@@ -125,7 +142,7 @@ namespace ArenaMode.Bots
 }
 namespace ArenaMode
 {
-    internal sealed class Logger { internal void LogDebug(string text) { } }
+    internal sealed class Logger { internal static readonly List<string> Lines = new(); internal void LogDebug(string text) => Lines.Add(text); }
     internal static class Plugin { internal static readonly Logger ModLogger = new(); }
 }
 namespace ArenaMode.Diagnostics { internal static class ArenaLog { internal static void Developer(string text) { } } }

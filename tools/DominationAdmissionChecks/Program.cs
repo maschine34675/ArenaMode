@@ -12,7 +12,8 @@ const string Mode = "domination";
 string Day = ArenaMapCatalog.FactoryDayId, Night = ArenaMapCatalog.FactoryNightId;
 string[] supported = { Day, Night, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.EquatorId,
     ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId,
-    ArenaMapCatalog.AutoServiceId };
+    ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId };
+const string RefusalText = "Domination is not available for this map or area, or with a PitFireTeam squad.";
 Need(ArenaPopulationPolicy.Domination == Mode && ArenaModeCatalog.DominationId == Mode,
     "client and server use the same independent Domination identity");
 Need(ArenaModeCatalog.NormalizeId(Mode) == Mode, "Domination never falls back to Deathmatch");
@@ -48,8 +49,8 @@ foreach (string map in supported)
     var proposed = ArenaAreaSelectionState.Create(map, Mode, false, ArenaAreaCatalog.FullMapId, 5);
     Need(proposed.Available && proposed.Options.Count == 1 && proposed.SelectedId == ArenaAreaCatalog.FullMapId,
         "the native area model offers exactly the reviewed whole map: " + map);
-    Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, Mode, true, out _, out _),
-        "server authority refuses PFT even with a reviewed map: " + map);
+    Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, Mode, true, out _, out var pftReason)
+        && pftReason == RefusalText, "server authority refuses PFT even with a reviewed map: " + map);
     foreach (string bounded in new[] { ArenaAreaCatalog.FactorySouthId,
         ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId,
         ArenaAreaCatalog.CustomsYardId, "unknown-area" })
@@ -66,7 +67,7 @@ foreach (string map in supported)
     foreach (int invalid in new[] { 0, 2, 3, 5, 25 })
         Need(!ArenaParticipantPolicy.TryResolve(map, Mode, false, false, invalid, out _, out _),
             "unequal or out-of-range team count is refused: " + invalid);
-    if (map == Day || map == Night)
+    if (map == Day || map == Night || map == ArenaMapCatalog.LaboratoryId || map == ArenaMapCatalog.LabyrinthId)
         Need(!ArenaTeamBoxCatalog.Applies(map, Mode),
             "Factory Domination does not inherit ported-box bot spawn shields");
 }
@@ -79,6 +80,17 @@ foreach (string map in ArenaMapCatalog.DefaultClientAllowlist.Split(',').Concat(
     Need(!ArenaAreaSelectionState.Create(map, Mode, false, ArenaAreaCatalog.FullMapId, 5).Available,
         "unreviewed objective map omitted by native mode-dependent discovery: " + map);
 }
+// Customs has no whole-map form in Arena: Domination there is refused whole (the Domination block returns
+// before the Customs rule, so it must never be admitted by map id) and, until its three area rows exist,
+// in every area. The refusal text is true for every refused map, area and squad.
+Need(!ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, ArenaMapCatalog.CustomsId, Mode, false, out _, out var customsReason)
+    && customsReason == RefusalText, "whole Customs stays refused for Domination: " + customsReason);
+foreach (string customsArea in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+    ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
+    Need(!ArenaAreaCatalog.TryResolve(customsArea, ArenaMapCatalog.CustomsId, Mode, false, out _, out var areaReason)
+        && areaReason == RefusalText, "Customs areas are not admitted for Domination in this stage: " + customsArea);
+Need(!ArenaAreaSelectionState.Create(ArenaMapCatalog.CustomsId, Mode, false, ArenaAreaCatalog.FullMapId, 5).Available,
+    "the native area model offers no Customs choice under Domination in this stage");
 Need(ArenaPopulationPolicy.OwnsEntirePopulation(Mode)
     && ArenaPopulationPolicy.IsIndependentTeam(Mode)
     && !ArenaPopulationPolicy.IsIndependentTeam("deathmatch")
@@ -101,12 +113,15 @@ Need(ArenaMapCatalog.CanSelectNativeLocation(Day, map => map == Night),
 bool visible = true;
 int deselections = 0;
 var row = new ArenaConditionalMapView(true, v => visible = v, () => deselections++);
-bool LabsAvailable(string mode) => ArenaAreaSelectionState.Create(ArenaMapCatalog.LaboratoryId,
+bool MapAvailable(string map, string mode) => ArenaAreaSelectionState.Create(map,
     mode, false, ArenaAreaCatalog.FullMapId, 5).Available;
-row.Refresh(LabsAvailable(Mode), true);
-Need(!visible && deselections == 1, "switching to Domination clears and hides an old Labs selection");
-row.Refresh(LabsAvailable("teamdeathmatch"), false);
-Need(visible, "switching back to TDM restores the same native Labs row");
+// The Lab is a Domination map now: its row stays; Customs (areas only, none admitted yet) is the row that goes.
+Need(MapAvailable(ArenaMapCatalog.LaboratoryId, Mode) && MapAvailable(ArenaMapCatalog.LabyrinthId, Mode),
+    "The Lab and The Labyrinth rows stay visible under Domination");
+row.Refresh(MapAvailable(ArenaMapCatalog.CustomsId, Mode), true);
+Need(!visible && deselections == 1, "switching to Domination clears and hides an old Customs selection");
+row.Refresh(MapAvailable(ArenaMapCatalog.CustomsId, "teamdeathmatch"), false);
+Need(visible, "switching back to TDM restores the same native Customs row");
 row.Refresh(false, false);
 row.Close();
 Need(visible, "leaving Arena restores the original native row visibility");

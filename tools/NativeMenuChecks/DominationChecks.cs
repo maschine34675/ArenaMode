@@ -43,7 +43,8 @@ internal static partial class Program
             ArenaMode.Bots.DominationObjectiveBridge.Available = true;
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                 ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId, ArenaMapCatalog.BowlId,
-                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+                ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId,
+                ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId })
             {
                 ConfigureAreaNegotiation(); Select(map);
                 Settings.GameMode.Value = "domination";
@@ -77,8 +78,7 @@ internal static partial class Program
                     "Domination imported map disabled on server rejects before HTTP arm: " + map);
                 ArenaClientConfig.Enabled = Settings.IsArenaMap;
             }
-            foreach (string map in new[] { ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId,
-                ArenaMapCatalog.CustomsId, "unknown-future-map" })
+            foreach (string map in new[] { ArenaMapCatalog.CustomsId, "unknown-future-map" })
             {
                 ConfigureAreaNegotiation(); Select(map);
                 Settings.GameMode.Value = "domination";
@@ -93,7 +93,8 @@ internal static partial class Program
                     && RequestHandler.StartCount == announced && !ArenaServerClient.HasPendingArm,
                     "unsupported objective map is refused before HTTP arming: " + map);
             }
-            foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId }.Concat(ports))
+            foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
+                ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId }.Concat(ports))
             {
                 ConfigureAreaNegotiation();
                 announced = RequestHandler.StartCount;

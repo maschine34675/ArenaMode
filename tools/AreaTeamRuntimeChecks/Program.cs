@@ -313,6 +313,35 @@ internal static class Program
             "in-place replacement preserves current body position");
     }
 
+    // Domination proves its surveyed points against the verified starts of each faction, whatever mode armed
+    // the area: the accessor is read-only, faction-exact and limited to connected, unblocked markers.
+    private static void TeamStartPositionsAccessor()
+    {
+        var system=Setup();var start=Initial(system,EPlayerSide.Usec);ArenaAreaRuntime.TestActivate(start);
+        foreach(string mode in new[]{"teamdeathmatch","domination"})
+        {
+            ArenaAreaRuntime.TestMode=mode;
+            foreach(bool usec in new[]{true,false})
+            {
+                var expected=ReadPoints().Where(p=>Area.TeamStarts.Allows(usec,true,p.Id)||Area.TeamStarts.Allows(usec,false,p.Id)).Select(p=>p.Position).ToArray();
+                var actual=ArenaAreaRuntime.TeamStartPositions(usec);
+                Need(expected.Length>0&&actual.Count==expected.Length&&actual.All(a=>expected.Any(e=>D2(e,a)<.0001f&&Math.Abs(e.y-a.y)<.0001f)),
+                    "team start accessor returns exactly the faction's start markers in "+mode);
+            }
+            var usecSet=ArenaAreaRuntime.TeamStartPositions(true);var bearSet=ArenaAreaRuntime.TeamStartPositions(false);
+            Need(!usecSet.Any(u=>bearSet.Any(b=>D2(u,b)<.0001f)),"team start accessor never mixes the two factions");
+        }
+        var factionPoints=system._spawnPoints.OfType<Point>().Where(p=>Area.TeamStarts.Allows(false,false,p.Id)).ToArray();
+        int before=ArenaAreaRuntime.TeamStartPositions(false).Count;
+        ArenaAreaRuntime.TestDisconnect(factionPoints[0]);
+        Need(ArenaAreaRuntime.TeamStartPositions(false).Count==before-1,"team start accessor leaves out a marker the area runtime found disconnected");
+        factionPoints[1].SpawnBlocked=true;
+        Need(ArenaAreaRuntime.TeamStartPositions(false).Count==before-2,"team start accessor leaves out a blocked marker");
+        ArenaAreaRuntime.Active=false;
+        Need(ArenaAreaRuntime.TeamStartPositions(true).Count==0&&ArenaAreaRuntime.TeamStartPositions(false).Count==0,
+            "team start accessor is empty without an active area");
+    }
+
     private static void OtherModeReservations()
     {
         foreach (string mode in new[] { "deathmatch", "gungame", "tactical", "zombie" })
@@ -400,7 +429,7 @@ internal static class Program
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
-            InitialAndCapacity();OppositeVirtualTeams();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();ProtectedInitialCoopCategory();
+            InitialAndCapacity();OppositeVirtualTeams();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();TeamStartPositionsAccessor();ProtectedInitialCoopCategory();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

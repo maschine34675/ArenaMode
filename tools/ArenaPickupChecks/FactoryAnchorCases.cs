@@ -128,6 +128,65 @@ internal static partial class Program
         System.IO.File.WriteAllText(LayoutPath,ArenaPickupLayouts.Serialize(areaFile));Step();Step(16);
         Check(ArenaPickupView.Created.Count==0,
             "bounded custom Factory layout cannot inherit full-map independent placement");
+        PoolAnchorCases();
         Console.WriteLine("ARENA_FACTORY_PICKUP_ANCHOR_PASSED");
+    }
+
+    // The pool-based proof of a surveyed Domination layout (The Lab, The Labyrinth): the same network
+    // election as Factory's, over the layout's own seeds, with no map or layout guard.
+    private static void PoolAnchorCases()
+    {
+        static IReadOnlyList<Vector3> Pool(int count,float step=10)
+            => Enumerable.Range(0,count).Select(i=>new Vector3(i*step,0,0)).ToArray();
+
+        Fixture();
+        Check(ArenaPickupGeometry.TryPoolAnchor(Pool(9),out var first,out var reason)&&reason==null,
+            "connected seed pool elects an independent anchor without a Factory layout");
+        Check(NavMesh.Paths<=72&&NavMesh.Samples<=300,
+            "pool anchor election stays within bounded directed connectivity probes");
+        Check(ArenaPickupGeometry.TryPoolAnchor(Pool(9).Reverse().ToArray(),out var reversed,out _)&&(first-reversed).sqrMagnitude==0,
+            "pool anchor election is independent of seed order");
+
+        Fixture();_local.Position=new(1000,0,0);
+        NavMesh.AllowPath=(from,to)=>from.x<100&&to.x<100;
+        Check(ArenaPickupGeometry.TryPoolAnchor(Pool(9),out var island,out _)&&island.x<100&&NavMesh.LastPathStart.x<100,
+            "pool anchor never uses the local player's position or an island it stands on");
+
+        foreach(string failure in new[]{"false","partial","self-only","one-way","half","collapsed","clearance","floor","steep","offlevel"})
+        {
+            Fixture();
+            var pool=Pool(failure=="half"?8:9);
+            switch(failure)
+            {
+                case "false":NavMesh.PathOk=false;break;
+                case "partial":NavMesh.Status=NavMeshPathStatus.PathPartial;break;
+                case "self-only":NavMesh.AllowPath=(from,to)=>(from-to).sqrMagnitude==0;break;
+                case "one-way":NavMesh.AllowPath=(from,to)=>from.x<=to.x;break;
+                case "half":NavMesh.AllowPath=(from,to)=>(from.x<40)==(to.x<40);break;
+                case "collapsed":NavMesh.Sample=_=>new(0,0,0);break;
+                case "clearance":Physics.Overlaps=[new Collider()];break;
+                case "floor":Physics.Rays=(_,_,_)=>[];break;
+                case "steep":Physics.Rays=(from,_,_)=>[new(){collider=new Collider(),point=from-Vector3.up*.65f,normal=new(1,0,0)}];break;
+                case "offlevel":NavMesh.Sample=p=>p+Vector3.up;break;
+            }
+            Check(!ArenaPickupGeometry.TryPoolAnchor(pool,out _,out var refusal)&&!string.IsNullOrEmpty(refusal),
+                "pool quorum cannot bypass native navigation or physical safety: "+failure);
+        }
+
+        Fixture();
+        NavMesh.AllowPath=(from,to)=>(from.x<50)==(to.x<50);
+        Check(ArenaPickupGeometry.TryPoolAnchor(Pool(9),out var majority,out _)&&majority.x<50,
+            "pool anchor belongs to the strict majority instead of a smaller disconnected component");
+        Fixture();
+        Check(!ArenaPickupGeometry.TryPoolAnchor(Pool(2),out _,out _)&&!ArenaPickupGeometry.TryPoolAnchor(Pool(0),out _,out _)
+            &&!ArenaPickupGeometry.TryPoolAnchor(null,out _,out _),
+            "fewer than three seeds are insufficient connectivity evidence");
+        Check(ArenaPickupGeometry.TryPoolAnchor(Pool(3),out _,out _),"three separated connected seeds meet the minimum quorum");
+        Fixture();
+        Check(!ArenaPickupGeometry.TryPoolAnchor(Pool(3,1),out _,out _),
+            "nearby seeds cannot inflate the three-spatially-distinct quorum");
+        Fixture();
+        Check(!ArenaPickupGeometry.TryPoolAnchor(Pool(17),out _,out var capped)&&NavMesh.Paths==0&&capped.Contains("16"),
+            "pool anchor election stays bounded to sixteen seeds");
     }
 }

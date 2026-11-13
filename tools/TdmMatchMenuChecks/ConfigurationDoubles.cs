@@ -23,6 +23,9 @@ namespace ArenaMode.Session
         internal static bool DominationAvailable = true;
         internal static string ModeAvailabilityRejection(string mode)
             => mode == "domination" && !DominationAvailable ? "Domination objective companion unavailable." : null;
+        // ArenaModeSelectionView asks for the selected area to resolve Domination's (map, area) count.
+        internal sealed class AreaSelectionDouble { internal ArenaMode.Shared.ArenaAreaDefinition SelectedArea; }
+        internal static AreaSelectionDouble AreaSelection(string map) => new();
     }
 
     // HTTP and persistence belong to the reward integration checks. This seam

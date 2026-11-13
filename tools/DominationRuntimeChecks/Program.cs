@@ -21,6 +21,9 @@ Vector3 Position(ArenaTeamBoxCatalog.Point point) => new(point.X, point.Y, point
 void Reset()
 {
     ArenaAreaRuntime.CurrentArea = null;
+    ArenaAreaRuntime.Starts = _ => Array.Empty<Vector3>();
+    ArenaMode.Logger.Lines.Clear();
+    ArenaPickupGeometry.PoolOk = true; ArenaPickupGeometry.PoolCalls = 0; ArenaPickupGeometry.PoolSeeds = null;
     ArenaPickupGeometry.FactoryOk = true; ArenaPickupGeometry.FactoryCalls = 0;
     ArenaPickupGeometry.Placements.Clear();
     ArenaPickupGeometry.Place = (point, _) => (true, point);
@@ -150,9 +153,13 @@ foreach (var (map, authored) in cases)
     Refuses(runtime.Prepare, "disposed runtime cannot recreate markers");
 }
 
-foreach (var map in new string[] { null, "", "laboratory", "bigmap", "arena_unknown" })
+// Tactical's capture point reads Resolve and ControlPointCount: they keep their map list, so Tactical
+// gets no point on The Lab, The Labyrinth or Customs. Domination resolves by (map, area) instead.
+foreach (var map in new string[] { null, "", "laboratory", "labyrinth", "bigmap", "arena_unknown" })
+    Refuses(() => DominationMapLayout.Resolve(map), "Tactical's layout resolver still refuses The Lab, The Labyrinth, Customs and unknown maps");
+foreach (var map in new string[] { null, "", "bigmap", "arena_unknown" })
 {
-    Refuses(() => DominationMapLayout.Resolve(map), "unknown map has no invented objective layout");
+    Refuses(() => DominationMapLayout.ResolveDomination(map, null), "unknown map has no invented objective layout");
     Refuses(() => new DominationRuntime(new(), new(), new() { LocationId = map }), "runtime rejects unknown maps before preparation");
 }
 Reset();
@@ -233,8 +240,12 @@ Refuses(()=>DominationMapLayout.SelectFactory(new[]{pool[0],pool[4],new Vector3(
 Reset(); ArenaPickupGeometry.FactoryOk = false;
 Refuses(Create("factory4_night").Runtime.Prepare, "Factory still requires its surveyed main network");
 Need(DominationPointView.Created.Count == 0, "missing Factory network cannot create markers");
-Reset(); ArenaAreaRuntime.CurrentArea = new object();
-Refuses(Create("arena_equator").Runtime.Prepare, "bounded area cannot borrow a full map objective layout");
+Reset();
+var borrowing = Create("arena_equator").Runtime;
+ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = "any-area" };
+Refuses(borrowing.Prepare, "bounded area cannot borrow a full map objective layout");
+Refuses(() => Create("arena_equator"), "a map without area rows resolves no layout inside a bounded area");
+Refuses(() => Create("factory4_day"), "Factory resolves no layout inside a bounded area");
 
 // Gate proof runs later than Prepare. Failed proof must remain retryable after
 // gates reconnect, and no faction/direction may be silently skipped.
@@ -261,4 +272,216 @@ Refuses(failedView.Prepare, "view allocation failure is surfaced to the owning m
 Need(!failedView.AllowsPickup(new(1000,0,1000)), "partial view creation cannot publish prepared authority");
 failedView.Dispose();
 Need(DominationPointView.Created.All(v => v.Disposed), "owner cleanup after a view failure releases earlier markers");
+
+// ---- The third layout kind: surveyed slots (The Lab, The Labyrinth, later Customs areas) ----
+Vector3 V(float x, float y, float z) => new(x, y, z);
+string Message(Action action)
+{
+    try { action(); } catch (InvalidOperationException ex) { return ex.Message; }
+    return null;
+}
+(DominationRuntime Runtime, DominationMatchPolicy Rules, TeamDeathmatchMode Mode) CreateSurveyed(string map)
+{
+    var mode = new TeamDeathmatchMode();
+    var rules = new DominationMatchPolicy(scoreLimit: 0, pointCount: DominationMapLayout.ResolveDomination(map, null).Points.Count);
+    return (new DominationRuntime(mode, rules, new GameWorld { LocationId = map }), rules, mode);
+}
+// Independent literal tables: the measured rows of the lead's native dry runs (GPU-2, 13.11.2026).
+var surveyedCases = new (string Map, (string Id, Vector3[] Candidates)[] Slots, Vector3[] Extra)[]
+{
+    ("laboratory", new[]
+    {
+        ("A", new[] { V(-224.879f, .082f, -279.867f), V(-231.636f, .082f, -286.694f) }),
+        ("B", new[] { V(-171.54f, 0f, -312.18f), V(-175.02f, .1f, -311.28f), V(-166.02f, .1f, -314.36f) }),
+        ("C", new[] { V(-213.124f, 0f, -378.755f), V(-205.29f, .1f, -390.55f), V(-202.231f, .1f, -393.884f) })
+    }, Array.Empty<Vector3>()),
+    ("labyrinth", new[]
+    {
+        ("X", new[] { V(-9.92f, .1f, 23.92f), V(5.92f, .1f, 20.22f), V(-11.18f, .2f, 35.7f) })
+    }, new[] { V(-23.83f, .1f, 20.08f), V(-10.91f, .1f, 6.08f), V(15.23f, .1f, 27.16f) })
+};
+foreach (var (map, slots, extra) in surveyedCases)
+{
+    Reset();
+    var layout = DominationMapLayout.ResolveDomination(map, null);
+    Need(layout.Surveyed && !layout.Factory, "The Lab and The Labyrinth resolve to the surveyed layout kind, not Factory's");
+    Need(layout.Points.Select(p => p.Id).SequenceEqual(slots.Select(s => s.Id)), "surveyed slot ids and count are exact");
+    for (int s = 0; s < slots.Length; s++)
+        Need(Same(layout.Points[s].Position, slots[s].Candidates[0])
+            && layout.Points[s].Alternates.Count == slots[s].Candidates.Length - 1
+            && layout.Points[s].Alternates.Select((a, i) => Same(a, slots[s].Candidates[i + 1])).All(x => x),
+            "surveyed slots keep their measured primary and their ordered alternates");
+    Need(layout.NetworkSeeds.Count == extra.Length && layout.NetworkSeeds.Select((p, i) => Same(p, extra[i])).All(x => x)
+        && layout.NavigationSeeds.Count == slots.Sum(s => s.Candidates.Length) + extra.Length,
+        "the network proof pool is every slot candidate plus the extra seeds, which are never points");
+    Need(ReferenceEquals(layout, DominationMapLayout.ResolveDomination(map.ToUpperInvariant(), "full-map"))
+        && ReferenceEquals(layout, DominationMapLayout.ResolveDomination(map, ""))
+        && DominationMapLayout.ResolveDomination("factory4_day", null).NavigationSeeds.Count == 0,
+        "the whole-map key handles case, full-map and empty ids; the other kinds have no pool");
+    Need(DominationMapLayout.DominationPointCount(map, null) == slots.Length
+        && DominationMapLayout.DominationPointCount(map, "full-map") == slots.Length
+        && DominationMapLayout.ControlPointCount(map) == 0,
+        "Domination counts the surveyed slots while Tactical's count stays 0");
+
+    var (runtime, rules, mode) = CreateSurveyed(map);
+    runtime.Prepare();
+    Need(ArenaPickupGeometry.FactoryCalls == 0 && ArenaPickupGeometry.PoolCalls == 1
+        && ArenaPickupGeometry.PoolSeeds.SequenceEqual(layout.NavigationSeeds),
+        "a surveyed layout proves the navigation network of its own seed pool, never Factory's");
+    Need(ArenaPickupGeometry.Placements.Count == slots.Length
+        && ArenaPickupGeometry.Placements.All(p => Same(p.Anchor, ArenaPickupGeometry.PoolAnchor) && p.AllowNearby),
+        "surveyed placement uses the pool anchor and keeps the bounded 2 m relocation");
+    Need(slots.Select((s, i) => Same(ArenaPickupGeometry.Placements[i].Requested, s.Candidates[0])
+            && Same(DominationPointView.Created[i].Floor, s.Candidates[0]) && DominationPointView.Created[i].Id == s.Id).All(x => x),
+        "every slot takes its primary when the primary passes");
+    Need(DominationPointView.Created.All(v => v.ShowLetter && v.Radius == 4f), "vanilla surveyed maps show the world letter");
+    Need(NavMesh.Routes.Any(r => Same(r.From, slots[0].Candidates[0]) && Same(r.To, ArenaPickupGeometry.PoolAnchor))
+        && NavMesh.Routes.Any(r => Same(r.From, ArenaPickupGeometry.PoolAnchor) && Same(r.To, slots[0].Candidates[0])),
+        "a surveyed point needs complete routes both ways from the anchor");
+    string note = ArenaMode.Logger.Lines.Last();
+    Need(note.StartsWith("Domination points verified: " + slots[0].Id + "=") && !note.Contains("alternates used"),
+        "the verified line names no alternates while every slot used its primary");
+    int routes = NavMesh.Routes.Count;
+    bool teamProofThrew = false;
+    try { runtime.VerifyTeamPaths(); } catch (InvalidOperationException) { teamProofThrew = true; }
+    Need(!teamProofThrew && NavMesh.Routes.Count == routes, "a surveyed whole-map layout skips the team proofs like Factory");
+    Need(!runtime.AllowsPickup(slots[0].Candidates[0]) && runtime.AllowsPickup(V(5000, 0, 5000)), "surveyed points reserve their pickup clearance");
+    runtime.Dispose();
+
+    // Determinism: the same scene gives the same points.
+    var firstFloors = DominationPointView.Created.Select(v => v.Floor).ToArray();
+    Reset();
+    CreateSurveyed(map).Runtime.Prepare();
+    Need(DominationPointView.Created.Select(v => v.Floor).SequenceEqual(firstFloors), "surveyed placement is deterministic for one scene");
+}
+
+{
+    // Slot fallback, separation and abort, on The Lab (A, B, C; B has two alternates).
+    var lab = surveyedCases[0].Slots;
+    Vector3 bPrimary = lab[1].Candidates[0], bFirst = lab[1].Candidates[1], bSecond = lab[1].Candidates[2], aPrimary = lab[0].Candidates[0];
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (!Same(p, bPrimary), p);
+    var fallback = CreateSurveyed("laboratory").Runtime;
+    Need(Message(fallback.Prepare) == null && DominationPointView.Created.Count == 3,
+        "a refused primary falls to the first alternate and leaves the other slots alone");
+    Need(Same(DominationPointView.Created[1].Floor, bFirst) && Same(DominationPointView.Created[0].Floor, aPrimary)
+        && Same(DominationPointView.Created[2].Floor, lab[2].Candidates[0]),
+        "a refused primary falls to the first alternate and leaves the other slots alone");
+    Need(ArenaMode.Logger.Lines.Last().Contains("alternates used: B=#1") && !ArenaMode.Logger.Lines.Last().Contains("A=#"),
+        "the verified line names the alternate a slot used");
+    fallback.Dispose();
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (!Same(p, bPrimary) && !Same(p, bFirst), p);
+    Need(Message(CreateSurveyed("laboratory").Runtime.Prepare) == null && DominationPointView.Created.Count == 3,
+        "alternates are tried in their listed order");
+    Need(Same(DominationPointView.Created[1].Floor, bSecond) && ArenaMode.Logger.Lines.Last().Contains("alternates used: B=#2"),
+        "alternates are tried in their listed order");
+    Reset();
+    NavMesh.Route = (from, to) => (!(Same(from, bPrimary) || Same(to, bPrimary)), NavMeshPathStatus.PathComplete);
+    Need(Message(CreateSurveyed("laboratory").Runtime.Prepare) == null && DominationPointView.Created.Count == 3,
+        "a candidate without return path falls to the next alternate");
+    Need(Same(DominationPointView.Created[1].Floor, bFirst), "a candidate without return path falls to the next alternate");
+
+    // Separation: a candidate whose final floor lies closer than 15 m to an earlier slot is skipped.
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (true, Same(p, bPrimary) ? aPrimary + V(14.99f, 0, 0) : p);
+    Need(Message(CreateSurveyed("laboratory").Runtime.Prepare) == null && DominationPointView.Created.Count == 3,
+        "a surveyed slot never takes a candidate closer than 15 m to an earlier slot");
+    Need(Same(DominationPointView.Created[1].Floor, bFirst), "a surveyed slot never takes a candidate closer than 15 m to an earlier slot");
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (true, Same(p, bPrimary) ? aPrimary + V(15.01f, 0, 0) : p);
+    Need(Message(CreateSurveyed("laboratory").Runtime.Prepare) == null && DominationPointView.Created.Count == 3,
+        "a candidate 15 m or more from the earlier slots is accepted");
+    Need(Same(DominationPointView.Created[1].Floor, aPrimary + V(15.01f, 0, 0)), "a candidate 15 m or more from the earlier slots is accepted");
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (true, Same(p, bPrimary) ? aPrimary + V(0, 0, 14.99f) : p);
+    Need(Message(CreateSurveyed("laboratory").Runtime.Prepare) == null && DominationPointView.Created.Count == 3,
+        "separation is measured horizontally on the final floor in any direction");
+    Need(Same(DominationPointView.Created[1].Floor, bFirst), "separation is measured horizontally on the final floor in any direction");
+
+    // Abort: a slot without a passing candidate stops the match, naming the slot and the last refusal.
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (!(Same(p, bPrimary) || Same(p, bFirst) || Same(p, bSecond)), p);
+    var abortRuntime = CreateSurveyed("laboratory").Runtime;
+    string abort = Message(abortRuntime.Prepare);
+    Need(abort != null && abort.Contains("point B") && abort.Contains("test floor refused") && abort.Contains("3 candidate"),
+        "a slot without a passing candidate aborts the match and names the slot and the last refusal");
+    Need(DominationPointView.Created.Count == 0 && !abortRuntime.AllowsPickup(V(5000, 0, 5000)),
+        "an aborted surveyed layout leaves no partial markers or pickup authority");
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (true, Same(p, bPrimary) || Same(p, bFirst) || Same(p, bSecond) ? aPrimary + V(3, 0, 0) : p);
+    string tooClose = Message(CreateSurveyed("laboratory").Runtime.Prepare);
+    Need(tooClose != null && tooClose.Contains("point B") && tooClose.Contains("closer than 15 m to point A"),
+        "separation refusals abort the match like any other refusal");
+    Reset();
+    ArenaPickupGeometry.PoolOk = false;
+    string noNetwork = Message(CreateSurveyed("laboratory").Runtime.Prepare);
+    Need(noNetwork != null && noNetwork.Contains("laboratory") && noNetwork.Contains("test network refused")
+        && DominationPointView.Created.Count == 0 && ArenaPickupGeometry.Placements.Count == 0,
+        "an unverifiable network aborts before any placement");
+    // A single-slot layout aborts the same way.
+    Reset();
+    ArenaPickupGeometry.Place = (p, _) => (false, p);
+    string single = Message(CreateSurveyed("labyrinth").Runtime.Prepare);
+    Need(single != null && single.Contains("point X") && single.Contains("3 candidate") && DominationPointView.Created.Count == 0,
+        "The Labyrinth's only point aborts when none of its three candidates passes");
+}
+
+{
+    // The team-start proof inside a bounded area, on a synthetic layout and area (stage 3 brings the real rows).
+    var synthetic = new DominationMapLayout(new[] { V(20, 0, 20) },
+        new DominationMapLayout.Point("A", V(0, 0, 0), V(0, 0, 5)), new DominationMapLayout.Point("B", V(40, 0, 0)));
+    var usecStarts = new[] { V(-50, 0, 0), V(-60, 0, 0) }; var bearStarts = new[] { V(90, 0, 0), V(95, 0, 5) };
+    DominationRuntime SyntheticArea(string areaId = "synthetic-area")
+    {
+        Reset();
+        ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = "synthetic-area" };
+        ArenaAreaRuntime.Starts = usec => usec ? usecStarts : bearStarts;
+        var runtime = new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: 2),
+            new GameWorld { LocationId = "synthetic-map" }, areaId, synthetic);
+        runtime.Prepare();
+        return runtime;
+    }
+    bool Near(Vector3 a, Vector3 b) => Same(a, b);
+    var proved = SyntheticArea();
+    Need(DominationPointView.Created.Count == 2 && ArenaPickupGeometry.PoolSeeds.Count == 4,
+        "a surveyed layout prepares inside a bounded area from its own pool");
+    NavMesh.Routes.Clear();
+    proved.VerifyTeamPaths();
+    foreach (var start in new[] { usecStarts[0], bearStarts[0] })
+    foreach (var point in new[] { V(0, 0, 0), V(40, 0, 0) })
+        Need(NavMesh.Routes.Any(r => Near(r.From, start) && Near(r.To, point)) && NavMesh.Routes.Any(r => Near(r.From, point) && Near(r.To, start)),
+            "the area team-start proof covers both factions and every point in both directions");
+    int proofRoutes = NavMesh.Routes.Count;
+    proved.VerifyTeamPaths();
+    Need(NavMesh.Routes.Count == proofRoutes, "a passed area team-start proof is frozen");
+
+    var oneConnected = SyntheticArea();
+    NavMesh.Route = (from, to) => (!(Near(from, usecStarts[0]) || Near(to, usecStarts[0])), NavMeshPathStatus.PathComplete);
+    string leftover = Message(oneConnected.VerifyTeamPaths);
+    Need(leftover == null, "one connected start per faction is enough, a second start may be cut off");
+
+    var cutOff = SyntheticArea();
+    NavMesh.Route = (from, to) => (!(bearStarts.Any(b => Near(from, b) || Near(to, b)) && (Near(from, V(40, 0, 0)) || Near(to, V(40, 0, 0)))),
+        NavMeshPathStatus.PathComplete);
+    string cut = Message(cutOff.VerifyTeamPaths);
+    Need(cut != null && cut.Contains("point B") && cut.Contains("BEAR"),
+        "an area point cut off from every start of a faction aborts the match naming the point and the faction");
+    NavMesh.Route = (_, _) => (true, NavMeshPathStatus.PathComplete);
+    Need(Message(cutOff.VerifyTeamPaths) == null && NavMesh.Routes.Count > 0, "a failed area team-start proof is not cached and passes once the routes reconnect");
+
+    var noStarts = SyntheticArea();
+    ArenaAreaRuntime.Starts = usec => usec ? Array.Empty<Vector3>() : bearStarts;
+    string none = Message(noStarts.VerifyTeamPaths);
+    Need(none != null && none.Contains("USEC"), "a faction without verified starts cannot pass the area proof");
+
+    SyntheticArea();
+    var sameLayoutOtherArea = new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: 2),
+        new GameWorld { LocationId = "synthetic-map" }, "synthetic-area", synthetic);
+    ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = "another-area" };
+    Need(Message(sameLayoutOtherArea.Prepare) != null, "a layout resolved for one area cannot be prepared in another");
+    Need(Message(() => new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: 2),
+        new GameWorld { LocationId = "laboratory" })) != null, "a map layout cannot be resolved for an unlisted bounded area");
+}
+
 Console.WriteLine($"DOMINATION_RUNTIME_CHECKS_PASSED ({checks} assertions)");

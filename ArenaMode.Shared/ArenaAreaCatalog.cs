@@ -646,21 +646,25 @@ public static class ArenaAreaCatalog
         area = null;
         reason = null;
         id = NormalizeId(id);
-        // Only Factory and the six imported maps have reviewed objective
-        // layouts. Keep this list explicit: a future port is not automatically
-        // admitted. Enforce it at arm/ack/start as well as in the menu.
+        // Only Factory, the six imported maps and the two whole vanilla maps The Lab and The
+        // Labyrinth have reviewed objective layouts (docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md).
+        // Keep this list explicit: a future port is not automatically admitted. Whole Customs stays
+        // refused: it is no Arena map and this block returns before the Customs rule below, so it
+        // must never be added to the list. Enforce it at arm/ack/start as well as in the menu.
         if (string.Equals(mode, ArenaPopulationPolicy.Domination, StringComparison.OrdinalIgnoreCase))
         {
             if (pitFireTeam || id != FullMapId
                 || (!string.Equals(map, ArenaMapCatalog.FactoryDayId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.FactoryNightId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.Bay5Id, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.EquatorId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.AirPitId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.BowlId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.IcebergId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)))
-            { reason = "Domination requires Factory or a supported Arena port, whole map, without PitFireTeam."; return false; }
+            { reason = "Domination is not available for this map or area, or with a PitFireTeam squad."; return false; }
             return true;
         }
         // Full maps share the generic native zone/point planner. Bay5 and
