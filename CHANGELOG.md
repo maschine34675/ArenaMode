@@ -20,8 +20,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   maps. The refusal text for maps and areas without Domination changed with the list.
   [Contract](docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md)
 - The KITS window's top-right button now reads **DONE** instead of BACK. Kit window buttons no longer flash
-  white when they are built (the buttons of the selected kit, the editor's buttons): they start on their
-  resting colour and keep the fade for hover, press and disabled.
+  white when they are built (the buttons of the selected kit, the editor's buttons, the kit cards and the Tactical
+  buy screen's NO PURCHASE button): each starts on the colour of its state at once, resting or disabled, and keeps
+  the fade only for later changes.
 - Domination: on the vanilla maps the point's letter is now readable from afar (constant apparent size, dark
   outline, a chip in the owner's colour behind it); on the ported maps, which already have the ring and the
   map markers, the world letter is no longer drawn.

@@ -648,7 +648,7 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
 - Factory **day/night** supports all six modes. Labs and Labyrinth support
   all six modes since 2026-11-13: Domination there has three points (Labs) and one point (Labyrinth),
   without PitFireTeam, and Tactical has no capture point on either.
-- Customs uses three refined polygon areas: **Factory Center, Factory Side,
+- Customs uses three refined polygon areas: **Industrial Center, Industrial Side,
   Customs Yard**. All six modes can select them (Domination since 2026-11-13, three points per area, without
   PitFireTeam); whole-map Customs and retired rectangular/test presets are not current menu choices.
 - Polygons have **no upper or lower height cap**. Physical boundaries keep the

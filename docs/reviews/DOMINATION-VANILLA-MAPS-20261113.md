@@ -123,7 +123,8 @@ map-generic and were not changed.
   and a match that cannot prove its network or a slot aborts instead of playing a smaller layout.
 - Bot behaviour on these maps (the 160 m route limit of the objective layer, doors, elevators and the three
   Lab levels, the maze) is unmeasured; the native run decides it.
-- The Labyrinth needs the third-party mod that unlocks it on the host.
+- The Labyrinth needs no third-party unlock mod: the client projects its menu fields (`ArenaLabyrinthAccess`)
+  and the server enables the raid clone (`ArenaLocationMutator`). EnableLabyrinth is optional (docs/FEATURES.md).
 - Customs: see stage 3 below.
 
 NATIVE: (lead fills in)

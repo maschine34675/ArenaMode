@@ -4,7 +4,8 @@ Die gemeinsame Auswahlprüfung gilt im Menü, beim Armieren, bei Wiederholung un
 in der Server-Vorbereitung. Historische pauschale Sperren sind entfernt; konkrete
 Grenzen der Spawn- und Arealverwaltung bleiben erhalten. Tabelle am 31.10.2026 um
 Bowl, Iceberg und Domination, am 12.11.2026 um Chop Shop ergänzt, am 13.11.2026 bei Tactical auf Equator, Iceberg
-und Chop Shop nach den neuen Botpunkten von ArenaMapPort (Stand 12.11.2026) neu entschieden; der übrige Text ist
+und Chop Shop nach den neuen Botpunkten von ArenaMapPort (Stand 12.11.2026) neu entschieden, am 13.11.2026 bei Domination um Labs,
+Labyrinth und die drei Customs-Areale erweitert; der übrige Text ist
 der Stand vom 17.10.2026, wo nicht anders vermerkt.
 
 | Karte | Deathmatch / Gun Game | Team DM | Domination | Tactical solo / PFT | Zombies solo / PFT |
