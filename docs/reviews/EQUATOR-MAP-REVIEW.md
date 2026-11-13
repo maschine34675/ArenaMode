@@ -1,5 +1,10 @@
 # Optional Equator map integration
 
+> **2026-11-13: superseded in part by [SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md).**
+> Tactical (solo and PitFireTeam) is admitted on Equator since ArenaMapPort's rows of 2026-11-12 (16 Bot rows,
+> 9 beyond 25 m from the atrium); Team DM, Domination and solo Zombies were added earlier, PitFireTeam
+> Zombies stays refused. The contract below is the state of 2026-09-20.
+
 Date: 2026-09-20. Base: `649a773`; branch: `feature/equator-map-integration`.
 
 ## Contract

@@ -1,5 +1,11 @@
 # Iceberg Arena integration
 
+> **2026-11-13: superseded in part by [SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md).**
+> ArenaMapPort's rows of 2026-11-12 (17 Bot rows instead of 9) lifted decision 1: Tactical is admitted on
+> Iceberg, solo and with a PitFireTeam squad, and the picker hint is empty. Both exits stand inside the pockets
+> since that build, so "booth exits ... beyond the gates" no longer holds. The text below is the state of
+> 2026-10-31.
+
 Date: 2026-10-31, branch `feature/iceberg` from `master` `54c464a1`. This adds
 `arena_iceberg` as an optional ArenaMapPort location the way Bowl was added in
 October ([admission](BOWL-INTEGRATION-20261023.md), [team boxes](BOWL-TEAM-BOXES-20261023.md),

@@ -1,5 +1,11 @@
 # Chop Shop Arena integration
 
+> **2026-11-13: superseded in part by [SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md).**
+> ArenaMapPort's rows of 2026-11-12 (16 Bot rows instead of 7) changed decision 1 (solo Tactical is admitted,
+> PitFireTeam Tactical stays refused, with a new reason text) and decision 3 (default eight instead of six),
+> and closed both known limits (Domination 6 of 6 pickups, no dead patch in the yard centre). The exits stand
+> inside the pockets, so "No booth exits" no longer holds. The text below is the state of 2026-11-12.
+
 Date: 2026-11-12, branch `feature/chop-shop` from `master` `39c5e5d3`. This adds
 `arena_autoservice` (Arena's own name: **Chop Shop**) as an optional ArenaMapPort location the
 way Iceberg was added on 31 October ([contract](ICEBERG-INTEGRATION-20261031.md)), after Bowl

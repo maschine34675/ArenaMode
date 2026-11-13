@@ -177,6 +177,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   config value the test runs changed is back at its previous value. Previous files:
   `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
+  INSTALLED-STATE: (lead fills in)
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
@@ -205,11 +206,9 @@ watchdog 15 s, Zombies failed-dispatch backoff of 2 s, a general Zombies change;
 `ZombieWavePendingChecks` follows it) are done. **The native cycle ran on GPU-2 on 2026-11-12** (menu,
 Deathmatch with the default of six, Team DM 4v4 and 10v10 with held gates, Domination, solo Zombies, an
 ordinary PMC control; 0 errors; two builds, `d843e4c2` and `0f14cdb9`); its five gpu-run scenarios are in
-`tools/ChopShopChecks/scenarios/`. Open: (1) the two known limits, as possible ArenaMapPort data
-follow-ups (more Bot/BotPmc rows would remove both; ArenaMode does not edit that data): Domination places
-5 of 6 pickups (core-01 and core-02 lie inside the 6 m objective clearance, Health is left out), and about
-4 % of the yard centre has no Bot row beyond the 25 m floor (Zombies back off, Deathmatch and Gun Game
-drip more slowly there); (2) not run: PFT on this map (both modes refused), Gun Game, a match played to its
+`tools/ChopShopChecks/scenarios/`. Open: (1) **both known limits are closed** (2026-11-13): ArenaMapPort's
+16 Bot rows of 2026-11-12 removed them (Domination placed 6 of 6 and solo Zombies from the yard centre
+filled 32 of 32 on GPU-2; see the follow-up entry below); (2) not run: PFT on this map (both modes refused), Gun Game, a match played to its
 result and reward, more than 6 participants in DM/Gun Game, crowd and monitors judged by a person,
 daytime, weather, long sessions, a DynamicMaps overlay (MapPort has none), the killcam (off in the test
 configuration) and the Fika fork; (3) the saved map list moved to **optional-map revision 6** (an Iceberg default gains Chop Shop
@@ -220,7 +219,28 @@ build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5
 0.5.0 has the same version string and no Chop Shop); (5) **no ArenaMode release may announce Chop Shop
 before an ArenaMapPort release ships it**: README and FORGE-DESCRIPTION stay free of it and the whitelist
 stays at 0.5.0 until then. After the end of one Arena raid, wait about 40 s before the next (PitFireTeam
-post-raid finalization); a start after 5 s was refused and hung the load.
+post-raid finalization); a start after 5 s was refused and hung the load. The "more than 6 participants"
+gap of (2) is smaller now (the default is eight, from sixteen rows) but still not run.
+
+**Spawn-rows follow-up, 2026-11-13, `feature/spawn-rows` (not pushed; from `master` `99260275`;
+[contract](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)):** ArenaMapPort's rows of 2026-11-12 (0.5.0+160523d:
+Bot rows Equator 16, Iceberg 17, Chop Shop 16, Bay5 16, Air Pit 20, Bowl 21; exits inside the pockets) are
+followed in `2a085839` (code and pins) and the document commit after it. Done: Tactical admitted on Equator
+and Iceberg (solo and PFT) and on Chop Shop solo; PFT Tactical stays refused on Chop Shop, with the
+yard-centre reason; Chop Shop defaults to eight; picker hints; every formation names its two exits
+(`BoothExits`, data only); pins on decisions (`ChopShopChecks` without id list, `MapModeAdmissionChecks` with
+the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that patch). Open: (1) the **native
+runs of the new build** (see the contract's `NATIVE:` line): Tactical solo and PFT on Equator and Iceberg,
+solo on Chop Shop, the capture point on those three maps, a PFT match on Chop Shop refused in the menu, a
+respawn onto an in-box formation point (Iceberg Bear house (9)); (2) ArenaMapPort has not released these
+rows: until it does, no ArenaMode release may announce Chop Shop or Tactical on Equator and Iceberg
+(README, FORGE-DESCRIPTION and the whitelist untouched), and with the published 0.5.0 data Equator (10
+rows) and Iceberg (9) would admit a Tactical squad they cannot always place (no run-time row check exists;
+decide whether one is wanted before a release); (3) two hardening items filed separately: Arena arms even
+when `ArenaExtractionIsolation` failed to install (it should refuse), and bots leaving through SAIN's
+extraction depends on the SAIN preset (no Arena-side guard); (4) the 1.7 % of Chop Shop mesh cells with
+fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the green reruns of the
+three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract).
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as

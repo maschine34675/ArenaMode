@@ -241,6 +241,7 @@ Sorted by file name.
 - [Bounded solo population: reservation, capacity and Labyrinth bosses](reviews/SOLO-POPULATION-REVIEW.md)
 - [Solo Tactical opponent-start timing and lease contract](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md)
 - [Spawn-gate completion: MapPort GatesOpen contract and verification status](reviews/SPAWN-GATE-COMPLETION-20261024.md)
+- [Spawn rows follow-up: Tactical on Equator, Iceberg and solo Chop Shop, Chop Shop default of eight, pocket exits, pins on decisions](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)
 - [Slow walking during surgical treatment and leg splinting](reviews/SURGICAL-WALK-REVIEW.md)
 - [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
 - [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)

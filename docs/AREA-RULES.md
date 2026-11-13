@@ -500,7 +500,10 @@ PMC lives), the door reset at the round start (`Modes/ArenaRoundDoorReset.cs`) a
 rewards while the point is on (client rule and both server admissions). Round-end order:
 elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIVE-20261108.md
 before changing that order, the bridge contract, the lease teardown at every round end or the
-reward rule.
+reward rule. The point applies wherever Tactical is admitted and the map has a Domination layout: besides
+Factory, Bay 5, Air Pit and Bowl, on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
+since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor;
+not run natively on those three maps.
 
 Zombies offers solo or a protected one-to-four-companion PFT squad, with endless waves of EFT's own infected reactivated for exactly
 one armed raid, with Arena's own wave director replacing the native crowd
@@ -620,27 +623,37 @@ Playtest: solo Tactical, RandomKit on, survive round 1 without buying; round 2 m
 
 ## Maps and areas
 
-Equator remains unavailable for Tactical and is also excluded from PFT Zombies
-because the five-person squad obstructs itself; solo Zombies stays supported.
-Iceberg is unavailable for Tactical, solo and PFT, for Equator's other reason: from
-about 48 m² of its centre only four of its nine bot markers lie beyond the 25 m
-floor. Solo and PFT Zombies stay supported. The block sits in the shared resolver
-next to Equator's; do not remove it to claim the map fully accepted. Iceberg needs an
-ArenaMapPort build that ships it (the unreleased feature/iceberg, 0.4.0+32fda33);
-detect it by the live location, never by the MapPort version. See
-docs/reviews/ICEBERG-INTEGRATION-20261031.md.
-Chop Shop (arena_autoservice, MapPort's id; Arena's name) is unavailable for Tactical, solo and PFT:
-it has seven Bot/BotPmc rows and none lies beyond the 25 m floor from the yard centre. PFT Zombies is
-excluded too (Equator's compactness rule: 1,915.6 m2 main walkable component, 1-2.4 m corridors at
-the gate mouths); solo Zombies stays. Both blocks sit in the shared resolver next to Equator's and
-Iceberg's; do not remove them to claim the map fully accepted. It needs an ArenaMapPort build that
-ships it (the unreleased feature/autoservice, 0.5.0+b7876d3, whose version string the published 0.5.0
-shares); detect it by the live location, never by the MapPort version. See
-docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md.
+Tactical admissions on the ported maps (2026-11-13, installed ArenaMapPort 0.5.0+160523d; contract
+docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md): **Equator and Iceberg admit Tactical, solo and with a
+PitFireTeam squad**: their refusals rested on the number of Bot/BotPmc rows beyond the 25 m floor, and
+MapPort's rows of 2026-11-12 gave Equator 16 rows (9 beyond 25 m from the atrium, at least 6 on every
+cell of its mesh) and Iceberg 17 (at least 9 on the old centre rectangle, 10 on the mesh). **Chop Shop
+(arena_autoservice, MapPort's id; Arena's name) admits solo Tactical and refuses it with a PitFireTeam
+squad.** It has 16 rows: 11 to 13 from each Player row, 5 from the yard centre, but 3 around
+(-375, 487) and 98.3 % of its mesh cells with five or more. Solo never needs exactly five
+(`RequestSoloSquad` passes no `requireExactCount`, `SoloTacticalSpawnPolicy` starts a partial squad after
+45 s, a solo survivor is moved to a Player row at the round break); a PitFireTeam leader stays where he
+stands and `RequestTeamEnemies` demands exactly five, so a shortfall ends the match as no contest. The
+solo/PFT difference sits in `ArenaAreaCatalog.TryResolve`; when MapPort closes the yard-centre patch the
+installed-data pin CHOPSHOP-YARD-CENTER in `MapModeAdmissionChecks` fails and the PFT rule is to be
+re-decided, not the number re-pinned. PFT Zombies stays refused on Equator and Chop Shop (space: Equator's
+compactness, Chop Shop's 1,915.6 m2 main walkable component with 1-2.4 m corridors at the gate mouths,
+not rows); solo Zombies stays supported. Picker hints (solo; PFT shows "PitFireTeam squad"): Equator
+"Limited space: no squad Zombies", Iceberg none, Chop Shop "Small map: no squad Tactical / Zombies". The
+rules sit in the shared resolver; do not remove the remaining refusals to claim a map fully accepted.
+Iceberg needs an ArenaMapPort build that ships it (the published 0.5.0 does; the 17 rows that lift
+Tactical need the unreleased 0.5.0+160523d or later); detect it by the live location, never by the
+MapPort version. See
+docs/reviews/ICEBERG-INTEGRATION-20261031.md. Chop Shop needs an ArenaMapPort build that ships it
+(the unreleased feature/autoservice; the rows above need 0.5.0+160523d or later, whose version string the
+published 0.5.0 shares); detect it by the live location, never by the MapPort version. See
+docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md (the 2026-11-12 state; its Tactical refusals, its two known
+limits and its default of six are superseded by the follow-up).
 Zombies: a failed infected dispatch reported with its time (`ZombieWavePolicy.ReportFailedDispatch(ref
 state, now)`) holds the wave's next attempt for `FailedDispatchBackoffSeconds` (2 s); the slot is still
-retried. Found on Chop Shop, where the yard centre has no Bot row beyond the 25 m floor (133 dropped
-requests in 30 s before, 18 in 36 s after); the contract is the section "Zombies: failed dispatch
+retried. Found on Chop Shop with the seven-row data of 2026-11-12, where the yard centre had no Bot row
+beyond the 25 m floor (133 dropped requests in 30 s before, 18 in 36 s after; the 16 rows of 2026-11-13
+give five there, so this no longer reproduces on Chop Shop, the backoff stays general); the contract is the section "Zombies: failed dispatch
 backoff" of docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md. Do not drop the time argument at the two
 `ZombieMode.Tick` call sites.
 Air Pit is an optional full map for all current modes, using its existing safe
@@ -684,9 +697,11 @@ Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerp
 
 *(handoff lines 1668-1671)*
 
-Equator Tactical remains deliberately blocked: five opponent points at the
-existing minimum distance are not available from every possible surviving
-player position. Do not remove that guard to claim the map fully accepted.
+Equator Tactical was deliberately blocked: five opponent points at the
+existing minimum distance were not available from every possible surviving
+player position. *Superseded 2026-11-13:* ArenaMapPort's rows of 2026-11-12 provide them (9 from the
+atrium, at least 6 anywhere), so Equator admits Tactical solo and with PitFireTeam; the 25 m floor
+itself stays (see "Maps and areas").
 
 *(handoff lines 1702-1704)*
 
@@ -732,8 +747,8 @@ migration is documented in docs/reviews/BOWL-INTEGRATION-20261023.md.
 
 **Iceberg team boxes** (the paragraph starts with the Iceberg map admission):
 
-Iceberg is optional in Gun Game, DM, Team DM, Domination and solo/PFT Zombies, not
-Tactical (default eight for DM/Gun Game/TDM). Independent TDM and Domination use its
+Iceberg is optional in all six modes, Tactical included since 2026-11-13, solo and PFT
+(default eight for DM/Gun Game/TDM). Independent TDM and Domination use its
 CheckPoint pockets, USEC west / BEAR east, with twenty private markers. The box
 interiors are not the authored SPAWN_BOUNDs, which reach past the closed gates:
 each world-aligned box ends .35 m short of its gate plane, the USEC box runs north to
@@ -743,12 +758,17 @@ pickup seed outside it. Gate opening has no Iceberg case (no legacy minimum, the
 ordinary ten-second watchdog): every build that ships Iceberg has GatesOpen. Donor
 and outside destination is the installed arena_iceberg-bot-core-01. Revision-5
 migration, the box derivation and the native-test boundary are in
-docs/reviews/ICEBERG-INTEGRATION-20261031.md.
+docs/reviews/ICEBERG-INTEGRATION-20261031.md. Its exits stand inside the pockets since ArenaMapPort's
+2026-11-12 build: West Gate (-38.79, 3.2, -85.6) in the USEC box, East Gate (90.88, 1.67, -86.34) in the
+BEAR box (the stage marker Bear house (9), also a start point, lies inside it); `BoothExits` names them
+("Iceberg West Gate", "Iceberg East Gate"), data only. The sentence of 2026-10-31 that both exits lie
+outside the gates is history.
 
 **Chop Shop team boxes** (the paragraph starts with the Chop Shop map admission):
 
-Chop Shop is optional in Gun Game, DM, Team DM, Domination and solo Zombies, not Tactical and not PFT
-Zombies (default six for DM/Gun Game/TDM/Domination). Independent TDM and Domination use its two
+Chop Shop is optional in Gun Game, DM, Team DM, Domination, solo Zombies and (since 2026-11-13) solo
+Tactical, not PitFireTeam Tactical and not PFT Zombies (default eight for DM/Gun Game/TDM/Domination;
+it was six while the map had seven Bot rows, it has sixteen now). Independent TDM and Domination use its two
 authored pockets, USEC east / BEAR west, with twenty private markers. The interiors are the
 authored world-aligned bounds inset .35 m, with the east face towards the big gate held at the leaf
 plus .35 m, and the height is cut to y -4.8 .. -1.0 for both pockets (GPU-2, 2026-11-12): the west
@@ -762,9 +782,14 @@ a second and the native run measured 5.00 s at drive scale 0.5 and 9.00 s at 1.0
 seconds would leave two polls after the 8.0 s drive). Donor and outside destination is the
 installed arena_autoservice-bot-core-03; anchors are Usec house (4) and (6). Revision-6 migration,
 the face derivation and the native cycle (GPU-2, 2026-11-12: Deathmatch, Team DM 4v4 and 10v10,
-Domination, solo Zombies, PMC control; known limits: Domination places 5 of 6 pickups, a dead patch in
-the yard centre) are in docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md and
-docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md.
+Domination, solo Zombies, PMC control) are in docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md and
+docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md. Its two known limits of that cycle (Domination placed 5
+of 6 pickups, a dead patch in the yard centre) came from the seven Bot rows and are gone with ArenaMapPort's
+16 rows of 2026-11-12 (native on GPU-2, 2026-11-13: Domination placed 6 of 6, solo Zombies filled 32 of 32
+from the yard centre); see docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md. The two exits stand inside the
+pockets since 2026-11-12: "Chop Shop East Gate" (-340.5, -3.6, 485.0) in the east (USEC) pocket, "Chop Shop
+West Gate" (-406.5, -3.7, 478.5) in the west one; the 2026-11-12 sentence that they lie outside the gate
+planes is history.
 
 Independent Equator, Bay5, AirPit, Bowl, Iceberg and Chop Shop Team DM use their original team boxes for initial
 placement and respawns (4–20 total participants). Equator is north USEC / south
@@ -782,6 +807,12 @@ historical preparation extraction deferral and cleanup.
 Since 2026-10-25, ArenaExtractionIsolation owns extraction blocking across every Arena mode/map;
 team-box opening must never replay deferred native extraction entries.
 Ordinary PMC/Scav extraction and manual Arena match exit remain native.
+Since ArenaMapPort's build of 2026-11-12 every port's two exits stand inside the team pockets (Equator's
+always did; Air Pit South Gate sits at the pocket mouth, 0.41 m outside); `Formation.BoothExits` names them
+for all six formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
+nothing reads the positions, and the flares only mark the pockets. A first spawn or a respawn can stand in an
+exit box (Iceberg's Bear house (9) does); that it never extracts is MapPort's observation in Team DM on Bowl
+and Iceberg, and a respawn onto such a point is not verified.
 See docs/reviews/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
 The completion contract is polled
 only after the owned release and while the exact game/world/arm/token still
@@ -842,7 +873,7 @@ Bot pickup objectives (BigBrain companion): before changing them read PICKUP-OBJ
 
 *(handoff lines 2914-2917)*
 
-Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4; Chop Shop 6; Bay5/AirPit/Bowl/Iceberg 8; Labs 16; Labyrinth 8; Factory and others 10.
+Participant totals (map screen minus/value/plus, including the player, stored per map and mode under BepInEx 'Map participants'): DM/GG 2-24. Independent Team DM uses even values, 4-24, or 4-20 on team-box maps (`ArenaParticipantPolicy.MaximumFor`); team-box TDM requires an explicit count. Defaults come from `ArenaParticipantPolicy.DefaultTotal`: Equator 4 (an older preset of 2026-09-21, not derived from rows); Bay5/AirPit/Bowl/Iceberg/Chop Shop 8 (Chop Shop was 6 until 2026-11-13); Labs 16; Labyrinth 8; Factory and others 10.
 
 *(handoff lines 2966-2969)*
 

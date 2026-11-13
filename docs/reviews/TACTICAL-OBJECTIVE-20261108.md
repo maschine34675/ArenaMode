@@ -1,5 +1,10 @@
 # Tactical objective package: capture point, opening lanes, round door reset (2026-11-08)
 
+> **2026-11-13: decision 5 superseded in part by [SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md).**
+> Equator and Iceberg no longer refuse Tactical, and Chop Shop admits it solo, so the point applies there too
+> (Equator X, Iceberg one of A/B/C per round, Chop Shop X); not run natively on those maps when this note was
+> written.
+
 Adopted from the fork survey ([report](../reports/2026-11/FORK-SURVEY-THATHEATHENJAY-20261108.md),
 recommendation 2: the fork's "TeamFight" rounds layer), re-implemented against our Tactical mode;
 no fork code was copied. This document is the contract; the implementation follows it; the
