@@ -258,4 +258,4 @@ foreach ($path in $productionPaths) {
     }
 }
 
-Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (twelve mutants rejected; evidence: $scratch)"
+Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (thirteen mutants rejected; evidence: $scratch)"
