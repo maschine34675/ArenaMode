@@ -36,11 +36,13 @@ namespace ArenaMode.SessionHelper
                 form.Controls.AddRange(new Control[] { label, combo, status, shortcut, cancel, start });
                 if (header != null)
                 {
-                    int height = (int)Math.Round((double)form.ClientSize.Width * header.Height / header.Width);
+                    // Keep the picker compact when using the square ArenaMode emblem.
+                    const int height = 176;
                     form.ClientSize = new Size(form.ClientSize.Width, form.ClientSize.Height + height);
                     foreach (Control control in form.Controls) control.Top += height;
                     form.Controls.Add(new PictureBox { Size = new Size(form.ClientSize.Width, height),
-                        Image = header, SizeMode = PictureBoxSizeMode.Zoom, TabStop = false });
+                        Image = header, SizeMode = PictureBoxSizeMode.Zoom,
+                        BackColor = Color.FromArgb(24, 29, 28), TabStop = false });
                 }
                 form.AcceptButton = start; form.CancelButton = cancel;
                 form.FormClosing += (_, e) => { if (busy) e.Cancel = true; };
@@ -71,7 +73,7 @@ namespace ArenaMode.SessionHelper
             // Keep the existing picker and status usable even when GDI cannot decode the artwork.
             try
             {
-                using (var stream = typeof(HelperStartWindow).Assembly.GetManifestResourceStream("ArenaMode.SessionMenu.splash.jpg"))
+                using (var stream = typeof(HelperStartWindow).Assembly.GetManifestResourceStream("ArenaMode.Launcher.thumbnail.png"))
                 using (var image = Image.FromStream(stream))
                     return new Bitmap(image);
             }

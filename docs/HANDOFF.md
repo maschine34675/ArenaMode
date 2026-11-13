@@ -37,6 +37,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   The four-mod adapter/admission source is unchanged from the native candidate.
   Nothing has been pushed or released by this task.
 
+- **Development, 2026-11-13.** The desktop launcher's compact header uses `assets/thumbnail.png`. The tested helper was installed in `D:\SPT41`, MVID `502ed9c7-b444-4216-a514-f8264910823e`, SHA-256 `565DBC83838AFEC5DACC164B56E90A41DD4EBDB49C487533CCDD1172E460DA30`. The production picker rendered with a fixture profile at its base size and after a 1.5 scale, then closed through Cancel. The suite passed 3,890 tests with three expected skips, the artwork check passed, and the .NET Framework helper passed ten checks and rejected six mutants. Rendered views and the install manifest are under `artifacts/launcher-thumbnail-20261113/`. Previous helper in `D:\SPT41-Backups\launcher-thumbnail\20261113-100558-803`.
+
 - **Development, 2026-11-11, `master` `4b1e61be` (not pushed), client DLL installed:** the kit screen's
   detail pane keeps its kit while the pointer crosses other cards on the way to COPY TO MY KITS, EDIT or
   DELETE ([contract](reviews/KIT-PICKER-20261110.md), "Hover"; [native run](reports/2026-11/GPU-KIT-HOVER-20261111.md)).

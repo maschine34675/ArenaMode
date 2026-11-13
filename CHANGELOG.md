@@ -54,6 +54,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - With SAIN's bot extraction switched on in its preset (off by default), Arena bots no longer leave
   a match through a map exit; ordinary raids keep SAIN's setting.
   [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
+- The direct-start launcher's compact header shows the ArenaMode emblem.
 - Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
   Domination and solo Zombies, **without PitFireTeam Zombies** (a very small walkable area; Tactical
   followed on 2026-11-13, see above). Team DM and Domination use the map's original pockets, USEC east /
@@ -114,8 +115,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - The private Arena home menu hides the orange beta notice. During a confirmed
   Arena raid the HUD hides the lower-left version line, including when playing
   Arena directly from a normal SPT process.
-- The private Arena session shows a sunlit indoor training course from the
-  desktop profile picker through EFT startup and profile loading. In the home
+- The private Arena session shows a sunlit indoor training course during
+  EFT startup and profile loading. In the home
   menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
 
 - Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen

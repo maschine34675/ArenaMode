@@ -760,7 +760,7 @@ Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 - Session.exe can start Arena directly, with profile selection, remembered choice
   and a desktop shortcut. Local normal SPT prepares/saves the profile before the
   private session starts; no normal EFT launch is required.
-- The desktop picker, private EFT startup and profile-loading screen show the
+- The desktop picker shows the ArenaMode emblem. Private EFT startup and profile loading show the
   sunlit training course. Its foreground shifts with the mouse in the private
   home menu. [Session artwork](reviews/SESSION-MENU-ART-20261109.md)
 - The private home menu hides its beta banner. Arena raids hide the SPT

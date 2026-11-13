@@ -1,6 +1,6 @@
 # Private session menu and startup artwork
 
-The desktop picker, private EFT startup and profile-loading view show the selected *Streiflicht* training course. Sun from the left windows crosses the plywood lanes. At home, the concrete barrier and nearby foreground shift against the far targets, by up to five and twelve pixels per axis at 1080p. The parallax settles at rest and the native controls stay in place.
+The desktop picker shows the ArenaMode thumbnail. Private EFT startup and profile loading show the selected *Streiflicht* training course. Sun from the left windows crosses the plywood lanes. At home, the concrete barrier and nearby foreground shift against the far targets, by up to five and twelve pixels per axis at 1080p. The parallax settles at rest and the native controls stay in place.
 
 ## Where it appears
 
@@ -9,7 +9,7 @@ The desktop picker, private EFT startup and profile-loading view show the select
 - EFT loads the menu environment before it closes the boot panel. A passive canvas on that environment displays the flat course above its scenery at sorting order −1. Login, profile status, home controls and preloader windows draw above it. The boot panel and loading canvas each hold a reference to the same texture, so closing either keeps it available to the other.
 - Native screen-change events identify profile loading, the home controller and other destinations. The loading canvas stays behind the home fade until that controller's parallax layers are visible and its canvas is opaque. Other destinations and raid start release it. The return-to-menu operation covers the interval while EFT rebuilds its menu screens.
 - In EFT the home, pause and reconnect menus share a `MenuScreen`. Only `MainMenuScreenController` receives parallax. Its first child holds three mouse-transparent images behind the controls. A soft gradient keeps the lower menu text legible. The native canvas sets the viewport and fade. Leaving the menu releases its layers.
-- In the direct-start picker the flat image sits above the existing controls. Its lifetime ends with the form.
+- In the direct-start picker the square thumbnail fits inside a 176-pixel-high dark header above the controls. Windows scales the form with display DPI. The complete emblem stays visible and its lifetime ends with the form.
 
 ## Beta notice and raid version line
 
@@ -21,6 +21,6 @@ The reference mod identified the two native controls. ArenaMode scopes their vis
 
 ## Assets and references
 
-The client embeds all four images. The helper embeds the same flat JPG that the user selected. All layers use a common 1680 × 720 canvas and a centered cover crop. Overscan covers the largest cursor offset. The package check also composites the three layers at rest and compares their colors with the selected flat artwork. [Artwork provenance](../../ArenaMode.Client/Assets/SessionMenu/SOURCE.md)
+The client embeds all four course images. Its layers use a common 1680 × 720 canvas and a centered cover crop. Overscan covers the largest cursor offset. The helper embeds `assets/thumbnail.png` directly. The package check verifies that resource against the thumbnail, composites the three client layers at rest and compares their colors with the selected flat artwork. [Artwork provenance](../../ArenaMode.Client/Assets/SessionMenu/SOURCE.md)
 
 The linked mods provided technical references for catching an already active startup panel and distinguishing the main menu controller. ArenaMode supplies its own artwork and code. [CLASSIFIED](https://github.com/JoelHauser/CLASSIFIED) · [WTT Menu Overhaul](https://github.com/emilanderss0n/SPT-Menu-Overhaul/)
