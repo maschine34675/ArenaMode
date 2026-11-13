@@ -69,9 +69,9 @@ function New-SourceCopy([string]$Name) {
     Get-ChildItem (Join-Path $repo 'ArenaMode.Session') -File | Where-Object { $_.Extension -in '.cs', '.csproj', '.manifest' } |
         ForEach-Object { Copy-Item $_.FullName $session }
     Get-ChildItem (Join-Path $repo 'ArenaMode.Shared\Session') -File -Filter '*.cs' | ForEach-Object { Copy-Item $_.FullName $shared }
-    $menuArt = Join-Path $root 'ArenaMode.Client/Assets/SessionMenu'
+    $menuArt = Join-Path $root 'assets'
     [IO.Directory]::CreateDirectory($menuArt) | Out-Null
-    Copy-Item -LiteralPath (Join-Path $repo 'ArenaMode.Client/Assets/SessionMenu/splash.jpg') -Destination $menuArt
+    Copy-Item -LiteralPath (Join-Path $repo 'assets/thumbnail.png') -Destination $menuArt
     return $root
 }
 

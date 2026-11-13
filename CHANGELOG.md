@@ -10,6 +10,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- The direct-start launcher's compact header shows the ArenaMode emblem.
+
 - Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
   Domination and solo Zombies, **without Tactical or PitFireTeam Zombies** (seven bot spawn points,
   none beyond the 25 m floor from the yard centre; a very small walkable area). Default is six
@@ -67,8 +69,8 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 - The private Arena home menu hides the orange beta notice. During a confirmed
   Arena raid the HUD hides the lower-left version line, including when playing
   Arena directly from a normal SPT process.
-- The private Arena session shows a sunlit indoor training course from the
-  desktop profile picker through EFT startup and profile loading. In the home
+- The private Arena session shows a sunlit indoor training course during
+  EFT startup and profile loading. In the home
   menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
 
 - Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen

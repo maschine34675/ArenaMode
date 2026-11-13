@@ -77,16 +77,15 @@ try {
                 }
             } finally { $bitmap.Dispose() }
         } finally { if ($stream) { $stream.Dispose() } }
-        if ($name -eq 'splash.jpg') {
-            $header = $helper.GetManifestResourceStream($resource)
-            try {
-                if (!$header -or [Convert]::ToHexString($sha.ComputeHash($header)) -cne $diskHash) { throw 'Direct-start image differs from EFT splash.' }
-            } finally { if ($header) { $header.Dispose() } }
-        }
     }
+    $header = $helper.GetManifestResourceStream('ArenaMode.Launcher.thumbnail.png')
+    try {
+        $thumbnailHash = (Get-FileHash -LiteralPath (Join-Path $repo 'assets/thumbnail.png')).Hash
+        if (!$header -or [Convert]::ToHexString($sha.ComputeHash($header)) -cne $thumbnailHash) { throw 'Direct-start image differs from the ArenaMode thumbnail.' }
+    } finally { if ($header) { $header.Dispose() } }
 } finally {
     if ($graphics) { $graphics.Dispose() }
     if ($composition) { $composition.Dispose() }
     $sha.Dispose()
 }
-Write-Output "SESSION_MENU_ART_PASSED $($size.Width)x$($size.Height), 4 client resources and matching helper splash"
+Write-Output "SESSION_MENU_ART_PASSED $($size.Width)x$($size.Height), 4 client resources and matching launcher thumbnail"

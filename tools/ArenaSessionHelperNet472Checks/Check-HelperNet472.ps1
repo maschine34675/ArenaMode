@@ -31,7 +31,7 @@ function Report([string]$Name, [bool]$Ok, [string]$Detail) {
 try {
     $picker = $assembly.GetType('ArenaMode.SessionHelper.HelperStartWindow', $true)
     $header = $picker.GetMethod('LoadHeader', $flags).Invoke($null, @())
-    try { Report 'direct-start-header-decodes' ($null -ne $header -and $header.Width -gt $header.Height) 'The .NET Framework picker can decode the embedded widescreen art.' }
+    try { Report 'direct-start-header-decodes' ($null -ne $header -and $header.Width -eq $header.Height -and $header.Width -gt 0) 'The .NET Framework picker can decode the embedded square thumbnail.' }
     finally { if ($header) { $header.Dispose() } }
 } catch { Report 'direct-start-header-decodes' $false $_.Exception.Message }
 
