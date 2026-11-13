@@ -199,6 +199,11 @@ foreach (string map in maps)
         Need(File.Exists(file), SpawnRowsData(map, "the file " + file + " is missing"));
     using var document = JsonDocument.Parse(File.ReadAllText(file));
     Need(document.RootElement.GetProperty("Id").GetString() == map, "DATA-ID: inspect the exact installed map");
+    // ArenaMapPort's tag v0.5.0 holds a stub arena_autoservice/base.json without any spawn rows; name the
+    // reason before the property access below turns it into a raw KeyNotFoundException.
+    if (minimumRows.ContainsKey(map))
+        Need(document.RootElement.TryGetProperty("SpawnPointParams", out var declared) && declared.GetArrayLength() > 0,
+            SpawnRowsData(map, "the file carries no spawn rows (a stub location)"));
     var markers = document.RootElement.GetProperty("SpawnPointParams").EnumerateArray().ToArray();
     Need(markers.All(row => !ArenaTeamBoxCatalog.Owns(row.GetProperty("Id").GetString())),
         "PRIVATE-CLONE-ONLY: installed shared locations contain no per-raid team-box markers");
@@ -244,6 +249,12 @@ foreach (string map in maps)
         .Select(rows => new BotZone { NameZone = rows.Key!, SpawnPoints = rows
             .Select(row => (ISpawnPoint)new Point(row.GetProperty("Id").GetString()!, Position(row))).ToArray() }).ToArray();
     ArenaBotSpawnFilter.CurrentMap = map;
+    // Before the squad pins: on older data one of them could fail first with a message that does not name the data.
+    if (minimumRows.TryGetValue(map, out int rowsNeeded))
+    {
+        int rows = zones.SelectMany(z => z.SpawnPoints).Select(point => point.Id).Distinct().Count();
+        Need(rows >= rowsNeeded, SpawnRowsData(map, "the file has " + rows + " distinct Bot/BotPmc rows, at least " + rowsNeeded + " are required"));
+    }
     var players = markers.Where(row => Category(row, "Player")
         && row.GetProperty("Sides").EnumerateArray().Any(s => s.GetString() is "All" or "Pmc" or "Usec" or "Bear")).ToArray();
     Need(players.Length > 0 && zones.Length > 0, "NATIVE-STARTS: real player and bot markers are required");
@@ -255,11 +266,6 @@ foreach (string map in maps)
         var points = BurstSpawnPointSelector.PickPoints(zone, p, 5, ref cursor, out _, out _, grouped: true);
         Need(points?.Count == 5, "OPENING-SQUAD: native entry has five distinct distant markers: " + map);
         Need(points.All(point => Vector3.Distance(point.Position, p) >= 25f), "DISTANCE: never reduce safety floor");
-    }
-    if (minimumRows.TryGetValue(map, out int rowsNeeded))
-    {
-        int rows = zones.SelectMany(z => z.SpawnPoints).Select(point => point.Id).Distinct().Count();
-        Need(rows >= rowsNeeded, SpawnRowsData(map, "the file has " + rows + " distinct Bot/BotPmc rows, at least " + rowsNeeded + " are required"));
     }
     string gridLine = "";
     if (minimumRows.ContainsKey(map))
@@ -273,17 +279,6 @@ foreach (string map in maps)
         else
             Need(gridMinimum >= 5, (map == ArenaMapCatalog.EquatorId ? "EQUATOR-GRID" : "ICEBERG-GRID") + ": the minimum over the bounding box is "
                 + gridMinimum + " near " + cellText + "; Tactical with a squad needs five distant rows from every cell");
-    }
-    // EXIT-NAMES: Formation.BoothExits is data without a reader, so only this pin notices a rename on MapPort's side.
-    if (map != ArenaMapCatalog.CustomsId)
-    {
-        var booth = ArenaTeamBoxCatalog.Find(map) ?? throw new InvalidOperationException("EXIT-NAMES: no team-box formation for " + map);
-        var installedExits = document.RootElement.GetProperty("exits").EnumerateArray()
-            .Select(exit => exit.GetProperty("Name").GetString()!).ToArray();
-        Need(installedExits.Length == 2 && booth.BoothExits.Count == 2
-            && new HashSet<string>(installedExits).SetEquals(booth.BoothExits),
-            "EXIT-NAMES: " + map + " BoothExits [" + string.Join(", ", booth.BoothExits) + "] must equal the installed exits ["
-            + string.Join(", ", installedExits) + "]");
     }
     // Installed-data evidence of the Tactical decisions, computed with the production selector (distinct
     // coordinates, 3-D distance, the unchanged 25 m floor). A MapPort data change that moves one of
@@ -317,6 +312,24 @@ foreach (string map in maps)
         Need(yard >= 1 && yard < 5, "CHOPSHOP-YARD-CENTER: the yard centre has " + yard + " distant rows; the PitFireTeam Tactical refusal rests on 1..4");
     }
     Console.WriteLine($"Installed {map}: {players.Length} player markers, {zones.Sum(z => z.SpawnPoints.Length)} bot markers; opening squad capacity verified." + gridLine);
+}
+
+// EXIT-NAMES: Formation.BoothExits is data without a reader, so only this pin notices a rename on MapPort's
+// side. It has its own loop over the six formations: Bowl has a formation and no row in the mode matrix above.
+foreach (string map in new[] { ArenaMapCatalog.EquatorId, ArenaMapCatalog.Bay5Id, ArenaMapCatalog.AirPitId,
+    ArenaMapCatalog.BowlId, ArenaMapCatalog.IcebergId, ArenaMapCatalog.AutoServiceId })
+{
+    string file = Path.Combine(sptRoot, "SPT_Runtime", "user", "mods", "ArenaMapPort", "db", map, "base.json");
+    Need(File.Exists(file), "EXIT-NAMES: the installed file " + file + " is missing; install an ArenaMapPort build that ships " + map);
+    using var document = JsonDocument.Parse(File.ReadAllText(file));
+    var booth = ArenaTeamBoxCatalog.Find(map) ?? throw new InvalidOperationException("EXIT-NAMES: no team-box formation for " + map);
+    string[] installedExits = document.RootElement.TryGetProperty("exits", out var exits)
+        ? exits.EnumerateArray().Select(exit => exit.GetProperty("Name").GetString()!).ToArray()
+        : Array.Empty<string>();
+    Need(installedExits.Length == 2 && booth.BoothExits.Count == 2
+        && new HashSet<string>(installedExits).SetEquals(booth.BoothExits),
+        "EXIT-NAMES: " + map + " BoothExits [" + string.Join(", ", booth.BoothExits) + "] must equal the installed exits ["
+        + string.Join(", ", installedExits) + "]");
 }
 
 Console.WriteLine($"MAP_MODE_ADMISSION_CHECKS_PASSED ({assertions} assertions)");

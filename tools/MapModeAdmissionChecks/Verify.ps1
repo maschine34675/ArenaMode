@@ -30,7 +30,9 @@ foreach ($fault in @(
     # falls below five. It is the first assertion to see it (the baseline's earlier pins hold at 30 m).
     @{ Name='SpawnFloor30m'; Box='Selector'; From='MinSpawnDistance = 25f'; To='MinSpawnDistance = 30f'; Failure='EQUATOR-GRID' },
     # A rename of an exit literal in the team-box catalogue no longer matches the installed exits.
-    @{ Name='RenamedExitLiteral'; Box='Box'; From='"Iceberg West Gate", "Iceberg East Gate"'; To='"Iceberg West Gate", "Iceberg East Portal"'; Failure='EXIT-NAMES' }
+    @{ Name='RenamedExitLiteral'; Box='Box'; From='"Iceberg West Gate", "Iceberg East Gate"'; To='"Iceberg West Gate", "Iceberg East Portal"'; Failure='EXIT-NAMES' },
+    # Bowl has a formation and no row in the mode matrix; its exits are compared by the pin's own loop.
+    @{ Name='RenamedBowlExitLiteral'; Box='Box'; From='"Bowl BTR Gate", "Bowl Army Gate"'; To='"Bowl BTR Gate", "Bowl Army Portal"'; Failure='EXIT-NAMES' }
 )) {
     $target = switch ($fault.Box) { 'Box' { @{ Text=$boxSource; Path=$boxPath; Property='ProductionTeamBoxCatalogSource' } }
         'Selector' { @{ Text=$selectorSource; Path=$selectorPath; Property='ProductionBurstSelectorSource' } }
@@ -53,4 +55,4 @@ foreach ($fault in @(
     Write-Output "Rejected compiled map admission fault: $($fault.Name)"
 }
 Write-Output "Evidence: $scratch"
-Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (14 compiled faults)'
+Write-Output 'MAP_MODE_ADMISSION_FAULTS_PASSED (15 compiled faults)'
