@@ -12,6 +12,52 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-13 evening: the pre-release polish is in `master`; installed is its second test
+  build, `master` itself was deliberately not deployed.** Five requests of the user before the release: the
+  kit window (BACK reads DONE, freshly built buttons no longer flash), the bot spawn shield in Domination
+  (it was armed without effect; same scope as Team Deathmatch, the six team-box maps), the point letter of
+  Domination (none on the ported maps, a bold near-white letter with a dark edge on a chip in the owner's
+  colour on the vanilla maps), and Domination on The Lab (three points), The Labyrinth (one point, `X`) and
+  in the three Customs areas (three points each, 2v2 to 5v5; whole Customs and PitFireTeam stay refused, and
+  Tactical gets no point on these venues). [Contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
+  [native runs](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md) on GPU-2.
+  `feature/pre-release-polish` (which had taken in `fix/customs-east-menu-missing-anchor`, `692d002b`) was
+  fast-forwarded into `master` and both branches were deleted; the head before this note is `3c4b66f5`, and
+  the primary checkout is on `master`. Nothing was pushed (`dev/master` is `0d871684`). The affected
+  verification set ran once on `2bc2eb8c`: xunit and 61 harness steps, 62 of 62 passed in 4,910 s;
+  `3c4b66f5` changes three documents and one mutant table, and `ArenaPickupViewChecks` ran again on it
+  (127 checks, 29 mutants rejected).
+  **Installed in `D:\SPT41` since 19:43** (mirrored to GPU-2 and loaded there, 16 of 16 identical; GPU-1 was
+  not checked): the test build of `a7965541`, client `0.5.0+a7965541`
+  (`5cafa874ab427396fdba1ecf57f16524854e55e117d05daed801bb63f190de5e`), BigBrainCompat `0.5.0+a7965541`
+  (`50364ec12f12b08d6de1a5d9941621b762dda9d489526481e1049c380eb7da02`), server `0.5.0+a7965541`
+  (`2e3894024dd25d393b76056166dc38b8d818b944aaaf6344aaa67eacadc6c989`). Session helper and Gate are still
+  the `c64846fb` files of the next entry, Core is `1.0.23+f092f98`. `a7965541` is an ancestor of `master`,
+  and no file under `ArenaMode.Client`, `ArenaMode.BigBrainCompat`, `ArenaMode.Server`, `ArenaMode.Shared`,
+  `ArenaMode.Gate` or `ArenaMode.Session` differs between it and `3c4b66f5` (`git diff --stat` is empty: the
+  later commits are harnesses, documents and the merge of a harness fix), so the installed binaries are
+  `master`'s sources under an earlier commit stamp. The entries below and the installed-state paragraph
+  further down describe earlier builds. Previous files (the `master` build `c64846fb`):
+  `D:\SPT41-Backups\prerelease-test\20261113-190307`.
+  **Why no normal deploying build of `master`:** since 20:31 of that day the sibling Redeploy `main` carries
+  Core 1.0.24 (`5d92602`, `0a4f242`, another session's work; `CoreVersion.props` reads 1.0.24). A normal
+  ArenaMode build rebuilds and installs the sibling Core and stamps the client against it, so it would have
+  put a Core into the installation on which no Arena raid has run. To install a `master`-stamped Arena build
+  before Core 1.0.24 is accepted, build with `tools/AirPitChecks/NoDeploy.targets` against a Redeploy
+  worktree at `f092f98` and copy client, BigBrainCompat and server (the procedure of the installed-state
+  paragraph). Two parallel sessions were a second reason not to touch the installation that evening: the
+  verification-speed work was running harness steps (a deploy fails their installed-file guard), and the
+  ArenaMapPort session's record of 21:22 says GPU-2's synchronized folder was paused.
+  ArenaMapPort changed under the installation after the native runs: they ran against `0.5.0+160523d`, and
+  at 21:15 the ArenaMapPort session installed its prepared `0.6.0+08369fc9` on the development machine.
+  Arena has not been started with it.
+  After the native runs the test profile differed from its copy in two timestamps (`Health/UpdateTime`,
+  `Hideout/sptUpdateLastRunTimestamp`), the other profiles and the 61 PitFireTeam files were byte-identical,
+  `com.maschine.ArenaMode.cfg` was restored byte-identically on the development machine and on GPU-2, the
+  game was closed and the GPU-2 server stopped. Evidence: ignored `artifacts/prerelease-20261113/`; the
+  ignored files of the removed worktree `ArenaMode-prerelease` are in
+  `artifacts/archived-worktrees/prerelease-20261113/`.
+
 - **Development, 2026-11-13 afternoon: every open branch collected into `master`, `master` deployed.**
   At the user's request every branch except `feature/fika-admission` was merged and deleted and every
   worktree except `D:\SPT41\Development\ArenaMode-fika-m1` was removed; the primary checkout
@@ -236,8 +282,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   config value the test runs changed is back at its previous value. Previous files:
   `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
-  **Since 2026-11-13 this paragraph no longer describes what is installed; since 14:49 of that day the
-  installed build is the `master` build named in the first entry of "Released and installed".** The spawn-row work installed its
+  **Since 2026-11-13 this paragraph no longer describes what is installed; the first entry of "Released and
+  installed" names the installed build (from 14:49 of that day the `master` build `c64846fb`, from 19:43
+  the test build `a7965541`).** The spawn-row work installed its
   test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
   `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
   working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
@@ -279,6 +326,21 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   and the reports that linked it keep only their summaries.
 
 ## Open work
+
+**Pre-release polish, 2026-11-13 (in `master`; [contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
+[native report](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)):** done and seen natively except for
+what the report lists as not run: a Domination match to its limit on the new venues, the other two Lab
+levels, the far area starts against the 160 m route limit of the objective layer, the first colour of
+NO PURCHASE on the Tactical buy screen and of unusable kit cards (both pinned offline only), and the
+material count over several raids. Left for the release decision: the root `README.md` and
+`docs/FORGE-DESCRIPTION.md` do not name the new Domination maps, and `assets/arena-whitelist.json` names
+ArenaMapPort 0.5.0 while the ArenaMapPort session has prepared 0.6.0. `master` has not been built against
+Core 1.0.24 (first entry of "Released and installed"). `gpu-run` could not start Domination in a Customs
+area during this work, so the runs drove the menu by single clicks; `../UiBridge` `06ab78b` of the same
+evening (another session) adds those plans and was not exercised here. The final offline pass of this work
+took 82 minutes for 62 steps, one after the other; `feature/verification-speed` (worktrees
+`ArenaMode-verifyspeed` and `ArenaMode-vw2` to `-vw5`, another session, plan first) measures a result
+cache, automatic selection and parallel steps.
 
 **Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (in `master` and on `dev/master` as
 `99260275`; the branch was deleted on 2026-11-13;
