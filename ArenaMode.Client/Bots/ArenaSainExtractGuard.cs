@@ -48,7 +48,8 @@ internal static class ArenaSainExtractGuard
                 null, new[] { component }, null);
             if (allowed?.ReturnType != typeof(bool))
                 throw new InvalidOperationException("SAIN extraction admission contract changed");
-            // Last, so a foreign postfix cannot reopen the exit for an Arena bot.
+            // Lowest priority: postfixes of a higher priority (Harmony's default included) run
+            // first and cannot reopen the exit; one at the same lowest priority is not ordered.
             Patches.Patch(allowed, postfix: new HarmonyMethod(typeof(ArenaSainExtractGuard)
                 .GetMethod(nameof(AfterAllowed), BindingFlags.NonPublic | BindingFlags.Static)) { priority = Priority.Last });
             _ready = true;

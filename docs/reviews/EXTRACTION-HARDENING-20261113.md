@@ -50,7 +50,9 @@ successful `Enable`; mutants `admission-ignores-hooks`, `failed-enable-claims-re
 and `tools/OptionalModAdmissionChecks` (reason propagated unchanged, adapters
 short-circuited, whitelist ahead, server behind; mutants `skip-extraction-isolation`,
 `extraction-isolation-ahead-of-whitelist`, `extraction-isolation-behind-server`).
-Both new checks were red before the change (admission never consulted the flag).
+Red first: OptionalModAdmissionChecks failed on the unchanged production chain (it never
+consulted the flag); ArenaExtractionChecks did not compile against the old source (no
+`AdmissionFailure`) and then failed against a bug model that ignores the flag.
 
 ## 2. No bot leaves an Arena raid through SAIN's extraction
 
@@ -77,7 +79,8 @@ during an armed Arena raid on the world's map or the exact active Arena raid. Ru
 
 - Every bot of that raid, PitFireTeam companions included: Arena ends by its match rules.
 - SAIN's own method still runs; its refusal stays a refusal; no preset or setting is written.
-- Priority last, so another mod's postfix cannot reopen the exit.
+- Lowest priority (`Priority.Last`), so postfixes of a higher priority, Harmony's default
+  included, run first and cannot reopen the exit; one at the same lowest priority is not ordered.
 - SAIN only asks while the toggle is on, so with the default preset the postfix never runs.
 - Normal raids, a stale `IsActive`, another map, or a missing world/game keep SAIN's answer.
 - Binding failures (version below 4.5.1, missing or changed method, Harmony failure) leave
@@ -88,8 +91,12 @@ Verification: `tools/SainExtractGuardChecks` (33 assertions with a stand-in asse
 SAIN's identity; mutants `guard-ignores-arena` (the unguarded behaviour, red),
 `stale-active-raid`, `map-not-checked`, `foreign-postfix-can-reopen`, `version-unchecked`)
 and its `Verify-Contracts.ps1`, which reads the installed `SAIN.dll` and fails if the
-admission method's shape, the layer's toggle/admission order, or the "only ExtractAction
-exits, only ExtractLayer selects it" facts change.
+admission method's shape (and that it writes no field), the toggle read preceding the
+admission call in `allowedToExtract`, or the "only ExtractAction exits, only ExtractLayer
+selects it" facts change. It pins call sites and IL order, not the `&&` short-circuit, and it
+skips with a message when no SAIN is installed, so a run elsewhere proves nothing about SAIN.
+Other mods' own extraction (Questing Bots, for instance) is outside it; the whitelist owns
+which of them load. SAIN's external `ForceExtract` request still passes `allowedToExtract`.
 
 **Not covered offline; what a native test needs.** On a spare installation (or with the
 preset backed up and restored byte-identically afterwards): set `SAIN_EXTRACT_TOGGLE` to

@@ -28,11 +28,13 @@ internal static class ArenaExtractionIsolation
     /// MarkArmed) all refuse Arena. Since 2026-11-13 the MapPort maps put an exit box at the team
     /// start positions; without these hooks a team-mode player would extract natively about 8 s
     /// after spawning, so a failed Enable must fail closed for Arena. The hooks themselves still
-    /// fail open (they return true), which keeps ordinary raids native.
+    /// fail open (they return true), which keeps ordinary raids native. The text names no cause
+    /// beyond the log: it also shows when initialization stopped before Enable, and it promises no
+    /// ordinary raid, which an Arena session does not offer.
     /// </summary>
     internal static string AdmissionFailure => _enabled ? null
-        : "Arena extraction blocking is unavailable, so a map exit could end the match. "
-          + "Check the BepInEx log and update ArenaMode; ordinary PMC/Scav raids remain available.";
+        : "Arena extraction blocking is not installed, so a map exit could end the match. "
+          + "Check the BepInEx log and update ArenaMode.";
 
     internal static void Enable()
     {

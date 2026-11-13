@@ -16,7 +16,7 @@ try {
     if ($allowed.Count -ne 1 -or !$allowed[0].IsPublic -or !$allowed[0].IsStatic -or
         $allowed[0].ReturnType.FullName -ne 'System.Boolean' -or $allowed[0].Parameters.Count -ne 1 -or
         $allowed[0].Parameters[0].ParameterType.FullName -ne 'SAIN.Components.BotComponent') { throw 'IsBotAllowedToExfil signature drift' }
-    # Side-effect free: no field writes and no calls besides profile reads.
+    # Side-effect free as far as this checks: no field writes.
     foreach ($instruction in $allowed[0].Body.Instructions) {
         if ($instruction.OpCode.Code -in @('Stfld', 'Stsfld')) { throw 'IsBotAllowedToExfil now writes state' }
     }
@@ -53,6 +53,18 @@ try {
 
     $askers = Sites 'SAIN.Components.BotController.BotExtractManager::IsBotAllowedToExfil'
     if ($askers -notcontains 'SAIN.Layers.ExtractLayer::allowedToExtract') { throw 'ExtractLayer no longer asks IsBotAllowedToExfil' }
+    # The toggle is read before the admission is asked, which is why the guard costs nothing while
+    # the toggle is off. This pins the IL order only, not the short-circuit itself.
+    $layer = $sain.MainModule.GetType('SAIN.Layers.ExtractLayer')
+    $gate = @($layer.Methods | Where-Object Name -eq 'allowedToExtract')
+    if ($gate.Count -ne 1) { throw 'ExtractLayer.allowedToExtract drift' }
+    $toggleAt = -1; $askAt = -1; $index = 0
+    foreach ($instruction in $gate[0].Body.Instructions) {
+        if ($toggleAt -lt 0 -and $instruction.Operand -is [Mono.Cecil.FieldReference] -and $instruction.Operand.Name -eq 'SAIN_EXTRACT_TOGGLE') { $toggleAt = $index }
+        if ($askAt -lt 0 -and $instruction.Operand -is [Mono.Cecil.MethodReference] -and $instruction.Operand.Name -eq 'IsBotAllowedToExfil') { $askAt = $index }
+        $index++
+    }
+    if ($toggleAt -lt 0 -or $askAt -lt 0 -or $toggleAt -gt $askAt) { throw 'allowedToExtract no longer reads the toggle before it asks IsBotAllowedToExfil' }
     if ((Sites 'toggle') -notcontains 'SAIN.Layers.ExtractLayer::allowedToExtract') { throw 'ExtractLayer no longer reads SAIN_EXTRACT_TOGGLE' }
     if ((Sites 'SAIN.Layers.ExtractLayer::allowedToExtract') -notcontains 'SAIN.Layers.ExtractLayer::IsActive') { throw 'ExtractLayer.IsActive no longer requires allowedToExtract' }
 

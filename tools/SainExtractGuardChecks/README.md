@@ -28,8 +28,9 @@ behaviour), `stale-active-raid`, `map-not-checked`, `foreign-postfix-can-reopen`
 `version-unchecked`.
 
 `Verify-Contracts.ps1` fails when the installed SAIN changes what the guard relies on: the
-admission method's shape and that it writes no state; `ExtractLayer.IsActive` requiring
-`allowedToExtract`, which reads the toggle and asks the admission method; every
+admission method's shape and that it writes no field; `ExtractLayer.IsActive` requiring
+`allowedToExtract`, which reads the toggle before it asks the admission method (IL order, not
+the short-circuit itself); every
 `OnItemTransferred`/`Proceed`/`RemoveFromMap`/`DoLeaveExternal` call in SAIN living in
 `ExtractAction`; and `ExtractLayer.GetNextAction` being its only selector. It skips with a
 message when no SAIN is installed under `-SptRoot`.
