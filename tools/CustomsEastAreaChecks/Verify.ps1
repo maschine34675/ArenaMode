@@ -38,7 +38,10 @@ try {
         @{ Name='vertex-drift'; Target='catalog'; Old='new ArenaAreaVertex(656.139343f, -45.62339f)'; New='new ArenaAreaVertex(657.139343f, -45.62339f)'; Marker='EXACT-GEOMETRY' },
         @{ Name='height-clamp'; Target='catalog'; Old="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: false)"; New="new ArenaAreaVertex(671.3696f, -48.25674f),`n        }, 0f, 12f, limitsHeight: true)"; Marker='UNLIMITED-HEIGHT' },
         @{ Name='mode-bypass'; Target='catalog'; Old='if (ArenaMapCatalog.RequiresModeFilteredView(map!)'; New='if (false && ArenaMapCatalog.RequiresModeFilteredView(map!)'; Marker='REJECT-MODES' },
-        @{ Name='menu-missing'; Target='state'; Old='        new(ArenaAreaCatalog.CustomsFactoryEastPolygonId, "Factory Side"),'; New=''; Marker='MENU-AREA' },
+        # Anchored on the stable catalogue ID, not on the menu label: the label was renamed once already
+        # (Factory Side -> Industrial Side, 0e1a3f75) and a label anchor silently went stale. Commenting out
+        # the head of the entry drops the whole line from the Candidates array, whatever its label says.
+        @{ Name='menu-missing'; Target='state'; Old='new(ArenaAreaCatalog.CustomsFactoryEastPolygonId,'; New='// new(ArenaAreaCatalog.CustomsFactoryEastPolygonId,'; Marker='MENU-AREA' },
         @{ Name='missing-native-start'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"00000000-0000-0000-0000-000000000001"'; Marker='START-BOT' },
         @{ Name='wrong-native-category'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"0327c5d1-cc7f-432f-92dc-f95fb4719f1b"'; Marker='START-BOT' },
         @{ Name='opposing-too-close'; Target='catalog'; Old='"4fa5e11e-daa0-4594-88ef-d43e87d19f94"'; New='"ae0c5e1d-71cc-44a2-86ae-4c45e224a1ff"'; Marker='START-OPPOSING' },
