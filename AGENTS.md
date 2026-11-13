@@ -142,7 +142,18 @@ harnesses that use `Invoke-Mutant` also insist on exactly one site).
 
 Inside a fix loop run only the affected harness; the whole suite and the whole mutant sets
 run once at the end of a pass, before the commit (`tools/Run-ArenaVerification.ps1`, which
-also hashes the live install before and after and fails any step that deployed). Several
+also hashes the live install before and after and fails any step that deployed). The runner
+keeps a result cache: a step (the suite included) whose inputs are unchanged since its last
+PASS is not run again, and its verdict reads `PASS <step> 0s cached: inputs unchanged since
+<time> (ran <n>s)`; a step that runs again names what changed (`ran: changed since last PASS:
+shared, externals (install|D:\SPT41|BepInEx\plugins)`). The inputs are the files of the
+checkout the step reaches, the installed game/BepInEx/SPT state, the sibling checkouts, the
+tool versions, the relevant environment and, for steps that call git, HEAD; only a PASS is
+kept, and only if the inputs did not move while the step ran. So a rerun after a docs-only
+commit or a reviewer's identical pass costs seconds. `-NoCache` runs everything; **a release
+gate runs with `-NoCache`**. The rules and their argued exceptions are in
+`tools/ArenaVerificationInputs.ps1` and docs/TRAPS.md ("Verification runner"); a change to
+them needs a case and a fault in `tools/VerificationRunnerChecks`. Several
 older wrappers run the whole suite themselves (`git grep -n 'dotnet test' tools`). When
 adding a test, check that it fails against the bug it claims to catch (the zone test below
 was verified that way: reintroduce the comma and three tests go red). The xunit tests exist

@@ -583,3 +583,37 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   checks; re-read source and installed versions rather than trusting old notes.
 
 *(handoff lines 5888-5892)*
+
+## Verification runner (2026-11-13)
+
+`tools/Run-ArenaVerification.ps1` keeps a result cache (`tools/ArenaVerificationInputs.ps1`, proved by
+`tools/VerificationRunnerChecks`). Its argued exceptions, each a place where a wrong rule would return a stale PASS:
+
+- **What a key leaves out.** Records under `docs/` (everything but `docs/licenses/`) that no reached file names by
+  a docs/ path, a unique file name or a quoted "docs" segment; harness folders the step does not reach (a bare
+  folder word reaches the whole folder, a folder plus a file path that file); loose `tools/*` entry scripts that
+  nothing reaches; ignored files (build output, or regenerated per run); path literals in production code and in
+  the xunit sources (test data); the runtime state mods write into their installed folders (logs, APBS
+  `wwwroot`, Redeploy's `data`, PitFireTeam teammate databases, SAIN `EditorDefaults.json`). The reviewed payload
+  scripts (`$ArenaPayloadLayoutFiles`) name the payload's docs folder, not records, and their enumerations walk
+  payloads. `docs/README.md` is a record although two files name it, because both mean the payload copy of the
+  root README (`$ArenaPayloadOnlyRecordNamers`); any other mention makes it an input again.
+- **A reached file that enumerates directories makes its step wide** (every folder and record in the key), about
+  50 of 220 folders. That is deliberate: an enumeration of the checkout cannot be told apart from one of an
+  installation. Paths with spaces are not recognised as external path literals.
+- **Changing these rules**: add a case to `tools/VerificationRunnerChecks/Verify.ps1` that changes the input and
+  expects a rerun, and a fault that removes the input and must fail that case.
+
+Traps met while building it:
+
+- **PowerShell passes `$null` to a .NET string parameter as `""`.** `[Environment]::SetEnvironmentVariable($k, $null)`
+  therefore leaves an EMPTY variable behind instead of deleting it, and a child process inherits it. Use
+  `Remove-Item Env:$k`; the environment fingerprint counts an empty variable as absent.
+- **The comma binds before `+`.** `'-p:' + $name + '=' + $copy, "-p:Other=x"` is `'-p:' + $name + '=' + ($copy, "-p:Other=x")`:
+  a single argument with both values joined by a space. Parenthesise the concatenation.
+- **A function's `Write-Output` is its return value.** A helper that prints a verdict and returns `$true` used as
+  `if (Helper)` swallows the verdict line; return the text and let the caller print it.
+- **Installed folders move during a test day.** Mods and the server write logs and state into their own folders,
+  ArenaMapPort deploys assets several times a day, and Syncthing mirrors both from the GPU hosts. A key over whole
+  installed folders went stale every few minutes; the runtime-state pattern above is what was observed
+  (`Get-ChildItem -Recurse | Where LastWriteTime -gt ...`), and the verdict of a rerun names the installed part that moved.
