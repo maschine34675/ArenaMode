@@ -368,10 +368,14 @@ internal static class BurstSpawnService
                 Plugin.ModLogger.LogDebug($"Team Deathmatch placement request {requestId} ({role}): "
                     + FormattableString.Invariant($"fresh plan={Time.realtimeSinceStartup - placementStartedAt:F3}s."));
 
+            // The position the points were measured from: a squad planned against a spot the
+            // player has already left is what solo Tactical's dispatch order prevents
+            // (docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md), and only this line shows it natively.
             Plugin.ModLogger.LogDebug(
                 $"Arena burst spawn plan: zone {zone.NameZone}, requested {count}, profiles {profileCount}, "
                 + $"points {preferredAvailable} preferred + {distantAvailable} distant, "
-                + $"selected {points?.Count ?? 0}.");
+                + $"selected {points?.Count ?? 0}"
+                + (playerPosition.HasValue ? $" from the player at {playerPosition.Value}." : "."));
             if (points == null || points.Count == 0)
             {
                 Plugin.ModLogger.LogWarning($"Arena burst spawn: no usable spawn point for {role} — request dropped.");

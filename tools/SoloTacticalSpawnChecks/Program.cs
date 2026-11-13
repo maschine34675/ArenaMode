@@ -1,6 +1,6 @@
 using ArenaMode.Modes;
 
-internal static class Program
+internal static partial class Program
 {
     private static int _assertions;
 
@@ -13,9 +13,13 @@ internal static class Program
                                   ?? Path.Combine(root, "ArenaMode.Client", "Modes", "TacticalMode.cs");
             string burstPath = Argument(args, "--burst-source")
                                ?? Path.Combine(root, "ArenaMode.Client", "Bots", "BurstSpawnService.cs");
+            string sptRoot = Argument(args, "--spt-root") ?? @"D:\SPT41";
+            string tactical = File.ReadAllText(tacticalPath);
 
             CheckTimingPolicy();
-            CheckTacticalSource(File.ReadAllText(tacticalPath));
+            CheckDispatchGate();
+            CheckDispatchOrderOnInstalledRows(tactical, sptRoot);
+            CheckTacticalSource(tactical);
             CheckBurstSource(File.ReadAllText(burstPath));
             Console.WriteLine($"SOLO_TACTICAL_SPAWN_CHECKS_PASSED ({_assertions} assertions)");
             return 0;
@@ -63,6 +67,11 @@ internal static class Program
         int combatTimeout = tick.IndexOf("ran out of time", StringComparison.Ordinal);
         Assert(assemblyDecision >= 0 && combatTimeout > assemblyDecision,
             "opponent assembly is resolved before the combat round timer can score a loss");
+        string tickLf = tick.Replace("\r\n", "\n");
+        int held = tickLf.IndexOf("if (_squadDispatch.Waiting(RoundNumber))\n                return;", StringComparison.Ordinal);
+        Assert(held > tickLf.IndexOf("if (!_soloCombatReady)", StringComparison.Ordinal)
+               && held < tickLf.IndexOf("SoloTacticalSpawnPolicy.Evaluate(", StringComparison.Ordinal),
+            "the assembly check waits while the request is held for the body move, and asks the gate's cap every frame");
         RequireAll(tick,
             "if (!_soloCombatReady)",
             "bot.BotState == EBotState.Active",
@@ -104,6 +113,43 @@ internal static class Program
         RequireAll(start,
             "int roundNumber = RoundNumber",
             "_phase == Phase.Live && RoundNumber == roundNumber");
+
+        // Dispatch order (docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md): the round's request waits
+        // for the body move; its count, deadline and toast belong to the real request.
+        string startBody = MethodBody(source, "private void StartRound()");
+        int clearCount = startBody.IndexOf("_squadRequested = 0;", StringComparison.Ordinal);
+        int open = startBody.IndexOf(
+            "_squadDispatch.Open(roundNumber, landed => StartSoloBodyMove(roundNumber, wasDown, landed));",
+            StringComparison.Ordinal);
+        Assert(!startBody.Contains("RequestSoloSquad(", StringComparison.Ordinal)
+               && !startBody.Contains("ArenaToasts.Show(", StringComparison.Ordinal)
+               && clearCount >= 0 && open > clearCount,
+            "StartRound sends no request and no toast itself: it clears the old count and holds the new request for the body move");
+        Assert(source.Contains("_squadDispatch = new SoloTacticalSquadDispatch(() => Time.time, DispatchOpeningSquad);",
+                   StringComparison.Ordinal),
+            "the dispatch gate runs on the mode's clock and sends the mode's opening request");
+        string move = MethodBody(source, "private bool StartSoloBodyMove(");
+        int heldRespawn = move.IndexOf("return Respawn.ArenaRespawnDriver.IsRespawnInProgress;", StringComparison.Ordinal);
+        Assert(move.Contains("if (wasDown)", StringComparison.Ordinal)
+               && heldRespawn > move.IndexOf("if (wasDown)", StringComparison.Ordinal)
+               && Count(move, "LiveKitRespawn.AtRoundBreak(") == 1
+               && move.Contains("() => _phase == Phase.Live && RoundNumber == roundNumber,\n            landed);",
+                   StringComparison.Ordinal),
+            "the survivor's round-break swap reports its landing to the held request; a dead player's move is the held respawn");
+        string landedBody = MethodBody(source, "private void OnSoloLocalRespawn()");
+        Assert(landedBody.Contains("_squadDispatch.Report(RoundNumber, landed: true);", StringComparison.Ordinal)
+               && MethodBody(source, "public void OnLocalRespawn(Player player)")
+                   .Contains("OnSoloLocalRespawn();", StringComparison.Ordinal),
+            "the held respawn's landing releases the round's request");
+        string opening = MethodBody(source, "private void DispatchOpeningSquad(");
+        int openingGuard = opening.IndexOf("if (_teamArena || _phase != Phase.Live || round != RoundNumber)", StringComparison.Ordinal);
+        int openingRequest = opening.IndexOf("RequestSoloSquad(retry: false);", StringComparison.Ordinal);
+        int openingToast = opening.IndexOf("assembling {_squadRequested} opponents", StringComparison.Ordinal);
+        Assert(openingGuard >= 0 && openingRequest > openingGuard && openingToast > openingRequest,
+            "the released request goes out only into its own live round, and the assembling toast follows it");
+        Assert(MethodBody(source, "private void EndRound(bool won)").Contains("_squadDispatch.Cancel();", StringComparison.Ordinal)
+               && MethodBody(source, "public void OnMatchEnd()").Contains("_squadDispatch.Cancel();", StringComparison.Ordinal),
+            "a round or match that ends before the body lands releases nothing");
 
         string request = Slice(source, "private void RequestSoloSquad(bool retry)",
             "private static void RetireBot(");

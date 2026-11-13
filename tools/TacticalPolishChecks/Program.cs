@@ -17,8 +17,10 @@ static class Program
     static void Check(bool ok,string message){assertions++;if(!ok)throw new Exception(message);}
     static TacticalMode Fresh()
     {
-        Time.time=Time.unscaledTime=0;BurstSpawnService.Requests.Clear();BurstSpawnService.Reject=false;
-        LiveKitRespawn.Swaps=0;ArenaRespawnDriver.StandDown=false;Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning=false;
+        Time.time=Time.unscaledTime=0;BurstSpawnService.Requests.Clear();BurstSpawnService.Reject=BurstSpawnService.Throw=false;
+        LiveKitRespawn.Swaps=0;LiveKitRespawn.Hold=LiveKitRespawn.Refuse=false;LiveKitRespawn.Pending=null;
+        ArenaRespawnDriver.StandDown=ArenaRespawnDriver.IsRespawnInProgress=false;ArenaMode.ArenaToasts.Shown.Clear();
+        Redeploy.Core.Engine.RespawnEngineState.IsPipelineRunning=false;
         var player=new Player();var owner=new EftGamePlayerOwner{Player=player};
         var game=new LocalGame{LocalPlayer=player,Owner=owner};var world=new GameWorld{MainPlayer=player};
         Singleton<AbstractGame>.Instance=ArenaSession.Game=game;Singleton<GameWorld>.Instance=ArenaSession.World=world;
@@ -78,6 +80,57 @@ static class Program
         Check(mode.Cues.Count==0&&!pending.HealthController.IsAlive&&!BurstSpawnService.Requests[0].Lease(),"teardown rejects callbacks and cannot announce");
 
         mode=Fresh();mode.Prepare(team:true);mode.Tick(1);Check(mode.Cues.Count==0&&BurstSpawnService.Requests.Count==0,"solo polling does not drive protected team start");
+    }
+    // The round's squad request waits for the body move that puts the player where the round
+    // begins (docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md, "Dispatch order"); the positions
+    // themselves are simulated on the installed rows in SoloTacticalSpawnChecks.
+    static void Order()
+    {
+        bool Assembling()=>ArenaMode.ArenaToasts.Shown.Any(x=>x.Contains("assembling"));
+        var mode=Fresh();LiveKitRespawn.Hold=true;mode.Issue();mode.Start();
+        Check(BurstSpawnService.Requests.Count==0&&LiveKitRespawn.Swaps==1&&mode.SquadRequested==0&&!Assembling(),
+            "a survivor's squad is not requested, counted or announced before the round-break swap lands");
+        Time.time=1;mode.Tick(1);Check(BurstSpawnService.Requests.Count==0,"the assembly check waits for the held request instead of retrying it");
+        LiveKitRespawn.Pending(true);
+        Check(BurstSpawnService.Requests.Count==1&&BurstSpawnService.Requests[0].Expected==5&&mode.SquadRequested==5&&Assembling(),
+            "the swap's landing sends the request, its count and the assembling toast");
+        LiveKitRespawn.Pending(true);Check(BurstSpawnService.Requests.Count==1,"a second landing report sends nothing");
+        Time.time=45.9f;mode.Tick(44.9f);Check(BurstSpawnService.Requests.Count==1,"the 45-second assembly window counts from the real request, not from the round start");
+        Time.time=46;mode.Tick(.1f);Check(BurstSpawnService.Requests.Count==2,"an empty squad is retried 45 seconds after the real request");
+
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();Time.time=.5f;mode.Tick(.5f);LiveKitRespawn.Pending(false);
+        Check(BurstSpawnService.Requests.Count==1,"a swap that reports it did not land still sends the request");
+        mode=Fresh();LiveKitRespawn.Refuse=true;mode.Start();
+        Check(BurstSpawnService.Requests.Count==1&&LiveKitRespawn.Swaps==1&&Assembling(),"a refused round-break swap sends the request at once");
+
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();
+        Time.time=44.9f;mode.Tick(44.9f);Check(BurstSpawnService.Requests.Count==0,"a swap that never reports holds the request up to the cap");
+        Time.time=45;mode.Tick(.1f);Check(BurstSpawnService.Requests.Count==1,"the cap sends the request when the squad's own assembly window has passed");
+        LiveKitRespawn.Pending(true);Check(BurstSpawnService.Requests.Count==1,"a landing after the cap sends nothing more");
+
+        mode=Fresh();ArenaRespawnDriver.IsRespawnInProgress=true;mode.Prepare(down:true);mode.Start();
+        Check(BurstSpawnService.Requests.Count==0&&LiveKitRespawn.Swaps==0,"a dead player's squad waits for the held respawn, and no round-break swap runs");
+        Time.time=2;mode.Tick(2);Check(BurstSpawnService.Requests.Count==0,"the held respawn is waited for across frames");
+        ArenaRespawnDriver.IsRespawnInProgress=false;mode.RespawnLandedForTest();
+        Check(BurstSpawnService.Requests.Count==1&&Assembling(),"the held respawn's landing sends the request");
+        mode.RespawnLandedForTest();Check(BurstSpawnService.Requests.Count==1,"a later respawn event sends nothing more");
+        mode=Fresh();mode.Prepare(down:true);mode.Start();
+        Check(BurstSpawnService.Requests.Count==1,"a dead player whose respawn routine has already ended gets the request at once");
+
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();mode.LoseForTest();LiveKitRespawn.Pending(true);
+        Check(BurstSpawnService.Requests.Count==0,"a round that ended before its swap landed sends nothing");
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();mode.EndForTest();LiveKitRespawn.Pending(true);
+        Check(BurstSpawnService.Requests.Count==0,"a match that ended before the swap landed sends nothing");
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();var earlier=LiveKitRespawn.Pending;mode.LoseForTest();
+        mode.SurvivedForTest();mode.Start();var current=LiveKitRespawn.Pending;earlier(true);
+        Check(BurstSpawnService.Requests.Count==0,"a late landing from an earlier round sends nothing into the next one");
+        current(true);Check(BurstSpawnService.Requests.Count==1,"the current round's own landing sends its request");
+
+        // The releases arrive through callers that swallow exceptions; a request that threw is retried on purpose.
+        mode=Fresh();LiveKitRespawn.Hold=true;mode.Start();Time.time=1;BurstSpawnService.Throw=true;LiveKitRespawn.Pending(true);
+        BurstSpawnService.Throw=false;Check(BurstSpawnService.Requests.Count==0&&!Assembling(),"a request that threw announces nothing");
+        Time.time=3.9f;mode.Tick(2.9f);Check(BurstSpawnService.Requests.Count==0,"a request that threw is not retried every frame");
+        Time.time=4;mode.Tick(.1f);Check(BurstSpawnService.Requests.Count==1,"a request that threw is retried after the three-second plan-failure delay");
     }
     static void Kit()
     {
@@ -178,7 +231,7 @@ static class Program
     }
     public static int Main(string[] args)
     {
-        try{var part=args.FirstOrDefault()??"all";if(part is "all" or "cue")Cue();if(part is "all" or "kit")Kit();if(part is "all" or "escape")Escape();Console.WriteLine($"TACTICAL POLISH CHECKS PASSED ({assertions} assertions)");return 0;}
+        try{var part=args.FirstOrDefault()??"all";if(part is "all" or "cue")Cue();if(part is "all" or "order")Order();if(part is "all" or "kit")Kit();if(part is "all" or "escape")Escape();Console.WriteLine($"TACTICAL POLISH CHECKS PASSED ({assertions} assertions)");return 0;}
         catch(Exception ex){Console.Error.WriteLine($"TACTICAL POLISH CHECKS FAILED ({assertions} assertions): {ex.GetBaseException().Message}");return 1;}
     }
 }

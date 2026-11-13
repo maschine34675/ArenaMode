@@ -133,6 +133,17 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
     private int _squadRequested;
     private int _squadEpoch;
 
+    /// <summary>
+    /// Holds a solo round's opening squad request until the body move StartRound began has landed
+    /// (see <see cref="SoloTacticalSquadDispatch"/>); <see cref="DispatchOpeningSquad"/> sends it.
+    /// </summary>
+    private readonly SoloTacticalSquadDispatch _squadDispatch;
+
+    public TacticalMode()
+    {
+        _squadDispatch = new SoloTacticalSquadDispatch(() => Time.time, DispatchOpeningSquad);
+    }
+
     private KitDefinition _bought;
     private KitDefinition _starter;
     private bool _soloCombatReady;
@@ -430,6 +441,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _playerDown = false;
         _starter = _worn = null;
         _soloCombatReady = false;
+        _squadDispatch.Cancel();
         _roundStartPending = false;
         _teamEnemiesRequested = false;
         _teamStopRequested = false;
@@ -725,6 +737,12 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
 
         if (!_soloCombatReady)
         {
+            // The round's request still waits for the body move StartRound began: nothing has
+            // been asked for yet, so there is nothing to assemble, retry or time out. Waiting
+            // sends the request itself once its cap has run out.
+            if (_squadDispatch.Waiting(RoundNumber))
+                return;
+
             // An arrival callback can still describe a native PreActive body.
             // Resolve the round from physical Active opponents (or bodies the
             // player already killed while the remaining opponents assembled).
@@ -892,9 +910,19 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
             return;
         }
 
+        OnSoloLocalRespawn();
+    }
+
+    private void OnSoloLocalRespawn()
+    {
         // The hold is what ends a wait, not this — by the time the player is
         // standing again the next round has already started them off.
         _playerDown = false;
+
+        // A player who died last round comes back through the held respawn StartRound
+        // released, and this is where that body has landed: the round's squad request was
+        // waiting for it. A respawn after a death in the buy phase finds nothing held.
+        _squadDispatch.Report(RoundNumber, landed: true);
     }
 
     /// <summary>
@@ -955,6 +983,7 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         _squadEpoch++;
         _phase = Phase.Ended;
         _soloCombatReady = false;
+        _squadDispatch.Cancel();
         PitFireTeamRoundLifecycle.CancelFollowerSpawnLease("Tactical match ended");
         KitCatalog.KitProvider = null;
         ArenaSpectatorService.Stop("Tactical match ended");
@@ -2839,7 +2868,6 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // fight cue must not reset First Blood or revenge a second time.
         _match.BeginAwardRound();
         _phaseEndsAt = Time.time + Mathf.Max(30f, Settings.TacticalRoundSeconds.Value);
-        RequestSoloSquad(retry: false);
 
         // A player who SURVIVED the last round is standing there in last round's
         // gear; the round-break swap puts them in what they just bought. One who
@@ -2849,6 +2877,38 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // round can re-issue it.
         _worn = _bought ?? _worn;
 
+        int roundNumber = RoundNumber;
+        Plugin.ModLogger.LogDebug(
+            $"Tactical round {RoundNumber}: kit '{_bought?.Id}' for {price:N0}, {Money:N0} left; "
+            + $"the squad is requested once the {(wasDown ? "held respawn" : "round-break swap")} has landed.");
+
+        // The squad's points are picked from wherever the player stands when its
+        // profiles are ready, and with a warm pool that is inside the request itself.
+        // Requesting before the body move had landed planned the squad around the
+        // spot the player was leaving: on a compact map 10 to 15 m from the Player
+        // row they landed on. So the request waits for the move (SoloTacticalSquadDispatch);
+        // a move that is refused, reports failure or never reports still releases it,
+        // with the position the player then has. Nothing of the previous round's
+        // request is left for the assembly check or the HUD to read meanwhile: the
+        // count, the 45 s window and the "assembling" toast start at the real request
+        // (DispatchOpeningSquad).
+        _squadRequested = 0;
+        _squadDispatch.Open(roundNumber, landed => StartSoloBodyMove(roundNumber, wasDown, landed));
+    }
+
+    /// <summary>
+    /// Starts the move that puts the player where this round begins and returns whether it is
+    /// in flight; <paramref name="landed"/> reports how it ended (the round's squad request
+    /// waits for it).
+    /// </summary>
+    private bool StartSoloBodyMove(int roundNumber, bool wasDown, Action<bool> landed)
+    {
+        // A player who died last round: the held respawn StartRound just released moves them,
+        // and OnLocalRespawn reports where it landed. Nothing is in flight when that routine
+        // has already ended without a body.
+        if (wasDown)
+            return Respawn.ArenaRespawnDriver.IsRespawnInProgress;
+
         // Survivors are re-issued their kit too, not skipped. "Keeping your
         // gear" has to mean keeping the LOADOUT, not keeping the wounds and the
         // empty magazines it ended the round with — a round that starts with a
@@ -2856,21 +2916,58 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
         // the same kit is exactly a heal and a resupply, through the path that
         // is already tested for it, and it changes nothing about the gear
         // because it is the same kit definition.
-        int roundNumber = RoundNumber;
-        if (!wasDown
-            && Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game
-            && game.Status == GameStatus.Started)
+        if (!(Comfort.Common.Singleton<EFT.AbstractGame>.Instance is LocalGame game)
+            || game.Status != GameStatus.Started)
+            return false;
+
+        return Respawn.LiveKitRespawn.AtRoundBreak(
+            game,
+            Settings.SpawnProtectionSeconds.Value,
+            () => _phase == Phase.Live && RoundNumber == roundNumber,
+            landed);
+    }
+
+    /// <summary>
+    /// Sends the round's opening squad request once <see cref="SoloTacticalSquadDispatch"/>
+    /// releases it: the body move landed, reported failure, was never in flight, or outlived the
+    /// cap. Only then does the request publish its count and its assembly deadline
+    /// (<see cref="RequestSoloSquad"/>) and the player hear that opponents are assembling.
+    /// </summary>
+    private void DispatchOpeningSquad(int round, SoloTacticalSquadRelease release, float heldSeconds)
+    {
+        if (_teamArena || _phase != Phase.Live || round != RoundNumber)
+            return;
+
+        if (release == SoloTacticalSquadRelease.CapExpired)
         {
-            Respawn.LiveKitRespawn.AtRoundBreak(
-                game,
-                Settings.SpawnProtectionSeconds.Value,
-                () => _phase == Phase.Live && RoundNumber == roundNumber,
-                null);
+            Plugin.ModLogger.LogWarning(
+                $"Tactical round {round}: the body move did not report within "
+                + $"{SoloTacticalSquadDispatch.BodyMoveCapSeconds:0}s; requesting the squad from where the player stands now.");
+        }
+        else
+        {
+            string why = release == SoloTacticalSquadRelease.BodyLanded ? "the body move landed"
+                : release == SoloTacticalSquadRelease.BodyMoveFailed ? "the body move reported that it did not land"
+                : "no body move was in flight";
+            Plugin.ModLogger.LogDebug(
+                $"Tactical round {round}: requesting the squad, {why} ({heldSeconds:0.000}s after the round start).");
         }
 
-        Plugin.ModLogger.LogDebug(
-            $"Tactical round {RoundNumber}: {_squadRequested} enemies, kit '{_bought?.Id}' for {price:N0}, "
-            + $"{Money:N0} left.");
+        try
+        {
+            RequestSoloSquad(retry: false);
+        }
+        catch (Exception ex)
+        {
+            // Both releases arrive through callers that swallow exceptions (LiveKitRespawn's
+            // report, ArenaMatch.RaiseSafe). Without this the round would retry only by
+            // accident; make it the ordinary three-second plan-failure retry instead.
+            _squadDeadlineAt = SoloTacticalSpawnPolicy.Deadline(Time.time, requestDispatched: false);
+            Plugin.ModLogger.LogWarning(
+                $"Tactical round {round}: the squad request failed ({ex.Message}); retrying in "
+                + $"{SoloTacticalSpawnPolicy.PlanFailureRetrySeconds:0}s.");
+            return;
+        }
 
         ArenaToasts.Show($"Round {RoundNumber} — assembling {_squadRequested} opponents");
     }
@@ -2973,8 +3070,10 @@ public sealed partial class TacticalMode : IArenaMode, IArenaObjectiveHost
 
         // Invalidate detached profile/activation callbacks before retiring the
         // roster. A bot arriving during Aftermath must be killed by its observer,
-        // never adopted and then forgotten by the next StartRound clear.
+        // never adopted and then forgotten by the next StartRound clear. A request
+        // still held for the body move dies with the round as well.
         _squadEpoch++;
+        _squadDispatch.Cancel();
         _phase = Phase.Aftermath;
         _phaseEndsAt = Time.time + AftermathSeconds;
         // Close the combat phase before retiring surviving enemies. Their

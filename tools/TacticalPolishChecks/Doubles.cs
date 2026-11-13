@@ -67,19 +67,30 @@ namespace ArenaMode.Bots
     public static class BurstSpawnService
     {
         public record Request(int Expected,Action<EFT.BotOwner> Observer,Func<bool> Lease);
-        public static List<Request> Requests=[];public static bool Reject;
-        public static int SpawnSquad(int count,bool asPmc,object difficulty,Action<EFT.BotOwner> observer,Func<bool> requestStillCurrent){Requests.Add(new(count,observer,requestStillCurrent));return Reject?0:count;}
+        public static List<Request> Requests=[];public static bool Reject,Throw;
+        public static int SpawnSquad(int count,bool asPmc,object difficulty,Action<EFT.BotOwner> observer,Func<bool> requestStillCurrent){if(Throw)throw new InvalidOperationException("spawn service threw");Requests.Add(new(count,observer,requestStillCurrent));return Reject?0:count;}
     }
 }
 namespace ArenaMode.Respawn
 {
-    public static class ArenaRespawnDriver {public static bool StandDown;}
-    public static class LiveKitRespawn {public static int Swaps;public static bool AtRoundBreak(EFT.LocalGame g,float s,Func<bool> wanted,Action<bool> done){Swaps++;return true;}}
+    public static class ArenaRespawnDriver {public static bool StandDown,IsRespawnInProgress;}
+    // By default the swap lands inside its own start, which keeps the older checks' timeline. The
+    // dispatch-order checks hold its report (Pending) or have it refused.
+    public static class LiveKitRespawn
+    {
+        public static int Swaps;public static bool Hold,Refuse;public static Action<bool> Pending;
+        public static bool AtRoundBreak(EFT.LocalGame g,float s,Func<bool> wanted,Action<bool> done)
+        {
+            Swaps++;if(Refuse)return false;
+            if(Hold){Pending=done;return true;}
+            done?.Invoke(true);return true;
+        }
+    }
 }
 namespace ArenaMode.Combat { public static class ArenaAdministrativeDeathGate {public static IDisposable Enter(string _) => new End(); private class End:IDisposable{public void Dispose(){}}} }
 namespace ArenaMode
 {
-    public static class ArenaToasts {public static void Show(string x){}}
+    public static class ArenaToasts {public static readonly List<string> Shown=[];public static void Show(string x)=>Shown.Add(x);}
     public static class Plugin {public static Logger ModLogger=new();}
     public class Logger {public void LogInfo(string x){} public void LogDebug(string x){} public void LogWarning(string x){} public void LogError(string x){}}
 }

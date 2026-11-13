@@ -35,6 +35,9 @@ public partial class TacticalMode
     private Phase _phase=Phase.Buy;
     private float _phaseEndsAt,_squadDeadlineAt;
     private int _squadRequested,_squadEpoch;
+    // Wired as the production constructor wires it; SoloTacticalSpawnChecks pins that wiring.
+    private readonly SoloTacticalSquadDispatch _squadDispatch;
+    public TacticalMode(){_squadDispatch=new SoloTacticalSquadDispatch(()=>UnityEngine.Time.time,DispatchOpeningSquad);}
     private const float TeamOpponentActivationSeconds=5f;
     private readonly List<BotOwner> _squad=[];
     private TeamArenaRoundContinuation _teamContinuation;
@@ -56,7 +59,7 @@ public partial class TacticalMode
     private void InitializeObjective(){} private void BeginObjectiveRound(){} private bool TickObjective()=>false;
     private void EndObjectiveRound(){} private void ResetDoorsForRound(){}
     private void EnterTeamRebinding(){} private void EndTeamRaid(){}
-    private void EndRound(bool won) {if(won) Wins++; else Losses++; _phase=Phase.Aftermath; _squadEpoch++;}
+    private void EndRound(bool won) {if(won) Wins++; else Losses++; _phase=Phase.Aftermath; _squadEpoch++; _squadDispatch.Cancel();}
     public void Prepare(bool down=false, bool team=false)
     {
         _starter=SelectOpeningKit(); _playerDown=down; _teamArena=team;
@@ -68,6 +71,10 @@ public partial class TacticalMode
     public string KillForTest()=>_match.KillForTest();
     public int Chain=>_match.Chain;
     public void EndForTest(){_phase=Phase.Ended;_squadEpoch++;}
+    public void LoseForTest()=>EndRound(false);
+    // The death-respawn event the mode receives through ArenaMatch.ReportLocalRespawn (solo branch).
+    public void RespawnLandedForTest()=>OnSoloLocalRespawn();
+    public int SquadRequested=>_squadRequested;
     public void SurvivedForTest(){_phase=Phase.Buy;_roundStartPending=true;RoundNumber++;_bought=null;}
     public KitDefinition Issue()=>IssueSoloKit();
     public void LoseStarterForTest(){_bought=_worn=_starter=null;}
