@@ -92,6 +92,9 @@ namespace UnityEngine
         public Color color;
         public Shader Shader;
         public Material(Shader shader) { Shader = shader; All.Add(this); }
+        private readonly Dictionary<string, float> _floats = new();
+        public void SetFloat(string name, float value) => _floats[name] = value;
+        public float GetFloat(string name) => _floats.TryGetValue(name, out var value) ? value : 0f;
     }
     public enum PrimitiveType { Cube, Quad }
     public struct Color(float r, float g, float b, float a = 1)
@@ -139,7 +142,8 @@ namespace TMPro
         private TMP_FontAsset _font;
         private UnityEngine.Material _fontSharedMaterial;
         private float _outlineWidth;
-        private UnityEngine.Color _outlineColor;
+        // TMP_Text: protected Color32 m_outlineColor = Color.black.
+        private UnityEngine.Color _outlineColor = new UnityEngine.Color(0f, 0f, 0f, 1f);
         private string _text;
         public bool Awakened { get; private set; }
         public void NativeAwake()
@@ -175,16 +179,36 @@ namespace TMPro
             _fontSharedMaterial = new UnityEngine.Material(_font.material.Shader);
         }
         public float fontSize;
+        /// <summary>
+        /// _FaceDilate of the label's material when the padding of the glyph quads was last computed.
+        /// TextMeshPro.SetOutlineThickness ends with m_padding = GetPaddingForMaterial(), and
+        /// UpdateMeshPadding recomputes it; ShaderUtilities.GetPadding reads _FaceDilate, so a dilate set
+        /// after the last of the two is missing from the quads.
+        /// </summary>
+        public float PaddingFaceDilate { get; private set; } = float.NaN;
         public float outlineWidth
         {
             get => _outlineWidth;
-            set { if (_outlineWidth == value) return; _outlineWidth = value; CloneMaterialOnce(); }
+            set
+            {
+                if (_outlineWidth == value) return;
+                _outlineWidth = value; CloneMaterialOnce();
+                PaddingFaceDilate = _fontSharedMaterial.GetFloat("_FaceDilate");
+            }
         }
+        // TMP_Text.outlineColor returns when the value equals its cached colour, and the cache starts
+        // black: assigning black to a fresh label neither clones the material nor touches it.
         public UnityEngine.Color outlineColor
         {
             get => _outlineColor;
-            set { _outlineColor = value; CloneMaterialOnce(); }
+            set
+            {
+                if (_outlineColor.r == value.r && _outlineColor.g == value.g && _outlineColor.b == value.b
+                    && _outlineColor.a == value.a) return;
+                _outlineColor = value; CloneMaterialOnce();
+            }
         }
+        public void UpdateMeshPadding() => PaddingFaceDilate = _fontSharedMaterial.GetFloat("_FaceDilate");
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color;
         public bool richText, enableWordWrapping;

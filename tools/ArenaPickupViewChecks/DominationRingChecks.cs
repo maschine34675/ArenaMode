@@ -42,6 +42,15 @@ internal static partial class Program
             Check(label.outlineWidth >= .2f && label.outlineColor.r == 0f && label.outlineColor.g == 0f
                 && label.outlineColor.b == 0f && label.outlineColor.a == 1f,
                 "objective letter has a dark outline");
+            // The band is centred on the glyph edge; only a face dilated by at least the outline width
+            // keeps its regular weight, and only the label's own copy of the material may carry it.
+            Check(fontMaterial.GetFloat("_FaceDilate") == 0f,
+                "objective letter leaves the shared font material's face alone");
+            Check(labelClone.GetFloat("_FaceDilate") >= label.outlineWidth
+                && labelClone.GetFloat("_FaceDilate") + label.outlineWidth <= .6f,
+                "objective letter face is dilated by at least the outline width");
+            Check(label.PaddingFaceDilate == labelClone.GetFloat("_FaceDilate"),
+                "objective letter mesh padding was recomputed after the face dilate");
             Check(chip.transform.parent == label.transform && chip.transform.localPosition.z > 0f
                 && chip.transform.localScale.x > .15f && chip.transform.localScale.y > .175f,
                 "objective chip is a child of the letter, larger than the glyph and behind it");

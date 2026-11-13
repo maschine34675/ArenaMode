@@ -36,6 +36,11 @@ internal sealed class DominationPointView : IDisposable
     private const float ChipDepth = .02f;
     // Near-white: the owner is carried by the chip, and the pastel owner tint clipped to white anyway.
     private static readonly Color LetterColor = new Color(.95f, .96f, .97f);
+    // TMP material units (see the constructor): the face edge moves out by the dilate, the black band
+    // lies half inside and half outside the moved edge. Dilate above the width, and their sum well
+    // below 1, where TMP starts to scale both down (ShaderUtilities.UpdateShaderRatios).
+    private const float LetterOutlineWidth = .2f;
+    private const float LetterFaceDilate = .3f;
 
     // showLetter is false on the ported maps: their points are marked by the ring, the HUD row and the
     // DynamicMaps diamond already, so no label and no chip object exists there.
@@ -71,8 +76,24 @@ internal sealed class DominationPointView : IDisposable
                 _label.alignment = TextAlignmentOptions.Center;
                 _label.richText = false; _label.enableWordWrapping = false;
                 _label.rectTransform.sizeDelta = new Vector2(1.5f, .8f);
-                // A dark edge so the near-white glyph reads against pale concrete.
-                _label.outlineWidth = .2f; _label.outlineColor = new Color(0f, 0f, 0f, 1f);
+                // A dark edge so the near-white glyph reads on every chip colour. The width setter is what
+                // clones the font material onto this label (TextMeshPro.SetOutlineThickness); the colour
+                // setter returns early for black, TMP's cached default, and is kept only to state the intent.
+                _label.outlineWidth = LetterOutlineWidth; _label.outlineColor = new Color(0f, 0f, 0f, 1f);
+                // TMP centres the outline band on the glyph edge, so the outline alone ate this thin font's
+                // face from inside: the native run of 13.11.2026 showed a black letter with a white hairline.
+                // The SDF shader moves the edge outward by _FaceDilate and draws the band of _OutlineWidth
+                // around the moved edge (both times _ScaleRatioA / 2), so a dilate above the outline width
+                // keeps the whole band outside the glyph and leaves the white face a little heavier than the
+                // regular weight. Only ever on the label's own copy: the font asset's material is shared by
+                // every other label. The padding of the glyph quads was computed by the width setter before
+                // the dilate existed, so it is recomputed, or the widened edge would be cut at the quad.
+                var face = _label.fontSharedMaterial;
+                if (face != null && !ReferenceEquals(face, HudStyle.Font?.material))
+                {
+                    face.SetFloat("_FaceDilate", LetterFaceDilate);
+                    _label.UpdateMeshPadding();
+                }
                 _label.color = LetterColor;
                 _chipMaterial = new Material(shader) { color = RingColorFor(default) };
                 _chip = GameObject.CreatePrimitive(PrimitiveType.Quad);
