@@ -114,9 +114,10 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
   separated by at least 12 horizontal metres. Equator and Bay5 use one original
   anchor each; Air Pit and Bowl use two, Iceberg three (A/B/C, the authored trigger
   centres), Chop Shop one ("X", the capture-point light root; menu "Hold 1 point"). The Lab has three points
-  (A/B/C on floor 1) and The Labyrinth one (X), both chosen at match start from surveyed seeds with fallbacks
-  and at least 15 horizontal metres between points ([vanilla maps](reviews/DOMINATION-VANILLA-MAPS-20261113.md)).
-  Customs and the other maps do not offer this mode.
+  (A/B/C on floor 1) and The Labyrinth one (X), and each of the three Customs areas three (A/B/C), all chosen at
+  match start from surveyed seeds with fallbacks and at least 15 horizontal metres between points; in a Customs
+  area the team size (2 to 5 per side) is the Team Deathmatch setting
+  ([vanilla maps](reviews/DOMINATION-VANILLA-MAPS-20261113.md)). Whole Customs and the other maps do not offer this mode.
 - Separate score/time controls default to 300 points and ten minutes. Either
   limit can be disabled; both off permit continuous play. Rules freeze at start.
 - Capture-valid, reachable bot approaches, pickups clear of objectives,
@@ -130,7 +131,7 @@ Sources: [native selection](../ArenaMode.Client/Session/ArenaSideSelectionView.c
 Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 [DynamicMaps objectives](reviews/DOMINATION-MAP-MARKERS-20261101.md),
 [ported anchors](reviews/DOMINATION-PORTED-20261026.md),
-[The Lab and The Labyrinth](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
+[The Lab, The Labyrinth and the Customs areas](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
 [native sweep](reports/2026-10/RELEASE-SWEEP-20261029.md).
 
 ### Team Deathmatch
@@ -246,8 +247,8 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** (and in Domination on Factory, Labs and Labyrinth) in even steps, or **4–20 in Team DM and Domination on the team-box maps** (Equator,
 Bay5, Air Pit, Bowl, Iceberg, Chop Shop). Defaults are Equator 4, Bay5, Air Pit, Bowl, Iceberg and Chop Shop 8 (Chop Shop was 6 until 2026-11-13),
-Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
-defaults to 2v2. These are menu defaults, not hardware performance guarantees.
+Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM and Domination separately
+default to 2v2 (the area team size, 2 to 5 per side). These are menu defaults, not hardware performance guarantees.
 
 ## 3. Player movement and handling
 
@@ -648,8 +649,8 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   all six modes since 2026-11-13: Domination there has three points (Labs) and one point (Labyrinth),
   without PitFireTeam, and Tactical has no capture point on either.
 - Customs uses three refined polygon areas: **Factory Center, Factory Side,
-  Customs Yard**. The five non-Domination modes can select them; whole-map Customs and retired
-  rectangular/test presets are not current menu choices.
+  Customs Yard**. All six modes can select them (Domination since 2026-11-13, three points per area, without
+  PitFireTeam); whole-map Customs and retired rectangular/test presets are not current menu choices.
 - Polygons have **no upper or lower height cap**. Physical boundaries keep the
   player inside; spawn/path validation keeps Arena bots within the contour.
 - The grid fades in near each boundary side: fully visible within 6 m, fading

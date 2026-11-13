@@ -36,6 +36,9 @@ section: the measured rows (independent literal tables), the pool anchor, the fa
 separation, the abort of a slot without a passing candidate, determinism, the whole-map early return of
 `VerifyTeamPaths` and, on a synthetic layout in a synthetic area, the area team-start proof. Tactical's
 `Resolve` must keep refusing The Lab, The Labyrinth and Customs. Fifteen further mutants cover these rules.
+The three Customs areas (stage 3) add the nine rows against independent literals, the real area contours (every seed
+inside with the 0.5 m floor inset), the shared area ids, prepare inside each area, the team-start proof for both
+factions, a cut-off point aborting the match, the fallback and the single-candidate abort, and six more mutants.
 
 Fifteen compiled-source mutants (the first group) target the Factory separation and repeat rules,
 the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port

@@ -449,8 +449,16 @@ player and never a team box; each slot takes the first candidate that passes the
 relocation, is connected both ways and keeps 15 m horizontally from the earlier slots; a slot without one aborts the
 match. The Lab has A/B/C on floor 1, The Labyrinth one point X. Domination resolves its layout by (map, area) with
 `ResolveDomination` and counts with `DominationPointCount`; `Resolve` and `ControlPointCount` stay Tactical's and do
-not list these maps (Tactical gets no point there). Admission is the explicit list in `ArenaAreaCatalog.TryResolve`;
-whole Customs is never on it, because the Domination block returns before the whole-Customs rule.
+not list these maps (Tactical gets no point there). Admission is the explicit whole-map list in `ArenaAreaCatalog.TryResolve`;
+whole Customs is never on it. The three Customs areas (same date, same document) use the same layout kind with a row per area
+(`ResolveDomination(map, areaId)`, rows A/B/C each; the area ids are repeated in `DominationMapLayout` and pinned equal to the
+catalogue): a bounded id does not return from the Domination block, it continues into the area table, so Domination admits
+exactly the areas Team Deathmatch does and only on `bigmap`. Inside an area the contour rules apply (floor inset, path inside the
+polygon), `VerifyTeamPaths` proves every point connected both ways with a verified start of each faction
+(`ArenaAreaRuntime.TeamStartPositions`), and the area's faction starts, the virtual local side and the negotiated team size
+(2 to 5) belong to the independent team modes, not to the literal id `teamdeathmatch` (`HasTeamStarts`, `LocalSpawnSide`,
+`TryResolveTeamSize`, `HasTeamSizeChoice`, and the two start-path reads in `ArenaLocalRaidStartedPatch` and
+`ArenaMenuSelection`). Never put a mode literal back there.
 The world letter of a Domination point (`DominationPointView`, constructor argument `showLetter`) exists only on
 the vanilla maps (`!ArenaMapCatalog.IsOptionalMap`): ported maps already have the ring, the HUD row and the
 DynamicMaps diamond, so no label object is created there. On vanilla maps the letter is near-white with a dark
@@ -517,7 +525,7 @@ rewards while the point is on (client rule and both server admissions). Round-en
 elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIVE-20261108.md
 before changing that order, the bridge contract, the lease teardown at every round end or the
 reward rule. The point applies wherever Tactical is admitted and the map has a fixed Domination layout (`Resolve`/`ControlPointCount`,
-not the surveyed layouts of The Lab and The Labyrinth, which Domination alone uses): besides
+not the surveyed layouts of The Lab, The Labyrinth and the Customs areas, which Domination alone uses): besides
 Factory, Bay 5, Air Pit and Bowl, on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
 since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor.
 In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no

@@ -1,16 +1,17 @@
 # Domination on the vanilla maps (2026-11-13)
 
 Contract for Domination on the vanilla maps Arena offers: **The Lab** and **The Labyrinth** (whole map,
-stage 2, below) and the three **Customs areas** (stage 3, section marked below). Factory and the six
-ported maps are unchanged. The numbers are the lead's native measurements; the stage 2 code and its
-offline harnesses are what this document pins.
+stage 2) and the three **Customs areas** (stage 3, [its section](#stage-3-the-customs-areas) below). Factory and
+the six ported maps are unchanged. The numbers are the lead's native measurements; the code and its offline
+harnesses are what this document pins.
 
 ## What was asked
 
 User request, 2026-11-13: extend Domination to all vanilla maps, with the Labyrinth getting only one control
 point. "Vanilla" in Arena means four tiles: Factory (already had Domination), The Lab (`laboratory`), The
 Labyrinth (`labyrinth`) and Customs (`bigmap`), which Arena offers only as three bounded areas. This
-document covers The Lab and The Labyrinth; whole Customs does not exist in Arena and stays refused.
+document covers The Lab, The Labyrinth and the three Customs areas; whole Customs does not exist in Arena and
+stays refused.
 
 ## The layout kind: surveyed slots
 
@@ -43,8 +44,8 @@ anchor on kept its meaning).
    spawn from the same native zones). Inside a bounded area it proves every point connected both ways with at
    least one connected start marker of each faction (`ArenaAreaRuntime.TeamStartPositions(usec)`, a read-only
    accessor over the markers the area runtime has already proved); a failure aborts the match naming the point
-   and the faction. **Stage 2 implemented and unit-pinned this with a synthetic layout in a synthetic area
-   (`DominationRuntimeChecks`, `AreaTeamRuntimeChecks`); no Customs row uses it before stage 3.**
+   and the faction. Stage 2 implemented and unit-pinned this on a synthetic layout in a synthetic area
+   (`DominationRuntimeChecks`, `AreaTeamRuntimeChecks`); the three Customs rows of stage 3 use it.
 5. The Debug line `Domination points verified: ...` stays; when a slot used an alternate it ends with
    `; alternates used: B=#1` (the candidate index).
 
@@ -86,14 +87,18 @@ centre: 12 to 39 m to the other rows, 73 to 85 m to four of the five entrances; 
 ## Admission
 
 `ArenaAreaCatalog.TryResolve`, Domination block: PitFireTeam stays refused. Whole map: Factory, the six
-ports, **`laboratory` and `labyrinth`**. Every other map and every bounded area stays refused, whole Customs
-included (the Domination block returns before the whole-Customs rule, so Customs must never be added there
-by map id). The refusal text is now "Domination is not available for this map or area, or with a PitFireTeam
-squad." (it was "requires Factory or a supported Arena port, whole map, without PitFireTeam."). The menu
-shows The Lab and The Labyrinth tiles under Domination; Customs is still hidden. Participants: whole-map
-defaults as they were (The Lab 16, The Labyrinth 8, 4 to 24 in even steps); there is no bot spawn shield on
-these maps (no team boxes, as in Team Deathmatch there). Pickups, rewards (kills only), HUD, DynamicMaps and
-the announcer are map-generic and were not changed.
+ports, **`laboratory` and `labyrinth`**; whole Customs is not on that list and must never be added to it. A
+**bounded id does not return from the block**: it continues into the area table below (after the mode filter
+of Customs and the ports, which now lists `domination`), so only the three Customs ids on `bigmap` are admitted
+and an area id on any other map, an unknown or retired id, and a differently spelled id are refused by the same
+rules that govern Team Deathmatch. Every other map stays refused. The refusal text is "Domination is not
+available for this map or area, or with a PitFireTeam squad." (it was "requires Factory or a supported Arena
+port, whole map, without PitFireTeam."); a Customs area id on a wrong map gets the area table's own text
+("Customs Yard requires map bigmap."). The menu shows The Lab, The Labyrinth and Customs tiles under
+Domination; under Customs it offers the three areas and no whole map. Participants: whole-map defaults as they
+were (The Lab 16, The Labyrinth 8, 4 to 24 in even steps); there is no bot spawn shield on these maps (no team
+boxes, as in Team Deathmatch there). Pickups, rewards (kills only), HUD, DynamicMaps and the announcer are
+map-generic and were not changed.
 
 ## What is pinned
 
@@ -110,6 +115,7 @@ the announcer are map-generic and were not changed.
 - `CompactModeUxChecks`: Domination counts (Lab 3, Labyrinth 1) while Tactical's count stays 0 there.
 - `NativeMenuChecks`, `NativeAreaHookChecks`, `ParticipantMenuChecks`, `AreaTeamRuntimeChecks` and the xunit
   tests that pinned the old refusal text.
+- Stage 3 (the Customs areas), see the pins listed in that section.
 
 ## What is not claimed
 
@@ -124,25 +130,114 @@ NATIVE: (lead fills in)
 
 ## Stage 3: the Customs areas
 
-(Stage 3 completes this section: the three area rows, the area team-start modes, the matching admission
-and pins. Stage 2 leaves the hooks: `ResolveDomination` / `DominationPointCount` already take the area id and
-return "no layout" for every area, `DominationRuntime` keys its layout by (map, area), and
-`VerifyTeamPaths` has the area team-start proof.)
+Domination is admitted in exactly the three surveyed Customs areas, `bigmap` only, never whole and never with
+PitFireTeam. The layout kind and the runtime proof are the ones above; what stage 3 adds is the three rows, the
+admission, and the team machinery that was keyed to the literal mode id `teamdeathmatch`.
 
-The lead's measured seeds, for stage 3:
+### The rows
+
+The lead's measured seeds (GPU-2, 2026-11-13, installed master build 0.5.0+c64846fb, Team Deathmatch raids,
+UiBridge teleport dry runs; y is the NavMesh height the dry run reported). Seeds for the runtime's own proof, not a
+substitute for it; each area has three slots and no extra network seeds (the pool is every slot candidate: 9, 7 and
+8 positions).
 
 | Area | Slot | Primary | Alternates |
 |---|---|---|---|
 | Industrial Center (`customs-factory-center-polygon-v2`; USEC west, BEAR east) | A (USEC side) | (355.0, 1.1, -80.0) | (350.4, 1.2, -70.1), (352.0, 1.1, -95.0) |
 | | B (middle) | (395.0, 1.2, -60.0) | (405.9, 1.1, -72.8), (378.0, 1.1, -65.0) |
 | | C (BEAR side) | (435.0, 1.1, -75.0) | (440.0, 2.1, -90.0), (425.0, 1.4, -100.0) |
-| Industrial Side (`customs-factory-side-polygon-v2`; USEC east, BEAR west, about 40 m apart) | A north | (588.0, 1.2, -64.4) | none |
+| Industrial Side (`customs-factory-side-polygon-v2`; USEC east, BEAR west, about 40 m apart, so the points form a line across the front) | A north (native row ae0c5e1d) | (588.0, 1.2, -64.4) | none |
 | | B middle (a lower strip, y -0.6) | (590.0, -0.6, -100.0) | (583.1, 1.2, -100.0), (590.0, -0.4, -110.0) |
 | | C south | (600.0, 1.2, -125.0) | (590.0, 1.1, -135.0), (590.0, 1.3, -120.0) |
-| Customs Yard (`customs-yard-polygon-v1`; USEC south-west, BEAR north-east) | A west | (-204.3, 0.9, -77.9) | (-206.1, 0.9, -82.6) |
+| Customs Yard (`customs-yard-polygon-v1`; USEC south-west, BEAR north-east, 120 m of path apart; open ground) | A west | (-204.3, 0.9, -77.9) | (-206.1, 0.9, -82.6) |
 | | B middle | (-185.0, 0.9, -75.0) | (-186.0, 1.0, -80.0), (-185.7, 0.9, -85.3) |
 | | C east | (-165.0, 0.8, -75.0) | (-168.0, 0.9, -82.0), (-167.1, 0.9, -92.7) |
 
 Paths: Center from a USEC rear start (314.9, 1.2, -93.1): A 55.8 m, B 98.5 m, C 135.7 m; from a BEAR rear
-start (478.0, 2.7, -83.1): B 123.4 m. Side USEC (615.8, -0.4, -96.5) / BEAR (572.0, 1.5, -110.0): A 50.3 / 59.6 m,
-B 40.2 / 25.8 m, C 38.0 / 32.9 m. Yard USEC / BEAR: A 61.4 / 60.3 m, B 64.5 / 64.2 m, C 75.6 / 83.4 m.
+start (478.0, 2.7, -83.1): B 123.4 m, the x 378 column 138 to 142 m. Side USEC (615.8, -0.4, -96.5) / BEAR
+(572.0, 1.5, -110.0): A 50.3 / 59.6 m, B 40.2 / 25.8 m, C 38.0 / 32.9 m. Yard USEC / BEAR: A 61.4 / 60.3 m,
+B 64.5 / 64.2 m, C 75.6 / 83.4 m. Minimum separation 15 m. The rows live in `DominationMapLayout`
+(`CustomsCenter`, `CustomsSide`, `CustomsYardLayout`), resolved by `ResolveDomination("bigmap", areaId)`; the
+three area ids are repeated there (the harnesses link the file without the catalogue) and a harness pins them
+equal to `ArenaAreaCatalog`'s. Domination counts three points in each area (`DominationPointCount`); a map other
+than Customs, a differently spelled id and the whole map count 0, and Tactical's `Resolve`/`ControlPointCount`
+still know no Customs point.
+
+### What the runtime does inside an area
+
+`DominationRuntime.Prepare` accepts an active area when the layout was resolved for exactly that (map, area)
+(stage 2); it refuses an area without a layout and a layout resolved for another area. The anchor proof floors the
+seeds inside the contour only (`TryFloor`'s 0.5 m inset), each placement needs the complete path from the anchor
+to stay inside the polygon (`TryPlace`, inset 0.1), and `VerifyTeamPaths` (called once after the countdown, as on
+the ports) proves that every point is connected both ways with at least one verified start of each faction, or
+aborts the match naming the point and the faction. No partial layout, no loosened proof.
+
+### Where the mode id decides (traced for one Domination match in an area)
+
+The trace: menu candidate list (`ArenaAreaSelectionState.Create` over `TryResolve`), team size
+(`HasTeamSizeChoice`, `Settings.AreaTeamSize`, `TrySelectAreaTeamSize`), final validation
+(`ArenaMenuSelection.HasValidAreaTeamSize`), native start (`ArenaLocalRaidStartedPatch`, `PostRaidStart`), arm on the
+server (`ArenaModeRouter`, `ArenaSessionService`, the shared `TryResolve`/`TryResolveTeamSize`), location mutation
+(`ArenaLocationMutator.GetAreaSpawns`, quiet map as every Domination), `ArenaAreaRuntime.Arm`, the initial team
+spawn of the local PMC (`TryInitialTeamSpawn`), readiness (`ValidateTeamStarts`), bot starts per faction
+(`BurstSpawnService` through `HasTeamStarts`, `TryPlanTeamBot`), respawn (`ArenaSpawnSelector` to
+`ArenaAreaRuntime.PickRespawn`), the enclosure (mode-agnostic) and the match (`TeamDeathmatchMode.TeamSize` through
+`CurrentTeamSize`, `DominationRuntime`). The places where the **mode id decided** and were widened from "Team
+Deathmatch" to "an independent team mode" (`ArenaPopulationPolicy.IsIndependentTeam`, Team Deathmatch or
+Domination), Team Deathmatch unchanged:
+
+| Site | Rule |
+|---|---|
+| `ArenaAreaCatalog.TryResolve`, Domination block and the mode filter of Customs and the ports | admission, above |
+| `ArenaAreaCatalog.TryResolveTeamSize(area, mode, pft, ...)` | the area team size is negotiated (2 to 5, explicit) by the independent team modes; every other mode still sends 0 |
+| `ArenaAreaRuntime.HasTeamStarts` (`ArenaAreaTeamRuntime.cs`) | faction start reservations, `CurrentTeamSize`, the bot and respawn picks |
+| `ArenaAreaRuntime.LocalSpawnSide` (moved next to `HasTeamStarts` so the harness compiles the production line) | the local PMC's virtual team side; other modes keep the profile side |
+| `ArenaAreaSelectionState.HasTeamSizeChoice` | the team-size row of the area panel |
+| `ArenaLocalRaidStartedPatch` (the size read of the native start) and `ArenaMenuSelection.HasValidAreaTeamSize` (the final validation) | the F12 size is the wire value for these modes, null for the rest |
+| `DominationMapLayout.ResolveDomination` / `DominationPointCount` | the three rows |
+
+Not changed, and why: participants (a bounded team mode never takes a participant override,
+`ArenaParticipantPolicy.IsSelectable`, so the arm carries none and the area's capacity is the team size); team
+boxes (`ArenaTeamBoxCatalog.Applies` is false on Customs); the server (it follows the shared catalogue; the
+location mutator already validates the area's faction starts for every mode that arms an area); bot spawn shield
+(none on these maps, as in Team Deathmatch there); pickups, rewards, HUD, DynamicMaps and the announcer (generic).
+
+### What is pinned (stage 3)
+
+- `DominationAdmissionChecks`: whole Customs refused (also with an empty or blank area id), each of the three
+  areas admitted with the shared definition and its faction starts, area ids exact and map identity case-insensitive,
+  PFT refused in an area with the Domination text, an area on every other map refused, retired and unknown ids
+  refused, the team size negotiated like Team Deathmatch (2 to 5, explicit; a squad and the other modes refused),
+  the native area model (exactly the three areas, size choice 2 to 5), no participant override, the Customs row
+  staying visible under Domination. Eighteen compiled mutants, among them whole Customs admitted, PFT admitted, the
+  area map check removed, the mode filter without Domination and the size rule back to Team Deathmatch only.
+- `CustomsAllModesChecks`: the mode matrix now has Domination (admission, size UI and wire size shared with Team
+  Deathmatch, no whole Customs, PFT refused); mutants for the catalogue's size rule, the mode filter and the menu's
+  size row.
+- `AreaTeamRuntimeChecks`: both independent modes get the faction starts, the chosen virtual side, the negotiated
+  size and the release after assembly; mutants for `HasTeamStarts` and `LocalSpawnSide` restored to Team Deathmatch
+  only. Every other mode keeps its plain behaviour (existing cases).
+- `DominationRuntimeChecks`: the nine rows against independent literals (primaries, ordered alternates, no extra
+  seeds), every seed inside its contour with the 0.5 m floor inset (the real polygons), the primaries 15 m apart,
+  counts and exact area/map keys, prepare inside each area, the team-start proof on both factions, a point cut
+  off from one faction aborting the match, fallback and the single-candidate abort, a layout not borrowed by
+  another area; six mutants.
+- `CompactModeUxChecks`: three points per area, 0 for every wrong key, Tactical's count still 0; two mutants.
+- `NativeMenuChecks` (inside `AreaTeamMenuChecks`): the real native start arms the exact area and the chosen size
+  for each area and size 2, 3, 5, sends no participant count, refuses sizes 1 and 6 before any arm, refuses PFT
+  and whole Customs; two mutants (start path, final validation) in `AreaTeamMenuChecks/Verify.ps1`.
+- `NativeAreaHookChecks`: the Customs tile stays under Domination and an allowlist-disabled Customs is cleared.
+- The xunit suite once, and the no-deploy compile check of the whole solution.
+
+### What is not claimed (stage 3)
+
+- Nothing here is a native acceptance (`NATIVE:` above). The seeds passed the lead's dry runs; the runtime proves
+  them again and aborts instead of playing a smaller layout.
+- The objective layer refuses a route longer than 160 m (`ArenaDominationRuntime.RouteAllowed`): from the BEAR rear
+  start of Industrial Center the path to A is probably longer, so bots there may reject that trip and fall back to
+  native behaviour for 12 s. Unmeasured.
+- The team-start proof samples a start marker with `ConnectedBothWays` (0.75 m, 0.5 m vertical tolerance); if a
+  marker sits higher above the NavMesh on a real area, the match aborts naming the point and the faction. The
+  offline harness uses doubles for the routes; only a native run decides it.
+- Yard start positions in the harness are stand-ins; the real starts are the area's surveyed markers.
+- Tactical in the Customs areas, and every other mode there, behaves as before.

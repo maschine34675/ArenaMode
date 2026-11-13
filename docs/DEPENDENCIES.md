@@ -115,7 +115,7 @@ The [version policy and checks](reviews/OPTIONAL-MOD-VERSIONS-20261019.md) expla
 minimum versions, warnings and the protection contracts that remain mandatory.
 `ArenaMode.BigBrainCompat` is Arena's own code and is always included.
 
-Domination on Factory, The Lab, The Labyrinth and the six ported maps requires this library's verified
+Domination on Factory, The Lab, The Labyrinth, the three Customs areas and the six ported maps requires this library's verified
 objective layer. Missing BigBrain/support locks only Domination in the mode picker;
 other modes retain their existing optional dependency rules. See
 [Domination options and scope](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md).

@@ -17,10 +17,11 @@ der Stand vom 17.10.2026, wo nicht anders vermerkt.
 | Chop Shop (Karte und Botpunkte nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt (X) | Solo ja; PFT nein: in der Hofmitte nur drei bis fünf entfernte Botpunkte (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Equator (Tactical: 16 Botpunkte nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt | Ja / Ja: 16 Botpunkte, neun über 25 m vom Atrium, überall mindestens sechs (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein | Nein |
-| Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Nein | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
+| Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Ja, je Areal drei Punkte (A/B/C), 2v2–5v5; ohne PitFireTeam | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
 
-Domination gibt es nie mit PitFireTeam und nur auf ganzen Karten (Labs und Labyrinth seit 13.11.2026, Messwerte und Ablauf in
-docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md; die ganze Customs-Karte bleibt gesperrt); sie braucht
+Domination gibt es nie mit PitFireTeam, auf ganzen Karten und in den drei Customs-Arealen (Labs, Labyrinth und die Areale seit
+13.11.2026, Messwerte und Ablauf in docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md; die ganze Customs-Karte bleibt gesperrt;
+im Areal gilt die Teamgröße 2–5 wie im Team DM); sie braucht
 BigBrain und Arenas Begleitbibliothek. Auf den portierten Karten nutzt sie dieselben
 Teamboxen und Spawn-Tore wie das unabhängige Team DM.
 

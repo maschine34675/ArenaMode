@@ -9,14 +9,15 @@ pwsh -NoProfile -File tools/DominationAdmissionChecks/Verify.ps1
 This standalone net10 harness compiles the real shared map/population/participant
 rules, native selection state, virtual-side lease and conditional-map lifecycle.
 It checks exactly Factory day/night, Bay5, Equator, AirPit, Bowl, Iceberg, Chop Shop, The Lab and The Labyrinth
-admission (whole map only), rejected other maps (whole Customs and its areas included), areas and PFT, the refusal text, retained existing mode behavior, count validation,
+admission (whole map), the three Customs areas (admitted on Customs only, with their size negotiation and
+menu model; whole Customs refused), rejected other maps, areas on other maps and PFT, the refusal text, retained existing mode behavior, count validation,
 selected-side isolation and native-view switch back. A small explicitly labelled
 source-contract section checks that dependency, map and reward guards remain
 before roster freeze, client/server arm publication and reward begin. These
 source checks complement separate executable NativeMenu/server harnesses; they
 do not claim to execute their HTTP/Unity/protection behavior.
 
-The wrapper rejects sixteen compiled shared-policy mutants and eight explicitly
+The wrapper rejects eighteen compiled shared-policy mutants and eight explicitly
 labelled source-wiring controls. Copies live outside source directories; compiler
 failure is never accepted as a policy-mutant result. Before/after snapshots cover
 installed Client, BigBrain companion, Server, Gate and Session helper binaries.
