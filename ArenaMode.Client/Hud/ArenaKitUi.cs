@@ -104,10 +104,43 @@ internal static class ArenaKitUi
         var navigation = button.navigation;
         navigation.mode = Navigation.Mode.None;
         button.navigation = navigation;
+        // The surface is white and Selectable.OnEnable ran with the default colour block, so the
+        // renderer is white here and the colours setter above would fade it to the dark normal
+        // colour over fadeDuration: every freshly built button flashed. Put the renderer on the
+        // state colour at once; hover, press and disabled keep their fade.
+        SnapToState(button);
         text = label == null ? null
             : Text(surface.transform, "Label", style, label, fontSize, ArenaUiTheme.Text,
                 TextAlignmentOptions.Center, 0f, 0f, width, height);
         return button;
+    }
+
+    /// <summary>
+    /// For a button that is built disabled: sets <c>interactable</c> and puts the renderer on the
+    /// disabled colour in the same frame, so it neither fades in from its normal colour nor from white.
+    /// </summary>
+    internal static void SetInteractableAtOnce(Button button, bool interactable)
+    {
+        if (button == null) return;
+        button.interactable = interactable;
+        SnapToState(button);
+    }
+
+    /// <summary>
+    /// Ends any colour fade of the button and sets its renderer to the colour of the state a fresh
+    /// button is in (normal, or disabled). A zero-length cross fade is the shipped UGUI's own way to
+    /// do this: <c>Graphic.CrossFadeColor</c> stops the pending tween when the colour already matches,
+    /// otherwise <c>TweenRunner.StartTween</c> stops it and runs the new one, whose loop
+    /// (<c>elapsed &lt; duration</c>) is skipped and ends in <c>TweenValue(1f)</c> inside the same call
+    /// (called directly when the object is inactive). Pointer state is not consulted: a button is
+    /// snapped only while it is being built.
+    /// </summary>
+    private static void SnapToState(Button button)
+    {
+        if (button == null || button.targetGraphic == null) return;
+        ColorBlock colors = button.colors;
+        Color state = button.interactable ? colors.normalColor : colors.disabledColor;
+        button.targetGraphic.CrossFadeColor(state * colors.colorMultiplier, 0f, true, true);
     }
 }
 

@@ -149,7 +149,7 @@ internal static class ArenaKitMenu
                 TextAlignmentOptions.MidlineLeft, Margin, 78f, 1100f, 20f);
 
             float right = WindowWidth - Margin;
-            Button back = ArenaKitUi.Button(_frame, "Arena Kits Back", _style, "BACK", 15f, right - 110f, 20f, 110f, 30f, out _);
+            Button back = ArenaKitUi.Button(_frame, "Arena Kits Back", _style, "DONE", 15f, right - 110f, 20f, 110f, 30f, out _);
             back.onClick.AddListener(() => { if (ReferenceEquals(owner, _window)) Close(); });
             Button favorites = ArenaKitUi.Button(_frame, "Arena Kits Favourites", _style, "FAVOURITES", 14f,
                 right - 110f - 12f - 140f, 20f, 140f, 30f, out _);

@@ -149,10 +149,10 @@ internal sealed class ArenaKitEditorView
         Button done = ArenaKitUi.Button(_left, "Arena Kit Editor Done", _style, "DONE", 15f, 0f, _height - 34f, 130f, 34f, out _);
         done.onClick.AddListener(() => Done?.Invoke());
         Button copy = ArenaKitUi.Button(_left, "Arena Kit Editor Copy", _style, "COPY", 14f, 140f, _height - 34f, 110f, 34f, out _);
-        copy.interactable = !model.Locked;
+        ArenaKitUi.SetInteractableAtOnce(copy, !model.Locked);
         copy.onClick.AddListener(() => Copy?.Invoke());
         Button delete = ArenaKitUi.Button(_left, "Arena Kit Editor Delete", _style, model.DeleteLabel ?? "DELETE", 13f, 260f, _height - 34f, 190f, 34f, out _);
-        delete.interactable = !model.Locked;
+        ArenaKitUi.SetInteractableAtOnce(delete, !model.Locked);
         delete.onClick.AddListener(() => Delete?.Invoke());
 
         if (model.Choices != null) BuildChoices(model, scrolled);
@@ -245,14 +245,14 @@ internal sealed class ArenaKitEditorView
         if (row.CanChange)
         {
             Button change = ArenaKitUi.Button(parent, "Change " + slot, _style, row.Active ? "CHOOSING" : "CHANGE", 13f, LeftWidth - 210f, 14f, 110f, 30f, out _);
-            change.interactable = !locked;
+            ArenaKitUi.SetInteractableAtOnce(change, !locked);
             change.onClick.AddListener(() => Change?.Invoke(slot));
         }
 
         if (row.CanClear)
         {
             Button clear = ArenaKitUi.Button(parent, "Clear " + slot, _style, "NONE", 13f, LeftWidth - 92f, 14f, 84f, 30f, out _);
-            clear.interactable = !locked;
+            ArenaKitUi.SetInteractableAtOnce(clear, !locked);
             clear.onClick.AddListener(() => Clear?.Invoke(slot));
         }
     }
@@ -290,7 +290,7 @@ internal sealed class ArenaKitEditorView
             ArenaKitEditorChoice choice = model.Choices[index];
             float top = index * ChoiceHeight;
             Button row = ArenaKitUi.Button(content, "Choice " + choice.Key, _style, null, 0f, 0f, top, width - 22f, ChoiceHeight - 6f, out _);
-            row.interactable = !model.Locked && !choice.Current;
+            ArenaKitUi.SetInteractableAtOnce(row, !model.Locked && !choice.Current);
             Image icon = ArenaKitUi.Panel(row.transform, "Picture", Color.white, false, 6f, 3f, 100f, ChoiceHeight - 12f);
             icon.enabled = false;
             pictures[index] = icon;
