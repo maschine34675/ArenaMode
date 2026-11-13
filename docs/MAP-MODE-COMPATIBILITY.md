@@ -10,7 +10,7 @@ der Stand vom 17.10.2026, wo nicht anders vermerkt.
 | Karte | Deathmatch / Gun Game | Team DM | Domination | Tactical solo / PFT | Zombies solo / PFT |
 |---|---|---|---|---|---|
 | Factory Tag/Nacht | Ja | Ja | Ja, drei von acht Punkten je Match | Ja | Ja |
-| Labs, Labyrinth | Ja | Ja | Nein | Ja | Ja |
+| Labs, Labyrinth | Ja | Ja | Ja, Labs drei Punkte (A/B/C, Ebene 1), Labyrinth ein Punkt (X); ohne PitFireTeam | Ja (ohne Kontrollpunkt) | Ja |
 | Bay5, Air Pit | Ja | Ja, Teamboxen 2v2–10v10 | Ja, Bay5 ein Punkt, Air Pit zwei | Ja | Ja |
 | Bowl | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte | Ja | Ja |
 | Iceberg (Karte in ArenaMapPort 0.5.0; die 17 Botpunkte für Tactical nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, drei Punkte (A/B/C) | Ja / Ja: 17 Botpunkte, in der alten Kartenmitte mindestens neun über 25 m (bis 12.11.: Nein) | Ja / Ja |
@@ -19,7 +19,8 @@ der Stand vom 17.10.2026, wo nicht anders vermerkt.
 | Customs, ganze Karte | Nein | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Nein | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
 
-Domination gibt es nie mit PitFireTeam und nur auf ganzen Karten; sie braucht
+Domination gibt es nie mit PitFireTeam und nur auf ganzen Karten (Labs und Labyrinth seit 13.11.2026, Messwerte und Ablauf in
+docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md; die ganze Customs-Karte bleibt gesperrt); sie braucht
 BigBrain und Arenas Begleitbibliothek. Auf den portierten Karten nutzt sie dieselben
 Teamboxen und Spawn-Tore wie das unabhängige Team DM.
 

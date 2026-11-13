@@ -10,6 +10,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Domination now runs on **The Lab** (three points, A/B/C on floor 1) and **The Labyrinth** (one point, X), whole
+  map, without PitFireTeam; Customs stays without it. The points come from a new layout kind: measured seeds with
+  ordered fallbacks, proved again against the loaded scene at match start (floor, clearance, complete paths both
+  ways from the layout's own navigation network, 15 m between points); if no candidate of a point passes, the match
+  stops instead of playing a smaller layout. Tactical still has no capture point on these maps. The refusal text for
+  maps and areas without Domination changed with the list.
+  [Contract](docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md)
 - The KITS window's top-right button now reads **DONE** instead of BACK. Kit window buttons no longer flash
   white when they are built (the buttons of the selected kit, the editor's buttons): they start on their
   resting colour and keep the fade for hover, press and disabled.

@@ -136,6 +136,7 @@ Sorted by file name.
 - [Domination monitor projection review (MapPort score monitors)](reviews/DOMINATION-MONITOR-REVIEW-20261026.md)
 - [Domination: bot routes, separate score/time limits and varied Factory points](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md)
 - [Domination on ported maps: original capture points and team boxes](reviews/DOMINATION-PORTED-20261026.md)
+- [Domination on the vanilla maps: The Lab (three points), The Labyrinth (one), the surveyed-slot layout kind and the Customs areas](reviews/DOMINATION-VANILLA-MAPS-20261113.md)
 - [Domination prototype: three Factory points, team scoring and objective bots](reviews/DOMINATION-PROTOTYPE-20261026.md)
 - [Domination control points inside the main score panel](reviews/DOMINATION-SCORE-20261027.md)
 - [Arena double jump and deliberate ledge jump](reviews/DOUBLE-JUMP-REVIEW.md)

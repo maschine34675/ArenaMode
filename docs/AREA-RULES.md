@@ -442,6 +442,15 @@ team boxes, gate completion, physical roster and spawn-shield ownership.
 Never turn its holding points into kill-based rewards or widen PFT pursuit leases.
 The original TDM kill policy stays separate; all physical roster/respawn boundaries
 remain shared. The September single-control-point proposal is historical.
+The Lab and The Labyrinth (2026-11-13, docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md) use a third layout kind,
+`DominationMapLayout.Surveyed`: slots with a primary seed and ordered alternates plus extra network seeds. Their
+navigation anchor is the main network of the layout's own seeds (`ArenaPickupGeometry.TryPoolAnchor`), never the local
+player and never a team box; each slot takes the first candidate that passes the shared projection with the 2 m
+relocation, is connected both ways and keeps 15 m horizontally from the earlier slots; a slot without one aborts the
+match. The Lab has A/B/C on floor 1, The Labyrinth one point X. Domination resolves its layout by (map, area) with
+`ResolveDomination` and counts with `DominationPointCount`; `Resolve` and `ControlPointCount` stay Tactical's and do
+not list these maps (Tactical gets no point there). Admission is the explicit list in `ArenaAreaCatalog.TryResolve`;
+whole Customs is never on it, because the Domination block returns before the whole-Customs rule.
 The world letter of a Domination point (`DominationPointView`, constructor argument `showLetter`) exists only on
 the vanilla maps (`!ArenaMapCatalog.IsOptionalMap`): ported maps already have the ring, the HUD row and the
 DynamicMaps diamond, so no label object is created there. On vanilla maps the letter is near-white with a dark
@@ -507,7 +516,8 @@ PMC lives), the door reset at the round start (`Modes/ArenaRoundDoorReset.cs`) a
 rewards while the point is on (client rule and both server admissions). Round-end order:
 elimination, then the point, then the timer. Read docs/reviews/TACTICAL-OBJECTIVE-20261108.md
 before changing that order, the bridge contract, the lease teardown at every round end or the
-reward rule. The point applies wherever Tactical is admitted and the map has a Domination layout: besides
+reward rule. The point applies wherever Tactical is admitted and the map has a fixed Domination layout (`Resolve`/`ControlPointCount`,
+not the surveyed layouts of The Lab and The Labyrinth, which Domination alone uses): besides
 Factory, Bay 5, Air Pit and Bowl, on Equator (X), Iceberg (one of A/B/C per round) and Chop Shop (X, solo)
 since 2026-11-13, through the existing layout rows with the formation's Destination as navigation anchor.
 In the native runs of 2026-11-13 the point was resolved and announced in every round on those three maps; no
