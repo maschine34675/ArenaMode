@@ -35,6 +35,8 @@ $faults = @(
         Replace = '    $lines = @("COMPUTERNAME=$env:COMPUTERNAME")' },
     @{ Name = 'game-assemblies-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'installed game assemblies rerun the step'; Cases = @('game-assemblies')
         Find = '        $lines.Add("install|$root|managed|$(Get-ArenaStatManifest (Join-Path $root ''EscapeFromTarkov_Data\Managed''))")'; Replace = '' },
+    @{ Name = 'small-files-by-time'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a small installed file rewritten with the same bytes keeps the cache'; Cases = @('runtime-state')
+        Find = '            if ($HashSmall -and $f.Length -le 262144) {'; Replace = '            if ($false) {' },
     @{ Name = 'install-state-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'installed config reruns a step that names it'; Cases = @('install-state')
         Find = '    foreach ($pattern in $Scope.InstallState) {'; Replace = '    foreach ($pattern in @()) {' },
     @{ Name = 'redeploy-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'the sibling Redeploy checkout reruns the step'; Cases = @('redeploy')
@@ -46,7 +48,7 @@ $faults = @(
     @{ Name = 'failure-cached'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a failure is never cached'; Cases = @('failure')
         Find = 'if ($passed -and $keyInfo -and $keyInfo.Cacheable) {'; Replace = 'if ($keyInfo -and $keyInfo.Cacheable) {' },
     @{ Name = 'no-after-run-check'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step whose inputs change during the run is not cached'; Cases = @('changed-during-run')
-        Find = '$afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item'; Replace = '$afterRun = $null' },
+        Find = '$afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item $Snapshot'; Replace = '$afterRun = $null' },
     @{ Name = 'compile-items-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a linked production file selects its harness'; Cases = @('select')
         Find = '            foreach ($rel in $items) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "compiled by $project" } }'; Replace = '' },
     @{ Name = 'named-paths-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a mutant target named in a script selects its harness'; Cases = @('select')
@@ -54,6 +56,23 @@ $faults = @(
     @{ Name = 'untracked-not-changed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'an untracked file selects too'; Cases = @('select')
         Find = "        @(Split-ArenaNul (Invoke-ArenaGitLines `$Root @('ls-files', '-z', '--others', '--exclude-standard')))`n    return @(`$changed | Sort-Object -Unique)"
         Replace = "        @()`n    return @(`$changed | Sort-Object -Unique)" },
+    # Two layers keep a worker identical: the copy, and the file-by-file comparison after it, which refuses to
+    # run on a worker that differs. Each layer is removed alone.
+    @{ Name = 'untracked-not-synced'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'steps run in two worker checkouts'; Cases = @('parallel')
+        Find = '        elseif (-not $have -or $have.Hash -ne $want.Hash) {'; Replace = '        elseif ($have -and $have.Hash -ne $want.Hash) {' },
+    @{ Name = 'deletion-not-synced-unchecked'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a worker mirrors uncommitted, untracked, deleted and staged changes'; Cases = @('parallel')
+        Find = '            if ([IO.File]::Exists($target)) { [IO.File]::Delete($target) }'; Replace = ''
+        Find2 = '    if ($diff) { throw "Worker $Worker does not match the checkout under test after the sync: $diff" }'; Replace2 = '' },
+    @{ Name = 'stale-write-time'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a synced file gets a fresh write time'; Cases = @('parallel')
+        Find = '            [IO.File]::SetLastWriteTimeUtc($target, $now)'; Replace = '' },
+    @{ Name = 'workers-start-workers'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a runner inside a worker runs its steps sequentially'; Cases = @('parallel')
+        Find = 'if ($env:ARENA_VERIFICATION_WORKER) { $Parallel = 1 }'; Replace = '' },
+    @{ Name = 'deploy-blames-one-step'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step that ran alongside a deploy fails and both are named'; Cases = @('parallel-guard')
+        Find = '                foreach ($other in $running) { $other | Add-Member -NotePropertyName Tainted -NotePropertyValue $installBroken -Force }'; Replace = '' },
+    @{ Name = 'mutants-run-from-temp'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'killed mutants pass their harness'; Cases = @('helper')
+        Find = '    $mutantBin=Join-Path $projectDir "bin\m-$runId"'; Replace = '    $mutantBin=Join-Path $scratch ''bin''' },
+    @{ Name = 'helper-accepts-survivors'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a survivor mutant fails its harness'; Cases = @('helper')
+        Find = "        if(`$result.Code -eq 0 -or -not `$result.Output.Contains('FAIL: '+`$result.Failure)) {"; Replace = '        if($false) {' },
     @{ Name = 'no-cache-ignored'; File = 'tools/Run-ArenaVerification.ps1'; Failure = '-NoCache runs the step'; Cases = @('no-cache')
         Find = '    if ($keyInfo -and $keyInfo.Cacheable -and -not $NoCache) {'; Replace = '    if ($keyInfo -and $keyInfo.Cacheable) {' }
 )
@@ -117,6 +136,47 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
     Write-Text (Join-Path $repo 'tools/LinkToyChecks/Program.cs') "System.Console.WriteLine(`"LINK_TOY`");`n"
     Write-Text (Join-Path $repo 'tools/LiteralToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'LiteralToyChecks'`n`$target = Join-Path (Join-Path `$PSScriptRoot '../..') 'ArenaMode.Client/Other.cs'`n'LITERAL_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/verification-steps.txt') "# toy registry`nToyChecks`nOtherChecks`nLinkToyChecks`nLiteralToyChecks`nGitToyChecks`nConfigToyChecks`ntools/Verify-LooseToy.ps1`n"
+    # Parallel workers: a toy that reports what its checkout holds, one that takes a while, one that deploys.
+    $echo = @'
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+Add-Content -LiteralPath $env:ARENA_RUNNER_CHECKS_COUNTER -Value 'EchoToyChecks'
+"ROOT=$repo"
+"TOY=" + (Get-FileHash -LiteralPath (Join-Path $repo 'ArenaMode.Client/Toy.cs') -Algorithm SHA256).Hash
+"NEW=" + (Test-Path -LiteralPath (Join-Path $repo 'ArenaMode.Client/New.cs'))
+"OTHER=" + (Test-Path -LiteralPath (Join-Path $repo 'ArenaMode.Client/Other.cs'))
+$null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$null
+"STAGED=$LASTEXITCODE"
+'ECHO_TOY_PASSED'
+'@
+    Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') $echo
+    # SleepToyChecks can also undo a deploy before it ends (ARENA_RUNNER_CHECKS_RESTORE), as a restoring
+    # harness or a person would: the change must still fail it, because it ran while the install was changed.
+    Write-Text (Join-Path $repo 'tools/SleepToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'SleepToyChecks'`nStart-Sleep -Seconds 8`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { Remove-Item -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE -ErrorAction SilentlyContinue }`n'SLEEP_TOY_PASSED'`n"
+    # The shared mutant helper: a production file, a program that pins it, and faults through the real helper
+    # (ARENA_RUNNER_CHECKS_BADFAULT adds one that must make the harness fail).
+    Write-Text (Join-Path $repo 'ArenaMode.Client/Answer.cs') "public static class Answer { public static int Value() => 42; }`n"
+    Write-Text (Join-Path $repo 'tools/MutantToyChecks/MutantToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><AnswerSource Condition=`"'`$(AnswerSource)' == ''`">../../ArenaMode.Client/Answer.cs</AnswerSource></PropertyGroup>`n  <ItemGroup><Compile Include=`"`$(AnswerSource)`" /></ItemGroup>`n</Project>`n"
+    # Like CustomKitChecks, the toy program finds the repository by walking up from its own directory.
+    Write-Text (Join-Path $repo 'tools/MutantToyChecks/Program.cs') "var d = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);`nwhile (d != null && !System.IO.File.Exists(System.IO.Path.Combine(d.FullName, `"AGENTS.md`"))) d = d.Parent;`nif (d == null) { System.Console.WriteLine(`"repository root not found`"); return 2; }`nif (Answer.Value() != 42) { System.Console.WriteLine(`"FAIL: toy answers 42`"); return 1; }`nif (Answer.Value() < 0) { System.Console.WriteLine(`"FAIL: toy answer is positive`"); return 1; }`nSystem.Console.WriteLine(`"MUTANT_TOY_PASSED`");`nreturn 0;`n"
+    $mutantToy = @'
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
+$answer = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Answer.cs')).Path
+Add-Content -LiteralPath $env:ARENA_RUNNER_CHECKS_COUNTER -Value 'MutantToyChecks'
+$faults = @(
+    @{ Name = 'off-by-one'; Find = '=> 42;'; Replace = '=> 41;'; Failure = 'toy answers 42' },
+    @{ Name = 'negative'; Find = '=> 42;'; Replace = '=> -42;'; Failure = 'toy answers 42' }
+)
+switch ($env:ARENA_RUNNER_CHECKS_BADFAULT) {
+    'survivor' { $faults += @{ Name = 'survivor'; Find = '=> 42;'; Replace = '=> 42 ;'; Failure = 'toy answers 42' } }
+    'broken' { $faults += @{ Name = 'broken'; Find = '=> 42;'; Replace = '=> 42 +;'; Failure = 'toy answers 42' } }
+    'wrong-assertion' { $faults += @{ Name = 'wrong-assertion'; Find = '=> 42;'; Replace = '=> 41;'; Failure = 'toy answer is positive' } }
+}
+foreach ($fault in $faults) { $fault.Path = $answer; $fault.Property = 'AnswerSource' }
+Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'MutantToyChecks.csproj') 'MUTANT_TOY_PASSED' @() $faults
+'@
+    Write-Text (Join-Path $repo 'tools/MutantToyChecks/Verify.ps1') $mutantToy
+    Write-Text (Join-Path $repo 'tools/DeployToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'DeployToyChecks'`n`$null = New-Item -ItemType Directory -Force (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode')`nSet-Content -LiteralPath (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll') 'deployed'`n'DEPLOY_TOY_PASSED'`n"
     Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
     $redeploy = Join-Path $dev 'Redeploy'
     Write-Text (Join-Path $redeploy 'Redeploy.Core/Core.cs') "core 1`n"
@@ -136,11 +196,15 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
 function Set-Fault($Sandbox, $Definition) {
     $path = Join-Path $Sandbox.Repo $Definition.File
     # Anchors compare with LF line endings on both sides (a core.autocrlf checkout has CRLF files).
-    $real = [IO.File]::ReadAllText((Join-Path $realRepo $Definition.File)).Replace("`r`n", "`n")
-    $find = ([string]$Definition.Find).Replace("`r`n", "`n")
-    $count = ($real.Split([string[]]@($find), [StringSplitOptions]::None)).Count - 1
-    if ($count -ne 1) { throw "Fault anchor for $($Definition.Name) occurs $count times in $($Definition.File)" }
-    [IO.File]::WriteAllText($path, $real.Replace($find, ([string]$Definition.Replace).Replace("`r`n", "`n")))
+    $text = [IO.File]::ReadAllText((Join-Path $realRepo $Definition.File)).Replace("`r`n", "`n")
+    foreach ($edit in @(@($Definition.Find, $Definition.Replace), @($Definition.Find2, $Definition.Replace2))) {
+        if (-not $edit[0]) { continue }
+        $find = ([string]$edit[0]).Replace("`r`n", "`n")
+        $count = ($text.Split([string[]]@($find), [StringSplitOptions]::None)).Count - 1
+        if ($count -ne 1) { throw "Fault anchor for $($Definition.Name) occurs $count times in $($Definition.File)" }
+        $text = $text.Replace($find, ([string]$edit[1]).Replace("`r`n", "`n"))
+    }
+    [IO.File]::WriteAllText($path, $text)
     Invoke-Git $Sandbox.Repo @('add', '-A'); Invoke-Git $Sandbox.Repo @('commit', '-q', '-m', 'fault')
 }
 
@@ -233,6 +297,9 @@ $cases = [ordered]@{
         Write-Text (Join-Path $s.Spt 'SPT_Runtime/user/mods/Other/logs/server.log') ("written while the server runs " + [Guid]::NewGuid())
         Write-Text (Join-Path $s.Spt 'BepInEx/plugins/SAIN/EditorDefaults.json') ('{"x":"' + [Guid]::NewGuid() + '"}')
         Assert-Run (Invoke-Runner $s 'ToyChecks') 'ToyChecks' $false 'runtime state that mods write keeps the cache'
+        $settings = Join-Path $s.Spt 'SPT_Runtime/user/mods/Other/mod.dll'
+        [IO.File]::WriteAllText($settings, [IO.File]::ReadAllText($settings)); (Get-Item -LiteralPath $settings).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(1)
+        Assert-Run (Invoke-Runner $s 'ToyChecks') 'ToyChecks' $false 'a small installed file rewritten with the same bytes keeps the cache'
         Write-Text (Join-Path $s.Spt 'BepInEx/plugins/New.dll') 'a new plugin'
         $r = Invoke-Runner $s 'ToyChecks'
         Assert-Run $r 'ToyChecks' $true 'a new plugin assembly reruns the step'
@@ -284,6 +351,42 @@ $cases = [ordered]@{
         Check ($r.Output -match 'UNREGISTERED tools/NewChecks') 'an unregistered harness folder is reported' $r.Output
         $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD')
         Check ([int]$r.Ran['LiteralToyChecks'] -eq 1 -and $r.Verdicts['LiteralToyChecks'].Passed) 'a selection without -ListOnly runs the selected steps' $r.Output }
+    'helper' = { param($s)
+        $r = Invoke-Runner $s 'MutantToyChecks' -NoCache
+        Check ($r.Verdicts['MutantToyChecks'].Passed -and $r.Verdicts['MutantToyChecks'].Detail -match 'Source faults rejected: 2') 'killed mutants pass their harness' $r.Output
+        foreach ($bad in 'survivor', 'broken', 'wrong-assertion') {
+            $r = Invoke-Runner $s 'MutantToyChecks' -NoCache -Environment @{ ARENA_RUNNER_CHECKS_BADFAULT = $bad; ARENA_MUTANT_PARALLEL = '3' }
+            $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/MutantToyChecks.log')
+            Check (-not $r.Verdicts['MutantToyChecks'].Passed -and $log -match "Fault was not killed by intended assertion: $bad") "a $bad mutant fails its harness" $log
+        } }
+    'parallel' = { param($s)
+        Edit-File $s 'ArenaMode.Client/Toy.cs' '// parallel'
+        (Get-Item -LiteralPath (Join-Path $s.Repo 'ArenaMode.Client/Toy.cs')).LastWriteTimeUtc = [datetime]'2020-01-01'   # older than any build output
+        Write-Text (Join-Path $s.Repo 'ArenaMode.Client/New.cs') "class New { }`n"
+        Remove-Item -LiteralPath (Join-Path $s.Repo 'ArenaMode.Client/Other.cs')
+        Write-Text (Join-Path $s.Repo 'ArenaMode.Client/Staged.cs') "class Staged { }`n"
+        Invoke-Git $s.Repo @('add', 'ArenaMode.Client/Staged.cs')
+        $statusBefore = (& git -C $s.Repo status --porcelain) -join "`n"
+        $r = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks,ToyChecks' -Extra @('-Parallel', '2')
+        Check ($r.Verdicts['EchoToyChecks'].Detail -match 'worker vw[12]' -and $r.Output -match 'ARENA_VERIFICATION_WORKERS 2') 'steps run in two worker checkouts' $r.Output
+        $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/EchoToyChecks.log')
+        $root = [regex]::Match($log, 'ROOT=(.*)').Groups[1].Value.Trim()
+        Check ($root -like (Join-Path $s.Dev 'ArenaMode-vw*')) 'a worker is a sibling of the checkout under test' $log
+        $toyHash = (Get-FileHash -LiteralPath (Join-Path $s.Repo 'ArenaMode.Client/Toy.cs') -Algorithm SHA256).Hash
+        Check ($log -match "TOY=$toyHash" -and $log -match 'NEW=True' -and $log -match 'OTHER=False' -and $log -match 'STAGED=0') 'a worker mirrors uncommitted, untracked, deleted and staged changes' $log
+        Check ((Get-Item -LiteralPath (Join-Path $root 'ArenaMode.Client/Toy.cs')).LastWriteTimeUtc -gt [datetime]'2026-01-01') 'a synced file gets a fresh write time' $log
+        Check ($r.Exit -eq 0 -and $r.Verdicts['SleepToyChecks'].Passed -and $r.Verdicts['ToyChecks'].Passed -and [int]$r.Ran['SleepToyChecks'] -eq 1) 'every step passes in the workers' $r.Output
+        Check (((& git -C $s.Repo status --porcelain) -join "`n") -eq $statusBefore) 'the checkout under test is left as it was' $statusBefore
+        $again = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks,ToyChecks' -Extra @('-Parallel', '2')
+        Check ($again.Verdicts['EchoToyChecks'].Cached -and $again.Verdicts['SleepToyChecks'].Cached -and $again.Verdicts['ToyChecks'].Cached) 'steps that passed in workers are cached' $again.Output
+        $nested = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks' -NoCache -Environment @{ ARENA_VERIFICATION_WORKER = '1' } -Extra @('-Parallel', '2')
+        Check ($nested.Output -notmatch 'ARENA_VERIFICATION_WORKERS' -and $nested.Verdicts['EchoToyChecks'].Detail -notmatch 'worker vw') 'a runner inside a worker runs its steps sequentially' $nested.Output }
+    'parallel-guard' = { param($s)
+        $deployed = Join-Path $s.Spt 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'
+        $r = Invoke-Runner $s 'DeployToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2') -Environment @{ ARENA_RUNNER_CHECKS_RESTORE = $deployed }
+        Remove-Item -LiteralPath $deployed -ErrorAction SilentlyContinue
+        Check (-not $r.Verdicts['DeployToyChecks'].Passed -and $r.Verdicts['DeployToyChecks'].Detail -match 'changed an Arena installation file') 'a deploying step fails in a worker' $r.Output
+        Check (-not $r.Verdicts['SleepToyChecks'].Passed -and $r.Verdicts['SleepToyChecks'].Detail -match 'while .*DeployToyChecks.*SleepToyChecks|while .*SleepToyChecks.*DeployToyChecks') 'a step that ran alongside a deploy fails and both are named' $r.Output }
     'changed-during-run' = { param($s)
         $r = Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_RUNNER_CHECKS_TOUCH = '1' }
         Assert-Run $r 'ToyChecks' $true 'a touching step runs'

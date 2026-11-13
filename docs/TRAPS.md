@@ -613,6 +613,29 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   are not followed. Following them once pulled 165 harness folders into the reach of VerificationRunnerChecks
   and made `docs/README.md` an input of every step.
 
+Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `Test-ArenaSourceFaults`):
+
+- **Never run two steps side by side in one checkout.** About 30 harnesses run `dotnet test` on ArenaMode.Tests,
+  13 build ArenaMode.sln and 9 build ArenaMode.Client through `DoubleJumpChecks/Build-Staged.ps1`, all into the
+  production projects' own obj/ and bin/; several write fixed `artifacts/` paths. The workers are separate
+  worktrees for that reason, and they must be SIBLINGS of the checkout: 31 harness paths leave the repository
+  relatively (`..\..\..\..\BepInEx`, `..\_decompiled`, `..\Redeploy`). Only `../Redeploy` stays shared; steps that
+  build the client or the solution (Redeploy.Core through the project reference) take the mutex
+  `Global\ArenaVerification-RedeployCore`.
+- **A copied file keeps its old write time.** `File.Copy` preserves it, and a source file edited yesterday is older
+  than a worker's obj/ output from this morning, so MSBuild would call the stale build current. The sync sets the
+  write time of every file it copies to now.
+- **The live-install guard is shared.** A deploy fails every step that ran since the last clean check, and the
+  steps still running when it was seen, even if someone restores the file before they end; the verdict names
+  them all.
+- **A mutant costs process start, not compilation**: about 2.9 s per `dotnet run`, of which the compiler takes
+  0.17 s and the program 0.12 s. The helper restores once (the baseline `dotnet run`), then builds each mutant
+  with `--no-restore` into its own `IntermediateOutputPath`/`OutDir` and runs the DLL, `ARENA_MUTANT_PARALLEL` at
+  a time (default 8; the runner sets cores / (2 x workers)). Side by side cannot let a survivor through: each
+  mutant still needs its own non-zero exit and its own `FAIL: <name>`.
+- **PowerShell names are case-insensitive.** `$worker = Get-ArenaRepoSnapshot $Worker` inside a function with a
+  `[string]$Worker` parameter assigns to the PARAMETER, and the type constraint turns the snapshot into a string.
+
 Traps met while building it:
 
 - **PowerShell passes `$null` to a .NET string parameter as `""`.** `[Environment]::SetEnvironmentVariable($k, $null)`

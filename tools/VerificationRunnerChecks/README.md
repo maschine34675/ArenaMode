@@ -29,6 +29,16 @@ evaluated MSBuild items, not a literal), a production path named in a script sel
 harnesses are not selected, committed and untracked changes select like uncommitted ones, an unregistered
 harness folder is reported, `-ListOnly` runs nothing, and without it the selection runs.
 
+The `helper` case runs a toy harness through the real `Invoke-ArenaSourceChecks.ps1`: its killed mutants
+pass, and a surviving, a non-compiling and a wrongly killed mutant each fail the harness. The `parallel` case
+runs three toys in two workers: the workers are siblings of the checkout, mirror an uncommitted edit (with an
+old write time), an untracked file, a deletion and a staged file, give copied files a fresh write time, leave
+the checkout under test untouched, cache their PASSes, and a runner started inside a worker stays
+sequential. `parallel-guard` deploys from one worker while another step runs (and restores the file before
+it ends): both fail and both are named.
+
 The faults (`$faults` in `Verify.ps1`) remove one of those inputs from the copied model, drop the compile
-items, the named paths or the untracked files from the selection, or let the copied runner cache a FAIL,
-skip the after-run check or ignore `-NoCache`; each must fail its named assertion.
+items, the named paths or the untracked files from the selection, let the copied runner cache a FAIL, skip
+the after-run check or ignore `-NoCache`, break the worker sync (copy, deletion with and without the
+comparison, write time), let workers start workers, blame a deploy on one step only, or let the helper
+accept survivors; each must fail its named assertion.

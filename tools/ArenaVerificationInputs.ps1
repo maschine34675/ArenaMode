@@ -183,10 +183,15 @@ function Get-ArenaTextFacts([string]$Text, [string]$Extension, [regex]$FolderReg
     }
 }
 
-# Stat manifest of a file or a directory tree (relative path, size, write time), memoised per run.
+# Stat manifest of a file or a directory tree (relative path, size, write time), memoised per run. With
+# -HashSmall a file up to 256 KB counts by its bytes instead of its write time: mods and the server rewrite
+# their small settings files with the same content on every start (PitFireTeam's settings.json, BepInEx
+# configs), which voided every key without changing anything a harness reads. The byte hashes are kept
+# across runs of the memo by path, size and write time.
 $script:ArenaManifestMemo = @{}
-function Get-ArenaStatManifest([string]$Path, [string]$Filter = '*', [int]$Cap = 50000, [string[]]$SkipExtensions = @(), [string]$SkipPattern = '') {
-    $memoKey = "$Path|$Filter|$Cap|$($SkipExtensions -join ',')|$SkipPattern"
+$script:ArenaSmallHashMemo = @{}
+function Get-ArenaStatManifest([string]$Path, [string]$Filter = '*', [int]$Cap = 50000, [string[]]$SkipExtensions = @(), [string]$SkipPattern = '', [switch]$HashSmall) {
+    $memoKey = "$Path|$Filter|$Cap|$($SkipExtensions -join ',')|$SkipPattern|$HashSmall"
     if ($script:ArenaManifestMemo.ContainsKey($memoKey)) { return $script:ArenaManifestMemo[$memoKey] }
     $result = if ([IO.File]::Exists($Path)) { $i = [IO.FileInfo]::new($Path); "file|$($i.Length)|$($i.LastWriteTimeUtc.Ticks)" }
     elseif (-not [IO.Directory]::Exists($Path)) { '<absent>' }
@@ -198,7 +203,16 @@ function Get-ArenaStatManifest([string]$Path, [string]$Filter = '*', [int]$Cap =
             if ($SkipExtensions -contains $f.Extension.ToLowerInvariant()) { continue }
             $rel = $f.FullName.Substring($Path.Length)
             if ($SkipPattern -and $rel -match $SkipPattern) { continue }
-            $lines.Add("$rel|$($f.Length)|$($f.LastWriteTimeUtc.Ticks)")
+            if ($HashSmall -and $f.Length -le 262144) {
+                $stamp = "$($f.Length)|$($f.LastWriteTimeUtc.Ticks)"
+                $known = $script:ArenaSmallHashMemo[$f.FullName]
+                if (-not $known -or $known.Stamp -ne $stamp) {
+                    $hash = try { Get-ArenaFileSha $f.FullName } catch { "<unreadable $stamp>" }
+                    $known = @{ Stamp = $stamp; Hash = $hash }; $script:ArenaSmallHashMemo[$f.FullName] = $known
+                }
+                $lines.Add("$rel|$($f.Length)|#$($known.Hash)")
+            }
+            else { $lines.Add("$rel|$($f.Length)|$($f.LastWriteTimeUtc.Ticks)") }
             if ($lines.Count -gt $Cap) { $over = $true; break }
         }
         if ($over) { "<over $Cap files>" } else { $lines.Sort([StringComparer]::Ordinal); Get-ArenaStringSha ($lines -join "`n") }
@@ -437,14 +451,33 @@ function Get-ArenaInstallRoots([string[]]$Roots) {
 # in assertions), and they change every few minutes during a test day, so they are not in the fingerprint.
 $ArenaInstallRuntimeStatePattern = '(?i)(^|\\)logs(\\|$)|\.log$|(^|\\)wwwroot\\|^\\?Redeploy\\data\\|\\Resources\\teammates[^\\]*\\[^\\]+\.db$|\\EditorDefaults\.json$'
 
+# The byte hashes of small installed files survive the process (by path, size and write time), so a run does
+# not hash thousands of ArenaMapPort textures again.
+$script:ArenaSmallHashLoaded = $false
+function Sync-ArenaSmallHashStore([switch]$Save) {
+    $path = Join-Path (Get-ArenaVerificationCacheRoot) 'small-file-hashes.json'
+    if (-not $Save) {
+        if ($script:ArenaSmallHashLoaded) { return }
+        $script:ArenaSmallHashLoaded = $true
+        if (Test-Path -LiteralPath $path) {
+            try { foreach ($e in (Get-Content -Raw -LiteralPath $path | ConvertFrom-Json -AsHashtable).GetEnumerator()) { if (-not $script:ArenaSmallHashMemo.ContainsKey($e.Key)) { $script:ArenaSmallHashMemo[$e.Key] = @{ Stamp = $e.Value.Stamp; Hash = $e.Value.Hash } } } } catch { }
+        }
+        $script:ArenaSmallHashCount = $script:ArenaSmallHashMemo.Count
+        return
+    }
+    if ($script:ArenaSmallHashMemo.Count -eq $script:ArenaSmallHashCount) { return }
+    try { Write-ArenaAtomic $path ($script:ArenaSmallHashMemo | ConvertTo-Json -Depth 3 -Compress); $script:ArenaSmallHashCount = $script:ArenaSmallHashMemo.Count } catch { }
+}
+
 # Everything outside the checkout that every step may read, one "label|identity" line each (the labels name
 # what moved in the miss report).
 function Get-ArenaExternalFingerprint([string]$RepoRoot, [string[]]$InstallRoots) {
+    Sync-ArenaSmallHashStore
     $lines = [Collections.Generic.List[string]]::new()
     foreach ($root in (Get-ArenaInstallRoots $InstallRoots)) {
         $lines.Add("install|$root|managed|$(Get-ArenaStatManifest (Join-Path $root 'EscapeFromTarkov_Data\Managed'))")
         foreach ($sub in 'BepInEx\core', 'BepInEx\plugins', 'BepInEx\patchers', 'SPT_Runtime\SPT_Data', 'SPT_Runtime\user\mods') {
-            $lines.Add("install|$root|$sub|$(Get-ArenaStatManifest (Join-Path $root $sub) -SkipPattern $ArenaInstallRuntimeStatePattern)")
+            $lines.Add("install|$root|$sub|$(Get-ArenaStatManifest (Join-Path $root $sub) -SkipPattern $ArenaInstallRuntimeStatePattern -HashSmall)")
         }
         foreach ($filter in '*.dll', '*.exe', '*.json') { $lines.Add("install|$root|SPT_Runtime\$filter|$(Get-ArenaStatManifest (Join-Path $root 'SPT_Runtime') -Filter $filter)") }
     }
@@ -454,6 +487,7 @@ function Get-ArenaExternalFingerprint([string]$RepoRoot, [string[]]$InstallRoots
     $lines.Add("dotnet|$((& dotnet --version 2>$null) -join ';')|$((& dotnet --list-sdks 2>$null) -join ';')|$((& dotnet --list-runtimes 2>$null) -join ';')")
     $lines.Add("git|$((& git --version 2>$null) -join ';')")
     $lines.Add("pwsh|$($PSVersionTable.PSVersion)|os|$([Environment]::OSVersion.VersionString)")
+    Sync-ArenaSmallHashStore -Save
     return [pscustomobject]@{ Hash = Get-ArenaStringSha ($lines -join "`n"); Lines = @($lines) }
 }
 
@@ -479,7 +513,7 @@ function Get-ArenaScopeExternalLines($Scope, [string]$RepoRoot, [string[]]$Insta
         foreach ($root in $roots) {
             foreach ($sub in $ArenaInstallStateSubtrees[$pattern]) {
                 $dir, $filter = $sub -split '\|', 2
-                $lines.Add("state|$root|$sub|$(Get-ArenaStatManifest (Join-Path $root $dir) -Filter $(if ($filter) { $filter } else { '*' }))")
+                $lines.Add("state|$root|$sub|$(Get-ArenaStatManifest (Join-Path $root $dir) -Filter $(if ($filter) { $filter } else { '*' }) -HashSmall)")
             }
         }
     }
