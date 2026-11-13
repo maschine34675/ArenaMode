@@ -181,13 +181,21 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
   `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
   working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
-  and restarted the game on GPU-2 (10:41). Installed at noon on 2026-11-13: client `0.5.0+73370e37` (SHA-256
-  `99b56e9ded225a181db254b33bb1d5e3c644238f67c924ecba741e1f7181e97c`), BigBrainCompat `0.5.0+73370e37`
-  (`2a06ae297af1953187844130b56f9e0ece6312233335c8473a33976d7c3043b7`), server `0.5.0+e90d1f72`
-  (`e8a4414279c1dcc963ad7cf47172e605a7655552f74de53cb0096d0eacdf6385`). That build contains the spawn-row
-  branch up to `ab16c8f3` and the unmerged dispatch-order fix; it does not contain the extraction hardening,
-  so it matches no commit on `master`. It was left in place on purpose: it belongs to another session's
-  unfinished native test. To get the `master` state installed, build the `master` head with
+  and restarted the game on GPU-2 (10:41): client and BigBrainCompat `0.5.0+73370e37` (the spawn-row branch up
+  to `ab16c8f3` plus the dispatch-order fix; previous files `D:\SPT41-Backups\solo-squad-order\20261113-104013`).
+  After rebasing that branch onto `feature/spawn-rows` `7d47f03b` it replaced them at 12:14 with
+  **client `0.5.0+ba06ac49`** (SHA-256 `fc3a45dbdbfa5276cf7e003aae79aa56b37dc59b2fc58fde43a753afff9a9f3a`) and
+  **BigBrainCompat `0.5.0+ba06ac49`** (`7790b1b0a4350e019e1358ceffd10d6c6ebea1880d7f2cf82862675fdcecb6d4`),
+  the head of `fix/solo-squad-dispatch-order` at that time (previous files
+  `D:\SPT41-Backups\solo-squad-order\20261113-121431`); server `0.5.0+e90d1f72`
+  (`e8a4414279c1dcc963ad7cf47172e605a7655552f74de53cb0096d0eacdf6385`) stays, the server and shared sources
+  differ from it only in comments. Built against Core `1.0.22+b1d69e1` from a separate Redeploy worktree
+  (`D:\SPT41\Development\_squadorder-build\Redeploy`), because the shared Redeploy checkout carries
+  uncommitted 1.0.23 work. This client contains the extraction hardening through the spawn-row branch's merge
+  of `master`, but it is not a `master` build until that branch and the fix are merged. Native runs on it:
+  [GPU-SOLO-SQUAD-ORDER-20261113.md](reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md). GPU-1 had paused
+  the `SPT41` folder on its side for a Codex test at the time and did not receive either build.
+  To get the `master` state installed, build the `master` head with
   `tools/AirPitChecks/NoDeploy.targets`, check the three stamps and copy the three DLLs (the procedure of the
   paragraph above). The Session helper's file time is 10:04:43 of the same day; the spawn-row work did not
   touch it. Core is unchanged (`1.0.22+b1d69e1`), ArenaMapPort is `0.5.0+160523d`.
@@ -263,11 +271,11 @@ failed to install, bots leaving through SAIN's extraction) are done:
 [EXTRACTION-HARDENING-20261113.md](reviews/EXTRACTION-HARDENING-20261113.md), merged into this branch; (4) the 1.7 % of Chop Shop mesh cells with
 fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the installed build is another session's test build and matches no commit on `master` (see "Since
 2026-11-13" in the installed-state paragraph above); the final verification of the merged branch is in the
-contract's Verified section; (6) filed separately (branch `fix/solo-squad-dispatch-order`, not merged when this was written): the
-dispatch order of the solo Tactical squad
-against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
-its points when the profiles arrive; all ten measured round starts of 2026-11-13 had the move 0.06 to 0.28 s
-after the request and the pick 1.2 to 10.6 s after it, so the intended order held, but nothing enforces it).
+contract's Verified section; (6) the dispatch order of the solo Tactical squad against the round's body move
+(contract decision 9) is fixed on branch `fix/solo-squad-dispatch-order` (based on this branch, not merged,
+not pushed): the request waits for the swap or the held respawn to land (`SoloTacticalSquadDispatch`,
+[SOLO-TACTICAL-SPAWN-REVIEW.md](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md), "Dispatch order"), verified offline and
+natively on Chop Shop and Equator; merge it with or after this branch.
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as

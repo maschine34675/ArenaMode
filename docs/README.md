@@ -281,6 +281,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [Solo Tactical squad dispatch order, 2026-11-13: the request after the round's body move, twelve round starts on Chop Shop and Equator, plan positions, acceptance](reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md)
 - [Spawn-row follow-up native runs, 2026-11-13: Domination 6/6 and Zombies from the yard centre on Chop Shop, Team DM with the pocket exits, solo Tactical on Chop Shop, Equator and Iceberg, PitFireTeam Tactical on Iceberg and Equator](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
 - [Chop Shop native acceptance: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies and a PMC control on GPU-2 (the 15 s gate watchdog, the failed-dispatch backoff, Domination 5 of 6 pickups)](reports/2026-11/GPU-CHOP-SHOP-20261112.md)
 - [Inventory UI mod admission: Caliber Under Ammo Name, Compatibility Highlighter and Trader Modding](reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)

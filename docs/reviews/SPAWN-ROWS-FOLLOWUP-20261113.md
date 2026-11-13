@@ -155,6 +155,11 @@ Domination clearance) agreed with that run.
    new maps do not introduce it. The reorder (move first, then request, or read the position at the swap) is
    filed as a separate task and is not part of this change; the lifts stay as decided.
 
+   **Resolved on `fix/solo-squad-dispatch-order` (2026-11-13):** the round's request now waits until the move
+   has landed (`SoloTacticalSquadDispatch`; contract [SOLO-TACTICAL-SPAWN-REVIEW.md](SOLO-TACTICAL-SPAWN-REVIEW.md),
+   "Dispatch order"; native runs [GPU-SOLO-SQUAD-ORDER-20261113.md](../reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md)).
+   The text above describes the order before that branch.
+
 ## Pins
 
 The old pins encoded a row list (`ChopShopChecks`: the exact seven ids) and a count (`MapModeAdmissionChecks`:
@@ -309,7 +314,7 @@ followed adds the extraction hardening, which was in neither native build.
   `SPAWN-ROWS-DATA` fails on the published data.
 - The order of the solo squad dispatch against the round-break move (decision 9). The ten measured round
   starts agree with the intended order, the code does not enforce it, and the simulation of the lost race is
-  the reviewer's, not a native run.
+  the reviewer's, not a native run. (Enforced since `fix/solo-squad-dispatch-order`, see decision 9.)
 - The pickup simulations of the survey for the other maps (pool sizes, Domination usable counts); only Chop Shop
   Domination was placed natively.
 - Hearing the flares, sound, night and rain at the new exits; the release of ArenaMapPort that carries all of

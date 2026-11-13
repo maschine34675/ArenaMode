@@ -158,3 +158,22 @@ PitFireTeam Tactical (`RequestTeamEnemies`) is a different path and unchanged.
   late landing from an earlier round; a request that throws announces nothing and is retried after 3 s, not every
   frame. Three probes must fail there: the actual `StartRound` of `a1e33b87`, a
   `TickLive` that ignores the held request and an `OnSoloLocalRespawn` that does not report.
+- Final run through `tools/Run-ArenaVerification.ps1` on the branch after its rebase onto `7d47f03b`: xunit 3,903
+  (3,900 passed, the 3 known environment skips), `SoloTacticalSpawnChecks` and its `Verify-Regression.ps1`,
+  `TacticalPolishChecks`, `TeamArenaExpansionChecks`, `PitFireTeamChecks` and `ArenaAssemblyChecks` passed; every
+  step left the live install unchanged. `PitFireTeamRoundLifecycleChecks` fails before it reads `TacticalMode.cs`
+  because `_reference/SPT-PitFireTeam-beta-0.10.0` is no longer on this machine (environment, not this change).
+
+### Verified natively
+
+GPU-2, 2026-11-13, `tools/ChopShopChecks/scenarios/tactical-solo-ported.json` (plus one `bots` read in round 3)
+on Chop Shop and Equator with `Tactical/BuySeconds 5` and `Tactical/RoundSeconds 60` (`persist=false`), twice:
+with the first build of the fix (`0.5.0+73370e37`) and with the branch head after its rebase (`0.5.0+ba06ac49`).
+All four runs passed every expectation. In all twelve round starts (seven round-break swaps, five held respawns)
+the request went out 0.058 to 0.167 s after the round start, right after the move had landed, and every plan was
+measured from the Player row the player had landed on, 70.9 to 88.4 m from where the round found them; no release
+by the cap. The profiles took 2.4 to 21.8 s, so the race itself did not occur natively; the lost race is covered
+by the offline checks above. The nearest opponent at the moment the round went live stood 22.2 to 30.6 m away
+(bots below 25 m had already walked in from rows beyond it). Report with the per-round table, the acceptance
+comparison and the build notes (Core 1.0.22 from a separate Redeploy worktree):
+[GPU-SOLO-SQUAD-ORDER-20261113.md](../reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md).
