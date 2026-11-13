@@ -141,8 +141,9 @@ NATIVE: run on GPU-2 on 2026-11-13 with the test builds `c5b1ed96` and `a7965541
 ([report](../reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)). The Lab, The Labyrinth and each of the three Customs areas started a Domination
 match on their primaries (no alternate was needed), logged `Domination points verified` with the rows above,
 in the areas also `Arena area armed: <id>; mode=domination, ...`, READY and `Domination objective routes from
-both area team starts verified.`, placed 6 of 6 pickups and saw points change hands within the first minute
-(by both teams on The Lab, in Industrial Center and in Industrial Side), with no ArenaMode warning. The menu
+both area team starts verified.`, placed 6 of 6 pickups and saw points taken within the first minute (by USEC
+on The Lab, where BEAR took its first point at 92 s; by both teams in Industrial Center and Industrial Side; by
+BEAR on The Labyrinth and in Customs Yard), with no ArenaMode warning. The menu
 offered ten maps under Domination, exactly the three areas and the size row on Customs, and the 3-point and
 1-point copy. Team Deathmatch in Customs Yard started unchanged. Not run: a match to its limit, the other Lab
 levels, the far starts of the areas against the 160 m route limit, PitFireTeam (refused by rule).

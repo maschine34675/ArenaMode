@@ -29,6 +29,9 @@ $faults=@(
     # Width 0 equals TMP's cached default, so the width setter returns early; the black colour setter does the
     # same, and the label never gets its own material: the first thing that breaks is the clone, not the look.
     @{Name='letter-without-outline';Path=$domination;Property='DominationViewSource';Find='private const float LetterOutlineWidth = .2f;';Replace='private const float LetterOutlineWidth = 0f;';Failure='objective outline gave the label its own copy of the font material'},
+    # The colour setter is a no-op for black (TMP's cached default) and the band keeps the font material's own
+    # black; any other colour assigned there would reach the label's copy.
+    @{Name='letter-light-outline';Path=$domination;Property='DominationViewSource';Find='_label.outlineColor = new Color(0f, 0f, 0f, 1f);';Replace='_label.outlineColor = new Color(1f, 1f, 1f, 1f);';Failure='objective letter has a dark outline'},
     @{Name='letter-thin-outline';Path=$domination;Property='DominationViewSource';Find='private const float LetterOutlineWidth = .2f;';Replace='private const float LetterOutlineWidth = .1f;';Failure='objective letter has a dark outline'},
     # The state the native run of 13.11.2026 showed: the outline band eats the face from inside.
     @{Name='letter-face-thinned-by-outline';Path=$domination;Property='DominationViewSource';Find='private const float LetterFaceDilate = .3f;';Replace='private const float LetterFaceDilate = .1f;';Failure='objective letter face is dilated by at least the outline width'},

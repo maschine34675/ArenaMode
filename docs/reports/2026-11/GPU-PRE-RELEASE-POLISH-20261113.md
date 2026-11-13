@@ -7,7 +7,8 @@ under test: `feature/pre-release-polish`. Contract for the Domination maps:
 [DOMINATION-VANILLA-MAPS-20261113.md](../../reviews/DOMINATION-VANILLA-MAPS-20261113.md).
 Raw evidence (frame captures of the kit window, stills, crops) is under the ignored
 `artifacts/prerelease-20261113/` of the primary checkout. All times are host local
-time (UTC+01:00), 19:07 to 19:56.
+time (UTC+01:00); the runs on the branch builds lasted from 19:07 to 19:56, the
+capture of the installed `master` build was taken at 16:52 and the backup at 19:03.
 
 The five requests of the user this run answers: the KITS window's BACK button
 reads DONE; the buttons of a selected kit no longer flash; Domination on every
@@ -42,7 +43,9 @@ three stamps were checked, client, BigBrainCompat and server DLL were copied int
 
 `uibridge_status` in the last raid on build B: 16 of 16 `maschine-*` plugins and
 both libraries identical (VM build = host disk = loaded), 40 plugins loaded. The
-commits after `a7965541` change harnesses and documents only.
+BigBrainCompat and server sources are the same in A and B; their hashes differ
+through the commit stamp in `ProductVersion` alone. The commits after `a7965541`
+change harnesses and documents only.
 
 ## Kit window
 
@@ -134,9 +137,9 @@ Chop Shop `X=(-369.290, -3.805, 499.490)`, Equator with
 Menu, build A: with Domination selected all ten map tiles are offered (The Lab,
 The Labyrinth and Customs among them); Customs shows exactly the three area rows
 and the 2v2 to 5v5 row, no whole-map row; the description reads
-`USEC versus BEAR. Hold 3 points to earn team score.` on The Lab and in the
-Customs areas and `Hold 1 point` on The Labyrinth; the info panel names
-`CUSTOMS — Industrial Center`.
+`USEC versus BEAR.` and, on its second line, `Hold 3 points to earn team score.`
+on The Lab and in the Customs areas and `Hold 1 point to earn team score.` on The
+Labyrinth; the title of the area map preview reads `CUSTOMS — Industrial Center`.
 
 Team Deathmatch in Customs Yard on build B (3v3), as the regression of the
 widened mode checks: `Arena area armed: customs-yard-polygon-v1; mode=teamdeathmatch,
