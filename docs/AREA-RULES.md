@@ -782,6 +782,9 @@ historical preparation extraction deferral and cleanup.
 Since 2026-10-25, ArenaExtractionIsolation owns extraction blocking across every Arena mode/map;
 team-box opening must never replay deferred native extraction entries.
 Ordinary PMC/Scav extraction and manual Arena match exit remain native.
+Since 2026-11-13 the MapPort exits sit in the team start pockets, so Arena admission fails
+closed when those hooks are not installed (`ArenaExtractionIsolation.AdmissionFailure`, read by
+`ArenaOptionalMods` right after the whitelist); see docs/reviews/EXTRACTION-HARDENING-20261113.md.
 See docs/reviews/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
 The completion contract is polled
 only after the owned release and while the exact game/world/arm/token still

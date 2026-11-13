@@ -22,6 +22,18 @@ internal static class ArenaExtractionIsolation
     private static readonly Harmony Patches = new(Plugin.PluginGuid + ".ExtractionIsolation");
     private static bool _enabled, _reported;
 
+    /// <summary>
+    /// Null while every hook is installed, else the player-visible refusal. ArenaOptionalMods reads
+    /// it, so the menu, the final validation and the raid start (before the server arm and
+    /// MarkArmed) all refuse Arena. Since 2026-11-13 the MapPort maps put an exit box at the team
+    /// start positions; without these hooks a team-mode player would extract natively about 8 s
+    /// after spawning, so a failed Enable must fail closed for Arena. The hooks themselves still
+    /// fail open (they return true), which keeps ordinary raids native.
+    /// </summary>
+    internal static string AdmissionFailure => _enabled ? null
+        : "Arena extraction blocking is unavailable, so a map exit could end the match. "
+          + "Check the BepInEx log and update ArenaMode; ordinary PMC/Scav raids remain available.";
+
     internal static void Enable()
     {
         if (_enabled) return;
