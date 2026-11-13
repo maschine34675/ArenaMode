@@ -9,9 +9,9 @@ internal static partial class Program
         && Math.Abs(a.g-b.g)<.0001f && Math.Abs(a.b-b.b)<.0001f && Math.Abs(a.a-b.a)<.0001f;
 
     // Independent statement of the letter size law: the glyph (a capital is .175 m high at label scale 1)
-    // keeps 3 % of the screen height, so it subtends .03 * fov degrees; world height = 2 d tan(angle / 2).
+    // keeps exactly 3 % of the screen height; the visible height at distance d is 2 d tan(fov / 2).
     private static float ExpectedLetterScale(float distance, float fov)
-        => 2f * distance * MathF.Tan(fov * .03f * MathF.PI / 180f / 2f) / .175f;
+        => .03f * 2f * distance * MathF.Tan(fov * MathF.PI / 180f / 2f) / .175f;
 
     private static void DominationRings()
     {
@@ -28,6 +28,10 @@ internal static partial class Program
             var label = root.GetComponentsInChildren<TMPro.TextMeshPro>(true).Single();
             var chip = GameObject.All.Single(g => g.name == "Control point chip");
             var chipMaterial = chip.GetComponent<Renderer>().sharedMaterial;
+            var fontMaterial = HudStyle.Font.material;
+            var labelClone = label.fontSharedMaterial;
+            Check(labelClone != fontMaterial && !labelClone.Destroyed && !fontMaterial.Destroyed,
+                "objective outline gave the label its own copy of the font material");
             Check(!root.activeSelf, "objective marker waits for camera before display");
             Check(ring.loop && ring.positionCount == 64 && ring.startWidth >= .1f,
                 "objective ground ring remains a bounded visible circumference");
@@ -89,6 +93,9 @@ internal static partial class Program
             Check(root.Destroyed && ring.sharedMaterial.Destroyed, "objective ring private resources released");
             Check(label.gameObject.Destroyed && chip.Destroyed && chipMaterial.Destroyed,
                 "objective letter, chip and chip material released on dispose");
+            Check(labelClone.Destroyed, "objective letter's cloned font material released on dispose");
+            Check(!fontMaterial.Destroyed && HudStyle.Font.material == fontMaterial,
+                "objective dispose leaves the font asset's own material alone");
 
             // Ported map: no label object, no chip object, no second material; ring unchanged.
             int materialsBefore = Material.All.Count;

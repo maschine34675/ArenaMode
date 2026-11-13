@@ -19,11 +19,12 @@ internal sealed class DominationPointView : IDisposable
     private readonly string _id;
 
     // World letter, vanilla maps only. The glyph keeps a constant apparent size: it should fill
-    // GlyphScreenFraction of the screen height, i.e. subtend GlyphScreenFraction * fieldOfView degrees
-    // (about 1.7 degrees at a 57 degree vertical FOV, 3 % of the screen). At camera distance d that
-    // needs a glyph of 2 * d * tan(angle / 2) metres; a capital at label scale 1 and fontSize 2.5 is
-    // about CapitalHeight metres high, so scale = 2 * d * tan(angle / 2) / CapitalHeight, clamped so
-    // a letter next to the camera does not fill the view (min) and a far one stays a bounded quad (max).
+    // GlyphScreenFraction of the screen height. The visible height at distance d is
+    // 2 * d * tan(fieldOfView / 2) (the field of view is vertical), so the glyph needs
+    // GlyphScreenFraction * 2 * d * tan(fieldOfView / 2) metres (at 60 degrees and 50 m: .03 * 2 * 50 *
+    // .5774 = 1.73 m). A capital at label scale 1 and fontSize 2.5 is about CapitalHeight metres high,
+    // so scale = that height / CapitalHeight (9.9 in the example), clamped so a letter next to the
+    // camera does not fill the view (min) and a far one stays a bounded quad (max).
     private const float GlyphScreenFraction = .03f;
     private const float CapitalHeight = .175f;
     private const float MinLetterScale = 1.5f;
@@ -104,8 +105,8 @@ internal sealed class DominationPointView : IDisposable
     // Label scale that keeps the glyph at GlyphScreenFraction of the screen height (see the constants).
     internal static float LetterScaleFor(float distance, float fieldOfViewDegrees)
     {
-        float angle = fieldOfViewDegrees * GlyphScreenFraction * Mathf.Deg2Rad;
-        float scale = 2f * distance * Mathf.Tan(angle * .5f) / CapitalHeight;
+        float height = GlyphScreenFraction * 2f * distance * Mathf.Tan(fieldOfViewDegrees * Mathf.Deg2Rad * .5f);
+        float scale = height / CapitalHeight;
         return Mathf.Clamp(scale, MinLetterScale, MaxLetterScale);
     }
 
@@ -144,6 +145,13 @@ internal sealed class DominationPointView : IDisposable
 
     public void Dispose()
     {
+        // Setting outlineWidth/outlineColor made TMP clone the font material onto the label's renderer
+        // (TextMeshPro.SetOutlineThickness: m_renderer.material, kept in m_fontMaterial and
+        // m_sharedMaterial), and TextMeshPro.OnDestroy does not destroy it. fontSharedMaterial returns
+        // m_sharedMaterial without cloning again; read it before the label goes, and never destroy the
+        // font asset's own shared material, which every other label uses.
+        Material clone = _label != null ? _label.fontSharedMaterial : null;
+        if (clone != null && !ReferenceEquals(clone, HudStyle.Font?.material)) UnityEngine.Object.Destroy(clone);
         if (_root != null) { _root.SetActive(false); UnityEngine.Object.Destroy(_root); }
         if (_material != null) UnityEngine.Object.Destroy(_material);
         if (_chipMaterial != null) UnityEngine.Object.Destroy(_chipMaterial);

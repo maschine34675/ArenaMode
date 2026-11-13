@@ -130,12 +130,16 @@ namespace UnityEngine.Rendering { public enum ShadowCastingMode { Off } }
 namespace TMPro
 {
     public enum TextAlignmentOptions { Center }
+    public class TMP_FontAsset : UnityEngine.Object { public UnityEngine.Material material; }
     public class TextMeshPro : UnityEngine.Component
     {
         /// <summary>Makes the next text assignment throw, to model a late native failure in the constructor.</summary>
         public static bool FailText;
         private UnityEngine.Renderer _renderer;
-        private object _font;
+        private TMP_FontAsset _font;
+        private UnityEngine.Material _fontSharedMaterial;
+        private float _outlineWidth;
+        private UnityEngine.Color _outlineColor;
         private string _text;
         public bool Awakened { get; private set; }
         public void NativeAwake()
@@ -147,18 +151,40 @@ namespace TMPro
         // The installed TMP_Text.font setter calls LoadFontAsset, and TextMeshPro.LoadFontAsset writes its
         // cached renderer, which only Awake populates. This boundary throws a NullReferenceException when
         // production configures a label that has not awakened yet.
-        public object font
+        public TMP_FontAsset font
         {
             get => _font;
             set
             {
                 if (ReferenceEquals(_font, value)) return;
                 _font = value;
+                _fontSharedMaterial = value.material; // LoadFontAsset: m_sharedMaterial = m_fontAsset.material
                 _renderer.receiveShadows = false;
             }
         }
-        public float fontSize, outlineWidth;
-        public UnityEngine.Color outlineColor;
+        /// <summary>
+        /// TMP_Text.fontSharedMaterial returns m_sharedMaterial without cloning. Until an outline is set it is
+        /// the font asset's own material; SetOutlineThickness/SetOutlineColor (TextMeshPro) call
+        /// m_renderer.material, which clones it once onto the renderer, and keep the clone in m_sharedMaterial.
+        /// TextMeshPro.OnDestroy does not destroy that clone.
+        /// </summary>
+        public UnityEngine.Material fontSharedMaterial => _fontSharedMaterial;
+        private void CloneMaterialOnce()
+        {
+            if (_fontSharedMaterial == null || _fontSharedMaterial != _font.material) return;
+            _fontSharedMaterial = new UnityEngine.Material(_font.material.Shader);
+        }
+        public float fontSize;
+        public float outlineWidth
+        {
+            get => _outlineWidth;
+            set { if (_outlineWidth == value) return; _outlineWidth = value; CloneMaterialOnce(); }
+        }
+        public UnityEngine.Color outlineColor
+        {
+            get => _outlineColor;
+            set { _outlineColor = value; CloneMaterialOnce(); }
+        }
         public TextAlignmentOptions alignment;
         public UnityEngine.Color color;
         public bool richText, enableWordWrapping;
@@ -185,7 +211,14 @@ namespace ArenaMode
     public static class Plugin { public static readonly Logger ModLogger = new(); }
     public sealed class Logger { public List<string> Warnings = new(); public void LogWarning(string text) => Warnings.Add(text); }
 }
-namespace ArenaMode.Hud { public static class HudStyle { public static object Font = new(); } }
+namespace ArenaMode.Hud
+{
+    public static class HudStyle
+    {
+        // The font asset's own material is shared by every label; it must outlive any one view.
+        public static TMPro.TMP_FontAsset Font = new() { material = new UnityEngine.Material(new UnityEngine.Shader { name = "TMP/Distance Field" }) };
+    }
+}
 namespace ArenaMode.Modes
 {
     public struct DominationPointState
