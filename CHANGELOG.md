@@ -19,6 +19,27 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   Redeploy's PMC-to-own-Scav continuation. No third-party binaries are bundled.
   [Scope](docs/reviews/FOUR-MOD-COMPAT-20261113.md),
   [native checks](docs/reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
+- Tactical now runs on **Equator and Iceberg**, solo and with a PitFireTeam squad, and on **Chop Shop**
+  solo; the Chop Shop default is **eight** participants. ArenaMapPort's new bot spawn points of
+  2026-11-12 (Equator 16 instead of 10, Iceberg 17 instead of 9, Chop Shop 16 instead of 7) removed the
+  reason for the three refusals and for the default of six, so they were decided again against the
+  installed data: from the middle of Equator at least six spawn points lie beyond the 25 m safety
+  distance (nine from the atrium), on Iceberg at least nine, on Chop Shop 11 to 13 from every player
+  start. Chop Shop keeps refusing Tactical with a PitFireTeam squad, because a surviving leader in the
+  yard centre can have only three to five distant spawn points and the match would end without a result;
+  squad Zombies stay refused on Equator and Chop Shop (too little space). The picker hints follow.
+  **This needs an ArenaMapPort build with the spawn points of 2026-11-12, which is not released yet and
+  carries the same version 0.5.0 as the published one.** The published 0.5.0 has 10 spawn points on Equator
+  (4 of them far from the atrium), 9 on Iceberg and no Chop Shop. With that data Tactical is still admitted on
+  both maps (the reviewed versions in the whitelist are advisory, so nothing can tell the two builds apart): a
+  PitFireTeam leader who survives in the middle gets four opponent spawn points instead of five and the match
+  ends without a result, and solo gets a smaller squad after 45 s. Release blocker: no ArenaMode release from
+  this state before an ArenaMapPort release ships the spawn points under a new version number. The two exits of each map now stand inside the team
+  start areas (data only; extraction stays disabled in Arena).
+  Played natively on 2026-11-13 on all three maps (three solo rounds each; a PitFireTeam squad on Iceberg and
+  Equator); no match was played to its end.
+  [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md),
+  [native runs](docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
 - Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
   blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
   so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.
@@ -27,20 +48,23 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   a match through a map exit; ordinary raids keep SAIN's setting.
   [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
 - Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
-  Domination and solo Zombies, **without Tactical or PitFireTeam Zombies** (seven bot spawn points,
-  none beyond the 25 m floor from the yard centre; a very small walkable area). Default is six
-  participants. Team DM and Domination use the map's original pockets, USEC east / BEAR west, for
-  2v2-10v10, and Domination has its one capture point. The map needs an ArenaMapPort build that
-  ships it (not yet released); the saved map list gains it once through optional-map revision 6.
+  Domination and solo Zombies, **without PitFireTeam Zombies** (a very small walkable area; Tactical
+  followed on 2026-11-13, see above). Team DM and Domination use the map's original pockets, USEC east /
+  BEAR west, for 2v2-10v10, and Domination has its one capture point. The map needs an ArenaMapPort build
+  that ships it (not yet released); the saved map list gains it once through optional-map revision 6.
   It ran on a test machine on 2026-11-12 (menu, Deathmatch, Team Deathmatch 4v4 and 10v10, Domination,
   solo Zombies); its gates get a 15 s watchdog because the match flow polls the opening once a second.
-  Known limits: Domination places 5 of 6 pickups, and the yard centre is a dead patch for spawns
-  (the map has only seven bot spawn points).
+  The two limits of that first run (Domination placed 5 of 6 pickups, the yard centre was a dead patch for
+  spawns) came from the map's seven bot spawn points; with ArenaMapPort's 16 points of 2026-11-12 they are
+  gone: Domination placed 6 of 6 and solo Zombies from the yard centre filled 32 of 32 on a test machine
+  on 2026-11-13.
   [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md),
   [native report](docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)
 - Zombies: when an infected spawn request fails (no usable spawn point), the wave now waits two seconds
   before the next attempt instead of retrying every pacing interval. The slot is still retried. In a spot
-  without a usable spawn point this took the dropped requests and warnings from 133 in 30 s to 18 in 36 s.
+  without a usable spawn point (Chop Shop's yard centre with its seven spawn points of 2026-11-12) this took the
+  dropped requests and warnings from 133 in 30 s to 18 in 36 s; the later 16 spawn points no longer
+  reproduce that spot.
   [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md)
 - Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
   editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from

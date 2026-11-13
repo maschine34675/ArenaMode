@@ -344,10 +344,11 @@ internal static partial class Program
         CheckEquatorPftAdmission();
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.AirPitId, ArenaMode.Shared.ArenaMapCatalog.Bay5DefaultClientAllowlist);
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.BowlId, ArenaMode.Shared.ArenaMapCatalog.AirPitDefaultClientAllowlist);
-        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.IcebergId, ArenaMode.Shared.ArenaMapCatalog.BowlDefaultClientAllowlist,
-            tactical: false);
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.EquatorId, ArenaMode.Shared.ArenaMapCatalog.NativeDefaultClientAllowlist,
+            pftZombie: false);
+        CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.IcebergId, ArenaMode.Shared.ArenaMapCatalog.BowlDefaultClientAllowlist);
         CheckPortedMapAdmission(ArenaMode.Shared.ArenaMapCatalog.AutoServiceId, ArenaMode.Shared.ArenaMapCatalog.IcebergDefaultClientAllowlist,
-            tactical: false, pftZombie: false);
+            pftTactical: false, pftZombie: false);
         CheckEquatorBoxHookAdmission();
         CheckDeathmatchNegotiation();
         CheckCustomsNegotiation();

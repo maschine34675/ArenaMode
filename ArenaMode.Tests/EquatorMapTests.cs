@@ -107,10 +107,7 @@ public sealed partial class ArenaAreaServerTests
             foreach (string? mode in new[] { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie", "endless", "rounds", null })
                 yield return new object?[] { map, mode,
                     (mode is "deathmatch" or "gungame" or "tactical" or "teamdeathmatch" or "zombie")
-                    && map != ArenaMapCatalog.CustomsId
-                    && !(ArenaMapCatalog.IsEquator(map) && mode == "tactical")
-                    && !(ArenaMapCatalog.IsIceberg(map) && mode == "tactical")
-                    && !(ArenaMapCatalog.IsAutoService(map) && mode == "tactical") };
+                    && map != ArenaMapCatalog.CustomsId };
     }
 
     [Theory]

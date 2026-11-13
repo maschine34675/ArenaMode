@@ -61,7 +61,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (206)
+## Feature reviews and contracts (209)
 
 Sorted by file name.
 
@@ -242,6 +242,7 @@ Sorted by file name.
 - [Bounded solo population: reservation, capacity and Labyrinth bosses](reviews/SOLO-POPULATION-REVIEW.md)
 - [Solo Tactical opponent-start timing and lease contract](reviews/SOLO-TACTICAL-SPAWN-REVIEW.md)
 - [Spawn-gate completion: MapPort GatesOpen contract and verification status](reviews/SPAWN-GATE-COMPLETION-20261024.md)
+- [Spawn rows follow-up: Tactical on Equator, Iceberg and solo Chop Shop, Chop Shop default of eight, pocket exits, pins on decisions](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)
 - [Slow walking during surgical treatment and leg splinting](reviews/SURGICAL-WALK-REVIEW.md)
 - [SVM protected and ordinary raid-end transaction compatibility](reviews/SVM-COMPAT-20261019.md)
 - [Protected Tactical keeps frozen opponent bodies until roster retirement](reviews/TACTICAL-CORPSE-REVIEW.md)
@@ -274,12 +275,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (281)
+## Reports (286)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
 
+- [Spawn-row follow-up native runs, 2026-11-13: Domination 6/6 and Zombies from the yard centre on Chop Shop, Team DM with the pocket exits, solo Tactical on Chop Shop, Equator and Iceberg, PitFireTeam Tactical on Iceberg and Equator](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
 - [Chop Shop native acceptance: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies and a PMC control on GPU-2 (the 15 s gate watchdog, the failed-dispatch backoff, Domination 5 of 6 pickups)](reports/2026-11/GPU-CHOP-SHOP-20261112.md)
 - [Callsigns, encumbrance, shoulder swap and resolution contracts](reviews/FOUR-MOD-COMPAT-20261113.md)
 - [Auto Shoulder Swap input guard](reviews/SHOULDER-SWAP-20261113.md)

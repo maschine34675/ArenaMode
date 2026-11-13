@@ -1,5 +1,9 @@
 # Map admission and concrete blockers — 2026-10-09
 
+> **2026-11-13: the Equator Tactical statements are superseded.** The table cell "No: five-opponent spawn
+> capacity" and the sentence "Both Tactical variants remain refused" no longer hold: ArenaMapPort's rows of
+> 2026-11-12 gave Equator 16 Bot rows, and Equator admits Tactical solo and with PitFireTeam
+> ([SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md)). The text below is the state of 2026-10-09.
 ## Current contract
 
 | Map / area | Deathmatch | Gun Game | Tactical solo / PFT | Team DM | Zombies solo / PFT |

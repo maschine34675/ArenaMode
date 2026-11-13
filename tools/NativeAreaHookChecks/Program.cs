@@ -537,18 +537,20 @@ internal static class Program
             f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
             f.Screen.UpdateSelectedTime(EDateTime.CURR);
             Updater(f).Tick();
-            Assert(ArenaAreaSelectionView.Last.State.ModeHint.Contains("no Tactical / squad Zombies"),
+            Assert(ArenaAreaSelectionView.Last.State.ModeHint == "Limited space: no squad Zombies",
                 "Equator area hint names its actual modes");
             foreach (string mode in new[] { "tactical", "teamdeathmatch", "gungame", "deathmatch", "zombie" })
             {
                 Settings.GameMode.Value = mode;
                 Updater(f).Tick();
-                bool permitted = mode != "tactical";
+                // Tactical is admitted solo since ArenaMapPort's rows of 2026-11-12 (nine distant
+                // rows from the atrium, six at the worst spot); no solo mode hides Equator.
+                bool permitted = true;
                 Assert(row.gameObject.activeSelf == permitted, "mode switch updates the owned Equator row");
                 f.Screen.OnLocationSelected(f.Screen.Locations[equator]);
                 Assert(permitted ? f.Screen.SelectedLocation?.Id == equator && f.Screen._readyButton.gameObject.activeSelf
                     : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
-                    "Equator Ready and selection respect the five-opponent Tactical blocker");
+                    "Equator Ready and selection stay available in every solo mode, Tactical included");
             }
             f.Team = true;
             Updater(f).Tick();
@@ -571,8 +573,10 @@ internal static class Program
             f.Screen.Close();
             ArenaClientConfig.Enabled = map => true;
             Settings.Allowlist = equator;
-            Assert(ArenaMenuSelection.HasConfiguredMap(false) && !ArenaMenuSelection.HasConfiguredMap(true),
-                "Equator-only configuration offers solo but no unsupported PFT format");
+            // Squad Tactical is admitted on Equator since 2026-11-13 (squad Zombies still are not), so
+            // an Equator-only configuration is offered to a squad as well.
+            Assert(ArenaMenuSelection.HasConfiguredMap(false) && ArenaMenuSelection.HasConfiguredMap(true),
+                "Equator-only configuration offers solo and the squad Tactical format");
         }
         finally { plugins.Clear(); }
         using var ordinary = new Fixture(arena: false, mode: "tactical");
@@ -617,7 +621,7 @@ internal static class Program
             {
                 Settings.GameMode.Value = mode;
                 Updater(f).Tick();
-                Assert(row.gameObject.activeSelf && equatorRow.gameObject.activeSelf == (mode != "tactical"),
+                Assert(row.gameObject.activeSelf && equatorRow.gameObject.activeSelf,
                     "mode switch updates the owned Bay5 row independently alongside Equator");
                 f.Screen.OnLocationSelected(f.Screen.Locations[bay5]);
                 Assert(f.Screen.SelectedLocation?.Id == bay5 && f.Screen._readyButton.gameObject.activeSelf
@@ -630,7 +634,8 @@ internal static class Program
                 Settings.GameMode.Value = squadMode;
                 Updater(f).Tick();
                 f.Screen.OnLocationSelected(f.Screen.Locations[squadMap]);
-                bool allowed = squadMap != equator;
+                // Equator is too small for the squad's infected wave (space), but its Tactical squad is admitted.
+                bool allowed = !(squadMap == equator && squadMode == "zombie");
                 Assert(allowed ? f.Screen.SelectedLocation?.Id == squadMap && f.Screen._readyButton.gameObject.activeSelf
                     : f.Screen.SelectedLocation == null && !f.Screen._readyButton.gameObject.activeSelf,
                     "protected full-map selection respects exact capacity and exposes Ready: " + squadMap + "/" + squadMode);
@@ -641,7 +646,7 @@ internal static class Program
                 else
                     Assert(!ArenaMenuSelection.MatchesRequest(new LocalRaidSettings { location = squadMap,
                         playerSide = ESideType.Pmc, transitionType = ELocationTransition.Common }),
-                        "blocked PFT Equator never reaches final request matching");
+                        "blocked PFT Equator Zombies never reach final request matching");
             }
             f.Team = false;
             Settings.GameMode.Value = "deathmatch";

@@ -676,8 +676,9 @@ public sealed class ZombieWavePolicyTests
     [Fact]
     public void AFailedDispatchReportedWithItsTimeHoldsTheNextAttemptForTheBackoff()
     {
-        // Chop Shop, GPU-2 2026-11-12: with the player where no Bot row lies beyond the
-        // 25 m floor every dispatch failed, and the wave retried on its pacing cadence
+        // Chop Shop, GPU-2 2026-11-12 (seven-row data; the 16 rows of 2026-11-13 no longer
+        // reproduce it): with the player where no Bot row lay beyond the 25 m floor every
+        // dispatch failed, and the wave retried on its pacing cadence
         // (a discarded profile request and a dropped-request warning about five times a
         // second). A failure reported with its time holds the next attempt for the backoff.
         var config = Config(maxAlive: 20, start: 5, growth: 0, intermission: 10f, interval: .2f);

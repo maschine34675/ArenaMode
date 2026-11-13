@@ -18,17 +18,20 @@ public static class ArenaParticipantPolicy
     public static int MaximumFor(string map, string mode)
         => ArenaTeamBoxCatalog.Applies(map, mode) ? 20 : MaximumTotal;
     public static int Step(string mode) => IsTeam(mode) ? 2 : 1;
-    // Chop Shop defaults to 6 (five bots) on its own branch. It has seven Bot/BotPmc
-    // rows, the fewest of any port: the 8 of the other ~4,800 m² ports would ask for
-    // seven bots from seven rows and leave the burst selector no row to spare, so the
-    // preset stays two below it. It is a menu preset, not a ranking by area (Chop Shop,
-    // 1,915.6 m², is smaller than Equator, whose 4 follows from its own distant-row
-    // count); Deathmatch ran with it on GPU-2 on 2026-11-12. The ranges stay generic
-    // (2-24 solo, 4-20 through the boxes).
+    // Chop Shop defaulted to 6 while it had seven Bot/BotPmc rows (eight would have asked
+    // for seven bots from seven rows). ArenaMapPort's rows of 2026-11-12 gave it sixteen,
+    // as many as Bay5 and Equator have (Iceberg 17, Air Pit 20, Bowl 21), and Arena's own TeamFight on this map is
+    // 5v5, so it joins the 8-group (seven bots from sixteen rows leaves nine spare). It is a
+    // menu preset, not a ranking by area: Chop Shop is 1,915.6 m². A value saved per map
+    // is not migrated; only a fresh configuration gets the new recommendation.
+    // Equator keeps 4. That preset dates from 2026-09-21 and was never derived from the
+    // number of rows (BurstMinAliveBots is 4 on every port); it is an older, smaller
+    // preset of a 2,783 m² map, kept as it is until someone decides to change it. The
+    // ranges stay generic (2-24 solo, 4-20 through the boxes).
     public static int DefaultTotal(string map, string mode)
-        => ArenaMapCatalog.IsEquator(map) ? 4 : ArenaMapCatalog.IsAutoService(map) ? 6
+        => ArenaMapCatalog.IsEquator(map) ? 4
             : (ArenaMapCatalog.IsBay5(map) || ArenaMapCatalog.IsAirPit(map) || ArenaMapCatalog.IsBowl(map)
-                || ArenaMapCatalog.IsIceberg(map)) ? 8
+                || ArenaMapCatalog.IsIceberg(map) || ArenaMapCatalog.IsAutoService(map)) ? 8
             : string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) ? 16
             : string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) ? 8 : 10;
 

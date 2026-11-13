@@ -1548,8 +1548,8 @@ public static class Settings
             "Objective",
             true,
             "A capture point appears during the round on maps where Tactical is admitted and has a " +
-            "fixed layout (Factory, Bay 5, Air Pit, Bowl; not Equator, Iceberg or Chop Shop, which " +
-            "refuse Tactical): hold it alone for the hold time to win the round; the enemy squad wins " +
+            "fixed layout (Factory, Bay 5, Air Pit, Bowl, Equator, Iceberg and Chop Shop; Chop Shop " +
+            "refuses Tactical with a PitFireTeam squad): hold it alone for the hold time to win the round; the enemy squad wins " +
             "it the same way. Elimination still ends a round first. With BigBrain installed the squad " +
             "spreads out across the middle of the arena until the point appears instead of rushing you. " +
             "With the point on, profile rewards pay kills only (no server round-win reward; the in-raid " +

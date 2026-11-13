@@ -22,8 +22,9 @@ foreach ($fault in @(
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_bowl", StringComparison.OrdinalIgnoreCase)'; After = '';
        Failure = 'EMPTY-COVER arena_bowltactical' },
-    # Tactical is refused on Iceberg by the shared resolver, but the adapters are
-    # scoped by map, not mode: their own fixtures still reach tactical first.
+    # PFT Tactical is admitted on Iceberg since ArenaMapPort's rows of 2026-11-12, so these
+    # adapters run there in the mod; they are scoped by map, not mode, and their own
+    # fixtures reach tactical first.
     @{ Name = 'IcebergMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
        Property = 'PortedSource'; Harness = 'PftPortedMapChecks';
        Before = '&& !string.Equals(map, "arena_iceberg", StringComparison.OrdinalIgnoreCase)'; After = '';
@@ -32,7 +33,7 @@ foreach ($fault in @(
        Property = 'CombatSource'; Harness = 'PortedCoverChecks';
        Before = '&& !string.Equals(world.LocationId, "arena_iceberg", StringComparison.OrdinalIgnoreCase)'; After = '';
        Failure = 'EMPTY-COVER arena_icebergtactical' },
-    # Chop Shop refuses Tactical and PFT Zombies, so these adapters never run on it in
+    # Chop Shop refuses PFT Tactical and PFT Zombies, so these adapters never run on it in
     # the mod, but every port is listed there and the fixtures reach tactical first.
     @{ Name = 'AutoServiceMissingPftSpawnAdapter'; File = 'ArenaMode.Client/Compat/PitFireTeamPortedMapSpawns.cs';
        Property = 'PortedSource'; Harness = 'PftPortedMapChecks';

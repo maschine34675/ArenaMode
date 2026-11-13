@@ -678,33 +678,36 @@ public static class ArenaAreaCatalog
             && !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Select a current Arena mode for this map."; return false; }
-        // Equator's center has only four bot markers beyond the unchanged 25 m
-        // floor. Tactical needs five simultaneously, including after a surviving
-        // player's round transition; safe opening spawns alone cannot prove that.
-        if (ArenaMapCatalog.IsEquator(map!)
+        // Tactical on the ported maps (installed ArenaMapPort 0.5.0+160523d, 2026-11-13). The
+        // refusals that Equator, Iceberg and Chop Shop carried until then were argued from the
+        // number of Bot/BotPmc rows beyond the unchanged 25 m floor (BurstSpawnPointSelector);
+        // MapPort's spawn rows of 2026-11-12 removed that argument, and the 25 m floor itself
+        // stays. Equator has 16 rows: 9 beyond 25 m from the atrium (0, .2, 2) and at least 6
+        // from every point of its mesh. Iceberg has 17: at least 9 in the old centre rectangle
+        // (x -12.6..12.5, z -71.9..-58.8) and 10 on its mesh. Both are admitted, solo and with a
+        // PitFireTeam squad. Chop Shop has 16: 5 beyond 25 m from the yard centre (-379, 495)
+        // and 11 to 13 from each Player row, but with a minimum of 3 inside x -377..-373.5,
+        // z 485..489, and its mesh has 98.3 % of cells with five or more.
+        // Whether that minimum matters depends on who dispatches the squad. Solo Tactical never
+        // needs exactly five (RequestSoloSquad passes no requireExactCount): with fewer usable
+        // rows it spawns a smaller squad after SoloTacticalSpawnPolicy's 45 s wait. The squad is
+        // requested before the round-break move (TacticalMode.StartRound) and its points are
+        // picked when the profiles arrive; in the native runs of 2026-11-13 the move had landed
+        // by then (the plan counted the 11 to 13 rows of a Player row), but the code does not
+        // guarantee it, and a plan against the old position gives a smaller squad after the
+        // 45 s wait at worst. A PitFireTeam leader who
+        // survives stays where he stands, and RequestTeamEnemies demands exactly five: three or
+        // four usable rows at the yard centre end the whole match as no contest. So Chop Shop
+        // keeps only the PitFireTeam refusal. When MapPort closes that patch, the installed-data
+        // pin in MapModeAdmissionChecks (CHOPSHOP-YARD-CENTER) fails and this rule is to be
+        // re-decided.
+        if (ArenaMapCatalog.IsAutoService(map!) && pitFireTeam
             && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
-        { reason = "Equator has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
-        // Same criterion on Iceberg (installed ArenaMapPort data, 2026-10-30): of its
-        // nine Bot/BotPmc markers a surviving leader on about 48 m² of the centre
-        // (within x -12.6..12.5, z -71.9..-58.8) has only four beyond the 25 m floor. The
-        // team boxes do not change that: Tactical uses the generic markers. Solo
-        // and PFT Zombies stay admitted; the map is not compact.
-        if (ArenaMapCatalog.IsIceberg(map!)
-            && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
-        { reason = "Iceberg has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
-        // Chop Shop (installed ArenaMapPort data, 2026-11-12): only seven Bot/BotPmc
-        // rows exist. A leader in the yard centre (-379, 495) has none of them beyond
-        // the 25 m floor, and on the central half of the marker box every 1 m cell
-        // sees fewer than five (Iceberg 45 of 810 cells, Equator 437 of 510), so the
-        // five-opponent squad cannot be guaranteed after a round transition. MapPort's
-        // own mesh measurement leaves the south-east of the yard without any row. The
-        // team boxes do not change that: Tactical uses the generic markers. Solo and
-        // PFT are both refused here because the criterion is the squad, not the player.
-        if (ArenaMapCatalog.IsAutoService(map!)
-            && string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase))
-        { reason = "Chop Shop has too few distant bot spawn points for Tactical's five-opponent squad."; return false; }
+        { reason = "Chop Shop's yard centre has too few distant bot spawn points for a PitFireTeam Tactical squad; select Solo or another map."; return false; }
         // Solo survival remains supported; the compact map does not have enough
         // room for the protected five-player squad and its infected wave together.
+        // This is an argument from space, not from spawn rows, so the 2026-11-13 rows
+        // do not change it.
         if (pitFireTeam && ArenaMapCatalog.IsEquator(map!)
             && string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Equator is too small for Zombies with a PitFireTeam squad; select Solo or another map."; return false; }

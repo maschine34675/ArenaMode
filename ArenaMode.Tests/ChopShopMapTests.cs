@@ -151,7 +151,7 @@ public sealed class ChopShopMapTests
     [Theory]
     [InlineData("arena_autoservice")]
     [InlineData("ARENA_AUTOSERVICE")]
-    public void ChopShopIsOptionalAndAdmitsEveryModeExceptTacticalAndSquadZombies(string map)
+    public void ChopShopIsOptionalAndAdmitsEveryModeExceptSquadTacticalAndSquadZombies(string map)
     {
         Assert.Equal(ArenaMapCatalog.AutoServiceId, ArenaMapCatalog.CanonicalOptionalMapId(map));
         Assert.True(ArenaMapCatalog.IsAutoService(map));
@@ -163,17 +163,21 @@ public sealed class ChopShopMapTests
         Assert.True(ArenaMapCatalog.RequiresModeFilteredView(map));
         Assert.True(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.DefaultClientAllowlist, map));
         Assert.False(ArenaMapCatalog.AllowlistContains(ArenaMapCatalog.IcebergDefaultClientAllowlist, map));
-        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie" })
+        foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch", "zombie", "tactical" })
             Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, mode, false, out _, out _));
-        // Seven Bot/BotPmc rows leave no spot with five distant markers: the shared
-        // resolver refuses both Tactical formats at menu, arm and response.
-        foreach (bool pitFireTeam in new[] { false, true })
-        {
-            Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", pitFireTeam,
-                out var area, out var reason));
-            Assert.Null(area);
-            Assert.Equal("Chop Shop has too few distant bot spawn points for Tactical's five-opponent squad.", reason);
-        }
+        // Solo Tactical is admitted (16 Bot rows since ArenaMapPort 2026-11-12: it never needs
+        // exactly five, and a smaller squad after the 45 s wait is the worst case). Only the
+        // PitFireTeam squad is refused: a surviving leader in the yard centre has three or four
+        // usable rows there, and RequestTeamEnemies demands exactly five. The shared resolver
+        // answers at menu, arm and response.
+        Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", false,
+            out var soloArea, out var soloReason));
+        Assert.Null(soloArea);
+        Assert.Null(soloReason);
+        Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "tactical", true,
+            out var area, out var reason));
+        Assert.Null(area);
+        Assert.Equal("Chop Shop's yard centre has too few distant bot spawn points for a PitFireTeam Tactical squad; select Solo or another map.", reason);
         // Solo Zombies stays admitted; the PitFireTeam squad does not fit the 1,915.6 m² main mesh.
         Assert.True(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", false, out _, out _));
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, map, "zombie", true, out var zombieArea, out var zombieReason));
@@ -207,17 +211,20 @@ public sealed class ChopShopMapTests
         Assert.False(ArenaAreaCatalog.TryResolve(ArenaAreaCatalog.FullMapId, "arena_autoservice_extra", "domination", false, out _, out _));
     }
 
-    // Seven installed Bot rows and the smallest main component of any port: five bots
-    // (six participants) on every mode that has a free total.
+    // Sixteen installed Bot rows (ArenaMapPort 2026-11-12) put Chop Shop in the 8-group: it
+    // was six while it had seven rows. A value a player saved stays valid (6 is still
+    // accepted); only the recommendation moved.
     [Theory]
     [InlineData("arena_autoservice")]
     [InlineData("ARENA_AUTOSERVICE")]
-    public void ChopShopDefaultsToSixParticipants(string map)
+    public void ChopShopDefaultsToEightParticipants(string map)
     {
         foreach (string mode in new[] { "deathmatch", "gungame", "teamdeathmatch" })
         {
-            Assert.Equal(6, ArenaParticipantPolicy.DefaultTotal(map, mode));
-            Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 6, out var count, out _));
+            Assert.Equal(8, ArenaParticipantPolicy.DefaultTotal(map, mode));
+            Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 8, out var count, out _));
+            Assert.Equal(8, count);
+            Assert.True(ArenaParticipantPolicy.TryResolve(map, mode, false, false, 6, out count, out _));
             Assert.Equal(6, count);
         }
         Assert.Equal(24, ArenaParticipantPolicy.MaximumFor(map, "deathmatch"));

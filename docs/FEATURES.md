@@ -160,7 +160,9 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Eliminate the opposing squad to win a round. Solo defaults to **1v5**;
   advanced settings can change the solo squad and timing.
 - Optional **capture point** (default on, `Tactical/Objective`), solo and PitFireTeam: on
-  Factory, Bay 5, Air Pit and Bowl one verified point of the Domination layout appears after
+  Factory, Bay 5, Air Pit and Bowl, and since 2026-11-13 on Equator, Iceberg and (solo) Chop Shop (there the
+  point was resolved and announced in every round of the native runs of 2026-11-13; no hold was run), one
+  verified point of the Domination layout appears after
   60 s of combat (`ObjectiveAfterSeconds`, 0-300); the side that holds it alone for 10 s
   (`ObjectiveHoldSeconds`, 3-60) wins the round. Both sides on the point freeze the hold, an
   empty point resets it, elimination still ends a round first and the round timer is
@@ -239,7 +241,7 @@ Sources: [mode implementations](../ArenaMode.Client/Modes),
 
 Participant totals include the human: **2–24 in DM/Gun Game**, **4–24 in Team
 DM** in even steps, or **4–20 in Team DM and Domination on the team-box maps** (Equator,
-Bay5, Air Pit, Bowl, Iceberg, Chop Shop). Defaults are Equator 4, Chop Shop 6, Bay5, Air Pit, Bowl and Iceberg 8,
+Bay5, Air Pit, Bowl, Iceberg, Chop Shop). Defaults are Equator 4, Bay5, Air Pit, Bowl, Iceberg and Chop Shop 8 (Chop Shop was 6 until 2026-11-13),
 Labs 16, Labyrinth 8 and otherwise 10; Customs Team DM separately
 defaults to 2v2. These are menu defaults, not hardware performance guarantees.
 
@@ -655,20 +657,27 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   and leaving through Esc still end the raid; ordinary PMC/Scav raids retain
   normal transit and extraction behavior.
 - Optional ArenaMapPort maps: **Bay5**, **Air Pit** and **Bowl** support all modes; **Equator** supports
-  Gun Game, DM, TDM, Domination and solo Zombies, but no Tactical or PFT Zombies, even with
-  fewer companions. **Iceberg** supports Gun Game, DM, TDM, Domination and solo and PFT
-  Zombies, but no Tactical (solo or PFT): its centre leaves only four distant bot markers. Iceberg
-  needs an ArenaMapPort build that ships it (today only the unreleased `feature/iceberg` build
-  0.4.0+32fda33). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM, TDM (original
-  pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point) and solo Zombies, but no
-  Tactical (seven bot markers, none beyond the 25 m floor from the yard centre) and no PFT Zombies
-  (1,916 m2 main walkable component); it defaults to six participants (seven Bot rows). It needs an
-  ArenaMapPort build that ships it (today only the unreleased `feature/autoservice` build 0.5.0+b7876d3)
-  and is detected by the live location. It ran natively on GPU-2 on 2026-11-12 (menu, Deathmatch,
-  Team DM 4v4 and 10v10, Domination, solo Zombies, PMC control; [report](reports/2026-11/GPU-CHOP-SHOP-20261112.md),
-  [contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md)). Its gate watchdog is 15 s. Known limits:
-  Domination places 5 of 6 pickups (Health is left out) and the yard centre has a dead patch for
-  Zombies, Deathmatch and Gun Game spawns. ArenaMode does not ship or install those maps itself.
+  Gun Game, DM, TDM, Domination, solo Zombies and, since 2026-11-13, Tactical (solo and PitFireTeam;
+  ArenaMapPort's rows of 2026-11-12 give it 9 distant bot markers from the atrium and at least 6
+  anywhere), but no PFT Zombies, even with fewer companions. **Iceberg** supports all six modes,
+  Tactical (solo and PFT) since 2026-11-13: its 17 Bot rows leave at least 9 beyond 25 m in the old
+  centre. Iceberg needs an ArenaMapPort build that ships it (the published 0.5.0; the rows that admit
+  Tactical need the unreleased `0.5.0+160523d`). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM,
+  TDM (original pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point), solo Zombies and, since
+  2026-11-13, solo Tactical, but no PitFireTeam Tactical (the yard centre has 3 to 5 distant rows, and a
+  PitFireTeam leader who survives there would end the match as no contest) and no PFT Zombies (1,916 m2
+  main walkable component); it defaults to eight participants (sixteen Bot rows). It needs an
+  ArenaMapPort build that ships it with the rows of 2026-11-12 (today only the unreleased
+  `feature/autoservice` build 0.5.0+160523d) and is detected by the live location. It ran natively on
+  GPU-2 on 2026-11-12 (menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, PMC control;
+  [report](reports/2026-11/GPU-CHOP-SHOP-20261112.md), [contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md))
+  and again on 2026-11-13 with the new rows (Domination placed 6 of 6 pickups, solo Zombies from the yard
+  centre filled 32 of 32): the two known limits of the first cycle are gone
+  ([follow-up](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)). Its gate watchdog is 15 s. The capture point of
+  Tactical applies on all three maps. Tactical ran natively on them on 2026-11-13: solo on all three, with a
+  PitFireTeam squad on Iceberg and Equator; the point was resolved in every round and no hold was run
+  ([report](reports/2026-11/GPU-SPAWN-ROWS-20261113.md)). ArenaMode
+  does not ship or install those maps itself.
 - Labs excludes bot starts behind both locked extraction gates, preserving
   ordinary player starts.
 - Factory day and night exclude the known unsafe courtyard/underground bot

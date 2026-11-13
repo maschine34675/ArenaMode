@@ -1,5 +1,9 @@
 # Bay5 original TeamFight boxes — 2026-10-17
 
+> **2026-11-13: the exit sentences are superseded.** Since ArenaMapPort's exits of 2026-11-12 Bay5's two exits
+> no longer lie outside the boxes: they stand in the pockets, and extraction is blocked by
+> `ArenaExtractionIsolation` in every Arena raid ([SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md)).
+> The text below is the state of 2026-10-17.
 Scope: independent Team Deathmatch only. Other Bay5 modes, PFT/Tactical,
 AirPit, ordinary PMC/Scav raids and MapPort bundles are unchanged.
 

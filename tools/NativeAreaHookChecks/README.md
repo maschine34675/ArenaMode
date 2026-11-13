@@ -100,3 +100,7 @@ PFT Tactical/Bay5/Customs and Zombie/all three maps are exercised through native
 selection, Ready and final-request validation. Missing optional-map plugins,
 failed area writes and retired IDs still fail closed. Earlier descriptions of
 Customs as bounded-only or ports as DM/Gun Game-only are historical.
+
+Since 2026-11-13 Equator supports Tactical solo and with a PitFireTeam squad too (ArenaMapPort's
+rows of 2026-11-12 give nine distant rows from the atrium, six at the worst spot); only squad
+Zombies stay refused there, by space. The paragraph above is the state of 2026-10-09.

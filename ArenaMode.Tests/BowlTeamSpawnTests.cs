@@ -73,7 +73,7 @@ public sealed class BowlTeamSpawnTests
             Assert.True(formation.InsideBooth(point.X, point.Y, point.Z, usec));
             Assert.False(formation.InsideBooth(point.X, point.Y, point.Z, !usec));
         }
-        Assert.Empty(formation.BoothExits);
+        Assert.Equal(new[] { "Bowl BTR Gate", "Bowl Army Gate" }, formation.BoothExits);
         Assert.Equal(formation.Points[2], formation.BoothAnchor(true));
         Assert.Equal(formation.Points[16], formation.BoothAnchor(false));
         Assert.False(formation.InsideBooth(-15.51f, .1f, -37.64f, false));

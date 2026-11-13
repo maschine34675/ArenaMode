@@ -40,10 +40,12 @@ try
         foreach(var mode in ArenaModeCatalog.All)
         {
             var team=ArenaAreaSelectionState.Create(map,mode.Id,true,ArenaAreaCatalog.FullMapId,4,4);
+            // Written out on purpose (ArenaMapPort rows of 2026-11-12): squad Zombies are refused by
+            // space on Equator and Chop Shop; squad Tactical only on Chop Shop, whose yard centre
+            // has too few distant rows for the exact five a squad round needs.
             bool allowed=(mode.Id is ArenaModeCatalog.TacticalId or ArenaModeCatalog.ZombieId)
-                && !ArenaMapCatalog.IsEquator(map)
-                && !ArenaMapCatalog.IsAutoService(map)
-                && !(ArenaMapCatalog.IsIceberg(map) && mode.Id == ArenaModeCatalog.TacticalId);
+                && !(mode.Id==ArenaModeCatalog.ZombieId&&(ArenaMapCatalog.IsEquator(map)||ArenaMapCatalog.IsAutoService(map)))
+                && !(mode.Id==ArenaModeCatalog.TacticalId&&ArenaMapCatalog.IsAutoService(map));
             Need(team.Available==allowed,"PFT-MAP-ADMISSION",
                 $"{map}/{mode.Id}: protected squad map choices must agree with the supported team modes.");
             if(!allowed)continue;
@@ -60,16 +62,24 @@ try
     // Map picker hints in a mode without a participant choice (solo and squad Zombies).
     // Expected texts are literals, not read from the production state.
     foreach(var (map,pitFireTeam,hint) in new[]{
-        (ArenaMapCatalog.IcebergId,false,"Too few distant spawns: no Tactical"),
+        (ArenaMapCatalog.IcebergId,false,""),
         (ArenaMapCatalog.IcebergId,true,"PitFireTeam squad"),
         (ArenaMapCatalog.BowlId,false,""),
-        (ArenaMapCatalog.EquatorId,false,"Limited space: no Tactical / squad Zombies"),
-        (ArenaMapCatalog.AutoServiceId,false,"Few distant spawns: no Tactical / squad Zombies")})
+        (ArenaMapCatalog.EquatorId,false,"Limited space: no squad Zombies"),
+        (ArenaMapCatalog.AutoServiceId,false,"Small map: no squad Tactical / Zombies")})
     {
         var hinted=ArenaAreaSelectionState.Create(map,ArenaModeCatalog.ZombieId,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4);
         Need(hinted.Available&&hinted.ModeHint==hint,"MAP-MODE-HINT",
             $"{map}/zombie (PFT={pitFireTeam}) must hint \"{hint}\", got \"{hinted.ModeHint}\".");
     }
+
+    // Solo Tactical is offered on all three; the squad format on Equator and Iceberg only.
+    foreach(var (map,pitFireTeam,offeredHere) in new[]{
+        (ArenaMapCatalog.EquatorId,false,true),(ArenaMapCatalog.EquatorId,true,true),
+        (ArenaMapCatalog.IcebergId,false,true),(ArenaMapCatalog.IcebergId,true,true),
+        (ArenaMapCatalog.AutoServiceId,false,true),(ArenaMapCatalog.AutoServiceId,true,false)})
+        Need(ArenaAreaSelectionState.Create(map,ArenaModeCatalog.TacticalId,pitFireTeam,ArenaAreaCatalog.FullMapId,4,4).Available==offeredHere,
+            "TACTICAL-MAP-OFFER",$"{map}/tactical (PFT={pitFireTeam}) must be {(offeredHere?"offered":"refused")}.");
 
     var offered=new HashSet<string>(StringComparer.Ordinal);
     foreach(string map in new[]{ArenaMapCatalog.FactoryDayId,ArenaMapCatalog.FactoryNightId,ArenaMapCatalog.LabyrinthId,

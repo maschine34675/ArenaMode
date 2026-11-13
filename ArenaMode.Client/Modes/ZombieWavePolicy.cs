@@ -288,8 +288,9 @@ internal static class ZombieWavePolicy
     /// passes <paramref name="now"/> also holds the next attempt for
     /// <see cref="FailedDispatchBackoffSeconds"/>. A failed dispatch has already
     /// cost a profile request, and the reason does not go away within one pacing
-    /// interval: with the player in Chop Shop's yard centre no Bot row lies beyond
-    /// the 25 m floor, and the wave asked for a discarded profile and logged a
+    /// interval: with the seven-row data of 2026-11-12 and the player in Chop Shop's
+    /// yard centre no Bot row lay beyond the 25 m floor (the 16 rows of 2026-11-13 give
+    /// five there, so this no longer reproduces), and the wave asked for a discarded profile and logged a
     /// dropped request about five times a second (133 in 30 s) until the player
     /// moved. The slot is still retried, only not on the pacing cadence. Without
     /// <paramref name="now"/> (the pure tests of the slot accounting) the pacing

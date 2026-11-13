@@ -1,7 +1,7 @@
 # IcebergChecks
 
 `Verify.ps1` runs the Iceberg integration checks against the installed ArenaMapPort data
-(`user/mods/ArenaMapPort/db/arena_iceberg/base.json`, 4 Player and 9 Bot rows), the filtered
+(`user/mods/ArenaMapPort/db/arena_iceberg/base.json`, 4 Player and 17 Bot rows since ArenaMapPort 2026-11-12, 9 before), the filtered
 Iceberg xunit classes and the PFT compiled faults; it fails loudly when the installed MapPort
 build ships no `arena_iceberg`. Contract: `docs/reviews/ICEBERG-INTEGRATION-20261031.md`.
 
@@ -13,6 +13,6 @@ are the gpu-run scenarios of the GPU-2 cycle of 31.10.2026
 with `node gpu-run.mjs scenario <file> --host host2 --out <dir>`; the Team DM file takes
 `--param participants=20 --param "formationLine=Team DM formation ready: 10v10"` for the
 10v10 run. They need gpu-run with the "Mode description" readback (UiBridge `1f0a7ae` or
-later) and an installed ArenaMapPort build that ships `arena_iceberg`. Domination and the
-Tactical refusal are single `gpu-run raid --mode <mode> --map-from-menu --map ICEBERG`
+later) and an installed ArenaMapPort build that ships `arena_iceberg`. Domination and Tactical (admitted solo and with a
+PitFireTeam squad since 2026-11-13; it was refused until then) are single `gpu-run raid --mode <mode> --map-from-menu --map ICEBERG`
 calls; the report quotes the expected outcome of each.

@@ -86,7 +86,7 @@ public sealed class ChopShopTeamSpawnTests
         // The pockets are flat: every floor lies between -3.84 and -3.72.
         Assert.InRange(formation.Points.Min(p => p.Y), -3.84f, -3.84f);
         Assert.InRange(formation.Points.Max(p => p.Y), -3.72f, -3.72f);
-        Assert.Empty(formation.BoothExits);
+        Assert.Equal(new[] { "Chop Shop East Gate", "Chop Shop West Gate" }, formation.BoothExits);
         // Usec house (4) = MapPort player-usec; Usec house (6) = MapPort player-bear.
         Assert.Same(formation.Points[4], formation.BoothAnchor(true));
         Assert.Same(formation.Points[11], formation.BoothAnchor(false));
@@ -363,18 +363,9 @@ public sealed class ChopShopTeamSpawnTests
         var map = Map();
         map.SpawnPointParams = map.SpawnPointParams!.Where(p => p.Id != "arena_autoservice-bot-core-03").ToList();
         string before = JsonSerializer.Serialize(map.SpawnPointParams);
-        string mapBefore = JsonSerializer.Serialize(map);
-        void Mutate() => ArenaLocationMutator.Mutate(map, new(), new(), mode,
+        // Solo Tactical is admitted on Chop Shop (the server resolves without a PitFireTeam squad).
+        ArenaLocationMutator.Mutate(map, new(), new(), mode,
             participants: mode is "deathmatch" or "gungame" ? 24 : null);
-        if (mode == "tactical")
-        {
-            // The shared resolver refuses Tactical on Chop Shop; the server mutator throws
-            // before it changes any raid data, so the native markers stay as they are.
-            var refused = Assert.Throws<InvalidOperationException>(Mutate);
-            Assert.Contains("Tactical", refused.Message);
-            Assert.Equal(mapBefore, JsonSerializer.Serialize(map));
-        }
-        else Mutate();
         Assert.Equal(before, JsonSerializer.Serialize(map.SpawnPointParams));
         Assert.DoesNotContain(map.SpawnPointParams!, p => ArenaTeamBoxCatalog.Owns(p.Id));
     }

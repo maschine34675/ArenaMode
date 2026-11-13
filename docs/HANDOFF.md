@@ -199,6 +199,20 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   config value the test runs changed is back at its previous value. Previous files:
   `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
+  **Since 2026-11-13 this paragraph no longer describes what is installed.** The spawn-row work installed its
+  test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
+  `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
+  working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
+  and restarted the game on GPU-2 (10:41). Installed at noon on 2026-11-13: client `0.5.0+73370e37` (SHA-256
+  `99b56e9ded225a181db254b33bb1d5e3c644238f67c924ecba741e1f7181e97c`), BigBrainCompat `0.5.0+73370e37`
+  (`2a06ae297af1953187844130b56f9e0ece6312233335c8473a33976d7c3043b7`), server `0.5.0+e90d1f72`
+  (`e8a4414279c1dcc963ad7cf47172e605a7655552f74de53cb0096d0eacdf6385`). That build contains the spawn-row
+  branch up to `ab16c8f3` and the unmerged dispatch-order fix; it does not contain the extraction hardening,
+  so it matches no commit on `master`. It was left in place on purpose: it belongs to another session's
+  unfinished native test. To get the `master` state installed, build the `master` head with
+  `tools/AirPitChecks/NoDeploy.targets`, check the three stamps and copy the three DLLs (the procedure of the
+  paragraph above). The Session helper's file time is 10:04:43 of the same day; the spawn-row work did not
+  touch it. Core is unchanged (`1.0.22+b1d69e1`), ArenaMapPort is `0.5.0+160523d`.
 - Profile `SPT-GPU-2` (`6ab7db1c…`) was wiped by the user in the SPT launcher on
   2026-10-29 while it carried Tarkova Cola reward history; from 0.4.1 to the Domination
   build SPT started with one Warning and that profile's rewards stayed off
@@ -227,11 +241,9 @@ watchdog 15 s, Zombies failed-dispatch backoff of 2 s, a general Zombies change;
 `ZombieWavePendingChecks` follows it) are done. **The native cycle ran on GPU-2 on 2026-11-12** (menu,
 Deathmatch with the default of six, Team DM 4v4 and 10v10 with held gates, Domination, solo Zombies, an
 ordinary PMC control; 0 errors; two builds, `d843e4c2` and `0f14cdb9`); its five gpu-run scenarios are in
-`tools/ChopShopChecks/scenarios/`. Open: (1) the two known limits, as possible ArenaMapPort data
-follow-ups (more Bot/BotPmc rows would remove both; ArenaMode does not edit that data): Domination places
-5 of 6 pickups (core-01 and core-02 lie inside the 6 m objective clearance, Health is left out), and about
-4 % of the yard centre has no Bot row beyond the 25 m floor (Zombies back off, Deathmatch and Gun Game
-drip more slowly there); (2) not run: PFT on this map (both modes refused), Gun Game, a match played to its
+`tools/ChopShopChecks/scenarios/`. Open: (1) **both known limits are closed** (2026-11-13): ArenaMapPort's
+16 Bot rows of 2026-11-12 removed them (Domination placed 6 of 6 and solo Zombies from the yard centre
+filled 32 of 32 on GPU-2; see the follow-up entry below); (2) not run: PFT on this map (both modes refused), Gun Game, a match played to its
 result and reward, more than 6 participants in DM/Gun Game, crowd and monitors judged by a person,
 daytime, weather, long sessions, a DynamicMaps overlay (MapPort has none), the killcam (off in the test
 configuration) and the Fika fork; (3) the saved map list moved to **optional-map revision 6** (an Iceberg default gains Chop Shop
@@ -242,7 +254,42 @@ build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5
 0.5.0 has the same version string and no Chop Shop); (5) **no ArenaMode release may announce Chop Shop
 before an ArenaMapPort release ships it**: README and FORGE-DESCRIPTION stay free of it and the whitelist
 stays at 0.5.0 until then. After the end of one Arena raid, wait about 40 s before the next (PitFireTeam
-post-raid finalization); a start after 5 s was refused and hung the load.
+post-raid finalization); a start after 5 s was refused and hung the load. The "more than 6 participants"
+gap of (2) is smaller now (the default is eight, from sixteen rows) but still not run.
+
+**Spawn-rows follow-up, 2026-11-13, `feature/spawn-rows` (not pushed; from `master` `99260275`;
+[contract](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)):** ArenaMapPort's rows of 2026-11-12 (0.5.0+160523d:
+Bot rows Equator 16, Iceberg 17, Chop Shop 16, Bay5 16, Air Pit 20, Bowl 21; exits inside the pockets) are
+followed in `2a085839` (code and pins) and the document commit after it. Done: Tactical admitted on Equator
+and Iceberg (solo and PFT) and on Chop Shop solo; PFT Tactical stays refused on Chop Shop, with the
+yard-centre reason; Chop Shop defaults to eight; picker hints; every formation names its two exits
+(`BoothExits`, data only); pins on decisions (`ChopShopChecks` without id list, `MapModeAdmissionChecks` with
+the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that patch). The native runs are in
+[GPU-SPAWN-ROWS-20261113.md](reports/2026-11/GPU-SPAWN-ROWS-20261113.md): solo Tactical on Chop Shop, Equator
+and Iceberg, PFT Tactical on Iceberg and Equator, the capture point resolved in every round, the PFT menu
+without Chop Shop. Open: (1) natively still missing: a respawn onto an in-box formation point (Iceberg Bear
+house (9)), a Tactical match played to its end, a won round and a capture-point hold on the three maps; (2) **release blocker**: ArenaMapPort has not released
+these rows. The published 0.5.0 has Equator 10 Bot rows (4 distant from the atrium, grid minimum 3), Iceberg 9 (4
+distant in the centre) and no Chop Shop, and the unreleased build with the rows carries the same version string
+0.5.0; the whitelist versions are advisory (`ArenaWhitelistAdmission` turns a reviewed-version difference into a
+note only), so bumping the pin changes a warning text and no version compare tells the two builds apart. With the
+published data this branch admits PFT Tactical on Equator and Iceberg, and a leader who survives in the middle
+gets four rows instead of five (`RequestTeamEnemies` ends the match as no contest; solo gets a partial squad
+after 45 s). No ArenaMode release from this state before an ArenaMapPort release ships the rows under a new
+version number; at release time decide between requiring that version for PFT Tactical on Equator and Iceberg at
+run time (plugin version, or a count of the raid's Bot rows) and an accepted, documented requirement in the
+release notes; README, FORGE-DESCRIPTION and the whitelist stay untouched until then.
+`tools/MapModeAdmissionChecks` fails on the published data with the SPAWN-ROWS-DATA message that names the needed
+build, and through it the three team-box harnesses; (3) the two hardening items that were filed separately (Arena arming although `ArenaExtractionIsolation`
+failed to install, bots leaving through SAIN's extraction) are done:
+[EXTRACTION-HARDENING-20261113.md](reviews/EXTRACTION-HARDENING-20261113.md), merged into this branch; (4) the 1.7 % of Chop Shop mesh cells with
+fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the installed build is another session's test build and matches no commit on `master` (see "Since
+2026-11-13" in the installed-state paragraph above); the final verification of the merged branch is in the
+contract's Verified section; (6) filed separately (branch `fix/solo-squad-dispatch-order`, not merged when this was written): the
+dispatch order of the solo Tactical squad
+against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
+its points when the profiles arrive; all ten measured round starts of 2026-11-13 had the move 0.06 to 0.28 s
+after the request and the pick 1.2 to 10.6 s after it, so the intended order held, but nothing enforces it).
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as
@@ -553,7 +600,10 @@ it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only 
 `feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
-Iceberg in an ArenaMode release before MapPort publishes it. **Historical 31 October
+Iceberg in an ArenaMode release before MapPort publishes it. *Superseded 2026-11-13:* Iceberg is in
+the published ArenaMapPort 0.5.0 (2026-11-07); only the 17 Bot rows that admit Tactical need the
+unreleased build 0.5.0+160523d (see [SPAWN-ROWS-FOLLOWUP-20261113.md](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)).
+**Historical 31 October
 measurement build (current ArenaMode installation is recorded above):** all Syncthing
 hosts had the orchestrator's build of 31.10. evening for the native map-screen
 measurement: ArenaMode `0.4.1+60795208` (`fix/map-screen-admission`) with Redeploy.Core
@@ -573,6 +623,9 @@ migrated to revision 5 with `arena_iceberg` in `General/Maps`.
   ArenaPickupChecks also `BowlChecks`, `BowlTeamBoxChecks`, `IcebergTeamBoxChecks` and any
   full harness run. They need an ArenaMapPort build that ships `arena_iceberg` (the feature
   build `0.4.0+32fda33` or a later release); the published 0.4.0 is not enough.
+  *Superseded 2026-11-13:* the published ArenaMapPort 0.5.0 ships `arena_iceberg`. `MapModeAdmissionChecks` and,
+  through it, the three team-box harnesses also need the Bot rows of 0.5.0+160523d (`SPAWN-ROWS-DATA`), and
+  `ChopShopChecks` needs `arena_autoservice`.
 - **The installed ArenaMapPort client is a harness dependency too** (branch
   `feature/crowd-reactions`): the real-surface stage of `tools/CrowdReactionChecks` loads
   `BepInEx/plugins/maschine-ArenaMapPort/maschine-ArenaMapPort.Client.dll` read-only and fails

@@ -41,7 +41,7 @@ foreach (string mode in modes)
 {
     foreach (string map in new[] { "factory4_day", "factory4_night", "laboratory", "labyrinth", "arena_bay5" })
         Need(ArenaAreaCatalog.TryResolve(null, map, mode, false, out var area, out _) && area == null, "OTHER-FULL-MAPS-UNCHANGED");
-    Need(ArenaAreaCatalog.TryResolve(null, "arena_equator", mode, false, out _, out _) == (mode != "tactical"), "EQUATOR-TACTICAL-CAPACITY-GUARD");
+    Need(ArenaAreaCatalog.TryResolve(null, "arena_equator", mode, false, out _, out _), "EQUATOR-ALL-SOLO-MODES");
     foreach (string invalid in new[] { "unpublished-draft", ArenaAreaCatalog.CustomsFactoryCenterId,
         ArenaAreaCatalog.CustomsFactoryCenterPolygonId, "customs-factory-east-polygon-v1", ArenaAreaCatalog.FactorySouthId })
     {
