@@ -250,7 +250,8 @@ extraction depends on the SAIN preset (no Arena-side guard); (4) the 1.7 % of Ch
 fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the green reruns of the
 three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract); (6) filed separately: the dispatch order of the solo Tactical squad
 against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
-its points when the profiles arrive, which the three native rounds of 2026-11-13 happened to order correctly).
+its points when the profiles arrive; all ten measured round starts of 2026-11-13 had the move 0.06 to 0.28 s
+after the request and the pick 1.2 to 10.6 s after it, so the intended order held, but nothing enforces it).
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as
@@ -561,7 +562,10 @@ it east). It needs an ArenaMapPort build that ships `arena_iceberg`: today only 
 `feature/iceberg` build `0.4.0+32fda33` installed here. The published ArenaMapPort 0.4.0 has
 none and carries the same version string, so ArenaMode detects the map by presence (live
 location, plugin identity), never by version; the whitelist row stays 0.4.0. Do not announce
-Iceberg in an ArenaMode release before MapPort publishes it. **Historical 31 October
+Iceberg in an ArenaMode release before MapPort publishes it. *Superseded 2026-11-13:* Iceberg is in
+the published ArenaMapPort 0.5.0 (2026-11-07); only the 17 Bot rows that admit Tactical need the
+unreleased build 0.5.0+160523d (see [SPAWN-ROWS-FOLLOWUP-20261113.md](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)).
+**Historical 31 October
 measurement build (current ArenaMode installation is recorded above):** all Syncthing
 hosts had the orchestrator's build of 31.10. evening for the native map-screen
 measurement: ArenaMode `0.4.1+60795208` (`fix/map-screen-admission`) with Redeploy.Core
@@ -581,6 +585,9 @@ migrated to revision 5 with `arena_iceberg` in `General/Maps`.
   ArenaPickupChecks also `BowlChecks`, `BowlTeamBoxChecks`, `IcebergTeamBoxChecks` and any
   full harness run. They need an ArenaMapPort build that ships `arena_iceberg` (the feature
   build `0.4.0+32fda33` or a later release); the published 0.4.0 is not enough.
+  *Superseded 2026-11-13:* the published ArenaMapPort 0.5.0 ships `arena_iceberg`. `MapModeAdmissionChecks` and,
+  through it, the three team-box harnesses also need the Bot rows of 0.5.0+160523d (`SPAWN-ROWS-DATA`), and
+  `ChopShopChecks` needs `arena_autoservice`.
 - **The installed ArenaMapPort client is a harness dependency too** (branch
   `feature/crowd-reactions`): the real-surface stage of `tools/CrowdReactionChecks` loads
   `BepInEx/plugins/maschine-ArenaMapPort/maschine-ArenaMapPort.Client.dll` read-only and fails

@@ -11,8 +11,8 @@ in `D:/ArenaMapPort` (read-only from here).
 three Tactical refusals and of two participant defaults. They are decided again against the installed data:
 Tactical is admitted on Equator and Iceberg (solo and PitFireTeam) and on Chop Shop solo; PitFireTeam
 Tactical stays refused on Chop Shop; Chop Shop defaults to eight participants; every formation names its two
-pocket exits; the harness pins follow the decisions. The native runs of the new build are not in yet (the
-`NATIVE:` line below).
+pocket exits; the harness pins follow the decisions. The native runs are in the `NATIVE:` paragraph below and
+in the report of the same day.
 
 ## What ArenaMapPort changed
 
@@ -90,7 +90,8 @@ Domination clearance) agreed with that run.
    Lane"; Air Pit "Air Pit North Gate" / "Air Pit South Gate" (the south one stands at the pocket mouth: its box
    edge is 0.4 m outside the pocket bound and its centre 2.4 m outside, MapPort's listed exception); Bowl "Bowl
    BTR Gate" / "Bowl Army Gate"; Iceberg "Iceberg West Gate" (on flat floor) / "Iceberg East Gate" (on the upper
-   west part of the ramp, where the floor falls from y 1.9 to 0.75); Chop Shop "Chop Shop East Gate" / "Chop Shop West Gate". The member stays
+   west part of the ramp, where the floor falls from y 1.9 to 0.75; the wording of ArenaMapPort's
+   `tools/maps/iceberg.exits.json`); Chop Shop "Chop Shop East Gate" / "Chop Shop West Gate". The member stays
    data: extraction is isolated in Arena raids (`ArenaExtractionIsolation` matches by object and exit name,
    nothing reads the positions), so the flares only mark the pockets. The comments that said "no booth exits" or
    put the exits beyond the gates are corrected. MapPort stood in the Bowl and Iceberg boxes in two Team DM runs
@@ -135,7 +136,10 @@ Domination clearance) agreed with that run.
      player was moved to, so the move (0.075 s after the request) landed before the points were picked (1.8 s
      after the request). Opponents at 22.3, 23.1, 24.3, 43.8 and 57.0 m one second after they went live.
 
-   So in every measured round the points were picked after the move; the code does not guarantee that order.
+   The same order held in nine further round starts of the scenario runs on Iceberg, Equator and Chop Shop: the
+   body change came 0.06 to 0.28 s after the request and the pick 1.2 to 10.6 s after it (table in the native
+   report). So in all ten measured round starts the points were picked after the move; the code does not
+   guarantee that order.
    The reviewer's simulation of the lost race (old position uniform over all rows, destination a Player row at
    least 40 m away) gives at least one squad point within 15 m / 25 m of the new Player row in 43 % / 67 % of
    rounds on Equator, 63 % / 97 % on Chop Shop, 0 % / 12 % on Iceberg, and on the maps admitted before: Bay5
@@ -162,8 +166,9 @@ new pins hold what the decisions rest on:
   Compiled faults: `ChopShopPftTactical`, `EquatorTacticalRefused`, `IcebergTacticalRefused`,
   `ChopShopSoloTacticalRefused` (12 in all, was 9).
   Added after the review of the same day (labels as the harness prints them):
-  - `SPAWN-ROWS-DATA`, before the evidence pins of the three maps: the installed `base.json` exists (a missing
-    `arena_autoservice` file fails with a sentence, not a raw `FileNotFoundException`) and has at least 16
+  - `SPAWN-ROWS-DATA`, before the squad and evidence pins of the three maps: the installed `base.json` exists (a
+    missing `arena_autoservice` file, or the stub without spawn rows that ArenaMapPort's tag `v0.5.0` holds for
+    it, fails with a sentence, not a raw exception) and has at least 16
     (Equator), 17 (Iceberg) and 16 (Chop Shop) distinct Bot/BotPmc rows. On older data the message says that the
     installed ArenaMapPort data predates the spawn rows of 2026-11-12, that build 0.5.0+160523d or a later
     release is needed (the published 0.5.0 has 10 and 9 rows and no Chop Shop), that the Tactical admissions of
@@ -176,7 +181,19 @@ new pins hold what the decisions rest on:
   - `CHOPSHOP-GRID`: the same minimum is at least 1 and below 5 (today 3), the evidence of the PFT refusal over
     the whole box beside CHOPSHOP-YARD-CENTER. It is directional on purpose, like that pin.
   - `EXIT-NAMES`: for each of the six ports the exit names of the installed `base.json` equal the `BoothExits`
-    of `ArenaTeamBoxCatalog` for that map, as a set (two each).
+    of `ArenaTeamBoxCatalog` for that map, as a set (two each). The pin has its own loop over the six
+    formations, because Bowl has a formation and no row in the mode matrix.
+  - Compiled faults for these pins: `SpawnFloor30m` (the 25 m floor raised to 30 m: Equator's grid minimum
+    falls to 4 and the fault dies at `EQUATOR-GRID`), `RenamedExitLiteral` and `RenamedBowlExitLiteral` (an
+    exit literal renamed in the catalogue dies at `EXIT-NAMES`); 15 compiled faults in all.
+  - Run on 2026-11-13 against scratch roots built from ArenaMapPort's tag `v0.5.0` (`git show` of its
+    `base.json` files, nothing installed): with all six maps from the tag the harness stops at
+    `SPAWN-ROWS-DATA: the file has 10 distinct Bot/BotPmc rows, at least 16 are required for arena_equator`;
+    with the installed rows and the tag's stub `arena_autoservice` (it has no `SpawnPointParams`) at
+    `SPAWN-ROWS-DATA: the file carries no spawn rows (a stub location) for arena_autoservice`; with that file
+    removed at `SPAWN-ROWS-DATA: the file ... is missing for arena_autoservice`. Each message goes on with the
+    sentence about the needed build. On the installed data the harness passes with 976 assertions and prints
+    the grid minima 6 (Equator), 9 (Iceberg) and 3 (Chop Shop).
 - Every other oracle that encoded the refusals, hints or the default follows the decisions: AreaConfigChecks
   (matrix and hint literals), NativeMenuChecks (tactical flags and the Equator PFT admission), ParticipantMenuChecks,
   CompactModeUxChecks, PftPortedMapChecks, NativeAreaHookChecks, CustomsAllModesChecks, the NegativeControls of
@@ -218,18 +235,32 @@ live install before and after), on 2026-11-13 for commit `2a085839`:
 VERIFY-RERUN: (lead fills in the green runs of `ChopShopTeamBoxChecks`, `IcebergTeamBoxChecks` and
 `BowlTeamBoxChecks` and the final run of the branch; the logs of the pass above hold only their red baseline).
 
-NATIVE: (lead fills in the native runs of the new build)
+NATIVE: run on GPU-2 on 2026-11-13, report
+[GPU-SPAWN-ROWS-20261113.md](../reports/2026-11/GPU-SPAWN-ROWS-20261113.md). With the build that was installed
+before this change (`0.5.0+3ea7eabb`) and the new rows: Chop Shop Domination placed 6 of 6 pickups from 16
+candidates; solo Zombies with the player in the yard centre from the start filled 32 of 32 with no dropped
+request; Team DM 4v4 on Chop Shop with the exits in the pockets spawned and respawned beside the exit box
+without an extraction. With build `0.5.0+e90d1f72`: with a PitFireTeam squad the Tactical menu offers Iceberg
+and Equator and not Chop Shop; solo Tactical ran three rounds on Chop Shop, Equator and Iceberg with the
+committed scenario `tactical-solo-ported` (20 steps each, every round live with five opponents, the capture
+point resolved in every round: Chop Shop X, Equator X, Iceberg C then B); PitFireTeam Tactical with two
+companions went live with three allies against five opponents on Iceberg (three rounds, the third with the
+surviving leader in the old centre: 11 usable rows) and on Equator (round 2 with the surviving leader at the
+worst spot (-4, 0.1, 15): 6 usable rows, the offline grid minimum). No error in the BepInEx log. The commits
+after `e90d1f72` change comments, harnesses and documents only.
 
 ## Not claimed
 
-- PitFireTeam Tactical natively on any ported map, unless the `NATIVE:` line says otherwise. Solo Tactical on
-  Equator, Iceberg and Chop Shop likewise only as far as that line says; the capture point on these three maps
-  (decision 4) was not run at all.
+- A PitFireTeam Tactical match to its end, a won round, or a capture-point hold on Equator, Iceberg and Chop
+  Shop. The test timing (60 s rounds, the point after 60 s) ends each round when the point appears: the point
+  was resolved and announced in every round (`objective: point at ...`, `the capture point is up`), and no hold
+  was run. PitFireTeam Tactical on Chop Shop is refused and was checked in the menu only.
 - A respawn onto an in-box formation point (Iceberg Bear house (9) and Usec house (11) are the markers inside
   the exit boxes; the selector chose a point outside the box four times in MapPort's run, and MapPort's record
   names one unverified window while the dead body is still the main player).
-- Bots at each of the 39 new rows (one scav was seen next to one new row), Team DM on Chop Shop, Air Pit and
-  Bay5 with the new exits, and Gun Game and Deathmatch with the larger participant counts the rows now allow.
+- Bots at each of the 39 new rows (one scav was seen next to one new row), Team DM on Air Pit and Bay5 with the
+  new exits (Chop Shop was run, see `NATIVE:`), and Gun Game and Deathmatch with the larger participant counts
+  the rows now allow.
 - The two out-of-scope hardening items of decision 8: Arena still arms when the extraction isolation failed
   to install, and whether bots leave through SAIN's extraction depends on the SAIN preset.
 - The 1.7 % of Chop Shop mesh cells with fewer than five distant rows (MapPort: 98.3 % have five or more,
@@ -241,9 +272,9 @@ NATIVE: (lead fills in the native runs of the new build)
   the release blocker of decision 7: the two 0.5.0 builds share a version string and the whitelist versions are
   advisory, so nothing at run time tells them apart. The offline pins read the installed data only, and
   `SPAWN-ROWS-DATA` fails on the published data.
-- The order of the solo squad dispatch against the round-break move (decision 9). The three native rounds
-  agree with the intended order, the code does not enforce it, and the simulation of the lost race is the
-  reviewer's, not a native run.
+- The order of the solo squad dispatch against the round-break move (decision 9). The ten measured round
+  starts agree with the intended order, the code does not enforce it, and the simulation of the lost race is
+  the reviewer's, not a native run.
 - The pickup simulations of the survey for the other maps (pool sizes, Domination usable counts); only Chop Shop
   Domination was placed natively.
 - Hearing the flares, sound, night and rain at the new exits; the release of ArenaMapPort that carries all of

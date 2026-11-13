@@ -45,10 +45,10 @@ with "PitFireTeam post-raid finalization is still settling".
 
 `tactical-solo-ported.json` shows solo Tactical on a ported map for three rounds, every round live with five
 opponents, no dropped request and no partial squad. Its `map` parameter defaults to `CHOP SHOP` and takes
-`EQUATOR` or `ICEBERG` (`--param map=EQUATOR`). The scenario sets Tactical/BuySeconds to 5 and
-Tactical/RoundSeconds to 60 through the bridge with persist=false first, so a round is short and the saved
-settings stay as they were. Round 1 starts from a Player row and ends by the timer or by the player's death,
-whichever the bots manage; round 2 is ended by the kill hook (a test-hook death); round 3 is the survivor's
-round after that. It ran on GPU-2 on 2026-11-13 on all three maps: 20 steps each, every round live with five
-opponents (the report is `docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md`). Leave about 40 s between two Arena
-raids, as above.
+`EQUATOR` or `ICEBERG` (`--param map=EQUATOR`). Before the run, set Tactical/BuySeconds to 5 and
+Tactical/RoundSeconds to 60 through the bridge with persist=false (the scenario does not set them itself), so
+a round is short and the saved settings stay as they were. Round 1 starts from a Player row and ends by the
+timer or by the player's death, whichever the bots manage; round 2 is ended by the kill hook (a test-hook
+death); round 3 starts after the respawn that follows. It ran on GPU-2 on 2026-11-13 on all three maps: 20
+steps each, every round live with five opponents (the report is
+`docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md`). Leave about 40 s between two Arena raids, as above.
