@@ -123,8 +123,9 @@ solo Tactical on every map, and the reorder is filed as a separate task.
   `persist=false` and never reached the cfg file. Against the copy taken in the
   morning the cfg differs only in three description lines the new build wrote.
 - The PitFireTeam squad group was cleared after the squad runs (0 of 4).
-- The comparison copies (profile, cfg, hash list of the PitFireTeam files) were kept
-  in the session's scratch folder, not in the evidence folder.
+- The comparison copies (profile, cfg, hash list of the PitFireTeam files) and the
+  logs of the offline verification are under the ignored
+  `artifacts/spawn-rows-20261113/verify/`.
 - The game on the host was left running in the menu. It had not been running
   before this work; the process that runs now was started at 10:41 by the other
   session's deploy.

@@ -160,8 +160,9 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Eliminate the opposing squad to win a round. Solo defaults to **1v5**;
   advanced settings can change the solo squad and timing.
 - Optional **capture point** (default on, `Tactical/Objective`), solo and PitFireTeam: on
-  Factory, Bay 5, Air Pit and Bowl, and since 2026-11-13 on Equator, Iceberg and (solo) Chop Shop (not run
-  natively there), one verified point of the Domination layout appears after
+  Factory, Bay 5, Air Pit and Bowl, and since 2026-11-13 on Equator, Iceberg and (solo) Chop Shop (there the
+  point was resolved and announced in every round of the native runs of 2026-11-13; no hold was run), one
+  verified point of the Domination layout appears after
   60 s of combat (`ObjectiveAfterSeconds`, 0-300); the side that holds it alone for 10 s
   (`ObjectiveHoldSeconds`, 3-60) wins the round. Both sides on the point freeze the hold, an
   empty point resets it, elimination still ends a round first and the round timer is

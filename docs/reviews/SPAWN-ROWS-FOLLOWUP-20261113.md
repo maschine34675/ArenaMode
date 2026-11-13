@@ -259,9 +259,12 @@ compiled faults), and `ArenaTracerChecks` after `master`'s repair of that harnes
 assertions). The document commits after `8d4797dd` change no code.
 
 An earlier final run on the unmerged head was cut short from outside: at 10:38 another session installed a
-test build into `D:\SPT41`, and the runner's installed-file guard marked the eight steps after that as failed
-although their own checks had passed (`CHOPSHOP_TEAM_BOX_CHECKS_PASSED` and so on). Its first fifteen steps
-had passed; all of them are in the run above again. The three team-box harnesses had first gone green on
+test build into `D:\SPT41`, and the eight steps after that were marked as failed for that reason. Seven of them
+ended with exit 0 and their own result lines (the three team-box harnesses, `IcebergChecks`, `BowlChecks` and
+`ArenaPickupChecks` with their PASSED markers, `ParticipantServerChecks` with exit 0) and failed only through
+the runner's installed-file guard; `DominationAdmissionChecks` stopped with exit 1 through its own guard
+("Installed Arena binaries changed during the test"). The first fifteen steps had passed; all 23 are in the run
+above again. The three team-box harnesses had first gone green on
 `e90d1f72` (`ChopShopTeamBoxChecks`, `IcebergTeamBoxChecks`, `BowlTeamBoxChecks`, with `IcebergChecks`,
 `BowlChecks` and `ArenaPickupChecks`: 6 of 6).
 
