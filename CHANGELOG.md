@@ -10,6 +10,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
+  blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
+  so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
+- With SAIN's bot extraction switched on in its preset (off by default), Arena bots no longer leave
+  a match through a map exit; ordinary raids keep SAIN's setting.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
 - Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
   Domination and solo Zombies, **without Tactical or PitFireTeam Zombies** (seven bot spawn points,
   none beyond the 25 m floor from the yard centre; a very small walkable area). Default is six

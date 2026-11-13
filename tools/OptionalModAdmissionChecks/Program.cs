@@ -16,6 +16,7 @@ internal static class Program
             CheckTarkovaColaAdmission();
             CheckServerAdmission();
             CheckWhitelistFirst();
+            CheckExtractionIsolation();
             CheckNoCodeLevelModRefusals();
             Console.WriteLine($"OPTIONAL_MOD_ADMISSION_CHECKS_PASSED ({_checks} assertions)");
             return 0;
@@ -135,6 +136,39 @@ internal static class Program
             "Without a whitelist or server refusal the adapters still apply");
     }
 
+    private static void CheckExtractionIsolation()
+    {
+        // 2026-11-13: ArenaMapPort put the exits into the team start pockets, so an Arena raid
+        // without its extraction hooks would end natively seconds after spawn. Fail closed.
+        Reset();
+        Allowed("Installed extraction isolation leaves Arena available");
+        Require(ArenaExtractionIsolation.Calls == 1,
+            "Admission consults the extraction isolation exactly once per query");
+
+        Reset();
+        const string missing = "Arena extraction blocking is unavailable.";
+        ArenaExtractionIsolation.Reason = missing;
+        Require(ArenaOptionalMods.GetRejectionReason() == missing,
+            "A missing extraction isolation refuses Arena admission with its reason unchanged");
+        Require(BodyReplacementCompatibility.Calls == 0 && ArenaTarkovaColaCompat.Calls == 0,
+            "A missing extraction isolation short-circuits every adapter provider");
+
+        ArenaServerClient.ServerAdmissionFailure = "Server-only blocker";
+        Require(ArenaOptionalMods.GetRejectionReason() == missing,
+            "The client's own extraction isolation is reported ahead of the server's reason");
+
+        ArenaWhitelistAdmission.Reason = "Arena runs only with whitelisted mods.";
+        ArenaExtractionIsolation.Calls = 0;
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaWhitelistAdmission.Reason
+                && ArenaExtractionIsolation.Calls == 0,
+            "The whitelist refusal stays ahead of the extraction isolation");
+
+        ArenaWhitelistAdmission.Reason = null;
+        ArenaServerClient.ServerAdmissionFailure = null;
+        ArenaExtractionIsolation.Reason = null;
+        Allowed("A recovered extraction isolation is rechecked, not cached as a refusal");
+    }
+
     private static void CheckNoCodeLevelModRefusals()
     {
         // User decision 2026-10-22: the whitelist (shipped default deny list and the user's file) refuses foreign
@@ -163,6 +197,8 @@ internal static class Program
         ArenaServerClient.ServerAdmissionFailure = null;
         ArenaWhitelistAdmission.Reason = null;
         ArenaWhitelistAdmission.Calls = 0;
+        ArenaExtractionIsolation.Reason = null;
+        ArenaExtractionIsolation.Calls = 0;
         Chainloader.PluginInfos.Clear();
         BodyReplacementCompatibility.Reason = null;
         BodyReplacementCompatibility.Calls = 0;

@@ -782,6 +782,9 @@ historical preparation extraction deferral and cleanup.
 Since 2026-10-25, ArenaExtractionIsolation owns extraction blocking across every Arena mode/map;
 team-box opening must never replay deferred native extraction entries.
 Ordinary PMC/Scav extraction and manual Arena match exit remain native.
+Since 2026-11-13 the MapPort exits sit in the team start pockets, so Arena admission fails
+closed when those hooks are not installed (`ArenaExtractionIsolation.AdmissionFailure`, read by
+`ArenaOptionalMods` right after the whitelist); see docs/reviews/EXTRACTION-HARDENING-20261113.md.
 See docs/reviews/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
 The completion contract is polled
 only after the owned release and while the exact game/world/arm/token still
@@ -829,6 +832,13 @@ docs/reviews/BOT-TALK-TEMPO-20261027.md: Normal combat-taunt eligibility is a sc
 operand override, never a shared SAIN preset write; combat strafe floors at 0.85
 and independent TDM/Domination search delay inputs cap at three seconds.
 Normalized movement targets alone do not provide the displacement bonus.
+
+No bot leaves an Arena raid through a map exit (2026-11-13, MapPort exits in the team start
+pockets): `ArenaSainExtractGuard` answers false from SAIN's `BotExtractManager.IsBotAllowedToExfil`
+for every bot of an armed or exact active Arena raid. SAIN asks it only while its preset's
+`SAIN_EXTRACT_TOGGLE` is on (off in the shipped and installed preset); never write the preset,
+and keep the postfix last. BSG's own PMC Exfiltration layer is not guarded (see
+docs/reviews/EXTRACTION-HARDENING-20261113.md for why and what a native test needs).
 
 ### From the handoff (snapshot of 2026-10-29)
 

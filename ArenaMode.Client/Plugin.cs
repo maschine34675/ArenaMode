@@ -123,6 +123,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaSainDisableSafety.Enable();
         Bots.ArenaSainActionSafety.Enable();
         Bots.ArenaSainPersonalities.Enable();
+        Bots.ArenaSainExtractGuard.Enable();
         Bots.ArenaBotTaunts.Enable();
         Performance.PoolPrewarmMonitor.Initialize();
         Bots.TdmSearchTempo.Enable();
@@ -266,6 +267,7 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaWeaponCallbackSafety.Shutdown();
         Bots.ArenaBotLifecycleSafety.Shutdown();
         Bots.ArenaSainPersonalities.Shutdown();
+        Bots.ArenaSainExtractGuard.Shutdown();
         Bots.ArenaBotTaunts.Shutdown();
         Bots.TdmSearchTempo.Shutdown();
         Bots.ArenaBotTempo.Shutdown();

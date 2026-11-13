@@ -712,6 +712,7 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   pursuit after player death reduces passive waiting. BigBrain provides the
   deliberate action owner where required; SAIN adapters preserve its lifecycle.
 - Optional exclusion of passive **Rat, Timmy and Coward** SAIN personalities.
+- Arena bots never extract through SAIN, even with SAIN's extraction toggle on (SAIN 4.5.1+).
 - Bots can be prevented from looting corpses and making gestures; weapon lights
   on corpses are turned off. Bot healing callbacks and stale action handling
   have targeted guards against the earlier dropped-Surv12/frozen-bot cases.

@@ -24,6 +24,21 @@ $mutants = @(
         After = 'var whitelistFailure = ArenaServerClient.ServerAdmissionFailure != null ? null : ArenaWhitelistAdmission.GetRejectionReason();'
     },
     @{
+        Name = 'skip-extraction-isolation'
+        Before = 'if (isolationFailure != null) return isolationFailure;'
+        After = ''
+    },
+    @{
+        Name = 'extraction-isolation-ahead-of-whitelist'
+        Before = 'var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();'
+        After = 'var whitelistFailure = ArenaExtractionIsolation.AdmissionFailure ?? ArenaWhitelistAdmission.GetRejectionReason();'
+    },
+    @{
+        Name = 'extraction-isolation-behind-server'
+        Before = 'var isolationFailure = ArenaExtractionIsolation.AdmissionFailure;'
+        After = 'var isolationFailure = ArenaServerClient.ServerAdmissionFailure != null ? null : ArenaExtractionIsolation.AdmissionFailure;'
+    },
+    @{
         Name = 'ignore-server-only-rejection'
         Before = 'if (ArenaServerClient.ServerAdmissionFailure != null)'
         After = 'if (false)'
