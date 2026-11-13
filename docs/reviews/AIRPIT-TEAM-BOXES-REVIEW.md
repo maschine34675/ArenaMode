@@ -1,5 +1,9 @@
 # AirPit original team boxes — 2026-10-17
 
+> **2026-11-13: the exit sentences are superseded.** Since ArenaMapPort's exits of 2026-11-12 Air Pit's two exits
+> no longer lie outside the boxes: they stand in the pockets (the south one at the pocket mouth), and extraction
+> is blocked by `ArenaExtractionIsolation` in every Arena raid ([SPAWN-ROWS-FOLLOWUP-20261113.md](SPAWN-ROWS-FOLLOWUP-20261113.md)).
+> The text below is the state of 2026-10-17.
 Scope: independent Team Deathmatch only, original north USEC / south BEAR
 enclosures, ten authored places per faction. Explicit even totals 4–20;
 default eight. A saved 22/24-player team preference falls back to eight on read

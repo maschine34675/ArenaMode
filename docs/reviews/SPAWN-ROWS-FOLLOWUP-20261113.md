@@ -54,17 +54,18 @@ Domination clearance) agreed with that run.
 
 1. **Tactical refusals** (`ArenaAreaCatalog.TryResolve`). How Tactical really uses rows, read in the code:
    `TacticalMode.RequestSoloSquad` spawns the squad without `requireExactCount`;
-   `SoloTacticalSpawnPolicy` waits up to 45 s and then starts with a partial squad; a solo survivor is moved to
-   a Player row at the round break (`LiveKitRespawn.AtRoundBreak`). The only `requireExactCount: true` is in the
+   `SoloTacticalSpawnPolicy` waits up to 45 s and then starts with a partial squad; the squad is requested before a solo
+   survivor is moved to a Player row at the round break (`LiveKitRespawn.AtRoundBreak`); see decision 9. The only `requireExactCount: true` is in the
    PitFireTeam path `RequestTeamEnemies`, and a PitFireTeam survivor stays where he stands, so a shortfall there
    ends the match as no contest.
    - **Equator: lifted, solo and PFT.** Its one recorded reason (four rows beyond 25 m from the atrium) is
      gone: 9 there, 6 at the worst spot of its mesh.
    - **Iceberg: lifted, solo and PFT.** At least 9 everywhere on the old centre rectangle, 10 on the mesh.
-   - **Chop Shop: solo lifted, PFT Tactical stays refused.** Solo never needs exactly five and normally
-     dispatches from a Player row (11 to 13 rows); the worst spot has three rows, which is a smaller or later
-     squad, not a stuck round. A PitFireTeam leader who survives in the yard centre (3 or 4 rows around
-     (-375, 487)) would end the match as no contest. The reason text says so: "Chop Shop's yard centre has too
+   - **Chop Shop: solo lifted, PFT Tactical stays refused.** Solo never needs exactly five. In the native runs of
+     2026-11-13 its squad was planned from a Player row (11 to 13 rows), but the code does not guarantee that
+     (decision 9); the worst spot has a minimum of 3 rows, which is a smaller or later squad after the 45 s
+     wait, not a stuck round. A PitFireTeam leader who survives in the yard centre (a minimum of 3 inside
+     x -377..-373.5, z 485..489) would end the match as no contest. The reason text says so: "Chop Shop's yard centre has too
      few distant bot spawn points for a PitFireTeam Tactical squad; select Solo or another map."
    - **PFT Zombies on Equator and Chop Shop stays refused.** That argument is space (Equator is compact; Chop Shop's
      main walkable component is 1,915.6 m2 with 1 to 2.4 m corridors at the gate mouths), not rows, so the new
@@ -76,7 +77,7 @@ Domination clearance) agreed with that run.
    `ArenaLocationSelectionPatch`'s "Equator: too small for this mode. Choose a map." stays; it now fires only for
    squad Zombies.
 3. **Participants.** Chop Shop joins the 8-group. Its argument for six was "seven rows"; it has sixteen, as
-   many as Bay5, Equator and Air Pit, and Arena's own TeamFight on this map is 5v5. Equator stays at 4: that
+   many as Bay5 and Equator (Iceberg 17, Air Pit 20, Bowl 21), and Arena's own TeamFight on this map is 5v5. Equator stays at 4: that
    preset dates from 2026-09-21, was never derived from rows (`BurstMinAliveBots` is 4 on every port), and the
    comment no longer says it follows from the distant-row count. A value saved per map is not migrated; only a
    fresh configuration gets the new recommendation.
@@ -86,9 +87,10 @@ Domination clearance) agreed with that run.
    it now names all seven. Not run natively on these three maps.
 5. **BoothExits.** Every formation names its two exits, USEC pocket first, the order Equator's entry uses:
    Equator "Equator North Gate" / "Equator South Gate"; Bay5 "Bay5 North Loading Bay" / "Bay5 South Container
-   Lane"; Air Pit "Air Pit North Gate" / "Air Pit South Gate" (the south one stands at the pocket mouth, 0.41 m
-   outside the bound, MapPort's listed exception); Bowl "Bowl BTR Gate" / "Bowl Army Gate"; Iceberg "Iceberg
-   West Gate" / "Iceberg East Gate"; Chop Shop "Chop Shop East Gate" / "Chop Shop West Gate". The member stays
+   Lane"; Air Pit "Air Pit North Gate" / "Air Pit South Gate" (the south one stands at the pocket mouth: its box
+   edge is 0.4 m outside the pocket bound and its centre 2.4 m outside, MapPort's listed exception); Bowl "Bowl
+   BTR Gate" / "Bowl Army Gate"; Iceberg "Iceberg West Gate" (on flat floor) / "Iceberg East Gate" (on the upper
+   west part of the ramp, where the floor falls from y 1.9 to 0.75); Chop Shop "Chop Shop East Gate" / "Chop Shop West Gate". The member stays
    data: extraction is isolated in Arena raids (`ArenaExtractionIsolation` matches by object and exit name,
    nothing reads the positions), so the flares only mark the pockets. The comments that said "no booth exits" or
    put the exits beyond the gates are corrected. MapPort stood in the Bowl and Iceberg boxes in two Team DM runs
@@ -99,9 +101,47 @@ Domination clearance) agreed with that run.
    statements changed. The reports of 2026-11-12 and older stay as they are. README, FORGE-DESCRIPTION and the
    whitelist stay untouched: no ArenaMode release may announce Chop Shop or the new Tactical maps on unreleased
    ArenaMapPort data before an ArenaMapPort release ships it.
+   **Release blocker (lead decision, 2026-11-13).** The published ArenaMapPort 0.5.0 has Equator 10 Bot rows
+   (4 distant from the atrium, grid minimum 3), Iceberg 9 (4 distant in the centre) and no Chop Shop; the
+   unreleased build with the rows carries the same version string 0.5.0. The reviewed versions of
+   `assets/arena-whitelist.json` are advisory: `ArenaWhitelistAdmission` says "Reviewed versions are advisory
+   for new sessions" and turns a reviewed-version difference into a note that does not obstruct character
+   selection, never into a refusal. Bumping the pin therefore changes a warning text and nothing else, and no
+   version compare can tell the two 0.5.0 builds apart. With the published data an ArenaMode built from this
+   branch admits PitFireTeam Tactical on Equator and Iceberg, and a leader who survives in the middle gets four
+   rows instead of five: `RequestTeamEnemies` ends the match as no contest; solo gets a partial squad after
+   45 s. **No ArenaMode release from this state before an ArenaMapPort release ships the rows, and that
+   release must carry a new version number.** At release time decide between (a) requiring that ArenaMapPort
+   version for PitFireTeam Tactical on Equator and Iceberg at run time (the plugin version, or a count of the
+   raid's Bot rows) and (b) an accepted, documented requirement in the release notes. The README.md and
+   FORGE-DESCRIPTION.md lines that still say Equator and Iceberg exclude Tactical change in that release,
+   not now.
 8. **Out of scope here** (filed as separate tasks): Arena arms even when `ArenaExtractionIsolation` failed to
    install (it should refuse), and bots leaving through SAIN's extraction, which depends on the SAIN preset and
    has no Arena-side guard.
+9. **Known limit: solo squad dispatch order.** In solo Tactical, `TacticalMode.StartRound` requests the squad
+   (`RequestSoloSquad`) before it starts `LiveKitRespawn.AtRoundBreak`, and `BurstSpawnService.SpawnPair` reads
+   the player position when `BotCreationData.Create` completes. If the profiles are ready before the swap has
+   moved the player, the plan is made against the old position. Native timings of 2026-11-13 (GPU-2, build
+   0.5.0+e90d1f72, ArenaMapPort 0.5.0+160523d), solo Tactical on Chop Shop in one raid:
+   - Round 1: player on the east Player row (-338.5, -3.8, 490.5); the five opponents stood 24.3, 25.1, 40, 40
+     and 42 m away a moment after they went live.
+   - Round 2 after a death: the player respawned on the west row (-409.3, -3.7, 487.0); opponents at 27.4, 47.1,
+     52.8, 54.3 and 57.9 m, that is, picked against the new position.
+   - Round 3 as a survivor who stood in the worst cell (-375, -3.8, 486.5) when round 2 ran out: log
+     `09:59:20.463 Tactical round 3: requested 5 opponents; spawn service planned 5`, `09:59:20.538 Arena round
+     respawn complete`, `09:59:22.258 Arena burst spawn plan: ... points 13 preferred + 0 distant, selected 5`,
+     `09:59:23.249 Tactical round 3 live: 5 active opponents`. Thirteen is the count from the east Player row the
+     player was moved to, so the move (0.075 s after the request) landed before the points were picked (1.8 s
+     after the request). Opponents at 22.3, 23.1, 24.3, 43.8 and 57.0 m one second after they went live.
+
+   So in every measured round the points were picked after the move; the code does not guarantee that order.
+   The reviewer's simulation of the lost race (old position uniform over all rows, destination a Player row at
+   least 40 m away) gives at least one squad point within 15 m / 25 m of the new Player row in 43 % / 67 % of
+   rounds on Equator, 63 % / 97 % on Chop Shop, 0 % / 12 % on Iceberg, and on the maps admitted before: Bay5
+   32 % / 68 %, Air Pit 12 % / 15 %, Bowl 0 % / 5 %. The limit exists in solo Tactical on every map; the three
+   new maps do not introduce it. The reorder (move first, then request, or read the position at the swap) is
+   filed as a separate task and is not part of this change; the lifts stay as decided.
 
 ## Pins
 
@@ -121,12 +161,30 @@ new pins hold what the decisions rest on:
   not the number re-pinned. The admission matrix follows decision 1 and now includes Iceberg and Chop Shop.
   Compiled faults: `ChopShopPftTactical`, `EquatorTacticalRefused`, `IcebergTacticalRefused`,
   `ChopShopSoloTacticalRefused` (12 in all, was 9).
+  Added after the review of the same day (labels as the harness prints them):
+  - `SPAWN-ROWS-DATA`, before the evidence pins of the three maps: the installed `base.json` exists (a missing
+    `arena_autoservice` file fails with a sentence, not a raw `FileNotFoundException`) and has at least 16
+    (Equator), 17 (Iceberg) and 16 (Chop Shop) distinct Bot/BotPmc rows. On older data the message says that the
+    installed ArenaMapPort data predates the spawn rows of 2026-11-12, that build 0.5.0+160523d or a later
+    release is needed (the published 0.5.0 has 10 and 9 rows and no Chop Shop), that the Tactical admissions of
+    2026-11-13 were decided on those rows, and that a red pin on older data is not an ArenaMode defect. It still
+    fails, because the decision cannot be verified on old data; through `MapModeAdmissionChecks` the three
+    team-box harnesses go red with it.
+  - `EQUATOR-GRID` and `ICEBERG-GRID`: the minimum of the production selector (`BurstSpawnPointSelector.CountUsable`)
+    over the bounding box of the map's Bot/BotPmc rows in 1 m steps, with y taken from the nearest row, is at
+    least 5 (today 6 on Equator, 9 on Iceberg).
+  - `CHOPSHOP-GRID`: the same minimum is at least 1 and below 5 (today 3), the evidence of the PFT refusal over
+    the whole box beside CHOPSHOP-YARD-CENTER. It is directional on purpose, like that pin.
+  - `EXIT-NAMES`: for each of the six ports the exit names of the installed `base.json` equal the `BoothExits`
+    of `ArenaTeamBoxCatalog` for that map, as a set (two each).
 - Every other oracle that encoded the refusals, hints or the default follows the decisions: AreaConfigChecks
   (matrix and hint literals), NativeMenuChecks (tactical flags and the Equator PFT admission), ParticipantMenuChecks,
   CompactModeUxChecks, PftPortedMapChecks, NativeAreaHookChecks, CustomsAllModesChecks, the NegativeControls of
   AirPitChecks and EquatorMapChecks, and the xunit tests (`ChopShopMapTests`, `IcebergMapTests`, `EquatorMapTests`,
   `MapModeAccessTests`, the five TeamSpawn classes for `BoothExits`, the participant default, `ZombieWavePolicyTests`).
-- `tools/ArenaExtractionChecks` runs the twelve real exit names of the six ports through its name loop.
+- `tools/ArenaExtractionChecks` runs the twelve real exit names of the six ports through its name loop. The
+  loop proves that the isolation blocks each of those names when the controller holds it; it cannot notice a
+  rename on MapPort's side, because it feeds the same literal to both sides. The `EXIT-NAMES` pin above does.
 - `tools/ChopShopChecks/scenarios/chopshop-zombie.json` starts in the yard centre and expects no dropped
   request ("no usable spawn point" absent); its README section and the other Chop Shop and Iceberg README
   lines say what the rows are now.
@@ -179,9 +237,13 @@ NATIVE: (lead fills in the native runs of the new build)
   reason. The rule is only as good as the installed data.
 - Behaviour on the published ArenaMapPort 0.5.0 data (Equator 10 rows, Iceberg 9, Chop Shop none): Arena has
   no run-time row check, so with those files Tactical is admitted on Equator and Iceberg although they cannot
-  always place five distant opponents. The offline pins read the installed data only.
-- The exit sentences of `BAY5-TEAM-BOXES-REVIEW.md` and `AIRPIT-TEAM-BOXES-REVIEW.md` (their exits are "outside
-  the boxes"); they are older than the pocket exits and were not touched here.
+  always place five distant opponents (PitFireTeam: no contest; solo: a partial squad after 45 s). This is
+  the release blocker of decision 7: the two 0.5.0 builds share a version string and the whitelist versions are
+  advisory, so nothing at run time tells them apart. The offline pins read the installed data only, and
+  `SPAWN-ROWS-DATA` fails on the published data.
+- The order of the solo squad dispatch against the round-break move (decision 9). The three native rounds
+  agree with the intended order, the code does not enforce it, and the simulation of the lost race is the
+  reviewer's, not a native run.
 - The pickup simulations of the survey for the other maps (pool sizes, Domination usable counts); only Chop Shop
   Domination was placed natively.
 - Hearing the flares, sound, night and rain at the new exits; the release of ArenaMapPort that carries all of

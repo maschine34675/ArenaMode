@@ -13,9 +13,9 @@ der Stand vom 17.10.2026, wo nicht anders vermerkt.
 | Labs, Labyrinth | Ja | Ja | Nein | Ja | Ja |
 | Bay5, Air Pit | Ja | Ja, Teamboxen 2v2–10v10 | Ja, Bay5 ein Punkt, Air Pit zwei | Ja | Ja |
 | Bowl | Ja | Ja, Teamboxen 2v2–10v10 | Ja, zwei Punkte | Ja | Ja |
-| Iceberg (unveröffentlichter ArenaMapPort-Build nötig) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, drei Punkte (A/B/C) | Ja / Ja: 17 Botpunkte, in der alten Kartenmitte mindestens neun über 25 m (bis 12.11.: Nein) | Ja / Ja |
-| Chop Shop (unveröffentlichter ArenaMapPort-Build nötig) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt (X) | Solo ja; PFT nein: in der Hofmitte nur drei bis fünf entfernte Botpunkte (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
-| Equator | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt | Ja / Ja: 16 Botpunkte, neun über 25 m vom Atrium, überall mindestens sechs (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
+| Iceberg (Karte in ArenaMapPort 0.5.0; die 17 Botpunkte für Tactical nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, drei Punkte (A/B/C) | Ja / Ja: 17 Botpunkte, in der alten Kartenmitte mindestens neun über 25 m (bis 12.11.: Nein) | Ja / Ja |
+| Chop Shop (Karte und Botpunkte nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt (X) | Solo ja; PFT nein: in der Hofmitte nur drei bis fünf entfernte Botpunkte (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
+| Equator (Tactical: 16 Botpunkte nur im unveröffentlichten Build 0.5.0+160523d) | Ja | Ja, Teamboxen 2v2–10v10 | Ja, ein Punkt | Ja / Ja: 16 Botpunkte, neun über 25 m vom Atrium, überall mindestens sechs (bis 12.11.: Nein) | Solo ja; PFT nein: zu wenig Platz für den Fünfertrupp mit Zombie-Welle |
 | Customs, ganze Karte | Nein | Nein | Nein | Nein | Nein |
 | Drei begrenzte Customs-Areale | Ja, mit Teilnehmerzahl | Ja, 2v2–5v5 | Nein | Ja, standardmäßig 1v5 / PMC + 1–4 Begleiter gegen fünf | Ja, solo / PMC + 1–4 Begleiter |
 
@@ -44,7 +44,7 @@ PFT-Spieler bleibt beim Rundenwechsel am Ort, deshalb war Tactical gesperrt. Sei
 ist Tactical auf Equator solo und mit PFT freigegeben: ArenaMapPort hat am 12.11. Botpunkte
 hinzugefügt (16 statt 10), vom Atrium liegen jetzt neun mindestens 25 m entfernt, an jeder Stelle
 der Karte mindestens sechs. Der Sicherheitsabstand von 25 m bleibt unverändert und wird nicht
-durch erfundene Startpunkte umgangen. Das setzt einen ArenaMapPort-Build mit diesen Botpunkten voraus.
+durch erfundene Startpunkte umgangen. Das setzt einen ArenaMapPort-Build mit diesen Botpunkten voraus (unveröffentlicht, 0.5.0+160523d; das veröffentlichte 0.5.0 hat zehn Botpunkte auf Equator).
 
 Zombies mit PFT sind auf Equator ebenfalls ausgeschlossen: Der kompakte Spielraum
 ist für den Fünfertrupp zusammen mit den Zombies zu eng. Solo-Zombies bleiben
@@ -91,10 +91,10 @@ Boxen USEC Ost / BEAR West hinter den Spawn-Toren. Siehe
 [Bowl-Freigabe](reviews/BOWL-INTEGRATION-20261023.md) und
 [Bowl-Teamboxen](reviews/BOWL-TEAM-BOXES-20261023.md).
 
-Iceberg braucht einen ArenaMapPort-Build, der `arena_iceberg` mitbringt; das ist
-derzeit nur der unveröffentlichte `feature/iceberg`-Build 0.4.0+32fda33. Das
-veröffentlichte 0.4.0 hat kein Iceberg und dieselbe Versionsnummer; ArenaMode erkennt
-die Karte deshalb nur an der vorhandenen, aktivierten Location, nie an der Version.
+Iceberg braucht einen ArenaMapPort-Build, der `arena_iceberg` mitbringt; das veröffentlichte
+ArenaMapPort 0.5.0 (07.11.2026) tut das, 0.4.0 hat kein Iceberg. ArenaMode erkennt die Karte nur an der
+vorhandenen, aktivierten Location, nie an der Version. Nur die 17 Botpunkte, die Tactical freigeben, brauchen
+den unveröffentlichten Build 0.5.0+160523d; er trägt dieselbe Versionsnummer 0.5.0 wie das veröffentlichte Paket.
 Tactical war auf Iceberg solo und mit PFT gesperrt: Von etwa 48 m² in der Kartenmitte
 aus lagen nur vier der neun Botpunkte weiter als 25 m entfernt. Seit dem 13.11.2026 ist es
 solo und mit PFT freigegeben: Der ArenaMapPort-Build vom 12.11. bringt 17 Botpunkte, in der
@@ -113,8 +113,10 @@ Das veröffentlichte 0.5.0 hat kein Chop Shop und dieselbe Versionsnummer; Arena
 Karte nur an der vorhandenen, aktivierten Location, nie an der Version. Tactical ist seit dem
 13.11.2026 solo freigegeben und mit PFT gesperrt: Die Karte hat 16 Botpunkte (bis 12.11. sieben,
 damals war Tactical ganz gesperrt); von jedem Spielerstart liegen 11 bis 13 weiter als 25 m entfernt,
-von der Hofmitte fünf, um (-375, 487) nur drei. Solo braucht nie genau fünf (ein kleinerer oder späterer
-Trupp ist möglich, der Überlebende wird zur Rundenpause auf einen Spielerstart versetzt); ein
+von der Hofmitte fünf, mindestens drei in x -377..-373,5, z 485..489. Solo braucht nie genau fünf (ein kleinerer
+oder späterer Trupp ist möglich; der Trupp wird angefordert, bevor der Überlebende zur Rundenpause auf einen
+Spielerstart versetzt wird, und seine Punkte werden gewählt, wenn die Profile eintreffen; in den nativen Läufen
+vom 13.11. war die Versetzung dann schon geschehen, der Code garantiert es nicht); ein
 PFT-Anführer bleibt stehen, und fehlende Punkte beenden dort das ganze Match ohne Ergebnis.
 Zombies mit PFT sind gesperrt (die zusammenhängende Lauffläche hat nur 1.916 m², dazu
 1–2,4 m enge Gänge an den Toren); solo bleiben Zombies freigegeben. Team DM und Domination nutzen

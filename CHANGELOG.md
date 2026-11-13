@@ -19,8 +19,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   start. Chop Shop keeps refusing Tactical with a PitFireTeam squad, because a surviving leader in the
   yard centre can have only three to five distant spawn points and the match would end without a result;
   squad Zombies stay refused on Equator and Chop Shop (too little space). The picker hints follow.
-  **This needs an ArenaMapPort build with the spawn points of 2026-11-12, which is not released yet**; with
-  the published 0.5.0 Equator and Iceberg have too few. The two exits of each map now stand inside the team
+  **This needs an ArenaMapPort build with the spawn points of 2026-11-12, which is not released yet and
+  carries the same version 0.5.0 as the published one.** The published 0.5.0 has 10 spawn points on Equator
+  (4 of them far from the atrium), 9 on Iceberg and no Chop Shop. With that data Tactical is still admitted on
+  both maps (the reviewed versions in the whitelist are advisory, so nothing can tell the two builds apart): a
+  PitFireTeam leader who survives in the middle gets four opponent spawn points instead of five and the match
+  ends without a result, and solo gets a smaller squad after 45 s. Release blocker: no ArenaMode release from
+  this state before an ArenaMapPort release ships the spawn points under a new version number. The two exits of each map now stand inside the team
   start areas (data only; extraction stays disabled in Arena).
   Not yet played natively on these three maps when this was written.
   [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)

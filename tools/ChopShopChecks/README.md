@@ -11,7 +11,8 @@ player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-2
 
 ## Scenarios
 
-`scenarios/` holds the five gpu-run scenario files of the native cycle on GPU-2 of 2026-11-12
+`scenarios/` holds the five gpu-run scenario files of the native cycle on GPU-2 of 2026-11-12, and
+`tactical-solo-ported.json` of 2026-11-13
 ([report](../../docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)):
 
 | File | Runs |
@@ -21,6 +22,7 @@ player-facing name is Chop Shop. Contract: `docs/reviews/CHOP-SHOP-INTEGRATION-2
 | `chopshop-dom.json` | Domination 4v4 with the one capture point (14 steps, 5 expectations) |
 | `chopshop-zombie.json` | solo Zombies from the yard centre (15 steps, 3 expectations) |
 | `chopshop-pmc.json` | ordinary PMC control raid, no ArenaMode line expected |
+| `tactical-solo-ported.json` | solo Tactical on a ported map whose refusal was lifted on 2026-11-13, three rounds (20 steps, 10 expectations) |
 
 Run from the UiBridge checkout (they need an ArenaMapPort build that ships `arena_autoservice`
 and a gpu-run that knows the Arena menu texts of 2026-11-09):
@@ -40,3 +42,13 @@ dropped request ("no usable spawn point" must be absent), at the centre and agai
 player moved to a pocket. Native on GPU-2, 2026-11-13: 32 of 32 with "points 5 preferred".
 Leave about 40 s between two Arena raids: a start 5 s after the previous one was refused
 with "PitFireTeam post-raid finalization is still settling".
+
+`tactical-solo-ported.json` shows solo Tactical on a ported map for three rounds, every round live with five
+opponents, no dropped request and no partial squad. Its `map` parameter defaults to `CHOP SHOP` and takes
+`EQUATOR` or `ICEBERG` (`--param map=EQUATOR`). The scenario sets Tactical/BuySeconds to 5 and
+Tactical/RoundSeconds to 60 through the bridge with persist=false first, so a round is short and the saved
+settings stay as they were. Round 1 starts from a Player row and ends by the timer or by the player's death,
+whichever the bots manage; round 2 is ended by the kill hook (a test-hook death); round 3 is the survivor's
+round after that. It ran on GPU-2 on 2026-11-13 on all three maps: 20 steps each, every round live with five
+opponents (the report is `docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md`). Leave about 40 s between two Arena
+raids, as above.

@@ -232,15 +232,25 @@ yard-centre reason; Chop Shop defaults to eight; picker hints; every formation n
 the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that patch). Open: (1) the **native
 runs of the new build** (see the contract's `NATIVE:` line): Tactical solo and PFT on Equator and Iceberg,
 solo on Chop Shop, the capture point on those three maps, a PFT match on Chop Shop refused in the menu, a
-respawn onto an in-box formation point (Iceberg Bear house (9)); (2) ArenaMapPort has not released these
-rows: until it does, no ArenaMode release may announce Chop Shop or Tactical on Equator and Iceberg
-(README, FORGE-DESCRIPTION and the whitelist untouched), and with the published 0.5.0 data Equator (10
-rows) and Iceberg (9) would admit a Tactical squad they cannot always place (no run-time row check exists;
-decide whether one is wanted before a release); (3) two hardening items filed separately: Arena arms even
+respawn onto an in-box formation point (Iceberg Bear house (9)); (2) **release blocker**: ArenaMapPort has not released
+these rows. The published 0.5.0 has Equator 10 Bot rows (4 distant from the atrium, grid minimum 3), Iceberg 9 (4
+distant in the centre) and no Chop Shop, and the unreleased build with the rows carries the same version string
+0.5.0; the whitelist versions are advisory (`ArenaWhitelistAdmission` turns a reviewed-version difference into a
+note only), so bumping the pin changes a warning text and no version compare tells the two builds apart. With the
+published data this branch admits PFT Tactical on Equator and Iceberg, and a leader who survives in the middle
+gets four rows instead of five (`RequestTeamEnemies` ends the match as no contest; solo gets a partial squad
+after 45 s). No ArenaMode release from this state before an ArenaMapPort release ships the rows under a new
+version number; at release time decide between requiring that version for PFT Tactical on Equator and Iceberg at
+run time (plugin version, or a count of the raid's Bot rows) and an accepted, documented requirement in the
+release notes; README, FORGE-DESCRIPTION and the whitelist stay untouched until then.
+`tools/MapModeAdmissionChecks` fails on the published data with the SPAWN-ROWS-DATA message that names the needed
+build, and through it the three team-box harnesses; (3) two hardening items filed separately: Arena arms even
 when `ArenaExtractionIsolation` failed to install (it should refuse), and bots leaving through SAIN's
 extraction depends on the SAIN preset (no Arena-side guard); (4) the 1.7 % of Chop Shop mesh cells with
 fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the green reruns of the
-three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract).
+three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract); (6) filed separately: the dispatch order of the solo Tactical squad
+against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
+its points when the profiles arrive, which the three native rounds of 2026-11-13 happened to order correctly).
 
 **Reward storage layout for the SPT 5.0 port (owner's decision, 2026-11-11):** the four folders under
 `SPT_Runtime/user` (`arena-rewards`, `arena-reward-snapshots`, `arena-reward-checkpoints`, `arena-reward-runs`) stay as

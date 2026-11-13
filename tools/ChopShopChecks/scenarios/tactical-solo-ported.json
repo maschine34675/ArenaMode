@@ -1,0 +1,31 @@
+{
+  "name": "tactical-solo-ported",
+  "description": "Solo Tactical on a ported map whose refusal was lifted on 2026-11-13 (Equator, Iceberg, Chop Shop): three rounds under short timings (set Tactical/BuySeconds 5 and Tactical/RoundSeconds 60 through the bridge with persist=false first). Round 1 starts from a Player row; it ends by the timer or by the player's death, whichever the bots manage (the report's log shows which); round 2 is ended by a test-hook death. Every round has to go live with five opponents, with no dropped or partial squad. No errors.",
+  "host": "host2",
+  "parameters": {"map": {"default": "CHOP SHOP"}},
+  "steps": [
+    {"step": "status", "name": "status"},
+    {"step": "raid", "name": "raid", "mode": "tactical", "map": {"$ref": "/parameters/map"}, "mapFromMenu": true, "timeoutSeconds": 480},
+    {"step": "player", "name": "player-round1"},
+    {"step": "expect", "name": "round1-live", "what": "log", "contains": "Tactical round 1 live: 5 active opponents", "sinceStep": "raid", "withinSeconds": 120},
+    {"step": "expect", "name": "squad-plan", "what": "log", "contains": "requested 5, profiles 5", "sinceStep": "raid", "withinSeconds": 5},
+    {"step": "bots", "name": "bots-round1", "aliveOnly": true, "minCount": 5, "onFail": "continue"},
+    {"step": "expect", "name": "objective-round1", "what": "log", "contains": "Tactical round 1 objective: point at", "sinceStep": "raid", "withinSeconds": 30, "onFail": "continue"},
+    {"step": "expect", "name": "round1-over", "what": "log", "contains": "Tactical round 1 lost", "sinceStep": "raid", "withinSeconds": 150},
+    {"step": "expect", "name": "round2-live", "what": "log", "contains": "Tactical round 2 live: 5 active opponents", "sinceStep": "round1-over", "withinSeconds": 150},
+    {"step": "player", "name": "player-round2"},
+    {"step": "bots", "name": "bots-round2", "aliveOnly": true, "minCount": 5, "onFail": "continue"},
+    {"step": "hook", "name": "kill", "action": "kill", "onFail": "continue"},
+    {"step": "expect", "name": "round2-over", "what": "log", "contains": "Tactical round 2 lost", "sinceStep": "round2-live", "withinSeconds": 150},
+    {"step": "expect", "name": "round3-live", "what": "log", "contains": "Tactical round 3 live: 5 active opponents", "sinceStep": "round2-over", "withinSeconds": 180},
+    {"step": "player", "name": "player-round3"},
+    {"step": "still", "name": "still", "id": "tactical-round3"},
+    {"step": "expect", "name": "no-dropped-spawn", "what": "logAbsent", "contains": "no usable spawn point", "sinceStep": "raid", "onFail": "continue"},
+    {"step": "expect", "name": "no-partial-squad", "what": "logAbsent", "contains": "no partial squad dispatched", "sinceStep": "raid", "onFail": "continue"},
+    {"step": "expect", "what": "logAbsent", "level": "error", "sinceStep": "raid", "onFail": "continue"},
+    {"step": "log-export", "name": "export", "onFail": "continue"}
+  ],
+  "finally": [
+    {"step": "leave", "whenStepStarted": "raid"}
+  ]
+}

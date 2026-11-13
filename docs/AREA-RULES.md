@@ -629,10 +629,12 @@ PitFireTeam squad**: their refusals rested on the number of Bot/BotPmc rows beyo
 MapPort's rows of 2026-11-12 gave Equator 16 rows (9 beyond 25 m from the atrium, at least 6 on every
 cell of its mesh) and Iceberg 17 (at least 9 on the old centre rectangle, 10 on the mesh). **Chop Shop
 (arena_autoservice, MapPort's id; Arena's name) admits solo Tactical and refuses it with a PitFireTeam
-squad.** It has 16 rows: 11 to 13 from each Player row, 5 from the yard centre, but 3 around
-(-375, 487) and 98.3 % of its mesh cells with five or more. Solo never needs exactly five
+squad.** It has 16 rows: 11 to 13 from each Player row, 5 from the yard centre, but a minimum of 3 inside
+x -377..-373.5, z 485..489 and 98.3 % of its mesh cells with five or more. Solo never needs exactly five
 (`RequestSoloSquad` passes no `requireExactCount`, `SoloTacticalSpawnPolicy` starts a partial squad after
-45 s, a solo survivor is moved to a Player row at the round break); a PitFireTeam leader stays where he
+45 s). The solo squad is requested before the round-break move of the survivor to a Player row, and its points
+are picked when the profiles arrive; in the native runs of 2026-11-13 the move had landed by then, but the code
+does not guarantee it (known limit, decision 9 of the contract). A PitFireTeam leader stays where he
 stands and `RequestTeamEnemies` demands exactly five, so a shortfall ends the match as no contest. The
 solo/PFT difference sits in `ArenaAreaCatalog.TryResolve`; when MapPort closes the yard-centre patch the
 installed-data pin CHOPSHOP-YARD-CENTER in `MapModeAdmissionChecks` fails and the PFT rule is to be
@@ -759,8 +761,9 @@ ordinary ten-second watchdog): every build that ships Iceberg has GatesOpen. Don
 and outside destination is the installed arena_iceberg-bot-core-01. Revision-5
 migration, the box derivation and the native-test boundary are in
 docs/reviews/ICEBERG-INTEGRATION-20261031.md. Its exits stand inside the pockets since ArenaMapPort's
-2026-11-12 build: West Gate (-38.79, 3.2, -85.6) in the USEC box, East Gate (90.88, 1.67, -86.34) in the
-BEAR box (the stage marker Bear house (9), also a start point, lies inside it); `BoothExits` names them
+2026-11-12 build: West Gate (-38.79, 3.2, -85.6) in the USEC box on flat floor, East Gate (90.88, 1.67, -86.34) in the
+BEAR box on the upper west part of a ramp (the floor falls from y 1.9 to 0.75; the stage marker Bear house (9),
+also a start point, lies inside it); `BoothExits` names them
 ("Iceberg West Gate", "Iceberg East Gate"), data only. The sentence of 2026-10-31 that both exits lie
 outside the gates is history.
 
@@ -808,7 +811,7 @@ Since 2026-10-25, ArenaExtractionIsolation owns extraction blocking across every
 team-box opening must never replay deferred native extraction entries.
 Ordinary PMC/Scav extraction and manual Arena match exit remain native.
 Since ArenaMapPort's build of 2026-11-12 every port's two exits stand inside the team pockets (Equator's
-always did; Air Pit South Gate sits at the pocket mouth, 0.41 m outside); `Formation.BoothExits` names them
+always did; Air Pit South Gate sits at the pocket mouth, its box edge 0.4 m and its centre 2.4 m outside the pocket bound); `Formation.BoothExits` names them
 for all six formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
 nothing reads the positions, and the flares only mark the pockets. A first spawn or a respawn can stand in an
 exit box (Iceberg's Bear house (9) does); that it never extracts is MapPort's observation in Team DM on Bowl
@@ -831,7 +834,8 @@ Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerp
   those records after MapPort's conservative booth repair; initial placement,
   bot activations and player respawns use the corresponding box, with real
   floor/clearance/path/occupancy checks and persistent native reservations.
-  Total participants are 4–20, default four. Tactical/PFT Zombies remain blocked;
+  Total participants are 4–20, default four. Tactical/PFT Zombies remain blocked *(Superseded 2026-11-13: Tactical is admitted on Equator,
+  solo and with PitFireTeam; PFT Zombies remains blocked)*;
   other modes and ordinary raids retain their general starts. Delayed respawn
   continuations now also require the exact current native game/world pair.
 
