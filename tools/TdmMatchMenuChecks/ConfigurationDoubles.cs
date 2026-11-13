@@ -25,7 +25,9 @@ namespace ArenaMode.Session
             => mode == "domination" && !DominationAvailable ? "Domination objective companion unavailable." : null;
         // ArenaModeSelectionView asks for the selected area to resolve Domination's (map, area) count.
         internal sealed class AreaSelectionDouble { internal ArenaMode.Shared.ArenaAreaDefinition SelectedArea; }
-        internal static AreaSelectionDouble AreaSelection(string map) => new();
+        // StubArea is the area a check pretends to have picked; null is the whole map.
+        internal static ArenaMode.Shared.ArenaAreaDefinition StubArea;
+        internal static AreaSelectionDouble AreaSelection(string map) => new() { SelectedArea = StubArea };
     }
 
     // HTTP and persistence belong to the reward integration checks. This seam

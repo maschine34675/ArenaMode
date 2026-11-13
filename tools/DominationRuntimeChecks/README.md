@@ -1,7 +1,7 @@
 # Fixed Domination runtime checks
 
 Run `pwsh -NoProfile -File tools/DominationRuntimeChecks/Verify.ps1`.
-Current baseline: 756 assertions; all thirty source mutants rejected by their
+Current baseline: 1059 assertions; all 37 source mutants rejected by their
 intended behavioral assertions, followed by a clean baseline (2026-11-13, with the
 world-letter pin and the surveyed-slot layout kind).
 This small console harness links the production `DominationMapLayout`,
@@ -35,10 +35,14 @@ Surveyed layouts (The Lab, The Labyrinth; docs/reviews/DOMINATION-VANILLA-MAPS-2
 section: the measured rows (independent literal tables), the pool anchor, the fallback order, the 15 m
 separation, the abort of a slot without a passing candidate, determinism, the whole-map early return of
 `VerifyTeamPaths` and, on a synthetic layout in a synthetic area, the area team-start proof. Tactical's
-`Resolve` must keep refusing The Lab, The Labyrinth and Customs. Fifteen further mutants cover these rules.
+`Resolve` must keep refusing The Lab, The Labyrinth and Customs. Fourteen further mutants cover these rules.
 The three Customs areas (stage 3) add the nine rows against independent literals, the real area contours (every seed
 inside with the 0.5 m floor inset), the shared area ids, prepare inside each area, the team-start proof for both
-factions, a cut-off point aborting the match, the fallback and the single-candidate abort, and six more mutants.
+factions, a cut-off point aborting the match, the fallback and the single-candidate abort, and seven more mutants.
+An equivalence block at the end asserts, for 15 map ids times 13 area ids (the whole-map spellings, the three
+Customs areas, the retired and unknown ids, other casing), that `ArenaAreaCatalog.TryResolve` admits Domination
+exactly where `DominationMapLayout.DominationPointCount` is above zero; one mutant (the catalogue loses its last
+whole-map exclusion, `AreaCatalogSource`) dies there. A layout-side fault is caught earlier by the row assertions.
 
 Fifteen compiled-source mutants (the first group) target the Factory separation and repeat rules,
 the legacy centroid, a lifted Iceberg trigger centre, a lifted Chop Shop point, lost X label, port

@@ -1310,5 +1310,32 @@ Need(!rewardRoot.activeInHierarchy, "leaving the Arena map screen removes its re
 Show();
 foreach (var action in oldRewardActions) action();
 Need(ArenaRewardMenuState.Toggles == 1, "retired reward consent callback cannot act on a reopened screen");
+// The menu call site (ArenaModeSelectionView.ControlPointCount): Domination reads its own (map, area) count,
+// every other mode keeps the Tactical-only map list, so Tactical never promises a point on a map without one.
+var pickedScreen = screen.GetComponent<EFT.UI.Matchmaker.MatchMakerSelectionLocationScreen>();
+void PickMap(string map, ArenaMode.Shared.ArenaAreaDefinition area = null)
+{
+    pickedScreen.SelectedLocation = new EFT.UI.Matchmaker.MatchMakerSelectionLocationScreen.Location { Id = map };
+    ArenaMenuSelection.StubArea = area;
+}
+string Described(string mode) { view.Synchronize(mode, false); return Label("Mode description").text; }
+PickMap(ArenaMode.Shared.ArenaMapCatalog.LaboratoryId);
+Need(Described("domination").Contains("Hold 3 points to earn team score.", StringComparison.Ordinal),
+    "menu: Domination on The Lab says it holds 3 points");
+Need(!Described("tactical").Contains("hold the point", StringComparison.Ordinal)
+    && Described("tactical").Contains("Eliminate the enemy squad", StringComparison.Ordinal),
+    "menu: Tactical on The Lab promises no control point");
+PickMap(ArenaMode.Shared.ArenaMapCatalog.LabyrinthId);
+Need(Described("domination").Contains("Hold 1 point to earn team score.", StringComparison.Ordinal),
+    "menu: Domination on The Labyrinth says it holds 1 point");
+PickMap(ArenaMode.Shared.ArenaMapCatalog.CustomsId, ArenaMode.Shared.ArenaAreaCatalog.CustomsYard);
+Need(Described("domination").Contains("Hold 3 points to earn team score.", StringComparison.Ordinal),
+    "menu: Domination on Customs with a Customs area selected says 3 points");
+Need(!Described("tactical").Contains("hold the point", StringComparison.Ordinal),
+    "menu: Tactical on Customs promises no control point");
+PickMap("factory4_day");
+Need(Described("tactical").Contains("hold the point", StringComparison.Ordinal),
+    "menu: Tactical keeps its control-point copy on a map that has one (positive control)");
+PickMap(null);
 view.Close();
 Console.WriteLine($"TDM_MATCH_MENU_CHECKS_PASSED ({checks} assertions)");

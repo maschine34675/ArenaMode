@@ -76,6 +76,13 @@ Reject-Change 'allow-pft' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
 Reject-Change 'area-map-check-removed' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     'if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))' 'if (false)' `
     'the native area model offers exactly the reviewed whole map: factory4_day'
+# The whole-map early return is what keeps a bounded id on a whole-map-only map refused: an unconditional
+# return admits every bounded id on every map. Its first failing assertion in Main order is the area model's
+# offer for the first reviewed map (the model probes the bounded ids through TryResolve), which comes before
+# the explicit refusal loop of the same map ('the prototype never silently repairs an area at arming').
+Reject-Change 'bounded-id-admitted' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    'if (wholeMap) return true;' 'return true;' `
+    'the native area model offers exactly the reviewed whole map: factory4_day'
 Reject-Change 'allow-whole-customs' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)' `
     '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) && !string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)' `
@@ -126,4 +133,4 @@ if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash)
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 18 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 19 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"

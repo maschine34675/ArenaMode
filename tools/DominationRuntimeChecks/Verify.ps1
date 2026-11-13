@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $layout = Join-Path $root 'ArenaMode.Client/Modes/DominationMapLayout.cs'
 $runtime = Join-Path $root 'ArenaMode.Client/Modes/DominationRuntime.cs'
+$catalog = Join-Path $root 'ArenaMode.Shared/ArenaAreaCatalog.cs'
 $faults = @(
     @{ Name='factory-overlapping-points'; Path=$layout; Property='LayoutSource';
        Find='>= FactoryMinimumSeparation * FactoryMinimumSeparation'; Replace='>= 0';
@@ -117,6 +118,12 @@ $faults = @(
        Failure='the repeated Customs area ids equal the shared catalogue''s ids' },
     @{ Name='layout-borrowed-by-another-area'; Path=$runtime; Property='RuntimeSource';
        Find='!string.Equals(_areaId, ActiveAreaId, StringComparison.Ordinal)'; Replace='false';
-       Failure='bounded area cannot borrow a full map objective layout' }
+       Failure='bounded area cannot borrow a full map objective layout' },
+    # Admission (ArenaAreaCatalog) and the layout (DominationMapLayout) answer one question from two files.
+    # Dropping the last whole-map exclusion admits maps for which the layout has no row. (An unconditional
+    # `return true` in the same block dies earlier, at 'the shared catalogue admits the area under test'.)
+    @{ Name='catalogue-admits-map-without-layout'; Path=$catalog; Property='AreaCatalogSource';
+       Find='&& !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)'; Replace='&& false';
+       Failure='the catalogue admits Domination exactly where the layout has points' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'DominationRuntimeChecks.csproj') -Token 'DOMINATION_RUNTIME_CHECKS_PASSED' -Properties @() -Faults $faults

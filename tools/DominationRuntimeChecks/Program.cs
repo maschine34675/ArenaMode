@@ -639,4 +639,23 @@ foreach (var (map, slots, extra) in surveyedCases)
     Reset();
 }
 
+// Admission (ArenaAreaCatalog.TryResolve, shared with the server) and the layout (DominationMapLayout, client)
+// are two files that must agree: the menu counts points only where the server admits the match, and a match
+// the server admits must have points to hold. The equivalence holds for every row below; no row is exempt.
+{
+    string[] equivalenceMaps = { "factory4_day", "factory4_night", "arena_bay5", "arena_equator", "arena_airpit",
+        "arena_bowl", "arena_iceberg", "arena_autoservice", "laboratory", "labyrinth", "bigmap",
+        "FACTORY4_DAY", "BIGMAP", "shoreline", "unknown-map" };
+    string[] equivalenceAreas = { null, "", " ", "full-map", ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+        ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId,
+        ArenaAreaCatalog.CustomsYardId.ToUpperInvariant(), ArenaAreaCatalog.FactorySouthId,
+        ArenaAreaCatalog.CustomsFactoryCenterId, ArenaAreaCatalog.CustomsFactoryCenterPolygonId,
+        "customs-factory-east-polygon-v1", "unknown-area" };
+    foreach (string map in equivalenceMaps)
+        foreach (string area in equivalenceAreas)
+            Need(ArenaAreaCatalog.TryResolve(area, map, "domination", false, out _, out _)
+                == (DominationMapLayout.DominationPointCount(map, area) > 0),
+                "the catalogue admits Domination exactly where the layout has points: " + map + " / " + (area ?? "(null)"));
+}
+
 Console.WriteLine($"DOMINATION_RUNTIME_CHECKS_PASSED ({checks} assertions)");

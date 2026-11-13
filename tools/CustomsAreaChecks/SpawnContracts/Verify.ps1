@@ -28,7 +28,7 @@ Assert-SpawnContract ($spawnLocalGame.IndexOf('game.Profile = profile;') -lt $sp
 # a claim that this standalone process can run Unity scene loading/respawning.
 $spawnRuntime = [regex]::Replace((Get-Content -LiteralPath (Join-Path $spawnRepo 'ArenaMode.Client/Areas/ArenaAreaRuntime.cs') -Raw), '\s+', '')
 foreach ($binding in @(
-    'ArenaAreaSpawnPolicy.IsPlayerPoint(p,_game?.Profile?.Info?.Side)',
+    'ArenaAreaSpawnPolicy.IsPlayerPoint(p,LocalSpawnSide)',
     'allowed.Keys.Any(IsPlayerPoint)',
     'Connected.Where(IsPlayerPoint)',
     'Connected.Where(p=>IsPlayerPoint(p)&&!p.SpawnBlocked&&AllowsSpawn(p))',

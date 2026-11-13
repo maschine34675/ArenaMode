@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <LayoutSource Condition="'$(LayoutSource)' == ''">../../ArenaMode.Client/Modes/DominationMapLayout.cs</LayoutSource>
     <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Modes/DominationRuntime.cs</RuntimeSource>
+    <AreaCatalogSource Condition="'$(AreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</AreaCatalogSource>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -12,7 +13,7 @@
     <!-- DominationMapLayout.ControlPointCount guards with the map catalog. -->
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
     <!-- The three Customs area rows are checked against the shared area definitions (ids, contour, faction starts). -->
-    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <Compile Include="$(AreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(RuntimeSource)" Link="Production/DominationRuntime.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/DominationPolicy.cs" Link="Production/DominationPolicy.cs" />
