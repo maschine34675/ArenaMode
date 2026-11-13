@@ -1258,7 +1258,7 @@ public static class Settings
             new ConfigDescription(
                 "Selected Arena area for every mode (the existing config key is retained). " +
                 "Customs requires one of its three surveyed areas; other maps use the whole map. " +
-                "Each Customs area has opposing faction starts; independent Team DM also selects its team size. " +
+                "Each Customs area has opposing faction starts; independent Team DM and Domination also select their team size. " +
                 "All surveyed outlines have side walls only, with no height restriction. The old rectangle test areas are retired. " +
                 "Also selectable in the native Arena map menu, which adapts this value to the chosen map/mode. " +
                 "Selected before loading; changes during a raid apply next match. " +
@@ -1266,7 +1266,7 @@ public static class Settings
                 new AreaSelectionValues()));
 
         AreaTeamSize = config.Bind("Team Deathmatch", "AreaPlayersPerTeam", 2,
-            new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts. " +
+            new ConfigDescription("Players per faction, including your PMC, for Customs areas with opposing team starts (Team Deathmatch and Domination). " +
                 "Separate from whole-map team size. Selected before loading; changes apply next match.",
                 new AcceptableValueRange<int>(2, 5)));
 

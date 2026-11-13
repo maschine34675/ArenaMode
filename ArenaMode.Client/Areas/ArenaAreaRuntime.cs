@@ -367,11 +367,7 @@ internal static partial class ArenaAreaRuntime
 
     private static bool Contains(Vector3 p, float inset = 0f) => _area != null && _area.Bounds.Contains(p.x, p.y, p.z, inset);
     private static bool AllowsGeometrySpawn(Vector3 p) => _area != null && _area.AllowsSpawn(p.x, p.y, p.z);
-    // BaseLocalGame.Create publishes Profile before Run constructs scene spawns;
-    // MainPlayer does not exist yet at that first filter. Use that same profile
-    // side again for readiness and respawns, including after body replacement.
-    private static EPlayerSide? LocalSpawnSide => _mode == Modes.ArenaModeCatalog.TeamDeathmatchId
-        ? Session.ArenaSession.TeamDeathmatchLocalSide(_game, _world) : _game?.Profile?.Info?.Side;
+    // LocalSpawnSide (the local PMC's team side) lives with the team starts in ArenaAreaTeamRuntime.cs.
 
     private static bool IsPlayerPoint(ISpawnPoint p)
         => ArenaAreaSpawnPolicy.IsPlayerPoint(p, LocalSpawnSide);

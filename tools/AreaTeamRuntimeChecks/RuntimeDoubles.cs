@@ -160,8 +160,7 @@ namespace ArenaMode.Areas
     {
         private static ArenaAreaDefinition _area;
         private static string _mode = "teamdeathmatch";
-        private static EPlayerSide? LocalSpawnSide => _mode == "teamdeathmatch"
-            ? ArenaMode.Session.ArenaSession.TeamDeathmatchLocalSide(_game, _world) : _game?.Profile?.Info?.Side;
+        // LocalSpawnSide and HasTeamStarts are linked production (ArenaAreaTeamRuntime.cs), not doubles.
         internal static string TestMode { get => _mode; set => _mode = value; }
         private static LocalGame _game;
         private static GameWorld _world;

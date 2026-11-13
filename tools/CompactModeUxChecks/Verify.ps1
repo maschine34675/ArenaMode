@@ -42,6 +42,10 @@ $layoutFaults = @(
       'menu objective count for laboratory: expected 0, got 3'),
     @('domination-count-lab-missing', 'return ResolveDomination(map, areaId).Points.Count;', 'return 0;',
       'Domination objective count for laboratory/whole map: expected 3, got 0'),
+    @('customs-area-count-missing', 'return ResolveArea(map, areaId)?.Points.Count ?? 0;', 'return 0;',
+      'Domination objective count for bigmap/customs-yard-polygon-v1: expected 3, got 0'),
+    @('customs-area-count-any-map', 'if (!string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)) return null;', '',
+      'Domination objective count for laboratory/customs-yard-polygon-v1: expected 0, got 3'),
     @('labyrinth-two-points', 'new Point("X", new Vector3(-9.92f, .1f, 23.92f), new Vector3(5.92f, .1f, 20.22f),',
       'new Point("Y", new Vector3(-30f, .1f, 20f)), new Point("X", new Vector3(-9.92f, .1f, 23.92f), new Vector3(5.92f, .1f, 20.22f),',
       'Domination objective count for labyrinth/whole map: expected 1, got 2')

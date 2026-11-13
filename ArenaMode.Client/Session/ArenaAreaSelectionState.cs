@@ -43,8 +43,9 @@ internal sealed class ArenaAreaSelectionState
         // This does not persist or arm a selection; the native adapter owns that.
         SelectedArea = selected != null && ArenaAreaCatalog.TryResolve(selected.Id, map, mode, pitFireTeam,
             out var area, out _) ? area : null;
+        // Team Deathmatch and Domination share one roster, so both negotiate the area's faction size.
         HasTeamSizeChoice = SelectedArea?.TeamStarts != null && !pitFireTeam
-            && mode == ArenaModeCatalog.TeamDeathmatchId;
+            && ArenaPopulationPolicy.IsIndependentTeam(mode);
         SelectedTeamSize = HasTeamSizeChoice && ArenaAreaCatalog.TryResolveTeamSize(
             SelectedArea, areaTeamSize, out var validSize, out _) ? validSize : 0;
         TeamSizeOptions = Array.AsReadOnly(HasTeamSizeChoice ? Enumerable.Range(2, SelectedArea.MaxTeamSize - 1).ToArray() : Array.Empty<int>());

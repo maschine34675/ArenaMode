@@ -4,7 +4,9 @@ using ArenaMode.Shared;
 
 int checks = 0;
 void Need(bool result, string code) { checks++; if (!result) throw new Exception(code); }
-string[] modes = { "deathmatch", "gungame", "tactical", "teamdeathmatch", "zombie" };
+string[] modes = { "deathmatch", "gungame", "tactical", "teamdeathmatch", "domination", "zombie" };
+// Team Deathmatch and Domination share one roster: both negotiate the area's team size. Every other mode owns its roster.
+bool IndependentTeam(string mode) => mode is "teamdeathmatch" or "domination";
 string[] areas = { ArenaAreaCatalog.CustomsFactoryCenterTeamsId, ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId };
 foreach (string mode in modes)
 foreach (bool pft in new[] { false, true })
@@ -24,13 +26,13 @@ foreach (bool pft in new[] { false, true })
         Need(!ArenaAreaCatalog.TryResolve(area, ArenaMapCatalog.FactoryDayId, mode, pft, out _, out _), "EXACT-MAP");
         var selected = ArenaAreaSelectionState.Create("bigmap", mode, pft, area, 5, 3);
         Need(selected.SelectedId == area && ReferenceEquals(geometry, selected.SelectedArea), "EXACT-PROPOSAL");
-        Need(selected.HasTeamSizeChoice == (mode == "teamdeathmatch"), "TDM-ONLY-SIZE-UI");
-        Need(selected.TeamSizeOptions.Count == (mode == "teamdeathmatch" ? 4 : 0), "TDM-SIZE-CHOICES");
-        int? wireSize = mode == "teamdeathmatch" ? 3 : null;
+        Need(selected.HasTeamSizeChoice == IndependentTeam(mode), "TEAM-MODES-SIZE-UI");
+        Need(selected.TeamSizeOptions.Count == (IndependentTeam(mode) ? 4 : 0), "TEAM-MODES-SIZE-CHOICES");
+        int? wireSize = IndependentTeam(mode) ? 3 : null;
         Need(ArenaAreaCatalog.TryResolveTeamSize(geometry, mode, pft, wireSize, out int frozenSize, out _)
             && frozenSize == (wireSize ?? 0), "MODE-OWNED-FROZEN-SIZE");
-        if (mode != "teamdeathmatch")
-            Need(!ArenaAreaCatalog.TryResolveTeamSize(geometry, mode, pft, 3, out _, out _), "NO-TDM-SIZE-IN-OTHER-MODES");
+        if (!IndependentTeam(mode))
+            Need(!ArenaAreaCatalog.TryResolveTeamSize(geometry, mode, pft, 3, out _, out _), "NO-TEAM-SIZE-IN-SOLO-MODES");
         bool participants = mode is "deathmatch" or "gungame";
         Need(ArenaParticipantSelectionState.Create(selected, pft, 10).Available == participants, "BOUNDED-SOLO-PARTICIPANTS");
         Need(ArenaParticipantPolicy.TryResolve("bigmap", mode, true, pft, 10, out _, out _) == participants, "PARTICIPANT-WIRE-AGREEMENT");

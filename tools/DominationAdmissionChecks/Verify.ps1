@@ -70,18 +70,26 @@ foreach ($key in $maps.Keys) {
         ('reviewed map admits a full-map objective match: ' + $maps[$key])
 }
 Reject-Change 'allow-pft' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
-    'if (pitFireTeam || id != FullMapId' 'if (false || id != FullMapId' `
+    'if (pitFireTeam || (wholeMap' 'if (false || (wholeMap' `
     'server authority refuses PFT even with a reviewed map'
-Reject-Change 'allow-area' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
-    'if (pitFireTeam || id != FullMapId' 'if (pitFireTeam || false' `
+# A bounded id continues into the area table: its map check is what keeps a Customs area off every other map.
+Reject-Change 'area-map-check-removed' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    'if (!string.Equals(map, candidate.MapId, StringComparison.OrdinalIgnoreCase))' 'if (false)' `
     'the native area model offers exactly the reviewed whole map: factory4_day'
 Reject-Change 'allow-whole-customs' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)' `
     '&& !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase) && !string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)' `
-    'unreviewed objective map rejected by shared authority: bigmap'
+    'whole Customs stays refused for Domination'
 Reject-Change 'allow-pft-on-lab' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
-    'if (pitFireTeam || id != FullMapId' 'if (pitFireTeam && !string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) || id != FullMapId' `
+    'if (pitFireTeam || (wholeMap' 'if (pitFireTeam && !string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase) || (wholeMap' `
     'server authority refuses PFT even with a reviewed map: laboratory'
+# Domination reaches the Customs area table through the mode filter of Customs and the ports.
+Reject-Change 'customs-area-mode-filter' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    '&& !string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)' '' `
+    'Customs area admitted for Domination with the shared definition and its faction starts'
+Reject-Change 'domination-size-tdm-only' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
+    'if (!pitFireTeam && ArenaPopulationPolicy.IsIndependentTeam(mode))' 'if (!pitFireTeam && string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))' `
+    'Domination negotiates the Customs area team size like Team Deathmatch'
 Reject-Change 'stale-refusal-text' 'ArenaMode.Shared/ArenaAreaCatalog.cs' `
     'Domination is not available for this map or area, or with a PitFireTeam squad.' 'Domination requires Factory or a supported Arena port, whole map, without PitFireTeam.' `
     'server authority refuses PFT even with a reviewed map'
@@ -118,4 +126,4 @@ if ((Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash -ne $sourceHash)
 $after = Snapshot-Installed
 $after | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence 'installed-after.json')
 if (($before | ConvertTo-Json -Compress) -ne ($after | ConvertTo-Json -Compress)) { throw 'Installed Arena binaries changed during the test.' }
-Write-Output "DOMINATION_ADMISSION_VERIFIED: 16 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"
+Write-Output "DOMINATION_ADMISSION_VERIFIED: 18 compiled mutants, 8 wiring controls, installed hashes unchanged; evidence $evidence"

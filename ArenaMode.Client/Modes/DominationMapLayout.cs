@@ -185,12 +185,43 @@ internal sealed class DominationMapLayout
         new Point("X", new Vector3(-9.92f, .1f, 23.92f), new Vector3(5.92f, .1f, 20.22f),
             new Vector3(-11.18f, .2f, 35.7f)));
 
+    // Customs, the three surveyed areas (the only bounded places with Domination; whole Customs does not
+    // exist in Arena). Seeds, not authority: measured natively by the lead on GPU-2 on 13.11.2026
+    // (installed master build 0.5.0+c64846fb, Team Deathmatch raids, UiBridge teleport dry runs: NavMesh
+    // sample, room to stand, complete walkable path to the named start). y is the NavMesh height the dry
+    // run reported. DominationRuntime.Prepare proves them again against the loaded scene, inside the
+    // area's contour (floor inset, path inside the polygon), exactly as for The Lab; a slot without a
+    // passing candidate aborts the match. The area team-start proof (VerifyTeamPaths) then needs every
+    // point connected both ways with at least one verified start of each faction.
+    //
+    // Industrial Center (USEC starts in the west, BEAR in the east). Paths from a USEC rear start
+    // (314.9, 1.2, -93.1): A 55.8 m, B 98.5 m, C 135.7 m; from a BEAR rear start (478.0, 2.7, -83.1):
+    // B 123.4 m, the x 378 column 138 to 142 m.
+    private static readonly DominationMapLayout CustomsCenter = new(Array.Empty<Vector3>(),
+        new Point("A", new Vector3(355f, 1.1f, -80f), new Vector3(350.4f, 1.2f, -70.1f), new Vector3(352f, 1.1f, -95f)),
+        new Point("B", new Vector3(395f, 1.2f, -60f), new Vector3(405.9f, 1.1f, -72.8f), new Vector3(378f, 1.1f, -65f)),
+        new Point("C", new Vector3(435f, 1.1f, -75f), new Vector3(440f, 2.1f, -90f), new Vector3(425f, 1.4f, -100f)));
+    // Industrial Side (USEC east, BEAR west, only about 40 m apart: the points form a line across the front,
+    // not along the axis). Paths USEC (615.8, -0.4, -96.5) / BEAR (572.0, 1.5, -110.0): A 50.3 / 59.6 m,
+    // B 40.2 / 25.8 m, C 38.0 / 32.9 m. A is native row ae0c5e1d and has no alternate; B lies on a lower
+    // strip (y -0.6).
+    private static readonly DominationMapLayout CustomsSide = new(Array.Empty<Vector3>(),
+        new Point("A", new Vector3(588f, 1.2f, -64.4f)),
+        new Point("B", new Vector3(590f, -.6f, -100f), new Vector3(583.1f, 1.2f, -100f), new Vector3(590f, -.4f, -110f)),
+        new Point("C", new Vector3(600f, 1.2f, -125f), new Vector3(590f, 1.1f, -135f), new Vector3(590f, 1.3f, -120f)));
+    // Customs Yard (USEC south-west, BEAR north-east, 120 m of path apart; open ground, y 0.8 to 0.9).
+    // Paths USEC / BEAR: A 61.4 / 60.3 m, B 64.5 / 64.2 m, C 75.6 / 83.4 m.
+    private static readonly DominationMapLayout CustomsYardLayout = new(Array.Empty<Vector3>(),
+        new Point("A", new Vector3(-204.3f, .9f, -77.9f), new Vector3(-206.1f, .9f, -82.6f)),
+        new Point("B", new Vector3(-185f, .9f, -75f), new Vector3(-186f, 1f, -80f), new Vector3(-185.7f, .9f, -85.3f)),
+        new Point("C", new Vector3(-165f, .8f, -75f), new Vector3(-168f, .9f, -82f), new Vector3(-167.1f, .9f, -92.7f)));
+
     /// <summary>
     /// Domination's own resolution, by (map, area): the whole map (<paramref name="areaId"/> null,
-    /// empty or <see cref="WholeMapAreaId"/>) of Factory, the six ports, The Lab and The Labyrinth.
-    /// <see cref="Resolve"/> and <see cref="ControlPointCount"/> keep their meaning and map list
-    /// because Tactical's capture point reads them: Tactical gets no point on The Lab, The
-    /// Labyrinth or Customs (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).
+    /// empty or <see cref="WholeMapAreaId"/>) of Factory, the six ports, The Lab and The Labyrinth, or
+    /// one of the three surveyed Customs areas. <see cref="Resolve"/> and <see cref="ControlPointCount"/>
+    /// keep their meaning and map list because Tactical's capture point reads them: Tactical gets no
+    /// point on The Lab, The Labyrinth or Customs (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).
     /// </summary>
     internal static DominationMapLayout ResolveDomination(string map, string areaId)
     {
@@ -200,8 +231,8 @@ internal sealed class DominationMapLayout
             if (string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)) return Labyrinth;
             return Resolve(map);
         }
-        // STAGE 3 (Customs areas): the three area rows are resolved here by (map, areaId).
-        throw new InvalidOperationException("No fixed Domination layout exists for this map and area.");
+        return ResolveArea(map, areaId)
+            ?? throw new InvalidOperationException("No fixed Domination layout exists for this map and area.");
     }
 
     /// <summary>
@@ -218,12 +249,24 @@ internal sealed class DominationMapLayout
                 return ResolveDomination(map, areaId).Points.Count;
             return ControlPointCount(map);
         }
-        // STAGE 3 (Customs areas): the area counts are answered here.
-        return 0;
+        return ResolveArea(map, areaId)?.Points.Count ?? 0;
+    }
+
+    // Only Customs has bounded areas with Domination rows, and an area id belongs to one map.
+    private static DominationMapLayout ResolveArea(string map, string areaId)
+    {
+        if (!string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)) return null;
+        return areaId == CustomsFactoryCenterAreaId ? CustomsCenter
+            : areaId == CustomsFactorySideAreaId ? CustomsSide
+            : areaId == CustomsYardAreaId ? CustomsYardLayout : null;
     }
 
     /// <summary>ArenaAreaCatalog.FullMapId, repeated because harnesses link this file without that catalogue.</summary>
     internal const string WholeMapAreaId = "full-map";
+    /// <summary>The three ArenaAreaCatalog Customs area ids, repeated for the same reason (a harness pins the equality).</summary>
+    internal const string CustomsFactoryCenterAreaId = "customs-factory-center-polygon-v2";
+    internal const string CustomsFactorySideAreaId = "customs-factory-side-polygon-v2";
+    internal const string CustomsYardAreaId = "customs-yard-polygon-v1";
 
     private static bool IsWholeMap(string areaId)
         => string.IsNullOrWhiteSpace(areaId) || string.Equals(areaId, WholeMapAreaId, StringComparison.Ordinal);

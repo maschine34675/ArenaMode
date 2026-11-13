@@ -156,8 +156,14 @@ internal static class Program
         screen.OnLocationSelected(screen.Locations[ArenaMapCatalog.CustomsId]);
         Settings.GameMode.Value = ArenaModeCatalog.DominationId;
         updater.Tick();
+        Need(screen.SelectedLocation?.Id == ArenaMapCatalog.CustomsId
+            && screen.Buttons.Single(row => row.Location.Id == ArenaMapCatalog.CustomsId).gameObject.activeSelf,
+            "switching to Domination keeps Customs: its areas are admitted");
+        ArenaClientConfig.Enabled = map => map != ArenaMapCatalog.CustomsId;
+        updater.Tick();
         Need(screen.SelectedLocation == null && !screen.Buttons.Single(row => row.Location.Id == ArenaMapCatalog.CustomsId).gameObject.activeSelf,
-            "switching to Domination hides and deselects unsupported map");
+            "under Domination a map outside the allowlist is hidden and deselected");
+        ArenaClientConfig.Enabled = _ => true;
         Need(screen.ShowCalls == 1 && screen.SubscriptionCount == 2, "refresh never rebuilds native rows or subscriptions");
         var stale = updater.Tick;
         var customsRow = screen.Buttons.Single(row => row.Location.Id == ArenaMapCatalog.CustomsId);

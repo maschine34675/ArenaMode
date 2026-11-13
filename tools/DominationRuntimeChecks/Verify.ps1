@@ -96,6 +96,25 @@ $faults = @(
     @{ Name='area-proof-skipped'; Path=$runtime; Property='RuntimeSource';
        Find='if (!starts.Any(start => ConnectedBothWays(start, point)))'; Replace='if (false)';
        Failure='the area team-start proof covers both factions and every point in both directions' },
+    # The three Customs areas.
+    @{ Name='customs-center-point-lifted'; Path=$layout; Property='LayoutSource';
+       Find='new Point("A", new Vector3(355f, 1.1f, -80f)'; Replace='new Point("A", new Vector3(355f, 1.6f, -80f)';
+       Failure='the Customs rows keep their measured primaries and ordered alternates: customs-factory-center-polygon-v2 A' },
+    @{ Name='customs-side-alternate-dropped'; Path=$layout; Property='LayoutSource';
+       Find='new Vector3(583.1f, 1.2f, -100f), '; Replace='';
+       Failure='the Customs rows keep their measured primaries and ordered alternates: customs-factory-side-polygon-v2 B' },
+    @{ Name='customs-yard-slot-moved'; Path=$layout; Property='LayoutSource';
+       Find='new Point("C", new Vector3(-165f, .8f, -75f)'; Replace='new Point("C", new Vector3(-175f, .8f, -75f)';
+       Failure='the Customs rows keep their measured primaries and ordered alternates: customs-yard-polygon-v1 C' },
+    @{ Name='customs-area-count-zero'; Path=$layout; Property='LayoutSource';
+       Find='return ResolveArea(map, areaId)?.Points.Count ?? 0;'; Replace='return 0;';
+       Failure='Domination counts three points in every Customs area' },
+    @{ Name='customs-area-any-map'; Path=$layout; Property='LayoutSource';
+       Find='if (!string.Equals(map, ArenaMapCatalog.CustomsId, StringComparison.OrdinalIgnoreCase)) return null;'; Replace='';
+       Failure='an area id counts only on its own map and only spelled exactly' },
+    @{ Name='customs-area-id-drift'; Path=$layout; Property='LayoutSource';
+       Find='internal const string CustomsYardAreaId = "customs-yard-polygon-v1";'; Replace='internal const string CustomsYardAreaId = "customs-yard-polygon-v2";';
+       Failure='the repeated Customs area ids equal the shared catalogue''s ids' },
     @{ Name='layout-borrowed-by-another-area'; Path=$runtime; Property='RuntimeSource';
        Find='!string.Equals(_areaId, ActiveAreaId, StringComparison.Ordinal)'; Replace='false';
        Failure='bounded area cannot borrow a full map objective layout' }

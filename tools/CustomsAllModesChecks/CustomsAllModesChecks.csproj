@@ -4,12 +4,13 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AreaCatalogSource Condition="'$(AreaCatalogSource)' == ''">../../ArenaMode.Shared/ArenaAreaCatalog.cs</AreaCatalogSource>
+    <AreaSelectionSource Condition="'$(AreaSelectionSource)' == ''">../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs</AreaSelectionSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../DeathmatchMenuChecks/CatalogSeams.cs" Link="CatalogSeams.cs" />
     <Compile Include="$(AreaCatalogSource)" Link="Production/ArenaAreaCatalog.cs" />
-    <Compile Include="../../ArenaMode.Client/Session/ArenaAreaSelectionState.cs" Link="Production/ArenaAreaSelectionState.cs" />
+    <Compile Include="$(AreaSelectionSource)" Link="Production/ArenaAreaSelectionState.cs" />
     <Compile Include="../../ArenaMode.Client/Session/ArenaParticipantSelectionState.cs" Link="Production/ArenaParticipantSelectionState.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaParticipantPolicy.cs" Link="Production/ArenaParticipantPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaEquatorTeamSpawns.cs" Link="Production/ArenaEquatorTeamSpawns.cs" />

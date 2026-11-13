@@ -1,6 +1,8 @@
+using ArenaMode.Areas;
 using ArenaMode.Config;
 using ArenaMode.Session;
 using ArenaMode.Shared;
+using Newtonsoft.Json.Linq;
 using SPT.Common.Http;
 using System.Linq;
 
@@ -92,6 +94,51 @@ internal static partial class Program
                 Assert(!ArenaServerClient.PostRaidStart(map, "domination", participants: 8)
                     && RequestHandler.StartCount == announced && !ArenaServerClient.HasPendingArm,
                     "unsupported objective map is refused before HTTP arming: " + map);
+            }
+            // Customs is a Domination map through its three surveyed areas: the exact area and the chosen team size
+            // (2..5, the Team Deathmatch setting) are negotiated, armed and sent, and no participant count is.
+            foreach (string area in new[] { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+                ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId })
+            foreach (int size in new[] { 2, 3, 5 })
+            {
+                ConfigureAreaTeams(size, area);
+                Select(ArenaMapCatalog.CustomsId);
+                Settings.GameMode.Value = "domination";
+                ArenaParticipantSettings.Override = 8;
+                announced = RequestHandler.StartCount;
+                Assert(Start(Request(map: ArenaMapCatalog.CustomsId), out var areaStart) && areaStart == null
+                    && RequestHandler.StartCount == announced + 1 && ArenaSession.ArmedMode == "domination"
+                    && ArenaAreaRuntime.ArmedArea?.Id == area && ArenaAreaRuntime.TeamSize == size,
+                    $"Domination in a Customs area arms the exact area and its team size: {area} {size}");
+                var sentArea = JObject.Parse(RequestHandler.LastPostBody);
+                Assert(sentArea["mode"]?.Value<string>() == "domination" && sentArea["areaId"]?.Value<string>() == area
+                    && sentArea["areaTeamSize"]?.Type == JTokenType.Integer && sentArea["areaTeamSize"].Value<int>() == size
+                    && (sentArea["participants"] == null || sentArea["participants"].Type == JTokenType.Null),
+                    $"the Domination arm names the area and the team size and no participant count: {area} {size}");
+            }
+            // The size is explicit, as in Team Deathmatch: an out-of-range F12 value is refused before any arm.
+            foreach (int invalid in new[] { 1, 6 })
+            {
+                ConfigureAreaTeams(invalid, ArenaAreaCatalog.CustomsYardId);
+                Select(ArenaMapCatalog.CustomsId);
+                Settings.GameMode.Value = "domination";
+                announced = RequestHandler.StartCount;
+                Assert(!Start(Request(map: ArenaMapCatalog.CustomsId), out var badSize) && badSize.IsFaulted
+                    && RequestHandler.StartCount == announced && ArenaAreaRuntime.ArmCalls == 0,
+                    "an unsupported Customs area team size refuses a Domination start before any arm: " + invalid);
+            }
+            // A squad never plays Domination, in an area either; and whole Customs stays refused with the area setting reset.
+            ConfigureAreaTeams(3, ArenaAreaCatalog.CustomsYardId);
+            announced = RequestHandler.StartCount;
+            Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "domination", true,
+                ArenaAreaCatalog.CustomsYardId, 3) && RequestHandler.StartCount == announced,
+                "PFT cannot acquire Domination in a Customs area through direct arming");
+            foreach (string wholeId in new[] { null, ArenaAreaCatalog.FullMapId })
+            {
+                ConfigureAreaTeams(3, ArenaAreaCatalog.CustomsYardId);
+                announced = RequestHandler.StartCount;
+                Assert(!ArenaServerClient.PostRaidStart(ArenaMapCatalog.CustomsId, "domination", false, wholeId, 3)
+                    && RequestHandler.StartCount == announced, "whole Customs stays refused for Domination before any arm");
             }
             foreach (string map in new[] { ArenaMapCatalog.FactoryDayId, ArenaMapCatalog.FactoryNightId,
                 ArenaMapCatalog.LaboratoryId, ArenaMapCatalog.LabyrinthId }.Concat(ports))

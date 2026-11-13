@@ -533,7 +533,7 @@ internal static class ArenaMenuSelection
         var id = Config.Settings.TeamDeathmatchArea?.Value;
         return ArenaAreaCatalog.TryResolve(id, map, mode, eligibility.IsTeam, out var area, out _)
             && ArenaAreaCatalog.TryResolveTeamSize(area, mode, eligibility.IsTeam,
-                area?.TeamStarts != null && mode == Modes.ArenaModeCatalog.TeamDeathmatchId
+                area?.TeamStarts != null && Shared.ArenaPopulationPolicy.IsIndependentTeam(mode)
                     ? Config.Settings.AreaTeamSize?.Value : null, out _, out _);
     }
 

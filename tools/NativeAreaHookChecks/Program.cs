@@ -329,10 +329,10 @@ internal static class Program
         var day = f.Screen.Buttons.Single(b => b.Location.Id == Day);
         var labs = f.Screen.Buttons.Single(b => b.Location.Id == ArenaMapCatalog.LaboratoryId);
         var labyrinth = f.Screen.Buttons.Single(b => b.Location.Id == ArenaMapCatalog.LabyrinthId);
-        // Domination now offers Factory, The Lab and The Labyrinth; Customs (areas only) is still filtered out.
+        // Domination offers Factory, The Lab, The Labyrinth and Customs (through its three areas, never whole).
         Assert(day.gameObject.activeSelf && labs.gameObject.activeSelf && labyrinth.gameObject.activeSelf
-            && !CustomsButton(f).gameObject.activeSelf,
-            "Domination offers Factory, The Lab and The Labyrinth and filters Customs without destroying its row");
+            && CustomsButton(f).gameObject.activeSelf,
+            "Domination offers Factory, The Lab, The Labyrinth and Customs through its areas");
         // Every vanilla row keeps its conditional view, so a map outside the configured allowlist leaves the list.
         var allowed = ArenaClientConfig.Enabled;
         ArenaClientConfig.Enabled = map => map != ArenaMapCatalog.LaboratoryId;
@@ -354,8 +354,12 @@ internal static class Program
         f.Screen.OnLocationSelected(f.Screen.Locations[Customs]);
         Settings.GameMode.Value = ArenaModeCatalog.DominationId;
         Updater(f).Tick();
+        Assert(CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation?.Id == Customs,
+            "switching to Domination keeps a selected Customs: its areas are admitted");
+        ArenaClientConfig.Enabled = map => map != Customs;
+        Updater(f).Tick();
         Assert(!CustomsButton(f).gameObject.activeSelf && f.Screen.SelectedLocation == null,
-            "switching back to Domination clears an unsupported selected map");
+            "a selected map outside the allowlist is cleared under Domination");
         ArenaClientConfig.Enabled = map => map != Day;
         Updater(f).Tick();
         Assert(day.gameObject.activeSelf, "Factory tile remains visible when only Domination night is configured");

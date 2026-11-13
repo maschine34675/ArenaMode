@@ -484,4 +484,159 @@ foreach (var (map, slots, extra) in surveyedCases)
         new GameWorld { LocationId = "laboratory" })) != null, "a map layout cannot be resolved for an unlisted bounded area");
 }
 
+{
+    // ---- The three Customs areas: the surveyed rows inside a bounded area (stage 3) ----
+    // Independent literal tables: the lead's native dry runs (GPU-2, 13.11.2026), as seeds for the runtime proof.
+    var customsTables = new (string Area, (string Id, Vector3[] Candidates)[] Slots)[]
+    {
+        ("customs-factory-center-polygon-v2", new[]
+        {
+            ("A", new[] { V(355f, 1.1f, -80f), V(350.4f, 1.2f, -70.1f), V(352f, 1.1f, -95f) }),
+            ("B", new[] { V(395f, 1.2f, -60f), V(405.9f, 1.1f, -72.8f), V(378f, 1.1f, -65f) }),
+            ("C", new[] { V(435f, 1.1f, -75f), V(440f, 2.1f, -90f), V(425f, 1.4f, -100f) })
+        }),
+        ("customs-factory-side-polygon-v2", new[]
+        {
+            ("A", new[] { V(588f, 1.2f, -64.4f) }),
+            ("B", new[] { V(590f, -.6f, -100f), V(583.1f, 1.2f, -100f), V(590f, -.4f, -110f) }),
+            ("C", new[] { V(600f, 1.2f, -125f), V(590f, 1.1f, -135f), V(590f, 1.3f, -120f) })
+        }),
+        ("customs-yard-polygon-v1", new[]
+        {
+            ("A", new[] { V(-204.3f, .9f, -77.9f), V(-206.1f, .9f, -82.6f) }),
+            ("B", new[] { V(-185f, .9f, -75f), V(-186f, 1f, -80f), V(-185.7f, .9f, -85.3f) }),
+            ("C", new[] { V(-165f, .8f, -75f), V(-168f, .9f, -82f), V(-167.1f, .9f, -92.7f) })
+        })
+    };
+    Need(DominationMapLayout.CustomsFactoryCenterAreaId == ArenaAreaCatalog.CustomsFactoryCenterTeamsId
+        && DominationMapLayout.CustomsFactorySideAreaId == ArenaAreaCatalog.CustomsFactoryEastPolygonId
+        && DominationMapLayout.CustomsYardAreaId == ArenaAreaCatalog.CustomsYardId
+        && customsTables.Select(t => t.Area).SequenceEqual(new[] { ArenaAreaCatalog.CustomsFactoryCenterTeamsId,
+            ArenaAreaCatalog.CustomsFactoryEastPolygonId, ArenaAreaCatalog.CustomsYardId }),
+        "the repeated Customs area ids equal the shared catalogue's ids");
+    // Per area: faction start stand-ins for the runtime's team-start proof (positions are arbitrary: the routes are doubles).
+    var startsByArea = new Dictionary<string, (Vector3[] Usec, Vector3[] Bear)>
+    {
+        ["customs-factory-center-polygon-v2"] = (new[] { V(314.9f, 1.2f, -93.1f), V(320f, 1.2f, -100f) }, new[] { V(478f, 2.7f, -83.1f), V(470f, 2.5f, -90f) }),
+        ["customs-factory-side-polygon-v2"] = (new[] { V(615.8f, -.4f, -96.5f), V(612f, 1f, -100f) }, new[] { V(572f, 1.5f, -110f), V(575f, 1.4f, -105f) }),
+        ["customs-yard-polygon-v1"] = (new[] { V(-215f, .9f, -150f), V(-210f, .9f, -140f) }, new[] { V(-170f, .9f, -40f), V(-175f, .9f, -50f) })
+    };
+    DominationRuntime CustomsRuntime(string areaId, int points)
+    {
+        ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = areaId };
+        var (usecStarts, bearStarts) = startsByArea[areaId];
+        ArenaAreaRuntime.Starts = usec => usec ? usecStarts : bearStarts;
+        return new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: points),
+            new GameWorld { LocationId = "bigmap" });
+    }
+    foreach (var (areaId, slots) in customsTables)
+    {
+        Reset();
+        Need(ArenaAreaCatalog.TryResolve(areaId, "bigmap", "domination", false, out var definition, out _) && definition != null,
+            "the shared catalogue admits the area under test");
+        var layout = DominationMapLayout.ResolveDomination("bigmap", areaId);
+        Need(layout.Surveyed && !layout.Factory && ReferenceEquals(layout, DominationMapLayout.ResolveDomination("BIGMAP", areaId)),
+            "a Customs area resolves to a surveyed layout, with the map identity case-insensitive: " + areaId);
+        Need(layout.Points.Select(p => p.Id).SequenceEqual(slots.Select(s => s.Id)), "Customs slot ids and count are exact: " + areaId);
+        for (int s = 0; s < slots.Length; s++)
+            Need(Same(layout.Points[s].Position, slots[s].Candidates[0])
+                && layout.Points[s].Alternates.Count == slots[s].Candidates.Length - 1
+                && layout.Points[s].Alternates.Select((a, i) => Same(a, slots[s].Candidates[i + 1])).All(x => x),
+                "the Customs rows keep their measured primaries and ordered alternates: " + areaId + " " + slots[s].Id);
+        Need(layout.NetworkSeeds.Count == 0 && layout.NavigationSeeds.Count == slots.Sum(s => s.Candidates.Length),
+            "a Customs area proves its network from the slot candidates alone: " + areaId);
+        Need(DominationMapLayout.DominationPointCount("bigmap", areaId) == 3
+            && DominationMapLayout.DominationPointCount("BIGMAP", areaId) == 3,
+            "Domination counts three points in every Customs area: " + areaId);
+        Need(DominationMapLayout.DominationPointCount("bigmap", null) == 0 && DominationMapLayout.DominationPointCount("bigmap", "full-map") == 0
+            && DominationMapLayout.DominationPointCount("laboratory", areaId) == 0 && DominationMapLayout.DominationPointCount("factory4_day", areaId) == 0
+            && DominationMapLayout.DominationPointCount("bigmap", "unknown-area") == 0 && DominationMapLayout.DominationPointCount("bigmap", areaId.ToUpperInvariant()) == 0
+            && DominationMapLayout.DominationPointCount("arena_equator", areaId) == 0 && DominationMapLayout.DominationPointCount(null, areaId) == 0,
+            "an area id counts only on its own map and only spelled exactly: " + areaId);
+        Refuses(() => DominationMapLayout.ResolveDomination("laboratory", areaId), "a Customs area layout is not borrowed by another map");
+        Refuses(() => DominationMapLayout.ResolveDomination("arena_equator", areaId), "a Customs area layout is not borrowed by a port");
+        Refuses(() => DominationMapLayout.ResolveDomination("bigmap", areaId.ToUpperInvariant()), "an area id is exact");
+        // Tactical keeps no point on Customs, area or not.
+        Need(DominationMapLayout.ControlPointCount("bigmap") == 0, "Tactical's count stays 0 on Customs");
+        // The seeds lie inside their contour with the floor inset of the runtime's own proof, and the primaries are a point apart.
+        foreach (var (id, candidates) in slots)
+            for (int c = 0; c < candidates.Length; c++)
+                Need(definition.Bounds.Contains(candidates[c].x, candidates[c].y, candidates[c].z, .5f),
+                    $"the measured seed {id}#{c} lies inside the {areaId} contour with the floor inset");
+        for (int first = 0; first < slots.Length; first++)
+        for (int second = first + 1; second < slots.Length; second++)
+        {
+            var a = slots[first].Candidates[0]; var b = slots[second].Candidates[0];
+            Need((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z) >= DominationMapLayout.SurveyedMinimumSeparation * DominationMapLayout.SurveyedMinimumSeparation,
+                $"the primaries {slots[first].Id} and {slots[second].Id} keep the layout separation: {areaId}");
+        }
+
+        // The runtime inside the area: the pool anchor, the contour-aware placement, then the team-start proof.
+        var runtime = CustomsRuntime(areaId, slots.Length);
+        runtime.Prepare();
+        Need(ArenaPickupGeometry.FactoryCalls == 0 && ArenaPickupGeometry.PoolCalls == 1
+            && ArenaPickupGeometry.PoolSeeds.SequenceEqual(layout.NavigationSeeds),
+            "a Customs area proves the network of its own seed pool inside the area: " + areaId);
+        Need(DominationPointView.Created.Select(v => (v.Id, v.Floor)).SequenceEqual(slots.Select(s => (s.Id, s.Candidates[0])))
+            && DominationPointView.Created.All(v => v.ShowLetter && v.Radius == 4f)
+            && ArenaPickupGeometry.Placements.All(p => Same(p.Anchor, ArenaPickupGeometry.PoolAnchor) && p.AllowNearby),
+            "every Customs slot takes its primary when the primary passes: " + areaId);
+        NavMesh.Routes.Clear();
+        runtime.VerifyTeamPaths();
+        var (usecStart, bearStart) = startsByArea[areaId];
+        foreach (var start in usecStart.Concat(bearStart).Take(1).Concat(bearStart.Take(1)))
+        foreach (var point in slots.Select(s => s.Candidates[0]))
+            Need(NavMesh.Routes.Any(r => Same(r.From, start) && Same(r.To, point)) && NavMesh.Routes.Any(r => Same(r.From, point) && Same(r.To, start)),
+                "the Customs team-start proof covers both factions and every point in both directions: " + areaId);
+        runtime.Dispose();
+
+        // A point cut off from every start of one faction aborts the match, naming the point and the faction.
+        Reset();
+        var cutRuntime = CustomsRuntime(areaId, slots.Length);
+        cutRuntime.Prepare();
+        var lastPoint = slots[^1].Candidates[0];
+        NavMesh.Route = (from, to) => (!(bearStart.Any(b => Same(from, b) || Same(to, b)) && (Same(from, lastPoint) || Same(to, lastPoint))),
+            NavMeshPathStatus.PathComplete);
+        string cutOff = Message(cutRuntime.VerifyTeamPaths);
+        Need(cutOff != null && cutOff.Contains("point " + slots[^1].Id) && cutOff.Contains("BEAR"),
+            "a Customs point cut off from the BEAR starts aborts the match naming the point and the faction: " + areaId);
+        cutRuntime.Dispose();
+
+        // The area's own slots, the same fallback and abort rules as on a whole map, the last one inside the contour.
+        Reset();
+        ArenaPickupGeometry.Place = (p, _) => (!Same(p, slots[0].Candidates[0]), p);
+        if (slots[0].Candidates.Length > 1)
+        {
+            var fallback = CustomsRuntime(areaId, slots.Length);
+            Need(Message(fallback.Prepare) == null && Same(DominationPointView.Created[0].Floor, slots[0].Candidates[1])
+                && ArenaMode.Logger.Lines.Last().Contains("alternates used: A=#1"),
+                "a Customs slot whose primary is refused falls to its first alternate: " + areaId);
+            fallback.Dispose();
+        }
+        else
+        {
+            var single = CustomsRuntime(areaId, slots.Length);
+            string abort = Message(single.Prepare);
+            Need(abort != null && abort.Contains("point A") && abort.Contains("1 candidate") && DominationPointView.Created.Count == 0,
+                "a single-candidate Customs slot that is refused aborts the match: " + areaId);
+            single.Dispose();
+        }
+
+        // A layout resolved for this area cannot be prepared while another area is active.
+        Reset();
+        var borrowed = CustomsRuntime(areaId, slots.Length);
+        ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = customsTables.First(t => t.Area != areaId).Area };
+        Need(Message(borrowed.Prepare) != null && DominationPointView.Created.Count == 0,
+            "a Customs layout cannot be prepared inside another Customs area: " + areaId);
+    }
+    // Whole Customs has no layout and no runtime; neither does a Customs area id on any other map.
+    Reset();
+    Refuses(() => new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: 3),
+        new GameWorld { LocationId = "bigmap" }), "whole Customs resolves no Domination layout");
+    ArenaAreaRuntime.CurrentArea = new AreaDouble { Id = ArenaAreaCatalog.CustomsYardId };
+    Refuses(() => new DominationRuntime(new TeamDeathmatchMode(), new DominationMatchPolicy(scoreLimit: 0, pointCount: 3),
+        new GameWorld { LocationId = "laboratory" }), "a Customs area id on The Lab resolves no layout");
+    Reset();
+}
+
 Console.WriteLine($"DOMINATION_RUNTIME_CHECKS_PASSED ({checks} assertions)");

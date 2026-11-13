@@ -140,7 +140,7 @@ internal sealed class ArenaLocalRaidStartedPatch : ModulePatch
                 throw new InvalidOperationException("Arena area protection is unavailable; restart after updating the client.");
             if (!Shared.ArenaAreaCatalog.TryResolveTeamSize(area, requestedMode,
                     ArenaMenuSelection.CompatibilityTeamArenaActive,
-                    area?.TeamStarts != null && requestedMode == ArenaModeCatalog.TeamDeathmatchId
+                    area?.TeamStarts != null && Shared.ArenaPopulationPolicy.IsIndependentTeam(requestedMode)
                     ? Settings.AreaTeamSize?.Value : null, out var areaTeamSize, out var sizeFailure))
                 throw new InvalidOperationException(sizeFailure);
             if (area?.TeamStarts != null && !Areas.ArenaAreaInitialSpawnPatch.IsReady)

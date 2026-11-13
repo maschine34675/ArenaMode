@@ -13,6 +13,8 @@
     <Compile Include="$(BuilderSource)" Link="Production/ArenaAreaEnclosure.cs" />
     <Compile Include="../../ArenaMode.Client/Areas/ArenaAreaEnclosurePlan.cs" Link="Production/ArenaAreaEnclosurePlan.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/ArenaAreaCatalog.cs" />
+    <!-- ArenaAreaCatalog.TryResolve reads the Domination mode id; this link was missing since bdd679ec. -->
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/ArenaMapCatalog.cs" />
   </ItemGroup>
 </Project>

@@ -18,11 +18,20 @@ internal static partial class ArenaAreaRuntime
     private static TeamSpawnLease _playerReservation;
     private static readonly Dictionary<string, TeamSpawnLease> TeamReservations = new Dictionary<string, TeamSpawnLease>();
     internal static int? CurrentTeamSize => HasTeamStarts ? _teamSize : (int?)null;
-    // These dynamic faction reservations belong only to independent TDM. All
-    // other modes still use the same initial PMC start/connectivity proof, but
-    // their own directors determine opponents, followers and wave capacity.
+    // These dynamic faction reservations belong to the independent team modes
+    // (Team Deathmatch and Domination share one roster, relation and side-ownership
+    // policy). All other modes still use the same initial PMC start/connectivity
+    // proof, but their own directors determine opponents, followers and wave capacity.
     internal static bool HasTeamStarts => IsCurrentActive() && _area.TeamStarts != null
-        && _mode == Modes.ArenaModeCatalog.TeamDeathmatchId;
+        && ArenaPopulationPolicy.IsIndependentTeam(_mode);
+
+    // BaseLocalGame.Create publishes Profile before Run constructs scene spawns;
+    // MainPlayer does not exist yet at that first filter. Use that same profile
+    // side again for readiness and respawns, including after body replacement. The
+    // independent team modes play on the virtual side the player chose, which may
+    // differ from the profile's faction; every other mode keeps the profile side.
+    private static EPlayerSide? LocalSpawnSide => ArenaPopulationPolicy.IsIndependentTeam(_mode)
+        ? Session.ArenaSession.TeamDeathmatchLocalSide(_game, _world) : _game?.Profile?.Info?.Side;
 
     /// <summary>
     /// The connected, unblocked start markers of one faction (its PMC and bot sets) of the active

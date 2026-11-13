@@ -156,6 +156,38 @@ internal static class Program
         }
     }
 
+    // Team Deathmatch and Domination share one roster, so a bounded area gives both of them the same
+    // faction starts, the same virtual local side and the same negotiated capacity. Every other mode keeps
+    // the plain profile side and no faction reservations (OtherModeReservations).
+    private static void IndependentTeamModesShareStarts()
+    {
+        foreach (string mode in new[] { "teamdeathmatch", "domination" })
+        foreach (var native in new[] { EPlayerSide.Usec, EPlayerSide.Bear })
+        {
+            var system = Setup(native, 3);
+            ArenaAreaRuntime.TestMode = mode;
+            var selected = native == EPlayerSide.Usec ? EPlayerSide.Bear : EPlayerSide.Usec;
+            bool usec = selected == EPlayerSide.Usec;
+            ArenaMode.Session.ArenaSession.SelectedTeam = selected;
+            ISpawnPoint initial = null;
+            try { initial = Initial(system, native); } catch (InvalidOperationException) { }
+            Need(initial != null && system.NativeSelections == 0 && Area.TeamStarts.Allows(usec, true, initial.Id),
+                "the initial PMC of " + mode + " starts in the chosen side's pool, not the profile's");
+            ArenaAreaRuntime.TestActivate(initial);
+            Need(ArenaAreaRuntime.HasTeamStarts && ArenaAreaRuntime.CurrentTeamSize == 3,
+                mode + " reserves faction starts and exposes the negotiated team size");
+            Need(ArenaAreaRuntime.TestValidate(out var problem), mode + " validates the faction starts of its virtual side: " + problem);
+            foreach (bool side in new[] { true, false })
+            {
+                var lease = Reserve(side, mode + " reserves a bot start for either faction");
+                Need(Area.TeamStarts.Allows(side, false, lease.Point.Id), mode + " bot starts stay in their own faction's set");
+                lease.Dispose();
+            }
+            ArenaAreaRuntime.FinishTeamAssembly();
+            Need(!ArenaAreaRuntime.TestStarting, mode + " releases the start-side restriction once assembled");
+        }
+    }
+
     private static void ReadinessRejections()
     {
         var s=Setup();var p=Initial(s,EPlayerSide.Usec);ArenaAreaRuntime.TestActivate(p);
@@ -429,7 +461,7 @@ internal static class Program
         {
             _database=Path.Combine(args.Length==0?"D:\\SPT41":args[0],"SPT_Runtime","SPT_Data","database","locations","bigmap","base.json");
             Need(ReadPoints().Length==29&&ReadPoints().Count(Bot)==11,"refined Customs Center corpus retains 29 markers and 11 bot points");
-            InitialAndCapacity();OppositeVirtualTeams();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();TeamStartPositionsAccessor();ProtectedInitialCoopCategory();
+            InitialAndCapacity();OppositeVirtualTeams();IndependentTeamModesShareStarts();ReadinessRejections();ExactRosterCapacity();ReservationLifetimes();RespawnRankingAndOccupancy();PlayerPreflightReservation();OtherModeReservations();TeamStartPositionsAccessor();ProtectedInitialCoopCategory();
             ArenaAreaInitialSpawnPatch.Shutdown();Need(!ArenaAreaInitialSpawnPatch.IsReady,"initial spawn patch shutdown releases hook");
             Console.WriteLine($"ARENA_TEAM_RUNTIME_CONTRACTS_PASSED checks={_checks}");return 0;
         }

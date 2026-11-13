@@ -623,16 +623,19 @@ public static class ArenaAreaCatalog
         return true;
     }
 
-    /// <summary>Only independent TDM negotiates a faction size. Other modes own their roster.</summary>
+    /// <summary>
+    /// Only the independent team modes (Team Deathmatch and Domination, which share one roster) negotiate a
+    /// faction size. Other modes own their roster.
+    /// </summary>
     public static bool TryResolveTeamSize(ArenaAreaDefinition? area, string? mode, bool pitFireTeam,
         int? requested, out int selected, out string? reason)
     {
-        if (!pitFireTeam && string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase))
+        if (!pitFireTeam && ArenaPopulationPolicy.IsIndependentTeam(mode))
             return TryResolveTeamSize(area, requested, out selected, out reason);
         selected = 0;
         reason = null;
         if (requested.HasValue && requested.Value != 0)
-        { reason = "Only independent Team Deathmatch accepts an area team-size override."; return false; }
+        { reason = "Only the independent team modes (Team Deathmatch and Domination) accept an area team-size override."; return false; }
         return true;
     }
 
@@ -647,14 +650,18 @@ public static class ArenaAreaCatalog
         reason = null;
         id = NormalizeId(id);
         // Only Factory, the six imported maps and the two whole vanilla maps The Lab and The
-        // Labyrinth have reviewed objective layouts (docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md).
-        // Keep this list explicit: a future port is not automatically admitted. Whole Customs stays
-        // refused: it is no Arena map and this block returns before the Customs rule below, so it
-        // must never be added to the list. Enforce it at arm/ack/start as well as in the menu.
+        // Labyrinth have reviewed objective layouts, and of Customs only its three surveyed areas
+        // (docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md). Keep the whole-map list explicit: a
+        // future port is not automatically admitted. Whole Customs stays refused because it is no
+        // Arena map and must never be added to that list. A bounded id does not return here: it
+        // continues into the area table below, which alone decides the area's identity and map,
+        // so Domination can never admit an area that Team Deathmatch could not. Enforce it at
+        // arm/ack/start as well as in the menu.
+        bool wholeMap = id == FullMapId;
         if (string.Equals(mode, ArenaPopulationPolicy.Domination, StringComparison.OrdinalIgnoreCase))
         {
-            if (pitFireTeam || id != FullMapId
-                || (!string.Equals(map, ArenaMapCatalog.FactoryDayId, StringComparison.OrdinalIgnoreCase)
+            if (pitFireTeam || (wholeMap
+                    && !string.Equals(map, ArenaMapCatalog.FactoryDayId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.FactoryNightId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.LaboratoryId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.LabyrinthId, StringComparison.OrdinalIgnoreCase)
@@ -665,7 +672,7 @@ public static class ArenaAreaCatalog
                     && !string.Equals(map, ArenaMapCatalog.IcebergId, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(map, ArenaMapCatalog.AutoServiceId, StringComparison.OrdinalIgnoreCase)))
             { reason = "Domination is not available for this map or area, or with a PitFireTeam squad."; return false; }
-            return true;
+            if (wholeMap) return true;
         }
         // Full maps share the generic native zone/point planner. Bay5 and
         // Equator do not require a surveyed faction-start preset: Tactical
@@ -680,6 +687,7 @@ public static class ArenaAreaCatalog
             && !string.Equals(mode, "gungame", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "tactical", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "teamdeathmatch", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Select a current Arena mode for this map."; return false; }
         // Tactical on the ported maps (installed ArenaMapPort 0.5.0+160523d, 2026-11-13). The
