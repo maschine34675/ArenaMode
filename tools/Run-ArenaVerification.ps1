@@ -48,14 +48,34 @@ script keeps its own default.
 .PARAMETER NoCache
 Run every step even when an earlier PASS with the same inputs exists (the PASS entries are refreshed).
 
+.PARAMETER ChangedSince
+A git revision. Adds every step registered in tools/verification-steps.txt that checks a file changed since that
+revision (committed since, staged, unstaged or untracked): a file its projects compile, a production path its
+scripts name (a mutant target), a file of its harness folder, a shared helper it runs, a record it names; a step
+that builds or tests a production project is added by any production change. One SELECT line per step names the
+reasons; a changed harness folder that is not registered is reported as UNREGISTERED. The selection is advisory
+(as a hand-made one is); the cache stays coarse.
+
+.PARAMETER All
+Adds every registered step.
+
+.PARAMETER ListOnly
+Prints the selection and the named steps, runs nothing, exits 0.
+
 .EXAMPLE
 pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -Harness PoolPrewarmChecks,ArenaAreaChecks:Server
+
+.EXAMPLE
+pwsh -NoProfile -File tools/Run-ArenaVerification.ps1 -ChangedSince master -ListOnly
 #>
 param(
     [string[]]$Harness = @(),
     [switch]$SkipUnitTests,
     [string]$SptRoot = 'D:\SPT41',
-    [switch]$NoCache
+    [switch]$NoCache,
+    [string]$ChangedSince,
+    [switch]$All,
+    [switch]$ListOnly
 )
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -183,6 +203,33 @@ try {
         $script:environmentHash = Get-ArenaEnvironmentFingerprint
     }
     catch { $cacheModel = $null; $cacheNote = "result cache off: $($_.Exception.Message)"; Write-Output $cacheNote }
+
+    if ($All -or $ChangedSince) {
+        if (-not $cacheModel) { throw "The selection needs the input model ($cacheNote)." }
+        $registered = Get-ArenaRegisteredSteps $repo
+        if ($All) { $picked = @($registered | ForEach-Object { [pscustomobject]@{ Step = $_; Reasons = @('registered (-All)') } }) }
+        else {
+            $changedFiles = @(Get-ArenaChangedFiles $repo $ChangedSince)
+            Write-Output "ARENA_VERIFICATION_CHANGED $($changedFiles.Count) files since $ChangedSince (committed, staged, unstaged, untracked)"
+            $picked = @(Select-ArenaSteps $cacheModel $registered $changedFiles)
+        }
+        foreach ($p in $picked) {
+            $more = if ($p.Reasons.Count -gt 3) { "; +$($p.Reasons.Count - 3) more" } else { '' }
+            Write-Output ("SELECT {0,-48} {1}{2}" -f $p.Step, (($p.Reasons | Select-Object -First 3) -join '; '), $more)
+        }
+        if ($ChangedSince) {
+            $registeredFolders = @($registered | ForEach-Object { $n = ($_ -split ':', 2)[0]; if ($n -match '^tools/([^/]+)/') { $Matches[1] } elseif ($n -notlike '*.ps1') { $n } })
+            $unregistered = @($changedFiles | ForEach-Object { Get-ArenaHarnessFolder $_ } | Where-Object { $_ -and $_ -notin $registeredFolders } | Sort-Object -Unique)
+            foreach ($f in $unregistered) { Write-Output "UNREGISTERED tools/$f changed and is not in tools/verification-steps.txt" }
+        }
+        Write-Output "ARENA_VERIFICATION_SELECTION selected=$($picked.Count) of $($registered.Count) registered"
+        $Harness = @(@($Harness) + @($picked | ForEach-Object Step) | Where-Object { $_ } | Select-Object -Unique)
+    }
+    if ($ListOnly) {
+        foreach ($h in $Harness) { Write-Output "STEP $h" }
+        if (-not $SkipUnitTests) { Write-Output 'STEP ArenaMode.Tests (xunit, once)' }
+        exit 0
+    }
 
     if (-not $SkipUnitTests) {
         $t0 = Get-Date

@@ -47,6 +47,13 @@ $faults = @(
         Find = 'if ($passed -and $keyInfo -and $keyInfo.Cacheable) {'; Replace = 'if ($keyInfo -and $keyInfo.Cacheable) {' },
     @{ Name = 'no-after-run-check'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a step whose inputs change during the run is not cached'; Cases = @('changed-during-run')
         Find = '$afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item'; Replace = '$afterRun = $null' },
+    @{ Name = 'compile-items-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a linked production file selects its harness'; Cases = @('select')
+        Find = '            foreach ($rel in $items) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "compiled by $project" } }'; Replace = '' },
+    @{ Name = 'named-paths-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a mutant target named in a script selects its harness'; Cases = @('select')
+        Find = '        foreach ($p in $fact.ProductionPaths) {'; Replace = '        foreach ($p in @()) {' },
+    @{ Name = 'untracked-not-changed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'an untracked file selects too'; Cases = @('select')
+        Find = "        @(Split-ArenaNul (Invoke-ArenaGitLines `$Root @('ls-files', '-z', '--others', '--exclude-standard')))`n    return @(`$changed | Sort-Object -Unique)"
+        Replace = "        @()`n    return @(`$changed | Sort-Object -Unique)" },
     @{ Name = 'no-cache-ignored'; File = 'tools/Run-ArenaVerification.ps1'; Failure = '-NoCache runs the step'; Cases = @('no-cache')
         Find = '    if ($keyInfo -and $keyInfo.Cacheable -and -not $NoCache) {'; Replace = '    if ($keyInfo -and $keyInfo.Cacheable) {' }
 )
@@ -104,6 +111,12 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
     Write-Text (Join-Path $repo 'tools/GitToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'GitToyChecks'`n`$null = & git -C (Join-Path `$PSScriptRoot '../..') rev-parse HEAD`n'GIT_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/ConfigToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'ConfigToyChecks'`n`$null = Join-Path `$SptRoot 'BepInEx\config'`n'CONFIG_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/Verify-LooseToy.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'tools/Verify-LooseToy.ps1'`n'LOOSE_TOY_PASSED'`n"
+    # Selection: a project that links production through a glob (no literal path), a script that names a
+    # mutant target, and the registry.
+    Write-Text (Join-Path $repo 'tools/LinkToyChecks/LinkToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n  <ItemGroup><Compile Include=`"../../ArenaMode.Client/To*.cs`" /></ItemGroup>`n</Project>`n"
+    Write-Text (Join-Path $repo 'tools/LinkToyChecks/Program.cs') "System.Console.WriteLine(`"LINK_TOY`");`n"
+    Write-Text (Join-Path $repo 'tools/LiteralToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'LiteralToyChecks'`n`$target = Join-Path (Join-Path `$PSScriptRoot '../..') 'ArenaMode.Client/Other.cs'`n'LITERAL_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/verification-steps.txt') "# toy registry`nToyChecks`nOtherChecks`nLinkToyChecks`nLiteralToyChecks`nGitToyChecks`nConfigToyChecks`ntools/Verify-LooseToy.ps1`n"
     Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
     $redeploy = Join-Path $dev 'Redeploy'
     Write-Text (Join-Path $redeploy 'Redeploy.Core/Core.cs') "core 1`n"
@@ -122,15 +135,17 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
 
 function Set-Fault($Sandbox, $Definition) {
     $path = Join-Path $Sandbox.Repo $Definition.File
-    $real = [IO.File]::ReadAllText((Join-Path $realRepo $Definition.File))
-    $count = ($real.Split([string[]]@($Definition.Find), [StringSplitOptions]::None)).Count - 1
+    # Anchors compare with LF line endings on both sides (a core.autocrlf checkout has CRLF files).
+    $real = [IO.File]::ReadAllText((Join-Path $realRepo $Definition.File)).Replace("`r`n", "`n")
+    $find = ([string]$Definition.Find).Replace("`r`n", "`n")
+    $count = ($real.Split([string[]]@($find), [StringSplitOptions]::None)).Count - 1
     if ($count -ne 1) { throw "Fault anchor for $($Definition.Name) occurs $count times in $($Definition.File)" }
-    [IO.File]::WriteAllText($path, $real.Replace($Definition.Find, $Definition.Replace))
+    [IO.File]::WriteAllText($path, $real.Replace($find, ([string]$Definition.Replace).Replace("`r`n", "`n")))
     Invoke-Git $Sandbox.Repo @('add', '-A'); Invoke-Git $Sandbox.Repo @('commit', '-q', '-m', 'fault')
 }
 
 # One runner invocation; returns the verdict of $Item, how often each toy really ran, the output and exit code.
-function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]$Environment = @{}) {
+function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]$Environment = @{}, [string[]]$Extra = @()) {
     $before = @(if (Test-Path -LiteralPath $Sandbox.Counter) { Get-Content -LiteralPath $Sandbox.Counter })
     $saved = @{}
     $env:ARENA_VERIFICATION_CACHE = $Sandbox.Cache
@@ -138,8 +153,10 @@ function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]
     $env:ARENA_RUNNER_CHECKS_COUNTER = $Sandbox.Counter
     foreach ($k in $Environment.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $Environment[$k]) }
     try {
-        $arguments = @('-NoProfile', '-NonInteractive', '-File', (Join-Path $Sandbox.Repo 'tools/Run-ArenaVerification.ps1'), '-SkipUnitTests', '-SptRoot', $Sandbox.Spt, '-Harness', ($Items -join ','))
+        $arguments = @('-NoProfile', '-NonInteractive', '-File', (Join-Path $Sandbox.Repo 'tools/Run-ArenaVerification.ps1'), '-SkipUnitTests', '-SptRoot', $Sandbox.Spt)
+        if ($Items.Count -and $Items[0]) { $arguments += @('-Harness', ($Items -join ',')) }
         if ($NoCache) { $arguments += '-NoCache' }
+        $arguments += $Extra
         $output = (& pwsh @arguments 2>&1 | ForEach-Object { $_.ToString() })
         $code = $LASTEXITCODE
     }
@@ -244,6 +261,29 @@ $cases = [ordered]@{
         Assert-Run (Invoke-Runner $s 'ToyChecks') 'ToyChecks' $false 'a reverted change finds the earlier PASS' }
     'no-cache' = { param($s) Assert-Run (Invoke-Runner $s 'ToyChecks' -NoCache) 'ToyChecks' $true '-NoCache runs the step' }
     'stage' = { param($s) Assert-Run (Invoke-Runner $s 'ToyChecks:Fast') 'ToyChecks:Fast' $true 'a stage is a step of its own' }
+    'select' = { param($s)
+        $selected = { param($r, $step) [regex]::Match($r.Output, '(?m)^SELECT ' + [regex]::Escape($step) + '\s+(.*)$') }
+        Edit-File $s 'ArenaMode.Client/Toy.cs' '// selection'
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
+        Check ((& $selected $r 'LinkToyChecks').Groups[1].Value -match 'ArenaMode.Client/Toy.cs \(compiled by tools/LinkToyChecks/LinkToyChecks.csproj\)') 'a linked production file selects its harness' $r.Output
+        Check ((& $selected $r 'ToyChecks').Groups[1].Value -match 'ArenaMode.Client/Toy.cs \(named in tools/ToyChecks/Verify.ps1\)') 'a mutant target named in a script selects its harness' $r.Output
+        Check (-not (& $selected $r 'OtherChecks').Success -and -not (& $selected $r 'LiteralToyChecks').Success) 'a harness that neither compiles nor names the file is not selected' $r.Output
+        Check ($r.Exit -eq 0 -and $r.Ran.Count -eq 0 -and $r.Output -match 'ARENA_VERIFICATION_SELECTION selected=2 of 7 registered') '-ListOnly runs nothing and counts the selection' $r.Output
+        Invoke-Git $s.Repo @('commit', '-q', '-am', 'toy edit')
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD~1', '-ListOnly')
+        Check ((& $selected $r 'LinkToyChecks').Success) 'a committed change selects like an uncommitted one' $r.Output
+        Write-Text (Join-Path $s.Repo 'ArenaMode.Client/Topping.cs') "class Topping { }`n"
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
+        Check ((& $selected $r 'LinkToyChecks').Groups[1].Value -match 'Topping.cs') 'an untracked file selects too' $r.Output
+        Remove-Item -LiteralPath (Join-Path $s.Repo 'ArenaMode.Client/Topping.cs')
+        Edit-File $s 'ArenaMode.Client/Other.cs' '// selection'
+        Write-Text (Join-Path $s.Repo 'tools/NewChecks/Verify.ps1') "'NEW'`n"
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
+        Check ((& $selected $r 'LiteralToyChecks').Groups[1].Value -match 'ArenaMode.Client/Other.cs \(named in tools/LiteralToyChecks/Verify.ps1\)') 'a mutant target named in a script selects its harness' $r.Output
+        Check (-not (& $selected $r 'LinkToyChecks').Success) 'a file outside the glob does not select the project' $r.Output
+        Check ($r.Output -match 'UNREGISTERED tools/NewChecks') 'an unregistered harness folder is reported' $r.Output
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD')
+        Check ([int]$r.Ran['LiteralToyChecks'] -eq 1 -and $r.Verdicts['LiteralToyChecks'].Passed) 'a selection without -ListOnly runs the selected steps' $r.Output }
     'changed-during-run' = { param($s)
         $r = Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_RUNNER_CHECKS_TOUCH = '1' }
         Assert-Run $r 'ToyChecks' $true 'a touching step runs'

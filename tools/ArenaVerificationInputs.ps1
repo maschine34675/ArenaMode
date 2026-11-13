@@ -27,6 +27,8 @@
 # each kind of change invalidates the key and that the excluded kinds do not.
 
 $ArenaVerificationKeyVersion = 'arena-verification-key-v1'
+# The schema of the cached per-file facts (independent of the key: a new fact does not void stored PASSes).
+$ArenaFactsVersion = 'facts-3'
 
 # Reviewed infrastructure that builds PAYLOAD paths: its "docs" segments and docs/ tokens name the payload's
 # docs folder (notices under docs/licenses), and its enumerations walk the payload, the assets or, for the
@@ -46,6 +48,8 @@ $ArenaProductionPrefixes = @('ArenaMode.Client/', 'ArenaMode.Server/', 'ArenaMod
 # payload's docs/README.md and DeployLayoutChecks asserts that payload file. The repository's docs/README.md
 # (the documentation index, changed by every new document) is read by neither; a mention by any other file
 # makes it an input again.
+# The runner and this model name docs paths only to describe the rules above; they read no record.
+$ArenaKeyInfrastructureFiles = @('tools/ArenaVerificationInputs.ps1', 'tools/ArenaVerificationWorkers.ps1', 'tools/Run-ArenaVerification.ps1')
 $ArenaPayloadOnlyRecordNamers = @{
     'docs/README.md' = @('tools/Write-ArenaAssets.ps1', 'tools/DeployLayoutChecks/Verify.ps1')
 }
@@ -74,6 +78,19 @@ $ArenaEscapePathPattern = '(?:\.\.[\\/])+[A-Za-z0-9_.\-]+(?:[\\/][A-Za-z0-9_.\-]
 $ArenaDocsPathPattern = '(?i)(?<![A-Za-z0-9_])docs[\\/][A-Za-z0-9_.\-\\/]*'
 $ArenaMarkdownNamePattern = '(?i)[A-Za-z0-9_.\-]+\.md(?![A-Za-z0-9_])'
 $ArenaCSharpStringPattern = '@"(?:[^"]|"")*"|"(?:[^"\\\r\n]|\\.)*"'
+# Selection only (-ChangedSince): production paths a script or program names (mutant targets, linked sources),
+# and builds or test runs of a production project, which reach every production file.
+$ArenaProductionPathPattern = '(?i)(?<![A-Za-z0-9_.\-])(?:ArenaMode\.(?:Client|Server|Shared|Gate|Session|BigBrainCompat|Tests)|assets)[\\/][A-Za-z0-9_.\-\\/]*'
+$ArenaProductionProjects = [ordered]@{
+    'ArenaMode.Client' = 'ArenaMode.Client/ArenaMode.Client.csproj'; 'ArenaMode.Server' = 'ArenaMode.Server/ArenaMode.Server.csproj'
+    'ArenaMode.Gate' = 'ArenaMode.Gate/ArenaMode.Gate.csproj'; 'ArenaMode.Session' = 'ArenaMode.Session/ArenaMode.Session.csproj'
+    'ArenaMode.BigBrainCompat' = 'ArenaMode.BigBrainCompat/ArenaMode.BigBrainCompat.csproj'; 'ArenaMode.Tests' = 'ArenaMode.Tests/ArenaMode.Tests.csproj'
+}
+function Get-ArenaProductionBuilds([string]$Text) {
+    if ($Text -match '(?i)ArenaMode\.sln') { 'sln' }
+    foreach ($name in $ArenaProductionProjects.Keys) { if ($Text -match ('(?i)' + [regex]::Escape($name) + '\.csproj')) { $name } }
+    if ($Text -match '(?i)dotnet[''"\s]+test\b') { 'ArenaMode.Tests' }   # a filtered run of the suite
+}
 
 function Get-ArenaVerificationCacheRoot {
     if ($env:ARENA_VERIFICATION_CACHE) { return [IO.Path]::GetFullPath($env:ARENA_VERIFICATION_CACHE) }
@@ -159,6 +176,8 @@ function Get-ArenaTextFacts([string]$Text, [string]$Extension, [regex]$FolderReg
         Enumerates = $Text -match $ArenaEnumerationPattern
         Git = $Text -match $ArenaGitPattern
         Install = @(foreach ($pattern in $ArenaInstallStateSubtrees.Keys) { if ($words -match "(?i)$pattern") { $pattern } })
+        ProductionPaths = @([regex]::Matches($words, $ArenaProductionPathPattern) | ForEach-Object { ($_.Value -replace '\\', '/').TrimEnd('/', '.') } | Sort-Object -Unique)
+        ProductionBuilds = @(Get-ArenaProductionBuilds $Text)
         Externals = @(@([regex]::Matches($words, $ArenaAbsolutePathPattern) | ForEach-Object { 'abs|' + $_.Value.TrimEnd('.', '\') }) +
             @([regex]::Matches($words, $ArenaEscapePathPattern) | ForEach-Object { 'rel|' + $_.Value.TrimEnd('.') }) | Sort-Object -Unique)
     }
@@ -214,7 +233,7 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
         [regex]::new('(?<![A-Za-z0-9_])(?<folder>' + (($folderNames | Sort-Object Length -Descending | ForEach-Object { [regex]::Escape($_) }) -join '|') +
             ')(?![A-Za-z0-9_])(?<rest>[\\/][A-Za-z0-9_.\-\\/]+)?', 'Compiled')
     } else { $null }
-    $nameSetHash = Get-ArenaStringSha (($folderNames -join '|') + '|' + ($loose -join '|') + '|' + $ArenaVerificationKeyVersion)
+    $nameSetHash = Get-ArenaStringSha (($folderNames -join '|') + '|' + ($loose -join '|') + '|' + $ArenaVerificationKeyVersion + '|' + $ArenaFactsVersion)
     $scanPath = Join-Path (Get-ArenaVerificationCacheRoot) "scan\$nameSetHash.json"
     $scanCache = @{}
     if (Test-Path -LiteralPath $scanPath) {
@@ -245,6 +264,7 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     $named = @{}
     foreach ($rel in $facts.Keys) {
         $fact = $facts[$rel]
+        if ($rel -in $ArenaKeyInfrastructureFiles) { continue }
         if (-not $fact.DocPaths.Count -and -not $fact.MdNames.Count) { continue }
         $set = [Collections.Generic.List[string]]::new()
         foreach ($p in $fact.DocPaths) {
@@ -325,7 +345,9 @@ function Get-ArenaReach($Model, [string[]]$StartFiles, [string[]]$StartFolders) 
     foreach ($rel in $StartFiles) { if ($active.Add($rel)) { $queue.Enqueue($rel) } }
     foreach ($f in $StartFolders) { [void]$content.Add($f); foreach ($rel in @($Model.FolderFiles[$f])) { if ($active.Add($rel)) { $queue.Enqueue($rel) } } }
     while ($queue.Count) {
-        $fact = $Model.Facts[$queue.Dequeue()]
+        $next = $queue.Dequeue()
+        if ($next -in $ArenaKeyInfrastructureFiles) { continue }   # they name files only to state these rules
+        $fact = $Model.Facts[$next]
         if (-not $fact) { continue }
         foreach ($name in $fact.Loose) { $l = $Model.Index["tools/$name"]; if ($l -and $active.Add($l)) { $queue.Enqueue($l) } }
         foreach ($m in $fact.Mentions) {
@@ -371,7 +393,7 @@ function Get-ArenaStepScope($Model, [string]$HomeFolder, [string[]]$ExtraFiles =
         }) | Sort-Object
     }
     return [pscustomobject]@{
-        Folders = @($folders); Records = @($recordSet); Wide = $wide; WideReason = $wideReason
+        Folders = @($folders); OwnFolders = @($reach.Content | Sort-Object); Records = @($recordSet); Wide = $wide; WideReason = $wideReason
         LooseFiles = @($reach.Active | Where-Object { $_ -in $Model.LooseEntries } | Sort-Object)
         GitSensitive = $git; InstallState = @($install | Sort-Object); ExternalPaths = @($externals | Sort-Object); Active = @($reach.Active)
     }
@@ -588,4 +610,163 @@ function Compare-ArenaExternalDigest([string[]]$Before, [string[]]$After) {
         $old.Remove($label)
     }
     return (@($labels) + @($old.Keys) | Sort-Object -Unique) -join '; '
+}
+
+# ---------------------------------------------------------------------------------------------------------
+# Selection (-ChangedSince). Finer than the key and only advisory: it answers "which registered steps check
+# the files that changed", using what each step compiles (the evaluated MSBuild items of every project in its
+# folders), the production paths its scripts name (mutant targets), its harness folders, the shared helpers it
+# reaches and the records it names. A step that builds or tests a production project is selected by any
+# production change. A miss here costs what a hand-made selection costs; it never makes a PASS stale, because
+# the cache key above stays coarse.
+
+function Get-ArenaRegisteredSteps([string]$Root) {
+    $path = Join-Path $Root 'tools\verification-steps.txt'
+    if (-not (Test-Path -LiteralPath $path)) { return @() }
+    return @(Get-Content -LiteralPath $path | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') } | Select-Object -Unique)
+}
+
+# Files that differ from $Since: committed since, staged, unstaged and untracked (forward slashes).
+function Get-ArenaChangedFiles([string]$Root, [string]$Since) {
+    $null = Invoke-ArenaGitLines $Root @('rev-parse', '--verify', "$Since^{commit}")
+    $changed = @(Split-ArenaNul (Invoke-ArenaGitLines $Root @('diff', '--name-only', '-z', $Since, '--'))) +
+        @(Split-ArenaNul (Invoke-ArenaGitLines $Root @('ls-files', '-z', '--others', '--exclude-standard')))
+    return @($changed | Sort-Object -Unique)
+}
+
+# The evaluated items of one project, as repository paths. Cached by the project's folder content, the list of
+# files in the checkout (globs), the .props/.targets files and the SDK. The evaluation itself is a script block
+# so the prefetch can run it in parallel runspaces.
+$ArenaEvaluateProject = {
+    param([string]$Full, [string]$Root, [string]$CachePath)
+    $json = & dotnet msbuild $Full -getItem:Compile -getItem:None -getItem:Content -getItem:EmbeddedResource -getItem:ProjectReference -getItem:Reference -p:Configuration=Release -nologo 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) { return $null }
+    try { $o = $json | ConvertFrom-Json } catch { return $null }
+    $prefix = $Root + '\'
+    $found = foreach ($kind in 'Compile', 'None', 'Content', 'EmbeddedResource', 'ProjectReference', 'Reference') {
+        foreach ($item in @($o.Items.$kind)) {
+            $candidate = if ($kind -eq 'Reference') { if ($item.HintPath) { [IO.Path]::GetFullPath((Join-Path (Split-Path $Full) $item.HintPath)) } } else { $item.FullPath }
+            if ($candidate -and $candidate.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { $candidate.Substring($prefix.Length) -replace '\\', '/' }
+        }
+    }
+    $items = @($found | Sort-Object -Unique)
+    try {
+        [IO.Directory]::CreateDirectory((Split-Path $CachePath)) | Out-Null
+        $tmp = "$CachePath.$PID.$([Guid]::NewGuid().ToString('N')).tmp"
+        [IO.File]::WriteAllText($tmp, (ConvertTo-Json -InputObject @($items) -Compress))
+        Move-Item -LiteralPath $tmp -Destination $CachePath -Force
+    } catch { }
+    return $items
+}
+
+function Get-ArenaProjectItemsPath($Model, [string]$Project, [string]$SdkVersion) {
+    if (-not $Model.PSObject.Properties['GlobHash']) {
+        $Model | Add-Member -NotePropertyName GlobHash -NotePropertyValue (Get-ArenaStringSha ((@($Model.Snapshot.Files.Keys) -join "`n")))
+        $Model | Add-Member -NotePropertyName PropsHash -NotePropertyValue (Get-ArenaStringSha ((@($Model.Snapshot.Files.Keys | Where-Object { $_ -match '\.(props|targets)$' } | ForEach-Object { "$_|$($Model.Snapshot.Files[$_].Hash)" })) -join "`n"))
+    }
+    $folder = Get-ArenaHarnessFolder $Project
+    $content = if ($folder) { $Model.FolderHash[$folder] } else {
+        # A production project: the contents of its own directory.
+        $dir = ((Split-Path $Project -Parent) -replace '\\', '/') + '/'
+        Get-ArenaStringSha ((@($Model.Snapshot.Files.Keys | Where-Object { $_.StartsWith($dir) } | ForEach-Object { "$_|$($Model.Snapshot.Files[$_].Hash)" })) -join "`n")
+    }
+    $key = Get-ArenaStringSha "$Project|$content|$($Model.GlobHash)|$($Model.PropsHash)|$SdkVersion"
+    return Join-Path (Get-ArenaVerificationCacheRoot) "msbuild\$key.json"
+}
+
+function Get-ArenaProjectItems($Model, [string]$Project, [string]$SdkVersion) {
+    if (-not $Model.PSObject.Properties['ProjectItemsMemo']) { $Model | Add-Member -NotePropertyName ProjectItemsMemo -NotePropertyValue @{} }
+    if ($Model.ProjectItemsMemo.ContainsKey($Project)) { return $Model.ProjectItemsMemo[$Project] }
+    $path = Get-ArenaProjectItemsPath $Model $Project $SdkVersion
+    $items = $null
+    if (Test-Path -LiteralPath $path) { try { $items = @(Get-Content -Raw -LiteralPath $path | ConvertFrom-Json) } catch { } }
+    if ($null -eq $items) { $items = & $ArenaEvaluateProject (Join-Path $Model.Snapshot.Root $Project) $Model.Snapshot.Root $path }
+    $Model.ProjectItemsMemo[$Project] = $items
+    return $items
+}
+
+# Evaluates every project of the given folders that is not cached yet, eight at a time.
+function Initialize-ArenaProjectItems($Model, [string[]]$Folders, [string]$SdkVersion) {
+    $todo = @(foreach ($f in ($Folders | Sort-Object -Unique)) {
+        foreach ($project in @($Model.FolderFiles[$f] | Where-Object { $_ -like '*.csproj' })) {
+            $path = Get-ArenaProjectItemsPath $Model $project $SdkVersion
+            if (-not (Test-Path -LiteralPath $path)) { [pscustomobject]@{ Full = (Join-Path $Model.Snapshot.Root $project); Path = $path } }
+        }
+    })
+    if (-not $todo.Count) { return }
+    $evaluate = $ArenaEvaluateProject.ToString()
+    $root = $Model.Snapshot.Root
+    $todo | ForEach-Object -ThrottleLimit 8 -Parallel { $null = & ([scriptblock]::Create($using:evaluate)) $_.Full $using:root $_.Path }
+}
+
+# What a step checks, for selection: exact paths and path prefixes with the kind of link, and whether any
+# production change selects it.
+function Get-ArenaSelectionInputs($Model, $Scope, [string]$SdkVersion) {
+    $exact = @{}; $prefixes = [Collections.Generic.List[object]]::new(); $wideProduction = $false
+    # Only what the step's own files reach: its folders, the helpers and scripts they run, the records they
+    # name. What every step shares (production through the shared files, the no-deploy targets) selects
+    # through the compile items and named paths below, not wholesale.
+    foreach ($f in $Scope.OwnFolders) { foreach ($rel in $Model.FolderFiles[$f]) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "harness folder $f" } } }
+    foreach ($rel in $Scope.Active) {
+        if (-not (Get-ArenaHarnessFolder $rel) -and -not $exact.ContainsKey($rel)) { $exact[$rel] = $(if ($rel -in $Scope.LooseFiles) { 'script it runs' } else { 'shared helper it runs' }) }
+        foreach ($record in @($Model.NamedRecords[$rel])) { if ($record -and -not $exact.ContainsKey($record)) { $exact[$record] = "record named in $rel" } }
+    }
+    foreach ($f in $Scope.OwnFolders) {
+        foreach ($project in @($Model.FolderFiles[$f] | Where-Object { $_ -like '*.csproj' })) {
+            $items = Get-ArenaProjectItems $Model $project $SdkVersion
+            if ($null -eq $items) { $wideProduction = $true; continue }
+            foreach ($rel in $items) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "compiled by $project" } }
+        }
+    }
+    # A production project the step builds or tests: what that project compiles, plus its own directory.
+    $built = [Collections.Generic.HashSet[string]]::new()
+    foreach ($rel in $Scope.Active) {
+        $fact = $Model.Facts[$rel]
+        if (-not $fact -or (-not (Get-ArenaHarnessFolder $rel) -and $rel -notin $Scope.LooseFiles)) { continue }
+        foreach ($b in @($fact.ProductionBuilds)) { [void]$built.Add($b) }
+    }
+    foreach ($b in $built) {
+        $projects = if ($b -eq 'sln') { @($ArenaProductionProjects.Values) } elseif ($b -eq 'ArenaMode.Tests') { @($ArenaProductionProjects['ArenaMode.Tests'], $ArenaProductionProjects['ArenaMode.Server']) } else { @($ArenaProductionProjects[$b]) }
+        foreach ($project in $projects) {
+            $prefixes.Add([pscustomobject]@{ Prefix = ((Split-Path $project -Parent) -replace '\\', '/').ToLowerInvariant(); Kind = "builds $project" })
+            $items = Get-ArenaProjectItems $Model $project $SdkVersion
+            if ($null -eq $items) { $wideProduction = $true; continue }
+            foreach ($rel in $items) { if (-not $exact.ContainsKey($rel)) { $exact[$rel] = "compiled by $project, which it builds" } }
+        }
+    }
+    foreach ($rel in $Scope.Active) {
+        $fact = $Model.Facts[$rel]
+        if (-not $fact) { continue }
+        if (-not (Get-ArenaHarnessFolder $rel) -and $rel -notin $Scope.LooseFiles) { continue }   # shared code names paths for every step
+        foreach ($p in $fact.ProductionPaths) { $prefixes.Add([pscustomobject]@{ Prefix = $p.ToLowerInvariant(); Kind = "named in $rel" }) }
+    }
+    return [pscustomobject]@{ Exact = $exact; Prefixes = $prefixes; WideProduction = $wideProduction }
+}
+
+function Test-ArenaProductionPath([string]$Rel) { return (Test-ArenaProductionFile $Rel) -or $Rel.StartsWith('ArenaMode.Tests/') -or $Rel.StartsWith('assets/') }
+
+# The registered steps that check at least one changed file, each with its first reasons.
+function Select-ArenaSteps($Model, [string[]]$Steps, [string[]]$Changed) {
+    $sdk = (& dotnet --version 2>$null) -join ''
+    $plans = foreach ($step in $Steps) {
+        $name = ($step -split ':', 2)[0]
+        $homeFolder = $null; $extra = @()
+        if ($name -like '*.ps1') { $rel = ($name -replace '\\', '/') -replace '^\./', ''; if ($rel -match '^tools/([^/]+)/') { $homeFolder = $Matches[1] } else { $extra = @($rel) } }
+        else { $homeFolder = $name }
+        [pscustomobject]@{ Step = $step; Scope = (Get-ArenaStepScope $Model $homeFolder $extra) }
+    }
+    Initialize-ArenaProjectItems $Model @($plans | ForEach-Object { $_.Scope.OwnFolders }) $sdk
+    foreach ($project in $ArenaProductionProjects.Values) { $null = Get-ArenaProjectItems $Model $project $sdk }
+    foreach ($plan in $plans) {
+        $step = $plan.Step; $scope = $plan.Scope
+        $inputs = Get-ArenaSelectionInputs $Model $scope $sdk
+        $reasons = [Collections.Generic.List[string]]::new()
+        foreach ($c in $Changed) {
+            $why = $inputs.Exact[$c]
+            if (-not $why) { $cl = $c.ToLowerInvariant(); foreach ($p in $inputs.Prefixes) { if ($cl -eq $p.Prefix -or $cl.StartsWith($p.Prefix + '/')) { $why = $p.Kind; break } } }
+            if (-not $why -and $inputs.WideProduction -and (Test-ArenaProductionPath $c)) { $why = 'a project of its could not be evaluated' }
+            if ($why) { $reasons.Add("$c ($why)") }
+        }
+        if ($reasons.Count) { [pscustomobject]@{ Step = $step; Reasons = @($reasons) } }
+    }
 }

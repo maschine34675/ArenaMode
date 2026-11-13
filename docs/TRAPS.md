@@ -603,6 +603,15 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   installation. Paths with spaces are not recognised as external path literals.
 - **Changing these rules**: add a case to `tools/VerificationRunnerChecks/Verify.ps1` that changes the input and
   expects a rerun, and a fault that removes the input and must fail that case.
+- **The key and the selection differ on purpose.** The key is coarse (every shared file, so any production change
+  reruns every step) because a miss there is a stale PASS. `-ChangedSince` is fine-grained (evaluated MSBuild
+  items of the step's projects, production paths its scripts name, the production projects it builds or tests)
+  and only advisory, like a hand-made selection; a selection miss costs a check that did not run, never a
+  stale PASS. The register `tools/verification-steps.txt` lists what may be selected; an unregistered harness
+  folder that changed is reported, not run.
+- **The runner's own files name paths only to state the rules** (`$ArenaKeyInfrastructureFiles`): their mentions
+  are not followed. Following them once pulled 165 harness folders into the reach of VerificationRunnerChecks
+  and made `docs/README.md` an input of every step.
 
 Traps met while building it:
 

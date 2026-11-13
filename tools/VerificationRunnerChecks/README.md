@@ -24,5 +24,11 @@ installed config for a step that names it, the Redeploy sibling, the decompiled 
 calls git, a commit rerun the step; a FAIL is never cached; `-NoCache` runs the step; a stage is a step of its
 own; a step whose inputs change while it runs is not cached.
 
-The faults (`$faults` in `Verify.ps1`) remove one of those inputs from the copied model, or let the copied
-runner cache a FAIL, skip the after-run check or ignore `-NoCache`; each must fail its named assertion.
+The `select` case pins `-ChangedSince`: a production file linked by a project glob selects that harness (the
+evaluated MSBuild items, not a literal), a production path named in a script selects its harness, unrelated
+harnesses are not selected, committed and untracked changes select like uncommitted ones, an unregistered
+harness folder is reported, `-ListOnly` runs nothing, and without it the selection runs.
+
+The faults (`$faults` in `Verify.ps1`) remove one of those inputs from the copied model, drop the compile
+items, the named paths or the untracked files from the selection, or let the copied runner cache a FAIL,
+skip the after-run check or ignore `-NoCache`; each must fail its named assertion.

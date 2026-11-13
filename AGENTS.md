@@ -153,7 +153,12 @@ kept, and only if the inputs did not move while the step ran. So a rerun after a
 commit or a reviewer's identical pass costs seconds. `-NoCache` runs everything; **a release
 gate runs with `-NoCache`**. The rules and their argued exceptions are in
 `tools/ArenaVerificationInputs.ps1` and docs/TRAPS.md ("Verification runner"); a change to
-them needs a case and a fault in `tools/VerificationRunnerChecks`. Several
+them needs a case and a fault in `tools/VerificationRunnerChecks`. Do not compute the affected
+set by hand: `-ChangedSince <ref>` adds every step registered in `tools/verification-steps.txt`
+that compiles, names (mutant targets) or contains a file changed since `<ref>` (committed,
+staged, unstaged, untracked), one `SELECT` line with the reasons each, and reports changed
+harness folders that are not registered; `-ListOnly` only prints, `-All` takes the whole
+register. Register every new offline harness there. Several
 older wrappers run the whole suite themselves (`git grep -n 'dotnet test' tools`). When
 adding a test, check that it fails against the bug it claims to catch (the zone test below
 was verified that way: reintroduce the comma and three tests go red). The xunit tests exist
