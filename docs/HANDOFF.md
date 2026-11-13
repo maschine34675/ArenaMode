@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-10. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-13. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,38 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Development, 2026-11-13 afternoon: every open branch collected into `master`, `master` deployed.**
+  At the user's request every branch except `feature/fika-admission` was merged and deleted and every
+  worktree except `D:\SPT41\Development\ArenaMode-fika-m1` was removed; the primary checkout
+  `D:\SPT41\Development\ArenaMode` is on `master` again
+  ([record](reports/2026-11/WORKTREE-CLEANUP-20261113.md)). Two branches still carried a commit
+  (`fix/equator-map-checks`: the direct-start tests outlast a killed probe's teardown;
+  `feature/launcher-thumbnail`: the launcher emblem); the others were already contained. Redeploy has `main`
+  only. Nothing was pushed (`dev/master` is `99260275`).
+  **Installed in `D:\SPT41` since 14:49** (mirrored to GPU-1 and GPU-2, 74 files identical on both; loaded on
+  GPU-2, 16 of 16 identical): a normal deploying build (`dotnet build ArenaMode.sln -c Release`) of `master`
+  `c64846fb`, the head before this note, after a deploying build of Redeploy `main` `f092f98`. Stamps and
+  SHA-256: client `0.5.0+c64846fb`
+  (`d7a9380b5991852e62e880d885bef0f79ce7eff292576f0b7a9ffcbd37028724`), BigBrainCompat `0.5.0+c64846fb`
+  (`07a8162017bee43d9f2dd33c06857114507a7c071d6afb5d8dd719ec084a27ed`), Session helper `0.5.0+c64846fb`
+  (`87547785283ceccda7c18538a2ff7faf40272fcf3275a6888a68db7df9c79a1b`), Gate `0.5.0+c64846fb`
+  (`79f7bd91eccbb78a102bb57ff652c4f835e57b538c9667f09281b125d462c7d0`), server `0.5.0+c64846fb`
+  (`d7b6d881bbb2ef3cb9a177b0e3157ef2723453c895fe8db53142c49e86c14cce`), Core `1.0.23+f092f98`
+  (`c8fe330d0c68d91eae4286e47b07586eb95efada8bdbda79cdfe142c42445a8e`), Redeploy client and server
+  `1.1.2+f092f98`. This is the first installed build that matches a `master` commit since 2026-11-12, and the
+  first with Core 1.0.23 and the four-mod compatibility in the normal installation; the installed-state
+  paragraph further down and the two entries below describe earlier builds. Previous files:
+  `D:\SPT41-Backups\master-deploy\20261113-144816` (with `SHA256SUMS.txt`).
+  Start log on GPU-2: `Redeploy.Core 1.0.23.0 initialized`, `maschine-ArenaMode 0.5.0 loaded (Redeploy.Core
+  1.0.23.0; ...)`, `maschine-Redeploy 1.1.2 loaded (Core 1.0.23.0)`, 40 plugins loaded, no error. Two smoke
+  scenarios on that build passed: `chopshop-tdm` (21 steps, a death and a respawn through Core) and
+  `tactical-solo-ported` on Chop Shop (20 steps, three rounds with five opponents; the squad request now
+  follows `Arena round respawn complete`, and the plan line names the Player row it measured from). Not run
+  on the installed binaries: a standalone Redeploy raid, PitFireTeam, the four admitted mods (they are not
+  installed here). Afterwards the test profile differed from its copy in two timestamps, the ArenaMode and
+  Redeploy cfg files were byte-identical to before, and the game and both hosts' servers were stopped again
+  (they had not been running). Evidence: ignored `artifacts/master-collect-20261113/`.
 
 - **Development, 2026-11-13, four-mod compatibility, not deployed to the normal
   installation:** scoped admission of Bot Callsigns Reloaded 2.0.6, Player
@@ -204,7 +236,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   config value the test runs changed is back at its previous value. Previous files:
   `D:\SPT41-Backups\arena-chop-shop\20261112-142217` (the state before this work, client
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
-  **Since 2026-11-13 this paragraph no longer describes what is installed.** The spawn-row work installed its
+  **Since 2026-11-13 this paragraph no longer describes what is installed; since 14:49 of that day the
+  installed build is the `master` build named in the first entry of "Released and installed".** The spawn-row work installed its
   test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
   `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
   working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
@@ -247,7 +280,8 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Open work
 
-**Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (not pushed;
+**Chop Shop (`arena_autoservice`), 2026-11-12, `feature/chop-shop` (in `master` and on `dev/master` as
+`99260275`; the branch was deleted on 2026-11-13;
 [contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md), [native report](reports/2026-11/GPU-CHOP-SHOP-20261112.md)):**
 admission (`c09e886a`), original pockets as team boxes (`4feaa9f6`), one-point Domination (`94ff82ba`), the
 harness entry points and contract (`d843e4c2`), and the fixes of the native cycle (`0f14cdb9`: gate
@@ -271,7 +305,8 @@ stays at 0.5.0 until then. After the end of one Arena raid, wait about 40 s befo
 post-raid finalization); a start after 5 s was refused and hung the load. The "more than 6 participants"
 gap of (2) is smaller now (the default is eight, from sixteen rows) but still not run.
 
-**Spawn-rows follow-up, 2026-11-13, `feature/spawn-rows` (not pushed; from `master` `99260275`;
+**Spawn-rows follow-up, 2026-11-13, `feature/spawn-rows` (merged into `master` as `7d47f03b`, not pushed;
+the branch was deleted the same day;
 [contract](reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)):** ArenaMapPort's rows of 2026-11-12 (0.5.0+160523d:
 Bot rows Equator 16, Iceberg 17, Chop Shop 16, Bay5 16, Air Pit 20, Bowl 21; exits inside the pockets) are
 followed in `2a085839` (code and pins) and the document commit after it. Done: Tactical admitted on Equator
