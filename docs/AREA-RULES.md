@@ -833,6 +833,13 @@ operand override, never a shared SAIN preset write; combat strafe floors at 0.85
 and independent TDM/Domination search delay inputs cap at three seconds.
 Normalized movement targets alone do not provide the displacement bonus.
 
+No bot leaves an Arena raid through a map exit (2026-11-13, MapPort exits in the team start
+pockets): `ArenaSainExtractGuard` answers false from SAIN's `BotExtractManager.IsBotAllowedToExfil`
+for every bot of an armed or exact active Arena raid. SAIN asks it only while its preset's
+`SAIN_EXTRACT_TOGGLE` is on (off in the shipped and installed preset); never write the preset,
+and keep the postfix last. BSG's own PMC Exfiltration layer is not guarded (see
+docs/reviews/EXTRACTION-HARDENING-20261113.md for why and what a native test needs).
+
 ### From the handoff (snapshot of 2026-10-29)
 
 Working notes of 2026-10-29 that carry a still-valid constraint: verbatim excerpts, or restatements where marked Quoted:/Rule:/Durable form:. Line numbers refer to `handoff-archive/HANDOFF-2026-10-29.md`.
