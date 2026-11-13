@@ -217,3 +217,17 @@ The initial Core suite caught an unregistered committed-profile reader in the
 source guard. Native engine order and focused ownership tests established that
 this getter runs only after the game, body and player owner are committed; it
 was added to the existing explicit reader registry. The final full suite passed.
+
+## Integration with the current main branch
+
+After the native run, the compatibility branch incorporated `master` `7d47f03b`
+through merge `8bf015d7`, preserving the parallel spawn-row work. The adapter,
+admission hooks and whitelist sources are unchanged from `eccdd376`. The combined
+client built successfully with deployment suppressed (four existing nullable
+warnings). A new verification-runner pass completed 3,904 tests with three known
+environment-gated skips and zero failures; its installed-file checks stayed green.
+Evidence: `merged-client-build.log`, `merged-arena-verification.log`.
+
+This is source/build verification of the combined tree. The native evidence above
+remains bound to the frozen `candidate-r2` hashes; the combined output was not
+deployed over the normal installation and is not claimed as a separate native run.

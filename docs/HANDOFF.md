@@ -12,7 +12,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
-- **Development, 2026-11-13, `compat/four-mods-20261113`, not deployed to the normal
+- **Development, 2026-11-13, four-mod compatibility, not deployed to the normal
   installation:** scoped admission of Bot Callsigns Reloaded 2.0.6, Player
   Encumbrance Bar 1.3.0, Auto Shoulder Swap 1.1.1 and DERP 1.1.2. Arena guards
   unsafe shoulder callbacks and uses physical carry limits in the foreign bar;
@@ -32,7 +32,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   work nor another profile's startup reward closure was overwritten. The tested
   candidate was not deployed to the normal installation. Raw evidence and
   cleanup manifests are in ignored `artifacts/four-mods-20261113/`. GPU-2 was not
-  used. Nothing has been pushed or released by this task.
+  used. The source includes the later `master` map baseline `7d47f03b`; its client
+  build and 3,904 unit tests pass (three known skips), without deployment.
+  The four-mod adapter/admission source is unchanged from the native candidate.
+  Nothing has been pushed or released by this task.
 
 - **Development, 2026-11-11, `master` `4b1e61be` (not pushed), client DLL installed:** the kit screen's
   detail pane keeps its kit while the pointer crosses other cards on the way to COPY TO MY KITS, EDIT or
