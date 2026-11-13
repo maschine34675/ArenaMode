@@ -31,6 +31,20 @@ namespace ArenaMode.Compat
         internal static int Calls;
         internal static string GetRejectionReason() { Calls++; return Reason; }
     }
+    // Auto Shoulder Swap and Player Encumbrance Bar (2026-11-13): the real contracts are covered by
+    // ShoulderSwapChecks and EncumbranceBarChecks; here only their place in the chain matters.
+    internal static class ArenaShoulderSwapCompat
+    {
+        internal static string Reason;
+        internal static int Calls;
+        internal static string GetRejectionReason() { Calls++; return Reason; }
+    }
+    internal static class ArenaEncumbranceBarCompat
+    {
+        internal static string Reason;
+        internal static int Calls;
+        internal static string GetRejectionReason() { Calls++; return Reason; }
+    }
     internal static class FastGrenadeThrowCompat
     {
         internal static string Reason;

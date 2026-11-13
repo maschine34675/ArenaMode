@@ -13,6 +13,7 @@ internal static class Program
         {
             CheckAbsentAndAdapters();
             CheckAdditionalAdapterContracts();
+            CheckShoulderSwapAndEncumbranceBar();
             CheckTarkovaColaAdmission();
             CheckServerAdmission();
             CheckWhitelistFirst();
@@ -89,6 +90,45 @@ internal static class Program
         Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
             && ArenaAmandsGraphicsScene.Calls == 0 && FastGrenadeThrowCompat.Calls == 0 && PipPreloadCompat.Calls == 0,
             "Core refusal remains ahead of both newer adapters");
+    }
+
+    private static void CheckShoulderSwapAndEncumbranceBar()
+    {
+        // Four-mod admission of 2026-11-13: both providers sit between the Graphics scene contract and
+        // FastGrenadeThrow, Shoulder Swap first.
+        Reset();
+        Allowed("Absent or ready Shoulder Swap and Encumbrance Bar allow admission");
+        Require(ArenaShoulderSwapCompat.Calls == 1 && ArenaEncumbranceBarCompat.Calls == 1,
+            "Admission consults Shoulder Swap and Encumbrance Bar exactly once per query");
+        Reset();
+        ArenaShoulderSwapCompat.Reason = "Shoulder Swap guard unavailable";
+        ArenaEncumbranceBarCompat.Reason = "Encumbrance Bar limit bridge unavailable";
+        FastGrenadeThrowCompat.Reason = "Grenade body handoff unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaShoulderSwapCompat.Reason,
+            "Shoulder Swap rejection reaches admission unchanged and ahead of Encumbrance Bar");
+        Require(ArenaEncumbranceBarCompat.Calls == 0 && FastGrenadeThrowCompat.Calls == 0 && ArenaTarkovaColaCompat.Calls == 0,
+            "failed Shoulder Swap contract short-circuits later providers");
+        ArenaShoulderSwapCompat.Reason = null;
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaEncumbranceBarCompat.Reason,
+            "Encumbrance Bar rejection reaches admission unchanged after Shoulder Swap recovery");
+        Require(FastGrenadeThrowCompat.Calls == 0 && ArenaTarkovaColaCompat.Calls == 0,
+            "failed Encumbrance Bar contract short-circuits later providers");
+        ArenaEncumbranceBarCompat.Reason = null;
+        Require(ArenaOptionalMods.GetRejectionReason() == FastGrenadeThrowCompat.Reason,
+            "FastGrenadeThrow rejection follows the two recovered providers");
+        FastGrenadeThrowCompat.Reason = null;
+        Allowed("recovered Shoulder Swap and Encumbrance Bar are rechecked without stale refusal");
+        Reset();
+        ArenaAmandsGraphicsScene.Reason = "Graphics scene lookup unavailable";
+        ArenaShoulderSwapCompat.Reason = "Shoulder Swap guard unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == ArenaAmandsGraphicsScene.Reason
+            && ArenaShoulderSwapCompat.Calls == 0 && ArenaEncumbranceBarCompat.Calls == 0,
+            "The Graphics scene refusal stays ahead of Shoulder Swap and Encumbrance Bar");
+        Reset();
+        BodyReplacementCompatibility.Reason = "Core unavailable";
+        Require(ArenaOptionalMods.GetRejectionReason() == BodyReplacementCompatibility.Reason
+            && ArenaShoulderSwapCompat.Calls == 0 && ArenaEncumbranceBarCompat.Calls == 0,
+            "Core refusal remains ahead of Shoulder Swap and Encumbrance Bar");
     }
 
     private static void CheckTarkovaColaAdmission()
@@ -208,6 +248,8 @@ internal static class Program
         FastGrenadeThrowCompat.Calls = PipPreloadCompat.Calls = 0;
         ArenaAmandsGraphicsScene.Reason = null;
         ArenaAmandsGraphicsScene.Calls = 0;
+        ArenaShoulderSwapCompat.Reason = ArenaEncumbranceBarCompat.Reason = null;
+        ArenaShoulderSwapCompat.Calls = ArenaEncumbranceBarCompat.Calls = 0;
     }
 
     private static void Allowed(string message) => Require(ArenaOptionalMods.GetRejectionReason() == null, message);

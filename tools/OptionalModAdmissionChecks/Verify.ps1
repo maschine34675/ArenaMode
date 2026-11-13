@@ -59,6 +59,21 @@ $mutants = @(
         After = '?? null'
     },
     @{
+        Name = 'skip-shoulder-swap-contract'
+        Before = '?? ArenaShoulderSwapCompat.GetRejectionReason()'
+        After = '?? null'
+    },
+    @{
+        Name = 'skip-encumbrance-bar-contract'
+        Before = '?? ArenaEncumbranceBarCompat.GetRejectionReason()'
+        After = '?? null'
+    },
+    @{
+        Name = 'encumbrance-bar-before-shoulder-swap'
+        Before = '?? ArenaShoulderSwapCompat.GetRejectionReason()'
+        After = '?? ArenaEncumbranceBarCompat.GetRejectionReason() ?? ArenaShoulderSwapCompat.GetRejectionReason()'
+    },
+    @{
         Name = 'skip-grenade-contract'
         Before = '?? FastGrenadeThrowCompat.GetRejectionReason()'
         After = '?? null'
