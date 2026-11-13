@@ -1,6 +1,6 @@
 # Dependencies, integrations and distribution
 
-As of 2026-10-29, ArenaMode 0.4.1. This overview describes the reviewed ArenaMode source revision,
+Updated 2026-11-13, development source after ArenaMode 0.5.0. This overview describes the reviewed ArenaMode source revision,
 not the latest release of each third-party mod. Newer versions are attempted
 with a warning and the same mandatory API checks. This is not a blanket
 compatibility guarantee. Loading together does not establish compatibility
@@ -33,6 +33,9 @@ Raid Review 1.10.0, HollywoodFX 3.0.0 and Hands Are Not Busy 1.7.1 handovers (va
 offline only); a client built from this source refuses Core 1.0.19 or older, so ArenaMode
 0.5.0 and Redeploy 1.1.2 ship together. Core keeps its independent version line; the
 public Redeploy client/server release is 1.1.2. Keep one copy of the shared library.
+Development Core **1.0.23** adds the DERP and Player Encumbrance Bar body handovers.
+The development client built with these fixes requires that Core; the published
+0.5.0 package retains its original dependency.
 The server metadata declares no additional mandatory third-party mods.
 Platform DLLs supplied with SPT do not require separate mod downloads.
 
@@ -56,6 +59,8 @@ Freecam, DoorDash, Anvil-WebOverlay, ArmorClassIcon,
 Caliber Under Ammo Name, Compatibility Highlighter, Trader Modding and Improved Weapon Building,
 BetterAmmoLoadingList, BrighterInteriors, DevBalaclavaFix, HealingAutoCancel and SmajlecLights, plus
 Fontaine FOV Fix, Manimal Ammo Loading Animations, Increase Look Direction,
+Auto Shoulder Swap, Dynamic External Resolution Patch, Player Encumbrance Bar,
+Bot Callsigns Reloaded,
 Magazine Check Interrupt, Tarkova Cola, Accurate Circular Radar, Simple Crosshair
 and Better BepInEx, plus Use Items Anywhere,
 ImpactCue (client and Web Config server), Enemy Markers, Fast Grenade Throw 2.0.0,
@@ -140,7 +145,8 @@ tests. The same final Core passed two additional Factory respawns with Arena
 absent, including a scoped death, old PiP-cache retirement, current-body HUD and
 graphics bindings, native medical cancellation and an RGD throw after respawn.
 See the [remaining-mod report](reviews/REMAINING-MOD-COMPAT-20261026.md) for exact
-exercises, source contracts and limitations. Amand remains unlisted.
+exercises, source contracts and limitations. Amand's Graphics was admitted
+separately on 2026-11-08; Amand's Sense remains unlisted.
 
 The [Factory checks from 2026-10-20](reports/2026-10/GPU-OPTIONAL-COMPAT-20261020.md) supplement
 the offline evidence: SVM's SaveLoot/Ignore behavior and basic CLA
@@ -207,10 +213,18 @@ native observations below predate that migration; see
   magazine panel and fences delayed hide callbacks after replacement. The
   custom UIFixes Reload in Place animation does not receive Arena's reload-speed
   multiplier. Reviewed whitelist version: 1.1.1.
-- **Auto Shoulder Swap 1.1.1:** not whitelisted after a native knife/left-lean
-  test reproduced an upstream `CurrentScope` error. Normal firearm lean works,
-  including after respawn. No new global deny or ordinary-raid behavior change.
-  See [three input-mod tests and limitations](reports/2026-10/INPUT-MOD-COMPAT-20261025.md).
+- **Auto Shoulder Swap 1.1.1:** Arena guards its unsafe knife/non-firearm and
+  incomplete-scope callbacks while preserving native lean. The upstream bug
+  remains outside Arena. Reviewed GUID: `hazelify.StanceSync`.
+- **Dynamic External Resolution Patch 1.1.2:** Core 1.0.23 hands its private
+  player cache to the replacement and fences retired optic callbacks.
+- **Player Encumbrance Bar 1.3.0:** Core 1.0.23 binds inventory and skill events
+  to the replacement body. Arena also supplies its effective carry limits to
+  the displayed thresholds. Reviewed GUID: `com.mpstark.PlayerEncumbranceBar`.
+- **Bot Callsigns Reloaded 2.0.6:** server-side USEC/BEAR naming lists; no
+  player lifecycle adapter. Reviewed GUID: `com.harmonyzt.botcallsigns`.
+  See [the four-mod contracts](reviews/FOUR-MOD-COMPAT-20261113.md) and
+  [scoped native checks](reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md).
 - **Accurate Circular Radar 1.3.4 / Simple Crosshair 1.4.0:** Core 1.0.13
   preserves their HUDs and rebinds physical player/camera references. Late old
   bodies cannot remove the replacement crosshair. Radar colors remain faction

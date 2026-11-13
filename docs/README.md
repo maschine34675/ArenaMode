@@ -281,6 +281,9 @@ Dated records, newest month first, sorted by file name within a month. Check the
 ### 2026-11
 
 - [Chop Shop native acceptance: menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies and a PMC control on GPU-2 (the 15 s gate watchdog, the failed-dispatch backoff, Domination 5 of 6 pickups)](reports/2026-11/GPU-CHOP-SHOP-20261112.md)
+- [Callsigns, encumbrance, shoulder swap and resolution contracts](reviews/FOUR-MOD-COMPAT-20261113.md)
+- [Auto Shoulder Swap input guard](reviews/SHOULDER-SWAP-20261113.md)
+- [Four-mod admission and native tests](reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
 - [Inventory UI mod admission: Caliber Under Ammo Name, Compatibility Highlighter and Trader Modding](reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
 - [Kit screen and Tactical buy screen: native runs on GPU-2 (the dead clicks, the bare-scope error, F9 twice, the take-back after a buy-phase death)](reports/2026-11/GPU-KIT-PICKER-20261110.md)
 - [Own kits: native run on GPU-2 (copy, editor, a belt-fed gun, a refused pick, rename, Deathmatch and solo Tactical with an own kit, delete)](reports/2026-11/GPU-CUSTOM-KITS-20261110.md)

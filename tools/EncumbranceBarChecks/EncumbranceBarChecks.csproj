@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net472</TargetFramework><LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings><AssemblyName>PlayerEncumbranceBar</AssemblyName>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion><SptRoot Condition="'$(SptRoot)' == ''">../../../..</SptRoot>
+    <EncumbranceCompatSource Condition="'$(EncumbranceCompatSource)' == ''">../../ArenaMode.Client/Compat/ArenaEncumbranceBarCompat.cs</EncumbranceCompatSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(EncumbranceCompatSource)" Link="Production/ArenaEncumbranceBarCompat.cs" />
+    <Compile Include="../../../Redeploy/tools/PlayerEncumbranceBarChecks/Fixture.cs" Link="Fixture.cs" />
+    <Reference Include="0Harmony"><HintPath>$(SptRoot)/BepInEx/core/0Harmony.dll</HintPath></Reference>
+    <Reference Include="Mono.Cecil"><HintPath>$(SptRoot)/BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+    <Reference Include="MonoMod.RuntimeDetour"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.RuntimeDetour.dll</HintPath></Reference>
+    <Reference Include="MonoMod.Utils"><HintPath>$(SptRoot)/BepInEx/core/MonoMod.Utils.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

@@ -389,6 +389,10 @@ public sealed class ArenaWhitelistTests
             ("com.fontaine.fovfix", "Fontaine FOV Fix", ArenaWhitelistTier.Mod, "4.1.0", null),
             ("com.manimal.loadammoanim", "Manimal Ammo Loading Animations", ArenaWhitelistTier.Mod, "2.0.0", "2.0.0"),
             ("com.flir.increaselookdirection", "Increase Look Direction", ArenaWhitelistTier.Mod, "1.3.0", null),
+            ("hazelify.StanceSync", "Auto Shoulder Swap", ArenaWhitelistTier.Mod, "1.1.1", null),
+            ("com.Shibatsu.DynamicExternalResolution", "Dynamic External Resolution Patch", ArenaWhitelistTier.Mod, "1.1.2", null),
+            ("com.mpstark.PlayerEncumbranceBar", "Player Encumbrance Bar", ArenaWhitelistTier.Mod, "1.3.0", null),
+            ("com.harmonyzt.botcallsigns", "Bot Callsigns Reloaded", ArenaWhitelistTier.Mod, null, "2.0.6"),
             ("com.ozen.magcheckinterrupt", "Magazine Check Interrupt", ArenaWhitelistTier.Mod, "1.1.1", null),
             ("com.leonana69.radar", "Accurate Circular Radar", ArenaWhitelistTier.Mod, "1.3.4", null),
             ("com.mpstark.SimpleCrosshair", "Simple Crosshair", ArenaWhitelistTier.Mod, "1.4.0", null),
@@ -502,6 +506,10 @@ public sealed class ArenaWhitelistTests
     [InlineData("com.fiodor.pipdisabler", "2.1.0", ArenaWhitelistSide.Client)]
     [InlineData("com.slpf.caliberundername", "1.2.0", ArenaWhitelistSide.Client)]
     [InlineData("com.awnova.compatibilityhighlighter", "1.3.2", ArenaWhitelistSide.Client)]
+    [InlineData("hazelify.StanceSync", "1.1.1", ArenaWhitelistSide.Client)]
+    [InlineData("com.Shibatsu.DynamicExternalResolution", "1.1.2", ArenaWhitelistSide.Client)]
+    [InlineData("com.mpstark.PlayerEncumbranceBar", "1.3.0", ArenaWhitelistSide.Client)]
+    [InlineData("com.harmonyzt.botcallsigns", "2.0.6", ArenaWhitelistSide.Server)]
     public void ItemAccessAndBodyHudModsKeepExactIdentitiesAndSideSpecificReviews(string guid, string reviewed, ArenaWhitelistSide side)
     {
         string shipped = File.ReadAllText(ShippedDefaultPath);
@@ -580,6 +588,7 @@ public sealed class ArenaWhitelistTests
         "com.cj.useFromAnywhere", "com.dizzlow.impactcue", "com.dizzlow.impactcue.webconfig", "flir.enemymarkers",
         "com.Amanda.Graphics", "com.vultify.fastgrenadethrow", "com.manimal.quickcancel", "com.deadwolf.hudbreakout", "com.fiodor.pipdisabler",
         "com.slpf.caliberundername", "com.awnova.compatibilityhighlighter", "com.choochoo.tradermodding",
+        "hazelify.StanceSync", "com.Shibatsu.DynamicExternalResolution", "com.mpstark.PlayerEncumbranceBar", "com.harmonyzt.botcallsigns",
         "com.anvil.weboverlay", "com.slpf.armorclassicon", "katrin0522.betterammoloadinglist", "7Bpencil.BrighterInteriors",
         "com.acidphantasm.devbalaclavafix", "HealingAutoCancel", "com.smajlec.lights",
         "com.maschine.UiBridge", "com.maschine.ModProfiler", "com.maschine.LogTools", "com.maschine.ConsoleToMonitor",

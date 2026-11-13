@@ -12,6 +12,23 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-13, `compat/four-mods-20261113`, not deployed to the normal
+  installation:** candidate admission of Bot Callsigns Reloaded 2.0.6, Player
+  Encumbrance Bar 1.3.0, Auto Shoulder Swap 1.1.1 and DERP 1.1.2. Arena guards
+  unsafe shoulder callbacks and uses physical carry limits in the foreign bar;
+  sibling Core 1.0.23 owns the body/cache/event handovers. Offline verification
+  passes; final native acceptance is **pending**, not established by the brief
+  first-candidate TDM load. [Progress and boundaries](reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md).
+  GPU-1 was left at the main menu with its disposable test profile, temporary
+  mods and first candidate installed. Synchronization for `C:\SPT41` remains
+  paused while host exclusivity is being clarified; GPU-2 is in use elsewhere.
+  Continue from `artifacts/four-mods-20261113/` in the four-mod worktree. The
+  revised DLLs are in `candidate-r2/`; never substitute the first candidate's
+  native evidence for them. Restore only owned test/config/binary changes at
+  cleanup. Another profile's reward closure was normal server-startup work
+  and must be preserved; the original profiles and 53 PFT files still matched
+  their saved hashes at the interim audit. Nothing has been pushed or released.
+
 - **Development, 2026-11-11, `master` `4b1e61be` (not pushed), client DLL installed:** the kit screen's
   detail pane keeps its kit while the pointer crosses other cards on the way to COPY TO MY KITS, EDIT or
   DELETE ([contract](reviews/KIT-PICKER-20261110.md), "Hover"; [native run](reports/2026-11/GPU-KIT-HOVER-20261111.md)).
