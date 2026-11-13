@@ -244,11 +244,12 @@ version number; at release time decide between requiring that version for PFT Ta
 run time (plugin version, or a count of the raid's Bot rows) and an accepted, documented requirement in the
 release notes; README, FORGE-DESCRIPTION and the whitelist stay untouched until then.
 `tools/MapModeAdmissionChecks` fails on the published data with the SPAWN-ROWS-DATA message that names the needed
-build, and through it the three team-box harnesses; (3) two hardening items filed separately: Arena arms even
-when `ArenaExtractionIsolation` failed to install (it should refuse), and bots leaving through SAIN's
-extraction depends on the SAIN preset (no Arena-side guard); (4) the 1.7 % of Chop Shop mesh cells with
+build, and through it the three team-box harnesses; (3) the two hardening items that were filed separately (Arena arming although `ArenaExtractionIsolation`
+failed to install, bots leaving through SAIN's extraction) are done:
+[EXTRACTION-HARDENING-20261113.md](reviews/EXTRACTION-HARDENING-20261113.md), merged into this branch; (4) the 1.7 % of Chop Shop mesh cells with
 fewer than five distant rows (solo Tactical there is a smaller or later squad); (5) the green reruns of the
-three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract); (6) filed separately: the dispatch order of the solo Tactical squad
+three team-box harnesses and the final run of the branch (the `VERIFY-RERUN:` line in the contract); (6) filed separately (branch `fix/solo-squad-dispatch-order`, not merged when this was written): the
+dispatch order of the solo Tactical squad
 against the round-break move of the survivor (contract decision 9; the code requests the squad first and picks
 its points when the profiles arrive; all ten measured round starts of 2026-11-13 had the move 0.06 to 0.28 s
 after the request and the pick 1.2 to 10.6 s after it, so the intended order held, but nothing enforces it).

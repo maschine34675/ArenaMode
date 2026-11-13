@@ -53,8 +53,12 @@ void NativeExtraction(LocalGame game, string profile, ExitStatus status, string 
         ((EndByExitTrigerScenario.IGame)game).StopSession(profile, status, exit);
 }
 
+// Fail-closed admission (2026-11-13): MapPort's team starts now stand inside 8 s exit boxes,
+// so Arena must refuse to arm whenever these hooks are not installed.
+Check(ArenaExtractionIsolation.AdmissionFailure != null, "admission refuses before Enable");
 var f = Setup();
 Check(Harmony.Registered.Count == 3, "all extraction-specific hooks installed");
+Check(ArenaExtractionIsolation.AdmissionFailure == null, "installed isolation admits Arena");
 Check(Harmony.Registered.Any(p => p.target.DeclaringType == typeof(SecretExfiltrationPoint)), "secret Proceed override hooked independently");
 Check(Harmony.Registered.All(p => p.target.Name != "Stop"), "general native Stop is never patched");
 ArenaExtractionIsolation.Enable(); Check(Harmony.Registered.Count == 3, "Enable is idempotent");
@@ -197,8 +201,22 @@ Check(f.regular.NativeProceeds == 2, "unreadable ownership fails open");
 Check(ArenaMode.Plugin.ModLogger.Warnings.Count == 1, "ownership warning is bounded");
 f = Setup(); ArenaExtractionIsolation.Shutdown(); NativeProceed(f.regular, f.local);
 Check(Harmony.Registered.Count == 0 && f.regular.NativeProceeds == 1, "shutdown removes hooks without touching exit state");
+Check(ArenaExtractionIsolation.AdmissionFailure != null, "shutdown refuses Arena admission");
 f = Setup(); ArenaExtractionIsolation.Shutdown(); Harmony.FailAt = 1; ArenaExtractionIsolation.Enable();
 Check(Harmony.Registered.Count == 0, "partial installation rolls back all own hooks");
 NativeProceed(f.regular, f.local); Check(f.regular.NativeProceeds == 1, "failed enable leaves native behavior available");
+foreach (int failAt in new[] { 0, 1, 2 })
+{
+    // Every hook, the last (extraction-only StopSession) included: one missing hook is enough
+    // for a queued native extraction to end the match.
+    f = Setup(); ArenaExtractionIsolation.Shutdown(); Harmony.FailAt = failAt;
+    int errors = ArenaMode.Plugin.ModLogger.Errors.Count;
+    ArenaExtractionIsolation.Enable();
+    Check(Harmony.Registered.Count == 0 && ArenaExtractionIsolation.AdmissionFailure != null
+        && ArenaMode.Plugin.ModLogger.Errors.Count == errors + 1, "failed hook " + failAt + " refuses Arena admission");
+}
+Harmony.FailAt = -1; ArenaExtractionIsolation.Enable();
+Check(Harmony.Registered.Count == 3 && ArenaExtractionIsolation.AdmissionFailure == null,
+    "a later successful Enable admits again");
 
 Console.WriteLine($"ARENAEXTRACTIONCHECKS_PASSED ({checks} assertions)");

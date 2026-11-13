@@ -120,6 +120,10 @@ Domination clearance) agreed with that run.
 8. **Out of scope here** (filed as separate tasks): Arena arms even when `ArenaExtractionIsolation` failed to
    install (it should refuse), and bots leaving through SAIN's extraction, which depends on the SAIN preset and
    has no Arena-side guard.
+   *Done the same day in a separate change:* both landed on `master` as
+   [EXTRACTION-HARDENING-20261113.md](EXTRACTION-HARDENING-20261113.md) (merge `722e871e`) and were merged
+   into this branch before it went to `master`: Arena admission fails closed when the isolation is not
+   installed, and Arena bots no longer leave through SAIN's extraction.
 9. **Known limit: solo squad dispatch order.** In solo Tactical, `TacticalMode.StartRound` requests the squad
    (`RequestSoloSquad`) before it starts `LiveKitRespawn.AtRoundBreak`, and `BurstSpawnService.SpawnPair` reads
    the player position when `BotCreationData.Create` completes. If the profiles are ready before the swap has
@@ -261,8 +265,9 @@ after `e90d1f72` change comments, harnesses and documents only.
 - Bots at each of the 39 new rows (one scav was seen next to one new row), Team DM on Air Pit and Bay5 with the
   new exits (Chop Shop was run, see `NATIVE:`), and Gun Game and Deathmatch with the larger participant counts
   the rows now allow.
-- The two out-of-scope hardening items of decision 8: Arena still arms when the extraction isolation failed
-  to install, and whether bots leave through SAIN's extraction depends on the SAIN preset.
+- Anything about the two hardening items of decision 8 beyond what their own contract
+  ([EXTRACTION-HARDENING-20261113.md](EXTRACTION-HARDENING-20261113.md)) verified. The native runs of this
+  document were made with builds that did not contain them yet.
 - The 1.7 % of Chop Shop mesh cells with fewer than five distant rows (MapPort: 98.3 % have five or more,
   minimum 3). Solo Tactical there is a smaller or later squad by decision 1; PitFireTeam is refused for the same
   reason. The rule is only as good as the installed data.

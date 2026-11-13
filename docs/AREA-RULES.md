@@ -815,7 +815,11 @@ always did; Air Pit South Gate sits at the pocket mouth, its box edge 0.4 m and 
 for all six formations (USEC pocket first) and stays data: the isolation matches by object and exit name,
 nothing reads the positions, and the flares only mark the pockets. A first spawn or a respawn can stand in an
 exit box (Iceberg's Bear house (9) does); that it never extracts is MapPort's observation in Team DM on Bowl
-and Iceberg, and a respawn onto such a point is not verified.
+and Iceberg and this repository's Team DM run on Chop Shop of 2026-11-13 (first spawn 0.4 m from the West
+Gate's box, respawn in the same pocket); a respawn onto a point inside a box is not verified.
+Since 2026-11-13 the MapPort exits sit in the team start pockets, so Arena admission fails
+closed when those hooks are not installed (`ArenaExtractionIsolation.AdmissionFailure`, read by
+`ArenaOptionalMods` right after the whitelist); see docs/reviews/EXTRACTION-HARDENING-20261113.md.
 See docs/reviews/TDM-SIDES-MONITORS-20261025.md for the scope and validation.
 The completion contract is polled
 only after the owned release and while the exact game/world/arm/token still
@@ -864,6 +868,13 @@ docs/reviews/BOT-TALK-TEMPO-20261027.md: Normal combat-taunt eligibility is a sc
 operand override, never a shared SAIN preset write; combat strafe floors at 0.85
 and independent TDM/Domination search delay inputs cap at three seconds.
 Normalized movement targets alone do not provide the displacement bonus.
+
+No bot leaves an Arena raid through a map exit (2026-11-13, MapPort exits in the team start
+pockets): `ArenaSainExtractGuard` answers false from SAIN's `BotExtractManager.IsBotAllowedToExfil`
+for every bot of an armed or exact active Arena raid. SAIN asks it only while its preset's
+`SAIN_EXTRACT_TOGGLE` is on (off in the shipped and installed preset); never write the preset,
+and keep the postfix last. BSG's own PMC Exfiltration layer is not guarded (see
+docs/reviews/EXTRACTION-HARDENING-20261113.md for why and what a native test needs).
 
 ### From the handoff (snapshot of 2026-10-29)
 

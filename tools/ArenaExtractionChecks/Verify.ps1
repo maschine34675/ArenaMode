@@ -39,6 +39,13 @@ $faults = @(
        Failure='completion does not require a living published body: dead' },
     @{ Name='timer-grace-reenables-extraction'; Path=$source; Property='ExtractionSource';
        Find='&& game.Status != GameStatus.SoftStopping'; Replace='';
-       Failure='timer grace period cannot reenable Arena extractions' }
+       Failure='timer grace period cannot reenable Arena extractions' },
+    # Fail-closed admission (2026-11-13): Arena must not arm without these hooks.
+    @{ Name='admission-ignores-hooks'; Path=$source; Property='ExtractionSource';
+       Find='AdmissionFailure => _enabled ? null'; Replace='AdmissionFailure => true ? null';
+       Failure='admission refuses before Enable' },
+    @{ Name='failed-enable-claims-ready'; Path=$source; Property='ExtractionSource';
+       Find='Shutdown();'; Replace='Patches.UnpatchSelf(); _enabled = true;';
+       Failure='failed hook 0 refuses Arena admission' }
 )
 Test-ArenaSourceFaults -Project (Join-Path $PSScriptRoot 'ArenaExtractionChecks.csproj') -Token 'ARENAEXTRACTIONCHECKS_PASSED' -Properties @() -Faults $faults

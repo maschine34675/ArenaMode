@@ -18,6 +18,12 @@ internal static class ArenaOptionalMods
         var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();
         if (whitelistFailure != null) return whitelistFailure;
 
+        // Arena's own extraction hooks, not a foreign mod: since 2026-11-13 the MapPort exits sit
+        // in the team start pockets, so Arena must not arm without them. Ahead of the server's
+        // reason because a server update cannot repair it.
+        var isolationFailure = ArenaExtractionIsolation.AdmissionFailure;
+        if (isolationFailure != null) return isolationFailure;
+
         // Cached by explicit server discovery, never perform HTTP from UI polling.
         if (ArenaServerClient.ServerAdmissionFailure != null)
             return ArenaServerClient.ServerAdmissionFailure;

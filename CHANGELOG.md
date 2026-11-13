@@ -27,8 +27,17 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   ends without a result, and solo gets a smaller squad after 45 s. Release blocker: no ArenaMode release from
   this state before an ArenaMapPort release ships the spawn points under a new version number. The two exits of each map now stand inside the team
   start areas (data only; extraction stays disabled in Arena).
-  Not yet played natively on these three maps when this was written.
-  [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md)
+  Played natively on 2026-11-13 on all three maps (three solo rounds each; a PitFireTeam squad on Iceberg and
+  Equator); no match was played to its end.
+  [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md),
+  [native runs](docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
+- Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
+  blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
+  so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
+- With SAIN's bot extraction switched on in its preset (off by default), Arena bots no longer leave
+  a match through a map exit; ordinary raids keep SAIN's setting.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
 - Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
   Domination and solo Zombies, **without PitFireTeam Zombies** (a very small walkable area; Tactical
   followed on 2026-11-13, see above). Team DM and Domination use the map's original pockets, USEC east /

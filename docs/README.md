@@ -61,7 +61,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (205)
+## Feature reviews and contracts (206)
 
 Sorted by file name.
 
@@ -145,6 +145,7 @@ Sorted by file name.
 - [Optional Equator map integration: admission, migration and GPU acceptance](reviews/EQUATOR-MAP-REVIEW.md) *(superseded)*
 - [Equator original spawn gates and preparation safety](reviews/EQUATOR-SPAWN-GATES-20261017.md)
 - [Equator Team Deathmatch team boxes: formation, ownership and failure behavior](reviews/EQUATOR-TEAM-SPAWNS-REVIEW.md)
+- [Extraction hardening after the MapPort pocket exits: fail-closed admission and bot extraction](reviews/EXTRACTION-HARDENING-20261113.md)
 - [Faction voice independent of automatic PMC comments](reviews/FACTION-VOICE-20261028.md)
 - [Factory pickup connectivity independent of player entry](reviews/FACTORY-PICKUP-ANCHOR-20261018.md)
 - [Factory courtyard spawn exclusion (original single-marker record)](reviews/FACTORY-SPAWN-REVIEW.md) *(superseded)*

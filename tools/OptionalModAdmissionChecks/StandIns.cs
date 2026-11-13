@@ -13,6 +13,14 @@ namespace ArenaMode.Session
         public static int Calls { get; set; }
         public static string GetRejectionReason() { Calls++; return Reason; }
     }
+
+    // The real flag is covered by ArenaExtractionChecks; here only its place in the chain matters.
+    internal static class ArenaExtractionIsolation
+    {
+        public static string Reason { get; set; }
+        public static int Calls { get; set; }
+        public static string AdmissionFailure { get { Calls++; return Reason; } }
+    }
 }
 
 namespace ArenaMode.Compat
