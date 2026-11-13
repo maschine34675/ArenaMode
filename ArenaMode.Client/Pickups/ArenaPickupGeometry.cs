@@ -191,7 +191,8 @@ internal static class ArenaPickupGeometry
         foreach (var seed in seeds.OrderBy(p => p.x).ThenBy(p => p.z).ThenBy(p => p.y))
             TryAddNetworkNode(nodes, seed);
         if (!ElectNetworkAnchor(nodes, out anchor))
-        { reason = nodes.Count + " of " + seeds.Count + " seeds have a floor, no majority is connected both ways"; return false; }
+        // nodes holds the floored seeds after the 3 m de-duplication, so the text names nodes, not floors.
+        { reason = nodes.Count + " distinct network node(s) from " + seeds.Count + " seeds, no majority of at least three is connected both ways"; return false; }
         return true;
     }
 

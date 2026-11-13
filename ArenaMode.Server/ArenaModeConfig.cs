@@ -123,12 +123,13 @@ public class ArenaModeConfig
             SpawnZones = "ZoneFactoryCenter",
         },
 
-        // Labyrinth needs a third-party mod to be selectable at all (it ships
-        // disabled and keycard-gated, and those fields are read at the MENU,
-        // before any per-raid clone exists). With that mod present it needs
-        // nothing else from us: its scene carries a single BotZone named
-        // "BotZone" — the same name factory uses — so the burst spawner works
-        // there unchanged.
+        // Labyrinth ships disabled and keycard-gated, and those fields are read
+        // at the MENU, before any per-raid clone exists. Arena projects them
+        // itself (ArenaLabyrinthAccess for the menu, ArenaLocationMutator for
+        // the raid's clone), so no third-party mod is needed; EnableLabyrinth
+        // is optional. Beyond that it needs nothing from this table: its scene
+        // carries a single BotZone named "BotZone" — the same name factory
+        // uses — so the burst spawner works there unchanged.
         //
         // Bosses stay ON here, unlike everywhere else. Shadow of Tagilla and
         // Killa ARE Labyrinth's content; switching them off would leave an
