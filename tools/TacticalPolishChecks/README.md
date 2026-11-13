@@ -28,6 +28,14 @@ only so tests can observe that absent bridge, not to simulate a new behavior.
 An additional compiled fault removes the real ArenaMatch cue's award-reset
 guard and must fail the early-kill-then-readiness check: First Blood cannot be
 reissued and the multi-kill chain cannot reset when the delayed sound occurs.
+Part `order` runs the dispatch order of the round's squad request
+(docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md, "Dispatch order") through the extracted
+`StartRound`, `StartSoloBodyMove`, `DispatchOpeningSquad`, `OnSoloLocalRespawn` and
+`TickLive`; the `LiveKitRespawn` double lands at once by default (the older checks'
+timeline) and holds or refuses its report for these checks. Three more probes must
+fail there: the actual `StartRound` of `a1e33b87`, which requests before the swap
+lands; a `TickLive` that ignores the held request; an `OnSoloLocalRespawn` that does
+not report the landing.
 Reports in the ignored artifact folder retain every probe's result. The final
 source binding verifies every participating source and harness file remained
 byte-identical from the beginning to the end of the run.

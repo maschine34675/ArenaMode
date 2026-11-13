@@ -5,8 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <ProductionPolicySource Condition="'$(ProductionPolicySource)' == ''">../../ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs</ProductionPolicySource>
+    <ProductionDispatchSource Condition="'$(ProductionDispatchSource)' == ''">../../ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs</ProductionDispatchSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProductionPolicySource)" Link="Production/SoloTacticalSpawnPolicy.cs" />
+    <Compile Include="$(ProductionDispatchSource)" Link="Production/SoloTacticalSquadDispatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/BurstSpawnPointSelector.cs" Link="Production/BurstSpawnPointSelector.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaBotSpawnPolicy.cs" Link="Production/ArenaBotSpawnPolicy.cs" />
   </ItemGroup>
 </Project>

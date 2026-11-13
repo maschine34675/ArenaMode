@@ -9,6 +9,7 @@ $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ('ArenaSoloTacticalMutati
 [System.IO.Directory]::CreateDirectory($scratch) | Out-Null
 $productionPaths = @(
     (Join-Path $repoRoot 'ArenaMode.Client\Modes\SoloTacticalSpawnPolicy.cs'),
+    (Join-Path $repoRoot 'ArenaMode.Client\Modes\SoloTacticalSquadDispatch.cs'),
     (Join-Path $repoRoot 'ArenaMode.Client\Modes\TacticalMode.cs'),
     (Join-Path $repoRoot 'ArenaMode.Client\Bots\BurstSpawnService.cs')
 )
@@ -131,6 +132,120 @@ Invoke-ExpectedFailure `
     -ApplicationArguments @('--tactical-source', $ignoredHold) `
     -Expected 'a wait in progress keeps the buy phase open'
 
+# Dispatch order (docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md): the round's squad request waits
+# for the body move. The order before the fix, read from the commit the fix was made on, and the
+# smallest reintroduction of it must both fail the distance assertion on the installed rows.
+$postMove = 'every squad point is at least 25 m (BurstSpawnPointSelector.MinSpawnDistance) from the post-move position'
+$preFix = Join-Path $scratch 'TacticalMode-pre-fix.cs'
+$preFixText = (& git -C $repoRoot show 'a1e33b87:ArenaMode.Client/Modes/TacticalMode.cs') -join "`n"
+if ($LASTEXITCODE -ne 0 -or -not $preFixText.Contains('RequestSoloSquad(retry: false);')) {
+    throw 'The pre-fix Tactical source (a1e33b87) is unavailable.'
+}
+[System.IO.File]::WriteAllText($preFix, $preFixText)
+Invoke-ExpectedFailure `
+    -Label 'pre-fix-order' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'prefix-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'prefix-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $preFix) `
+    -Expected $postMove
+
+function New-TacticalMutant([string]$Name, [string]$Find, [string]$Replace) {
+    $text = $tactical.Replace("`r`n", "`n")
+    if ([regex]::Matches($text, [regex]::Escape($Find)).Count -ne 1) {
+        throw "Mutant anchor missing or ambiguous ($Name): $Find"
+    }
+    $path = Join-Path $scratch "TacticalMode-$Name.cs"
+    [System.IO.File]::WriteAllText($path, $text.Replace($Find, $Replace))
+    return $path
+}
+
+$survivorComment = "        // A player who SURVIVED the last round is standing there in last round's"
+$requestFirst = New-TacticalMutant 'request-first' $survivorComment ("        RequestSoloSquad(retry: false);`n`n" + $survivorComment)
+Invoke-ExpectedFailure `
+    -Label 'request-first' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'first-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'first-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $requestFirst) `
+    -Expected $postMove
+
+$noLanding = New-TacticalMutant 'no-landing-report' "        _squadDispatch.Report(RoundNumber, landed: true);`n" ''
+Invoke-ExpectedFailure `
+    -Label 'no-landing-report' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'landing-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'landing-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $noLanding) `
+    -Expected "the held respawn's landing releases the round's request"
+
+$silentSwap = New-TacticalMutant 'silent-swap' "RoundNumber == roundNumber,`n            landed);" "RoundNumber == roundNumber,`n            null);"
+Invoke-ExpectedFailure `
+    -Label 'silent-swap' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'silent-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'silent-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $silentSwap) `
+    -Expected "the survivor's round-break swap reports its landing to the held request"
+
+$noCap = New-TacticalMutant 'no-cap-tick' "            if (_squadDispatch.Waiting(RoundNumber))`n                return;`n" ''
+Invoke-ExpectedFailure `
+    -Label 'no-cap-tick' `
+    -ProjectArguments @(
+        "-p:OutputPath=$(Join-Path $scratch 'cap-tick-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'cap-tick-obj\')"
+    ) `
+    -ApplicationArguments @('--tactical-source', $noCap) `
+    -Expected 'the assembly check waits while the request is held for the body move'
+
+$dispatchPath = Join-Path $repoRoot 'ArenaMode.Client\Modes\SoloTacticalSquadDispatch.cs'
+$dispatch = [System.IO.File]::ReadAllText($dispatchPath).Replace("`r`n", "`n")
+function New-DispatchMutant([string]$Name, [string]$Find, [string]$Replace) {
+    if ([regex]::Matches($dispatch, [regex]::Escape($Find)).Count -ne 1) {
+        throw "Mutant anchor missing or ambiguous ($Name): $Find"
+    }
+    $path = Join-Path $scratch "SoloTacticalSquadDispatch-$Name.cs"
+    [System.IO.File]::WriteAllText($path, $dispatch.Replace($Find, $Replace))
+    return $path
+}
+
+$releaseAtOpen = New-DispatchMutant 'release-at-open' "        bool moving = false;`n" "        Release(round, SoloTacticalSquadRelease.NoBodyMove);`n        bool moving = false;`n"
+Invoke-ExpectedFailure `
+    -Label 'release-at-open' `
+    -ProjectArguments @(
+        "-p:ProductionDispatchSource=$releaseAtOpen",
+        "-p:OutputPath=$(Join-Path $scratch 'open-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'open-obj\')"
+    ) `
+    -ApplicationArguments @() `
+    -Expected "a round's request is held while its body move is in flight"
+
+$longCap = New-DispatchMutant 'long-cap' 'BodyMoveCapSeconds = SoloTacticalSpawnPolicy.AssemblySeconds;' 'BodyMoveCapSeconds = SoloTacticalSpawnPolicy.AssemblySeconds + 15f;'
+Invoke-ExpectedFailure `
+    -Label 'long-cap' `
+    -ProjectArguments @(
+        "-p:ProductionDispatchSource=$longCap",
+        "-p:OutputPath=$(Join-Path $scratch 'long-cap-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'long-cap-obj\')"
+    ) `
+    -ApplicationArguments @() `
+    -Expected "a move that never reports holds the request no longer than the squad's own 45-second assembly window"
+
+$doubleRelease = New-DispatchMutant 'double-release' "        if (!_pending || _round != round)`n            return;`n`n        // Cleared" "        if (_round != round)`n            return;`n`n        // Cleared"
+Invoke-ExpectedFailure `
+    -Label 'double-release' `
+    -ProjectArguments @(
+        "-p:ProductionDispatchSource=$doubleRelease",
+        "-p:OutputPath=$(Join-Path $scratch 'double-bin\')",
+        "-p:IntermediateOutputPath=$(Join-Path $scratch 'double-obj\')"
+    ) `
+    -ApplicationArguments @() `
+    -Expected 'a second report releases nothing and a released round no longer waits'
+
 & dotnet run --project $project -c Release
 if ($LASTEXITCODE -ne 0) {
     throw 'The unmodified production checks failed after mutation verification.'
@@ -143,4 +258,4 @@ foreach ($path in $productionPaths) {
     }
 }
 
-Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (five mutants rejected; evidence: $scratch)"
+Write-Output "SOLO_TACTICAL_SPAWN_REGRESSION_VERIFIED (thirteen mutants rejected; evidence: $scratch)"

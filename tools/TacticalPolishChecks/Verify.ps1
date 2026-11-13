@@ -6,6 +6,7 @@ New-Item -ItemType Directory -Path $scratch -Force | Out-Null
 $boundPaths=@('ArenaMode.Client/Modes/TacticalMode.cs','ArenaMode.Client/Modes/ArenaMatch.cs',
     'ArenaMode.Client/Modes/TacticalMode.AssemblyStatus.cs','ArenaMode.Client/Hud/TacticalBuyPanel.cs',
     'ArenaMode.Client/Modes/SoloTacticalSpawnPolicy.cs','ArenaMode.Client/Modes/SoloTacticalRoundStartPolicy.cs',
+    'ArenaMode.Client/Modes/SoloTacticalSquadDispatch.cs',
     'ArenaMode.Client/Combat/ArenaCombatAwards.cs','ArenaMode.Client/Combat/ArenaKill.cs','ArenaMode.Client/Combat/ScoreRules.cs',
     'ArenaMode.Client/Combat/ArenaShotAwardHistory.cs')
 $boundPaths+=Get-ChildItem -LiteralPath $PSScriptRoot -File|ForEach-Object {'tools/TacticalPolishChecks/'+$_.Name}
@@ -19,7 +20,7 @@ function Extract-Method([string]$source,[string]$name){
     if($matches.Count -ne 1){throw "Expected exactly one production method $name, found $($matches.Count)"}
     return $matches[0].Value
 }
-$methodNames=@('Tick','TickLive','StartRound','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','ClearPurchase','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
+$methodNames=@('Tick','TickLive','StartRound','StartSoloBodyMove','DispatchOpeningSquad','OnSoloLocalRespawn','RequestSoloSquad','SelectOpeningKit','IssueSoloKit','TryBuy','ClearPurchase','Affordable','EnterBuy','ReadyUp','RetireBot','RetireSquad')
 $methods=@{};foreach($name in $methodNames){$methods[$name]=Extract-Method $tactical $name}
 $properties=@('AllowsCountdownMenu','InBuyPhase','KeepsCurrentGear','NoPurchaseDescription','Worn')|ForEach-Object {
     $match=[regex]::Match($tactical,'(?ms)^    (?:public|internal) \w+ '+$_+'\s*=>.*?;[ \t]*\r?$')
@@ -82,6 +83,14 @@ if(!$SkipNegativeProbes){
     Run-Probe 'fault-buy-phase-respawn-commits-purchase' (Mutate 'IssueSoloKit' 'if (_phase != Phase.Buy)' 'if (true)') $panel 'kit' 'an early hand-out does not change the kept kit'
     Run-Probe 'fault-clear-outside-buy-phase' (Mutate 'ClearPurchase' '_phase != Phase.Buy || ' '') $panel 'kit' 'nothing to take back once the round runs'
     Run-Probe 'fault-clear-in-team-arena' (Mutate 'ClearPurchase' '_teamArena || ' '') $panel 'kit' 'protected team has no purchase to take back'
+    # Dispatch order (docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md): the actual StartRound of the commit
+    # the fix was made on requests the squad before the round-break swap has landed.
+    $preFix=(& git -C $root show 'a1e33b87:ArenaMode.Client/Modes/TacticalMode.cs') -join "`n"
+    if($LASTEXITCODE -ne 0){throw 'Pre-fix Tactical baseline unavailable'}
+    $order=$methods.Clone();$order['StartRound']=Extract-Method $preFix 'StartRound'
+    Run-Probe 'pre-fix-dispatch-order' $order $panel 'order' "a survivor's squad is not requested, counted or announced before the round-break swap lands"
+    Run-Probe 'fault-tick-ignores-held-request' (Mutate 'TickLive' 'if (_squadDispatch.Waiting(RoundNumber))' 'if (false)') $panel 'order' 'the assembly check waits for the held request instead of retrying it'
+    Run-Probe 'fault-respawn-landing-unreported' (Mutate 'OnSoloLocalRespawn' '_squadDispatch.Report(RoundNumber, landed: true);' '') $panel 'order' "the held respawn's landing sends the request"
     # Own kits (docs/reviews/CUSTOM-KITS-20261110.md): the plain window warms what it sold, and only that.
     function Mutate-Panel([string]$find,[string]$replace){
         $text=$panel.Replace("`r`n","`n")

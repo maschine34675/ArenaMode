@@ -601,6 +601,8 @@ Native integration follow-ups: `27fdf80` accepts the exact PFT Coop entry,
 
 Solo Tactical waits for Active opponents (recognizing early eliminations) before Round Start and combat timing. Existing partial-ready timeout remains 45 seconds plus activation grace for late bodies. Zero-ready retries do not rebuy/swap or announce. Logical award reset happens before dispatch; delayed audio skips that reset, preserving early First Blood and kill chains. [...] Solo Tactical uses an explicitly free cheapest valid starter without a purchase. [...] Preloading uses the same starter. Initialization failures use protected abort, and PFT keeps its entry gear. Countdown Esc routes the exact local owner to native menus, closes the buy overlay and pauses countdown progress without dropping death/profile protection. See `TACTICAL-START-POLISH-REVIEW.md`.
 
+Solo Tactical's opening squad request waits for the round's body move (the survivor's round-break swap, the held respawn of a player who died): `StartRound` hands it to `SoloTacticalSquadDispatch`, never to `RequestSoloSquad` directly, because `BurstSpawnService` measures the 25 m floor from wherever the player stands when the profiles are ready, and a warm pool is ready inside the request. Every way the move ends releases it once (landed, reported failure, not in flight, a 45 s cap); its count, deadline and "assembling" toast come with the real request. Read docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md, "Dispatch order", and run `tools/SoloTacticalSpawnChecks` (with `Verify-Regression.ps1`) and `tools/TacticalPolishChecks` after changing either side.
+
 *(handoff lines 3519-3530)*
 
 - **Solo Tactical: the raid-start kit now counts as worn (2026-09-11, 07:28):**
@@ -633,9 +635,10 @@ cell of its mesh) and Iceberg 17 (at least 9 on the old centre rectangle, 10 on 
 squad.** It has 16 rows: 11 to 13 from each Player row, 5 from the yard centre, but a minimum of 3 inside
 x -377..-373.5, z 485..489 and 98.3 % of its mesh cells with five or more. Solo never needs exactly five
 (`RequestSoloSquad` passes no `requireExactCount`, `SoloTacticalSpawnPolicy` starts a partial squad after
-45 s). The solo squad is requested before the round-break move of the survivor to a Player row, and its points
-are picked when the profiles arrive; in the native runs of 2026-11-13 the move had landed by then, but the code
-does not guarantee it (known limit, decision 9 of the contract). A PitFireTeam leader stays where he
+45 s). The solo squad is requested only once the body move that starts the round has landed (the survivor's
+round-break swap to a Player row, or the held respawn), so its points are measured from the row the player
+landed on (`SoloTacticalSquadDispatch`, docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md, "Dispatch order"; until
+2026-11-13 it was requested first, decision 9 of the contract). A PitFireTeam leader stays where he
 stands and `RequestTeamEnemies` demands exactly five, so a shortfall ends the match as no contest. The
 solo/PFT difference sits in `ArenaAreaCatalog.TryResolve`; when MapPort closes the yard-centre patch the
 installed-data pin CHOPSHOP-YARD-CENTER in `MapModeAdmissionChecks` fails and the PFT rule is to be

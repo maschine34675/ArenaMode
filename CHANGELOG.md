@@ -40,6 +40,13 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   Equator); no match was played to its end.
   [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md),
   [native runs](docs/reports/2026-11/GPU-SPAWN-ROWS-20261113.md)
+- Solo Tactical now calls the round's opponents only after you have been moved to the round's start
+  point (or have respawned there). Their spawn points keep 25 m from where you actually start: before,
+  a fast profile load could measure that distance from the spot you were leaving, and on a small map such
+  as Chop Shop, Bay 5 or Equator the squad could appear 10 to 15 m from your new start. The "assembling"
+  message and the 45 s wait for the squad now start with the real request.
+  [Contract](docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md),
+  [native runs](docs/reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md)
 - Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
   blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
   so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.
