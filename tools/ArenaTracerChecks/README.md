@@ -13,7 +13,7 @@ pwsh -NoProfile -File tools/ArenaTracerChecks/Verify-Regression.ps1
 ```
 
 Colored tracers are team-only (2026-10-08), like the team laser colors: the one
-`Effects / TeamTracers` entry belongs to Team DM and protected Tactical 5v5, and
+`Effects / TeamTracers` entry belongs to Team DM, Domination and protected Tactical 5v5, and
 `Settings.TracerEntry` returns null for Deathmatch, Gun Game, Zombie and solo
 Tactical, where the renderer prefix keeps the complete native method whatever
 TeamTracers says. The harness drives the real prefix per mode (the stand-in

@@ -313,6 +313,16 @@ internal static class Program
         Assert(InvokePrefix(renderer, unresolved),
             "unverified source stays native");
 
+        // Domination is the second independent team mode (bdd679ec): same faction
+        // match, same TeamTracers entry. A fresh renderer keeps the counts above intact.
+        ArenaSession.ActiveMode = "domination";
+        var dominationRenderer = new TracersLight();
+        Assert(!InvokePrefix(dominationRenderer, local)
+               && dominationRenderer.ShotTracerCalls == 1
+               && Settings.RequestedMode == "domination" && !Settings.RequestedTeam,
+            "renderer asks for the Domination tracer entry like Team DM");
+        ArenaSession.ActiveMode = "teamdeathmatch";
+
         // Solo modes: shooters are still classified (killfeed names use Classify in
         // every mode; markers classify through the mode), but the tracer stays
         // native because TracerEntry has no entry there, whatever TeamTracers says.
@@ -493,7 +503,8 @@ internal static class Program
             "ArenaTracerColor.Cyan",
             "ArenaTracerColor.Red");
         // Colored tracers are team-only like the lasers (2026-10-08): the one
-        // TeamTracers entry belongs to Team DM and protected Tactical 5v5 and the
+        // TeamTracers entry belongs to Team DM, Domination (the other independent team
+        // mode, since bdd679ec) and protected Tactical/Zombie squads, and the
         // per-mode solo settings are gone. The behaviour of the real body is
         // executed by tools/TdmMatchMenuChecks; this pins its shape for the
         // renderer contract the StandIns mirror.
@@ -504,14 +515,14 @@ internal static class Program
         Assert(entryStart >= 0 && entryEnd > entryStart, "Settings.TracerEntry is still declared");
         string tracerEntry = settings.Substring(entryStart, entryEnd - entryStart);
         RequireAll(tracerEntry,
-            "ArenaModeCatalog.TeamDeathmatchId => TeamTracers",
+            "ArenaModeCatalog.TeamDeathmatchId or ArenaModeCatalog.DominationId => TeamTracers",
             "ArenaModeCatalog.TacticalId when protectedTeam => TeamTracers",
             "ArenaModeCatalog.ZombieId when protectedTeam => TeamTracers",
             "_ => null");
         Assert(CountOccurrences(tracerEntry, "=> TeamTracers") == 3
                && !tracerEntry.Contains("ArenaModeCatalog.DeathmatchId", StringComparison.Ordinal)
                && !tracerEntry.Contains("GunGameId", StringComparison.Ordinal),
-            "TracerEntry maps only Team DM and protected Tactical/Zombie to TeamTracers");
+            "TracerEntry maps only Team DM/Domination and protected Tactical/Zombie to TeamTracers");
         foreach (string retired in new[] { "DeathmatchColoredTracers", "GunGameColoredTracers",
             "TacticalSoloColoredTracers", "ZombieColoredTracers", "SoloColoredTracers" })
             Assert(!settings.Contains(retired, StringComparison.Ordinal),
