@@ -140,3 +140,9 @@ ZombieKitWarmupChecks
 ZombieSoloChecks
 ZombieTeamChecks
 ZombieWavePendingChecks
+ArenaBleedingChecks
+CustomKitChecks
+DurationDifficultyChecks
+PmcVoiceChecks
+PoolPrewarmChecks
+SainExtractGuardChecks

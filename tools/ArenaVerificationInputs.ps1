@@ -16,7 +16,8 @@
 # in production code is no dependency. A reached file that enumerates directories (Get-ChildItem -Recurse,
 # EnumerateFiles, git ls-files, ...) may read anything: its step keeps every folder and every record. Ignored
 # files (bin/, obj/, build/, artifacts/, .unlazy/) are build output or regenerated per run (AreaTeamRuntimeChecks
-# writes its artifacts/ source from production every time) and are not inputs.
+# writes its artifacts/ source from production every time) and are not inputs, except the fixtures registered
+# in $ArenaArtifactInputs (downloaded releases, a decompiled installation), keyed for the steps that name them.
 # Outside the checkout the key holds the installed game, BepInEx and SPT state that a harness compiles against
 # or reads (stat manifests: path, size, write time), the sibling Redeploy checkout (HEAD, status, dirty bytes),
 # ../_decompiled and ../_reference, the tool versions (dotnet SDKs and runtimes, git, PowerShell), the
@@ -28,7 +29,7 @@
 
 $ArenaVerificationKeyVersion = 'arena-verification-key-v1'
 # The schema of the cached per-file facts (independent of the key: a new fact does not void stored PASSes).
-$ArenaFactsVersion = 'facts-3'
+$ArenaFactsVersion = 'facts-4'
 
 # Reviewed infrastructure that builds PAYLOAD paths: its "docs" segments and docs/ tokens name the payload's
 # docs folder (notices under docs/licenses), and its enumerations walk the payload, the assets or, for the
@@ -38,7 +39,15 @@ $ArenaFactsVersion = 'facts-3'
 $ArenaPayloadLayoutFiles = @(
     'tools/ArenaVerificationInputs.ps1', 'tools/ArenaVerificationWorkers.ps1', 'tools/Run-ArenaVerification.ps1',
     'tools/Write-ArenaAssets.ps1', 'tools/Arena-NoticeLayout.ps1', 'tools/Deploy-ArenaClient.ps1', 'tools/Deploy-ArenaSession.ps1',
-    'tools/Package-TestRelease.ps1', 'tools/Verify-TestRelease.py', 'tools/Verify-PitFireTeamDeployment.ps1')
+    'tools/Package-TestRelease.ps1', 'tools/Verify-TestRelease.py')
+# Fixtures a harness reads from the ignored artifacts/ (downloaded releases, a decompiled installation). Ignored
+# files are otherwise output and not in the key; a step whose reached files name one of these prefixes keys
+# its content. Register a prefix here when a harness starts reading a fixture from artifacts/.
+$ArenaArtifactInputs = @(
+    'artifacts/pft-100-contracts',                          # PitFireTeam100Checks: PFT 1.0.0 release, legacy builds
+    'artifacts/pft-installed',                              # PortedCoverChecks: Decompile-PitFireTeam.ps1 output
+    'artifacts/ammo-raid-health-compat-20261019/releases',  # SvmCompatChecks: downloaded SVM release
+    'artifacts/compat-seven-20261025/items')                # UseItemsAnywhereChecks: downloaded UseItemsAnywhere
 # Production code runs in the game, or inside a harness against paths the harness hands it; it never
 # addresses the checkout, so its enumerations and path literals are no inputs of a step. Path literals in the
 # xunit sources are test data for path-handling code (the tests that read installed data get it through
@@ -56,12 +65,12 @@ $ArenaPayloadOnlyRecordNamers = @{
 # Installed subtrees outside the shared fingerprint: they change with every game start, so they count only for
 # a step whose reached files name them ('dir|filter' limits a directory to matching top-level files).
 $ArenaInstallStateSubtrees = [ordered]@{
-    'BepInEx[\\/]+config' = @('BepInEx\config')
-    'BepInEx[\\/]+cache' = @('BepInEx\cache')
+    'BepInEx(?:[\\/]+|["'']\s*,\s*["''])config' = @('BepInEx\config')
+    'BepInEx(?:[\\/]+|["'']\s*,\s*["''])cache' = @('BepInEx\cache')
     'LogOutput' = @('BepInEx|*.log', 'BepInEx\logs')
-    'user[\\/]+profiles' = @('SPT_Runtime\user\profiles')
-    'user[\\/]+logs' = @('SPT_Runtime\user\logs')
-    'user[\\/]+cache' = @('SPT_Runtime\user\cache')
+    'user(?:[\\/]+|["'']\s*,\s*["''])profiles' = @('SPT_Runtime\user\profiles')
+    'user(?:[\\/]+|["'']\s*,\s*["''])logs' = @('SPT_Runtime\user\logs')
+    'user(?:[\\/]+|["'']\s*,\s*["''])cache' = @('SPT_Runtime\user\cache')
     'sptappdata' = @('SPT_Runtime\user\sptappdata')
 }
 $ArenaUncoveredInstallDirs = @('BepInEx\config', 'BepInEx\cache', 'BepInEx\logs', 'SPT_Runtime\user\profiles',
@@ -74,6 +83,10 @@ $ArenaGitPattern = '(?i)(?:^|[\s&(;|{])git(?:\.exe)?["'']?\s+(?:-C\s|-c\s|rev-pa
 $ArenaDocsQuotedPattern = '(?i)["'']docs[\\/]?["'']'
 $ArenaDocsOrToolsPattern = '(?i)(?<![A-Za-z0-9_])(?:docs|tools)(?![A-Za-z0-9_])'
 $ArenaAbsolutePathPattern = '(?i)(?<![A-Za-z0-9])[A-Z]:\\[^\s''"<>|*?;,()\[\]{}`$]+'
+$ArenaQuotedAbsolutePathPattern = '(?i)(?<=["''])[A-Z]:\\[^''"<>|*?\r\n]+(?=["''])'
+$ArenaArtifactPathPattern = '(?i)(?<![A-Za-z0-9_])artifacts[\\/][A-Za-z0-9_.\-\\/]*'
+# A path built from quoted segments ("ArenaMode.Client", "Spectator", "X.cs"): selection joins them.
+$ArenaSegmentPathPattern = '(?i)["''](ArenaMode\.(?:Client|Server|Shared|Gate|Session|BigBrainCompat|Tests)|assets)["'']((?:\s*,\s*["''][A-Za-z0-9_.\-]+["''])+)'
 $ArenaEscapePathPattern = '(?:\.\.[\\/])+[A-Za-z0-9_.\-]+(?:[\\/][A-Za-z0-9_.\-]+)*'
 $ArenaDocsPathPattern = '(?i)(?<![A-Za-z0-9_])docs[\\/][A-Za-z0-9_.\-\\/]*'
 $ArenaMarkdownNamePattern = '(?i)[A-Za-z0-9_.\-]+\.md(?![A-Za-z0-9_])'
@@ -109,10 +122,11 @@ function Get-ArenaFileSha([string]$Path) {
 function Invoke-ArenaGitLines([string]$Root, [string[]]$Arguments) {
     $previous = [Console]::OutputEncoding
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-    try { $out = & git -C $Root -c core.quotepath=false @Arguments 2>$null }
+    try { $all = @(& git -C $Root -c core.quotepath=false @Arguments 2>&1) }
     finally { [Console]::OutputEncoding = $previous }
-    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') failed in $Root" }
-    return @($out)
+    $errors = @($all | Where-Object { $_ -is [Management.Automation.ErrorRecord] } | ForEach-Object { $_.ToString() })
+    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') failed in ${Root}: $($errors -join ' ')" }
+    return @($all | Where-Object { $_ -isnot [Management.Automation.ErrorRecord] })
 }
 
 function Split-ArenaNul([object[]]$Lines) {
@@ -175,10 +189,14 @@ function Get-ArenaTextFacts([string]$Text, [string]$Extension, [regex]$FolderReg
         NamesDocsOrTools = $words -match $ArenaDocsOrToolsPattern
         Enumerates = $Text -match $ArenaEnumerationPattern
         Git = $Text -match $ArenaGitPattern
-        Install = @(foreach ($pattern in $ArenaInstallStateSubtrees.Keys) { if ($words -match "(?i)$pattern") { $pattern } })
-        ProductionPaths = @([regex]::Matches($words, $ArenaProductionPathPattern) | ForEach-Object { ($_.Value -replace '\\', '/').TrimEnd('/', '.') } | Sort-Object -Unique)
+        # The whole text: a C# path built as "BepInEx", "config" spans two literals.
+        Install = @(foreach ($pattern in $ArenaInstallStateSubtrees.Keys) { if ($Text -match "(?i)$pattern") { $pattern } })
+        ProductionPaths = @(@([regex]::Matches($words, $ArenaProductionPathPattern) | ForEach-Object { ($_.Value -replace '\\', '/').TrimEnd('/', '.') }) +
+            @([regex]::Matches($Text, $ArenaSegmentPathPattern) | ForEach-Object { $_.Groups[1].Value + '/' + (([regex]::Matches($_.Groups[2].Value, '[A-Za-z0-9_.\-]+') | ForEach-Object Value) -join '/') }) | Sort-Object -Unique)
+        ArtifactPaths = @([regex]::Matches($words, $ArenaArtifactPathPattern) | ForEach-Object { ($_.Value -replace '\\', '/').TrimEnd('/', '.').ToLowerInvariant() } | Sort-Object -Unique)
         ProductionBuilds = @(Get-ArenaProductionBuilds $Text)
         Externals = @(@([regex]::Matches($words, $ArenaAbsolutePathPattern) | ForEach-Object { 'abs|' + $_.Value.TrimEnd('.', '\') }) +
+            @([regex]::Matches($words, $ArenaQuotedAbsolutePathPattern) | ForEach-Object { 'abs|' + $_.Value.TrimEnd('.', '\', ' ') }) +
             @([regex]::Matches($words, $ArenaEscapePathPattern) | ForEach-Object { 'rel|' + $_.Value.TrimEnd('.') }) | Sort-Object -Unique)
     }
 }
@@ -245,7 +263,7 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     } else { $null }
     $folderRegex = if ($folderNames.Count) {
         [regex]::new('(?<![A-Za-z0-9_])(?<folder>' + (($folderNames | Sort-Object Length -Descending | ForEach-Object { [regex]::Escape($_) }) -join '|') +
-            ')(?![A-Za-z0-9_])(?<rest>[\\/][A-Za-z0-9_.\-\\/]+)?', 'Compiled')
+            ')(?![A-Za-z0-9_])(?<rest>[\\/][A-Za-z0-9_.\-\\/]+)?', 'Compiled, IgnoreCase')
     } else { $null }
     $nameSetHash = Get-ArenaStringSha (($folderNames -join '|') + '|' + ($loose -join '|') + '|' + $ArenaVerificationKeyVersion + '|' + $ArenaFactsVersion)
     $scanPath = Join-Path (Get-ArenaVerificationCacheRoot) "scan\$nameSetHash.json"
@@ -297,6 +315,7 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     foreach ($f in $folderNames) { $folderHash[$f] = Get-ArenaStringSha (($folderFiles[$f] | ForEach-Object { & $lineOf $_ }) -join "`n") }
     $model = [pscustomobject]@{
         Snapshot = $snapshot; FolderNames = $folderNames; FolderFiles = $folderFiles; FolderHash = $folderHash
+        FolderCanon = (& { $c = @{}; foreach ($f in $folderNames) { $c[$f.ToLowerInvariant()] = $f }; $c })
         SharedFiles = $null; SharedHash = $null; LooseFiles = $loose; LooseEntries = @()
         Records = @($records); Facts = $facts; NamedRecords = $named; Index = $index
         SharedReach = $null; SharedWide = $false; SharedWideReason = $null
@@ -313,7 +332,9 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     $model.SharedHash = Get-ArenaStringSha (($shared | ForEach-Object { & $lineOf $_ }) -join "`n")
     foreach ($rel in $shared) {
         $fact = $facts[$rel]
-        if (-not $fact -or (Test-ArenaProductionFile $rel) -or $rel -in $ArenaPayloadLayoutFiles) { continue }
+        # Shared helper scripts make a step wide only when the step reaches them (Get-ArenaStepScope); the xunit
+        # sources run inside every step that runs the suite.
+        if (-not $fact -or -not $rel.StartsWith('ArenaMode.Tests/') -or $rel -in $ArenaPayloadLayoutFiles) { continue }
         if ($fact.Enumerates -and $fact.NamesDocsOrTools) { $model.SharedWide = $true; $model.SharedWideReason = "$rel enumerates and names docs or tools"; break }
     }
     # The folders the shared files reach are in every key; the reached files name records and externals for
@@ -367,9 +388,11 @@ function Get-ArenaReach($Model, [string[]]$StartFiles, [string[]]$StartFolders) 
         foreach ($m in $fact.Mentions) {
             $slash = $m.IndexOf('/')
             $folder = if ($slash -lt 0) { $m } else { $m.Substring(0, $slash) }
+            $folder = $Model.FolderCanon[$folder.ToLowerInvariant()]   # the folder's own spelling (NTFS ignores case)
+            if (-not $folder) { continue }
             if (-not $Model.FolderFiles.ContainsKey($folder)) { continue }
             [void]$content.Add($folder)
-            $exact = if ($slash -ge 0) { $Model.Index[("tools/$m").ToLowerInvariant()] } else { $null }
+            $exact = if ($slash -ge 0) { $Model.Index[("tools/$folder" + $m.Substring($slash)).ToLowerInvariant()] } else { $null }
             if ($exact) { if ($active.Add($exact)) { $queue.Enqueue($exact) } }
             else { foreach ($rel in $Model.FolderFiles[$folder]) { if ($active.Add($rel)) { $queue.Enqueue($rel) } } }
         }
@@ -387,6 +410,7 @@ function Get-ArenaStepScope($Model, [string]$HomeFolder, [string[]]$ExtraFiles =
     $namers = @{}
     foreach ($e in $Model.SharedRecordNamers.GetEnumerator()) { $namers[$e.Key] = [Collections.Generic.List[string]]::new($e.Value) }
     $externals = [Collections.Generic.HashSet[string]]::new([string[]]$Model.SharedExternals, [StringComparer]::OrdinalIgnoreCase)
+    $artifacts = [Collections.Generic.HashSet[string]]::new()
     foreach ($rel in $reach.Active) {
         $fact = $Model.Facts[$rel]
         if (-not $fact) { continue }
@@ -397,6 +421,9 @@ function Get-ArenaStepScope($Model, [string]$HomeFolder, [string[]]$ExtraFiles =
         foreach ($i in $fact.Install) { [void]$install.Add($i) }
         foreach ($record in @($Model.NamedRecords[$rel])) { if ($record) { if (-not $namers.ContainsKey($record)) { $namers[$record] = [Collections.Generic.List[string]]::new() }; $namers[$record].Add($rel) } }
         foreach ($p in (Resolve-ArenaExternals $Model $rel)) { [void]$externals.Add($p) }
+        foreach ($token in @($fact.ArtifactPaths)) {
+            foreach ($prefix in $ArenaArtifactInputs) { if ($token.StartsWith($prefix) -or $prefix.StartsWith($token)) { [void]$artifacts.Add($prefix) } }
+        }
     }
     $folders = if ($wide) { @($Model.FolderNames) } else { @(@($reach.Content) + @($Model.SharedReach.Content) | Sort-Object -Unique) }
     $recordSet = if ($wide -or $docsAll) { @($Model.Records) } else {
@@ -410,6 +437,7 @@ function Get-ArenaStepScope($Model, [string]$HomeFolder, [string[]]$ExtraFiles =
         Folders = @($folders); OwnFolders = @($reach.Content | Sort-Object); Records = @($recordSet); Wide = $wide; WideReason = $wideReason
         LooseFiles = @($reach.Active | Where-Object { $_ -in $Model.LooseEntries } | Sort-Object)
         GitSensitive = $git; InstallState = @($install | Sort-Object); ExternalPaths = @($externals | Sort-Object); Active = @($reach.Active)
+        ArtifactInputs = @($artifacts | Sort-Object)
     }
 }
 
@@ -487,6 +515,22 @@ function Get-ArenaExternalFingerprint([string]$RepoRoot, [string[]]$InstallRoots
     $lines.Add("dotnet|$((& dotnet --version 2>$null) -join ';')|$((& dotnet --list-sdks 2>$null) -join ';')|$((& dotnet --list-runtimes 2>$null) -join ';')")
     $lines.Add("git|$((& git --version 2>$null) -join ';')")
     $lines.Add("pwsh|$($PSVersionTable.PSVersion)|os|$([Environment]::OSVersion.VersionString)")
+    # Other tools some harnesses run (generators, audio, decompiler), by the file they resolve to.
+    foreach ($tool in 'python', 'py', 'node', 'ffmpeg', 'ffprobe', 'ilspycmd', 'mono') {
+        $command = Get-Command $tool -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        $lines.Add("tool|$tool|$(if ($command) { "$($command.Source)|$(Get-ArenaStatManifest $command.Source)" } else { '<none>' })")
+    }
+    # MSBuild and NuGet read these above the checkout and per user.
+    $dir = Split-Path -Parent $RepoRoot
+    while ($dir) {
+        foreach ($name in 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'NuGet.Config', 'nuget.config', 'global.json') {
+            $candidate = Join-Path $dir $name
+            if (Test-Path -LiteralPath $candidate) { $lines.Add("config|$candidate|$(Get-ArenaFileSha $candidate)") }
+        }
+        $dir = Split-Path -Parent $dir
+    }
+    $userNuGet = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'NuGet\NuGet.Config'
+    if (Test-Path -LiteralPath $userNuGet) { $lines.Add("config|user NuGet|$(Get-ArenaFileSha $userNuGet)") }
     Sync-ArenaSmallHashStore -Save
     return [pscustomobject]@{ Hash = Get-ArenaStringSha ($lines -join "`n"); Lines = @($lines) }
 }
@@ -494,12 +538,23 @@ function Get-ArenaExternalFingerprint([string]$RepoRoot, [string[]]$InstallRoots
 # Environment variables a harness, the SDK or MSBuild reads (MSBuild turns every variable into a property,
 # so the ones that matter are named by prefix), plus the machine name; the runner's own switches excluded.
 # An empty variable counts as absent: MSBuild reads it as an undefined property and `if ($env:X)` as false.
-function Get-ArenaEnvironmentFingerprint {
+function Get-ArenaEnvironmentFingerprint([string[]]$InstallRoots = @()) {
+    # A variable naming a path inside an installation (SPT_DATABASE, SPT_RUNTIME, set by the runner) is the
+    # installed fingerprint's business, with its runtime-state rules; keying its whole content here would pull
+    # the profiles and logs back into every key.
+    $roots = @(Get-ArenaInstallRoots $InstallRoots)
     $names = [Environment]::GetEnvironmentVariables().Keys | Where-Object {
         $_ -match '^(ARENA_|SPT|MONO_|DOTNET_|MSBUILD|NUGET_|BEPINEX|COMPLUS_|CORECLR_|UNITY)' -and $_ -notmatch '^(ARENA_VERIFICATION_|ARENA_MUTANT_PARALLEL$)' -and
             [Environment]::GetEnvironmentVariable($_)
     } | Sort-Object
-    $lines = @($names | ForEach-Object { "$_=$([Environment]::GetEnvironmentVariable($_))" }) + @("COMPUTERNAME=$env:COMPUTERNAME")
+    $lines = @($names | ForEach-Object {
+        $value = [Environment]::GetEnvironmentVariable($_)
+        # A variable that names a file or folder (ARENA_APBS_TEST_ROOT, SPT_REWARD_RECOVERY_BASELINE) keys its content.
+        $inInstall = $false
+        if ($value -match '^[A-Za-z]:\\') { $full = [IO.Path]::GetFullPath($value).TrimEnd('\'); foreach ($r in $roots) { if ($full -ieq $r -or $full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) { $inInstall = $true } } }
+        $content = if ($value -match '^[A-Za-z]:\\' -and -not $inInstall -and (Test-Path -LiteralPath $value)) { '|' + (Get-ArenaStatManifest $value -Cap 50000 -HashSmall) } else { '' }
+        "$_=$value$content"
+    }) + @("COMPUTERNAME=$env:COMPUTERNAME")
     return Get-ArenaStringSha ($lines -join "`n")
 }
 
@@ -516,6 +571,9 @@ function Get-ArenaScopeExternalLines($Scope, [string]$RepoRoot, [string[]]$Insta
                 $lines.Add("state|$root|$sub|$(Get-ArenaStatManifest (Join-Path $root $dir) -Filter $(if ($filter) { $filter } else { '*' }) -HashSmall)")
             }
         }
+    }
+    foreach ($prefix in @($Scope.ArtifactInputs)) {
+        $lines.Add("artifact|$prefix|$(Get-ArenaStatManifest (Join-Path $RepoRoot ($prefix -replace '/', '\')) -HashSmall)")
     }
     foreach ($path in $Scope.ExternalPaths) {
         $full = $path.TrimEnd('\')
@@ -545,7 +603,7 @@ function Get-ArenaStepKey($Model, $Scope, [string]$StepId, [string]$RunnerArgume
     $folderPart = ($Scope.Folders | ForEach-Object { "$_|$($Model.FolderHash[$_])" }) -join "`n"
     $recordPart = (@($Scope.Records) + @($Scope.LooseFiles) | ForEach-Object { $e = $files[$_]; "$_|$(if ($e.Tracked) { 'T' } else { 'U' })|$($e.Hash)" }) -join "`n"
     $scopeExternal = Get-ArenaScopeExternalLines $Scope $Model.Snapshot.Root $InstallRoots
-    $uncacheable = @($scopeExternal | Where-Object { $_ -match '\|<over \d+ files>$' })
+    $uncacheable = @(@($scopeExternal) + @($External.Lines) | Where-Object { $_ -match '<over \d+ files>' })
     $parts = [ordered]@{
         version = $ArenaVerificationKeyVersion
         step = $StepId
@@ -562,7 +620,7 @@ function Get-ArenaStepKey($Model, $Scope, [string]$StepId, [string]$RunnerArgume
     # Per-line digests of the external parts, labelled by what they describe, so a miss can say what moved.
     $digest = @(foreach ($line in @($External.Lines) + @($scopeExternal)) {
         $fields = $line -split '\|'
-        $label = if ($fields[0] -in 'install', 'state', 'external', 'sibling') { ($fields | Select-Object -First 3) -join '|' } else { $fields[0] }
+        $label = if ($fields[0] -in 'install', 'state', 'external', 'sibling', 'tool', 'config', 'artifact') { ($fields | Select-Object -First 3) -join '|' } else { $fields[0] }
         $label + '#' + (Get-ArenaStringSha $line).Substring(0, 16)
     })
     return [pscustomobject]@{
@@ -663,7 +721,8 @@ function Get-ArenaRegisteredSteps([string]$Root) {
 # Files that differ from $Since: committed since, staged, unstaged and untracked (forward slashes).
 function Get-ArenaChangedFiles([string]$Root, [string]$Since) {
     $null = Invoke-ArenaGitLines $Root @('rev-parse', '--verify', "$Since^{commit}")
-    $changed = @(Split-ArenaNul (Invoke-ArenaGitLines $Root @('diff', '--name-only', '-z', $Since, '--'))) +
+    # --no-renames: a renamed file is its old path (which a mutant anchor may still name) and its new one.
+    $changed = @(Split-ArenaNul (Invoke-ArenaGitLines $Root @('diff', '--name-only', '--no-renames', '-z', $Since, '--'))) +
         @(Split-ArenaNul (Invoke-ArenaGitLines $Root @('ls-files', '-z', '--others', '--exclude-standard')))
     return @($changed | Sort-Object -Unique)
 }

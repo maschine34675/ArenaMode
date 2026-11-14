@@ -54,6 +54,7 @@ function Test-ArenaSourceFaults([string]$Project, [string]$Token, [string[]]$Pro
             Build=@($Properties + @(('-p:'+$fault.Property+'='+$copy), ('-p:IntermediateOutputPath={0}\{1:D3}\' -f $mutantObj,$i), ('-p:OutDir={0}\{1:D3}\' -f $mutantBin,$i)))
             Program=('{0}\{1:D3}\{2}' -f $mutantBin,$i,$targetFile) }
     }
+    try {
     $throttle=if($env:ARENA_MUTANT_PARALLEL -as [int]) { [Math]::Max(1,[int]$env:ARENA_MUTANT_PARALLEL) } else { 8 }
     $here=(Get-Location).Path
     $results=@($jobs | ForEach-Object -ThrottleLimit $throttle -Parallel {
@@ -71,6 +72,11 @@ function Test-ArenaSourceFaults([string]$Project, [string]$Token, [string[]]$Pro
     if($results.Count -ne $Faults.Count) { throw "Only $($results.Count) of $($Faults.Count) faults reported back" }
     $final=Invoke-ArenaCheckProcess $Project $Properties
     if($final.Code -ne 0 -or -not $final.Output.Contains($Token)) { throw $final.Output }
-    foreach($done in $scratch,$mutantBin,$mutantObj) { Remove-Item -LiteralPath $done -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+    finally {
+        # Also after a failure: the outputs of a large mutant set are hundreds of MB, and the reason of the
+        # failure is in the thrown message.
+        foreach($done in $scratch,$mutantBin,$mutantObj) { Remove-Item -LiteralPath $done -Recurse -Force -ErrorAction SilentlyContinue }
+    }
     Write-Output ('Source faults rejected: '+$Faults.Count)
 }

@@ -44,7 +44,8 @@ function Remove-ArenaWorkerSlots([object[]]$Slots) {
 
 # Makes one worker byte-identical to $Snapshot (see the header). Returns the worker's own snapshot (its write
 # times are its own), or throws.
-function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker) {
+function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker, [string[]]$RestoreProjects = @()) {
+    if ([IO.Path]::GetFullPath($Worker).TrimEnd('\') -ieq [IO.Path]::GetFullPath($Source).TrimEnd('\')) { throw "Refusing to sync $Worker onto itself." }
     $sourceCommon = Get-ArenaRepoIdentity $Source
     if (Test-Path -LiteralPath $Worker) {
         $isOurs = $false
@@ -52,8 +53,17 @@ function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker) {
         if (-not $isOurs) { throw "$Worker exists and is not a worktree of this repository; refusing to touch it." }
         $null = Invoke-ArenaGitLines $Worker @('checkout', '-q', '--detach', '--force', $Snapshot.Head)
         $null = Invoke-ArenaGitLines $Worker @('clean', '-fdq')
+        # The harness evidence of the previous run in this worker (artifacts/ is ignored, so clean keeps it);
+        # without this a worker grows by every run, and Syncthing mirrors it. bin/ and obj/ stay for
+        # incremental builds.
+        $evidence = Join-Path $Worker 'artifacts'
+        if (Test-Path -LiteralPath $evidence) { Remove-Item -LiteralPath $evidence -Recurse -Force -ErrorAction SilentlyContinue }
     }
-    else { $null = Invoke-ArenaGitLines $Source @('worktree', 'add', '-q', '--detach', $Worker, $Snapshot.Head) }
+    else {
+        # A worker folder deleted by hand stays registered and blocks `worktree add` until pruned.
+        $null = Invoke-ArenaGitLines $Source @('worktree', 'prune')
+        $null = Invoke-ArenaGitLines $Source @('worktree', 'add', '-q', '--detach', $Worker, $Snapshot.Head)
+    }
     $current = Get-ArenaRepoSnapshot $Worker   # not $worker: PowerShell names are case-insensitive, that is the [string] parameter
     $now = [DateTime]::UtcNow
     $toAdd = [Collections.Generic.List[string]]::new(); $toUntrack = [Collections.Generic.List[string]]::new()
@@ -82,7 +92,31 @@ function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker) {
     $result = Get-ArenaRepoSnapshot $Worker
     $diff = Compare-ArenaSnapshots $Snapshot $result
     if ($diff) { throw "Worker $Worker does not match the checkout under test after the sync: $diff" }
+    # Steps that build with --no-restore rely on a restore that ran earlier; the obj/ of a worker is its own and
+    # starts empty, so restore those projects when their assets are missing or older than the project file.
+    foreach ($project in $RestoreProjects) {
+        $full = Join-Path $Worker $project
+        if (-not (Test-Path -LiteralPath $full)) { continue }
+        $assets = Join-Path (Split-Path $full) 'obj\project.assets.json'
+        if ((Test-Path -LiteralPath $assets) -and (Get-Item -LiteralPath $assets).LastWriteTimeUtc -ge (Get-Item -LiteralPath $full).LastWriteTimeUtc) { continue }
+        $output = & dotnet restore $full --nologo -v:q 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "dotnet restore $project failed in ${Worker}: $output" }
+    }
     return $result
+}
+
+# The projects a worker must have restored: the test project (several harnesses run `dotnet test --no-restore`
+# on it) and the projects of every harness folder whose scripts build with --no-restore.
+function Get-ArenaNoRestoreProjects($Model) {
+    $projects = [Collections.Generic.List[string]]::new()
+    $projects.Add('ArenaMode.Tests/ArenaMode.Tests.csproj')
+    foreach ($folder in $Model.FolderNames) {
+        $scripts = @($Model.FolderFiles[$folder] | Where-Object { $_ -like '*.ps1' })
+        $noRestore = $false
+        foreach ($rel in $scripts) { if ([IO.File]::ReadAllText((Join-Path $Model.Snapshot.Root $rel)).Contains('--no-restore')) { $noRestore = $true; break } }
+        if ($noRestore) { foreach ($p in @($Model.FolderFiles[$folder] | Where-Object { $_ -like '*.csproj' })) { $projects.Add($p) } }
+    }
+    return @($projects | Sort-Object -Unique)
 }
 
 function Compare-ArenaSnapshots($Expected, $Actual) {

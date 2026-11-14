@@ -29,6 +29,13 @@ evaluated MSBuild items, not a literal), a production path named in a script sel
 harnesses are not selected, committed and untracked changes select like uncommitted ones, an unregistered
 harness folder is reported, `-ListOnly` runs nothing, and without it the selection runs.
 
+From the adversarial review of 2026-11-14: `select` also pins that a renamed file selects by its old path, that
+a path built from quoted segments (`"ArenaMode.Client", "Answer.cs"`) selects, and that an unregistered loose
+script is reported; `wide-helper` that a step reaching an enumerating loose helper reruns on any change;
+`artifact-input` that a registered fixture under `artifacts/` is keyed; `env-path` that a folder named by a
+variable is keyed by content; `parallel-restore` that a `--no-restore` step passes in a fresh worker;
+`worker-guard` that a runner started inside a worker runs sequentially and keeps the worker's uncommitted files.
+
 The `helper` case runs a toy harness through the real `Invoke-ArenaSourceChecks.ps1`: its killed mutants
 pass, and a surviving, a non-compiling and a wrongly killed mutant each fail the harness. The `parallel` case
 runs three toys in two workers: the workers are siblings of the checkout, mirror an uncommitted edit (with an

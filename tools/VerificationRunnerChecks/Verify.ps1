@@ -31,8 +31,7 @@ $faults = @(
     @{ Name = 'folder-mentions-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a referenced harness folder reruns the step'; Cases = @('referenced-folder')
         Find = '        foreach ($m in $fact.Mentions) {'; Replace = '        foreach ($m in @()) {' },
     @{ Name = 'environment-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'an environment variable reruns the step'; Cases = @('environment')
-        Find = '    $lines = @($names | ForEach-Object { "$_=$([Environment]::GetEnvironmentVariable($_))" }) + @("COMPUTERNAME=$env:COMPUTERNAME")'
-        Replace = '    $lines = @("COMPUTERNAME=$env:COMPUTERNAME")' },
+        Find = "        `$_ -match '^(ARENA_|SPT|"; Replace = "        `$_ -match '^(SPT|" },
     @{ Name = 'game-assemblies-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'installed game assemblies rerun the step'; Cases = @('game-assemblies')
         Find = '        $lines.Add("install|$root|managed|$(Get-ArenaStatManifest (Join-Path $root ''EscapeFromTarkov_Data\Managed''))")'; Replace = '' },
     @{ Name = 'small-files-by-time'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a small installed file rewritten with the same bytes keeps the cache'; Cases = @('runtime-state')
@@ -73,6 +72,22 @@ $faults = @(
         Find = '    $mutantBin=Join-Path $projectDir "bin\m-$runId"'; Replace = '    $mutantBin=Join-Path $scratch ''bin''' },
     @{ Name = 'helper-accepts-survivors'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a survivor mutant fails its harness'; Cases = @('helper')
         Find = "        if(`$result.Code -eq 0 -or -not `$result.Output.Contains('FAIL: '+`$result.Failure)) {"; Replace = '        if($false) {' },
+    @{ Name = 'renames-hidden'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a renamed file selects by its old path too'; Cases = @('select')
+        Find = "@('diff', '--name-only', '--no-renames', '-z', `$Since, '--')"; Replace = "@('diff', '--name-only', '-z', `$Since, '--')" },
+    @{ Name = 'segments-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a path built from quoted segments selects its harness'; Cases = @('select')
+        Find = "            @([regex]::Matches(`$Text, `$ArenaSegmentPathPattern)"; Replace = "            @([regex]::Matches('', `$ArenaSegmentPathPattern)" },
+    @{ Name = 'enumerating-helper-trusted'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a step that reaches an enumerating helper reruns on any change'; Cases = @('wide-helper')
+        Find = "        if (`$fact.Enumerates -and -not `$payload -and -not `$wide)"; Replace = "        if (`$fact.Enumerates -and -not `$payload -and -not `$wide -and `$rel -notlike 'tools/*-*.ps1')" },
+    @{ Name = 'artifact-inputs-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a changed fixture under artifacts/ reruns the step'; Cases = @('artifact-input')
+        Find = '    foreach ($prefix in @($Scope.ArtifactInputs)) {'; Replace = '    foreach ($prefix in @()) {' },
+    @{ Name = 'env-path-by-name'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a changed folder behind a variable reruns the step'; Cases = @('env-path')
+        Find = "        `$content = if (`$value -match '^[A-Za-z]:\\' -and -not `$inInstall -and (Test-Path -LiteralPath `$value))"; Replace = "        `$content = if (`$false)" },
+    @{ Name = 'env-path-in-install-keyed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'runtime state that mods write keeps the cache'; Cases = @('runtime-state')
+        Find = " -and -not `$inInstall -and (Test-Path -LiteralPath `$value)"; Replace = " -and (Test-Path -LiteralPath `$value)" },
+    @{ Name = 'no-restore-in-workers'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a --no-restore step passes in a fresh worker'; Cases = @('parallel-restore')
+        Find = '        if ($noRestore) { foreach ($p in @($Model.FolderFiles[$folder] | Where-Object { $_ -like ''*.csproj'' })) { $projects.Add($p) } }'; Replace = '' },
+    @{ Name = 'worker-runs-workers'; File = 'tools/Run-ArenaVerification.ps1'; Failure = 'a runner started in a worker runs sequentially and keeps its uncommitted files'; Cases = @('worker-guard')
+        Find = "if ((Split-Path -Leaf `$repo) -match ('^' + [regex]::Escape(`$ArenaWorkerPrefix) + '\d+`$')) { `$Parallel = 1 }"; Replace = '' },
     @{ Name = 'no-cache-ignored'; File = 'tools/Run-ArenaVerification.ps1'; Failure = '-NoCache runs the step'; Cases = @('no-cache')
         Find = '    if ($keyInfo -and $keyInfo.Cacheable -and -not $NoCache) {'; Replace = '    if ($keyInfo -and $keyInfo.Cacheable) {' }
 )
@@ -117,7 +132,7 @@ function New-Sandbox {
 param([string]$Stage)
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 . (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
-Add-Content -LiteralPath $env:ARENA_RUNNER_CHECKS_COUNTER -Value ('ToyChecks' + $(if ($Stage) { ":$Stage" } else { '' }))
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value ('ToyChecks' + $(if ($Stage) { ":$Stage" } else { '' }))
 $null = Get-Content -Raw (Join-Path $repo 'ArenaMode.Client/Toy.cs')
 $null = Get-Content -Raw (Join-Path $PSScriptRoot '../ReferencedChecks/Data.txt')
 $null = Get-Content -Raw (Join-Path $repo 'docs/reviews/TOY-REVIEW.md')
@@ -126,20 +141,20 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
 'TOY_CHECKS_PASSED'
 '@
     Write-Text (Join-Path $repo 'tools/ToyChecks/Verify.ps1') $toy
-    Write-Text (Join-Path $repo 'tools/OtherChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'OtherChecks'`n'OTHER_PASSED'`n"
-    Write-Text (Join-Path $repo 'tools/GitToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'GitToyChecks'`n`$null = & git -C (Join-Path `$PSScriptRoot '../..') rev-parse HEAD`n'GIT_TOY_PASSED'`n"
-    Write-Text (Join-Path $repo 'tools/ConfigToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'ConfigToyChecks'`n`$null = Join-Path `$SptRoot 'BepInEx\config'`n'CONFIG_TOY_PASSED'`n"
-    Write-Text (Join-Path $repo 'tools/Verify-LooseToy.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'tools/Verify-LooseToy.ps1'`n'LOOSE_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/OtherChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'OtherChecks'`n'OTHER_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/GitToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'GitToyChecks'`n`$null = & git -C (Join-Path `$PSScriptRoot '../..') rev-parse HEAD`n'GIT_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/ConfigToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ConfigToyChecks'`n`$null = Join-Path `$SptRoot 'BepInEx\config'`n'CONFIG_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/Verify-LooseToy.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'tools/Verify-LooseToy.ps1'`n'LOOSE_TOY_PASSED'`n"
     # Selection: a project that links production through a glob (no literal path), a script that names a
     # mutant target, and the registry.
     Write-Text (Join-Path $repo 'tools/LinkToyChecks/LinkToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n  <ItemGroup><Compile Include=`"../../ArenaMode.Client/To*.cs`" /></ItemGroup>`n</Project>`n"
     Write-Text (Join-Path $repo 'tools/LinkToyChecks/Program.cs') "System.Console.WriteLine(`"LINK_TOY`");`n"
-    Write-Text (Join-Path $repo 'tools/LiteralToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'LiteralToyChecks'`n`$target = Join-Path (Join-Path `$PSScriptRoot '../..') 'ArenaMode.Client/Other.cs'`n'LITERAL_TOY_PASSED'`n"
-    Write-Text (Join-Path $repo 'tools/verification-steps.txt') "# toy registry`nToyChecks`nOtherChecks`nLinkToyChecks`nLiteralToyChecks`nGitToyChecks`nConfigToyChecks`ntools/Verify-LooseToy.ps1`n"
+    Write-Text (Join-Path $repo 'tools/LiteralToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'LiteralToyChecks'`n`$target = Join-Path (Join-Path `$PSScriptRoot '../..') 'ArenaMode.Client/Other.cs'`n'LITERAL_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/verification-steps.txt') "# toy registry`nToyChecks`nOtherChecks`nLinkToyChecks`nLiteralToyChecks`nGitToyChecks`nConfigToyChecks`ntools/Verify-LooseToy.ps1`nSegmentToyChecks`n"
     # Parallel workers: a toy that reports what its checkout holds, one that takes a while, one that deploys.
     $echo = @'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-Add-Content -LiteralPath $env:ARENA_RUNNER_CHECKS_COUNTER -Value 'EchoToyChecks'
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value 'EchoToyChecks'
 "ROOT=$repo"
 "TOY=" + (Get-FileHash -LiteralPath (Join-Path $repo 'ArenaMode.Client/Toy.cs') -Algorithm SHA256).Hash
 "NEW=" + (Test-Path -LiteralPath (Join-Path $repo 'ArenaMode.Client/New.cs'))
@@ -151,7 +166,17 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
     Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') $echo
     # SleepToyChecks can also undo a deploy before it ends (ARENA_RUNNER_CHECKS_RESTORE), as a restoring
     # harness or a person would: the change must still fail it, because it ran while the install was changed.
-    Write-Text (Join-Path $repo 'tools/SleepToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'SleepToyChecks'`nStart-Sleep -Seconds 8`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { Remove-Item -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE -ErrorAction SilentlyContinue }`n'SLEEP_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/SleepToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'SleepToyChecks'`nStart-Sleep -Seconds 8`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { Remove-Item -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE -ErrorAction SilentlyContinue }`n'SLEEP_TOY_PASSED'`n"
+    # A loose helper that enumerates the checkout, a fixture under the ignored artifacts/ (a registered input
+    # prefix), a project built with --no-restore, and a program that reads production through path segments.
+    Write-Text (Join-Path $repo 'tools/Scan-Toy.ps1') "`$root = Join-Path `$PSScriptRoot '..'`n`$null = & git -C `$root ls-files`n"
+    Write-Text (Join-Path $repo 'tools/ScanToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ScanToyChecks'`n& (Join-Path `$PSScriptRoot '../Scan-Toy.ps1')`n'SCAN_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'artifacts/pft-installed/Fixture.cs') "fixture 1`n"
+    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$null = Get-Content -Raw (Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs')`n'ARTIFACT_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/NoRestoreToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n</Project>`n"
+    Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Program.cs') "System.Console.WriteLine(`"NO_RESTORE_TOY_PASSED`");`n"
+    Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'NoRestoreToyChecks'`n& dotnet run --project (Join-Path `$PSScriptRoot 'NoRestoreToyChecks.csproj') -c Release --no-restore`nexit `$LASTEXITCODE`n"
+    Write-Text (Join-Path $repo 'tools/SegmentToyChecks/Program.cs') "var text = System.IO.File.ReadAllText(System.IO.Path.Combine(`"..`", `"..`", `"ArenaMode.Client`", `"Answer.cs`"));`n"
     # The shared mutant helper: a production file, a program that pins it, and faults through the real helper
     # (ARENA_RUNNER_CHECKS_BADFAULT adds one that must make the harness fail).
     Write-Text (Join-Path $repo 'ArenaMode.Client/Answer.cs') "public static class Answer { public static int Value() => 42; }`n"
@@ -162,7 +187,7 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $answer = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Answer.cs')).Path
-Add-Content -LiteralPath $env:ARENA_RUNNER_CHECKS_COUNTER -Value 'MutantToyChecks'
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value 'MutantToyChecks'
 $faults = @(
     @{ Name = 'off-by-one'; Find = '=> 42;'; Replace = '=> 41;'; Failure = 'toy answers 42' },
     @{ Name = 'negative'; Find = '=> 42;'; Replace = '=> -42;'; Failure = 'toy answers 42' }
@@ -176,7 +201,7 @@ foreach ($fault in $faults) { $fault.Path = $answer; $fault.Property = 'AnswerSo
 Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'MutantToyChecks.csproj') 'MUTANT_TOY_PASSED' @() $faults
 '@
     Write-Text (Join-Path $repo 'tools/MutantToyChecks/Verify.ps1') $mutantToy
-    Write-Text (Join-Path $repo 'tools/DeployToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:ARENA_RUNNER_CHECKS_COUNTER -Value 'DeployToyChecks'`n`$null = New-Item -ItemType Directory -Force (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode')`nSet-Content -LiteralPath (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll') 'deployed'`n'DEPLOY_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/DeployToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'DeployToyChecks'`n`$null = New-Item -ItemType Directory -Force (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode')`nSet-Content -LiteralPath (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll') 'deployed'`n'DEPLOY_TOY_PASSED'`n"
     Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
     $redeploy = Join-Path $dev 'Redeploy'
     Write-Text (Join-Path $redeploy 'Redeploy.Core/Core.cs') "core 1`n"
@@ -209,15 +234,22 @@ function Set-Fault($Sandbox, $Definition) {
 }
 
 # One runner invocation; returns the verdict of $Item, how often each toy really ran, the output and exit code.
-function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]$Environment = @{}, [string[]]$Extra = @()) {
+function Invoke-Runner($Sandbox, [string[]]$Items, [switch]$NoCache, [hashtable]$Environment = @{}, [string[]]$Extra = @(), [string]$Root = $Sandbox.Repo) {
     $before = @(if (Test-Path -LiteralPath $Sandbox.Counter) { Get-Content -LiteralPath $Sandbox.Counter })
+    # These checks may themselves run as a step inside a worker of a real run: the switches that run sets
+    # for its steps must not reach the runner under test unless a case sets them.
+    $Environment = @{} + $Environment
+    foreach ($inherited in 'ARENA_VERIFICATION_WORKER', 'ARENA_MUTANT_PARALLEL') { if (-not $Environment.ContainsKey($inherited)) { $Environment[$inherited] = $null } }
     $saved = @{}
     $env:ARENA_VERIFICATION_CACHE = $Sandbox.Cache
     $env:ARENA_VERIFICATION_INSTALL_ROOTS = $Sandbox.Spt
-    $env:ARENA_RUNNER_CHECKS_COUNTER = $Sandbox.Counter
-    foreach ($k in $Environment.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $Environment[$k]) }
+    $env:RUNNERCHECKS_COUNTER = $Sandbox.Counter
+    foreach ($k in $Environment.Keys) {
+        $saved[$k] = [Environment]::GetEnvironmentVariable($k)
+        if ($null -eq $Environment[$k]) { Remove-Item -LiteralPath "Env:$k" -ErrorAction SilentlyContinue } else { [Environment]::SetEnvironmentVariable($k, $Environment[$k]) }
+    }
     try {
-        $arguments = @('-NoProfile', '-NonInteractive', '-File', (Join-Path $Sandbox.Repo 'tools/Run-ArenaVerification.ps1'), '-SkipUnitTests', '-SptRoot', $Sandbox.Spt)
+        $arguments = @('-NoProfile', '-NonInteractive', '-File', (Join-Path $Root 'tools/Run-ArenaVerification.ps1'), '-SkipUnitTests', '-SptRoot', $Sandbox.Spt)
         if ($Items.Count -and $Items[0]) { $arguments += @('-Harness', ($Items -join ',')) }
         if ($NoCache) { $arguments += '-NoCache' }
         $arguments += $Extra
@@ -296,6 +328,7 @@ $cases = [ordered]@{
     'runtime-state' = { param($s)
         Write-Text (Join-Path $s.Spt 'SPT_Runtime/user/mods/Other/logs/server.log') ("written while the server runs " + [Guid]::NewGuid())
         Write-Text (Join-Path $s.Spt 'BepInEx/plugins/SAIN/EditorDefaults.json') ('{"x":"' + [Guid]::NewGuid() + '"}')
+        Write-Text (Join-Path $s.Spt 'SPT_Runtime/user/profiles/p.json') ('{"played":"' + [Guid]::NewGuid() + '"}')   # under SPT_RUNTIME, which the runner sets
         Assert-Run (Invoke-Runner $s 'ToyChecks') 'ToyChecks' $false 'runtime state that mods write keeps the cache'
         $settings = Join-Path $s.Spt 'SPT_Runtime/user/mods/Other/mod.dll'
         [IO.File]::WriteAllText($settings, [IO.File]::ReadAllText($settings)); (Get-Item -LiteralPath $settings).LastWriteTimeUtc = [DateTime]::UtcNow.AddMinutes(1)
@@ -335,7 +368,7 @@ $cases = [ordered]@{
         Check ((& $selected $r 'LinkToyChecks').Groups[1].Value -match 'ArenaMode.Client/Toy.cs \(compiled by tools/LinkToyChecks/LinkToyChecks.csproj\)') 'a linked production file selects its harness' $r.Output
         Check ((& $selected $r 'ToyChecks').Groups[1].Value -match 'ArenaMode.Client/Toy.cs \(named in tools/ToyChecks/Verify.ps1\)') 'a mutant target named in a script selects its harness' $r.Output
         Check (-not (& $selected $r 'OtherChecks').Success -and -not (& $selected $r 'LiteralToyChecks').Success) 'a harness that neither compiles nor names the file is not selected' $r.Output
-        Check ($r.Exit -eq 0 -and $r.Ran.Count -eq 0 -and $r.Output -match 'ARENA_VERIFICATION_SELECTION selected=2 of 7 registered') '-ListOnly runs nothing and counts the selection' $r.Output
+        Check ($r.Exit -eq 0 -and $r.Ran.Count -eq 0 -and $r.Output -match 'ARENA_VERIFICATION_SELECTION selected=2 of 8 registered') '-ListOnly runs nothing and counts the selection' $r.Output
         Invoke-Git $s.Repo @('commit', '-q', '-am', 'toy edit')
         $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD~1', '-ListOnly')
         Check ((& $selected $r 'LinkToyChecks').Success) 'a committed change selects like an uncommitted one' $r.Output
@@ -350,7 +383,34 @@ $cases = [ordered]@{
         Check (-not (& $selected $r 'LinkToyChecks').Success) 'a file outside the glob does not select the project' $r.Output
         Check ($r.Output -match 'UNREGISTERED tools/NewChecks') 'an unregistered harness folder is reported' $r.Output
         $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD')
-        Check ([int]$r.Ran['LiteralToyChecks'] -eq 1 -and $r.Verdicts['LiteralToyChecks'].Passed) 'a selection without -ListOnly runs the selected steps' $r.Output }
+        Check ([int]$r.Ran['LiteralToyChecks'] -eq 1 -and $r.Verdicts['LiteralToyChecks'].Passed) 'a selection without -ListOnly runs the selected steps' $r.Output
+        Remove-Item -LiteralPath (Join-Path $s.Repo 'tools/NewChecks') -Recurse -Force
+        Invoke-Git $s.Repo @('add', '-A'); Invoke-Git $s.Repo @('commit', '-q', '-m', 'selection state')
+        Invoke-Git $s.Repo @('mv', 'ArenaMode.Client/Other.cs', 'ArenaMode.Client/Renamed.cs'); Invoke-Git $s.Repo @('commit', '-q', '-m', 'rename')
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD~1', '-ListOnly')
+        Check ((& $selected $r 'LiteralToyChecks').Groups[1].Value -match 'ArenaMode.Client/Other.cs') 'a renamed file selects by its old path too' $r.Output
+        Invoke-Git $s.Repo @('mv', 'ArenaMode.Client/Renamed.cs', 'ArenaMode.Client/Other.cs'); Invoke-Git $s.Repo @('commit', '-q', '-m', 'rename back')
+        Edit-File $s 'ArenaMode.Client/Answer.cs' '// selection'
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
+        Check ((& $selected $r 'SegmentToyChecks').Groups[1].Value -match 'ArenaMode.Client/Answer.cs') 'a path built from quoted segments selects its harness' $r.Output
+        Write-Text (Join-Path $s.Repo 'tools/Verify-NewLoose.ps1') "'NEW LOOSE'`n"
+        $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
+        Check ($r.Output -match 'UNREGISTERED tools/Verify-NewLoose.ps1') 'an unregistered loose script is reported' $r.Output }
+    'wide-helper' = { param($s)
+        Assert-Run (Invoke-Runner $s 'ScanToyChecks') 'ScanToyChecks' $true 'a step that reaches an enumerating helper runs'
+        Edit-File $s 'tools/OtherChecks/Verify.ps1' '# edited'
+        Assert-Run (Invoke-Runner $s 'ScanToyChecks') 'ScanToyChecks' $true 'a step that reaches an enumerating helper reruns on any change' }
+    'artifact-input' = { param($s)
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $true 'a step with an artifact fixture runs'
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $false 'a step with an unchanged artifact fixture is cached'
+        Add-Content -LiteralPath (Join-Path $s.Repo 'artifacts/pft-installed/Fixture.cs') 'fixture 2'
+        Assert-Run (Invoke-Runner $s 'ArtifactToyChecks') 'ArtifactToyChecks' $true 'a changed fixture under artifacts/ reruns the step' }
+    'env-path' = { param($s)
+        $folder = Join-Path $s.Base 'apbs-root'; Write-Text (Join-Path $folder 'config.json') '{"v":1}'
+        Assert-Run (Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_TOY_ROOT = $folder }) 'ToyChecks' $true 'a step with a path variable runs'
+        Assert-Run (Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_TOY_ROOT = $folder }) 'ToyChecks' $false 'an unchanged folder behind a variable keeps the cache'
+        Write-Text (Join-Path $folder 'config.json') '{"v":2}'
+        Assert-Run (Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_TOY_ROOT = $folder }) 'ToyChecks' $true 'a changed folder behind a variable reruns the step' }
     'helper' = { param($s)
         $r = Invoke-Runner $s 'MutantToyChecks' -NoCache
         Check ($r.Verdicts['MutantToyChecks'].Passed -and $r.Verdicts['MutantToyChecks'].Detail -match 'Source faults rejected: 2') 'killed mutants pass their harness' $r.Output
@@ -381,6 +441,16 @@ $cases = [ordered]@{
         Check ($again.Verdicts['EchoToyChecks'].Cached -and $again.Verdicts['SleepToyChecks'].Cached -and $again.Verdicts['ToyChecks'].Cached) 'steps that passed in workers are cached' $again.Output
         $nested = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks' -NoCache -Environment @{ ARENA_VERIFICATION_WORKER = '1' } -Extra @('-Parallel', '2')
         Check ($nested.Output -notmatch 'ARENA_VERIFICATION_WORKERS' -and $nested.Verdicts['EchoToyChecks'].Detail -notmatch 'worker vw') 'a runner inside a worker runs its steps sequentially' $nested.Output }
+    'parallel-restore' = { param($s)
+        $r = Invoke-Runner $s 'NoRestoreToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
+        Check ($r.Verdicts['NoRestoreToyChecks'].Passed -and $r.Verdicts['NoRestoreToyChecks'].Detail -match 'worker vw') 'a --no-restore step passes in a fresh worker' $r.Output }
+    'worker-guard' = { param($s)
+        $null = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
+        $worker = Join-Path $s.Dev 'ArenaMode-vw1'
+        Write-Text (Join-Path $worker 'ArenaMode.Client/Precious.cs') "uncommitted work in a worker`n"
+        $r = Invoke-Runner $s 'EchoToyChecks,OtherChecks' -NoCache -Extra @('-Parallel', '2') -Root $worker
+        Check ((Test-Path -LiteralPath (Join-Path $worker 'ArenaMode.Client/Precious.cs')) -and $r.Verdicts['EchoToyChecks'].Passed -and $r.Verdicts['OtherChecks'].Passed -and
+            $r.Output -notmatch 'ARENA_VERIFICATION_WORKERS \d') 'a runner started in a worker runs sequentially and keeps its uncommitted files' $r.Output }
     'parallel-guard' = { param($s)
         $deployed = Join-Path $s.Spt 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll'
         $r = Invoke-Runner $s 'DeployToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2') -Environment @{ ARENA_RUNNER_CHECKS_RESTORE = $deployed }

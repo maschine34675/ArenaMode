@@ -101,7 +101,7 @@ New-Item -ItemType Directory -Path $results -Force | Out-Null
 $noDeploy = Join-Path $results 'must-not-exist-no-deploy'
 if (Test-Path -LiteralPath $noDeploy) { throw 'The no-deploy sentinel must not exist.' }
 # "A,B:Stage" and repeated arguments both work; a stage after ':' is forwarded to the script.
-$Harness = @($Harness | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$Harness = @($Harness | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
 $verdicts = New-Object System.Collections.Generic.List[object]
 # Only a value named on this command line is forwarded: the scripts' own defaults are not all
 # D:\SPT41 (ApbsCompatibilityChecks derives its root from the checkout), and they stay as they are.
@@ -111,6 +111,9 @@ $forwardSptRoot = $PSBoundParameters.ContainsKey('SptRoot')
 $installRoots = if ($env:ARENA_VERIFICATION_INSTALL_ROOTS) { @($env:ARENA_VERIFICATION_INSTALL_ROOTS -split ';') } else { @($SptRoot, 'D:\SPT41') }
 # A runner started by a step inside a worker runs sequentially there; workers never start workers.
 if ($env:ARENA_VERIFICATION_WORKER) { $Parallel = 1 }
+# A checkout that is itself a worker runs sequentially too: one of the slots would be this very checkout,
+# and its sync (checkout --force, clean) would wipe the uncommitted work in it.
+if ((Split-Path -Leaf $repo) -match ('^' + [regex]::Escape($ArenaWorkerPrefix) + '\d+$')) { $Parallel = 1 }
 $runtime = Join-Path $SptRoot 'SPT_Runtime'
 $xunitName = 'ArenaMode.Tests (xunit, once)'
 function Test-ScriptDeclaresSptRoot([string]$Path) {
@@ -175,7 +178,7 @@ function New-Step([string]$Item) {
             $last = Get-ArenaLastPassPath $Item
             if (Test-Path -LiteralPath $last) { try { $step.Expected = [double](Get-Content -Raw -LiteralPath $last | ConvertFrom-Json).Seconds } catch { } }
         }
-        catch { $step.KeyNote = "; not cached: key failed: $($_.Exception.Message)" }
+        catch { $step.KeyNote = "; not cached: key failed: $($_.Exception.Message)"; $step.RedeployBuild = $true }   # unknown: assume the worst
     }
     elseif ($step.Kind -eq 'script' -or $step.Kind -eq 'project') { $step.RedeployBuild = $true }   # no model: assume the worst
     return $step
@@ -240,7 +243,7 @@ function Test-ArenaStepStillValid($KeyInfo, $Scope, [string]$Item, $Snapshot) {
     if ($changed) { return $changed }
     Reset-ArenaStatManifestMemo
     $script:externalFingerprint = Get-ArenaExternalFingerprint $repo $installRoots
-    $script:environmentHash = Get-ArenaEnvironmentFingerprint
+    $script:environmentHash = Get-ArenaEnvironmentFingerprint $installRoots
     $again = Get-ArenaStepKey $cacheModel $Scope $Item $runnerArguments $script:environmentHash $script:externalFingerprint $installRoots
     if ($again.Key -ne $KeyInfo.Key) {
         $moved = @(foreach ($p in $again.Parts.GetEnumerator()) { if ([string]$KeyInfo.Parts[$p.Key] -ne [string]$p.Value) { $p.Key } })
@@ -268,9 +271,12 @@ function Get-CachedVerdict($KeyInfo, [string]$Log) {
 }
 function Complete-Step([string]$Item, $KeyInfo, [bool]$Passed, [double]$Seconds, [string]$Detail, [string]$Log, $Snapshot, [string]$Checkout) {
     if ($passed -and $keyInfo -and $keyInfo.Cacheable) {
-        $afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item $Snapshot
-        if ($afterRun) { return "; not cached: $afterRun" }
-        Save-ArenaCachedPass $KeyInfo $Item $Seconds $Log $Checkout $cacheModel.Snapshot.Head $Detail
+        try {
+            $afterRun = Test-ArenaStepStillValid $keyInfo $keyInfo.Scope $item $Snapshot
+            if ($afterRun) { return "; not cached: $afterRun" }
+            Save-ArenaCachedPass $KeyInfo $Item $Seconds $Log $Checkout $cacheModel.Snapshot.Head $Detail
+        }
+        catch { return "; not cached: $($_.Exception.Message)" }
         return ''
     }
     if ($KeyInfo -and -not $KeyInfo.Cacheable) { return "; not cacheable: $($KeyInfo.Why)" }
@@ -293,7 +299,7 @@ try {
     try {
         $cacheModel = Get-ArenaInputModel $repo
         $script:externalFingerprint = Get-ArenaExternalFingerprint $repo $installRoots
-        $script:environmentHash = Get-ArenaEnvironmentFingerprint
+        $script:environmentHash = Get-ArenaEnvironmentFingerprint $installRoots
     }
     catch { $cacheModel = $null; $cacheNote = "result cache off: $($_.Exception.Message)"; Write-Output $cacheNote }
 
@@ -314,6 +320,7 @@ try {
             $registeredFolders = @($registered | ForEach-Object { $n = ($_ -split ':', 2)[0]; if ($n -match '^tools/([^/]+)/') { $Matches[1] } elseif ($n -notlike '*.ps1') { $n } })
             $unregistered = @($changedFiles | ForEach-Object { Get-ArenaHarnessFolder $_ } | Where-Object { $_ -and $_ -notin $registeredFolders } | Sort-Object -Unique)
             foreach ($f in $unregistered) { Write-Output "UNREGISTERED tools/$f changed and is not in tools/verification-steps.txt" }
+            foreach ($loose in @($changedFiles | Where-Object { $_ -in $cacheModel.LooseEntries -and $_ -notin $registered })) { Write-Output "UNREGISTERED $loose changed and is not in tools/verification-steps.txt" }
         }
         Write-Output "ARENA_VERIFICATION_SELECTION selected=$($picked.Count) of $($registered.Count) registered"
         $Harness = @(@($Harness) + @($picked | ForEach-Object Step) | Where-Object { $_ } | Select-Object -Unique)
@@ -335,7 +342,8 @@ try {
         $pending.Add($step)
     }
 
-    if ($Parallel -le 1 -or $pending.Count -le 1) {
+    if ($Parallel -gt 1 -and $pending.Count -gt 1 -and -not $cacheModel) { Write-Output "ARENA_VERIFICATION_WORKERS none: the workers are synced from the input model ($cacheNote); running sequentially" }
+    if ($Parallel -le 1 -or $pending.Count -le 1 -or -not $cacheModel) {
         # Sequentially, in this checkout, in the order given.
         foreach ($step in $pending) {
             $t0 = Get-Date
@@ -343,6 +351,7 @@ try {
             if ($step.Kind -eq 'xunit') { $trx = Join-Path $results 'run-arena-verification.trx'; if (Test-Path -LiteralPath $trx) { Remove-Item -LiteralPath $trx -Force } }   # never judge a stale run
             $previousPreference = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
+            $global:LASTEXITCODE = -1   # a command that does not start must not inherit the last step's 0
             try {
                 if ($step.Kind -eq 'xunit') {
                     & $command.Exe @($command.Arguments) 2>&1 | ForEach-Object { $_.ToString() } | Tee-Object -FilePath $step.Log | Where-Object { $_ -match 'error|Fehler|Bestanden|Passed!|Failed!' }
@@ -360,17 +369,17 @@ try {
         }
     }
     else {
-        if (-not $cacheModel) { throw "Parallel steps need the input model to sync the workers ($cacheNote); run with -Parallel 1." }
         $slots = @(Get-ArenaWorkerSlots $repo ([Math]::Min($Parallel, $pending.Count)))
         if (-not $slots.Count) { throw 'No worker slot is free (other runs hold all eight); run with -Parallel 1 or wait.' }
         $t0 = Get-Date
         $sourceSnapshot = $cacheModel.Snapshot
+        $restoreProjects = @(Get-ArenaNoRestoreProjects $cacheModel)
         $syncs = $slots | ForEach-Object -ThrottleLimit $slots.Count -Parallel {
             $slot = $_
             $repoPath = $using:repo
             . (Join-Path $repoPath 'tools\ArenaVerificationInputs.ps1')
             . (Join-Path $repoPath 'tools\ArenaVerificationWorkers.ps1')
-            try { [pscustomobject]@{ Index = $slot.Index; Snapshot = (Sync-ArenaWorker $repoPath $using:sourceSnapshot $slot.Path); Error = $null } }
+            try { [pscustomobject]@{ Index = $slot.Index; Snapshot = (Sync-ArenaWorker $repoPath $using:sourceSnapshot $slot.Path $using:restoreProjects); Error = $null } }
             catch { [pscustomobject]@{ Index = $slot.Index; Snapshot = $null; Error = $_.Exception.Message } }
         }
         $failedSync = @($syncs | Where-Object Error)
@@ -404,23 +413,40 @@ try {
                 if ($index -lt 0) { break }
                 $step = $queue[$index]; $queue.RemoveAt($index)
                 $slot = $free.Dequeue()
-                # A step must not leave a non-ignored change behind; if one did, the next step in that worker
-                # would test a tree that is not the one under test. Check and sync again before reuse.
-                if ($slot.PSObject.Properties['Used']) {
-                    $drift = Test-ArenaSnapshotStillValid $slot.Snapshot @($slot.Snapshot.Files.Keys)
-                    if ($drift) { Write-Output "ARENA_VERIFICATION_WORKER vw$($slot.Index) drifted ($drift); syncing again"; $slot.Snapshot = Sync-ArenaWorker $repo $cacheModel.Snapshot $slot.Path }
+                try {
+                    # A step must not leave a non-ignored change behind; if one did, the next step in that worker
+                    # would test a tree that is not the one under test. Check and sync again before reuse.
+                    if ($slot.PSObject.Properties['Used']) {
+                        $drift = Test-ArenaSnapshotStillValid $slot.Snapshot @($slot.Snapshot.Files.Keys)
+                        if ($drift) { Write-Output "ARENA_VERIFICATION_WORKER vw$($slot.Index) drifted ($drift); syncing again"; $slot.Snapshot = Sync-ArenaWorker $repo $cacheModel.Snapshot $slot.Path $restoreProjects }
+                    }
+                    $slot | Add-Member -NotePropertyName Used -NotePropertyValue $true -Force
+                    $command = Get-StepCommand $step $slot.Path
+                    if ($step.Kind -eq 'xunit') { $trx = Join-Path $results 'run-arena-verification.trx'; if (Test-Path -LiteralPath $trx) { Remove-Item -LiteralPath $trx -Force } }
                 }
-                $slot | Add-Member -NotePropertyName Used -NotePropertyValue $true -Force
-                $command = Get-StepCommand $step $slot.Path
-                if ($step.Kind -eq 'xunit') { $trx = Join-Path $results 'run-arena-verification.trx'; if (Test-Path -LiteralPath $trx) { Remove-Item -LiteralPath $trx -Force } }
+                catch {
+                    # This step fails, the worker is not used again, the run goes on.
+                    Add-Verdict $step.Name $false 0 "runner: could not start in worker vw$($slot.Index): $($_.Exception.Message)"
+                    if ($step.RedeployBuild -and $redeployHeld) { $redeployMutex.ReleaseMutex(); $redeployHeld = $false }
+                    continue
+                }
                 $job = Start-ThreadJob -ArgumentList $slot.Path, $command.Exe, $command.Arguments, $step.Log -ScriptBlock {
                     param($root, $exe, $arguments, $log)
-                    Set-Location -LiteralPath $root
-                    $ErrorActionPreference = 'Continue'
-                    & $exe @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
-                    $LASTEXITCODE
+                    # Only a real exit code of the step's process may come back; anything else is -1.
+                    try {
+                        Set-Location -LiteralPath $root
+                        $ErrorActionPreference = 'Continue'
+                        $global:LASTEXITCODE = -1
+                        & $exe @arguments 2>&1 | ForEach-Object { $_.ToString() } | Set-Content -LiteralPath $log
+                        [pscustomobject]@{ ExitCode = [int]$LASTEXITCODE }
+                    }
+                    catch { Add-Content -LiteralPath $log -Value "runner: the step did not run: $($_.Exception.Message)"; [pscustomobject]@{ ExitCode = -1 } }
                 }
                 $running.Add([pscustomobject]@{ Step = $step; Slot = $slot; Job = $job; Start = Get-Date })
+            }
+            if (-not $running.Count -and -not $free.Count) {
+                foreach ($left in $queue) { Add-Verdict $left.Name $false 0 'runner: no worker left to run it (see the failures above)' }
+                $queue.Clear(); break
             }
             if (-not $running.Count) {
                 # Only client builds are left and another run holds the Redeploy mutex: wait for it.
@@ -433,7 +459,9 @@ try {
             if (-not $finished) { continue }
             $entry = $running | Where-Object { $_.Job.Id -eq $finished.Id } | Select-Object -First 1
             $running.Remove($entry) | Out-Null
-            $code = @(Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue) | Select-Object -Last 1
+            $reported = @(Receive-Job -Job $entry.Job -ErrorAction SilentlyContinue | Where-Object { $_ -and $_.PSObject.Properties['ExitCode'] }) | Select-Object -Last 1
+            $code = if ($reported) { $reported.ExitCode } else { -1 }
+            if (-not (Test-Path -LiteralPath $entry.Step.Log)) { Set-Content -LiteralPath $entry.Step.Log -Value 'runner: the step wrote no output' }
             Remove-Job -Job $entry.Job -Force
             if ($entry.Step.RedeployBuild -and $redeployHeld) { $redeployMutex.ReleaseMutex(); $redeployHeld = $false }
             $seconds = ((Get-Date) - $entry.Start).TotalSeconds
@@ -457,6 +485,8 @@ try {
     }
 }
 finally {
+    # An interrupted run leaves no step running behind it.
+    if ($running) { foreach ($entry in $running) { try { Stop-Job -Job $entry.Job; Remove-Job -Job $entry.Job -Force } catch { } } }
     if ($redeployMutex) { try { if ($redeployHeld) { $redeployMutex.ReleaseMutex() } } catch { }; $redeployMutex.Dispose() }
     if ($slots.Count) { Remove-ArenaWorkerSlots $slots }
     Pop-Location

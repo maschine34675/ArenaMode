@@ -600,7 +600,20 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   root README (`$ArenaPayloadOnlyRecordNamers`); any other mention makes it an input again.
 - **A reached file that enumerates directories makes its step wide** (every folder and record in the key), about
   50 of 220 folders. That is deliberate: an enumeration of the checkout cannot be told apart from one of an
-  installation. Paths with spaces are not recognised as external path literals.
+  installation. `tools/Verify-PitFireTeamDeployment.ps1` walks the whole checkout (`git ls-files`, every project
+  file); the adversarial review of 2026-11-14 found it wrongly listed as a payload script. Only the xunit sources
+  can make every step wide; a shared helper does so for the steps that reach it.
+- **Fixtures under `artifacts/` are inputs only when registered** (`$ArenaArtifactInputs`): PitFireTeam100Checks
+  (the PFT 1.0.0 release), PortedCoverChecks (the decompiled installation), SvmCompatChecks and
+  UseItemsAnywhereChecks (downloaded releases). Every other `artifacts/` path is output; keying output folders
+  that gain a GUID folder per run would make those steps uncacheable. A harness that starts reading a fixture
+  from `artifacts/` registers its prefix there.
+- **Paths outside the key's literal scan**: a variable that names a path (`ARENA_APBS_TEST_ROOT`,
+  `SPT_REWARD_RECOVERY_BASELINE`) keys that path's content; a quoted absolute path may contain spaces
+  (`'C:\Program Files\Unity\...'`; a folder over 20 000 files makes the step uncacheable); the tools python, node,
+  ffmpeg, ilspycmd and mono count by the file they resolve to; `Directory.Build.*`, `NuGet.Config` and `global.json`
+  above the checkout and the user's NuGet configuration count by their bytes. Ignored `*.user` files are not
+  read by any CLI build here and are not keyed.
 - **Changing these rules**: add a case to `tools/VerificationRunnerChecks/Verify.ps1` that changes the input and
   expects a rerun, and a fault that removes the input and must fail that case.
 - **The key and the selection differ on purpose.** The key is coarse (every shared file, so any production change
@@ -635,6 +648,16 @@ Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `
   mutant still needs its own non-zero exit and its own `FAIL: <name>`.
 - **PowerShell names are case-insensitive.** `$worker = Get-ArenaRepoSnapshot $Worker` inside a function with a
   `[string]$Worker` parameter assigns to the PARAMETER, and the type constraint turns the snapshot into a string.
+- **Never start the runner inside a worker for a parallel run.** A worker checkout runs its steps sequentially,
+  and a worker is never synced onto the checkout under test: the first version took slot vw2 for itself when it
+  was started in ArenaMode-vw2, and the sync's `checkout --force` and `clean` wiped the uncommitted work there
+  (review 2026-11-14). Edit and commit in your own checkout, never in a worker.
+- **A fresh worker has no restore.** Several harnesses run `dotnet test ... --no-restore` on ArenaMode.Tests or
+  `dotnet run --no-restore` on their own project; the sync restores those projects in a worker when their
+  `obj/project.assets.json` is missing or older than the project file.
+- **A step that does not start is a FAIL.** `$LASTEXITCODE` keeps the value of the last native command (0 from a
+  git call), so a missing executable would have read as a PASS and been cached (review 2026-11-14). The runner
+  sets it to -1 before every step, and a thread job reports an explicit exit code or -1.
 
 Traps met while building it:
 
