@@ -614,6 +614,18 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   ffmpeg, ilspycmd and mono count by the file they resolve to; `Directory.Build.*`, `NuGet.Config` and `global.json`
   above the checkout and the user's NuGet configuration count by their bytes. Ignored `*.user` files are not
   read by any CLI build here and are not keyed.
+- **Found by the first real pass with these rules (2026-11-14):** every one of 62 steps was uncacheable, because
+  `BotEffectShaders/Build.ps1` names the Unity editor folder (over 20 000 files) and an asset's provenance
+  manifest made that script shared. External paths now count for every step only where shared files name them,
+  and an installed application under Program Files counts by its top three levels (a new Unity version is a new
+  folder). The new register `tools/verification-steps.txt` names 144 harness folders and, reached as a shared
+  file, pulled them all into every key: it is in no key now (`$ArenaNotStepInputs`), and the runner's own files
+  are not followed, so `AirPitChecks/NoDeploy.targets`, which the runner passes to every build, is named
+  explicitly (`$ArenaRunnerInputs`).
+- **Registered fixtures travel with the workers.** A worker mirrors only non-ignored files; IcebergChecks and
+  ChopShopChecks run PortedCoverChecks, which reads `artifacts/pft-installed`, and failed in every worker. The sync
+  copies the registered `artifacts/` prefixes from the checkout under test. A checkout without the fixture fails
+  those steps as before (`tools/Decompile-PitFireTeam.ps1` recreates it).
 - **Changing these rules**: add a case to `tools/VerificationRunnerChecks/Verify.ps1` that changes the input and
   expects a rerun, and a fault that removes the input and must fail that case.
 - **The key and the selection differ on purpose.** The key is coarse (every shared file, so any production change

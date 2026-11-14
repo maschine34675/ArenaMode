@@ -72,6 +72,12 @@ $faults = @(
         Find = '    $mutantBin=Join-Path $projectDir "bin\m-$runId"'; Replace = '    $mutantBin=Join-Path $scratch ''bin''' },
     @{ Name = 'helper-accepts-survivors'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a survivor mutant fails its harness'; Cases = @('helper')
         Find = "        if(`$result.Code -eq 0 -or -not `$result.Output.Contains('FAIL: '+`$result.Failure)) {"; Replace = '        if($false) {' },
+    @{ Name = 'artifacts-not-mirrored'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a registered artifact fixture reaches the workers'; Cases = @('parallel-artifacts')
+        Find = '    foreach ($prefix in $ArenaArtifactInputs) {'; Replace = '    foreach ($prefix in @()) {' },
+    @{ Name = 'register-keyed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'editing the register keeps every PASS'; Cases = @('register')
+        Find = ' -and $_ -notin $ArenaNotStepInputs'; Replace = '' },
+    @{ Name = 'runner-inputs-dropped'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'the no-deploy targets the runner passes rerun a program-only step'; Cases = @('runner-inputs')
+        Find = '(@($shared) + @($ArenaRunnerInputs | Where-Object { $model.Index.ContainsKey($_.ToLowerInvariant()) }))'; Replace = '@($shared)' },
     @{ Name = 'renames-hidden'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a renamed file selects by its old path too'; Cases = @('select')
         Find = "@('diff', '--name-only', '--no-renames', '-z', `$Since, '--')"; Replace = "@('diff', '--name-only', '-z', `$Since, '--')" },
     @{ Name = 'segments-ignored'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'a path built from quoted segments selects its harness'; Cases = @('select')
@@ -141,7 +147,8 @@ if ($env:ARENA_RUNNER_CHECKS_TOUCH) { Add-Content (Join-Path $repo 'ArenaMode.Cl
 'TOY_CHECKS_PASSED'
 '@
     Write-Text (Join-Path $repo 'tools/ToyChecks/Verify.ps1') $toy
-    Write-Text (Join-Path $repo 'tools/OtherChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'OtherChecks'`n'OTHER_PASSED'`n"
+    # OtherChecks names the register, as VerificationRunnerChecks does in the real checkout.
+    Write-Text (Join-Path $repo 'tools/OtherChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'OtherChecks'`n`$register = 'tools/verification-steps.txt'`n'OTHER_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/GitToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'GitToyChecks'`n`$null = & git -C (Join-Path `$PSScriptRoot '../..') rev-parse HEAD`n'GIT_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/ConfigToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ConfigToyChecks'`n`$null = Join-Path `$SptRoot 'BepInEx\config'`n'CONFIG_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/Verify-LooseToy.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'tools/Verify-LooseToy.ps1'`n'LOOSE_TOY_PASSED'`n"
@@ -172,7 +179,7 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
     Write-Text (Join-Path $repo 'tools/Scan-Toy.ps1') "`$root = Join-Path `$PSScriptRoot '..'`n`$null = & git -C `$root ls-files`n"
     Write-Text (Join-Path $repo 'tools/ScanToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ScanToyChecks'`n& (Join-Path `$PSScriptRoot '../Scan-Toy.ps1')`n'SCAN_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'artifacts/pft-installed/Fixture.cs') "fixture 1`n"
-    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$null = Get-Content -Raw (Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs')`n'ARTIFACT_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "`$ErrorActionPreference = 'Stop'`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$null = Get-Content -Raw (Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs')`n'ARTIFACT_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/NoRestoreToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n</Project>`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Program.cs') "System.Console.WriteLine(`"NO_RESTORE_TOY_PASSED`");`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'NoRestoreToyChecks'`n& dotnet run --project (Join-Path `$PSScriptRoot 'NoRestoreToyChecks.csproj') -c Release --no-restore`nexit `$LASTEXITCODE`n"
@@ -275,9 +282,10 @@ function Edit-File($Sandbox, [string]$Rel, [string]$Append) { Add-Content -Liter
 function Edit-External([string]$Path, [string]$Append) { Add-Content -LiteralPath $Path -Value $Append }
 
 # Expect one run of $Item: whether it really ran, and that it passed.
-function Assert-Run($Result, [string]$Item, [bool]$Ran, [string]$Name, [bool]$Passed = $true) {
+function Assert-Run($Result, [string]$Item, [bool]$Ran, [string]$Name, [bool]$Passed = $true, [switch]$CounterFree) {
     $verdict = $Result.Verdicts[$Item]
-    $runs = [int]$Result.Ran[$Item]
+    # A program-only toy cannot count itself; whether it ran is then read from the verdict alone.
+    $runs = if ($CounterFree) { if ($verdict -and -not $verdict.Cached) { 1 } else { 0 } } else { [int]$Result.Ran[$Item] }
     $ok = $null -ne $verdict -and $verdict.Passed -eq $Passed -and ($(if ($Ran) { $runs -eq 1 -and -not $verdict.Cached } else { $runs -eq 0 -and $verdict.Cached }))
     Check $ok $Name "ran=$runs verdict=$($verdict | ConvertTo-Json -Compress)`n$($Result.Output)"
 }
@@ -396,6 +404,11 @@ $cases = [ordered]@{
         Write-Text (Join-Path $s.Repo 'tools/Verify-NewLoose.ps1') "'NEW LOOSE'`n"
         $r = Invoke-Runner $s @() -Extra @('-ChangedSince', 'HEAD', '-ListOnly')
         Check ($r.Output -match 'UNREGISTERED tools/Verify-NewLoose.ps1') 'an unregistered loose script is reported' $r.Output }
+    'runner-inputs' = { param($s)
+        Assert-Run (Invoke-Runner $s 'LinkToyChecks') 'LinkToyChecks' $true 'a program-only step runs' -CounterFree
+        Assert-Run (Invoke-Runner $s 'LinkToyChecks') 'LinkToyChecks' $false 'a program-only step is cached' -CounterFree
+        Edit-File $s 'tools/AirPitChecks/NoDeploy.targets' '<!-- edited -->'
+        Assert-Run (Invoke-Runner $s 'LinkToyChecks') 'LinkToyChecks' $true 'the no-deploy targets the runner passes rerun a program-only step' -CounterFree }
     'wide-helper' = { param($s)
         Assert-Run (Invoke-Runner $s 'ScanToyChecks') 'ScanToyChecks' $true 'a step that reaches an enumerating helper runs'
         Edit-File $s 'tools/OtherChecks/Verify.ps1' '# edited'
@@ -444,6 +457,12 @@ $cases = [ordered]@{
     'parallel-restore' = { param($s)
         $r = Invoke-Runner $s 'NoRestoreToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
         Check ($r.Verdicts['NoRestoreToyChecks'].Passed -and $r.Verdicts['NoRestoreToyChecks'].Detail -match 'worker vw') 'a --no-restore step passes in a fresh worker' $r.Output }
+    'parallel-artifacts' = { param($s)
+        $r = Invoke-Runner $s 'ArtifactToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
+        Check ($r.Verdicts['ArtifactToyChecks'].Passed -and $r.Verdicts['ArtifactToyChecks'].Detail -match 'worker vw') 'a registered artifact fixture reaches the workers' $r.Output }
+    'register' = { param($s)
+        Edit-File $s 'tools/verification-steps.txt' 'OtherChecks'
+        Assert-Run (Invoke-Runner $s 'ToyChecks') 'ToyChecks' $false 'editing the register keeps every PASS' }
     'worker-guard' = { param($s)
         $null = Invoke-Runner $s 'EchoToyChecks,SleepToyChecks' -NoCache -Extra @('-Parallel', '2')
         $worker = Join-Path $s.Dev 'ArenaMode-vw1'

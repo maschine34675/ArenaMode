@@ -58,7 +58,12 @@ $ArenaProductionPrefixes = @('ArenaMode.Client/', 'ArenaMode.Server/', 'ArenaMod
 # (the documentation index, changed by every new document) is read by neither; a mention by any other file
 # makes it an input again.
 # The runner and this model name docs paths only to describe the rules above; they read no record.
-$ArenaKeyInfrastructureFiles = @('tools/ArenaVerificationInputs.ps1', 'tools/ArenaVerificationWorkers.ps1', 'tools/Run-ArenaVerification.ps1')
+$ArenaKeyInfrastructureFiles = @('tools/ArenaVerificationInputs.ps1', 'tools/ArenaVerificationWorkers.ps1', 'tools/Run-ArenaVerification.ps1', 'tools/verification-steps.txt')
+# The register decides which steps a selection offers; no step reads it. It is in no key, so registering a
+# harness voids no PASS (it named 144 harness folders and, as a shared file, pulled them all into every key).
+$ArenaNotStepInputs = @('tools/verification-steps.txt')
+# What the runner itself passes to every step it builds (its own mentions are not followed, see above).
+$ArenaRunnerInputs = @('tools/AirPitChecks/NoDeploy.targets')
 $ArenaPayloadOnlyRecordNamers = @{
     'docs/README.md' = @('tools/Write-ArenaAssets.ps1', 'tools/DeployLayoutChecks/Verify.ps1')
 }
@@ -327,7 +332,7 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     $nonLoose = @(@($shared | Where-Object { $_ -notin $loose }) + @($folderFiles.Values | ForEach-Object { $_ }))
     $fromAll = Get-ArenaReach $model $nonLoose @()
     $model.LooseEntries = @($loose | Where-Object { -not $fromAll.Active.Contains($_) })
-    $shared = @($shared | Where-Object { $_ -notin $model.LooseEntries })
+    $shared = @($shared | Where-Object { $_ -notin $model.LooseEntries -and $_ -notin $ArenaNotStepInputs })
     $model.SharedFiles = $shared
     $model.SharedHash = Get-ArenaStringSha (($shared | ForEach-Object { & $lineOf $_ }) -join "`n")
     foreach ($rel in $shared) {
@@ -340,12 +345,15 @@ function Get-ArenaInputModel([string]$Root, [string[]]$InstallRoots = @()) {
     # The folders the shared files reach are in every key; the reached files name records and externals for
     # every step. Their own enumeration and git calls do not make every step wide or HEAD-bound: shared code
     # runs the same for every step, and the reviewed payload files above build payloads.
-    $model.SharedReach = Get-ArenaReach $model @($shared) @()
+    $model.SharedReach = Get-ArenaReach $model (@($shared) + @($ArenaRunnerInputs | Where-Object { $model.Index.ContainsKey($_.ToLowerInvariant()) })) @()
     $sharedTexts = @(@($shared) + @($model.SharedReach.Active) | Sort-Object -Unique)
     foreach ($rel in $sharedTexts) {
         foreach ($record in @($named[$rel])) { if ($record) { if (-not $model.SharedRecordNamers.ContainsKey($record)) { $model.SharedRecordNamers[$record] = [Collections.Generic.List[string]]::new() }; $model.SharedRecordNamers[$record].Add($rel) } }
     }
-    $model.SharedExternals = @($sharedTexts | ForEach-Object { Resolve-ArenaExternals $model $_ } | Sort-Object -Unique)
+    # External paths count for every step only where shared files name them: those compile or run for every
+    # step. A harness file the shared files merely name (BotEffectShaders/Build.ps1, named by an asset's
+    # provenance manifest, names the Unity editor) counts for the steps that reach it themselves.
+    $model.SharedExternals = @($shared | ForEach-Object { Resolve-ArenaExternals $model $_ } | Sort-Object -Unique)
     return $model
 }
 
@@ -377,7 +385,10 @@ function Get-ArenaReach($Model, [string[]]$StartFiles, [string[]]$StartFolders) 
     $active = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $content = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $queue = [Collections.Generic.Queue[string]]::new()
-    foreach ($rel in $StartFiles) { if ($active.Add($rel)) { $queue.Enqueue($rel) } }
+    foreach ($rel in $StartFiles) {
+        if ($active.Add($rel)) { $queue.Enqueue($rel) }
+        $f = Get-ArenaHarnessFolder $rel; if ($f) { [void]$content.Add($f) }
+    }
     foreach ($f in $StartFolders) { [void]$content.Add($f); foreach ($rel in @($Model.FolderFiles[$f])) { if ($active.Add($rel)) { $queue.Enqueue($rel) } } }
     while ($queue.Count) {
         $next = $queue.Dequeue()
@@ -460,6 +471,37 @@ function Get-ArenaGitCheckoutIdentity([string]$Root) {
         if ([IO.File]::Exists($full)) { "$rel|$(Get-ArenaFileSha $full)" } else { "$rel|<absent>" }
     }
     return Get-ArenaStringSha ((@($head) + @($status) + @($dirty)) -join "`n")
+}
+
+# An installed application (the Unity editor under C:\Program Files, 2022.3.43f1 with tens of thousands of
+# files) is identified by its top three levels: a new version is a new folder, an update replaces the top-level
+# executables; nobody edits files deep inside an installation in place. Anything else that is too large to
+# fingerprint keeps its step uncacheable.
+function Test-ArenaProgramFilesPath([string]$Path) {
+    foreach ($root in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramW6432) | Where-Object { $_ }) {
+        if ($Path.StartsWith($root.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
+}
+function Get-ArenaShallowManifest([string]$Path, [int]$Depth) {
+    $memoKey = "shallow|$Path|$Depth"
+    if ($script:ArenaManifestMemo.ContainsKey($memoKey)) { return $script:ArenaManifestMemo[$memoKey] }
+    $lines = [Collections.Generic.List[string]]::new()
+    $queue = [Collections.Generic.Queue[object]]::new(); $queue.Enqueue(@([IO.DirectoryInfo]::new($Path), 0))
+    while ($queue.Count) {
+        $dir, $level = $queue.Dequeue()
+        try {
+            foreach ($entry in $dir.EnumerateFileSystemInfos()) {
+                $rel = $entry.FullName.Substring($Path.Length)
+                if ($entry -is [IO.DirectoryInfo]) { $lines.Add("$rel\"); if ($level + 1 -lt $Depth) { $queue.Enqueue(@($entry, $level + 1)) } }
+                else { $lines.Add("$rel|$($entry.Length)|$($entry.LastWriteTimeUtc.Ticks)") }
+            }
+        } catch { $lines.Add("$($dir.FullName)|<unreadable>") }
+    }
+    $lines.Sort([StringComparer]::Ordinal)
+    $result = Get-ArenaStringSha ($lines -join "`n")
+    $script:ArenaManifestMemo[$memoKey] = $result
+    return $result
 }
 
 function Get-ArenaGitCheckoutIdentityMemo([string]$Root) {
@@ -591,7 +633,9 @@ function Get-ArenaScopeExternalLines($Scope, [string]$RepoRoot, [string[]]$Insta
         }
         if ($isCovered) { continue }
         # Another checkout (D:\ArenaMapPort) is fingerprinted like the Redeploy sibling: HEAD, status, dirty bytes.
-        $identity = if ([IO.Directory]::Exists($full) -and (Test-Path -LiteralPath (Join-Path $full '.git'))) { 'git|' + (Get-ArenaGitCheckoutIdentityMemo $full) } else { Get-ArenaStatManifest $full -Cap 20000 }
+        $identity = if ([IO.Directory]::Exists($full) -and (Test-Path -LiteralPath (Join-Path $full '.git'))) { 'git|' + (Get-ArenaGitCheckoutIdentityMemo $full) }
+            elseif ([IO.Directory]::Exists($full) -and (Test-ArenaProgramFilesPath $full)) { 'app|' + (Get-ArenaShallowManifest $full 3) }
+            else { Get-ArenaStatManifest $full -Cap 20000 }
         $lines.Add("external|$full|$identity")
     }
     return @($lines)

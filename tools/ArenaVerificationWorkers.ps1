@@ -92,6 +92,18 @@ function Sync-ArenaWorker([string]$Source, $Snapshot, [string]$Worker, [string[]
     $result = Get-ArenaRepoSnapshot $Worker
     $diff = Compare-ArenaSnapshots $Snapshot $result
     if ($diff) { throw "Worker $Worker does not match the checkout under test after the sync: $diff" }
+    # The registered fixtures under the ignored artifacts/ (a downloaded release, the decompiled installation)
+    # are inputs, so a worker gets the checkout's copy; the key reads them in the checkout under test.
+    foreach ($prefix in $ArenaArtifactInputs) {
+        $from = Join-Path $Source ($prefix -replace '/', '\')
+        $to = Join-Path $Worker ($prefix -replace '/', '\')
+        if (Test-Path -LiteralPath $to) { Remove-Item -LiteralPath $to -Recurse -Force }
+        if (Test-Path -LiteralPath $from) {
+            [IO.Directory]::CreateDirectory((Split-Path $to)) | Out-Null
+            Copy-Item -LiteralPath $from -Destination $to -Recurse -Force
+            Get-ChildItem -LiteralPath $to -Recurse -File | ForEach-Object { $_.LastWriteTimeUtc = $now }
+        }
+    }
     # Steps that build with --no-restore rely on a restore that ran earlier; the obj/ of a worker is its own and
     # starts empty, so restore those projects when their assets are missing or older than the project file.
     foreach ($project in $RestoreProjects) {
