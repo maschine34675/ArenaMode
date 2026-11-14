@@ -658,6 +658,17 @@ Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `
   with `--no-restore` into its own `IntermediateOutputPath`/`OutDir` and runs the DLL, `ARENA_MUTANT_PARALLEL` at
   a time (default 8; the runner sets cores / (2 x workers)). Side by side cannot let a survivor through: each
   mutant still needs its own non-zero exit and its own `FAIL: <name>`.
+- **A per-mutant environment variable needs a per-process environment.** `$env:` is process-wide and the mutants
+  run in runspaces of one process, so a variable set for one mutant would reach its neighbours. The helper starts
+  each mutant's build and program through `ProcessStartInfo` with the variable in that process only
+  (ArenaSessionClientChecks pins five sources through variables). A variable the harness sets with `$env:` before
+  the call reaches every process, which is what a repository root like `ARENA_REPO_ROOT` needs.
+- **A `Prepare` block runs inside the helper.** PowerShell scopes are dynamic: a script block invoked in
+  `Test-ArenaSourceFaults` resolves `$fault`, `$copy`, `$directory`, `$source` or `$text` to the helper's own
+  variables before the script's. TdmMatchChecks therefore names its extractor `$arenaExtractor`.
+- **A mutant that does not compile is never a kill.** With a raw failure text (`-FailurePrefix ''`), a compiler
+  error that happens to contain the phrase would have counted; the hand-written loops checked for `error CS` for
+  that reason, and the helper now refuses every mutant whose build failed.
 - **PowerShell names are case-insensitive.** `$worker = Get-ArenaRepoSnapshot $Worker` inside a function with a
   `[string]$Worker` parameter assigns to the PARAMETER, and the type constraint turns the snapshot into a string.
 - **Never start the runner inside a worker for a parallel run.** A worker checkout runs its steps sequentially,

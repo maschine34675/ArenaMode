@@ -137,8 +137,11 @@ still a raid**; the harnesses under `tools/<Feature>Checks/` cover the seams: ea
 production sources into a console program and its `Verify.ps1` runs the baseline, then
 hand-made mutants of the production code, each of which must fail its named assertion. A
 mutant is anchored on a literal of the production source: a changed production line shows
-up as "anchor missing" (`Test-ArenaSourceFaults` compares with LF line endings; the
-harnesses that use `Invoke-Mutant` also insist on exactly one site).
+up as "anchor missing" (`Test-ArenaSourceFaults` compares with LF line endings and, with
+`-RequireSingleSite`, insists on exactly one site). Write a new mutant loop through
+`Test-ArenaSourceFaults` in `tools/Invoke-ArenaSourceChecks.ps1`, not by hand: its header lists
+what a fault can carry (an MSBuild property, a per-mutant environment variable, chained edits,
+a `Prepare` block for extracted or copied sources, the failure prefix and marker).
 
 Inside a fix loop run only the affected harness; the whole suite and the whole mutant sets
 run once at the end of a pass, before the commit (`tools/Run-ArenaVerification.ps1`, which
@@ -164,7 +167,8 @@ register. Register every new offline harness there. Steps run four at a time (`-
 byte-identical to this checkout (HEAD plus every uncommitted, untracked and deleted file,
 checked file by file) before it starts; never edit or commit in a worker, and remove one
 only with `git worktree remove`. The mutants of `Test-ArenaSourceFaults` build side by side
-too (`ARENA_MUTANT_PARALLEL`); every mutant must still fail its named assertion. Several
+too (`ARENA_MUTANT_PARALLEL`); every mutant must still fail its named assertion, and one that
+does not compile is never a kill. Several
 older wrappers run the whole suite themselves (`git grep -n 'dotnet test' tools`). When
 adding a test, check that it fails against the bug it claims to catch (the zone test below
 was verified that way: reintroduce the comma and three tests go red). The xunit tests exist

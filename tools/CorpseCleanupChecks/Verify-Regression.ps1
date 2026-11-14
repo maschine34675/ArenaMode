@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\Invoke-ArenaSourceChecks.ps1')
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $arenaSource = Join-Path $arenaRepo 'ArenaMode.Client\Bots\CorpseCleanupService.cs'
 $arenaProject = Join-Path $PSScriptRoot 'CorpseCleanupChecks.csproj'
-$arenaOriginal = [IO.File]::ReadAllText($arenaSource)
 function Get-ArenaSha256([string] $Path) {
     $arenaSha = [Security.Cryptography.SHA256]::Create()
     try { return [BitConverter]::ToString($arenaSha.ComputeHash([IO.File]::ReadAllBytes($Path))).Replace('-', '') }
@@ -12,10 +12,7 @@ $arenaHash = Get-ArenaSha256 $arenaSource
 # The damage-source guard is linked as production source too, so its own rules
 # can be mutated rather than only its call site. Target = 'DamageSources'.
 $arenaSourcesSource = Join-Path $arenaRepo 'ArenaMode.Client\Bots\CorpseDamageSources.cs'
-$arenaSourcesNormalized = [IO.File]::ReadAllText($arenaSourcesSource).Replace("`r`n", "`n")
 $arenaSourcesHash = Get-ArenaSha256 $arenaSourcesSource
-$arenaMutantDir = Join-Path ([IO.Path]::GetTempPath()) ('arena-cleanup-mutants-' + [guid]::NewGuid().ToString('N'))
-[void][IO.Directory]::CreateDirectory($arenaMutantDir)
 $arenaPair = @'
                         try
                         {
@@ -30,7 +27,6 @@ $arenaUnprotectedPair = @'
                         result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Begin);
                         result.Value.RaiseEvents(controller, EFT.InventoryLogic.CommandStatus.Succeed);
 '@
-$arenaNormalized = $arenaOriginal.Replace("`r`n", "`n")
 # The dead-body record is cleared AFTER the AI's knowledge of the person, because
 # clearing that knowledge is itself what re-creates the record. Moving it earlier
 # takes two edits, and so does defeating a pair of guards that protect the same
@@ -376,55 +372,25 @@ $arenaMutants = @(
        To2 = "        var profileId = corpse.PlayerProfileID;`n        Diagnostics.CorpseReleaseLedger.Record(profileId, _sweep);";
        Failure = 'a failed release records nothing: the damage diagnostic must never name a body that is still there: retire' }
 )
-foreach ($arenaMutant in $arenaMutants) {
+# The shared helper runs the baseline, every mutant (side by side, each in its own output directory) and
+# the production checks again. The second edit of a mutant applies to the text the first one left.
+# The Failure is compared with whitespace runs collapsed on both sides: an unhandled exception's dump used to
+# come back word-wrapped at the console width through PowerShell's stderr rendering (mutant
+# 'pooled-instead-of-destroyed', 2026-09-18 review pass); the helper reads the pipes directly, so the
+# collapse now only keeps the phrases independent of line breaks in the exception text.
+$arenaFaults = foreach ($arenaMutant in $arenaMutants) {
     $arenaOnSources = $arenaMutant.ContainsKey('Target') -and $arenaMutant.Target -eq 'DamageSources'
-    $arenaText = if ($arenaOnSources) { $arenaSourcesNormalized } else { $arenaNormalized }
-    $arenaProperty = if ($arenaOnSources) { 'DamageSourcesSource' } else { 'CleanupSource' }
-    if (-not $arenaText.Contains($arenaMutant.From)) { throw "Missing mutation anchor: $($arenaMutant.Name)" }
-    $arenaMutated = $arenaText.Replace($arenaMutant.From, $arenaMutant.To)
+    $arenaFault = @{ Name = $arenaMutant.Name; Failure = $arenaMutant.Failure
+        Path = $(if ($arenaOnSources) { $arenaSourcesSource } else { $arenaSource })
+        Property = $(if ($arenaOnSources) { 'DamageSourcesSource' } else { 'CleanupSource' })
+        Find = $arenaMutant.From; Replace = $arenaMutant.To }
     if ($arenaMutant.ContainsKey('From2')) {
-        if (-not $arenaMutated.Contains($arenaMutant.From2)) { throw "Missing second mutation anchor: $($arenaMutant.Name)" }
-        $arenaMutated = $arenaMutated.Replace($arenaMutant.From2, $arenaMutant.To2)
+        $arenaFault.Find = @($arenaMutant.From, $arenaMutant.From2)
+        $arenaFault.Replace = @($arenaMutant.To, $arenaMutant.To2)
     }
-    $arenaPath = Join-Path $arenaMutantDir ($arenaMutant.Name + '.cs')
-    [IO.File]::WriteAllText($arenaPath, $arenaMutated)
-    # A UNIQUE build output per mutant, not the project's shared bin/. A prior
-    # run reported this script failing nondeterministically with an MSB3026
-    # "being used by another process" warning at a DIFFERENT mutant each
-    # time (2026-09-18 review pass, minor finding); this was not reproduced
-    # directly, but giving every mutant its own output directory removes any
-    # possibility of one mutant's build touching a file a previous run's
-    # process has not yet released, whatever the exact original cause was.
-    # (The actually-reproduced part of that finding turned out to be a
-    # different bug entirely - see the Contains() fix below.)
-    $arenaOutDir = Join-Path $arenaMutantDir ($arenaMutant.Name + '.out')
-    $arenaPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        $arenaOutput = & dotnet run --project $arenaProject -c Release "-p:${arenaProperty}=$arenaPath" "-p:BaseOutputPath=$arenaOutDir\" 2>&1 | Out-String
-        $arenaExit = $LASTEXITCODE
-    }
-    finally { $ErrorActionPreference = $arenaPreference }
-    # PowerShell renders a native process's merged stderr (2>&1) through its
-    # own ErrorRecord formatting, which WORD-WRAPS at the host's console
-    # width - and an unhandled .NET exception's own dump is exactly what a
-    # rejected mutant throws. A long Failure phrase can straddle that wrap
-    # and come back with a newline in the middle of it, and because the wrap
-    # position also depends on the length of whatever precedes it on screen
-    # (this mutant's own GUID-named temp path, different every run), WHICH
-    # Failure text gets broken looks random from one run to the next - this
-    # is what a prior run diagnosed as a build-output file-lock race; it is
-    # not one (reproduced deterministically without any lock, mutant
-    # 'pooled-instead-of-destroyed', 2026-09-18 review pass). Collapsing
-    # whitespace runs on both sides before comparing survives any wrap.
-    $arenaOutputFlat = $arenaOutput -replace '\s+', ' '
-    if ($arenaExit -eq 0 -or -not $arenaOutputFlat.Contains(($arenaMutant.Failure -replace '\s+', ' '))) {
-        throw "Mutant was not rejected by its intended assertion: $($arenaMutant.Name)`n$arenaOutput"
-    }
-    Write-Output "Rejected mutant: $($arenaMutant.Name)"
+    $arenaFault
 }
+Test-ArenaSourceFaults $arenaProject 'CORPSE_CLEANUP_CHECKS_PASSED' @() @($arenaFaults) -FailurePrefix '' -CollapseWhitespace
 if ((Get-ArenaSha256 $arenaSource) -ne $arenaHash) { throw 'Production source changed' }
 if ((Get-ArenaSha256 $arenaSourcesSource) -ne $arenaSourcesHash) { throw 'Production damage-source guard changed' }
-& dotnet run --project $arenaProject -c Release
-if ($LASTEXITCODE -ne 0) { throw 'Production checks failed' }
 Write-Output 'ARENA_CORPSE_CLEANUP_REGRESSION_PASSED'

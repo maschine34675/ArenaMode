@@ -1,5 +1,6 @@
 param([string]$SptPath = ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))))
 . (Join-Path $PSScriptRoot '../Read-ArenaInstalledSnapshot.ps1')
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $arenaSnapshotRoot = $SptPath
 $arenaLayoutSnapshot = Read-ArenaInstalledSnapshot $arenaSnapshotRoot
 try {
@@ -38,20 +39,9 @@ foreach ($path in @('BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Clien
     'SPT_Runtime/user/mods/ArenaMapPort/db/arena_bowl/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_iceberg/base.json','SPT_Runtime/user/mods/ArenaMapPort/db/arena_autoservice/base.json')) {
     $pickupInstalled[$path] = (Get-ArenaObservedFileHash -LiteralPath (Join-Path $SptPath $path)).Hash
 }
-function Run-Pickup([string]$name, [string]$source, [string]$failure = '') {
-    $directory = Join-Path $pickupEvidence $name; [void][IO.Directory]::CreateDirectory($directory)
-    $build = & dotnet build (Join-Path $PSScriptRoot 'ArenaPickupChecks.csproj') -c Release --nologo `
-        "-p:PickupSourceRoot=$source" "-p:BaseIntermediateOutputPath=$directory/obj/" "-p:OutputPath=$directory/out/" 2>&1 | Out-String
-    $code = $LASTEXITCODE; [IO.File]::WriteAllText((Join-Path $directory 'build.log'), $build)
-    if ($code -ne 0) { throw "$name must compile before behavioral verification: $build" }
-    $run = & dotnet (Join-Path $directory 'out/ArenaPickupChecks.dll') $SptPath 2>&1 | Out-String
-    $code = $LASTEXITCODE; [IO.File]::WriteAllText((Join-Path $directory 'result.log'), $run)
-    if ($failure) {
-        if ($code -eq 0 -or !$run.Contains('ASSERT: ' + $failure)) { throw "$name did not reject intended fault: $run" }
-        Write-Output "Rejected $name at: $failure"
-    } elseif ($code -ne 0 -or !$run.Contains('ARENA_PICKUP_BEHAVIOR_PASSED:')) { throw "$name failed: $run" }
-    else { Write-Output $run.Trim() }
-}
+# The pickup sources the project compiles from $(PickupSourceRoot); a fault copies all of them into its own
+# folder with the one file mutated.
+$pickupFiles = @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupMapLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs','ArenaHealthPickup.cs','ArenaPowerupState.cs')
 try {
     # These are wiring/ownership source contracts only, not simulated visual acceptance.
     $contracts = @(
@@ -96,7 +86,6 @@ try {
     if ($view -match 'Destroy\(weapon\)|weapon\.transform\.SetParent') { throw 'View must not destroy/reparent native pooled weapon.' }
     $contractCount = $contracts.Count + 2
     Write-Output "ARENA_PICKUP_SOURCE_CONTRACTS_PASSED: $contractCount assertions (not Unity visual proof)"
-    Run-Pickup 'production' $pickupSource
     $faults = @(
         @{Name='factory-local-anchor';File='ArenaPickupRuntime.cs';Find='|| ArenaPickupGeometry.TryFactoryAnchor(_layout, out anchor);';Replace='|| true;';Failure='isolated local Factory spawn still places all six connected pickups: factory4_day'},
         @{Name='factory-local-rotation';File='ArenaPickupRuntime.cs';Find='if (!TryPlacementAnchor(anchor, out anchor))';Replace='if (false)';Failure='Factory rotation uses the same independent network while player remains isolated: factory4_day'},
@@ -142,19 +131,21 @@ try {
         @{Name='anchor-unbounded';File='ArenaPickupRuntime.cs';Find='_placementDeadline = Time.time + 15f;';Replace='_placementDeadline = Time.time + 300f;';Failure='anchor timeout skips round without repeated warning'},
         @{Name='disable-recreates';File='ArenaPickupRuntime.cs';Find='if (ReferenceEquals(_disabledMatch, match)) return;';Replace='';Failure='disable latch prevents same match recreation'}
     )
+    # Baseline, every fault (side by side, each in its own output directory; exactly one site per anchor) and
+    # the production sources again, all through the shared helper.
     foreach ($fault in $faults) {
-        $faultRoot = Join-Path $pickupEvidence ($fault.Name + '/source'); [void][IO.Directory]::CreateDirectory($faultRoot)
-        foreach ($name in @('ArenaPickupRuntime.cs','ArenaPickupState.cs','ArenaPickupLayout.cs','ArenaPickupMapLayout.cs','ArenaPickupGeometry.cs','ArenaPickupWeapons.cs','ArenaHealthPickup.cs','ArenaPowerupState.cs')) {
-            $text = [IO.File]::ReadAllText((Join-Path $pickupSource $name))
-            if ($name -eq $fault.File) {
-                if ($text.Split(@($fault.Find), [StringSplitOptions]::None).Length -ne 2) { throw "Ambiguous fault anchor: $($fault.Name)" }
-                $text = $text.Replace($fault.Find, $fault.Replace)
+        $fault.Path = Join-Path $pickupSource $fault.File
+        $fault.CopyName = $fault.File
+        $fault.Prepare = {
+            param($Copy, $Directory)
+            foreach ($name in $pickupFiles) {
+                if ($name -ne (Split-Path -Leaf $Copy)) { Copy-Item -LiteralPath (Join-Path $pickupSource $name) -Destination (Join-Path $Directory $name) }
             }
-            [IO.File]::WriteAllText((Join-Path $faultRoot $name), $text)
+            "-p:PickupSourceRoot=$Directory"
         }
-        Run-Pickup $fault.Name $faultRoot $fault.Failure
     }
-    Run-Pickup 'production-final' $pickupSource
+    Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'ArenaPickupChecks.csproj') 'ARENA_PICKUP_BEHAVIOR_PASSED:' @("-p:PickupSourceRoot=$pickupSource") $faults `
+        -FailurePrefix 'ASSERT: ' -RequireSingleSite -Arguments $SptPath
     foreach ($path in $pickupInputs.Keys) {
         if ((Get-ArenaObservedFileHash -LiteralPath (Join-Path $pickupRepo $path)).Hash -ne $pickupInputs[$path]) { throw "Bound source changed; rerun required: $path" }
     }

@@ -1,5 +1,6 @@
 param()
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $project = Join-Path $PSScriptRoot 'TeamDeathmatchRuntimeChecks.csproj'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $mode = Join-Path $repo 'ArenaMode.Client/Modes/TeamDeathmatchMode.cs'
@@ -13,25 +14,6 @@ $shieldLease = Join-Path $repo 'ArenaMode.Client/Modes/TeamSpawnProtectionLease.
 $sources = @($mode, $population, $relations, $awareness, $flow, $policy, $shield, $shieldLease)
 $before = @{}
 foreach ($source in $sources) { $before[$source] = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash }
-$scratch = Join-Path ([IO.Path]::GetTempPath()) ('arena-tdm-runtime-mutations-' + [Guid]::NewGuid().ToString('N'))
-[IO.Directory]::CreateDirectory($scratch) | Out-Null
-
-function Invoke-Model([string[]] $properties) {
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $output = & dotnet run --project $project --configuration Release @properties 2>&1 |
-            ForEach-Object { $_.ToString() } | Out-String -Width 10000
-        $code = $LASTEXITCODE
-        return @{ Output = $output; Code = $code }
-    }
-    finally { $ErrorActionPreference = $previous }
-}
-
-$baseline = Invoke-Model @()
-if ($baseline.Code -ne 0 -or $baseline.Output -notmatch 'ARENA_TDM_RUNTIME_CHECKS_PASSED') {
-    throw ('Runtime model baseline failed: ' + $baseline.Output)
-}
 $cases = @(
     @{
         Name = 'spawn-shield-no-expiry'; Path = $shieldLease; Property = 'ShieldLeaseSource';
@@ -269,35 +251,14 @@ $cases = @(
         Failure = 'frozen time-limit settings finish an equal score as a draw exactly at deadline'
     }
 )
-foreach ($case in $cases) {
-    $text = [IO.File]::ReadAllText($case.Path).Replace("`r`n", "`n")
-    $finds = @($case.Find | ForEach-Object { $_.Replace("`r`n", "`n") })
-    $replacements = @($case.Replace | ForEach-Object { $_.Replace("`r`n", "`n") })
-    if ($finds.Count -ne $replacements.Count) { throw ('Mutation replacement count differs: ' + $case.Name) }
-    for ($i = 0; $i -lt $finds.Count; $i++) {
-        if (($text.Split(@($finds[$i]), [StringSplitOptions]::None).Length - 1) -ne 1) {
-            throw ('Mutation anchor must occur exactly once: ' + $case.Name)
-        }
-        $text = $text.Replace($finds[$i], $replacements[$i])
-    }
-    $copy = Join-Path $scratch ($case.Name + '.cs')
-    [IO.File]::WriteAllText($copy, $text)
-    $result = Invoke-Model @('-p:' + $case.Property + '=' + $copy)
-    if ($result.Code -eq 0 -or $result.Output -notmatch [regex]::Escape($case.Failure)) {
-        throw ('Mutation did not fail for its intended behavioral assertion: ' + $case.Name + [Environment]::NewLine + $result.Output)
-    }
-    Write-Output ('PASS mutation: ' + $case.Name)
-}
+# The shared helper runs the baseline, every mutation (side by side, each in its own output directory; the
+# replacements of a case apply in order, each anchor exactly once) and the unchanged sources again.
+Test-ArenaSourceFaults $project 'ARENA_TDM_RUNTIME_CHECKS_PASSED' @() $cases -FailurePrefix '' -RequireSingleSite
 foreach ($source in $sources) {
     if ($before[$source] -ne (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash) {
         throw ('Production source changed during regression runner: ' + $source)
     }
 }
-$restored = Invoke-Model @()
-if ($restored.Code -ne 0 -or $restored.Output -notmatch 'ARENA_TDM_RUNTIME_CHECKS_PASSED') {
-    throw ('Unchanged production source failed after mutation controls: ' + $restored.Output)
-}
-Write-Output $restored.Output.Trim()
 & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'BurstIntegration/Run.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'Extracted production burst preparation regression failed' }
 Write-Output 'ARENA_TDM_RUNTIME_REGRESSION_PASSED'

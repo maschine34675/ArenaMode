@@ -1,5 +1,6 @@
 param([switch] $BaselineOnly)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../../Invoke-ArenaSourceChecks.ps1')
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 $sourcePath = Join-Path $repo 'ArenaMode.Client/Bots/BurstSpawnService.cs'
 $source = [IO.File]::ReadAllText($sourcePath)
@@ -35,24 +36,16 @@ $guard
 "@
     return $extracted
 }
-function Run-Extracted([string] $text, [string] $name) {
-    $path = Join-Path $scratch ($name + '.cs')
-    [IO.File]::WriteAllText($path, $text)
-    $previous = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        $output = & dotnet run --project $project -c Release "-p:ExtractedBurstSource=$path" 2>&1 | Out-String -Width 10000
-        return @{ Exit = $LASTEXITCODE; Output = $output }
-    }
-    finally { $ErrorActionPreference = $previous }
-}
-
 $extracted = Get-Extracted $source
-$positive = Run-Extracted $extracted 'production'
-if ($positive.Exit -ne 0 -or !$positive.Output.Contains('ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED')) {
-    throw ('Production burst integration failed: ' + $positive.Output)
+$production = Join-Path $scratch 'production.cs'
+[IO.File]::WriteAllText($production, $extracted)
+if ($BaselineOnly) {
+    $positive = Invoke-ArenaCheckProcess $project @("-p:ExtractedBurstSource=$production")
+    if ($positive.Code -ne 0 -or !$positive.Output.Contains('ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED')) {
+        throw ('Production burst integration failed: ' + $positive.Output)
+    }
+    Write-Output $positive.Output.Trim()
 }
-Write-Output $positive.Output.Trim()
 if (!$BaselineOnly) {
     $faults = @(
         @{ Name = 'equator-unrestricted-preflight'; Find = 'bool available = ArenaTeamBoxRuntime.IsRequired'; Replace = 'bool available = false';
@@ -100,15 +93,21 @@ if (!$BaselineOnly) {
         # Only the exact extracted production methods are compiled here. The
         # later solo-population path has similar guards but is outside this
         # test; never mutate it or count its anchors as a TDM fault target.
+        # So the anchor must be unique in the extracted methods; the helper
+        # edits the copy of the whole file, where sites outside them are not
+        # compiled, and Prepare extracts the methods from that copy.
         if (($extracted.Split(@($fault.Find), [StringSplitOptions]::None).Count - 1) -ne 1) {
             throw ('Fault anchor is not unique: ' + $fault.Name)
         }
-        $negative = Run-Extracted ($extracted.Replace($fault.Find, $fault.Replace)) $fault.Name
-        if ($negative.Exit -eq 0 -or !$negative.Output.Contains($fault.Failure)) {
-            throw ('Fault missed intended integration assertion: ' + $fault.Name + [Environment]::NewLine + $negative.Output)
+        $fault.Path = $sourcePath
+        $fault.Prepare = {
+            param($Copy, $Directory)
+            $methods = Join-Path $Directory 'extracted.cs'
+            [IO.File]::WriteAllText($methods, (Get-Extracted ([IO.File]::ReadAllText($Copy))))
+            "-p:ExtractedBurstSource=$methods"
         }
-        Write-Output ('PASS burst fault: ' + $fault.Name)
     }
+    Test-ArenaSourceFaults $project 'ARENA_TDM_BURST_PREPARATION_CHECKS_PASSED' @("-p:ExtractedBurstSource=$production") $faults -FailurePrefix ''
 }
 if ($before -ne (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash) { throw 'Production burst source changed during integration checks' }
 Write-Output 'ARENA_TDM_BURST_PREPARATION_REGRESSION_PASSED'
