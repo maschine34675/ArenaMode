@@ -62,8 +62,20 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   the run (BepInEx's header line names v0.6.0 now).
   **Open after the release:** the Forge upload; a look at the published ArenaMapPort 0.6.0 package with
   ArenaMode 0.6.0 once it is out; what the native report lists as not run (Gun Game, Zombies, Tactical on
-  Iceberg and Chop Shop, a match to its limit, a capture-point hold, the Session.exe path); the three
-  verification steps without their PitFireTeam reference trees.
+  Iceberg and Chop Shop, a match to its limit, a capture-point hold, the Session.exe path).
+  **Done after the release: the three PitFireTeam steps run again (2026-11-14 afternoon).** Their reference
+  material was restored outside the repository and checked (sources under "Build and dependency traps"),
+  and `-Harness PitFireTeam100Checks,PitFireTeamRoundLifecycleChecks,tools/PftTacticalKitChecks/Verify-Integration.ps1`
+  passed on `eb9fdcf5`, nothing cached, 354 s: `PFT_100_CONTRACTS_VERIFIED` (97 assertions; the one damaged
+  metadata fixture logs its expected contract mismatch), the absent-PFT control, both legacy metadata sets
+  (0.10.0: 63 contracts, 0.10.3: 64), `PITFIRETEAM_ROUND_LIFECYCLE_CHECKS_PASSED` (500 assertions),
+  `PFT_TACTICAL_KIT_INTEGRATION_OK`, and the suite 3,917 of 3,920 with the three known skips. They stay
+  pinned to the old baselines instead of the 1.1.x trees: 0.10.0, 0.10.3 and 1.0.0 are still reviewed and
+  admitted (`PitFireTeamVersions.VerifiedPluginVersions`, docs/DEPENDENCIES.md), the adapter binds builds
+  below 1.1.0 byte for byte as before, and the 1.1.1 source calls `BossPlayers.AddFollower` with more
+  arguments (`client/Patches/BotsControllerPatch.cs:1117`), which would fail the 0.10.0 pin falsely, the
+  reason for `d4f87e0d`; 1.1.1 itself is covered by `PitFireTeamChecks`. The release record
+  (RELEASE-0.6.0.md, "Package checks") stays as it was: at packaging time the steps did not run.
 
 - **Development, 2026-11-13 evening: the pre-release polish is in `master`; installed is its second test
   build, `master` itself was deliberately not deployed.** Five requests of the user before the release: the
@@ -628,7 +640,8 @@ postfix assignments, mutants) and the installed metadata (skipped below 1.1.0); 
 preflight itself is proven only natively (GPU-2 Tactical, three rounds, in the 0.5.0 cycle).
 Known limit: a companion wounded in a normal raid is refused by 1.1.1 at the Arena start; the
 player heals it in PFT's menu. `PitFireTeam100Checks` (1.0.0 release folder) and
-`PitFireTeamRoundLifecycleChecks` (0.10.0 reference checkout) need folders this machine lacks.
+`PitFireTeamRoundLifecycleChecks` (0.10.0 reference checkout) need folders this machine lacks
+(restored and passing since 2026-11-14, see "Released and installed").
 Contract and findings: [PITFIRETEAM-111-20261107.md](reviews/PITFIRETEAM-111-20261107.md).
 
 **Crowd reactions, ArenaMode side (2026-11-02, branch `feature/crowd-reactions` from
@@ -973,6 +986,17 @@ and links the evidence). Multiplayer with Fika is a concept only
 - Packaging a release needs the Redeploy checkout at the Core's build commit
   (`Package-TestRelease.ps1 -Release -CoreAssemblyPath … -CoreAssemblySha256 …` checks the
   Core's `ProductVersion`); make Redeploy's docs commits after the Arena package exists.
+- Three PitFireTeam steps read third-party material that is never committed or bundled (licence rule 3)
+  and fail without it; they are not obsolete while those versions are admitted.
+  `PitFireTeamRoundLifecycleChecks` and the integration stage of `PftTacticalKitChecks` read
+  `../_reference/SPT-PitFireTeam-beta-0.10.0`: `git clone --depth 1 --branch beta-0.10.0
+  https://github.com/pitAlex/SPT-PitFireTeam.git`, HEAD must be `109760c7a5aad3fdb181941e10ce035c3840bb4d`.
+  `PitFireTeam100Checks` reads the unmodified release ZIPs 1.0.0, beta-0.10.0 and beta-0.10.3 extracted
+  under the ignored `artifacts/pft-100-contracts/release`, `legacy-0.10.0` and `legacy-0.10.3` (URLs and
+  the 1.0.0 DLL hashes in `tools/PitFireTeam100Checks/README.md`; the runner copies that folder into its
+  workers). Check each ZIP against the digest GitHub shows for the asset. This machine keeps the three
+  ZIPs in `C:\Users\Administrator\Downloads`. No harness reads the 1.1.0 and 1.1.1 trees in `_reference`
+  (they serve the reviews); `PitFireTeamChecks` checks the installed PFT's metadata instead.
 
 ## Where to look next
 
