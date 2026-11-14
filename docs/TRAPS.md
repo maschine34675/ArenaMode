@@ -34,14 +34,43 @@ The xunit tests exist because these are the things that broke repeatedly and qui
   `LocationScene.GetAllObjects<WorldInteractiveObject>()` and keep the `Door`s, as
   `Modes/ArenaRoundDoorReset.cs` does; log what the walk saw, because a reset that finds
   nothing looks exactly like one that had nothing to do (docs/reviews/TACTICAL-OBJECTIVE-20261108.md).
-- **Every ArenaMode build deploys the Redeploy checkout's Core (2026-11-08)** — the
-  `ProjectReference` to `Redeploy.Core` builds and deploys that project, and
-  `tools/AirPitChecks/NoDeploy.targets` does not cover it: a no-deploy client build still
-  wrote `maschine-Redeploy.Core.dll` into `D:\SPT41`, from whatever commit the Redeploy
-  checkout is on (1.0.21 that day, while the hosts ran 1.0.20), and Syncthing mirrored it.
-  ArenaMode is then built against that Core and its `CoreVersionGate` refuses an older one,
-  so the release bytes cannot simply be copied back. Check `git -C ..\Redeploy log -1` and the
-  installed Core's ProductVersion before any build, and record both in the run's report.
+- **A NORMAL ArenaMode build deploys the Redeploy checkout's Core; a no-deploy build does
+  not (2026-11-08, corrected 2026-11-14)** — the `ProjectReference` to `Redeploy.Core`
+  (in the client since 2026-08-27) builds that project, and its own `SPTClientDeploy`
+  (Redeploy `Shared.props`, `SPTModType=Client` pinned by the Core project) installs
+  `maschine-Redeploy.Core.dll` flat into `BepInEx\plugins`, from whatever commit the Redeploy
+  checkout is on (1.0.21 on 2026-11-08, while the hosts ran 1.0.20; Syncthing mirrored it).
+  The client is stamped against that checkout's `CoreVersion.props` and its `CoreVersionGate`
+  refuses an older Core, so the release bytes cannot simply be copied back. Check
+  `git -C ..\Redeploy log -1` and the installed Core's ProductVersion before any normal build
+  and record both in the run's report.
+  **`tools/AirPitChecks/NoDeploy.targets` does cover the Core.** It reaches the referenced
+  project as a global property (`CustomAfterMicrosoftCommonTargets`, absolute path), and its
+  empty `SPTClientDeploy` replaces Redeploy's. This entry first said the opposite, from the
+  2026-11-08 Tactical session: it saw the Core at 1.0.20 before its builds and at 1.0.21 after
+  its 15:06 deploying build and blamed the no-deploy build of 14:17 as well. The record cannot
+  separate the two, the deploying build alone explains it, and a Redeploy session was
+  committing Core 1.0.21 the same day (a normal Redeploy build installs the Core as well).
+  `xcopy /F` also keeps the SOURCE file's time, so the installed
+  Core's file time is the compile time of the DLL in `Redeploy.Core\bin`, which any build
+  that compiles the Core (a no-deploy one too) sets, not the time of an install. Nothing
+  relevant changed after that day: `NoDeploy.targets` has overridden `SPTClientDeploy` since
+  2026-10-17, and between Redeploy `bebf49b0` (Core 1.0.21) and today the build files differ
+  only in the version numbers.
+  Measured 2026-11-14 without touching `D:\SPT41`: the documented solution build (`-c Release`,
+  `-p:CustomAfterMicrosoftCommonTargets=<repo>\tools\AirPitChecks\NoDeploy.targets`, an absent
+  `SPTUserMods`) plus `-p:SPTPath` and `-p:SPTUserPath` on a scratch root (junctions to the
+  game's `Managed`, `BepInEx\core`, `BepInEx\plugins\spt`). MSBuild's own log: `Target
+  "SPTClientDeploy" in project "Redeploy\Shared.props" is overridden by target
+  "SPTClientDeploy" from project "ArenaMode\tools\AirPitChecks\NoDeploy.targets"` (the
+  Arena `Shared.props`, `DeployToSpt`, `DeployArenaAudioAssets`, `DeployArenaGate` and
+  `DeployArenaSessionHelper` likewise); no `xcopy` and no `Deploy-Arena*.ps1` ran, the scratch
+  root received nothing, and the live listing (103 files: the Core with SHA-256 and file time,
+  the plugin folder, patcher, server mod) was identical before and after. The deploying build
+  was not repeated, by instruction; its effect rests on the reading above and on 2026-11-08.
+  **A hash comparison alone cannot show it** when `Redeploy.Core\bin` already holds the
+  installed bytes (after a release): compare the file time (a deploy rewrites it to the
+  `bin` file's) or read MSBuild's override lines.
 - **UiBridge godmode does not survive a Tactical body swap (2026-11-08)** — the hook protects
   the Player object it was set on; a round start that hands the player a new body (a kit,
   the respawn after a death) leaves the new body mortal. Set it again after every round start

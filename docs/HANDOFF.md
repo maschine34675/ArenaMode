@@ -63,10 +63,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   **Open after the release:** the Forge upload; a look at the published ArenaMapPort 0.6.0 package with
   ArenaMode 0.6.0 once it is out; what the native report lists as not run (Gun Game, Zombies, Tactical on
   Iceberg and Chop Shop, a match to its limit, a capture-point hold, the Session.exe path); the three
-  verification steps without their PitFireTeam reference trees; `docs/TRAPS.md` still says a no-deploy
-  build writes the sibling Core, while the no-deploy builds of 2026-11-13 and 2026-11-14 left the
-  installed Core byte-identical (`NoDeploy.targets` empties `SPTClientDeploy`, which is also the Core's
-  target): decide which is right before trusting either.
+  verification steps without their PitFireTeam reference trees.
 
 - **Development, 2026-11-13 evening: the pre-release polish is in `master`; installed is its second test
   build, `master` itself was deliberately not deployed.** Five requests of the user before the release: the
@@ -552,7 +549,8 @@ down handing every bot to the pursuit while the point's clock ran on, the server
 begin with KillsOnly. Not covered natively: the ported maps, a refused point, the reward settlement,
 a follower capture without the PMC. **Core on all hosts is `1.0.21+bebf49b0`** (Redeploy `main` with the
 Plate, Skills Extended and ladder adapters): this session's ArenaMode builds deployed the checkout's
-Core (NoDeploy.targets does not cover Core), and ArenaMode is built against it (`CoreVersionGate`), so
+Core (NoDeploy.targets does not cover Core [corrected 2026-11-14: it does; only the deploying build wrote
+the Core, see TRAPS.md]), and ArenaMode is built against it (`CoreVersionGate`), so
 the 1.0.20 release bytes cannot simply be put back; the user decided on 2026-11-08 that the newer Core
 stays deployed. Dev build **`0.5.0+e1dfc344`**
 (client and server, rebuilt from the commit) installed on `D:\SPT41`, mirrored to every host and

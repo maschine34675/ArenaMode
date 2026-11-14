@@ -19,7 +19,9 @@ showed (below) and the third raid ran the committed state.
   plugin load 40 ok.
 - **Core drift (observation, not part of the package):** the installed
   `maschine-Redeploy.Core.dll` was `1.0.20+ade752a` before this session's builds. The
-  no-deploy client build at 14:17 (NoDeploy.targets does not cover Core) and the deploy build
+  no-deploy client build at 14:17 (NoDeploy.targets does not cover Core [correction
+  2026-11-14: it does, and the record cannot show that the 14:17 build installed anything; see
+  [TRAPS.md](../../TRAPS.md)]) and the deploy build
   wrote Redeploy's current `main` Core, **`1.0.21+bebf49b0`** (Plate blood state, Skills
   Extended owned body, ladder dismount, Loot In Vicinity owner; committed on Redeploy `main`,
   no public API change), to `D:\SPT41`, and Syncthing mirrored it to every host. ArenaMode
