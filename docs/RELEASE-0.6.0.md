@@ -200,8 +200,70 @@ in PFT's own menu. Records:
 
 ## Native release check
 
-Pending: filled in after packaging and the native run.
+On the GPU test host SPT-GPU-2 (SPT 4.1.6) with these exact binaries loaded, together with
+Redeploy 1.1.3, PitFireTeam 1.1.1 and the ArenaMapPort build `0.6.0+8755049c` that was installed
+on the host that day (ArenaMapPort 0.6.0 itself was not published yet when the run took place):
+Team DM on Chop Shop from the pockets with an Arena respawn through Core 1.0.24; Domination on
+The Lab with its three points verified and both teams holding a point within half a minute;
+solo Tactical on Equator over three rounds with five opponents each; a PitFireTeam Tactical
+match on Equator with two companions, whose second round started with the companions respawned
+through Arena's lease and five opponents planned again, without a no-contest end; the KITS
+window with its DONE button; Domination in Customs Yard, 3v3, with the area, its three points
+and the routes from both starts verified; and a Redeploy respawn near the corpse in a normal
+Factory raid. No Arena, Core or Redeploy warning or error beyond one known note: the two
+Tactical runs used a test timing that excludes a capture-point hold, and Arena says so in a
+warning. The other warnings were third-party and engine notes (PitFireTeam 1.1.1's HarmonyX
+note for the optional Questing Bots it does not find, one ArenaMapPort `[Physics] impact sound
+skipped` warning, the start-up notes of third-party plugins, Unity's scene notes), and one
+native `BotFirstAid` exception fell into the seconds in which a raid was being left. After the
+Customs Yard raid the profile differed from a copy taken just before it in one Hideout
+timestamp (a first comparison across the installation also showed SPT's own start-up changes
+and was not counted); every PitFireTeam server file was byte-identical across the Arena raids,
+and the two settings the menu had changed were put back. Not run: Gun Game, Zombies, Domination
+on Chop Shop and The Labyrinth, Tactical on Iceberg and Chop Shop, a match to its limit or
+reward, a capture-point hold, the spectator camera, the Session.exe path and a private Arena
+session, the published ArenaMapPort 0.5.0 data, the mods of the Core 1.0.21 to 1.0.24
+handovers, and anything on the second test host. Record:
+[GPU-RELEASE-060-20261114.md](reports/2026-11/GPU-RELEASE-060-20261114.md).
 
 ## Package checks
 
-Pending: filled in after packaging and the native run.
+Built from `39dfcf77345fb08cbe47fe656af397dba7cef531`. ZIP SHA-256:
+`8d260af6cb78486877cc4ffb0b86eeb2e1c408f953f6a797422088f016b27857` (7,356,945 bytes, 74
+files). The package manifest records Core 1.0.24 from Redeploy `67f8303` as a verified input;
+the bundled Core is byte-identical to the one in Redeploy 1.1.3. Package contents, paths,
+hashes, defaults, 31 notice links and 41 audio provenance records passed the package verifier,
+and the PitFireTeam rule (no PitFireTeam binary, no byte-identical reference payload) passed
+against the 1.1.1 reference tree.
+
+Fresh checks in the isolated source snapshot: 3,916 passed with four environment-dependent
+skips (two reward-recovery fixtures, the installed-APBS probe and the installed-PitFireTeam
+transaction-target probe). Before packaging, every step of the offline verification register
+(144 harness steps) and the unit test suite ran uncached on the release tree as it stood
+before the last document corrections and the repair of one harness (ten files differ from the
+release commit, no mod source among them). 141 steps and the suite pass (3,920 tests, 3,917
+passed, the three known environment skips); one of them, `NativeStopChecks`, did not compile in
+that run, was repaired in the release commit and passes with all five of its mutants
+rejected; it, the three other steps the later changes touch and the suite ran again,
+uncached, on the release commit. The other three steps cannot run on the build machine
+because they compare with PitFireTeam
+reference trees that are not on it (`PitFireTeam100Checks` needs the 1.0.0 release,
+`PitFireTeamRoundLifecycleChecks` and the integration stage of `PftTacticalKitChecks` the
+beta 0.10.0 source); the PitFireTeam 1.1.1 checks ran. No credential scan was run for this
+release.
+
+VirusTotal results below apply to these exact binaries (14 November 2026). The five DLLs had no
+malicious or suspicious labels. The unsigned helper `maschine-ArenaMode.Session.exe` has **3
+malicious labels** (CrowdStrike `win/malicious_confidence_60% (D)`, Elastic `malicious (high
+confidence)`, McAfeeD `ti!ECC6EF535AFA`) and 66 engines without detection. These findings are
+unresolved; they are not established false positives. No antivirus protection needs to be
+disabled.
+
+| File | SHA-256 / scan |
+|---|---|
+| `maschine-ArenaMode.Gate.dll` | [361fe10f5a5d…](https://www.virustotal.com/gui/file/361fe10f5a5dfd97fdfdaa5bbb181704c51befd77e8dd7376a02025cbc072b67) |
+| `maschine-ArenaMode.BigBrainCompat.dll` | [f8a7ddce276d…](https://www.virustotal.com/gui/file/f8a7ddce276d9ad6c27c5e0eb98209f15ca9802b2fb74aa862c0d0df1e564762) |
+| `maschine-ArenaMode.Client.dll` | [4b05b3e52f5f…](https://www.virustotal.com/gui/file/4b05b3e52f5f1373a8d449c708708fa203f668bd8ab338b86d6126e0a1dd4cf3) |
+| `maschine-ArenaMode.Session.exe` | [ecc6ef535afa…](https://www.virustotal.com/gui/file/ecc6ef535afab89094d25ea1da6af5d12baac40a11adf7e13eb3e96c90814bff) |
+| `maschine-Redeploy.Core.dll` | [aa46ec8495a7…](https://www.virustotal.com/gui/file/aa46ec8495a7ea01a671e4612cc84e08a26af4e4b9979860038d900e941b915b) |
+| `maschine-ArenaMode.Server.dll` | [df910371f1c1…](https://www.virustotal.com/gui/file/df910371f1c10a7dbc5df373f2f562fd4b54a90afa4c158fed88d1de64002af9) |
