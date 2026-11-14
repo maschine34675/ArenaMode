@@ -40,8 +40,8 @@ the entire repository history is ready for publication.
 **MIT — Copyright (c) 2026 maschine.** The full, unchanged text is identical to
 the project [LICENSE](LICENSE). This includes the shared Core library and the
 linked `drivers/CoreVersionGate.cs` source from the separate Redeploy project.
-The package ships Core **1.0.20** (identical to the copy in Redeploy 1.1.2;
-source at https://github.com/maschine34675/Redeploy/tree/v1.1.2). The exact Core
+The package ships Core **1.0.24** (identical to the copy in Redeploy 1.1.3;
+source at https://github.com/maschine34675/Redeploy/tree/v1.1.3). The exact Core
 commit is recorded in `PACKAGE-MANIFEST.json`. The complete Redeploy mod is not an
 Arena dependency.
 

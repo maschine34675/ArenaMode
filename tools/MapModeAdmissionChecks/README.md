@@ -17,7 +17,7 @@ Tactical multi-round capacity, which is why the centres are pinned separately
 (`EQUATOR-CENTER`, `ICEBERG-CENTER`, `CHOPSHOP-YARD-CENTER`). Fifteen compiled
 faults must each fail at their intended assertion, after the positive baseline.
 
-Installed-data pins of the spawn rows (ArenaMapPort 0.5.0+160523d, 2026-11-12):
+Installed-data pins of the spawn rows (ArenaMapPort 0.6.0, measured 2026-11-12 on the build 0.5.0+160523d):
 `SPAWN-ROWS-DATA` (the base.json of Equator, Iceberg and Chop Shop exists and has at
 least 16, 17 and 16 distinct Bot/BotPmc rows; on the published 0.5.0, with a missing
 file or with a stub file without spawn rows it fails with a

@@ -1,6 +1,6 @@
 # ArenaMode — complete feature inventory
 
-Source inventory updated **2026-11-12** (Chop Shop) on top of **0.5.0**, including Iceberg, the crowd
+Source inventory of **ArenaMode 0.6.0** (2026-11-14), including Chop Shop, Iceberg, the crowd
 reactions, Domination, direct session start, profile recovery and the current
 compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
@@ -667,14 +667,14 @@ Sources: [replay selection](reviews/KILLCAM-MODES-REVIEW.md),
   ArenaMapPort's rows of 2026-11-12 give it 9 distant bot markers from the atrium and at least 6
   anywhere), but no PFT Zombies, even with fewer companions. **Iceberg** supports all six modes,
   Tactical (solo and PFT) since 2026-11-13: its 17 Bot rows leave at least 9 beyond 25 m in the old
-  centre. Iceberg needs an ArenaMapPort build that ships it (the published 0.5.0; the rows that admit
-  Tactical need the unreleased `0.5.0+160523d`). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM,
+  centre. Iceberg needs an ArenaMapPort build that ships it (0.5.0 or newer; the rows that admit
+  Tactical need ArenaMapPort 0.6.0, and with 0.5.0 a Tactical match can arrive short of distant rows). **Chop Shop** (`arena_autoservice`) supports Gun Game, DM,
   TDM (original pockets, USEC east / BEAR west, 2v2-10v10), Domination (one point), solo Zombies and, since
   2026-11-13, solo Tactical, but no PitFireTeam Tactical (the yard centre has 3 to 5 distant rows, and a
   PitFireTeam leader who survives there would end the match as no contest) and no PFT Zombies (1,916 m2
-  main walkable component); it defaults to eight participants (sixteen Bot rows). It needs an
-  ArenaMapPort build that ships it with the rows of 2026-11-12 (today only the unreleased
-  `feature/autoservice` build 0.5.0+160523d) and is detected by the live location. It ran natively on
+  main walkable component); it defaults to eight participants (sixteen Bot rows). It needs
+  ArenaMapPort 0.6.0 (which ships the map with the rows of 2026-11-12; 0.5.0 does not offer it) and is
+  detected by the live location. It ran natively on
   GPU-2 on 2026-11-12 (menu, Deathmatch, Team DM 4v4 and 10v10, Domination, solo Zombies, PMC control;
   [report](reports/2026-11/GPU-CHOP-SHOP-20261112.md), [contract](reviews/CHOP-SHOP-INTEGRATION-20261112.md))
   and again on 2026-11-13 with the new rows (Domination placed 6 of 6 pickups, solo Zombies from the yard
@@ -789,8 +789,8 @@ Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
   can change rewards while the normal server is stopped; the final setting is
   applied before startup payouts. Concurrent normal startup is refused while
   the private session owns the original installation.
-- Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM/Tactical round wins **10,000 RUB + 1,000 XP**,
-  capped at **200,000 RUB + 20,000 XP per match**. Gun Game, Zombies and Domination award kills only.
+- Eligible kills earn **1,000 RUB + 100 XP**, DM/TDM round wins (and Tactical round wins with the capture point off) **10,000 RUB + 1,000 XP**,
+  capped at **200,000 RUB + 20,000 XP per match**. Gun Game, Zombies, Domination and Tactical with the capture point on (the default) award kills only.
   No-contest results do not pay. Normal exits can retain kills from an unfinished
   round without granting a win. RUB arrives as system mail; XP is credited directly
   at normal server startup and listed in the mail, with the same duplicate protection.

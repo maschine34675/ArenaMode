@@ -28,7 +28,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Maps and modes: current admission matrix (as of 2026-10-17)](MAP-MODE-COMPATIBILITY.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
 - [Deferred Arena design work](FUTURE-WORK.md)
-- [Forge description, eight tabs (draft of 0.5.0)](FORGE-DESCRIPTION.md)
+- [Forge description, eight tabs (draft of 0.6.0)](FORGE-DESCRIPTION.md)
 
 ### Specifications and contracts
 
@@ -51,6 +51,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 
 ### Release notes
 
+- [ArenaMode 0.6.0 release notes](RELEASE-0.6.0.md)
 - [ArenaMode 0.5.0 release notes](RELEASE-0.5.0.md)
 - [ArenaMode 0.4.1 release notes (hotfix for 0.4.0)](RELEASE-0.4.1.md)
 - [ArenaMode 0.4.0 release notes](RELEASE-0.4.0.md)

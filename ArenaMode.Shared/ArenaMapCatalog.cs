@@ -24,8 +24,8 @@ public static class ArenaMapCatalog
     public const string IcebergId = "arena_iceberg";
     // Chop Shop is the player-facing name; arena_autoservice is MapPort's fixed
     // location id. Same detection rule as Iceberg: the live location, never the
-    // ArenaMapPort version (the installed unreleased build 0.5.0+b7876d3 ships it,
-    // the published 0.5.0 carries the same version string and no Chop Shop).
+    // ArenaMapPort version (ArenaMapPort 0.6.0 ships it; the development builds that
+    // carried it first were stamped 0.5.0 like the published 0.5.0 without it).
     public const string AutoServiceId = "arena_autoservice";
     public const string ArenaMapPortPluginId = "com.maschine.ArenaMapPort";
     public const int OptionalMapsRevision = 6;

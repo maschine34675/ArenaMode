@@ -690,7 +690,8 @@ public static class ArenaAreaCatalog
             && !string.Equals(mode, "domination", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(mode, "zombie", StringComparison.OrdinalIgnoreCase))
         { reason = "Select a current Arena mode for this map."; return false; }
-        // Tactical on the ported maps (installed ArenaMapPort 0.5.0+160523d, 2026-11-13). The
+        // Tactical on the ported maps (installed ArenaMapPort 0.5.0+160523d, 2026-11-13; those
+        // spawn rows are released as ArenaMapPort 0.6.0, the published 0.5.0 lacks them). The
         // refusals that Equator, Iceberg and Chop Shop carried until then were argued from the
         // number of Bot/BotPmc rows beyond the unchanged 25 m floor (BurstSpawnPointSelector);
         // MapPort's spawn rows of 2026-11-12 removed that argument, and the 25 m floor itself

@@ -8,7 +8,40 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
-## Unreleased
+## [0.6.0] - 2026-11-14
+
+ArenaMode 0.6.0 is made for **ArenaMapPort 0.6.0**, which adds the map Chop Shop and more bot
+spawn points on every ported map. Chop Shop needs it, and Tactical on Equator and Iceberg works properly only with it. With
+ArenaMapPort 0.5.0 Chop Shop is not offered; Gun Game, Deathmatch, Team Deathmatch, Domination
+and Zombies on Equator, Bay5, Air Pit, Bowl and Iceberg work as in 0.5.0, but Tactical on Equator
+and Iceberg is offered with too few distant spawn points there (Equator 10, Iceberg 9): a solo
+squad can arrive short or late, and a PitFireTeam Tactical match can end without a result.
+ArenaMode does not detect the ArenaMapPort version, so install 0.6.0. The package bundles shared
+**Core 1.0.24**, identical to the Core in Redeploy 1.1.3.
+
+### Maps
+
+- Added optional **Chop Shop** support through ArenaMapPort 0.6.0 in Gun Game, Deathmatch, Team
+  Deathmatch, Domination and solo Zombies, **without PitFireTeam Zombies** (a very small walkable
+  area), and in solo Tactical (see Tactical). Team DM and Domination use the map's original pockets,
+  USEC east / BEAR west, for 2v2-10v10, and Domination has its one capture point. The default is
+  eight participants; the saved map list gains the map once through optional-map revision 6.
+  It ran on a test machine on 2026-11-12 (menu, Deathmatch, Team Deathmatch 4v4 and 10v10,
+  Domination, solo Zombies); its gates get a 15 s watchdog because the match flow polls the opening
+  once a second. With ArenaMapPort's 16 bot spawn points on the map, Domination placed 6 of 6
+  pickups and solo Zombies from the yard centre filled 32 of 32 on a test machine on 2026-11-13.
+  [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md),
+  [native report](docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)
+- ArenaMapPort 0.6.0 also moves the two exits of each ported map inside the team start areas (data
+  only; extraction stays disabled in Arena). Arena now refuses to start, with the reason in the menu
+  and at raid start, when its map-exit blocking failed to install: an exit right at the team start
+  positions could otherwise end an Arena raid about 8 s after spawning. Ordinary raids are unchanged.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
+- With SAIN's bot extraction switched on in its preset (off by default), Arena bots no longer leave
+  a match through a map exit; ordinary raids keep SAIN's setting.
+  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
+
+### Domination
 
 - Domination now runs on **The Lab** (three points, A/B/C on floor 1), **The Labyrinth** (one point, X) and in the
   three **Customs areas** (Industrial Center, Industrial Side, Customs Yard; three points A/B/C each, team size
@@ -19,42 +52,29 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   a point passes, the match stops instead of playing a smaller layout. Tactical still has no capture point on these
   maps. The refusal text for maps and areas without Domination changed with the list.
   [Contract](docs/reviews/DOMINATION-VANILLA-MAPS-20261113.md)
-- The KITS window's top-right button now reads **DONE** instead of BACK. Kit window buttons no longer flash
-  white when they are built (the buttons of the selected kit, the editor's buttons, the kit cards and the Tactical
-  buy screen's NO PURCHASE button): each starts on the colour of its state at once, resting or disabled, and keeps
-  the fade only for later changes.
 - Domination: on the vanilla maps the point's letter is now readable from afar (a bold white letter with a dark
   edge on a chip in the owner's colour, at a constant apparent size); on the ported maps, which already have
   the ring and the map markers, the world letter is no longer drawn.
   [Native runs](docs/reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)
 - In Domination on the ported maps bots now have the same spawn protection as in Team Deathmatch; it was
   armed but never took effect.
-- Admit Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,
-  Auto Shoulder Swap 1.1.1 and Dynamic External Resolution Patch 1.1.2.
-  Arena guards Shoulder Swap's unsafe non-firearm callbacks and displays
-  Arena's effective carry limits in Encumbrance Bar. Shared Core 1.0.23
-  corrects the encumbrance and resolution mods' body references after respawn.
-  Scoped Factory checks passed through actual Arena respawn and standalone
-  Redeploy's PMC-to-own-Scav continuation. No third-party binaries are bundled.
-  [Scope](docs/reviews/FOUR-MOD-COMPAT-20261113.md),
-  [native checks](docs/reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
+- Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept. Run natively on GPU-2 on 2026-11-08 (one kill paid at the next normal server start).
+- Team DM and Domination tables have fixed seats, as in live Arena: a replacement bot takes over the seat, the name and the running stats of the body it replaces (shown under that name in the scoreboard, killfeed and death notices; the bot profile is not written), and a vacant seat stays on the table as OUT until the replacement arrives. Before, every replacement started a new row under a new name. [Details](docs/reviews/FORK-QUICK-WINS-20261108.md)
+- Generated Team DM and Domination bots carry no backpack any more (live Arena issues none); the armband pass removes it with its contents. Their reload magazines always came from the rig and pockets, so they fight as before; only loot, meds, grenades and loose ammo that had landed in the backpack are gone. No switch.
+- A refused native bot arrival in Team DM and Domination now names the gate it failed in the retire Warning (stale request, faction, duplicate profile, capacity, group, registration) instead of one generic text.
+- Hold the inventory key (Tab by default; the bound keyboard key is read, a mouse-bound key keeps its stock behaviour) in any Arena raid to see the scoreboard tables while you keep moving and shooting; a tap still opens the inventory, under the default key setting on the release of the tap rather than on the press (at most a quarter second later). The F9 panel with its live settings is unchanged and wins over the held table.
+
+### Tactical
+
 - Tactical now runs on **Equator and Iceberg**, solo and with a PitFireTeam squad, and on **Chop Shop**
-  solo; the Chop Shop default is **eight** participants. ArenaMapPort's new bot spawn points of
-  2026-11-12 (Equator 16 instead of 10, Iceberg 17 instead of 9, Chop Shop 16 instead of 7) removed the
+  solo; the Chop Shop default is **eight** participants. ArenaMapPort 0.6.0's new bot spawn points
+  (Equator 16 instead of 10, Iceberg 17 instead of 9, Chop Shop 16) removed the
   reason for the three refusals and for the default of six, so they were decided again against the
   installed data: from the middle of Equator at least six spawn points lie beyond the 25 m safety
   distance (nine from the atrium), on Iceberg at least nine, on Chop Shop 11 to 13 from every player
   start. Chop Shop keeps refusing Tactical with a PitFireTeam squad, because a surviving leader in the
   yard centre can have only three to five distant spawn points and the match would end without a result;
   squad Zombies stay refused on Equator and Chop Shop (too little space). The picker hints follow.
-  **This needs an ArenaMapPort build with the spawn points of 2026-11-12, which is not released yet and
-  carries the same version 0.5.0 as the published one.** The published 0.5.0 has 10 spawn points on Equator
-  (4 of them far from the atrium), 9 on Iceberg and no Chop Shop. With that data Tactical is still admitted on
-  both maps (the reviewed versions in the whitelist are advisory, so nothing can tell the two builds apart): a
-  PitFireTeam leader who survives in the middle gets four opponent spawn points instead of five and the match
-  ends without a result, and solo gets a smaller squad after 45 s. Release blocker: no ArenaMode release from
-  this state before an ArenaMapPort release ships the spawn points under a new version number. The two exits of each map now stand inside the team
-  start areas (data only; extraction stays disabled in Arena).
   Played natively on 2026-11-13 on all three maps (three solo rounds each; a PitFireTeam squad on Iceberg and
   Equator); no match was played to its end.
   [Contract](docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md),
@@ -66,33 +86,26 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   message and the 45 s wait for the squad now start with the real request.
   [Contract](docs/reviews/SOLO-TACTICAL-SPAWN-REVIEW.md),
   [native runs](docs/reports/2026-11/GPU-SOLO-SQUAD-ORDER-20261113.md)
-- Arena now refuses to start, with the reason in the menu and at raid start, when its map-exit
-  blocking failed to install. ArenaMapPort's newer maps put an exit right at the team start positions,
-  so an Arena raid without that blocking could end about 8 s after spawning. Ordinary raids are unchanged.
-  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
-- With SAIN's bot extraction switched on in its preset (off by default), Arena bots no longer leave
-  a match through a map exit; ordinary raids keep SAIN's setting.
-  [Contract](docs/reviews/EXTRACTION-HARDENING-20261113.md)
-- The direct-start launcher's compact header shows the ArenaMode emblem.
-- Added optional **Chop Shop** support through ArenaMapPort in Gun Game, Deathmatch, Team Deathmatch,
-  Domination and solo Zombies, **without PitFireTeam Zombies** (a very small walkable area; Tactical
-  followed on 2026-11-13, see above). Team DM and Domination use the map's original pockets, USEC east /
-  BEAR west, for 2v2-10v10, and Domination has its one capture point. The map needs an ArenaMapPort build
-  that ships it (not yet released); the saved map list gains it once through optional-map revision 6.
-  It ran on a test machine on 2026-11-12 (menu, Deathmatch, Team Deathmatch 4v4 and 10v10, Domination,
-  solo Zombies); its gates get a 15 s watchdog because the match flow polls the opening once a second.
-  The two limits of that first run (Domination placed 5 of 6 pickups, the yard centre was a dead patch for
-  spawns) came from the map's seven bot spawn points; with ArenaMapPort's 16 points of 2026-11-12 they are
-  gone: Domination placed 6 of 6 and solo Zombies from the yard centre filled 32 of 32 on a test machine
-  on 2026-11-13.
-  [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md),
-  [native report](docs/reports/2026-11/GPU-CHOP-SHOP-20261112.md)
+- Tactical (solo and PitFireTeam) gets an optional **capture point** (default on, F12 `Tactical/Objective`): on Factory and the six ported maps (Equator, Bay 5, Air Pit, Bowl, Iceberg, Chop Shop) one verified point of the Domination layout appears 60 s into the round's combat (`ObjectiveAfterSeconds`, 0-300); the side that holds it alone for 10 s (`ObjectiveHoldSeconds`, 3-60) wins the round, both sides on it freeze the hold, an empty point resets it, elimination still ends a round first and the round timer is unchanged. With BigBrain installed the enemy squad spreads out across the middle of the arena until the point appears instead of rushing you (without BigBrain the squad plays as before); PitFireTeam companions are never driven, and in the team arena the squad leaves the point once the PMC is down. A ring, a beam and a `POINT` label mark the point, the Tactical status line adds `POINT in 23s` / `POINT you 40%` / `POINT contested`; maps without a layout and areas play by elimination (`no capture point here`), and the menu copy promises the point only where there is one. With the point on, profile rewards pay kills only (no server round-win reward; the in-raid roubles bonuses are unchanged), like Domination; the server admits that rule for Tactical. The appear and hold times are read at each round start, so a live F12 change applies from the next round; a Warning names an appear plus hold time beyond the round timer. Adapted from the fork survey's TeamFight objective. [Details](docs/reviews/TACTICAL-OBJECTIVE-20261108.md)
+- Tactical shuts the doors a round left open at the next round start (`Tactical/CloseDoorsAtRoundStart`, default on); doors the map itself starts open, locked, broken and blocked doors and doors with map-script triggers are left alone.
+- The Tactical and Zombies descriptions in the map screen name the PitFireTeam option again
+  ("PFT optional", as the row labels abbreviate it): since the compact copy of 2026-10-26 a solo player
+  had no visible hint that both modes can be played as a squad.
+
+### Zombies
+
 - Zombies: when an infected spawn request fails (no usable spawn point), the wave now waits two seconds
-  before the next attempt instead of retrying every pacing interval. The slot is still retried. In a spot
-  without a usable spawn point (Chop Shop's yard centre with its seven spawn points of 2026-11-12) this took the
-  dropped requests and warnings from 133 in 30 s to 18 in 36 s; the later 16 spawn points no longer
-  reproduce that spot.
+  before the next attempt instead of retrying every pacing interval. The slot is still retried. On a build whose map had no usable
+  spawn point in the Chop Shop yard centre this took the dropped requests and warnings from 133 in 30 s to
+  18 in 36 s.
   [Contract](docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md)
+
+### Kits and gear
+
+- The KITS window's top-right button now reads **DONE** instead of BACK. Kit window buttons no longer flash
+  white when they are built (the buttons of the selected kit, the editor's buttons, the kit cards and the Tactical
+  buy screen's NO PURCHASE button): each starts on the colour of its state at once, resting or disabled, and keeps
+  the fade only for later changes.
 - Build your own kits: COPY TO MY KITS on any kit in the KITS window makes an own kit, and the
   editor changes it slot by slot (weapon, ammunition, armour, rig, helmet, headset, backpack) from
   lists of what each slot takes, every item arriving as the game's own default build and a weapon
@@ -116,28 +129,6 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   reopens the buy screen instead of also opening the scoreboard.
   [Contract](docs/reviews/KIT-PICKER-20261110.md),
   [native runs](docs/reports/2026-11/GPU-KIT-PICKER-20261110.md)
-- Leaving an Arena match whose reward capture holds no combat round (solo Tactical's first buy
-  phase, or a match whose first round ended before it went live) no longer logs a reward
-  Warning on both sides (`reward-capture-identity` in the game, `reward-final-report-missing` on
-  the server) or shows "No reward for the last match." in the menu: the server now accepts such a
-  final report without a round as an ordinary no-pay end. Nothing was paid before and nothing is
-  paid now; the profile restoration and its proof are unchanged.
-- Fixed profile rewards stopping for good after one Arena raid whose end the server could not
-  confirm before it stopped (`return-profile-save-not-confirmed`): at every later normal start the
-  reward pass for that profile stopped at `reward-checkpoint-profile-mismatch` (a Debug line), so
-  queued rewards were never paid and new ones only queued up. The server now closes such a
-  restoration without payment, as it already did for other unproven ones, and the profile's other
-  rewards pay again at the next normal start. [Report](docs/reports/2026-11/REWARD-UNPROVABLE-CHECKPOINT-20261110.md)
-- Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
-  halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
-  [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
-- The private Arena home menu hides the orange beta notice. During a confirmed
-  Arena raid the HUD hides the lower-left version line, including when playing
-  Arena directly from a normal SPT process.
-- The private Arena session shows a sunlit indoor training course during
-  EFT startup and profile loading. In the home
-  menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
-
 - Bring your own gear in Deathmatch, Team DM and Domination: the EQUIPMENT row of the map screen
   offers "Arena kits" or "Own gear" there as it did for Zombies and PitFireTeam Tactical, one saved
   preference per mode (new F12 keys `Deathmatch/OwnGear`, `Team Deathmatch/OwnGear`,
@@ -151,13 +142,25 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   with full ammunition ([report](docs/reports/2026-11/GPU-OWN-GEAR-20261109.md)). The corpse cleanup leaves
   the retained slots and the pockets on the player's own corpse since that run: a round-start clear had
   stripped the bayonet before a held Tactical respawn read it, which the restore rightly refused.
-- The Tactical and Zombies descriptions in the map screen name the PitFireTeam option again
-  ("PFT optional", as the row labels abbreviate it): since the compact copy of 2026-10-26 a solo player
-  had no visible hint that both modes can be played as a squad.
 - Spare magazines that hold more than one stack of their round are handed out full: the PKM/PKP
   and M60 boxes came with 40 of 100 rounds, the RPD box with 60 of 100, and 50-round and 75-round
   drums short the same way, in full kits and in Gun Game weapon swaps alike. Loose reserve rounds
   never form a stack larger than the round allows (only the MSGL's 40 mm grenades were affected).
+
+### Rewards and sessions
+
+- Leaving an Arena match whose reward capture holds no combat round (solo Tactical's first buy
+  phase, or a match whose first round ended before it went live) no longer logs a reward
+  Warning on both sides (`reward-capture-identity` in the game, `reward-final-report-missing` on
+  the server) or shows "No reward for the last match." in the menu: the server now accepts such a
+  final report without a round as an ordinary no-pay end. Nothing was paid before and nothing is
+  paid now; the profile restoration and its proof are unchanged.
+- Fixed profile rewards stopping for good after one Arena raid whose end the server could not
+  confirm before it stopped (`return-profile-save-not-confirmed`): at every later normal start the
+  reward pass for that profile stopped at `reward-checkpoint-profile-mismatch` (a Debug line), so
+  queued rewards were never paid and new ones only queued up. The server now closes such a
+  restoration without payment, as it already did for other unproven ones, and the profile's other
+  rewards pay again at the next normal start. [Report](docs/reports/2026-11/REWARD-UNPROVABLE-CHECKPOINT-20261110.md)
 - Fixed a multi-round match paying nothing ("no contest or incomplete combat evidence") when
   EFT credited a kill to a body of an earlier round: a tripwire or grenade of a life that
   ended before the round. On Labyrinth in Deathmatch this was close to certain in every match
@@ -169,17 +172,49 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
   the analysis and a tested fix in
   [maschine34675/ArenaMode#2](https://github.com/maschine34675/ArenaMode/issues/2). Run natively
   on GPU-2 on 2026-11-09: a three-round Labyrinth Deathmatch met the case in round 2 and completed.
+- A wiped profile, a restored pre-enrollment backup or a moved installation whose Tarkova Cola reward history is complete is now archived and enrolled again at the next normal server start, like any other such profile; the reward choice is kept (this needs a runtime-managed enrollment with a saved reward choice, as the automatic archive always did; otherwise the Warning now says so). Before, any Cola history kept rewards off for good with a Warning at every start, and only the documented manual rename helped. An unfinished or unreadable Cola reward history still keeps the quarantine, and an unfinished Cola reward still stops startup with the real cause.
+- The private Arena home menu hides the orange beta notice. During a confirmed
+  Arena raid the HUD hides the lower-left version line, including when playing
+  Arena directly from a normal SPT process.
+- The private Arena session shows a sunlit indoor training course during
+  EFT startup and profile loading. In the home
+  menu the foreground moves subtly with the mouse. [Details](docs/reviews/SESSION-MENU-ART-20261109.md)
+- The direct-start launcher's compact header shows the ArenaMode emblem.
+
+### Compatibility
+
+- **Shared Core 1.0.24** (identical to Redeploy 1.1.3; Core 1.0.21 to 1.0.23 were never released on
+  their own, so this is the first release that carries them) adds optional body handovers for
+  Climbable Ladders 1.0.4, P.L.A.T.E. 1.6.0, Loot In Vicinity 3.0.6 and Skills Extended 3.1.4
+  (1.0.21), Amand's Sense Updated 3.1.0 (1.0.22), Dynamic External Resolution Patch 1.1.2 and
+  Player Encumbrance Bar 1.3.0 (1.0.23), and ORBIT 3.1.1, Questing Bots 1.2.0 and ISB SOF Notifier
+  2.0.4 (1.0.24). Redeploy's compatibility records say what ran where. The Climbable Ladders,
+  P.L.A.T.E., Loot In Vicinity and Skills Extended handovers were validated offline only, with
+  in-game verification of those combinations pending. Amand's Sense ran in the game in a Factory
+  Arena Deathmatch (Arena respawn only; standalone Redeploy and own-Scav continuation were not
+  exercised there). The Dynamic External Resolution Patch and Player Encumbrance Bar passed scoped
+  checks in the game (see the four-mod entry below). ORBIT, Questing Bots and ISB SOF Notifier ran
+  in the game in standalone Redeploy only, through a PMC respawn and an own-Scav continuation with
+  ArenaMode disabled; these are standalone body fixes, ArenaMode's existing mod exclusions remain
+  unchanged and the Arena combinations were not tested. `RespawnApi` is unchanged (version 1). A
+  client built from this source refuses Core 1.0.23 or older.
+- Admit Bot Callsigns Reloaded 2.0.6, Player Encumbrance Bar 1.3.0,
+  Auto Shoulder Swap 1.1.1 and Dynamic External Resolution Patch 1.1.2.
+  Arena guards Shoulder Swap's unsafe non-firearm callbacks and displays
+  Arena's effective carry limits in Encumbrance Bar. The shared Core (from 1.0.23 on; 1.0.24
+  is bundled) corrects the encumbrance and resolution mods' body references after respawn.
+  Scoped Factory checks passed through actual Arena respawn and standalone
+  Redeploy's PMC-to-own-Scav continuation. No third-party binaries are bundled.
+  [Scope](docs/reviews/FOUR-MOD-COMPAT-20261113.md),
+  [native checks](docs/reports/2026-11/GPU-FOUR-MOD-COMPAT-20261113.md)
+- Allow Caliber Under Ammo Name 1.2.0, Compatibility Highlighter 1.3.2 and both
+  halves of Trader Modding and Improved Weapon Building 2.1.2 in Arena sessions.
+  [Compatibility checks](docs/reports/2026-11/GPU-INVENTORY-UI-MODS-20261110.md)
 - Add Amand's Graphics 1.8.0 to the Arena whitelist. Its Labyrinth lighting
   initializes before the starting kit is handed out, and its ON/OFF setting
   survives respawns. [Native test](docs/reports/2026-11/GPU-AMANDS-20261108.md)
-- A wiped profile, a restored pre-enrollment backup or a moved installation whose Tarkova Cola reward history is complete is now archived and enrolled again at the next normal server start, like any other such profile; the reward choice is kept (this needs a runtime-managed enrollment with a saved reward choice, as the automatic archive always did; otherwise the Warning now says so). Before, any Cola history kept rewards off for good with a Warning at every start, and only the documented manual rename helped. An unfinished or unreadable Cola reward history still keeps the quarantine, and an unfinished Cola reward still stops startup with the real cause.
-- Team DM and Domination tables have fixed seats, as in live Arena: a replacement bot takes over the seat, the name and the running stats of the body it replaces (shown under that name in the scoreboard, killfeed and death notices; the bot profile is not written), and a vacant seat stays on the table as OUT until the replacement arrives. Before, every replacement started a new row under a new name. [Details](docs/reviews/FORK-QUICK-WINS-20261108.md)
-- Hold the inventory key (Tab by default; the bound keyboard key is read, a mouse-bound key keeps its stock behaviour) in any Arena raid to see the scoreboard tables while you keep moving and shooting; a tap still opens the inventory, under the default key setting on the release of the tap rather than on the press (at most a quarter second later). The F9 panel with its live settings is unchanged and wins over the held table.
-- Generated Team DM and Domination bots carry no backpack any more (live Arena issues none); the armband pass removes it with its contents. Their reload magazines always came from the rig and pockets, so they fight as before; only loot, meds, grenades and loose ammo that had landed in the backpack are gone. No switch.
-- A refused native bot arrival in Team DM and Domination now names the gate it failed in the retire Warning (stale request, faction, duplicate profile, capacity, group, registration) instead of one generic text.
-- Domination now earns profile rewards for eligible kills (1,000 RUB + 100 XP each under the default policy, capped per match), like Gun Game and Zombies; there is no match-win bonus, because point ownership has no server-verifiable proof. The rewards card no longer says "No profile rewards in Domination". Existing reward choices are kept. Run natively on GPU-2 on 2026-11-08 (one kill paid at the next normal server start).
-- Tactical (solo and PitFireTeam) gets an optional **capture point** (default on, F12 `Tactical/Objective`): on Factory, Bay 5, Air Pit and Bowl one verified point of the Domination layout appears 60 s into the round's combat (`ObjectiveAfterSeconds`, 0-300); the side that holds it alone for 10 s (`ObjectiveHoldSeconds`, 3-60) wins the round, both sides on it freeze the hold, an empty point resets it, elimination still ends a round first and the round timer is unchanged. With BigBrain installed the enemy squad spreads out across the middle of the arena until the point appears instead of rushing you (without BigBrain the squad plays as before); PitFireTeam companions are never driven, and in the team arena the squad leaves the point once the PMC is down. A ring, a beam and a `POINT` label mark the point, the Tactical status line adds `POINT in 23s` / `POINT you 40%` / `POINT contested`; maps without a layout and areas play by elimination (`no capture point here`), and the menu copy promises the point only where there is one. With the point on, profile rewards pay kills only (no server round-win reward; the in-raid roubles bonuses are unchanged), like Domination; the server admits that rule for Tactical. The appear and hold times are read at each round start, so a live F12 change applies from the next round; a Warning names an appear plus hold time beyond the round timer. Adapted from the fork survey's TeamFight objective. [Details](docs/reviews/TACTICAL-OBJECTIVE-20261108.md)
-- Tactical shuts the doors a round left open at the next round start (`Tactical/CloseDoorsAtRoundStart`, default on); doors the map itself starts open, locked, broken and blocked doors and doors with map-script triggers are left alone.
+- The whitelist records ArenaMapPort 0.6.0, Redeploy 1.1.3 and PitFireTeam 1.1.1; a
+  differing recognized version stays advisory, user policy is preserved.
 
 ## [0.5.0] - 2026-11-07
 

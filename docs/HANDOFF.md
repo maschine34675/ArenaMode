@@ -12,6 +12,33 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Release preparation, 2026-11-14: ArenaMode 0.6.0 with Redeploy 1.1.3 and shared Core 1.0.24.** At the
+  user's request ("merge, delete and push every open branch, raise the versions of ArenaMode and Redeploy,
+  complete the documents, publish the release on GitHub; ArenaMapPort is published as 0.6.0 in parallel")
+  the remaining branches were collected first: `fix/ui-asset-checks-shared-link` (`0ca3bbb1`, three harness
+  project files) was merged (`9b92aa35`); it, `feature/verification-speed` and `feature/mutant-helper-port`
+  (both merged earlier that day by their sessions) were deleted with their worktrees, the ignored files
+  archived under `artifacts/archived-worktrees/{uiassetlink,verifyspeed,mutantport}-20261114/`;
+  `feature/fika-admission` stays out as before, and the runner's worker checkouts `ArenaMode-vw1` to `-vw4`
+  stay. `master` was pushed at `9b92aa35`. This commit raises the five version sites to 0.6.0, the
+  whitelist records ArenaMapPort 0.6.0 and Redeploy 1.1.3 (with `ArenaWhitelistTests`), and the README, the
+  Forge description, the changelog (section 0.6.0), DEPENDENCIES, FEATURES, MAP-MODE-COMPATIBILITY,
+  AREA-RULES and the new [release notes](RELEASE-0.6.0.md) describe the release; eight writers and eight
+  reviewers worked on the documents, every finding was re-verified against the source before it was applied.
+  Redeploy stays one checkout on `main`; its release is 1.1.3 because Client and Server code is unchanged
+  (as 1.1.2 was), with Core 1.0.24 as bundled and minimum Core.
+  **Decision on the ArenaMapPort requirement (the release blocker of "Open work"):** ArenaMapPort 0.6.0
+  ships Chop Shop and the spawn rows under a new version number, so the blocker is gone; the choice the
+  blocker left open is made for a documented requirement, not a run-time check. With ArenaMapPort 0.5.0
+  Chop Shop is not offered, the five older ported maps play as before outside Tactical, and Tactical on
+  Equator and Iceberg is offered with too few distant rows (a short or late solo squad, a possible no
+  contest with a PitFireTeam squad); the release notes, the README, DEPENDENCIES and the Forge text say so,
+  and the whitelist pin produces an advisory note. A run-time refusal (for example a count of the raid's
+  Bot rows in `ArenaModeRouter` next to the `TryResolve` call) remains possible later; it was not added
+  days before the release without a native run on old data.
+  The package, its checks, the native release check on GPU-2 and the publication are recorded in the
+  release notes and in the entry that replaces this one after the publication.
+
 - **Development, 2026-11-13 evening: the pre-release polish is in `master`; installed is its second test
   build, `master` itself was deliberately not deployed.** Five requests of the user before the release: the
   kit window (BACK reads DONE, freshly built buttons no longer flash), the bot spawn shield in Domination
@@ -332,10 +359,10 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 what the report lists as not run: a Domination match to its limit on the new venues, the other two Lab
 levels, the far area starts against the 160 m route limit of the objective layer, the first colour of
 NO PURCHASE on the Tactical buy screen and of unusable kit cards (both pinned offline only), and the
-material count over several raids. Left for the release decision: the root `README.md` and
-`docs/FORGE-DESCRIPTION.md` do not name the new Domination maps, and `assets/arena-whitelist.json` names
-ArenaMapPort 0.5.0 while the ArenaMapPort session has prepared 0.6.0. `master` has not been built against
-Core 1.0.24 (first entry of "Released and installed"). `gpu-run` could not start Domination in a Customs
+material count over several raids. What this paragraph left for the release decision (the README and the
+Forge description naming the new Domination maps, the whitelist's ArenaMapPort version, a build against
+Core 1.0.24) was done with the preparation of 0.6.0 on 2026-11-14 (first entry of "Released and
+installed"). `gpu-run` could not start Domination in a Customs
 area during this work, so the runs drove the menu by single clicks; `../UiBridge` `06ab78b` of the same
 evening (another session) adds those plans and was not exercised here. The final offline pass of this work
 took 82 minutes for 62 steps, one after the other; `feature/verification-speed` (worktrees
@@ -361,9 +388,9 @@ once; an exact Bowl default at revision 5 means Iceberg was removed and stays); 
 back on GPU-2; (4) the harnesses that read installed MapPort data (`ChopShopChecks`,
 `ChopShopTeamBoxChecks`, `ArenaPickupChecks` and through it every full run) fail without an ArenaMapPort
 build that ships `arena_autoservice` (the unreleased `feature/autoservice`, `0.5.0+b7876d3`; the published
-0.5.0 has the same version string and no Chop Shop); (5) **no ArenaMode release may announce Chop Shop
-before an ArenaMapPort release ships it**: README and FORGE-DESCRIPTION stay free of it and the whitelist
-stays at 0.5.0 until then. After the end of one Arena raid, wait about 40 s before the next (PitFireTeam
+0.5.0 has the same version string and no Chop Shop; since 2026-11-14 that build is ArenaMapPort 0.6.0);
+(5) the rule that no ArenaMode release may announce Chop Shop before an ArenaMapPort release ships it is
+met by ArenaMapPort 0.6.0: ArenaMode 0.6.0 names the map and its whitelist records 0.6.0. After the end of one Arena raid, wait about 40 s before the next (PitFireTeam
 post-raid finalization); a start after 5 s was refused and hung the load. The "more than 6 participants"
 gap of (2) is smaller now (the default is eight, from sixteen rows) but still not run.
 
@@ -379,7 +406,8 @@ the production selector, CHOPSHOP-YARD-CENTER fails when MapPort closes that pat
 [GPU-SPAWN-ROWS-20261113.md](reports/2026-11/GPU-SPAWN-ROWS-20261113.md): solo Tactical on Chop Shop, Equator
 and Iceberg, PFT Tactical on Iceberg and Equator, the capture point resolved in every round, the PFT menu
 without Chop Shop. Open: (1) natively still missing: a respawn onto an in-box formation point (Iceberg Bear
-house (9)), a Tactical match played to its end, a won round and a capture-point hold on the three maps; (2) **release blocker**: ArenaMapPort has not released
+house (9)), a Tactical match played to its end, a won round and a capture-point hold on the three maps; (2) the release blocker of 2026-11-13, resolved on 2026-11-14 by ArenaMapPort 0.6.0 and the documented requirement
+(first entry of "Released and installed"); the text that follows is the state it described. ArenaMapPort had not released
 these rows. The published 0.5.0 has Equator 10 Bot rows (4 distant from the atrium, grid minimum 3), Iceberg 9 (4
 distant in the centre) and no Chop Shop, and the unreleased build with the rows carries the same version string
 0.5.0; the whitelist versions are advisory (`ArenaWhitelistAdmission` turns a reviewed-version difference into a

@@ -50,7 +50,7 @@ Console.WriteLine($"NATIVE_STOP_CHECKS_PASSED: {count} assertions");
 var bad = new[] {
     ("RosterStillPollsDisposal", ReplaceOnce(roster, "if (ArenaRaidExit.NativeStopOwnsCurrentRaid)\n            return true;", "if (false) return true;"), match,
         "stopped disposal must not create a roster fault"),
-    ("MatchStillTicksDisposal", roster, ReplaceOnce(match, "if (match == null || ArenaRaidExit.NativeStopOwnsCurrentRaid)", "if (match == null)"),
+    ("MatchStillTicksDisposal", roster, ReplaceOnce(match, "if (ArenaRaidExit.NativeStopOwnsCurrentRaid)\n        {", "if (false)\n        {"),
         "stopped match must not advance or sync"),
     ("SameFrameScoreboardPoll", roster, ReplaceOnce(match, "if (ArenaRaidExit.NativeStopOwnsCurrentRaid || ArenaMatchResult.HasResult(match?.Mode)) return;", "if (ArenaMatchResult.HasResult(match?.Mode)) return;"),
         "same-frame committed Stop must skip scoreboard"),

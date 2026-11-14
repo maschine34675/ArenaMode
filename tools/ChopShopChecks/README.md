@@ -2,7 +2,7 @@
 
 `Verify.ps1` runs the Chop Shop integration checks against the installed ArenaMapPort data
 (`user/mods/ArenaMapPort/db/arena_autoservice/base.json`: 4 Player rows and at least the 16
-Bot rows of ArenaMapPort 0.5.0+160523d, all in `BotZone_Main`, the donor row
+Bot rows of ArenaMapPort 0.6.0, all in `BotZone_Main`, the donor row
 `arena_autoservice-bot-core-03` with its exact floats; no list of ids, the Tactical rule and
 the default of eight are pinned in `MapModeAdmissionChecks`), the
 filtered Chop Shop xunit classes and the PFT compiled faults; it fails loudly when the

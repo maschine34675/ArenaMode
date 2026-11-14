@@ -242,12 +242,12 @@ namespace ArenaMode.Modes
         public static bool TeamStartAbortPending;
         static float _nextScoreboardSyncAt;
         static string _lastScoreboardProblem;
-        public static int ScoreboardReads, AbortTicks;
+        public static int ScoreboardReads, AbortTicks, PresentationStops, CrowdStops, RewardObservations;
         static void TickFailedStartAbort() => AbortTicks++;
-        public static void ResetProbe() { Current = new ArenaMatch(); TeamStartAbortPending = false; _nextScoreboardSyncAt = 0; _lastScoreboardProblem = null; ScoreboardReads = AbortTicks = 0; }
+        public static void ResetProbe() { Current = new ArenaMatch(); TeamStartAbortPending = false; _nextScoreboardSyncAt = 0; _lastScoreboardProblem = null; ScoreboardReads = AbortTicks = PresentationStops = CrowdStops = RewardObservations = 0; }
     }
     internal static class ArenaMatchResult { public static bool HasResult(object mode) => false; }
-    internal class TeamDeathmatchMode { public bool TrySynchronizeScoreboardRoster(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
+    internal class TeamDeathmatchMode { public bool TrySynchronizeScoreboardRoster(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } public void OnNativePresentationStop() { ArenaMatchService.PresentationStops++; } }
     internal class TacticalMode { public bool TrySynchronizeScoreboardRoster(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
     internal class ZombieMode { public bool IsTeamArena, TeamResultOwnsCurrentRaid; public bool TrySynchronizeTeamScoreboard(out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
     internal class RoundsMode { public Round Round = new Round(); }
@@ -255,6 +255,10 @@ namespace ArenaMode.Modes
     internal class ArenaScoreboardActor { public ArenaScoreboardActor(string profile, string name, string role, bool alive, string stable) { } }
     internal class ArenaScoreboard { public bool TrySynchronizeRoster(int epoch, ArenaScoreboardActor local, IEnumerable<ArenaScoreboardActor> allies, IEnumerable<ArenaScoreboardActor> enemies, out string problem) { ArenaMatchService.ScoreboardReads++; problem = null; return true; } }
 }
+// ArenaMatchService.Tick releases the crowd claim on a committed Stop and observes the reward capture after a
+// live tick (crowd reactions of 2026-11-02, reward capture); the probe counts both instead of running them.
+namespace ArenaMode.Audio { internal static class ArenaCrowdReactions { public static void OnNativePresentationStop() { ArenaMode.Modes.ArenaMatchService.CrowdStops++; } } }
+namespace ArenaMode.Session { internal static class ArenaRewardCapture { public static void Observe() { ArenaMode.Modes.ArenaMatchService.RewardObservations++; } } }
 namespace SPT.Reflection.Patching
 {
     public abstract class ModulePatch { protected abstract MethodBase GetTargetMethod(); public void Enable() { } }

@@ -654,7 +654,7 @@ Playtest: solo Tactical, RandomKit on, survive round 1 without buying; round 2 m
 
 ## Maps and areas
 
-Tactical admissions on the ported maps (2026-11-13, installed ArenaMapPort 0.5.0+160523d; contract
+Tactical admissions on the ported maps (2026-11-13, measured with the then installed build 0.5.0+160523d, now ArenaMapPort 0.6.0; contract
 docs/reviews/SPAWN-ROWS-FOLLOWUP-20261113.md): **Equator and Iceberg admit Tactical, solo and with a
 PitFireTeam squad**: their refusals rested on the number of Bot/BotPmc rows beyond the 25 m floor, and
 MapPort's rows of 2026-11-12 gave Equator 16 rows (9 beyond 25 m from the atrium, at least 6 on every
@@ -675,12 +675,11 @@ compactness, Chop Shop's 1,915.6 m2 main walkable component with 1-2.4 m corrido
 not rows); solo Zombies stays supported. Picker hints (solo; PFT shows "PitFireTeam squad"): Equator
 "Limited space: no squad Zombies", Iceberg none, Chop Shop "Small map: no squad Tactical / Zombies". The
 rules sit in the shared resolver; do not remove the remaining refusals to claim a map fully accepted.
-Iceberg needs an ArenaMapPort build that ships it (the published 0.5.0 does; the 17 rows that lift
-Tactical need the unreleased 0.5.0+160523d or later); detect it by the live location, never by the
+Iceberg needs an ArenaMapPort build that ships it (0.5.0 or newer does; the 17 rows that lift
+Tactical need ArenaMapPort 0.6.0); detect it by the live location, never by the
 MapPort version. See
 docs/reviews/ICEBERG-INTEGRATION-20261031.md. Chop Shop needs an ArenaMapPort build that ships it
-(the unreleased feature/autoservice; the rows above need 0.5.0+160523d or later, whose version string the
-published 0.5.0 shares); detect it by the live location, never by the MapPort version. See
+(ArenaMapPort 0.6.0, which also carries the rows above; 0.5.0 does not offer the map); detect it by the live location, never by the MapPort version. See
 docs/reviews/CHOP-SHOP-INTEGRATION-20261112.md (the 2026-11-12 state; its Tactical refusals, its two known
 limits and its default of six are superseded by the follow-up).
 Zombies: a failed infected dispatch reported with its time (`ZombieWavePolicy.ReportFailedDispatch(ref
@@ -1633,8 +1632,8 @@ separate optic-icon and SAIN unload NREs do not establish a mantle connection.
 ## Build, deploy and release
 
 Core admission: both clients fail closed before runtime initialization when the loaded
-Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (1.0.20 in the
-source and in the 0.5.0 package; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
+Core assembly is missing, unknown or older than RedeployCoreBuiltAgainst (1.0.24 in the
+source and in the 0.6.0 package; stamped from the sibling repository's CoreVersion.props at build time). Keep Plugin.Awake free of Core types and InitializeRuntime NoInlining. Arena
 Start/Update/OnDestroy must stay guarded, including cleanup of rejected plugins.
 
 ### From the handoff (snapshot of 2026-10-29)
@@ -1655,7 +1654,7 @@ Publish the final verified Core source
 
 *(handoff lines 302-304)*
 
-Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.5.0.
+Release version identities to bump together: Shared.props <Version>, `Plugin.PluginVersion` (ArenaMode.Client/Plugin.cs:29), ArenaMode.Server/ArenaMode.Server.csproj <Version> (L18), ArenaMode.Server/ModMetadata.cs Version (L15), ArenaMode.Session/ArenaMode.Session.csproj <Version> (L38), and the player README headline (README.md:3, plus its release links L7-8). `RedeployCoreBuiltAgainst` is stamped from ../Redeploy/Redeploy.Core/CoreVersion.props at build time. All currently read 0.6.0.
 
 *(handoff lines 546-549)*
 
