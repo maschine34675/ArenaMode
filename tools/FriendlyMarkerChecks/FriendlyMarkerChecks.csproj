@@ -8,6 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
+    <!-- ArenaTeamPalette.LocalUsec and ArenaFriendlyMarkers.IsScope ask ArenaPopulationPolicy.IsIndependentTeam
+         since bdd679ec. Link the real, dependency-free rule rather than a stand-in that could only drift from it. -->
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(MarkerSource)" Link="Production/ArenaFriendlyMarkers.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaFriendlyMarkerPolicy.cs" />
     <Compile Include="$(TacticalMarkerSource)" Link="Production/TacticalMode.FriendlyMarkers.cs" />

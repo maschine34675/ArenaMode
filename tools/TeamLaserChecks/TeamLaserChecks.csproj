@@ -11,6 +11,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../ArenaMode.Client/Effects/ArenaTeamPalette.cs" Link="Production/ArenaTeamPalette.cs" />
+    <!-- ArenaTeamPalette.LocalUsec asks ArenaPopulationPolicy.IsIndependentTeam since bdd679ec. Link the real,
+         dependency-free rule rather than a stand-in that could only drift from it (as ArenaTracerChecks does). -->
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="../../ArenaMode.Shared/DeathmatchSelection.cs" Link="Production/DeathmatchSelection.cs" />
     <Compile Include="$(LaserSource)" Link="Production/ArenaTeamLaserColors.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaTeamLaserPolicy.cs" />
