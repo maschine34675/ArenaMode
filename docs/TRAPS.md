@@ -583,3 +583,104 @@ variable is `C:\SPT41\SPT_Runtime\SPT_Data\database`.
   checks; re-read source and installed versions rather than trusting old notes.
 
 *(handoff lines 5888-5892)*
+
+## Verification runner (2026-11-13)
+
+`tools/Run-ArenaVerification.ps1` keeps a result cache (`tools/ArenaVerificationInputs.ps1`, proved by
+`tools/VerificationRunnerChecks`). Its argued exceptions, each a place where a wrong rule would return a stale PASS:
+
+- **What a key leaves out.** Records under `docs/` (everything but `docs/licenses/`) that no reached file names by
+  a docs/ path, a unique file name or a quoted "docs" segment; harness folders the step does not reach (a bare
+  folder word reaches the whole folder, a folder plus a file path that file); loose `tools/*` entry scripts that
+  nothing reaches; ignored files (build output, or regenerated per run); path literals in production code and in
+  the xunit sources (test data); the runtime state mods write into their installed folders (logs, APBS
+  `wwwroot`, Redeploy's `data`, PitFireTeam teammate databases, SAIN `EditorDefaults.json`). The reviewed payload
+  scripts (`$ArenaPayloadLayoutFiles`) name the payload's docs folder, not records, and their enumerations walk
+  payloads. `docs/README.md` is a record although two files name it, because both mean the payload copy of the
+  root README (`$ArenaPayloadOnlyRecordNamers`); any other mention makes it an input again.
+- **A reached file that enumerates directories makes its step wide** (every folder and record in the key), about
+  50 of 220 folders. That is deliberate: an enumeration of the checkout cannot be told apart from one of an
+  installation. `tools/Verify-PitFireTeamDeployment.ps1` walks the whole checkout (`git ls-files`, every project
+  file); the adversarial review of 2026-11-14 found it wrongly listed as a payload script. Only the xunit sources
+  can make every step wide; a shared helper does so for the steps that reach it.
+- **Fixtures under `artifacts/` are inputs only when registered** (`$ArenaArtifactInputs`): PitFireTeam100Checks
+  (the PFT 1.0.0 release), PortedCoverChecks (the decompiled installation), SvmCompatChecks and
+  UseItemsAnywhereChecks (downloaded releases). Every other `artifacts/` path is output; keying output folders
+  that gain a GUID folder per run would make those steps uncacheable. A harness that starts reading a fixture
+  from `artifacts/` registers its prefix there.
+- **Paths outside the key's literal scan**: a variable that names a path (`ARENA_APBS_TEST_ROOT`,
+  `SPT_REWARD_RECOVERY_BASELINE`) keys that path's content; a quoted absolute path may contain spaces
+  (`'C:\Program Files\Unity\...'`; a folder over 20 000 files makes the step uncacheable); the tools python, node,
+  ffmpeg, ilspycmd and mono count by the file they resolve to; `Directory.Build.*`, `NuGet.Config` and `global.json`
+  above the checkout and the user's NuGet configuration count by their bytes. Ignored `*.user` files are not
+  read by any CLI build here and are not keyed.
+- **Found by the first real pass with these rules (2026-11-14):** every one of 62 steps was uncacheable, because
+  `BotEffectShaders/Build.ps1` names the Unity editor folder (over 20 000 files) and an asset's provenance
+  manifest made that script shared. External paths now count for every step only where shared files name them,
+  and an installed application under Program Files counts by its top three levels (a new Unity version is a new
+  folder). The new register `tools/verification-steps.txt` names 144 harness folders and, reached as a shared
+  file, pulled them all into every key: it is in no key now (`$ArenaNotStepInputs`), and the runner's own files
+  are not followed, so `AirPitChecks/NoDeploy.targets`, which the runner passes to every build, is named
+  explicitly (`$ArenaRunnerInputs`).
+- **Registered fixtures travel with the workers.** A worker mirrors only non-ignored files; IcebergChecks and
+  ChopShopChecks run PortedCoverChecks, which reads `artifacts/pft-installed`, and failed in every worker. The sync
+  copies the registered `artifacts/` prefixes from the checkout under test. A checkout without the fixture fails
+  those steps as before (`tools/Decompile-PitFireTeam.ps1` recreates it).
+- **Changing these rules**: add a case to `tools/VerificationRunnerChecks/Verify.ps1` that changes the input and
+  expects a rerun, and a fault that removes the input and must fail that case.
+- **The key and the selection differ on purpose.** The key is coarse (every shared file, so any production change
+  reruns every step) because a miss there is a stale PASS. `-ChangedSince` is fine-grained (evaluated MSBuild
+  items of the step's projects, production paths its scripts name, the production projects it builds or tests)
+  and only advisory, like a hand-made selection; a selection miss costs a check that did not run, never a
+  stale PASS. The register `tools/verification-steps.txt` lists what may be selected; an unregistered harness
+  folder that changed is reported, not run.
+- **The runner's own files name paths only to state the rules** (`$ArenaKeyInfrastructureFiles`): their mentions
+  are not followed. Following them once pulled 165 harness folders into the reach of VerificationRunnerChecks
+  and made `docs/README.md` an input of every step.
+
+Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `Test-ArenaSourceFaults`):
+
+- **Never run two steps side by side in one checkout.** About 30 harnesses run `dotnet test` on ArenaMode.Tests,
+  13 build ArenaMode.sln and 9 build ArenaMode.Client through `DoubleJumpChecks/Build-Staged.ps1`, all into the
+  production projects' own obj/ and bin/; several write fixed `artifacts/` paths. The workers are separate
+  worktrees for that reason, and they must be SIBLINGS of the checkout: 31 harness paths leave the repository
+  relatively (`..\..\..\..\BepInEx`, `..\_decompiled`, `..\Redeploy`). Only `../Redeploy` stays shared; steps that
+  build the client or the solution (Redeploy.Core through the project reference) take the mutex
+  `Global\ArenaVerification-RedeployCore`.
+- **A copied file keeps its old write time.** `File.Copy` preserves it, and a source file edited yesterday is older
+  than a worker's obj/ output from this morning, so MSBuild would call the stale build current. The sync sets the
+  write time of every file it copies to now.
+- **The live-install guard is shared.** A deploy fails every step that ran since the last clean check, and the
+  steps still running when it was seen, even if someone restores the file before they end; the verdict names
+  them all.
+- **A mutant costs process start, not compilation**: about 2.9 s per `dotnet run`, of which the compiler takes
+  0.17 s and the program 0.12 s. The helper restores once (the baseline `dotnet run`), then builds each mutant
+  with `--no-restore` into its own `IntermediateOutputPath`/`OutDir` and runs the DLL, `ARENA_MUTANT_PARALLEL` at
+  a time (default 8; the runner sets cores / (2 x workers)). Side by side cannot let a survivor through: each
+  mutant still needs its own non-zero exit and its own `FAIL: <name>`.
+- **PowerShell names are case-insensitive.** `$worker = Get-ArenaRepoSnapshot $Worker` inside a function with a
+  `[string]$Worker` parameter assigns to the PARAMETER, and the type constraint turns the snapshot into a string.
+- **Never start the runner inside a worker for a parallel run.** A worker checkout runs its steps sequentially,
+  and a worker is never synced onto the checkout under test: the first version took slot vw2 for itself when it
+  was started in ArenaMode-vw2, and the sync's `checkout --force` and `clean` wiped the uncommitted work there
+  (review 2026-11-14). Edit and commit in your own checkout, never in a worker.
+- **A fresh worker has no restore.** Several harnesses run `dotnet test ... --no-restore` on ArenaMode.Tests or
+  `dotnet run --no-restore` on their own project; the sync restores those projects in a worker when their
+  `obj/project.assets.json` is missing or older than the project file.
+- **A step that does not start is a FAIL.** `$LASTEXITCODE` keeps the value of the last native command (0 from a
+  git call), so a missing executable would have read as a PASS and been cached (review 2026-11-14). The runner
+  sets it to -1 before every step, and a thread job reports an explicit exit code or -1.
+
+Traps met while building it:
+
+- **PowerShell passes `$null` to a .NET string parameter as `""`.** `[Environment]::SetEnvironmentVariable($k, $null)`
+  therefore leaves an EMPTY variable behind instead of deleting it, and a child process inherits it. Use
+  `Remove-Item Env:$k`; the environment fingerprint counts an empty variable as absent.
+- **The comma binds before `+`.** `'-p:' + $name + '=' + $copy, "-p:Other=x"` is `'-p:' + $name + '=' + ($copy, "-p:Other=x")`:
+  a single argument with both values joined by a space. Parenthesise the concatenation.
+- **A function's `Write-Output` is its return value.** A helper that prints a verdict and returns `$true` used as
+  `if (Helper)` swallows the verdict line; return the text and let the caller print it.
+- **Installed folders move during a test day.** Mods and the server write logs and state into their own folders,
+  ArenaMapPort deploys assets several times a day, and Syncthing mirrors both from the GPU hosts. A key over whole
+  installed folders went stale every few minutes; the runtime-state pattern above is what was observed
+  (`Get-ChildItem -Recurse | Where LastWriteTime -gt ...`), and the verdict of a rerun names the installed part that moved.
