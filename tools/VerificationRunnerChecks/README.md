@@ -37,7 +37,12 @@ variable is keyed by content; `parallel-restore` that a `--no-restore` step pass
 `worker-guard` that a runner started inside a worker runs sequentially and keeps the worker's uncommitted files.
 
 The `helper` case runs a toy harness through the real `Invoke-ArenaSourceChecks.ps1`: its killed mutants
-pass, and a surviving, a non-compiling and a wrongly killed mutant each fail the harness. The `parallel` case
+pass, and a surviving, a non-compiling and a wrongly killed mutant each fail the harness. `helper-channels` runs a second toy
+through the helper's other channels (a per-mutant environment variable, chained edits, a `Prepare` block
+with its own copy name, failure prefix, marker, whitespace collapse, program arguments, a raw failure text): its
+faults pass, and an anchor with two sites, a kill without the marker, a non-compiling mutant whose compiler
+error contains the raw failure text and a `Prepare` block that returns more than `-p:` properties each fail the
+harness; a per-mutant variable set process-wide fails it too, through the final run that would inherit it. The `parallel` case
 runs three toys in two workers: the workers are siblings of the checkout, mirror an uncommitted edit (with an
 old write time), an untracked file, a deletion and a staged file, give copied files a fresh write time, leave
 the checkout under test untouched, cache their PASSes, and a runner started inside a worker stays

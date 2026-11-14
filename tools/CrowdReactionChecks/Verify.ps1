@@ -1,14 +1,16 @@
 # Crowd reactions (docs/reviews/CROWD-REACTIONS-20261102.md): the baseline, then hand-made mutants
 # of the production sources, each of which must fail its named assertion. Every case builds with the
 # no-deploy targets and a sentinel that must not exist (like its siblings, although this project
-# references no mod project), into its own output folder under artifacts/. A mutant anchor is compared
-# with LF line endings and must match exactly one site; production files are never rewritten.
+# references no mod project). The mutants run through the shared helper (tools/Invoke-ArenaSourceChecks.ps1:
+# side by side, each in its own output folder under the project's bin/ and obj/); a mutant anchor is
+# compared with LF line endings and must match exactly one site; production files are never rewritten.
 # -Stage Baseline runs the baseline only (Run-ArenaVerification.ps1 -Harness CrowdReactionChecks:Baseline).
 # The program's last stage loads the installed ArenaMapPort client read-only (installed data, like
 # IcebergChecks): it must exist and carry crowd reactions phase A (MapPort d70acd2 or later), and its
 # hash must not change during the check.
 param([ValidateSet('All', 'Baseline')][string]$Stage = 'All', [string]$SptRoot = 'D:\SPT41')
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 if (Test-Path variable:PSNativeCommandUseErrorActionPreference) { $PSNativeCommandUseErrorActionPreference = $false }
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $project = Join-Path $PSScriptRoot 'CrowdReactionChecks.csproj'
@@ -47,15 +49,17 @@ function Invoke-Case([string]$Name, [string]$Property, [string]$Copy) {
     return @{ Exit = $code; Text = $text }
 }
 
-$baseline = Invoke-Case 'baseline' '' ''
-if ($baseline.Exit -ne 0 -or $baseline.Text -notmatch 'CROWD_REACTION_CHECKS_PASSED') { throw $baseline.Text }
-Write-Output (($baseline.Text -split "`n") | Where-Object { $_ -match 'CROWD_REACTION_REAL_SURFACE|CROWD_REACTION_CHECKS_PASSED' })
 function Assert-MapPortUnchanged {
     if ((Get-FileHash -LiteralPath $mapPortClient -Algorithm SHA256).Hash -ne $mapPortHash) {
         throw "The installed ArenaMapPort client changed during the check: $mapPortClient"
     }
 }
-if ($Stage -eq 'Baseline') { Assert-MapPortUnchanged; Write-Output "CROWD_REACTION_CHECKS_BASELINE: evidence $evidence"; return }
+if ($Stage -eq 'Baseline') {
+    $baseline = Invoke-Case 'baseline' '' ''
+    if ($baseline.Exit -ne 0 -or $baseline.Text -notmatch 'CROWD_REACTION_CHECKS_PASSED') { throw $baseline.Text }
+    Write-Output (($baseline.Text -split "`n") | Where-Object { $_ -match 'CROWD_REACTION_REAL_SURFACE|CROWD_REACTION_CHECKS_PASSED' })
+    Assert-MapPortUnchanged; Write-Output "CROWD_REACTION_CHECKS_BASELINE: evidence $evidence"; return
+}
 
 # Fault control: without the installed client the program fails (it never skips the real surface)
 # and names MapPort's requirement. The later -p wins over the installed path Invoke-Case passes.
@@ -286,20 +290,12 @@ $cases = @(
        Replace='internal const int Approve = 1, Disapprove = 2, TakeCover = 3, Start = 5, Finish = 4, Lull = 6;';
        Failure="real surface: ArenaMode's kind numbers are MapPort's CrowdReactionKind numbers" }
 )
-foreach ($case in $cases) {
-    $source = [IO.File]::ReadAllText($sources[$case.Property]).Replace("`r`n", "`n")
-    $find = ([string]$case.Find).Replace("`r`n", "`n")
-    $sites = [regex]::Matches($source, [regex]::Escape($find)).Count
-    if ($sites -ne 1) { throw "Mutation anchor matches $sites sites (expected exactly one): $($case.Name)" }
-    $copy = Join-Path $evidence ($case.Name + '.cs')
-    [IO.File]::WriteAllText($copy, $source.Replace($find, ([string]$case.Replace).Replace("`r`n", "`n")))
-    $result = Invoke-Case $case.Name $case.Property $copy
-    if ($result.Exit -eq 0 -or $result.Text -match 'error CS' -or
-        -not $result.Text.Contains('FAIL: ' + $case.Failure)) {
-        throw "Mutant was not killed by its named assertion: $($case.Name)`n$($result.Text)"
-    }
-    Write-Output "CROWD_REACTION_MUTANT_REJECTED: $($case.Name) -> $($case.Failure)"
-}
+# Baseline, every mutant and the unchanged sources again; every build carries the no-deploy targets and
+# the sentinel through the properties below.
+foreach ($case in $cases) { $case.Path = $sources[$case.Property] }
+Test-ArenaSourceFaults $project 'CROWD_REACTION_CHECKS_PASSED' @("-p:CustomAfterMicrosoftCommonTargets=$noDeployTargets",
+    "-p:SPTUserMods=$noDeploy", "-p:MapPortClientDll=$mapPortClient") $cases -RequireSingleSite
+if (Test-Path -LiteralPath $noDeploy) { throw 'The no-deploy sentinel was written by a mutant build.' }
 foreach ($key in $sources.Keys) {
     if ((Get-FileHash -LiteralPath $sources[$key] -Algorithm SHA256).Hash -ne $hashes[$key]) {
         throw "A production source changed during the check: $($sources[$key])"

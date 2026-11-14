@@ -1,5 +1,6 @@
 param([ValidateSet('All','Ui')][string]$Stage = 'All')
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\Invoke-ArenaSourceChecks.ps1')
 if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
@@ -12,6 +13,8 @@ if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
 # 2. Mutates one production seam at a time, in a copy outside the repository (a compiler input only,
 #    never a rewrite of production files), and requires the harness to fail on the NAMED assertion.
 #    A mutant that does not compile, or fails some other way, is itself a failure of this script.
+#    The mutants are collected below and run together through tools/Invoke-ArenaSourceChecks.ps1 (side
+#    by side, each in its own output directory, with the baseline before and after them).
 # 3. Hash-checks every production file afterwards.
 #
 # Every build passes the no-deploy properties, so nothing here can reach a game installation.
@@ -48,52 +51,13 @@ foreach ($key in $paths.Keys) {
     $sources[$key] = [IO.File]::ReadAllText($paths[$key]).Replace("`r`n", "`n")
     $hashes[$key] = (Get-FileHash -LiteralPath $paths[$key] -Algorithm SHA256).Hash
 }
-$scratch = Join-Path ([IO.Path]::GetTempPath()) ('ArenaSessionClientMutation-' + [guid]::NewGuid())
-[IO.Directory]::CreateDirectory($scratch) | Out-Null
-
-function Invoke-Harness([string]$name, [hashtable]$extraProperties, [hashtable]$environment) {
-    $arguments = @('run', '--project', $project, '-c', 'Release') + $safety
-    if ($name) {
-        $arguments += "-p:OutputPath=$(Join-Path $scratch ($name + '-bin\'))"
-        $arguments += "-p:IntermediateOutputPath=$(Join-Path $scratch ($name + '-obj\'))"
-    }
-    foreach ($property in $extraProperties.Keys) { $arguments += "-p:$property=$($extraProperties[$property])" }
-    $environment = $environment.Clone()
-    $environment['ARENA_REPO_ROOT'] = $repo
-    foreach ($variable in $environment.Keys) { Set-Item -Path ('Env:' + $variable) -Value $environment[$variable] }
-    $previous = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        $output = & dotnet @arguments 2>&1
-        $exit = $LASTEXITCODE
-    }
-    finally {
-        $ErrorActionPreference = $previous
-        foreach ($variable in $environment.Keys) { Remove-Item -Path ('Env:' + $variable) -ErrorAction SilentlyContinue }
-    }
-    return @{ Exit = $exit; Text = (($output | ForEach-Object { [string]$_ }) -join "`n") }
-}
-
-$script:mutants = 0
+$script:faults = [Collections.Generic.List[object]]::new()
 function Invoke-Mutant([string]$name, [string]$kind, [string]$from, [string]$to, [string]$expected) {
     if ($Stage -eq 'Ui' -and $kind -notin @('side','notice','optional')) { return }
-    $source = $sources[$kind]
-    $count = ($source.Split([string[]]@($from), [StringSplitOptions]::None)).Count - 1
-    if ($count -ne 1) { throw "Expected exactly one mutation site for $name; found $count." }
-    $copy = Join-Path $scratch ($name + '.cs')
-    [IO.File]::WriteAllText($copy, $source.Replace($from, $to), [Text.UTF8Encoding]::new($false))
-    $properties = @{}
-    $environment = @{}
-    # A compiled source that is also pinned by text (the switch) is replaced on both channels.
-    if ($channel[$kind].Property) { $properties[$channel[$kind].Property] = $copy }
-    if ($channel[$kind].Variable) { $environment[$channel[$kind].Variable] = $copy }
-    $result = Invoke-Harness $name $properties $environment
-    if ($result.Exit -eq 0 -or $result.Text -match 'error CS' -or $result.Text -notmatch 'ARENA_SESSION_CLIENT_CHECKS_FAILED' `
-            -or $result.Text -notmatch [regex]::Escape($expected)) {
-        throw "$name did not fail its intended assertion '$expected' (exit $($result.Exit)). Evidence: $scratch`n$($result.Text)"
-    }
-    $script:mutants++
-    Write-Output "Rejected mutant: $name"
+    # A compiled source that is also pinned by text (the switch) is replaced on both channels; the environment
+    # variable reaches only this mutant's build and program.
+    $script:faults.Add(@{ Name = $name; Path = $paths[$kind]; Find = $from; Replace = $to; Failure = $expected
+        Property = $channel[$kind].Property; Environment = $channel[$kind].Variable })
 }
 
 # Swaps two ADJACENT blocks of a production source (the checks of a chain run in source order, so the order is part of
@@ -114,9 +78,6 @@ function Invoke-SwapMutant([string]$name, [string]$kind, [string]$startA, [strin
     Invoke-Mutant $name $kind ($blockA + $blockB) ($blockB + $blockA) $expected
 }
 
-$baseline = Invoke-Harness $null @{} @{}
-if ($baseline.Exit -ne 0 -or $baseline.Text -notmatch 'ARENA_SESSION_CLIENT_CHECKS_PASSED') { throw $baseline.Text }
-Write-Output ($baseline.Text -split "`n" | Where-Object { $_ -match 'PASSED' })
 
 # ---- session state
 Invoke-Mutant 'mode-flag-ignored' 'mode' `
@@ -659,9 +620,18 @@ Invoke-Mutant 'chain-whitelist-removed' 'optional' `
     "        var whitelistFailure = ArenaWhitelistAdmission.GetRejectionReason();`n        if (whitelistFailure != null) return whitelistFailure;`n" '' `
     'the whitelist is the first provider of the admission chain'
 
+# The program finds the production files through ARENA_REPO_ROOT (it runs from bin/, the mutants from their own
+# output directories); every process of the helper inherits it.
+$previousRoot = $env:ARENA_REPO_ROOT
+$env:ARENA_REPO_ROOT = $repo
+try {
+    Test-ArenaSourceFaults $project 'ARENA_SESSION_CLIENT_CHECKS_PASSED' $safety $script:faults.ToArray() -FailurePrefix '' `
+        -FailureMarker 'ARENA_SESSION_CLIENT_CHECKS_FAILED' -RequireSingleSite
+}
+finally { $env:ARENA_REPO_ROOT = $previousRoot }
 foreach ($key in $paths.Keys) {
     if ((Get-FileHash -LiteralPath $paths[$key] -Algorithm SHA256).Hash -ne $hashes[$key]) {
         throw "Mutation verification changed $($paths[$key])"
     }
 }
-Write-Output "ARENA_SESSION_CLIENT_VERIFIED ($Stage; $($script:mutants) mutants rejected on their named assertion; evidence: $scratch)"
+Write-Output "ARENA_SESSION_CLIENT_VERIFIED ($Stage; $($script:faults.Count) mutants rejected on their named assertion)"

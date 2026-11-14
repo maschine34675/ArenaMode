@@ -71,7 +71,31 @@ $faults = @(
     @{ Name = 'mutants-run-from-temp'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'killed mutants pass their harness'; Cases = @('helper')
         Find = '    $mutantBin=Join-Path $projectDir "bin\m-$runId"'; Replace = '    $mutantBin=Join-Path $scratch ''bin''' },
     @{ Name = 'helper-accepts-survivors'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a survivor mutant fails its harness'; Cases = @('helper')
-        Find = "        if(`$result.Code -eq 0 -or -not `$result.Output.Contains('FAIL: '+`$result.Failure)) {"; Replace = '        if($false) {' },
+        Find = '        if($reason) { throw ('; Replace = '        if($false) { throw (' },
+    @{ Name = 'fault-environment-dropped'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '    if ($Environment) { foreach ($name in $Environment.Keys) { $info.Environment[$name] = [string]$Environment[$name] } }'; Replace = '' },
+    @{ Name = 'fault-edits-not-chained'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '            $text=$text.Replace($find,$replace)'; Replace = '            $text=$source.Replace($find,$replace)' },
+    @{ Name = 'prepare-dropped'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '                $build+=$extra'; Replace = '                $null=$extra' },
+    @{ Name = 'copy-name-ignored'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '$copy=Join-Path $directory $(if($fault.CopyName) { $fault.CopyName } else { $fault.Name+''.cs'' })'; Replace = '$copy=Join-Path $directory ($fault.Name+''.cs'')' },
+    @{ Name = 'failure-prefix-fixed'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '        $expected=$FailurePrefix+$result.Failure'; Replace = '        $expected=''FAIL: ''+$result.Failure' },
+    @{ Name = 'whitespace-not-collapsed'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '        if($CollapseWhitespace) {'; Replace = '        if($false) {' },
+    @{ Name = 'program-arguments-dropped'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = ' + @($using:programArguments))'; Replace = ')' },
+    @{ Name = 'environment-process-wide'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'channel faults pass their harness'; Cases = @('helper-channels')
+        Find = '$info.Environment[$name] = [string]$Environment[$name]'; Replace = '[Environment]::SetEnvironmentVariable($name, [string]$Environment[$name])' },
+    @{ Name = 'prepare-output-unchecked'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a leaking Prepare fails its harness'; Cases = @('helper-channels')
+        Find = "                if(`$extra -isnot [string] -or -not `$extra.StartsWith('-p:')) {"; Replace = '                if($false) {' },
+    @{ Name = 'single-site-unchecked'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a double-site fault fails its harness'; Cases = @('helper-channels')
+        Find = '            if($RequireSingleSite) {'; Replace = '            if($false) {' },
+    @{ Name = 'failure-marker-ignored'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'an unmarked fault fails its harness'; Cases = @('helper-channels')
+        Find = '            elseif($FailureMarker -and -not $result.Output.Contains($FailureMarker)) { "the output lacks $FailureMarker" }'; Replace = '' },
+    @{ Name = 'uncompiled-kills'; File = 'tools/Invoke-ArenaSourceChecks.ps1'; Failure = 'a broken-raw fault fails its harness'; Cases = @('helper-channels')
+        Find = "        `$reason=if(-not `$result.Compiled) { 'it did not compile' }"; Replace = "        `$reason=if(`$false) { 'it did not compile' }" },
     @{ Name = 'artifacts-not-mirrored'; File = 'tools/ArenaVerificationWorkers.ps1'; Failure = 'a registered artifact fixture reaches the workers'; Cases = @('parallel-artifacts')
         Find = '    foreach ($prefix in $ArenaArtifactInputs) {'; Replace = '    foreach ($prefix in @()) {' },
     @{ Name = 'register-keyed'; File = 'tools/ArenaVerificationInputs.ps1'; Failure = 'editing the register keeps every PASS'; Cases = @('register')
@@ -208,6 +232,57 @@ foreach ($fault in $faults) { $fault.Path = $answer; $fault.Property = 'AnswerSo
 Test-ArenaSourceFaults (Join-Path $PSScriptRoot 'MutantToyChecks.csproj') 'MUTANT_TOY_PASSED' @() $faults
 '@
     Write-Text (Join-Path $repo 'tools/MutantToyChecks/Verify.ps1') $mutantToy
+    # The helper's other channels (environment variable, chained edits, Prepare with CopyName, prefix, marker,
+    # single site, whitespace, program arguments) through a second toy; ARENA_RUNNER_CHECKS_BADFAULT adds a
+    # fault the helper must refuse.
+    Write-Text (Join-Path $repo 'ArenaMode.Client/Channel.cs') "public static class Channel { public static int Value() => 42; } // 42 is the answer`n"
+    Write-Text (Join-Path $repo 'tools/MutantChannelToyChecks/MutantChannelToyChecks.csproj') @'
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ChannelSource Condition="'$(ChannelSource)' == ''">../../ArenaMode.Client/Channel.cs</ChannelSource>
+    <ChannelSource Condition="'$(ChannelRoot)' != ''">$(ChannelRoot)/Channel.cs</ChannelSource>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="$(ChannelSource)" /></ItemGroup>
+</Project>
+'@
+    Write-Text (Join-Path $repo 'tools/MutantChannelToyChecks/Program.cs') @'
+var d = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+while (d != null && !System.IO.File.Exists(System.IO.Path.Combine(d.FullName, "AGENTS.md"))) d = d.Parent;
+if (d == null) { System.Console.WriteLine("repository root not found"); return 2; }
+if (args.Length != 1 || args[0] != "go") { System.Console.WriteLine("CHANNEL_TOY_FAILED ASSERT: program argument arrives"); return 1; }
+int value = Channel.Value();
+if (value == 7) { System.Console.WriteLine("ASSERT: answer is never seven"); return 3; }
+if (value != 42) { System.Console.WriteLine("CHANNEL_TOY_FAILED ASSERT: compiled answer\n   is  42"); return 1; }
+var pinned = System.Environment.GetEnvironmentVariable("TOY_PINNED_SOURCE") ?? System.IO.Path.Combine(d.FullName, "ArenaMode.Client", "Channel.cs");
+if (!System.IO.File.ReadAllText(pinned).Contains("=> 42;")) { System.Console.WriteLine("CHANNEL_TOY_FAILED ASSERT: pinned text keeps 42"); return 1; }
+System.Console.WriteLine("CHANNEL_TOY_PASSED");
+return 0;
+'@
+    Write-Text (Join-Path $repo 'tools/MutantChannelToyChecks/Verify.ps1') @'
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
+$channel = (Resolve-Path (Join-Path $PSScriptRoot '../../ArenaMode.Client/Channel.cs')).Path
+$project = Join-Path $PSScriptRoot 'MutantChannelToyChecks.csproj'
+Add-Content -LiteralPath $env:RUNNERCHECKS_COUNTER -Value 'MutantChannelToyChecks'
+$faults = @(
+    @{ Name = 'compiled'; Property = 'ChannelSource'; Find = '=> 42;'; Replace = '=> 41;'; Failure = 'compiled answer is 42' },
+    @{ Name = 'pinned'; Environment = 'TOY_PINNED_SOURCE'; Find = '=> 42;'; Replace = '=> 42 ;'; Failure = 'pinned text keeps 42' },
+    @{ Name = 'two-step'; Property = 'ChannelSource'; Find = @('=> 42;', '40 + 2'); Replace = @('=> 40 + 2;', '40 + 1'); Failure = 'compiled answer is 42' },
+    @{ Name = 'prepared'; CopyName = 'Channel.cs'; Prepare = { param($Copy, $Directory) "-p:ChannelRoot=$(Split-Path -Parent $Copy)" }; Find = '=> 42;'; Replace = '=> 43;'; Failure = 'compiled answer is 42' }
+)
+$raw = @(@{ Name = 'raw'; Property = 'ChannelSource'; Find = '=> 42;'; Replace = '=> 40;'; Failure = 'compiled answer' })
+switch ($env:ARENA_RUNNER_CHECKS_BADFAULT) {
+    'double-site' { $faults += @{ Name = 'double-site'; Property = 'ChannelSource'; Find = '42'; Replace = '41'; Failure = 'compiled answer is 42' } }
+    'unmarked' { $faults += @{ Name = 'unmarked'; Property = 'ChannelSource'; Find = '=> 42;'; Replace = '=> 7;'; Failure = 'answer is never seven' } }
+    'prepare-leak' { $faults += @{ Name = 'prepare-leak'; CopyName = 'Channel.cs'; Prepare = { param($Copy, $Directory) 'stray'; "-p:ChannelRoot=$Directory" }; Find = '=> 42;'; Replace = '=> 44;'; Failure = 'compiled answer is 42' } }
+    'broken-raw' { $raw += @{ Name = 'broken-raw'; Property = 'ChannelSource'; Find = '=> 42;'; Replace = '=> 42'; Failure = '; expected' } }
+}
+foreach ($fault in $faults + $raw) { $fault.Path = $channel }
+Test-ArenaSourceFaults $project 'CHANNEL_TOY_PASSED' @() $faults -FailurePrefix 'ASSERT: ' -FailureMarker 'CHANNEL_TOY_FAILED' -RequireSingleSite -CollapseWhitespace -Arguments 'go'
+Test-ArenaSourceFaults $project 'CHANNEL_TOY_PASSED' @() $raw -FailurePrefix '' -Arguments 'go'
+'@
     Write-Text (Join-Path $repo 'tools/DeployToyChecks/Verify.ps1') "param([string]`$SptRoot)`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'DeployToyChecks'`n`$null = New-Item -ItemType Directory -Force (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode')`nSet-Content -LiteralPath (Join-Path `$SptRoot 'BepInEx/plugins/maschine-ArenaMode/maschine-ArenaMode.Client.dll') 'deployed'`n'DEPLOY_TOY_PASSED'`n"
     Invoke-Git $repo @('init', '-q', '-b', 'main'); Invoke-Git $repo @('add', '-A'); Invoke-Git $repo @('commit', '-q', '-m', 'sandbox')
     $redeploy = Join-Path $dev 'Redeploy'
@@ -431,6 +506,18 @@ $cases = [ordered]@{
             $r = Invoke-Runner $s 'MutantToyChecks' -NoCache -Environment @{ ARENA_RUNNER_CHECKS_BADFAULT = $bad; ARENA_MUTANT_PARALLEL = '3' }
             $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/MutantToyChecks.log')
             Check (-not $r.Verdicts['MutantToyChecks'].Passed -and $log -match "Fault was not killed by intended assertion: $bad") "a $bad mutant fails its harness" $log
+        } }
+    'helper-channels' = { param($s)
+        $r = Invoke-Runner $s 'MutantChannelToyChecks' -NoCache
+        $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/MutantChannelToyChecks.log')
+        Check ($r.Verdicts['MutantChannelToyChecks'].Passed -and $log -match 'Source faults rejected: 4' -and $log -match 'Source faults rejected: 1') 'channel faults pass their harness' "$($r.Output)`n$log"
+        foreach ($bad in @(@('double-site', 'Fault anchor matches 2 sites \(expected exactly one\): double-site', 'a double-site fault fails its harness'),
+                @('unmarked', 'Fault was not killed by intended assertion: unmarked \(the output lacks CHANNEL_TOY_FAILED\)', 'an unmarked fault fails its harness'),
+                @('broken-raw', 'Fault was not killed by intended assertion: broken-raw \(it did not compile\)', 'a broken-raw fault fails its harness'),
+                @('prepare-leak', "Prepare of fault prepare-leak returned 'stray'", 'a leaking Prepare fails its harness'))) {
+            $r = Invoke-Runner $s 'MutantChannelToyChecks' -NoCache -Environment @{ ARENA_RUNNER_CHECKS_BADFAULT = $bad[0]; ARENA_MUTANT_PARALLEL = '3' }
+            $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/MutantChannelToyChecks.log')
+            Check (-not $r.Verdicts['MutantChannelToyChecks'].Passed -and $log -match $bad[1]) $bad[2] $log
         } }
     'parallel' = { param($s)
         Edit-File $s 'ArenaMode.Client/Toy.cs' '// parallel'

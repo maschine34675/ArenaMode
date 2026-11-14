@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../Invoke-ArenaSourceChecks.ps1')
 $arenaRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $arenaProject = Join-Path $PSScriptRoot 'TdmMatchChecks.csproj'
 $arenaEvidence = Join-Path $arenaRepo ('artifacts/tdm-match-checks/' + [guid]::NewGuid().ToString('N'))
@@ -12,15 +13,6 @@ foreach ($path in $arenaSources) { $arenaSourceHashes[$path] = (Get-FileHash -Li
 $arenaSourceHashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $arenaEvidence 'production-sources.json')
 $arenaGuards = Join-Path $arenaEvidence 'RespawnGuards.cs'
 & (Join-Path $PSScriptRoot 'Extract-RespawnGuards.ps1') -OutputPath $arenaGuards
-function Invoke-Case([string]$name, [string[]]$extra = @()) {
-    $output = & dotnet run --project $arenaProject -c $name "-p:RespawnGuardSource=$arenaGuards" @extra 2>&1 | Out-String
-    $code = $LASTEXITCODE
-    [IO.File]::WriteAllText((Join-Path $arenaEvidence ($name + '.log')), $output)
-    return @{ Output=$output; Code=$code }
-}
-$baseline = Invoke-Case 'Release'
-if ($baseline.Code -ne 0 -or !$baseline.Output.Contains('TDM_MATCH_POLICY_EXIT_PASSED')) { throw $baseline.Output }
-$baseline.Output.Trim() | Write-Output
 $policy = Join-Path $arenaRepo 'ArenaMode.Client/Modes/TeamDeathmatchMatchPolicy.cs'
 $exit = Join-Path $arenaRepo 'ArenaMode.Client/Modes/TdmMatchExit.cs'
 $driver = Join-Path $arenaRepo 'ArenaMode.Client/Respawn/ArenaRespawnDriver.cs'
@@ -53,22 +45,23 @@ $mutants = @(
     @{Name='HeldBlackScreen';Path=$driver;Property='DriverSource';From='&& (!IsTerminalTdmHold || RespawnEngineState.IsPipelineRunning)';To='';Failure='result display must not retain black screen for held death'},
     @{Name='TerminalPreloadRelease';Path=$driver;Property='DriverSource';From='while (IsTerminalTdmHold && IsSameActiveRaid(game, raidEpoch) && !StandDown)';To='while (false)';Failure='terminal preload continuation waits without entering engine'}
 )
-foreach ($case in $mutants) {
-    $source = [IO.File]::ReadAllText($case.Path)
-    if (!$source.Contains($case.From)) { throw "Mutation anchor missing: $($case.Name)" }
-    $copy = Join-Path $arenaEvidence ($case.Name + '.cs')
-    [IO.File]::WriteAllText($copy, $source.Replace($case.From, $case.To))
+# Baseline, every mutant (side by side through the shared helper) and the unchanged sources again. A driver
+# mutant reaches the program through the guards extracted from its copy, not through a property of its own.
+$arenaExtractor = Join-Path $PSScriptRoot 'Extract-RespawnGuards.ps1'
+$faults = foreach ($case in $mutants) {
+    $fault = @{ Name = $case.Name; Path = $case.Path; Find = $case.From; Replace = $case.To; Failure = $case.Failure }
     if ($case.Property -eq 'DriverSource') {
-        $guardsCopy = Join-Path $arenaEvidence ($case.Name + '-guards.cs')
-        & (Join-Path $PSScriptRoot 'Extract-RespawnGuards.ps1') -OutputPath $guardsCopy -DriverPath $copy
-        $result = Invoke-Case $case.Name @("-p:RespawnGuardSource=$guardsCopy")
+        $fault.Prepare = {
+            param($Copy, $Directory)
+            $guardsCopy = Join-Path $Directory 'guards.cs'
+            & $arenaExtractor -OutputPath $guardsCopy -DriverPath $Copy | Out-Null
+            "-p:RespawnGuardSource=$guardsCopy"
+        }
     }
-    else { $result = Invoke-Case $case.Name @("-p:$($case.Property)=$copy") }
-    if ($result.Code -eq 0 -or $result.Output -match 'error CS\d+' -or !$result.Output.Contains($case.Failure)) { throw "Wrong fault-control failure $($case.Name): $($result.Output)" }
-    Write-Output "Rejected fault control: $($case.Name)"
+    else { $fault.Property = $case.Property }
+    $fault
 }
-$final = Invoke-Case 'Release'
-if ($final.Code -ne 0 -or !$final.Output.Contains('TDM_MATCH_POLICY_EXIT_PASSED')) { throw $final.Output }
+Test-ArenaSourceFaults $arenaProject 'TDM_MATCH_POLICY_EXIT_PASSED' @("-p:RespawnGuardSource=$arenaGuards") @($faults) -FailurePrefix ''
 foreach ($path in $arenaSources) {
     if ((Get-FileHash -LiteralPath $path).Hash -ne $arenaSourceHashes[$path]) { throw "Production source changed during checks: $path" }
 }
