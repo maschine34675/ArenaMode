@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-13. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-14. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -12,32 +12,61 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
-- **Release preparation, 2026-11-14: ArenaMode 0.6.0 with Redeploy 1.1.3 and shared Core 1.0.24.** At the
-  user's request ("merge, delete and push every open branch, raise the versions of ArenaMode and Redeploy,
-  complete the documents, publish the release on GitHub; ArenaMapPort is published as 0.6.0 in parallel")
-  the remaining branches were collected first: `fix/ui-asset-checks-shared-link` (`0ca3bbb1`, three harness
-  project files) was merged (`9b92aa35`); it, `feature/verification-speed` and `feature/mutant-helper-port`
-  (both merged earlier that day by their sessions) were deleted with their worktrees, the ignored files
-  archived under `artifacts/archived-worktrees/{uiassetlink,verifyspeed,mutantport}-20261114/`;
-  `feature/fika-admission` stays out as before, and the runner's worker checkouts `ArenaMode-vw1` to `-vw4`
-  stay. `master` was pushed at `9b92aa35`. This commit raises the five version sites to 0.6.0, the
-  whitelist records ArenaMapPort 0.6.0 and Redeploy 1.1.3 (with `ArenaWhitelistTests`), and the README, the
-  Forge description, the changelog (section 0.6.0), DEPENDENCIES, FEATURES, MAP-MODE-COMPATIBILITY,
-  AREA-RULES and the new [release notes](RELEASE-0.6.0.md) describe the release; eight writers and eight
-  reviewers worked on the documents, every finding was re-verified against the source before it was applied.
-  Redeploy stays one checkout on `main`; its release is 1.1.3 because Client and Server code is unchanged
-  (as 1.1.2 was), with Core 1.0.24 as bundled and minimum Core.
+- **Released, 2026-11-14: ArenaMode 0.6.0 (`v0.6.0` = `39dfcf77`) with Redeploy 1.1.3 (`v1.1.3` = Redeploy
+  `67f8303`) and shared Core 1.0.24; the release binaries are installed.** At the user's request ("merge,
+  delete and push every open branch, raise the versions of ArenaMode and Redeploy, complete the documents,
+  publish the release on GitHub; ArenaMapPort is published as 0.6.0 in parallel").
+  [Release notes](RELEASE-0.6.0.md), [native run](reports/2026-11/GPU-RELEASE-060-20261114.md),
+  [GitHub release](https://github.com/maschine34675/ArenaMode/releases/tag/v0.6.0) (published 11:47 UTC,
+  latest, `ArenaMode-0.6.0.zip` with its checksum; the asset's digest equals the local SHA-256
+  `8d260af6…b27857`). `master` is pushed with the record commit `b04a67e5` and this note. The Forge upload
+  is the user's; `docs/FORGE-DESCRIPTION.md` describes 0.6.0.
+  **Branches:** `fix/ui-asset-checks-shared-link` (`0ca3bbb1`, three harness project files) was merged
+  (`9b92aa35`); it, `feature/verification-speed` and `feature/mutant-helper-port` (both merged earlier that
+  day by their sessions) were deleted with their worktrees, the ignored files archived under
+  `artifacts/archived-worktrees/{uiassetlink,verifyspeed,mutantport}-20261114/`; `feature/fika-admission`
+  stays out as before, and the runner's worker checkouts `ArenaMode-vw1` to `-vw4` stay. Redeploy has
+  `main` only.
   **Decision on the ArenaMapPort requirement (the release blocker of "Open work"):** ArenaMapPort 0.6.0
-  ships Chop Shop and the spawn rows under a new version number, so the blocker is gone; the choice the
-  blocker left open is made for a documented requirement, not a run-time check. With ArenaMapPort 0.5.0
-  Chop Shop is not offered, the five older ported maps play as before outside Tactical, and Tactical on
-  Equator and Iceberg is offered with too few distant rows (a short or late solo squad, a possible no
-  contest with a PitFireTeam squad); the release notes, the README, DEPENDENCIES and the Forge text say so,
-  and the whitelist pin produces an advisory note. A run-time refusal (for example a count of the raid's
-  Bot rows in `ArenaModeRouter` next to the `TryResolve` call) remains possible later; it was not added
-  days before the release without a native run on old data.
-  The package, its checks, the native release check on GPU-2 and the publication are recorded in the
-  release notes and in the entry that replaces this one after the publication.
+  ships Chop Shop and the spawn rows under a new version number, so the blocker is gone; the choice it left
+  open is made for a documented requirement, not a run-time check. With ArenaMapPort 0.5.0 Chop Shop is not
+  offered, the five older ported maps play as before outside Tactical, and Tactical on Equator and Iceberg
+  is offered with too few distant rows (a short or late solo squad, a possible no contest with a
+  PitFireTeam squad); the release notes, the README, DEPENDENCIES and the Forge text say so, and the
+  whitelist pin (ArenaMapPort 0.6.0, Redeploy 1.1.3) produces an advisory note. A run-time refusal (for
+  example a count of the raid's Bot rows in `ArenaModeRouter` next to the `TryResolve` call) remains
+  possible; it was not added days before the release without a native run on old data. **ArenaMapPort
+  0.6.0 was not published yet when ArenaMode 0.6.0 went out** (its session was still at work; the native
+  run used its installed build `0.6.0+8755049c`).
+  **Verification:** the whole register (144 steps) and the suite ran once, uncached, on the release tree
+  before the last document fixes (snapshot commit `c48fbf4d`, not on a branch): 141 of 145 passed, the
+  failures being `NativeStopChecks` (did not compile since `ArenaMatchService.Tick` releases the crowd claim
+  and observes the reward capture; repaired in `39dfcf77`, five of five mutants rejected) and three steps
+  that need PitFireTeam reference trees this machine lacks (`PitFireTeam100Checks`,
+  `PitFireTeamRoundLifecycleChecks`, `PftTacticalKitChecks` integration stage); the four steps the later
+  changes touch and the suite then passed, uncached, on `39dfcf77`. The run took 55 minutes of wall time
+  with four workers. The documents went through eight writers and eight reviewers (twelve findings, each
+  verified again before it was applied), and the filled release notes and the native report through a
+  second review against the logs and manifests (nine corrections).
+  **Package:** `tools/Package-TestRelease.ps1 -SptPath D:\SPT41 -Release -CoreAssemblyPath <the Core of
+  Redeploy-1.1.3.zip> -CoreAssemblySha256 aa46ec84…` with Redeploy at `67f8303`; 74 files, 7,356,945 bytes,
+  in `artifacts/test-releases/a5eb9d67a8ff4ccc850a256873817e93/`. VirusTotal: five DLLs and the Core
+  without a label, the session helper with three.
+  **Installed in `D:\SPT41` since 12:16** (both GPU hosts hold the same files; loaded on GPU-2, 16 of 16
+  identical): exactly the two ZIPs. Client `0.6.0+39dfcf77` (`4b05b3e5…`), BigBrainCompat (`f8a7ddce…`),
+  Session helper (`ecc6ef53…`), Gate (`361fe10f…`), server (`df910371…`), Core `1.0.24+67f8303`
+  (`aa46ec84…`), Redeploy client `1.1.3+67f8303` (`11f815e7…`) and server (`a7c23eaa…`); the full hashes
+  are in the two release notes. Previous files (the test build `a7965541`, Core `1.0.24+0a4f242`,
+  Redeploy `1.1.2+f092f98`): `D:\SPT41-Backups\release-060\20261114-121645` with `SHA256SUMS.txt`. The
+  game is closed and the GPU-2 server stopped; `com.maschine.ArenaMode.cfg` holds its values from before
+  the run (BepInEx's header line names v0.6.0 now).
+  **Open after the release:** the Forge upload; a look at the published ArenaMapPort 0.6.0 package with
+  ArenaMode 0.6.0 once it is out; what the native report lists as not run (Gun Game, Zombies, Tactical on
+  Iceberg and Chop Shop, a match to its limit, a capture-point hold, the Session.exe path); the three
+  verification steps without their PitFireTeam reference trees; `docs/TRAPS.md` still says a no-deploy
+  build writes the sibling Core, while the no-deploy builds of 2026-11-13 and 2026-11-14 left the
+  installed Core byte-identical (`NoDeploy.targets` empties `SPTClientDeploy`, which is also the Core's
+  target): decide which is right before trusting either.
 
 - **Development, 2026-11-13 evening: the pre-release polish is in `master`; installed is its second test
   build, `master` itself was deliberately not deployed.** Five requests of the user before the release: the
@@ -311,7 +340,7 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   `0.5.0+1fb93c69`), `…-144911` and `…-155249` (the two test builds).
   **Since 2026-11-13 this paragraph no longer describes what is installed; the first entry of "Released and
   installed" names the installed build (from 14:49 of that day the `master` build `c64846fb`, from 19:43
-  the test build `a7965541`).** The spawn-row work installed its
+  the test build `a7965541`, from 12:16 of 2026-11-14 the release 0.6.0).** The spawn-row work installed its
   test build `0.5.0+e90d1f72` at 09:36 (previous files, the build above:
   `D:\SPT41-Backups\arena-spawn-rows\20261113-093617`) and installed nothing after it. At 10:38 the session
   working on `fix/solo-squad-dispatch-order` installed its own test build over the client and BigBrainCompat
