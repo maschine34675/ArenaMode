@@ -4,9 +4,22 @@ Offline checks of `tools/Run-ArenaVerification.ps1` and its input model `tools/A
 the result cache reuses a PASS only while every input of the step is unchanged.
 
 ```bash
-pwsh -NoProfile -File tools/VerificationRunnerChecks/Verify.ps1                      # every case, then every fault
+pwsh -NoProfile -File tools/VerificationRunnerChecks/Verify.ps1                      # every case and every fault, side by side
 pwsh -NoProfile -File tools/VerificationRunnerChecks/Verify.ps1 -Case production,environment   # a fix loop
 ```
+
+The full run starts the baseline (`-Baseline`: every case, in order, in one sandbox) and every fault
+(`-Fault <name>`: the two priming cases and the fault's own cases in a sandbox of its own) as child processes;
+`ARENA_MUTANT_PARALLEL` faults run beside the baseline (default 4; `Run-ArenaVerification.ps1` sets it for the
+steps of its workers). The sandboxes share nothing (checkout, cache, counter file, and the worker checkouts of
+the parallel cases, which are siblings inside each sandbox); only the toolchain (dotnet, MSBuild nodes, the NuGet
+cache, `%TEMP%`) is common. A fault proves something only against a green baseline: a red baseline fails the
+run whatever the faults did, every fault must report exactly once, and every fault that was not killed by its
+named assertion is listed, not only the first. Where a named assertion would also trip on an unrelated failure
+(a toy build or worker sync that breaks under load fails "channel faults pass their harness" just as well), the
+fault carries its own symptom as `Evidence`, which must appear in its output too. The cases are deliberately not split across sandboxes: they
+run one after another on the cache state the earlier ones left, and in a fresh sandbox an assertion such as
+"reruns the step" could pass merely because that step had never run there.
 
 Each case runs the real runner, copied with its helpers into a throwaway git checkout under `%TEMP%` that has
 a toy production tree, toy harness folders, a toy installation (`ARENA_VERIFICATION_INSTALL_ROOTS`), toy
