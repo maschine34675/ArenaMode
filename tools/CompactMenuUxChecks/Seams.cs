@@ -38,6 +38,10 @@ namespace ArenaMode.Pickups
 {
     internal static class ArenaPickupSettings { internal static BepInEx.Configuration.ConfigEntry<bool> Enabled = new(true); }
 }
+namespace ArenaMode.Combat.Translocator
+{
+    internal static class ArenaTranslocatorSettings { internal static BepInEx.Configuration.ConfigEntry<bool> Enabled = new(false); }
+}
 namespace ArenaMode.Spectator
 {
     internal static class KillcamCompat

@@ -93,11 +93,14 @@ public static class ArenaServerClient
     private static string _pendingArmToken;
     private static string _activeArmToken;
     private static string _molotovArmToken;
+    private static string _translocatorArmToken;
 
     // The server validates its exact registered item, not just a matching ID.
     // Binding to the confirmed token prevents a previous raid authorizing supply.
     internal static bool MolotovAvailableForConfirmedRaid =>
         !string.IsNullOrEmpty(_activeArmToken) && _molotovArmToken == _activeArmToken;
+    internal static bool TranslocatorAvailableForConfirmedRaid =>
+        !string.IsNullOrEmpty(_activeArmToken) && _translocatorArmToken == _activeArmToken;
     private static string _boundNativeEndIdentity;
     internal static string RewardArmToken => _activeArmToken;
     internal static string RewardNativeEndIdentity => _boundNativeEndIdentity;
@@ -441,6 +444,7 @@ public static class ArenaServerClient
         // claim during that interval.
         _pendingArmToken = Guid.NewGuid().ToString("N");
         _activeArmToken = null;
+        _translocatorArmToken = null;
         _boundNativeEndIdentity = null;
         failureReason = "The server did not arm Arena profile protection.";
         try
@@ -861,6 +865,7 @@ public static class ArenaServerClient
             return false;
 
         _molotovArmToken = null;
+        _translocatorArmToken = null;
         try
         {
             if (string.IsNullOrWhiteSpace(_pendingArmToken))
@@ -886,6 +891,8 @@ public static class ArenaServerClient
             _activeArmToken = _pendingArmToken;
             _molotovArmToken = response["molotovAvailable"]?.Type == JTokenType.Boolean
                 && response["molotovAvailable"].Value<bool>() ? _activeArmToken : null;
+            _translocatorArmToken = response["translocatorAvailable"]?.Type == JTokenType.Boolean
+                && response["translocatorAvailable"].Value<bool>() ? _activeArmToken : null;
             _pendingArmToken = null;
             return true;
         }
@@ -942,6 +949,7 @@ public static class ArenaServerClient
             _pendingArmToken = null;
             _activeArmToken = null;
             _boundNativeEndIdentity = null;
+            _translocatorArmToken = null;
             return true;
         }
         catch (Exception ex)

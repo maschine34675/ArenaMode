@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Compile Include="..\ArenaMode.Shared\ArenaMolotovItem.cs" Link="Shared\ArenaMolotovItem.cs" />
+    <Compile Include="..\ArenaMode.Shared\ArenaTranslocatorItem.cs" Link="Shared\ArenaTranslocatorItem.cs" />
     <Compile Include="..\ArenaMode.Shared\DeathmatchSelection.cs" Link="Shared\DeathmatchSelection.cs" />
     <Compile Include="..\ArenaMode.Shared\Protocol.cs" Link="Shared\Protocol.cs" />
     <Compile Include="..\ArenaMode.Shared\RewardWire.cs" Link="Shared\RewardWire.cs" />

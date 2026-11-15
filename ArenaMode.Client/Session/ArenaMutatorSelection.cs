@@ -1,5 +1,6 @@
 using ArenaMode.Config;
 using ArenaMode.Combat.Fire;
+using ArenaMode.Combat.Translocator;
 using ArenaMode.Modes;
 using ArenaMode.Pickups;
 using BepInEx.Configuration;
@@ -11,7 +12,7 @@ internal enum ArenaMutator
 {
     FastMovement, DoubleJump, Bunnyhop, AirControl, AirFire, AirVault, Slide,
     InfiniteStamina, NoFallDamage, Backpack, Killcam, Pickups, Tracers, Lasers, Akimbo, Announcer, PmcVoice, FriendlyFire,
-    AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots, ZombieCrowd
+    AutoQuickslots, InstantSearch, ArenaHud, Molotov, FastBots, ZombieCrowd, Translocator
 }
 
 /// <summary>Menu adapter only: no duplicate preferences, defaults or gameplay policy.</summary>
@@ -34,7 +35,7 @@ internal sealed class ArenaMutatorSelection
             or ArenaMutator.Slide or ArenaMutator.InfiniteStamina or ArenaMutator.NoFallDamage => 0,
         ArenaMutator.Backpack or ArenaMutator.AutoQuickslots or ArenaMutator.InstantSearch => 1,
         ArenaMutator.Pickups or ArenaMutator.Akimbo or ArenaMutator.FriendlyFire
-            or ArenaMutator.Molotov or ArenaMutator.FastBots or ArenaMutator.ZombieCrowd => 2,
+            or ArenaMutator.Molotov or ArenaMutator.FastBots or ArenaMutator.ZombieCrowd or ArenaMutator.Translocator => 2,
         ArenaMutator.Killcam or ArenaMutator.Tracers or ArenaMutator.Lasers
             or ArenaMutator.Announcer or ArenaMutator.PmcVoice or ArenaMutator.ArenaHud => 3,
         _ => throw new ArgumentOutOfRangeException(nameof(id))
@@ -89,6 +90,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.InstantSearch => "INSTANT SEARCH",
         ArenaMutator.ArenaHud => "ARENA HUD",
         ArenaMutator.Molotov => "MOLOTOV (WIP)",
+        ArenaMutator.Translocator => "TRANSLOCATOR (WIP)",
         ArenaMutator.FastBots => "FAST BOTS",
         ArenaMutator.ZombieCrowd => "HORDE PRESSURE",
         _ => string.Empty
@@ -124,6 +126,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.InstantSearch => "Search containers instantly.",
         ArenaMutator.ArenaHud => "Kills, hits, health, weapons.",
         ArenaMutator.Molotov => "Extra Molotov; G selects first.",
+        ArenaMutator.Translocator => "Fire: throw/recall. Aim: teleport.",
         ArenaMutator.FastBots => "Faster bot movement.",
         ArenaMutator.ZombieCrowd => "Moves distant zombies closer.",
         _ => string.Empty
@@ -156,6 +159,7 @@ internal sealed class ArenaMutatorSelection
         ArenaMutator.InstantSearch => Settings.InstantSearch,
         ArenaMutator.ArenaHud => Settings.CombatHudEnabled,
         ArenaMutator.Molotov => ArenaFireSettings.Enabled,
+        ArenaMutator.Translocator => ArenaTranslocatorSettings.Enabled,
         ArenaMutator.FastBots => Settings.BotMovementEnabled,
         ArenaMutator.ZombieCrowd => Settings.ZombieCrowdEnabled,
         _ => null

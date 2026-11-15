@@ -108,6 +108,10 @@ public class Plugin : BaseUnityPlugin
         Pickups.ArenaPowerups.Enable();
         Combat.Fire.ArenaFireRuntime.Enable(Config);
         Combat.Fire.ArenaMolotovModel.Enable();
+        Combat.Translocator.ArenaTranslocatorSettings.Bind(Config);
+        Combat.Translocator.ArenaTranslocatorInput.Enable();
+        Combat.Translocator.ArenaTranslocatorModel.Enable();
+        gameObject.AddComponent<Combat.Translocator.ArenaTranslocatorHud>();
         Combat.Akimbo.ArenaAkimbo.Enable();
         Pickups.ArenaInfiniteAmmo.Enable();
         Pickups.ArenaPickupExaminationPatch.EnablePatch();
@@ -219,6 +223,8 @@ public class Plugin : BaseUnityPlugin
     {
         ArenaBigBrainLibrary.Tick();
         ArenaSessionBanner.Tick();
+        Combat.Translocator.ArenaTranslocatorRuntime.Tick();
+        Combat.Translocator.ArenaTranslocatorPose.Tick();
     }
 
     private void OnDestroy()
@@ -248,6 +254,10 @@ public class Plugin : BaseUnityPlugin
         Movement.FastDeployPatches.Restore();
         Pickups.ArenaPickupRuntime.Reset();
         Combat.Fire.ArenaFireRuntime.Reset();
+        Combat.Translocator.ArenaTranslocatorRuntime.Reset();
+        Combat.Translocator.ArenaTranslocatorInput.Shutdown();
+        Combat.Translocator.ArenaTranslocatorPose.Shutdown();
+        Combat.Translocator.ArenaTranslocatorModel.Shutdown();
         Combat.Akimbo.ArenaAkimbo.Reset();
         DynamicMapsCorpseMarkers.Shutdown();
         Hud.ArenaExtractionList.Shutdown();

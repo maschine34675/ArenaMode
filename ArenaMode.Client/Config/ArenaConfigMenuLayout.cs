@@ -240,6 +240,8 @@ internal static class ArenaConfigMenuLayout
             Hide("M60DefaultMigrated")),
         new Section("Arena incendiary prototype", false,
             I("Enabled", "Bonus Molotov (WIP)")),
+        new Section("Arena translocator", false,
+            I("Enabled", "Translocator (WIP)")),
         new Section("HUD", false,
             I("Enabled", "Arena HUD"),
             I("CombatElements", "Combat Elements"),

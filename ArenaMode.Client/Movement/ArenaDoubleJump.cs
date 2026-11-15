@@ -151,6 +151,22 @@ internal static class ArenaDoubleJump
         if (_credit?.NativeRequest?.GroundSlide == true) CancelNativeRequest(_credit);
     }
 
+    // A same-body discontinuity invalidates old-position requests, never the
+    // spent/airborne ledger. Do not Observe here: that could mint fresh credit.
+    internal static void OnRelocated(Player player)
+    {
+        if (player == null || player.MovementContext == null) return;
+        Credit credit = null;
+        if (ReferenceEquals(_credit?.Player, player) && ReferenceEquals(_credit.Context, player.MovementContext)) credit = _credit;
+        else if (_credits.TryGetValue(player.MovementContext, out var retained) && ReferenceEquals(retained.Player, player)) credit = retained;
+        bool owns = credit != null || ReferenceEquals(_slideRequest?.Player, player) || ReferenceEquals(_command?.Player, player);
+        if (!owns) return;
+        unchecked { _inputEpoch++; }
+        if (credit != null) { unchecked { credit.StateRevision++; } CancelNativeRequest(credit); }
+        if (ReferenceEquals(_slideRequest?.Player, player)) _slideRequest = null;
+        if (ReferenceEquals(_command?.Player, player)) _command = null;
+    }
+
     private static void Warn(Exception exception)
     {
         if (_warned) return;

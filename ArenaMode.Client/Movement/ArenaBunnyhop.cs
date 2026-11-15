@@ -109,6 +109,23 @@ internal static class ArenaBunnyhop
         ReleaseSignal(f);
     }
 
+    internal static void OnRelocated(Player player, Vector3 delta)
+    {
+        var flight = _flight;
+        if (player == null || !ReferenceEquals(flight?.Player, player)) return;
+        ReleaseSignal(flight);
+        if (!ReferenceEquals(flight.Jump, player.CurrentManagedState)
+            || !ReferenceEquals(flight.Jump?.MovementContext, player.MovementContext)) { _flight = null; return; }
+        // Retire positional samples by changing witness identity. The currently
+        // applied carry remains this flight's momentum, not a new hop/impulse.
+        _flight = new Flight {
+            Player = flight.Player, World = flight.World, Game = flight.Game, Jump = flight.Jump,
+            Velocity = flight.Velocity, Carry = flight.Carry, HasCarry = flight.HasCarry,
+            BaseSpeed = flight.BaseSpeed, Began = flight.Began, SampleAt = float.NegativeInfinity,
+            LaunchY = flight.LaunchY + delta.y, LeftGround = flight.LeftGround, Hops = flight.Hops
+        };
+    }
+
     private static bool Eligible(MovementContext context, out Player player)
     {
         player = null;

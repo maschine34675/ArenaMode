@@ -10,6 +10,7 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Optional Translocator device: select it, fire to throw/recall one disc, aim to teleport to a clear ground or airborne destination. Disabled by default; Arena only.
 - Zombies can recover individual confirmed stuck enemies without awarding kills or losing the replacement slot.
 - Zombie pursuit and melee share a fair budget of two native planning jobs per frame, preserving attacks and existing movement.
 - Zombie waves vary the mix of native slow and fast melee enemies while preserving the configured shooter chance and population limits.

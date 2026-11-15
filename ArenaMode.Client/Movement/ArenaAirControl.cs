@@ -34,6 +34,17 @@ internal static class ArenaAirControl
     // A slide can start from a substep-only contact. Its next native jump owns
     // a new launch heading even if CheckFlying never saw the final grounded bit.
     internal static void ResetHeading(MovementContext context) => _flights.Remove(context);
+    internal static void OnRelocated(Player player)
+    {
+        var context = player?.MovementContext;
+        if (context == null || !_flights.TryGetValue(context, out var flight)
+            || !ReferenceEquals(flight.Player, player)) return;
+        // Heading is already applied momentum. Retire only the old input
+        // sample; removing this flight would snap back to takeoff direction.
+        flight.InputFrame = -1;
+        flight.InputState = null;
+        flight.Input = default;
+    }
     private static readonly MethodInfo Limit = AccessTools.DeclaredMethod(typeof(MovementState), nameof(MovementState.LimitMotion));
 
     internal static void Enable()

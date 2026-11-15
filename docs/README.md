@@ -190,6 +190,7 @@ Sorted by file name.
 - [Native fault identity and utility context repair](reviews/MODEL-DIAGNOSTIC-REPAIR-20261019.md)
 - [Dedicated Molotov: combat and lifecycle review](reviews/MOLOTOV-COMBAT-REVIEW.md)
 - [Dedicated Molotov: private template registration and kit supplies](reviews/MOLOTOV-ITEM-REVIEW.md)
+- [Selectable Translocator: item, disc physics, teleport and lifecycle contract](reviews/TRANSLOCATOR-20261115.md)
 - [Dedicated Molotov bottle model: visual ownership, pool restoration and icon path](reviews/MOLOTOV-MODEL-REVIEW.md)
 - [Dedicated Molotov integration](reviews/MOLOTOV-NATIVE-INTEGRATION-20261015.md)
 - [Dedicated Molotov presentation: bottle, layered fire view and synthesized audio](reviews/MOLOTOV-PRESENTATION-REVIEW.md)
@@ -286,6 +287,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 
 ### 2026-11
 
+- [Selectable Translocator development verification](reports/2026-11/GPU-TRANSLOCATOR-20261115.md)
 - [Jump reliability, slide transitions and sprint-jump hip fire: native validation](reports/2026-11/GPU-MOVEMENT-TRANSITIONS-20261115.md)
 
 - [Branch and worktree collection, 2026-11-13: two branches merged, eleven deleted, eleven worktrees archived and removed, checks on the merged master](reports/2026-11/WORKTREE-CLEANUP-20261113.md)

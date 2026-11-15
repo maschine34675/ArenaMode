@@ -128,6 +128,11 @@ TeamArenaLoadoutChecks
 TeamDeathmatchRuntimeChecks
 TeamGiveUpChecks
 TeamLaserChecks
+TranslocatorItemChecks
+TranslocatorDeviceChecks
+TranslocatorPoseChecks
+TranslocatorTeleportChecks
+TranslocatorRuntimeChecks
 tools/AnnouncerChecks/Verify-Regression.ps1
 tools/ArenaLabyrinthAccessChecks/Verify-Contracts.ps1
 tools/ArenaLabyrinthAccessChecks/Verify-Regression.ps1

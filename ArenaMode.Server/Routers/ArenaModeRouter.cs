@@ -172,6 +172,7 @@ public sealed class ArenaModeRouter : StaticRouter
                 {
                     confirmed,
                     molotovAvailable = confirmed && Services.ArenaMolotovRegistration.IsAvailable,
+                    translocatorAvailable = confirmed && Services.ArenaTranslocatorRegistration.IsAvailable,
                     state = Sessions?.GetStatus(sessionId).state.ToString()
                         ?? ArenaSessionState.Idle.ToString(),
                 }));

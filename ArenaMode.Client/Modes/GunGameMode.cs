@@ -66,6 +66,9 @@ public sealed partial class GunGameMode : IArenaMode
     public bool IsComplete => false;
     internal bool AssistScoringOpen => !_givenUp && !_preloading && _ladder.Count > 0
         && ReferenceEquals(ArenaMatchService.Current, _match);
+    // Promotion preloads temporarily block input/scoring, not owned world objects.
+    internal bool HasActiveLadder => !_givenUp && _ladder.Count > 0
+        && ReferenceEquals(ArenaMatchService.Current, _match);
 
     /// <summary>The rung itself — the weapon the player has earned.</summary>
     public KitDefinition CurrentRung =>

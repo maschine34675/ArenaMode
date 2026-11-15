@@ -1,6 +1,6 @@
 # ArenaMode — complete feature inventory
 
-Source inventory of **ArenaMode 0.6.0** (2026-11-14), including Chop Shop, Iceberg, the crowd
+Source inventory of **ArenaMode 0.6.0 and marked unreleased additions** (2026-11-15), including Chop Shop, Iceberg, the crowd
 reactions, Domination, direct session start, profile recovery and the current
 compatibility additions.
 This lists implemented behavior, including smaller changes accumulated during development. It is not
@@ -399,6 +399,17 @@ Sources: [movement settings](../ArenaMode.Client/Config/Settings.cs),
   fire does not stack on a victim; spawn protection and the applicable friendly-
   fire policy still apply.
 - No ordinary loot/trader supply and no conversion of vanilla RGD-5s.
+
+### Translocator (WIP, unreleased)
+
+- Optional selectable device, off by default and independent of Fast Movement.
+- Fire throws one disc or recalls it; aim teleports to it, including in flight.
+- Uses free rig/pocket space and a free quickslot without replacing equipment.
+- Solid geometry, player clearance, living actors and Arena boundaries can reject a target; rejection keeps the disc.
+- Holstering retains the disc. Dropping its device, death or round/raid exit clears it.
+- No ADS, telefrag, bot usage or multiplayer support. Active slide, climb, prone and mounted transitions refuse teleport.
+
+Contract and test boundaries: [Translocator](reviews/TRANSLOCATOR-20261115.md).
 
 Sources: [kit supplies](../ArenaMode.Server/Services/ArenaKitSupplies.cs),
 [weapon variants](../ArenaMode.Server/Services/ArenaWeaponVariants.cs),
@@ -941,6 +952,7 @@ share one position and are shown in their respective modes.
 | Instant Search | Container search. |
 | Arena HUD | Combat panels; also subject to the global HUD master. |
 | Molotov (WIP) | BigBrain companion available; not Zombies. |
+| Translocator (WIP) | Private reusable device; off by default, independent of Fast Movement. |
 | Fast Bots | Non-Zombie modes. |
 | Zombie Crowd | Zombies only; separate preference, default off. |
 
@@ -948,7 +960,7 @@ Source: [mutator selection policy](../ArenaMode.Client/Session/ArenaMutatorSelec
 
 ## Limits and items not to advertise as complete
 
-- Tactical, Zombies, Akimbo and Molotov remain **WIP**. The catalogue above
+- Tactical, Zombies, Akimbo, Molotov and Translocator remain **WIP**. The catalogue above
   describes implemented behavior, not a new certification of every scenario.
 - M60 spare boxes and some large kit medical supplies still have recorded
   placement limits. See the [known follow-ups](FUTURE-WORK.md).
