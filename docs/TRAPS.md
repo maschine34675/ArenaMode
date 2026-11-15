@@ -710,6 +710,18 @@ Parallel steps and mutants (`-Parallel`, `tools/ArenaVerificationWorkers.ps1`, `
 - **A step that does not start is a FAIL.** `$LASTEXITCODE` keeps the value of the last native command (0 from a
   git call), so a missing executable would have read as a PASS and been cached (review 2026-11-14). The runner
   sets it to -1 before every step, and a thread job reports an explicit exit code or -1.
+- **VerificationRunnerChecks runs its baseline and its faults side by side** (2026-11-15: ~1 555 s one after
+  another, 386 s with four faults beside the baseline; six or all 47 at once are no faster, the baseline is the
+  longest path). Each is a child process with its own sandbox, cache and worker checkouts. No toy step counts as
+  a Redeploy build (checked by holding `Global\ArenaVerification-RedeployCore` while the parallel cases ran); a toy
+  that builds `ArenaMode.Client`/`ArenaMode.sln` or calls `dotnet test` would make the sandboxes queue on that
+  machine-wide mutex and wait behind the client builds of a real run. A fault counts only against a green
+  baseline and must report exactly once. Side by side makes unrelated failures likelier (a toy build that breaks
+  under load), and a fault whose named assertion such a failure also trips would count as killed untested: those
+  faults carry their own symptom (`Evidence`), and `parallel-guard` waits for the deploy instead of racing it
+  (review 2026-11-15). Do not split the cases across sandboxes to go faster: they run on the
+  cache state the cases before them left, and in a fresh sandbox a "reruns the step" assertion passes for a
+  step that never ran there.
 
 Traps met while building it:
 

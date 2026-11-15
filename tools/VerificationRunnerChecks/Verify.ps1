@@ -9,11 +9,13 @@ toy production tree, toy harness folders, a toy installation, toy siblings (Rede
 and a private cache directory; nothing outside that temp directory is written. A toy harness appends its name
 to a counter file each time it really runs, so "ran" and "cached" are counted, not read from the verdict text.
 
-The baseline runs every case; then each fault below is applied to the copied runner or input model (never to
-the files in this checkout), and its cases must fail at the named assertion. -Case runs the named cases only
-(after the two priming cases), for a fix loop.
+The baseline runs every case, in order, in one sandbox; each fault below is applied to the copied runner or
+input model (never to the files in this checkout), and its cases must fail at the named assertion. The baseline
+and the faults run side by side as child processes (-Baseline, -Fault), each in a sandbox of its own,
+ARENA_MUTANT_PARALLEL faults at a time beside the baseline (default 4). -Case runs the named cases only (after
+the two priming cases), for a fix loop.
 #>
-param([string]$Fault, [string[]]$Case = @())
+param([string]$Fault, [string[]]$Case = @(), [switch]$Baseline)
 $ErrorActionPreference = 'Stop'
 $Case = @($Case | ForEach-Object { $_ -split ',' } | Where-Object { $_ })   # -File passes "a,b" as one string
 $here = $PSScriptRoot
@@ -121,6 +123,32 @@ $faults = @(
     @{ Name = 'no-cache-ignored'; File = 'tools/Run-ArenaVerification.ps1'; Failure = '-NoCache runs the step'; Cases = @('no-cache')
         Find = '    if ($keyInfo -and $keyInfo.Cacheable -and -not $NoCache) {'; Replace = '    if ($keyInfo -and $keyInfo.Cacheable) {' }
 )
+# Some named assertions are also tripped by a failure unrelated to the fault: "channel faults pass their harness"
+# fails just as well when a toy build or a worker sync breaks under load, and the fault would count as killed
+# without having been tested. Such a fault must also show its own symptom (compared without ANSI colour codes and
+# with line wraps and runs of whitespace collapsed: PowerShell colours and wraps error messages depending on the
+# terminal it was started from). Locale-free texts only.
+$evidence = @{
+    'untracked-not-synced' = 'ArenaMode.Client/Staged.cs failed in'
+    'mutants-run-from-temp' = 'repository root not found'
+    'fault-environment-dropped' = 'intended assertion: pinned (the program exited 0)'
+    'fault-edits-not-chained' = 'Fault changes nothing: two-step'
+    'prepare-dropped' = 'intended assertion: prepared (the program exited 0)'
+    'copy-name-ignored' = 'intended assertion: prepared (it did not compile)'
+    'failure-prefix-fixed' = "the output lacks 'FAIL: compiled answer is 42'"
+    'whitespace-not-collapsed' = "lacks 'ASSERT: compiled answer is 42') CHANNEL_TOY_FAILED ASSERT: compiled answer is 42"
+    'program-arguments-dropped' = 'CHANNEL_TOY_FAILED ASSERT: program argument arrives'
+    'environment-process-wide' = 'CHANNEL_TOY_FAILED ASSERT: pinned text keeps 42'
+    'artifacts-not-mirrored' = 'ARTIFACT_TOY_MISSING_FIXTURE'
+    'no-restore-in-workers' = 'NETSDK1004'
+    'worker-runs-workers' = 'Refusing to sync'
+}
+foreach ($name in $evidence.Keys) {
+    $definition = $faults | Where-Object { $_.Name -eq $name }
+    if (-not $definition) { throw "Evidence names no fault: $name" }
+    $definition.Evidence = $evidence[$name]
+}
+function Get-FlatText([string]$Text) { return ((($Text -replace '\x1b\[[0-9;?]*[A-Za-z]', '') -replace '\r?\n\s*\|?', ' ') -replace '\s+', ' ') }
 
 function Check([bool]$Condition, [string]$Name, [string]$Context = '') {
     if (-not $Condition) { Write-Output "FAIL: $Name"; if ($Context) { Write-Output $Context }; exit 1 }
@@ -197,13 +225,15 @@ $null = & git -C $repo ls-files --error-unmatch ArenaMode.Client/Staged.cs 2>$nu
     Write-Text (Join-Path $repo 'tools/EchoToyChecks/Verify.ps1') $echo
     # SleepToyChecks can also undo a deploy before it ends (ARENA_RUNNER_CHECKS_RESTORE), as a restoring
     # harness or a person would: the change must still fail it, because it ran while the install was changed.
-    Write-Text (Join-Path $repo 'tools/SleepToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'SleepToyChecks'`nStart-Sleep -Seconds 8`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { Remove-Item -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE -ErrorAction SilentlyContinue }`n'SLEEP_TOY_PASSED'`n"
+    # It then waits for that deploy (at most 60 s) and runs 8 s past it, so the overlap does not depend on how
+    # fast two workers start on a loaded machine.
+    Write-Text (Join-Path $repo 'tools/SleepToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'SleepToyChecks'`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { `$deadline = (Get-Date).AddSeconds(60); while (-not (Test-Path -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE) -and (Get-Date) -lt `$deadline) { Start-Sleep -Milliseconds 200 } }`nStart-Sleep -Seconds 8`nif (`$env:ARENA_RUNNER_CHECKS_RESTORE) { Remove-Item -LiteralPath `$env:ARENA_RUNNER_CHECKS_RESTORE -ErrorAction SilentlyContinue }`n'SLEEP_TOY_PASSED'`n"
     # A loose helper that enumerates the checkout, a fixture under the ignored artifacts/ (a registered input
     # prefix), a project built with --no-restore, and a program that reads production through path segments.
     Write-Text (Join-Path $repo 'tools/Scan-Toy.ps1') "`$root = Join-Path `$PSScriptRoot '..'`n`$null = & git -C `$root ls-files`n"
     Write-Text (Join-Path $repo 'tools/ScanToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ScanToyChecks'`n& (Join-Path `$PSScriptRoot '../Scan-Toy.ps1')`n'SCAN_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'artifacts/pft-installed/Fixture.cs') "fixture 1`n"
-    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "`$ErrorActionPreference = 'Stop'`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$null = Get-Content -Raw (Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs')`n'ARTIFACT_TOY_PASSED'`n"
+    Write-Text (Join-Path $repo 'tools/ArtifactToyChecks/Verify.ps1') "`$ErrorActionPreference = 'Stop'`nAdd-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'ArtifactToyChecks'`n`$fixture = Join-Path `$PSScriptRoot '../../artifacts/pft-installed/Fixture.cs'`nif (-not (Test-Path -LiteralPath `$fixture)) { 'ARTIFACT_TOY_MISSING_FIXTURE'; exit 1 }`n`$null = Get-Content -Raw `$fixture`n'ARTIFACT_TOY_PASSED'`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/NoRestoreToyChecks.csproj') "<Project Sdk=`"Microsoft.NET.Sdk`">`n  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>`n</Project>`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Program.cs') "System.Console.WriteLine(`"NO_RESTORE_TOY_PASSED`");`n"
     Write-Text (Join-Path $repo 'tools/NoRestoreToyChecks/Verify.ps1') "Add-Content -LiteralPath `$env:RUNNERCHECKS_COUNTER -Value 'NoRestoreToyChecks'`n& dotnet run --project (Join-Path `$PSScriptRoot 'NoRestoreToyChecks.csproj') -c Release --no-restore`nexit `$LASTEXITCODE`n"
@@ -501,7 +531,9 @@ $cases = [ordered]@{
         Assert-Run (Invoke-Runner $s 'ToyChecks' -Environment @{ ARENA_TOY_ROOT = $folder }) 'ToyChecks' $true 'a changed folder behind a variable reruns the step' }
     'helper' = { param($s)
         $r = Invoke-Runner $s 'MutantToyChecks' -NoCache
-        Check ($r.Verdicts['MutantToyChecks'].Passed -and $r.Verdicts['MutantToyChecks'].Detail -match 'Source faults rejected: 2') 'killed mutants pass their harness' $r.Output
+        $toyLog = Join-Path $s.Repo 'artifacts/run-arena-verification/MutantToyChecks.log'
+        $log = if (Test-Path -LiteralPath $toyLog) { Get-Content -Raw -LiteralPath $toyLog } else { '' }
+        Check ($r.Verdicts['MutantToyChecks'].Passed -and $r.Verdicts['MutantToyChecks'].Detail -match 'Source faults rejected: 2') 'killed mutants pass their harness' "$($r.Output)`n$log"
         foreach ($bad in 'survivor', 'broken', 'wrong-assertion') {
             $r = Invoke-Runner $s 'MutantToyChecks' -NoCache -Environment @{ ARENA_RUNNER_CHECKS_BADFAULT = $bad; ARENA_MUTANT_PARALLEL = '3' }
             $log = Get-Content -Raw -LiteralPath (Join-Path $s.Repo 'artifacts/run-arena-verification/MutantToyChecks.log')
@@ -590,15 +622,56 @@ if ($Fault) {
     Write-Output "FAULT_NOT_KILLED $Fault"
     exit 0
 }
-$names = if ($Case.Count) { @('first', 'cached') + $Case } else { @($cases.Keys) }
-Invoke-Cases $names $null
-if ($Case.Count) { Write-Output "RUNNER_CASES_PASSED $($Case -join ',')"; exit 0 }
+if ($Case.Count) {
+    Invoke-Cases (@('first', 'cached') + $Case) $null
+    Write-Output "RUNNER_CASES_PASSED $($Case -join ',')"
+    exit 0
+}
+if ($Baseline) {
+    Invoke-Cases @($cases.Keys) $null
+    Write-Output "RUNNER_BASELINE_PASSED cases=$($cases.Count)"
+    exit 0
+}
+
+# The full run. The baseline and every fault are child processes with sandboxes of their own (own checkout,
+# cache, counter file and worker checkouts), so they share nothing and run side by side: the baseline from the
+# start, beside it ARENA_MUTANT_PARALLEL faults at a time (Run-ArenaVerification.ps1 sets it for the steps of
+# its workers). A fault proves something only against a passing baseline, so a red baseline fails the run
+# whatever the faults did, and every fault must report exactly once.
+$throttle = if ($env:ARENA_MUTANT_PARALLEL -as [int]) { [Math]::Max(1, [int]$env:ARENA_MUTANT_PARALLEL) } else { 4 }
+$jobs = @(@{ Name = ''; Arguments = @('-Baseline') }) + @($faults | ForEach-Object { @{ Name = $_.Name; Arguments = @('-Fault', $_.Name) } })
+$verifyScript = $PSCommandPath
+$results = @($jobs | ForEach-Object -ThrottleLimit ($throttle + 1) -Parallel {
+    $job = $_
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    # Runspaces are reused: a child that does not start must not inherit the exit code of the one before.
+    $global:LASTEXITCODE = -1
+    $output = (& pwsh -NoProfile -NonInteractive -File $using:verifyScript @($job.Arguments) 2>&1 | ForEach-Object { $_.ToString() }) -join "`n"
+    [pscustomobject]@{ Name = $job.Name; Exit = $LASTEXITCODE; Output = $output; Seconds = [int]$watch.Elapsed.TotalSeconds }
+})
+
+$baselineResults = @($results | Where-Object { $_.Name -eq '' })
+if ($baselineResults.Count -ne 1) { Write-Output "Baseline reported $($baselineResults.Count) results"; exit 1 }
+Write-Output $baselineResults[0].Output
+if ($baselineResults[0].Exit -ne 0 -or -not $baselineResults[0].Output.Contains("RUNNER_BASELINE_PASSED cases=$($cases.Count)")) {
+    Write-Output "Baseline cases failed (exit $($baselineResults[0].Exit)); without them the faults prove nothing"
+    exit 1
+}
+$survivors = @()
 foreach ($definition in $faults) {
-    $output = (& pwsh -NoProfile -NonInteractive -File $PSCommandPath -Fault $definition.Name 2>&1 | ForEach-Object { $_.ToString() }) -join "`n"
-    if ($LASTEXITCODE -eq 0 -or -not $output.Contains('FAIL: ' + $definition.Failure)) {
-        Write-Output "Fault was not killed by intended assertion: $($definition.Name)`n$output"
-        exit 1
+    $result = @($results | Where-Object { $_.Name -eq $definition.Name })
+    if ($result.Count -ne 1) { $survivors += $definition.Name; Write-Output "Fault reported $($result.Count) results: $($definition.Name)"; continue }
+    $missing = if ($result[0].Exit -eq 0 -or -not $result[0].Output.Contains('FAIL: ' + $definition.Failure)) { '' }
+        elseif ($definition.Evidence -and -not (Get-FlatText $result[0].Output).Contains((Get-FlatText $definition.Evidence))) { " (its own symptom '$($definition.Evidence)' is missing)" }
+        else { $null }
+    if ($null -ne $missing) {
+        $survivors += $definition.Name
+        Write-Output "Fault was not killed by intended assertion: $($definition.Name)$missing`n$($result[0].Output)"
+        continue
     }
     Write-Output "fault rejected: $($definition.Name) -> $($definition.Failure)"
 }
+$slowest = @($results | Sort-Object Seconds -Descending | Select-Object -First 3 | ForEach-Object { "$(if ($_.Name) { $_.Name } else { 'baseline' }) $($_.Seconds) s" })
+Write-Output "side by side: baseline + $throttle faults at a time; slowest: $($slowest -join ', ')"
+if ($survivors.Count) { Write-Output "Faults not killed: $($survivors.Count) of $($faults.Count) ($($survivors -join ', '))"; exit 1 }
 Write-Output "VERIFICATION_RUNNER_CHECKS_PASSED cases=$($cases.Count) faults=$($faults.Count)"
