@@ -4,6 +4,7 @@ using EFT;
 using EFT.InventoryLogic;
 using HarmonyLib;
 using SPT.Reflection.Patching;
+using System;
 using System.Reflection;
 
 namespace ArenaMode.Movement;
@@ -25,14 +26,13 @@ internal static class SprintAdsPatches
     private static readonly AccessTools.FieldRef<Player.FirearmController, Player> ControllerPlayerField =
         AccessTools.FieldRefAccess<Player.FirearmController, Player>("_player");
 
-    private static bool _bypassing;
+    private static Player.FirearmController _bypassing;
 
     /// <summary>
-    /// Safety net ticked per frame: the prefix/postfix bracket around ToggleAim is
-    /// one synchronous call, but a throw inside it skips the postfix — a stuck flag
-    /// would otherwise force-aim without the sprint-kill half for the whole session.
+    /// Safety net for shutdown/frame boundaries. The synchronous finalizer also
+    /// releases the exact controller on exceptions and restores a nested caller.
     /// </summary>
-    public static void ClearBypassSafety() => _bypassing = false;
+    public static void ClearBypassSafety() => _bypassing = null;
 
     public static void Enable()
     {
@@ -43,13 +43,19 @@ internal static class SprintAdsPatches
 
     private static bool IsArenaFirearm(Player.FirearmController controller)
     {
-        if (!ArenaSession.IsActive || !Settings.SprintToAds.Value || controller == null)
+        if (!ArenaSession.IsActive || Settings.SprintToAds?.Value != true || controller == null)
             return false;
 
         try
         {
             var player = ControllerPlayerField(controller);
-            return player != null && player.IsYourPlayer;
+            return ArenaMovementScope.IsLocal(player, requireInput: true)
+                && ReferenceEquals(player.HandsController, controller)
+                && player.MovementContext.IsGrounded
+                && player.CurrentState != null && player.CurrentManagedState != null
+                && player.CurrentManagedState is not JumpPlayerState
+                && player.CurrentState?.Name != EPlayerState.Jump
+                && player.CurrentState?.Name != EPlayerState.FallDown;
         }
         catch
         {
@@ -64,8 +70,9 @@ internal static class SprintAdsPatches
             => AccessTools.Method(typeof(Player.FirearmController), nameof(Player.FirearmController.ToggleAim));
 
         [PatchPrefix]
-        private static void Prefix(Player.FirearmController __instance)
+        private static void Prefix(Player.FirearmController __instance, out Player.FirearmController __state)
         {
+            __state = _bypassing;
             if (!IsArenaFirearm(__instance) || __instance.IsAiming)
                 return;
 
@@ -76,11 +83,15 @@ internal static class SprintAdsPatches
                 movementContext.PlayerAnimatorEnableSprint(false);
             }
 
-            _bypassing = true;
+            _bypassing = __instance;
         }
 
-        [PatchPostfix]
-        private static void Postfix() => _bypassing = false;
+        [PatchFinalizer]
+        private static Exception Finalizer(Player.FirearmController __state, Exception __exception)
+        {
+            _bypassing = __state;
+            return __exception;
+        }
     }
 
     /// <summary>Let the aim request through while the animator still says Sprint/Transition.</summary>
@@ -98,11 +109,14 @@ internal static class SprintAdsPatches
         [PatchPrefix]
         private static bool Prefix(Player.FirearmController.Idling __instance, bool isAiming)
         {
-            if (!isAiming || !_bypassing)
+            if (!isAiming)
                 return true;
 
             var controller = __instance.Controller as Player.FirearmController;
-            if (controller == null || !IsArenaFirearm(controller))
+            // Grounded Sprint/Transition admission must never become an airborne
+            // ADS exception, even during animation lag or nested aim requests.
+            if (controller != null && ArenaAirFire.PreventAirAim(controller)) return false;
+            if (controller == null || !ReferenceEquals(_bypassing, controller) || !IsArenaFirearm(controller))
                 return true;
 
             var player = ControllerPlayerField(controller);

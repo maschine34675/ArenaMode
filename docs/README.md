@@ -62,7 +62,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Release 0.1.2: Arena availability notice, per-mod adapters and verification boundaries](RELEASE-0.1.2.md)
 - [Release 0.1.1: compatibility changes and verification boundaries](RELEASE-0.1.1.md)
 
-## Feature reviews and contracts (210)
+## Feature reviews and contracts (211)
 
 Sorted by file name.
 
@@ -112,6 +112,7 @@ Sorted by file name.
 - [Bounded Team Deathmatch prototype (Factory South v1)](reviews/BOUNDED-AREA-REVIEW.md) *(superseded)*
 - [Bowl map admission, migration and generic spawns](reviews/BOWL-INTEGRATION-20261023.md)
 - [Bowl original Team DM boxes and gate opening](reviews/BOWL-TEAM-BOXES-20261023.md)
+- [Jump reliability, slide transitions and sprint-jump hip fire](reviews/MOVEMENT-TRANSITIONS-20261115.md)
 - [Timed Arena Bunnyhop contract](reviews/BUNNYHOP-REVIEW.md)
 - [Optional burst damage numbers (HUD / CombineDamageNumbers)](reviews/BURST-DAMAGE-REVIEW.md)
 - [Arena character selection by clicking the model](reviews/CHARACTER-MODEL-CLICK-REVIEW.md)
@@ -277,11 +278,13 @@ Sorted by file name.
 - [Zombie wave completion and pending spawn ownership](reviews/ZOMBIE-WAVE-PENDING-REVIEW.md)
 - [Zombie opening countdown and protected squad gear refill](reviews/ZOMBIE-WAVE-REFILL-20261015.md)
 
-## Reports (293)
+## Reports (294)
 
 Dated records, newest month first, sorted by file name within a month. Check the cited source commit, installed hashes and stated limits before carrying a result forward.
 
 ### 2026-11
+
+- [Jump reliability, slide transitions and sprint-jump hip fire: native validation](reports/2026-11/GPU-MOVEMENT-TRANSITIONS-20261115.md)
 
 - [Branch and worktree collection, 2026-11-13: two branches merged, eleven deleted, eleven worktrees archived and removed, checks on the merged master](reports/2026-11/WORKTREE-CLEANUP-20261113.md)
 - [Release cycle 0.6.0 / Redeploy 1.1.3, 2026-11-14: the exact package binaries on GPU-2; Team DM on Chop Shop, Domination on The Lab and in Customs Yard, solo and PitFireTeam Tactical on Equator, the KITS window, a Redeploy respawn, and the profile, PitFireTeam and config bookkeeping](reports/2026-11/GPU-RELEASE-060-20261114.md)

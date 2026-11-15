@@ -4,9 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
     <AirFireSource Condition="'$(AirFireSource)' == ''">../../ArenaMode.Client/Movement/ArenaAirFire.cs</AirFireSource>
     <ScopeSource Condition="'$(ScopeSource)' == ''">../../ArenaMode.Client/Movement/ArenaMovementScope.cs</ScopeSource>
+    <SprintAdsSource Condition="'$(SprintAdsSource)' == ''">../../ArenaMode.Client/Movement/SprintAdsPatches.cs</SprintAdsSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(AirFireSource)" Link="Production/ArenaAirFire.cs" />
     <Compile Include="$(ScopeSource)" Link="Production/ArenaMovementScope.cs" />
+    <Compile Include="$(SprintAdsSource)" Link="Production/SprintAdsPatches.cs" />
   </ItemGroup>
 </Project>

@@ -14,6 +14,24 @@ static class Program
     static bool Near(float a,float b) => MathF.Abs(a-b)<.002f;
     const BindingFlags Flags=BindingFlags.Static|BindingFlags.NonPublic;
     static object Call(string name,params object[] args) => typeof(ArenaBunnyhop).GetMethod(name,Flags).Invoke(null,args);
+    static void TranslateJump(MoveInputTranslator translator)
+    {
+        var patch=typeof(ArenaDoubleJump).GetNestedType("ArenaDoubleJumpJumpCommandPatch",BindingFlags.NonPublic);
+        object[] input=[translator,ECommand.Jump,null];
+        Exception error=null;
+        try
+        {
+            patch.GetMethod("Prefix",Flags).Invoke(null,input);
+            translator.TranslateCommand(ECommand.Jump);
+            patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        }
+        catch(Exception exception) { error=exception is TargetInvocationException invocation ? invocation.InnerException ?? invocation : exception; }
+        // Harmony's Priority.Last finalizer owns the command lock until every
+        // postfix has finished, including callbacks that fail. A prefix/postfix
+        // pair alone leaves the real production owner latched across fixtures.
+        var remaining=(Exception)patch.GetMethod("Finalizer",Flags).Invoke(null,[error,input[2]]);
+        if(remaining!=null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(remaining).Throw();
+    }
     sealed class F
     {
         internal MovementContext C=new(); internal Player P; internal JumpPlayerState J;
@@ -132,19 +150,15 @@ static class Program
         }) { f=new F(); f.Hop(); change(f); Check(Near(f.Carry().x,.01f),"invalid scope cannot inject carry"); }
         f=new F();
         var translator=new MoveInputTranslator(f.P);
-        var patch=typeof(ArenaDoubleJump).GetNestedType("ArenaDoubleJumpJumpCommandPatch",BindingFlags.NonPublic);
-        object[] input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input);
-        patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        TranslateJump(translator);
         Check(f.P.Physical.Debits==1,"near landing consumed before doublejump");
-        f=new F(); f.C.GroundHit.hasHit=false; translator=new(f.P); input=[translator,ECommand.Jump,null];
-        patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        f=new F(); f.C.GroundHit.hasHit=false; translator=new(f.P); TranslateJump(translator);
         Check(f.P.Physical.Debits==2,"ordinary airborne command still doublejumps");
         f=new F(); ArenaMode.Pickups.ArenaPowerups.State.GrantJump(Time.time,30); f.Hop();
         Check(Near(f.J._liftForce.y,8*MathF.Sqrt(2)),"boots applied once on chained entry");
-        f.C.GroundHit.hasHit=false; translator=new(f.P); input=[translator,ECommand.Jump,null];
-        patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        f.C.GroundHit.hasHit=false; translator=new(f.P); TranslateJump(translator);
         Check(f.P.Physical.Debits==3 && Near(f.J._liftForce.y,8*MathF.Sqrt(2*.8f)),"chained hop doublejump pays once and does not compound boots");
-        input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        TranslateJump(translator);
         Check(f.P.Physical.Debits==3,"no second doublejump within hop");
         // Spend that flight's DJ, then land on a physical substep that the last
         // substep clears. The next native hop must have exactly one fresh DJ.
@@ -156,9 +170,9 @@ static class Program
         Call("AfterMotion",f.C,true,contactSample[2]);
         Check(ArenaBunnyhop.HasRecentPhysicalContact(f.C),"committed physical pulse is shared");
         f.Tick(); f.Dispatch(); f.Enter(); f.Air(); f.C.GroundHit.hasHit=false;
-        input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        TranslateJump(translator);
         Check(f.P.Physical.Debits==5,"pulse-only landing renews doublejump for next hop");
-        input=[translator,ECommand.Jump,null]; patch.GetMethod("Prefix",Flags).Invoke(null,input); patch.GetMethod("Postfix",Flags).Invoke(null,[translator,input[2]]);
+        TranslateJump(translator);
         Check(f.P.Physical.Debits==5,"shared pulse cannot grant repeated doublejump");
         f.C.GroundHit.hasHit=true; f.J._currentLiftforce.y=-2; Time.time+=.2f; f.Motion(6); f.Hop();
         Check(f.P.Physical.Debits==6 && Near(f.J._liftForce.y,8*MathF.Sqrt(2)),"next ground hop restores fresh native boots lift and one debit");

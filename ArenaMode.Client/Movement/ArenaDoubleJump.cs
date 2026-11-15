@@ -30,6 +30,7 @@ internal static class ArenaDoubleJump
         internal AbstractGame Game;
         internal bool Airborne;
         internal bool Spent;
+        internal bool ApplyingImpulse;
         internal int StateRevision;
         internal Request NativeRequest;
         internal JumpPlayerState LiftState;
@@ -42,10 +43,17 @@ internal static class ArenaDoubleJump
         internal Credit Credit;
         internal Player Player;
         internal float ExpiresAt;
+        internal float CreatedAt;
         internal int StateRevision;
         internal Request NativeReservation;
         internal bool OwnsNativeSignal;
         internal bool NativeJumpEntered;
+        internal bool Coyote;
+        internal int CoyoteEpoch;
+        internal bool ExecuteImpulse;
+        internal bool GroundSlide;
+        internal long SlideEpoch;
+        internal int InputEpoch;
     }
 
     // The owner is the body/context episode, never an animator state: EFT reuses
@@ -57,6 +65,9 @@ internal static class ArenaDoubleJump
     private static AccessTools.FieldRef<Player, float> VaultingTiming;
     private static bool _enabled;
     private static bool _warned;
+    private static Request _command;
+    private static Request _slideRequest;
+    private static int _inputEpoch;
 
     internal static void Enable()
     {
@@ -68,8 +79,10 @@ internal static class ArenaDoubleJump
             new ArenaDoubleJumpFallEnterPatch().Enable();
             new ArenaDoubleJumpLandingPatch().Enable();
             new ArenaDoubleJumpJumpCommandPatch().Enable();
+            new ArenaDoubleJumpInputOwnerPatch().Enable();
             Settings.DoubleJumpEnabled.SettingChanged += ClearCredits;
             Settings.MovementEnabled.SettingChanged += ClearCredits;
+            Settings.SlideEnabled.SettingChanged += ClearSlideRequests;
             RaidLifecycle.OnRaidEnded += ResetCredits;
             _enabled = true;
         }
@@ -87,7 +100,9 @@ internal static class ArenaDoubleJump
         _enabled = false;
         Settings.DoubleJumpEnabled.SettingChanged -= ClearCredits;
         Settings.MovementEnabled.SettingChanged -= ClearCredits;
+        Settings.SlideEnabled.SettingChanged -= ClearSlideRequests;
         RaidLifecycle.OnRaidEnded -= ResetCredits;
+        _slideRequest = null;
     }
 
     private static void ResetCredits()
@@ -97,6 +112,7 @@ internal static class ArenaDoubleJump
         _endedWorld = new WeakReference<GameWorld>(Singleton<GameWorld>.Instance);
         _endedGame = new WeakReference<AbstractGame>(Singleton<AbstractGame>.Instance);
         CancelNativeRequest(_credit);
+        _slideRequest = null;
         _credit = null;
         _credits = new ConditionalWeakTable<MovementContext, Credit>();
     }
@@ -117,13 +133,23 @@ internal static class ArenaDoubleJump
 
     private static void Invalidate(Credit credit)
     {
+        ++credit.StateRevision; // Invalidates captures across synchronous setting callbacks.
         // A switch changed while standing on confirmed ground must work on the
         // next jump. Once airborne, only ArenaDoubleJumpLandingPatch can establish a new credit.
         credit.Spent = credit.Airborne || !credit.Context.IsGrounded
             || credit.Player.CharacterController == null || !credit.Player.CharacterController.isGrounded;
     }
 
-    private static void ClearCredits(object sender, EventArgs args) => InvalidateCredit();
+    private static void ClearCredits(object sender, EventArgs args)
+    {
+        _slideRequest = null;
+        InvalidateCredit();
+    }
+    private static void ClearSlideRequests(object sender, EventArgs args)
+    {
+        _slideRequest = null;
+        if (_credit?.NativeRequest?.GroundSlide == true) CancelNativeRequest(_credit);
+    }
 
     private static void Warn(Exception exception)
     {
@@ -148,6 +174,7 @@ internal static class ArenaDoubleJump
 
         player = Singleton<GameWorld>.Instance.MainPlayer;
         return player != null && player.IsYourPlayer && !player.IsAI
+            && ArenaMovementScope.IsLocal(player, requireInput: true)
             && !player.IsInventoryOpened
             && player.HealthController != null && player.HealthController.IsAlive
             && ReferenceEquals(player.MovementContext, context);
@@ -188,6 +215,95 @@ internal static class ArenaDoubleJump
         ReleaseNativeSignal(request);
     }
 
+    private static bool PendingCurrent(Credit credit)
+    {
+        var request = credit?.NativeRequest;
+        if (request == null) return true;
+        return TryGetLocalPlayer(credit.Context, out var player) && ReferenceEquals(player, credit.Player)
+            && request.InputEpoch == _inputEpoch
+            && ReferenceEquals(_credit, credit) && ReferenceEquals(credit.World, Singleton<GameWorld>.Instance)
+            && ReferenceEquals(credit.Game, Singleton<AbstractGame>.Instance)
+            && credit.Context.CanJump && !credit.Context.IsInPronePose && !credit.Context.IsInMountedState
+            && !credit.Context.PlayerAnimatorGetIsVaulting() && !ArenaAirVault.HasPendingRequest(player)
+            && Finite(Time.realtimeSinceStartup) && Time.realtimeSinceStartup <= request.ExpiresAt
+            && (request.Coyote ? ArenaJumpReliability.IsCoyoteCurrent(player, request.CoyoteEpoch)
+                : request.GroundSlide ? Settings.SlideEnabled.Value && request.SlideEpoch == ArenaSlideTransitions.OwnerEpoch
+                : Settings.DoubleJumpEnabled.Value);
+    }
+
+    // Independent of CheckFlying/Observe: inventory and respawn can stop their
+    // eligible observer before a pending native animator bool is consumed.
+    internal static void TickOwner()
+    {
+        try
+        {
+            if (_credit?.NativeRequest != null && !PendingCurrent(_credit)) CancelNativeRequest(_credit);
+            var request = _slideRequest;
+            if (request == null) return;
+            var player = request.Player;
+            var context = request.Credit.Context;
+            if (!OwnsSource(request)
+                || !ArenaSlideTransitions.HasActiveSlide(player) || request.SlideEpoch != ArenaSlideTransitions.OwnerEpoch
+                || !Finite(Time.realtimeSinceStartup) || Time.realtimeSinceStartup > request.ExpiresAt
+                || Time.realtimeSinceStartup < request.CreatedAt)
+            { _slideRequest = null; return; }
+            if (!IsGroundLocomotion(player.CurrentManagedState) || _command != null) return;
+            _slideRequest = null; // Never re-enter or extend this user's one request.
+            _command = request;
+            try
+            {
+                ArenaSlideTransitions.PrepareJump(player);
+                // The original queued tap was crouched; repair an unheld stale
+                // vault timer only after native headroom allowed standing here.
+                ArenaJumpReliability.PrepareJump(player);
+                if (!OwnsSource(request)
+                    || !ArenaSlideTransitions.HasActiveSlide(player) || request.SlideEpoch != ArenaSlideTransitions.OwnerEpoch
+                    || !context.IsGrounded || context.PoseLevel <= .6f || !context.CanJump || !player.Physical.CanJump
+                    || context.PlayerAnimator.IsJumpSetted() || context.PlayerAnimatorGetIsVaulting()
+                    || ArenaAirVault.HasPendingRequest(player) || !Singleton<GlobalConfiguration>.Instantiated
+                    || VaultingTiming(player) > Singleton<GlobalConfiguration>.Instance.VaultingSettings.VaultingInputTime) return;
+                request.Credit = Observe(context);
+                if (request.Credit == null || request.Credit.NativeRequest != null) return;
+                request.State = player.CurrentManagedState;
+                request.StateRevision = request.Credit.StateRevision;
+                request.ExpiresAt = Time.realtimeSinceStartup + .25f;
+                request.OwnsNativeSignal = true;
+                request.Credit.NativeRequest = request;
+                DispatchNativeRequest(request, () => player.Jump());
+            }
+            finally { ReleaseCommand(request); }
+        }
+        catch (Exception exception) { Warn(exception); }
+    }
+
+    private static void ReleaseCommand(Request request)
+    {
+        if (ReferenceEquals(_command, request)) _command = null;
+    }
+
+    private static bool OwnsSource(Request request)
+        => request?.Credit != null && TryGetLocalPlayer(request.Credit.Context, out var player)
+            && request.InputEpoch == _inputEpoch
+            && ReferenceEquals(player, request.Player) && ReferenceEquals(request.Credit.World, Singleton<GameWorld>.Instance)
+            && ReferenceEquals(request.Credit.Game, Singleton<AbstractGame>.Instance);
+
+    private static void DispatchNativeRequest(Request request, Action dispatch)
+    {
+        try { dispatch(); }
+        catch { CancelNativeRequest(request.Credit); throw; }
+        finally
+        {
+            if (!PendingCurrent(request.Credit)) CancelNativeRequest(request.Credit);
+            // TryJump emits noise BEFORE setting the bool. A synchronous
+            // cancellation may have released it before native code raised it.
+            if (!ReferenceEquals(request.Credit.NativeRequest, request))
+            {
+                request.OwnsNativeSignal = true;
+                ReleaseNativeSignal(request);
+            }
+        }
+    }
+
     private static void ReleaseNativeSignal(Request request)
     {
         if (!request.OwnsNativeSignal || request.NativeJumpEntered) return;
@@ -221,17 +337,17 @@ internal static class ArenaDoubleJump
         return true;
     }
 
-    private static bool CanUse(MovementState state, Player player, Credit credit)
+    private static bool CanUse(MovementState state, Player player, Credit credit, bool coyote = false)
     {
-        if (credit == null || credit.Spent || !OwnsCredit(state, player, credit)) return false;
-        return IsAirborneActionAllowed(state, player) && player.Physical.CanJump;
+        if (credit == null || (credit.Spent && !coyote) || credit.ApplyingImpulse || credit.NativeRequest != null || !OwnsCredit(state, player, credit)) return false;
+        return IsAirborneActionAllowed(state, player, coyote: coyote) && player.Physical.CanJump;
     }
 
     private static bool IsGroundLocomotion(MovementState state)
         => state != null && (state.GetType() == typeof(IdlePlayerState)
             || state.GetType() == typeof(MovePlayerState) || state.GetType() == typeof(SprintPlayerState));
 
-    private static bool IsAirborneActionAllowed(MovementState state, Player player, bool entering = false)
+    private static bool IsAirborneActionAllowed(MovementState state, Player player, bool entering = false, bool coyote = false)
     {
         MovementContext context = state.MovementContext;
         bool supported = state is JumpPlayerState jump
@@ -242,7 +358,7 @@ internal static class ArenaDoubleJump
                 && context.PlayerAnimator != null && !context.PlayerAnimator.IsJumpSetted();
         // Match Player.Jump's vault guard and the physical/context restrictions.
         // Early ledge input may still be in Idle/Move/Sprint before FallDown enters.
-        return supported && Settings.MovementEnabled.Value && Settings.DoubleJumpEnabled.Value
+        return supported && Settings.MovementEnabled.Value && (coyote || Settings.DoubleJumpEnabled.Value)
             && !context.IsGrounded && !ArenaAirVault.HasPendingRequest(player)
             && !context.IsInPronePose && !context.IsInMountedState
             && context.CanJump && player.Physical != null
@@ -251,11 +367,11 @@ internal static class ArenaDoubleJump
             && !context.PlayerAnimatorGetIsVaulting();
     }
 
-    private static bool TryGetImpulse(JumpPlayerState jump, Credit credit, out Vector3 lift, out Vector3 velocity)
+    private static bool TryGetImpulse(JumpPlayerState jump, Credit credit, out Vector3 lift, out Vector3 velocity, bool coyote = false)
     {
         lift = jump._liftForce;
         velocity = Vector3.zero;
-        float height = Settings.DoubleJumpHeightMult.Value;
+        float height = coyote ? 1f : Settings.DoubleJumpHeightMult.Value;
         if (!Finite(height)) return false;
         if (jump.GetType() == typeof(JumpPlayerState))
         {
@@ -303,6 +419,8 @@ internal static class ArenaDoubleJump
 
     private static Request CaptureNativeEntry(JumpPlayerState jump)
     {
+        ArenaJumpReliability.JumpEntered(jump);
+        if (_credit?.NativeRequest != null && !PendingCurrent(_credit)) CancelNativeRequest(_credit);
         Credit credit = Observe(jump.MovementContext);
         if (credit == null) return null;
         credit.StateRevision++;
@@ -326,16 +444,29 @@ internal static class ArenaDoubleJump
         if (request == null) return;
         try
         {
+            if (request.NativeReservation.GroundSlide)
+            {
+                // Buffered landing-slide input requested a NORMAL ground jump.
+                // Native Enter owns all lift/debit; a passive FallDown never
+                // becomes an artificial jump merely because that bool was set.
+                if (ReferenceEquals(request.Credit.NativeRequest, request.NativeReservation))
+                    CancelNativeRequest(request.Credit);
+                return;
+            }
             // The native Enter just paid OnJump, possibly invoking synchronous
             // body/session/settings callbacks. Never debit a second time here.
             if (!OwnsCredit(jump, request.Player, request.Credit)
                 || !ReferenceEquals(request.Credit.NativeRequest, request.NativeReservation)
                 || request.StateRevision != request.Credit.StateRevision
-                || !IsAirborneActionAllowed(jump, request.Player, entering: true)
-                || !TryGetImpulse(jump, request.Credit, out Vector3 lift, out Vector3 velocity)) return;
+                || (request.NativeReservation.Coyote && !ArenaJumpReliability.IsCoyoteCurrent(request.Player, request.NativeReservation.CoyoteEpoch))
+                || !IsAirborneActionAllowed(jump, request.Player, entering: true, coyote: request.NativeReservation.Coyote)
+                || !TryGetImpulse(jump, request.Credit, out Vector3 lift, out Vector3 velocity, request.NativeReservation.Coyote)) return;
             request.Credit.NativeRequest = null;
             if (jump.GetType() == typeof(FallDown)) ReleaseNativeSignal(request.NativeReservation);
-            ApplyImpulse(jump, lift, velocity);
+            // A coyote request that entered native Jump retains normal push/lift
+            // timing. FallDown deliberately erased lift and needs reconstruction.
+            if (!request.NativeReservation.Coyote || jump.GetType() == typeof(FallDown))
+                ApplyImpulse(jump, lift, velocity);
             if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
                 ArenaMode.Diagnostics.ArenaLog.Developer("Arena double jump: completed local ledge jump.");
         }
@@ -396,6 +527,8 @@ internal static class ArenaDoubleJump
         {
             try
             {
+                ArenaJumpReliability.ObserveGround(__instance);
+                if (_credit?.NativeRequest != null && !PendingCurrent(_credit)) CancelNativeRequest(_credit);
                 Credit credit = Observe(__instance);
                 if (credit == null) return;
                 if (credit.NativeRequest != null && Time.realtimeSinceStartup > credit.NativeRequest.ExpiresAt)
@@ -436,7 +569,14 @@ internal static class ArenaDoubleJump
             try
             {
                 Player player = __instance._controller;
-                if (ArenaBunnyhop.TryBufferJump(player)) return;
+                if (_command != null || !TryGetLocalPlayer(player?.MovementContext, out var admitted)
+                    || !ReferenceEquals(admitted, player)) return;
+                // The lock begins BEFORE pose/noise/native translator callbacks,
+                // not only at stamina debit. A nested original may still run,
+                // but it cannot claim a second Arena command or credit.
+                _command = __state = new Request { Player = player, InputEpoch = _inputEpoch };
+                ArenaSlideTransitions.PrepareJump(player);
+                ArenaJumpReliability.PrepareJump(player);
                 MovementState state = player?.CurrentManagedState;
                 // Settle an older air request before vanilla handles a new ground
                 // press. UI blocking may have delayed the landing observer; the
@@ -445,8 +585,35 @@ internal static class ArenaDoubleJump
                     && ReferenceEquals(_credit.Player, player) && ReferenceEquals(_credit.Context, state.MovementContext))
                     CancelNativeRequest(_credit);
                 Credit credit = Observe(state?.MovementContext);
-                if (CanUse(state, player, credit))
-                    __state = new Request { State = state, Player = player, Credit = credit, StateRevision = credit.StateRevision };
+                __state.State = state;
+                __state.Credit = credit;
+                if (credit == null) return;
+                if (_slideRequest != null && OwnsSource(_slideRequest) && ArenaSlideTransitions.HasActiveSlide(player)
+                    && _slideRequest.SlideEpoch == ArenaSlideTransitions.OwnerEpoch
+                    && Finite(Time.realtimeSinceStartup) && Time.realtimeSinceStartup >= _slideRequest.CreatedAt
+                    && Time.realtimeSinceStartup <= _slideRequest.ExpiresAt) return;
+                _slideRequest = null;
+                float bufferWindow = ArenaSlideTransitions.BufferedJumpWindow(player);
+                if (ArenaSlideTransitions.NeedsBufferedJump(player) && Finite(Time.realtimeSinceStartup)
+                    && Finite(bufferWindow) && bufferWindow > 0f && bufferWindow <= 1f)
+                {
+                    // Native sprint exit may last about .7 s; only the slide's
+                    // exact witnessed exit receives 1 s. JumpLanding keeps .5 s.
+                    // Repeated commands above never extend the captured deadline.
+                    _slideRequest = new Request { Player = player, Credit = credit, GroundSlide = true,
+                        SlideEpoch = ArenaSlideTransitions.OwnerEpoch, InputEpoch = _inputEpoch,
+                        CreatedAt = Time.realtimeSinceStartup, ExpiresAt = Time.realtimeSinceStartup + bufferWindow };
+                    return;
+                }
+                if (ArenaBunnyhop.TryBufferJump(player)) return;
+                bool coyote = CanUse(state, player, credit, coyote: true) && ArenaJumpReliability.TryConsumeCoyote(player);
+                if (coyote || CanUse(state, player, credit))
+                {
+                    __state.StateRevision = credit.StateRevision;
+                    __state.Coyote = coyote;
+                    __state.CoyoteEpoch = ArenaJumpReliability.Epoch;
+                    __state.ExecuteImpulse = true;
+                }
             }
             catch (Exception exception) { Warn(exception); }
         }
@@ -457,52 +624,75 @@ internal static class ArenaDoubleJump
             if (__state == null) return;
             try
             {
+                if (!__state.ExecuteImpulse) return;
                 MovementState state = __state.State;
                 Player player = __state.Player;
-                if (!ReferenceEquals(__instance._controller, player) || !CanUse(state, player, __state.Credit)
+                if (!ReferenceEquals(__instance._controller, player) || !CanUse(state, player, __state.Credit, __state.Coyote)
+                    || __state.InputEpoch != _inputEpoch
+                    || (__state.Coyote && !ArenaJumpReliability.IsCoyoteCurrent(player, __state.CoyoteEpoch))
                     || __state.StateRevision != __state.Credit.StateRevision) return;
                 if (state is not JumpPlayerState jump)
                 {
-                    if (!Finite(Settings.DoubleJumpHeightMult.Value) || !Finite(Time.realtimeSinceStartup)) return;
+                    if ((!__state.Coyote && !Finite(Settings.DoubleJumpHeightMult.Value)) || !Finite(Time.realtimeSinceStartup)) return;
                     // Idle/Move.Jump refuses !IsGrounded. Ask the native animator
                     // directly once, never fake ground/CanJump. Actual Jump or
                     // FallDown Enter owns the debit; an absent transition pays none.
-                    __state.Credit.Spent = true;
+                    if (!__state.Coyote) __state.Credit.Spent = true;
                     __state.ExpiresAt = Time.realtimeSinceStartup + 0.5f;
                     __state.OwnsNativeSignal = true;
                     __state.Credit.NativeRequest = __state;
-                    try { state.MovementContext.TryJump(); }
-                    catch { CancelNativeRequest(__state.Credit); throw; }
-                    finally
-                    {
-                        // Native noise subscribers run before TryJump sets the
-                        // bool; cancellation inside them must also release it
-                        // after native dispatch returns.
-                        if (!ReferenceEquals(__state.Credit.NativeRequest, __state))
-                        {
-                            __state.OwnsNativeSignal = true;
-                            ReleaseNativeSignal(__state);
-                        }
-                    }
+                    DispatchNativeRequest(__state, () => state.MovementContext.TryJump());
                     return;
                 }
-                if (!TryGetImpulse(jump, __state.Credit, out Vector3 lift, out Vector3 velocity)) return;
-                __state.Credit.Spent = true; // Before callbacks, including failure and re-entry.
+                if (!TryGetImpulse(jump, __state.Credit, out Vector3 lift, out Vector3 velocity, __state.Coyote)) return;
+                if (!__state.Coyote) __state.Credit.Spent = true; // Before callbacks, including failure and re-entry.
+                __state.Credit.ApplyingImpulse = true;
                 player.Physical.OnJump(true);
                 // Paying the normal cost may exhaust stamina. Recheck ownership
                 // and restrictions, but never demand CanJump again after debit.
                 if (!OwnsCredit(jump, player, __state.Credit)
+                    || __state.InputEpoch != _inputEpoch
                     || __state.StateRevision != __state.Credit.StateRevision
-                    || !IsAirborneActionAllowed(jump, player)) return;
+                    || (__state.Coyote && !ArenaJumpReliability.IsCoyoteCurrent(player, __state.CoyoteEpoch))
+                    || !IsAirborneActionAllowed(jump, player, coyote: __state.Coyote)) return;
                 // OnJump may synchronously clear/refresh a powerup. Use the live
                 // bonus after that callback, without a second stamina debit.
-                if (!TryGetImpulse(jump, __state.Credit, out lift, out velocity)) return;
+                if (!TryGetImpulse(jump, __state.Credit, out lift, out velocity, __state.Coyote)) return;
                 ApplyImpulse(jump, lift, velocity);
                 jump.MovementContext.EmitJumpNoise();
                 if (ArenaMode.Diagnostics.ArenaLog.DeveloperEnabled)
                     ArenaMode.Diagnostics.ArenaLog.Developer("Arena double jump: renewed local vertical impulse.");
             }
             catch (Exception exception) { Warn(exception); }
+            finally
+            {
+                if (__state.Credit != null) __state.Credit.ApplyingImpulse = false;
+            }
+        }
+
+        [PatchFinalizer, HarmonyPriority(Priority.Last)]
+        private static Exception Finalizer(Exception __exception, Request __state)
+        {
+            ReleaseCommand(__state);
+            return __exception;
+        }
+    }
+
+    private sealed class ArenaDoubleJumpInputOwnerPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+            => AccessTools.DeclaredMethod(typeof(PlayerOwner), nameof(PlayerOwner.CreateInputTranslators));
+        [PatchPrefix]
+        private static void Prefix(PlayerOwner __instance)
+        {
+            if (__instance?.Player == null) return;
+            if (!ReferenceEquals(__instance?.Player, _credit?.Player)
+                && !ReferenceEquals(__instance?.Player, _command?.Player)) return;
+            unchecked { _inputEpoch++; }
+            _slideRequest = null;
+            if (_credit == null) return;
+            Invalidate(_credit);
+            CancelNativeRequest(_credit);
         }
     }
 

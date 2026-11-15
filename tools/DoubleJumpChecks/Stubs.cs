@@ -13,6 +13,10 @@ namespace UnityEngine
         public static Vector3 operator *(Vector3 value, float multiplier)
             => new(value.x * multiplier, value.y * multiplier, value.z * multiplier);
         public static Vector3 operator *(float multiplier, Vector3 value) => value * multiplier;
+        public static bool operator ==(Vector3 a, Vector3 b) => a.x == b.x && a.y == b.y && a.z == b.z;
+        public static bool operator !=(Vector3 a, Vector3 b) => !(a == b);
+        public override bool Equals(object value) => value is Vector3 other && this == other;
+        public override int GetHashCode() => HashCode.Combine(x, y, z);
     }
     public struct Vector2(float x, float y) { public float x = x, y = y; }
     public static class Physics { public static Vector3 gravity = new(0, -9.81f, 0); }
@@ -67,6 +71,7 @@ namespace ArenaMode.Config
     {
         public static readonly Setting<bool> MovementEnabled = new(true);
         public static readonly Setting<bool> DoubleJumpEnabled = new(true);
+        public static readonly Setting<bool> SlideEnabled = new(true);
         public static readonly Setting<float> DoubleJumpHeightMult = new(0.8f);
         public static readonly Setting<float> JumpHeightMult = new(1f);
     }
@@ -76,7 +81,38 @@ namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public st
 namespace ArenaMode.Spectator { public static class ArenaSpectatorService { public static bool IsActive; } }
 namespace ArenaMode.Movement
 {
-    internal static class ArenaBunnyhop { internal static bool TryBufferJump(EFT.Player player) => false; internal static bool HasRecentPhysicalContact(EFT.MovementContext context) => false; }
+    internal static class ArenaSlideTransitions
+    {
+        internal static bool Active;
+        internal static long OwnerEpoch;
+        internal static Action<EFT.Player> OnPrepare;
+        internal static EFT.SprintToIdleTransitionState BoundSprintExit;
+        internal static float? WindowOverride;
+        internal static bool HasActiveSlide(EFT.Player player) => Active && ArenaMode.Config.Settings.SlideEnabled.Value
+            && ArenaMovementScope.IsLocal(player, requireInput: true) && player.MovementContext.IsGrounded
+            && (player.CurrentManagedState is EFT.IdlePlayerState or EFT.MovePlayerState or EFT.JumpLandingState
+                || (player.CurrentManagedState?.GetType() == typeof(EFT.SprintToIdleTransitionState)
+                    && ReferenceEquals(player.CurrentManagedState, BoundSprintExit)));
+        internal static bool NeedsBufferedJump(EFT.Player player) => HasActiveSlide(player)
+            && (player.CurrentManagedState?.GetType() == typeof(EFT.JumpLandingState)
+                || (player.CurrentManagedState?.GetType() == typeof(EFT.SprintToIdleTransitionState)
+                    && ReferenceEquals(player.CurrentManagedState, BoundSprintExit)));
+        internal static float BufferedJumpWindow(EFT.Player player) => WindowOverride ?? (!NeedsBufferedJump(player) ? 0f
+            : player.CurrentManagedState is EFT.SprintToIdleTransitionState ? 1f : .5f);
+        internal static void PrepareJump(EFT.Player player) => OnPrepare?.Invoke(player);
+    }
+#if !JUMP_RELIABILITY
+    internal static class ArenaJumpReliability
+    {
+        internal static int Epoch => 0;
+        internal static void PrepareJump(EFT.Player player) { }
+        internal static bool TryConsumeCoyote(EFT.Player player) => false;
+        internal static bool IsCoyoteCurrent(EFT.Player player, int epoch) => false;
+        internal static void JumpEntered(EFT.JumpPlayerState jump) { }
+        internal static void ObserveGround(EFT.MovementContext context) { }
+    }
+#endif
+    internal static class ArenaBunnyhop { internal static bool Buffered; internal static bool TryBufferJump(EFT.Player player) => Buffered; internal static bool HasRecentPhysicalContact(EFT.MovementContext context) => false; }
     internal static class ArenaAirVault
     {
         internal static bool Pending;
@@ -116,7 +152,8 @@ namespace EFT
     }
     public class VaultingConfiguration { public float VaultingInputTime = 0.2f; }
     public sealed class HealthController { public bool IsAlive = true; }
-    public sealed class CharacterController { public bool isGrounded; }
+    public class CharacterController { public bool isGrounded; }
+    public class SimpleCharacterController : CharacterController { public void SingleMove() { } }
     public sealed class PlayerAnimator
     {
         public bool Jump;
@@ -143,13 +180,30 @@ namespace EFT
         public bool IsInventoryOpened;
         public HealthController HealthController = new();
         public Physical Physical = new();
-        public CharacterController CharacterController = new();
+        public CharacterController CharacterController = new SimpleCharacterController();
         public MovementContext MovementContext;
         public MovementState CurrentManagedState;
         public float _vaultingTiming;
+        public bool _isVaultingPressed;
+        public int JumpCalls;
+        public void Jump()
+        {
+            JumpCalls++;
+            if (_vaultingTiming > .2f || MovementContext.Vaulting) return;
+            if (CurrentManagedState is IdlePlayerState || CurrentManagedState is MovePlayerState)
+                if (MovementContext.PoseLevel > .6f && MovementContext.IsGrounded) MovementContext.TryJump();
+        }
     }
     public class MovementContext
     {
+        public MovementState CurrentState, OverridenState, OverridenControlsState;
+        public bool IsStationaryWeaponInHands, IsAxesIgnored;
+        public int BlindFire;
+        public object Platform;
+        public UnityEngine.Vector3 PlatformMotion;
+        public Impostor ImpostorCC;
+        public GroundHit GroundHit = new();
+        public void DirectApplyMotion(UnityEngine.Vector3 motion, float deltaTime) { }
         public bool IsGrounded = true;
         public bool IsInPronePose;
         public bool IsInMountedState;
@@ -188,6 +242,8 @@ namespace EFT
             if (ThrowOnNoise) throw new InvalidOperationException("noise callback failed");
         }
     }
+    public class Impostor { public bool UseAsyncMoveValidation; }
+    public class GroundHit { public bool hasHit = true; public UnityEngine.Vector3 normal = UnityEngine.Vector3.up; }
     public class MovementState(MovementContext context) { public MovementContext MovementContext = context; }
     public class JumpPlayerState(MovementContext context) : MovementState(context)
     {
@@ -215,6 +271,9 @@ namespace EFT
     public class MovePlayerState(MovementContext context) : MovementState(context) { }
     public class SprintPlayerState(MovementContext context) : MovePlayerState(context) { }
     public class JumpLandingState(MovementContext context) : MovementState(context) { }
+    // Native SprintToIdleTransitionState inherits MovementState's empty Jump.
+    // Only the explicitly bound instance below represents a witnessed sprint exit.
+    public class SprintToIdleTransitionState(MovementContext context) : MovementState(context) { }
     public class OtherJumpState(MovementContext context) : JumpPlayerState(context) { }
     [Flags] public enum EPhysicalCondition { LeftLegDamaged = 1, RightLegDamaged = 2, OnPainkillers = 4 }
     public class MoveInputTranslator(Player controller)
@@ -223,6 +282,7 @@ namespace EFT
         public InputSystem.InputNode.ETranslateResult TranslateCommand(InputSystem.ECommand command)
             => InputSystem.InputNode.ETranslateResult.Ignore;
     }
+    public class PlayerOwner { public Player Player; public void CreateInputTranslators() { } }
 }
 namespace EFT.InputSystem
 {
@@ -241,6 +301,8 @@ namespace HarmonyLib
         public delegate ref F FieldRef<T, F>(T instance);
         public static FieldRef<T, F> FieldRefAccess<T, F>(string name)
         {
+            if (typeof(T) == typeof(EFT.Player) && typeof(F) == typeof(bool) && name == "_isVaultingPressed")
+                return (T instance) => ref Unsafe.As<bool, F>(ref ((EFT.Player)(object)instance)._isVaultingPressed);
             if (typeof(T) != typeof(EFT.Player) || typeof(F) != typeof(float) || name != "_vaultingTiming")
                 throw new InvalidOperationException("unsupported field reflection");
             return (T instance) => ref Unsafe.As<float, F>(ref ((EFT.Player)(object)instance)._vaultingTiming);
@@ -264,6 +326,7 @@ namespace SPT.Reflection.Patching
 {
     [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPrefixAttribute : Attribute { }
     [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPostfixAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Method)] public sealed class PatchFinalizerAttribute : Attribute { }
     public abstract class ModulePatch
     {
         public static readonly List<(Type Patch, MethodBase Target)> Registrations = new();

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <DefineConstants>$(DefineConstants);JUMP_RELIABILITY</DefineConstants>
+    <StartupObject>JumpReliabilityProgram</StartupObject>
+    <JumpReliabilitySource Condition="'$(JumpReliabilitySource)' == ''">../../ArenaMode.Client/Movement/ArenaJumpReliability.cs</JumpReliabilitySource>
+    <DoubleJumpSource Condition="'$(DoubleJumpSource)' == ''">../../ArenaMode.Client/Movement/ArenaDoubleJump.cs</DoubleJumpSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(JumpReliabilitySource)" Link="Production/ArenaJumpReliability.cs" />
+    <Compile Include="$(DoubleJumpSource)" Link="Production/ArenaDoubleJump.cs" />
+    <Compile Include="../DoubleJumpChecks/Stubs.cs" Link="Stubs.cs" />
+    <Compile Include="../DoubleJumpChecks/Program.cs" Link="DoubleJumpProgram.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaJumpBoots.cs" Link="Production/ArenaJumpBoots.cs" />
+    <Compile Include="../../ArenaMode.Client/Movement/ArenaMovementScope.cs" Link="Production/ArenaMovementScope.cs" />
+    <Compile Include="../../ArenaMode.Client/Pickups/ArenaPowerupState.cs" Link="Production/ArenaPowerupState.cs" />
+  </ItemGroup>
+</Project>

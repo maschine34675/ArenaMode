@@ -1057,6 +1057,10 @@ Optional timed Bunnyhop is documented in docs/reviews/BUNNYHOP-REVIEW.md. Preser
 controller contact, one input owner, native landing/Jump entry, collision-reduced
 momentum and single-application displacement scaling; never grant hops from the
 ground-proximity ray alone or cancel every ordinary native Fall limit.
+Jump/slide transition ownership and sprint-jump weapon posture are specified in
+`docs/reviews/MOVEMENT-TRANSITIONS-20261115.md`. Keep one jump-input owner, cancel
+pending native signals when input becomes ineligible, retain explicit crouch
+through native landing pose changes, and never add slide velocity to root motion.
 
 Arena's local default full-auto rule is documented in `docs/reviews/DEFAULT-FIRE-MODE-REVIEW.md`.
 Preserve manual selection while held, native available modes and exact confirmed

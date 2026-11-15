@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-14. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-15. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -12,8 +12,34 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-15: jump reliability, slide transitions and sprint-jump
+  hip fire**, branch `codex/movement-transitions-20261115`, based on `4b3bf6c8`.
+  No version bump or release. Client-only candidate G is installed locally and
+  synchronized to both GPU hosts: SHA256
+  `8078CCC3E93F8EBF432EA23B4B956491942246D1951FF4AC49EF417269D92746`.
+  Shared Core stays the released 1.0.24 (`aa46ec84…`); server, helper, Gate and
+  companion binaries are unchanged. The working-tree source manifest binds the
+  candidate; its informational version still names the base commit.
+  [Contract](reviews/MOVEMENT-TRANSITIONS-20261115.md),
+  [native report](reports/2026-11/GPU-MOVEMENT-TRANSITIONS-20261115.md).
+  GPU-2 loaded instance `e0beebcb` matched 16/16 plugins and 2/2 libraries. Both
+  slide/jump sequences, sprint-jump actual firing with visible hip posture, idle
+  and firing airborne ADS refusal, grounded ADS, held-vault priority, inventory
+  cancellation, master-off native jump and body 2 → 4 respawn cleanup were
+  observed. No Arena warnings/errors. The positive 150 ms ledge-grace case and
+  unheld stale-timer repair have source checks but no separate native proof;
+  other explicit limits are in the report. Offline coverage: 60 distinct steps
+  PASS (49 final rechecks plus 11 unaffected first-run PASS), with the full xunit
+  suite at 3,918 passed and three known environment-gated skips. The only test
+  correction bounds the config scanner to each actual Bind call; the natively
+  tested production sources did not change. Full selection/snapshot evidence is
+  in `artifacts/movement-transitions-20261115/combined-verification.json`.
+  Games are closed, config bytes restored on all three installations, whole
+  profiles compared to actual Arena entry, and 61/61 PitFireTeam files per host
+  unchanged. Syncthing was not paused. No manual profile repair was performed.
+
 - **Released, 2026-11-14: ArenaMode 0.6.0 (`v0.6.0` = `39dfcf77`) with Redeploy 1.1.3 (`v1.1.3` = Redeploy
-  `67f8303`) and shared Core 1.0.24; the release binaries are installed.** At the user's request ("merge,
+  `67f8303`) and shared Core 1.0.24; the release binaries were installed.** At the user's request ("merge,
   delete and push every open branch, raise the versions of ArenaMode and Redeploy, complete the documents,
   publish the release on GitHub; ArenaMapPort is published as 0.6.0 in parallel").
   [Release notes](RELEASE-0.6.0.md), [native run](reports/2026-11/GPU-RELEASE-060-20261114.md),

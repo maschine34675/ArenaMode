@@ -3,6 +3,15 @@
 # step that ran through tools/Run-ArenaVerification.ps1 since 2026-10-23 (offline, no deploy). Register a new harness
 # when it is added; never a script that builds into D:\SPT41 (Verify-Deployment.ps1, Build-Deploy.ps1) or needs the game.
 VerificationRunnerChecks
+JumpReliabilityChecks
+SlideTransitionsChecks
+DoubleJumpChecks
+BunnyhopChecks
+ArenaAirFireChecks
+ArenaAirControlChecks
+tools/ArenaAirControlChecks/Verify-Contracts.ps1
+ArenaAirVaultChecks
+ArenaHandlingChecks
 AnnouncementIntegrationChecks
 AnnouncerCombatChecks
 AreaConfigChecks

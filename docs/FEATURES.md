@@ -266,13 +266,14 @@ speed have separate controls.
 | Bushes | Optional removal of bush movement slowdown. |
 | Aiming | 1.5× ADS transition; default removes 70% of the native ADS movement penalty. ADS input can cancel a sprint directly. |
 | Jump height | Configurable normal jump height, default 1.3×. |
-| Double jump | One extra jump while airborne, including after walking off an edge; no requirement to have initiated a ground jump. |
+| Jump reliability | A fresh tap can recover an unheld stale vault timer; 150 ms of physically witnessed ledge grace uses normal first-jump strength. |
+| Double jump | One extra jump while airborne, including after walking off an edge; ledge grace preserves this separate credit. |
 | Bunnyhop | Correctly timed landing jumps carry momentum and build a bounded speed bonus, up to 25%; enabled by default. No hold-to-auto-hop. |
 | Air control | Steer horizontal travel while airborne; the default turn-rate control is 80 degrees/second. |
-| Airborne hip fire | Allows supported firearm hip fire in the admitted native jump state; reload, malfunction and ADS restrictions remain. |
+| Airborne hip fire | Supported jump hip fire, with the ready weapon position restored during sprint jumps. Reload/malfunction restrictions remain; airborne ADS is blocked. |
 | Air vault | Re-enter a valid native vault/climb from the air when the obstacle is within reach; not unrestricted wall climbing. |
 | Vault speed/reach | Defaults 1.6× speed / 1.3× reach. Reach geometry changes take effect on the next player body. |
-| Slide | Crouch during a sprint to slide, with native collision retained. |
+| Slide | Crouch during a sprint or shortly before landing to slide. Collision-reduced momentum carries through slide/jump transitions; native headroom and stamina still apply. |
 | Falling/landing | Optional no fall damage; landing slowdown duration defaults to half its native duration. |
 | Draw/holster/reload | Separate animation-speed controls, each defaulting to 1.5×; alternate UIFixes reload handling is accounted for. Underbarrel-launcher reloads and malfunction repair retain native timing. |
 | **Walking during surgery/splinting** | **CMS, Surv12 and leg-fracture treatment allow walking at up to 1 m/s.** Follows FAST MOVEMENT; sprinting, jumping, going prone and vaulting remain blocked during treatment. |

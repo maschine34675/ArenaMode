@@ -98,7 +98,7 @@ internal static class Program
 
     private static void Main()
     {
-        Functional(); Scope(); InputAdmission(); Lifetime(); Binding();
+        Functional(); Scope(); InputAdmission(); Lifetime(); SlideLaunchHeading(); Binding();
         ArenaAirControl.Shutdown();
         Console.WriteLine($"ARENA_AIR_CONTROL_CHECKS_PASSED ({_checks} assertions)");
     }
@@ -177,6 +177,22 @@ internal static class Program
             var wrapped = fixture.Limit(new((float)(10 * Math.Sin(initial)), 0, (float)(10 * Math.Cos(initial))));
             Near(Heading(wrapped), -sign * 175, "shortest steering path crosses angle wrap: " + sign);
         }
+    }
+
+    private static void SlideLaunchHeading()
+    {
+        var fixture = new Fixture();
+        fixture.Turn(); // Previous flight has a non-native steering heading.
+        fixture.Context.IsGrounded = true;
+        fixture.Player.CharacterController.isGrounded = false; // Final substep lost contact.
+        fixture.Flying();
+        ArenaAirControl.ResetHeading(fixture.Context);
+        fixture.Context.IsGrounded = false;
+        Time.frameCount++;
+        var launched = fixture.Limit(new Vector3(7, -2, 0));
+        Near(Heading(launched), 90, "slide jump uses new launch heading after substep-only contact");
+        Near(Speed(launched), 7, "slide jump heading reset preserves launch speed");
+        Near(launched.y, -2, "slide jump heading reset preserves native vertical motion");
     }
 
     private static void Scope()

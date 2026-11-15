@@ -74,6 +74,7 @@ namespace ArenaMode.Config
     {
         public static readonly Setting<bool> BunnyhopEnabled = new(true); public static readonly Setting<float> WalkSpeedMult = new(1), SprintSpeedMult = new(1), ExtraMotionScale = new(1); public static readonly Setting<bool> MovementEnabled = new(true);
         public static readonly Setting<bool> DoubleJumpEnabled = new(true);
+        public static readonly Setting<bool> SlideEnabled = new(true);
         public static readonly Setting<float> DoubleJumpHeightMult = new(0.8f);
         public static readonly Setting<float> JumpHeightMult = new(1f);
     }
@@ -281,6 +282,7 @@ namespace SPT.Reflection.Patching
 {
     [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPrefixAttribute : Attribute { }
     [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPostfixAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Method)] public sealed class PatchFinalizerAttribute : Attribute { }
     public abstract class ModulePatch
     {
         public static readonly List<(Type Patch, MethodBase Target)> Registrations = new();
