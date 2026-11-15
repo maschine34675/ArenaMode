@@ -540,6 +540,10 @@ spawner. Solo has one life: death freezes survival and exits protected after any
 selected replay; only the PFT squad restores fallen members between cleared waves.
 See docs/reviews/ZOMBIE-MODE-REVIEW.md before touching the native Halloween-event
 hooks, the wave policy or its stuck-wave watchdog.
+Individual recovery, fair native planning admission and slow/fast/shooting wave
+composition are defined in docs/reviews/ZOMBIE-FLOW-20261115.md. Preserve exact
+arrival ownership, confirmed administrative-death accounting and pending-spawn
+barriers. The navigation limit counts whole jobs, not nested NavMesh calls.
 The opening wave now waits for player/kit/team readiness and then the configured
 intermission countdown. PFT wave breaks restore the surviving PMC's entry gear
 through protected live-body replacement as well as restoring fallen members.

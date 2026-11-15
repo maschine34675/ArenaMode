@@ -11,7 +11,7 @@ namespace Comfort.Common
 namespace EFT
 {
     public enum WildSpawnType { infectedAssault, infectedPmc, infectedCivil, infectedLaborant, pmcUSEC }
-    public enum BotDifficulty { normal, hard }
+    public enum BotDifficulty { easy, normal, hard, impossible }
     public enum EDamageType { Undefined }
     public static class Roles { public static bool IsInfected(this WildSpawnType v) => v != WildSpawnType.pmcUSEC; }
     public class Profile { public string Id = "bot"; public Info Info = new(); }
@@ -31,7 +31,11 @@ namespace EFT
     public class BotGame : IBotGame { public BotsController BotsController { get; } = new(); }
     public class BotsController { public Bots Bots = new(); public Spawner BotSpawner = new(); }
     public class Bots { public List<BotOwner> BotOwners = new(); }
-    public class Spawner { public void AddToTargetBackup(BotDifficulty d, WildSpawnType r, int n) { } }
+    public class Spawner
+    {
+        public readonly List<(WildSpawnType Role, BotDifficulty Difficulty, int Count)> Backups = new();
+        public void AddToTargetBackup(BotDifficulty d, WildSpawnType r, int n) => Backups.Add((r,d,n));
+    }
     public class GameWorld { public Player MainPlayer = new(); }
 }
 namespace ArenaMode
@@ -52,11 +56,15 @@ namespace ArenaMode.Modes
 }
 namespace ArenaMode.Bots
 {
+    public static class ZombieRecoveryRuntime { public static void Reset() { } public static void Track(BotOwner bot) { } }
+    public static class ZombiePathBudgetRuntime { public static void Reset() { } }
+#if !ZOMBIE_COMPOSITION_CHECKS
     public static class ZombieRoleMix
     {
-        public const string InfectedAssault = "infectedAssault", InfectedPmc = "infectedPmc", InfectedCivil = "infectedCivil", InfectedLaborant = "infectedLaborant", Normal = "normal", Hard = "hard";
+        public const string InfectedAssault = "infectedAssault", InfectedPmc = "infectedPmc", InfectedCivil = "infectedCivil", InfectedLaborant = "infectedLaborant", Easy = "easy", Normal = "normal", Hard = "hard";
     }
     public static class ZombieProfilePlan { public class Entry { public string Role, Difficulty; public int Count; } }
+#endif
     public static class ArenaHostility { public static void ReportPlayerTo(Group g, Player p) { } }
     public static class ZombieMeleeDiagnostics { public static int Arrivals; public static void OnZombieArrived(BotOwner b) => Arrivals++; }
     public static class BurstSpawnService

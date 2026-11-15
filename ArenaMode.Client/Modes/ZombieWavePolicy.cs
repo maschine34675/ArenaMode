@@ -34,8 +34,9 @@ namespace ArenaMode.Modes;
 /// Intermission begin — except for the
 /// StuckWaveTimeoutSeconds watchdog (Config/State/Result), which force-clears
 /// whatever is alive once the wave is SATURATED (see "Saturated waves arm
-/// the watchdog too" below) with NO infected death for that long, since
-/// nothing else in this mode recovers from a single unreachable infected.
+/// the watchdog too" below) with NO infected combat/environment death for that
+/// long. Individual recovery first replaces proven stuck owned arrivals; this
+/// remains the bounded fallback when that evidence or allowance is insufficient.
 ///
 /// <para><b>Watchdog progress, not duration (2026-10-06 GPU finding).</b> The
 /// first GPU raid's watchdog cleared a wave the player was still actively
@@ -151,7 +152,7 @@ internal static class ZombieWavePolicy
         /// at MaxAlive with spawns still left never armed this at all — see
         /// this class's own doc comment, "Watchdog progress, not duration"
         /// and "Saturated waves arm the watchdog too").
-        /// 0 or negative disables the watchdog entirely (the wave then waits
+        /// 0 or negative disables both recovery paths (the wave then waits
         /// for every infected to die naturally, with no recovery if one
         /// cannot reach the player).
         /// </summary>
@@ -210,6 +211,9 @@ internal static class ZombieWavePolicy
         /// scoring pipeline.
         /// </summary>
         internal int LastArrivedTotal;
+
+        /// <summary>Confirmed individual administrative deaths, never combat progress.</summary>
+        internal int RecoveredSinceLastCall;
     }
 
     internal struct Result
@@ -308,6 +312,19 @@ internal static class ZombieWavePolicy
     /// <summary>How long a failed dispatch holds the next spawn attempt of its wave.</summary>
     internal const float FailedDispatchBackoffSeconds = 2f;
 
+    /// <summary>
+    /// A confirmed individual retirement still owes the player one real enemy.
+    /// Return its request slot without treating the administrative death as
+    /// watchdog progress. Pending reservations and the arrival total stay intact.
+    /// </summary>
+    internal static void ReportRecoveredSpawn(ref State state)
+    {
+        if (state.Phase != Phase.Wave || state.SpawnedThisWave <= 0)
+            throw new InvalidOperationException("Recovery requires an owned current-wave slot.");
+        state.SpawnedThisWave--;
+        state.RecoveredSinceLastCall++;
+    }
+
     /// <param name="arrivedTotal">
     /// Monotonic lifetime count of infected confirmed alive on arrival this
     /// raid (<see cref="ZombieSpawnService.ConfirmedArrivals"/>). Defaults to
@@ -341,7 +358,8 @@ internal static class ZombieWavePolicy
         // what that alone would explain — see this class's own doc comment,
         // "Why a raw alive-count drop is not enough by itself".
         int arrivedSinceLastCall = Math.Max(0, arrivedTotal - state.LastArrivedTotal);
-        int expectedAliveFromProgress = state.LastAlive + arrivedSinceLastCall;
+        int expectedAliveFromProgress = state.LastAlive + arrivedSinceLastCall - state.RecoveredSinceLastCall;
+        state.RecoveredSinceLastCall = 0;
         bool anyDeathSinceLastCall = alive < expectedAliveFromProgress;
         state.LastAlive = alive;
         state.LastArrivedTotal = arrivedTotal;

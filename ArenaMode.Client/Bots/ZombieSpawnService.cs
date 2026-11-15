@@ -132,6 +132,8 @@ internal static class ZombieSpawnService
         _confirmedArrivals = 0;
         _failedDispatches = 0;
         _pendingFailure = null;
+        ZombieRecoveryRuntime.Reset();
+        ZombiePathBudgetRuntime.Reset();
     }
 
     /// <summary>
@@ -326,6 +328,7 @@ internal static class ZombieSpawnService
             // undercount an arrival and let a real infected death that lands
             // in the same tick hide behind it.
             _confirmedArrivals++;
+            ZombieRecoveryRuntime.Track(bot);
 
             var player = NearestLiveTeammate(bot.Position)
                 ?? (Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance.MainPlayer : null);
@@ -470,6 +473,7 @@ internal static class ZombieSpawnService
     {
         switch (difficulty)
         {
+            case ZombieRoleMix.Easy: value = BotDifficulty.easy; return true;
             case ZombieRoleMix.Normal: value = BotDifficulty.normal; return true;
             case ZombieRoleMix.Hard: value = BotDifficulty.hard; return true;
             default:

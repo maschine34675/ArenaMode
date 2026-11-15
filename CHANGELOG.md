@@ -10,6 +10,9 @@ state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
 ## Unreleased
 
+- Zombies can recover individual confirmed stuck enemies without awarding kills or losing the replacement slot.
+- Zombie pursuit and melee share a fair budget of two native planning jobs per frame, preserving attacks and existing movement.
+- Zombie waves vary the mix of native slow and fast melee enemies while preserving the configured shooter chance and population limits.
 - Improved jump input around ledges and slide transitions, while preserving native collision and separate double-jump credit.
 - Landing slides retain collision-reduced momentum; slide jumps keep their direction without adding a second movement impulse.
 - Sprint jumps restore the normal hip-fire weapon position. Aiming down sights remains disabled in the air.

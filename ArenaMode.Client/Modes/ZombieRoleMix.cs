@@ -12,12 +12,12 @@ namespace ArenaMode.Modes;
 /// the real spawn seam (ZombieSpawnService.TryRequest).
 ///
 /// Weights are the orchestrator's decision: infectedAssault 50%, infectedPmc
-/// 25%, infectedCivil 15%, infectedLaborant 10%. Difficulty is normal (Fast
-/// melee) except an INDEPENDENT ZombieShooterPercent chance of hard
-/// (Shooting/PM pistol) on top of whichever role was drawn — see
+/// 25%, infectedCivil 15%, infectedLaborant 10%. An INDEPENDENT configured
+/// shooter chance selects hard (Shooting/PM pistol); remaining melee draws use
+/// the wave's slow/fast mix from ZombieCompositionPolicy — see
 /// InfectedLayersStrategy's native brain table (decompile-verified:
-/// InfectedLayersStrategy.cs:149-158). easy (Slow melee) and impossible
-/// (throws in the brain constructor) are never drawn in v0.
+/// InfectedLayersStrategy.cs:149-158). easy is Slow, normal is Fast; impossible
+/// throws in the brain constructor and is never drawn.
 /// </summary>
 internal static class ZombieRoleMix
 {
@@ -26,6 +26,7 @@ internal static class ZombieRoleMix
     internal const string InfectedCivil = "infectedCivil";
     internal const string InfectedLaborant = "infectedLaborant";
 
+    internal const string Easy = "easy";
     internal const string Normal = "normal";
     internal const string Hard = "hard";
 
@@ -55,7 +56,7 @@ internal static class ZombieRoleMix
 
     /// <summary>One role + difficulty draw. Deterministic for a given rng state: two Random instances
     /// constructed with the same seed and driven the same way produce the same sequence of draws.</summary>
-    internal static Draw Next(Random rng, int shooterPercent)
+    internal static Draw Next(Random rng, int shooterPercent, int waveNumber = 1)
     {
         if (rng == null)
             throw new ArgumentNullException(nameof(rng));
@@ -64,7 +65,9 @@ internal static class ZombieRoleMix
         // rng.Next(100) is 0..99, so a 0% share never rolls true and a 100%
         // share always does — exact, not merely close, regardless of seed.
         bool hard = rng.Next(100) < Math.Clamp(shooterPercent, 0, 100);
-        return new Draw(role, hard ? Hard : Normal);
+        if (hard) return new Draw(role, Hard);
+        bool slow = rng.Next(100) < ZombieCompositionPolicy.SlowPercent(waveNumber);
+        return new Draw(role, slow ? Easy : Normal);
     }
 
     private static string PickRole(int roll)

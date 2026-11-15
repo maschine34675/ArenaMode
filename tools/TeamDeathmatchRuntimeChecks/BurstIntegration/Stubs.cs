@@ -21,18 +21,19 @@ namespace Comfort.Common
 namespace EFT
 {
     internal enum EPlayerSide { Savage, Usec, Bear }
-    internal enum WildSpawnType { pmcUSEC, pmcBEAR, infectedAssault, infectedPmc, infectedCivil, infectedLaborant }
+    internal enum WildSpawnType { pmcUSEC, pmcBEAR, infectedAssault, infectedPmc, infectedCivil, infectedLaborant, infectedTagilla }
     internal static class WildSpawnTypeExtensions
     {
         internal static bool IsInfected(this WildSpawnType role)
             => role is WildSpawnType.infectedAssault or WildSpawnType.infectedPmc
                 or WildSpawnType.infectedCivil or WildSpawnType.infectedLaborant;
     }
-    internal enum BotDifficulty { normal, hard }
+    internal enum BotDifficulty { easy, normal, hard, impossible }
     internal sealed class BotSpawnParams { public string Id_spawn; }
     internal sealed class GetProfileDataParams
     {
-        internal GetProfileDataParams(EPlayerSide side, WildSpawnType role, BotDifficulty difficulty, float time, BotSpawnParams parameters) { }
+        internal static BotDifficulty LastDifficulty;
+        internal GetProfileDataParams(EPlayerSide side, WildSpawnType role, BotDifficulty difficulty, float time, BotSpawnParams parameters) => LastDifficulty=difficulty;
     }
     internal class AbstractGame { }
     internal sealed class LocalGame : AbstractGame, IBotGame

@@ -173,6 +173,26 @@ internal static class Program
 
     private static void CheckInfectedTerminalAdmission()
     {
+        foreach(var role in new[]{WildSpawnType.infectedAssault,WildSpawnType.infectedPmc,WildSpawnType.infectedCivil,WildSpawnType.infectedLaborant})
+        foreach(var difficulty in new[]{BotDifficulty.easy,BotDifficulty.normal,BotDifficulty.hard})
+        {
+            Harness.Reset();
+            ArenaMatchService.Current=new ArenaMatch{Mode=new ZombieMode()};
+            var data=new BotCreationData(); data.Profiles[0].Info.Settings.Role=role; Harness.Body.Role=role;
+            int arrivals=0;
+            Check(BurstSpawnService.SpawnInfected(role,difficulty,_=>arrivals++),
+                "all generic slow fast and shooting pairs enter native preparation");
+            BotCreationData.Pending.SetResult(data);
+            Check(arrivals==1 && Harness.NativeCalls==1 && GetProfileDataParams.LastDifficulty==difficulty,
+                "native creation receives exact slow fast or shooting difficulty");
+        }
+        foreach(var invalid in new[]{(WildSpawnType.infectedAssault,BotDifficulty.impossible),
+            (WildSpawnType.infectedTagilla,BotDifficulty.easy),(WildSpawnType.pmcUSEC,BotDifficulty.easy)})
+        {
+            Harness.Reset(); ArenaMatchService.Current=new ArenaMatch{Mode=new ZombieMode()};
+            Check(!BurstSpawnService.SpawnInfected(invalid.Item1,invalid.Item2,_=>{}) && !Harness.Events.Contains("create"),
+                "native infected admission rejects unsupported difficulty boss and other faction");
+        }
         foreach (bool afterDispatch in new[] { false, true })
         foreach (bool matchReplaced in new[] { false, true })
         {

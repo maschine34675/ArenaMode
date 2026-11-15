@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <DefineConstants>$(DefineConstants);ZOMBIE_COMPOSITION_CHECKS</DefineConstants>
+    <CompositionSource Condition="'$(CompositionSource)' == ''">../../ArenaMode.Client/Modes/ZombieCompositionPolicy.cs</CompositionSource>
+    <RoleSource Condition="'$(RoleSource)' == ''">../../ArenaMode.Client/Modes/ZombieRoleMix.cs</RoleSource>
+    <ProfileSource Condition="'$(ProfileSource)' == ''">../../ArenaMode.Client/Modes/ZombieProfilePlan.cs</ProfileSource>
+    <ServiceSource Condition="'$(ServiceSource)' == ''">../../ArenaMode.Client/Bots/ZombieSpawnService.cs</ServiceSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CompositionSource)" Link="Production/ZombieCompositionPolicy.cs" />
+    <Compile Include="$(RoleSource)" Link="Production/ZombieRoleMix.cs" />
+    <Compile Include="$(ProfileSource)" Link="Production/ZombieProfilePlan.cs" />
+    <Compile Include="$(ServiceSource)" Link="Production/ZombieSpawnService.cs" />
+    <Compile Include="../ZombieWavePendingChecks/ServiceChecks/Stubs.cs" Link="NativeBoundaryDoubles.cs" />
+  </ItemGroup>
+</Project>

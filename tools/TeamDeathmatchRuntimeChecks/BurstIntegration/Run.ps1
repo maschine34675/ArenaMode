@@ -1,4 +1,4 @@
-param([switch] $BaselineOnly)
+param([switch] $BaselineOnly, [switch] $CompositionOnly)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../../Invoke-ArenaSourceChecks.ps1')
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
@@ -89,6 +89,17 @@ if (!$BaselineOnly) {
         @{ Name = 'infected-duplicate-ignored'; Find = 'if ((explicitFaction || ownedInfected) && factionArrivalSeen)'; Replace = 'if (explicitFaction && factionArrivalSeen)';
            Failure = 'same owned infected duplicate does not retire the admitted body' }
     )
+    $compositionFaults = @(
+        @{ Name='slow-native-admission-refused'; Find='difficulty != BotDifficulty.easy && difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard';
+           Replace='difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard';
+           Failure='all generic slow fast and shooting pairs enter native preparation' },
+        @{ Name='unsupported-native-brain-admitted'; Find='difficulty != BotDifficulty.easy && difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard';
+           Replace='false'; Failure='native infected admission rejects unsupported difficulty boss and other faction' },
+        @{ Name='boss-role-admitted'; Find='role != WildSpawnType.infectedAssault && role != WildSpawnType.infectedPmc';
+           Replace='false && role != WildSpawnType.infectedPmc';
+           Failure='native infected admission rejects unsupported difficulty boss and other faction' }
+    )
+    if($CompositionOnly) { $faults=$compositionFaults } else { $faults+=$compositionFaults }
     foreach ($fault in $faults) {
         # Only the exact extracted production methods are compiled here. The
         # later solo-population path has similar guards but is outside this

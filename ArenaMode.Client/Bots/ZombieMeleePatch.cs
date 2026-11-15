@@ -51,12 +51,14 @@ namespace ArenaMode.Bots;
 /// `BotMeleeWeaponData`, so SAIN's patch on the melee method is never even
 /// reached for a Zombie-raid infected — reproduces that node's own two-line
 /// body (`if (DoorOpen() == CanRun) Melee.RunToEnemyUpdate();`) but calls the
-/// REAL native `RunToEnemyUpdate` body through a HarmonyX reverse patch
-/// (`Harmony.CreateReversePatcher`, confirmed present in the installed
-/// 2.9.0.0 `0Harmony.dll` — see `TryEnsureReversePatch` below), which copies
+/// native `RunToEnemyUpdate` body through HarmonyX's four-argument
+/// `Harmony.ReversePatch` API (confirmed against the installed 0Harmony.dll), which copies
 /// the original method's IL into a brand-new, patch-chain-free `MethodInfo`
 /// — SAIN's prefix is simply never consulted, because nothing calls through
-/// the ORIGINAL patched method at all. If the reverse patch cannot be
+/// the ORIGINAL patched method at all. One Arena-only transpiler inserts the
+/// shared planning budget AFTER native attack/steering and before path work.
+/// Its early true return means a driven tick with deferred planning, never a
+/// fabricated successful path. If the guarded reverse patch cannot be
 /// prepared, <see cref="FallbackRunToEnemyUpdate"/> is a hand-written,
 /// line-cited copy of the same decompiled body instead; either way the path
 /// actually in use is logged once PER RAID (<see cref="LogPathChoiceOnce"/>,
@@ -70,18 +72,14 @@ namespace ArenaMode.Bots;
 /// while nothing actually ran.
 ///
 /// Registered next to <see cref="ZombieNativeEventBridge"/> in Plugin.Awake,
-/// same `TryEnable`-and-fail-closed convention. The Harmony instance that
-/// performs the reverse patch is a SEPARATE, raw `Harmony` object (the
-/// `PoolPrewarmMonitor` recipe in this repo — see its own class doc comment
-/// — for a feature that needs direct Harmony API `SPT.Reflection.Patching.
-/// ModulePatch` does not expose); the `OneMeleeAttackNode` prefix itself
+/// same `TryEnable`-and-fail-closed convention. The reverse copy uses the direct
+/// Harmony API, with Original explicitly selected, rather than changing any
+/// original method's patch chain. The `OneMeleeAttackNode` prefix itself
 /// still goes through `ModulePatch`, the same as every other hook in
 /// `ZombieNativeEventBridge`.
 /// </summary>
 internal static class ZombieMeleePatch
 {
-    private static readonly Harmony ReversePatchHarmony = new(Plugin.PluginGuid + ".ZombieMelee");
-
     private static Func<BotMeleeWeaponData, bool> _reversePatchedOriginal;
     private static bool _reversePatchAttempted;
     private static bool _reversePatchDead;
@@ -93,6 +91,7 @@ internal static class ZombieMeleePatch
         try
         {
             new ArenaZombieMeleeMeleeAttackNodePatch().Enable();
+            ZombiePathBudgetRuntime.EnablePatch();
             Plugin.ModLogger.LogDebug("Arena zombie melee: OneMeleeAttackNode prefix installed.");
         }
         catch (Exception ex)
@@ -166,9 +165,9 @@ internal static class ZombieMeleePatch
     }
 
     /// <summary>
-    /// Runs the TRUE native <c>BotMeleeWeaponData.RunToEnemyUpdate</c> body —
-    /// through the reverse patch when one could be prepared, the hand-written
-    /// fallback otherwise. Never throws: a failure inside either path is
+    /// Drives native attack and movement semantics with one shared, post-attack
+    /// planning guard: the Original reverse copy when prepared, the equivalent
+    /// hand-written fallback otherwise. Never throws: a failure inside either path is
     /// caught and demotes to the other/no-op rather than ever propagating
     /// into the Harmony prefix above. Returns whether anything was actually
     /// driven — false only when BOTH the reverse patch and the fallback
@@ -268,8 +267,9 @@ internal static class ZombieMeleePatch
                 throw new MissingMethodException("BotMeleeWeaponData.RunToEnemyUpdate");
 
             var standin = typeof(ZombieMeleePatch).GetMethod(nameof(ReversePatchStub), BindingFlags.NonPublic | BindingFlags.Static);
-            var patched = ReversePatchHarmony.CreateReversePatcher(original, new HarmonyMethod(standin))
-                .Patch(HarmonyReversePatchType.Original);
+            var transpiler = typeof(ZombiePathBudgetTranspiler).GetMethod(nameof(ZombiePathBudgetTranspiler.Apply), BindingFlags.NonPublic | BindingFlags.Static);
+            var patched = Harmony.ReversePatch(original,
+                new HarmonyMethod(standin) { reversePatchType = HarmonyReversePatchType.Original }, transpiler, null);
             _reversePatchedOriginal = (Func<BotMeleeWeaponData, bool>)patched.CreateDelegate(typeof(Func<BotMeleeWeaponData, bool>));
             return true;
         }
@@ -324,7 +324,8 @@ internal static class ZombieMeleePatch
     /// Shape-only stand-in for the reverse patch: HarmonyX replaces this
     /// method's IL with a copy of the ORIGINAL <c>RunToEnemyUpdate</c>'s IL
     /// (unaffected by SAIN's or anyone else's patches on that original) and
-    /// hands back a new <see cref="MethodInfo"/> for the result — this
+    /// applies the guarded planning boundary and hands back a new
+    /// <see cref="MethodInfo"/> for the result — this
     /// method's own body below never actually runs. The first parameter
     /// stands in for the instance <c>RunToEnemyUpdate</c> is called on,
     /// exactly as HarmonyX's reverse-patch convention requires for an
@@ -347,7 +348,10 @@ internal static class ZombieMeleePatch
     /// doc comment for the precedent of relying on this "loose field" BSG
     /// style instead of reflection), so this needs no `AccessTools.Field`.
     ///
-    /// One deliberate, named deviation from the native body: a null
+    /// Two deliberate deviations from the native body. Both execution paths
+    /// use the same post-attack planning guard: a denied job returns true with
+    /// ShallEndRun false and the native retry timer/path unchanged. That means
+    /// the tick ran, not that any path was calculated or succeeded. Additionally a null
     /// <c>GoalEnemy</c> returns false immediately instead of dereferencing
     /// it unchecked. The native body never null-checks it either, because
     /// <c>OneMeleeAttackNode</c> only reaches this call while the attack
@@ -402,6 +406,10 @@ internal static class ZombieMeleePatch
             bool hit = closeEnough && melee.TryHit(goalEnemy);
             melee.ResetHitTime(hit ? 10f : melee.TRY_HIT_PERIOD_FALSE);
         }
+
+        // Same post-attack boundary as the guarded native reverse copy. A denied
+        // job preserves the existing path and retry clock, never ShallEndRun.
+        if (ZombiePathBudgetRuntime.ShouldDeferMelee(melee)) return true;
 
         if (owner.Mover.HasPathAndNoComplete)
         {

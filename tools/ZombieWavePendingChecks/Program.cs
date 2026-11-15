@@ -21,7 +21,7 @@ internal static class Program
         internal readonly GameWorld World = new();
         internal readonly ArenaMatch Match = new();
         internal readonly ZombieMode Mode;
-        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f)
+        internal Fixture(int size = 1, bool ownGear = true, bool team = false, float watchdog = 0f, bool snapshot = false)
         {
             Time.time = 0; Time.timeScale = 1;
             Singleton<AbstractGame>.Instance = Game;
@@ -44,6 +44,9 @@ internal static class Program
             Settings.ZombieMaxAlive.Value = 2; Settings.ZombieWaveStartSize.Value = size; Settings.ZombieWaveGrowth.Value = 0;
             Settings.ZombieSpawnIntervalSeconds.Value = .2f; Settings.ZombieIntermissionSeconds.Value = 2;
             Settings.ZombieStuckWaveTimeoutSeconds.Value = watchdog;
+            Settings.ZombieShooterPercent.Value = 37;
+            ZombieNativeEventBridge.HasSnapshot = snapshot;
+            ZombieNativeEventBridge.SnapshotSize = size; ZombieNativeEventBridge.SnapshotShooter = 23;
             ZombieLoadoutRefill.Calls = 0; ArenaMatchService.Current = Match;
             LiveKitRespawn.Reset();
             Mode = new(); Match.Mode = Mode; Mode.OnMatchStart(Match); ArenaMode.Events.ArenaEvents.Apply();
@@ -62,6 +65,9 @@ internal static class Program
         {
             f.Tick(.2f);
             Check(ZombieSpawnService.Dispatched == 1 && ZombieSpawnService.Pending == 1, "opening request is owned");
+            Check(ZombieRoleMix.LastWave == 1 && ZombieRoleMix.LastShooter == 37,
+                "opening draw receives frozen shooter setting and actual first wave");
+            Settings.ZombieShooterPercent.Value = 99;
             foreach (float time in new[] { 1f, 5f, 25f, 55f })
             {
                 f.Tick(time);
@@ -75,6 +81,15 @@ internal static class Program
             Check(ZombieLoadoutRefill.Calls == 1 && f.Mode.HudStatusLine.Contains("WAVE 2 IN"), "real final death refills once");
             f.Tick(57.5f); Check(ZombieLoadoutRefill.Calls == 1, "intermission refill not repeated");
             f.Tick(59.1f); Check(ZombieSpawnService.Dispatched == 2 && f.Mode.HudStatusLine.Contains("WAVE 2"), "next wave begins after actual clearance interval");
+            Check(ZombieRoleMix.LastWave == 2, "draw follows actual second wave instead of opening composition");
+            Check(ZombieRoleMix.LastShooter == 37, "later draw retains frozen shooter percentage after live config edit");
+        }
+
+        using (var f = new Fixture(snapshot: true))
+        {
+            Settings.ZombieShooterPercent.Value = 100;
+            f.Tick(.2f);
+            Check(ZombieRoleMix.LastShooter == 23, "runtime draw uses native opening snapshot despite subsequent settings edit");
         }
 
         foreach (bool team in new[] { false, true })
@@ -131,6 +146,14 @@ internal static class Program
         {
             f.Tick(.2f); f.Game.LocalPlayer.HealthController.IsAlive = false; f.Tick(1);
             Check(f.Mode.IsComplete && f.Mode.HoldRespawn && ZombieSpawnService.Dispatched == 1, "local death dominates pending-wave work");
+        }
+        using (var f = new Fixture(watchdog:100))
+        {
+            f.Tick(.2f); ZombieSpawnService.Pending=0; ZombieSpawnService.Alive=ZombieSpawnService.ConfirmedArrivals=1;
+            f.Tick(1); ZombieRecoveryRuntime.Recoveries=1; f.Tick(1.5f);
+            Check(ZombieSpawnService.Dispatched==2 && ZombieSpawnService.Pending==1 && ZombieLoadoutRefill.Calls==0
+                && f.Mode.HudStatusLine.Contains("WAVE 1"), "confirmed individual retirement returns its slot before wave clearance");
+            f.Tick(2); Check(ZombieSpawnService.Dispatched==2,"mode consumes individual recovery once");
         }
         using (var f = new Fixture())
         {

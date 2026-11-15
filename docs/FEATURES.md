@@ -218,6 +218,8 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
   default intermission **10 seconds**.
 - Individual spawn requests default to **0.2 seconds** apart; **20%** of infected
   are pistol-armed shooters by default.
+- Early waves favor slow melee infected; later waves vary the slow/fast mix.
+  The configured shooter chance and population limits remain unchanged.
 - **Solo has one life.** Death ends the match after any selected replay; it does
   not respawn the player into the current wave.
 - Optional PFT squad with **1–4 companions**. Surviving members can finish a
@@ -232,9 +234,16 @@ Sources: [routes and options](reviews/DOMINATION-OPTIONS-ROUTES-20261027.md),
 - Optional shooter proportion and stuck-wave recovery controls in advanced
   settings. Zombie Crowd is a separate opt-in harder-horde setting, including
   controlled recall of distant stragglers; it is not the normal Fast Bots boost.
-- Stuck-wave recovery defaults to 100 seconds without an infected death while
+- Individual confirmed stuck infected are retried and replaced without kill
+  credit; a replacement still belongs to the current wave. Conservative distance,
+  visibility, combat and identity checks prevent ordinary combat from qualifying.
+- The final stuck-wave fallback defaults to 100 seconds without an ordinary infected death while
   the wave is saturated. It clears remaining active infected administratively;
   pending spawns still run. This is not a 100-second limit on every wave.
+  A zero timeout disables both recovery stages.
+- Native pursuit and melee share two complete planning jobs per frame with fair
+  deferral. Existing movement and attacks continue; this is not a fixed count of
+  nested NavMesh searches or a measured FPS claim.
 - Repetitive infected voices are budgeted, and redundant PFT work for native
   infected is reduced without removing their combat AI.
 

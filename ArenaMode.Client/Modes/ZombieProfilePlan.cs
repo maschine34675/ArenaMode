@@ -84,8 +84,12 @@ internal static class ZombieProfilePlan
                 : shooterPercent >= 100 ? count
                 : (int)Math.Round(count * (shooterPercent / 100.0), MidpointRounding.AwayFromZero);
             hardCount = Math.Clamp(hardCount, 0, count);
-            int normalCount = count - hardCount;
+            int meleeCount = count - hardCount;
+            int slowCount = (int)Math.Round(meleeCount * (ZombieCompositionPolicy.SlowPercent(1) / 100.0),
+                MidpointRounding.AwayFromZero);
+            int normalCount = meleeCount - slowCount;
 
+            if (slowCount > 0) entries.Add(new Entry(role, ZombieRoleMix.Easy, slowCount));
             if (normalCount > 0) entries.Add(new Entry(role, ZombieRoleMix.Normal, normalCount));
             if (hardCount > 0) entries.Add(new Entry(role, ZombieRoleMix.Hard, hardCount));
         }
@@ -95,16 +99,22 @@ internal static class ZombieProfilePlan
 
     /// <summary>
     /// One backup target per (role, difficulty) pair the role mix can draw —
-    /// every melee role always, plus every role's hard/shooter variant when
-    /// ZombieShooterPercent &gt; 0 — each floored to MinimumBackupCount.
+    /// both melee speeds unless the user requested only shooters, and the hard
+    /// variant only when a shooter share exists. Future waves can use either
+    /// speed, so both stay warm even when absent from a tiny opening apportionment.
     /// </summary>
     internal static List<Entry> BackupTargets(int shooterPercent, int countPerPair = MinimumBackupCount)
     {
-        int count = Math.Max(MinimumBackupCount, countPerPair);
+        int count = Math.Clamp(countPerPair, MinimumBackupCount, MaxBackupCountPerPair);
+        shooterPercent = Math.Clamp(shooterPercent, 0, 100);
         var entries = new List<Entry>();
         foreach (var (role, _) in ZombieRoleMix.Weights)
         {
-            entries.Add(new Entry(role, ZombieRoleMix.Normal, count));
+            if (shooterPercent < 100)
+            {
+                entries.Add(new Entry(role, ZombieRoleMix.Easy, count));
+                entries.Add(new Entry(role, ZombieRoleMix.Normal, count));
+            }
             if (shooterPercent > 0)
                 entries.Add(new Entry(role, ZombieRoleMix.Hard, count));
         }

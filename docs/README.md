@@ -27,6 +27,7 @@ Marks in the lists below: *(superseded)* means a newer document replaces this on
 - [Dependencies, optional mods and release boundaries](DEPENDENCIES.md)
 - [Maps and modes: current admission matrix (as of 2026-10-17)](MAP-MODE-COMPATIBILITY.md)
 - [Logging levels and developer diagnostics](LOGGING.md)
+- [Zombie recovery, planning and native wave tests](reports/2026-11/GPU-ZOMBIE-FLOW-20261115.md)
 - [Deferred Arena design work](FUTURE-WORK.md)
 - [Forge description, eight tabs (draft of 0.6.0)](FORGE-DESCRIPTION.md)
 
@@ -269,6 +270,7 @@ Sorted by file name.
 - [Arena weapon variants: automatic attachment generation, validation and lifecycle](reviews/WEAPON-VARIANTS-REVIEW.md)
 - [Zombie body culling and bot hot-path switches (four performance toggles)](reviews/ZOMBIE-BODY-CULLING-20261017.md)
 - [Optional Zombie Crowd: behaviour, OFF semantics and ownership](reviews/ZOMBIE-CROWD-REVIEW.md)
+- [Zombie recovery, native planning budget and wave composition](reviews/ZOMBIE-FLOW-20261115.md)
 - [Zombie kit prewarming: capped optional preload and unchanged required work](reviews/ZOMBIE-KIT-WARMUP-REVIEW.md)
 - [Zombie Mode: architecture, native melee suppression, waves, own gear and performance](reviews/ZOMBIE-MODE-REVIEW.md)
 - [Bounded Zombie AI work reduction: hearing and social-search prefixes](reviews/ZOMBIE-PERFORMANCE-REVIEW.md)

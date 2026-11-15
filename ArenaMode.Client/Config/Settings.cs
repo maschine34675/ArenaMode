@@ -1323,21 +1323,8 @@ public static class Settings
 
         ZombieStuckWaveTimeoutSeconds = config.Bind("Zombie", "StuckWaveTimeoutSeconds", 100f,
             new ConfigDescription(
-                "Safety net for a wave's last infected getting wedged in geometry or stranded on an " +
-                "unreachable NavMesh island: once the wave is SATURATED — every infected in it has already " +
-                "been requested, OR alive+pending already fills what MaxAlive/the wave's own remainder " +
-                "allows right now — and no infected has died for this long, whatever is still alive is " +
-                "administratively retired. If the wave still has spawns left after that, it keeps going " +
-                "(only the stuck survivor(s) were cleared); if not, the wave clears like normal. This " +
-                "measures PROGRESS, not mere duration: any infected death restarts the clock, so a wave " +
-                "the player is still actively (if slowly) clearing is never cleared out from under them — " +
-                "only saturation with no deaths at all for the whole ceiling is \"stuck\" (progress-not-" +
-                "duration changed 2026-10-06 after a GPU raid showed the old wall-clock-since-tail-start " +
-                "version ending a wave mid-fight; saturation arming added the same day after a second GPU " +
-                "raid showed a wave pinned at MaxAlive with 10 of 30 still to spawn and zero infected " +
-                "deaths for over four minutes never arming this at all, because it was never \"fully " +
-                "spawned\"). 0 disables the watchdog (the wave then waits for every infected to die " +
-                "naturally, with no recovery if one cannot reach the player). Frozen at match start.",
+                "Fallback timeout for a full wave making no kill progress. Individual stuck zombies " +
+                "are handled earlier. 0 disables both recovery stages. Applies next raid.",
                 new AcceptableValueRange<float>(0f, 600f)));
 
         ZombieWaveStartSize = config.Bind("Zombie", "WaveStartSize", 50,
