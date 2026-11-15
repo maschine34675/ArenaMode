@@ -115,14 +115,23 @@ or overwritten, and the four pre-existing conflict copies were retained.
 
 The independent post-test audit passed on all three installations, and was
 repeated after restoring Syncthing's original unpaused state. Final snapshot:
-`native/after-20261115-163624/verification.json`. All 21 complete profile files
+`native/after-20261115-164429/verification.json`. All 21 complete profile files
 match the expected natural merge of each test host's verified profile, allowing
-only the two bookkeeping timestamps above. No new profile conflict copies were
-created. All 61 PFT files per installation and all archived configuration bytes
+only the two bookkeeping timestamps above. All 61 PFT files per installation
+and all archived configuration bytes
 match their originals, including the server's cached client settings. Unchanged
 installation hashes match; the only intended client changes are candidate A's
 DLL and matching PDB. The temporary fixture and exact whitelist allowance are
 outside the game tree. Both games are closed and test controls are off.
+
+One late Syncthing conflict copy arrived after the first post-sync audit. Full
+JSON comparison on all three installations found only Health/Hideout timestamp
+differences from the canonical profile; equipment and progression were identical.
+The exact duplicate (SHA256 `44D197CCCE25FA7B6D77CD6E939D7DDE445EC69CD5AD2BAE91F01E6DBE137EEE`)
+was archived outside the game at `C:\Temp\ArenaZombieFlow-20261115\sync-conflict-review\`.
+Its removal propagated naturally to both hosts; no canonical profile was written.
+The final audit above was rerun after that propagation and retains only the four
+original conflict copies. Comparison/archive evidence is in `native/sync/`.
 
 Syncthing restoration readbacks are retained in `native/sync/`. The surrounding
 development tree may continue transferring test artifacts; the full game-data

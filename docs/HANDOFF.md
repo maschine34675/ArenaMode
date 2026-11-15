@@ -32,7 +32,9 @@ numbering unchanged, only their links and document paths re-rooted for the new l
   The temporary confinement plugin is outside the game installation again.
   Both games are closed; original config bytes, full profiles and PFT data were
   independently verified after restoring Syncthing on all three installations.
-  No new profile conflict copies were created.
+  One late conflict containing only bookkeeping timestamp differences was
+  archived outside the game; its removal propagated to both hosts. The final
+  full audit passed with only the four original conflict copies remaining.
   Native preservation and complete-suite evidence live under
   `artifacts/zombie-flow-20261115/`; the dated report records final boundaries.
 
