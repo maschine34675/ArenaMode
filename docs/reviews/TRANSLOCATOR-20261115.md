@@ -39,6 +39,14 @@ the disc radius as inset. Invalid/saturated geometry evidence retires the disc.
 A resting disc persists; loss of support resumes gravity. Thirty seconds of
 actual flight expires an abyss projectile.
 
+Disc collision uses physical scene and actor layers, excluding spawn/interaction
+helpers, general movement hulls and PlayerSpirit broadphase volumes. Factory's
+spawn helpers are non-trigger spheres with a 20 m radius, so ignoring triggers
+alone is insufficient. Actual Default/Loot objects, doors, glass and outer map
+borders remain solid. A bounded arena also retains its exact owned LowPoly
+enclosure. Own Player/Spirit shapes are excluded by exact owner identity; other
+bodies remain solid. This disc filter does not replace destination validation.
+
 Teleport validates the prospective native player capsule and additional controller
 shapes against synchronized scene geometry and living actors. It requires neither
 floor nor NavMesh, so airborne discs and physically clear elevated destinations

@@ -15,22 +15,39 @@ namespace UnityEngine
     }
     public class Transform { public Vector3 position; }
     public static class Time { public static float time,deltaTime=.016f,timeScale=1f; }
-    public class Collider { public bool enabled=true,isTrigger; public object Parent; public T GetComponentInParent<T>() where T:class=>Parent as T; }
+    public class GameObject { public int layer=12; }
+    public class Collider
+    {
+        public bool enabled=true,isTrigger;
+        public object Parent;
+        public EFT.PlayerSpiritBase SpiritParent;
+        public GameObject gameObject=new();
+        public T GetComponentInParent<T>() where T:class => Parent as T ?? SpiritParent as T;
+    }
+    public static class LayerMask
+    {
+        public static int GetMask(params string[] names) => names.Aggregate(0,(mask,name)=>mask | (1 << (name switch
+        { "LevelBorder"=>29, _=>throw new Exception("Unknown native fixture layer: "+name) })));
+    }
     public struct RaycastHit { public Collider collider; public float distance; public Vector3 normal; }
     public enum QueryTriggerInteraction { Ignore }
     public static class Physics
     {
         public const int DefaultRaycastLayers=~4;
+        public static int LastOverlapMask,LastCastMask;
         public static Func<Vector3,float,Collider[],int> Overlap=(_,_,_)=>0;
         public static Func<Vector3,float,Vector3,RaycastHit[],float,int> Cast=(_,_,_,_,_)=>0;
-        public static int OverlapSphereNonAlloc(Vector3 p,float r,Collider[] hits,int mask,QueryTriggerInteraction q)=>Overlap(p,r,hits);
-        public static int SphereCastNonAlloc(Vector3 p,float r,Vector3 d,RaycastHit[] hits,float distance,int mask,QueryTriggerInteraction q)=>Cast(p,r,d,hits,distance);
+        public static int OverlapSphereNonAlloc(Vector3 p,float r,Collider[] hits,int mask,QueryTriggerInteraction q)
+        { LastOverlapMask=mask; return Overlap(p,r,hits); }
+        public static int SphereCastNonAlloc(Vector3 p,float r,Vector3 d,RaycastHit[] hits,float distance,int mask,QueryTriggerInteraction q)
+        { LastCastMask=mask; return Cast(p,r,d,hits,distance); }
     }
 }
 namespace Comfort.Common { public static class Singleton<T> { public static T Instance; public static bool Instantiated=>Instance!=null; } }
 namespace EFT.InventoryLogic { public class Item { } }
 namespace EFT
 {
+    public class PlayerSpiritBase { public Player _player; }
     public enum GameStatus { Started,Stopped }
     public class AbstractGame { }
     public class LocalGame:AbstractGame { public GameStatus Status=GameStatus.Started; public GameWorld GameWorld; public Player LocalPlayer; }
@@ -72,7 +89,25 @@ namespace ArenaMode.Spectator { public static class ArenaSpectatorService {publi
 namespace ArenaMode.Hud { public static class ArenaInputBlocker {public static bool Blocked;} }
 namespace ArenaMode.Combat { public static class WeaponSwapService {public static bool IsSwapping;} }
 namespace ArenaMode.Pickups { public static class ArenaPickupRuntime {public static bool OwnsCollider(UnityEngine.Collider c)=>false;} }
-namespace ArenaMode.Areas { public static class ArenaAreaRuntime {public static bool IsPending,IsReady=true; public static ArenaAreaDefinition CurrentArea;} }
+namespace ArenaMode.Areas
+{
+    public static class ArenaAreaRuntime
+    {
+        public static bool IsPending,IsReady=true;
+        public static ArenaAreaDefinition CurrentArea;
+        public static HashSet<UnityEngine.Collider> Enclosure=new();
+        public static bool OwnsCollider(UnityEngine.Collider collider)=>Enclosure.Contains(collider);
+    }
+}
+// Layer identities are measured from the installed TagManager and native
+// LayersMaskController, independently of the Translocator's chosen query mask.
+public static class LayersMaskController
+{
+    public const int DefaultLayerMask=1, LootLayerMask=1<<15,
+        HighPolyWithTerrainMask=(1<<11)|(1<<12), TransparentLayerMask=1<<30,
+        PlayerStaticDoorMask=1<<9, PlayerMask=1<<8, HitColliderMask=1<<16,
+        LowPolyColliderLayer=18, LowPolyColliderLayerMask=1<<18, DeadbodyLayer=23;
+}
 namespace ArenaMode
 {
     public static class Plugin { public static Logger ModLogger=new(); }

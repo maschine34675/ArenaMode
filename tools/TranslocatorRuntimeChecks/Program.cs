@@ -21,6 +21,7 @@ static class Checks
         ArenaTranslocatorRuntime.Reset(); ArenaTranslocatorSettings.Enabled.Value=true;
         ArenaSession.IsActive=ArenaSession.Exact=true;
         ArenaAreaRuntime.IsPending=false; ArenaAreaRuntime.IsReady=true; ArenaAreaRuntime.CurrentArea=null;
+        ArenaAreaRuntime.Enclosure.Clear();
         ArenaMode.Respawn.ArenaRespawnDriver.StandDown=ArenaMode.Respawn.ArenaRespawnDriver.IsRespawnInProgress=false;
         ArenaMode.Spectator.ArenaSpectatorService.IsActive=false; ArenaMode.Hud.ArenaInputBlocker.Blocked=false;
         ArenaMode.Combat.WeaponSwapService.IsSwapping=false;
@@ -36,7 +37,7 @@ static class Checks
     }
     static void Main()
     {
-        try {PhysicsChecks(); RuntimeChecks();Console.WriteLine($"TRANSLOCATOR_RUNTIME_CHECKS_PASSED assertions={checks}");}
+        try {PhysicsChecks(); GeometryChecks(); RuntimeChecks();Console.WriteLine($"TRANSLOCATOR_RUNTIME_CHECKS_PASSED assertions={checks}");}
         catch(Exception e){Console.WriteLine(e.Message);Environment.ExitCode=1;}
     }
     static void PhysicsChecks()
@@ -81,6 +82,76 @@ static class Checks
         ArenaAreaRuntime.CurrentArea=new ArenaAreaDefinition("test","test","factory4_day",bounds,-10,10,2);
         Check(!ArenaTranslocatorGeometry.Inside(new(.5f,0,3),new(3,0,.5f)),"concave area crossing rejects inside endpoints");
         Check(ArenaTranslocatorGeometry.Inside(new(.5f,0,3),new(.5f,0,1)),"legal area segment remains usable");
+    }
+    static Collider Solid(int layer,Player parent=null,PlayerSpiritBase spirit=null)
+        => new(){gameObject=new(){layer=layer},Parent=parent,SpiritParent=spirit};
+    static void OverlapFixture(params Collider[] colliders)
+        => Physics.Overlap=(_,_,hits)=>
+        {
+            int count=0;
+            foreach(var collider in colliders)
+                if((Physics.LastOverlapMask & (1<<collider.gameObject.layer))!=0) hits[count++]=collider;
+            return count;
+        };
+    static void CastFixture(params RaycastHit[] contacts)
+        => Physics.Cast=(_,_,_,hits,_)=>
+        {
+            int count=0;
+            foreach(var contact in contacts)
+                if((Physics.LastCastMask & (1<<contact.collider.gameObject.layer))!=0) hits[count++]=contact;
+            return count;
+        };
+    static void GeometryChecks()
+    {
+        foreach(int helperLayer in new[]{13,18,27,10,22,26,31})
+        {
+            var(p,_)=Setup(); var helper=Solid(helperLayer);
+            OverlapFixture(helper);
+            Check(ArenaTranslocatorGeometry.TryLaunch(p,out _),"helper volume does not block launch");
+            Check((Physics.LastOverlapMask & (1<<helperLayer))==0,"whole-map query excludes helper broadphase");
+            Physics.Overlap=(_,_,_)=>0;
+            CastFixture(new RaycastHit{collider=helper,distance=.05f,normal=new(-1,0,0)});
+            Check(ArenaTranslocatorGeometry.Sweep(N.Zero,N.UnitX,p).Kind==Disc.TraceKind.Clear,"helper volume does not bounce flight");
+        }
+        // All these remain physical obstacles, including intentionally invisible
+        // outer-map borders. A mask that merely stops querying would fail here.
+        foreach(int solidLayer in new[]{0,8,9,11,12,15,16,23,29,30})
+        {
+            var(p,_)=Setup(); var obstacle=Solid(solidLayer,new Player());
+            OverlapFixture(obstacle);
+            Check(!ArenaTranslocatorGeometry.TryLaunch(p,out _),"real solid overlap blocks launch");
+            Physics.Overlap=(_,_,_)=>0;
+            CastFixture(new RaycastHit{collider=obstacle,distance=.05f,normal=new(-1,0,0)});
+            Check(ArenaTranslocatorGeometry.Sweep(N.Zero,N.UnitX,p).Kind==Disc.TraceKind.Hit,"real solid bounces flight");
+        }
+        {
+            var(p,_)=Setup();
+            OverlapFixture(Solid(8,p),Solid(8,spirit:new(){_player=p}));
+            Check(ArenaTranslocatorGeometry.TryLaunch(p,out _),"exact own body and sibling spirit do not block launch");
+            Physics.Overlap=(_,_,_)=>0;
+            CastFixture(new(){collider=Solid(8,spirit:new(){_player=p}),distance=.02f,normal=new(-1,0,0)},
+                new(){collider=Solid(12),distance=.1f,normal=new(-1,0,0)});
+            var hit=ArenaTranslocatorGeometry.Sweep(N.Zero,N.UnitX,p);
+            Check(hit.Kind==Disc.TraceKind.Hit && Math.Abs(hit.Position.X-.1f)<.0001f,"own spirit does not hide real wall");
+            OverlapFixture(Solid(8,spirit:new(){_player=new Player()}));
+            Check(!ArenaTranslocatorGeometry.Empty(new(0,1,0),p),"foreign spirit body remains solid");
+            OverlapFixture(Solid(12));
+            Check(!ArenaTranslocatorGeometry.Empty(new(0,1,0),null),"missing owner cannot ignore anonymous world");
+        }
+        {
+            var(p,_)=Setup();
+            var bounds=new ArenaAreaBounds(new[]{new ArenaAreaVertex(-10,-10),new ArenaAreaVertex(10,-10),new ArenaAreaVertex(10,10),new ArenaAreaVertex(-10,10)},-10,10);
+            ArenaAreaRuntime.CurrentArea=new ArenaAreaDefinition("test","test","factory4_day",bounds,-10,10,2);
+            var helper=Solid(18); var wall=Solid(18); ArenaAreaRuntime.Enclosure.Add(wall);
+            OverlapFixture(helper);
+            Check(ArenaTranslocatorGeometry.TryLaunch(p,out _),"bounded arena ignores foreign movement hull");
+            OverlapFixture(wall);
+            Check(!ArenaTranslocatorGeometry.TryLaunch(p,out _),"owned arena enclosure blocks launch");
+            Physics.Overlap=(_,_,_)=>0;
+            CastFixture(new(){collider=helper,distance=.02f,normal=new(-1,0,0)},new(){collider=wall,distance=.1f,normal=new(-1,0,0)});
+            var hit=ArenaTranslocatorGeometry.Sweep(N.Zero,N.UnitX,p);
+            Check(hit.Kind==Disc.TraceKind.Hit && Math.Abs(hit.Position.X-.1f)<.0001f,"owned enclosure remains nearest physical boundary");
+        }
     }
     static void RuntimeChecks()
     {

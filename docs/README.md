@@ -288,6 +288,7 @@ Dated records, newest month first, sorted by file name within a month. Check the
 ### 2026-11
 
 - [Selectable Translocator development verification](reports/2026-11/GPU-TRANSLOCATOR-20261115.md)
+- [Factory Translocator collision diagnosis and verification](reports/2026-11/GPU-TRANSLOCATOR-COLLISION-20261116.md)
 - [Jump reliability, slide transitions and sprint-jump hip fire: native validation](reports/2026-11/GPU-MOVEMENT-TRANSITIONS-20261115.md)
 
 - [Branch and worktree collection, 2026-11-13: two branches merged, eleven deleted, eleven worktrees archived and removed, checks on the merged master](reports/2026-11/WORKTREE-CLEANUP-20261113.md)

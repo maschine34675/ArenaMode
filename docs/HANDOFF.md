@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-15. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-16. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -11,6 +11,28 @@ earlier conversation or the agent's memory. The complete earlier handoff (5,917 
 numbering unchanged, only their links and document paths re-rooted for the new layout.
 
 ## Released and installed
+
+- **Development, 2026-11-16: Factory Translocator collision fix**, same
+  `codex/translocator-20261115` branch, based on `c37ee3e5`. Collision candidate A
+  supersedes the November 15 client E locally and on both GPU hosts: SHA256
+  `8710BCA3139FD87257B8F90CBF503B56CD73A02B37CE7F0D57FB1D5821D52F5E`,
+  MVID `e4980df0-1f25-40a9-99ab-e1cd483171db`, matching PDB. Server E and released
+  Core 1.0.24 remain unchanged. Native Factory evidence identified invisible 20 m
+  spawn spheres on Triggers13 with `isTrigger=false`; broad default queries saw
+  them as walls. Physical disc layers now exclude those helpers and movement
+  hulls while preserving real solids, map borders and the exact owned arena
+  enclosure. Destination capsule validation is unchanged. On host 2 the corrected
+  loaded candidate passed the same spawn/flight cases, real-wall refusal,
+  obstructed-target refusal retaining the disc, and a successful clear teleport.
+  All 53 automatically selected harness groups and full xunit passed (3,929
+  passed, three known skips); the verification-tool group's temporary worktree
+  setup failure passed on a full repeat. Whole-data audits preserve the original
+  configuration/PFT data and explicitly account for one pre-existing, signed
+  startup reward of 1,000 RUB plus 100 XP. No profile rollback was performed.
+  Both games/servers are closed; Syncthing is unpaused and converged on all three
+  installations, with the post-sync data audit passed.
+  No version bump or release. Identity, verification and restoration evidence:
+  [Factory collision report](reports/2026-11/GPU-TRANSLOCATOR-COLLISION-20261116.md).
 
 - **Development, 2026-11-15: selectable Translocator**,
   branch `codex/translocator-20261115`, based on `5be2fd3f`. No version bump or

@@ -7,6 +7,17 @@ $runtime = Join-Path $repo 'ArenaMode.Client/Combat/Translocator/ArenaTranslocat
 $disc = Join-Path $repo 'ArenaMode.Client/Combat/Translocator/ArenaTranslocatorDisc.cs'
 $geometry = Join-Path $repo 'ArenaMode.Client/Combat/Translocator/ArenaTranslocatorGeometry.cs'
 $faults = @(
+    @{Name='helper-overlap-mask';Path=$geometry;Property='GeometrySource';Find='Overlaps, CollisionMask, QueryTriggerInteraction.Ignore';Replace='Overlaps, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore';Failure='helper volume does not block launch'},
+    @{Name='helper-sweep-mask';Path=$geometry;Property='GeometrySource';Find='Hits, distance, CollisionMask, QueryTriggerInteraction.Ignore';Replace='Hits, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore';Failure='helper volume does not bounce flight'},
+    @{Name='whole-map-movement-hulls';Path=$geometry;Property='GeometrySource';Find='ArenaAreaRuntime.CurrentArea != null';Replace='true';Failure='whole-map query excludes helper broadphase'},
+    @{Name='foreign-movement-hull-solid';Path=$geometry;Property='GeometrySource';Find='!ArenaAreaRuntime.OwnsCollider(collider)';Replace='false';Failure='bounded arena ignores foreign movement hull'},
+    @{Name='owned-enclosure-omitted';Path=$geometry;Property='GeometrySource';Find='? (int)LayersMaskController.LowPolyColliderLayerMask : 0';Replace='? 0 : 0';Failure='owned arena enclosure blocks launch'},
+    @{Name='map-border-omitted';Path=$geometry;Property='GeometrySource';Find='| LayerMask.GetMask("LevelBorder")';Replace='';Failure='real solid overlap blocks launch'},
+    @{Name='default-solid-omitted';Path=$geometry;Property='GeometrySource';Find='(int)LayersMaskController.DefaultLayerMask';Replace='0';Failure='real solid overlap blocks launch'},
+    @{Name='loot-solid-omitted';Path=$geometry;Property='GeometrySource';Find='(int)LayersMaskController.LootLayerMask';Replace='0';Failure='real solid overlap blocks launch'},
+    @{Name='own-spirit-not-excluded';Path=$geometry;Property='GeometrySource';Find='ReferenceEquals(collider.GetComponentInParent<PlayerSpiritBase>()?._player, owner)';Replace='false';Failure='exact own body and sibling spirit do not block launch'},
+    @{Name='foreign-spirit-excluded';Path=$geometry;Property='GeometrySource';Find='ReferenceEquals(collider.GetComponentInParent<PlayerSpiritBase>()?._player, owner)';Replace='collider.GetComponentInParent<PlayerSpiritBase>() != null';Failure='foreign spirit body remains solid'},
+    @{Name='null-owner-world-excluded';Path=$geometry;Property='GeometrySource';Find='owner != null && (ReferenceEquals';Replace='(ReferenceEquals';Failure='missing owner cannot ignore anonymous world'},
     @{Name='impact-separation-skips-world';Path=$disc;Property='DiscSource';Find='var separation = sweep(separated, trace.Position);';Replace='var separation = new Trace(TraceKind.Clear, trace.Position);';Failure='impact separation cannot enter neighbouring wall'},
     @{Name='promotion-retires-disc';Path=$runtime;Property='RuntimeSource';Find='GunGameMode mode => mode.HasActiveLadder';Replace='GunGameMode mode => mode.AssistScoringOpen';Failure='promotion preload retains disc but blocks actions'},
     @{Name='unbounded-hitch';Path=$disc;Property='DiscSource';Find='internal const int MaxSteps = 12;';Replace='internal const int MaxSteps = 1200;';Failure='hitch work is bounded'},
