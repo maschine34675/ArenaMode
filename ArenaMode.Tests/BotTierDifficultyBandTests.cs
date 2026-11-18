@@ -51,8 +51,8 @@ public sealed partial class BotTierScalePatchTests
     [InlineData("domination", "reduced", 39)]
     [InlineData("tactical", "maximum", 65)]
     [InlineData("tactical", "reduced", 39)]
-    [InlineData("zombies", "maximum", 65)]
-    [InlineData("zombies", "reduced", 39)]
+    [InlineData("zombie", "maximum", 65)]
+    [InlineData("zombie", "reduced", 39)]
     public void EveryModeButGunGameHoldsTheStepsGearLevelFromTheFirstRequestOnward(string mode, string? step, int level)
     {
         var (sessions, id) = StartBand(mode, step);
@@ -131,5 +131,32 @@ public sealed partial class BotTierScalePatchTests
         Assert.NotNull(identity);
         Assert.Equal("gungame", mode);
         Assert.Equal(ArenaDifficultyStep.Reduced, step);
+    }
+
+    /// <summary>
+    /// Pins what the contract's item 2 rests on. The band binds to the exact live session, and
+    /// the client sends no bot request of an armed raid before /client/match/local/start has
+    /// moved it to InRaid (ArenaSessionService.TryGetBotTierContext explains the order). If that
+    /// order is ever wrong, an armed-but-not-live session keeps the NATIVE levels rather than a
+    /// guess; the first native GPU raid confirms the order (docs/HANDOFF.md, difficulty model).
+    /// </summary>
+    [Theory]
+    [InlineData("deathmatch")]
+    [InlineData("tactical")]
+    [InlineData("gungame")]
+    public void AnArmedSessionThatIsNotYetInRaidKeepsTheNativeLevels(string mode)
+    {
+        ArenaContext.Config.Maps[BandMap].ScaleBotTier = true;
+        var id = new MongoId(ArenaSession);
+        var sessions = new ArenaSessionService(TestLogger.Create<ArenaSessionService>());
+        sessions.Arm(id, BandMap, mode, deathmatchHostility: mode == "deathmatch" ? "ffa" : null, difficulty: "maximum");
+        ArenaContext.Sessions = sessions;
+
+        Assert.False(sessions.TryGetBotTierContext(id, BandMap, out _, out _, out _, out _, out _));
+        var details = Details(BandMap, 47, 33, 61);
+        ArenaBotTierScalePatch.Prefix(id, details);
+        Assert.Equal(47, details.PlayerLevel);
+        Assert.Equal(33, details.LocationSpecificPmcLevelOverride!.Min);
+        Assert.Equal(61, details.LocationSpecificPmcLevelOverride.Max);
     }
 }

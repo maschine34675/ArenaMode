@@ -945,8 +945,10 @@ internal static class CorpseCleanupService
 
             // And it should stop carrying a wardrobe. This is the part that grew
             // worst: every piece of gear on a corpse is an instantiated model,
-            // and the bot gear ramp means late-raid bodies wear far more of them
-            // than early ones. Taking the gear off hands each model back to the
+            // and in Gun Game (the one mode whose bot gear still ramps) late-raid
+            // bodies wear far more of them than early ones; elsewhere the band is
+            // fixed, so the cost is the same all raid long. Taking the gear off
+            // hands each model back to the
             // pool it came from, where a living bot can use it again. The
             // player's own corpse keeps the slots the next body is built from
             // (see StripGear).
@@ -1618,9 +1620,10 @@ internal static class CorpseCleanupService
     /// Takes the gear off a corpse nobody can see any more.
     ///
     /// The models are the growth term. A body wears a helmet, armour, a rig, a
-    /// backpack and a weapon, each an instantiated prefab, and the bot gear
-    /// ramp means a body from minute twenty carries considerably more of them
-    /// than one from minute two. Removing an item makes the body's own slot
+    /// backpack and a weapon, each an instantiated prefab. In Gun Game the bot
+    /// gear ramp means a body from minute twenty carries considerably more of
+    /// them than one from minute two; in every other mode the gear band is fixed
+    /// from the first bot. Removing an item makes the body's own slot
     /// view destroy the model and hand the prefab back to its pool — so this
     /// does not merely hide the cost, it returns something living bots can use.
     ///

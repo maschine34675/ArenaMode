@@ -13,7 +13,7 @@ namespace ArenaMode.Tests;
 /// </summary>
 public sealed partial class BotTierScalePatchTests
 {
-    private static string StartTimedArena(string mode="teamdeathmatch",bool pft=false,string? difficulty=null)
+    private static string StartIndependentTeamArena(string mode="teamdeathmatch",bool pft=false,string? difficulty=null)
     {
         var sessions=new ArenaSessionService(TestLogger.Create<ArenaSessionService>());
         var id=new MongoId(ArenaSession);
@@ -34,7 +34,7 @@ public sealed partial class BotTierScalePatchTests
     [InlineData("domination","reduced",0,39)] [InlineData("domination","reduced",14,39)]
     public void ARequestWithoutAnyClockGetsTheFixedBandAndKeepsTheBatch(string mode,string step,int minutes,int level)
     {
-        StartTimedArena(mode,difficulty:step);
+        StartIndependentTeamArena(mode,difficulty:step);
         if(minutes>0) SetElapsed(ArenaContext.Sessions!,new MongoId(ArenaSession),TimeSpan.FromMinutes(minutes));
         var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details);
@@ -50,7 +50,7 @@ public sealed partial class BotTierScalePatchTests
     [InlineData("otherSession")] [InlineData("wrongMap")] [InlineData("oldRaid")] [InlineData("pft")]
     public void ForeignOrProtectedRequestsStayNative(string cause)
     {
-        StartTimedArena(cause=="pft"?"tactical":"teamdeathmatch",cause=="pft");
+        StartIndependentTeamArena(cause=="pft"?"tactical":"teamdeathmatch",cause=="pft");
         if(cause=="oldRaid") MakeRaidStale(ArenaContext.Sessions!,new MongoId(ArenaSession));
         var details=Details(cause=="wrongMap"?"laboratory":"factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(cause=="otherSession"?OrdinarySession:ArenaSession),details);
@@ -66,7 +66,7 @@ public sealed partial class BotTierScalePatchTests
     {
         // The patch only writes the level band; it never touches the batch size. The scav modes
         // draw from this reserve during the raid and Tactical keeps its pool as well.
-        StartTimedArena(mode);
+        StartIndependentTeamArena(mode);
         var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=45;
         ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details);
         Assert.Equal(45,details.BotCountToGenerate);
@@ -75,14 +75,19 @@ public sealed partial class BotTierScalePatchTests
     [Fact]
     public void GearOptOutPreservesNativeLevelsAndTheBatch()
     {
-        StartTimedArena(); ArenaContext.Config.Maps["factory4_day"].ScaleBotTier=false;
+        StartIndependentTeamArena(); ArenaContext.Config.Maps["factory4_day"].ScaleBotTier=false;
         var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details);
         Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(15,details.BotCountToGenerate);
     }
 
-    /// <summary>The removed wire key leaves no trace in the shared sources of either half.</summary>
+    /// <summary>
+    /// The clock type is gone and the patch takes only the session and the generation details,
+    /// never the GenerateCondition that carried the old `arenaMatchClock` key. So a stale key
+    /// of an older client cannot reach the band: by construction (the signature), which is all
+    /// this test asserts; it does not feed such a key through the patch.
+    /// </summary>
     [Fact]
     public void TheMatchClockChannelIsGoneFromTheSources()
     {

@@ -1262,7 +1262,7 @@ internal static class BurstSpawnService
                 continue;
 
             // PitFireTeam followers occupy BotOwner slots but are the local
-            // player's four teammates. Counting them toward Arena pressure
+            // player's four teammates. Counting them toward the Arena bot population
             // would silently reduce the five requested opponents to one.
             if (Compat.PitFireTeamCompat.IsTeamMember(bot))
                 continue;

@@ -23,8 +23,7 @@ namespace EFT
     public class AbstractGame { public GameStatus Status = GameStatus.Started; }
     public class LocalGame : AbstractGame, IBotGame { public Player LocalPlayer; public BotsController BotsController { get; set; } = new(); }
     public class BotsController { public BotSpawner BotSpawner = new(); }
-    public class BotSpawner { public BotCreatorClient _botCreator; }
-    public class ClientBackendSession { public void LoadBots(List<CountTypeBotWave> conditions) { } }
+    public class BotSpawner { }
     public class GameWorld
     {
         public string LocationId;
@@ -43,36 +42,11 @@ namespace EFT
     public class BotOwner { public Player GetPlayer; public EBotState BotState = EBotState.Active; public bool IsDead; }
     public class DamageInfo { public EDamageType DamageType; public DamagePlayer Player; }
     public class DamagePlayer { public Player iPlayer; }
-    public class CountTypeBotWave
-    {
-        public WildSpawnType Role; public int Limit; public BotDifficulty Difficulty;
-        public CountTypeBotWave(int count, WildSpawnType role, BotDifficulty difficulty) { Limit=count; Role=role; Difficulty=difficulty; }
-    }
     public class Profile { public Info Info = new(); }
     public class Info { public ProfileSettings Settings = new(); }
     public class ProfileSettings { public WildSpawnType Role; public BotDifficulty BotDifficulty; }
 }
 public interface IBotGame { EFT.BotsController BotsController { get; } }
-public class BotCreatorClient { public IBotGame _game; public BotProfileClient _creatorProfile; }
-public class BotProfileClient
-{
-    public EFT.ClientBackendSession _backEndSession = new();
-    public BotProfileBackuploader _backupLoader;
-    public List<EFT.Profile> _simpleProfiles = new();
-    public void CreateProfile(BotCreationData data, CancellationToken cancellationToken, bool withDelete) { }
-}
-public class BotProfileBackuploader
-{
-    public BotProfileClient _profileCreator;
-    public void AddProfileForBackup(BotCreationData data) { }
-}
-public class BotCreationData { public bool SpawnStopped; public ProfileData _profileData = new(); public BotCreatorClient _botCreator; }
-public class ProfileData
-{
-    public EFT.WildSpawnType Role = EFT.WildSpawnType.pmcUSEC; public EFT.BotDifficulty Difficulty = EFT.BotDifficulty.hard;
-    public bool Valid = true;
-    public bool TryGetRole(out EFT.WildSpawnType role, out EFT.BotDifficulty difficulty) { role=Role; difficulty=Difficulty; return Valid; }
-}
 namespace EFT.HealthSystem
 {
     public class ActiveHealthController { public EFT.Player Player; public bool IsAlive=true; public float DamageCoeff=1; }
@@ -103,7 +77,6 @@ namespace ArenaMode.Session
         public static string ActiveMode, ArmedMap;
         public static bool IsExactActiveRaid(object game, object world) => IsActive && game!=null && world!=null && ReferenceEquals(Game,game) && ReferenceEquals(World,world);
     }
-    public static class ArenaServerClient { public static string ActiveArmToken="arm-current"; }
     // The per-map ramp length the server config carries; 0 or less means absent (the reader falls back).
     public static class ArenaClientConfig { public static int RampMinutes=15; public static int GetBotTierRampMinutes(string map, int fallback=15) => RampMinutes>0 ? RampMinutes : fallback; }
 }
@@ -136,19 +109,11 @@ namespace ArenaMode.Combat
     public static class TeamSpawnProtectionHooks { public static void Attacked(EFT.Player attacker) { } }
 }
 namespace ArenaMode { public static class Plugin { public static Log ModLogger = new(); } public class Log { public void LogWarning(object text) => Console.WriteLine(text); } }
-namespace HarmonyLib
-{
-    public static class AccessTools { public static MethodInfo Method(Type type, string name, Type[] args) => type.GetMethod(name, args); }
-}
 namespace SPT.Reflection.Patching
 {
     public abstract class ModulePatch
     {
-        public static int EnableCalls, FailEnableAt;
-        public static bool FailDisable;
         protected abstract MethodBase GetTargetMethod();
-        public void Enable() { if(++EnableCalls==FailEnableAt || GetTargetMethod()==null) throw new Exception("hook missing"); }
-        public void Disable() { if(FailDisable) throw new Exception("rollback unavailable"); }
     }
     [AttributeUsage(AttributeTargets.Method)] public class PatchPrefixAttribute:Attribute { }
     [AttributeUsage(AttributeTargets.Method)] public class PatchPostfixAttribute:Attribute { }

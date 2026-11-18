@@ -177,6 +177,28 @@ try
         Need(Settings.TeamDeathmatchArea.Value==ArenaAreaCatalog.FullMapId,"RETIRED-RELOAD","Live Reload also clamps an obsolete saved ID.");
     }
 
+    // The difficulty migration against the REAL BepInEx ConfigFile: the retired [Difficulty] lines are
+    // read from the file after ~100 Binds, so every Bind that saves (SaveOnConfigSet true, the BepInEx
+    // default) must keep the unbound lines (ConfigFile.Save writes OrphanedEntries). A legacy file selects
+    // Reduced once, changes no other value, and a second start neither repeats nor loses the choice.
+    int legacyIndex=0;
+    foreach (bool saveOnSet in new[]{true,false})
+    foreach (var legacy in new[]{("ScaleDifficulty = false\nMaxBotDifficulty = impossible",true),("MaxBotDifficulty = hard",true),
+        ("ScaleDifficulty = true\nMaxBotDifficulty = impossible",false),("PressureRampMinutes = 5",false)})
+    {
+        var legacyPath=Path.Combine(scratch,"legacy-"+(legacyIndex++)+".cfg");
+        File.WriteAllText(legacyPath,"[Difficulty]\n"+legacy.Item1+"\n\n[General]\nRespawnMinDistance = 77\n");
+        Settings.Init(new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet});
+        var expectedStep=legacy.Item2?ArenaDifficultyStep.Reduced:ArenaDifficultyStep.Maximum;
+        Need(Settings.DifficultyStep.Value==expectedStep,"DIFFICULTY-MIGRATION","Legacy difficulty lines select the step through a real ConfigFile (saveOnSet="+saveOnSet+"): "+legacy.Item1);
+        Need(Settings.RespawnMinDistance.Value==77,"DIFFICULTY-MIGRATION-OTHER","The migration changes no other saved value.");
+        var again=new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet};
+        Settings.Init(again);
+        Need(Settings.DifficultyStep.Value==expectedStep,"DIFFICULTY-MIGRATION-ONCE","A second start keeps the migrated step.");
+        again.Save();
+        Settings.Init(new ConfigFile(legacyPath,false){SaveOnConfigSet=saveOnSet});
+        Need(Settings.DifficultyStep.Value==expectedStep,"DIFFICULTY-MIGRATION-SAVED","The step survives a save and another start.");
+    }
     // Actual Settings.Init against real persisted BepInEx entries, including
     // the boolean written by the already deployed Equator release.
     foreach (var migration in new[]

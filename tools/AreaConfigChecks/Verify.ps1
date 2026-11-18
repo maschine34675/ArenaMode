@@ -21,6 +21,17 @@ try {
     & dotnet $areaConfigBaseline
     if ($LASTEXITCODE -ne 0) { throw 'Production config checks failed.' }
 
+    # Mutant: a migration that never runs must fail the real-ConfigFile legacy-difficulty cases.
+    $areaConfigMigrationSource = (Get-Content -LiteralPath $areaConfigSettingsPath -Raw).Replace("`r`n","`n")
+    $areaConfigMigrationFind = 'if (difficultyRevision.Value < ArenaDifficultyMigration.Revision)'
+    if ($areaConfigMigrationSource.Split([string[]]@($areaConfigMigrationFind),[StringSplitOptions]::None).Count -ne 2) { throw 'Migration mutant anchor missing or ambiguous.' }
+    $areaConfigMigrationPath = Join-Path $areaConfigRun 'Settings-no-migration.cs'
+    [IO.File]::WriteAllText($areaConfigMigrationPath,$areaConfigMigrationSource.Replace($areaConfigMigrationFind,'if (false)'))
+    $areaConfigNoMigration = Build-AreaConfigHarness 'mutant-no-migration' $areaConfigMigrationPath
+    $areaConfigMutantOutput = & dotnet $areaConfigNoMigration 2>&1
+    if ($LASTEXITCODE -eq 0 -or ($areaConfigMutantOutput -join "`n") -notmatch 'AREA CONFIG REJECTED: DIFFICULTY-MIGRATION:') { throw 'Migration mutant was not rejected by the legacy-difficulty cases.' }
+    Write-Output 'Mutant rejected: difficulty migration never runs [DIFFICULTY-MIGRATION]'
+
     # Compile the complete actual historical source, not a hand-built imitation
     # of its missing entries. The failed GPU report names this repository commit.
     $areaConfigHistoricalRevision = '588090fe2c7cf6f391ee02e720d57a8bf62cfa43'

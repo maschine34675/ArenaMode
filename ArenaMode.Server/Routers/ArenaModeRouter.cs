@@ -486,6 +486,10 @@ public sealed class ArenaModeRouter : StaticRouter
         if (!ArenaDifficultyPolicy.TryParse(request.Difficulty, out var difficultyStep))
             return Json(new { armed = false, reason = "Unknown difficulty step" });
         string difficulty = ArenaDifficultyPolicy.ToWire(difficultyStep);
+        // A client from before the difficulty model sends no field. It keeps working at
+        // Maximum, but its saved step is not honoured, so say so where a bug report looks.
+        if (string.IsNullOrEmpty(request.Difficulty))
+            ArenaContext.Logger?.Debug("[ArenaMode] Raid start without a difficulty field (older client): using maximum.");
 
         // Resolve before snapshot recovery/preparation, and before replay: an
         // unknown or mismatched area must never silently become a full-map raid.
