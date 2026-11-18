@@ -103,6 +103,55 @@ public sealed partial class ArenaAreaServerTests
         Assert.Equal(ArenaDifficultyStep.Maximum, Sessions.GetDifficulty(Session));
     }
 
+    // GetDifficulty masks the stored field behind Idle/ArmToken, so these read the raw field:
+    // TryGetBotTierContext reads it directly and a deleted reset line would otherwise go unseen.
+    private ArenaDifficultyStep RawDifficulty()
+    {
+        var store = (System.Collections.IDictionary)typeof(ArenaSessionService).GetField(
+            "_sessions", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(Sessions)!;
+        var entry = store[Session.ToString()]!;
+        return (ArenaDifficultyStep)entry.GetType().GetField("Difficulty")!.GetValue(entry)!;
+    }
+
+    [Theory]
+    [InlineData("idle")]
+    [InlineData("cancel")]
+    [InlineData("failed-start")]
+    [InlineData("native-end")]
+    public void EveryReleaseResetsTheStoredDifficultyField(string path)
+    {
+        if (path == "cancel")
+        {
+            Assert.True(Sessions.BeginArmPreparation(Session, Map, "gungame", false, Token,
+                participants: 4, difficulty: "reduced"));
+            Assert.Equal(ArenaDifficultyStep.Reduced, RawDifficulty());
+            Sessions.CancelArmPreparation(Session);
+        }
+        else
+        {
+            Sessions.Arm(Session, Map, "gungame", armToken: Token, participants: 4, difficulty: "reduced");
+            Assert.Equal(ArenaDifficultyStep.Reduced, RawDifficulty());
+            if (path == "idle")
+                Sessions.MarkIdle(Session);
+            else
+            {
+                string end = Start();
+                Assert.Equal(ArenaDifficultyStep.Reduced, RawDifficulty());
+                if (path == "failed-start")
+                {
+                    Assert.True(Sessions.TryBeginFailedStartRecovery(Session, Token));
+                    Sessions.BeginPostRaidFinalization(Session);
+                }
+                else
+                {
+                    Assert.True(Sessions.BeginNativeEndFinalization(Session, end));
+                    Assert.True(Sessions.CompleteNativeEndFinalization(Session, end));
+                }
+            }
+        }
+        Assert.Equal(ArenaDifficultyStep.Maximum, RawDifficulty());
+    }
+
     [Fact]
     public void DifficultyFieldDeserializesOptionalAndRefusesNonStrings()
     {

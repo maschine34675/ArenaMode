@@ -110,6 +110,27 @@ public sealed class ArenaDifficultyPolicyTests
             Assert.Equal(1d, ArenaDifficultyPolicy.Progress(mode, elapsed, 15));
     }
 
+    [Theory]
+    [InlineData(ArenaDifficultyStep.Maximum)]
+    [InlineData(ArenaDifficultyStep.Reduced)]
+    public void NaNProgressIsTheOpeningRowForEveryLever(ArenaDifficultyStep step)
+    {
+        Assert.Equal(ArenaBotLevel.Hard, ArenaDifficultyPolicy.PmcLevelAt(step, double.NaN));
+        Assert.Equal(ArenaBotLevel.Normal, ArenaDifficultyPolicy.ScavLevelAt(step, double.NaN));
+        Assert.Equal(0, ArenaDifficultyPolicy.PmcBonusAt(step, double.NaN));
+        Assert.Equal(1, ArenaDifficultyPolicy.GearLevelAt(step, 1, 66, double.NaN));
+    }
+
+    [Fact]
+    public void ReducedGearTakesSixtyPercentOfTheClampedEndLevel()
+    {
+        Assert.Equal(47, ArenaDifficultyPolicy.GearLevel(ArenaDifficultyStep.Reduced, 1, 100));
+        Assert.Equal(79, ArenaDifficultyPolicy.GearLevel(ArenaDifficultyStep.Maximum, 1, 100));
+        // The floor is the map's start level, not a fixed 40.
+        Assert.Equal(30, ArenaDifficultyPolicy.GearLevel(ArenaDifficultyStep.Reduced, 1, 50));
+        Assert.Equal(45, ArenaDifficultyPolicy.GearLevel(ArenaDifficultyStep.Reduced, 45, 50));
+    }
+
     [Fact]
     public void GunGameProgressIsElapsedOverRampMinutesClamped()
     {

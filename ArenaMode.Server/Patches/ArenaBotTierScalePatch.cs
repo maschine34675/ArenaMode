@@ -117,7 +117,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
                 // request with a broken clock gets the same fixed band as one without.
                 ArenaDifficultyClock? clock = null;
                 try { clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null; }
-                catch (JsonException) { /* a malformed clock is no clock: the band below still applies */ }
+                catch (Exception) { /* any unreadable clock is no clock: the band below still applies */ }
                 if (clock?.IsValid() == true
                     && __1.Limit > 0 && botGenerationDetails.BotCountToGenerate > 0
                     && sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)

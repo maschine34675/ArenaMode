@@ -114,6 +114,8 @@ public static class ArenaDifficultyPolicy
     /// <summary>
     /// The step's gear level of a map: Maximum is the map's end level, Reduced 60 % of it,
     /// never below the start level; both clamped to [1, 79] like the server does today.
+    /// The end level is clamped to 79 first and the 60 % taken of that clamped value, so an
+    /// absurd config (end 100) gives round(0.6 x 79), the safe order for the bot tier table.
     /// </summary>
     public static int GearLevel(ArenaDifficultyStep step, int startLevel, int endLevel)
     {
@@ -154,11 +156,11 @@ public static class ArenaDifficultyPolicy
 
     /// <summary>Gun Game: hard below progress 0.8, then the step's PMC level.</summary>
     public static ArenaBotLevel PmcLevelAt(ArenaDifficultyStep step, double progress)
-        => progress < GunGamePmcStepProgress ? GunGamePmcOpening : PmcLevel(step);
+        => double.IsNaN(progress) || progress < GunGamePmcStepProgress ? GunGamePmcOpening : PmcLevel(step);
 
     /// <summary>Gun Game: normal below progress 0.5, then the step's scav level.</summary>
     public static ArenaBotLevel ScavLevelAt(ArenaDifficultyStep step, double progress)
-        => progress < GunGameScavStepProgress ? GunGameScavOpening : ScavLevel(step);
+        => double.IsNaN(progress) || progress < GunGameScavStepProgress ? GunGameScavOpening : ScavLevel(step);
 
     /// <summary>Gun Game: round(progress x the step's bonus).</summary>
     public static int PmcBonusAt(ArenaDifficultyStep step, double progress)

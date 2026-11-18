@@ -54,13 +54,14 @@ public sealed partial class BotTierScalePatchTests
     [InlineData("otherSession",true)] [InlineData("wrongMap",true)] [InlineData("oldRaid",true)] [InlineData("pft",true)]
     [InlineData("token",false)] [InlineData("version",false)] [InlineData("duration0",false)] [InlineData("durationLarge",false)]
     [InlineData("negativeTime",false)] [InlineData("lateTime",false)] [InlineData("zeroBatch",false)] [InlineData("negativeBatch",false)]
-    [InlineData("solo",false)] [InlineData("malformed",false)]
+    [InlineData("solo",false)] [InlineData("malformed",false)] [InlineData("wrongTypes",false)]
     public void InvalidOrForeignClockNeverShrinksTheReserveAndForeignRequestsStayNative(string cause, bool nativeDetails)
     {
         var token=StartTimedArena(cause is "solo" or "pft"?"tactical":"teamdeathmatch",cause=="pft");
         var condition=Condition(cause=="token"?"old-arm":token,cause=="duration0"?0:cause=="durationLarge"?7201:300,
             cause=="negativeTime"?-1:cause=="lateTime"?301:120,cause=="zeroBatch"?0:cause=="negativeBatch"?-1:1,cause=="version"?0:1);
         if(cause=="malformed") condition.ExtensionData![ArenaDifficultyClock.WireKey]=JsonSerializer.SerializeToElement("invalid");
+        if(cause=="wrongTypes") condition.ExtensionData![ArenaDifficultyClock.WireKey]=JsonSerializer.SerializeToElement(new Dictionary<string,object>{["ArmToken"]=5,["TimeLimitSeconds"]="x"});
         if(cause=="oldRaid") MakeRaidStale(ArenaContext.Sessions!,new MongoId(ArenaSession));
         var details=Details(cause=="wrongMap"?"laboratory":"factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(cause=="otherSession"?OrdinarySession:ArenaSession),details,condition);
