@@ -121,22 +121,22 @@
                             <MudItem xs="12" Class="mt-4"><MudText Typo="Typo.subtitle2">Gear ramp</MudText><MudDivider /></MudItem>
                             <MudItem xs="12">
                                 <MudSwitch T="bool" @bind-Value="map.ScaleBotTier" Color="Color.Primary"
-                                           Label="Let bot gear climb over the raid" />
+                                           Label="Scale bot gear to the difficulty step" />
                                 <MudText Typo="Typo.caption">
-                                    Off: the bots stay in whichever tier your profile level happens to sit in, for the whole raid.
+                                    Off: the bots stay in whichever tier your profile level happens to sit in, for the whole raid. On: every mode except Gun Game holds the End level (Maximum) or 60 % of it (Reduced) from the first bot; Gun Game climbs from the Start level over the ramp length.
                                 </MudText>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudNumericField T="int" Label="Start level" @bind-Value="map.BotTierStartLevel"
+                                <MudNumericField T="int" Label="Start level (Gun Game only)" @bind-Value="map.BotTierStartLevel"
                                                  Min="1" Max="79" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)" />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudNumericField T="int" Label="End level" @bind-Value="map.BotTierEndLevel"
+                                <MudNumericField T="int" Label="Maximum gear level" @bind-Value="map.BotTierEndLevel"
                                                  Min="1" Max="79" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)"
-                                                 HelperText="The band spreads five levels either side, so aim at the MIDDLE of the tier you want. 66 sits entirely inside the top tier; above 79 is clamped." />
+                                                 HelperText="The gear level at the Maximum step, held from the first bot in every mode but Gun Game, where it is where the ramp ends. Reduced uses 60 % of it, never below the start level. The band spreads five levels either side, so aim at the MIDDLE of the tier you want. 66 sits entirely inside the top tier; above 79 is clamped." />
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <MudNumericField T="int" Label="Ramp length (minutes)" @bind-Value="map.BotTierRampMinutes"
+                                <MudNumericField T="int" Label="Ramp length, minutes (Gun Game only)" @bind-Value="map.BotTierRampMinutes"
                                                  Min="1" Max="120" Variant="Variant.Outlined" Disabled="@(!map.ScaleBotTier)" />
                             </MudItem>
 

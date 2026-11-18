@@ -33,6 +33,7 @@
     <Compile Include="..\ArenaMode.Shared\TarkovaColaPolicy.cs" Link="Shared\TarkovaColaPolicy.cs" />
     <Compile Include="..\ArenaMode.Shared\TarkovaColaResearchCatalog.cs" Link="Shared\TarkovaColaResearchCatalog.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaDifficultyClock.cs" Link="Shared\ArenaDifficultyClock.cs" />
+    <Compile Include="..\ArenaMode.Shared\ArenaDifficultyPolicy.cs" Link="Shared\ArenaDifficultyPolicy.cs" />
     <Compile Include="..\ArenaMode.Shared\ClientSettingsModels.cs" Link="Shared\ClientSettingsModels.cs" />
     <Compile Include="..\ArenaMode.Shared\ArenaBotSpawnPolicy.cs" Link="Shared\ArenaBotSpawnPolicy.cs" />
     <Compile Include="..\ArenaMode.Shared\KitPriceRule.cs" Link="Shared\KitPriceRule.cs" />

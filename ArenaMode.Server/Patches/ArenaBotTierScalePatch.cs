@@ -30,11 +30,12 @@ namespace ArenaMode.Server.Patches;
 /// shared config that feeds it: nothing outside this raid can see it, so the
 /// mod's "normal raids are untouched" property holds without a snapshot to
 /// restore or a failure mode where a crash leaves the setting behind. Protected
-/// team Arena leaves SPT's real player-relative values alone; the solo modes keep
-/// this progression curve.
+/// team Arena leaves SPT's real player-relative values alone.
 ///
-/// Finite TDM transports its frozen live-match clock in the existing native
-/// demand request. Other modes/older clients retain the server raid-time ramp.
+/// Only Gun Game ramps (start level to the difficulty step's gear level over the map's
+/// ramp minutes, on the server's wall clock since the raid went live); every other mode
+/// holds the step's gear level from the first request. The finite-match clock of Team
+/// Deathmatch and Domination no longer decides a level; it only still sizes the request.
 /// APBS 2.4.1 instead reads its global raid level; the optional range adapter
 /// carries this request's explicit Arena bounds through SPT's per-bot clone.
 /// </summary>
@@ -52,22 +53,6 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
     /// again.
     /// </summary>
     private const int Spread = 5;
-
-    /// <summary>
-    /// The highest level this may ever claim, and it is a hard safety bound
-    /// rather than a taste.
-    ///
-    /// The ramp writes a level the bot system then looks up in its tier table,
-    /// and that lookup throws rather than shrugging when no row matches — inside
-    /// their code, well outside this patch's own guard. A config value past the
-    /// end of that table would therefore not degrade the ramp, it would kill
-    /// every bot in the raid and leave an empty arena with nothing in the log to
-    /// explain it. The experience table runs out first, at 79, and past roughly
-    /// 84 the range quietly collapses back onto a single level — the exact fault
-    /// this class was last fixed for. So 79 it is, and the config is clamped to
-    /// it instead of being trusted.
-    /// </summary>
-    private const int MaxUsableLevel = 79;
 
     protected override MethodBase GetTargetMethod()
     {
@@ -104,7 +89,9 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
                     location,
                     out var elapsed,
                     out var protectedTeam,
-                    out var identity))
+                    out var identity,
+                    out var mode,
+                    out var step))
             {
                 return;
             }
@@ -112,7 +99,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
             // SPT built these details from the live PMC profile and its normal
             // per-map range. PFT teammates retain real raid equipment, so the
             // opposing team must use that same native context instead of the
-            // solo/Gun Game progression that starts at level one.
+            // Arena band that starts at level one in Gun Game.
             if (protectedTeam)
                 return;
 
@@ -121,40 +108,34 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
                 return;
             }
 
-            var rampMinutes = Math.Max(1, map.BotTierRampMinutes);
-            int duration = 0;
             if (__1?.ExtensionData?.TryGetValue(ArenaDifficultyClock.WireKey, out var wireClock) == true)
             {
-                // The native serializer preserves this condition through Task.Run.
-                // Bind its clock to the exact current session/map/arm, never to a
-                // map-wide or ambient last-received time. Old clients keep the ramp above.
+                // Request SIZE only. The finite-match clock no longer decides any
+                // level (stage 3 removes the channel on both sides). It is still
+                // bound to the exact session/map/arm so a foreign or stale request
+                // keeps its native size; the band below applies either way, so a
+                // request with a broken clock gets the same fixed band as one without.
                 var clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null;
-                if (clock?.IsValid() != true
-                    || __1.Limit <= 0 || botGenerationDetails.BotCountToGenerate <= 0
-                    || !sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)
-                    || !string.Equals(token, clock.ArmToken, StringComparison.Ordinal)) return;
-                duration = clock.TimeLimitSeconds;
-                elapsed = TimeSpan.FromSeconds(clock.PlayingElapsedSeconds);
-                // Do not fill a 15-profile reserve with early-match gear. This
-                // changes only the current finite TDM request, never SPT config.
-                //
-                // It stays scoped to this branch on purpose. Widening it to every
-                // arena request would also shrink the raid-start pool the three
-                // scav modes draw from, and their misses are paid on the SPAWN
-                // path mid-raid rather than in a loading screen. The saving is
-                // real and the risk is unmeasured; measuring it needs a long
-                // Endless or Gun Game raid past the twenty-minute mark, which is
-                // the one performance question this project already has open.
-                botGenerationDetails.BotCountToGenerate = Math.Min(botGenerationDetails.BotCountToGenerate, __1.Limit);
+                if (clock?.IsValid() == true
+                    && __1.Limit > 0 && botGenerationDetails.BotCountToGenerate > 0
+                    && sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)
+                    && string.Equals(token, clock.ArmToken, StringComparison.Ordinal))
+                {
+                    // Do not fill a 15-profile reserve with a request that wants one
+                    // profile. This changes only the current finite TDM request, never
+                    // SPT config.
+                    botGenerationDetails.BotCountToGenerate = Math.Min(botGenerationDetails.BotCountToGenerate, __1.Limit);
+                }
             }
             // The one-profile demand remains bounded even when the user opts
             // out of gear progression; the native level/range then stay intact.
             if (!map.ScaleBotTier) return;
-            var progress = ArenaDifficultyClock.Progress(elapsed.TotalSeconds, duration, rampMinutes * 60d);
 
-            var start = Math.Clamp(map.BotTierStartLevel, 1, MaxUsableLevel);
-            var end = Math.Clamp(map.BotTierEndLevel, start, MaxUsableLevel);
-            var here = (int)Math.Round(start + (end - start) * progress);
+            // Gun Game ramps from the start level to the step's gear level over the
+            // map's ramp minutes on the server wall clock; every other mode holds
+            // the step's gear level from the first request, whatever the time.
+            var progress = ArenaDifficultyPolicy.Progress(mode, elapsed.TotalSeconds, map.BotTierRampMinutes);
+            var here = ArenaDifficultyPolicy.GearLevelAt(step, map.BotTierStartLevel, map.BotTierEndLevel, progress);
 
             // Native SPT/older APBS use both the anchor and the clamp. The
             // optional APBS 2.4.1 adapter restores these explicit Arena bounds
@@ -166,7 +147,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
             if (identity != null)
                 ArenaBotTierOwnership.MarkWave(botGenerationDetails, sessions, identity);
 
-            Report(location!, elapsed, here, duration, progress);
+            Report(location!, mode, step, elapsed, here, progress);
         }
         catch (Exception ex)
         {
@@ -186,16 +167,16 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
     /// feature after a playtest was what levels it had actually handed out, and
     /// the log had nothing to say.
     /// </summary>
-    private static void Report(string location, TimeSpan elapsed, int level, int duration, double progress)
+    private static void Report(string location, string? mode, ArenaDifficultyStep step, TimeSpan elapsed, int level, double progress)
     {
         if (level == _lastReported)
             return;
 
         _lastReported = level;
         ArenaContext.Logger?.Debug(
-            $"[ArenaMode] Bot tier ramp on {location}: {elapsed.TotalMinutes:0} min in, "
+            $"[ArenaMode] Bot gear band on {location}: {elapsed.TotalMinutes:0} min in, "
             + $"bots now level {Math.Max(1, level - Spread)}-{level + Spread}; "
-            + $"clock={(duration > 0 ? "match" : "legacy")}, duration={duration}s, progress={progress:P0}.");
+            + $"mode={mode}, step={ArenaDifficultyPolicy.ToWire(step)}, progress={progress:P0}.");
     }
 
     /// <summary>A new raid starts the ramp over, so it should report from the bottom again.</summary>
