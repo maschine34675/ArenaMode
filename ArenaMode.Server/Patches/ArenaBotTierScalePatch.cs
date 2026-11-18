@@ -115,7 +115,9 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
                 // bound to the exact session/map/arm so a foreign or stale request
                 // keeps its native size; the band below applies either way, so a
                 // request with a broken clock gets the same fixed band as one without.
-                var clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null;
+                ArenaDifficultyClock? clock = null;
+                try { clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null; }
+                catch (JsonException) { /* a malformed clock is no clock: the band below still applies */ }
                 if (clock?.IsValid() == true
                     && __1.Limit > 0 && botGenerationDetails.BotCountToGenerate > 0
                     && sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)

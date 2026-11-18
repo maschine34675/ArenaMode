@@ -111,7 +111,8 @@ public sealed partial class BotTierScalePatchTests
                 var bots = host.Generate(new(ArenaSession), wave, Condition(token, 300, elapsed));
                 Assert.Single(bots);
                 var sample = Assert.Single(host.Samples);
-                int anchor = elapsed == 0 ? 1 : elapsed == 120 ? 33 : 65;
+                // The wire clock no longer moves the band: the Maximum gear level from the first request.
+                int anchor = 65;
                 Assert.NotSame(wave, sample.Details);
                 Assert.Equal(Math.Max(1, anchor - 5), sample.Min);
                 Assert.Equal(anchor + 5, sample.Max);

@@ -10,11 +10,11 @@ namespace ArenaMode.Tests;
 
 public sealed partial class BotTierScalePatchTests
 {
-    private static string StartTimedArena(string mode="teamdeathmatch",bool pft=false)
+    private static string StartTimedArena(string mode="teamdeathmatch",bool pft=false,string? difficulty=null)
     {
         var sessions=new ArenaSessionService(TestLogger.Create<ArenaSessionService>());
         var id=new MongoId(ArenaSession);
-        var token=sessions.Arm(id,"factory4_day",mode,protectPitFireTeam:pft);
+        var token=sessions.Arm(id,"factory4_day",mode,protectPitFireTeam:pft,difficulty:difficulty);
         Assert.Equal(ArenaLocalRaidStartDisposition.ArenaStarted,
             sessions.ProcessLocalRaidStart(id,"factory4_day",Protocol.BuildNativeStartIdentity(token)));
         ArenaContext.Sessions=sessions;
@@ -32,13 +32,15 @@ public sealed partial class BotTierScalePatchTests
         });
         return JsonSerializer.Deserialize<GenerateCondition>(json,new JsonSerializerOptions { PropertyNameCaseInsensitive=true })!;
     }
+    /// <summary>The wire clock only sizes the request now; the band is the step's fixed gear level.</summary>
     [Theory]
-    [InlineData(60,0,1)] [InlineData(60,24,33)] [InlineData(60,48,65)]
-    [InlineData(300,120,33)] [InlineData(300,240,65)] [InlineData(300,299,65)]
-    [InlineData(1200,480,33)] [InlineData(1200,960,65)]
-    public void FiniteGearUsesPlayingClockAndDoesNotPrefillReserve(int duration,double elapsed,int level)
+    [InlineData(60, 0, "maximum", 65)] [InlineData(60, 24, "maximum", 65)] [InlineData(60, 48, "maximum", 65)]
+    [InlineData(300, 120, "maximum", 65)] [InlineData(300, 299, "maximum", 65)]
+    [InlineData(1200, 480, "maximum", 65)] [InlineData(1200, 960, "maximum", 65)]
+    [InlineData(60, 0, "reduced", 39)] [InlineData(300, 240, "reduced", 39)] [InlineData(1200, 960, "reduced", 39)]
+    public void FiniteGearIgnoresTheWireClockAndStillDoesNotPrefillReserve(int duration, double elapsed, string step, int level)
     {
-        var token=StartTimedArena(); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
+        var token=StartTimedArena(difficulty:step); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
         var condition=Condition(token,duration,elapsed);
         Assert.IsType<JsonElement>(condition.ExtensionData![ArenaDifficultyClock.WireKey]);
         ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,condition);
@@ -46,12 +48,14 @@ public sealed partial class BotTierScalePatchTests
         Assert.Equal(level+5,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(1,details.BotCountToGenerate);
         Assert.Equal(15,ArenaContext.Config.Maps["factory4_day"].BotTierRampMinutes);
     }
+
+    /// <summary>A foreign or stale request keeps every native value; a bad clock on the live raid only keeps its native size.</summary>
     [Theory]
-    [InlineData("token")] [InlineData("version")] [InlineData("duration0")] [InlineData("durationLarge")]
-    [InlineData("negativeTime")] [InlineData("lateTime")] [InlineData("zeroBatch")] [InlineData("negativeBatch")]
-    [InlineData("otherSession")] [InlineData("wrongMap")] [InlineData("oldRaid")] [InlineData("solo")]
-    [InlineData("pft")] [InlineData("malformed")]
-    public void InvalidOrForeignClockPreservesAllNativeDetails(string cause)
+    [InlineData("otherSession",true)] [InlineData("wrongMap",true)] [InlineData("oldRaid",true)] [InlineData("pft",true)]
+    [InlineData("token",false)] [InlineData("version",false)] [InlineData("duration0",false)] [InlineData("durationLarge",false)]
+    [InlineData("negativeTime",false)] [InlineData("lateTime",false)] [InlineData("zeroBatch",false)] [InlineData("negativeBatch",false)]
+    [InlineData("solo",false)] [InlineData("malformed",false)]
+    public void InvalidOrForeignClockNeverShrinksTheReserveAndForeignRequestsStayNative(string cause, bool nativeDetails)
     {
         var token=StartTimedArena(cause is "solo" or "pft"?"tactical":"teamdeathmatch",cause=="pft");
         var condition=Condition(cause=="token"?"old-arm":token,cause=="duration0"?0:cause=="durationLarge"?7201:300,
@@ -60,8 +64,19 @@ public sealed partial class BotTierScalePatchTests
         if(cause=="oldRaid") MakeRaidStale(ArenaContext.Sessions!,new MongoId(ArenaSession));
         var details=Details(cause=="wrongMap"?"laboratory":"factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(cause=="otherSession"?OrdinarySession:ArenaSession),details,condition);
-        Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
-        Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(15,details.BotCountToGenerate);
+        Assert.Equal(15,details.BotCountToGenerate);
+        if(nativeDetails)
+        {
+            Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
+            Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max);
+        }
+        else
+        {
+            // The band does not depend on the clock: a Team Deathmatch request with a broken clock
+            // gets the same fixed Maximum band as one without.
+            Assert.Equal(65,details.PlayerLevel); Assert.Equal(60,details.LocationSpecificPmcLevelOverride!.Min);
+            Assert.Equal(70,details.LocationSpecificPmcLevelOverride.Max);
+        }
     }
 
     [Theory]
@@ -90,12 +105,18 @@ public sealed partial class BotTierScalePatchTests
         Assert.Equal(47,details.PlayerLevel); Assert.Equal(33,details.LocationSpecificPmcLevelOverride!.Min);
         Assert.Equal(61,details.LocationSpecificPmcLevelOverride.Max); Assert.Equal(1,details.BotCountToGenerate);
     }
-    [Fact]
-    public void AbsentClockKeepsLegacyCurveAndBatch()
+    [Theory]
+    [InlineData("teamdeathmatch")] [InlineData("domination")]
+    public void AbsentClockGetsTheFixedBandAndKeepsTheBatch(string mode)
     {
-        StartTimedArena(); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
+        StartTimedArena(mode); var details=Details("factory4_day",47,33,61); details.BotCountToGenerate=15;
         ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),details,new GenerateCondition());
-        Assert.Equal(1,details.PlayerLevel); Assert.Equal(15,details.BotCountToGenerate);
+        Assert.Equal(65,details.PlayerLevel); Assert.Equal(15,details.BotCountToGenerate);
+        // Later in the raid the same request gets the same band.
+        SetElapsed(ArenaContext.Sessions!,new MongoId(ArenaSession),TimeSpan.FromMinutes(14));
+        var late=Details("factory4_day",47,33,61);
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession),late,new GenerateCondition());
+        Assert.Equal(65,late.PlayerLevel);
     }
     [Fact]
     public void ClockRejectsNonFiniteValuesAndWrongProtocol()
