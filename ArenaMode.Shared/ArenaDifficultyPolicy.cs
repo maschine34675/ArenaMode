@@ -36,6 +36,9 @@ public static class ArenaDifficultyPolicy
 
     public const string GunGameModeId = "gungame";
 
+    /// <summary>Same id as ArenaPopulationPolicy.Zombie; repeated so harnesses linking only this file still compile.</summary>
+    public const string ZombieModeId = "zombie";
+
     /// <summary>
     /// The highest gear level Arena may ever claim, a hard safety bound rather than a taste.
     /// The bot system looks the written level up in its tier table and that lookup throws
@@ -199,7 +202,7 @@ public static class ArenaDifficultyPolicy
     /// </summary>
     public static ArenaBotLevel[] PmcRequestLevels(string? mode, ArenaDifficultyStep step)
     {
-        if (string.Equals(mode, ArenaPopulationPolicy.Zombie, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, ZombieModeId, StringComparison.OrdinalIgnoreCase))
             return Array.Empty<ArenaBotLevel>();
         var end = PmcLevel(step);
         if (ScalesWithTime(mode) && GunGamePmcOpening != end)

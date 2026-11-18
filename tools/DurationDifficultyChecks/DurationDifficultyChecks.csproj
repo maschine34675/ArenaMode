@@ -13,7 +13,6 @@
   <ItemGroup>
     <Compile Include="../ArenaBalanceFixtures.cs" Link="Fixtures.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaDifficultyPolicy.cs" />
-    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(DifficultySource)" Link="Production/ArenaDifficulty.cs" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
