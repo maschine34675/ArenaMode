@@ -111,6 +111,27 @@ public static class ArenaDifficultyPolicy
     public static double ReportIntervalFactor(ArenaDifficultyStep step)
         => step == ArenaDifficultyStep.Reduced ? ReportIntervalFactorReduced : ReportIntervalFactorMaximum;
 
+    /// <summary>User's bot speed multipliers are bounded here before the step scales their surplus.</summary>
+    public const double BotSpeedUserCap = 1.5;
+
+    /// <summary>
+    /// The speed multiplier a bot gets: the user's setting capped at <see cref="BotSpeedUserCap"/>
+    /// first, then only the surplus over 1.0 scaled by the step (cap before scale, so Reduced
+    /// with a setting of 99 gives 1.25, not 1.5).
+    /// </summary>
+    public static double BotSpeedFactor(double requested, ArenaDifficultyStep step)
+        => 1d + (Math.Min(requested, BotSpeedUserCap) - 1d) * BotSpeedSurplusScale(step);
+
+    /// <summary>
+    /// The HuntPlayer sweep interval: the per-map value, then the Tactical halving (kept at
+    /// two seconds at least), then the step's factor last. The caller keeps its own floor.
+    /// </summary>
+    public static double SweepInterval(double mapSeconds, bool tactical, ArenaDifficultyStep step)
+    {
+        double interval = tactical ? Math.Max(2d, mapSeconds / 2d) : mapSeconds;
+        return interval * ReportIntervalFactor(step);
+    }
+
     /// <summary>
     /// The step's gear level of a map: Maximum is the map's end level, Reduced 60 % of it,
     /// never below the start level; both clamped to [1, 79] like the server does today.

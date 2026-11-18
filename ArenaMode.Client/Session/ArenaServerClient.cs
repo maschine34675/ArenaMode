@@ -503,6 +503,12 @@ public static class ArenaServerClient
                     && parsed["reason"]?.Type == JTokenType.String
                     && !string.IsNullOrWhiteSpace(parsed["reason"].Value<string>()))
                     failureReason = parsed["reason"].Value<string>().Trim();
+                // An armed answer that never echoes the difficulty comes from a server older
+                // than the step: fail closed, but say why instead of the generic message.
+                else if (parsed?["armed"]?.Type == JTokenType.Boolean && parsed["armed"].Value<bool>()
+                    && parsed["difficulty"] == null
+                    && string.Equals(returnedArmToken, _pendingArmToken, StringComparison.Ordinal))
+                    failureReason = "The Arena server is older than this client; update client and server together.";
                 Plugin.ModLogger.LogWarning($"Arena raid-start rejected by server: {response}");
             }
             else failureReason = null;

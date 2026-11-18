@@ -1648,17 +1648,22 @@ public static class Settings
         if (difficultyRevision.Value < ArenaDifficultyMigration.Revision)
         {
             // The five retired entries are no longer bound, so BepInEx neither warns about them
-            // nor rewrites them; their saved lines are read once from the file text and drop out
-            // at the next save. Nothing else in the configuration is touched.
+            // nor rewrites them; their saved lines are read once from the file text. BepInEx
+            // keeps unbound lines in the file on every save, so they stay there harmlessly.
+            // Nothing else in the configuration is touched. A failed read (a locked file) must
+            // not record the revision, so the next start retries instead of losing the choice.
             string text = null;
+            bool readable = true;
             try { text = System.IO.File.Exists(config.ConfigFilePath) ? System.IO.File.ReadAllText(config.ConfigFilePath) : null; }
-            catch (Exception) { }
+            catch (Exception) { readable = false; }
             var legacyStep = ArenaDifficultyMigration.StepFromConfigText(text);
             if (legacyStep.HasValue)
             {
                 DifficultyStep.Value = legacyStep.Value;
                 Plugin.ModLogger?.LogInfo("Arena difficulty step set to Reduced from the old difficulty settings.");
-            }            difficultyRevision.Value = ArenaDifficultyMigration.Revision;
+            }
+            if (readable)
+                difficultyRevision.Value = ArenaDifficultyMigration.Revision;
         }
         RespawnMinDistance = config.Bind(
             "General",

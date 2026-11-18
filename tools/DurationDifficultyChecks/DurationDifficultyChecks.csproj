@@ -5,6 +5,11 @@
     <DifficultySource Condition="'$(DifficultySource)' == ''">../../ArenaMode.Client/Bots/ArenaDifficulty.cs</DifficultySource>
     <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Shared/ArenaDifficultyPolicy.cs</PolicySource>
     <DemandSource Condition="'$(DemandSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotDifficultyClockPatch.cs</DemandSource>
+    <SessionText Condition="'$(SessionText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaSession.cs</SessionText>
+    <ClientConfigText Condition="'$(ClientConfigText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaClientConfig.cs</ClientConfigText>
+    <ServerConfigText Condition="'$(ServerConfigText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Server/ArenaModeConfig.cs</ServerConfigText>
+    <HostilityText Condition="'$(HostilityText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Bots/ArenaHostility.cs</HostilityText>
+    <MovementText Condition="'$(MovementText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Movement/ArenaBotMovement.cs</MovementText>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ArenaBalanceFixtures.cs" Link="Fixtures.cs" />
@@ -13,5 +18,12 @@
     <Compile Include="$(DifficultySource)" Link="Production/ArenaDifficulty.cs" />
     <Compile Include="$(DemandSource)" Link="Production/ArenaBotDifficultyClockPatch.cs" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="SessionText" Value="$([System.IO.Path]::GetFullPath('$(SessionText)'))" />
+    <AssemblyMetadata Include="ClientConfigText" Value="$([System.IO.Path]::GetFullPath('$(ClientConfigText)'))" />
+    <AssemblyMetadata Include="ServerConfigText" Value="$([System.IO.Path]::GetFullPath('$(ServerConfigText)'))" />
+    <AssemblyMetadata Include="HostilityText" Value="$([System.IO.Path]::GetFullPath('$(HostilityText)'))" />
+    <AssemblyMetadata Include="MovementText" Value="$([System.IO.Path]::GetFullPath('$(MovementText)'))" />
   </ItemGroup>
 </Project>

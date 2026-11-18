@@ -80,6 +80,12 @@ internal static class Program
         Need(!ArenaServerClient.PostRaidStart("factory4_day", "tactical", out failure), "wrong-token success cannot arm");
         Need(failure == GenericRefusal, "success reply reason cannot disguise identity rejection");
 
+        // A server older than the difficulty step arms but never echoes it: refused with a message that says why.
+        Reset();
+        RequestHandler.Post = (_, body) => new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"] }.ToString();
+        Need(!ArenaServerClient.PostRaidStart("factory4_day", "tactical", out failure), "an armed reply without the difficulty echo is refused");
+        Need(failure != null && failure.Contains("older than this client"), "a server without the difficulty echo is named as outdated");
+
         Reset();
         RequestHandler.Post = (_, body) => new JObject { ["armed"] = true, ["armToken"] = JObject.Parse(body)["requestId"], ["difficulty"] = JObject.Parse(body)["difficulty"], ["reason"] = Refusal }.ToString();
         Need(ArenaServerClient.PostRaidStart("factory4_day", "tactical", out failure), "exact valid acknowledgement succeeds");

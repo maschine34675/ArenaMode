@@ -111,13 +111,44 @@ internal static class Program
         ArenaClientConfig.RampMinutes=15;
         ArenaMatchService.Current=null; Check(ArenaDifficulty.Progress==0f && ArenaDifficulty.DifficultyFor(true)==BotDifficulty.hard,"Gun Game without a match is the opening");
         ArenaSession.ActiveMode=null; ArenaSession.Difficulty=null; ArenaMatchService.Current=null; Settings.DifficultyStep.Value=ArenaDifficultyStep.Maximum;
-    }    private static void Main()
+    }
+    // --- wiring that cannot be linked (Unity/EFT-heavy) is pinned as text; mutants override the files -------
+    private static string Text(string key)
+    {
+        var path=Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>().Single(a=>a.Key==key).Value!;
+        return System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(path),@"\s+"," ");
+    }
+    private static void WiringPins()
+    {
+        Check(ArenaDifficultyPolicy.SweepInterval(15,false,ArenaDifficultyStep.Maximum)==15 && ArenaDifficultyPolicy.SweepInterval(15,false,ArenaDifficultyStep.Reduced)==22.5
+            && ArenaDifficultyPolicy.SweepInterval(15,true,ArenaDifficultyStep.Reduced)==11.25 && ArenaDifficultyPolicy.SweepInterval(3,true,ArenaDifficultyStep.Reduced)==3,
+            "sweep interval takes the step factor last");
+        Check(ArenaDifficultyPolicy.BotSpeedFactor(99,ArenaDifficultyStep.Reduced)==1.25 && ArenaDifficultyPolicy.BotSpeedFactor(99,ArenaDifficultyStep.Maximum)==1.5,
+            "bot speed caps the setting before scaling the surplus");
+        var session=Text("SessionText");
+        Check(session.Contains("ClearParticipants(); Participants = participants; ParticipantBosses = participantBosses; Difficulty = difficulty;"),
+            "MarkArmed freezes the acknowledged difficulty step after clearing the old raid");
+        Check(session.Contains("ParticipantBosses = false; Difficulty = null;"),"ClearParticipants resets the frozen difficulty step");
+        var config=Text("ClientConfigText");
+        Check(config.Contains("\"botTierRampMinutes\"") && Text("ServerConfigText").Contains("JsonPropertyName(\"botTierRampMinutes\")"),
+            "client and server read the same botTierRampMinutes key");
+        Check(config.Contains("value.HasValue ? Math.Max(1, value.Value) : fallback"),
+            "a present non-positive ramp length clamps to one minute like the server");
+        var hostility=Text("HostilityText");
+        Check(hostility.Contains("interval = (float)ArenaDifficultyPolicy.SweepInterval( interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode, ArenaDifficulty.Step);"),
+            "the HuntPlayer sweep interval comes from the policy with the frozen step");
+        Check(Text("MovementText").Contains("requested = (float)ArenaDifficultyPolicy.BotSpeedFactor(requested, ArenaDifficulty.Step);"),
+            "bot speed comes from the policy with the frozen step");
+    }
+    private static void Main()
     {
         ArenaBotDifficultyClockPatch.EnablePatch();
         Difficulty();
+        WiringPins();
         // The wire clock helper stays until the clock channel is removed with its patch.
         Check(ArenaDifficultyClock.Progress(450,0,900)==.5,"unlimited tier retains fifteen minute ramp");
-        Check(ArenaDifficultyClock.Progress(24,60,0)==.5 && ArenaDifficultyClock.Progress(48,60,0)==1,"finite wire clock peaks at eighty percent");        {
+        Check(ArenaDifficultyClock.Progress(24,60,0)==.5 && ArenaDifficultyClock.Progress(48,60,0)==1,"finite wire clock peaks at eighty percent");
+        {
             var s=Setup(); s.Mode.Elapsed=120.25f;
             var old=new Profile(); old.Info.Settings.Role=WildSpawnType.pmcUSEC; old.Info.Settings.BotDifficulty=BotDifficulty.hard;
             var scav=new Profile(); var otherDifficulty=new Profile(); otherDifficulty.Info.Settings.Role=WildSpawnType.pmcUSEC;

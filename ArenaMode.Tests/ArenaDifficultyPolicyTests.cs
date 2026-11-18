@@ -29,6 +29,30 @@ public sealed class ArenaDifficultyPolicyTests
         Assert.Equal(79, ArenaDifficultyPolicy.MaxGearLevel);
     }
 
+    [Theory]
+    [InlineData(15, false, 15.0, 22.5)]     // the step factor comes last: map value x 1.5
+    [InlineData(15, true, 7.5, 11.25)]      // Tactical halves first, then x 1.5
+    [InlineData(3, true, 2.0, 3.0)]         // the Tactical two-second minimum is kept, then x 1.5
+    [InlineData(1, true, 2.0, 3.0)]
+    [InlineData(1, false, 1.0, 1.5)]
+    public void SweepIntervalAppliesTheStepFactorAfterTheTacticalHalving(int map, bool tactical, double maximum, double reduced)
+    {
+        Assert.Equal(maximum, ArenaDifficultyPolicy.SweepInterval(map, tactical, Max));
+        Assert.Equal(reduced, ArenaDifficultyPolicy.SweepInterval(map, tactical, Red));
+    }
+
+    [Theory]
+    [InlineData(1.25, 1.25, 1.125)]
+    [InlineData(1.3, 1.3, 1.15)]
+    [InlineData(1.5, 1.5, 1.25)]
+    [InlineData(99.0, 1.5, 1.25)]           // the user's cap of 1.5 comes before the scale
+    [InlineData(1.0, 1.0, 1.0)]
+    public void BotSpeedFactorCapsTheSettingBeforeScalingTheSurplus(double setting, double maximum, double reduced)
+    {
+        Assert.Equal(maximum, ArenaDifficultyPolicy.BotSpeedFactor(setting, Max), 6);
+        Assert.Equal(reduced, ArenaDifficultyPolicy.BotSpeedFactor(setting, Red), 6);
+    }
+
     [Fact]
     public void GearLevelIsTheMapEndLevelAtMaximumAndSixtyPercentAtReduced()
     {

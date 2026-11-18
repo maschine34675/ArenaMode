@@ -351,6 +351,7 @@ internal static partial class Program
             pftTactical: false, pftZombie: false);
         CheckEquatorBoxHookAdmission();
         CheckDeathmatchNegotiation();
+        CheckDifficultyEcho();
         CheckCustomsNegotiation();
         CheckLivePftModeRepair();
         CheckNativeAreas();

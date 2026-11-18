@@ -135,6 +135,11 @@ internal static class Program
         rig.Context.CurrentState.Name = EPlayerState.Sprint; motion = new(.1f, 0, 0);
         lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
         Assert(lease != null && Near(motion.x, .115f), "reduced step halves the sprint speed surplus"); ArenaBotMovement.End(lease);
+        // The cap of 1.5 comes before the scale: a configured 99 at Reduced is 1.25, not 1.5.
+        Settings.BotSprintSpeedMult.Value = 99; motion = new(.1f, 0, 0);
+        lease = ArenaBotMovement.Begin(rig.Context, ref motion, .02f);
+        Assert(lease != null && Near(motion.x, .125f), "reduced step scales the capped surplus, not the raw setting"); ArenaBotMovement.End(lease);
+        Settings.BotSprintSpeedMult.Value = 1.3f;
         ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum;
         Settings.BotWalkSpeedMult.Value = 1f; ArenaMode.Bots.ArenaDifficulty.Step = ArenaMode.Shared.ArenaDifficultyStep.Reduced;
         rig.Context.CurrentState.Name = EPlayerState.Run; motion = new(.1f, 0, 0);

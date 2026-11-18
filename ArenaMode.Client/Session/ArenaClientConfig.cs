@@ -65,13 +65,14 @@ public static class ArenaClientConfig
 
     /// <summary>
     /// Minutes the Gun Game build-up takes on this map: the same per-map value the server's gear
-    /// ramp uses (botTierRampMinutes), so client and server share one ramp length. A missing or
-    /// non-positive value falls back to the default.
+    /// ramp uses (botTierRampMinutes), so client and server share one ramp length. A missing
+    /// value falls back to the default; a present non-positive one is clamped to 1 minute,
+    /// exactly like the server's GunGameProgress does.
     /// </summary>
     public static int GetBotTierRampMinutes(string map, int fallback = 15)
     {
         int? value = GetMapValue<int?>(map, "botTierRampMinutes");
-        return value.HasValue && value.Value > 0 ? value.Value : fallback;
+        return value.HasValue ? Math.Max(1, value.Value) : fallback;
     }
 
     public static int GetBurstMinAliveBots(string map, int fallback = 12)

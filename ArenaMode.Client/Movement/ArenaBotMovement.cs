@@ -125,7 +125,7 @@ internal static class ArenaBotMovement
             if (!Finite(requested)) return null;
             // The difficulty step scales only the surplus over 1.0, from the step frozen at arm:
             // effective = 1 + (setting - 1) x scale. The user's own cap of 1.5 is applied first.
-            requested = 1f + (Math.Min(requested, 1.5f) - 1f) * (float)ArenaDifficultyPolicy.BotSpeedSurplusScale(ArenaDifficulty.Step);
+            requested = (float)ArenaDifficultyPolicy.BotSpeedFactor(requested, ArenaDifficulty.Step);
             if (requested <= 1f) return null;
             double factor = Math.Min(requested, 1.5f);
             bool cornerLimited = false;
