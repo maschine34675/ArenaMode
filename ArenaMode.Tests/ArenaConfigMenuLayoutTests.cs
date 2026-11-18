@@ -271,7 +271,7 @@ public sealed class ArenaConfigMenuLayoutTests
                      ("General", "OptionalMapsMigrated"), ("General", "OptionalMapsRevision"),
                      ("Deathmatch", "LegacyRulesMigrated"), ("Arena pickups", "M60DefaultMigrated"),
                      ("Match", "RoundKillTarget"), ("Match", "RoundTimeLimitSeconds"),
-                     ("Map participants", "bigmap_team"),
+                     ("Map participants", "bigmap_team"), ("Difficulty", "DifficultyRevision"),
                  })
         {
             Assert.True(ArenaConfigMenuLayout.TryResolve(section, key, out var resolved), section + "/" + key);
@@ -280,7 +280,7 @@ public sealed class ArenaConfigMenuLayoutTests
         Assert.True(ArenaConfigMenuLayout.TryResolve("Match", "GameMode", out var mode));
         Assert.False(mode.Hidden);
         var hidden = ArenaConfigMenuLayout.Sections.SelectMany(s => s.Items).Count(i => i.Hidden);
-        Assert.Equal(7, hidden);
+        Assert.Equal(8, hidden);
     }
 
     [Fact]

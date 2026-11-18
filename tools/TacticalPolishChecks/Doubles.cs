@@ -63,7 +63,7 @@ namespace ArenaMode.Config
 }
 namespace ArenaMode.Bots
 {
-    public static class ArenaPressure {public static object DifficultyFor(bool _) => null;}
+    public static class ArenaDifficulty {public static object DifficultyFor(bool _) => null;}
     public static class BurstSpawnService
     {
         public record Request(int Expected,Action<EFT.BotOwner> Observer,Func<bool> Lease);

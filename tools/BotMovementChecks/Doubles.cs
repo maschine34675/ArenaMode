@@ -137,6 +137,7 @@ namespace ArenaMode.Modes
     public class ArenaMatch { public IArenaMode Mode = new RoundsMode(); }
     public static class ArenaMatchService { public static ArenaMatch Current = new(); public static bool TeamStartAbortPending; }
 }
+namespace ArenaMode.Bots { public static class ArenaDifficulty { public static ArenaMode.Shared.ArenaDifficultyStep Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum; } }
 namespace ArenaMode.Areas { public static class ArenaAreaRuntime { public static bool IsPending; } }
 namespace ArenaMode.Movement
 {

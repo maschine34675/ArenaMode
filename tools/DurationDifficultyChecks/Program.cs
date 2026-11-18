@@ -25,7 +25,7 @@ internal static class Program
         Singleton<AbstractGame>.Instance=game; Singleton<GameWorld>.Instance=world;
         var mode=new TeamDeathmatchMode(); ArenaMatchService.Current=new Match { Mode=mode,Elapsed=20000 };
         ArenaMode.Compat.PitFireTeamCompat.HasFrozenTeamRoster=false; ArenaMode.Respawn.ArenaRespawnDriver.StandDown=false;
-        ArenaServerClient.ActiveArmToken="arm-current"; Settings.ScaleDifficulty.Value=true; Settings.MaxBotDifficulty.Value=BotDifficulty.impossible;
+        ArenaServerClient.ActiveArmToken="arm-current";
         return (provider,new BotCreationData { _botCreator=creator },mode);
     }
     private static object Begin(BotProfileClient provider,BotCreationData data,bool withDelete=true,CancellationToken token=default)
@@ -36,28 +36,88 @@ internal static class Program
     private static List<CountTypeBotWave> Waves()=>new(){new(3,WildSpawnType.pmcUSEC,BotDifficulty.hard)};
     private static bool Backup(BotProfileClient p,BotCreationData data)=>(bool)Method(Nested("ArenaBotDifficultyClockBackupPatch"),"Prefix").Invoke(null,new object[]{p._backupLoader,data})!;
     private sealed class ForeignWave():CountTypeBotWave(3,WildSpawnType.pmcUSEC,BotDifficulty.hard) { public int External=7; }
-    private static void Main()
+    // --- the client reader of the shared policy (ArenaDifficulty) -------------------------------------
+    private static readonly string[] FixedModes={"deathmatch","teamdeathmatch","domination","tactical","zombie"};
+    private static void Arm(string mode,ArenaDifficultyStep step,float elapsed,int streak)
+    {
+        ArenaSession.IsActive=true; ArenaSession.ActiveMode=mode; ArenaSession.Difficulty=step;
+        ArenaMatchService.Current=new Match { Mode=new Mode(),Elapsed=elapsed,Streak=streak };
+        ArenaClientConfig.RampMinutes=15; Settings.DifficultyStep.Value=step;
+    }
+    private static void Difficulty()
+    {
+        // The expected values are written out here, not read from the policy: a policy edit must show up.
+        var table=new Dictionary<ArenaDifficultyStep,(BotDifficulty Pmc,BotDifficulty Scav,int Bonus,float Cooldown)>
+        {
+            [ArenaDifficultyStep.Maximum]=(BotDifficulty.impossible,BotDifficulty.hard,4,4f),
+            [ArenaDifficultyStep.Reduced]=(BotDifficulty.hard,BotDifficulty.normal,2,6f),
+        };
+        foreach(var mode in FixedModes) foreach(var (step,row) in table)
+            foreach((float elapsed,int streak) in new[]{(0f,0),(0f,8),(1f,0),(900f,0),(900f,8),(7200f,8)})
+            {
+                Arm(mode,step,elapsed,streak);
+                Check(ArenaDifficulty.DifficultyFor(true)==row.Pmc,$"fixed mode ignores elapsed time and streak: PMC level {mode} {step} {elapsed}/{streak}");
+                Check(ArenaDifficulty.DifficultyFor(false)==row.Scav,$"fixed mode ignores elapsed time and streak: scav level {mode} {step} {elapsed}/{streak}");
+                Check(ArenaDifficulty.PmcFloor(8)==8+row.Bonus,$"fixed mode ignores elapsed time and streak: PMC floor {mode} {step} {elapsed}/{streak}");
+                Check(ArenaDifficulty.PmcFloor(0)==0,"PmcFloor zero stays off at every step");
+                Check(ArenaDifficulty.BurstCooldown(8f)==row.Cooldown,$"refill cooldown factor follows the step {mode} {step}");
+                Check(ArenaDifficulty.Progress==1f,"progress is one outside Gun Game");
+                Check(ArenaDifficulty.Describe()==step.ToString(),"panel line names only the frozen step outside Gun Game");
+            }
+        // No match at all (loading, between rounds) is still the fixed row, never a throw.
+        Arm("tactical",ArenaDifficultyStep.Maximum,0,0); ArenaMatchService.Current=null;
+        Check(ArenaDifficulty.DifficultyFor(true)==BotDifficulty.impossible,"fixed mode needs no match");
+        // The frozen step wins over the live setting, both ways round, and the live one answers outside a raid.
+        Arm("deathmatch",ArenaDifficultyStep.Reduced,0,0); Settings.DifficultyStep.Value=ArenaDifficultyStep.Maximum;
+        Check(ArenaDifficulty.DifficultyFor(true)==BotDifficulty.hard && ArenaDifficulty.PmcFloor(8)==10,"frozen step wins over a live setting change (reduced frozen)");
+        Arm("deathmatch",ArenaDifficultyStep.Maximum,0,0); Settings.DifficultyStep.Value=ArenaDifficultyStep.Reduced;
+        Check(ArenaDifficulty.DifficultyFor(true)==BotDifficulty.impossible && ArenaDifficulty.DifficultyFor(false)==BotDifficulty.hard,"frozen step wins over a live setting change (maximum frozen)");
+        ArenaSession.Difficulty=null;
+        Check(ArenaDifficulty.Step==ArenaDifficultyStep.Reduced,"without a frozen step the live setting answers");
+        // Gun Game: the curve over the map's ramp length, one clock for level, bonus and the panel line.
+        foreach(var (step,row) in table)
+        {
+            foreach((double portion,BotDifficulty pmc,BotDifficulty scav,int bonus) in new[]
+            {
+                (0d,BotDifficulty.hard,BotDifficulty.normal,0),
+                (.2d,BotDifficulty.hard,BotDifficulty.normal,row.Bonus==4?1:0),
+                (.49d,BotDifficulty.hard,BotDifficulty.normal,row.Bonus==4?2:1),
+                (.5d,BotDifficulty.hard,row.Scav,row.Bonus==4?2:1),
+                (.79d,BotDifficulty.hard,row.Scav,row.Bonus==4?3:2),
+                (.8d,row.Pmc,row.Scav,row.Bonus==4?3:2),
+                (1d,row.Pmc,row.Scav,row.Bonus),
+                (3d,row.Pmc,row.Scav,row.Bonus),
+            })
+            {
+                Arm("gungame",step,(float)(portion*900),0);
+                Check(ArenaDifficulty.DifficultyFor(true)==pmc,$"Gun Game PMC level follows the curve {step} {portion}");
+                Check(ArenaDifficulty.DifficultyFor(false)==scav,$"Gun Game scav level follows the curve {step} {portion}");
+                Check(ArenaDifficulty.PmcFloor(8)==8+bonus,$"Gun Game PMC bonus follows the curve {step} {portion}");
+                Check(ArenaDifficulty.PmcFloor(0)==0,"Gun Game keeps PmcFloor zero off");
+            }
+            Arm("gungame",step,0,0);
+            Check(ArenaDifficulty.DifficultyFor(true)==BotDifficulty.hard && ArenaDifficulty.PmcFloor(8)==8,$"Gun Game opens with today's opening {step}");
+            Arm("gungame",step,450,0);
+            Check(Math.Abs(ArenaDifficulty.Progress-.5f)<.00001f && ArenaDifficulty.Describe()==$"{step}, build-up 50%","Gun Game panel line shows the build-up");
+            // A kill streak or a finished ladder changes nothing: progress stays where the clock is.
+            Arm("gungame",step,100,8);
+            Check(ArenaDifficulty.DifficultyFor(true)==BotDifficulty.hard && ArenaDifficulty.PmcFloor(8)==8 && Math.Abs(ArenaDifficulty.Progress-100f/900f)<.00001f,
+                $"kill streak never feeds the Gun Game curve {step}");
+        }
+        // The ramp length is the map's value; an absent one falls back to fifteen minutes.
+        Arm("gungame",ArenaDifficultyStep.Maximum,300,0); ArenaClientConfig.RampMinutes=10;
+        Check(ArenaDifficulty.DifficultyFor(false)==BotDifficulty.hard && Math.Abs(ArenaDifficulty.Progress-.5f)<.00001f,"Gun Game uses the map's ramp length");
+        ArenaClientConfig.RampMinutes=0; Check(Math.Abs(ArenaDifficulty.Progress-300f/900f)<.00001f,"an absent ramp length falls back to fifteen minutes");
+        ArenaClientConfig.RampMinutes=15;
+        ArenaMatchService.Current=null; Check(ArenaDifficulty.Progress==0f && ArenaDifficulty.DifficultyFor(true)==BotDifficulty.hard,"Gun Game without a match is the opening");
+        ArenaSession.ActiveMode=null; ArenaSession.Difficulty=null; ArenaMatchService.Current=null; Settings.DifficultyStep.Value=ArenaDifficultyStep.Maximum;
+    }    private static void Main()
     {
         ArenaBotDifficultyClockPatch.EnablePatch();
-        foreach(int duration in new[]{60,300,1200,7200})
-        {
-            var s=Setup(); s.Mode.Duration=duration;
-            foreach((double portion,double pressure) in new[]{(0d,0d),(.2d,.25d),(.4d,.5d),(.8d,1d),(.99d,1d)})
-            { s.Mode.Elapsed=(float)(portion*duration); Check(Math.Abs(ArenaPressure.Level-pressure)<.00001,"difficulty follows frozen match proportions"); }
-            s.Mode.Elapsed=(float)(.64*duration); Check(ArenaPressure.DifficultyFor(true)==BotDifficulty.impossible,"PMC peak occurs at 64 percent without streak");
-            Settings.MaxBotDifficulty.Value=BotDifficulty.hard; Check(ArenaPressure.DifficultyFor(true)==BotDifficulty.hard,"difficulty cap retained");
-        }
-        {
-            var s=Setup(); s.Mode.Duration=0; s.Mode.Elapsed=360;
-            Check(ArenaPressure.Level==.5f,"unlimited keeps twelve minute pressure ramp");
-            ArenaMatchService.Current.Mode=new Mode(); ArenaMatchService.Current.Elapsed=360;
-            Check(ArenaPressure.Level==.5f,"other modes retain legacy clock");
-            Check(ArenaDifficultyClock.Progress(450,0,900)==.5,"unlimited tier retains fifteen minute ramp");
-            s=Setup(); ArenaMatchService.Current.Streak=8;
-            Check(ArenaPressure.Level==.35f,"streak surge remains additive");
-            Settings.ScaleDifficulty.Value=false; Check(ArenaPressure.Level==0,"pressure off unchanged");
-        }
-        {
+        Difficulty();
+        // The wire clock helper stays until the clock channel is removed with its patch.
+        Check(ArenaDifficultyClock.Progress(450,0,900)==.5,"unlimited tier retains fifteen minute ramp");
+        Check(ArenaDifficultyClock.Progress(24,60,0)==.5 && ArenaDifficultyClock.Progress(48,60,0)==1,"finite wire clock peaks at eighty percent");        {
             var s=Setup(); s.Mode.Elapsed=120.25f;
             var old=new Profile(); old.Info.Settings.Role=WildSpawnType.pmcUSEC; old.Info.Settings.BotDifficulty=BotDifficulty.hard;
             var scav=new Profile(); var otherDifficulty=new Profile(); otherDifficulty.Info.Settings.Role=WildSpawnType.pmcUSEC;

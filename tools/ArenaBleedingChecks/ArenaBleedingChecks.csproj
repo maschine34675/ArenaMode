@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ArenaBalanceFixtures.cs" Link="Fixtures.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
     <Compile Include="$(BleedingSource)" Link="Production/ArenaBleedingDamage.cs" />
     <Compile Include="$(PrefixSource)" Link="Production/Prefix.cs" />
   </ItemGroup>

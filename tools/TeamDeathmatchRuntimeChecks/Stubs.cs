@@ -416,7 +416,7 @@ namespace ArenaMode.Bots
         internal static void ReleaseGates(EFT.LocalGame game, EFT.GameWorld world, int epoch, string reason) { Releases.Add(reason); GatesOpening = false; }
         internal static void Reset() { OpenAllowed = true; GatesOpening = false; OpenCalls = 0; Releases.Clear(); }
     }
-    internal static class ArenaPressure { internal static BotDifficulty DifficultyFor(bool pmc) => BotDifficulty.normal; }
+    internal static class ArenaDifficulty { internal static BotDifficulty DifficultyFor(bool pmc) => BotDifficulty.normal; }
     internal static class ArenaHostility
     {
         internal static bool CountsAsAlly(BotsGroup group, IPlayer player) => group?.Allies.Contains(player) == true;

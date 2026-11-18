@@ -1,7 +1,7 @@
 // Host-only API doubles. Production helpers and Harmony prefixes are linked or
 // extracted verbatim by the two balance check projects; no Unity raid is simulated.
 using System.Reflection;
-namespace Comfort.Common { public static class Singleton<T> { public static T Instance; } }
+namespace Comfort.Common { public static class Singleton<T> { public static T Instance; public static bool Instantiated => Instance is not null; } }
 namespace UnityEngine
 {
     public static class Mathf
@@ -27,6 +27,7 @@ namespace EFT
     public class ClientBackendSession { public void LoadBots(List<CountTypeBotWave> conditions) { } }
     public class GameWorld
     {
+        public string LocationId;
         public Player MainPlayer;
         public Dictionary<string, Player> Alive = new();
         public Player GetAlivePlayerByProfileID(string id) => Alive.GetValueOrDefault(id);
@@ -82,10 +83,8 @@ namespace ArenaMode.Config
     public static class Settings
     {
         public static Entry<float> BleedingDamageMultiplier = new(3);
-        public static Entry<bool> ScaleDifficulty = new(true);
-        public static Entry<float> PressureRampMinutes=new(12), PressureStreakPercent=new(35);
-        public static Entry<int> PressurePmcBonus = new(4);
-        public static Entry<EFT.BotDifficulty> MaxBotDifficulty=new(EFT.BotDifficulty.impossible);
+        // The one difficulty setting; the frozen copy lives in ArenaSession.Difficulty.
+        public static Entry<ArenaMode.Shared.ArenaDifficultyStep> DifficultyStep = new(ArenaMode.Shared.ArenaDifficultyStep.Maximum);
     }
 }
 namespace ArenaMode.Modes
@@ -105,9 +104,13 @@ namespace ArenaMode.Session
     {
         public static bool IsActive=true;
         public static object Game, World;
+        public static ArenaMode.Shared.ArenaDifficultyStep? Difficulty;
+        public static string ActiveMode, ArmedMap;
         public static bool IsExactActiveRaid(object game, object world) => IsActive && game!=null && world!=null && ReferenceEquals(Game,game) && ReferenceEquals(World,world);
     }
     public static class ArenaServerClient { public static string ActiveArmToken="arm-current"; }
+    // The per-map ramp length the server config carries; 0 or less means absent (the reader falls back).
+    public static class ArenaClientConfig { public static int RampMinutes=15; public static int GetBotTierRampMinutes(string map, int fallback=15) => RampMinutes>0 ? RampMinutes : fallback; }
 }
 namespace ArenaMode.Respawn { public static class ArenaRespawnDriver { public static bool StandDown, IsRespawnInProgress; } }
 namespace ArenaMode.Compat { public static class PitFireTeamCompat { public static bool HasFrozenTeamRoster; } }

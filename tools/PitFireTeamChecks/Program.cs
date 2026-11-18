@@ -523,7 +523,7 @@ internal static class Program
     private static bool HasFrozenArmCall(string source)
         => Regex.Matches(source, @"ArenaSession\.MarkArmed\s*\(").Count == 1
            && Regex.Matches(source,
-            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*,\s*participants\s*,\s*ArenaServerClient\.PendingParticipantBosses\s*,\s*requestedTeamSide\s*,\s*requestedProfileId\s*,\s*requestedNativeSide\s*\)").Count == 1;
+            @"ArenaSession\.MarkArmed\s*\(\s*settings\.location\s*,\s*requestedMode\s*,\s*deathmatch\s*,\s*participants\s*,\s*ArenaServerClient\.PendingParticipantBosses\s*,\s*requestedTeamSide\s*,\s*requestedProfileId\s*,\s*requestedNativeSide\s*,\s*requestedDifficulty\s*\)").Count == 1;
 
     private static void CheckFrozenArmContract()
     {
@@ -531,8 +531,8 @@ internal static class Program
         // reservation alongside the mode/rules and captured virtual/native team
         // identity. Require every argument of that exact live call;
         // accepting an arbitrary suffix would hide a mutable or omitted value.
-        const string valid = "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide, requestedProfileId, requestedNativeSide)";
-        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch,\n participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide,\n requestedProfileId, requestedNativeSide );"),
+        const string valid = "ArenaSession.MarkArmed(settings.location, requestedMode, deathmatch, participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide, requestedProfileId, requestedNativeSide, requestedDifficulty)";
+        Assert(HasFrozenArmCall("ArenaSession.MarkArmed( settings.location,\n requestedMode, deathmatch,\n participants, ArenaServerClient.PendingParticipantBosses, requestedTeamSide,\n requestedProfileId, requestedNativeSide, requestedDifficulty );"),
             "frozen mode, rules, population and selected/native identity are required independent of formatting");
         foreach (var replacement in new[]
                  {
@@ -546,7 +546,9 @@ internal static class Program
                      (From: "requestedProfileId", To: "__instance.Profile.Id"),
                      (From: "requestedProfileId", To: "otherProfileId"),
                      (From: "requestedNativeSide", To: "__instance.Profile.Info.Side"),
-                     (From: "requestedNativeSide", To: "null")
+                     (From: "requestedNativeSide", To: "null"),
+                     (From: "requestedDifficulty", To: "Settings.DifficultyStep.Value"),
+                     (From: "requestedDifficulty", To: "null")
                  })
             Assert(!HasFrozenArmCall(valid.Replace(replacement.From, replacement.To, StringComparison.Ordinal)),
                 "each captured arm argument is independently required: " + replacement.From + " -> " + replacement.To);

@@ -43,6 +43,7 @@ $botFaults = @(
     @('non-ai-scope', 'player == null || !player.IsAI || player.IsYourPlayer', 'player == null || false || player.IsYourPlayer', 'non AI player unchanged'),
     @('bonus-step-cap', 'factor = Math.Min(factor, Math.Sqrt((maximumStepSquared - verticalSquared) / horizontalSquared));', 'factor = factor;', 'bonus respects native per-step ceiling'),
     @('cap-restoration', 'lease.Controller.SpeedLimit = lease.OriginalLimit;', 'lease.Controller.SpeedLimit = lease.WrittenLimit;', 'normal completion restores native cap'),
+    @('speed-scale-ignored', '(float)ArenaDifficultyPolicy.BotSpeedSurplusScale(ArenaDifficulty.Step)', '1f', 'reduced step halves the walk speed surplus'),
     @('native-corner-damping', 'factor = 1d + (factor - 1d) * blend;', 'factor = factor;', 'native near corner not accelerated')
 )
 $botRejected = 0
