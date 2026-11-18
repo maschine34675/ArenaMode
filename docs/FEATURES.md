@@ -799,11 +799,15 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
   level, hard). Team DM and Domination no longer carry a match clock on their bot
   requests; their raid-start profile preload stays skipped until loading time has
   been measured natively.
-- Zombies are **not** touched by the step in the current code. They keep the
-  composition of 2026-11-15 ([wave composition](reviews/ZOMBIE-FLOW-20261115.md)):
-  slow share 75/50/25 % in waves 1-3, then 40/20/30 % repeating, the configured
-  shooter share unchanged. The escalation by composition and the Reduced limit of
-  24 infected that the contract names are not implemented yet.
+- Zombies follow the step through their composition
+  ([wave composition](reviews/ZOMBIE-FLOW-20261115.md) is the rhythm underneath).
+  Maximum: the configured number alive from wave one; the slow share of the melee
+  infected keeps 75/50/25 % in waves 1-3 and the 40/20/30 % rhythm, minus 5 points
+  per wave from wave 4 on (35, 10, 15, 20, 0, 0, 5, 0, ...); the shooter share grows
+  by a tenth of the setting per wave, at most twice the setting and 100 %, exact at
+  0 % and 100 %. Reduced: the rhythm without the fade, a flat shooter share, and at
+  most 24 alive (the lower of the setting and 24). The step is frozen at match
+  start. Position reports are not slowed in Zombies at either step.
 - Saved settings of the old model (`ScaleDifficulty`, `PressureRampMinutes`,
   `PressureStreakPercent`, `PressurePmcBonus`, `MaxBotDifficulty`) no longer
   exist. Once, a saved `ScaleDifficulty = false` or a `MaxBotDifficulty` below

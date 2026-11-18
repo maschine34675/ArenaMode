@@ -504,14 +504,19 @@ the server; `ArenaDifficultyPolicy` as the single table; fixed AI level, gear ba
 position-report interval outside Gun Game; the Gun Game ramp over `botTierRampMinutes`; removal of the pressure
 settings with a one-time migration (`Difficulty/DifficultyRevision`), of `ArenaBotDifficultyClockPatch`, `TimedWave`,
 the server's wire-clock branch and the prewarm readiness gate; the prewarm limited to the levels the step requests.
-Not done: the Zombie composition escalation and the Reduced limit of 24 infected (contract section "Zombies"; the
-code is still the composition of 2026-11-15). Four native measurements are owed before the numbers are final:
+Zombies: the slow-share fade, the growing shooter share and the Reduced limit of 24 are in source (not run natively;
+the fade and growth are felt from wave 4, the first native Zombie raid at both steps is owed). Deferred, need a
+native run or a protocol change: Gun Game server gear clock (from the local-start prefix) versus client AI clock (from
+match creation) and the live-read `botTier*` values; the Gun Game prewarm pooling start-level gear at second 0 (does
+the pool keep stale profiles?); that no bot request of an armed raid precedes the local-start prefix (pinned as native
+by a test, confirm in the first native log). Four native measurements are owed before the numbers are final:
 (1) impossible against hard under SAIN 4.5.1 with identical gear, which decides the PMC row of Maximum;
 (2) Tactical solo round one, the 250,000 starting money against five opponents at the Maximum band;
 (3) the weakest stock kits in Deathmatch and Team Deathmatch against Maximum;
 (4) whether the native raid timer of a map ends the raid before the 15-minute Gun Game ramp.
 Also unmeasured: the server time per Team DM / Domination wave request now that the one-profile cap is gone, loading
-time with the preload skip, and the migration against a real `.cfg` file. Client and server must be installed together.
+time with the preload skip. Client and server must be installed together; an older client against a new server runs at
+Maximum (Debug line in the server log).
 
 **Pre-release polish, 2026-11-13 (in `master`; [contract](reviews/DOMINATION-VANILLA-MAPS-20261113.md),
 [native report](reports/2026-11/GPU-PRE-RELEASE-POLISH-20261113.md)):** done and seen natively except for

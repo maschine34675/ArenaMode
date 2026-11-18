@@ -50,9 +50,10 @@ These counters do not establish an FPS gain or justify increasing population cap
 
 ## Wave composition
 
-See also [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md): it plans a fade of the
-slow share and a Reduced population limit on top of this composition. As of 2026-11-18 that part
-is not implemented; the text below is what the code does.
+See also [DIFFICULTY-MODEL-20261118.md](DIFFICULTY-MODEL-20261118.md): the frozen difficulty
+step fades the slow share below, grows the shooter share and, at Reduced, limits the population
+to 24. The rhythm below is the base the step works on (`ZombieCompositionPolicy.SlowPercent(wave)`);
+what a draw uses is `SlowPercent(wave, step)`.
 
 The configured shooter chance remains unchanged, including exactly 0% and 100%.
 Among the remaining melee infected, the slow share is 75%, 50% and 25% in waves

@@ -174,6 +174,10 @@ decisions in "Direction" are untouched.
   client receives the ramp length in its per-map configuration JSON (fallback 15 minutes) and
   reads it when it needs it. A configuration changed during a raid could therefore move the two
   sides apart in Gun Game; freezing them in the session entry is the remedy if that matters.
+  The two clocks also have different origins: the server counts from the local-start prefix,
+  the client from the match creation, so in Gun Game the gear can be a few percent of the
+  ramp ahead of the AI level. Both are deferred: a shared origin needs a protocol field and a
+  native timing measurement (HANDOFF, open work).
 - **How early requests get the band.** The raid-start bot preload is sent after
   `/client/match/local/start` has been answered, and `ArenaStartLocalRaidPatch` moves the
   session to InRaid in that request's prefix, so no bot request of an armed raid can arrive
@@ -182,7 +186,9 @@ decisions in "Direction" are untouched.
   Gun Game that no longer matters because the band is fixed; Gun Game opens near the start
   level. This is read from the decompiled client and the patch order, not confirmed in a log.
   Requests from other sessions, a protected PitFireTeam raid and `scaleBotTier = false` stay
-  native.
+  native. An armed session that is not yet InRaid also stays native; a test pins that, so a
+  wrong ordering would show as native-level profiles and not as a silent guess. The first
+  native raid must confirm the order (first `GenerateBotWave` after the local-start prefix).
 - **Gear band.** `ArenaDifficultyPolicy.GearLevelAt` computes it. The end level is clamped to
   79 (`MaxGearLevel`) first and Reduced is 60 % of the clamped value, rounded half away from
   zero, never below the start level. The Gun Game ramp rounds with `Math.Round` default
@@ -221,8 +227,10 @@ decisions in "Direction" are untouched.
   text. A saved `ScaleDifficulty = false`, or `MaxBotDifficulty` equal to easy, normal or hard,
   selects Reduced and writes an Info line; an unparseable `MaxBotDifficulty` keeps Maximum. If
   the file cannot be read the revision is not recorded, so the next start retries. The
-  parser is covered by `ArenaDifficultyMigrationTests`; it has not been run against a real
-  `.cfg` file.
+  parser is covered by `ArenaDifficultyMigrationTests`; `tools/AreaConfigChecks` runs it
+  against a real BepInEx `ConfigFile` (`ConfigFile.Save` writes its orphaned entries back, so
+  the retired lines survive the Binds that save before the read), with a mutant that disables
+  the migration.
 - **Speed and reports.** The user's multiplier is capped at 1.5 first and only then is the
   surplus scaled, so Reduced with a setting of 99 gives 1.25. The sweep interval is the per-map
   value, then the Tactical halving, then the step's factor.
@@ -232,11 +240,18 @@ decisions in "Direction" are untouched.
   from the first request.
 - **Settings during a raid.** Changing the step in F12 or the web page during an armed or
   active raid changes nothing for that raid; the F9 panel cannot change it either.
-- **Not implemented: Zombies.** The "Zombies" section above is not in the code of this
-  branch. Zombies are not touched by the step: the composition of 2026-11-15 (slow share
-  75/50/25 %, then 40/20/30 % repeating, flat shooter share) and `MaxAlive` apply at both
-  steps. The slow-share fade, the growing shooter share and the Reduced limit of 24 are still
-  to be done.
+- **Zombies.** Implemented in the final fix pass. `ArenaDifficultyPolicy.ZombieSlowPercent`,
+  `ZombieShooterPercent` and `ZombieMaxAlive` hold the numbers. The fade is 5 points times
+  (wave - 3) from wave 4 on, subtracted from the rhythm of 2026-11-15 and floored at 0. The
+  shooter share is `round(configured x (1 + min(1, 0.1 x (wave - 1))))`, never above 100 %,
+  and exact at 0 and 100. `ZombieMode` freezes the step at match start (from the armed
+  session) and passes it to every draw; Reduced lowers `_config.MaxAlive` to
+  `min(setting, 24)`. The native bot cap of the raid is still computed from the setting
+  (`ArenaBotPatches`, a harmless over-estimate at Reduced). The opening preload and the backup
+  targets are wave 1 and every possible pair, which are the same at both steps. **Correction:**
+  the HuntPlayer sweep interval of the table is not applied in Zombies
+  (`ArenaDifficultyPolicy.ReportStep`): the Zombie section names no report change, and the
+  horde has its own hunt nudge.
 - **Harnesses.** `DurationDifficultyChecks` pins the client reader, the prewarm list and the
   frozen step with mutants; `BotMovementChecks` pins the halved speed surplus. The xunit
   tests `ArenaDifficultyPolicyTests`, `BotTierScalePatchTests` (partial files
