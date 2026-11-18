@@ -86,6 +86,40 @@ public sealed class ArenaConfigMenuLayoutTests
         "InfoPanelSettings.cs:legacy.Bind(section, key",
     };
 
+    private static IEnumerable<string> NonLiteralBindCalls(string text)
+    {
+        foreach (Match call in Regex.Matches(text, "\\b\\w+\\.Bind\\("))
+        {
+            // Bound the scan to this call. Bind(this) is a movement-owner bind,
+            // not a config entry whose second argument occurs in a later method.
+            var statement = StatementFrom(text, call.Index);
+            var dynamic = Regex.Match(statement, "^\\b\\w+\\.Bind\\((?!\\s*\"[^\"]+\"\\s*,\\s*\")([^,]+,[^,]+)");
+            if (!dynamic.Success) continue;
+            var site = dynamic.Value.Trim();
+            if (site.Contains(".Bind(config)", StringComparison.Ordinal)
+                || site.Contains("Roster.Bind(", StringComparison.Ordinal))
+                continue;
+            yield return site;
+        }
+    }
+
+    [Fact]
+    public void NonLiteralBindScanDoesNotCrossIntoTheFollowingCall()
+    {
+        const string source = "ArenaSlideTransitions.Bind(this);\n"
+            + "_friendlyFireRoster.Bind(_match, TeamCompanionCount);\n"
+            + "config.Bind(section, \"NewSetting\", true);\n"
+            + "config.Bind(section, \"Description\", true, \"See Roster.Bind(...)\");\n"
+            + "config.Bind(section, \"NestedDefault\", helper.Bind(config));\n"
+            + "config.Bind(\"Movement\", \"Enabled\", true);";
+        Assert.Equal(new[]
+        {
+            "config.Bind(section, \"NewSetting\"",
+            "config.Bind(section, \"Description\"",
+            "config.Bind(section, \"NestedDefault\""
+        }, NonLiteralBindCalls(source));
+    }
+
     [Fact]
     public void EveryNonLiteralBindIsAKnownHelper()
     {
@@ -93,13 +127,8 @@ public sealed class ArenaConfigMenuLayoutTests
         foreach (var path in ClientSources())
         {
             var text = File.ReadAllText(path);
-            foreach (Match m in Regex.Matches(text, "\\b\\w+\\.Bind\\((?!\\s*\"[^\"]+\"\\s*,\\s*\")([^,]+,[^,]+)"))
-            {
-                var site = Path.GetFileName(path) + ":" + text.Substring(m.Index, m.Length).Trim();
-                if (site.Contains(".Bind(config)", StringComparison.Ordinal) || site.Contains("Roster.Bind(", StringComparison.Ordinal))
-                    continue;
-                dynamic.Add(site);
-            }
+            foreach (var call in NonLiteralBindCalls(text))
+                dynamic.Add(Path.GetFileName(path) + ":" + call);
         }
         var unknown = dynamic.Where(d => !KnownDynamicBinds.Contains(d)).ToList();
         Assert.True(unknown.Count == 0, "unlisted dynamic Bind call(s): " + string.Join(" | ", unknown));

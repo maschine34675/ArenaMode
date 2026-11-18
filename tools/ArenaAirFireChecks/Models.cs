@@ -7,7 +7,7 @@ namespace ArenaMode.Config
     public sealed class Setting<T>(T value) { public T Value = value; }
     public static class Settings
     {
-        public static Setting<bool> MovementEnabled = new(true), AirHipFireEnabled = new(true);
+        public static Setting<bool> MovementEnabled = new(true), AirHipFireEnabled = new(true), SprintToAds = new(true);
     }
 }
 namespace ArenaMode.Hud { public static class ArenaInputBlocker { public static bool Blocked; } }
@@ -44,14 +44,17 @@ namespace Comfort.Common
 namespace EFT
 {
     public enum GameStatus { Started, Stopping, Stopped }
-    public enum EPlayerState { Idle, Jump, FallDown, Vaulting, Transition }
+    public enum EPlayerState { Idle, Jump, FallDown, Vaulting, Transition, Sprint }
     public class AbstractGame { }
     public class LocalGame : AbstractGame { public Player LocalPlayer; public GameStatus Status = GameStatus.Started; }
     public class GameWorld { public Player MainPlayer; }
     public class Health { public bool IsAlive = true; }
     public class MovementContext
     {
-        public bool IsGrounded, IsInPronePose, IsInMountedState, BlockFirearms, Vaulting;
+        public bool IsGrounded, IsInPronePose, IsInMountedState, BlockFirearms, Vaulting, IsSprintEnabled, AnimatorSprint;
+        public int SprintWrites, AnimatorWrites;
+        public void EnableSprint(bool value) { IsSprintEnabled=value; SprintWrites++; }
+        public void PlayerAnimatorEnableSprint(bool value) { AnimatorSprint=value; AnimatorWrites++; }
         public bool PlayerAnimatorGetIsVaulting() => Vaulting;
     }
     public class MovementState { public EPlayerState Name; }
@@ -62,9 +65,24 @@ namespace EFT
         public EJumpState _jumpState = EJumpState.Jump;
     }
     public class DerivedJump(MovementContext context) : JumpPlayerState(context) { }
+    public static class PlayerAnimator { public static int WEAPON_ROOT_3RD = 1672138505, OTHER_CURVE = 1; }
+    public class BodyAnimator
+    {
+        public int CurrentHash=1332272753, NextHash;
+        public bool Transition;
+        public record struct State(int fullPathHash);
+        public State GetCurrentAnimatorStateInfo(int layer) => new(CurrentHash);
+        public State GetNextAnimatorStateInfo(int layer) => new(NextHash);
+        public bool IsInTransition(int layer) => Transition;
+    }
     public class Player
     {
-        public bool IsYourPlayer = true, IsAI, IsInventoryOpened;
+        public bool IsYourPlayer = true, IsAI, IsInventoryOpened, FirstPersonPointOfView = true;
+        public float CurveValue = 1;
+        public int CurveReads;
+        public BodyAnimator BodyAnimatorCommon=new();
+        public float GetCurveValue(int hash) { CurveReads++; return CurveValue; }
+        public void VisualPass() { }
         public Health HealthController = new();
         public MovementContext MovementContext = new();
         public MovementState CurrentManagedState, CurrentState;
@@ -78,14 +96,36 @@ namespace EFT
         }
         public class FirearmController : ItemHandsController
         {
-            public bool IsAiming;
-            public class Idling { public void SetTriggerPressed(bool value) { } }
+            public bool IsAiming { get; set; }
+            public bool Blindfire, Interaction;
+            public float _overlapValue;
+            public EFT.InventoryLogic.Weapon Item = new();
+            public FirearmsAnimator FirearmsAnimator = new();
+            public FirearmOperation CurrentOperation;
+            public bool IsInInteractionStrictCheck() => Interaction;
+            public void ToggleAim() { }
+            public void StateChangedHandler(EPlayerState previousstate,EPlayerState nextstate) { }
+            public class FirearmOperation { public object Controller; }
+            public class Idling : FirearmOperation { public float _idlingTime=5; public void SetTriggerPressed(bool value) { } public void SetAiming(bool value) { } }
+            public class FireOperationBase : FirearmOperation { }
+            public class LauncherFire : FireOperationBase { }
+            public class BaseReloadOperation : FirearmOperation { }
         }
     }
 }
+namespace EFT.InventoryLogic
+{
+    public class Weapon { public enum EReloadMode { External, OnlyBarrel }; public EReloadMode ReloadMode; public bool IsBeltMachineGun; }
+    public class RocketLauncher : Weapon { }
+}
+public sealed class FirearmsAnimator { public bool Idling=true; public bool IsIdling() => Idling; }
+public sealed class EFTHardSettings { public static EFTHardSettings Instance=new(); public float STOP_AIMING_AT=0.5f; }
 namespace SPT.Reflection.Patching
 {
     [AttributeUsage(AttributeTargets.Method)] public sealed class PatchTranspilerAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPrefixAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Method)] public sealed class PatchPostfixAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Method)] public sealed class PatchFinalizerAttribute : Attribute { }
     public abstract class ModulePatch
     {
         public static List<MethodBase> Hooks = new();
@@ -102,7 +142,7 @@ namespace HarmonyLib
         public delegate ref F FieldRef<T,F>(T instance);
         public static FieldRef<T,F> FieldRefAccess<T,F>(string name)
         {
-            if (typeof(T)!=typeof(EFT.Player.ItemHandsController) || typeof(F)!=typeof(EFT.Player) || name!="_player")
+            if (!typeof(EFT.Player.ItemHandsController).IsAssignableFrom(typeof(T)) || typeof(F)!=typeof(EFT.Player) || name!="_player")
                 throw new Exception("unexpected native owner field");
             return (T instance) => ref Unsafe.As<EFT.Player,F>(ref ((EFT.Player.ItemHandsController)(object)instance)._player);
         }
@@ -112,6 +152,10 @@ namespace HarmonyLib
             => type.GetMethod(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance);
         public static MethodInfo PropertyGetter(Type type,string name)
             => type.GetProperty(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static)?.GetMethod;
+        public static MethodInfo PropertySetter(Type type,string name)
+            => type.GetProperty(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static)?.SetMethod;
+        public static FieldInfo Field(Type type,string name)
+            => type.GetField(name,BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static);
     }
     public sealed class CodeInstruction
     {

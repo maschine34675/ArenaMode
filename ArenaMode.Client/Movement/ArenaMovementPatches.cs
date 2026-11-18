@@ -176,17 +176,9 @@ internal static class ArenaMovementPatches
                 touched = true;
             }
 
-            // The slide controller's velocities are tuned in real m/s — add them
-            // AFTER the root-motion scaling so they are not stretched by it.
-            if (Settings.SlideEnabled.Value)
-            {
-                var slide = SlideFor(__instance);
-                if (slide != null && slide.IsSliding)
-                {
-                    motion += slide.SlideVelocity * deltaTime;
-                    touched = true;
-                }
-            }
+            // Slide speed is absolute world m/s. Replace horizontal root motion
+            // after scaling; retain the native vertical movement and one Move call.
+            touched |= ArenaSlideTransitions.TryApplyMotion(__instance, ref motion, deltaTime);
 
             ArenaSurgicalWalk.LimitMotion(__instance, ref motion, deltaTime);
 
@@ -235,7 +227,7 @@ internal static class ArenaMovementPatches
                 return;
 
             var slide = SlideFor(__instance);
-            if (slide == null)
+            if (slide == null || !ArenaSlideTransitions.Owns(slide))
                 return;
 
             if (slide.IsSliding)

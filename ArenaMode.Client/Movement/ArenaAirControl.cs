@@ -31,6 +31,9 @@ internal static class ArenaAirControl
     private static ConditionalWeakTable<MovementContext, Flight> _flights = new();
     private static bool _ready, _bound, _warned;
     internal static bool Ready => _ready;
+    // A slide can start from a substep-only contact. Its next native jump owns
+    // a new launch heading even if CheckFlying never saw the final grounded bit.
+    internal static void ResetHeading(MovementContext context) => _flights.Remove(context);
     private static readonly MethodInfo Limit = AccessTools.DeclaredMethod(typeof(MovementState), nameof(MovementState.LimitMotion));
 
     internal static void Enable()

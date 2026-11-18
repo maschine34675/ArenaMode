@@ -8,6 +8,7 @@ $arenaScratch = Join-Path $arenaRepo ('artifacts/air-control-checks/'+[guid]::Ne
 & dotnet run --project $arenaProject -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Air control baseline failed' }
 $arenaFaults = @(
+ @{Name='SlideHeadingLeak'; From='internal static void ResetHeading(MovementContext context) => _flights.Remove(context);'; To='internal static void ResetHeading(MovementContext context) { }'; Failure='slide jump uses new launch heading after substep-only contact'},
  @{Name='NoAccumulation'; From='if (!flight.HasHeading)'; To='if (true)'; Failure='one second turns 60 degrees at 30 fps'},
  @{Name='RightOnly'; From='current + Math.Max(-max, Math.Min(max, delta))'; To='current + Math.Abs(Math.Max(-max, Math.Min(max, delta)))'; Failure='left input turns left at bounded rate'},
  @{Name='LongWay'; From='Math.Atan2(Math.Sin(target - current), Math.Cos(target - current))'; To='target - current'; Failure='shortest steering path crosses angle wrap'},

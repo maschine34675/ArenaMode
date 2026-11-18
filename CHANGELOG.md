@@ -8,6 +8,12 @@ adapters were subsequently removed or moved to Redeploy.Core, as noted under
 0.2.0. See [Dependencies and compatibility](docs/DEPENDENCIES.md) for the current
 state. Allowing a mod through the whitelist is not a compatibility guarantee.
 
+## Unreleased
+
+- Improved jump input around ledges and slide transitions, while preserving native collision and separate double-jump credit.
+- Landing slides retain collision-reduced momentum; slide jumps keep their direction without adding a second movement impulse.
+- Sprint jumps restore the normal hip-fire weapon position. Aiming down sights remains disabled in the air.
+
 ## [0.6.0] - 2026-11-14
 
 ArenaMode 0.6.0 is made for **ArenaMapPort 0.6.0**, which adds the map Chop Shop and more bot

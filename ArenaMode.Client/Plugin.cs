@@ -161,6 +161,8 @@ public class Plugin : BaseUnityPlugin
         Movement.ArenaBotMovement.Enable();
         Movement.ArenaBotAgility.Enable();
         Bots.ArenaBotTempo.Enable();
+        Movement.ArenaJumpReliability.Enable();
+        Movement.ArenaSlideTransitions.Enable();
         Movement.ArenaDoubleJump.Enable();
         Movement.ArenaAirControl.Enable();
         Movement.ArenaBunnyhop.Enable();
@@ -252,6 +254,8 @@ public class Plugin : BaseUnityPlugin
         ArenaExtractionIsolation.Shutdown();
         ArenaGpuAcceptanceCompat.Shutdown();
         Movement.ArenaDoubleJump.Shutdown();
+        Movement.ArenaJumpReliability.Shutdown();
+        Movement.ArenaSlideTransitions.Shutdown();
         Movement.ArenaBunnyhop.Shutdown();
         Movement.ArenaAirControl.Shutdown();
         Movement.ArenaHandlingPatches.Shutdown();

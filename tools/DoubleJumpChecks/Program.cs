@@ -86,8 +86,12 @@ internal static class Program
         {
             object[] args = { Translator, command, null };
             Invoke("ArenaDoubleJumpJumpCommandPatch", "Prefix", args);
-            native?.Invoke();
-            Invoke("ArenaDoubleJumpJumpCommandPatch", "Postfix", Translator, args[2]);
+            try
+            {
+                native?.Invoke();
+                Invoke("ArenaDoubleJumpJumpCommandPatch", "Postfix", Translator, args[2]);
+            }
+            finally { Invoke("ArenaDoubleJumpJumpCommandPatch", "Finalizer", null, args[2]); }
         }
     }
     private static void Denied(Fixture f, string name)
@@ -222,7 +226,9 @@ internal static class Program
         }
         var body = new Fixture(); body.Airborne(); body.Press();
         var replacement = new Player { MovementContext = body.Context, CurrentManagedState = new FallDown(body.Context) { _liftForce = Vector3.zero } };
-        body.World.MainPlayer = body.Translator._controller = replacement; body.Press();
+        body.World.MainPlayer = body.Translator._controller = replacement;
+        ((LocalGame)Singleton<AbstractGame>.Instance).LocalPlayer = replacement;
+        body.Press();
         Check(replacement.Physical.Debits == 1, "fresh replacement falling body receives independent credit");
         var world = new Fixture(falling: true); world.Airborne(); world.Press();
         Singleton<GameWorld>.Instance = ArenaSession.ActiveWorld = new GameWorld { MainPlayer = world.Player };
@@ -302,7 +308,10 @@ internal static class Program
         }
         var handoff = new Fixture(); handoff.EarlyEdge(); handoff.Press();
         ArenaInputBlocker.Blocked = true;
-        handoff.Context.IsGrounded = handoff.Player.CharacterController.isGrounded = true; handoff.Tick();
+        // The fresh command can precede BOTH landing and owner-cleanup ticks.
+        // Calling Tick here would now cancel the old request already and hide
+        // whether the prefix itself transfers native-signal ownership correctly.
+        handoff.Context.IsGrounded = handoff.Player.CharacterController.isGrounded = true;
         ArenaInputBlocker.Blocked = false; handoff.Press(() => handoff.Context.TryJump()); handoff.Tick();
         Check(handoff.Context.PlayerAnimator.Jump, "grounded native command takes signal ownership before delayed landing cleanup");
     }
@@ -418,12 +427,13 @@ internal static class Program
     private static void MetadataAndShutdown()
     {
         var f = new Fixture();
-        Check(ModulePatch.Registrations.Count == 4, "installs four native movement patches"); ArenaDoubleJump.Enable();
-        Check(ModulePatch.Registrations.Count == 4 && Settings.DoubleJumpEnabled.Subscribers == 1
+        Check(ModulePatch.Registrations.Count == 5, "installs five native movement patches"); ArenaDoubleJump.Enable();
+        Check(ModulePatch.Registrations.Count == 5 && Settings.DoubleJumpEnabled.Subscribers == 1
             && Settings.MovementEnabled.Subscribers == 1 && RaidLifecycle.Subscribers == 1,
             "repeated enable does not duplicate registration");
         foreach (var target in new[] { (typeof(JumpPlayerState), "Enter"), (typeof(FallDown), "Enter"),
-            (typeof(MovementContext), "CheckFlying"), (typeof(MoveInputTranslator), "TranslateCommand") })
+            (typeof(MovementContext), "CheckFlying"), (typeof(MoveInputTranslator), "TranslateCommand"),
+            (typeof(PlayerOwner), "CreateInputTranslators") })
             Check(ModulePatch.Registrations.Any(p => p.Target.DeclaringType == target.Item1 && p.Target.Name == target.Item2), "hooks actual declared native method");
         var translate = (MethodInfo)ModulePatch.Registrations.Single(p => p.Target.Name == "TranslateCommand").Target;
         Check(translate.ReturnType == typeof(InputNode.ETranslateResult) && translate.GetParameters().Single().ParameterType == typeof(ECommand),
