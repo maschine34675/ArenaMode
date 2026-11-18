@@ -191,7 +191,10 @@ internal static class ArenaBotMovement
         {
             _loggedWorld = new WeakReference(world); _nextDiagnostic = Time.time + 60f;
             _boosted = _cornerLimited = _stepLimited = 0;
-            Plugin.ModLogger.LogDebug($"Arena bot movement active: walk x{Settings.BotWalkSpeedMult.Value:0.##}, sprint x{Settings.BotSprintSpeedMult.Value:0.##}; both teams, grounded motion only, native collision retained.");
+            // The effective factors of this raid (the frozen difficulty step scales the surplus of
+            // the settings), not the settings themselves: a Reduced raid reads x1.25 for 1.5.
+            var step = ArenaDifficulty.Step;
+            Plugin.ModLogger.LogDebug($"Arena bot movement active: walk x{ArenaDifficultyPolicy.BotSpeedFactor(Settings.BotWalkSpeedMult.Value, step):0.##}, sprint x{ArenaDifficultyPolicy.BotSpeedFactor(Settings.BotSprintSpeedMult.Value, step):0.##} (difficulty {ArenaDifficultyPolicy.ToWire(step)}, settings x{Settings.BotWalkSpeedMult.Value:0.##} / x{Settings.BotSprintSpeedMult.Value:0.##}); both teams, grounded motion only, native collision retained.");
         }
         if (boosted) _boosted++;
         if (corner) _cornerLimited++;
