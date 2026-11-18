@@ -63,12 +63,15 @@ to `AGENTS.md`.
    exception; native profile refresh and result completion must remain intact.
    See docs/reviews/POSTRAID-PAGES-REVIEW.md for both forward and health-back navigation.
    Dedicated-item metadata is registered before the native database/profile
-   snapshot: the private Molotov template, locales/cache and private loot/flea
+   snapshot: the private Molotov and Translocator templates, locales/cache and private loot/flea
    exclusions exist at server startup. This adds no normal loot, trader stock or
-   profile item and never edits the RGD-5 donor. Exact-template model/icon/pool
+   profile item and never edits the RGD-5 or rangefinder donor. Exact-template model/icon/pool
    restoration and native harmless cleanup likewise do not require an active
    raid; fire and supplies retain their separate strict Arena admission gates.
    See docs/reviews/MOLOTOV-ITEM-REVIEW.md for this static item-registration boundary.
+   The reusable Translocator uses the same metadata-only boundary; see
+   docs/reviews/TRANSLOCATOR-20261115.md. Its one-call player teleport authorization
+   requires the exact live device/disc and physical clearance, including on whole maps.
 
 ### From the handoff (snapshot of 2026-10-29)
 

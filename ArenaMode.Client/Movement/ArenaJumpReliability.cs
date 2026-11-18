@@ -59,6 +59,11 @@ internal static class ArenaJumpReliability
     }
     private static void Changed(object sender, EventArgs args) => Reset();
     private static void Reset() { _contact = null; _sample = null; unchecked { Epoch++; } }
+    internal static void OnRelocated(Player player)
+    {
+        if (player != null && (ReferenceEquals(_contact?.Player, player)
+            || ReferenceEquals(_sample?.Owner?.Player, player))) Reset();
+    }
     internal static bool IsCoyoteCurrent(Player player, int epoch) => epoch == Epoch && Eligible(player);
 
     private static bool Eligible(Player player)

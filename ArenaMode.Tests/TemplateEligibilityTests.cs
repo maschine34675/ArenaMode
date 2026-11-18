@@ -1,4 +1,5 @@
 using ArenaMode.Server.Services;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Tests;
 
@@ -47,17 +48,33 @@ public sealed class TemplateEligibilityTests
     [Fact]
     public void TheConfiguredListIsTrimmedDedupedAndNullSafe()
     {
-        var seeded = ArenaTemplateEligibility.SeededExclusions.ToArray();
+        // Private reusable supply is mandatory but deliberately absent from
+        // the editable fresh-config seed of unfinished ordinary templates.
+        var mandatory = ArenaTemplateEligibility.SeededExclusions
+            .Append(ArenaTranslocatorItem.TemplateId).ToArray();
 
-        Assert.Equal(seeded.OrderBy(x => x, StringComparer.Ordinal),
+        Assert.Equal(mandatory.OrderBy(x => x, StringComparer.Ordinal),
             ArenaTemplateEligibility.ExclusionSet(null).OrderBy(x => x, StringComparer.Ordinal));
-        Assert.Equal(seeded.OrderBy(x => x, StringComparer.Ordinal),
+        Assert.Equal(mandatory.OrderBy(x => x, StringComparer.Ordinal),
             ArenaTemplateEligibility.ExclusionSet(new string?[] { null, "", "   " })
                 .OrderBy(x => x, StringComparer.Ordinal));
 
         var set = ArenaTemplateEligibility.ExclusionSet(new[] { " abc ", "abc", "def", null, "" });
-        Assert.Equal(seeded.Concat(new[] { "abc", "def" }).OrderBy(x => x, StringComparer.Ordinal),
+        Assert.Equal(mandatory.Concat(new[] { "abc", "def" }).OrderBy(x => x, StringComparer.Ordinal),
             set.OrderBy(x => x, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void PrivateTranslocatorIsMandatoryWithoutChangingTheFreshConfigSeed()
+    {
+        Assert.DoesNotContain(ArenaTranslocatorItem.TemplateId, ArenaTemplateEligibility.SeededExclusions);
+        Assert.Contains(ArenaTranslocatorItem.TemplateId, ArenaTemplateEligibility.ExclusionSet(null));
+        Assert.True(ArenaTemplateEligibility.IsExcluded(ArenaTranslocatorItem.TemplateId,
+            ArenaTranslocatorItem.Name, null));
+        Assert.True(ArenaTemplateEligibility.IsExcluded(ArenaTranslocatorItem.TemplateId,
+            ArenaTranslocatorItem.Name, Array.Empty<string>()));
+        Assert.False(ArenaTemplateEligibility.IsExcluded(ArenaTranslocatorItem.DonorTemplateId,
+            "Rangefinder", Array.Empty<string>()));
     }
 
     [Fact]

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <TeleportSource Condition="'$(TeleportSource)' == ''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorTeleport.cs</TeleportSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorTeleportPolicy.cs</PolicySource>
+    <GateSource Condition="'$(GateSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaTranslocatorGate.cs</GateSource>
+    <AreaPatchSource Condition="'$(AreaPatchSource)' == ''">../../ArenaMode.Client/Areas/ArenaAreaNavigationPatches.cs</AreaPatchSource>
+    <DoubleJumpSource Condition="'$(DoubleJumpSource)' == ''">../../ArenaMode.Client/Movement/ArenaDoubleJump.cs</DoubleJumpSource>
+    <ReliabilitySource Condition="'$(ReliabilitySource)' == ''">../../ArenaMode.Client/Movement/ArenaJumpReliability.cs</ReliabilitySource>
+    <BunnySource Condition="'$(BunnySource)' == ''">../../ArenaMode.Client/Movement/ArenaBunnyhop.cs</BunnySource>
+    <SlideSource Condition="'$(SlideSource)' == ''">../../ArenaMode.Client/Movement/ArenaSlideTransitions.cs</SlideSource>
+    <VaultSource Condition="'$(VaultSource)' == ''">../../ArenaMode.Client/Movement/ArenaAirVault.cs</VaultSource>
+    <AirSource Condition="'$(AirSource)' == ''">../../ArenaMode.Client/Movement/ArenaAirControl.cs</AirSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(TeleportSource)" Link="Production/Teleport.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/Policy.cs" />
+    <Compile Include="$(GateSource)" Link="Production/Gate.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaAreaCatalog.cs" Link="Production/Area.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaMapCatalog.cs" Link="Production/Map.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/Population.cs" />
+  </ItemGroup>
+  <Target Name="ExtractProductionIntegration" BeforeTargets="CoreCompile">
+    <PropertyGroup><GeneratedIntegration>$(IntermediateOutputPath)MovementIntegration.g.cs</GeneratedIntegration></PropertyGroup>
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildProjectDirectory)/Generate-Movement.ps1&quot; -Output &quot;$(GeneratedIntegration)&quot; -DoubleJumpSource &quot;$(DoubleJumpSource)&quot; -ReliabilitySource &quot;$(ReliabilitySource)&quot; -BunnySource &quot;$(BunnySource)&quot; -SlideSource &quot;$(SlideSource)&quot; -VaultSource &quot;$(VaultSource)&quot; -AirSource &quot;$(AirSource)&quot; -AreaPatchSource &quot;$(AreaPatchSource)&quot;" />
+    <ItemGroup><Compile Include="$(GeneratedIntegration)" /></ItemGroup>
+  </Target>
+</Project>

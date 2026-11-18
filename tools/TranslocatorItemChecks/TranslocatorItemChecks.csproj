@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <RegistrationSource Condition="'$(RegistrationSource)'==''">../../ArenaMode.Server/Services/ArenaTranslocatorRegistration.cs</RegistrationSource>
+    <ExclusionsSource Condition="'$(ExclusionsSource)'==''">../../ArenaMode.Shared/ArenaTemplateExclusions.cs</ExclusionsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ArenaMode.Shared/ArenaTranslocatorItem.cs" Link="Production/ArenaTranslocatorItem.cs" />
+    <Compile Include="$(RegistrationSource)" Link="Production/ArenaTranslocatorRegistration.cs" />
+    <Compile Include="$(ExclusionsSource)" Link="Production/ArenaTemplateExclusions.cs" />
+    <Compile Include="../../ArenaMode.Tests/TranslocatorRegistrationTests.cs" Link="Checks/TranslocatorRegistrationTests.cs" />
+    <Compile Include="$(ClientContractSource)" Link="Production/Confirmation.cs" Condition="'$(ClientContractSource)'!=''" />
+    <PackageReference Include="SPTarkov.Server.Core" Version="4.1.0" />
+    <PackageReference Include="SPTarkov.DI" Version="4.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><LangVersion>latest</LangVersion><Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+ <GameRoot Condition="'$(GameRoot)'==''">D:/SPT41</GameRoot>
+ <AssemblySearchPaths>$(GameRoot)/EscapeFromTarkov_Data/Managed;$(GameRoot)/BepInEx/plugins/spt;$(GameRoot)/BepInEx/core;{HintPathFromItem};{RawFileName};{TargetFrameworkDirectory}</AssemblySearchPaths></PropertyGroup>
+ <ItemGroup>
+ <Compile Include="../../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorPose.cs"/><Compile Include="Boundary.cs"/>
+ <Reference Include="Assembly-CSharp" Private="false"/><Reference Include="Assembly-CSharp-firstpass" Private="false"/><Reference Include="AnimationSystem.Types" Private="false"/>
+ <Reference Include="Comfort" Private="false"/><Reference Include="Comfort.Unity" Private="false"/>
+ <Reference Include="ItemTemplate.Types" Private="false"/><Reference Include="ItemComponent.Types" Private="false"/>
+ <Reference Include="UnityEngine" Private="false"/><Reference Include="UnityEngine.CoreModule" Private="false"/>
+ <Reference Include="0Harmony" Private="false"/>
+ </ItemGroup>
+</Project>

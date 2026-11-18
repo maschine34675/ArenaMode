@@ -10,6 +10,7 @@ int checks = 0;
 void Need(bool condition, string reason) { if (!condition) throw new Exception(reason); checks++; }
 var config = new ConfigFile();
 ArenaMode.Combat.Fire.ArenaFireSettings.Bind(config);
+ArenaMode.Combat.Translocator.ArenaTranslocatorSettings.Bind(config);
 // Presentation can add decoration, never consume input or replace callbacks.
 var themeRoot = new GameObject("theme fixture", typeof(RectTransform));
 ArenaMode.Hud.ArenaUiTheme.Fill((RectTransform)themeRoot.transform, "surface", ArenaMode.Hud.ArenaUiTheme.Surface);
@@ -588,8 +589,10 @@ Button KillcamButton() => MutatorButton(ArenaMutator.Killcam);
 string MutatorStatus(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "Mutator status " + id).text;
 string KillcamText() => "KILLCAM: " + MutatorStatus(ArenaMutator.Killcam);
 Need(MutatorsRoot().activeInHierarchy, "mutators are visible immediately without an opener");
-Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 23,
-    "inline panel includes PMC voice; Crowd shares the unsupported Fast Bots slot in Zombies");
+Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 24,
+    "inline panel includes Translocator; Crowd shares the unsupported Fast Bots slot in Zombies");
+Need(!ArenaMode.Combat.Translocator.ArenaTranslocatorSettings.Enabled.Value && MutatorStatus(ArenaMutator.Translocator) == "OFF",
+    "Translocator is available as an explicit opt-in and defaults off");
 Need(Settings.PmcVoiceEnabled.Value && MutatorStatus(ArenaMutator.PmcVoice) == "ON",
     "automatic PMC voice is enabled by default and visible in the menu");
 MutatorButton(ArenaMutator.PmcVoice).onClick.Invoke();
@@ -645,7 +648,7 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     RectTransform Detail(ArenaMutator id) => MutatorsRoot().GetComponentsInChildren<TMP_Text>(true)
         .Single(t => t.name == "Mutator detail " + id).rectTransform;
     float pitch = 40f;
-    Need(mutatorIds.Length == 23 && Math.Abs(RowTop(ArenaMutator.FastMovement) - 62f) < .01f
+    Need(mutatorIds.Length == 24 && Math.Abs(RowTop(ArenaMutator.FastMovement) - 62f) < .01f
         && Math.Abs(RowTop(ArenaMutator.Pickups) - 62f) < .01f,
         "both mutator columns start below their category heading");
     Need(Math.Abs(RowTop(mutatorIds[1]) - RowTop(mutatorIds[0]) - pitch) < .01f,
@@ -653,8 +656,8 @@ Need(MutatorsRoot().GetComponentsInChildren<TMP_Text>(true).Where(t => t.name ==
     Need(mutatorIds.All(id => Detail(id).sizeDelta.y >= 18f), "all descriptions retain one readable line");
     Need(mutatorIds.All(id => Math.Abs(((RectTransform)MutatorButton(id).transform).sizeDelta.y - 22f) < .01f
         && Math.Abs(Detail(id).sizeDelta.y - 18f) < .01f),
-        "twenty-three mutators retain 22px buttons and 18px description cells");
-    foreach (var (lastId, bottom) in new[] { (ArenaMutator.InstantSearch, 560f), (ArenaMutator.ArenaHud, 520f) })
+        "twenty-four mutators retain 22px buttons and 18px description cells");
+    foreach (var (lastId, bottom) in new[] { (ArenaMutator.InstantSearch, 560f), (ArenaMutator.ArenaHud, 560f) })
     {
         var lastDetail = Detail(lastId);
         Need(Math.Abs(-lastDetail.anchoredPosition.y + lastDetail.sizeDelta.y - bottom) < .01f
@@ -839,6 +842,7 @@ var preferencePairs = new[] {
     (ArenaMutator.FastMovement, Settings.MovementEnabled),
     (ArenaMutator.FastBots, Settings.BotMovementEnabled),
     (ArenaMutator.Molotov, ArenaMode.Combat.Fire.ArenaFireSettings.Enabled),
+    (ArenaMutator.Translocator, ArenaMode.Combat.Translocator.ArenaTranslocatorSettings.Enabled),
     (ArenaMutator.Akimbo, Settings.AkimboEnabled),
     (ArenaMutator.Bunnyhop, Settings.BunnyhopEnabled),
     (ArenaMutator.DoubleJump, Settings.DoubleJumpEnabled),
@@ -1250,8 +1254,8 @@ foreach (bool team in new[] { false, true })
     Need(MutatorButton(ArenaMutator.ZombieCrowd).gameObject.activeSelf
         && !MutatorButton(ArenaMutator.FastBots).gameObject.activeSelf,
         "Crowd replaces unsupported Fast Bots without adding a visible row");
-    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 23,
-        "Zombie keeps the same twenty-three readable rows");
+    Need(MutatorsRoot().GetComponentsInChildren<Button>(true).Count(b => b.gameObject.activeSelf && b.name.StartsWith("Arena Mutator ")) == 24,
+        "Zombie keeps the same twenty-four readable rows");
     bool bots = Settings.BotMovementEnabled.Value;
     Need(MutatorStatus(ArenaMutator.ZombieCrowd) == "OFF", "Crowd starts visibly OFF");
     MutatorButton(ArenaMutator.ZombieCrowd).onClick.Invoke();
@@ -1275,7 +1279,7 @@ foreach (bool team in new[] { false, true })
     Need(!Settings.ZombieCrowdEnabled.Value && Settings.BotMovementEnabled.Value == bots,
         "Crowd toggles independently of normal bot movement");
 }
-// Reward consent is a separate profile-level control, not a 23rd mutator. This
+// Reward consent is a separate profile-level control, not another mutator. This
 // uses the real map-view callback; the transport seam performs no HTTP or I/O.
 var rewardRoot = screen.transform.Children.Single(x => x.name == "Arena Profile Rewards").gameObject;
 var rewardButton = rewardRoot.GetComponentsInChildren<Button>(true).Single(b => b.name == "Reward consent");

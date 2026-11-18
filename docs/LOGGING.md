@@ -16,6 +16,10 @@ optional grenades or spare magazines that did not fit are Debug. A no-contest
 round and a kit without any reserve stay Warning: there the round has no valid
 result or the player fights on the loaded magazine alone.
 
+Translocator supply, launch, recall, confirmed relocation and expected target
+refusals are Debug. Missing device assets, incompatible templates and unexpected
+native failures use bounded warnings; no per-frame physics logging is emitted.
+
 In F12, tick **Advanced settings** and enable **Diagnostics → Developer Mode**
 (.cfg key `Diagnostics/DeveloperMode`) to collect detailed probes. It
 defaults to **false**, is not a gameplay mutator and can be changed at runtime.

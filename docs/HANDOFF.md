@@ -1,6 +1,6 @@
 # ArenaMode working handoff
 
-Snapshot: 2026-11-15. Read [AGENTS.md](../AGENTS.md) first, then the
+Snapshot: 2026-11-16. Read [AGENTS.md](../AGENTS.md) first, then the
 [area rules](AREA-RULES.md) for what you touch. This is a compact handoff, not a transcript
 and not a live synchronization channel: verify files, commit IDs, installed artifacts and
 logs before treating a recorded result as current; a new session has no access to the
@@ -12,12 +12,65 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-16: Factory Translocator collision fix**, same
+  `codex/translocator-20261115` branch, based on `c37ee3e5`. Collision candidate A
+  supersedes the November 15 client E locally and on both GPU hosts: SHA256
+  `8710BCA3139FD87257B8F90CBF503B56CD73A02B37CE7F0D57FB1D5821D52F5E`,
+  MVID `e4980df0-1f25-40a9-99ab-e1cd483171db`, matching PDB. Server E and released
+  Core 1.0.24 remain unchanged. Native Factory evidence identified invisible 20 m
+  spawn spheres on Triggers13 with `isTrigger=false`; broad default queries saw
+  them as walls. Physical disc layers now exclude those helpers and movement
+  hulls while preserving real solids, map borders and the exact owned arena
+  enclosure. Destination capsule validation is unchanged. On host 2 the corrected
+  loaded candidate passed the same spawn/flight cases, real-wall refusal,
+  obstructed-target refusal retaining the disc, and a successful clear teleport.
+  All 53 automatically selected harness groups and full xunit passed (3,929
+  passed, three known skips); the verification-tool group's temporary worktree
+  setup failure passed on a full repeat. Whole-data audits preserve the original
+  configuration/PFT data and explicitly account for one pre-existing, signed
+  startup reward of 1,000 RUB plus 100 XP. No profile rollback was performed.
+  Both games/servers are closed; Syncthing is unpaused and converged on all three
+  installations, with the post-sync data audit passed.
+  No version bump or release. Identity, verification and restoration evidence:
+  [Factory collision report](reports/2026-11/GPU-TRANSLOCATOR-COLLISION-20261116.md).
+
+- **Development, 2026-11-15: selectable Translocator**,
+  branch `codex/translocator-20261115`, based on `5be2fd3f`. No version bump or
+  release. Candidate E is installed locally and on both GPU hosts: client SHA256
+  `7AE80CEB5628E497E3A98FDB71E9319269FE44A81F75BDDF9745698B137E7CE8`,
+  MVID `9102b507-cfee-43f1-b3b8-f714ca608a81`, matching PDB; server SHA256
+  `EAE730FB3379CCB0920839EB7FDB4BD2BF31753BEA319ED57748F412D146CDF1`.
+  Released Core 1.0.24 stays unchanged (`aa46ec84…`). The source manifest in the
+  [test report](reports/2026-11/GPU-TRANSLOCATOR-20261115.md) binds the precommit
+  build, whose informational version still names the base commit.
+  [Contract](reviews/TRANSLOCATOR-20261115.md). Separate optional mutator, OFF by
+  default, independent of Fast Movement: a private reusable device occupies a free
+  rig/pocket slot and free quickslot; primary throws/recalls, secondary teleports
+  to its owned resting or flying disc, without ADS. One disc per body; exact
+  player-sized collision and bounded-area checks; no telefrag or multiplayer.
+  E's native tests on both hosts demonstrate visible stable hand pose, ground/air
+  transfers with natural falling, real obstructed-target refusal retaining the
+  disc, holster/inventory/respawn transitions and clean raid exit. A physical
+  arena enclosure bounced the disc back inside; direct outside-policy rejection
+  and an independent low-ceiling-only refusal remain source checks, not native
+  acceptance. Earlier C's grounded-air hang and D's pose/input conflict are fixed
+  and explicitly separated from E's evidence in the report.
+  Both games and servers are closed. The full audits before and after restoring
+  Syncthing passed: original config bytes, complete profiles (only bookkeeping
+  timestamps differ) and PitFireTeam data preserved. All 74 automatically selected harness steps
+  plus the full xunit suite passed without cached results (3,929 passed tests,
+  three existing environment skips). Syncthing is unpaused on all three machines,
+  each reporting idle with no needed items or errors. No new conflict copies,
+  no profile edits; all ten baseline profile files per installation remain.
+  Final protected-file audit: `artifacts/translocator-20261115/native/after-20261115-205600/`.
+
 - **Development, 2026-11-15: Zombie recovery, route planning and wave variety**,
   branch `codex/zombie-flow-20261115`, based on `99f9bd69` (the movement work below).
   No version bump or release. Client candidate A, SHA256
   `B2CA8ED2769DB5535A737B1458F1579AD27FB6B5AD1CC46A78E6B408EE57F332`,
-  MVID `dec526a1-0b99-46a6-9f24-cb61e70602ba`, is installed locally and on both GPU
-  hosts with matching PDB. Shared Core stays released 1.0.24 (`aa46ec84…`).
+  MVID `dec526a1-0b99-46a6-9f24-cb61e70602ba`, was installed locally and on both GPU
+  hosts with matching PDB before the Translocator candidate above. Shared Core
+  stays released 1.0.24 (`aa46ec84…`).
   [Contract](reviews/ZOMBIE-FLOW-20261115.md),
   [test report](reports/2026-11/GPU-ZOMBIE-FLOW-20261115.md).
   Exact owned infected receive bounded individual recovery, a shared two-job

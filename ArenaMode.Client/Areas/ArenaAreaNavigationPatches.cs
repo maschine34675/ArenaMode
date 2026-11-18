@@ -220,6 +220,7 @@ internal static class ArenaAreaNavigationPatches
 
     private static bool BeforePlayerTeleport(Player __instance, Vector3 __0)
     {
+        if (ArenaAreaTranslocatorGate.TryResolve(__instance, __0, out bool translocatorAllowed)) return translocatorAllowed;
         if (!IsReady || !ArenaAreaRuntime.TryGetForPlayer(__instance, out _)) return true;
         if (ArenaAreaRuntime.AllowTeleport(__instance, __0)) return true;
         ArenaAreaRuntime.NoteRejectedTeleport(__instance, "direct player teleport rejected at " + __0.ToString("F2"));

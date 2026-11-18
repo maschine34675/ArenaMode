@@ -73,6 +73,16 @@ internal static class ArenaSlideTransitions
     }
 
     private static void Changed(object sender, EventArgs args) => Reset();
+    internal static void OnRelocated(Player player)
+    {
+        if (player == null || !ReferenceEquals(_slide?.Player, player)
+            || !ReferenceEquals(_slide.Context, player.MovementContext)) return;
+        unchecked { _epoch++; }
+        _slide.Clear();
+        _sampling = _contact = false;
+        // Retain the same component/input owner; disabling it would permanently
+        // remove slides from this living body after an ordinary relocation.
+    }
     private static void Reset()
     {
         unchecked { _epoch++; }

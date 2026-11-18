@@ -87,7 +87,14 @@ public static class ArenaTemplateExclusions
         KnownPlaceholders.Concat(KnownBrokenTemplates).ToList();
 
     private static readonly HashSet<string> AlwaysExcluded =
-        new(SeededExclusions, StringComparer.Ordinal);
+        new(SeededExclusions, StringComparer.Ordinal)
+        {
+            // Private reusable supply is granted by the live Translocator owner,
+            // never rolled into random kits/pickups. Kept literal so the generic
+            // eligibility source has no device dependency; its registration
+            // contract test pins this to ArenaTranslocatorItem.TemplateId.
+            "a12e00000000000000000002"
+        };
 
     private static readonly string[] Markers = { "DO_NOT_USE", "DO NOT USE" };
 

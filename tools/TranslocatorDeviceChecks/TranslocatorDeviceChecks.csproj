@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <SupplySource Condition="'$(SupplySource)'==''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorSupply.cs</SupplySource>
+    <InputSource Condition="'$(InputSource)'==''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorInput.cs</InputSource>
+    <ModelSource Condition="'$(ModelSource)'==''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorModel.cs</ModelSource>
+    <PoseSource Condition="'$(PoseSource)'==''">../../ArenaMode.Client/Combat/Translocator/ArenaTranslocatorPose.cs</PoseSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs"/><Compile Include="Stubs.cs"/><Compile Include="NativeContracts.cs"/>
+    <Compile Include="PoseBoundary.cs"/>
+    <Compile Include="$(PoseSource)" Link="Production/ArenaTranslocatorPose.cs"/>
+    <Compile Include="$(SupplySource)" Link="Production/ArenaTranslocatorSupply.cs"/>
+    <Compile Include="$(InputSource)" Link="Production/ArenaTranslocatorInput.cs"/>
+    <Compile Include="$(ModelSource)" Link="Production/ArenaTranslocatorModel.cs"/>
+    <Compile Include="../../ArenaMode.Shared/ArenaTranslocatorItem.cs" Link="Production/ArenaTranslocatorItem.cs"/>
+    <Reference Include="Mono.Cecil"><HintPath>../../../../BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

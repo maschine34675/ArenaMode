@@ -20,13 +20,13 @@ foreach (bool team in new[] { false, true })
 {
     selection.Synchronize(mode.Id, team);
     var visible = ids.Where(selection.Visible).ToArray();
-    Need(visible.Length == 23, "Every mode presents 23 controls without hidden duplicate bot controls.");
+    Need(visible.Length == 24, "Every mode presents 24 controls without hidden duplicate bot controls.");
     Need(visible.Count(id => id is ArenaMutator.FastBots or ArenaMutator.ZombieCrowd) == 1,
         "Normal bots and horde pressure share exactly one combat slot.");
     Need(selection.Visible(ArenaMutator.ZombieCrowd) == (mode.Id == ArenaModeCatalog.ZombieId),
         "Horde pressure is offered only by Zombies.");
     var counts = Enumerable.Range(0, 4).Select(g => visible.Count(id => ArenaMutatorSelection.Group(id) == g)).ToArray();
-    Need(counts.SequenceEqual(new[] { 9, 3, 5, 6 }), "Movement, equipment, combat and feedback preserve their complete contents.");
+    Need(counts.SequenceEqual(new[] { 9, 3, 6, 6 }), "Movement, equipment, combat and feedback preserve their complete contents.");
     foreach (var (w, h) in new[] { (1920f,1080f), (1600f,900f), (1280f,720f), (2560f,1440f), (1440f,1080f) })
     {
         var screen = new RectTransform { rect = new Rect(w, h) };

@@ -109,6 +109,22 @@ internal static partial class ArenaAirVault
         catch (Exception) { return false; }
     }
 
+    internal static bool HasRelocationConflict(Player player)
+        => player != null && (ReferenceEquals(_request?.Player, player)
+            || ReferenceEquals(_pending?.Request?.Player, player));
+
+    internal static void OnRelocated(Player player)
+    {
+        if (player == null) return;
+        // Active native transfers are refused before teleport. Only observations
+        // and stale positional requests owned by this exact body may be retired.
+        if (ReferenceEquals(_pending?.Request?.Player, player)) CancelPending();
+        if (ReferenceEquals(_request?.Player, player)) _request = null;
+        if (ReferenceEquals(_animatorFrame?.Pending?.Request?.Player, player)) _animatorFrame = null;
+        if (ReferenceEquals(_motionObservation?.Request?.Player, player)) _motionObservation = null;
+        if (ReferenceEquals(_blockedUntilRelease, player)) _blockedUntilRelease = null;
+    }
+
     /// <summary>Called even when movement is disabled, to release our own queued flag.</summary>
     internal static void Tick()
     {
