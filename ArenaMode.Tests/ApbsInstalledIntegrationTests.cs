@@ -83,7 +83,7 @@ public sealed partial class BotTierScalePatchTests
             Assert.True(ApbsBotTierCompatibility.Enabled, ApbsBotTierCompatibility.FailureReason);
             host.Configure(0, false, 1);
             var versionToken = StartTimedArena();
-            Assert.Single(host.Generate(new(ArenaSession), host.Wave(), Condition(versionToken, 300, 240)));
+            Assert.Single(host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 }));
             Assert.Equal((60, 70), (host.Samples.Single().Min, host.Samples.Single().Max));
             if (version == "2.4.1+rebuild")
                 Assert.DoesNotContain(logs.Warnings, line => line.Contains("newer than the reviewed"));
@@ -108,7 +108,7 @@ public sealed partial class BotTierScalePatchTests
             foreach (int elapsed in new[] { 0, 120, 240 })
             {
                 var wave = host.Wave();
-                var bots = host.Generate(new(ArenaSession), wave, Condition(token, 300, elapsed));
+                var bots = host.Generate(new(ArenaSession), wave, new GenerateCondition { Limit = 1 });
                 Assert.Single(bots);
                 var sample = Assert.Single(host.Samples);
                 // The wire clock no longer moves the band: the Maximum gear level from the first request.
@@ -172,7 +172,7 @@ public sealed partial class BotTierScalePatchTests
         // profile anchor. The same late Arena demand no longer gets 60..70.
         ApbsBotTierCompatibility.Disable();
         var lateToken = StartTimedArena();
-        host.Generate(new(ArenaSession), host.Wave(), Condition(lateToken, 300, 240));
+        host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 });
         Assert.NotEqual((60, 70), (host.Samples.Single().Min, host.Samples.Single().Max));
         ApbsBotTierCompatibility.TryEnable([host.Mod]);
         Assert.True(ApbsBotTierCompatibility.Enabled);
@@ -180,7 +180,7 @@ public sealed partial class BotTierScalePatchTests
         // A throwing generator must still remove cloned ownership and restore
         // the pending thread scope; native TryGenerateSingleBot handles failure.
         host.ThrowInPrepare = true;
-        Assert.Empty(host.Generate(new(ArenaSession), host.Wave(), Condition(lateToken, 300, 240)));
+        Assert.Empty(host.Generate(new(ArenaSession), host.Wave(), new GenerateCondition { Limit = 1 }));
         Assert.NotNull(host.LastClone);
         Assert.False(ArenaBotTierOwnership.TryGetRange(host.LastClone!, new(1, 100), 79, out _));
         host.ThrowInPrepare = false;

@@ -131,7 +131,6 @@ public class Plugin : BaseUnityPlugin
         Bots.ArenaBotTaunts.Enable();
         Performance.PoolPrewarmMonitor.Initialize();
         Bots.TdmSearchTempo.Enable();
-        Bots.ArenaBotDifficultyClockPatch.EnablePatch();
         Bots.ArenaProfilePreloadPatch.EnablePatch();
         Bots.ZombieNativeEventBridge.EnablePatch();
         Bots.ZombiePerformancePatches.EnablePatch();

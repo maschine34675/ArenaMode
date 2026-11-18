@@ -4,7 +4,6 @@ using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Bot;
 using SPTarkov.Server.Core.Models.Spt.Bots;
 using System.Reflection;
-using System.Text.Json;
 using ArenaMode.Shared;
 using ArenaMode.Server.Services;
 
@@ -34,8 +33,8 @@ namespace ArenaMode.Server.Patches;
 ///
 /// Only Gun Game ramps (start level to the difficulty step's gear level over the map's
 /// ramp minutes, on the server's wall clock since the raid went live); every other mode
-/// holds the step's gear level from the first request. The finite-match clock of Team
-/// Deathmatch and Domination no longer decides a level; it only still sizes the request.
+/// holds the step's gear level from the first request, so a Team Deathmatch or Domination
+/// request is an ordinary request with the fixed band; no client clock rides on it.
 /// APBS 2.4.1 instead reads its global raid level; the optional range adapter
 /// carries this request's explicit Arena bounds through SPT's per-bot clone.
 /// </summary>
@@ -70,7 +69,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
     }
 
     [PatchPrefix]
-    public static void Prefix(MongoId sessionId, BotGenerationDetails botGenerationDetails, GenerateCondition? __1 = null)
+    public static void Prefix(MongoId sessionId, BotGenerationDetails botGenerationDetails)
     {
         try
         {
@@ -108,29 +107,7 @@ public sealed class ArenaBotTierScalePatch : AbstractPatch
                 return;
             }
 
-            if (__1?.ExtensionData?.TryGetValue(ArenaDifficultyClock.WireKey, out var wireClock) == true)
-            {
-                // Request SIZE only. The finite-match clock no longer decides any
-                // level (stage 3 removes the channel on both sides). It is still
-                // bound to the exact session/map/arm so a foreign or stale request
-                // keeps its native size; the band below applies either way, so a
-                // request with a broken clock gets the same fixed band as one without.
-                ArenaDifficultyClock? clock = null;
-                try { clock = wireClock is JsonElement element ? element.Deserialize<ArenaDifficultyClock>() : null; }
-                catch (Exception) { /* any unreadable clock is no clock: the band below still applies */ }
-                if (clock?.IsValid() == true
-                    && __1.Limit > 0 && botGenerationDetails.BotCountToGenerate > 0
-                    && sessions.TryGetTeamDeathmatchBotContext(sessionId, location, out var token)
-                    && string.Equals(token, clock.ArmToken, StringComparison.Ordinal))
-                {
-                    // Do not fill a 15-profile reserve with a request that wants one
-                    // profile. This changes only the current finite TDM request, never
-                    // SPT config.
-                    botGenerationDetails.BotCountToGenerate = Math.Min(botGenerationDetails.BotCountToGenerate, __1.Limit);
-                }
-            }
-            // The one-profile demand remains bounded even when the user opts
-            // out of gear progression; the native level/range then stay intact.
+            // The user's opt-out keeps the native level and range intact.
             if (!map.ScaleBotTier) return;
 
             // Gun Game ramps from the start level to the step's gear level over the

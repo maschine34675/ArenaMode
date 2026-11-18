@@ -18,7 +18,7 @@ internal static partial class Program
             raid.Fill();
             Check(raid.Mode.InitialRosterReady && raid.Mode.IsSearchActive && raid.Mode.MonitorClaims == 1,
                 "DOM releases real roster/countdown and claims objective monitors");
-            Check(raid.Mode.TryGetDifficultyClock(out _, out int duration) && duration == 600,
+            Check(raid.Mode.MatchTimeLimit == 600,
                 "DOM frozen objective horizon independent of TDM F12 limits");
             float start = Time.time;
             var enemy = raid.Bots.First(b => b.Profile.Info.Side != raid.Local.Profile.Info.Side);

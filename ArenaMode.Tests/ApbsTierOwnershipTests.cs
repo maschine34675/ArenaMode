@@ -15,7 +15,7 @@ public sealed partial class BotTierScalePatchTests
         var token = StartTimedArena();
         var wave = Details("factory4_day", 47, 33, 61);
         wave.IsPmc = true; wave.Role = "pmcUSEC"; wave.Side = "Usec"; wave.BotCountToGenerate = 15;
-        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession), wave, Condition(token, 300, 240));
+        ArenaBotTierScalePatch.Prefix(new MongoId(ArenaSession), wave);
         return wave;
     }
 

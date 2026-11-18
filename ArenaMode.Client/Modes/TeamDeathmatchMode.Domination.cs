@@ -20,7 +20,7 @@ public sealed partial class TeamDeathmatchMode
     private TdmMatchResult? MatchResult => IsDomination ? _dominationRules?.Result : _rules?.Result;
     private string MatchReason => IsDomination ? _dominationRules?.Reason : _rules?.Reason;
     private int MatchScoreLimit => IsDomination ? _dominationRules?.ScoreLimit ?? 0 : _rules?.KillLimit ?? 0;
-    private int MatchTimeLimit => IsDomination ? _dominationRules?.TimeLimitSeconds ?? 0 : _rules?.TimeLimitSeconds ?? 0;
+    internal int MatchTimeLimit => IsDomination ? _dominationRules?.TimeLimitSeconds ?? 0 : _rules?.TimeLimitSeconds ?? 0;
     private int FinalFriendlyScore => IsDomination ? _dominationRules?.FriendlyScore ?? 0 : _rules?.FriendlyKills ?? 0;
     private int FinalOpponentScore => IsDomination ? _dominationRules?.OpponentScore ?? 0 : _rules?.OpponentKills ?? 0;
     internal int FriendlyTeamScore => IsDomination ? (_population?.LocalUsec == true

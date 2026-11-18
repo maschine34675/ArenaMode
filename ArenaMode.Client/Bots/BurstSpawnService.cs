@@ -1330,23 +1330,25 @@ internal static class BurstSpawnService
     /// </summary>
     public static void PrewarmPmcProfiles()
     {
-        // This runs before ArenaMatch is constructed. Finite TDM freezes these
-        // same settings at OnMatchStart; do not preload its peak difficulty with
-        // opening-tier equipment. Its per-wave server batch is request-sized.
-        if (ArenaSession.IsActive && ArenaBotDifficultyClockPatch.IsReady && Shared.ArenaPopulationPolicy.IsIndependentTeam(ArenaSession.ActiveMode)
-            && Settings.TeamDeathmatchTimeLimitSeconds.Value > 0) return;
+        // Runs before ArenaMatch is constructed; the frozen step and the mode are
+        // already in ArenaSession. Outside an active session nothing is warmed.
+        if (!ArenaSession.IsActive) return;
         try
         {
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
             if (spawner == null)
                 return;
 
-            // Keyed by (role, difficulty) with exact equality, so every difficulty
-            // we might ASK for needs its own backup — otherwise the pre-warm
-            // stops covering PMC refills at exactly the moment pressure peaks
-            // and the refills matter most.
-            foreach (var difficulty in new[] { BotDifficulty.hard, BotDifficulty.impossible })
+            // Keyed by (role, difficulty) with exact equality, so warm exactly the
+            // levels this mode can ask for with the frozen step: one in the fixed
+            // modes, the opening level plus the step's level in Gun Game, none in
+            // Zombie. A tactical squad of scavs asks for no PMC either.
+            if (string.Equals(ArenaSession.ActiveMode, Shared.ArenaPopulationPolicy.Tactical, StringComparison.OrdinalIgnoreCase)
+                && !Settings.TacticalSquadIsPmc.Value)
+                return;
+            foreach (var level in Shared.ArenaDifficultyPolicy.PmcRequestLevels(ArenaSession.ActiveMode, ArenaDifficulty.Step))
             {
+                var difficulty = (BotDifficulty)(int)level;
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);
             }

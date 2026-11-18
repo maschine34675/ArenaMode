@@ -191,6 +191,23 @@ public static class ArenaDifficultyPolicy
     }
 
     /// <summary>
+    /// The PMC levels the client can request in a mode for a frozen step: exactly the pairs
+    /// the PMC profile backup has to cover. Fixed modes ask for one level (progress 1 from
+    /// the first request); Gun Game opens at <see cref="GunGamePmcOpening"/> and ends at the
+    /// step's row, so it asks for both (one when they coincide, as at Reduced). Zombie never
+    /// requests a PMC, so it needs none. Ordered, without duplicates.
+    /// </summary>
+    public static ArenaBotLevel[] PmcRequestLevels(string? mode, ArenaDifficultyStep step)
+    {
+        if (string.Equals(mode, ArenaPopulationPolicy.Zombie, StringComparison.OrdinalIgnoreCase))
+            return Array.Empty<ArenaBotLevel>();
+        var end = PmcLevel(step);
+        if (ScalesWithTime(mode) && GunGamePmcOpening != end)
+            return new[] { GunGamePmcOpening, end };
+        return new[] { end };
+    }
+
+    /// <summary>
     /// The AI level of a mode at a progress. Outside Gun Game progress is 1, so callers pass
     /// <see cref="Progress"/> and get the step's flat row from the first request.
     /// </summary>

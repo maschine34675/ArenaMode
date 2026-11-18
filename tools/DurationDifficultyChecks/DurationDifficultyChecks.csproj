@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
-    <ClockSource Condition="'$(ClockSource)' == ''">../../ArenaMode.Shared/ArenaDifficultyClock.cs</ClockSource>
     <DifficultySource Condition="'$(DifficultySource)' == ''">../../ArenaMode.Client/Bots/ArenaDifficulty.cs</DifficultySource>
     <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Shared/ArenaDifficultyPolicy.cs</PolicySource>
-    <DemandSource Condition="'$(DemandSource)' == ''">../../ArenaMode.Client/Bots/ArenaBotDifficultyClockPatch.cs</DemandSource>
+    <BurstText Condition="'$(BurstText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Bots/BurstSpawnService.cs</BurstText>
     <SessionText Condition="'$(SessionText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaSession.cs</SessionText>
     <ClientConfigText Condition="'$(ClientConfigText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Session/ArenaClientConfig.cs</ClientConfigText>
     <ServerConfigText Condition="'$(ServerConfigText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Server/ArenaModeConfig.cs</ServerConfigText>
@@ -14,12 +13,12 @@
   <ItemGroup>
     <Compile Include="../ArenaBalanceFixtures.cs" Link="Fixtures.cs" />
     <Compile Include="$(PolicySource)" Link="Production/ArenaDifficultyPolicy.cs" />
-    <Compile Include="$(ClockSource)" Link="Production/ArenaDifficultyClock.cs" />
+    <Compile Include="../../ArenaMode.Shared/ArenaPopulationPolicy.cs" Link="Production/ArenaPopulationPolicy.cs" />
     <Compile Include="$(DifficultySource)" Link="Production/ArenaDifficulty.cs" />
-    <Compile Include="$(DemandSource)" Link="Production/ArenaBotDifficultyClockPatch.cs" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="BurstText" Value="$([System.IO.Path]::GetFullPath('$(BurstText)'))" />
     <AssemblyMetadata Include="SessionText" Value="$([System.IO.Path]::GetFullPath('$(SessionText)'))" />
     <AssemblyMetadata Include="ClientConfigText" Value="$([System.IO.Path]::GetFullPath('$(ClientConfigText)'))" />
     <AssemblyMetadata Include="ServerConfigText" Value="$([System.IO.Path]::GetFullPath('$(ServerConfigText)'))" />

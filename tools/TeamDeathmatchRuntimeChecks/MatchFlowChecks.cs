@@ -43,32 +43,28 @@ internal static partial class Program
         ArenaTeamBoxRuntime.Reset();
     }
 
-    private static void MatchDifficultyClock()
+    // The match clock no longer feeds any bot difficulty; it still drives the HUD countdown and the
+    // result. These pin what the match itself reads from it: the frozen horizon and the live elapsed time.
+    private static void MatchPlayingClock()
     {
         var raid=new Raid(size:2,timeLimit:300);
-        Check(raid.Mode.TryGetDifficultyClock(out float elapsed,out int duration) && elapsed==0 && duration==300,
-            "difficulty clock starts at zero during assembly");
+        Check(raid.Mode.PlayingElapsed==0 && raid.Mode.MatchTimeLimit==300,
+            "playing clock starts at zero during assembly");
         Time.time=Time.realtimeSinceStartup=Time.unscaledTime=100;
         Settings.TeamDeathmatchTimeLimitSeconds.Value=1200;
-        Check(raid.Mode.TryGetDifficultyClock(out elapsed,out duration) && elapsed==0 && duration==300,
-            "difficulty duration is frozen and excludes prolonged assembly");
+        Check(raid.Mode.PlayingElapsed==0 && raid.Mode.MatchTimeLimit==300,
+            "match horizon is frozen and the clock excludes prolonged assembly");
         raid.Fill();
         float start=Time.time;
         raid.Step(start+120);
-        Check(raid.Mode.TryGetDifficultyClock(out elapsed,out duration) && elapsed>=120 && elapsed<125 && duration==300,
-            "difficulty uses actual live clock after countdown");
+        Check(raid.Mode.PlayingElapsed>=120 && raid.Mode.PlayingElapsed<125 && raid.Mode.MatchTimeLimit==300,
+            "playing clock uses the actual live clock after countdown");
         int cues=raid.Match.Cues.Count;
         Time.time=start+400;
-        Check(raid.Mode.TryGetDifficultyClock(out _,out _) && raid.Match.Cues.Count==cues && !raid.Mode.HasResult,
-            "difficulty clock read never publishes a pending result");
+        Check(raid.Mode.PlayingElapsed>=300 && raid.Match.Cues.Count==cues && !raid.Mode.HasResult,
+            "reading the playing clock never publishes a pending result");
         raid.Step(Time.time);
-        Check(!raid.Mode.TryGetDifficultyClock(out _,out _),"difficulty clock rejects completed match");
-        raid=new Raid(timeLimit:300);
-        raid.Game.Status=GameStatus.Stopping;
-        Check(!raid.Mode.TryGetDifficultyClock(out _,out _),"difficulty clock rejects stopped raid");
-        raid=new Raid(timeLimit:300);
-        Singleton<GameWorld>.Instance=new GameWorld();
-        Check(!raid.Mode.TryGetDifficultyClock(out _,out _),"difficulty clock rejects replaced raid");
+        Check(raid.Mode.HasResult,"the time limit still ends the match once the clock is stepped");
     }
 
     private static Raid AssembleForCountdown()

@@ -90,11 +90,6 @@ namespace ArenaMode.Config
 namespace ArenaMode.Modes
 {
     public class Mode { public bool IsComplete; }
-    public class TeamDeathmatchMode : Mode
-    {
-        public float Elapsed; public int Duration=300; public bool Current=true;
-        public bool TryGetDifficultyClock(out float elapsed, out int duration) { elapsed=Elapsed; duration=Duration; return Current && !IsComplete; }
-    }
     public class Match { public Mode Mode = new(); public float Elapsed; public int Streak; }
     public static class ArenaMatchService { public static Match Current; }
 }
