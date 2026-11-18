@@ -117,31 +117,51 @@ internal static class Program
     }
     // --- the PMC prewarm: exactly the (role, level) pairs the frozen step can request ----------------------
     private static string Levels(string mode,ArenaDifficultyStep step)=>string.Join(",",ArenaDifficultyPolicy.PmcRequestLevels(mode,step));
+    private static string Warm(bool active,string mode,bool squadPmc,ArenaDifficultyStep step)=>string.Join(",",ArenaDifficultyPolicy.PrewarmLevels(active,mode,squadPmc,step));
     private static void Prewarm()
     {
-        // Written out, not read from the policy. Fixed modes warm one level, Gun Game the opening plus the step's level.
+        // Written out, not read from the policy. Fixed modes request and warm one level.
         foreach(var mode in new[]{"deathmatch","teamdeathmatch","domination","tactical"})
         {
             Check(Levels(mode,ArenaDifficultyStep.Maximum)=="Impossible",$"prewarm {mode} Maximum warms only impossible");
             Check(Levels(mode,ArenaDifficultyStep.Reduced)=="Hard",$"prewarm {mode} Reduced warms only hard");
+            Check(Warm(true,mode,true,ArenaDifficultyStep.Maximum)=="Impossible" && Warm(true,mode,true,ArenaDifficultyStep.Reduced)=="Hard",$"prewarm {mode} warms what it requests");
         }
-        Check(Levels("gungame",ArenaDifficultyStep.Maximum)=="Hard,Impossible","prewarm Gun Game Maximum warms hard then impossible");
-        Check(Levels("gungame",ArenaDifficultyStep.Reduced)=="Hard","prewarm Gun Game Reduced warms hard once");
+        // Gun Game requests the opening plus the step's level, but only the opening is pooled at second 0:
+        // the server's gear band ramps, so a pooled end-level profile would arrive in start-level gear.
+        Check(Levels("gungame",ArenaDifficultyStep.Maximum)=="Hard,Impossible","Gun Game Maximum can request hard then impossible");
+        Check(Levels("gungame",ArenaDifficultyStep.Reduced)=="Hard","Gun Game Reduced can request hard only");
+        Check(Warm(true,"gungame",true,ArenaDifficultyStep.Maximum)=="Hard" && Warm(true,"gungame",true,ArenaDifficultyStep.Reduced)=="Hard","prewarm Gun Game warms only the opening level");
         Check(Levels("zombie",ArenaDifficultyStep.Maximum)=="" && Levels("zombie",ArenaDifficultyStep.Reduced)=="","prewarm Zombie warms no PMC level");
-        // Every level a mode really requests is covered, and nothing else is warmed (the first request finds its pool).
+        Check(Warm(true,"zombie",true,ArenaDifficultyStep.Maximum)=="","prewarm Zombie warms nothing");
+        Check(Warm(false,"deathmatch",true,ArenaDifficultyStep.Maximum)=="" && Warm(false,"gungame",true,ArenaDifficultyStep.Reduced)=="","prewarm does nothing outside an active session");
+        Check(Warm(true,"tactical",false,ArenaDifficultyStep.Maximum)=="" && Warm(true,"TACTICAL",false,ArenaDifficultyStep.Reduced)=="","prewarm warms no PMC for a Tactical squad of scavs");
+        Check(Warm(true,"deathmatch",false,ArenaDifficultyStep.Maximum)=="Impossible","the squad setting only matters in Tactical");
+        // Every level a fixed mode really requests is covered, and nothing else is warmed (the first request finds its pool).
         foreach(var mode in new[]{"deathmatch","teamdeathmatch","domination","tactical","gungame"}) foreach(var step in new[]{ArenaDifficultyStep.Maximum,ArenaDifficultyStep.Reduced})
         {
-            var warmed=ArenaDifficultyPolicy.PmcRequestLevels(mode,step);
-            Check(warmed.Distinct().Count()==warmed.Length,$"prewarm lists no level twice {mode} {step}");
+            var requestable=ArenaDifficultyPolicy.PmcRequestLevels(mode,step);
+            Check(requestable.Distinct().Count()==requestable.Length,$"prewarm lists no level twice {mode} {step}");
             var requested=new HashSet<ArenaBotLevel>();
             foreach(double progress in new[]{0d,.5d,.79d,.8d,1d}) requested.Add(ArenaDifficultyPolicy.BotLevel(step,true,ArenaDifficultyPolicy.Progress(mode,progress*900,15)));
-            Check(requested.SetEquals(warmed),$"prewarm covers exactly the PMC levels requested {mode} {step}");
+            Check(requested.SetEquals(requestable),$"prewarm covers exactly the PMC levels requested {mode} {step}");
+            Check(ArenaDifficultyPolicy.PrewarmLevels(true,mode,true,step).All(requestable.Contains),$"prewarm never warms an unrequestable level {mode} {step}");
         }
-        // The call site walks that list instead of a literal pair list, and no clock readiness gates it.
+        // The call site asks the policy and walks its answer; no clock readiness gates the method body.
         var burst=Text("BurstText");
-        Check(burst.Contains("foreach (var level in Shared.ArenaDifficultyPolicy.PmcRequestLevels(ArenaSession.ActiveMode, ArenaDifficulty.Step))"),"prewarm walks the policy's level list for the frozen step");
-        Check(burst.Contains("spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);") && burst.Contains("spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);"),"prewarm covers both PMC sides");
-        Check(!burst.Contains("IsReady") && !burst.Contains("TeamDeathmatchTimeLimitSeconds.Value > 0) return;"),"prewarm has no clock readiness gate");
+        int at=burst.IndexOf("public static void PrewarmPmcProfiles()",StringComparison.Ordinal);
+        Check(at>=0,"PrewarmPmcProfiles exists");
+        var body=burst.Substring(at); int end=body.IndexOf("catch (Exception ex)",StringComparison.Ordinal); if(end>0) body=body.Substring(0,end);
+        Check(body.Contains("var levels = Shared.ArenaDifficultyPolicy.PrewarmLevels( ArenaSession.IsActive, ArenaSession.ActiveMode, Settings.TacticalSquadIsPmc.Value, ArenaDifficulty.Step);"),"prewarm asks the policy with the session gate, mode, squad setting and frozen step");
+        Check(body.Contains("foreach (var level in levels)"),"prewarm walks the policy's level list");
+        Check(body.Contains("spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);") && body.Contains("spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcBEAR, 6);"),"prewarm covers both PMC sides");
+        Check(!body.Contains("IsReady") && !body.Contains("TeamDeathmatchTimeLimitSeconds"),"prewarm has no clock readiness gate");
+        Check(body.Contains("if (levels.Length == 0) return;"),"prewarm stops when the policy lists no level");
+        // Every PMC request path takes its level from the one reader, so the pool the prewarm fills is the pool they hit.
+        Check(burst.Contains("var difficulty = ArenaDifficulty.DifficultyFor(wantPmc);"),"burst requests take their level from ArenaDifficulty");
+        Check(Text("SoloText").Contains("ArenaDifficulty.DifficultyFor(pmc)"),"solo population takes its level from ArenaDifficulty");
+        Check(Text("TdmText").Contains("SpawnFactionBot(role, ArenaDifficulty.DifficultyFor(true),"),"Team Deathmatch requests take their level from ArenaDifficulty");
+        Check(Text("TacticalText").Split("difficulty: ArenaDifficulty.DifficultyFor(Settings.TacticalSquadIsPmc.Value),").Length==3,"both Tactical squad requests take their level from ArenaDifficulty");
     }
     private static void Main()
     {

@@ -1,3 +1,4 @@
+using ArenaMode.Kits;
 using ArenaMode.Shared;
 
 namespace ArenaMode.Tests;
@@ -253,6 +254,30 @@ public sealed class ArenaDifficultyPolicyTests
             Assert.Equal(40, ArenaDifficultyPolicy.GearLevelAt(Red, 1, 66, p));
             Assert.Equal(4, ArenaDifficultyPolicy.PmcBonusAt(Max, p));
             Assert.Equal(2, ArenaDifficultyPolicy.PmcBonusAt(Red, p));
+        }
+    }
+
+    [Fact]
+    public void RepeatedModeIdsMatchTheirOwners()
+    {
+        // The policy repeats these literals so harnesses linking only it still compile.
+        Assert.Equal(ArenaPopulationPolicy.Zombie, ArenaDifficultyPolicy.ZombieModeId);
+        Assert.Equal(ArenaPopulationPolicy.Tactical, ArenaDifficultyPolicy.TacticalModeId);
+        Assert.Equal(KitPreloadPlan.GunGameModeId, ArenaDifficultyPolicy.GunGameModeId);
+    }
+
+    [Fact]
+    public void PrewarmPoolsOnlyWhatIsSafeAtSecondZero()
+    {
+        foreach (var step in new[] { Max, Red })
+        {
+            Assert.Empty(ArenaDifficultyPolicy.PrewarmLevels(false, "deathmatch", true, step));
+            Assert.Empty(ArenaDifficultyPolicy.PrewarmLevels(true, ArenaPopulationPolicy.Zombie, true, step));
+            Assert.Empty(ArenaDifficultyPolicy.PrewarmLevels(true, "tactical", false, step));
+            Assert.Equal(new[] { ArenaDifficultyPolicy.PmcLevel(step) }, ArenaDifficultyPolicy.PrewarmLevels(true, "tactical", true, step));
+            Assert.Equal(new[] { ArenaDifficultyPolicy.PmcLevel(step) }, ArenaDifficultyPolicy.PrewarmLevels(true, "teamdeathmatch", false, step));
+            // Gun Game's gear band ramps: only the opening level is pooled, the step's level is fetched fresh.
+            Assert.Equal(new[] { ArenaBotLevel.Hard }, ArenaDifficultyPolicy.PrewarmLevels(true, "gungame", true, step));
         }
     }
 }

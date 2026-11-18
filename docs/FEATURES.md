@@ -776,7 +776,7 @@ Sources: [map/mode matrix](MAP-MODE-COMPATIBILITY.md),
 
 Sources: [bot movement](reviews/BOT-MOVEMENT-REVIEW.md),
 [agility](../ArenaMode.Client/Movement/ArenaBotAgility.cs),
-[pressure](../ArenaMode.Client/Bots/ArenaPressure.cs),
+[difficulty reader](../ArenaMode.Client/Bots/ArenaDifficulty.cs),
 [difficulty policy](../ArenaMode.Shared/ArenaDifficultyPolicy.cs),
 [population ownership](reviews/SOLO-POPULATION-REVIEW.md),
 [APBS integration](reviews/APBS-COMPATIBILITY-REVIEW.md),

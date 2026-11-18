@@ -39,6 +39,9 @@ public static class ArenaDifficultyPolicy
     /// <summary>Same id as ArenaPopulationPolicy.Zombie; repeated so harnesses linking only this file still compile.</summary>
     public const string ZombieModeId = "zombie";
 
+    /// <summary>Same id as ArenaPopulationPolicy.Tactical; a test pins the equality.</summary>
+    public const string TacticalModeId = "tactical";
+
     /// <summary>
     /// The highest gear level Arena may ever claim, a hard safety bound rather than a taste.
     /// The bot system looks the written level up in its tier table and that lookup throws
@@ -208,6 +211,26 @@ public static class ArenaDifficultyPolicy
         if (ScalesWithTime(mode) && GunGamePmcOpening != end)
             return new[] { GunGamePmcOpening, end };
         return new[] { end };
+    }
+
+    /// <summary>
+    /// The PMC levels worth pooling at raid start, a subset of <see cref="PmcRequestLevels"/>.
+    /// The server builds a profile with the gear band of the moment it is asked, and only
+    /// Gun Game's band moves. A level pooled at second 0 would reach the field minutes later
+    /// in start-level gear, so in Gun Game only the opening level is warmed (its AI level is
+    /// requested while the band is still near the start, and later refills use the live band);
+    /// the step's level is requested fresh once progress reaches its threshold. Nothing is
+    /// warmed outside an active session, for Zombie, or for a Tactical squad of scavs.
+    /// </summary>
+    public static ArenaBotLevel[] PrewarmLevels(bool active, string? mode, bool tacticalSquadIsPmc, ArenaDifficultyStep step)
+    {
+        if (!active)
+            return Array.Empty<ArenaBotLevel>();
+        if (string.Equals(mode, TacticalModeId, StringComparison.OrdinalIgnoreCase) && !tacticalSquadIsPmc)
+            return Array.Empty<ArenaBotLevel>();
+        if (ScalesWithTime(mode))
+            return new[] { GunGamePmcOpening };
+        return PmcRequestLevels(mode, step);
     }
 
     /// <summary>

@@ -1331,22 +1331,23 @@ internal static class BurstSpawnService
     public static void PrewarmPmcProfiles()
     {
         // Runs before ArenaMatch is constructed; the frozen step and the mode are
-        // already in ArenaSession. Outside an active session nothing is warmed.
-        if (!ArenaSession.IsActive) return;
+        // already in ArenaSession. The decision lives in the shared policy so it is
+        // testable: nothing outside an active session, none for Zombie, none for a
+        // Tactical squad of scavs, one level in the fixed modes, and in Gun Game only
+        // the opening level (a profile pooled now carries the start-level gear band, so
+        // the step's level is requested fresh once the ramp reaches it). The squad
+        // setting is read live; a squad switched to PMC mid-raid pays one cold round trip.
         try
         {
+            var levels = Shared.ArenaDifficultyPolicy.PrewarmLevels(
+                ArenaSession.IsActive, ArenaSession.ActiveMode, Settings.TacticalSquadIsPmc.Value, ArenaDifficulty.Step);
+            if (levels.Length == 0)
+                return;
             var spawner = (Singleton<IBotGame>.Instance)?.BotsController?.BotSpawner;
             if (spawner == null)
                 return;
 
-            // Keyed by (role, difficulty) with exact equality, so warm exactly the
-            // levels this mode can ask for with the frozen step: one in the fixed
-            // modes, the opening level plus the step's level in Gun Game, none in
-            // Zombie. A tactical squad of scavs asks for no PMC either.
-            if (string.Equals(ArenaSession.ActiveMode, Shared.ArenaPopulationPolicy.Tactical, StringComparison.OrdinalIgnoreCase)
-                && !Settings.TacticalSquadIsPmc.Value)
-                return;
-            foreach (var level in Shared.ArenaDifficultyPolicy.PmcRequestLevels(ArenaSession.ActiveMode, ArenaDifficulty.Step))
+            foreach (var level in levels)
             {
                 var difficulty = (BotDifficulty)(int)level;
                 spawner.AddToTargetBackup(difficulty, WildSpawnType.pmcUSEC, 6);

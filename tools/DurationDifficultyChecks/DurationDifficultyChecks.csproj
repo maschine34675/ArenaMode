@@ -9,6 +9,9 @@
     <ServerConfigText Condition="'$(ServerConfigText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Server/ArenaModeConfig.cs</ServerConfigText>
     <HostilityText Condition="'$(HostilityText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Bots/ArenaHostility.cs</HostilityText>
     <MovementText Condition="'$(MovementText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Movement/ArenaBotMovement.cs</MovementText>
+    <TacticalText Condition="'$(TacticalText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Modes/TacticalMode.cs</TacticalText>
+    <TdmText Condition="'$(TdmText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Modes/TeamDeathmatchMode.cs</TdmText>
+    <SoloText Condition="'$(SoloText)' == ''">$(MSBuildThisFileDirectory)../../ArenaMode.Client/Bots/ArenaSoloPopulation.cs</SoloText>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../ArenaBalanceFixtures.cs" Link="Fixtures.cs" />
@@ -23,5 +26,8 @@
     <AssemblyMetadata Include="ServerConfigText" Value="$([System.IO.Path]::GetFullPath('$(ServerConfigText)'))" />
     <AssemblyMetadata Include="HostilityText" Value="$([System.IO.Path]::GetFullPath('$(HostilityText)'))" />
     <AssemblyMetadata Include="MovementText" Value="$([System.IO.Path]::GetFullPath('$(MovementText)'))" />
+    <AssemblyMetadata Include="TacticalText" Value="$([System.IO.Path]::GetFullPath('$(TacticalText)'))" />
+    <AssemblyMetadata Include="TdmText" Value="$([System.IO.Path]::GetFullPath('$(TdmText)'))" />
+    <AssemblyMetadata Include="SoloText" Value="$([System.IO.Path]::GetFullPath('$(SoloText)'))" />
   </ItemGroup>
 </Project>
