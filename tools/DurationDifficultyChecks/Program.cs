@@ -110,7 +110,7 @@ internal static class Program
         Check(config.Contains("value.HasValue ? Math.Max(1, value.Value) : fallback"),
             "a present non-positive ramp length clamps to one minute like the server");
         var hostility=Text("HostilityText");
-        Check(hostility.Contains("interval = (float)ArenaDifficultyPolicy.SweepInterval( interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode, ArenaDifficulty.Step);"),
+        Check(hostility.Contains("interval = (float)ArenaDifficultyPolicy.SweepInterval( interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode, ArenaDifficultyPolicy.ReportStep(ArenaSession.ActiveMode, ArenaDifficulty.Step));"),
             "the HuntPlayer sweep interval comes from the policy with the frozen step");
         Check(Text("MovementText").Contains("requested = (float)ArenaDifficultyPolicy.BotSpeedFactor(requested, ArenaDifficulty.Step);"),
             "bot speed comes from the policy with the frozen step");

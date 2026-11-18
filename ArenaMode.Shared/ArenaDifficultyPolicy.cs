@@ -129,6 +129,14 @@ public static class ArenaDifficultyPolicy
         => 1d + (Math.Min(requested, BotSpeedUserCap) - 1d) * BotSpeedSurplusScale(step);
 
     /// <summary>
+    /// The step the position reports use. Zombies are not touched by the step's report
+    /// interval: the horde has its own hunt nudge, and the contract's Zombie section changes
+    /// only the alive limit and the composition, so every step reports at the configured pace.
+    /// </summary>
+    public static ArenaDifficultyStep ReportStep(string? mode, ArenaDifficultyStep step)
+        => string.Equals(mode, ZombieModeId, StringComparison.OrdinalIgnoreCase) ? ArenaDifficultyStep.Maximum : step;
+
+    /// <summary>
     /// The HuntPlayer sweep interval: the per-map value, then the Tactical halving (kept at
     /// two seconds at least), then the step's factor last. The caller keeps its own floor.
     /// </summary>
@@ -231,6 +239,58 @@ public static class ArenaDifficultyPolicy
         if (ScalesWithTime(mode))
             return new[] { GunGamePmcOpening };
         return PmcRequestLevels(mode, step);
+    }
+
+    /// <summary>Zombies at Reduced: the most infected alive at once (the lower of the setting and this).</summary>
+    public const int ZombieMaxAliveReduced = 24;
+
+    /// <summary>Zombies at Maximum: the melee slow share fades from this wave on.</summary>
+    public const int ZombieSlowFadeFromWave = 4;
+
+    /// <summary>Zombies at Maximum: percentage points the slow share loses per wave from the fade wave on.</summary>
+    public const int ZombieSlowFadePointsPerWave = 5;
+
+    /// <summary>Zombies at Maximum: the shooter share grows by this share of the configured value per wave.</summary>
+    public const double ZombieShooterGrowthPerWave = 0.1;
+
+    /// <summary>Zombies at Maximum: the shooter share never exceeds this multiple of the configured value.</summary>
+    public const double ZombieShooterGrowthCap = 2d;
+
+    /// <summary>
+    /// Infected alive at once: Maximum keeps the setting (32 from wave one stays), Reduced
+    /// takes the lower of the setting and <see cref="ZombieMaxAliveReduced"/>.
+    /// </summary>
+    public static int ZombieMaxAlive(ArenaDifficultyStep step, int configured)
+        => step == ArenaDifficultyStep.Reduced ? Math.Min(configured, ZombieMaxAliveReduced) : configured;
+
+    /// <summary>
+    /// The melee slow share of a wave given the rhythm's value (<paramref name="baseSlowPercent"/>).
+    /// Reduced keeps the rhythm. Maximum subtracts 5 points per wave from wave 4 on and never
+    /// goes below 0, so the horde turns all-fast: rhythm 40, 20, 30, 40, 20, ... becomes
+    /// 35, 10, 15, 20, 0, 0, 5, 0 from wave 4.
+    /// </summary>
+    public static int ZombieSlowPercent(ArenaDifficultyStep step, int baseSlowPercent, int waveNumber)
+    {
+        int slow = Math.Clamp(baseSlowPercent, 0, 100);
+        if (step == ArenaDifficultyStep.Reduced || waveNumber < ZombieSlowFadeFromWave)
+            return slow;
+        long fade = (long)ZombieSlowFadePointsPerWave * (waveNumber - (ZombieSlowFadeFromWave - 1));
+        return (int)Math.Max(0L, slow - fade);
+    }
+
+    /// <summary>
+    /// The shooter share of a wave given the configured share. Reduced keeps it flat.
+    /// Maximum adds a tenth of the configured share per wave after the first, up to twice the
+    /// configured share and never above 100 %; exactly 0 % and 100 % stay exact.
+    /// </summary>
+    public static int ZombieShooterPercent(ArenaDifficultyStep step, int configured, int waveNumber)
+    {
+        int share = Math.Clamp(configured, 0, 100);
+        if (step == ArenaDifficultyStep.Reduced || waveNumber <= 1 || share == 0 || share == 100)
+            return share;
+        double growth = Math.Min(ZombieShooterGrowthCap - 1d, ZombieShooterGrowthPerWave * ((long)waveNumber - 1));
+        int grown = (int)Math.Round(share * (1d + growth), MidpointRounding.AwayFromZero);
+        return Math.Clamp(grown, share, Math.Min(100, share * 2));
     }
 
     /// <summary>

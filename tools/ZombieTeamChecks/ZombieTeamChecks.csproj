@@ -4,6 +4,7 @@
     <Compile Include="../../ArenaMode.Client/Combat/ArenaFriendlyFireRoster.cs" Link="Production/ArenaFriendlyFireRoster.cs" />
     <Compile Include="../../ArenaMode.Client/Respawn/ArenaReplayWaitPolicy.cs" Link="Production/ArenaReplayWaitPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ZombieTeamRuntime*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../../ArenaMode.Shared/ArenaDifficultyPolicy.cs" Link="Production/ArenaDifficultyPolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ZombieMode.cs" Link="Production/ZombieMode.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ZombieWavePolicy.cs" Link="Production/ZombieWavePolicy.cs" />
     <Compile Include="../../ArenaMode.Client/Modes/ZombieRefillPolicy.cs" Link="Production/ZombieRefillPolicy.cs" />

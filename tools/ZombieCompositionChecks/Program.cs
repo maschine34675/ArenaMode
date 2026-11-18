@@ -1,5 +1,6 @@
 using ArenaMode.Bots;
 using ArenaMode.Modes;
+using ArenaMode.Shared;
 using Comfort.Common;
 using EFT;
 
@@ -37,7 +38,7 @@ internal static class Program
         for (int roll=0; roll<100; roll++)
         {
             string role = roll < 50 ? roles[0] : roll < 75 ? roles[1] : roll < 90 ? roles[2] : roles[3];
-            Check(ZombieRoleMix.Next(new Rolls(roll, 0), 100, 1).Role == role, "four generic role weights remain 50 25 15 10");
+            Check(ZombieRoleMix.Next(new Rolls(roll, 0), 100, 1, ArenaDifficultyStep.Reduced).Role == role, "four generic role weights remain 50 25 15 10");
         }
         foreach (int wave in Enumerable.Range(1,9))
         foreach (int percent in new[] { -4,0,1,25,50,99,100,104 })
@@ -47,7 +48,7 @@ internal static class Program
             for (int melee=0; melee<100; melee++)
             {
                 var rng = new Rolls(49, shooter, melee);
-                var draw = ZombieRoleMix.Next(rng, percent, wave);
+                var draw = ZombieRoleMix.Next(rng, percent, wave, ArenaDifficultyStep.Reduced);
                 bool shooting = shooter < Math.Clamp(percent,0,100);
                 Check((draw.Difficulty==ZombieRoleMix.Hard)==shooting, "shooter chance remains independent and exact at zero and hundred");
                 Check(rng.Calls == (shooting ? 2 : 3), "speed draw is conditional and preserves role shooter draw order");
@@ -60,16 +61,46 @@ internal static class Program
             Check(easy == (100-Math.Clamp(percent,0,100))*expected[wave-1]
                 && easy+normal+hard==10000, "melee bucket split follows each wave independently of shooter chance");
         }
+        // Maximum: the slow share of every wave fades per the policy and the shooter share grows;
+        // the role / shooter / melee roll order stays the same, so the buckets are enumerable.
+        int[] faded = {75,50,25,35,10,15,20,0,0,5,0};
+        for (int wave=1; wave<=faded.Length; wave++)
+        {
+            Check(ZombieCompositionPolicy.SlowPercent(wave, ArenaDifficultyStep.Maximum)==faded[wave-1], "Maximum fades the slow share from wave four");
+            Check(ZombieCompositionPolicy.SlowPercent(wave, ArenaDifficultyStep.Reduced)==ZombieCompositionPolicy.SlowPercent(wave), "Reduced keeps the rhythm");
+            foreach (int percent in new[] { 0,20,37,100 })
+            {
+                int share = ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, percent, wave);
+                int hard=0, easy=0;
+                for (int shooter=0; shooter<100; shooter++)
+                for (int melee=0; melee<100; melee++)
+                {
+                    var draw = ZombieRoleMix.Next(new Rolls(49, shooter, melee), percent, wave, ArenaDifficultyStep.Maximum);
+                    if (draw.Difficulty==ZombieRoleMix.Hard) hard++;
+                    else if (draw.Difficulty==ZombieRoleMix.Easy) easy++;
+                }
+                Check(hard==share*100, "Maximum draws the grown shooter share of the wave");
+                Check(easy==(100-share)*faded[wave-1], "Maximum draws the faded slow share of the wave");
+                if (percent==0 || percent==100) Check(share==percent, "exact 0 and 100 percent shooters stay exact at Maximum");
+            }
+        }
+        Check(ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, 20, 11)==40
+            && ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, 20, 99)==40
+            && ArenaDifficultyPolicy.ZombieShooterPercent(ArenaDifficultyStep.Maximum, 70, 99)==100,
+            "Maximum shooter growth stops at twice the setting and at 100 percent");
+        Check(ArenaDifficultyPolicy.ZombieMaxAlive(ArenaDifficultyStep.Reduced, 32)==24 && ArenaDifficultyPolicy.ZombieMaxAlive(ArenaDifficultyStep.Reduced, 8)==8
+            && ArenaDifficultyPolicy.ZombieMaxAlive(ArenaDifficultyStep.Maximum, 32)==32,
+            "Reduced caps the alive limit at 24 and Maximum never lowers it");
         var a=new Random(20261115); var b=new Random(20261115);
         for(int i=0;i<2000;i++)
         {
-            var x=ZombieRoleMix.Next(a,37,i/50+1); var y=ZombieRoleMix.Next(b,37,i/50+1);
+            var x=ZombieRoleMix.Next(a,37,i/50+1,ArenaDifficultyStep.Maximum); var y=ZombieRoleMix.Next(b,37,i/50+1,ArenaDifficultyStep.Maximum);
             Check(x.Role==y.Role && x.Difficulty==y.Difficulty, "same seed and wave sequence remain deterministic");
         }
         var early=new Random(1511); var late=new Random(1511);
         for(int i=0;i<2000;i++)
         {
-            var x=ZombieRoleMix.Next(early,37,1); var y=ZombieRoleMix.Next(late,37,5);
+            var x=ZombieRoleMix.Next(early,37,1,ArenaDifficultyStep.Reduced); var y=ZombieRoleMix.Next(late,37,5,ArenaDifficultyStep.Reduced);
             Check(x.Role==y.Role && (x.Difficulty==ZombieRoleMix.Hard)==(y.Difficulty==ZombieRoleMix.Hard),
                 "wave speed changes do not perturb role or shooter random stream");
         }

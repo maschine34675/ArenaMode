@@ -223,6 +223,7 @@ namespace ArenaMode.Modes
 namespace ArenaMode.Bots
 {
     // Crowd behavior is covered by ZombieCrowdChecks; this suite owns wave/team flow.
+    public static class ArenaDifficulty { public static ArenaMode.Shared.ArenaDifficultyStep Step = ArenaMode.Shared.ArenaDifficultyStep.Maximum; }
     public static class ZombieCrowdRuntime { public static void Reset() { } public static void Tick() { } }
     public static class ZombieRecoveryRuntime
     {
@@ -243,8 +244,9 @@ namespace ArenaMode.Bots
     public static class ZombieRoleMix
     {
         public static int LastWave, LastShooter, Draws;
-        public static (string Role,string Difficulty) Next(Random r,int s,int wave = 1)
-        { LastWave=wave; LastShooter=s; Draws++; return ("infected","normal"); }
+        public static ArenaMode.Shared.ArenaDifficultyStep LastStep;
+        public static (string Role,string Difficulty) Next(Random r,int s,int wave,ArenaMode.Shared.ArenaDifficultyStep step)
+        { LastWave=wave; LastShooter=s; LastStep=step; Draws++; return ("infected","normal"); }
     }
     public static class ZombieSpawnService
     {

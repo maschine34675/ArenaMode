@@ -1640,7 +1640,8 @@ public static class Settings
             "gear level, extra PMCs on top of the PMC floor, bot speed exactly as set, and position reports as configured. " +
             "Reduced: one step down everywhere (PMCs hard, scavs normal, about 60 % gear level, fewer extra PMCs, half of " +
             "the bot speed surplus, position reports 1.5x slower). Either value holds from the first spawn; only Gun Game " +
-            "builds up over the raid; Zombies are not affected by this setting yet. Protected PitFireTeam raids keep opponent gear relative " +
+            "builds up over the raid. Zombies: Maximum keeps the configured number alive, turns the slow walkers into runners and " +
+            "adds shooters wave by wave; Reduced keeps the mix as it is and allows at most 24 alive at once. Protected PitFireTeam raids keep opponent gear relative " +
             "to your profile at both steps. Frozen when the raid starts.");
 
         var difficultyRevision = config.Bind("Difficulty", "DifficultyRevision", 0,

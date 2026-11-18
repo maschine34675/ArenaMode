@@ -86,9 +86,11 @@ internal static class ArenaHostility
         // a bot nobody can find is not a quiet map — it is a round that will not
         // end, and the player waiting it out is the whole cost.
         // The difficulty step stretches the interval last, after the per-map value and the
-        // Tactical halving, so Reduced reports the player's position less often everywhere.
+        // Tactical halving, so Reduced reports the player's position less often everywhere
+        // except in Zombies, which the step does not slow (ArenaDifficultyPolicy.ReportStep).
         interval = (float)ArenaDifficultyPolicy.SweepInterval(
-            interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode, ArenaDifficulty.Step);
+            interval, Modes.ArenaMatchService.Current?.Mode is Modes.TacticalMode,
+            ArenaDifficultyPolicy.ReportStep(ArenaSession.ActiveMode, ArenaDifficulty.Step));
 
         _nextSweepAt = Time.time + Mathf.Max(1f, interval);
 

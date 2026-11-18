@@ -1,4 +1,5 @@
 using System;
+using ArenaMode.Shared;
 
 namespace ArenaMode.Modes;
 
@@ -54,9 +55,12 @@ internal static class ZombieRoleMix
     /// <summary>The Weights column above must sum to this.</summary>
     internal const int TotalWeight = 100;
 
-    /// <summary>One role + difficulty draw. Deterministic for a given rng state: two Random instances
+    /// <summary>
+    /// One role + difficulty draw. <paramref name="shooterPercent"/> is the configured share;
+    /// the frozen <paramref name="step"/> turns it into the wave's share (Maximum grows it,
+    /// Reduced keeps it flat) and picks the wave's slow share. Deterministic for a given rng state: two Random instances
     /// constructed with the same seed and driven the same way produce the same sequence of draws.</summary>
-    internal static Draw Next(Random rng, int shooterPercent, int waveNumber = 1)
+    internal static Draw Next(Random rng, int shooterPercent, int waveNumber, ArenaDifficultyStep step)
     {
         if (rng == null)
             throw new ArgumentNullException(nameof(rng));
@@ -64,9 +68,9 @@ internal static class ZombieRoleMix
         string role = PickRole(rng.Next(TotalWeight));
         // rng.Next(100) is 0..99, so a 0% share never rolls true and a 100%
         // share always does — exact, not merely close, regardless of seed.
-        bool hard = rng.Next(100) < Math.Clamp(shooterPercent, 0, 100);
+        bool hard = rng.Next(100) < ArenaDifficultyPolicy.ZombieShooterPercent(step, shooterPercent, waveNumber);
         if (hard) return new Draw(role, Hard);
-        bool slow = rng.Next(100) < ZombieCompositionPolicy.SlowPercent(waveNumber);
+        bool slow = rng.Next(100) < ZombieCompositionPolicy.SlowPercent(waveNumber, step);
         return new Draw(role, slow ? Easy : Normal);
     }
 

@@ -118,7 +118,7 @@ public sealed class ArenaDifficultyPolicyTests
     [InlineData("teamdeathmatch", false)]
     [InlineData("domination", false)]
     [InlineData("tactical", false)]
-    [InlineData("zombies", false)]
+    [InlineData("zombie", false)]
     [InlineData(null, false)]
     public void OnlyGunGameScalesWithTime(string? mode, bool scales)
         => Assert.Equal(scales, ArenaDifficultyPolicy.ScalesWithTime(mode));
@@ -128,7 +128,7 @@ public sealed class ArenaDifficultyPolicyTests
     [InlineData("teamdeathmatch")]
     [InlineData("domination")]
     [InlineData("tactical")]
-    [InlineData("zombies")]
+    [InlineData("zombie")]
     public void EveryModeOutsideGunGameIsAtProgressOneAtAnyTime(string mode)
     {
         foreach (double elapsed in new[] { 0d, 1d, 600d, 5400d, double.NaN })
@@ -279,5 +279,58 @@ public sealed class ArenaDifficultyPolicyTests
             // Gun Game's gear band ramps: only the opening level is pooled, the step's level is fetched fresh.
             Assert.Equal(new[] { ArenaBotLevel.Hard }, ArenaDifficultyPolicy.PrewarmLevels(true, "gungame", true, step));
         }
+    }
+
+    [Fact]
+    public void ZombieAliveLimitIsOnlyLoweredAtReduced()
+    {
+        foreach (int configured in new[] { 4, 24, 25, 32, 96 })
+        {
+            Assert.Equal(configured, ArenaDifficultyPolicy.ZombieMaxAlive(Max, configured));
+            Assert.Equal(Math.Min(configured, 24), ArenaDifficultyPolicy.ZombieMaxAlive(Red, configured));
+        }
+    }
+
+    [Theory]
+    [InlineData(1, 75, 75)]
+    [InlineData(3, 25, 25)]
+    [InlineData(4, 40, 35)]
+    [InlineData(5, 20, 10)]
+    [InlineData(6, 30, 15)]
+    [InlineData(7, 40, 20)]
+    [InlineData(8, 20, 0)]
+    [InlineData(9, 30, 0)]
+    [InlineData(10, 40, 5)]
+    [InlineData(11, 20, 0)]
+    [InlineData(int.MaxValue, 40, 0)]
+    public void ZombieSlowShareFadesFromWaveFourAtMaximumOnly(int wave, int rhythm, int expected)
+    {
+        Assert.Equal(expected, ArenaDifficultyPolicy.ZombieSlowPercent(Max, rhythm, wave));
+        Assert.Equal(rhythm, ArenaDifficultyPolicy.ZombieSlowPercent(Red, rhythm, wave));
+    }
+
+    [Theory]
+    [InlineData(20, 1, 20)]
+    [InlineData(20, 2, 22)]
+    [InlineData(20, 6, 30)]
+    [InlineData(20, 11, 40)]
+    [InlineData(20, 50, 40)]
+    [InlineData(37, 3, 44)]
+    [InlineData(70, 11, 100)]
+    [InlineData(70, int.MaxValue, 100)]
+    [InlineData(0, 30, 0)]
+    [InlineData(100, 30, 100)]
+    public void ZombieShooterShareGrowsToTwiceTheSettingAtMaximumOnly(int configured, int wave, int expected)
+    {
+        Assert.Equal(expected, ArenaDifficultyPolicy.ZombieShooterPercent(Max, configured, wave));
+        Assert.Equal(configured, ArenaDifficultyPolicy.ZombieShooterPercent(Red, configured, wave));
+    }
+
+    [Fact]
+    public void ZombiePositionReportsAreNeverSlowedByTheStep()
+    {
+        Assert.Equal(Max, ArenaDifficultyPolicy.ReportStep(ArenaPopulationPolicy.Zombie, Red));
+        Assert.Equal(Red, ArenaDifficultyPolicy.ReportStep("deathmatch", Red));
+        Assert.Equal(Red, ArenaDifficultyPolicy.ReportStep(null, Red));
     }
 }

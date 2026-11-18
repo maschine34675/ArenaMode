@@ -6,12 +6,14 @@
     <CompositionSource Condition="'$(CompositionSource)' == ''">../../ArenaMode.Client/Modes/ZombieCompositionPolicy.cs</CompositionSource>
     <RoleSource Condition="'$(RoleSource)' == ''">../../ArenaMode.Client/Modes/ZombieRoleMix.cs</RoleSource>
     <ProfileSource Condition="'$(ProfileSource)' == ''">../../ArenaMode.Client/Modes/ZombieProfilePlan.cs</ProfileSource>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Shared/ArenaDifficultyPolicy.cs</PolicySource>
     <ServiceSource Condition="'$(ServiceSource)' == ''">../../ArenaMode.Client/Bots/ZombieSpawnService.cs</ServiceSource>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CompositionSource)" Link="Production/ZombieCompositionPolicy.cs" />
     <Compile Include="$(RoleSource)" Link="Production/ZombieRoleMix.cs" />
     <Compile Include="$(ProfileSource)" Link="Production/ZombieProfilePlan.cs" />
+    <Compile Include="$(PolicySource)" Link="Production/ArenaDifficultyPolicy.cs" />
     <Compile Include="$(ServiceSource)" Link="Production/ZombieSpawnService.cs" />
     <Compile Include="../ZombieWavePendingChecks/ServiceChecks/Stubs.cs" Link="NativeBoundaryDoubles.cs" />
   </ItemGroup>
