@@ -25,6 +25,12 @@ Turning DeveloperMode off stops these probes again. Existing saved settings are
 not reset. Zombie melee observation only attaches to bots arriving while enabled;
 enable it before the raid for full coverage of that diagnostic counter.
 
+Zombie route planning reports cumulative approach/melee jobs, deferrals, the
+two-job frame limit and queue age at most once every five seconds in Developer
+Mode. These count complete native planning jobs, not nested NavMesh calls or CPU
+time. Individual stuck replacements are ordinary Debug lines with no combat
+credit; a failed native recovery or budget hook warns once per lifecycle.
+
 DeveloperMode also opts each new Arena respawn request into Core 1.0.8's detailed
 pipeline timing. With it off, state/reflection counters and following-frame
 measurements are not collected. The standalone Redeploy driver has its own

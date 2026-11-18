@@ -974,11 +974,10 @@ internal static class BurstSpawnService
     ///   native facts, decompile-verified) that needs BotBossSpawn's SetBoss
     ///   initialization the way SpawnManagedBot's bossTagillaAgro/bossKillaAgro
     ///   branch provides; this entry point does not, so it must never accept it.
-    /// - Only normal and hard difficulties are accepted. InfectedLayersStrategy's
+    /// - Only easy, normal and hard difficulties are accepted. InfectedLayersStrategy's
     ///   constructor (decompile-verified, InfectedLayersStrategy.cs:149-158)
-    ///   throws ArgumentOutOfRangeException for BotDifficulty.impossible; easy is
-    ///   technically safe (GetZombieModeByDifficulty returns Slow) but outside
-    ///   the v0 role mix by design — see ZombieRoleMix's own doc comment.
+    ///   throws ArgumentOutOfRangeException for BotDifficulty.impossible; the
+    ///   three supported values select native Slow/Fast/Shooting brains.
     /// </summary>
     internal static bool SpawnInfected(WildSpawnType role, BotDifficulty difficulty, Action<BotOwner> onArrival,
         Func<bool> requestCurrent = null, Func<bool> beginNativeDispatch = null,
@@ -992,10 +991,10 @@ internal static class BurstSpawnService
             return false;
         }
 
-        if (difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard)
+        if (difficulty != BotDifficulty.easy && difficulty != BotDifficulty.normal && difficulty != BotDifficulty.hard)
         {
             Plugin.ModLogger.LogWarning(
-                $"Arena zombie spawn: {difficulty} is not a supported infected difficulty in this mode (only normal/hard) — request rejected.");
+                $"Arena zombie spawn: {difficulty} is not a supported infected difficulty in this mode (only easy/normal/hard) — request rejected.");
             return false;
         }
 

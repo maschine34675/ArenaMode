@@ -160,6 +160,8 @@ public sealed partial class ZombieMode : IArenaMode
     /// <summary>Team assembly/restoration/result phases do not admit combat rewards.</summary>
     internal bool AssistScoringOpen => IsCurrentRaid() && !IsComplete && (_team == null || _team.IsLive);
     internal bool IsSpawnAdmissionOpen => IsCurrentRaid() && !IsComplete;
+    internal bool IsRecoveryAdmissionOpen => IsCurrentRaid() && !IsComplete && _openingCountdownStarted
+        && _waveState.Phase == ZombieWavePolicy.Phase.Wave && (_team == null || _team.IsLive);
     internal bool IsTeamArena => _team != null;
     // Polling active follower identities after a confirmed terminal result can
     // misclassify normal dead-body disposal as an unauthorized replacement.
@@ -309,6 +311,7 @@ public sealed partial class ZombieMode : IArenaMode
             _match.ReportLocalDeath();
         if (HasResult)
         {
+            ZombieRecoveryRuntime.Suspend();
             TickSoloResult();
             return;
         }
@@ -321,6 +324,7 @@ public sealed partial class ZombieMode : IArenaMode
 
         if (_team != null && !_team.Tick())
         {
+            ZombieRecoveryRuntime.Suspend();
             // Readiness and protected rebind consume no intermission time. This
             // also keeps the initial wave from spawning before all four arrive.
             if (_waveState.Phase == ZombieWavePolicy.Phase.Intermission)
@@ -356,6 +360,14 @@ public sealed partial class ZombieMode : IArenaMode
             int failedDispatches = ZombieSpawnService.ConsumeFailedDispatches();
             for (int i = 0; i < failedDispatches; i++)
                 ZombieWavePolicy.ReportFailedDispatch(ref _waveState, now);
+
+            // Only proven death returns one owed slot. Do this before reading
+            // population/clearance, and exclude that administrative death from
+            // the watchdog's combat-progress detector.
+            if (_waveState.SpawnedThisWave > 0
+                && ZombieRecoveryRuntime.Tick(this, _waveState.WaveNumber,
+                    ZombieWavePolicy.WaveSize(_config, _waveState.WaveNumber), _config.StuckWaveTimeoutSeconds) == 1)
+                ZombieWavePolicy.ReportRecoveredSpawn(ref _waveState);
 
             int alive = ZombieSpawnService.CountAliveInfected();
             int pending = ZombieSpawnService.Pending;
@@ -401,7 +413,7 @@ public sealed partial class ZombieMode : IArenaMode
 
             for (int i = 0; i < result.SpawnNow; i++)
             {
-                var draw = ZombieRoleMix.Next(_rng, _shooterPercent);
+                var draw = ZombieRoleMix.Next(_rng, _shooterPercent, _waveState.WaveNumber);
                 bool dispatched = ZombieSpawnService.TryMapRole(draw.Role, out var role)
                     && ZombieSpawnService.TryMapDifficulty(draw.Difficulty, out var difficulty)
                     && ZombieSpawnService.TryRequest(role, difficulty);

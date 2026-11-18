@@ -12,10 +12,36 @@ numbering unchanged, only their links and document paths re-rooted for the new l
 
 ## Released and installed
 
+- **Development, 2026-11-15: Zombie recovery, route planning and wave variety**,
+  branch `codex/zombie-flow-20261115`, based on `99f9bd69` (the movement work below).
+  No version bump or release. Client candidate A, SHA256
+  `B2CA8ED2769DB5535A737B1458F1579AD27FB6B5AD1CC46A78E6B408EE57F332`,
+  MVID `dec526a1-0b99-46a6-9f24-cb61e70602ba`, is installed locally and on both GPU
+  hosts with matching PDB. Shared Core stays released 1.0.24 (`aa46ec84…`).
+  [Contract](reviews/ZOMBIE-FLOW-20261115.md),
+  [test report](reports/2026-11/GPU-ZOMBIE-FLOW-20261115.md).
+  Exact owned infected receive bounded individual recovery, a shared two-job
+  native planning budget and wave-dependent Slow/Fast/Shooting composition.
+  Native tests demonstrate active attacks under deferral, actual solo waves 1–3,
+  an existing PFT companion clearing a wave with correct leader/follower rebuild,
+  and zero Zombie counters in a separate TDM raid. All 70 affected harness steps
+  and xunit passed (3,918 tests, 3 existing environment skips). **Positive native individual
+  recovery remains open**: the injected geometry was escaped by EFT's native
+  movement correction before a stationary proof could accumulate. Do not call
+  this branch fully accepted on the strength of its passing source tests.
+  The temporary confinement plugin is outside the game installation again.
+  Both games are closed; original config bytes, full profiles and PFT data were
+  independently verified after restoring Syncthing on all three installations.
+  One late conflict containing only bookkeeping timestamp differences was
+  archived outside the game; its removal propagated to both hosts. The final
+  full audit passed with only the four original conflict copies remaining.
+  Native preservation and complete-suite evidence live under
+  `artifacts/zombie-flow-20261115/`; the dated report records final boundaries.
+
 - **Development, 2026-11-15: jump reliability, slide transitions and sprint-jump
   hip fire**, branch `codex/movement-transitions-20261115`, based on `4b3bf6c8`.
-  No version bump or release. Client-only candidate G is installed locally and
-  synchronized to both GPU hosts: SHA256
+  No version bump or release. Client-only candidate G was installed locally and
+  synchronized to both GPU hosts before the Zombie candidate above: SHA256
   `8078CCC3E93F8EBF432EA23B4B956491942246D1951FF4AC49EF417269D92746`.
   Shared Core stays the released 1.0.24 (`aa46ec84…`); server, helper, Gate and
   companion binaries are unchanged. The working-tree source manifest binds the

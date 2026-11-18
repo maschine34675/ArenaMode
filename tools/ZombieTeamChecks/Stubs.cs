@@ -224,18 +224,35 @@ namespace ArenaMode.Bots
 {
     // Crowd behavior is covered by ZombieCrowdChecks; this suite owns wave/team flow.
     public static class ZombieCrowdRuntime { public static void Reset() { } public static void Tick() { } }
-    public static class ZombieNativeEventBridge { public static bool TryGetOpeningSnapshot(out int n,out int s) { n=s=0; return false; } }
+    public static class ZombieRecoveryRuntime
+    {
+        public static int Recoveries;
+        public static void Suspend() { }
+        public static int Tick(ArenaMode.Modes.ZombieMode mode, int wave, int size, float timeout)
+        { if (Recoveries <= 0) return 0; Recoveries--; ZombieSpawnService.Alive--; return 1; }
+    }
+    public static class ZombieNativeEventBridge
+    {
+        public static bool HasSnapshot; public static int SnapshotSize, SnapshotShooter;
+        public static bool TryGetOpeningSnapshot(out int n,out int s)
+        { n=SnapshotSize; s=SnapshotShooter; return HasSnapshot; }
+    }
     public static class ZombieMeleePatch { public static void Reset() { } }
     public static class ZombieMeleeDiagnostics { public static (int,int) ConsumeTotals() => (0,0); }
     public static class ZombieProfilePlan { public static object BackupTargets(int n,int s) => null; public static int BackupCountForWaveStartSize(int n) => n; }
-    public static class ZombieRoleMix { public static (string Role,string Difficulty) Next(Random r,int s) => ("infected","normal"); }
+    public static class ZombieRoleMix
+    {
+        public static int LastWave, LastShooter, Draws;
+        public static (string Role,string Difficulty) Next(Random r,int s,int wave = 1)
+        { LastWave=wave; LastShooter=s; Draws++; return ("infected","normal"); }
+    }
     public static class ZombieSpawnService
     {
         public static int Alive, Pending, ConfirmedArrivals, Dispatched, Retired;
         public static int FailedDispatches;
         public static bool RejectRequest;
         public static string PendingFailure;
-        public static void Reset() { Alive=Pending=ConfirmedArrivals=Dispatched=Retired=FailedDispatches=0; RejectRequest=false;PendingFailure=null; }
+        public static void Reset() { Alive=Pending=ConfirmedArrivals=Dispatched=Retired=FailedDispatches=0; RejectRequest=false;PendingFailure=null; ZombieRecoveryRuntime.Recoveries=0; }
         public static int ConsumeFailedDispatches() { int result=FailedDispatches;FailedDispatches=0;return result; }
         public static bool TryGetPendingFailure(out string reason) { reason=PendingFailure; return reason!=null; }
         public static int CountAliveInfected() => Alive;

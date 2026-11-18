@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <PolicySource Condition="'$(PolicySource)' == ''">../../ArenaMode.Client/Bots/ZombiePathBudgetPolicy.cs</PolicySource>
+    <RuntimeSource Condition="'$(RuntimeSource)' == ''">../../ArenaMode.Client/Bots/ZombiePathBudgetRuntime.cs</RuntimeSource>
+    <TranspilerSource Condition="'$(TranspilerSource)' == ''">../../ArenaMode.Client/Bots/ZombiePathBudgetTranspiler.cs</TranspilerSource>
+    <MeleeSource Condition="'$(MeleeSource)' == ''">../../ArenaMode.Client/Bots/ZombieMeleePatch.cs</MeleeSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(PolicySource)" Link="Production/ZombiePathBudgetPolicy.cs" />
+    <Compile Include="$(RuntimeSource)" Link="Production/ZombiePathBudgetRuntime.cs" />
+    <Compile Include="$(TranspilerSource)" Link="Production/ZombiePathBudgetTranspiler.cs" />
+    <Compile Include="$(MeleeSource)" Link="Production/ZombieMeleePatch.cs" />
+    <Compile Include="../../ArenaMode.Client/Bots/ZombieMeleeGate.cs" Link="Production/ZombieMeleeGate.cs" />
+  </ItemGroup>
+</Project>

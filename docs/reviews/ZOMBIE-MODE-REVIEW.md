@@ -1,5 +1,11 @@
 # Zombie Mode
 
+**2026-11-15 flow extension:** individual confirmed stuck-body replacement,
+fair native approach/melee planning admission and slow/fast/shooting wave
+composition are defined in [ZOMBIE-FLOW-20261115.md](ZOMBIE-FLOW-20261115.md).
+That contract supersedes the historical normal/hard-only mix and whole-wave-only
+recovery descriptions below. Population settings and pending-spawn barriers stay.
+
 **2026-10-09 solo survival rule:** solo Zombies now ends on the player's first
 death, with no respawn for either Arena kits or protected own gear. The mode
 retains its death hold until the exact native owner can safely exit. Any selected

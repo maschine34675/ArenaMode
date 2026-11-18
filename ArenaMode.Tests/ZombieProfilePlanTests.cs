@@ -7,9 +7,10 @@ public sealed class ZombieProfilePlanTests
     [Fact]
     public void OpeningProfilesSumBackToTheExactWaveStartSize()
     {
-        foreach (int size in new[] { 0, 1, 2, 7, 8, 13, 97, 100 })
+        foreach (int size in new[] { 0, 1, 2, 7, 8, 13, 97, 100, 200 })
+        foreach (int shooters in new[] { 0, 1, 25, 99, 100 })
         {
-            var entries = ZombieProfilePlan.OpeningProfiles(size, shooterPercent: 0);
+            var entries = ZombieProfilePlan.OpeningProfiles(size, shooterPercent: shooters);
             Assert.Equal(size, entries.Sum(e => e.Count));
         }
     }
@@ -32,7 +33,7 @@ public sealed class ZombieProfilePlanTests
     public void HundredPercentShooterProducesOnlyHardEntries()
     {
         var entries = ZombieProfilePlan.OpeningProfiles(50, shooterPercent: 100);
-        Assert.DoesNotContain(entries, e => e.Difficulty == ZombieRoleMix.Normal);
+        Assert.All(entries, e => Assert.Equal(ZombieRoleMix.Hard, e.Difficulty));
         Assert.Equal(50, entries.Sum(e => e.Count));
     }
 
@@ -40,10 +41,10 @@ public sealed class ZombieProfilePlanTests
     public void OpeningProfilesApproximatesTheRoleWeights()
     {
         var entries = ZombieProfilePlan.OpeningProfiles(100, shooterPercent: 0);
-        Assert.Equal(50, entries.Single(e => e.Role == ZombieRoleMix.InfectedAssault).Count);
-        Assert.Equal(25, entries.Single(e => e.Role == ZombieRoleMix.InfectedPmc).Count);
-        Assert.Equal(15, entries.Single(e => e.Role == ZombieRoleMix.InfectedCivil).Count);
-        Assert.Equal(10, entries.Single(e => e.Role == ZombieRoleMix.InfectedLaborant).Count);
+        Assert.Equal(50, entries.Where(e => e.Role == ZombieRoleMix.InfectedAssault).Sum(e => e.Count));
+        Assert.Equal(25, entries.Where(e => e.Role == ZombieRoleMix.InfectedPmc).Sum(e => e.Count));
+        Assert.Equal(15, entries.Where(e => e.Role == ZombieRoleMix.InfectedCivil).Sum(e => e.Count));
+        Assert.Equal(10, entries.Where(e => e.Role == ZombieRoleMix.InfectedLaborant).Sum(e => e.Count));
     }
 
     [Fact]
@@ -70,19 +71,23 @@ public sealed class ZombieProfilePlanTests
     }
 
     [Fact]
-    public void BackupTargetsCoverEveryMeleeRoleAlwaysAndTheHardVariantOnlyWhenAShooterShareExists()
+    public void BackupTargetsCoverOnlyPossibleFutureVariantsForEveryRole()
     {
         var withoutShooter = ZombieProfilePlan.BackupTargets(shooterPercent: 0);
-        Assert.Equal(4, withoutShooter.Count);
-        Assert.All(withoutShooter, e => Assert.Equal(ZombieRoleMix.Normal, e.Difficulty));
+        Assert.Equal(8, withoutShooter.Count);
+        Assert.DoesNotContain(withoutShooter, e => e.Difficulty == ZombieRoleMix.Hard);
 
         var withShooter = ZombieProfilePlan.BackupTargets(shooterPercent: 1);
-        Assert.Equal(8, withShooter.Count);
+        Assert.Equal(12, withShooter.Count);
         foreach (var (role, _) in ZombieRoleMix.Weights)
         {
+            Assert.Contains(withShooter, e => e.Role == role && e.Difficulty == ZombieRoleMix.Easy);
             Assert.Contains(withShooter, e => e.Role == role && e.Difficulty == ZombieRoleMix.Normal);
             Assert.Contains(withShooter, e => e.Role == role && e.Difficulty == ZombieRoleMix.Hard);
         }
+        var onlyShooters = ZombieProfilePlan.BackupTargets(shooterPercent: 100);
+        Assert.Equal(4, onlyShooters.Count);
+        Assert.All(onlyShooters, e => Assert.Equal(ZombieRoleMix.Hard, e.Difficulty));
     }
 
     [Fact]

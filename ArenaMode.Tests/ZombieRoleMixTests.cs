@@ -18,7 +18,7 @@ public sealed class ZombieRoleMixTests
     {
         var rng = new Random(12345);
         for (int i = 0; i < 1000; i++)
-            Assert.Equal(ZombieRoleMix.Normal, ZombieRoleMix.Next(rng, 0).Difficulty);
+            Assert.NotEqual(ZombieRoleMix.Hard, ZombieRoleMix.Next(rng, 0, i / 100 + 1).Difficulty);
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public sealed class ZombieRoleMixTests
         var b = new Random(42);
         for (int i = 0; i < 200; i++)
         {
-            var drawA = ZombieRoleMix.Next(a, 50);
-            var drawB = ZombieRoleMix.Next(b, 50);
+            var drawA = ZombieRoleMix.Next(a, 50, i / 20 + 1);
+            var drawB = ZombieRoleMix.Next(b, 50, i / 20 + 1);
             Assert.Equal(drawA.Role, drawB.Role);
             Assert.Equal(drawA.Difficulty, drawB.Difficulty);
         }
@@ -75,7 +75,7 @@ public sealed class ZombieRoleMixTests
         {
             var draw = ZombieRoleMix.Next(rng, 25);
             Assert.Contains(draw.Role, allowed);
-            Assert.True(draw.Difficulty == ZombieRoleMix.Normal || draw.Difficulty == ZombieRoleMix.Hard);
+            Assert.Contains(draw.Difficulty, new[] { ZombieRoleMix.Easy, ZombieRoleMix.Normal, ZombieRoleMix.Hard });
         }
     }
 
